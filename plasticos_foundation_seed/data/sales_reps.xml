@@ -13,7 +13,7 @@
       <field name="login">IB</field>
       <field name="email">ib@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_ib"/>
-      <field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+      <field name="group_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
     <record id="partner_sales_rep_ab" model="res.partner">
@@ -28,7 +28,7 @@
       <field name="login">AB</field>
       <field name="email">ab@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_ab"/>
-      <field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+      <field name="group_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
     <record id="partner_sales_rep_lm" model="res.partner">
@@ -43,7 +43,7 @@
       <field name="login">LM</field>
       <field name="email">lm@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_lm"/>
-      <field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+      <field name="group_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
     <record id="partner_sales_rep_rp" model="res.partner">
@@ -58,7 +58,7 @@
       <field name="login">RP</field>
       <field name="email">rp@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_rp"/>
-      <field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+      <field name="group_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
     <record id="partner_sales_rep_aa" model="res.partner">
@@ -73,7 +73,7 @@
       <field name="login">AA</field>
       <field name="email">aa@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_aa"/>
-      <field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+      <field name="group_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
     <record id="partner_sales_rep_tw" model="res.partner">
@@ -88,7 +88,7 @@
       <field name="login">TW</field>
       <field name="email">sa@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_tw"/>
-      <field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+      <field name="group_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
   </data>

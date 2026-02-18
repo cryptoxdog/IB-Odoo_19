@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <data noupdate="1">
-    <record id="account_40000_revenue" model="account.account">
-      <field name="code">40000</field>
-      <field name="name">Revenue</field>
-      <field name="account_type">asset</field>
-      <field name="reconcile">False</field>
-    </record>
+    <!-- Revenue accounts (40xxx) -->
     <record id="account_40050_sales_income" model="account.account">
       <field name="code">40050</field>
       <field name="name">Sales Income</field>
@@ -16,33 +11,25 @@
     <record id="account_40075_tax_refund" model="account.account">
       <field name="code">40075</field>
       <field name="name">Tax Refund</field>
-      <field name="account_type">income</field>
+      <field name="account_type">income_other</field>
       <field name="reconcile">False</field>
     </record>
-    <record id="account_50000_cost_of_goods_sold" model="account.account">
-      <field name="code">50000</field>
-      <field name="name">Cost Of Goods Sold</field>
-      <field name="account_type">asset</field>
-      <field name="reconcile">False</field>
-    </record>
+
+    <!-- Cost of Goods Sold (50xxx) -->
     <record id="account_50100_material_cost" model="account.account">
       <field name="code">50100</field>
       <field name="name">Material Cost</field>
-      <field name="account_type">expense</field>
+      <field name="account_type">expense_direct_cost</field>
       <field name="reconcile">False</field>
     </record>
     <record id="account_50700_national_box_exchange" model="account.account">
       <field name="code">50700</field>
       <field name="name">National Box Exchange</field>
-      <field name="account_type">expense</field>
+      <field name="account_type">expense_direct_cost</field>
       <field name="reconcile">False</field>
     </record>
-    <record id="account_62550_web_services" model="account.account">
-      <field name="code">62550</field>
-      <field name="name">Web Services</field>
-      <field name="account_type">asset</field>
-      <field name="reconcile">False</field>
-    </record>
+
+    <!-- Operating Expenses (62xxx-69xxx) -->
     <record id="account_62556_d_b" model="account.account">
       <field name="code">62556</field>
       <field name="name">D&amp;B</field>
@@ -53,12 +40,6 @@
       <field name="code">62621</field>
       <field name="name">Google Web Services</field>
       <field name="account_type">expense</field>
-      <field name="reconcile">False</field>
-    </record>
-    <record id="account_66000_employee_labor" model="account.account">
-      <field name="code">66000</field>
-      <field name="name">Employee Labor</field>
-      <field name="account_type">asset</field>
       <field name="reconcile">False</field>
     </record>
     <record id="account_66100_salary_w2_sasha_josie" model="account.account">
@@ -73,15 +54,9 @@
       <field name="account_type">expense</field>
       <field name="reconcile">False</field>
     </record>
-    <record id="account_67000_contractor_labor" model="account.account">
-      <field name="code">67000</field>
-      <field name="name">Contractor Labor</field>
-      <field name="account_type">asset</field>
-      <field name="reconcile">False</field>
-    </record>
     <record id="account_67100_sales" model="account.account">
       <field name="code">67100</field>
-      <field name="name">Sales</field>
+      <field name="name">Sales Commissions</field>
       <field name="account_type">expense</field>
       <field name="reconcile">False</field>
     </record>
@@ -89,12 +64,6 @@
       <field name="code">67200</field>
       <field name="name">Outsourced Labor (UpWork)</field>
       <field name="account_type">expense</field>
-      <field name="reconcile">False</field>
-    </record>
-    <record id="account_68000_overhead" model="account.account">
-      <field name="code">68000</field>
-      <field name="name">Overhead</field>
-      <field name="account_type">asset</field>
       <field name="reconcile">False</field>
     </record>
     <record id="account_68100_rent_expense" model="account.account">
@@ -145,12 +114,6 @@
       <field name="account_type">expense</field>
       <field name="reconcile">False</field>
     </record>
-    <record id="account_68250_postage_and_delivery" model="account.account">
-      <field name="code">68250</field>
-      <field name="name">Postage and Delivery</field>
-      <field name="account_type">asset</field>
-      <field name="reconcile">False</field>
-    </record>
     <record id="account_68251_usps" model="account.account">
       <field name="code">68251</field>
       <field name="name">USPS</field>
@@ -161,12 +124,6 @@
       <field name="code">68252</field>
       <field name="name">UPS</field>
       <field name="account_type">expense</field>
-      <field name="reconcile">False</field>
-    </record>
-    <record id="account_68300_communications_expense" model="account.account">
-      <field name="code">68300</field>
-      <field name="name">Communications Expense</field>
-      <field name="account_type">asset</field>
       <field name="reconcile">False</field>
     </record>
     <record id="account_68310_cell_phones" model="account.account">
@@ -187,12 +144,6 @@
       <field name="account_type">expense</field>
       <field name="reconcile">False</field>
     </record>
-    <record id="account_68400_computer_and_internet_expenses" model="account.account">
-      <field name="code">68400</field>
-      <field name="name">Computer and Internet Expenses</field>
-      <field name="account_type">asset</field>
-      <field name="reconcile">False</field>
-    </record>
     <record id="account_68410_computer_hardware" model="account.account">
       <field name="code">68410</field>
       <field name="name">Computer Hardware</field>
@@ -203,12 +154,6 @@
       <field name="code">68420</field>
       <field name="name">Computer Software</field>
       <field name="account_type">expense</field>
-      <field name="reconcile">False</field>
-    </record>
-    <record id="account_68500_advertising_and_promotion" model="account.account">
-      <field name="code">68500</field>
-      <field name="name">Advertising and Promotion</field>
-      <field name="account_type">asset</field>
       <field name="reconcile">False</field>
     </record>
     <record id="account_68510_advertising_print_web" model="account.account">
@@ -229,18 +174,6 @@
       <field name="account_type">expense</field>
       <field name="reconcile">False</field>
     </record>
-    <record id="account_68600_dues_and_subscriptions" model="account.account">
-      <field name="code">68600</field>
-      <field name="name">Dues and Subscriptions</field>
-      <field name="account_type">asset</field>
-      <field name="reconcile">False</field>
-    </record>
-    <record id="account_68620_website_subscription" model="account.account">
-      <field name="code">68620</field>
-      <field name="name">Website Subscription</field>
-      <field name="account_type">asset</field>
-      <field name="reconcile">False</field>
-    </record>
     <record id="account_68622_apple" model="account.account">
       <field name="code">68622</field>
       <field name="name">Apple</field>
@@ -253,12 +186,6 @@
       <field name="account_type">expense</field>
       <field name="reconcile">False</field>
     </record>
-    <record id="account_68700_fees_penalties" model="account.account">
-      <field name="code">68700</field>
-      <field name="name">Fees &amp; Penalties</field>
-      <field name="account_type">asset</field>
-      <field name="reconcile">False</field>
-    </record>
     <record id="account_68710_bank_service_charges" model="account.account">
       <field name="code">68710</field>
       <field name="name">Bank Service Charges</field>
@@ -269,12 +196,6 @@
       <field name="code">68730</field>
       <field name="name">Credit Card Fees</field>
       <field name="account_type">expense</field>
-      <field name="reconcile">False</field>
-    </record>
-    <record id="account_68800_professional_fees" model="account.account">
-      <field name="code">68800</field>
-      <field name="name">Professional Fees</field>
-      <field name="account_type">asset</field>
       <field name="reconcile">False</field>
     </record>
     <record id="account_68815_vanillasoft_crm" model="account.account">
@@ -301,12 +222,6 @@
       <field name="account_type">expense</field>
       <field name="reconcile">False</field>
     </record>
-    <record id="account_68900_insurance_expense" model="account.account">
-      <field name="code">68900</field>
-      <field name="name">Insurance Expense</field>
-      <field name="account_type">asset</field>
-      <field name="reconcile">False</field>
-    </record>
     <record id="account_68925_travel_insurance" model="account.account">
       <field name="code">68925</field>
       <field name="name">Travel Insurance</field>
@@ -315,14 +230,8 @@
     </record>
     <record id="account_68940_worker_s_compensation" model="account.account">
       <field name="code">68940</field>
-      <field name="name">Worker&apos;s Compensation</field>
+      <field name="name">Worker's Compensation</field>
       <field name="account_type">expense</field>
-      <field name="reconcile">False</field>
-    </record>
-    <record id="account_68950_travel_expense" model="account.account">
-      <field name="code">68950</field>
-      <field name="name">Travel Expense</field>
-      <field name="account_type">asset</field>
       <field name="reconcile">False</field>
     </record>
     <record id="account_68951_airfare" model="account.account">
@@ -373,12 +282,6 @@
       <field name="account_type">expense</field>
       <field name="reconcile">False</field>
     </record>
-    <record id="account_69900_meals_and_entertainment" model="account.account">
-      <field name="code">69900</field>
-      <field name="name">Meals and Entertainment</field>
-      <field name="account_type">asset</field>
-      <field name="reconcile">False</field>
-    </record>
     <record id="account_69901_meals" model="account.account">
       <field name="code">69901</field>
       <field name="name">Meals</field>
@@ -397,12 +300,8 @@
       <field name="account_type">expense</field>
       <field name="reconcile">False</field>
     </record>
-    <record id="account_70000_tax" model="account.account">
-      <field name="code">70000</field>
-      <field name="name">Tax</field>
-      <field name="account_type">asset</field>
-      <field name="reconcile">False</field>
-    </record>
+
+    <!-- Tax Expenses (70xxx) -->
     <record id="account_70100_federal_tax_witholding" model="account.account">
       <field name="code">70100</field>
       <field name="name">Federal Tax Witholding</field>
@@ -445,10 +344,12 @@
       <field name="account_type">expense</field>
       <field name="reconcile">False</field>
     </record>
+
+    <!-- Other (80xxx) -->
     <record id="account_80000_ask_my_accountant" model="account.account">
       <field name="code">80000</field>
       <field name="name">Ask My Accountant</field>
-      <field name="account_type">expense</field>
+      <field name="account_type">expense_other</field>
       <field name="reconcile">False</field>
     </record>
   </data>
