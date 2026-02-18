@@ -1,0 +1,27 @@
+{
+    "name": "PlasticOS Automation Layer",
+    "version": "19.0.1.0.0",
+    "summary": "Deterministic workflow automation: approvals, reminders, renewal alerts, stock alerts",
+    "author": "PlasticOS",
+    "license": "LGPL-3",
+    "depends": [
+        "base",
+        "mail",
+        "sale_management",
+        "account",
+        "stock",
+    ],
+    "data": [
+        "security/security.xml",
+        "security/ir.model.access.csv",
+        "data/automation_config_data.xml",
+        "data/sale_approval_cron.xml",
+        "data/invoice_reminder_cron.xml",
+        "data/contract_renewal_cron.xml",
+        "data/stock_alert_cron.xml",
+        "views/automation_config_views.xml",
+        "views/automation_log_views.xml",
+    ],
+    "installable": True,
+    "application": False,
+}
