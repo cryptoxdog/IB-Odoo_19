@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <record id="normalizer_config_default" model="plasticos.normalizer.config">
+            <field name="name">Normalizer Configuration</field>
+            <field name="require_polymer_in_canonical" eval="True"/>
+            <field name="require_partner" eval="True"/>
+            <field name="require_positive_quantity" eval="True"/>
+            <field name="validate_density_range" eval="True"/>
+            <field name="validate_mfi_positive" eval="True"/>
+            <field name="batch_limit">200</field>
+        </record>
+
+    </data>
+</odoo>

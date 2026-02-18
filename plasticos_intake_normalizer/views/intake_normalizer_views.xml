@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- Extend Intake Form: Normalize button + audit fields  -->
+    <!-- ════════════════════════════════════════════════════ -->
+
+    <record id="view_intake_form_normalizer" model="ir.ui.view">
+        <field name="name">plasticos.intake.form.normalizer</field>
+        <field name="model">plasticos.intake</field>
+        <field name="inherit_id" ref="plasticos_intake.view_intake_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Add Normalize button in header -->
+            <xpath expr="//header" position="inside">
+                <button name="action_normalize"
+                        string="Normalize"
+                        type="object"
+                        class="btn-primary"
+                        invisible="normalized"/>
+            </xpath>
+
+            <!-- Add normalization audit page in notebook -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Normalization" name="normalization_page">
+                    <group>
+                        <group string="Status">
+                            <field name="normalized" readonly="1"/>
+                            <field name="normalization_ts" readonly="1"/>
+                        </group>
+                        <group string="Packet">
+                            <field name="last_packet_id" readonly="1"/>
+                            <field name="last_packet_version" readonly="1"/>
+                            <field name="last_packet_ts" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Errors" invisible="not normalization_errors">
+                        <field name="normalization_errors" widget="json" readonly="1"/>
+                    </group>
+                    <group string="Warnings" invisible="not normalization_warnings">
+                        <field name="normalization_warnings" widget="json" readonly="1"/>
+                    </group>
+                    <group string="Packet Payload" invisible="not last_packet_payload">
+                        <field name="last_packet_payload" widget="json" readonly="1"/>
+                    </group>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>
