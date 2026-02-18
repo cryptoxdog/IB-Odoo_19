@@ -72,14 +72,21 @@ class PlasticosTransaction(models.Model):
     compliance_status = fields.Selection(
         [("compliant", "Compliant"), ("missing", "Missing Docs")],
         compute="_compute_compliance",
-        store=True
+        store=True,
+        index=True,
     )
 
     state = fields.Selection([
         ("draft", "Draft"),
         ("active", "Active"),
         ("closed", "Closed")
-    ], default="draft", tracking=True)
+    ], default="draft", tracking=True, index=True)
+
+    # ── Constraints (Odoo 19 models.Constraint) ──────────────
+    _check_unique_name = models.Constraint(
+        "unique(name)",
+        "Transaction reference must be unique.",
+    )
 
     @api.depends("line_ids")
     def _compute_line_count(self):
