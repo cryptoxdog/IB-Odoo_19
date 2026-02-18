@@ -1,0 +1,372 @@
+{
+  "models": [
+    {
+      "module": "plasticos_transaction",
+      "name": "plasticos.audit.cron",
+      "inherit": null,
+      "fields_count": 0,
+      "constraints": 0
+    },
+    {
+      "module": "plasticos_transaction",
+      "name": "plasticos.transaction",
+      "inherit": [
+        "mail.thread"
+      ],
+      "fields_count": 17,
+      "constraints": 0
+    },
+    {
+      "module": "plasticos_transaction",
+      "name": null,
+      "inherit": [
+        "sale.order"
+      ],
+      "fields_count": 1,
+      "constraints": 0
+    },
+    {
+      "module": "plasticos_transaction",
+      "name": null,
+      "inherit": [
+        "purchase.order"
+      ],
+      "fields_count": 0,
+      "constraints": 0
+    },
+    {
+      "module": "plasticos_transaction",
+      "name": null,
+      "inherit": [
+        "plasticos.load"
+      ],
+      "fields_count": 0,
+      "constraints": 0
+    },
+    {
+      "module": "plasticos_transaction",
+      "name": null,
+      "inherit": [
+        "account.move"
+      ],
+      "fields_count": 0,
+      "constraints": 0
+    },
+    {
+      "module": "plasticos_logistics",
+      "name": "plasticos.dispatch",
+      "inherit": null,
+      "fields_count": 2,
+      "constraints": 0
+    },
+    {
+      "module": "plasticos_logistics",
+      "name": null,
+      "inherit": [
+        "sale.order"
+      ],
+      "fields_count": 0,
+      "constraints": 0
+    },
+    {
+      "module": "plasticos_logistics",
+      "name": "plasticos.rate.memory",
+      "inherit": null,
+      "fields_count": 4,
+      "constraints": 0
+    },
+    {
+      "module": "plasticos_logistics",
+      "name": "plasticos.load",
+      "inherit": [
+        "mail.thread"
+      ],
+      "fields_count": 18,
+      "constraints": 0
+    },
+    {
+      "module": "plasticos_documents",
+      "name": "plasticos.document.tag",
+      "inherit": null,
+      "fields_count": 3,
+      "constraints": 0
+    },
+    {
+      "module": "plasticos_documents",
+      "name": "plasticos.compliance.service",
+      "inherit": null,
+      "fields_count": 0,
+      "constraints": 0
+    },
+    {
+      "module": "plasticos_documents",
+      "name": "plasticos.document",
+      "inherit": [
+        "mail.thread"
+      ],
+      "fields_count": 11,
+      "constraints": 0
+    },
+    {
+      "module": "plasticos_documents",
+      "name": "plasticos.document.rule",
+      "inherit": null,
+      "fields_count": 7,
+      "constraints": 0
+    },
+    {
+      "module": "plasticos_commission",
+      "name": "plasticos.commission.rule",
+      "inherit": null,
+      "fields_count": 4,
+      "constraints": 0
+    },
+    {
+      "module": "plasticos_commission",
+      "name": "plasticos.commission.service",
+      "inherit": null,
+      "fields_count": 0,
+      "constraints": 0
+    }
+  ],
+  "sequences": [
+    {
+      "module": "plasticos_transaction",
+      "xml_id": "seq_plasticos_transaction",
+      "qualified": "plasticos_transaction.seq_plasticos_transaction"
+    }
+  ],
+  "ref_data_seeded": [
+    {
+      "module": "plasticos_transaction",
+      "file": "plasticos_transaction/security/security_hardening.xml",
+      "load_type": "data",
+      "id": "group_plasticos_manager",
+      "model": "res.groups",
+      "noupdate": true,
+      "fields": [
+        "name"
+      ],
+      "refs": [],
+      "evals": [],
+      "inherit_id": null
+    },
+    {
+      "module": "plasticos_transaction",
+      "file": "plasticos_transaction/security/security_hardening.xml",
+      "load_type": "data",
+      "id": "rule_plasticos_close_restrict",
+      "model": "ir.rule",
+      "noupdate": true,
+      "fields": [
+        "name",
+        "model_id",
+        "groups",
+        "domain_force"
+      ],
+      "refs": [
+        {
+          "field": "model_id",
+          "ref": "plasticos_transaction.model_plasticos_transaction"
+        }
+      ],
+      "evals": [
+        {
+          "field": "groups",
+          "eval": "[(4, ref('plasticos_transaction.group_plasticos_manager'))]"
+        }
+      ],
+      "inherit_id": null
+    },
+    {
+      "module": "plasticos_transaction",
+      "file": "plasticos_transaction/security/commission_acl.xml",
+      "load_type": "data",
+      "id": "group_plasticos_commission_manager",
+      "model": "res.groups",
+      "noupdate": true,
+      "fields": [
+        "name"
+      ],
+      "refs": [],
+      "evals": [],
+      "inherit_id": null
+    },
+    {
+      "module": "plasticos_transaction",
+      "file": "plasticos_transaction/security/commission_acl.xml",
+      "load_type": "data",
+      "id": "access_commission_rule_manager",
+      "model": "ir.model.access",
+      "noupdate": true,
+      "fields": [
+        "name",
+        "model_id",
+        "group_id",
+        "perm_read",
+        "perm_write",
+        "perm_create",
+        "perm_unlink"
+      ],
+      "refs": [
+        {
+          "field": "model_id",
+          "ref": "plasticos_commission.model_plasticos_commission_rule"
+        },
+        {
+          "field": "group_id",
+          "ref": "plasticos_transaction.group_plasticos_commission_manager"
+        }
+      ],
+      "evals": [
+        {
+          "field": "perm_read",
+          "eval": "1"
+        },
+        {
+          "field": "perm_write",
+          "eval": "1"
+        },
+        {
+          "field": "perm_create",
+          "eval": "1"
+        },
+        {
+          "field": "perm_unlink",
+          "eval": "1"
+        }
+      ],
+      "inherit_id": null
+    },
+    {
+      "module": "plasticos_transaction",
+      "file": "plasticos_transaction/data/audit_cron.xml",
+      "load_type": "data",
+      "id": "cron_plasticos_monthly_audit",
+      "model": "ir.cron",
+      "noupdate": false,
+      "fields": [
+        "name",
+        "model_id",
+        "state",
+        "code",
+        "interval_number",
+        "interval_type"
+      ],
+      "refs": [
+        {
+          "field": "model_id",
+          "ref": "plasticos_transaction.model_plasticos_audit_cron"
+        }
+      ],
+      "evals": [],
+      "inherit_id": null
+    },
+    {
+      "module": "plasticos_logistics",
+      "file": "plasticos_logistics/data/cron.xml",
+      "load_type": "data",
+      "id": "cron_followup",
+      "model": "ir.cron",
+      "noupdate": false,
+      "fields": [
+        "name",
+        "model_id",
+        "state",
+        "code",
+        "interval_number",
+        "interval_type"
+      ],
+      "refs": [
+        {
+          "field": "model_id",
+          "ref": "model_plasticos_load"
+        }
+      ],
+      "evals": [],
+      "inherit_id": null
+    },
+    {
+      "module": "plasticos_logistics",
+      "file": "plasticos_logistics/data/cron.xml",
+      "load_type": "data",
+      "id": "cron_escalation",
+      "model": "ir.cron",
+      "noupdate": false,
+      "fields": [
+        "name",
+        "model_id",
+        "state",
+        "code",
+        "interval_number",
+        "interval_type"
+      ],
+      "refs": [
+        {
+          "field": "model_id",
+          "ref": "model_plasticos_load"
+        }
+      ],
+      "evals": [],
+      "inherit_id": null
+    },
+    {
+      "module": "plasticos_documents",
+      "file": "plasticos_documents/security/security.xml",
+      "load_type": "data",
+      "id": "group_documents_user",
+      "model": "res.groups",
+      "noupdate": false,
+      "fields": [
+        "name"
+      ],
+      "refs": [],
+      "evals": [],
+      "inherit_id": null
+    },
+    {
+      "module": "plasticos_documents",
+      "file": "plasticos_documents/security/security.xml",
+      "load_type": "data",
+      "id": "group_documents_manager",
+      "model": "res.groups",
+      "noupdate": false,
+      "fields": [
+        "name"
+      ],
+      "refs": [],
+      "evals": [],
+      "inherit_id": null
+    },
+    {
+      "module": "plasticos_documents",
+      "file": "plasticos_documents/data/cron.xml",
+      "load_type": "data",
+      "id": "cron_document_compliance_check",
+      "model": "ir.cron",
+      "noupdate": false,
+      "fields": [
+        "name",
+        "model_id",
+        "state",
+        "code",
+        "interval_number",
+        "interval_type",
+        "active"
+      ],
+      "refs": [
+        {
+          "field": "model_id",
+          "ref": "model_plasticos_document"
+        }
+      ],
+      "evals": [
+        {
+          "field": "active",
+          "eval": "False"
+        }
+      ],
+      "inherit_id": null
+    }
+  ]
+}

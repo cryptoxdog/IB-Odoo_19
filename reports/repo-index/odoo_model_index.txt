@@ -1,0 +1,129 @@
+# Odoo Model Index
+
+## plasticos_transaction :: plasticos.audit.cron
+  file: plasticos_transaction/models/audit_cron.py
+  inherit: None
+  fields: 0
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_transaction :: plasticos.transaction
+  file: plasticos_transaction/models/transaction.py
+  inherit: ['mail.thread']
+  fields: 17
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_transaction :: None
+  file: plasticos_transaction/models/sale_inherit.py
+  inherit: ['sale.order']
+  fields: 1
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_transaction :: None
+  file: plasticos_transaction/models/purchase_inherit.py
+  inherit: ['purchase.order']
+  fields: 0
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_transaction :: None
+  file: plasticos_transaction/models/load_inherit.py
+  inherit: ['plasticos.load']
+  fields: 0
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_transaction :: None
+  file: plasticos_transaction/models/account_move_inherit.py
+  inherit: ['account.move']
+  fields: 0
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_facility_capability :: plasticos.facility.capability
+  file: plasticos_facility_capability/models/facility_capability.py
+  inherit: ['mail.thread']
+  fields: 30
+  constraints: @api.constrains=['partner_id'] _sql=[{'name': 'unique_partner_capability', 'sql': 'unique(partner_id)', 'msg': 'Each facility may only have one capability profile.'}] models.Constraint=[]
+  ⚠ namespace_drift: class=PlastosFacilityCapability vs _name=plasticos.facility.capability
+
+## plasticos_facility_capability :: None
+  file: plasticos_facility_capability/models/res_partner.py
+  inherit: ['res.partner']
+  fields: 2
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_logistics :: plasticos.dispatch
+  file: plasticos_logistics/models/dispatch.py
+  inherit: None
+  fields: 2
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_logistics :: None
+  file: plasticos_logistics/models/sale_order_inherit.py
+  inherit: ['sale.order']
+  fields: 0
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_logistics :: plasticos.rate.memory
+  file: plasticos_logistics/models/rate_memory.py
+  inherit: None
+  fields: 4
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_logistics :: plasticos.load
+  file: plasticos_logistics/models/load.py
+  inherit: ['mail.thread']
+  fields: 18
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_documents :: plasticos.document.tag
+  file: plasticos_documents/models/document_tag.py
+  inherit: None
+  fields: 3
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_documents :: plasticos.compliance.service
+  file: plasticos_documents/models/compliance_service.py
+  inherit: None
+  fields: 0
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_documents :: plasticos.document
+  file: plasticos_documents/models/document.py
+  inherit: ['mail.thread']
+  fields: 11
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_documents :: plasticos.document.rule
+  file: plasticos_documents/models/document_rule.py
+  inherit: None
+  fields: 7
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_material_profile :: plasticos.material.profile
+  file: plasticos_material_profile/models/material_profile.py
+  inherit: ['mail.thread']
+  fields: 26
+  constraints: @api.constrains=['partner_id'] _sql=[] models.Constraint=[]
+  ⚠ namespace_drift: class=PlastosMaterialProfile vs _name=plasticos.material.profile
+
+## plasticos_material_profile :: None
+  file: plasticos_material_profile/models/res_partner.py
+  inherit: ['res.partner']
+  fields: 1
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_commission :: plasticos.commission.rule
+  file: plasticos_commission/models/commission_rule.py
+  inherit: None
+  fields: 4
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_commission :: plasticos.commission.service
+  file: plasticos_commission/models/commission_service.py
+  inherit: None
+  fields: 0
+  constraints: @api.constrains=[] _sql=[] models.Constraint=[]
+
+## plasticos_intake :: plasticos.intake
+  file: plasticos_intake/models/intake.py
+  inherit: ['mail.thread', 'mail.activity.mixin']
+  fields: 36
+  constraints: @api.constrains=['quantity_per_load_lbs', 'loads_per_month'] _sql=[] models.Constraint=[]

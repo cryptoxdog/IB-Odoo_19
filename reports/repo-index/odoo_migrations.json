@@ -1,0 +1,14 @@
+[
+  {
+    "module": "plasticos_transaction",
+    "version": "1.1.0",
+    "file": "plasticos_transaction/migrations/1.1.0/pre-migrate.py",
+    "name": "pre-migrate.py"
+  },
+  {
+    "module": "plasticos_transaction",
+    "version": "1.1.0",
+    "file": "plasticos_transaction/migrations/1.1.0/post-migrate.py",
+    "name": "post-migrate.py"
+  }
+]

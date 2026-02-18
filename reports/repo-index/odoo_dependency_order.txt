@@ -1,0 +1,9 @@
+# Dependency Load Order
+
+1. plasticos_commission (depends: base)
+2. plasticos_documents (depends: base, mail)
+3. plasticos_facility_capability (depends: base, sale_management, contacts, mail)
+4. plasticos_intake (depends: base, mail)
+5. plasticos_logistics (depends: stock, sale_management, mail)
+6. plasticos_material_profile (depends: base, contacts, mail)
+7. plasticos_transaction (depends: mail, purchase, plasticos_material_profile, sale_management, account, plasticos_commission, base, plasticos_logistics, plasticos_documents, plasticos_facility_capability)

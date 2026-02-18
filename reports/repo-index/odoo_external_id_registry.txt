@@ -1,0 +1,27 @@
+# External ID Registry (collision detector)
+
+plasticos_transaction.group_plasticos_manager	res.groups	noupdate=True	plasticos_transaction/security/security_hardening.xml
+plasticos_transaction.rule_plasticos_close_restrict	ir.rule	noupdate=True	plasticos_transaction/security/security_hardening.xml
+plasticos_transaction.group_plasticos_commission_manager	res.groups	noupdate=True	plasticos_transaction/security/commission_acl.xml
+plasticos_transaction.access_commission_rule_manager	ir.model.access	noupdate=True	plasticos_transaction/security/commission_acl.xml
+plasticos_transaction.seq_plasticos_transaction	ir.sequence	noupdate=False	plasticos_transaction/data/sequence.xml
+plasticos_transaction.cron_plasticos_monthly_audit	ir.cron	noupdate=False	plasticos_transaction/data/audit_cron.xml
+plasticos_transaction.view_transaction_tree	ir.ui.view	noupdate=False	plasticos_transaction/views/transaction_views.xml
+plasticos_transaction.view_transaction_form	ir.ui.view	noupdate=False	plasticos_transaction/views/transaction_views.xml
+plasticos_transaction.action_transaction	ir.actions.act_window	noupdate=False	plasticos_transaction/views/transaction_views.xml
+plasticos_facility_capability.view_partner_form_capability_tab	ir.ui.view	noupdate=False	plasticos_facility_capability/views/facility_capability_views.xml
+plasticos_logistics.view_load_tree	ir.ui.view	noupdate=False	plasticos_logistics/views/load_views.xml
+plasticos_logistics.view_sale_order_button	ir.ui.view	noupdate=False	plasticos_logistics/views/sale_order_button.xml
+plasticos_logistics.cron_followup	ir.cron	noupdate=False	plasticos_logistics/data/cron.xml
+plasticos_logistics.cron_escalation	ir.cron	noupdate=False	plasticos_logistics/data/cron.xml
+plasticos_documents.group_documents_user	res.groups	noupdate=False	plasticos_documents/security/security.xml
+plasticos_documents.group_documents_manager	res.groups	noupdate=False	plasticos_documents/security/security.xml
+plasticos_documents.view_document_tag_tree	ir.ui.view	noupdate=False	plasticos_documents/views/document_tag_views.xml
+plasticos_documents.view_document_rule_tree	ir.ui.view	noupdate=False	plasticos_documents/views/document_rule_views.xml
+plasticos_documents.view_document_tree	ir.ui.view	noupdate=False	plasticos_documents/views/document_views.xml
+plasticos_documents.cron_document_compliance_check	ir.cron	noupdate=False	plasticos_documents/data/cron.xml
+plasticos_material_profile.view_partner_form_material_tab	ir.ui.view	noupdate=False	plasticos_material_profile/views/material_profile_views.xml
+plasticos_commission.view_commission_rule_tree	ir.ui.view	noupdate=False	plasticos_commission/views/commission_views.xml
+plasticos_intake.view_plasticos_intake_tree	ir.ui.view	noupdate=False	plasticos_intake/views/intake_views.xml
+plasticos_intake.view_plasticos_intake_form	ir.ui.view	noupdate=False	plasticos_intake/views/intake_views.xml
+plasticos_intake.plasticos_intake_action	ir.actions.act_window	noupdate=False	plasticos_intake/views/intake_views.xml
