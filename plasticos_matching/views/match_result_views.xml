@@ -1,0 +1,115 @@
+<odoo>
+
+    <!-- List View -->
+    <record id="view_match_result_list" model="ir.ui.view">
+        <field name="name">plasticos.match.result.list</field>
+        <field name="model">plasticos.match.result</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'accepted'"
+                  decoration-danger="state == 'rejected'"
+                  decoration-muted="state == 'expired'">
+                <field name="intake_id"/>
+                <field name="intake_polymer"/>
+                <field name="intake_form"/>
+                <field name="intake_partner_id" string="Supplier"/>
+                <field name="buyer_partner_id"/>
+                <field name="buyer_facility_id" optional="hide"/>
+                <field name="score" widget="progressbar"/>
+                <field name="confidence" optional="show"/>
+                <field name="state"/>
+                <field name="create_date" string="Matched On"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_match_result_form" model="ir.ui.view">
+        <field name="name">plasticos.match.result.form</field>
+        <field name="model">plasticos.match.result</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_accept" type="object"
+                            string="Accept" class="btn-success"
+                            invisible="state != 'pending'"/>
+                    <button name="action_reject" type="object"
+                            string="Reject" class="btn-danger"
+                            invisible="state != 'pending'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pending,accepted"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Supply Side">
+                            <field name="intake_id"/>
+                            <field name="intake_polymer"/>
+                            <field name="intake_form"/>
+                            <field name="intake_partner_id"/>
+                        </group>
+                        <group string="Demand Side">
+                            <field name="buyer_partner_id"/>
+                            <field name="buyer_facility_id"/>
+                            <field name="facility_profile_id"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Score">
+                            <group>
+                                <group>
+                                    <field name="score" widget="progressbar"/>
+                                    <field name="confidence"/>
+                                </group>
+                                <group>
+                                    <field name="l9_run_id"/>
+                                    <field name="l9_model_version"/>
+                                    <field name="l9_timestamp"/>
+                                </group>
+                            </group>
+                            <group string="Score Breakdown">
+                                <field name="score_breakdown" widget="json"/>
+                            </group>
+                            <group string="Reasoning">
+                                <field name="match_reasoning"/>
+                            </group>
+                        </page>
+
+                        <page string="Review">
+                            <group>
+                                <group>
+                                    <field name="reviewed_by"/>
+                                    <field name="reviewed_date"/>
+                                </group>
+                                <group>
+                                    <field name="rejection_reason"
+                                           invisible="state != 'rejected'"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_match_result" model="ir.actions.act_window">
+        <field name="name">Match Results</field>
+        <field name="res_model">plasticos.match.result</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_state': 'pending'}</field>
+    </record>
+
+    <!-- Menu under PlasticOS root -->
+    <menuitem id="menu_matching_root"
+              name="Matching"
+              parent="plasticos_intake.plasticos_root_menu"
+              sequence="20"/>
+    <menuitem id="menu_match_results"
+              name="Match Results"
+              parent="menu_matching_root"
+              action="action_match_result"
+              sequence="1"/>
+
+</odoo>
