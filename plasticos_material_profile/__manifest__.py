@@ -1,20 +1,21 @@
 {
     "name": "PlasticOS Material Profile",
-    "version": "19.0.1.0.0",
-    "summary": "Material identity profiles for facility-level partners",
+    "version": "19.0.2.0.0",
+    "summary": "Material identity profiles — unified with polymer master",
     "license": "LGPL-3",
     "author": "PlasticOS",
     "category": "Hidden",
     "depends": [
         "base",
         "contacts",
-        "mail"
+        "mail",
+        "plasticos_polymer",
     ],
     "data": [
         "security/ir.model.access.csv",
         "data/polymer_seed.xml",
-        "views/material_profile_views.xml"
+        "views/material_profile_views.xml",
     ],
     "installable": True,
-    "application": False
+    "application": False,
 }
