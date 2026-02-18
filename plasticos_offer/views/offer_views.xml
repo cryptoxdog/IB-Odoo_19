@@ -1,0 +1,135 @@
+<odoo>
+
+    <!-- List View -->
+    <record id="view_offer_list" model="ir.ui.view">
+        <field name="name">plasticos.offer.list</field>
+        <field name="model">plasticos.offer</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'accepted'"
+                  decoration-danger="state == 'rejected'"
+                  decoration-muted="state in ('expired','cancelled')">
+                <field name="intake_id"/>
+                <field name="polymer"/>
+                <field name="form"/>
+                <field name="supplier_id"/>
+                <field name="buyer_id"/>
+                <field name="price_per_lb"/>
+                <field name="quantity_lbs"/>
+                <field name="delivery_terms" optional="show"/>
+                <field name="valid_until" optional="show"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_offer_form" model="ir.ui.view">
+        <field name="name">plasticos.offer.form</field>
+        <field name="model">plasticos.offer</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_send" type="object"
+                            string="Send" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_mark_responded" type="object"
+                            string="Mark Responded" class="btn-primary"
+                            invisible="state != 'sent'"/>
+                    <button name="action_accept" type="object"
+                            string="Accept" class="btn-success"
+                            invisible="state not in ('sent','responded')"/>
+                    <button name="action_reject" type="object"
+                            string="Reject" class="btn-danger"
+                            invisible="state in ('accepted','cancelled','expired')"/>
+                    <button name="action_cancel" type="object"
+                            string="Cancel" class="btn-secondary"
+                            invisible="state in ('accepted','cancelled','expired')"/>
+                    <button name="action_reset_to_draft" type="object"
+                            string="Reset to Draft"
+                            invisible="state not in ('rejected','cancelled')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,sent,responded,accepted"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Origin">
+                            <field name="match_result_id"/>
+                            <field name="intake_id"/>
+                        </group>
+                        <group string="Parties">
+                            <field name="supplier_id"/>
+                            <field name="buyer_id"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Commercial Terms">
+                            <group>
+                                <group string="Pricing">
+                                    <field name="price_per_lb"/>
+                                    <field name="currency_id"/>
+                                    <field name="quantity_lbs"/>
+                                    <field name="loads"/>
+                                </group>
+                                <group string="Terms">
+                                    <field name="delivery_terms"/>
+                                    <field name="payment_terms"/>
+                                    <field name="valid_until"/>
+                                </group>
+                            </group>
+                            <group string="Notes">
+                                <field name="notes"/>
+                            </group>
+                        </page>
+
+                        <page string="Response">
+                            <group>
+                                <group>
+                                    <field name="response_notes"/>
+                                    <field name="counter_price_per_lb"/>
+                                </group>
+                                <group>
+                                    <field name="accepted_by"
+                                           invisible="state != 'accepted'"/>
+                                    <field name="accepted_date"
+                                           invisible="state != 'accepted'"/>
+                                    <field name="rejection_reason"
+                                           invisible="state != 'rejected'"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Material">
+                            <group>
+                                <group>
+                                    <field name="polymer"/>
+                                    <field name="form"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_offer" model="ir.actions.act_window">
+        <field name="name">Offers</field>
+        <field name="res_model">plasticos.offer</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Menu under PlasticOS root -->
+    <menuitem id="menu_offer_root"
+              name="Offers"
+              parent="plasticos_intake.plasticos_root_menu"
+              sequence="25"/>
+    <menuitem id="menu_offers"
+              name="All Offers"
+              parent="menu_offer_root"
+              action="action_offer"
+              sequence="1"/>
+
+</odoo>
