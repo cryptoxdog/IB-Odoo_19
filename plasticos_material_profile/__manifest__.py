@@ -7,7 +7,6 @@
     "category": "Hidden",
     "depends": [
         "base",
-        "contacts",
         "mail"
     ],
     "data": [
