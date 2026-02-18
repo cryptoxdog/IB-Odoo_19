@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_partner_import_validation_user,partner.import.validation.user,model_plasticos_partner_import_validation,base.group_user,1,0,0,0
+access_partner_import_validation_manager,partner.import.validation.manager,model_plasticos_partner_import_validation,base.group_system,1,1,1,0
+access_partner_import_service_user,partner.import.service.user,model_plasticos_partner_import_service,base.group_user,1,0,0,0
+access_partner_import_service_manager,partner.import.service.manager,model_plasticos_partner_import_service,base.group_system,1,1,1,0

@@ -1,3 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_transaction_user,transaction.user,model_plasticos_transaction,base.group_user,1,1,1,0
+access_transaction_line_user,transaction.line.user,model_plasticos_transaction_line,base.group_user,1,0,0,0
+access_transaction_line_manager,transaction.line.manager,model_plasticos_transaction_line,plasticos_transaction.group_plasticos_manager,1,1,1,1
 access_audit_cron_user,audit.cron.user,model_plasticos_audit_cron,base.group_user,1,0,0,0

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="1">
+    <record id="payment_term_net_15" model="account.payment.term">
+      <field name="name">Net 15</field>
+      <field name="line_ids" eval="[(0, 0, {&apos;value&apos;: &apos;balance&apos;, &apos;value_amount&apos;: 0.0, &apos;days&apos;: 15, &apos;delay_type&apos;: &apos;days_after&apos;})]"/>
+    </record>
+    <record id="payment_term_net_30" model="account.payment.term">
+      <field name="name">Net 30</field>
+      <field name="line_ids" eval="[(0, 0, {&apos;value&apos;: &apos;balance&apos;, &apos;value_amount&apos;: 0.0, &apos;days&apos;: 30, &apos;delay_type&apos;: &apos;days_after&apos;})]"/>
+    </record>
+    <record id="payment_term_net_45" model="account.payment.term">
+      <field name="name">Net 45</field>
+      <field name="line_ids" eval="[(0, 0, {&apos;value&apos;: &apos;balance&apos;, &apos;value_amount&apos;: 0.0, &apos;days&apos;: 45, &apos;delay_type&apos;: &apos;days_after&apos;})]"/>
+    </record>
+    <record id="payment_term_net_60" model="account.payment.term">
+      <field name="name">Net 60</field>
+      <field name="line_ids" eval="[(0, 0, {&apos;value&apos;: &apos;balance&apos;, &apos;value_amount&apos;: 0.0, &apos;days&apos;: 60, &apos;delay_type&apos;: &apos;days_after&apos;})]"/>
+    </record>
+    <record id="payment_term_2_10_net_30" model="account.payment.term">
+      <field name="name">2/10 Net 30</field>
+      <field name="note">2% if paid within 10 days</field>
+      <field name="line_ids" eval="[(0, 0, {&apos;value&apos;: &apos;balance&apos;, &apos;value_amount&apos;: 0.0, &apos;days&apos;: 30, &apos;delay_type&apos;: &apos;days_after&apos;})]"/>
+    </record>
+    <record id="payment_term_1_15_net_45" model="account.payment.term">
+      <field name="name">1/15 Net 45</field>
+      <field name="note">1% if paid within 15 days</field>
+      <field name="line_ids" eval="[(0, 0, {&apos;value&apos;: &apos;balance&apos;, &apos;value_amount&apos;: 0.0, &apos;days&apos;: 45, &apos;delay_type&apos;: &apos;days_after&apos;})]"/>
+    </record>
+    <record id="payment_term_cod" model="account.payment.term">
+      <field name="name">COD</field>
+      <field name="line_ids" eval="[(0, 0, {&apos;value&apos;: &apos;balance&apos;, &apos;value_amount&apos;: 0.0, &apos;days&apos;: 0, &apos;delay_type&apos;: &apos;days_after&apos;})]"/>
+    </record>
+    <record id="payment_term_prepaid" model="account.payment.term">
+      <field name="name">Prepaid</field>
+      <field name="line_ids" eval="[(0, 0, {&apos;value&apos;: &apos;balance&apos;, &apos;value_amount&apos;: 0.0, &apos;days&apos;: 0, &apos;delay_type&apos;: &apos;days_after&apos;})]"/>
+    </record>
+    <record id="payment_term_50_down_50_cod" model="account.payment.term">
+      <field name="name">50% Down/ 50% COD</field>
+      <field name="line_ids" eval="[(0, 0, {&apos;value&apos;: &apos;balance&apos;, &apos;value_amount&apos;: 0.0, &apos;days&apos;: 0, &apos;delay_type&apos;: &apos;days_after&apos;})]"/>
+    </record>
+  </data>
+</odoo>

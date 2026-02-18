@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+
+    <record id="tag_customer" model="res.partner.category">
+      <field name="name">Customer</field>
+    </record>
+
+    <record id="tag_supplier" model="res.partner.category">
+      <field name="name">Supplier</field>
+    </record>
+
+    <record id="tag_buyer" model="res.partner.category">
+      <field name="name">Buyer</field>
+    </record>
+
+    <record id="tag_broker" model="res.partner.category">
+      <field name="name">Broker</field>
+    </record>
+
+    <record id="tag_carrier" model="res.partner.category">
+      <field name="name">Carrier</field>
+    </record>
+
+    <record id="tag_processor" model="res.partner.category">
+      <field name="name">Processor</field>
+    </record>
+
+    <record id="tag_expense" model="res.partner.category">
+      <field name="name">Expense</field>
+    </record>
+
+  </data>
+</odoo>

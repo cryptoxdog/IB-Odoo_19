@@ -9,6 +9,8 @@
 !/plasticos_logistics/
 !/plasticos_material_profile/
 !/plasticos_transaction/
+!/plasticos_foundation_seed/
+!/plasticos_partner_import/
 !/reports/
 
 # Ignore within allowed paths

@@ -31,6 +31,34 @@ class PlasticosTransaction(models.Model):
         domain=[("move_type", "=", "in_invoice")]
     )
 
+    # Historical line items from cieTrade import
+    line_ids = fields.One2many(
+        "plasticos.transaction.line",
+        "transaction_id",
+        string="Transaction Lines",
+    )
+    line_count = fields.Integer(
+        compute="_compute_line_count",
+        store=True,
+    )
+
+    # Historical totals (from imported data, separate from computed financials)
+    historical_sale_total = fields.Float(
+        string="Historical Sale Total",
+        compute="_compute_historical_totals",
+        store=True,
+    )
+    historical_purchase_total = fields.Float(
+        string="Historical Purchase Total",
+        compute="_compute_historical_totals",
+        store=True,
+    )
+    historical_margin = fields.Float(
+        string="Historical Margin",
+        compute="_compute_historical_totals",
+        store=True,
+    )
+
     revenue_total = fields.Float(compute="_compute_financials", store=True)
     cost_total = fields.Float(compute="_compute_financials", store=True)
     gross_margin = fields.Float(compute="_compute_financials", store=True)
@@ -52,6 +80,18 @@ class PlasticosTransaction(models.Model):
         ("active", "Active"),
         ("closed", "Closed")
     ], default="draft", tracking=True)
+
+    @api.depends("line_ids")
+    def _compute_line_count(self):
+        for rec in self:
+            rec.line_count = len(rec.line_ids)
+
+    @api.depends("line_ids.sale_amount", "line_ids.purchase_amount")
+    def _compute_historical_totals(self):
+        for rec in self:
+            rec.historical_sale_total = sum(rec.line_ids.mapped("sale_amount"))
+            rec.historical_purchase_total = sum(rec.line_ids.mapped("purchase_amount"))
+            rec.historical_margin = rec.historical_sale_total - rec.historical_purchase_total
 
     @api.depends(
         "customer_invoice_id.amount_total",

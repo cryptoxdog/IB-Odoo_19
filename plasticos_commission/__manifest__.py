@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Commission Engine",
-    "version": "1.0.0",
+    "version": "19.0.1.0.0",
     "summary": "Commission rules and calculations",
     "author": "PlasticOS",
     "license": "LGPL-3",

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="1">
+    <record id="partner_sales_rep_ib" model="res.partner">
+      <field name="name">Igor Beylin</field>
+      <field name="email">ib@scrapmanagement.com</field>
+      <field name="phone">(704) 251-8889</field>
+      <field name="company_type">person</field>
+    </record>
+
+    <record id="user_sales_rep_ib" model="res.users">
+      <field name="name">Igor Beylin</field>
+      <field name="login">IB</field>
+      <field name="email">ib@scrapmanagement.com</field>
+      <field name="partner_id" ref="partner_sales_rep_ib"/>
+      <field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="partner_sales_rep_ab" model="res.partner">
+      <field name="name">Arthur Buyanovskiy</field>
+      <field name="email">ab@scrapmanagement.com</field>
+      <field name="phone">(615) 280-8682</field>
+      <field name="company_type">person</field>
+    </record>
+
+    <record id="user_sales_rep_ab" model="res.users">
+      <field name="name">Arthur Buyanovskiy</field>
+      <field name="login">AB</field>
+      <field name="email">ab@scrapmanagement.com</field>
+      <field name="partner_id" ref="partner_sales_rep_ab"/>
+      <field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="partner_sales_rep_lm" model="res.partner">
+      <field name="name">Lindsey Malyavko</field>
+      <field name="email">lm@scrapmanagement.com</field>
+      <field name="phone">(347) 391-2998</field>
+      <field name="company_type">person</field>
+    </record>
+
+    <record id="user_sales_rep_lm" model="res.users">
+      <field name="name">Lindsey Malyavko</field>
+      <field name="login">LM</field>
+      <field name="email">lm@scrapmanagement.com</field>
+      <field name="partner_id" ref="partner_sales_rep_lm"/>
+      <field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="partner_sales_rep_rp" model="res.partner">
+      <field name="name">Ricardo Pereira</field>
+      <field name="email">rp@scrapmanagement.com</field>
+      <field name="phone">(347) 587-5539</field>
+      <field name="company_type">person</field>
+    </record>
+
+    <record id="user_sales_rep_rp" model="res.users">
+      <field name="name">Ricardo Pereira</field>
+      <field name="login">RP</field>
+      <field name="email">rp@scrapmanagement.com</field>
+      <field name="partner_id" ref="partner_sales_rep_rp"/>
+      <field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="partner_sales_rep_aa" model="res.partner">
+      <field name="name">Arthur Akopyan</field>
+      <field name="email">aa@scrapmanagement.com</field>
+      <field name="phone">(347) 834-6309</field>
+      <field name="company_type">person</field>
+    </record>
+
+    <record id="user_sales_rep_aa" model="res.users">
+      <field name="name">Arthur Akopyan</field>
+      <field name="login">AA</field>
+      <field name="email">aa@scrapmanagement.com</field>
+      <field name="partner_id" ref="partner_sales_rep_aa"/>
+      <field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="partner_sales_rep_tw" model="res.partner">
+      <field name="name">Tiffany White</field>
+      <field name="email">sa@scrapmanagement.com</field>
+      <field name="phone">(615) 375-9395</field>
+      <field name="company_type">person</field>
+    </record>
+
+    <record id="user_sales_rep_tw" model="res.users">
+      <field name="name">Tiffany White</field>
+      <field name="login">TW</field>
+      <field name="email">sa@scrapmanagement.com</field>
+      <field name="partner_id" ref="partner_sales_rep_tw"/>
+      <field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+  </data>
+</odoo>

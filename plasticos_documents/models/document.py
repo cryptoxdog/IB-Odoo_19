@@ -28,11 +28,14 @@ class PlasticosDocument(models.Model):
         record = super().create(vals)
 
         if record.res_model == "plasticos.load":
-            load = self.env["plasticos.load"].browse(record.res_id)
-            if load.transaction_id:
+            # Look up transaction via reverse relation (transaction.load_id -> load)
+            tx = self.env["plasticos.transaction"].search(
+                [("load_id", "=", record.res_id)], limit=1
+            )
+            if tx:
                 self.env["plasticos.compliance.service"].get_missing_documents(
                     "plasticos.transaction",
-                    load.transaction_id.id
+                    tx.id
                 )
 
         return record

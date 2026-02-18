@@ -6,9 +6,13 @@
             <list>
                 <field name="name"/>
                 <field name="sale_order_id" optional="show"/>
-                <field name="revenue_total" sum="Total Revenue"/>
-                <field name="cost_total" sum="Total Cost"/>
-                <field name="gross_margin" sum="Total Margin"/>
+                <field name="line_count" optional="hide"/>
+                <field name="historical_sale_total" optional="show" sum="Historical Sale"/>
+                <field name="historical_purchase_total" optional="show" sum="Historical Purchase"/>
+                <field name="historical_margin" optional="show" sum="Historical Margin"/>
+                <field name="revenue_total" optional="hide" sum="Total Revenue"/>
+                <field name="cost_total" optional="hide" sum="Total Cost"/>
+                <field name="gross_margin" optional="hide" sum="Total Margin"/>
                 <field name="compliance_status"/>
                 <field name="state"/>
             </list>
@@ -70,6 +74,30 @@
                             <group>
                                 <field name="compliance_status"/>
                             </group>
+                        </page>
+                        <page string="Historical Lines" invisible="line_count == 0">
+                            <group>
+                                <group string="Historical Totals (from cieTrade)">
+                                    <field name="historical_sale_total"/>
+                                    <field name="historical_purchase_total"/>
+                                    <field name="historical_margin"/>
+                                    <field name="line_count"/>
+                                </group>
+                            </group>
+                            <field name="line_ids" readonly="1">
+                                <list>
+                                    <field name="detail_id"/>
+                                    <field name="grade_id"/>
+                                    <field name="description"/>
+                                    <field name="sale_weight"/>
+                                    <field name="weight_uom"/>
+                                    <field name="sale_price"/>
+                                    <field name="sale_amount" sum="Total Sale"/>
+                                    <field name="purchase_price"/>
+                                    <field name="purchase_amount" sum="Total Purchase"/>
+                                    <field name="margin" sum="Total Margin"/>
+                                </list>
+                            </field>
                         </page>
                     </notebook>
                 </sheet>

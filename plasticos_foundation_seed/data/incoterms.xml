@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="1">
+    <record id="incoterm_fob" model="account.incoterms">
+      <field name="code">FOB</field>
+      <field name="name">Free On Board</field>
+    </record>
+    <record id="incoterm_supplier_delivered" model="account.incoterms">
+      <field name="code">SUPPLIER_DELIVERED</field>
+      <field name="name">Supplier Delivered</field>
+    </record>
+    <record id="incoterm_buyer_pickup" model="account.incoterms">
+      <field name="code">BUYER_PICKUP</field>
+      <field name="name">Buyer Pick Up</field>
+    </record>
+    <record id="incoterm_fas" model="account.incoterms">
+      <field name="code">FAS</field>
+      <field name="name">FAS Port</field>
+    </record>
+  </data>
+</odoo>

@@ -1,0 +1,455 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="1">
+    <record id="account_40000_revenue" model="account.account">
+      <field name="code">40000</field>
+      <field name="name">Revenue</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_40050_sales_income" model="account.account">
+      <field name="code">40050</field>
+      <field name="name">Sales Income</field>
+      <field name="account_type">income</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_40075_tax_refund" model="account.account">
+      <field name="code">40075</field>
+      <field name="name">Tax Refund</field>
+      <field name="account_type">income</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_50000_cost_of_goods_sold" model="account.account">
+      <field name="code">50000</field>
+      <field name="name">Cost Of Goods Sold</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_50100_material_cost" model="account.account">
+      <field name="code">50100</field>
+      <field name="name">Material Cost</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_50700_national_box_exchange" model="account.account">
+      <field name="code">50700</field>
+      <field name="name">National Box Exchange</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_62550_web_services" model="account.account">
+      <field name="code">62550</field>
+      <field name="name">Web Services</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_62556_d_b" model="account.account">
+      <field name="code">62556</field>
+      <field name="name">D&amp;B</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_62621_google_web_services" model="account.account">
+      <field name="code">62621</field>
+      <field name="name">Google Web Services</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_66000_employee_labor" model="account.account">
+      <field name="code">66000</field>
+      <field name="name">Employee Labor</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_66100_salary_w2_sasha_josie" model="account.account">
+      <field name="code">66100</field>
+      <field name="name">Salary (W2) - Sasha/Josie</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_66210_salary_w2_admin_tn" model="account.account">
+      <field name="code">66210</field>
+      <field name="name">Salary (W2) - Admin TN</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_67000_contractor_labor" model="account.account">
+      <field name="code">67000</field>
+      <field name="name">Contractor Labor</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_67100_sales" model="account.account">
+      <field name="code">67100</field>
+      <field name="name">Sales</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_67200_outsourced_labor_upwork" model="account.account">
+      <field name="code">67200</field>
+      <field name="name">Outsourced Labor (UpWork)</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68000_overhead" model="account.account">
+      <field name="code">68000</field>
+      <field name="name">Overhead</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68100_rent_expense" model="account.account">
+      <field name="code">68100</field>
+      <field name="name">Rent Expense</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68120_security_system" model="account.account">
+      <field name="code">68120</field>
+      <field name="name">Security System</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68125_electric_utility" model="account.account">
+      <field name="code">68125</field>
+      <field name="name">Electric Utility</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68150_cleaning_service" model="account.account">
+      <field name="code">68150</field>
+      <field name="name">Cleaning Service</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68155_furniture" model="account.account">
+      <field name="code">68155</field>
+      <field name="name">Furniture</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68200_office_supplies" model="account.account">
+      <field name="code">68200</field>
+      <field name="name">Office Supplies</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68210_uniform" model="account.account">
+      <field name="code">68210</field>
+      <field name="name">Uniform</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68220_tools_hardware" model="account.account">
+      <field name="code">68220</field>
+      <field name="name">Tools &amp; Hardware</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68250_postage_and_delivery" model="account.account">
+      <field name="code">68250</field>
+      <field name="name">Postage and Delivery</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68251_usps" model="account.account">
+      <field name="code">68251</field>
+      <field name="name">USPS</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68252_ups" model="account.account">
+      <field name="code">68252</field>
+      <field name="name">UPS</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68300_communications_expense" model="account.account">
+      <field name="code">68300</field>
+      <field name="name">Communications Expense</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68310_cell_phones" model="account.account">
+      <field name="code">68310</field>
+      <field name="name">Cell Phones</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68320_land_lines_internet" model="account.account">
+      <field name="code">68320</field>
+      <field name="name">Land Lines &amp; Internet</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68330_web_hosting" model="account.account">
+      <field name="code">68330</field>
+      <field name="name">Web Hosting</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68400_computer_and_internet_expenses" model="account.account">
+      <field name="code">68400</field>
+      <field name="name">Computer and Internet Expenses</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68410_computer_hardware" model="account.account">
+      <field name="code">68410</field>
+      <field name="name">Computer Hardware</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68420_computer_software" model="account.account">
+      <field name="code">68420</field>
+      <field name="name">Computer Software</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68500_advertising_and_promotion" model="account.account">
+      <field name="code">68500</field>
+      <field name="name">Advertising and Promotion</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68510_advertising_print_web" model="account.account">
+      <field name="code">68510</field>
+      <field name="name">Advertising - Print/Web</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68520_marketing" model="account.account">
+      <field name="code">68520</field>
+      <field name="name">Marketing</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68540_conference_registration" model="account.account">
+      <field name="code">68540</field>
+      <field name="name">Conference Registration</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68600_dues_and_subscriptions" model="account.account">
+      <field name="code">68600</field>
+      <field name="name">Dues and Subscriptions</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68620_website_subscription" model="account.account">
+      <field name="code">68620</field>
+      <field name="name">Website Subscription</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68622_apple" model="account.account">
+      <field name="code">68622</field>
+      <field name="name">Apple</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68631_association_membership_fees" model="account.account">
+      <field name="code">68631</field>
+      <field name="name">Association Membership Fees</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68700_fees_penalties" model="account.account">
+      <field name="code">68700</field>
+      <field name="name">Fees &amp; Penalties</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68710_bank_service_charges" model="account.account">
+      <field name="code">68710</field>
+      <field name="name">Bank Service Charges</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68730_credit_card_fees" model="account.account">
+      <field name="code">68730</field>
+      <field name="name">Credit Card Fees</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68800_professional_fees" model="account.account">
+      <field name="code">68800</field>
+      <field name="name">Professional Fees</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68815_vanillasoft_crm" model="account.account">
+      <field name="code">68815</field>
+      <field name="name">VanillaSoft CRM</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68840_web_design" model="account.account">
+      <field name="code">68840</field>
+      <field name="name">Web Design</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68850_legal_fees" model="account.account">
+      <field name="code">68850</field>
+      <field name="name">Legal Fees</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68860_accountant" model="account.account">
+      <field name="code">68860</field>
+      <field name="name">Accountant</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68900_insurance_expense" model="account.account">
+      <field name="code">68900</field>
+      <field name="name">Insurance Expense</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68925_travel_insurance" model="account.account">
+      <field name="code">68925</field>
+      <field name="name">Travel Insurance</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68940_worker_s_compensation" model="account.account">
+      <field name="code">68940</field>
+      <field name="name">Worker&apos;s Compensation</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68950_travel_expense" model="account.account">
+      <field name="code">68950</field>
+      <field name="name">Travel Expense</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68951_airfare" model="account.account">
+      <field name="code">68951</field>
+      <field name="name">Airfare</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68952_lodging" model="account.account">
+      <field name="code">68952</field>
+      <field name="name">Lodging</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68953_fuel" model="account.account">
+      <field name="code">68953</field>
+      <field name="name">Fuel</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68954_tolls" model="account.account">
+      <field name="code">68954</field>
+      <field name="name">Tolls</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_68955_parking" model="account.account">
+      <field name="code">68955</field>
+      <field name="name">Parking</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_69000_lease_equipment" model="account.account">
+      <field name="code">69000</field>
+      <field name="name">Lease Equipment</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_69500_repairs_and_maintenance" model="account.account">
+      <field name="code">69500</field>
+      <field name="name">Repairs and Maintenance</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_69856_taxi" model="account.account">
+      <field name="code">69856</field>
+      <field name="name">Taxi</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_69900_meals_and_entertainment" model="account.account">
+      <field name="code">69900</field>
+      <field name="name">Meals and Entertainment</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_69901_meals" model="account.account">
+      <field name="code">69901</field>
+      <field name="name">Meals</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_69903_entertainment" model="account.account">
+      <field name="code">69903</field>
+      <field name="name">Entertainment</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_69905_gym_membership" model="account.account">
+      <field name="code">69905</field>
+      <field name="name">Gym Membership</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_70000_tax" model="account.account">
+      <field name="code">70000</field>
+      <field name="name">Tax</field>
+      <field name="account_type">asset</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_70100_federal_tax_witholding" model="account.account">
+      <field name="code">70100</field>
+      <field name="name">Federal Tax Witholding</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_70320_tn_secretary_of_state" model="account.account">
+      <field name="code">70320</field>
+      <field name="name">TN Secretary Of State</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_70330_nc_secretary_of_state" model="account.account">
+      <field name="code">70330</field>
+      <field name="name">NC Secretary Of State</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_70340_nc_dept_of_revenue" model="account.account">
+      <field name="code">70340</field>
+      <field name="name">NC Dept Of Revenue</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_70350_nc_division_of_employment" model="account.account">
+      <field name="code">70350</field>
+      <field name="name">NC Division Of Employment</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_70400_tn_dept_of_revenue" model="account.account">
+      <field name="code">70400</field>
+      <field name="name">TN Dept Of Revenue</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_70450_tn_dept_of_labor" model="account.account">
+      <field name="code">70450</field>
+      <field name="name">TN Dept Of Labor</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+    <record id="account_80000_ask_my_accountant" model="account.account">
+      <field name="code">80000</field>
+      <field name="name">Ask My Accountant</field>
+      <field name="account_type">expense</field>
+      <field name="reconcile">False</field>
+    </record>
+  </data>
+</odoo>

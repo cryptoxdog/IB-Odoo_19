@@ -7,6 +7,7 @@
     "category": "Hidden",
     "depends": [
         "base",
+        "contacts",
         "mail",
         "sale_management"
     ],

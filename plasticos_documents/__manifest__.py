@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Documents Engine",
-    "version": "1.0.0",
+    "version": "19.0.1.0.0",
     "summary": "Document management and compliance",
     "author": "PlasticOS",
     "license": "LGPL-3",
