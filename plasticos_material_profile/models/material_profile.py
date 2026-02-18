@@ -2,11 +2,11 @@ from odoo import models, fields, api
 from odoo.exceptions import ValidationError
 
 
-class PlastosMaterialProfile(models.Model):
+class PlasticosMaterialProfile(models.Model):
     _name = "plasticos.material.profile"
     _description = "Material Identity Profile"
     _inherit = ["mail.thread"]
-    _order = "partner_id, polymer"
+    _order = "partner_id, polymer_id"
 
     partner_id = fields.Many2one(
         "res.partner",
@@ -14,60 +14,119 @@ class PlastosMaterialProfile(models.Model):
         index=True,
         domain="[('parent_id','!=',False)]",
         ondelete="cascade",
-        tracking=True
+        tracking=True,
     )
 
     active = fields.Boolean(default=True)
 
-    # Identity
-    polymer = fields.Selection([
-        ("pp", "PP"),
-        ("hdpe", "HDPE"),
-        ("ldpe", "LDPE"),
-        ("lldpe", "LLDPE"),
-        ("pet", "PET"),
-        ("ps", "PS"),
-        ("abs", "ABS"),
-        ("pvc", "PVC"),
-        ("nylon", "Nylon"),
-        ("other", "Other"),
-    ], index=True, required=True)
+    # ── Identity ─────────────────────────────────────────────
+    polymer_id = fields.Many2one(
+        "plasticos.polymer",
+        string="Polymer",
+        required=True,
+        index=True,
+        ondelete="restrict",
+        tracking=True,
+        help="Canonical polymer type from the master registry.",
+    )
+
+    # Backward-compatible computed field — reads polymer_id.code
+    polymer = fields.Selection(
+        [
+            ("pp", "PP"),
+            ("hdpe", "HDPE"),
+            ("ldpe", "LDPE"),
+            ("lldpe", "LLDPE"),
+            ("pet", "PET"),
+            ("rpet", "rPET"),
+            ("ps", "PS"),
+            ("hips", "HIPS"),
+            ("abs", "ABS"),
+            ("pvc", "PVC"),
+            ("nylon", "Nylon"),
+            ("pc", "PC"),
+            ("pom", "POM"),
+            ("tpe", "TPE"),
+            ("tpu", "TPU"),
+            ("pla", "PLA"),
+            ("eva", "EVA"),
+            ("other", "Other"),
+        ],
+        compute="_compute_polymer_code",
+        store=True,
+        index=True,
+        help="Auto-populated from polymer_id. Kept for backward compatibility.",
+    )
 
     sub_grade = fields.Char()
 
-    form = fields.Selection([
-        ("bale", "Bale"),
-        ("regrind", "Regrind"),
-        ("flake", "Flake"),
-        ("pellet", "Pellet"),
-        ("rollstock", "Rollstock"),
-        ("purge", "Purge"),
-        ("lump", "Lump"),
-        ("other", "Other"),
-    ], index=True, required=True)
+    form = fields.Selection(
+        [
+            ("bale", "Bale"),
+            ("regrind", "Regrind"),
+            ("flake", "Flake"),
+            ("pellet", "Pellet"),
+            ("rollstock", "Rollstock"),
+            ("purge", "Purge"),
+            ("lump", "Lump"),
+            ("film", "Film"),
+            ("sheet", "Sheet"),
+            ("powder", "Powder"),
+            ("parts", "Parts"),
+            ("other", "Other"),
+        ],
+        index=True,
+        required=True,
+    )
 
-    # Source & Process
-    source_type = fields.Selection([
-        ("post_industrial", "Post Industrial"),
-        ("post_consumer", "Post Consumer"),
-        ("mixed", "Mixed"),
-        ("unknown", "Unknown"),
-    ])
+    # ── Color ────────────────────────────────────────────────
+    color = fields.Selection(
+        [
+            ("natural", "Natural"),
+            ("white", "White"),
+            ("black", "Black"),
+            ("clear", "Clear"),
+            ("mixed", "Mixed"),
+            ("other", "Other"),
+        ],
+        help="Primary color of the material.",
+    )
+    color_flexibility = fields.Selection(
+        [
+            ("exact", "Exact Match Only"),
+            ("similar", "Similar Shades OK"),
+            ("any", "Any Color"),
+        ],
+        help="How flexible the buyer/seller is on color.",
+    )
 
-    origin_process_type = fields.Selection([
-        ("injection", "Injection"),
-        ("extrusion", "Extrusion"),
-        ("blow_mold", "Blow Mold"),
-        ("thermoform", "Thermoform"),
-        ("film", "Film"),
-        ("mixed", "Mixed"),
-        ("unknown", "Unknown"),
-    ])
+    # ── Source & Process ─────────────────────────────────────
+    source_type = fields.Selection(
+        [
+            ("post_industrial", "Post Industrial"),
+            ("post_consumer", "Post Consumer"),
+            ("mixed", "Mixed"),
+            ("virgin", "Virgin"),
+            ("unknown", "Unknown"),
+        ],
+    )
+
+    origin_process_type = fields.Selection(
+        [
+            ("injection", "Injection"),
+            ("extrusion", "Extrusion"),
+            ("blow_mold", "Blow Mold"),
+            ("thermoform", "Thermoform"),
+            ("film", "Film"),
+            ("mixed", "Mixed"),
+            ("unknown", "Unknown"),
+        ],
+    )
 
     previously_washed = fields.Boolean()
     previously_pelletized = fields.Boolean()
 
-    # Quality
+    # ── Quality ──────────────────────────────────────────────
     melt_flow_index = fields.Float(index=True)
     density = fields.Float()
     moisture_percent = fields.Float()
@@ -75,45 +134,77 @@ class PlastosMaterialProfile(models.Model):
     contains_metal = fields.Boolean()
     contains_fr = fields.Boolean()
 
-    # Volume
+    # ── Volume ───────────────────────────────────────────────
     avg_lot_size_lbs = fields.Float(index=True)
     min_lot_size_lbs = fields.Float()
     max_lot_size_lbs = fields.Float()
     monthly_volume_lbs = fields.Float(index=True)
 
-    frequency = fields.Selection([
-        ("one_time", "One Time"),
-        ("weekly", "Weekly"),
-        ("biweekly", "Biweekly"),
-        ("monthly", "Monthly"),
-        ("contract", "Contract"),
-    ])
+    frequency = fields.Selection(
+        [
+            ("one_time", "One Time"),
+            ("weekly", "Weekly"),
+            ("biweekly", "Biweekly"),
+            ("monthly", "Monthly"),
+            ("contract", "Contract"),
+        ],
+    )
 
-    # Packaging
-    packaging_type = fields.Selection([
-        ("gaylord", "Gaylord"),
-        ("supersack", "Super Sack"),
-        ("loose", "Loose"),
-        ("palletized", "Palletized"),
-        ("bulk_trailer", "Bulk Trailer"),
-        ("other", "Other"),
-    ])
+    # ── Packaging ────────────────────────────────────────────
+    packaging_type = fields.Selection(
+        [
+            ("gaylord", "Gaylord"),
+            ("supersack", "Super Sack"),
+            ("loose", "Loose"),
+            ("palletized", "Palletized"),
+            ("bulk_trailer", "Bulk Trailer"),
+            ("other", "Other"),
+        ],
+    )
 
     avg_truckloads_per_month = fields.Float()
 
-    # Compliance
+    # ── Compliance ───────────────────────────────────────────
     food_grade = fields.Boolean()
     medical_grade = fields.Boolean()
     certification_notes = fields.Text()
 
-    # AI Enrichment
+    # ── AI Enrichment ────────────────────────────────────────
     freeform_notes = fields.Text()
+
+    # ═════════════════════════════════════════════════════════
+    # Constraints
+    # ═════════════════════════════════════════════════════════
+
+    _check_unique_partner_polymer = models.Constraint(
+        "unique(partner_id, polymer_id, form)",
+        "A facility may only have one profile per polymer + form combination.",
+    )
+
+    # ═════════════════════════════════════════════════════════
+    # Computed
+    # ═════════════════════════════════════════════════════════
+
+    @api.depends("polymer_id", "polymer_id.code")
+    def _compute_polymer_code(self):
+        for rec in self:
+            rec.polymer = rec.polymer_id.code if rec.polymer_id else False
+
+    # ═════════════════════════════════════════════════════════
+    # Validation
+    # ═════════════════════════════════════════════════════════
 
     @api.constrains("partner_id")
     def _check_partner_is_facility(self):
         for rec in self:
             if not rec.partner_id.parent_id:
-                raise ValidationError("Material profiles can only attach to facility-level partners.")
+                raise ValidationError(
+                    "Material profiles can only attach to facility-level partners."
+                )
+
+    # ═════════════════════════════════════════════════════════
+    # CRUD
+    # ═════════════════════════════════════════════════════════
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -128,12 +219,18 @@ class PlastosMaterialProfile(models.Model):
             rec._emit_material_packet()
         return res
 
+    # ═════════════════════════════════════════════════════════
+    # Capability Packet (stub for L9 adapter)
+    # ═════════════════════════════════════════════════════════
+
     def _emit_material_packet(self):
         for rec in self:
             packet = {
                 "partner_id": rec.partner_id.id,
-                "polymer": rec.polymer,
+                "polymer": rec.polymer_id.code if rec.polymer_id else None,
+                "polymer_name": rec.polymer_id.name if rec.polymer_id else None,
                 "form": rec.form,
+                "color": rec.color,
                 "quality": {
                     "mfi": rec.melt_flow_index,
                     "density": rec.density,
@@ -152,6 +249,7 @@ class PlastosMaterialProfile(models.Model):
                     "origin_process": rec.origin_process_type,
                     "washed": rec.previously_washed,
                     "pelletized": rec.previously_pelletized,
-                }
+                },
             }
+            # Stub only — L9 adapter will consume this.
             _ = packet

@@ -6,8 +6,10 @@
     <field name="model">plasticos.material.profile</field>
     <field name="arch" type="xml">
       <list editable="bottom">
-        <field name="polymer"/>
+        <field name="polymer_id"/>
         <field name="form"/>
+        <field name="color"/>
+        <field name="source_type"/>
         <field name="monthly_volume_lbs"/>
         <field name="contamination_percent"/>
       </list>
@@ -20,50 +22,80 @@
     <field name="model">plasticos.material.profile</field>
     <field name="arch" type="xml">
       <form>
-        <group string="Identity">
-          <field name="polymer"/>
-          <field name="sub_grade"/>
-          <field name="form"/>
-        </group>
+        <sheet>
+          <notebook>
+            <page string="Identity">
+              <group>
+                <group string="Material">
+                  <field name="polymer_id"/>
+                  <field name="sub_grade"/>
+                  <field name="form"/>
+                </group>
+                <group string="Appearance">
+                  <field name="color"/>
+                  <field name="color_flexibility"/>
+                </group>
+              </group>
+            </page>
 
-        <group string="Source &amp; Process">
-          <field name="source_type"/>
-          <field name="origin_process_type"/>
-          <field name="previously_washed"/>
-          <field name="previously_pelletized"/>
-        </group>
+            <page string="Source &amp; Process">
+              <group>
+                <group>
+                  <field name="source_type"/>
+                  <field name="origin_process_type"/>
+                </group>
+                <group>
+                  <field name="previously_washed"/>
+                  <field name="previously_pelletized"/>
+                </group>
+              </group>
+            </page>
 
-        <group string="Quality">
-          <field name="melt_flow_index"/>
-          <field name="density"/>
-          <field name="moisture_percent"/>
-          <field name="contamination_percent"/>
-          <field name="contains_metal"/>
-          <field name="contains_fr"/>
-        </group>
+            <page string="Quality">
+              <group>
+                <group>
+                  <field name="melt_flow_index"/>
+                  <field name="density"/>
+                </group>
+                <group>
+                  <field name="moisture_percent"/>
+                  <field name="contamination_percent"/>
+                  <field name="contains_metal"/>
+                  <field name="contains_fr"/>
+                </group>
+              </group>
+            </page>
 
-        <group string="Volume">
-          <field name="avg_lot_size_lbs"/>
-          <field name="min_lot_size_lbs"/>
-          <field name="max_lot_size_lbs"/>
-          <field name="monthly_volume_lbs"/>
-          <field name="frequency"/>
-        </group>
+            <page string="Volume &amp; Packaging">
+              <group>
+                <group string="Volume">
+                  <field name="avg_lot_size_lbs"/>
+                  <field name="min_lot_size_lbs"/>
+                  <field name="max_lot_size_lbs"/>
+                  <field name="monthly_volume_lbs"/>
+                  <field name="frequency"/>
+                </group>
+                <group string="Packaging">
+                  <field name="packaging_type"/>
+                  <field name="avg_truckloads_per_month"/>
+                </group>
+              </group>
+            </page>
 
-        <group string="Packaging">
-          <field name="packaging_type"/>
-          <field name="avg_truckloads_per_month"/>
-        </group>
-
-        <group string="Compliance">
-          <field name="food_grade"/>
-          <field name="medical_grade"/>
-          <field name="certification_notes"/>
-        </group>
-
-        <group string="AI Notes">
-          <field name="freeform_notes"/>
-        </group>
+            <page string="Compliance &amp; Notes">
+              <group>
+                <group string="Compliance">
+                  <field name="food_grade"/>
+                  <field name="medical_grade"/>
+                  <field name="certification_notes"/>
+                </group>
+                <group string="Notes">
+                  <field name="freeform_notes"/>
+                </group>
+              </group>
+            </page>
+          </notebook>
+        </sheet>
       </form>
     </field>
   </record>
@@ -82,50 +114,84 @@
 
           <field name="material_profile_ids">
             <list editable="bottom">
-              <field name="polymer"/>
+              <field name="polymer_id"/>
               <field name="form"/>
+              <field name="color"/>
+              <field name="source_type"/>
               <field name="monthly_volume_lbs"/>
               <field name="contamination_percent"/>
             </list>
             <form>
-              <group string="Identity">
-                <field name="polymer"/>
-                <field name="sub_grade"/>
-                <field name="form"/>
-              </group>
-              <group string="Source &amp; Process">
-                <field name="source_type"/>
-                <field name="origin_process_type"/>
-                <field name="previously_washed"/>
-                <field name="previously_pelletized"/>
-              </group>
-              <group string="Quality">
-                <field name="melt_flow_index"/>
-                <field name="density"/>
-                <field name="moisture_percent"/>
-                <field name="contamination_percent"/>
-                <field name="contains_metal"/>
-                <field name="contains_fr"/>
-              </group>
-              <group string="Volume">
-                <field name="avg_lot_size_lbs"/>
-                <field name="min_lot_size_lbs"/>
-                <field name="max_lot_size_lbs"/>
-                <field name="monthly_volume_lbs"/>
-                <field name="frequency"/>
-              </group>
-              <group string="Packaging">
-                <field name="packaging_type"/>
-                <field name="avg_truckloads_per_month"/>
-              </group>
-              <group string="Compliance">
-                <field name="food_grade"/>
-                <field name="medical_grade"/>
-                <field name="certification_notes"/>
-              </group>
-              <group string="AI Notes">
-                <field name="freeform_notes"/>
-              </group>
+              <sheet>
+                <notebook>
+                  <page string="Identity">
+                    <group>
+                      <group string="Material">
+                        <field name="polymer_id"/>
+                        <field name="sub_grade"/>
+                        <field name="form"/>
+                      </group>
+                      <group string="Appearance">
+                        <field name="color"/>
+                        <field name="color_flexibility"/>
+                      </group>
+                    </group>
+                  </page>
+                  <page string="Source &amp; Process">
+                    <group>
+                      <group>
+                        <field name="source_type"/>
+                        <field name="origin_process_type"/>
+                      </group>
+                      <group>
+                        <field name="previously_washed"/>
+                        <field name="previously_pelletized"/>
+                      </group>
+                    </group>
+                  </page>
+                  <page string="Quality">
+                    <group>
+                      <group>
+                        <field name="melt_flow_index"/>
+                        <field name="density"/>
+                      </group>
+                      <group>
+                        <field name="moisture_percent"/>
+                        <field name="contamination_percent"/>
+                        <field name="contains_metal"/>
+                        <field name="contains_fr"/>
+                      </group>
+                    </group>
+                  </page>
+                  <page string="Volume &amp; Packaging">
+                    <group>
+                      <group string="Volume">
+                        <field name="avg_lot_size_lbs"/>
+                        <field name="min_lot_size_lbs"/>
+                        <field name="max_lot_size_lbs"/>
+                        <field name="monthly_volume_lbs"/>
+                        <field name="frequency"/>
+                      </group>
+                      <group string="Packaging">
+                        <field name="packaging_type"/>
+                        <field name="avg_truckloads_per_month"/>
+                      </group>
+                    </group>
+                  </page>
+                  <page string="Compliance &amp; Notes">
+                    <group>
+                      <group string="Compliance">
+                        <field name="food_grade"/>
+                        <field name="medical_grade"/>
+                        <field name="certification_notes"/>
+                      </group>
+                      <group string="Notes">
+                        <field name="freeform_notes"/>
+                      </group>
+                    </group>
+                  </page>
+                </notebook>
+              </sheet>
             </form>
           </field>
 
