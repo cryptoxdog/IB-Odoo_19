@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- Config Form View                                     -->
+    <!-- ════════════════════════════════════════════════════ -->
+
+    <record id="view_web_lead_config_form" model="ir.ui.view">
+        <field name="name">plasticos.web.lead.config.form</field>
+        <field name="model">plasticos.web.lead.config</field>
+        <field name="arch" type="xml">
+            <form string="Web Lead Configuration">
+                <sheet>
+                    <group string="Endpoint Settings">
+                        <group>
+                            <field name="is_active"/>
+                            <field name="auto_create_partner"/>
+                        </group>
+                        <group>
+                            <field name="default_source_type"/>
+                        </group>
+                    </group>
+                    <group string="API Authentication">
+                        <group>
+                            <field name="api_key" password="True"/>
+                            <button name="action_generate_api_key"
+                                    string="Generate New API Key"
+                                    type="object"
+                                    class="btn-warning"
+                                    confirm="This will invalidate the current key. The lead_intake agent will need the new key. Continue?"/>
+                        </group>
+                    </group>
+                    <separator string="Integration Guide"/>
+                    <div class="alert alert-info" role="alert">
+                        <p><strong>Endpoint:</strong> <code>POST /api/v1/web-lead</code></p>
+                        <p><strong>Health Check:</strong> <code>GET /api/v1/web-lead/health</code></p>
+                        <p><strong>Auth:</strong> <code>Authorization: Bearer &lt;api_key&gt;</code></p>
+                        <p>The lead_intake agent sends HOT/COLD decisions here.
+                           HOT leads automatically create a partner and intake record.</p>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- Action (singleton redirect)                          -->
+    <!-- ════════════════════════════════════════════════════ -->
+
+    <record id="action_web_lead_config" model="ir.actions.act_window">
+        <field name="name">Web Lead Settings</field>
+        <field name="res_model">plasticos.web.lead.config</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="res_id" ref="web_lead_config_default"/>
+    </record>
+
+</odoo>
