@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- ── Supplier Document Tags ──────────────────────────── -->
+        <record id="tag_supplier_bol" model="plasticos.document.tag">
+            <field name="name">Supplier BOL</field>
+            <field name="code">SUPPLIER_BOL</field>
+        </record>
+        <record id="tag_supplier_scale_ticket" model="plasticos.document.tag">
+            <field name="name">Supplier Scale Ticket</field>
+            <field name="code">SUPPLIER_SCALE</field>
+        </record>
+        <record id="tag_supplier_loading_pics" model="plasticos.document.tag">
+            <field name="name">Supplier Loading Pics</field>
+            <field name="code">SUPPLIER_LOADING_PICS</field>
+        </record>
+        <record id="tag_supplier_invoice" model="plasticos.document.tag">
+            <field name="name">Supplier Invoice</field>
+            <field name="code">SUPPLIER_INVOICE</field>
+        </record>
+        <record id="tag_supplier_packing_list" model="plasticos.document.tag">
+            <field name="name">Supplier Packing List</field>
+            <field name="code">SUPPLIER_PACKING_LIST</field>
+        </record>
+
+        <!-- ── Carrier Document Tags ───────────────────────────── -->
+        <record id="tag_carrier_bol" model="plasticos.document.tag">
+            <field name="name">Carrier BOL</field>
+            <field name="code">CARRIER_BOL</field>
+        </record>
+        <record id="tag_carrier_cst" model="plasticos.document.tag">
+            <field name="name">Carrier CST</field>
+            <field name="code">CARRIER_CST</field>
+        </record>
+        <record id="tag_carrier_invoice" model="plasticos.document.tag">
+            <field name="name">Carrier Invoice</field>
+            <field name="code">CARRIER_INVOICE</field>
+        </record>
+        <record id="tag_carrier_do_confirmation" model="plasticos.document.tag">
+            <field name="name">Carrier DO Confirmation</field>
+            <field name="code">CARRIER_DO_CONFIRM</field>
+        </record>
+
+        <!-- ── Buyer Document Tags ─────────────────────────────── -->
+        <record id="tag_buyer_po" model="plasticos.document.tag">
+            <field name="name">Buyer PO</field>
+            <field name="code">BUYER_PO</field>
+        </record>
+        <record id="tag_buyer_receiving_report" model="plasticos.document.tag">
+            <field name="name">Buyer Receiving Report</field>
+            <field name="code">BUYER_RECEIVING_REPORT</field>
+        </record>
+        <record id="tag_buyer_claim_pics" model="plasticos.document.tag">
+            <field name="name">Buyer Claim Pics</field>
+            <field name="code">BUYER_CLAIM_PICS</field>
+        </record>
+
+    </data>
+</odoo>

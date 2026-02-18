@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Validation Matrix List View -->
+    <record id="view_validation_matrix_list" model="ir.ui.view">
+        <field name="name">plasticos.document.validation.matrix.list</field>
+        <field name="model">plasticos.document.validation.matrix</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="doc_category"/>
+                <field name="tag_id"/>
+                <field name="required_for_close"/>
+                <field name="required_for_invoice"/>
+                <field name="required_for_dispatch"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Validation Matrix Form View -->
+    <record id="view_validation_matrix_form" model="ir.ui.view">
+        <field name="name">plasticos.document.validation.matrix.form</field>
+        <field name="model">plasticos.document.validation.matrix</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="sequence"/>
+                            <field name="doc_category"/>
+                            <field name="tag_id"/>
+                        </group>
+                        <group>
+                            <field name="required_for_close"/>
+                            <field name="required_for_invoice"/>
+                            <field name="required_for_dispatch"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_validation_matrix" model="ir.actions.act_window">
+        <field name="name">Document Validation Matrix</field>
+        <field name="res_model">plasticos.document.validation.matrix</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Menu -->
+    <menuitem id="menu_validation_matrix"
+              name="Validation Matrix"
+              parent="plasticos_documents.menu_documents_root"
+              action="action_validation_matrix"
+              sequence="30"/>
+</odoo>
