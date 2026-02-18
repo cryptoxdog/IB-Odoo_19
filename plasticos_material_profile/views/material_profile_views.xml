@@ -1,16 +1,16 @@
 <odoo>
 
-  <!-- Standalone tree view for material profiles -->
-  <record id="view_material_profile_tree" model="ir.ui.view">
-    <field name="name">plasticos.material.profile.tree</field>
+  <!-- Standalone list view for material profiles -->
+  <record id="view_material_profile_list" model="ir.ui.view">
+    <field name="name">plasticos.material.profile.list</field>
     <field name="model">plasticos.material.profile</field>
     <field name="arch" type="xml">
-      <tree editable="bottom">
+      <list editable="bottom">
         <field name="polymer"/>
         <field name="form"/>
         <field name="monthly_volume_lbs"/>
         <field name="contamination_percent"/>
-      </tree>
+      </list>
     </field>
   </record>
 
@@ -80,7 +80,7 @@
         <page string="Material Profiles"
               invisible="not parent_id">
 
-          <field name="material_profile_ids" mode="tree,form"/>
+          <field name="material_profile_ids" mode="list,form"/>
 
         </page>
 
