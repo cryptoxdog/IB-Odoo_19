@@ -7,6 +7,9 @@
     <field name="arch" type="xml">
       <list editable="bottom">
         <field name="max_monthly_throughput_lbs"/>
+        <field name="process_method"/>
+        <field name="feedstock_type"/>
+        <field name="capacity_lbs_month"/>
         <field name="has_horizontal_baler"/>
         <field name="has_wash_line"/>
         <field name="handles_bales"/>
@@ -20,54 +23,112 @@
     <field name="model">plasticos.facility.profile</field>
     <field name="arch" type="xml">
       <form>
-        <group string="Equipment">
-          <field name="has_horizontal_baler"/>
-          <field name="has_downstroke_baler"/>
-          <field name="has_shredder"/>
-          <field name="has_granulator"/>
-          <field name="has_wash_line"/>
-          <field name="has_pelletizer"/>
-          <field name="has_extruder"/>
-          <field name="has_compounder"/>
-          <field name="has_sorting_line"/>
-        </group>
+        <sheet>
+          <notebook>
+            <!-- ── Capability Tab ──────────────────────── -->
+            <page string="Capability">
+              <group>
+                <group string="Processing">
+                  <field name="process_method"/>
+                  <field name="feedstock_type"/>
+                  <field name="form_preference"/>
+                  <field name="application_class"/>
+                </group>
+                <group string="Capacity">
+                  <field name="max_monthly_throughput_lbs"/>
+                  <field name="capacity_lbs_month"/>
+                  <field name="avg_truckload_lbs"/>
+                </group>
+              </group>
+              <group string="Accepted Polymers">
+                <field name="accepted_polymer_ids" widget="many2many_tags"/>
+              </group>
+            </page>
 
-        <group string="Throughput">
-          <field name="max_monthly_throughput_lbs"/>
-          <field name="avg_truckload_lbs"/>
-        </group>
+            <!-- ── Tolerances Tab ──────────────────────── -->
+            <page string="Tolerances">
+              <group>
+                <group string="Density (g/cm³)">
+                  <field name="density_min"/>
+                  <field name="density_max"/>
+                </group>
+                <group string="Melt Flow Index (g/10min)">
+                  <field name="melt_index_min"/>
+                  <field name="melt_index_max"/>
+                </group>
+              </group>
+              <group>
+                <group string="Contamination &amp; Moisture">
+                  <field name="contamination_tolerance_pct"/>
+                  <field name="moisture_tolerance_pct"/>
+                </group>
+                <group string="PCR Content (%)">
+                  <field name="pcr_pct_min"/>
+                  <field name="pcr_pct_max"/>
+                </group>
+              </group>
+            </page>
 
-        <group string="Material Handling">
-          <field name="handles_bales"/>
-          <field name="handles_regrind"/>
-          <field name="handles_pellet"/>
-          <field name="handles_flake"/>
-          <field name="handles_rollstock"/>
-        </group>
+            <!-- ── Equipment Tab ───────────────────────── -->
+            <page string="Equipment">
+              <group>
+                <group string="Equipment">
+                  <field name="has_horizontal_baler"/>
+                  <field name="has_downstroke_baler"/>
+                  <field name="has_shredder"/>
+                  <field name="has_granulator"/>
+                  <field name="has_wash_line"/>
+                  <field name="has_pelletizer"/>
+                  <field name="has_extruder"/>
+                  <field name="has_compounder"/>
+                  <field name="has_sorting_line"/>
+                </group>
+                <group string="Material Handling">
+                  <field name="handles_bales"/>
+                  <field name="handles_regrind"/>
+                  <field name="handles_pellet"/>
+                  <field name="handles_flake"/>
+                  <field name="handles_rollstock"/>
+                </group>
+              </group>
+            </page>
 
-        <group string="Quality">
-          <field name="can_remove_metal"/>
-          <field name="can_reduce_moisture"/>
-          <field name="can_filter_fr"/>
-          <field name="can_screen_fines"/>
-        </group>
+            <!-- ── Quality &amp; Certification Tab ─────── -->
+            <page string="Quality &amp; Certification">
+              <group>
+                <group string="Quality Processing">
+                  <field name="can_remove_metal"/>
+                  <field name="can_reduce_moisture"/>
+                  <field name="can_filter_fr"/>
+                  <field name="can_screen_fines"/>
+                </group>
+                <group string="Certifications">
+                  <field name="iso_certified"/>
+                  <field name="food_grade_certified"/>
+                  <field name="medical_grade_capable"/>
+                </group>
+              </group>
+            </page>
 
-        <group string="Certifications">
-          <field name="iso_certified"/>
-          <field name="food_grade_certified"/>
-          <field name="medical_grade_capable"/>
-        </group>
-
-        <group string="Operational Constraints">
-          <field name="min_lot_size_lbs"/>
-          <field name="max_lot_size_lbs"/>
-          <field name="accepts_spot"/>
-          <field name="prefers_contract"/>
-        </group>
-
-        <group string="AI Notes">
-          <field name="freeform_notes"/>
-        </group>
+            <!-- ── Operational Tab ─────────────────────── -->
+            <page string="Operational">
+              <group>
+                <group string="Lot Size">
+                  <field name="min_lot_size_lbs"/>
+                  <field name="max_lot_size_lbs"/>
+                </group>
+                <group string="Deal Preference">
+                  <field name="accepts_spot"/>
+                  <field name="prefers_contract"/>
+                </group>
+              </group>
+              <group string="Notes">
+                <field name="application_notes"/>
+                <field name="freeform_notes"/>
+              </group>
+            </page>
+          </notebook>
+        </sheet>
       </form>
     </field>
   </record>
@@ -91,53 +152,111 @@
           <field name="facility_profile_ids">
             <list editable="bottom">
               <field name="max_monthly_throughput_lbs"/>
+              <field name="process_method"/>
+              <field name="feedstock_type"/>
+              <field name="capacity_lbs_month"/>
               <field name="has_horizontal_baler"/>
               <field name="has_wash_line"/>
               <field name="handles_bales"/>
             </list>
             <form>
-              <group string="Equipment">
-                <field name="has_horizontal_baler"/>
-                <field name="has_downstroke_baler"/>
-                <field name="has_shredder"/>
-                <field name="has_granulator"/>
-                <field name="has_wash_line"/>
-                <field name="has_pelletizer"/>
-                <field name="has_extruder"/>
-                <field name="has_compounder"/>
-                <field name="has_sorting_line"/>
-              </group>
-              <group string="Throughput">
-                <field name="max_monthly_throughput_lbs"/>
-                <field name="avg_truckload_lbs"/>
-              </group>
-              <group string="Material Handling">
-                <field name="handles_bales"/>
-                <field name="handles_regrind"/>
-                <field name="handles_pellet"/>
-                <field name="handles_flake"/>
-                <field name="handles_rollstock"/>
-              </group>
-              <group string="Quality">
-                <field name="can_remove_metal"/>
-                <field name="can_reduce_moisture"/>
-                <field name="can_filter_fr"/>
-                <field name="can_screen_fines"/>
-              </group>
-              <group string="Certifications">
-                <field name="iso_certified"/>
-                <field name="food_grade_certified"/>
-                <field name="medical_grade_capable"/>
-              </group>
-              <group string="Operational Constraints">
-                <field name="min_lot_size_lbs"/>
-                <field name="max_lot_size_lbs"/>
-                <field name="accepts_spot"/>
-                <field name="prefers_contract"/>
-              </group>
-              <group string="AI Notes">
-                <field name="freeform_notes"/>
-              </group>
+              <sheet>
+                <notebook>
+                  <page string="Capability">
+                    <group>
+                      <group string="Processing">
+                        <field name="process_method"/>
+                        <field name="feedstock_type"/>
+                        <field name="form_preference"/>
+                        <field name="application_class"/>
+                      </group>
+                      <group string="Capacity">
+                        <field name="max_monthly_throughput_lbs"/>
+                        <field name="capacity_lbs_month"/>
+                        <field name="avg_truckload_lbs"/>
+                      </group>
+                    </group>
+                    <group string="Accepted Polymers">
+                      <field name="accepted_polymer_ids" widget="many2many_tags"/>
+                    </group>
+                  </page>
+                  <page string="Tolerances">
+                    <group>
+                      <group string="Density (g/cm³)">
+                        <field name="density_min"/>
+                        <field name="density_max"/>
+                      </group>
+                      <group string="Melt Flow Index (g/10min)">
+                        <field name="melt_index_min"/>
+                        <field name="melt_index_max"/>
+                      </group>
+                    </group>
+                    <group>
+                      <group string="Contamination &amp; Moisture">
+                        <field name="contamination_tolerance_pct"/>
+                        <field name="moisture_tolerance_pct"/>
+                      </group>
+                      <group string="PCR Content (%)">
+                        <field name="pcr_pct_min"/>
+                        <field name="pcr_pct_max"/>
+                      </group>
+                    </group>
+                  </page>
+                  <page string="Equipment">
+                    <group>
+                      <group string="Equipment">
+                        <field name="has_horizontal_baler"/>
+                        <field name="has_downstroke_baler"/>
+                        <field name="has_shredder"/>
+                        <field name="has_granulator"/>
+                        <field name="has_wash_line"/>
+                        <field name="has_pelletizer"/>
+                        <field name="has_extruder"/>
+                        <field name="has_compounder"/>
+                        <field name="has_sorting_line"/>
+                      </group>
+                      <group string="Material Handling">
+                        <field name="handles_bales"/>
+                        <field name="handles_regrind"/>
+                        <field name="handles_pellet"/>
+                        <field name="handles_flake"/>
+                        <field name="handles_rollstock"/>
+                      </group>
+                    </group>
+                  </page>
+                  <page string="Quality &amp; Certification">
+                    <group>
+                      <group string="Quality Processing">
+                        <field name="can_remove_metal"/>
+                        <field name="can_reduce_moisture"/>
+                        <field name="can_filter_fr"/>
+                        <field name="can_screen_fines"/>
+                      </group>
+                      <group string="Certifications">
+                        <field name="iso_certified"/>
+                        <field name="food_grade_certified"/>
+                        <field name="medical_grade_capable"/>
+                      </group>
+                    </group>
+                  </page>
+                  <page string="Operational">
+                    <group>
+                      <group string="Lot Size">
+                        <field name="min_lot_size_lbs"/>
+                        <field name="max_lot_size_lbs"/>
+                      </group>
+                      <group string="Deal Preference">
+                        <field name="accepts_spot"/>
+                        <field name="prefers_contract"/>
+                      </group>
+                    </group>
+                    <group string="Notes">
+                      <field name="application_notes"/>
+                      <field name="freeform_notes"/>
+                    </group>
+                  </page>
+                </notebook>
+              </sheet>
             </form>
           </field>
 
