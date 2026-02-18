@@ -1,0 +1,80 @@
+<odoo>
+
+  <record id="view_partner_form_material_tab" model="ir.ui.view">
+    <field name="name">res.partner.form.material.tab</field>
+    <field name="model">res.partner</field>
+    <field name="inherit_id" ref="contacts.view_partner_form"/>
+    <field name="arch" type="xml">
+
+      <xpath expr="//sheet/notebook" position="inside">
+
+        <page string="Material Profiles"
+              invisible="not parent_id">
+
+          <field name="material_profile_ids">
+            <tree editable="bottom">
+              <field name="polymer"/>
+              <field name="form"/>
+              <field name="monthly_volume_lbs"/>
+              <field name="contamination_percent"/>
+            </tree>
+
+            <form>
+
+              <group string="Identity">
+                <field name="polymer"/>
+                <field name="sub_grade"/>
+                <field name="form"/>
+              </group>
+
+              <group string="Source &amp; Process">
+                <field name="source_type"/>
+                <field name="origin_process_type"/>
+                <field name="previously_washed"/>
+                <field name="previously_pelletized"/>
+              </group>
+
+              <group string="Quality">
+                <field name="melt_flow_index"/>
+                <field name="density"/>
+                <field name="moisture_percent"/>
+                <field name="contamination_percent"/>
+                <field name="contains_metal"/>
+                <field name="contains_fr"/>
+              </group>
+
+              <group string="Volume">
+                <field name="avg_lot_size_lbs"/>
+                <field name="min_lot_size_lbs"/>
+                <field name="max_lot_size_lbs"/>
+                <field name="monthly_volume_lbs"/>
+                <field name="frequency"/>
+              </group>
+
+              <group string="Packaging">
+                <field name="packaging_type"/>
+                <field name="avg_truckloads_per_month"/>
+              </group>
+
+              <group string="Compliance">
+                <field name="food_grade"/>
+                <field name="medical_grade"/>
+                <field name="certification_notes"/>
+              </group>
+
+              <group string="AI Notes">
+                <field name="freeform_notes"/>
+              </group>
+
+            </form>
+
+          </field>
+
+        </page>
+
+      </xpath>
+
+    </field>
+  </record>
+
+</odoo>

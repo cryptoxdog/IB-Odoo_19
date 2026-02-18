@@ -1,0 +1,672 @@
+{
+  "countries": [],
+  "states": [],
+  "payment_terms": [
+    {
+      "name": "Net 15",
+      "days": 15
+    },
+    {
+      "name": "Net 30",
+      "days": 30
+    },
+    {
+      "name": "Net 45",
+      "days": 45
+    },
+    {
+      "name": "Net 60",
+      "days": 60
+    },
+    {
+      "name": "2/10 Net 30",
+      "days": 30,
+      "discount": "2% if paid within 10 days"
+    },
+    {
+      "name": "1/15 Net 45",
+      "days": 45,
+      "discount": "1% if paid within 15 days"
+    },
+    {
+      "name": "COD"
+    },
+    {
+      "name": "Prepaid"
+    },
+    {
+      "name": "50% Down/ 50% COD"
+    }
+  ],
+  "incoterms": [
+    {
+      "code": "FOB",
+      "name": "Free On Board"
+    },
+    {
+      "code": "SUPPLIER_DELIVERED",
+      "name": "Supplier Delivered"
+    },
+    {
+      "code": "BUYER_PICKUP",
+      "name": "Buyer Pick Up"
+    },
+    {
+      "code": "FAS",
+      "name": "FAS Port"
+    }
+  ],
+  "sales_reps": [
+    {
+      "name": "Igor Beylin",
+      "login": "IB",
+      "email": "ib@scrapmanagement.com",
+      "phone": "(704) 251-8889"
+    },
+    {
+      "name": "Arthur Buyanovskiy",
+      "login": "AB",
+      "email": "ab@scrapmanagement.com",
+      "phone": "(615) 280-8682"
+    },
+    {
+      "name": "Lindsey Malyavko",
+      "login": "LM",
+      "email": "lm@scrapmanagement.com",
+      "phone": "(347) 391-2998"
+    },
+    {
+      "name": "Ricardo Pereira",
+      "login": "RP",
+      "email": "rp@scrapmanagement.com",
+      "phone": "(347) 587-5539"
+    },
+    {
+      "name": "Arthur Akopyan",
+      "login": "AA",
+      "email": "aa@scrapmanagement.com",
+      "phone": "(347) 834-6309"
+    },
+    {
+      "name": "Tiffany White",
+      "login": "TW",
+      "email": "sa@scrapmanagement.com",
+      "phone": "(615) 375-9395"
+    }
+  ],
+  "partner_categories": [],
+  "chart_of_accounts": [
+    {
+      "code": "40000",
+      "name": "Revenue",
+      "type": "view"
+    },
+    {
+      "code": "40050",
+      "name": "Sales Income",
+      "type": "income"
+    },
+    {
+      "code": "40075",
+      "name": "Tax Refund",
+      "type": "income"
+    },
+    {
+      "code": "50000",
+      "name": "Cost Of Goods Sold",
+      "type": "view"
+    },
+    {
+      "code": "50100",
+      "name": "Material Cost",
+      "type": "expense"
+    },
+    {
+      "code": "50700",
+      "name": "National Box Exchange",
+      "type": "expense"
+    },
+    {
+      "code": "62550",
+      "name": "Web Services",
+      "type": "view"
+    },
+    {
+      "code": "62556",
+      "name": "D&B",
+      "type": "expense"
+    },
+    {
+      "code": "62621",
+      "name": "Google Web Services",
+      "type": "expense"
+    },
+    {
+      "code": "66000",
+      "name": "Employee Labor",
+      "type": "view"
+    },
+    {
+      "code": "66100",
+      "name": "Salary (W2) - Sasha/Josie",
+      "type": "expense"
+    },
+    {
+      "code": "66210",
+      "name": "Salary (W2) - Admin TN",
+      "type": "expense"
+    },
+    {
+      "code": "67000",
+      "name": "Contractor Labor",
+      "type": "view"
+    },
+    {
+      "code": "67100",
+      "name": "Sales",
+      "type": "expense"
+    },
+    {
+      "code": "67200",
+      "name": "Outsourced Labor (UpWork)",
+      "type": "expense"
+    },
+    {
+      "code": "68000",
+      "name": "Overhead",
+      "type": "view"
+    },
+    {
+      "code": "68100",
+      "name": "Rent Expense",
+      "type": "expense"
+    },
+    {
+      "code": "68120",
+      "name": "Security System",
+      "type": "expense"
+    },
+    {
+      "code": "68125",
+      "name": "Electric Utility",
+      "type": "expense"
+    },
+    {
+      "code": "68150",
+      "name": "Cleaning Service",
+      "type": "expense"
+    },
+    {
+      "code": "68155",
+      "name": "Furniture",
+      "type": "expense"
+    },
+    {
+      "code": "68200",
+      "name": "Office Supplies",
+      "type": "expense"
+    },
+    {
+      "code": "68210",
+      "name": "Uniform",
+      "type": "expense"
+    },
+    {
+      "code": "68220",
+      "name": "Tools & Hardware",
+      "type": "expense"
+    },
+    {
+      "code": "68250",
+      "name": "Postage and Delivery",
+      "type": "view"
+    },
+    {
+      "code": "68251",
+      "name": "USPS",
+      "type": "expense"
+    },
+    {
+      "code": "68252",
+      "name": "UPS",
+      "type": "expense"
+    },
+    {
+      "code": "68300",
+      "name": "Communications Expense",
+      "type": "view"
+    },
+    {
+      "code": "68310",
+      "name": "Cell Phones",
+      "type": "expense"
+    },
+    {
+      "code": "68320",
+      "name": "Land Lines & Internet",
+      "type": "expense"
+    },
+    {
+      "code": "68330",
+      "name": "Web Hosting",
+      "type": "expense"
+    },
+    {
+      "code": "68400",
+      "name": "Computer and Internet Expenses",
+      "type": "view"
+    },
+    {
+      "code": "68410",
+      "name": "Computer Hardware",
+      "type": "expense"
+    },
+    {
+      "code": "68420",
+      "name": "Computer Software",
+      "type": "expense"
+    },
+    {
+      "code": "68500",
+      "name": "Advertising and Promotion",
+      "type": "view"
+    },
+    {
+      "code": "68510",
+      "name": "Advertising - Print/Web",
+      "type": "expense"
+    },
+    {
+      "code": "68520",
+      "name": "Marketing",
+      "type": "expense"
+    },
+    {
+      "code": "68540",
+      "name": "Conference Registration",
+      "type": "expense"
+    },
+    {
+      "code": "68600",
+      "name": "Dues and Subscriptions",
+      "type": "view"
+    },
+    {
+      "code": "68620",
+      "name": "Website Subscription",
+      "type": "view"
+    },
+    {
+      "code": "68622",
+      "name": "Apple",
+      "type": "expense"
+    },
+    {
+      "code": "68631",
+      "name": "Association Membership Fees",
+      "type": "expense"
+    },
+    {
+      "code": "68700",
+      "name": "Fees & Penalties",
+      "type": "view"
+    },
+    {
+      "code": "68710",
+      "name": "Bank Service Charges",
+      "type": "expense"
+    },
+    {
+      "code": "68730",
+      "name": "Credit Card Fees",
+      "type": "expense"
+    },
+    {
+      "code": "68800",
+      "name": "Professional Fees",
+      "type": "view"
+    },
+    {
+      "code": "68815",
+      "name": "VanillaSoft CRM",
+      "type": "expense"
+    },
+    {
+      "code": "68840",
+      "name": "Web Design",
+      "type": "expense"
+    },
+    {
+      "code": "68850",
+      "name": "Legal Fees",
+      "type": "expense"
+    },
+    {
+      "code": "68860",
+      "name": "Accountant",
+      "type": "expense"
+    },
+    {
+      "code": "68900",
+      "name": "Insurance Expense",
+      "type": "view"
+    },
+    {
+      "code": "68925",
+      "name": "Travel Insurance",
+      "type": "expense"
+    },
+    {
+      "code": "68940",
+      "name": "Worker's Compensation",
+      "type": "expense"
+    },
+    {
+      "code": "68950",
+      "name": "Travel Expense",
+      "type": "view"
+    },
+    {
+      "code": "68951",
+      "name": "Airfare",
+      "type": "expense"
+    },
+    {
+      "code": "68952",
+      "name": "Lodging",
+      "type": "expense"
+    },
+    {
+      "code": "68953",
+      "name": "Fuel",
+      "type": "expense"
+    },
+    {
+      "code": "68954",
+      "name": "Tolls",
+      "type": "expense"
+    },
+    {
+      "code": "68955",
+      "name": "Parking",
+      "type": "expense"
+    },
+    {
+      "code": "69000",
+      "name": "Lease Equipment",
+      "type": "expense"
+    },
+    {
+      "code": "69500",
+      "name": "Repairs and Maintenance",
+      "type": "expense"
+    },
+    {
+      "code": "69856",
+      "name": "Taxi",
+      "type": "expense"
+    },
+    {
+      "code": "69900",
+      "name": "Meals and Entertainment",
+      "type": "view"
+    },
+    {
+      "code": "69901",
+      "name": "Meals",
+      "type": "expense"
+    },
+    {
+      "code": "69903",
+      "name": "Entertainment",
+      "type": "expense"
+    },
+    {
+      "code": "69905",
+      "name": "Gym Membership",
+      "type": "expense"
+    },
+    {
+      "code": "70000",
+      "name": "Tax",
+      "type": "view"
+    },
+    {
+      "code": "70100",
+      "name": "Federal Tax Witholding",
+      "type": "expense"
+    },
+    {
+      "code": "70320",
+      "name": "TN Secretary Of State",
+      "type": "expense"
+    },
+    {
+      "code": "70330",
+      "name": "NC Secretary Of State",
+      "type": "expense"
+    },
+    {
+      "code": "70340",
+      "name": "NC Dept Of Revenue",
+      "type": "expense"
+    },
+    {
+      "code": "70350",
+      "name": "NC Division Of Employment",
+      "type": "expense"
+    },
+    {
+      "code": "70400",
+      "name": "TN Dept Of Revenue",
+      "type": "expense"
+    },
+    {
+      "code": "70450",
+      "name": "TN Dept Of Labor",
+      "type": "expense"
+    },
+    {
+      "code": "80000",
+      "name": "Ask My Accountant",
+      "type": "expense"
+    }
+  ],
+  "material_taxonomy": {
+    "polymers": [
+      "ABS",
+      "BOPP",
+      "BOXES",
+      "EPS",
+      "HDPE",
+      "HMW HDPE",
+      "HIPS",
+      "LDPE",
+      "Metal",
+      "Mixed",
+      "MRP",
+      "OCC",
+      "PA",
+      "PALLETS",
+      "PC-PMMA",
+      "PET",
+      "PMMA",
+      "PP",
+      "PP-PE",
+      "PVC",
+      "TPO"
+    ],
+    "forms": [
+      "BAG",
+      "BALE",
+      "CHOP",
+      "DENS",
+      "FILM",
+      "FLAKE",
+      "GAY",
+      "LOG",
+      "LOOSE",
+      "PAL",
+      "PART",
+      "PATTY",
+      "PELL",
+      "PURG",
+      "REG",
+      "REPRO",
+      "RG",
+      "ROLL",
+      "SHEET",
+      "SHRED",
+      "SWEEP"
+    ],
+    "source_types": [
+      "Clean",
+      "CLEAN",
+      "CONT",
+      "Mixed",
+      "MIXED",
+      "No-Value",
+      "Off-Grade",
+      "OFF",
+      "Post-Consumer",
+      "PC",
+      "Post-Industrial",
+      "PI",
+      "Reusable",
+      "REUSE"
+    ],
+    "origin_process_types": [],
+    "frequencies": [],
+    "packaging_types": []
+  },
+  "colors": [
+    {
+      "name": "Black",
+      "code": "BLK"
+    },
+    {
+      "name": "Blue",
+      "code": "BLU"
+    },
+    {
+      "name": "Blue/White",
+      "code": "BLW"
+    },
+    {
+      "name": "Clear",
+      "code": "CLR"
+    },
+    {
+      "name": "Dark",
+      "code": "DARK"
+    },
+    {
+      "name": "Gray",
+      "code": "GRY"
+    },
+    {
+      "name": "Green",
+      "code": "GRN"
+    },
+    {
+      "name": "Mixed Color",
+      "code": "MIX"
+    },
+    {
+      "name": "Natural",
+      "code": "NAT"
+    },
+    {
+      "name": "Orange",
+      "code": "ORG"
+    },
+    {
+      "name": "Print",
+      "code": "PRINT"
+    },
+    {
+      "name": "Red",
+      "code": "RED"
+    },
+    {
+      "name": "White",
+      "code": "WHT"
+    },
+    {
+      "name": "Yellow",
+      "code": "YEL"
+    }
+  ],
+  "material_types": [
+    {
+      "name": "Clean",
+      "code": "CLEAN"
+    },
+    {
+      "name": "Dirty",
+      "code": "DIRTY"
+    },
+    {
+      "name": "Dry",
+      "code": "DRY"
+    },
+    {
+      "name": "Metalized",
+      "code": "MET"
+    },
+    {
+      "name": "Mixed",
+      "code": "MIXED"
+    },
+    {
+      "name": "No Metal",
+      "code": "NOMET"
+    },
+    {
+      "name": "No Print",
+      "code": "NOPRINT"
+    },
+    {
+      "name": "Off-Grade",
+      "code": "OFF"
+    },
+    {
+      "name": "Other",
+      "code": "OTHER"
+    },
+    {
+      "name": "PCR",
+      "code": "PCR"
+    },
+    {
+      "name": "PIR",
+      "code": "PIR"
+    },
+    {
+      "name": "Post Consumer",
+      "code": "PC"
+    },
+    {
+      "name": "Post Industrial",
+      "code": "PI"
+    },
+    {
+      "name": "Wet",
+      "code": "WET"
+    },
+    {
+      "name": "With Metal",
+      "code": "WITHMET"
+    },
+    {
+      "name": "With Print",
+      "code": "WITHPRINT"
+    },
+    {
+      "name": "Reusable",
+      "code": "REUSE"
+    }
+  ],
+  "sequences": [],
+  "custom_reference_models": {}
+}

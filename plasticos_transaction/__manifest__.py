@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Transaction Spine",
-    "version": "1.0.0",
+    "version": "19.0.1.0.0",
     "summary": "Core transaction lifecycle management",
     "author": "PlasticOS",
     "license": "LGPL-3",
@@ -12,7 +12,9 @@
         "purchase",
         "plasticos_logistics",
         "plasticos_documents",
-        "plasticos_commission"
+        "plasticos_commission",
+        "plasticos_material_profile",
+        "plasticos_facility_profile"
     ],
     "data": [
         "security/ir.model.access.csv",

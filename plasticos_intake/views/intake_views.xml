@@ -94,10 +94,23 @@
         </field>
     </record>
 
-    <record id="action_plasticos_intake" model="ir.actions.act_window">
-        <field name="name">Intake</field>
+    <!-- Root App Menu -->
+    <menuitem id="plasticos_root_menu"
+              name="PlasticOS"
+              sequence="5"/>
+
+    <!-- Intake Action -->
+    <record id="plasticos_intake_action" model="ir.actions.act_window">
+        <field name="name">Material Intake</field>
         <field name="res_model">plasticos.intake</field>
         <field name="view_mode">tree,form</field>
     </record>
+
+    <!-- Intake Menu -->
+    <menuitem id="plasticos_intake_menu"
+              name="Intake"
+              parent="plasticos_root_menu"
+              action="plasticos_intake_action"
+              sequence="1"/>
 
 </odoo>
