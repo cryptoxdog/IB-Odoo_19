@@ -1,0 +1,117 @@
+<odoo noupdate="1">
+
+  <!-- ── Equipment Category ──────────────────────────────── -->
+  <record id="equip_horizontal_baler" model="plasticos.equipment.type">
+    <field name="name">Horizontal Baler</field>
+    <field name="code">horizontal_baler</field>
+    <field name="category">equipment</field>
+    <field name="sequence">10</field>
+  </record>
+  <record id="equip_downstroke_baler" model="plasticos.equipment.type">
+    <field name="name">Downstroke Baler</field>
+    <field name="code">downstroke_baler</field>
+    <field name="category">equipment</field>
+    <field name="sequence">20</field>
+  </record>
+  <record id="equip_shredder" model="plasticos.equipment.type">
+    <field name="name">Shredder</field>
+    <field name="code">shredder</field>
+    <field name="category">equipment</field>
+    <field name="sequence">30</field>
+  </record>
+  <record id="equip_granulator" model="plasticos.equipment.type">
+    <field name="name">Granulator</field>
+    <field name="code">granulator</field>
+    <field name="category">equipment</field>
+    <field name="sequence">40</field>
+  </record>
+  <record id="equip_wash_line" model="plasticos.equipment.type">
+    <field name="name">Wash Line</field>
+    <field name="code">wash_line</field>
+    <field name="category">equipment</field>
+    <field name="sequence">50</field>
+  </record>
+  <record id="equip_pelletizer" model="plasticos.equipment.type">
+    <field name="name">Pelletizer</field>
+    <field name="code">pelletizer</field>
+    <field name="category">equipment</field>
+    <field name="sequence">60</field>
+  </record>
+  <record id="equip_extruder" model="plasticos.equipment.type">
+    <field name="name">Extruder</field>
+    <field name="code">extruder</field>
+    <field name="category">equipment</field>
+    <field name="sequence">70</field>
+  </record>
+  <record id="equip_compounder" model="plasticos.equipment.type">
+    <field name="name">Compounder</field>
+    <field name="code">compounder</field>
+    <field name="category">equipment</field>
+    <field name="sequence">80</field>
+  </record>
+  <record id="equip_sorting_line" model="plasticos.equipment.type">
+    <field name="name">Sorting Line</field>
+    <field name="code">sorting_line</field>
+    <field name="category">equipment</field>
+    <field name="sequence">90</field>
+  </record>
+
+  <!-- ── Material Handling Category ──────────────────────── -->
+  <record id="handling_bales" model="plasticos.equipment.type">
+    <field name="name">Bales</field>
+    <field name="code">bales</field>
+    <field name="category">handling</field>
+    <field name="sequence">10</field>
+  </record>
+  <record id="handling_regrind" model="plasticos.equipment.type">
+    <field name="name">Regrind</field>
+    <field name="code">regrind</field>
+    <field name="category">handling</field>
+    <field name="sequence">20</field>
+  </record>
+  <record id="handling_pellet" model="plasticos.equipment.type">
+    <field name="name">Pellet</field>
+    <field name="code">pellet</field>
+    <field name="category">handling</field>
+    <field name="sequence">30</field>
+  </record>
+  <record id="handling_flake" model="plasticos.equipment.type">
+    <field name="name">Flake</field>
+    <field name="code">flake</field>
+    <field name="category">handling</field>
+    <field name="sequence">40</field>
+  </record>
+  <record id="handling_rollstock" model="plasticos.equipment.type">
+    <field name="name">Rollstock</field>
+    <field name="code">rollstock</field>
+    <field name="category">handling</field>
+    <field name="sequence">50</field>
+  </record>
+
+  <!-- ── Quality Processing Category ─────────────────────── -->
+  <record id="quality_metal_removal" model="plasticos.equipment.type">
+    <field name="name">Metal Removal</field>
+    <field name="code">metal_removal</field>
+    <field name="category">quality</field>
+    <field name="sequence">10</field>
+  </record>
+  <record id="quality_moisture_reduction" model="plasticos.equipment.type">
+    <field name="name">Moisture Reduction</field>
+    <field name="code">moisture_reduction</field>
+    <field name="category">quality</field>
+    <field name="sequence">20</field>
+  </record>
+  <record id="quality_fr_filtration" model="plasticos.equipment.type">
+    <field name="name">FR Filtration</field>
+    <field name="code">fr_filtration</field>
+    <field name="category">quality</field>
+    <field name="sequence">30</field>
+  </record>
+  <record id="quality_fines_screening" model="plasticos.equipment.type">
+    <field name="name">Fines Screening</field>
+    <field name="code">fines_screening</field>
+    <field name="category">quality</field>
+    <field name="sequence">40</field>
+  </record>
+
+</odoo>

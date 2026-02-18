@@ -2,7 +2,7 @@ from odoo import models, fields, api
 from odoo.exceptions import ValidationError
 
 
-class PlastosMaterialProfile(models.Model):
+class PlasticosMaterialProfile(models.Model):
     _name = "plasticos.material.profile"
     _description = "Material Identity Profile"
     _inherit = ["mail.thread"]
@@ -108,6 +108,12 @@ class PlastosMaterialProfile(models.Model):
 
     # AI Enrichment
     freeform_notes = fields.Text()
+
+    # ── Constraints (Odoo 19 models.Constraint) ──────────────
+    _check_unique_material = models.Constraint(
+        "unique(partner_id, polymer, form)",
+        "A facility may only have one profile per polymer + form combination.",
+    )
 
     @api.constrains("partner_id")
     def _check_partner_is_facility(self):
