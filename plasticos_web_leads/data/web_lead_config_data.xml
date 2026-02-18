@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Singleton config — API key must be generated manually -->
+        <record id="web_lead_config_default" model="plasticos.web.lead.config">
+            <field name="name">Web Lead Configuration</field>
+            <field name="is_active" eval="True"/>
+            <field name="default_source_type">post_consumer</field>
+            <field name="auto_create_partner" eval="True"/>
+        </record>
+
+    </data>
+</odoo>
