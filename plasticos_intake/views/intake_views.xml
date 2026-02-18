@@ -1,5 +1,4 @@
 <odoo>
-
     <record id="view_plasticos_intake_tree" model="ir.ui.view">
         <field name="name">plasticos.intake.tree</field>
         <field name="model">plasticos.intake</field>
@@ -7,10 +6,12 @@
             <list>
                 <field name="name"/>
                 <field name="partner_id"/>
+                <field name="material_profile_id" optional="show"/>
                 <field name="polymer"/>
                 <field name="form"/>
                 <field name="quantity_per_load_lbs"/>
                 <field name="deal_type"/>
+                <field name="onboarding_status"/>
                 <field name="match_status"/>
             </list>
         </field>
@@ -21,75 +22,117 @@
         <field name="model">plasticos.intake</field>
         <field name="arch" type="xml">
             <form>
+                <header>
+                    <button
+                        name="action_mark_normalized"
+                        type="object"
+                        string="Mark Normalized"
+                        class="btn-primary"
+                        invisible="normalized"
+                    />
+                    <button
+                        name="action_mark_ready"
+                        type="object"
+                        string="Mark Ready"
+                        class="btn-primary"
+                        invisible="onboarding_status != 'normalized'"
+                    />
+                    <button
+                        name="action_run_buyer_match"
+                        type="object"
+                        string="Run Buyer Match"
+                        class="btn-success"
+                        invisible="onboarding_status != 'ready'"
+                    />
+                    <field name="onboarding_status" widget="statusbar"
+                           statusbar_visible="draft,profiled,normalized,ready"/>
+                </header>
                 <sheet>
-
-                    <group string="Identity">
-                        <field name="name"/>
-                        <field name="partner_id"/>
-                        <field name="facility_id"/>
-                        <!-- processing_profile_id: enable when plasticos_processing module available -->
+                    <group>
+                        <group string="Identity">
+                            <field name="name"/>
+                            <field name="partner_id"/>
+                            <field name="facility_id"/>
+                        </group>
+                        <group string="Material Profile Link">
+                            <field name="material_profile_id"/>
+                        </group>
                     </group>
 
-                    <group string="Raw Description">
-                        <field name="material_hint_text"/>
-                    </group>
+                    <notebook>
+                        <page string="Material">
+                            <group string="Raw Description">
+                                <field name="material_hint_text"/>
+                            </group>
+                            <group>
+                                <group string="Material Snapshot">
+                                    <field name="polymer"/>
+                                    <field name="form"/>
+                                    <field name="color"/>
+                                    <field name="source_type"/>
+                                    <field name="grade_hint"/>
+                                </group>
+                                <group string="Origin">
+                                    <field name="origin_application"/>
+                                    <field name="origin_sector"/>
+                                    <field name="origin_process_type"/>
+                                </group>
+                            </group>
+                        </page>
 
-                    <group string="Material Snapshot">
-                        <field name="polymer"/>
-                        <field name="form"/>
-                        <field name="color"/>
-                        <field name="source_type"/>
-                        <field name="grade_hint"/>
-                    </group>
+                        <page string="Quality">
+                            <group>
+                                <group string="Observed Quality">
+                                    <field name="mfi_value"/>
+                                    <field name="density_value"/>
+                                    <field name="moisture_ppm"/>
+                                    <field name="contamination_total_pct"/>
+                                </group>
+                                <group string="Contaminants">
+                                    <field name="has_metal"/>
+                                    <field name="has_fr"/>
+                                    <field name="has_residue"/>
+                                    <field name="filler_type"/>
+                                    <field name="filler_pct"/>
+                                </group>
+                            </group>
+                            <group string="Notes">
+                                <field name="contamination_notes"/>
+                            </group>
+                        </page>
 
-                    <group string="Observed Quality">
-                        <field name="mfi_value"/>
-                        <field name="density_value"/>
-                        <field name="moisture_ppm"/>
-                        <field name="contamination_total_pct"/>
-                        <field name="has_metal"/>
-                        <field name="has_fr"/>
-                        <field name="has_residue"/>
-                        <field name="filler_type"/>
-                        <field name="filler_pct"/>
-                        <field name="contamination_notes"/>
-                    </group>
+                        <page string="Commercial">
+                            <group>
+                                <group string="Volume">
+                                    <field name="quantity_per_load_lbs"/>
+                                    <field name="loads_per_month"/>
+                                </group>
+                                <group string="Deal">
+                                    <field name="deal_type"/>
+                                    <field name="contract_duration_months"/>
+                                </group>
+                            </group>
+                        </page>
 
-                    <group string="Origin">
-                        <field name="origin_application"/>
-                        <field name="origin_sector"/>
-                        <field name="origin_process_type"/>
-                    </group>
-
-                    <group string="Commercial">
-                        <field name="quantity_per_load_lbs"/>
-                        <field name="loads_per_month"/>
-                        <field name="deal_type"/>
-                        <field name="contract_duration_months"/>
-                    </group>
-
-                    <group string="Matching">
-                        <field name="match_status"/>
-                        <field name="match_response"/>
-                    </group>
-
-                    <group string="L9 Controls">
-                        <field name="normalized"/>
-                        <button
-                            name="action_mark_normalized"
-                            type="object"
-                            string="Mark Normalized"
-                            class="btn-primary"
-                        />
-                        <button
-                            name="action_run_buyer_match"
-                            type="object"
-                            string="Run Buyer Match"
-                            class="btn-success"
-                        />
-                    </group>
-
+                        <page string="Matching">
+                            <group>
+                                <group>
+                                    <field name="match_status"/>
+                                    <field name="normalized"/>
+                                </group>
+                                <group>
+                                    <field name="last_packet_id"/>
+                                    <field name="last_packet_version"/>
+                                    <field name="last_packet_ts"/>
+                                </group>
+                            </group>
+                            <group string="Match Response">
+                                <field name="match_response"/>
+                            </group>
+                        </page>
+                    </notebook>
                 </sheet>
+                <chatter/>
             </form>
         </field>
     </record>
@@ -103,7 +146,7 @@
     <record id="plasticos_intake_action" model="ir.actions.act_window">
         <field name="name">Material Intake</field>
         <field name="res_model">plasticos.intake</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
     </record>
 
     <!-- Intake Menu -->
@@ -112,5 +155,4 @@
               parent="plasticos_root_menu"
               action="plasticos_intake_action"
               sequence="1"/>
-
 </odoo>
