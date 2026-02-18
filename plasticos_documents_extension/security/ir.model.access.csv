@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_validation_matrix_user,validation.matrix.user,plasticos_documents_extension.model_plasticos_document_validation_matrix,base.group_user,1,0,0,0
+access_validation_matrix_manager,validation.matrix.manager,plasticos_documents_extension.model_plasticos_document_validation_matrix,plasticos_documents_extension.group_documents_extension_manager,1,1,1,1

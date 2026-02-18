@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_stock_picking_form_logistics" model="ir.ui.view">
+        <field name="name">stock.picking.form.logistics.automation</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Broker Tracking" name="broker_tracking">
+                    <group>
+                        <field name="x_broker_id"/>
+                        <field name="x_receipt_confirmation"/>
+                    </group>
+                    <group>
+                        <field name="x_broker_notified_on" readonly="1"/>
+                        <field name="x_broker_followup_count" readonly="1"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

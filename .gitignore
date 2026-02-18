@@ -12,6 +12,9 @@
 !/plasticos_foundation_seed/
 !/plasticos_partner_import/
 !/plasticos_automation/
+!/plasticos_logistics_automation/
+!/plasticos_documents_extension/
+!/plasticos_dev_tools/
 !/reports/
 
 # Ignore within allowed paths
