@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- Config Form View                                     -->
+    <!-- ════════════════════════════════════════════════════ -->
+
+    <record id="view_normalizer_config_form" model="ir.ui.view">
+        <field name="name">plasticos.normalizer.config.form</field>
+        <field name="model">plasticos.normalizer.config</field>
+        <field name="arch" type="xml">
+            <form string="Normalizer Configuration">
+                <sheet>
+                    <group string="Validation Rules">
+                        <group>
+                            <field name="require_polymer_in_canonical"/>
+                            <field name="require_partner"/>
+                            <field name="require_positive_quantity"/>
+                        </group>
+                        <group>
+                            <field name="validate_density_range"/>
+                            <field name="density_min" invisible="not validate_density_range"/>
+                            <field name="density_max" invisible="not validate_density_range"/>
+                            <field name="validate_mfi_positive"/>
+                        </group>
+                    </group>
+                    <group string="Batch Processing">
+                        <group>
+                            <field name="batch_limit"/>
+                        </group>
+                    </group>
+                    <separator string="Schema Reference"/>
+                    <div class="alert alert-info" role="alert">
+                        <p><strong>Packet Schema Version:</strong> <code>1.0.0</code></p>
+                        <p><strong>Canonical Polymers:</strong> Loaded from plasticos.polymer table</p>
+                        <p><strong>Reference Tables:</strong> form.type, color.type, source.type, process.type, deal.type</p>
+                        <p><strong>Source:</strong> DevKit PlastOS v6.0 —
+                            intake_schema_v6.0.json + schema_crosswalk_v6.0.yaml</p>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- Action (singleton redirect)                          -->
+    <!-- ════════════════════════════════════════════════════ -->
+
+    <record id="action_normalizer_config" model="ir.actions.act_window">
+        <field name="name">Normalizer Settings</field>
+        <field name="res_model">plasticos.normalizer.config</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+        <field name="res_id" ref="normalizer_config_default"/>
+    </record>
+
+</odoo>

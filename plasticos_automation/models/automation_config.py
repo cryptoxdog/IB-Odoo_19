@@ -1,6 +1,5 @@
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
-from odoo.orm import Constraint
 
 import logging
 
@@ -47,12 +46,8 @@ class PlasticosAutomationConfig(models.Model):
 
     active = fields.Boolean(default=True)
 
-    _constraints = [
-        Constraint(
-            "singleton_check",
-            "CHECK(id IS NOT NULL)",
-            "Only one automation configuration record is allowed.",
-        ),
+    _sql_constraints = [
+        ("singleton_check", "CHECK(id IS NOT NULL)", "Only one automation configuration record is allowed."),
     ]
 
     @api.constrains("active")
