@@ -6,6 +6,7 @@
     "license": "LGPL-3",
     "depends": [
         "base",
+        "plasticos_security_base",
         "mail",
         "sale_management",
         "account",

@@ -5,6 +5,7 @@
     "summary": "Schema-driven intake normalization — validates, assembles, and stores L9-ready packets.",
     "author": "Plasticos IB",
     "depends": [
+        "plasticos_security_base",
         "plasticos_intake",
         "plasticos_foundation_seed",
         "plasticos_material_profile",

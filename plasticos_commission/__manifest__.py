@@ -4,7 +4,7 @@
     "summary": "Commission rules and calculations",
     "author": "PlasticOS",
     "license": "LGPL-3",
-    "depends": ["base"],
+    "depends": ["base", "plasticos_security_base"],
     "data": [
         "security/ir.model.access.csv",
         "views/commission_views.xml"

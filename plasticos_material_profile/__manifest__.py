@@ -7,6 +7,7 @@
     "category": "Hidden",
     "depends": [
         "base",
+        "plasticos_security_base",
         "contacts",
         "mail",
     ],

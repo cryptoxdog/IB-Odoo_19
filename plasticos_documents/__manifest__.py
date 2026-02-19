@@ -4,7 +4,7 @@
     "summary": "Document management and compliance",
     "author": "PlasticOS",
     "license": "LGPL-3",
-    "depends": ["base", "mail"],
+    "depends": ["base", "plasticos_security_base", "mail"],
     "data": [
         "security/security.xml",
         "security/ir.model.access.csv",

@@ -5,6 +5,7 @@
     "author": "PlasticOS",
     "depends": [
         "base",
+        "plasticos_security_base",
         "mail",
         "plasticos_material_profile",
     ],

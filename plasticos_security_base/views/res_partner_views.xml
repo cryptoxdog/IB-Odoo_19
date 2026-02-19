@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Add x_private checkbox to the partner form view -->
+    <record id="view_partner_form_private" model="ir.ui.view">
+        <field name="name">res.partner.form.private</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='category_id']" position="before">
+                <field name="x_private"
+                       groups="base.group_system"
+                       widget="boolean_toggle"
+                       help="When enabled, only you and System Administrators can see this contact."/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- 1. Private Partner Rule
+         If x_private is True, only the creator and Admins can see it.
+         Non-private partners remain visible to everyone. -->
+    <record id="rule_partner_private" model="ir.rule">
+        <field name="name">Plasticos: Private Partner - Owner Only</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="domain_force">[
+            '|',
+            ('x_private', '=', False),
+            ('create_uid', '=', user.id)
+        ]</field>
+        <field name="groups" eval="[
+            (4, ref('plasticos_security_base.group_sales_rep')),
+            (4, ref('plasticos_security_base.group_logistics')),
+            (4, ref('plasticos_security_base.group_accounting')),
+        ]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- 2. Transaction: Sales Rep sees own only
+         sales_rep_id = user OR create_uid = user
+         Logistics and Accounting are NOT in this rule's groups,
+         so they fall through to the global ACL (which grants read). -->
+    <record id="rule_transaction_sales_rep" model="ir.rule">
+        <field name="name">Plasticos: Transaction - Sales Rep Own Records</field>
+        <field name="model_id" ref="plasticos_transaction.model_plasticos_transaction"/>
+        <field name="domain_force">[
+            '|',
+            ('sales_rep_id', '=', user.id),
+            ('create_uid', '=', user.id)
+        ]</field>
+        <field name="groups" eval="[
+            (4, ref('plasticos_security_base.group_sales_rep')),
+        ]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- 3. Sale Order: Sales Rep sees own only -->
+    <record id="rule_sale_order_sales_rep" model="ir.rule">
+        <field name="name">Plasticos: Sale Order - Sales Rep Own Records</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="domain_force">[
+            '|',
+            ('user_id', '=', user.id),
+            ('create_uid', '=', user.id)
+        ]</field>
+        <field name="groups" eval="[
+            (4, ref('plasticos_security_base.group_sales_rep')),
+        ]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- 4. Purchase Order: Sales Rep sees own only -->
+    <record id="rule_purchase_order_sales_rep" model="ir.rule">
+        <field name="name">Plasticos: Purchase Order - Sales Rep Own Records</field>
+        <field name="model_id" ref="purchase.model_purchase_order"/>
+        <field name="domain_force">[
+            '|',
+            ('user_id', '=', user.id),
+            ('create_uid', '=', user.id)
+        ]</field>
+        <field name="groups" eval="[
+            (4, ref('plasticos_security_base.group_sales_rep')),
+        ]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- 5. Account Move (Invoice/Bill): Sales Rep sees own only -->
+    <record id="rule_account_move_sales_rep" model="ir.rule">
+        <field name="name">Plasticos: Invoice - Sales Rep Own Records</field>
+        <field name="model_id" ref="account.model_account_move"/>
+        <field name="domain_force">[
+            '|',
+            ('invoice_user_id', '=', user.id),
+            ('create_uid', '=', user.id)
+        ]</field>
+        <field name="groups" eval="[
+            (4, ref('plasticos_security_base.group_sales_rep')),
+        ]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- 6. Load: Sales Rep sees loads linked to own transactions
+         Uses a related field path: transaction_id.sales_rep_id -->
+    <record id="rule_load_sales_rep" model="ir.rule">
+        <field name="name">Plasticos: Load - Sales Rep Own Transactions</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_load"/>
+        <field name="domain_force">[
+            '|',
+            ('transaction_id.sales_rep_id', '=', user.id),
+            ('create_uid', '=', user.id)
+        ]</field>
+        <field name="groups" eval="[
+            (4, ref('plasticos_security_base.group_sales_rep')),
+        ]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+</odoo>
