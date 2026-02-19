@@ -67,7 +67,7 @@
                                 </group>
                             </group>
                             <group string="Score Breakdown">
-                                <field name="score_breakdown" widget="json"/>
+                                <field name="score_breakdown" widget="text"/>
                             </group>
                             <group string="Reasoning">
                                 <field name="match_reasoning"/>

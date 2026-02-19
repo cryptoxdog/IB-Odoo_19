@@ -94,13 +94,13 @@
                         </page>
                         <page string="AI Analysis">
                             <group>
-                                <field name="ai_analysis" widget="json"/>
-                                <field name="decision_reasons" widget="json"/>
+                                <field name="ai_analysis" widget="text"/>
+                                <field name="decision_reasons" widget="text"/>
                             </group>
                         </page>
                         <page string="Raw Payload">
                             <group>
-                                <field name="raw_payload" widget="json"/>
+                                <field name="raw_payload" widget="text"/>
                             </group>
                         </page>
                         <page string="Error" invisible="state != 'error'">
@@ -134,6 +134,9 @@
             <search string="Web Leads">
                 <field name="lead_id"/>
                 <field name="company_name"/>
+                <field name="decision"/>
+                <field name="state"/>
+                <separator/>
                 <filter name="hot" string="HOT Leads"
                         domain="[('decision','=','hot')]"/>
                 <filter name="cold" string="COLD Leads"
@@ -141,12 +144,10 @@
                 <filter name="errors" string="Errors"
                         domain="[('state','=','error')]"/>
                 <separator/>
-                <group expand="0" string="Group By">
-                    <filter name="group_decision" string="Decision"
-                            context="{'group_by': 'decision'}"/>
-                    <filter name="group_state" string="State"
-                            context="{'group_by': 'state'}"/>
-                </group>
+                <filter name="group_decision" string="Decision"
+                        context="{'group_by': 'decision'}"/>
+                <filter name="group_state" string="State"
+                        context="{'group_by': 'state'}"/>
             </search>
         </field>
     </record>
