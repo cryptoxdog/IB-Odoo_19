@@ -103,23 +103,27 @@ class PlasticosMaterialProfile(models.Model):
     # ── Source & Process ─────────────────────────────────────
     source_type = fields.Selection(
         [
-            ("post_industrial", "Post Industrial"),
-            ("post_consumer", "Post Consumer"),
-            ("mixed", "Mixed"),
-            ("virgin", "Virgin"),
+            ("post_industrial", "Post-Industrial"),
+            ("post_consumer", "Post-Consumer"),
+            ("prime", "Prime / Virgin"),
+            ("wide_spec", "Wide Spec"),
+            ("off_spec", "Off Spec"),
+            ("ocean", "Ocean Bound"),
             ("unknown", "Unknown"),
         ],
     )
 
     origin_process_type = fields.Selection(
         [
-            ("injection", "Injection"),
+            ("injection", "Injection Molding"),
             ("extrusion", "Extrusion"),
-            ("blow_mold", "Blow Mold"),
-            ("thermoform", "Thermoform"),
-            ("film", "Film"),
-            ("mixed", "Mixed"),
-            ("unknown", "Unknown"),
+            ("blow_mold", "Blow Molding"),
+            ("thermoform", "Thermoforming"),
+            ("rotomold", "Rotational Molding"),
+            ("film_blown", "Film Blown"),
+            ("film_cast", "Film Cast"),
+            ("compounding", "Compounding"),
+            ("other", "Other"),
         ],
     )
 

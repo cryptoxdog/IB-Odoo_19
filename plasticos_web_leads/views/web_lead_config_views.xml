@@ -51,7 +51,7 @@
         <field name="name">Web Lead Settings</field>
         <field name="res_model">plasticos.web.lead.config</field>
         <field name="view_mode">form</field>
-        <field name="target">inline</field>
+        <field name="target">current</field>
         <field name="res_id" ref="web_lead_config_default"/>
     </record>
 

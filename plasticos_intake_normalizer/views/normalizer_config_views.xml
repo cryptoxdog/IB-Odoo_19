@@ -19,6 +19,8 @@
                         </group>
                         <group>
                             <field name="validate_density_range"/>
+                            <field name="density_min" invisible="not validate_density_range"/>
+                            <field name="density_max" invisible="not validate_density_range"/>
                             <field name="validate_mfi_positive"/>
                         </group>
                     </group>
@@ -30,9 +32,8 @@
                     <separator string="Schema Reference"/>
                     <div class="alert alert-info" role="alert">
                         <p><strong>Packet Schema Version:</strong> <code>1.0.0</code></p>
-                        <p><strong>Canonical Polymers (20):</strong>
-                            ABS, EVA, HDPE, LDPE, LLDPE, PA, PC, PEEK, PEI, PET,
-                            PLA, POM, PP, PPS, PS, PTFE, PVC, TPE, TPU, rPET</p>
+                        <p><strong>Canonical Polymers:</strong> Loaded from plasticos.polymer table</p>
+                        <p><strong>Reference Tables:</strong> form.type, color.type, source.type, process.type, deal.type</p>
                         <p><strong>Source:</strong> DevKit PlastOS v6.0 —
                             intake_schema_v6.0.json + schema_crosswalk_v6.0.yaml</p>
                     </div>
@@ -49,7 +50,7 @@
         <field name="name">Normalizer Settings</field>
         <field name="res_model">plasticos.normalizer.config</field>
         <field name="view_mode">form</field>
-        <field name="target">inline</field>
+        <field name="target">current</field>
         <field name="res_id" ref="normalizer_config_default"/>
     </record>
 

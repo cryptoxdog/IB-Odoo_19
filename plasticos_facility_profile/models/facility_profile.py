@@ -91,20 +91,20 @@ class PlasticosFacilityProfile(models.Model):
         help="Primary preferred physical form for inbound material.",
     )
 
-    # ── Process Method ───────────────────────────────────────
-    process_method = fields.Selection(
+    # ── Process Type ──────────────────────────────────────────
+    process_type = fields.Selection(
         [
-            ("injection", "Injection"),
-            ("blow", "Blow Molding"),
+            ("injection", "Injection Molding"),
+            ("blow_mold", "Blow Molding"),
             ("extrusion", "Extrusion"),
-            ("film", "Film"),
-            ("sheet", "Sheet"),
-            ("reclaim", "Reclaim"),
+            ("film_blown", "Film Blown"),
+            ("film_cast", "Film Cast"),
+            ("thermoform", "Thermoforming"),
+            ("rotomold", "Rotational Molding"),
             ("compounding", "Compounding"),
-            ("thermoforming", "Thermoforming"),
-            ("unknown", "Unknown"),
+            ("other", "Other"),
         ],
-        help="Primary processing method at this facility.",
+        help="Primary processing type at this facility.",
     )
 
     # ── Feedstock Type ───────────────────────────────────────
@@ -265,7 +265,7 @@ class PlasticosFacilityProfile(models.Model):
                     rec.accepted_polymer_ids.mapped("code")
                 ),
                 "form_preference": rec.form_preference,
-                "process_method": rec.process_method,
+                "process_type": rec.process_type,
                 "feedstock_type": rec.feedstock_type,
                 "tolerances": {
                     "density": {"min": rec.density_min, "max": rec.density_max},

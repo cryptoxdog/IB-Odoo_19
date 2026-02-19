@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Foundation Seed",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.1.0",
     "summary": "Deterministic XML seed module (Odoo 19)",
     "author": "Scrap Management Inc",
     "license": "LGPL-3",
@@ -12,6 +12,7 @@
     ],
     "data": [
         "security/ir.model.access.csv",
+        "data/reference_types_data.xml",
         "data/partner_tags.xml",
         "data/payment_terms.xml",
         "data/incoterms.xml",

@@ -134,6 +134,9 @@
             <search string="Web Leads">
                 <field name="lead_id"/>
                 <field name="company_name"/>
+                <field name="decision"/>
+                <field name="state"/>
+                <separator/>
                 <filter name="hot" string="HOT Leads"
                         domain="[('decision','=','hot')]"/>
                 <filter name="cold" string="COLD Leads"
@@ -141,12 +144,10 @@
                 <filter name="errors" string="Errors"
                         domain="[('state','=','error')]"/>
                 <separator/>
-                <group expand="0" string="Group By">
-                    <filter name="group_decision" string="Decision"
-                            context="{'group_by': 'decision'}"/>
-                    <filter name="group_state" string="State"
-                            context="{'group_by': 'state'}"/>
-                </group>
+                <filter name="group_decision" string="Group by Decision"
+                        context="{'group_by': 'decision'}"/>
+                <filter name="group_state" string="Group by State"
+                        context="{'group_by': 'state'}"/>
             </search>
         </field>
     </record>
