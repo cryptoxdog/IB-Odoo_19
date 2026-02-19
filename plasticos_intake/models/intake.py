@@ -62,15 +62,21 @@ class PlasticosIntake(models.Model):
     # Observed Quality (Instance-Level)
     # ═════════════════════════════════════════════════════════
 
-    mfi_value = fields.Float()
-    density_value = fields.Float()
-    moisture_ppm = fields.Integer()
-    contamination_total_pct = fields.Float()
-    has_metal = fields.Boolean()
-    has_fr = fields.Boolean()
-    has_residue = fields.Boolean()
+    mfi_value = fields.Float(string="MFI")
+    density_value = fields.Float(string="Density (g/cm3)")
+    moisture_pct = fields.Float(
+        string="Moisture (%)",
+        help="Moisture content as a percentage (e.g. 0.5 = 0.5%).",
+    )
+    contamination_pct = fields.Float(
+        string="Contamination (%)",
+        help="Total contamination as a percentage.",
+    )
+    has_metal = fields.Boolean(string="Metal Present")
+    has_fr = fields.Boolean(string="Flame Retardant")
+    has_residue = fields.Boolean(string="Residue Present")
     filler_type = fields.Char()
-    filler_pct = fields.Float()
+    filler_pct = fields.Float(string="Filler (%)")
     contamination_notes = fields.Text()
 
     # ═════════════════════════════════════════════════════════
@@ -104,11 +110,14 @@ class PlasticosIntake(models.Model):
     )
 
     # ═════════════════════════════════════════════════════════
-    # Commercial Layer
+    # Frequency (Volume + Deal Terms)
     # ═════════════════════════════════════════════════════════
 
-    quantity_per_load_lbs = fields.Integer(required=True)
-    loads_per_month = fields.Integer()
+    quantity_per_load_lbs = fields.Integer(
+        string="Qty per Load (lbs)",
+        required=True,
+    )
+    loads_per_month = fields.Integer(string="Loads / Month")
     deal_type = fields.Selection(
         [
             ("spot", "Spot"),
@@ -118,7 +127,7 @@ class PlasticosIntake(models.Model):
         ],
         default="spot",
     )
-    contract_duration_months = fields.Integer()
+    contract_duration_months = fields.Integer(string="Contract Duration (mo)")
 
     # ═════════════════════════════════════════════════════════
     # Onboarding Status
@@ -138,14 +147,14 @@ class PlasticosIntake(models.Model):
     )
 
     # ═════════════════════════════════════════════════════════
-    # Geo
+    # Geo (hidden from UI, used by freight automation)
     # ═════════════════════════════════════════════════════════
 
-    lat = fields.Float()
-    lon = fields.Float()
+    lat = fields.Float(string="Latitude")
+    lon = fields.Float(string="Longitude")
 
     # ═════════════════════════════════════════════════════════
-    # Matching
+    # Matching / Debug (admin-only in UI)
     # ═════════════════════════════════════════════════════════
 
     match_status = fields.Selection(
@@ -159,15 +168,15 @@ class PlasticosIntake(models.Model):
         default="pending",
         tracking=True,
     )
-    match_response = fields.Json()
+    match_response = fields.Json(string="Match Response (JSON)")
     normalized = fields.Boolean(
         default=False,
         help="Must be True before adapter emits packet.",
     )
-    last_packet_id = fields.Char(index=True)
-    last_packet_version = fields.Char()
-    last_packet_payload = fields.Json()
-    last_packet_ts = fields.Datetime()
+    last_packet_id = fields.Char(string="Packet ID", index=True)
+    last_packet_version = fields.Char(string="Packet Version")
+    last_packet_payload = fields.Json(string="Packet Payload (JSON)")
+    last_packet_ts = fields.Datetime(string="Packet Timestamp")
 
     # ═════════════════════════════════════════════════════════
     # Constraints
@@ -194,8 +203,8 @@ class PlasticosIntake(models.Model):
         self.source_type = mp.source_type or self.source_type
         self.mfi_value = mp.melt_flow_index or self.mfi_value
         self.density_value = mp.density or self.density_value
-        self.contamination_total_pct = (
-            mp.contamination_percent or self.contamination_total_pct
+        self.contamination_pct = (
+            mp.contamination_percent or self.contamination_pct
         )
         if not self.onboarding_status or self.onboarding_status == "draft":
             self.onboarding_status = "profiled"
