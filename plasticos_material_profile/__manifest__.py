@@ -13,7 +13,6 @@
     ],
     "data": [
         "security/ir.model.access.csv",
-        "data/polymer_seed.xml",
         "views/material_profile_views.xml",
     ],
     "installable": True,
