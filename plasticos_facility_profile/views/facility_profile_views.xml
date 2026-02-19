@@ -7,7 +7,7 @@
     <field name="arch" type="xml">
       <list editable="bottom">
         <field name="max_monthly_throughput_lbs"/>
-        <field name="process_method"/>
+        <field name="process_type"/>
         <field name="feedstock_type"/>
         <field name="capacity_lbs_month"/>
         <field name="has_horizontal_baler"/>
@@ -29,7 +29,7 @@
             <page string="Capability">
               <group>
                 <group string="Processing">
-                  <field name="process_method"/>
+                  <field name="process_type"/>
                   <field name="feedstock_type"/>
                   <field name="form_preference"/>
                   <field name="application_class"/>
@@ -152,7 +152,7 @@
           <field name="facility_profile_ids">
             <list editable="bottom">
               <field name="max_monthly_throughput_lbs"/>
-              <field name="process_method"/>
+              <field name="process_type"/>
               <field name="feedstock_type"/>
               <field name="capacity_lbs_month"/>
               <field name="has_horizontal_baler"/>
@@ -165,7 +165,7 @@
                   <page string="Capability">
                     <group>
                       <group string="Processing">
-                        <field name="process_method"/>
+                        <field name="process_type"/>
                         <field name="feedstock_type"/>
                         <field name="form_preference"/>
                         <field name="application_class"/>

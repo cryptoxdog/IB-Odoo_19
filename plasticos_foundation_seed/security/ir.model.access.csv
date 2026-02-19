@@ -1,1 +1,11 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_plasticos_form_type_user,plasticos.form.type.user,model_plasticos_form_type,base.group_user,1,0,0,0
+access_plasticos_form_type_manager,plasticos.form.type.manager,model_plasticos_form_type,base.group_system,1,1,1,1
+access_plasticos_color_type_user,plasticos.color.type.user,model_plasticos_color_type,base.group_user,1,0,0,0
+access_plasticos_color_type_manager,plasticos.color.type.manager,model_plasticos_color_type,base.group_system,1,1,1,1
+access_plasticos_source_type_user,plasticos.source.type.user,model_plasticos_source_type,base.group_user,1,0,0,0
+access_plasticos_source_type_manager,plasticos.source.type.manager,model_plasticos_source_type,base.group_system,1,1,1,1
+access_plasticos_process_type_user,plasticos.process.type.user,model_plasticos_process_type,base.group_user,1,0,0,0
+access_plasticos_process_type_manager,plasticos.process.type.manager,model_plasticos_process_type,base.group_system,1,1,1,1
+access_plasticos_deal_type_user,plasticos.deal.type.user,model_plasticos_deal_type,base.group_user,1,0,0,0
+access_plasticos_deal_type_manager,plasticos.deal.type.manager,model_plasticos_deal_type,base.group_system,1,1,1,1

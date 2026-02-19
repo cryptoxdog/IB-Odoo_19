@@ -5,10 +5,10 @@ from odoo import api, fields, models
 _logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────
-# Canonical polymer list — aligned with DevKit PlastOS v6.0
-# intake_schema_v6.0.json + schema_crosswalk_v6.0.yaml
+# Canonical polymer list — loaded from plasticos.polymer table
+# Fallback to hardcoded list if table not available
 # ─────────────────────────────────────────────────────────────
-CANONICAL_POLYMERS = frozenset([
+FALLBACK_POLYMERS = frozenset([
     "HDPE", "LDPE", "LLDPE", "PP", "PET", "rPET",
     "PVC", "PC", "PS", "ABS", "PA", "PLA",
     "TPE", "TPU", "PEEK", "PEI", "POM", "PPS", "PTFE", "EVA",
@@ -50,7 +50,17 @@ class PlasticosNormalizerConfig(models.Model):
     validate_density_range = fields.Boolean(
         string="Validate Density Range",
         default=True,
-        help="When True, density_value (if set) must be 0.5–2.5 g/cm³.",
+        help="When True, density_value (if set) must be > 0 and within configured range.",
+    )
+    density_min = fields.Float(
+        string="Density Min (g/cm³)",
+        default=0.0,
+        help="Minimum density value. Set to 0 to disable lower bound check.",
+    )
+    density_max = fields.Float(
+        string="Density Max (g/cm³)",
+        default=0.0,
+        help="Maximum density value. Set to 0 to disable upper bound check.",
     )
     validate_mfi_positive = fields.Boolean(
         string="Validate MFI Positive",

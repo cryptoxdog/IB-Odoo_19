@@ -144,9 +144,9 @@
                 <filter name="errors" string="Errors"
                         domain="[('state','=','error')]"/>
                 <separator/>
-                <filter name="group_decision" string="Decision"
+                <filter name="group_decision" string="Group by Decision"
                         context="{'group_by': 'decision'}"/>
-                <filter name="group_state" string="State"
+                <filter name="group_state" string="Group by State"
                         context="{'group_by': 'state'}"/>
             </search>
         </field>

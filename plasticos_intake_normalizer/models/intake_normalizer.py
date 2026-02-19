@@ -5,7 +5,7 @@ import uuid
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 
-from .normalizer_config import CANONICAL_POLYMERS, PACKET_SCHEMA_VERSION
+from .normalizer_config import FALLBACK_POLYMERS, PACKET_SCHEMA_VERSION
 
 _logger = logging.getLogger(__name__)
 
@@ -191,11 +191,12 @@ class PlasticosIntakeNormalizer(models.Model):
             })
         elif config.require_polymer_in_canonical:
             polymer_upper = (self.polymer or "").strip().upper()
-            if polymer_upper not in CANONICAL_POLYMERS:
+            canonical_polymers = self._get_canonical_polymers()
+            if polymer_upper not in canonical_polymers:
                 errors.append({
                     "field": "polymer",
                     "message": f"Polymer '{self.polymer}' is not in the canonical "
-                               f"20-type list. Accepted: {sorted(CANONICAL_POLYMERS)}",
+                               f"polymer list. Accepted: {sorted(canonical_polymers)}",
                     "code": "INT-003",
                 })
 
@@ -223,10 +224,19 @@ class PlasticosIntakeNormalizer(models.Model):
 
         # ── Range validations (non-blocking if field empty) ──
         if config.validate_density_range and self.density_value:
-            if not (0.5 <= self.density_value <= 2.5):
+            density_min = config.density_min or 0.0
+            density_max = config.density_max or 0.0
+            if self.density_value <= 0:
                 errors.append({
                     "field": "density_value",
-                    "message": f"Density {self.density_value} outside valid range 0.5–2.5 g/cm³.",
+                    "message": f"Density {self.density_value} must be greater than 0.",
+                    "code": "INT-007",
+                })
+            elif density_max > 0 and not (density_min <= self.density_value <= density_max):
+                errors.append({
+                    "field": "density_value",
+                    "message": f"Density {self.density_value} outside configured range "
+                               f"{density_min}–{density_max} g/cm³.",
                     "code": "INT-007",
                 })
 
@@ -307,15 +317,6 @@ class PlasticosIntakeNormalizer(models.Model):
             # ── Identity ─────────────────────────────────
             "partner": self._assemble_partner_block(),
 
-            # ── Material Core ────────────────────────────
-            "material": {
-                "polymer": (self.polymer or "").strip().upper(),
-                "form": (self.form or "").strip().lower(),
-                "color": (self.color or "").strip().lower() or None,
-                "source_type": (self.source_type or "unknown").strip().lower(),
-                "grade_hint": self.grade_hint or None,
-            },
-
             # ── Quality Specs ────────────────────────────
             "quality": {
                 "mfi_value": self.mfi_value or None,
@@ -337,8 +338,8 @@ class PlasticosIntakeNormalizer(models.Model):
                 "process_type": self.origin_process_type or None,
             },
 
-            # ── Commercial ───────────────────────────────
-            "commercial": {
+            # ── Frequency (commercial terms) ─────────────
+            "frequency": {
                 "quantity_per_load_lbs": self.quantity_per_load_lbs,
                 "loads_per_month": self.loads_per_month or 1,
                 "deal_type": self.deal_type or "spot",
@@ -450,8 +451,8 @@ class PlasticosIntakeNormalizer(models.Model):
         }
 
         # Capability fields from PR #5
-        if hasattr(profile, "process_method"):
-            block["process_method"] = profile.process_method or None
+        if hasattr(profile, "process_type"):
+            block["process_type"] = profile.process_type or None
         if hasattr(profile, "feedstock_type"):
             block["feedstock_type"] = profile.feedstock_type or None
         if hasattr(profile, "capacity_lbs_month"):
@@ -471,6 +472,26 @@ class PlasticosIntakeNormalizer(models.Model):
             block["accepted_polymers"] = []
 
         return block
+
+    # ═════════════════════════════════════════════════════
+    # REFERENCE TABLE HELPERS
+    # ═════════════════════════════════════════════════════
+
+    def _get_canonical_polymers(self):
+        """Get canonical polymer codes from plasticos.polymer table.
+
+        Falls back to hardcoded list if table not available.
+        Returns a frozenset of uppercase codes.
+        """
+        Polymer = self.env.get("plasticos.polymer")
+        if Polymer is None:
+            return FALLBACK_POLYMERS
+
+        polymers = Polymer.search([("active", "=", True)])
+        if not polymers:
+            return FALLBACK_POLYMERS
+
+        return frozenset(p.code.upper() for p in polymers if p.code)
 
     # ═════════════════════════════════════════════════════
     # LOGGING

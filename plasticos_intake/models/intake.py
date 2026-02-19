@@ -91,16 +91,16 @@ class PlasticosIntake(models.Model):
     )
     origin_process_type = fields.Selection(
         [
-            ("injection", "Injection"),
+            ("injection", "Injection Molding"),
             ("extrusion", "Extrusion"),
-            ("blow_molding", "Blow Molding"),
-            ("thermoforming", "Thermoforming"),
-            ("rotomolding", "Rotomolding"),
-            ("film", "Film"),
+            ("blow_mold", "Blow Molding"),
+            ("thermoform", "Thermoforming"),
+            ("rotomold", "Rotational Molding"),
+            ("film_blown", "Film Blown"),
+            ("film_cast", "Film Cast"),
             ("compounding", "Compounding"),
-            ("unknown", "Unknown"),
+            ("other", "Other"),
         ],
-        default="unknown",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -112,7 +112,9 @@ class PlasticosIntake(models.Model):
     deal_type = fields.Selection(
         [
             ("spot", "Spot"),
-            ("ongoing", "Ongoing"),
+            ("recurring", "Recurring"),
+            ("contract", "Contract"),
+            ("trial", "Trial"),
         ],
         default="spot",
     )

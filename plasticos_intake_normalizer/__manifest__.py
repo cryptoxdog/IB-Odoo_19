@@ -6,6 +6,8 @@
     "author": "Plasticos IB",
     "depends": [
         "plasticos_intake",
+        "plasticos_foundation_seed",
+        "plasticos_polymer",
     ],
     "data": [
         "data/normalizer_config_data.xml",
