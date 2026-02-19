@@ -1,3 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_plasticos_polymer,access_plasticos_polymer,model_plasticos_polymer,base.group_user,1,0,0,0
-access_plasticos_polymer_admin,access_plasticos_polymer_admin,model_plasticos_polymer,base.group_system,1,1,1,1

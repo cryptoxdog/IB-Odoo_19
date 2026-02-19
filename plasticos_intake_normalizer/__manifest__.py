@@ -7,7 +7,7 @@
     "depends": [
         "plasticos_intake",
         "plasticos_foundation_seed",
-        "plasticos_polymer",
+        "plasticos_material_profile",
     ],
     "data": [
         "data/normalizer_config_data.xml",

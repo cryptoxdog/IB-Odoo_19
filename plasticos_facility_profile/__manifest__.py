@@ -10,7 +10,7 @@
         "contacts",
         "mail",
         "sale_management",
-        "plasticos_polymer",
+        "plasticos_material_profile",
     ],
     "data": [
         "security/ir.model.access.csv",
