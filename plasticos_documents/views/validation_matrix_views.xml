@@ -53,7 +53,7 @@
     <!-- Menu -->
     <menuitem id="menu_validation_matrix"
               name="Validation Matrix"
-              parent="plasticos_documents.menu_documents_root"
+              parent="menu_documents_root"
               action="action_validation_matrix"
               sequence="30"/>
 </odoo>

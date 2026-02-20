@@ -7,7 +7,7 @@
 
         <record id="access_commission_rule_manager" model="ir.model.access">
             <field name="name">commission_rule_manager</field>
-            <field name="model_id" ref="plasticos_commission.model_plasticos_commission_rule"/>
+            <field name="model_id" ref="plasticos_transaction.model_plasticos_commission_rule"/>
             <field name="group_id" ref="plasticos_transaction.group_plasticos_commission_manager"/>
             <field name="perm_read" eval="1"/>
             <field name="perm_write" eval="1"/>

@@ -3,3 +3,4 @@ access_transaction_user,transaction.user,model_plasticos_transaction,base.group_
 access_transaction_line_user,transaction.line.user,model_plasticos_transaction_line,base.group_user,1,0,0,0
 access_transaction_line_manager,transaction.line.manager,model_plasticos_transaction_line,plasticos_transaction.group_plasticos_manager,1,1,1,1
 access_audit_cron_user,audit.cron.user,model_plasticos_audit_cron,base.group_user,1,0,0,0
+access_commission_rule_admin,commission.rule.admin,model_plasticos_commission_rule,base.group_system,1,1,1,1

@@ -32,9 +32,7 @@ _logger = logging.getLogger(__name__)
 # Modules to validate
 _MODULES = [
     "plasticos_logistics",
-    "plasticos_logistics_automation",
     "plasticos_documents",
-    "plasticos_documents_extension",
     "plasticos_transaction",
     "plasticos_automation",
 ]

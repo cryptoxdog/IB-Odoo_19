@@ -5,6 +5,7 @@
         <field name="arch" type="xml">
             <list>
                 <field name="name"/>
+                <field name="user_id" optional="show"/>
                 <field name="sale_order_id" optional="show"/>
                 <field name="line_count" optional="hide"/>
                 <field name="historical_sale_total" optional="show" sum="Historical Sale"/>
@@ -38,6 +39,7 @@
 
                     <group>
                         <group string="Orders">
+                            <field name="user_id"/>
                             <field name="sale_order_id"/>
                             <field name="purchase_order_ids" widget="many2many_tags"/>
                             <field name="load_id"/>
