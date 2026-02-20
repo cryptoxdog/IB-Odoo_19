@@ -23,6 +23,7 @@
         "plasticos_web_leads",
         "plasticos_intake",
         "plasticos_material_profile",
+        "purchase",
     ],
     "data": [
         "security/ir.model.access.csv",

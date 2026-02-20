@@ -96,6 +96,219 @@
       <field name="name">TPO</field>
     </record>
 
+    <!-- Additional Parent Categories for AI Triage -->
+    <record id="category_forms" model="res.partner.category">
+      <field name="name">Forms</field>
+    </record>
+    <record id="category_source_types" model="res.partner.category">
+      <field name="name">Source Types</field>
+    </record>
+    <record id="category_colors" model="res.partner.category">
+      <field name="name">Colors</field>
+    </record>
+
+    <!-- Form Tags -->
+    <record id="form_bag" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">BAG</field>
+    </record>
+    <record id="form_bale" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">BALE</field>
+    </record>
+    <record id="form_chop" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">CHOP</field>
+    </record>
+    <record id="form_dens" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">DENS</field>
+    </record>
+    <record id="form_film" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">FILM</field>
+    </record>
+    <record id="form_flake" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">FLAKE</field>
+    </record>
+    <record id="form_gay" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">GAY</field>
+    </record>
+    <record id="form_log" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">LOG</field>
+    </record>
+    <record id="form_loose" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">LOOSE</field>
+    </record>
+    <record id="form_pal" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">PAL</field>
+    </record>
+    <record id="form_part" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">PART</field>
+    </record>
+    <record id="form_patty" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">PATTY</field>
+    </record>
+    <record id="form_pell" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">PELL</field>
+    </record>
+    <record id="form_purg" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">PURG</field>
+    </record>
+    <record id="form_reg" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">REG</field>
+    </record>
+    <record id="form_repro" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">REPRO</field>
+    </record>
+    <record id="form_rg" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">RG</field>
+    </record>
+    <record id="form_roll" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">ROLL</field>
+    </record>
+    <record id="form_sheet" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">SHEET</field>
+    </record>
+    <record id="form_shred" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">SHRED</field>
+    </record>
+    <record id="form_sweep" model="res.partner.category">
+      <field name="parent_id" ref="category_forms"/>
+      <field name="name">SWEEP</field>
+    </record>
+
+    <!-- Source Type Tags -->
+    <record id="source_type_clean" model="res.partner.category">
+      <field name="parent_id" ref="category_source_types"/>
+      <field name="name">Clean</field>
+    </record>
+    <record id="source_type_clean_upper" model="res.partner.category">
+      <field name="parent_id" ref="category_source_types"/>
+      <field name="name">CLEAN</field>
+    </record>
+    <record id="source_type_cont" model="res.partner.category">
+      <field name="parent_id" ref="category_source_types"/>
+      <field name="name">CONT</field>
+    </record>
+    <record id="source_type_mixed" model="res.partner.category">
+      <field name="parent_id" ref="category_source_types"/>
+      <field name="name">Mixed</field>
+    </record>
+    <record id="source_type_mixed_upper" model="res.partner.category">
+      <field name="parent_id" ref="category_source_types"/>
+      <field name="name">MIXED</field>
+    </record>
+    <record id="source_type_no_value" model="res.partner.category">
+      <field name="parent_id" ref="category_source_types"/>
+      <field name="name">No-Value</field>
+    </record>
+    <record id="source_type_off_grade" model="res.partner.category">
+      <field name="parent_id" ref="category_source_types"/>
+      <field name="name">Off-Grade</field>
+    </record>
+    <record id="source_type_off" model="res.partner.category">
+      <field name="parent_id" ref="category_source_types"/>
+      <field name="name">OFF</field>
+    </record>
+    <record id="tag_source_type_post_consumer" model="res.partner.category">
+      <field name="parent_id" ref="category_source_types"/>
+      <field name="name">Post-Consumer</field>
+    </record>
+    <record id="source_type_pc" model="res.partner.category">
+      <field name="parent_id" ref="category_source_types"/>
+      <field name="name">PC</field>
+    </record>
+    <record id="tag_source_type_post_industrial" model="res.partner.category">
+      <field name="parent_id" ref="category_source_types"/>
+      <field name="name">Post-Industrial</field>
+    </record>
+    <record id="source_type_pi" model="res.partner.category">
+      <field name="parent_id" ref="category_source_types"/>
+      <field name="name">PI</field>
+    </record>
+    <record id="source_type_reusable" model="res.partner.category">
+      <field name="parent_id" ref="category_source_types"/>
+      <field name="name">Reusable</field>
+    </record>
+    <record id="source_type_reuse" model="res.partner.category">
+      <field name="parent_id" ref="category_source_types"/>
+      <field name="name">REUSE</field>
+    </record>
+
+    <!-- Color Tags -->
+    <record id="color_black" model="res.partner.category">
+      <field name="parent_id" ref="category_colors"/>
+      <field name="name">Black</field>
+    </record>
+    <record id="color_blue" model="res.partner.category">
+      <field name="parent_id" ref="category_colors"/>
+      <field name="name">Blue</field>
+    </record>
+    <record id="color_blue_white" model="res.partner.category">
+      <field name="parent_id" ref="category_colors"/>
+      <field name="name">Blue/White</field>
+    </record>
+    <record id="color_clear" model="res.partner.category">
+      <field name="parent_id" ref="category_colors"/>
+      <field name="name">Clear</field>
+    </record>
+    <record id="color_dark" model="res.partner.category">
+      <field name="parent_id" ref="category_colors"/>
+      <field name="name">Dark</field>
+    </record>
+    <record id="color_gray" model="res.partner.category">
+      <field name="parent_id" ref="category_colors"/>
+      <field name="name">Gray</field>
+    </record>
+    <record id="color_green" model="res.partner.category">
+      <field name="parent_id" ref="category_colors"/>
+      <field name="name">Green</field>
+    </record>
+    <record id="color_mixed_color" model="res.partner.category">
+      <field name="parent_id" ref="category_colors"/>
+      <field name="name">Mixed Color</field>
+    </record>
+    <record id="color_natural" model="res.partner.category">
+      <field name="parent_id" ref="category_colors"/>
+      <field name="name">Natural</field>
+    </record>
+    <record id="color_orange" model="res.partner.category">
+      <field name="parent_id" ref="category_colors"/>
+      <field name="name">Orange</field>
+    </record>
+    <record id="color_print" model="res.partner.category">
+      <field name="parent_id" ref="category_colors"/>
+      <field name="name">Print</field>
+    </record>
+    <record id="color_red" model="res.partner.category">
+      <field name="parent_id" ref="category_colors"/>
+      <field name="name">Red</field>
+    </record>
+    <record id="color_white" model="res.partner.category">
+      <field name="parent_id" ref="category_colors"/>
+      <field name="name">White</field>
+    </record>
+    <record id="color_yellow" model="res.partner.category">
+      <field name="parent_id" ref="category_colors"/>
+      <field name="name">Yellow</field>
+    </record>
+
     <!-- Material Types (quality/condition descriptors) -->
     <record id="material_type_clean" model="res.partner.category">
       <field name="parent_id" ref="category_material_types"/>

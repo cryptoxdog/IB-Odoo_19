@@ -29,7 +29,7 @@
       </xpath>
 
       <!-- Add AI Triage notebook page inside the existing notebook -->
-      <xpath expr="//page[@string='AI Analysis']" position="after">
+      <xpath expr="//page[@name='ai_analysis_page']" position="after">
         <page string="AI Triage" name="ai_triage">
           <group string="AI Normalization">
             <field name="ai_normalized" widget="json"/>
@@ -56,7 +56,7 @@
     <field name="model">plasticos.web.lead</field>
     <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_list"/>
     <field name="arch" type="xml">
-      <xpath expr="//field[@name='source']" position="after">
+      <xpath expr="//field[@name='decision']" position="after">
         <field name="lead_source"/>
       </xpath>
     </field>

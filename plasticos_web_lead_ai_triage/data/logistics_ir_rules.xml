@@ -13,7 +13,6 @@
         Members see only suppliers with confirmed purchase orders.
         Raw web leads and unqualified contacts are hidden.
       </field>
-      <field name="category_id" ref="base.module_category_operations"/>
     </record>
 
     <!-- ═══════════════════════════════════════════════════ -->
