@@ -156,5 +156,13 @@
       <field name="category">specialty</field>
       <field name="sequence">220</field>
     </record>
+    <!-- ── Non-Resin / Special Categories ────────────────── -->
+    <record id="polymer_ewaste" model="plasticos.polymer">
+      <field name="name">E-Waste</field>
+      <field name="code">ewaste</field>
+      <field name="full_name">Electronic Waste Plastics</field>
+      <field name="category">specialty</field>
+      <field name="sequence">300</field>
+    </record>
   </data>
 </odoo>
