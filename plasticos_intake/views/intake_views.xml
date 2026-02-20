@@ -1,4 +1,67 @@
 <odoo>
+
+    <!-- ═══════════════════════════════════════════════════════
+         Search View
+         ═══════════════════════════════════════════════════════ -->
+
+    <record id="view_plasticos_intake_search" model="ir.ui.view">
+        <field name="name">plasticos.intake.search</field>
+        <field name="model">plasticos.intake</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="facility_id"/>
+                <field name="contact_id"/>
+                <field name="polymer"/>
+                <field name="form"/>
+                <field name="material_profile_id"/>
+                <separator/>
+                <filter name="filter_draft"
+                        string="Draft"
+                        domain="[('onboarding_status', '=', 'draft')]"/>
+                <filter name="filter_profiled"
+                        string="Profiled"
+                        domain="[('onboarding_status', '=', 'profiled')]"/>
+                <filter name="filter_normalized"
+                        string="Normalized"
+                        domain="[('onboarding_status', '=', 'normalized')]"/>
+                <filter name="filter_ready"
+                        string="Ready"
+                        domain="[('onboarding_status', '=', 'ready')]"/>
+                <separator/>
+                <filter name="filter_matched"
+                        string="Matched"
+                        domain="[('match_status', '=', 'matched')]"/>
+                <filter name="filter_pending"
+                        string="Pending Match"
+                        domain="[('match_status', '=', 'pending')]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter name="group_partner"
+                            string="Company"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_facility"
+                            string="Facility"
+                            context="{'group_by': 'facility_id'}"/>
+                    <filter name="group_polymer"
+                            string="Polymer"
+                            context="{'group_by': 'polymer'}"/>
+                    <filter name="group_onboarding"
+                            string="Onboarding Status"
+                            context="{'group_by': 'onboarding_status'}"/>
+                    <filter name="group_deal_type"
+                            string="Deal Type"
+                            context="{'group_by': 'deal_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════
+         List View
+         ═══════════════════════════════════════════════════════ -->
+
     <record id="view_plasticos_intake_tree" model="ir.ui.view">
         <field name="name">plasticos.intake.tree</field>
         <field name="model">plasticos.intake</field>
@@ -6,16 +69,29 @@
             <list>
                 <field name="name"/>
                 <field name="partner_id"/>
+                <field name="facility_id" optional="show"/>
+                <field name="contact_id" optional="hide"/>
                 <field name="material_profile_id" optional="show"/>
                 <field name="polymer"/>
                 <field name="form"/>
                 <field name="quantity_per_load_lbs"/>
                 <field name="deal_type"/>
-                <field name="onboarding_status"/>
-                <field name="match_status"/>
+                <field name="onboarding_status" widget="badge"
+                       decoration-info="onboarding_status == 'draft'"
+                       decoration-warning="onboarding_status == 'profiled'"
+                       decoration-primary="onboarding_status == 'normalized'"
+                       decoration-success="onboarding_status == 'ready'"/>
+                <field name="match_status" widget="badge"
+                       decoration-muted="match_status == 'pending'"
+                       decoration-success="match_status == 'matched'"
+                       decoration-danger="match_status in ('rejected', 'error')"/>
             </list>
         </field>
     </record>
+
+    <!-- ═══════════════════════════════════════════════════════
+         Form View
+         ═══════════════════════════════════════════════════════ -->
 
     <record id="view_plasticos_intake_form" model="ir.ui.view">
         <field name="name">plasticos.intake.form</field>
@@ -48,18 +124,24 @@
                            statusbar_visible="draft,profiled,normalized,ready"/>
                 </header>
                 <sheet>
+                    <!-- ─── Identity + Contact ─── -->
                     <group>
-                        <group string="Identity">
+                        <group string="Company &amp; Facility">
                             <field name="name"/>
                             <field name="partner_id"/>
                             <field name="facility_id"/>
-                        </group>
-                        <group string="Material Profile Link">
                             <field name="material_profile_id"/>
+                        </group>
+                        <group string="Contact Person">
+                            <field name="contact_id"/>
+                            <field name="contact_phone"/>
+                            <field name="contact_mobile"/>
+                            <field name="contact_email" widget="email"/>
                         </group>
                     </group>
 
                     <notebook>
+                        <!-- ─── Material Tab ─── -->
                         <page string="Material">
                             <group string="Raw Description">
                                 <field name="material_hint_text"/>
@@ -80,13 +162,14 @@
                             </group>
                         </page>
 
+                        <!-- ─── Quality Tab ─── -->
                         <page string="Quality">
                             <group>
                                 <group string="Observed Quality">
                                     <field name="mfi_value"/>
                                     <field name="density_value"/>
-                                    <field name="moisture_ppm"/>
-                                    <field name="contamination_total_pct"/>
+                                    <field name="moisture_pct"/>
+                                    <field name="contamination_pct"/>
                                 </group>
                                 <group string="Contaminants">
                                     <field name="has_metal"/>
@@ -101,6 +184,7 @@
                             </group>
                         </page>
 
+                        <!-- ─── Commercial Tab ─── -->
                         <page string="Commercial">
                             <group>
                                 <group string="Volume">
@@ -114,6 +198,23 @@
                             </group>
                         </page>
 
+                        <!-- ─── Facility Info Tab ─── -->
+                        <page string="Facility Info">
+                            <group>
+                                <group string="Facility Address">
+                                    <field name="facility_phone"/>
+                                    <field name="facility_street"/>
+                                    <field name="facility_city"/>
+                                    <field name="facility_state"/>
+                                </group>
+                                <group string="Coordinates">
+                                    <field name="lat"/>
+                                    <field name="lon"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <!-- ─── Matching Tab ─── -->
                         <page string="Matching">
                             <group>
                                 <group>
@@ -137,7 +238,10 @@
         </field>
     </record>
 
-    <!-- Root App Menu -->
+    <!-- ═══════════════════════════════════════════════════════
+         Root App Menu
+         ═══════════════════════════════════════════════════════ -->
+
     <menuitem id="plasticos_root_menu"
               name="PlasticOS"
               sequence="5"/>
@@ -147,6 +251,7 @@
         <field name="name">Material Intake</field>
         <field name="res_model">plasticos.intake</field>
         <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_plasticos_intake_search"/>
     </record>
 
     <!-- Intake Menu -->
