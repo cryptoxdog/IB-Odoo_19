@@ -20,6 +20,9 @@
 !/plasticos_polymer/
 !/plasticos_web_leads/
 !/plasticos_intake_normalizer/
+!/plasticos_security_base/
+!/plasticos_documents_native/
+!/plasticos_geolocalize/
 !/reports/
 
 # Ignore within allowed paths
