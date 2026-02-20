@@ -1,7 +1,7 @@
 {
     "name": "PlasticOS Intake",
-    "version": "19.0.2.0.0",
-    "summary": "Transactional Material Intake — unified with material profile",
+    "version": "19.0.3.0.0",
+    "summary": "Transactional Material Intake — field fixes, UX normalization",
     "author": "PlasticOS",
     "depends": [
         "base",
@@ -10,9 +10,9 @@
     ],
     "data": [
         "security/ir.model.access.csv",
-        "views/intake_views.xml"
+        "views/intake_views.xml",
     ],
     "installable": True,
     "application": False,
-    "license": "LGPL-3"
+    "license": "LGPL-3",
 }

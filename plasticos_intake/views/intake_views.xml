@@ -1,4 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
+
+    <!-- List View -->
     <record id="view_plasticos_intake_tree" model="ir.ui.view">
         <field name="name">plasticos.intake.tree</field>
         <field name="model">plasticos.intake</field>
@@ -10,13 +13,62 @@
                 <field name="polymer"/>
                 <field name="form"/>
                 <field name="quantity_per_load_lbs"/>
+                <field name="loads_per_month" optional="show"/>
                 <field name="deal_type"/>
-                <field name="onboarding_status"/>
-                <field name="match_status"/>
+                <field name="onboarding_status"
+                       decoration-info="onboarding_status == 'draft'"
+                       decoration-warning="onboarding_status == 'profiled'"
+                       decoration-success="onboarding_status in ('normalized', 'ready')"
+                       widget="badge"/>
+                <field name="match_status"
+                       decoration-info="match_status == 'pending'"
+                       decoration-success="match_status in ('normalized', 'matched')"
+                       decoration-danger="match_status in ('rejected', 'error')"
+                       widget="badge"/>
             </list>
         </field>
     </record>
 
+    <!-- Search View -->
+    <record id="view_plasticos_intake_search" model="ir.ui.view">
+        <field name="name">plasticos.intake.search</field>
+        <field name="model">plasticos.intake</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="polymer"/>
+                <field name="form"/>
+                <filter name="draft" string="Draft"
+                        domain="[('onboarding_status', '=', 'draft')]"/>
+                <filter name="profiled" string="Profiled"
+                        domain="[('onboarding_status', '=', 'profiled')]"/>
+                <filter name="normalized" string="Normalized"
+                        domain="[('onboarding_status', '=', 'normalized')]"/>
+                <filter name="ready" string="Ready"
+                        domain="[('onboarding_status', '=', 'ready')]"/>
+                <separator/>
+                <filter name="matched" string="Matched"
+                        domain="[('match_status', '=', 'matched')]"/>
+                <filter name="pending_match" string="Pending Match"
+                        domain="[('match_status', '=', 'pending')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_partner" string="Partner"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_polymer" string="Polymer"
+                            context="{'group_by': 'polymer'}"/>
+                    <filter name="group_deal_type" string="Deal Type"
+                            context="{'group_by': 'deal_type'}"/>
+                    <filter name="group_onboarding" string="Onboarding Status"
+                            context="{'group_by': 'onboarding_status'}"/>
+                    <filter name="group_match" string="Match Status"
+                            context="{'group_by': 'match_status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Form View -->
     <record id="view_plasticos_intake_form" model="ir.ui.view">
         <field name="name">plasticos.intake.form</field>
         <field name="model">plasticos.intake</field>
@@ -48,6 +100,7 @@
                            statusbar_visible="draft,profiled,normalized,ready"/>
                 </header>
                 <sheet>
+                    <!-- Identity Header -->
                     <group>
                         <group string="Identity">
                             <field name="name"/>
@@ -60,6 +113,7 @@
                     </group>
 
                     <notebook>
+                        <!-- Tab 1: Material -->
                         <page string="Material">
                             <group string="Raw Description">
                                 <field name="material_hint_text"/>
@@ -80,13 +134,28 @@
                             </group>
                         </page>
 
+                        <!-- Tab 2: Frequency (was "Commercial", moved before Quality) -->
+                        <page string="Frequency">
+                            <group>
+                                <group string="Volume">
+                                    <field name="quantity_per_load_lbs"/>
+                                    <field name="loads_per_month"/>
+                                </group>
+                                <group string="Deal Terms">
+                                    <field name="deal_type"/>
+                                    <field name="contract_duration_months"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <!-- Tab 3: Quality -->
                         <page string="Quality">
                             <group>
                                 <group string="Observed Quality">
                                     <field name="mfi_value"/>
                                     <field name="density_value"/>
-                                    <field name="moisture_ppm"/>
-                                    <field name="contamination_total_pct"/>
+                                    <field name="moisture_pct"/>
+                                    <field name="contamination_pct"/>
                                 </group>
                                 <group string="Contaminants">
                                     <field name="has_metal"/>
@@ -101,33 +170,33 @@
                             </group>
                         </page>
 
-                        <page string="Commercial">
+                        <!-- Tab 4: Matching (visible to all, read-only display) -->
+                        <page string="Matching">
                             <group>
-                                <group string="Volume">
-                                    <field name="quantity_per_load_lbs"/>
-                                    <field name="loads_per_month"/>
+                                <group string="Status">
+                                    <field name="match_status"/>
+                                    <field name="normalized"/>
                                 </group>
-                                <group string="Deal">
-                                    <field name="deal_type"/>
-                                    <field name="contract_duration_months"/>
+                                <group string="Packet">
+                                    <field name="last_packet_id" readonly="1"/>
+                                    <field name="last_packet_version" readonly="1"/>
+                                    <field name="last_packet_ts" readonly="1"/>
                                 </group>
                             </group>
                         </page>
 
-                        <page string="Matching">
-                            <group>
-                                <group>
-                                    <field name="match_status"/>
-                                    <field name="normalized"/>
-                                </group>
-                                <group>
-                                    <field name="last_packet_id"/>
-                                    <field name="last_packet_version"/>
-                                    <field name="last_packet_ts"/>
-                                </group>
+                        <!-- Tab 5: Debug (admin-only, JSON payloads + geo) -->
+                        <page string="Debug"
+                              groups="base.group_system">
+                            <group string="Geo (freight automation)">
+                                <field name="lat"/>
+                                <field name="lon"/>
                             </group>
                             <group string="Match Response">
-                                <field name="match_response"/>
+                                <field name="match_response" readonly="1"/>
+                            </group>
+                            <group string="Last Packet Payload">
+                                <field name="last_packet_payload" readonly="1"/>
                             </group>
                         </page>
                     </notebook>
@@ -147,6 +216,7 @@
         <field name="name">Material Intake</field>
         <field name="res_model">plasticos.intake</field>
         <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_plasticos_intake_search"/>
     </record>
 
     <!-- Intake Menu -->
