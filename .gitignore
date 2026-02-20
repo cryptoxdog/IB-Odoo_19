@@ -22,6 +22,7 @@
 !/plasticos_intake_normalizer/
 !/plasticos_documents_native/
 !/plasticos_security_base/
+!/plasticos_geolocalize/
 !/reports/
 
 # Ignore within allowed paths
