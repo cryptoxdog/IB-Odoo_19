@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="1">
+    <record id="default_triage_config" model="plasticos.triage.config">
+      <field name="name">Triage Configuration</field>
+      <field name="openai_model">gpt-4.1-mini</field>
+      <field name="openai_vision_model">gpt-4.1-mini</field>
+      <field name="hot_min_lbs">10000</field>
+      <field name="cold_max_lbs">8000</field>
+      <field name="auto_create_partner" eval="True"/>
+      <field name="auto_create_intake" eval="True"/>
+      <field name="ai_enabled" eval="True"/>
+      <field name="vision_enabled" eval="True"/>
+      <field name="reject_materials">vinyl siding|appliances|conduit|pvc pipe|pet bottles|carpet|mattress|tire</field>
+      <field name="reject_sources">residential|individual|homeowner|drop-off|drop off</field>
+    </record>
+  </data>
+</odoo>

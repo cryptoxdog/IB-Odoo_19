@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- Extend Web Lead Form with Triage Fields                -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <record id="view_web_lead_form_triage" model="ir.ui.view">
+    <field name="name">plasticos.web.lead.form.triage</field>
+    <field name="model">plasticos.web.lead</field>
+    <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_form"/>
+    <field name="arch" type="xml">
+      <!-- Add lead_source after the source field -->
+      <xpath expr="//field[@name='source']" position="after">
+        <field name="lead_source"/>
+      </xpath>
+
+      <!-- Add triage action buttons in the header -->
+      <xpath expr="//header" position="inside">
+        <button name="action_retry_triage"
+                string="Re-Run Triage"
+                type="object"
+                class="btn-warning"
+                invisible="state not in ('error', 'skipped', 'received')"/>
+        <button name="action_force_hot"
+                string="Force HOT"
+                type="object"
+                class="btn-danger"
+                invisible="decision != 'cold' or intake_id"
+                confirm="Override COLD classification and create intake?"/>
+      </xpath>
+
+      <!-- Add AI Triage notebook page inside the existing notebook -->
+      <xpath expr="//page[@string='AI Analysis']" position="after">
+        <page string="AI Triage" name="ai_triage">
+          <group string="AI Normalization">
+            <field name="ai_normalized" widget="json"/>
+          </group>
+          <group string="Vision Analysis">
+            <field name="ai_vision_results" widget="json"/>
+          </group>
+          <group string="Image URLs">
+            <field name="image_urls" widget="json"/>
+          </group>
+          <group string="Triage Audit Log">
+            <field name="triage_log" widget="text" readonly="1"/>
+          </group>
+        </page>
+      </xpath>
+    </field>
+  </record>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- Extend Web Lead List with lead_source column           -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <record id="view_web_lead_list_triage" model="ir.ui.view">
+    <field name="name">plasticos.web.lead.list.triage</field>
+    <field name="model">plasticos.web.lead</field>
+    <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_list"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='source']" position="after">
+        <field name="lead_source"/>
+      </xpath>
+    </field>
+  </record>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- Extend Search View with lead_source filter             -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <record id="view_web_lead_search_triage" model="ir.ui.view">
+    <field name="name">plasticos.web.lead.search.triage</field>
+    <field name="model">plasticos.web.lead</field>
+    <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_search"/>
+    <field name="arch" type="xml">
+      <xpath expr="//filter[@name='errors']" position="after">
+        <separator/>
+        <filter name="web_leads" string="Web Leads"
+                domain="[('lead_source','=','web_lead')]"/>
+        <filter name="sales_manual" string="Sales Manual"
+                domain="[('lead_source','=','sales_manual')]"/>
+        <filter name="linkedin_ai" string="LinkedIn AI"
+                domain="[('lead_source','=','linkedin_ai')]"/>
+        <separator/>
+        <filter name="group_lead_source" string="Group by Lead Source"
+                context="{'group_by': 'lead_source'}"/>
+      </xpath>
+    </field>
+  </record>
+</odoo>

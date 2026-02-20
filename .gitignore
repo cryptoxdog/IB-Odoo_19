@@ -23,6 +23,7 @@
 !/plasticos_documents_native/
 !/plasticos_security_base/
 !/plasticos_geolocalize/
+!/plasticos_web_lead_ai_triage/
 !/reports/
 
 # Ignore within allowed paths
