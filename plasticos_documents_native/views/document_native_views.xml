@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         Extend the native documents.document form view with
+         plastics-specific fields (polymer, load, transaction, intake,
+         doc_type, verification, override).
+         ============================================================ -->
+
+    <record id="view_document_form_plasticos" model="ir.ui.view">
+        <field name="name">documents.document.form.plasticos</field>
+        <field name="model">documents.document</field>
+        <field name="inherit_id" ref="documents.document_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Plasticos Classification">
+                    <group>
+                        <field name="x_doc_type"/>
+                        <field name="x_polymer_id"/>
+                    </group>
+                    <group>
+                        <field name="x_transaction_id"/>
+                        <field name="x_load_id"/>
+                        <field name="x_intake_id"/>
+                    </group>
+                </group>
+                <group string="Verification">
+                    <group>
+                        <field name="x_verified"/>
+                        <field name="x_verified_by"
+                               invisible="not x_verified"/>
+                        <field name="x_verified_at"
+                               invisible="not x_verified"/>
+                    </group>
+                    <group>
+                        <field name="x_override"/>
+                        <field name="x_override_reason"
+                               invisible="not x_override"/>
+                    </group>
+                </group>
+                <group string="Legacy Sync" invisible="not x_plasticos_doc_id">
+                    <field name="x_plasticos_doc_id" readonly="1"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ============================================================
+         Extend the native documents.document list/kanban with
+         key plastics columns.
+         ============================================================ -->
+
+    <record id="view_document_list_plasticos" model="ir.ui.view">
+        <field name="name">documents.document.list.plasticos</field>
+        <field name="model">documents.document</field>
+        <field name="inherit_id" ref="documents.document_view_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <field name="x_doc_type" optional="show"/>
+                <field name="x_polymer_id" optional="show"/>
+                <field name="x_transaction_id" optional="hide"/>
+                <field name="x_verified" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ============================================================
+         Search filter extensions: filter by doc type, polymer,
+         verified status.
+         ============================================================ -->
+
+    <record id="view_document_search_plasticos" model="ir.ui.view">
+        <field name="name">documents.document.search.plasticos</field>
+        <field name="model">documents.document</field>
+        <field name="inherit_id" ref="documents.document_view_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter name="filter_bol"
+                        string="BOLs"
+                        domain="[('x_doc_type', '=', 'bol')]"/>
+                <filter name="filter_invoice"
+                        string="Invoices"
+                        domain="[('x_doc_type', '=', 'invoice')]"/>
+                <filter name="filter_scale_ticket"
+                        string="Scale Tickets"
+                        domain="[('x_doc_type', '=', 'scale_ticket')]"/>
+                <filter name="filter_contract"
+                        string="Contracts"
+                        domain="[('x_doc_type', '=', 'contract')]"/>
+                <separator/>
+                <filter name="filter_verified"
+                        string="Verified"
+                        domain="[('x_verified', '=', True)]"/>
+                <filter name="filter_unverified"
+                        string="Not Verified"
+                        domain="[('x_verified', '=', False)]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter name="group_doc_type"
+                            string="Document Type"
+                            context="{'group_by': 'x_doc_type'}"/>
+                    <filter name="group_polymer"
+                            string="Polymer"
+                            context="{'group_by': 'x_polymer_id'}"/>
+                    <filter name="group_transaction"
+                            string="Transaction"
+                            context="{'group_by': 'x_transaction_id'}"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

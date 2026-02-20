@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- ============================================================
+             Tag Categories (documents.facet) and Tags (documents.tag)
+
+             These are the native Odoo Enterprise tag structures.
+             Two facet categories:
+               1. Document Type: BOL, Invoice, Scale Ticket, etc.
+               2. Polymer: HDPE, LDPE, PP, PET, etc.
+             ============================================================ -->
+
+        <!-- ── Facet: Document Type ────────────────────────────── -->
+        <record id="facet_doc_type" model="documents.facet">
+            <field name="name">Document Type</field>
+            <field name="folder_id" ref="folder_plasticos_root"/>
+            <field name="sequence">1</field>
+        </record>
+
+        <record id="tag_bol" model="documents.tag">
+            <field name="name">BOL</field>
+            <field name="facet_id" ref="facet_doc_type"/>
+            <field name="sequence">1</field>
+        </record>
+
+        <record id="tag_vendor_bill" model="documents.tag">
+            <field name="name">Vendor Bill</field>
+            <field name="facet_id" ref="facet_doc_type"/>
+            <field name="sequence">2</field>
+        </record>
+
+        <record id="tag_scale_ticket" model="documents.tag">
+            <field name="name">Scale Ticket</field>
+            <field name="facet_id" ref="facet_doc_type"/>
+            <field name="sequence">3</field>
+        </record>
+
+        <record id="tag_loading_pic" model="documents.tag">
+            <field name="name">Loading Pic</field>
+            <field name="facet_id" ref="facet_doc_type"/>
+            <field name="sequence">4</field>
+        </record>
+
+        <record id="tag_customer_order" model="documents.tag">
+            <field name="name">Customer Order</field>
+            <field name="facet_id" ref="facet_doc_type"/>
+            <field name="sequence">5</field>
+        </record>
+
+        <record id="tag_contract" model="documents.tag">
+            <field name="name">Contract</field>
+            <field name="facet_id" ref="facet_doc_type"/>
+            <field name="sequence">6</field>
+        </record>
+
+        <record id="tag_certification" model="documents.tag">
+            <field name="name">Certification</field>
+            <field name="facet_id" ref="facet_doc_type"/>
+            <field name="sequence">7</field>
+        </record>
+
+        <record id="tag_permit" model="documents.tag">
+            <field name="name">Permit</field>
+            <field name="facet_id" ref="facet_doc_type"/>
+            <field name="sequence">8</field>
+        </record>
+
+        <record id="tag_lab_report" model="documents.tag">
+            <field name="name">Lab Report</field>
+            <field name="facet_id" ref="facet_doc_type"/>
+            <field name="sequence">9</field>
+        </record>
+
+        <record id="tag_photo" model="documents.tag">
+            <field name="name">Photo</field>
+            <field name="facet_id" ref="facet_doc_type"/>
+            <field name="sequence">10</field>
+        </record>
+
+        <record id="tag_correspondence" model="documents.tag">
+            <field name="name">Correspondence</field>
+            <field name="facet_id" ref="facet_doc_type"/>
+            <field name="sequence">11</field>
+        </record>
+
+        <!-- ── Facet: Polymer ──────────────────────────────────── -->
+        <record id="facet_polymer" model="documents.facet">
+            <field name="name">Polymer</field>
+            <field name="folder_id" ref="folder_plasticos_root"/>
+            <field name="sequence">2</field>
+        </record>
+
+        <record id="tag_polymer_hdpe" model="documents.tag">
+            <field name="name">HDPE</field>
+            <field name="facet_id" ref="facet_polymer"/>
+            <field name="sequence">1</field>
+        </record>
+
+        <record id="tag_polymer_ldpe" model="documents.tag">
+            <field name="name">LDPE</field>
+            <field name="facet_id" ref="facet_polymer"/>
+            <field name="sequence">2</field>
+        </record>
+
+        <record id="tag_polymer_lldpe" model="documents.tag">
+            <field name="name">LLDPE</field>
+            <field name="facet_id" ref="facet_polymer"/>
+            <field name="sequence">3</field>
+        </record>
+
+        <record id="tag_polymer_pp" model="documents.tag">
+            <field name="name">PP</field>
+            <field name="facet_id" ref="facet_polymer"/>
+            <field name="sequence">4</field>
+        </record>
+
+        <record id="tag_polymer_pet" model="documents.tag">
+            <field name="name">PET</field>
+            <field name="facet_id" ref="facet_polymer"/>
+            <field name="sequence">5</field>
+        </record>
+
+        <record id="tag_polymer_ps" model="documents.tag">
+            <field name="name">PS</field>
+            <field name="facet_id" ref="facet_polymer"/>
+            <field name="sequence">6</field>
+        </record>
+
+        <record id="tag_polymer_pvc" model="documents.tag">
+            <field name="name">PVC</field>
+            <field name="facet_id" ref="facet_polymer"/>
+            <field name="sequence">7</field>
+        </record>
+
+        <record id="tag_polymer_abs" model="documents.tag">
+            <field name="name">ABS</field>
+            <field name="facet_id" ref="facet_polymer"/>
+            <field name="sequence">8</field>
+        </record>
+
+        <record id="tag_polymer_pc" model="documents.tag">
+            <field name="name">PC</field>
+            <field name="facet_id" ref="facet_polymer"/>
+            <field name="sequence">9</field>
+        </record>
+
+        <record id="tag_polymer_nylon" model="documents.tag">
+            <field name="name">Nylon (PA)</field>
+            <field name="facet_id" ref="facet_polymer"/>
+            <field name="sequence">10</field>
+        </record>
+
+        <record id="tag_polymer_mixed" model="documents.tag">
+            <field name="name">Mixed / Commingled</field>
+            <field name="facet_id" ref="facet_polymer"/>
+            <field name="sequence">11</field>
+        </record>
+
+        <!-- ── Facet: Status ───────────────────────────────────── -->
+        <record id="facet_status" model="documents.facet">
+            <field name="name">Status</field>
+            <field name="folder_id" ref="folder_plasticos_root"/>
+            <field name="sequence">3</field>
+        </record>
+
+        <record id="tag_needs_review" model="documents.tag">
+            <field name="name">Needs Review</field>
+            <field name="facet_id" ref="facet_status"/>
+            <field name="sequence">1</field>
+        </record>
+
+        <record id="tag_verified" model="documents.tag">
+            <field name="name">Verified</field>
+            <field name="facet_id" ref="facet_status"/>
+            <field name="sequence">2</field>
+        </record>
+
+        <record id="tag_to_split" model="documents.tag">
+            <field name="name">To Split</field>
+            <field name="facet_id" ref="facet_status"/>
+            <field name="sequence">3</field>
+        </record>
+
+    </data>
+</odoo>
