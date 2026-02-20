@@ -6,4 +6,11 @@
     <record id="group_documents_manager" model="res.groups">
         <field name="name">Documents Manager</field>
     </record>
+
+    <record id="group_documents_extension_manager" model="res.groups">
+        <field name="name">PlasticOS Documents Extension Manager</field>
+        <field name="comment">
+            Manages document validation matrix and extended document rules.
+        </field>
+    </record>
 </odoo>

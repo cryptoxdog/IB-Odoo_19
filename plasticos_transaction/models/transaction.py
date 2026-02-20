@@ -9,6 +9,15 @@ class PlasticosTransaction(models.Model):
 
     name = fields.Char(required=True, copy=False, default="New")
 
+    user_id = fields.Many2one(
+        "res.users",
+        string="Salesperson",
+        default=lambda self: self.env.user,
+        tracking=True,
+        index=True,
+        help="Responsible salesperson. Uses Odoo native user_id convention.",
+    )
+
     sale_order_id = fields.Many2one("sale.order")
     purchase_order_ids = fields.Many2many("purchase.order")
 

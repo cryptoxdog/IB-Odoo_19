@@ -60,7 +60,7 @@ class StockPickingAutomation(models.Model):
 
             # Send mail template if available
             template = self.env.ref(
-                "plasticos_logistics_automation.mail_template_broker_followup",
+                "plasticos_automation.mail_template_broker_followup",
                 raise_if_not_found=False,
             )
             if template:

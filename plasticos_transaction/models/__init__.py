@@ -6,3 +6,5 @@ from . import purchase_inherit
 from . import account_move_inherit
 from . import load_inherit
 from . import audit_cron
+from . import commission_rule
+from . import commission_service

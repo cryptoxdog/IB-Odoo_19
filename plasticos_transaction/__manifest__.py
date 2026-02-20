@@ -1,7 +1,7 @@
 {
     "name": "Plasticos Transaction Spine",
-    "version": "19.0.1.1.0",
-    "summary": "Core transaction lifecycle management",
+    "version": "19.0.2.0.0",
+    "summary": "Core transaction lifecycle management with integrated commission engine",
     "author": "PlasticOS",
     "license": "LGPL-3",
     "depends": [
@@ -12,10 +12,9 @@
         "purchase",
         "plasticos_logistics",
         "plasticos_documents",
-        "plasticos_commission",
         "plasticos_material_profile",
         "plasticos_facility_profile",
-        "plasticos_intake"
+        "plasticos_intake",
     ],
     "data": [
         "security/security_hardening.xml",
@@ -23,7 +22,8 @@
         "security/commission_acl.xml",
         "data/sequence.xml",
         "data/audit_cron.xml",
-        "views/transaction_views.xml"
+        "views/transaction_views.xml",
+        "views/commission_views.xml",
     ],
     "installable": True,
     "application": False,

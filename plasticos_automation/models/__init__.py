@@ -4,3 +4,7 @@ from . import sale_approval
 from . import invoice_reminder
 from . import contract_renewal
 from . import stock_reorder_alert
+from . import load_automation
+from . import purchase_order_automation
+from . import sale_order_automation
+from . import stock_picking_automation

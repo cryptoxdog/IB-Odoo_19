@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+
+    <!-- Application Category -->
+    <record id="module_category_plasticos" model="ir.module.category">
+        <field name="name">Plasticos</field>
+        <field name="description">Plasticos platform roles and permissions.</field>
+        <field name="sequence">200</field>
+    </record>
+
+    <!-- Sales Rep -->
+    <record id="group_sales_rep" model="res.groups">
+        <field name="name">Sales Rep</field>
+        <field name="category_id" ref="module_category_plasticos"/>
+        <field name="comment">
+            Owns relationships and deals.  Row-level isolation ensures
+            Sales Reps only see their own partners, transactions, orders,
+            invoices, loads, documents, and offers.
+        </field>
+    </record>
+
+    <!-- Logistics -->
+    <record id="group_logistics" model="res.groups">
+        <field name="name">Logistics</field>
+        <field name="category_id" ref="module_category_plasticos"/>
+        <field name="comment">
+            Manages freight, loads, dispatching, and rate memory.
+            Broad read access on operational data.  Read-only on
+            pipeline models (intake, matching, offers).
+        </field>
+    </record>
+
+    <!-- Accounting -->
+    <record id="group_accounting" model="res.groups">
+        <field name="name">Accounting</field>
+        <field name="category_id" ref="module_category_plasticos"/>
+        <field name="comment">
+            Owns commission rules and financial documents.
+            Read-only on most operational data.
+        </field>
+    </record>
+
+</odoo>
