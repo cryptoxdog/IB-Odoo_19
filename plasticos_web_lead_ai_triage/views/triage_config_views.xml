@@ -38,7 +38,7 @@
     <field name="name">Triage Configuration</field>
     <field name="res_model">plasticos.triage.config</field>
     <field name="view_mode">form</field>
-    <field name="target">inline</field>
+    <field name="target">main</field>
     <field name="context">{'form_view_initial_mode': 'edit'}</field>
   </record>
 

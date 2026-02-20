@@ -17,9 +17,10 @@ class PlasticosFormType(models.Model):
     active = fields.Boolean(default=True)
     sequence = fields.Integer(default=10)
 
-    _sql_constraints = [
-        ("code_uniq", "unique(code)", "Form type code must be unique."),
-    ]
+    _code_uniq = models.Constraint(
+        "unique(code)",
+        "Form type code must be unique.",
+    )
 
 
 class PlasticosColorType(models.Model):
@@ -38,9 +39,10 @@ class PlasticosColorType(models.Model):
     active = fields.Boolean(default=True)
     sequence = fields.Integer(default=10)
 
-    _sql_constraints = [
-        ("code_uniq", "unique(code)", "Color type code must be unique."),
-    ]
+    _code_uniq = models.Constraint(
+        "unique(code)",
+        "Color type code must be unique.",
+    )
 
 
 class PlasticosSourceType(models.Model):
@@ -59,9 +61,10 @@ class PlasticosSourceType(models.Model):
     active = fields.Boolean(default=True)
     sequence = fields.Integer(default=10)
 
-    _sql_constraints = [
-        ("code_uniq", "unique(code)", "Source type code must be unique."),
-    ]
+    _code_uniq = models.Constraint(
+        "unique(code)",
+        "Source type code must be unique.",
+    )
 
 
 class PlasticosProcessType(models.Model):
@@ -80,9 +83,10 @@ class PlasticosProcessType(models.Model):
     active = fields.Boolean(default=True)
     sequence = fields.Integer(default=10)
 
-    _sql_constraints = [
-        ("code_uniq", "unique(code)", "Process type code must be unique."),
-    ]
+    _code_uniq = models.Constraint(
+        "unique(code)",
+        "Process type code must be unique.",
+    )
 
 
 class PlasticosDealType(models.Model):
@@ -101,6 +105,7 @@ class PlasticosDealType(models.Model):
     active = fields.Boolean(default=True)
     sequence = fields.Integer(default=10)
 
-    _sql_constraints = [
-        ("code_uniq", "unique(code)", "Deal type code must be unique."),
-    ]
+    _code_uniq = models.Constraint(
+        "unique(code)",
+        "Deal type code must be unique.",
+    )

@@ -62,7 +62,7 @@
                         </group>
                     </group>
                     <notebook>
-                        <page string="Contact">
+                        <page string="Contact" name="contact_page">
                             <group>
                                 <group>
                                     <field name="company_name"/>
@@ -74,7 +74,7 @@
                                 </group>
                             </group>
                         </page>
-                        <page string="Material">
+                        <page string="Material" name="material_page">
                             <group>
                                 <group>
                                     <field name="material_description"/>
@@ -92,18 +92,18 @@
                                        invisible="not has_contaminants"/>
                             </group>
                         </page>
-                        <page string="AI Analysis">
+                        <page string="AI Analysis" name="ai_analysis_page">
                             <group>
                                 <field name="ai_analysis" widget="text"/>
                                 <field name="decision_reasons" widget="text"/>
                             </group>
                         </page>
-                        <page string="Raw Payload">
+                        <page string="Raw Payload" name="raw_payload_page">
                             <group>
                                 <field name="raw_payload" widget="text"/>
                             </group>
                         </page>
-                        <page string="Error" invisible="state != 'error'">
+                        <page string="Error" name="error_page" invisible="state != 'error'">
                             <group>
                                 <field name="error_message"/>
                             </group>

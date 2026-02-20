@@ -220,7 +220,7 @@
       <field name="parent_id" ref="category_source_types"/>
       <field name="name">OFF</field>
     </record>
-    <record id="source_type_post_consumer" model="res.partner.category">
+    <record id="tag_source_type_post_consumer" model="res.partner.category">
       <field name="parent_id" ref="category_source_types"/>
       <field name="name">Post-Consumer</field>
     </record>
@@ -228,7 +228,7 @@
       <field name="parent_id" ref="category_source_types"/>
       <field name="name">PC</field>
     </record>
-    <record id="source_type_post_industrial" model="res.partner.category">
+    <record id="tag_source_type_post_industrial" model="res.partner.category">
       <field name="parent_id" ref="category_source_types"/>
       <field name="name">Post-Industrial</field>
     </record>
