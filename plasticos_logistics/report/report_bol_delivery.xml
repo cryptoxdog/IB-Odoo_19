@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ═══════════════════════════════════════════════════════════════════
+         BOL - DELIVERY (Bill of Lading - Delivery)
+         Straight Bill of Lading Short Form for delivery operations
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <template id="report_bol_delivery">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <!-- Header -->
+                        <div class="text-center" style="border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;">
+                            <h2 style="margin: 0; font-weight: bold;">STRAIGHT BILL OF LADING - SHORT FORM</h2>
+                            <h3 style="margin: 5px 0;">BOL - DELIVERY NO. <t t-esc="doc.name"/></h3>
+                        </div>
+
+                        <!-- Legal Text -->
+                        <div style="font-size: 9px; text-align: justify; margin-bottom: 15px; line-height: 1.3;">
+                            The property described below has been received by carrier in apparent good order, except as
+                            noted below, and is marked, consigned, and destined as indicated below. Carrier agrees to
+                            carry the property to destination. If on its route, otherwise to deliver to another carrier on the
+                            route to said destination. Each carrier of, and any party at any time interested in, all or any of
+                            said property over all or any portion of said route to destination agrees to perform every
+                            service required hereby in accordance with the applicable contract(s). If any, between
+                            consignor, and carrier, and otherwise subject to the terms and conditions of the Uniform
+                            Domestic Straight Bill of Lading set forth (1) if this is a rail or rail-water shipment, in the
+                            Uniform Freight Classification, and (2) if this is a motor carrier shipment, in the national Motor
+                            Freight Classification.
+                        </div>
+
+                        <!-- Carrier Info Row -->
+                        <table class="table table-bordered" style="margin-bottom: 15px;">
+                            <tr>
+                                <td style="width: 40%;">
+                                    <strong>CARRIER NAME</strong><br/>
+                                    <t t-esc="doc.carrier_id.name or ''"/>
+                                </td>
+                                <td style="width: 30%;">
+                                    <strong>TRAILER NUMBER</strong><br/>
+                                    <t t-esc="doc.trailer_number or ''"/>
+                                </td>
+                                <td style="width: 30%;">
+                                    <strong>SEAL NUMBER</strong><br/>
+                                    <t t-esc="doc.seal_number or ''"/>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Consignee / Shipper -->
+                        <table class="table table-bordered" style="margin-bottom: 15px;">
+                            <tr>
+                                <td style="width: 50%;">
+                                    <strong>CONSIGNEE:</strong><br/>
+                                    <t t-if="doc.delivery_partner_id">
+                                        <strong><t t-esc="doc.delivery_partner_id.name"/></strong><br/>
+                                        <t t-esc="doc.delivery_partner_id.street or ''"/><br/>
+                                        <t t-esc="doc.delivery_partner_id.city or ''"/>, 
+                                        <t t-esc="doc.delivery_partner_id.state_id.code or ''"/> 
+                                        <t t-esc="doc.delivery_partner_id.zip or ''"/>
+                                    </t>
+                                </td>
+                                <td style="width: 50%;">
+                                    <strong>SHIPPER:</strong><br/>
+                                    <t t-if="doc.sale_order_id.company_id">
+                                        <strong><t t-esc="doc.sale_order_id.company_id.name"/></strong><br/>
+                                        <t t-esc="doc.sale_order_id.company_id.street or ''"/><br/>
+                                        <t t-esc="doc.sale_order_id.company_id.city or ''"/>, 
+                                        <t t-esc="doc.sale_order_id.company_id.state_id.code or ''"/> 
+                                        <t t-esc="doc.sale_order_id.company_id.zip or ''"/>
+                                    </t>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Notes and Reference -->
+                        <table class="table table-bordered" style="margin-bottom: 15px;">
+                            <tr>
+                                <td style="width: 60%;">
+                                    <strong>NOTES:</strong><br/>
+                                    <t t-esc="doc.notes or ''"/>
+                                </td>
+                                <td style="width: 40%;">
+                                    <strong>DATE</strong><br/>
+                                    <t t-esc="doc.delivery_datetime" t-options='{"widget": "date"}'/><br/><br/>
+                                    <strong>Order No.</strong> <t t-esc="doc.sale_order_id.name or ''"/><br/>
+                                    <strong>REFERENCE NO</strong><br/>
+                                    <t t-esc="doc.delivery_reference or ''"/>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Packing Description -->
+                        <table class="table table-bordered" style="margin-bottom: 15px;">
+                            <thead>
+                                <tr style="background-color: #f0f0f0;">
+                                    <th colspan="3" class="text-center">PACKING DESCRIPTION</th>
+                                </tr>
+                                <tr>
+                                    <th>QUANTITY</th>
+                                    <th>UNIT</th>
+                                    <th>PRODUCT</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><t t-esc="int(doc.quantity)"/></td>
+                                    <td><t t-esc="doc.quantity_uom or 'Each'"/></td>
+                                    <td><t t-esc="doc.product_description or ''"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- Time Tracking -->
+                        <table class="table table-bordered" style="margin-bottom: 15px;">
+                            <tr>
+                                <td style="width: 33%;">
+                                    <strong>Time In:</strong> _______________
+                                </td>
+                                <td style="width: 33%;">
+                                    <strong>Time Out:</strong> _______________
+                                </td>
+                                <td style="width: 34%;">
+                                    <strong>Reference Weight:</strong> <t t-esc="doc.reference_weight or ''"/> lbs
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="text-right">
+                                    <strong>TOTAL UNITS:</strong> <t t-esc="int(doc.quantity)"/> <t t-esc="doc.quantity_uom or 'Each'"/>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Legal Footer -->
+                        <div style="font-size: 9px; text-align: justify; margin-bottom: 20px; line-height: 1.3;">
+                            All transportation provided hereunder is subject to the terms of Section
+                            7 of the respective bills of lading identified above as if consignor
+                            initiated the Section 7 provision on the face of that Bill of Lading with
+                            respect to each shipment described below.<br/><br/>
+                            This shipment is correctly described. The gross weight is subject to
+                            verification by the applicable weighing bureau according to agreement.
+                        </div>
+
+                        <!-- Signature Block -->
+                        <table class="table" style="margin-top: 30px;">
+                            <tr>
+                                <td style="width: 50%; border-top: 1px solid #000; text-align: center;">
+                                    (Signature of Consignee) &amp; Date
+                                </td>
+                                <td style="width: 50%; border-top: 1px solid #000; text-align: center;">
+                                    (Signature of Driver)
+                                </td>
+                            </tr>
+                        </table>
+
+                        <table class="table table-bordered" style="margin-top: 20px;">
+                            <tr>
+                                <td style="width: 25%;"><strong>CONSIGNEE</strong></td>
+                                <td style="width: 25%;"><t t-esc="doc.delivery_partner_id.name or ''"/></td>
+                                <td style="width: 25%;"><strong>CARRIER</strong></td>
+                                <td style="width: 25%;"><t t-esc="doc.carrier_id.name or ''"/></td>
+                            </tr>
+                            <tr>
+                                <td><strong>DATE</strong></td>
+                                <td><strong>PER</strong></td>
+                                <td><strong>PER</strong></td>
+                                <td><strong>DATE</strong></td>
+                            </tr>
+                        </table>
+
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

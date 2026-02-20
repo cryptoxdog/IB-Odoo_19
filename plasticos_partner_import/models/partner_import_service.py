@@ -113,6 +113,16 @@ class PlasticosPartnerImportService(models.AbstractModel):
             return False
         return phone_str.strip()
 
+    def _get_default_payment_term(self):
+        """Get default payment term (Net 30) for partners."""
+        # Try XML ID first (from plasticos_foundation_seed)
+        term = self.env.ref('plasticos_foundation_seed.payment_term_net_30', raise_if_not_found=False)
+        if term:
+            return term.id
+        # Fallback: search by name
+        term = self.env['account.payment.term'].search([('name', '=', 'Net 30')], limit=1)
+        return term.id if term else False
+
     # -------------------------------------------------------------------------
     # Main import entry points
     # -------------------------------------------------------------------------
@@ -218,6 +228,9 @@ class PlasticosPartnerImportService(models.AbstractModel):
         user_id = self._lookup_user(row.get("user_id", ""))
         is_supplier, is_customer = self._parse_role(row.get("role", ""))
 
+        # Get default payment term
+        default_payment_term_id = self._get_default_payment_term()
+
         vals = {
             "name": name,
             "company_type": "company",
@@ -234,6 +247,12 @@ class PlasticosPartnerImportService(models.AbstractModel):
             "supplier_rank": 1 if is_supplier else 0,
             "customer_rank": 1 if is_customer else 0,
         }
+
+        # Assign payment terms based on role
+        if is_customer and default_payment_term_id:
+            vals["property_payment_term_id"] = default_payment_term_id
+        if is_supplier and default_payment_term_id:
+            vals["property_supplier_payment_term_id"] = default_payment_term_id
 
         return self._upsert("res.partner", external_id, vals)
 
@@ -439,6 +458,8 @@ class PlasticosPartnerImportService(models.AbstractModel):
     def _load_corporates(self, rows):
         """Load corporate-level partners from dict list."""
         count = 0
+        default_payment_term_id = self._get_default_payment_term()
+
         for i, r in enumerate(rows):
             if not r.get("external_id"):
                 raise ValidationError(f"BLOCKER: MISSING_EXTERNAL_ID at row {i}")
@@ -452,6 +473,17 @@ class PlasticosPartnerImportService(models.AbstractModel):
                 "state_id": r.get("state_id"),
                 "user_id": r.get("user_id"),
             }
+
+            # Assign payment terms if provided or use default
+            if r.get("property_payment_term_id"):
+                vals["property_payment_term_id"] = r["property_payment_term_id"]
+            elif r.get("is_customer") and default_payment_term_id:
+                vals["property_payment_term_id"] = default_payment_term_id
+
+            if r.get("property_supplier_payment_term_id"):
+                vals["property_supplier_payment_term_id"] = r["property_supplier_payment_term_id"]
+            elif r.get("is_supplier") and default_payment_term_id:
+                vals["property_supplier_payment_term_id"] = default_payment_term_id
 
             self._upsert("res.partner", r["external_id"], vals)
             count += 1

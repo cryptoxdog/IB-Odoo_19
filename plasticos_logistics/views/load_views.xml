@@ -1,4 +1,7 @@
 <odoo>
+    <!-- ═══════════════════════════════════════════════════════════════════
+         TREE VIEW
+         ═══════════════════════════════════════════════════════════════════ -->
     <record id="view_load_tree" model="ir.ui.view">
         <field name="name">plasticos.load.tree</field>
         <field name="model">plasticos.load</field>
@@ -6,10 +9,168 @@
             <list>
                 <field name="name"/>
                 <field name="carrier_id"/>
+                <field name="pickup_partner_id"/>
+                <field name="delivery_partner_id"/>
+                <field name="pickup_datetime"/>
+                <field name="delivery_datetime"/>
                 <field name="rate_amount"/>
-                <field name="rate_auto_reused"/>
-                <field name="state"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-warning="state in ('awaiting_ready', 'ready_confirmed')" decoration-success="state in ('delivered', 'closed')"/>
             </list>
         </field>
     </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         FORM VIEW
+         ═══════════════════════════════════════════════════════════════════ -->
+    <record id="view_load_form" model="ir.ui.view">
+        <field name="name">plasticos.load.form</field>
+        <field name="model">plasticos.load</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_dispatch" string="Dispatch" type="object" class="oe_highlight" invisible="state not in ('scheduled', 'rate_confirmed')"/>
+                    <button name="action_close" string="Close Load" type="object" class="oe_highlight" invisible="state != 'delivered'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,rate_confirmed,scheduled,dispatched,picked_up,delivered,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_send_dispatch_packet" type="object" class="oe_stat_button" icon="fa-paper-plane">
+                            <span>Send Dispatch Packet</span>
+                        </button>
+                        <button name="action_send_delivery_order" type="object" class="oe_stat_button" icon="fa-envelope-o">
+                            <span>Send Delivery Order</span>
+                        </button>
+                        <button name="action_send_bol_pickup" type="object" class="oe_stat_button" icon="fa-envelope-o">
+                            <span>Send BOL Pickup</span>
+                        </button>
+                        <button name="action_send_bol_delivery" type="object" class="oe_stat_button" icon="fa-envelope-o">
+                            <span>Send BOL Delivery</span>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Load Number"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="General">
+                            <field name="sale_order_id"/>
+                            <field name="carrier_id"/>
+                            <field name="rate_amount"/>
+                            <field name="rate_confirmed_at" readonly="1"/>
+                            <field name="rate_auto_reused" readonly="1"/>
+                        </group>
+                        <group string="Carrier Details">
+                            <field name="carrier_contact_name"/>
+                            <field name="carrier_contact_phone"/>
+                            <field name="trailer_number"/>
+                            <field name="seal_number"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Pickup" name="pickup">
+                            <group>
+                                <group string="Location">
+                                    <field name="pickup_partner_id"/>
+                                    <field name="pickup_datetime"/>
+                                    <field name="pickup_reference"/>
+                                    <field name="pickup_hours"/>
+                                </group>
+                                <group string="Contact">
+                                    <field name="pickup_contact_name"/>
+                                    <field name="pickup_contact_phone"/>
+                                    <field name="pickup_contact_mobile"/>
+                                </group>
+                            </group>
+                            <group string="Special Instructions">
+                                <field name="pickup_instructions" nolabel="1" placeholder="Enter pickup instructions..."/>
+                            </group>
+                        </page>
+
+                        <page string="Delivery" name="delivery">
+                            <group>
+                                <group string="Location">
+                                    <field name="delivery_partner_id"/>
+                                    <field name="delivery_datetime"/>
+                                    <field name="delivery_reference"/>
+                                    <field name="delivery_hours"/>
+                                </group>
+                                <group string="Contact">
+                                    <field name="delivery_contact_name"/>
+                                    <field name="delivery_contact_phone"/>
+                                    <field name="delivery_contact_mobile"/>
+                                </group>
+                            </group>
+                            <group string="Special Instructions">
+                                <field name="delivery_instructions" nolabel="1" placeholder="Enter delivery instructions..."/>
+                            </group>
+                        </page>
+
+                        <page string="Cargo" name="cargo">
+                            <group>
+                                <group>
+                                    <field name="product_description"/>
+                                    <field name="quantity"/>
+                                    <field name="quantity_uom"/>
+                                    <field name="reference_weight"/>
+                                </group>
+                                <group>
+                                    <field name="double_blind"/>
+                                    <field name="straps_bars_needed"/>
+                                </group>
+                            </group>
+                            <group string="Notes">
+                                <field name="notes" nolabel="1" placeholder="Additional notes..."/>
+                            </group>
+                        </page>
+
+                        <page string="Status" name="status">
+                            <group>
+                                <group string="Ready Confirmation">
+                                    <field name="ready_confirmed_by" readonly="1"/>
+                                    <field name="ready_confirmed_at" readonly="1"/>
+                                </group>
+                                <group string="Timing">
+                                    <field name="entered_state_at" readonly="1"/>
+                                    <field name="dispatched_at" readonly="1"/>
+                                    <field name="delivered_at" readonly="1"/>
+                                    <field name="cycle_time_hours" readonly="1"/>
+                                </group>
+                            </group>
+                            <group>
+                                <group string="Documents">
+                                    <field name="bol_pickup_attached"/>
+                                    <field name="bol_delivery_attached"/>
+                                </group>
+                                <group string="SLA">
+                                    <field name="sla_breached"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ACTION
+         ═══════════════════════════════════════════════════════════════════ -->
+    <record id="action_plasticos_load" model="ir.actions.act_window">
+        <field name="name">Loads</field>
+        <field name="res_model">plasticos.load</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         MENU
+         ═══════════════════════════════════════════════════════════════════ -->
+    <menuitem id="menu_plasticos_logistics_root" name="Logistics" sequence="50"/>
+    <menuitem id="menu_plasticos_loads" name="Loads" parent="menu_plasticos_logistics_root" action="action_plasticos_load" sequence="10"/>
+
 </odoo>

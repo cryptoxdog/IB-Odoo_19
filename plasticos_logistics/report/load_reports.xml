@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ═══════════════════════════════════════════════════════════════════
+         REPORT ACTIONS - Define the report buttons/menu items
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <!-- BOL - PICKUP Report Action -->
+    <record id="action_report_bol_pickup" model="ir.actions.report">
+        <field name="name">BOL - Pickup</field>
+        <field name="model">plasticos.load</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">plasticos_logistics.report_bol_pickup</field>
+        <field name="report_file">plasticos_logistics.report_bol_pickup</field>
+        <field name="print_report_name">'BOL - PICKUP-%s' % object.name</field>
+        <field name="binding_model_id" ref="model_plasticos_load"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- BOL - DELIVERY Report Action -->
+    <record id="action_report_bol_delivery" model="ir.actions.report">
+        <field name="name">BOL - Delivery</field>
+        <field name="model">plasticos.load</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">plasticos_logistics.report_bol_delivery</field>
+        <field name="report_file">plasticos_logistics.report_bol_delivery</field>
+        <field name="print_report_name">'BOL - DELIVERY-%s' % object.name</field>
+        <field name="binding_model_id" ref="model_plasticos_load"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- DELIVERY ORDER Report Action -->
+    <record id="action_report_delivery_order" model="ir.actions.report">
+        <field name="name">Delivery Order</field>
+        <field name="model">plasticos.load</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">plasticos_logistics.report_delivery_order</field>
+        <field name="report_file">plasticos_logistics.report_delivery_order</field>
+        <field name="print_report_name">'DELIVERY ORDER-%s' % object.name</field>
+        <field name="binding_model_id" ref="model_plasticos_load"/>
+        <field name="binding_type">report</field>
+    </record>
+
+</odoo>

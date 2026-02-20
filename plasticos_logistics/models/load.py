@@ -21,16 +21,16 @@ class PlasticosLoad(models.Model):
 
     name = fields.Char(required=True)
     sale_order_id = fields.Many2one("sale.order", required=True)
-    carrier_id = fields.Many2one("res.partner")
-    rate_amount = fields.Float()
+    carrier_id = fields.Many2one("res.partner", string="Carrier")
+    rate_amount = fields.Float(string="Rate Amount")
     rate_confirmed_at = fields.Datetime()
     rate_auto_reused = fields.Boolean(default=False)
 
     ready_confirmed_by = fields.Char()
     ready_confirmed_at = fields.Datetime()
 
-    pickup_datetime = fields.Datetime()
-    delivery_datetime = fields.Datetime()
+    pickup_datetime = fields.Datetime(string="Pickup Date/Time")
+    delivery_datetime = fields.Datetime(string="Delivery Date/Time")
 
     bol_pickup_attached = fields.Boolean(default=False)
     bol_delivery_attached = fields.Boolean(default=False)
@@ -40,6 +40,47 @@ class PlasticosLoad(models.Model):
     dispatched_at = fields.Datetime()
     delivered_at = fields.Datetime()
     cycle_time_hours = fields.Float(compute="_compute_cycle_time", store=True, index=True)
+
+    # ── Pickup Location Fields ──────────────────────────────────────
+    pickup_partner_id = fields.Many2one(
+        "res.partner", string="Pickup Location",
+        help="Shipper/pickup location for BOL"
+    )
+    pickup_contact_name = fields.Char(string="Pickup Contact")
+    pickup_contact_phone = fields.Char(string="Pickup Phone")
+    pickup_contact_mobile = fields.Char(string="Pickup Mobile")
+    pickup_reference = fields.Char(string="Pickup Reference/PO#")
+    pickup_hours = fields.Char(string="Pickup Hours", default="M-F: CALL FOR APPOINTMENT")
+    pickup_instructions = fields.Text(string="Pickup Instructions")
+
+    # ── Delivery Location Fields ────────────────────────────────────
+    delivery_partner_id = fields.Many2one(
+        "res.partner", string="Delivery Location",
+        help="Consignee/delivery location for BOL"
+    )
+    delivery_contact_name = fields.Char(string="Delivery Contact")
+    delivery_contact_phone = fields.Char(string="Delivery Phone")
+    delivery_contact_mobile = fields.Char(string="Delivery Mobile")
+    delivery_reference = fields.Char(string="Delivery Reference/PO#")
+    delivery_hours = fields.Char(string="Delivery Hours", default="M-F: 9:00 AM - 3:00 PM")
+    delivery_instructions = fields.Text(string="Delivery Instructions")
+
+    # ── Carrier/Transport Fields ────────────────────────────────────
+    carrier_contact_name = fields.Char(string="Carrier Contact")
+    carrier_contact_phone = fields.Char(string="Carrier Phone")
+    trailer_number = fields.Char(string="Trailer Number")
+    seal_number = fields.Char(string="Seal Number")
+
+    # ── Cargo/Product Fields ────────────────────────────────────────
+    product_description = fields.Char(string="Product Description")
+    quantity = fields.Float(string="Quantity", default=1.0)
+    quantity_uom = fields.Char(string="Unit", default="Each")
+    reference_weight = fields.Float(string="Reference Weight (lbs)")
+
+    # ── Document Control ────────────────────────────────────────────
+    double_blind = fields.Boolean(string="Double Blind", default=True)
+    straps_bars_needed = fields.Boolean(string="Straps/Bars Needed", default=True)
+    notes = fields.Text(string="Notes/Comments")
 
     state = fields.Selection([
         ("draft", "Draft"),
@@ -137,3 +178,59 @@ class PlasticosLoad(models.Model):
     def _cron_escalation_check(self):
         from odoo.addons.plasticos_logistics.services.escalation_engine import check_escalations
         check_escalations(self.env)
+
+    # ── Email Send Actions (Paperless) ──────────────────────────────
+
+    def action_send_delivery_order(self):
+        """Open email composer with Delivery Order attached."""
+        self.ensure_one()
+        template = self.env.ref(
+            "plasticos_logistics_automation.mail_template_delivery_order",
+            raise_if_not_found=False,
+        )
+        return self._open_mail_composer(template)
+
+    def action_send_bol_pickup(self):
+        """Open email composer with BOL Pickup attached."""
+        self.ensure_one()
+        template = self.env.ref(
+            "plasticos_logistics_automation.mail_template_bol_pickup",
+            raise_if_not_found=False,
+        )
+        return self._open_mail_composer(template)
+
+    def action_send_bol_delivery(self):
+        """Open email composer with BOL Delivery attached."""
+        self.ensure_one()
+        template = self.env.ref(
+            "plasticos_logistics_automation.mail_template_bol_delivery",
+            raise_if_not_found=False,
+        )
+        return self._open_mail_composer(template)
+
+    def action_send_dispatch_packet(self):
+        """Open email composer with full dispatch packet (all 3 docs)."""
+        self.ensure_one()
+        template = self.env.ref(
+            "plasticos_logistics_automation.mail_template_dispatch_packet",
+            raise_if_not_found=False,
+        )
+        return self._open_mail_composer(template)
+
+    def _open_mail_composer(self, template):
+        """Helper to open mail composer wizard with template."""
+        ctx = {
+            "default_model": "plasticos.load",
+            "default_res_ids": self.ids,
+            "default_template_id": template.id if template else False,
+            "default_composition_mode": "comment",
+            "mark_so_as_sent": True,
+            "force_email": True,
+        }
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "mail.compose.message",
+            "view_mode": "form",
+            "target": "new",
+            "context": ctx,
+        }

@@ -1,0 +1,1157 @@
+﻿ref,role,user_id,alias,name-check (internal),name,street,street2,city,state_id,zip,country
+2165,"Supplier,Expense",Tiffany White,MARCK INDUSTRIES - BROOKLAND,FALSE,MARCK INDUSTRIES OF NORTHEAST ARKANSAS,300 Missouri St.,,Brookland,AR,72417,United States
+2163,"Customer,Supplier,Expense",Ricardo Pereira,MARCK INDUSTRIES - ROGERS,FALSE,MARCK INDUSTRIES OF NORTHEAST ARKANSAS,3507 North Arkansas Street,,Rogers,AR,72756,United States
+2591,Expense,,A & M RAILROAD,FALSE,A&M RAILROAD,1301 N 4th Street,,Fort Smith,AR,72901,United States
+2541,Expense,Arthur Buyanovskiy,JEI FT SMITH 4TH ST WAREHOUSE,FALSE,JEI INC,1515 North 4th Street,,Fort Smith,AR,72901,United States
+2640,Expense,Arthur Buyanovskiy,JEI HOPE CAMPUS WAREHOUSE,FALSE,JEI INC,301 S E Street,,Fort Smith,AR,72901,United States
+1745,"Supplier,Expense",Igor Beylin,WASTE CONNECTIONS OF AZ - TUCSON DIVISION,FALSE,WASTE CONNECTIONS OF AZ,3755 S. Royal Palm Road,,Apache Junction,AZ,85119,United States
+2544,"Supplier,Expense",Igor Beylin,CONSERVATION MANAGEMENT,FALSE,CONSERVATION MANAGEMENT GROUP LLC,80175 Merion,,La Quinta,CA,92253,United States
+1313,Supplier,Igor Beylin,AGRI-LINK PLASTICS IINC,FALSE,AGRI-LINK PLASTICS INC,296 E. Wutchumna Ave,,Woodlake,CA,93286,United States
+2317,"Supplier,Expense",Lindsey Malyavko,CAGLIA ENVIRONMENTAL LLC,FALSE,CEDAR AVENUE RECYCLING TRANSFER STATION,PO Box 446,,Fresno,CA,93709,United States
+1587,"Customer,Expense",,FL PLASTIC LLC,FALSE,FEATHER LAKE PLASTIC LLC,4127 SW 19th Place,,Cape Coral,FL,33914,United States
+1683,"Supplier,Expense",Igor Beylin,WASTE PRO - OCALA FL,FALSE,WASTE PRO USA,3621 NW 10th Street,,Ocala,FL,34475,United States
+2410,"Supplier,Expense",Igor Beylin,FULL CIRCLE RECYCLING,FALSE,ATLANTA RECYCLING SOLUTIONS,1280 Old Alpharetta Rd,,Alpharetta,GA,30005,United States
+2602,"Customer,Supplier,Expense",Igor Beylin,XNM LLC,FALSE,Millenium Pallets,6016 N Main St SE,,Acworth,GA,30101,United States
+1619,"Supplier,Expense",Ricardo Pereira,CARAUSTAR RECYCLING,FALSE,CARAUSTAR RFG,5000 Austell Powder Springs Rd,Suite 300,Austell,GA,30106,United States
+1779,"Supplier,Expense",Ricardo Pereira,WASTE PRO - ATLANTA GA,FALSE,WASTE PRO USA,4785 Fulton Industrial Blvd SW,Suite F,Atlanta,GA,30336,United States
+1608,"Supplier,Expense",Igor Beylin,HALL COUNTY GOVERNMENT,FALSE,HALL COUNTY BOARD OF COMMISSIONERS,PO Box 1435,,Gainesville,GA,30503,United States
+2337,"Supplier,Expense",Tiffany White,BIRDSONG PEANUTS - GA,FALSE,BIRDSONG PEANUTS,P.O. Box 650,,Blakely,GA,39823,United States
+1861,"Customer,Supplier,Expense",Lindsey Malyavko,METROPOLITAN FIBER,FALSE,METROPOLITAN FIBER / THE PAPER TIGERS,20 N Martingale Rd,Suite 250,Schaumburg,IL,60173,United States
+2626,Expense,,EVA RECYCLING WAREHOUSE,FALSE,EVA RECYCLING,9301 S Genoa Ave,,Chicago,IL,60620,United States
+1642,Expense,,REDWOOD MULTIMODAL,FALSE,TRANSPORTATION SOLUTIONS GROUP LLC,32433 Collections Center Drive,,Chicago,IL,60693,United States
+2055,"Customer,Supplier,Expense",Igor Beylin,MAUSER PACKAGING - CLEVELAND,FALSE,MAUSER PACKAGING,P.O. Box 7410054,,CHICAGO,IL,60674-0185,United States
+2241,"Supplier,Expense",,MAUSER PACKAGING - LOUISVILLE,FALSE,MAUSER PACKAGING,P.O. Box 7410054,,CHICAGO,IL,60674-0185,United States
+1093,Expense,,RECYCLEFORCE WAREHOUSE,FALSE,RECYCLEFORCE,"1125 Brookside Ave, Suite D12",,Indianapolis,IN,46202,United States
+2572,Expense,Arthur Buyanovskiy,JEI CLARKSVILLE WAREHOUSE,FALSE,JEI INC,560 Eastern Blvd,,Clarksville,IN,47129,United States
+2215,"Supplier,Expense",Igor Beylin,MAUSER PACKAGING - BRIGHTON,FALSE,MAUSER PACKAGING,PO Box 7410054,,CHICAGO,IN,60674-0185,United States
+1771,"Supplier,Expense",Arthur Akopyan,FORT KNOX QRP,FALSE,US TREASURY DEPT - FORT KNOX QRP,309 Frazier Road,Bldg 2962,Fort Knox,KY,40121,United States
+2359,"Supplier,Expense",Mack McMurray,LEXINGTON MUNICIPAL RECYCLING,FALSE,LEXINGTON-FAYETTE URBAN COUNTY GOVERNMENT,ATTENTION: RECYCLING REVENUE,200 EAST MAIN STREET,Lexington,KY,40507,United States
+1950,Expense,,UNICOR,FALSE,UNICOR FEDERAL PRISON INDUSTRIES INC,3301 Leestown Road,,Lexington,KY,40511,United States
+1502,Expense,,EVANS DELIVERY - WEST CONTRACT,FALSE,EVANS DELIVERY,PO Box 62892,,Baltimore,MD,21264,United States
+1628,"Customer,Supplier,Expense",,NORTH COUNTRY MATERIAL SALES,FALSE,NCM SALES INC,11101 Four Seasons Avenue NE,,Rockford,MI,49341,United States
+2621,"Supplier,Expense",Igor Beylin,LG ENERGY SOLUTION,FALSE,LG ENERGY SOLUTION MICHIGAN INC,1 LG Way,,Holland,MI,49423,United States
+2367,"Supplier,Expense",,KAMPS TWIN LLC,FALSE,DBA TWIN CITY PALLET,12181 Margo Ave S,,Hastings,MN,55033,United States
+2520,"Customer,Supplier,Expense",Igor Beylin,KAMPS HUGO,FALSE,KAMPS PALLETS,13285 Fenway Blvd N,,Hugo,MN,55038,United States
+2331,Expense,,GREENVIEW WASHINGTON WAREHOUSE,FALSE,GREENVIEW MATERIALS INC,3 Southlink Drive,,Washington,MO,63090,United States
+2593,"Customer,Expense",,TLC WORLDWIDE LOGISTICS HOLLY SPRINGS,FALSE,TLC WORLDWIDE LOGISTICS,550 S Industrial Park Rd,,Holly Springs,MS,38635,United States
+1136,"Customer,Supplier,Expense",,INTERNATIONAL ALLOY,FALSE,INTERNATIONAL ALLOY-V,8801 Thornbury Place,,Waxhaw,NC,28173,United States
+1601,"Customer,Supplier,Expense",,TFC RECYCLING,FALSE,TIDEWATER FIBRE CORP,PO Box 890336,,Charlotte,NC,28289,United States
+1600,"Customer,Supplier,Expense",,ENVISION ECOPLAST GROUP,FALSE,CONSOLIDATED CONTAINER COMPANY LP,10861 Mill Valley Road,,Omaha,NE,68154,United States
+1789,"Supplier,Expense",Ricardo Pereira,GORGO PALLET,FALSE,LT CHINI INC,646 S Delsea Drive,,Vineland,NJ,8360,United States
+1563,"Supplier,Expense",Arthur Akopyan,HUDSON BAYLOR BROOKHAVEN,FALSE,HUDSON BAYLOR BROOKHAVEN LLC,352 Horseblock Road,,Brookhaven,NY,11719,United States
+1639,Supplier,Ricardo Pereira,WASTE CONNECTIONS (Albany),FALSE,WASTE CONNECTIONS,865 South Pearl Street,,Albany,NY,12202,United States
+1572,Expense,,KELLER FREIGHT SOLUTIONS,FALSE,KELLER LOGISTICS LLC,24862 Elliott Road,,Defiance,OH,43512,United States
+2637,"Supplier,Expense",Igor Beylin,SA RECYCLING - IB,FALSE,SA RECYCLING,701 W. Hopocan Ave,,Barberton,OH,44203,United States
+2349,"Supplier,Expense",Tiffany White,SUMMIT POLYMERSLLC,FALSE,SUMMIT POLYMERS LLC,107 N Hine St,,Youngstown,OH,44506,United States
+2188,"Supplier,Expense",Lindsey Malyavko,DONLEY PALLET,FALSE,DAN DONLEY,2103 Laurel Lindale Road,,New Richmond,OH,45157,United States
+2344,"Supplier,Expense",,REMM GROUP,FALSE,RECYCLABLE MATERIALS MARKETING,217 Terrace Hill Street,Suite B10,Brantford,ON,N3R 1G8,United States
+1645,"Customer,Supplier,Expense",Ricardo Pereira,CORESTATES RECYCLING,FALSE,CORESTATES PROCESSING AND RECYCLING LLC,9 Stauffer Industrial Park,,Taylor,PA,18517,United States
+1764,"Supplier,Expense",Ricardo Pereira,RAMS RECYCLING AND CONTAINER SERVICES INC,FALSE,RUSSELL A MORELLO & SONS INC,18 Maple Street,,Conshohocken,PA,19428,United States
+2545,Expense,,DC TRUCKING,FALSE,D&C BROKERAGE LLC,729 Great Falls Hwy,,Chester,SC,29706,United States
+1621,"Supplier,Expense",Arthur Akopyan,PFG CDC PERFORMANCE FOOD GROUP  LEBANON,FALSE,PFG CDC PERFORMANCE FOOD GROUP,825 Maddox Simpson,,LEBANON,TN,37090,United States
+2164,"Supplier,Expense",,MACON COUNTY SOLID WASTE - TN,FALSE,MACON COUNTY SOLID WASTE,1319 Heady Ridge Road,,Red Boiling Springs,TN,37150,United States
+321,"Customer,Supplier,Expense",,RECYCLE SOLUTIONS WAREHOUSE,FALSE,RECYCLE SOLUTIONS,1054 KANSAS STREET,,MEMPHIS,TN,38106,United States
+2460,"Customer,Expense",,LI RISING LLC,FALSE,DBA RE-TECK,902 Avenue T,Suite 100,Grand Prairie,TX,75050,United States
+2464,"Supplier,Expense",Arthur Buyanovskiy,RE-TECK,FALSE,LI RISING LLC,902 Avenue T,Suite 100,Grand Prairie,TX,75050,United States
+2639,Expense,Arthur Buyanovskiy,JEI ENNIS WAREHOUSE,FALSE,JEI INC,2501 Brombeck St,,Ennis,TX,75119,United States
+2428,Expense,Arthur Buyanovskiy,JEI DALLAS WAREHOUSE,FALSE,JEI INC,4553 Leston St,,DALLAS,TX,75247,United States
+1688,"Supplier,Expense",Ricardo Pereira,REPUBLIC SERVICES - JAX,FALSE,REPUBLIC SERVICES INC,REPUBLIC SVS RECYCLING CTR -3611,PO BOX 677839,Dallas,TX,75267-7839,United States
+1680,"Customer,Supplier,Expense",Arthur Akopyan,48 FORTY SOLUTIONS - AA,FALSE,48 FORTY SOLUTIONS LLC,PO Box 849729,,Dallas,TX,75284-9729,United States
+1802,"Customer,Supplier,Expense",Igor Beylin,48 FORTY SOLUTIONS - IB,FALSE,48 FORTY SOLUTIONS LLC,PO Box 849729,,Dallas,TX,75284-9729,United States
+2248,"Customer,Supplier,Expense",Lindsey Malyavko,48 FORTY SOLUTIONS - LM,FALSE,48 FORTY SOLUTIONS LLC,PO Box 849729,,Dallas,TX,75284-9729,United States
+1803,"Customer,Supplier,Expense",Ricardo Pereira,48 FORTY SOLUTIONS - RP,FALSE,48 FORTY SOLUTIONS LLC,PO Box 849729,,Dallas,TX,75284-9729,United States
+1804,"Customer,Supplier,Expense",Tiffany White,48 FORTY SOLUTIONS - TW,FALSE,48 FORTY SOLUTIONS,PO Box 849729,,Dallas,TX,75284-9729,United States
+1491,Expense,,SOUTHWAY CARRIERS INC,FALSE,COMPASS FUNDING SOLUTIONS LLC,PO BOX 205154,,DALLAS,TX,75320-5154,United States
+1493,Expense,,MUCHAI LLC,FALSE,APEX CAPITAL CORP,PO Box 961029,,Fort Worth,TX,76161-1029,United States
+2611,"Supplier,Expense",,LIFETIME PRODUCTS,FALSE,Lifetime,ATTN: ACCOUNTING,PO BOX 160010,CLEARFIELD,UT,84016,United States
+2257,Expense,,29 LOGISTICS LLC,FALSE,29 LOGISTICS,PO Box 204,,Union Grove,WI,53182,United States
+2620,"Supplier,Expense",,SUSTAINABILITY SOLUTIONS LLC,TRUE,SUSTAINABILITY SOLUTIONS LLC,1309 Coffeen Avenue STE 1200,,Sheridan,,82801,United States
+2116,Supplier,Igor Beylin,SKAGIT RIVER STEEL & RECYCLING INC,TRUE,SKAGIT RIVER STEEL & RECYCLING INC,1265 S Anacortes St,,Burlington,,98233,United States
+,,,,TRUE,,,,,,,
+1762,Expense,,BIG SKY ENVIRONMENTAL LLC,TRUE,BIG SKY ENVIRONMENTAL LLC,,,,,,United States
+1481,"Supplier,Expense",,FHU WE R EXPORTING SP ZOO,TRUE,FHU WE R EXPORTING SP ZOO,Prymasa Wysznskiego,"13/11,26300",Opoczno,,,United States
+1024,Expense,,MIlK RUNS,TRUE,MIlK RUNS,,,,,,United States
+1784,"Supplier,Expense",Arthur Akopyan,PLASTIC SERVICES INC,TRUE,PLASTIC SERVICES INC,"Middlesex, nj",,,,,United States
+1714,"Customer,Expense",,RECYCLABLE MATERIALS MARKETING,TRUE,RECYCLABLE MATERIALS MARKETING,,,,,,United States
+1606,Expense,,REPCO WAREHOUSE,TRUE,REPCO WAREHOUSE,,,,,,United States
+2422,Expense,,RUNNING OX LOGISTICS,TRUE,RUNNING OX LOGISTICS,,,,,,United States
+2633,"Customer,Expense",David McLawhorn,SOARING EAGLE MATERIAL CO,TRUE,SOARING EAGLE MATERIAL CO,,,,,,United States
+2154,Expense,,TRUCKER TBD,TRUE,TRUCKER TBD,,,,,,Canada
+2028,Supplier,Igor Beylin,MERLIN PLASTICS,TRUE,MERLIN PLASTICS,616-58th Avenue S.E.,,Calgary,,AB T2H 0P8,Canada
+2498,"Customer,Expense",Igor Beylin,GREENOVATIVE SOLUTIONS,TRUE,GREENOVATIVE SOLUTIONS,6555 Chem Cote-de-Liesse,,Montreal,QC,H4T1V5,Canada
+2477,"Supplier,Expense",Arthur Buyanovskiy,ELEMENT INTERNATIONAL TRADE INC,TRUE,ELEMENT INTERNATIONAL TRADE INC,206-181 Hymus,Suite 206,Pointe-Claire,QC,H9R 5P4,Canada
+1737,Customer,,PLASTIMUM,TRUE,PLASTIMUM,262 Rue Pépin,,Sherbrooke,QC,J1L 2V8,Canada
+1951,"Customer,Expense",,BARRETTE OUTDOOR LIVING INC,TRUE,BARRETTE OUTDOOR LIVING INC,583 Grand Bernier Nord,St-Jean-sur-Richelieu,Quebec,,J3B-8K1,Canada
+2000,Supplier,Ricardo Pereira,FOX PLASTIC,TRUE,FOX PLASTIC,247 Cleghorn,,St.Lambert,QC,J4R 2J5,Canada
+2104,"Customer,Expense",Lindsey Malyavko,GREENLAND PLASTIC RECYCLING,TRUE,GREENLAND PLASTIC RECYCLING,2203 East 43rd,,Vancouver,,V5P 1M8,Canada
+2031,"Supplier,Expense",,EARTHMINDED,TRUE,EARTHMINDED,142 Technology Drive,,Arkadelphia,AK,71923,United States
+1466,"Customer,Supplier,Expense",,AR RECYCLING LLC,TRUE,AR RECYCLING LLC,1951 Guntersville Road,,Arab,AL,35016,United States
+1661,Expense,,JAMES A SMITH TRANSPORTATION INC,TRUE,JAMES A SMITH TRANSPORTATION INC,PO Box 1947,,Cullman,AL,35056,United States
+1656,Expense,,JAMES R SMITH TRUCKING COMPANY INC,TRUE,JAMES R SMITH TRUCKING COMPANY INC,PO Box 908,,Cullman,AL,35056,United States
+2193,"Customer,Supplier,Expense",Tiffany White,BROTHERS RECYCLING,TRUE,BROTHERS RECYCLING,1620 Vanderbilt Rd,,Birmingham,AL,35234,United States
+1593,Expense,,LRS LOGISTICS LLC,TRUE,LRS LOGISTICS LLC,PO BOX 115,,Belk,AL,35545,United States
+1882,"Customer,Expense",,INDORAMA VENTURES,TRUE,INDORAMA VENTURES,1764 Wilkinson Street,,Athens,AL,35611,United States
+2089,"Supplier,Expense",Lindsey Malyavko,ALLSTAR RECYCLING PARTNERS LLC,TRUE,ALLSTAR RECYCLING PARTNERS LLC,PO Box 3629,,Muscle Shoals,AL,35662,United States
+1943,Supplier,,DECATUR RECYCLING DEPT,TRUE,DECATUR RECYCLING DEPT,625 Landfill Drive,VENDOR #4446,Trinity,AL,35673,United States
+1925,Supplier,Igor Beylin,SSWA RECYCLING,TRUE,SSWA RECYCLING,721 Hwy 43 South,,Tuscumbia,AL,35674,United States
+1512,"Supplier,Expense",Ricardo Pereira,EWS ALABAMA INC,TRUE,EWS ALABAMA INC,402 Webster Chapel Road,,Glencoe,AL,35905,United States
+2283,"Supplier,Expense",Tiffany White,FORT PAYNE RECYCLING,TRUE,FORT PAYNE RECYCLING,406 Logan St SE,,Fort Payne,AL,35967,United States
+1646,"Customer,Expense",,JET POLYMER RECYCLING INC,TRUE,JET POLYMER RECYCLING INC,4811 Gault Ave North,,Fort Payne,AL,35967,United States
+1114,"Customer,Supplier",,KW PLASTICS,TRUE,KW PLASTICS,279 Pike County Lake Rd,,Troy,AL,36079,United States
+1476,Expense,,KW PLASTICS WAREHOUSE,TRUE,KW PLASTICS WAREHOUSE,279 Pike County Lake Rd,,Troy,AL,36079,United States
+1552,"Customer,Expense",,ABM POLYMERS INC,TRUE,ABM POLYMERS INC,1410 Emerald Mountain Parkway,,Wetumpka,AL,36093,United States
+2014,Supplier,Tiffany White,WASTE RECYCLING,TRUE,WASTE RECYCLING,824 N. Decatur St.,,Montgomery,AL,36104,United States
+1443,Customer,,UNITED PLASTIC RECYCLING INC,TRUE,UNITED PLASTIC RECYCLING INC,P.O. Box 11671,,"Montgomery,",AL,36111,United States
+2408,"Customer,Supplier,Expense",Tiffany White,INZI CONTROLS ALABAMA,TRUE,INZI CONTROLS ALABAMA,375 Alabama Hwy 203,,Elba,AL,36323,United States
+2161,"Supplier,Expense",,SESSIONS PEANUTS,TRUE,SESSIONS PEANUTS,PO Box 311310,,Enterprise,AL,36331,United States
+2444,"Supplier,Expense",Tiffany White,CITY OF GULF SHORES,TRUE,CITY OF GULF SHORES,19901 W 36th Ave,,Gulf Shores,AL,36542,United States
+2296,"Supplier,Expense",Lindsey Malyavko,MITCHELL CONTAINER SERVICES INC,TRUE,MITCHELL CONTAINER SERVICES INC,226 Saraland Boulevard South,,Saraland,AL,36571,United States
+2132,"Supplier,Expense",,EARTH RESOURCES RECYCLING,TRUE,EARTH RESOURCES RECYCLING,5545 Linwood Steiner Rd,,Theodore,AL,36582,United States
+2286,"Supplier,Expense",Arthur Buyanovskiy,GOODWILL GULF COAST INC,TRUE,GOODWILL GULF COAST INC,2440 Gordon Smith Drive,,Mobile,AL,36617,United States
+2170,"Supplier,Expense",Tiffany White,GOODWILL EASTERSEALS OF THE GULF COAST,TRUE,GOODWILL EASTERSEALS OF THE GULF COAST,7450 Hitt Rd,,Mobile,AL,36695-4438,United States
+2462,"Supplier,Expense",Mack McMurray,GOINS PLASTIC SOURCE INC,TRUE,GOINS PLASTIC SOURCE INC,3821 East 19th Street,,Texarkana,AR,71854,United States
+1342,Supplier,Igor Beylin,DRUMCO,TRUE,DRUMCO,142 Technology Drive,,Arkadelphia,AR,71923,United States
+1361,Supplier,Ricardo Pereira,ORE RECOVERED MATERIAL,TRUE,ORE RECOVERED MATERIAL,P. O. Box 1181,,Clinton,AR,72031,United States
+2432,Expense,,3 RIVERS LOGISTICS INC,TRUE,3 RIVERS LOGISTICS INC,60 Doughboy Road,,Gillett,AR,72055,United States
+2589,Expense,,BRUCE OAKLEY INC,TRUE,BRUCE OAKLEY INC,PO Box 17880,3400 Gribble Street,North Little Rock,AR,72114,United States
+1212,"Customer,Supplier,Expense",,DELTA PLASTICS INC,TRUE,DELTA PLASTICS INC,8801 Frazier Pike,,Little Rock,AR,72206,United States
+2605,"Customer,Supplier,Expense",Arthur Akopyan,TOTAL ENVIRONMENTAL,TRUE,TOTAL ENVIRONMENTAL,1421 East 15th st,,Fayetteville,AR,72701,United States
+2130,"Customer,Supplier,Expense",Arthur Akopyan,TOTAL RECYCLING PAPER & PLASTIC,TRUE,TOTAL RECYCLING PAPER & PLASTIC,PO Box 1970,,Lowell,AR,72745,United States
+2583,"Supplier,Expense",Igor Beylin,TYSON FOODS,TRUE,TYSON FOODS,212 E Elm Street,,Rogers,AR,72756,United States
+2052,"Supplier,Expense",Arthur Akopyan,PLASTIC RECYCLERS,TRUE,PLASTIC RECYCLERS,715 Harris St.,,Springdale,AR,72764,United States
+1724,"Customer,Supplier,Expense",,FRIEDMAN RECYCLING,TRUE,FRIEDMAN RECYCLING,3640 W. Lincoln St.,,Phoenix,AZ,85009,United States
+1900,"Customer,Expense",,B & L POLYMER PROCESSING,TRUE,B & L POLYMER PROCESSING,4330 N 39th Ave,,Phoenix,AZ,85019,United States
+2452,"Customer,Supplier,Expense",,REBOXCO INTERNATIONAL LLC,TRUE,REBOXCO INTERNATIONAL LLC,10645 N Tatum Blvd Suite 200-443,,PHOENIX,AZ,85028,United States
+1674,"Customer,Expense",,ARIZONA PACIFIC PLASTICS LLC,TRUE,ARIZONA PACIFIC PLASTICS LLC,3209 S 36th Street,,Phoenix,AZ,85040,United States
+1790,"Customer,Supplier,Expense",,RECYCLE 1,TRUE,RECYCLE 1,3209 S 36th St,,Phoenix,AZ,85040,United States
+1297,Supplier,Arthur Buyanovskiy,HOOF'S FARRIER VET SUPPLY,TRUE,HOOF'S FARRIER VET SUPPLY,991 E. Old West Highway,,Apache Junction,AZ,85219,United States
+2445,"Supplier,Expense",Igor Beylin,CONCRETE DESIGNS INC,TRUE,CONCRETE DESIGNS INC,3650 S Broadmont Dr,,Tucson,AZ,85713,United States
+1644,"Supplier,Expense",Igor Beylin,THE FAIRFAX COMPANIES,TRUE,THE FAIRFAX COMPANIES,1360 North Kolb Road,,Tucson,AZ,85715,United States
+2304,Expense,,MOTION CITY TRANSPORTATION,TRUE,MOTION CITY TRANSPORTATION,PO Box 1704,,Los Angeles,CA,90001,United States
+2533,"Supplier,Expense",Mack McMurray,BERG MILL SUPPLY CO INC,TRUE,BERG MILL SUPPLY CO INC,8821 Aviation Blvd,,Los Angeles,CA,90009,United States
+2030,"Customer,Supplier,Expense",,USEDCARDBOARDBOXESCOM,TRUE,USEDCARDBOARDBOXESCOM,4032 Wilshire Blvd. #402,,Los Angeles,CA,90010,United States
+1531,"Customer,Expense",,MIXED PLASTICS LLC,TRUE,MIXED PLASTICS LLC,1171 S Robertson Blvd,Suite 250,Los Angeles,CA,90035,United States
+1530,Customer,,JOES PLASTICS,TRUE,JOES PLASTICS,5725 District Blvd,,Los Angeles,CA,90040,United States
+2535,"Supplier,Expense",Igor Beylin,TIPTOP EXPRESS,TRUE,TIPTOP EXPRESS,6541 E Washington Blvd,,Commerce,CA,90040,United States
+2527,"Supplier,Expense",Igor Beylin,ULTRA PRO INTERNATIONAL LLC,TRUE,ULTRA PRO INTERNATIONAL LLC,6049 Slauson Ave,,Commerce,CA,90040,United States
+1529,"Customer,Supplier,Expense",,CITY FIBERS INC,TRUE,CITY FIBERS INC,PO Box 58646,,Los Angeles,CA,90058,United States
+2051,Supplier,Igor Beylin,REHRIG PACIFIC COMPANY,TRUE,REHRIG PACIFIC COMPANY,4010 East 26th Street,,Los Angeles,CA,90058,United States
+2226,"Supplier,Expense",Igor Beylin,CALIFORNIA WASTE SERVICES LLC,TRUE,CALIFORNIA WASTE SERVICES LLC,621 W. 152nd St.,,Gardena,CA,90247,United States
+2261,"Supplier,Expense",Igor Beylin,COUNTY SANITATION DISTRICTS OF LA COUNTY,TRUE,COUNTY SANITATION DISTRICTS OF LA COUNTY,1955 Workman Mill Road,,Whittier,CA,90601,United States
+1468,"Customer,Expense",,PPP LLC,TRUE,PPP LLC,PO Box 2047,,Montebello,CA,90640,United States
+1773,"Supplier,Expense",Igor Beylin,POTENTIAL INDUSTRIES INC,TRUE,POTENTIAL INDUSTRIES INC,922 East E Street,,Wilmington,CA,90744,United States
+1123,"Customer,Supplier,Expense",,SIWIN CORPORATION,TRUE,SIWIN CORPORATION,1020 E. 230th Street,,Carson,CA,90745,United States
+2297,Expense,,COSCO CONTAINER LINES,TRUE,COSCO CONTAINER LINES,588 Harbor Scenic Way,3rd Floor,Long Beach,CA,90802,United States
+2390,"Customer,Expense",,GP THE BEST PLASTICS,TRUE,GP THE BEST PLASTICS,23939 Ventura Blvd,,Calabasas,CA,91302,United States
+2358,"Supplier,Expense",Igor Beylin,BLUE MARBLE RECYCLING LLC,TRUE,BLUE MARBLE RECYCLING LLC,16736 E. Benwood Street,,Covina,CA,91722,United States
+1482,"Customer,Supplier,Expense",,JC HORIZON LTD,TRUE,JC HORIZON LTD,8300 Utica Ave,Suite 300,Rancho Cucamonga,CA,91730,United States
+2249,"Supplier,Expense",Igor Beylin,ATHENS SERVICES,TRUE,ATHENS SERVICES,14048 E Valley Blvd,,City of Industry,CA,91746,United States
+1649,"Customer,Expense",,MACO IMPORT & EXPORT INC,TRUE,MACO IMPORT & EXPORT INC,1820 S Reservoir Street,,Pomona,CA,91766,United States
+2280,"Supplier,Expense",Lindsey Malyavko,EDCO DISPOSAL,TRUE,EDCO DISPOSAL,6700 Federal Blvd,,Lemon Grove,CA,91945,United States
+2281,"Supplier,Expense",Lindsey Malyavko,SANCO SERVICES,TRUE,SANCO SERVICES,1044 West Washington Avenue,,Escondido,CA,92025,United States
+1723,"Supplier,Expense",Igor Beylin,IMS RECYCLING SERVICES,TRUE,IMS RECYCLING SERVICES,2740 Boston Ave,,San Diego,CA,92113,United States
+2566,"Supplier,Expense",Igor Beylin,RIVULIS,TRUE,RIVULIS,7545 Carroll Rd,,San Diego,CA,92121,United States
+1706,"Supplier,Expense",Igor Beylin,BURRTEC WASTE INDUSTRIES INC,TRUE,BURRTEC WASTE INDUSTRIES INC,13373 Napa Street,,Fontana,CA,92335,United States
+2473,"Customer,Supplier",,SMART 3PL INC,TRUE,SMART 3PL INC,12903 Jurupa Ave,Suite B,Fontana,CA,92337,United States
+1935,"Customer,Expense",,U POLYMERS,TRUE,U POLYMERS,1351 E Riverview Drive,,San Bernardino,CA,92408,United States
+2316,"Customer,Expense",,SIN CERA RESALES INC,TRUE,SIN CERA RESALES INC,16738 Lakeshore Dr,Suite H157,Lake Elsinore,CA,92530,United States
+2330,"Customer,Supplier,Expense",,CERTIFIED ENTERPRISES,TRUE,CERTIFIED ENTERPRISES,555. S. Rose Street,,Anaheim,CA,92805,United States
+2421,"Customer,Supplier,Expense",Igor Beylin,PHASE SCIENTIFIC,TRUE,PHASE SCIENTIFIC,10527 Garden Grove Blvd,,Garden Grove,CA,92843,United States
+2377,"Supplier,Expense",Tiffany White,SA RECYCLING LLC,TRUE,SA RECYCLING LLC,2411 N. Glassell Street,,Orange,CA,92865,United States
+2177,"Supplier,Expense",Igor Beylin,ICTV,TRUE,ICTV,7348 E Saddlehorn Way,,Orange,CA,92869,United States
+2507,"Customer,Expense",Igor Beylin,TALCO PLASTICS,TRUE,TALCO PLASTICS,1000 W Rincon Street,,Corona,CA,92880,United States
+2623,Expense,,SHARK LOGISTICS INC,TRUE,SHARK LOGISTICS INC,PO BOX 42931,,Bakersfield,CA,93384,United States
+2547,"Supplier,Expense",Igor Beylin,FLIPPING IRON INC,TRUE,FLIPPING IRON INC,PO Box 70328,,Bakersfield,CA,93387,United States
+1983,Supplier,Igor Beylin,BEDFORD ENTERPRISES INC,TRUE,BEDFORD ENTERPRISES INC,1940 West Betteravia Road,,Santa Maria,CA,93458,United States
+1759,"Customer,Expense",,TRANPAK INC,TRUE,TRANPAK INC,2860 S East Ave,,Fresno,CA,93725,United States
+1727,"Supplier,Expense",Igor Beylin,MID VALLEY RECYCLING LLC,TRUE,MID VALLEY RECYCLING LLC,PO Box 12385,,Fresno,CA,93777,United States
+2217,"Supplier,Expense",,SOUTH BAY RECYCLING LLC,TRUE,SOUTH BAY RECYCLING LLC,333 Shoreway Road,,San Carlos,CA,94070,United States
+1698,"Supplier,Expense",Igor Beylin,BLUE LINE TRANSFER,TRUE,BLUE LINE TRANSFER,PO Box 348,,South San Francisco,CA,94083,United States
+1693,"Customer,Expense",,DCO ENVIRONMENTAL & RECYCLING LLC,TRUE,DCO ENVIRONMENTAL & RECYCLING LLC,300 Montgomery Street,Suite 421,San Francisco,CA,94104,United States
+2256,"Supplier,Expense",Igor Beylin,NAPA RECYCLING AND WASTE SVS,TRUE,NAPA RECYCLING AND WASTE SVS,P.O. Box 239,,Napa,CA,94558,United States
+2570,"Supplier,Expense",Arthur Buyanovskiy,CLOROX SERVICES COMPANY,TRUE,CLOROX SERVICES COMPANY,Attn: Procure to Pay,"4900 Johnson Drive , A1-120",Pleasanton,CA,94588,United States
+1638,Expense,,SACCO TRUCKING INC,TRUE,SACCO TRUCKING INC,2441 Renwick Street,,Oakland,CA,94601,United States
+1166,Expense,,P&R TRUCKING INC,TRUE,P&R TRUCKING INC,740 Julie Ann Way,,Oakland,CA,94621,United States
+1125,Customer,,SUMMERTIME FARMS INC,TRUE,SUMMERTIME FARMS INC,11 Parr Blvd.,,Richmond,CA,94801,United States
+2303,"Supplier,Expense",Igor Beylin,A&S METALS,TRUE,A&S METALS,PO Box 955,,Castroville,CA,95012,United States
+1532,"Customer,Supplier,Expense",,GREENWASTE RECOVERY LLC,TRUE,GREENWASTE RECOVERY LLC,610 E Gish Rd,,San Jose,CA,95112,United States
+2207,"Customer,Supplier,Expense",Igor Beylin,BAY POLYMER,TRUE,BAY POLYMER,1330 E VICTOR RD,,LODI,CA,95240,United States
+2300,"Customer,Expense",,MING'S RECYCLING,TRUE,MING'S RECYCLING,3316 47th Avenue,,Sacramento,CA,95824,United States
+2258,"Supplier,Expense",Igor Beylin,GREEN EVOLUTION RECYCLING,TRUE,GREEN EVOLUTION RECYCLING,4800 Florin Perkins Road,,Sacramento,CA,95826,United States
+2044,"Customer,Supplier,Expense",,PREZERO US SERVICES LLC,TRUE,PREZERO US SERVICES LLC,3155 South 5th Ave,,Oroville,CA,95965,United States
+1934,"Supplier,Expense",Igor Beylin,LUNDBERG FAMILY FARMS,TRUE,LUNDBERG FAMILY FARMS,5311 Midway,P.O. Box 369,Richvale,CA,95974,United States
+1911,"Supplier,Expense",Lindsey Malyavko,SUNSWEET COMPANY,TRUE,SUNSWEET COMPANY,901 N. Walton Ave,,Yuba City,CA,95991,United States
+1469,"Supplier,Expense",,SPECIALIZED FIBERS,TRUE,SPECIALIZED FIBERS,PO Box 735,,Corning,CA,96021,United States
+2244,"Supplier,Expense",Igor Beylin,PACIFIC PALLET EXCHANGE INC,TRUE,PACIFIC PALLET EXCHANGE INC,3315 51St. Ave,,Sacramento,CA,958233,United States
+1850,"Supplier,Expense",,RECOLOGY,TRUE,RECOLOGY,PO Box 888172,,Los Angeles,CA,90088-8172,United States
+1767,"Supplier,Expense",Ricardo Pereira,USEDPLASTICPALLETSCOM,TRUE,USEDPLASTICPALLETSCOM,PO BOX 406,,Dunlap,CA,93621-9998,United States
+1436,"Supplier,Expense",,UPPER VALLEY DISPOSAL SERVICES,TRUE,UPPER VALLEY DISPOSAL SERVICES,PO Box 382,1285 Whitehall Ln.,St Helena,CA,94574-9682,United States
+1435,Customer,,SERYMAN PLASTICS,TRUE,SERYMAN PLASTICS,2324 Paulson Road,,Turlock,CA,95380-9757,United States
+2220,"Supplier,Expense",Igor Beylin,NORTECH WASTE LLC,TRUE,NORTECH WASTE LLC,3033 Fiddyment Road,,Roseville,CA,95747-9705,United States
+1470,"Customer,Expense",,DUPUY CONSULTANTS,TRUE,DUPUY CONSULTANTS,5144 S. Liverpool Way,,Centennial,CO,80015,United States
+2232,"Customer,Supplier,Expense",,AMP ROBOTICS CORP,TRUE,AMP ROBOTICS CORP,1875 Taylor Ave.,,Louisville,CO,80027,United States
+1636,"Customer,Supplier,Expense",,DIRECT POLYMERS LLC,TRUE,DIRECT POLYMERS LLC,12015 Blackwell Way,,Parker,CO,80138,United States
+2615,"Customer,Expense",Arthur Buyanovskiy,DIRECT RESINS LLC,TRUE,DIRECT RESINS LLC,3600 E 45th Ave,,Denver,CO,80216,United States
+1939,"Supplier,Expense",Igor Beylin,CENTENNIAL CONTAINER,TRUE,CENTENNIAL CONTAINER,13105 East 38th Avenue Unit 58,,Denver,CO,80239,United States
+1444,"Supplier,Expense",,WASTE-NOT RECYCLING,TRUE,WASTE-NOT RECYCLING,1065 Poplar Street,,Loveland,CO,80534,United States
+1566,"Supplier,Expense",,ANGEL OF SHAVANO RECYCLING LLC,TRUE,ANGEL OF SHAVANO RECYCLING LLC,PO Box 69,,Poncha Springs,CO,81242,United States
+1611,Expense,,FIRST STAR LOGISTICS LLC,TRUE,FIRST STAR LOGISTICS LLC,PO Box 912394,,Denver,CO,80291-2394,United States
+2233,"Supplier,Expense",Igor Beylin,GUNNISON RECYCLING,TRUE,GUNNISON RECYCLING,195 Basin Park Dr,,Gunnison,CO,81230-9519,United States
+2634,"Supplier,Expense",Ricardo Pereira,RUG PAD USA,TRUE,RUG PAD USA,100 Marketing Drive,,Suffield,CT,6078,United States
+2482,"Customer,Supplier,Expense",Igor Beylin,AOWR,TRUE,AOWR,477 Connecticut Blvd Suite 203,,East Hartford,CT,6108,United States
+1940,"Supplier,Expense",Ricardo Pereira,REVERSE RECYCLING,TRUE,REVERSE RECYCLING,74 Spring Street,,Southington,CT,6489,United States
+2180,"Supplier,Expense",Arthur Buyanovskiy,SOUTHERN CONN PALLET CO,TRUE,SOUTHERN CONN PALLET CO,346 Quinnipiac Street,,Wallingford,CT,6492,United States
+1338,Supplier,Ricardo Pereira,CLINTON NURSERIES INC,TRUE,CLINTON NURSERIES INC,517 POND MEADOW ROAD,BOX 679,Westbrook,CT,6498,United States
+1854,"Supplier,Expense",Ricardo Pereira,MARCUS PAPER COMPANY,TRUE,MARCUS PAPER COMPANY,PO Box 8986,,New Haven,CT,6532,United States
+1643,"Customer,Expense",Ricardo Pereira,SEAVIEW PLASTIC RECYCLING INC,TRUE,SEAVIEW PLASTIC RECYCLING INC,938 Crescent Avenue,,Bridgeport,CT,6607,United States
+1594,"Supplier,Expense",Ricardo Pereira,ALBERT BROS INC,TRUE,ALBERT BROS INC,225 East Aurora St,,Waterbury,CT,6721,United States
+2537,"Supplier,Expense",Igor Beylin,FREEPOINT ECO-SYSTEMS SUPPLY & TRADING,TRUE,FREEPOINT ECO-SYSTEMS SUPPLY & TRADING,58 Commerce Rd,,Stamford,CT,6902,United States
+2510,"Supplier,Expense",Ricardo Pereira,ALL PALLET RECYCLING LLC,TRUE,ALL PALLET RECYCLING LLC,60 Belamos Ave,P.O. Box 290677,Wethersfield,CT,,United States
+1890,"Supplier,Expense",Ricardo Pereira,FAIRFIELD PROCESSING CORPORATION,TRUE,FAIRFIELD PROCESSING CORPORATION,PO Box 1157,,Danbury,CT,06813-1157,United States
+2610,"Customer,Supplier,Expense",Lindsey Malyavko,GREENWOOD PALLET COMPANY,TRUE,GREENWOOD PALLET COMPANY,16849 Road Runner Dr,,Bridgeville,DE,19933,United States
+2327,"Supplier,Expense",Igor Beylin,FLORIDA PLASTIC RECYCLING,TRUE,FLORIDA PLASTIC RECYCLING,5220 New Kings Road,,Jacksonville,FL,32209,United States
+1907,"Customer,Supplier,Expense",,KELCO RECYCLING INC,TRUE,KELCO RECYCLING INC,6005 Powers Ave.,,Jacksonville,FL,32217,United States
+2614,Expense,,TRAILER LEASING COMPANY,TRUE,TRAILER LEASING COMPANY,2733 Pickettville Rd,,Jacksonville,FL,32220,United States
+1971,"Supplier,Expense",Lindsey Malyavko,PALKING INC,TRUE,PALKING INC,PO Box 442264,,Jacksonville,FL,32222,United States
+2526,"Supplier,Expense",Lindsey Malyavko,B LINE SERVICES,TRUE,B LINE SERVICES,4997 Damascus Church Road,,Graceville,FL,32440,United States
+2254,"Supplier,Expense",Lindsey Malyavko,SONCO WASTE SOLUTIONS LLC,TRUE,SONCO WASTE SOLUTIONS LLC,4997 Damascus Church Road,,Graceville,FL,32440,United States
+1835,"Supplier,Expense",Igor Beylin,FEDERAL CORRECTIONAL INSTITUTION,TRUE,FEDERAL CORRECTIONAL INSTITUTION,"3625 F C I Rd, Marianna, FL 32446",,Marianna,FL,32446,United States
+2495,"Customer,Expense",,MAUSER PACKAGING SOLUTIONS,TRUE,MAUSER PACKAGING SOLUTIONS,PO Box 278,,Zellwood,FL,32798,United States
+2471,"Supplier,Expense",Igor Beylin,ORLANDO RECYCLING,TRUE,ORLANDO RECYCLING,5303 N Orange Blossom Trail,,Orlando,FL,32810,United States
+1744,"Customer,Expense",,POLYPRO INDUSTRIAL RECYCLING,TRUE,POLYPRO INDUSTRIAL RECYCLING,4880 Hoffner Ave.,,Orlando,FL,32812,United States
+2334,"Customer,Supplier,Expense",,360RESINS LLC,TRUE,360RESINS LLC,166 CENTER STREET,,CAPE CANAVERAL,FL,32920,United States
+2487,"Supplier,Expense",Lindsey Malyavko,THE CHEFS WAREHOUSE,TRUE,THE CHEFS WAREHOUSE,5559 NW 145th St,,Opa Locka,FL,33054,United States
+2454,"Customer,Expense",Arthur Buyanovskiy,GENESIS RECYCLING LLC,TRUE,GENESIS RECYCLING LLC,11219 N Kendall Dr,,Miami,FL,33176,United States
+2100,Supplier,Tiffany White,STORELLI RECYCLING,TRUE,STORELLI RECYCLING,"2455 East Sunrise Blvd, Suite 204",,Fort Lauderdale,FL,33304,United States
+1792,"Supplier,Expense",Igor Beylin,SOLID WASTE AUTHORITY,TRUE,SOLID WASTE AUTHORITY,5860 45th Street,,West Palm Beach,FL,33407,United States
+2578,"Customer,Supplier,Expense",,GULFSTREAM SERVICES,TRUE,GULFSTREAM SERVICES,950 Peninsula Corporate Circle,Suite 3025,Boca Raton,FL,33487,United States
+1778,"Customer,Supplier,Expense",,PREMIER GROUP RECYCLING INC,TRUE,PREMIER GROUP RECYCLING INC,6971 N Federal Highway,,Boca Raton,FL,33487,United States
+1578,"Customer,Supplier,Expense",,REPCO SERVICES LLC,TRUE,REPCO SERVICES LLC,7491 N. FEDERAL HWY,SUITE C5 #313,Boca Raton,FL,33487,United States
+2329,"Customer,Supplier,Expense",Igor Beylin,CW CARRIERS USA,TRUE,CW CARRIERS USA,PO Box 424,,Lithia,FL,33547,United States
+2152,"Supplier,Expense",,TOTAL RECYCLING & WASTE SOLUTIONS,TRUE,TOTAL RECYCLING & WASTE SOLUTIONS,5226 E Hillsborough Avenue,,Tampa,FL,33619,United States
+1974,"Customer,Supplier,Expense",,ADVANCED IMPACT TECHNOLOGIES INC,TRUE,ADVANCED IMPACT TECHNOLOGIES INC,2310 Starkey Rd,,Largo,FL,33771,United States
+2551,Expense,,EXXACT EXPRESS,TRUE,EXXACT EXPRESS,1025 N. Chestnut Rd,,Lakeland,FL,33805,United States
+2115,"Customer,Supplier",,SUNCOAST PLASTICS,TRUE,SUNCOAST PLASTICS,619 Tulip Circle W,,Auburndale,FL,33823,United States
+2251,"Supplier,Expense",Lindsey Malyavko,PALLET CONSULTANTS,TRUE,PALLET CONSULTANTS,1555 Melbourne Ave,,Haines City,FL,33844,United States
+1459,"Supplier,Expense",,US RECYCLING GROUP,TRUE,US RECYCLING GROUP,3508 Tumbling River Dr,,Clermont,FL,34711,United States
+2013,"Customer,Supplier",Igor Beylin,ROBERT WALLICK ASSOCIATES LLC,TRUE,ROBERT WALLICK ASSOCIATES LLC,531 Susan B Britt Ct,,Winter Garden,FL,34787,United States
+2259,"Supplier,Expense",Ricardo Pereira,ST LUCIE COUNTY,TRUE,ST LUCIE COUNTY,6120 Glades Cut Off Rd,,Fort Pierce,FL,34981,United States
+1712,"Customer,Supplier,Expense",,US PLASTICS RECOVERY,TRUE,US PLASTICS RECOVERY,900 Raco Drive,Suite B,Lawrenceville,GA,30046,United States
+2557,"Supplier,Expense",Arthur Akopyan,AMERICAN FIBER SERVICES LLC,TRUE,AMERICAN FIBER SERVICES LLC,2400 Lake Park Drive,Suite 425,Smyrna,GA,30080,United States
+2554,"Customer,Supplier,Expense",Igor Beylin,WINMATE COMMUNICATION US INC,TRUE,WINMATE COMMUNICATION US INC,2640 Mathews Street,,Smyrna,GA,30080,United States
+2168,"Supplier,Expense",Lindsey Malyavko,APS RECYCLE INC,TRUE,APS RECYCLE INC,2782 Caraway Dr,,Tucker,GA,30084,United States
+2105,"Customer,Supplier,Expense",,PLUS MATERIALS INC,TRUE,PLUS MATERIALS INC,3100 Breckinridge Blvd,Suite 175,Duluth,GA,30096,United States
+2263,"Supplier,Expense",Lindsey Malyavko,BO'S PALLETS,TRUE,BO'S PALLETS,2427 GA-140,,Adairsville,GA,30103,United States
+1192,Supplier,Ricardo Pereira,ADVANCED DISPOSAL,TRUE,ADVANCED DISPOSAL,8880 Old Federal Rd,,Ball Ground,GA,30107,United States
+2138,"Supplier,Expense",Lindsey Malyavko,ADVANCE DRUM SERVICE INC,TRUE,ADVANCE DRUM SERVICE INC,1835 Dickerson Drive,,Mableton,GA,30126,United States
+2457,"Supplier,Expense",Igor Beylin,KNAPP INC,TRUE,KNAPP INC,2124 Barrett Park Dr. Ste. 100,,Kennesaw,GA,30144,United States
+2006,Customer,,MARGLEN INDUSTRIES,TRUE,MARGLEN INDUSTRIES,1748 Ward Mountain Rd NE,,Rome,GA,30161,United States
+2415,"Supplier,Expense",,PAPER RECOVERY OF GEORGIA,TRUE,PAPER RECOVERY OF GEORGIA,501 East 6th Street SW,,"Rome,",GA,30161,United States
+2078,Supplier,,CHAMBERS DRUM CO INC,TRUE,CHAMBERS DRUM CO INC,PO BOX 1010,,Fairburn,GA,30213,United States
+1597,Expense,,PINE RIDGE LANDFILL,TRUE,PINE RIDGE LANDFILL,105 Bailey Jester Road,,Griffin,GA,30224,United States
+1868,"Supplier,Expense",Igor Beylin,GREENSOUTH RECYCLING,TRUE,GREENSOUTH RECYCLING,1698 GA-42 N,,Jackson,GA,30233,United States
+2561,"Customer,Supplier,Expense",,SILON US LLC,TRUE,SILON US LLC,101 Sierra Drive,,Peachtree City,GA,30269,United States
+2411,"Supplier,Expense",Igor Beylin,J&M MECHANICAL SERVICES,TRUE,J&M MECHANICAL SERVICES,PO BOX 2543,,Forest Park,GA,30298,United States
+2011,Supplier,Lindsey Malyavko,PALLET CONSULTANTS OF ATLANTA,TRUE,PALLET CONSULTANTS OF ATLANTA,2555 Moreland Ave. SE,,Atlanta,GA,30315,United States
+1109,Customer,,ENPOL,TRUE,ENPOL,1418 Dresden Dr.,Suite 200,Atlanta,GA,30319,United States
+1807,"Supplier,Expense",Igor Beylin,PALLET CENTRAL ENTERPRISES INC,TRUE,PALLET CENTRAL ENTERPRISES INC,PO Box 13549,,Atlanta,GA,30324,United States
+1582,"Customer,Expense",,GREENMINE INC,TRUE,GREENMINE INC,4785 Fulton Industrial Blvd SW,Suite B,Atlanta,GA,30336,United States
+2191,"Customer,Supplier,Expense",,NEXUS FUELS LLC,TRUE,NEXUS FUELS LLC,500 Waterfront Dr. SW,,Atlanta,GA,30336,United States
+2284,"Supplier,Expense",Igor Beylin,JFC INTERNATIONAL,TRUE,JFC INTERNATIONAL,3101 McCall Drive,Suite 3,Doraville,GA,30340,United States
+1959,Expense,,MIDDLE BAY TRANSPORTATION,TRUE,MIDDLE BAY TRANSPORTATION,P.O. BOX 745020,,ATLANTA,GA,30374,United States
+1713,"Supplier,Expense",Mack McMurray,WESTROCK CP LLC,TRUE,WESTROCK CP LLC,PO Box 409813,,Atlanta,GA,30384,United States
+2550,"Supplier,Expense",Igor Beylin,LANIER PALLET RECYCLING INC,TRUE,LANIER PALLET RECYCLING INC,2410 Highway 334,,Commerce,GA,30530,United States
+2020,"Customer,Expense",,KAL POLYMERS AMERICA LLC,TRUE,KAL POLYMERS AMERICA LLC,4350 Avery Drive,Suite 102,Flowery Branch,GA,30542,United States
+2404,"Supplier,Expense",Mack McMurray,LOFTY'S TEXTILE WASTE INC,TRUE,LOFTY'S TEXTILE WASTE INC,4148 Cleveland Highway,,Cohutta,GA,30710,United States
+2210,"Supplier,Expense",Igor Beylin,IMACC CORP,TRUE,IMACC CORP,2303 Dalton Industrial Court,,Dalton,GA,30721,United States
+1720,"Customer,Expense",,COLUMBIA RECYCLING CORPORATION,TRUE,COLUMBIA RECYCLING CORPORATION,P. O. BOX 2101,,DALTON,GA,30722,United States
+2484,"Supplier,Expense",Tiffany White,WILSON WASTE CO,TRUE,WILSON WASTE CO,1321 Dry Valley Rd,,Rossville,GA,30741,United States
+2486,"Supplier,Expense",Tiffany White,PALLET-TECH SOLUTIONS,TRUE,PALLET-TECH SOLUTIONS,PO Box 2246,,Fort Oglethorpe,GA,30742,United States
+1550,Expense,,NOLAN TRANSPORT GROUP INC,TRUE,NOLAN TRANSPORT GROUP INC,P.O. Box 931184,,Atlanta,GA,31193,United States
+2491,Customer,Igor Beylin,SD POLYMERS LLC,TRUE,SD POLYMERS LLC,600 Guy Paine Rd,Warehouse 5C,Macon,GA,31206,United States
+2431,"Supplier,Expense",Arthur Buyanovskiy,ROBERTS ENTERPRISES,TRUE,ROBERTS ENTERPRISES,144 Lee Drive,,Ellabell,GA,31308,United States
+2146,"Supplier,Expense",Igor Beylin,FORT STEWART ARMY BASE,TRUE,FORT STEWART ARMY BASE,1550 Veterans Parkway,Building 1137,Fort Stewart,GA,31313,United States
+1842,"Supplier,Expense",,FT STEWART ARMY BASE,TRUE,FT STEWART ARMY BASE,1042 William H Wilson Ave,Bldg 622,Fort Stewart,GA,31314,United States
+2504,"Customer,Supplier,Expense",Igor Beylin,SNF HOLDING COMPANY,TRUE,SNF HOLDING COMPANY,1 Chemical Plant Road,,Riceboro,GA,31323,United States
+1930,"Customer,Supplier,Expense",Igor Beylin,SAVANNAH PALLETS,TRUE,SAVANNAH PALLETS,1610 Staley Ave,,Savannah,GA,31405,United States
+2338,"Supplier,Expense",Tiffany White,COMPLETE RESOURCE MANAGEMENT,TRUE,COMPLETE RESOURCE MANAGEMENT,1701 N Washington St,,Albany,GA,31701,United States
+1989,Supplier,Igor Beylin,C & J PALLET CO,TRUE,C & J PALLET CO,107 Swett Ave,,Americus,GA,31709,United States
+1666,"Supplier,Expense",Igor Beylin,GEORGIA SEED DEVELOPMENT,TRUE,GEORGIA SEED DEVELOPMENT,1547 US Highway 280 West,,Plains,GA,31780,United States
+1544,Customer,,GP HARMON RECYCLING,TRUE,GP HARMON RECYCLING,PO Box 125,,Cedar Springs,GA,39832,United States
+2354,"Customer,Supplier",Arthur Buyanovskiy,4TH GENERATION RECYCLING,TRUE,4TH GENERATION RECYCLING,P.O. Box 117165,,Atlanta,GA,30368-7165,United States
+2240,"Customer,Supplier,Expense",,GEORGIA PACIFIC RECYCLING,TRUE,GEORGIA PACIFIC RECYCLING,P.O. Box 281570,,Atlanta,GA,30384-1570,United States
+1257,"Customer,Supplier",Arthur Buyanovskiy,PRATT INDUSTRIES,TRUE,PRATT INDUSTRIES,PO BOX 933949,,Atlanta,GA,31193-3949,United States
+1848,"Customer,Supplier,Expense",,SIGMA RECYCLING INC,TRUE,SIGMA RECYCLING INC,5675 JIMMY CARTER BLVD,SUITE 598,NORCROSS,GA,GA,United States
+2571,"Supplier,Expense",Arthur Buyanovskiy,HAPPE HOMES,TRUE,HAPPE HOMES,2575 N Ankeny Blvd,Suite 211,Ankeny,IA,50023,United States
+1830,Expense,,EXPRESS LOGISTICS INC,TRUE,EXPRESS LOGISTICS INC,PO Box 628,,Waukee,IA,50263,United States
+2301,"Customer,Supplier,Expense",Lindsey Malyavko,METRO WASTE AUTHORITY,TRUE,METRO WASTE AUTHORITY,PO BOX 4847,,DES MOINES,IA,50305,United States
+1564,"Supplier,Expense",,MID AMERICA RECYCLING,TRUE,MID AMERICA RECYCLING,2742 East Market Street,,Des Moines,IA,50317,United States
+2433,"Supplier,Expense",,DEN HARTOG INDUSTRIES,TRUE,DEN HARTOG INDUSTRIES,PO Box 425,,Hospers,IA,51238,United States
+1410,Supplier,,NORTH CEDAR SOUTH LLC,TRUE,NORTH CEDAR SOUTH LLC,"3752 SAC DRIVE, BLDG. H",,KEOKUK,IA,52632,United States
+1383,Supplier,Arthur Buyanovskiy,CEDAR POLY LLC,TRUE,CEDAR POLY LLC,200 Commerce Blvd,,Tipton,IA,52772,United States
+2186,"Supplier,Expense",Lindsey Malyavko,WASTE COMMISSION OF SCOTT COUNTY,TRUE,WASTE COMMISSION OF SCOTT COUNTY,11555 110th Ave,,Davenport,IA,52804,United States
+1398,Supplier,,GROOT WASTE,TRUE,GROOT WASTE,2500 Landmeier Road,,Elk Grove Village,IL,60007,United States
+1896,"Customer,Supplier,Expense",,ADAMS PLASTICS,TRUE,ADAMS PLASTICS,1125 Carnegie St,,Rolling Meadows,IL,60008,United States
+1627,"Supplier,Expense",,GROOT INDUSTRIES INC,TRUE,GROOT INDUSTRIES INC,ELK GROVE TRANSFER STATION,PO BOX 894,ELK GROVE VILLAGE,IL,60009,United States
+1290,"Customer,Supplier,Expense",,BRIAN POLLACK,TRUE,BRIAN POLLACK,8718 Ackman Rd,,Crystal Lake,IL,60014,United States
+1775,"Customer,Supplier,Expense",,STERICYCLE,TRUE,STERICYCLE,2355 Waukegan Road,,Bannockburn,IL,60015,United States
+2437,"Supplier,Expense",Igor Beylin,SEEDBOX SOLUTION,TRUE,SEEDBOX SOLUTION,1761 N Dilleys Rd,Ste 107,Gurnee,IL,60031,United States
+2607,"Supplier,Expense",Arthur Buyanovskiy,GREEN DIVERSION RECYCLING LLC,TRUE,GREEN DIVERSION RECYCLING LLC,PO Box 718,,Highwood,IL,60040,United States
+1630,"Customer,Supplier,Expense",,IRP LOGISTICS LLC,TRUE,IRP LOGISTICS LLC,PO Box 718,,Highwood,IL,60040,United States
+1997,"Customer,Expense",Tiffany White,GLOBAL POLYMER NETWORK LLC,TRUE,GLOBAL POLYMER NETWORK LLC,1405 Braxton Rd,,Libertyville,IL,60048,United States
+1296,Supplier,Arthur Buyanovskiy,GLOBAL RESOURCES,TRUE,GLOBAL RESOURCES,1324 Kempton Drive,,Libertyville,IL,60048,United States
+1772,"Customer,Supplier,Expense",Ricardo Pereira,IGPS LOGISTICS LLC,TRUE,IGPS LOGISTICS LLC,DEPT CH 17022,,Palatine,IL,60055,United States
+2521,"Supplier,Expense",Arthur Buyanovskiy,ABBOTT,TRUE,ABBOTT,100 Abbott Park Rd,,Abbott Park,IL,60064,United States
+2474,"Supplier,Expense",Igor Beylin,INLAND DIE CASTING,TRUE,INLAND DIE CASTING,161 Carpenter Ave,,Wheeling,IL,60090,United States
+2481,"Customer,Expense",,NORTHSTAR TRADING,TRUE,NORTHSTAR TRADING,3380 GRAND AVE,,WAUKEGAN,IL,60090,United States
+1913,Supplier,Tiffany White,CALCO PALLETS INC,TRUE,CALCO PALLETS INC,PO Box 1922,,Woodstock,IL,60098,United States
+1612,"Customer,Supplier,Expense",,NEWCO FIBERS INC,TRUE,NEWCO FIBERS INC,226 W Judd St.,,Woodstock,IL,60098,United States
+1798,"Supplier,Expense",Igor Beylin,PRIME WOODCRAFT,TRUE,PRIME WOODCRAFT,1817 Kenosha Rd,,Zion,IL,60099,United States
+1385,Supplier,Lindsey Malyavko,COMBINED RESOURCES,TRUE,COMBINED RESOURCES,1750 West Fullerton Ave,,Addison,IL,60101,United States
+2266,"Supplier,Expense",Lindsey Malyavko,THE CARY COMPANY,TRUE,THE CARY COMPANY,1195 W Fullerton Ave,,Addison,IL,60101,United States
+2274,"Supplier,Expense",,HEATH INDUSTRIAL,TRUE,HEATH INDUSTRIAL,3551 Lakeview Drive,,Algonquin,IL,60102,United States
+1414,"Supplier,Expense",Igor Beylin,PRI GROUP LLC,TRUE,PRI GROUP LLC,600 Thomas Drive,,Bensenville,IL,60106,United States
+2522,"Customer,Supplier,Expense",,PREMIER MATERIAL SOLUTIONS,TRUE,PREMIER MATERIAL SOLUTIONS,1415 Davis Road,,Elgin,IL,60123,United States
+2506,"Supplier,Expense",Igor Beylin,JABIL,TRUE,JABIL,6325 Muirfield Drive,,Hanover Park,IL,60133,United States
+1424,"Customer,Supplier,Expense",,VIM RECYCLERS LLP,TRUE,VIM RECYCLERS LLP,PO Box 755,,Genl Ellyn,IL,60138,United States
+1300,Supplier,Arthur Buyanovskiy,JIM RIFF,TRUE,JIM RIFF,1662 Sandcastle Ln.,,Pingree Grove,IL,60140,United States
+1624,Supplier,Ricardo Pereira,PINNACLE RECYCLING LLC,TRUE,PINNACLE RECYCLING LLC,PO Box 309,,Itasca,IL,60143,United States
+2092,"Customer,Supplier,Expense",Arthur Buyanovskiy,MITSUBISHI LOGISNEXT AMERICAS,TRUE,MITSUBISHI LOGISNEXT AMERICAS,240 N Prospect St,,Marengo,IL,60152,United States
+1945,"Supplier,Expense",Arthur Buyanovskiy,ADVANCE PALLET INC,TRUE,ADVANCE PALLET INC,600 Woodbury Street,,South Elgin,IL,60177,United States
+2632,Expense,,COVAR TRANSPORTATION,TRUE,COVAR TRANSPORTATION,1600 S. Prairie Dr,,Sycamore,IL,60178,United States
+1933,"Customer,Expense",,CLOVER PLASTICS LLC,TRUE,CLOVER PLASTICS LLC,1145 Howard Dr.,,West Chicago,IL,60185,United States
+2033,Expense,,TRANSEND LOGISTICS,TRUE,TRANSEND LOGISTICS,PO BOX 6232,,CAROL STREAM,IL,60197,United States
+2015,Supplier,,RAM - RECOVERED ASSET MANAGEMENT,TRUE,RAM - RECOVERED ASSET MANAGEMENT,16400 S. Lathrop,,Harvey,IL,60426,United States
+1886,"Supplier,Expense",Tiffany White,KALUZNY BROTHERS,TRUE,KALUZNY BROTHERS,2324 Mound Rd,,Joliet,IL,60436,United States
+1697,"Customer,Supplier,Expense",,MRC POLYMERS,TRUE,MRC POLYMERS,901 W Crossroads Pkwy,,Romeoville,IL,60446,United States
+2034,Expense,,HIGH SPEED TRIPLE T TRUCKING LCC,TRUE,HIGH SPEED TRIPLE T TRUCKING LCC,7932 Normandy Ave,,Burbank,IL,60459,United States
+1170,Expense,,PRIDE LOGISTICS LLC,TRUE,PRIDE LOGISTICS LLC,11800 South 75th Avenue,Suite 2W,Palos Heights,IL,60463,United States
+1665,"Supplier,Expense",Arthur Buyanovskiy,FIBRE DRUM SALES INC,TRUE,FIBRE DRUM SALES INC,2414 West 139th Place,,Posen,IL,60469,United States
+2538,Customer,,INDUSTRIAL PLASTIC RECYCLING INC,TRUE,INDUSTRIAL PLASTIC RECYCLING INC,525 W. 169th Street,,South Holland,IL,60473,United States
+2455,"Supplier,Expense",,WINCO PLASTICS,TRUE,WINCO PLASTICS,149 S Grant St,,North Aurora,IL,60542,United States
+1567,"Customer,Supplier,Expense",,GERALD STRUVE,TRUE,GERALD STRUVE,225 Willington Way,,Oswego,IL,60543,United States
+1859,"Supplier,Expense",,MENARDS DISTRIBUTION CENTER,TRUE,MENARDS DISTRIBUTION CENTER,2623 Eldamain Rd,,Plano,IL,60545,United States
+2386,"Supplier,Expense",,GRAPHIC PALLET & TRANSPORT INC,TRUE,GRAPHIC PALLET & TRANSPORT INC,10225 Bode St,,Plainfield,IL,60585,United States
+2465,"Customer,Supplier,Expense",Igor Beylin,LOOP PAPER RECYCLING INC,TRUE,LOOP PAPER RECYCLING INC,2401 S Laflin St,,Chicago,IL,60608,United States
+1689,"Supplier,Expense",Igor Beylin,RECYCLING SERVICES OF FLORIDA INC,TRUE,RECYCLING SERVICES OF FLORIDA INC,2401 South Laflin Street,,Chicago,IL,60608,United States
+1928,"Supplier,Expense",Tiffany White,AA PALLET INC,TRUE,AA PALLET INC,900 W. 49th place,,Chicago,IL,60609,United States
+1056,Expense,,JEI WAREHOUSE,TRUE,JEI WAREHOUSE,2200 W 43rd St.,,Chicago,IL,60609,United States
+1903,"Customer,Expense",,DONCO PAPER SUPPLY COMPANY,TRUE,DONCO PAPER SUPPLY COMPANY,737 N Michigan Ave,Suite 1450,Chicago,IL,60611,United States
+2213,"Supplier,Expense",Tiffany White,UNIVERSAL SCRAP METALS INC,TRUE,UNIVERSAL SCRAP METALS INC,2500 W Fulton St,,Chicago,IL,60612,United States
+1595,"Customer,Supplier,Expense",,ANTEK MADISON PLASTICS USA LTD,TRUE,ANTEK MADISON PLASTICS USA LTD,8822 S. Dobson Ave,,Chicago,IL,60619,United States
+2085,"Supplier,Expense",Lindsey Malyavko,GREENWAY RESOURCE RECOVERY LLC,TRUE,GREENWAY RESOURCE RECOVERY LLC,2100 S. Kilbourn Ave.,,Chicago,IL,60623,United States
+2042,Supplier,Tiffany White,MID AMERICA PAPER RECYCLING,TRUE,MID AMERICA PAPER RECYCLING,3865 W. 41st Street,,Chicago,IL,60632,United States
+1738,"Supplier,Expense",Tiffany White,STARLUX CORP,TRUE,STARLUX CORP,3800 W 42nd S,,Chicago,IL,60632,United States
+2540,"Supplier,Expense",Lindsey Malyavko,SCHROEDERS PALLET SERVICE,TRUE,SCHROEDERS PALLET SERVICE,7333 S Lockwood Ave,,Bedford Park,IL,60638,United States
+2145,"Supplier,Expense",Arthur Buyanovskiy,GUERO PALLETS INC,TRUE,GUERO PALLETS INC,355 N. Lavergne Ave,,Chicago,IL,60644,United States
+2121,Expense,,COYOTE LOGISTICS,TRUE,COYOTE LOGISTICS,2545 W. Diversey Ave.,3rd Floor,Chicago,IL,60647,United States
+1495,Expense,,ECHO LOGISTICS,TRUE,ECHO LOGISTICS,22168 Network Place,,Chicago,IL,60673,United States
+1155,Expense,,COMMAND TRANSPORTATION LLC,TRUE,COMMAND TRANSPORTATION LLC,2633 Paysphere Circle,,Chicago,IL,60674,United States
+1500,"Customer,Supplier,Expense",,MAUSER PACKAGING - REIDSVILLE,TRUE,MAUSER PACKAGING - REIDSVILLE,P.O. Box 7410054,,CHCAGO,IL,60674,United States
+1172,Expense,,SCHNEIDER LOGISTICS - GA,TRUE,SCHNEIDER LOGISTICS - GA,2567 Paysphere Circle,,Chicago,IL,60674,United States
+1173,Expense,,SCHNEIDER NATIONAL INC,TRUE,SCHNEIDER NATIONAL INC,2567 Paysphere Circle,,Chicago,IL,60674,United States
+1633,Expense,,BNSF LOGISTICS LLC,TRUE,BNSF LOGISTICS LLC,75 Remittance Drive,Suite 1767,Chicago,IL,60675,United States
+1705,"Customer,Expense",,TRIM-TEX INC,TRUE,TRIM-TEX INC,3700 W Pratt Ave,,Lincolnwood,IL,60712,United States
+2035,"Customer,Supplier,Expense",,ACE PLASTIC,TRUE,ACE PLASTIC,7942 North 3350 East Rd,,Chatsworth,IL,60921,United States
+2110,"Supplier,Expense",Arthur Buyanovskiy,BDL SUPPLY,TRUE,BDL SUPPLY,3648  Morreim Drive,,Belvidere,IL,61008,United States
+1508,Supplier,,PRIME 360,TRUE,PRIME 360,3648 Morreim Drive,,Belvidere,IL,61008,United States
+2382,"Customer,Supplier,Expense",Tiffany White,CIMCO RESOURCES INC,TRUE,CIMCO RESOURCES INC,1616 Windsor Rd,,Loves Park,IL,61111,United States
+1513,"Supplier,Expense",,CPM RECYCLING SERVICES,TRUE,CPM RECYCLING SERVICES,PO Box 7451,,Rockford,IL,61126,United States
+1404,Supplier,Igor Beylin,MIDLAND DAVIS,TRUE,MIDLAND DAVIS,3301 4th Avenue,,Moline,IL,61265,United States
+1393,Supplier,,EAGLE ENTERPRISES RECYCLING INC,TRUE,EAGLE ENTERPRISES RECYCLING INC,510 SE Industrial Ave.,,Galva,IL,61434,United States
+1405,"Customer,Supplier",Arthur Buyanovskiy,MIDWEST FIBER INC,TRUE,MIDWEST FIBER INC,422 S. White Oak Rd,,Normal,IL,61761,United States
+1311,Supplier,Tiffany White,TOTALL METAL RECYCLING,TRUE,TOTALL METAL RECYCLING,3101 Missouri Ave Gate 1,,Granite City,IL,62040,United States
+1996,"Supplier,Expense",Tiffany White,EAST WEST TRADING LLC,TRUE,EAST WEST TRADING LLC,505 S 22nd St,,East St Louis,IL,62207,United States
+1415,Supplier,,QUINCY RECYCLE PAPER,TRUE,QUINCY RECYCLE PAPER,526 South 6th,,Quincy,IL,62301,United States
+1722,"Customer,Expense",,TIMEWELL DRAINAGE PRODUCTS,TRUE,TIMEWELL DRAINAGE PRODUCTS,196 US 24 1075N Avenue,,Timewell,IL,62375,United States
+1585,"Customer,Expense",,AVON PLASTICS,TRUE,AVON PLASTICS,PO Box 8893,,Carolstream,IL,60197-8893,United States
+2082,"Supplier,Expense",Ricardo Pereira,ACE IRON & METAL INC,TRUE,ACE IRON & METAL INC,11 3rd Ave,,Joliet,IL,60433-1849,United States
+2098,Expense,,INTERNATIONAL TRANSLOAD LOGISTICS,TRUE,INTERNATIONAL TRANSLOAD LOGISTICS,PO Box 5724,,Naperville,IL,60567-5724,United States
+1308,Supplier,Arthur Buyanovskiy,OMNISOURCE,TRUE,OMNISOURCE,23679 Network Place,,Chicago,IL,60673-1236,United States
+1434,Expense,,XPO LOGISTICS,TRUE,XPO LOGISTICS,27724 Network Place,,Chicago,IL,60673-1277,United States
+2131,"Supplier,Expense",Igor Beylin,NEW INDY RECYCLING LLC,TRUE,NEW INDY RECYCLING LLC,28750 Network Place,,Chicago,IL,60673-1287,United States
+1963,"Customer,Supplier,Expense",Igor Beylin,GREIF,TRUE,GREIF,PO Box 734739,,Chicago,IL,60673-4739,United States
+1377,"Customer,Supplier,Expense",,WM RECYCLE AMERICA,TRUE,WM RECYCLE AMERICA,PO BOX 73356,,Chicago,IL,60673-7356,United States
+1936,"Supplier,Expense",Igor Beylin,ICS CARGO CLEAN,TRUE,ICS CARGO CLEAN,Lockbox 74007518,PO Box 74007518,Chicago,IL,60674-0185,United States
+1916,Expense,,UBER FREIGHT,TRUE,UBER FREIGHT,PO Box 74007178,,"Chicago,",IL,60674-74007178,United States
+1471,Expense,,PLS LOGISTICS SERVICES,TRUE,PLS LOGISTICS SERVICES,PO BOX 778858,,Chicago,IL,60677-8858,United States
+1384,Supplier,Arthur Buyanovskiy,CHANNELED RESOURCES GROUP,TRUE,CHANNELED RESOURCES GROUP,Dept # 10129,PO Box 87618,Chicago,IL,60680-0618,United States
+2604,"Supplier,Expense",Arthur Akopyan,CONTINENTAL PAPER GRADING,TRUE,CONTINENTAL PAPER GRADING,3819 Momentum Place,,Chicago,IL,60689-5338,United States
+1387,Supplier,,COMMUNITY RESOURCE INC,TRUE,COMMUNITY RESOURCE INC,PO Box 522,,Urbana,IL,61803-0522,United States
+1420,Supplier,Tiffany White,SOUTHERN RECYCLING CENTER,TRUE,SOUTHERN RECYCLING CENTER,300 W. Chestnut Street,,Carbondale,IL,62901-1379,United States
+2197,"Supplier,Expense",Lindsey Malyavko,INTEGRITY FIBER SUPPLY,TRUE,INTEGRITY FIBER SUPPLY,10 W Carmel Drive,Suite 300,Carmel,IN,46032,United States
+1670,"Supplier,Expense",Tiffany White,FRANKFORT PLASTICS INC,TRUE,FRANKFORT PLASTICS INC,2021 West County Rd 0 NS,,Frankfort,IN,46041,United States
+2103,Expense,,B3 LOGISTIX,TRUE,B3 LOGISTIX,8038 N 600 West,Suite 200,McCordsville,IN,46055,United States
+1517,Expense,,STRETCH LOGISTICS INC,TRUE,STRETCH LOGISTICS INC,PO Box 206,,McCordsville,IN,46055,United States
+1139,"Customer,Supplier,Expense",,WM RAY'S TRASH,TRUE,WM RAY'S TRASH,PO Box 1,,Clayton,IN,46118,United States
+1130,"Customer,Supplier,Expense",,PRIORITY RECYCLING,TRUE,PRIORITY RECYCLING,1499 Sheffield Drive,,Avon,IN,46123,United States
+1445,Expense,Arthur Buyanovskiy,PRIORITY WAREHOUSE,TRUE,PRIORITY WAREHOUSE,1499 Sheffield Rd.,,Avon,IN,46123,United States
+2511,"Supplier,Expense",Arthur Buyanovskiy,WINTERRA SOLUTIONS,TRUE,WINTERRA SOLUTIONS,8360 New Harmony Rd.,,Martinsville,IN,46151,United States
+1291,Supplier,Arthur Buyanovskiy,CGS SERVICES INC,TRUE,CGS SERVICES INC,PO Box 212,,Morristown,IN,46161,United States
+1796,"Customer,Supplier,Expense",Tiffany White,SERRAPRO INDUSTRIES,TRUE,SERRAPRO INDUSTRIES,105 S. Denny St.,,Indianapolis,IN,46201,United States
+2200,"Supplier,Expense",Tiffany White,VERTICE INDUSTRIES,TRUE,VERTICE INDUSTRIES,1213 North Sherman Dr,,Indianapolis,IN,46201,United States
+1431,"Customer,Supplier,Expense",Lindsey Malyavko,RECYCLEFORCE,TRUE,RECYCLEFORCE,"1125 Brookside Ave, Suite D12",,Indianapolis,IN,46202,United States
+1534,Expense,,THE WORTHINGTON COMPANY,TRUE,THE WORTHINGTON COMPANY,140 South College Avenue,,Indianapolis,IN,46202,United States
+1591,Expense,,ECO FULFILLMENT LLC,TRUE,ECO FULFILLMENT LLC,3951 N Meridian Street,Suite 100,Indianapolis,IN,46208,United States
+1536,Expense,,SPOT FREIGHT INC,TRUE,SPOT FREIGHT INC,141 SOUTH MERIDIAN STREET,Ste 200,Indianapolis,IN,46225,United States
+1537,"Supplier,Expense",,GREEN PLUS PLASTICS,TRUE,GREEN PLUS PLASTICS,"3131 N Franklin Road, Suite L",,Indianapolis,IN,46226,United States
+1458,"Customer,Expense",,FAITH RECYCLING SERVICES LLC,TRUE,FAITH RECYCLING SERVICES LLC,6520 Southern Cross Dr.,,Indianapolis,IN,46237,United States
+2173,Customer,,FLOBOTICS LLC,TRUE,FLOBOTICS LLC,8048 Howard Ave,,Munster,IN,46321,United States
+1575,"Customer,Supplier,Expense",,JJS RECYCLING FACTORY LLC,TRUE,JJS RECYCLING FACTORY LLC,625 Conkey Street,,Hammond,IN,46324,United States
+2625,"Supplier,Expense",,EVA RECYCLING,TRUE,EVA RECYCLING,16585 White Oak Ave.,,Lowell,IN,46356,United States
+1808,"Customer,Supplier,Expense",Tiffany White,TELFER INC,TRUE,TELFER INC,219 Wexford Road,,Valparaiso,IN,46385,United States
+2039,"Customer,Supplier,Expense",Arthur Buyanovskiy,COLLINS PALLET RECYCLING,TRUE,COLLINS PALLET RECYCLING,1584 Blaine St,,Gary,IN,46406,United States
+2137,"Customer,Supplier,Expense",,CT POLYMERS,TRUE,CT POLYMERS,12340 Elm Rd,,Bourbon,IN,46504,United States
+2083,"Customer,Expense",Arthur Buyanovskiy,BD CUSTOM MANUFACTURING,TRUE,BD CUSTOM MANUFACTURING,1100 Bloomingdale Drive,,Bristol,IN,46507,United States
+2087,"Customer,Expense",Arthur Buyanovskiy,BD CUSTOM MANUFACTURING INC,TRUE,BD CUSTOM MANUFACTURING INC,1100 BLOOMINGDALE DRIVE,,BRISTOL,IN,46507,United States
+1877,"Customer,Supplier,Expense",Tiffany White,TRI-POWER RECYCLING LLC,TRUE,TRI-POWER RECYCLING LLC,1240 Anderson Street,,Elkhart,IN,46514,United States
+1987,Supplier,Tiffany White,PATRICK INDUSTRIES INC,TRUE,PATRICK INDUSTRIES INC,107 W. Franklin St.,P.O. Box 638,Elkhart,IN,46515,United States
+1538,Supplier,,NATURE'S WOOD PRODUCTS LLC,TRUE,NATURE'S WOOD PRODUCTS LLC,123 County Road 17,,Elkhart,IN,46516,United States
+1690,"Supplier,Expense",Tiffany White,RE-GEN INC,TRUE,RE-GEN INC,221 Hwy 20 C,,Middlebury,IN,46540,United States
+1691,"Customer,Expense",Tiffany White,CJ POLY,TRUE,CJ POLY,911 Markley,,Plymouth,IN,46563,United States
+2569,"Customer,Expense",Igor Beylin,LA POLY INC,TRUE,LA POLY INC,PO Box 1128,,Plymouth,IN,46563,United States
+1761,"Customer,Expense",Tiffany White,US GRANULES CORPORATION,TRUE,US GRANULES CORPORATION,P.O. Box 130,,Plymouth,IN,46563,United States
+2270,Expense,,TRANZSTAR,TRUE,TRANZSTAR,Po Box 1747,1406 W Winona Ave,Warsaw,IN,46580,United States
+2518,"Customer,Supplier,Expense",Arthur Buyanovskiy,ALTERNATE SOURCE RECYCLING,TRUE,ALTERNATE SOURCE RECYCLING,107 W. Monroe St,,South Bend,IN,46601,United States
+2086,"Customer,Supplier,Expense",,HARRIS MATERIAL EXCHANGE INC,TRUE,HARRIS MATERIAL EXCHANGE INC,590 West 500 South,,Berne,IN,46711,United States
+1604,Expense,,DAMIRON TRANSPORTATION SERVICES INC,TRUE,DAMIRON TRANSPORTATION SERVICES INC,PO Box 707,,Fremont,IN,46737,United States
+2046,"Customer,Supplier,Expense",Arthur Buyanovskiy,OMNISOURCE ELECTRONICS RECYCLING,TRUE,OMNISOURCE ELECTRONICS RECYCLING,219 Murray St.,,Fort Wayne,IN,46803,United States
+2157,"Supplier,Expense",Tiffany White,RECYCLING RECOVERY,TRUE,RECYCLING RECOVERY,291 N Broadway,,Peru,IN,46970,United States
+2278,"Customer,Supplier,Expense",Tiffany White,WALKER RECYCLING INC,TRUE,WALKER RECYCLING INC,501 E Market St,,Salem,IN,47167,United States
+2184,"Supplier,Expense",Tiffany White,EAST CENTRAL RECYCLING,TRUE,EAST CENTRAL RECYCLING,701 East Centennial Avenue,,Muncie,IN,47303,United States
+1455,"Customer,Supplier,Expense",,PETOSKEY PLASTICS,TRUE,PETOSKEY PLASTICS,1100 West Grant St,,Hartford City,IN,47348,United States
+1824,"Customer,Expense",Igor Beylin,DAK Americas LLC - Richmond,TRUE,DAK Americas LLC - Richmond,1561 N.W. 11th St,,Richmond,IN,47374,United States
+1505,"Customer,Supplier,Expense",,EAST TERRA PLASTIC RECYCLING,TRUE,EAST TERRA PLASTIC RECYCLING,9511 W Depot St,,Yorktown,IN,47396,United States
+2064,"Supplier,Expense",Arthur Buyanovskiy,BEDFORD RECYCLING,TRUE,BEDFORD RECYCLING,904 Summit Lane,,Bedford,IN,47421,United States
+2311,"Supplier,Expense",Ricardo Pereira,GREENE COUNTY PALLETS INC,TRUE,GREENE COUNTY PALLETS INC,6268 E State Road 54,,Bloomfield,IN,47424,United States
+1783,"Supplier,Expense",Tiffany White,UNIVERSAL PACKAGE LLC,TRUE,UNIVERSAL PACKAGE LLC,4360 E 2150 N,PO Box 88,Dale,IN,47523,United States
+1852,"Supplier,Expense",,JASPER SALVAGE,TRUE,JASPER SALVAGE,610 Clay St,,Jasper,IN,47546,United States
+1450,"Supplier,Expense",Tiffany White,MARTIN COUNTY RECYCLING,TRUE,MARTIN COUNTY RECYCLING,500 Industrial Park Drive,PO Box 343,Loogootee,IN,47553,United States
+1944,"Supplier,Expense",Lindsey Malyavko,WARRICK COUNTY SWMD,TRUE,WARRICK COUNTY SWMD,1111 S. Pelzer Road,,Boonville,IN,47601,United States
+1800,"Customer,Supplier,Expense",Tiffany White,POSEY COUNTY SWD,TRUE,POSEY COUNTY SWD,Posey County SWD,P.O. Box 248,Mount Vernon,IN,47620,United States
+2594,"Supplier,Expense",Mack McMurray,BERRY GLOBAL INC,TRUE,BERRY GLOBAL INC,101 Oakley St,,Evansville,IN,47710,United States
+1653,"Customer,Supplier,Expense",,INDIANA CARDINAL INC,TRUE,INDIANA CARDINAL INC,605 W Eichel Ave,,Evansville,IN,47710,United States
+2058,Customer,Arthur Buyanovskiy,TRIVALENCE,TRUE,TRIVALENCE,3290 Claremont Avenue,,Evansville,IN,47712,United States
+2588,"Customer,Expense",,CROSSPOINT POLYMER TECHNOLOGIES LLC,TRUE,CROSSPOINT POLYMER TECHNOLOGIES LLC,2301 Saint Joseph Ind Park Dr,,Evansville,IN,47720,United States
+2176,"Customer,Supplier,Expense",Tiffany White,VERDECO RECYCLING INC,TRUE,VERDECO RECYCLING INC,10535 James Adams St,,Terre Haute,IN,47802,United States
+1894,"Supplier,Expense",Arthur Buyanovskiy,POLYONE CORPORATION,TRUE,POLYONE CORPORATION,3100 North 35th Street,,Terre Haute,IN,47804,United States
+2463,"Customer,Expense",,D&K ENTERPRISES,TRUE,D&K ENTERPRISES,2437 N Section St,,Sullivan,IN,47882,United States
+1503,"Supplier,Expense",Tiffany White,W ENTERPRISES LLC,TRUE,W ENTERPRISES LLC,P.O. Box 602,,Crawfordsville,IN,47933,United States
+1429,"Supplier,Expense",Arthur Buyanovskiy,TRANSFER SYSTEMS & WAREHOUSING,TRUE,TRANSFER SYSTEMS & WAREHOUSING,2002 W County Rd 0 North South,,"Frankfort,",IN,46041-1102,United States
+1417,"Customer,Supplier,Expense",Tiffany White,RECYCLING WORKS INC,TRUE,RECYCLING WORKS INC,P.O. Box 1492,605 Mason Street,Elkhart,IN,46515-1492,United States
+1999,"Supplier,Expense",Arthur Buyanovskiy,A-1 PALLET CO,TRUE,A-1 PALLET CO,PO Box 2366,,Clarksville,IN,47131-2366,United States
+1408,Supplier,,MR&C SERVICES,TRUE,MR&C SERVICES,11738 W US Highway 24,,Wolcott,IN,47995-8266,United States
+1554,Expense,,DYNAMIC LOGISTIX LLC,TRUE,DYNAMIC LOGISTIX LLC,7220 W. 98TH Terrace,,Overland Park,KS,66212,United States
+1955,"Customer,Supplier,Expense",Tiffany White,POLYMER RECYCLING AND CONSULTING,TRUE,POLYMER RECYCLING AND CONSULTING,1715 East 10th,,Winfield,KS,67156,United States
+2202,"Supplier,Expense",Igor Beylin,SUCHY METAL & RECYCLING,TRUE,SUCHY METAL & RECYCLING,180 E Amy Ave,,Russell,KS,67665,United States
+1651,"Supplier,Expense",Tiffany White,COOK PAPER RECYCLING,TRUE,COOK PAPER RECYCLING,6901 Shawnee Mission Parkway,Suite 116,Overland Park,KS,66202-4004,United States
+2095,Supplier,Tiffany White,DOWNEY & SONS PALLET CO,TRUE,DOWNEY & SONS PALLET CO,500 Bloomfield Rd,,Springfield,KY,40069,United States
+2106,"Customer,Supplier,Expense",Arthur Buyanovskiy,JEI INC,TRUE,JEI INC,1876 Custer Roberts Hollow Ln,,Custer,KY,40115,United States
+1818,"Customer,Expense",,GLOBAL POLYMERS LLC,TRUE,GLOBAL POLYMERS LLC,PO BOX 6745,,Louisville,KY,40206,United States
+2211,"Supplier,Expense",Tiffany White,LASTIQUE INTERNATIONAL CORPORATION,TRUE,LASTIQUE INTERNATIONAL CORPORATION,8331 Cane Run Road,,Louisville,KY,40258,United States
+1735,"Supplier,Expense",Arthur Akopyan,DIAMOND FOREST RESOURCES,TRUE,DIAMOND FOREST RESOURCES,PO Box 788,,Morehead,KY,40351,United States
+1556,Customer,,CHAMPION POLYMER RECYCLING,TRUE,CHAMPION POLYMER RECYCLING,2600 Corporate Drive,,Winchester,KY,40391,United States
+2379,"Supplier,Expense",Ricardo Pereira,INFILTRATOR WATER TECHNOLOGIES,TRUE,INFILTRATOR WATER TECHNOLOGIES,2600 Corporate Drive,,Winchester,KY,40391,United States
+2376,"Supplier,Expense",,STUFF RECYCLING,TRUE,STUFF RECYCLING,6169 Lexington Road,,Winchester,KY,40391,United States
+1937,"Customer,Supplier,Expense",Tiffany White,KENTUCKY RECYCLING,TRUE,KENTUCKY RECYCLING,114 Quality Drive,,Richmond,KY,40475,United States
+1525,"Supplier,Expense",Arthur Buyanovskiy,PROGRESSIVE RECYCLING SOLUTIONS,TRUE,PROGRESSIVE RECYCLING SOLUTIONS,112 Quality Drive,,Richmond,KY,40475,United States
+2032,Expense,,AKT LOGISTICS LLC,TRUE,AKT LOGISTICS LLC,PO Box 2166,,Richmond,KY,40476,United States
+1307,Supplier,Tiffany White,MONTGOMERY RECYCLING,TRUE,MONTGOMERY RECYCLING,3544 Rabbits Foot Trail,,Lexington,KY,40503,United States
+2624,"Supplier,Expense",Tiffany White,WASTE PRO RECYCLING,TRUE,WASTE PRO RECYCLING,3544 Rabbits Foot Trail,,Lexington,KY,40503,United States
+2374,Expense,,SAXON KOGER,TRUE,SAXON KOGER,4329 Crescent Springs Ct,,Lexington,KY,40515,United States
+2361,"Supplier,Expense",Igor Beylin,CEDAR RIDGE MINISTRIES RECYCLING,TRUE,CEDAR RIDGE MINISTRIES RECYCLING,537 South 10th St,,Williamsburg,KY,40769,United States
+1889,"Supplier,Expense",,BELL COUNTY RECYCLING CTR,TRUE,BELL COUNTY RECYCLING CTR,55 Highway 1534,,Pineville,KY,40977,United States
+2160,"Supplier,Expense",Lindsey Malyavko,NAPIER PALLET INC,TRUE,NAPIER PALLET INC,103 South St,,Butler,KY,41006,United States
+2403,"Supplier,Expense",Mack McMurray,RANDY'S RECYCLING,TRUE,RANDY'S RECYCLING,87 Hwy 3016,,Cynthiana,KY,41031,United States
+1966,"Supplier,Expense",Tiffany White,FRANKLIN PALLET RECYCLING,TRUE,FRANKLIN PALLET RECYCLING,116 Ogles Ave,,Franklin,KY,42134,United States
+1124,"Customer,Supplier",,SOMERSET RECYCLING SERVICES LLC,TRUE,SOMERSET RECYCLING SERVICES LLC,PO Box 1348,,Somerset,KY,42502,United States
+2436,"Customer,Expense",,THE CUMBERLAND GROUP LLC,TRUE,THE CUMBERLAND GROUP LLC,770 Barnesburg Road,,Somerset,KY,42503,United States
+2363,"Supplier,Expense",Arthur Buyanovskiy,TOYOTETSU AMERICA INC,TRUE,TOYOTETSU AMERICA INC,100 Pin Oak Drive,,Somerset,KY,42503,United States
+1980,"Supplier,Expense",Tiffany White,KENTUCKY SOUTH RECYCLING,TRUE,KENTUCKY SOUTH RECYCLING,P.O. Box 40,,Eubank,KY,42567,United States
+2360,"Customer,Supplier,Expense",Igor Beylin,CUMBERLAND COUNTY RECYCLING CENTER,TRUE,CUMBERLAND COUNTY RECYCLING CENTER,1805 South Main Street,,Burkesville,KY,42717,United States
+1932,"Supplier,Expense",Tiffany White,HEARTLAND RECYCLERS LLC,TRUE,HEARTLAND RECYCLERS LLC,307 W White Oak Street,,Leitchfield,KY,42754,United States
+1876,"Supplier,Expense",Igor Beylin,A TO Z PAWN,TRUE,A TO Z PAWN,121 W White Oak St,,Leitchfield,KY,,United States
+2022,"Customer,Supplier",,INTEGRICO COMPOSITES,TRUE,INTEGRICO COMPOSITES,108 Inducto Way,,Sarepta,LA,71071,United States
+2187,"Supplier,Expense",Ricardo Pereira,MARCK INDUSTRIES INC (LA),TRUE,MARCK INDUSTRIES INC (LA),1500 Arkansas Ave,,Monroe,LA,71201,United States
+1580,Customer,,ASTRO INDUSTRIES INC,TRUE,ASTRO INDUSTRIES INC,901 Industrial Parkway,,West Monroe,LA,71291,United States
+2352,"Customer,Expense",,DIXIE PLASTICS INC,TRUE,DIXIE PLASTICS INC,479 FIDDLERS CREEK DR,,WEST MONROE,LA,71291,United States
+2592,Supplier,Igor Beylin,BONNETTE AUCTION COMPANY,TRUE,BONNETTE AUCTION COMPANY,3804 McKeithen Drive,,Alexandria,LA,71303,United States
+1977,Supplier,Igor Beylin,LTI SMARTGLASS,TRUE,LTI SMARTGLASS,14 Federico Dr,,Pittsfield,MA,1201,United States
+1811,"Customer,Expense",,AARON INDUSTRIES CORP,TRUE,AARON INDUSTRIES CORP,20 Mohawk Drive,PO Box 607,Leominster,MA,1453,United States
+1965,"Customer,Supplier,Expense",Ricardo Pereira,DRS RECYCLING,TRUE,DRS RECYCLING,563 Lancaster St,,Leominster,MA,1453,United States
+1809,"Supplier,Expense",Ricardo Pereira,TOWN OF BLACKSTONE,TRUE,TOWN OF BLACKSTONE,15 St. Paul St.,,Blackstone,MA,1504,United States
+1339,Supplier,Ricardo Pereira,CONIGLIARO INDUSTRIES,TRUE,CONIGLIARO INDUSTRIES,701 Waverley Place,,Framingham,MA,1702,United States
+1367,Supplier,Ricardo Pereira,RHB REMOVAL,TRUE,RHB REMOVAL,53 Jionzo Rd.,,Milford,MA,1757,United States
+1360,"Supplier,Expense",Ricardo Pereira,OPR SYSTEMS INC,TRUE,OPR SYSTEMS INC,235 Andover St.,,Wilmington,MA,1887,United States
+1995,Supplier,Ricardo Pereira,DYNAMIC WASTE SYSTEMS INC,TRUE,DYNAMIC WASTE SYSTEMS INC,PO Box 346,,Essex,MA,1929,United States
+2049,Supplier,Ricardo Pereira,GREEN WORKS INC,TRUE,GREEN WORKS INC,109-111 Newbury Street,,Peabody,MA,1960,United States
+1949,"Customer,Expense",,POLYCHEM USA INC,TRUE,POLYCHEM USA INC,132 Central St,,Foxboro,MA,2035,United States
+1715,"Supplier,Expense",Ricardo Pereira,MILLER RECYCLING CORPORATION,TRUE,MILLER RECYCLING CORPORATION,73 Plymouth street,,Mansfield,MA,2048,United States
+2175,"Supplier,Expense",Igor Beylin,USER FRIENDLY RECYCLING LLC,TRUE,USER FRIENDLY RECYCLING LLC,PO Box 631,,Stoughton,MA,2072,United States
+2216,"Supplier,Expense",Ricardo Pereira,YORKSHIRE RECYCLING,TRUE,YORKSHIRE RECYCLING,1723 Washington Street,UNIT 312,Boston,MA,2118,United States
+2307,"Supplier,Expense",Ricardo Pereira,CAPITAL PAPER RECYCLING,TRUE,CAPITAL PAPER RECYCLING,530 West Street,Suite Number 3,Braintree,MA,2184,United States
+1708,"Supplier,Expense",Ricardo Pereira,JS PALLET COMPANY,TRUE,JS PALLET COMPANY,PO Box 52445,,Boston,MA,2205,United States
+1359,"Supplier,Expense",Ricardo Pereira,WIN WASTE INNOVATIVE,TRUE,WIN WASTE INNOVATIVE,PO Box 844823,,Boston,MA,2284,United States
+1817,"Supplier,Expense",Ricardo Pereira,3R RECYCLING INC,TRUE,3R RECYCLING INC,13 Robbie Road,,Avon,MA,2322,United States
+2508,"Supplier,Expense",Igor Beylin,DCL,TRUE,DCL,85 Bodwell St,,Avon,MA,2322,United States
+1838,"Customer,Supplier,Expense",,AMS PALLET SYSTEMS,TRUE,AMS PALLET SYSTEMS,2 Kleen Way,,Holbrook,MA,2343,United States
+1684,"Supplier,Expense",Ricardo Pereira,PROGRESS PALLET INC,TRUE,PROGRESS PALLET INC,98 West Grove St,,Middleboro,MA,2346,United States
+1126,"Customer,Supplier",,ALA RECYCLING INDUSTRIES,TRUE,ALA RECYCLING INDUSTRIES,1575 Beacon Street,Suite 3F,Brookline,MA,2446,United States
+1622,"Supplier,Expense",Ricardo Pereira,TOWN OF WELLESLEY RDF,TRUE,TOWN OF WELLESLEY RDF,169 Great Plain Ave,,Wellesley,MA,2482,United States
+1378,Supplier,Ricardo Pereira,YORKSHIRE PAPER CORP,TRUE,YORKSHIRE PAPER CORP,12 Pond View Drive,P.O. Box 3607,Nantucket,MA,2584,United States
+1634,"Supplier,Expense",Ricardo Pereira,PF TRADING,TRUE,PF TRADING,104 Braley Road,,East Freetown,MA,2717,United States
+2172,"Supplier,Expense",Ricardo Pereira,PARALLEL PRODUCTS,TRUE,PARALLEL PRODUCTS,100 Duchaine Blvd,,New Bedford,MA,2745,United States
+2310,"Supplier,Expense",Ricardo Pereira,NEW ENGLAND RECYCLING,TRUE,NEW ENGLAND RECYCLING,490 Winthrop Street,,Tauton,MA,2780,United States
+1336,Supplier,Ricardo Pereira,CITY CARTING & RECYCLING,TRUE,CITY CARTING & RECYCLING,P.O. Box 412574,,Boston,MA,6907,United States
+1343,"Customer,Supplier",Ricardo Pereira,EL HARVEY & SONS,TRUE,EL HARVEY & SONS,68 Hopkinton Rd Route 135,,Westboro,MA,01581-2126,United States
+1362,Supplier,Ricardo Pereira,PAWTUCKET RECYCLING ASSOC,TRUE,PAWTUCKET RECYCLING ASSOC,DBA United Paper Stock,P O Box 415780,Boston,MA,02241-5780,United States
+2405,"Supplier,Expense",,SAVE THAT STUFF INC,TRUE,SAVE THAT STUFF INC,PO Box 849510,,Boston,MA,02284-9510,United States
+2332,"Customer,Supplier,Expense",Igor Beylin,GEORGETOWN PAPER STOCK,TRUE,GEORGETOWN PAPER STOCK,14820 Southlawn Ln,,Rockville,MD,20850,United States
+2532,"Supplier,Expense",Igor Beylin,USALLIANCE TRADE GROUP LLC,TRUE,USALLIANCE TRADE GROUP LLC,8639-B 16th Street,Suite 256,Silver Spring,MD,20910,United States
+1561,Customer,,ARUNDEL RECYCLING CENTER,TRUE,ARUNDEL RECYCLING CENTER,7515 Connelley Dr,,Hanover,MD,21076,United States
+2530,"Supplier,Expense",Igor Beylin,DTLR,TRUE,DTLR,1300 Mercedes Drive,,Hanover,MD,21076,United States
+2603,"Supplier,Expense",Igor Beylin,FAIRWAY PACKAGING,TRUE,FAIRWAY PACKAGING,354 Old Bay Lane,,Havre de Grace,MD,21078,United States
+1577,"Customer,Supplier,Expense",,CHESAPEAKE MATERIALS SERVICES LLC,TRUE,CHESAPEAKE MATERIALS SERVICES LLC,1157 Mayo Road,Suite 310,Mayo,MD,21106,United States
+1905,"Customer,Supplier,Expense",Arthur Akopyan,EASTERN RECYCLING SERVICES,TRUE,EASTERN RECYCLING SERVICES,7616 Canton Center Drive,,Baltimore,MD,21224,United States
+2140,"Supplier,Expense",Ricardo Pereira,VALLEYWOOD INDUSTRIES INC,TRUE,VALLEYWOOD INDUSTRIES INC,6500 Landay Ave,,Baltimore,MD,21237,United States
+1132,"Customer,Supplier",Igor Beylin,RMR CENTRAL CAROLINA LLC,TRUE,RMR CENTRAL CAROLINA LLC,PO Box 69126,,Baltimore,MD,21264,United States
+2129,"Customer,Supplier,Expense",,3L DISTRIBUTION,TRUE,3L DISTRIBUTION,PO Box 3102,,Annapolis,MD,21403,United States
+1553,Expense,,CHOPTANK TRANSPORT INC,TRUE,CHOPTANK TRANSPORT INC,PO Box 99,,Preston,MD,21655,United States
+2394,"Supplier,Expense",Arthur Buyanovskiy,DUFFY BOX & RECYCLING INC,TRUE,DUFFY BOX & RECYCLING INC,2931 Francis Scott Key Hwy,,Taneytown,MD,21787,United States
+2171,"Customer,Supplier,Expense",Igor Beylin,GOLDEN BEAR RECYCLING LLC,TRUE,GOLDEN BEAR RECYCLING LLC,PO Box 113,,"Williamsport,",MD,21795,United States
+1857,"Supplier,Expense",Arthur Akopyan,VANGEL PAPER INC,TRUE,VANGEL PAPER INC,3020 Nieman Avenue,,Baltimore,MD,,United States
+1184,Expense,,TRINITY LOGISTICS,TRUE,TRINITY LOGISTICS,PO Box 62702,,Baltimore,MD,21264-2702,United States
+1259,Supplier,Arthur Akopyan,RETURNABLE SERVICES,TRUE,RETURNABLE SERVICES,150 Mount Vernon Ave,,Augusta,ME,4330,United States
+2638,"Supplier,Expense",Igor Beylin,TRUE NORTH SEAFOOD,TRUE,TRUE NORTH SEAFOOD,PO Box 991,,Calais,ME,4619,United States
+1831,"Supplier,Expense",Ricardo Pereira,PALOGIX SUPPLY CHAIN SERVICES LLC,TRUE,PALOGIX SUPPLY CHAIN SERVICES LLC,19176 Hall Road Suite 125,,Clinton Township,MI,48038,United States
+1223,Supplier,Arthur Akopyan,GREAT LAKES RECYCLING,TRUE,GREAT LAKES RECYCLING,30835 Groesbeck Hwy.,,Roseville,MI,48066,United States
+1953,"Supplier,Expense",Lindsey Malyavko,GFL ENVIRONMENTAL INC,TRUE,GFL ENVIRONMENTAL INC,414 E Hudson Ave,,Romulus,MI,48067,United States
+1489,Expense,,G & F TRUCKING INC,TRUE,G & F TRUCKING INC,10481 TIREMAN ST,,DEARBORN,MI,48126,United States
+1287,"Customer,Supplier",,AMERICAN DISMANTLER,TRUE,AMERICAN DISMANTLER,1791 Bellevue Street,,Detroit,MI,48207,United States
+1539,Customer,,ELCO VENTURES LLC,TRUE,ELCO VENTURES LLC,1213 Bellevue Street,,Detroit,MI,48207,United States
+2287,"Supplier,Expense",Igor Beylin,HAMTRAMCK RECYCLING,TRUE,HAMTRAMCK RECYCLING,3333 Hamtramck Drive,,Hamtramck,MI,48211,United States
+1629,Expense,,MATSON LOGISTICS SERVICES LLC,TRUE,MATSON LOGISTICS SERVICES LLC,PO Box 78000,Dept. 781413,Detroit,MI,48278,United States
+2205,"Customer,Supplier,Expense",Igor Beylin,INTEGRITY RECYCLING,TRUE,INTEGRITY RECYCLING,909 Bloomfield Knoll Drive,,Bloomfield Hills,MI,48304,United States
+1573,"Customer,Supplier,Expense",Arthur Akopyan,METRO REYCLING SOLUTIONS,TRUE,METRO REYCLING SOLUTIONS,1912 Sherwood,,Sylvan Lake,MI,48320,United States
+2312,"Supplier,Expense",Igor Beylin,PLASTICS PLUS,TRUE,PLASTICS PLUS,4200 N. Atlantic Blvd,,Auburns Hills,MI,48326,United States
+1111,"Customer,Supplier,Expense",,GENERAL MILL SUPPLY CO INC,TRUE,GENERAL MILL SUPPLY CO INC,50690 General Mill Drive,,Wixom,MI,48393,United States
+1750,Customer,,ACI PLASTICS WEST,TRUE,ACI PLASTICS WEST,2945 Davison Road,,Flint,MI,48506,United States
+1819,"Customer,Expense",,VANTAGE PLASTICS,TRUE,VANTAGE PLASTICS,1415 W Cedar St,,Standish,MI,48658,United States
+1286,"Customer,Supplier,Expense",Arthur Buyanovskiy,AJ'S RECYCLING SERVICES,TRUE,AJ'S RECYCLING SERVICES,3111 East Kilgore Road,,Kalamazoo,MI,49001,United States
+1923,"Customer,Supplier",,SCHUPAN RECYCLING,TRUE,SCHUPAN RECYCLING,2225 Glendenning Road,,Kalamazoo,MI,49001,United States
+1128,"Customer,Supplier",,FRANKLIN PLASTICS,TRUE,FRANKLIN PLASTICS,120 South Avenue,,Battle Creek,MI,49014,United States
+2392,"Supplier,Expense",Igor Beylin,BIZ AID LLC RECYCLING,TRUE,BIZ AID LLC RECYCLING,127 Industrial Ave.,,Coldwater,MI,49036,United States
+1885,"Customer,Supplier,Expense",Tiffany White,FRYMAN'S RECYCLING,TRUE,FRYMAN'S RECYCLING,300 E. Railroad St.,,Dowagiac,MI,49047,United States
+2413,"Supplier,Expense",Arthur Buyanovskiy,TILE SHOP DISTRIBUTION CENTER,TRUE,TILE SHOP DISTRIBUTION CENTER,8515 Brown St.,,Ottawa Lake,MI,49267,United States
+2631,"Supplier,Expense",,EXPORT HANDLING SERVICES,TRUE,EXPORT HANDLING SERVICES,11467 40th Ave,,Allendale,MI,49401,United States
+2059,"Customer,Supplier,Expense",Arthur Buyanovskiy,D&J'S SERVICES LLC,TRUE,D&J'S SERVICES LLC,2322 Edson Drive,,Hudsonville,MI,49426,United States
+2269,"Supplier,Expense",Tiffany White,NORTHLAND FARMS,TRUE,NORTHLAND FARMS,11161-120th Ave,,West Olive,MI,49460,United States
+2384,"Supplier,Expense",Igor Beylin,W AND W MATERIALS SUPPLY,TRUE,W AND W MATERIALS SUPPLY,1325 Edna St SE,,Grand Rapids,MI,49507,United States
+1231,Supplier,Arthur Akopyan,LINCOLN NURSERIES,TRUE,LINCOLN NURSERIES,0-142 LINCOLN ST NW,,GRAND RAPIDS,MI,49534,United States
+1108,"Customer,Supplier",,EAST JORDAN PLASTICS INC,TRUE,EAST JORDAN PLASTICS INC,PO Box 575,,East Jordan,MI,49727,United States
+2101,"Customer,Supplier,Expense",Lindsey Malyavko,NORTHERN TRANSITIONS,TRUE,NORTHERN TRANSITIONS,1401 W.  Easterday Avenue,,Sault Ste. Marie,MI,49783,United States
+2206,"Supplier,Expense",Ricardo Pereira,LAKESTATE INDUSTRIES,TRUE,LAKESTATE INDUSTRIES,5701 19th Ave N,,Escanaba,MI,49829,United States
+2076,"Customer,Supplier",Arthur Buyanovskiy,KAMPS INC,TRUE,KAMPS INC,PO BOX 675126,,Detroit,MI,48267-5126,United States
+2189,"Supplier,Expense",Igor Beylin,W & W MATERIALS SUPPLY INC,TRUE,W & W MATERIALS SUPPLY INC,6833 Wildermere Dr NE,,Rockford,MI,49341-8597,United States
+2012,Supplier,Igor Beylin,RECYCLING CONCEPTS INC,TRUE,RECYCLING CONCEPTS INC,5015 52nd St.,,Grand Rapids,MI,49512-9638,United States
+2252,"Customer,Supplier,Expense",Tiffany White,MIDWEST PRODUCT RECOVERY,TRUE,MIDWEST PRODUCT RECOVERY,23014 3rd Str Ne,,East Bethel,MN,55005,United States
+1821,"Customer,Supplier,Expense",Tiffany White,TWIN CITY PALLET INC,TRUE,TWIN CITY PALLET INC,12181 Margo Ave South,,Hastings,MN,55033,United States
+2429,"Customer,Supplier,Expense",Arthur Buyanovskiy,GRUBER PALLETS INC,TRUE,GRUBER PALLETS INC,11490 Hudson Blvd,,Lake Elmo,MN,55042,United States
+1189,Expense,,FREIGHTWAYS CORP,TRUE,FREIGHTWAYS CORP,2785 Fairview Ave N.,,Roseville,MN,55112,United States
+1442,Expense,,KTI INC,TRUE,KTI INC,10301 Wayzata Blvd,,Minnetonka,MN,55305,United States
+1829,"Supplier,Expense",,RANDY'S ENVIRONMENTAL SERVICES,TRUE,RANDY'S ENVIRONMENTAL SERVICES,PO Box 169,,Delano,MN,55328,United States
+2117,"Customer,Expense",,RECYCLE CORP,TRUE,RECYCLE CORP,15300 Minnetonka Industrial Road,,Minnetonnka,MN,55345,United States
+2040,"Supplier,Expense",Arthur Buyanovskiy,WEBB PALLET SERVICE,TRUE,WEBB PALLET SERVICE,16640 Jordan Ave,,Jordan,MN,55352,United States
+1948,"Customer,Expense",,CHOICE PLASTICS INC,TRUE,CHOICE PLASTICS INC,5338 Shoreline Dr,,Mound,MN,55364,United States
+1413,Supplier,Lindsey Malyavko,PIONEER PAPERSTOCK,TRUE,PIONEER PAPERSTOCK,155 Irving Avenue North,,Minneapolis,MN,55405,United States
+1603,"Supplier,Expense",,HOM FURNITURE INC,TRUE,HOM FURNITURE INC,10301 Woodcrest Dr NW,,Coon Rapids,MN,55433,United States
+2466,"Supplier,Expense",Igor Beylin,ROHN INDUSTRIES,TRUE,ROHN INDUSTRIES,6301 Old Shakopee Rd,,Bloomington,MN,55438,United States
+1681,"Customer,Expense",,VIDA CORPORATION,TRUE,VIDA CORPORATION,9655 Schmidt Lake Rd,Suite 300,Plymouth,MN,55442,United States
+1492,"Supplier,Expense",,TRIDENT POLYMERS,TRUE,TRIDENT POLYMERS,14700 28th Avenue North #35,,Plymouth,MN,55447,United States
+1515,"Customer,Supplier,Expense",Arthur Buyanovskiy,PALLET RESOURCE,TRUE,PALLET RESOURCE,3371 99th Court NE,,Blaine,MN,55449,United States
+2409,"Supplier,Expense",,RISE BUILDING PRODUCTS,TRUE,RISE BUILDING PRODUCTS,241 Mohr Dr,,Mankato,MN,56001,United States
+1862,"Supplier,Expense",,I-90 REPROCESSING LLC,TRUE,I-90 REPROCESSING LLC,24104 755th Ave,,Albert Lea,MN,56007,United States
+1954,Customer,,BEDFORD TECHNOLOGY LLC,TRUE,BEDFORD TECHNOLOGY LLC,2424 Armour Rd,PO Box 609,Worthington,MN,56187,United States
+1844,"Customer,Supplier,Expense",Arthur Buyanovskiy,PYTHONS OF ST CLOUD INC,TRUE,PYTHONS OF ST CLOUD INC,PO BOX 6175,,St Cloud,MN,56302,United States
+2192,"Customer,Supplier,Expense",Tiffany White,CUTTING EDGE GRINDING INC,TRUE,CUTTING EDGE GRINDING INC,608 13th Ave NW,,Little Falls,MN,56345,United States
+2385,"Supplier,Expense",Arthur Buyanovskiy,CENTRAL CONVERTING,TRUE,CENTRAL CONVERTING,PO Box 324,,Riverton,MN,56455,United States
+1895,"Supplier,Expense",,POLK COUNTY SOLID WASTE RECOVERY MRF,TRUE,POLK COUNTY SOLID WASTE RECOVERY MRF,708 8th St. NW,,Fosston,MN,56542,United States
+2451,"Supplier,Expense",Igor Beylin,TARACON,TRUE,TARACON,6189 170th. Street North,,Hawley,MN,56549,United States
+1914,"Customer,Supplier",Igor Beylin,NORTHLAND PALLET INC,TRUE,NORTHLAND PALLET INC,13285 Fenway Blvd N,,Hugo,MN,55038-7453,United States
+1153,Expense,,CH ROBINSON,TRUE,CH ROBINSON,P.O. Box 9121,,Minneapolis,MN,55480-9121,United States
+2424,"Customer,Supplier,Expense",Arthur Buyanovskiy,JAMPLAST INC,TRUE,JAMPLAST INC,281 CLARKSON ROAD,SUITE 102,ELLISVILLE,MO,63011,United States
+2523,"Customer,Supplier,Expense",Igor Beylin,CABKA NORTH AMERICA INC,TRUE,CABKA NORTH AMERICA INC,123 Byassee Drive,,Hazelwood,MO,63042,United States
+1753,"Supplier,Expense",Igor Beylin,PALLET LOGISTICS MANAGEMENT INC,TRUE,PALLET LOGISTICS MANAGEMENT INC,7100 Hazelwood Ave,,Hazelwood,MO,63042,United States
+2560,"Supplier,Expense",Ricardo Pereira,SOUTHWEST PALLETS,TRUE,SOUTHWEST PALLETS,1822 Cherry Ave,,Hillsdale,MO,63121,United States
+2580,"Supplier,Expense",Igor Beylin,INNOVATIVE CLAIMS SERVICE,TRUE,INNOVATIVE CLAIMS SERVICE,2510 S Brentwood Blvd,Ste 315,St Louis,MO,63144,United States
+1407,Supplier,,MISSOURI PLASTICS,TRUE,MISSOURI PLASTICS,4751 State Highway Y,,Jackson,MO,63755,United States
+1188,Expense,,FREIGHTQUOTECOM,TRUE,FREIGHTQUOTECOM,901 Carondelet Ave,,Kansas City,MO,64114,United States
+1381,Supplier,,BATLINER PAPER STOCK CO,TRUE,BATLINER PAPER STOCK CO,2501 Front Street,,Kansas City,MO,64119,United States
+1496,Expense,,ROLL ON TRANSPORTATION,TRUE,ROLL ON TRANSPORTATION,PO Box 12061,,Parkville,MO,64152,United States
+2459,"Customer,Supplier,Expense",Igor Beylin,FROZEN DESSERT SUPPLIES,TRUE,FROZEN DESSERT SUPPLIES,802 N 41st,,Bethany,MO,64424,United States
+2019,Supplier,Tiffany White,BIRCH RECYCLING,TRUE,BIRCH RECYCLING,18822 N Highway 169,,St Joseph,MO,64503,United States
+2564,"Supplier,Expense",Igor Beylin,ADVANCED METALS,TRUE,ADVANCED METALS,1201 E 12th St.,,Lamar,MO,64759,United States
+1516,"Supplier,Expense",Tiffany White,SERVICE RECYCLING - JOPLIN WASTE PAPER,TRUE,SERVICE RECYCLING - JOPLIN WASTE PAPER,3178 N Kentucky Ave,,Joplin,MO,64801,United States
+2627,"Supplier,Expense",Lindsey Malyavko,MISSOURI DEPT OF HEALTH,TRUE,MISSOURI DEPT OF HEALTH,PO Box 570,,Jefferson City,MO,65102,United States
+1232,Supplier,Ricardo Pereira,MARCK INDUSTRIES INC,TRUE,MARCK INDUSTRIES INC,715 Main St.,,Cassville,MO,65625,United States
+1233,Supplier,Arthur Akopyan,MARCK RECYCLING,TRUE,MARCK RECYCLING,302 W 2nd Street,,Cassville,MO,65625,United States
+2002,"Supplier,Expense",Arthur Buyanovskiy,MIDWEST FIBRE SALES CORP,TRUE,MIDWEST FIBRE SALES CORP,PO Box 825,,Springfield,MO,65801,United States
+2612,Expense,,COOPER TRUCKLINE INC,TRUE,COOPER TRUCKLINE INC,PO Box 699,,Holly Springs,MS,38635,United States
+2582,"Customer,Expense",,TIDWELL ENTERPRISES LLC,TRUE,TIDWELL ENTERPRISES LLC,8300 Industrial Dr.,,Olive Branch,MS,38654,United States
+2548,"Supplier,Expense",,W & W PALLET LLC,TRUE,W & W PALLET LLC,127A Road 1597,P.O. Box 313,Nettleton,MS,38858,United States
+1924,"Customer,Supplier,Expense",Igor Beylin,FV RECYCLING,TRUE,FV RECYCLING,6184 Hwy 98 W,Suite 210,Hattiesburg,MS,39402,United States
+1602,"Supplier,Expense",Arthur Akopyan,P&H PROPERTIES LLC,TRUE,P&H PROPERTIES LLC,PO Box 18457,,Hattiesburg,MS,39404,United States
+1834,"Supplier,Expense",Igor Beylin,ALLEN RECYCLING,TRUE,ALLEN RECYCLING,100 Industrial Drive,,Canton,MS,39046-3214,United States
+2599,"Supplier,Expense",Lindsey Malyavko,NEW MARCO CONTAINERS,TRUE,NEW MARCO CONTAINERS,2425 Cragmore Rd,,Winston-Salem,NC,27107,United States
+2598,"Supplier,Expense",Arthur Buyanovskiy,VERITY RECYCLING LLC,TRUE,VERITY RECYCLING LLC,237 W Central Ave,,Asheboro,NC,27203,United States
+1484,"Customer,Supplier,Expense",Igor Beylin,ASHEBORO RECYCLING,TRUE,ASHEBORO RECYCLING,PO Box 1032,,Asheboro,NC,27204,United States
+1776,"Supplier,Expense",Igor Beylin,NEW LIFE PLASTIC RECYCLING INC,TRUE,NEW LIFE PLASTIC RECYCLING INC,129 W. Trade St.,PO Box 945,Burlington,NC,27215,United States
+2291,Customer,Igor Beylin,HIGH POINT PLASTICS,TRUE,HIGH POINT PLASTICS,1024 Porter St,,High Point,NC,27263,United States
+2480,"Supplier,Expense",Igor Beylin,THE PENROD COMPANY,TRUE,THE PENROD COMPANY,601 Alton Place,,High Point,NC,27263,United States
+1687,"Supplier,Expense",Igor Beylin,CITY OF HIGH POINT,TRUE,CITY OF HIGH POINT,5875 Riverdale Drive,,Jamestown,NC,27282,United States
+2094,"Supplier,Expense",Lindsey Malyavko,PALLET EXPRESS INC,TRUE,PALLET EXPRESS INC,PO Box 1998,,Liberty,NC,27298,United States
+1909,"Customer,Expense",,ENVIROVISION TECHNOLOGIES LLC,TRUE,ENVIROVISION TECHNOLOGIES LLC,PO Box 1029,,Linwood,NC,27299,United States
+1740,"Customer,Expense",,CARDINAL RECYCLING,TRUE,CARDINAL RECYCLING,PO BOX 2883,,Reidsville,NC,27320,United States
+2134,"Supplier,Expense",Igor Beylin,PRO PALLET SOUTH,TRUE,PRO PALLET SOUTH,105 Poole Rd,,Troy,NC,27371,United States
+2483,"Supplier,Expense",Igor Beylin,ENERGYNC,TRUE,ENERGYNC,156 Industrial Ave,,Greensboro,NC,27406,United States
+1599,"Customer,Supplier,Expense",,UNIFI MANUFACTURING INC,TRUE,UNIFI MANUFACTURING INC,PO Box 19109,,Greensboro,NC,27419,United States
+2325,Expense,,EPES LOGISTICS SERVICES INC,TRUE,EPES LOGISTICS SERVICES INC,PO BOX 35884,,Greensboro,NC,27425,United States
+2068,"Customer,Supplier,Expense",Ricardo Pereira,GREER RECYCLING,TRUE,GREER RECYCLING,200 22nd St.,,Butner,NC,27509,United States
+2231,"Supplier,Expense",Ricardo Pereira,GRANVILLE PALLET COMPANY INC,TRUE,GRANVILLE PALLET COMPANY INC,3566 Highway 15,,Oxford,NC,27565,United States
+2546,"Supplier,Expense",Lindsey Malyavko,MULDROWS RECYCLING,TRUE,MULDROWS RECYCLING,833 Hill Street,,Rocky Mount,NC,27801,United States
+1887,"Customer,Supplier,Expense",,CAROLINA RECYCLE PARTNERS,TRUE,CAROLINA RECYCLE PARTNERS,101 Plum Street,,Belmont,NC,28012,United States
+1961,Supplier,,SI KOTE TECHNOLOGIES,TRUE,SI KOTE TECHNOLOGIES,3425 Denver Dr,,DENVER,NC,28037,United States
+1795,"Customer,Supplier,Expense",Igor Beylin,ROWAN COUNTY,TRUE,ROWAN COUNTY,PO Box 430,,East Spencer,NC,28039,United States
+2199,"Supplier,Expense",Tiffany White,EDS PALLET WORLD,TRUE,EDS PALLET WORLD,559 Race Path Church Rd,,Ellenboro,NC,28040,United States
+2323,Expense,,DOCK 2 DOCK LLC,TRUE,DOCK 2 DOCK LLC,813 S. Oakland St,,Gastonia,NC,28052,United States
+2575,"Customer,Supplier,Expense",Igor Beylin,UTZ QUALITY FOODS,TRUE,UTZ QUALITY FOODS,237 Industrial Drive,,Kings Mountain,NC,28086,United States
+2271,Supplier,,BROAD RIVER ASSETS,TRUE,BROAD RIVER ASSETS,167 SHELBY RD,,LAWNDALE,NC,28090,United States
+2066,"Customer,Supplier,Expense",Lindsey Malyavko,DAVIS LOGAN LLC,TRUE,DAVIS LOGAN LLC,229 Whitney Dr,,Locust,NC,28097,United States
+2549,"Supplier,Expense",Igor Beylin,KLEANGRO DISTRIBUTION,TRUE,KLEANGRO DISTRIBUTION,"4999 Smith Farm Rd,",,Matthews,NC,28104,United States
+2397,"Customer,Supplier,Expense",Igor Beylin,HARRIS TEETER,TRUE,HARRIS TEETER,701 Crestdale Rd,,Matthews,NC,28105,United States
+2114,"Customer,Supplier,Expense",Arthur Buyanovskiy,CAROLINA RECYCLING & CONSULTING LLC,TRUE,CAROLINA RECYCLING & CONSULTING LLC,PO Box 1461,,Matthews,NC,28106,United States
+2512,"Customer,Supplier,Expense",Arthur Buyanovskiy,CRC SOUTHERN RECYCLING INC,TRUE,CRC SOUTHERN RECYCLING INC,PO Box 1461,,Matthews,NC,28106,United States
+2295,"Supplier,Expense",Igor Beylin,ACHEM INDUSTRY AMERICA INC,TRUE,ACHEM INDUSTRY AMERICA INC,3000 Stitt Street,Suite 130,Monroe,NC,28110,United States
+2277,"Supplier,Expense",Igor Beylin,GRIFFIN FARM MACHINE COMPANY,TRUE,GRIFFIN FARM MACHINE COMPANY,6022 Unionville-Brief Rd,,Monroe,NC,28110,United States
+2151,"Customer,Supplier,Expense",Arthur Buyanovskiy,POLYREPS INC,TRUE,POLYREPS INC,2501 Ashcraft Avenue,,Monroe,NC,28110,United States
+1960,"Customer,Supplier",,EXTERA,TRUE,EXTERA,PO BOX 4148,,Mooresville,NC,28117,United States
+1908,"Customer,Supplier,Expense",,FIBERON,TRUE,FIBERON,181 Random Drive,,New London,NC,28127,United States
+2393,"Supplier,Expense",Igor Beylin,VALUE CLOTHING,TRUE,VALUE CLOTHING,1310 Richard St,,Salisbury,NC,28144,United States
+2396,"Supplier,Expense",Igor Beylin,ADUSA DISTRIBUTION,TRUE,ADUSA DISTRIBUTION,2085 Harrison Rd,,Salisbury,NC,28147,United States
+1326,"Customer,Supplier,Expense",Igor Beylin,POWERHOUSE RECYCLING,TRUE,POWERHOUSE RECYCLING,220 Ryan Patrick Drive,,Salisbury,NC,28147,United States
+2468,"Customer,Supplier,Expense",Igor Beylin,R3CYCLE INDUSTRIES LLC,TRUE,R3CYCLE INDUSTRIES LLC,4417 Helms Rd,,Waxhaw,NC,28173,United States
+2402,"Customer,Supplier,Expense",Lindsey Malyavko,GLOBAL CIRCLE RECYCLING LLC,TRUE,GLOBAL CIRCLE RECYCLING LLC,1800 Camden Rd Suite 107-280,,Charlotte,NC,28203,United States
+2500,"Supplier,Expense",Igor Beylin,BACE CORP,TRUE,BACE CORP,322 W 32nd St,,Charlotte,NC,28206,United States
+2434,"Supplier,Expense",Igor Beylin,COUNT JUNKULA OF CHARLOTTE,TRUE,COUNT JUNKULA OF CHARLOTTE,1025 McClelland Ct,,Charlotte,NC,28206,United States
+2047,Expense,,HUCK'S PIGGYBACK SERVICE,TRUE,HUCK'S PIGGYBACK SERVICE,1200 W Craighead Rd,,Charlotte,NC,28206,United States
+1881,Expense,,FSI INC,TRUE,FSI INC,360 Aqua Chem Dr,,Charlotte,NC,28208,United States
+1845,"Supplier,Expense",Igor Beylin,DAK AMERICAS,TRUE,DAK AMERICAS,3216 Cedar Creek Rd,,Fayetteville,NC,28213,United States
+1837,"Supplier,Expense",Igor Beylin,MARTEX FIBER SOUTHERN CORP,TRUE,MARTEX FIBER SOUTHERN CORP,6728 Orr Road,,Charlotte,NC,28213,United States
+2007,Supplier,Igor Beylin,FEDEX,TRUE,FEDEX,6600 CSX Way,,Charlotte,NC,28214,United States
+1806,"Supplier,Expense",Igor Beylin,NEALS PALLET CO,TRUE,NEALS PALLET CO,8808 Wilkinson Blvd,,Charlotte,NC,28214,United States
+2596,"Supplier,Expense",Igor Beylin,SERVICE MATERIALS GROUP LLC,TRUE,SERVICE MATERIALS GROUP LLC,5516 Susan Dr,,Charlotte,NC,28215,United States
+2383,Expense,,THE SHIP GROUP LOGISTICS,TRUE,THE SHIP GROUP LOGISTICS,"3126 Milton Road, Suite 222B",,Charlotte,NC,28215,United States
+2292,"Supplier,Expense",Lindsey Malyavko,CENTURION CONTAINER LLC,TRUE,CENTURION CONTAINER LLC,4330 Chesapeake Dr,,Charlotte,NC,28216,United States
+2559,Expense,,PAUL TRANSPORTATION,TRUE,PAUL TRANSPORTATION,10612 Woodhollow Rd,,Mint Hill,NC,28227,United States
+1428,"Customer,Supplier,Expense",Igor Beylin,SKY RECYCLING,TRUE,SKY RECYCLING,PO Box 34707,,Charlotte,NC,28234,United States
+1511,"Supplier,Expense",Arthur Akopyan,RECOMMUNITY CORP,TRUE,RECOMMUNITY CORP,PO Box 603031,,Charlotte,NC,28260,United States
+2476,"Supplier,Expense",Igor Beylin,BAKKAVOR FOODS USA INC,TRUE,BAKKAVOR FOODS USA INC,10220 Western Ridge Road,Suite P,Charlotte,NC,28273,United States
+2003,"Supplier,Expense",Arthur Buyanovskiy,STEIN SERVICE & SUPPLY LLC,TRUE,STEIN SERVICE & SUPPLY LLC,1301-G Westinghouse Blvd,,Charlotte,NC,28273,United States
+1115,"Customer,Supplier",,NEED CO,TRUE,NEED CO,10612-D PROVIDENCE RD #750,,CHARLOTTE,NC,28277,United States
+2111,Supplier,,NEED PO,TRUE,NEED PO,10612-D PROVIDENCE RD #750,,CHARLOTTE,NC,28277,United States
+1433,"Customer,Supplier",,UCS,TRUE,UCS,10612-D Providence Rd,#750,Charlotte,NC,28277,United States
+2023,"Customer,Supplier",Igor Beylin,JC PALLET CO INC,TRUE,JC PALLET CO INC,501 E Elm St,,Bladenboro,NC,28320,United States
+2423,"Supplier,Expense",Igor Beylin,WARREN OIL COMPANY,TRUE,WARREN OIL COMPANY,2340 US 301 N,,Dunn,NC,28334,United States
+2351,"Supplier,Expense",Igor Beylin,CITY OF LAURINBURG,TRUE,CITY OF LAURINBURG,503 Hall Street,,Laurinburg,NC,28352,United States
+2430,"Customer,Supplier,Expense",Arthur Buyanovskiy,LAURINBURG PUBLIC WORKS,TRUE,LAURINBURG PUBLIC WORKS,600 Hall Street,,Laurinburg,NC,28352,United States
+1872,"Supplier,Expense",Igor Beylin,WAGRAM PAPER STOCK INC,TRUE,WAGRAM PAPER STOCK INC,21880 2nd. St.,,Wagram,NC,28396,United States
+2272,"Customer,Expense",,CAROLINA BLUEBERRY GROUP,TRUE,CAROLINA BLUEBERRY GROUP,2038 Georgia Pacific Rd,,Whiteville,NC,28472,United States
+1794,"Supplier,Expense",Igor Beylin,THE RECYCLING GROUP,TRUE,THE RECYCLING GROUP,1629 US Hwy 70,,Connelly Springs,NC,28612,United States
+2412,"Customer,Supplier,Expense",,AXJO,TRUE,AXJO,221 McLin Creek Road S,,Conover,NC,28613,United States
+2017,Supplier,Igor Beylin,NELSON CO,TRUE,NELSON CO,2588 Heart Dr,,Conover,NC,28613,United States
+2126,Expense,,GRAY ROCK LLC,TRUE,GRAY ROCK LLC,822 Mocksville Hwy,,Statesville,NC,28625,United States
+2439,"Supplier,Expense",Igor Beylin,FLEETGENIUS,TRUE,FLEETGENIUS,1808 Norwood St. SW,,Lenoir,NC,28645,United States
+2576,"Supplier,Expense",Igor Beylin,RECYCLING ASSOCIATES,TRUE,RECYCLING ASSOCIATES,2424 Norwood St SW,,Lenoir,NC,28645,United States
+2037,"Supplier,Expense",Ricardo Pereira,RECYCLING ASSOCIATES LLC,TRUE,RECYCLING ASSOCIATES LLC,2424 Norwood St SW,,Lenoir,NC,28645,United States
+2043,Supplier,Igor Beylin,STAT INC,TRUE,STAT INC,2550 Hickory Blvd. SW,,Lenoir,NC,28645,United States
+2128,Expense,,CWD FLATBED TRUCKING INC,TRUE,CWD FLATBED TRUCKING INC,293 Arlie Loop,,Statesville,NC,28677,United States
+2125,Supplier,Igor Beylin,PLASGAD USA LLC,TRUE,PLASGAD USA LLC,933 Meacham Rd,,Statesville,NC,28677,United States
+1968,"Customer,Supplier",Igor Beylin,SPROUT,TRUE,SPROUT,613 Bond Street,,Statesville,NC,28677,United States
+1464,Customer,,AMERICAN RECYCING OF WNC,TRUE,AMERICAN RECYCING OF WNC,1291 Sand Hill Road,,Candler,NC,28715,United States
+2478,"Customer,Supplier,Expense",Igor Beylin,EMTELLE,TRUE,EMTELLE,101 Mills Gap RD,Unit A,Fletcher,NC,28732,United States
+2071,Supplier,Igor Beylin,MACON COUNTY SOLID WASTE,TRUE,MACON COUNTY SOLID WASTE,109 Sierra Drive,,Franklin,NC,28734,United States
+1288,Supplier,Arthur Buyanovskiy,ASHEVILLE WASTE PAPER,TRUE,ASHEVILLE WASTE PAPER,PO BOX 3335,,ASHEVILLE,NC,28802,United States
+1312,Supplier,Arthur Buyanovskiy,TRI-CITY WASTE PAPER,TRUE,TRI-CITY WASTE PAPER,PO BOX 3335.,,ASHEVILLE,NC,28802,United States
+1920,Supplier,Igor Beylin,CURBSIDE MANAGEMENT,TRUE,CURBSIDE MANAGEMENT,PO BOX 18722,,Asheville,NC,28814,United States
+2113,"Supplier,Expense",Igor Beylin,VALE SALVAGE & RECYCLING,TRUE,VALE SALVAGE & RECYCLING,2809 Sam Houser Rd,,Vale,NC,28168-9367,United States
+1480,Expense,,AXLE LOGISTICS,TRUE,AXLE LOGISTICS,PO Box 896456,,Charlotte,NC,28289-6456,United States
+2320,Expense,,UNITED STEEL AND AGGREGATE INC,TRUE,UNITED STEEL AND AGGREGATE INC,755 5th Ave SE,,Dickinson,ND,58601,United States
+2579,Expense,,TMC TRANSPORTATION,TRUE,TMC TRANSPORTATION,PO Box 3567,,Omaha,NE,68103,United States
+2438,"Supplier,Expense",Mack McMurray,JONES BARREL COMPANY,TRUE,JONES BARREL COMPANY,2424 North 11th Street,,Omaha,NE,68110,United States
+1396,"Customer,Supplier,Expense",Lindsey Malyavko,FIRSTAR FIBER,TRUE,FIRSTAR FIBER,10330 I Street,,Omaha,NE,68127,United States
+1910,Expense,,HILL BROTHERS LOGISTICS,TRUE,HILL BROTHERS LOGISTICS,7850 I Street,,Omaha,NE,68127,United States
+1696,"Customer,Expense",,CENTRAL STATES REPROCESSING LLC,TRUE,CENTRAL STATES REPROCESSING LLC,4121 NW 37th Street,,Lincoln,NE,68504,United States
+2595,"Supplier,Expense",Mack McMurray,JBS,TRUE,JBS,555 S. Stuhr Road,,Grand Island,NE,68801,United States
+2371,"Customer,Supplier,Expense",Arthur Buyanovskiy,EATON CORPORATION,TRUE,EATON CORPORATION,4200 US-30,,Kearney,NE,68847,United States
+2198,"Supplier,Expense",Mack McMurray,ALL BUSINESS & COMMERCIAL RECYCLING,TRUE,ALL BUSINESS & COMMERCIAL RECYCLING,810 E 7th St,,North Platte,NE,69101,United States
+2182,"Customer,Supplier,Expense",Ricardo Pereira,TOWN OF DERRY TRANSFER STATION,TRUE,TOWN OF DERRY TRANSFER STATION,14 Manning Street,,Derry,NH,3038,United States
+2169,"Supplier,Expense",Ricardo Pereira,RECYCLING ASSOCIATES INC,TRUE,RECYCLING ASSOCIATES INC,1 Whipple St,,Nashua,NH,3060,United States
+2322,Expense,,KELDORAN UNLIMITED,TRUE,KELDORAN UNLIMITED,124 Jewett Street,,Manchester,NH,3103,United States
+2328,"Customer,Supplier,Expense",Igor Beylin,FALCON PAPERS,TRUE,FALCON PAPERS,2 Terminal Way,Building A,Avenel,NJ,7001,United States
+2519,"Supplier,Expense",Arthur Akopyan,SAM SERVICES LLC,TRUE,SAM SERVICES LLC,2 Mariners Cove,,Edgewater,NJ,7020,United States
+1891,"Customer,Expense",,EFS PLASTICS US INC,TRUE,EFS PLASTICS US INC,9 Peach Tree Hill Rd,,Livingston,NJ,7039,United States
+1623,"Customer,Supplier,Expense",Arthur Akopyan,ATLANTIC COAST RECYCLING OF OCEAN,TRUE,ATLANTIC COAST RECYCLING OF OCEAN,101 7th Street,,Passaic,NJ,7055,United States
+1284,Supplier,Arthur Akopyan,ZOZZARO ATLANTIC COAST PROCESSING LLC,TRUE,ZOZZARO ATLANTIC COAST PROCESSING LLC,101 7th Street,,Passaic,NJ,7055,United States
+1120,"Customer,Supplier,Expense",,RECYCLING MANAGEMENT RESOURCES,TRUE,RECYCLING MANAGEMENT RESOURCES,20 Hook Mountain Road,PO Box 701,Pine Brook,NJ,7058,United States
+1967,"Supplier,Expense",Tiffany White,FOAM PACK INDUSTRIES,TRUE,FOAM PACK INDUSTRIES,72 Fadem Road,,Springfield,NJ,7081,United States
+1467,"Supplier,Expense",,EASTERN POULTRY,TRUE,EASTERN POULTRY,63 Blanchard St,,Newark,NJ,7105,United States
+2387,"Supplier,Expense",Arthur Akopyan,SEAFRIGO,TRUE,SEAFRIGO,735 Dowd Ave,,Elizabeth,NJ,7201,United States
+2324,"Customer,Supplier,Expense",,LOVE PALLET,TRUE,LOVE PALLET,460 Mundet Place,PO Box 774,Hillside,NJ,7205,United States
+2494,"Customer,Supplier,Expense",Arthur Akopyan,S&A PALLET RECYCLING,TRUE,S&A PALLET RECYCLING,55 Caven Point Ave,,Jersey City,NJ,7305,United States
+1202,"Customer,Supplier",Igor Beylin,CELLMARK INC,TRUE,CELLMARK INC,1200 MacArthur Blvd,Suite 206,Mahwah,NJ,7430,United States
+2250,"Supplier,Expense",Arthur Akopyan,INTERSTATE WASTE SERVICES,TRUE,INTERSTATE WASTE SERVICES,300 Frank W Burr Blvd,Ste 39,Teaneck,NJ,7666,United States
+1637,"Supplier,Expense",Arthur Akopyan,IWS TRANSFER SYSTEMS OF NY INC,TRUE,IWS TRANSFER SYSTEMS OF NY INC,300 Frank W Burr Blvd,Suite 39,Teaneck,NJ,7666,United States
+1558,"Supplier,Expense",Arthur Akopyan,THE ACTION ENVIRONMENTAL GROUP INC,TRUE,THE ACTION ENVIRONMENTAL GROUP INC,300 Frank W Burr Blvd,Suite 39,Teaneck,NJ,7666,United States
+2139,"Supplier,Expense",Arthur Akopyan,MAZZA RECYCLING SERVICES LTD,TRUE,MAZZA RECYCLING SERVICES LTD,3230 Shafto Road,,Tinton Falls,NJ,7753,United States
+1262,Supplier,Arthur Akopyan,SANICO INC,TRUE,SANICO INC,P.O. Box 176,,Delaware,NJ,7833,United States
+2567,"Customer,Expense",,WEXFORD INTERNATIONAL,TRUE,WEXFORD INTERNATIONAL,190 Main Street Suite 102,P.O. Box 715,Gladstone,NJ,7934,United States
+1519,"Supplier,Expense",Arthur Akopyan,OCCUPATIONAL TRAINING CENTER,TRUE,OCCUPATIONAL TRAINING CENTER,2 Manhattan Drive,,Burlington,NJ,8016,United States
+1251,Supplier,Arthur Akopyan,PFG-CUSTOMIZED NEW JERSEY,TRUE,PFG-CUSTOMIZED NEW JERSEY,500 Highland Drive,Highland Business Park,Westampton,NJ,8060,United States
+1263,Supplier,Arthur Akopyan,SCOTT FARMS NURSERYS,TRUE,SCOTT FARMS NURSERYS,1554 TANYARD RD,,SEWELL,NJ,8080,United States
+1138,"Customer,Supplier,Expense",Arthur Akopyan,RAFF RECYCLING CORPORATION,TRUE,RAFF RECYCLING CORPORATION,PO BOX 1,209 GOSHEN ROAD,CAPE MAY COURT HOUSE,NJ,8210,United States
+1275,Supplier,Arthur Akopyan,TUCKAHOE NURSERIES INC,TRUE,TUCKAHOE NURSERIES INC,395 Head Of The River Rd,,Woodbine,NJ,8270,United States
+1201,Supplier,Arthur Akopyan,CEDRUS NURSERY,TRUE,CEDRUS NURSERY,49 Sewal Rd,,Bridgeton,NJ,8302,United States
+2488,"Customer,Supplier,Expense",Arthur Akopyan,FAIRFIELD PALLET,TRUE,FAIRFIELD PALLET,282 Rockville Rd,,Bridgeton,NJ,8302,United States
+1227,Supplier,Arthur Akopyan,HOPEWELL NURSERY,TRUE,HOPEWELL NURSERY,54 Harmony Road,,Bridgeton,NJ,8302,United States
+1246,Supplier,Arthur Akopyan,ONE SUN NURSERY,TRUE,ONE SUN NURSERY,116 Marlboro Rd,,Bridgeton,NJ,8302,United States
+2247,"Supplier,Expense",Arthur Akopyan,OVERDEVEST NURSERY LP,TRUE,OVERDEVEST NURSERY LP,578 Bowentown Rd,,Bridgeton,NJ,8302,United States
+1234,Supplier,Arthur Akopyan,MARJAC NURSERY,TRUE,MARJAC NURSERY,176 Swedesboro Rd,,Monroeville,NJ,8343,United States
+1560,"Customer,Supplier",Arthur Akopyan,GIORDANOS RECYCLING,TRUE,GIORDANOS RECYCLING,110 North Mill Road,,Vineland,NJ,8360,United States
+1208,"Supplier,Expense",Arthur Akopyan,CUMBERLAND RECYCLING,TRUE,CUMBERLAND RECYCLING,PO Box 2304,,South Vineland,NJ,8362,United States
+1303,"Supplier,Expense",Ricardo Pereira,MCC RECYCLING SERVICES LLC,TRUE,MCC RECYCLING SERVICES LLC,PO Box 391,,Cranberry,NJ,8512,United States
+1230,Supplier,Arthur Akopyan,LAWRENCE LANDSCAPES,TRUE,LAWRENCE LANDSCAPES,1383 Lower Ferry Road,,Ewing,NJ,8618,United States
+1236,Supplier,Arthur Akopyan,MERCER GROUP INTL,TRUE,MERCER GROUP INTL,1519 Calhoun St,,Trenton,NJ,8638,United States
+2230,"Supplier,Expense",Arthur Akopyan,STARPLAST USA,TRUE,STARPLAST USA,9 Finderne Ave.,,Bridgewater,NJ,8807,United States
+2194,"Customer,Supplier,Expense",Ricardo Pereira,GREENWAY PRODUCTS AND SERVICES,TRUE,GREENWAY PRODUCTS AND SERVICES,5 WHEELING RD,,DAYTON,NJ,8810,United States
+2514,"Customer,Supplier,Expense",Arthur Akopyan,PEDESTAL PALLETS INC,TRUE,PEDESTAL PALLETS INC,PO Box 450,,Dunellen,NJ,8812,United States
+2219,"Supplier,Expense",Arthur Akopyan,AMERICAN RECYCLING SERVICES,TRUE,AMERICAN RECYCLING SERVICES,21 EDGEBORO ROAD,,EAST BRUNSWICK,NJ,8816,United States
+2356,"Customer,Supplier,Expense",Arthur Akopyan,S&B PALLET CO,TRUE,S&B PALLET CO,24 Connerty Ct,,East Brunswick,NJ,8816,United States
+1728,"Supplier,Expense",Arthur Akopyan,STANDARD WASTE SERVICES,TRUE,STANDARD WASTE SERVICES,21 Edgeboro Road,,East Brunswick,NJ,8816,United States
+2306,"Customer,Supplier,Expense",Arthur Akopyan,SELECT PALLETS OF EDISON,TRUE,SELECT PALLETS OF EDISON,71 Executive Dr,,Edison,NJ,8817,United States
+2293,Expense,,A&J ENTERPRISES,TRUE,A&J ENTERPRISES,P.O. Box 2261,,Flemington,NJ,8822,United States
+2357,"Supplier,Expense",Arthur Buyanovskiy,GENERAL PALLET INDUSTRIES,TRUE,GENERAL PALLET INDUSTRIES,97 River Road,,Flemington,NJ,8822,United States
+1195,Supplier,Arthur Akopyan,BAYSHORE RECYCLING CORP,TRUE,BAYSHORE RECYCLING CORP,75 Crows Mill Road,,Keasbey,NJ,8832,United States
+1805,"Supplier,Expense",Arthur Akopyan,PETRO PALLET,TRUE,PETRO PALLET,575 Ridge Road,,Monmouth Junction,NJ,8852,United States
+2299,Expense,,HAPAG - LLOYD,TRUE,HAPAG - LLOYD,399 HOES LANE,,PISCATAWAY,NJ,8854,United States
+1205,"Supplier,Expense",Arthur Akopyan,COLGATE PAPER STOCK,TRUE,COLGATE PAPER STOCK,12 Industrial Drive,,New Brunswick,NJ,8901,United States
+1474,"Customer,Expense",,VISH GROUP,TRUE,VISH GROUP,1605 JERSEY AVE,,NORTH BRUNSWICK,NJ,8902,United States
+1220,Supplier,Arthur Akopyan,FREEHOLD CARTAGE INC,TRUE,FREEHOLD CARTAGE INC,PO Box 5010,,Freehold,NJ,07728-5010,United States
+1733,"Supplier,Expense",Igor Beylin,TOWN RECYCLING,TRUE,TOWN RECYCLING,4220 Broadway SE,,Albuquerque,NM,87105,United States
+1323,Supplier,Igor Beylin,MASTER FIBERS INC,TRUE,MASTER FIBERS INC,5109 Edith Blvd,,Albuquerque,NM,87107,United States
+1874,"Supplier,Expense",Igor Beylin,HAMPTON FARMS,TRUE,HAMPTON FARMS,6A NM-467,,Portales,NM,88130,United States
+1863,"Customer,Supplier,Expense",Arthur Akopyan,MCINTOSH BOX AND PALLET COMPANY,TRUE,MCINTOSH BOX AND PALLET COMPANY,5846 Heritage Landing Drive,,East Syracuse,NY,3057,United States
+2335,"Customer,Expense",,CONTINENTAL INDUSTRIES GROUP INC,TRUE,CONTINENTAL INDUSTRIES GROUP INC,733 3rd Ave,21st Floor,New York,NY,10017,United States
+2122,Expense,,TRANSFIX,TRUE,TRANSFIX,498 7th Avenue,19th Floor,New York,NY,10018,United States
+2074,"Customer,Supplier,Expense",Arthur Akopyan,PERRIGO CO INC,TRUE,PERRIGO CO INC,1625 Bathgate Ave,,The Bronx,NY,10457,United States
+2370,"Customer,Supplier,Expense",Ricardo Pereira,POORAN PALLETS,TRUE,POORAN PALLETS,PO Box 740007,,Bronx,NY,10474,United States
+1992,Customer,Tiffany White,B SCHOENBERG & COMPANY,TRUE,B SCHOENBERG & COMPANY,345 Kear Street,,Yorktown,NY,10598,United States
+1765,"Customer,Supplier,Expense",Arthur Akopyan,PLASTICYCLE,TRUE,PLASTICYCLE,245 Main St. Suite 430,,White Plains,NY,10601,United States
+1888,"Supplier,Expense",Ricardo Pereira,CITY CARTING WESTCHESTER,TRUE,CITY CARTING WESTCHESTER,P.O. Box 339,,Yonkers,NY,10710,United States
+1938,"Customer,Supplier,Expense",Arthur Akopyan,LOUIS MONTELEONE FIBRES LTD,TRUE,LOUIS MONTELEONE FIBRES LTD,159 E. Main St Suite 300,,New Rochelle,NY,10801,United States
+1865,"Supplier,Expense",,MCNEILLY WOOD PRODUCTS,TRUE,MCNEILLY WOOD PRODUCTS,120 Neelytown Road,,Campbell Hall,NY,10916,United States
+1672,"Customer,Expense",,BSD PLASTICS INC,TRUE,BSD PLASTICS INC,PO Box 376,,Highland Mills,NY,10930,United States
+2144,"Customer,Expense",Arthur Akopyan,ALUF PLASTICS,TRUE,ALUF PLASTICS,2 Glenshaw St,,Orangeburg,NY,10962,United States
+1451,"Customer,Expense",,CONTI GROUP,TRUE,CONTI GROUP,1661 46th Street,,Brooklyn,NY,11204,United States
+2489,"Supplier,Expense",Arthur Akopyan,AUGUST THOMSEN CORP,TRUE,AUGUST THOMSEN CORP,36 Sea Cliff Ave,,Glen Cove,NY,11542,United States
+2265,"Supplier,Expense",Arthur Akopyan,WINTERS BROS,TRUE,WINTERS BROS,120 NANCY ST,,W Babylon,NY,11704,United States
+2218,Expense,,ETERNITY SOLUTIONS LLC,TRUE,ETERNITY SOLUTIONS LLC,PO Box 979,,Deer Park,NY,11729,United States
+1799,"Supplier,Expense",Ricardo Pereira,ALLIED PAPER STOCK,TRUE,ALLIED PAPER STOCK,345 Eastern Parkway,,Farmingdale,NY,11735,United States
+1194,Supplier,Arthur Akopyan,ATLANTIC NURSERIES INC,TRUE,ATLANTIC NURSERIES INC,691 DEER PARK AVE,,DIX HILLS,NY,11746,United States
+2302,"Supplier,Expense",Ricardo Pereira,FOUR WAY PALLET,TRUE,FOUR WAY PALLET,191 E 2nd St,,Huntington Station,NY,11746,United States
+1179,Expense,,TRANSNATIONAL LOGISTICS CORP,TRUE,TRANSNATIONAL LOGISTICS CORP,PO Box 221,,Jericho,NY,11753,United States
+2378,"Supplier,Expense",Arthur Buyanovskiy,DOMINO PLASTICS COMPANY,TRUE,DOMINO PLASTICS COMPANY,200 E. Broadway,,Port Jefferson,NY,11777,United States
+1228,"Customer,Supplier",Arthur Akopyan,INDIGO PLASTICS INC,TRUE,INDIGO PLASTICS INC,40 Commerce Place,Suite 105,Hicksville,NY,11801,United States
+1214,Supplier,Arthur Akopyan,EAST COAST NURSERIES,TRUE,EAST COAST NURSERIES,301 Reeves Ave,,Riverhead,NY,11901,United States
+1221,Supplier,Arthur Akopyan,GLOVER PERENNIALS,TRUE,GLOVER PERENNIALS,PO Box 759,,Cutchogue,NY,11935,United States
+1758,"Supplier,Expense",Igor Beylin,PECONIC RECYCLING & TRANSFER,TRUE,PECONIC RECYCLING & TRANSFER,560 Commerce Road,,Cutchogue,NY,11935,United States
+1196,Supplier,Arthur Akopyan,BEDS AND BORDERS,TRUE,BEDS AND BORDERS,600 Laurel Lane,,Laurel,NY,11948,United States
+1226,Supplier,Arthur Akopyan,HALF HOLLOW NURSERY INC,TRUE,HALF HOLLOW NURSERY INC,2120 Main Rd,,Laurel,NY,11948,United States
+1497,"Supplier,Expense",,JUNIPER HILL NURSERY INC,TRUE,JUNIPER HILL NURSERY INC,341 Kirkup Lane,,Mattituck,NY,11952,United States
+1229,Supplier,Arthur Akopyan,LANDCRAFT ENVIRONMENTS LTD,TRUE,LANDCRAFT ENVIRONMENTS LTD,1160 East Mill Road,,Mattituck,NY,11952,United States
+1256,Supplier,Arthur Akopyan,POWER PALLET INC,TRUE,POWER PALLET INC,4715 State Highway 30,,Amsterdam,NY,12010,United States
+1357,"Customer,Supplier",Ricardo Pereira,NH KELMAN,TRUE,NH KELMAN,41 Euclid Street,,Cohoe,NY,12047,United States
+1725,"Supplier,Expense",Ricardo Pereira,RESOURCE WASTE SERVICES LLC,TRUE,RESOURCE WASTE SERVICES LLC,159 Wolf Road,Suite 301,Albany,NY,12205,United States
+2469,"Customer,Supplier,Expense",Igor Beylin,VALLEY PALLET RECYCLER INC,TRUE,VALLEY PALLET RECYCLER INC,2007 Route 9w,,Milton,NY,12547,United States
+2181,"Customer,Supplier,Expense",Arthur Akopyan,INDEX PACKAGING,TRUE,INDEX PACKAGING,5846 Heritage Landing Drive,,East Syracuse,NY,13057,United States
+2099,"Supplier,Expense",,SYRACUSE WASTE HAULERS,TRUE,SYRACUSE WASTE HAULERS,6223 Thompson Rd,,Syracuse,NY,13206,United States
+1663,Expense,,WJW ASSOCIATES LTD,TRUE,WJW ASSOCIATES LTD,PO Box 156,,Syracuse,NY,13206,United States
+1247,Supplier,Arthur Akopyan,ONEIDA HERKIMER COUNTY,TRUE,ONEIDA HERKIMER COUNTY,1600 Genesee St,,Utica,NY,13502,United States
+1216,"Customer,Supplier",Arthur Akopyan,EMPIRE RECYCLING CORP,TRUE,EMPIRE RECYCLING CORP,P.O. BOX 353,,Utica,NY,13503,United States
+1609,"Supplier,Expense",Arthur Akopyan,K&B PLASTIC INDUSTRIES,TRUE,K&B PLASTIC INDUSTRIES,PO Box 37,1 Blodgett Mills Rd,Blodgett Mills,NY,13738,United States
+2389,"Supplier,Expense",Arthur Buyanovskiy,FEDEX GROUND BING 0137,TRUE,FEDEX GROUND BING 0137,265 Industrial Park Drive,,Binghamton,NY,13904,United States
+2619,"Supplier,Expense",Lindsey Malyavko,GOYA FOODS GREAT LAKES,TRUE,GOYA FOODS GREAT LAKES,200 S. Main St,,Angola,NY,14006,United States
+1782,"Customer,Supplier,Expense",Arthur Akopyan,PALLET SERVICES INC,TRUE,PALLET SERVICES INC,4055 Casilio Parkway,,Clarence,NY,14031,United States
+1985,"Supplier,Expense",Arthur Akopyan,EASCO BROKERAGE,TRUE,EASCO BROKERAGE,2216 Angling Road,,Corfu,NY,14036,United States
+1457,Customer,,SHUMAN PLASTICS,TRUE,SHUMAN PLASTICS,35 Neoga Street,,Depew,NY,14043,United States
+2314,"Supplier,Expense",Ricardo Pereira,ADVANTAGE PALLETS,TRUE,ADVANTAGE PALLETS,1652 Hubbard Rd,,East Aurora,NY,14052,United States
+1669,"Supplier,Expense",,SUPERIOR PALLETS INC,TRUE,SUPERIOR PALLETS INC,3981 Walden Avenue,,Lancaster,NY,14086,United States
+2315,"Customer,Supplier,Expense",Ricardo Pereira,MCGARD INNOVATIVE SECURITY PRODUCTS,TRUE,MCGARD INNOVATIVE SECURITY PRODUCTS,3875 California Rd,,Orchard Park,NY,14127,United States
+1222,Supplier,Arthur Akopyan,GREAT LAKES PAPER,TRUE,GREAT LAKES PAPER,1885 Harlem Road,,Buffalo,NY,14212,United States
+2372,"Supplier,Expense",Ricardo Pereira,DIVERSIFIED RECYCLING SERVICES LLC,TRUE,DIVERSIFIED RECYCLING SERVICES LLC,1951 Hamburg Turnpike,Building 10a,Lackawanna,NY,14218,United States
+2070,"Customer,Supplier,Expense",Arthur Akopyan,PALLET EXCHANGE INC,TRUE,PALLET EXCHANGE INC,534 Hopkins St,,Buffalo,NY,14220,United States
+1181,Expense,,TRANSPORTATION RESOURCES,TRUE,TRANSPORTATION RESOURCES,27-31 Kelly Drive,,Buffalo,NY,14227,United States
+2223,Expense,,GREAT LAKES TRANSPORT SOLUTIONS,TRUE,GREAT LAKES TRANSPORT SOLUTIONS,207 Commerce Drive,Suite 102,Amherst,NY,14228,United States
+1770,"Supplier,Expense",Arthur Akopyan,SUNNKING INC,TRUE,SUNNKING INC,4 Owens Rd,,Brockport,NY,14420,United States
+2492,"Supplier,Expense",Lindsey Malyavko,SOFRESH INC,TRUE,SOFRESH INC,7910 Lehigh Crossing Rd,Suite 3,Victor,NY,14564,United States
+1685,"Customer,Supplier,Expense",Arthur Akopyan,THE PALLET EXPRESS,TRUE,THE PALLET EXPRESS,1069 Lyell Ave,,Rochester,NY,14606,United States
+2260,"Customer,Supplier,Expense",Ricardo Pereira,TOMRA NORTH AMERICA INC,TRUE,TOMRA NORTH AMERICA INC,P.O. Box 22988,,New York,NY,10087-2988,United States
+1190,"Supplier,Expense",Tiffany White,ACORN FARMS,TRUE,ACORN FARMS,7679 WORTHINGTON ROAD,,GALENA,OH,43021,United States
+1994,"Customer,Expense",,DMS RECYCLING LLC,TRUE,DMS RECYCLING LLC,350 PITTSBURGH AVE,,MT VERNON,OH,43050,United States
+2450,"Supplier,Expense",Igor Beylin,SYNOVA,TRUE,SYNOVA,525 Maxtown Rd.,,Westerville,OH,43082,United States
+2534,"Supplier,Expense",Mack McMurray,G C PALLET AND STORAGE,TRUE,G C PALLET AND STORAGE,185 N Yale Ave,,Columbus,OH,43222,United States
+2001,Customer,,ARCH POLYMERS INC,TRUE,ARCH POLYMERS INC,300 Progress Way,,Bellefontaine,OH,43311,United States
+1901,"Supplier,Expense",Lindsey Malyavko,US COLUMBUS TRADE LLC,TRUE,US COLUMBUS TRADE LLC,800 South  Leighton Street,,Kenton,OH,43326,United States
+1472,"Supplier,Expense",Arthur Akopyan,OVERBEY PLASTICS,TRUE,OVERBEY PLASTICS,10676 Township Road 80,,Lewistown,OH,43333,United States
+2050,"Customer,Supplier",,HPJ INDUSTRIES,TRUE,HPJ INDUSTRIES,PO Box 860,,Bowling Green,OH,43402,United States
+1486,Customer,,EVERGREEN PLASTICS,TRUE,EVERGREEN PLASTICS,202 Watertower Drive,,Clyde,OH,43410,United States
+1104,"Customer,Supplier,Expense",,BRYAN PLASTICS PROCESSING LLC,TRUE,BRYAN PLASTICS PROCESSING LLC,721 East Edgerton Street,,Bryan,OH,43506,United States
+1278,Supplier,Lindsey Malyavko,WERLOR WASTE,TRUE,WERLOR WASTE,1420 RALSTON AVE,,DEFIANCE,OH,43512,United States
+2097,Expense,,FOUNTAIN VALLEY ENTERPRISE INC,TRUE,FOUNTAIN VALLEY ENTERPRISE INC,14986 County Road 20,,Fayette,OH,43521,United States
+1984,Supplier,Tiffany White,ZACK'S RECYCLING,TRUE,ZACK'S RECYCLING,708 Fillmore St,,Napolean,OH,43545,United States
+1122,Customer,,RIVER CITY POLYMERS LLC,TRUE,RIVER CITY POLYMERS LLC,425 Enterprise Ave,,Wauseon,OH,43567,United States
+2080,"Customer,Expense",Arthur Buyanovskiy,TC PACKAGING LLC,TRUE,TC PACKAGING LLC,5855 Angola Road,,Toledo,OH,43615,United States
+1632,"Customer,Supplier,Expense",Arthur Buyanovskiy,NEXT SPECIALTY RESINS INC,TRUE,NEXT SPECIALTY RESINS INC,3315 Centennial Road,Suite J,Sylvania,OH,43617,United States
+2529,"Supplier,Expense",Arthur Buyanovskiy,SOLA POLYMERS,TRUE,SOLA POLYMERS,8704 Nebraska Ave,,Toledo,OH,43617,United States
+1898,"Supplier,Expense",,ZANESVILLE PALLET,TRUE,ZANESVILLE PALLET,2235 Liking Rd,,Zanesville,OH,43701,United States
+2088,"Supplier,Expense",Arthur Buyanovskiy,PLASTIC REGRINDERS INC,TRUE,PLASTIC REGRINDERS INC,3161 Cooperriders Rc NW,,Glenford,OH,43739,United States
+1917,"Supplier,Expense",Lindsey Malyavko,J T CONTAINER INC,TRUE,J T CONTAINER INC,255 Woodford Ave,,Elyria,OH,44035,United States
+1869,"Customer,Expense",,PLASTIC MATERIALS INC,TRUE,PLASTIC MATERIALS INC,775 E. Highland Rd,,Macedonia,OH,44056,United States
+2347,"Supplier,Expense",,NORTHCOAST RECYCLING,TRUE,NORTHCOAST RECYCLING,1305 Lloyd Rd,,Wickliffe,OH,44092,United States
+1853,"Customer,Expense",,BLUE OCEAN PLASTICS,TRUE,BLUE OCEAN PLASTICS,5500 Walworth Ave,,Cleveland,OH,44102,United States
+2209,"Customer,Expense",Igor Beylin,ROTO POLYMERS,TRUE,ROTO POLYMERS,26210 Emery Rd.,Suite 202,Warrensville Hts.,OH,44128,United States
+2127,"Customer,Supplier,Expense",Arthur Buyanovskiy,CONSTANT RECYCLING,TRUE,CONSTANT RECYCLING,6100 Oak Tree Blvd,Suite 200,Independence,OH,44131,United States
+1248,Supplier,Arthur Akopyan,ORIGINAL MATRESS FACTORY,TRUE,ORIGINAL MATRESS FACTORY,4930 STATE ROAD,,CLEVELAND,OH,44134,United States
+1144,Expense,,AMWARE EXPRESS LLC,TRUE,AMWARE EXPRESS LLC,19801 Holland Road,,Brook Park,OH,44142,United States
+1477,"Customer,Supplier",Arthur Akopyan,RECYCLE-IT LLC,TRUE,RECYCLE-IT LLC,19100 Holland Road,,Brook Park,OH,44142,United States
+1478,Expense,,RECYCLE-IT WAREHOUSE,TRUE,RECYCLE-IT WAREHOUSE,19100 Holland Road,,Brook Park,OH,44142,United States
+1318,"Customer,Supplier",Ricardo Pereira,GDS CONOVER MRF,TRUE,GDS CONOVER MRF,PO BOX 932899,,Cleveland,OH,44193,United States
+2253,"Supplier,Expense",Lindsey Malyavko,HAULIN AND SUCH,TRUE,HAULIN AND SUCH,2019 Wadsworth Rd,,Norton,OH,44203,United States
+1509,Expense,,BROADWAY INTERMODAL LLC,TRUE,BROADWAY INTERMODAL LLC,PO BOX 847,,Mantua,OH,44255,United States
+2553,"Customer,Expense",,MICHAEL DAY ENTERPRISES LLC,TRUE,MICHAEL DAY ENTERPRISES LLC,PO Box 151,9774 Trease Rd,Wadsworth,OH,44281,United States
+2440,"Supplier,Expense",Mack McMurray,INTEGRITY FIBER,TRUE,INTEGRITY FIBER,P.O. BOX 1911,,Akron,OH,44309,United States
+2246,Supplier,Igor Beylin,KENMORE CONSTRUCTION CO,TRUE,KENMORE CONSTRUCTION CO,700 Home Ave,,Akron,OH,44310,United States
+2341,"Supplier,Expense",Arthur Buyanovskiy,FULL CIRCLE TECHNOLOGIES LLC,TRUE,FULL CIRCLE TECHNOLOGIES LLC,992 Handley Road,,Lyndhurst,OH,44312,United States
+2555,"Supplier,Expense",Igor Beylin,FASTENAL CO,TRUE,FASTENAL CO,940 W Wilbeth Rd,,Akron,OH,44314,United States
+1956,"Customer,Expense",,NEXT GENERATION PLASTICS,TRUE,NEXT GENERATION PLASTICS,3075 Smith Road,,Fairlawn,OH,44333,United States
+1294,"Supplier,Expense",Arthur Buyanovskiy,GLOBAL PAK INC,TRUE,GLOBAL PAK INC,9636 Elkton Road,,Lisbon,OH,44432,United States
+2143,"Supplier,Expense",Tiffany White,SARE PLASTICS,TRUE,SARE PLASTICS,14600 Commerce St. N.E.,,Alliance,OH,44601,United States
+2016,"Supplier,Expense",,POLY PLUS SOLUTIONS LLC,TRUE,POLY PLUS SOLUTIONS LLC,10375 Wooster St NW,,Massillon,OH,44647,United States
+1912,"Customer,Expense",,POLY-PLUS SOLUTIONS INC,TRUE,POLY-PLUS SOLUTIONS INC,10375 Wooster Street NW,,Massillon,OH,44647,United States
+2004,"Supplier,Expense",Lindsey Malyavko,HOX RECYCLING INC,TRUE,HOX RECYCLING INC,4510 Township Road 307,,Millersburg,OH,44654,United States
+2502,"Customer,Expense",,RETURN POLYMERS INC,TRUE,RETURN POLYMERS INC,400 Westlake Drive,,Ashland,OH,44805,United States
+2108,Supplier,Tiffany White,MILLWOOD INC,TRUE,MILLWOOD INC,4438 Muhlhauser Rd,,Hamilton,OH,45011,United States
+2290,"Supplier,Expense",,MYRON BOWLING AUCTIONEERS INC,TRUE,MYRON BOWLING AUCTIONEERS INC,3901 Kraus Lane,,Hamilton,OH,45014,United States
+2158,"Supplier,Expense",,AZEK CO,TRUE,AZEK CO,2835 Old State Route 73,Bldg #4,Wilmington,OH,45177,United States
+2642,"Supplier,Expense",Arthur Buyanovskiy,CLOSE THE LOOP PLASTIC RECYCLING,TRUE,CLOSE THE LOOP PLASTIC RECYCLING,2300 Montana Avenue,Suite 102,Cincinnati,OH,45211,United States
+1298,"Customer,Supplier",Arthur Buyanovskiy,IN-PLAS RECYCLING,TRUE,IN-PLAS RECYCLING,2300 Montana Avenue,Suite 102,Cincinnati,OH,45211,United States
+2350,"Supplier,Expense",Lindsey Malyavko,GM PALLETS LLC,TRUE,GM PALLETS LLC,PO Box 16116,,Cincinnati,OH,45217,United States
+1501,Expense,,TAYLOR LOGISTICS INC,TRUE,TAYLOR LOGISTICS INC,2875 E. Sharon Road,,Cincinnati,OH,45241,United States
+2195,Expense,,INTEGRITY EXPRESS LOGISTICS LLC,TRUE,INTEGRITY EXPRESS LOGISTICS LLC,4420 COOPER RD,STE 400,BLUE ASH,OH,45242,United States
+2102,Supplier,Tiffany White,OCTAL,TRUE,OCTAL,5399 E. Provident Drive,,45246,OH,45246,United States
+2090,Expense,,ALLY LOGISTICS,TRUE,ALLY LOGISTICS,PO Box 14027,,Cincinnati,OH,45250,United States
+1588,"Customer,Supplier,Expense",,RUMPKE RECYCLING,TRUE,RUMPKE RECYCLING,PO Box 538710,,Cincinnati,OH,45253,United States
+1812,Expense,,RELIABLE TRANSPORTATION SOLUTIONS,TRUE,RELIABLE TRANSPORTATION SOLUTIONS,463 OHIO PIKE,SUITE 302,CINCINNATI,OH,45255,United States
+1299,"Customer,Supplier,Expense",Arthur Buyanovskiy,JB PLASTICS,TRUE,JB PLASTICS,PO Box 100,,Enon,OH,45323,United States
+1981,Customer,Arthur Buyanovskiy,POLYSOURCE INC,TRUE,POLYSOURCE INC,PO Box 916,555 E Statler Rd,Piqua,OH,45356,United States
+1700,"Customer,Supplier,Expense",,INDUSTRIAL RECYCLERS,TRUE,INDUSTRIAL RECYCLERS,PO Box 4687,,Sidney,OH,45365,United States
+1306,"Customer,Supplier,Expense",,MONTGOMERY PAPER CO,TRUE,MONTGOMERY PAPER CO,400 E FOURTH ST,,DAYTON,OH,45402,United States
+1650,Expense,,KINGS TRANSFER INC,TRUE,KINGS TRANSFER INC,417 San Jose Street,,Dayton,OH,45403,United States
+2326,"Customer,Supplier,Expense",,THERMOPLASTIC TRADING INC,TRUE,THERMOPLASTIC TRADING INC,707 Miamisburg-Centerville Rd.,Box 248,Dayton,OH,45459,United States
+2398,"Customer,Expense",Igor Beylin,PURECYCLE TECHNOLOGIES INC FEU,TRUE,PURECYCLE TECHNOLOGIES INC FEU,925 County Rd 1A,,Ironton,OH,45638,United States
+2345,"Customer,Expense",,PIKE PLASTICS RECYCLING LLC,TRUE,PIKE PLASTICS RECYCLING LLC,479 Industrial Park Dr,,Waverly,OH,45690,United States
+1565,"Customer,Expense",,MONDO POLYMER TECHNOLOGIES INC,TRUE,MONDO POLYMER TECHNOLOGIES INC,PO BOX 250,,Reno,OH,45773,United States
+2027,Supplier,Igor Beylin,TAMCO MFG / US PLASTICS,TRUE,TAMCO MFG / US PLASTICS,1390 Neubrecht Rd,,Lima,OH,45801,United States
+1815,Supplier,,UNITED STATES PLASTIC CORP,TRUE,UNITED STATES PLASTIC CORP,1390 Neubrecht Rd.,,Lima,OH,45801,United States
+2321,Expense,,UNITED STATES PLASTIC CORPORATION,TRUE,UNITED STATES PLASTIC CORPORATION,1390 Neubrecht Rd,,Lima,OH,45801,United States
+1193,"Customer,Supplier",Arthur Akopyan,ALLEN COUNTY RECYCLERS INC,TRUE,ALLEN COUNTY RECYCLERS INC,PO Box 1264,541 South Central,Lima,OH,45802,United States
+1101,Customer,,ADVANCED DRAINAGE SYSTEMS,TRUE,ADVANCED DRAINAGE SYSTEMS,"401 Olive St,",,Findlay,OH,45840,United States
+1716,"Customer,Expense",,DIMEX,TRUE,DIMEX,28305 State Route 7 North,,Marietta,OH,,United States
+2141,"Supplier,Expense",Igor Beylin,CIRCLE PACKAGING CO,TRUE,CIRCLE PACKAGING CO,3847 Edwards Rd,,Newtown,OH,45244-2408,United States
+1177,Expense,,TOTAL QUALITY LOGISTICS,TRUE,TOTAL QUALITY LOGISTICS,P.O. Box 634558,,Cincinnati,OH,45263-4558,United States
+1137,"Customer,Supplier,Expense",,PADNOS,TRUE,PADNOS,PO Box 638748,,Cincinnati,OH,45263-8748,United States
+1902,"Supplier,Expense",Tiffany White,ENTERPRIZE CONTAINER CORP,TRUE,ENTERPRIZE CONTAINER CORP,Lockbox # 646404,PO BOX 646404,Cincinnati,OH,45264-6404,United States
+1446,"Customer,Supplier,Expense",,VAN WERT SOLID WASTE,TRUE,VAN WERT SOLID WASTE,1135 N. Washington,,Van Wert,OH,45891-9491,United States
+2475,Expense,,TRUCK STOP 40 LLC,TRUE,TRUCK STOP 40 LLC,11558 N 1900 Rd,,Sayre,OK,73662,United States
+2026,"Customer,Supplier,Expense",Tiffany White,CHOCTAW NATION RECYCLING CENTER,TRUE,CHOCTAW NATION RECYCLING CENTER,3108 Enterprise Drive,,Durant,OK,74701-1922,United States
+2375,"Customer,Supplier,Expense",,JC POLYMER,TRUE,JC POLYMER,481 Welham Rd,Unit 14,Barrie,ON,L4N 8Z6,United States
+2353,Expense,,NORTH PLUS LOGISTICS,TRUE,NORTH PLUS LOGISTICS,PO Box 36117,RPO Northgate,Brampton,ON,L6S 6A3,United States
+2348,"Customer,Supplier,Expense",Arthur Buyanovskiy,ECOLOGY RECYCLING & CONSULTING INC,TRUE,ECOLOGY RECYCLING & CONSULTING INC,95 Hedgedale Rd,Unit 4,Brampton,ON,L6T 5P3,United States
+2577,"Supplier,Expense",Igor Beylin,TOTAL RECYCLING SOLUTIONS,TRUE,TOTAL RECYCLING SOLUTIONS,3153 Steeles Avenue West,,Milton,ON,L9T 2V4,United States
+1200,Supplier,Arthur Akopyan,CASCADES RECOVERY,TRUE,CASCADES RECOVERY,66 Shorncliffe Road,,Toronto,ON,M8Z 5K1,United States
+1926,"Supplier,Expense",Igor Beylin,THE REMM GROUP,TRUE,THE REMM GROUP,217 Terrace Hill Street,Unit B10,Brantford,ON,N3R 1G8,United States
+2585,"Customer,Expense",Igor Beylin,NOVA CHEMICALS,TRUE,NOVA CHEMICALS,PO BOX 3070,,Sarnia,ON,N7T 8E3,United States
+1668,"Customer,Expense",Igor Beylin,GREEN PROCESSING COMPANY INC,TRUE,GREEN PROCESSING COMPANY INC,2249 South Cameron Blvd,,Windsor,ON,N9B 3P6,United States
+2285,"Customer,Supplier,Expense",Igor Beylin,PIONEER RECYCLING SERVICES LLC,TRUE,PIONEER RECYCLING SERVICES LLC,Attn:  Accounts Receivable,16810 SE 120th Avenue,Clackamas,OR,97015,United States
+1641,"Customer,Expense",,NOVOLEX,TRUE,NOVOLEX,PO Box 5714,,Portland,OR,97228,United States
+1454,"Supplier,Expense",Igor Beylin,FAR WEST FIBERS INC,TRUE,FAR WEST FIBERS INC,PO Box 20669,,Portland,OR,97294,United States
+1574,Expense,,TRANSTECH INC,TRUE,TRANSTECH INC,1126 Gateway Loop,Suite 140,Springfield,OR,97477,United States
+2496,"Supplier,Expense",Mack McMurray,TOMSON SCRAP METAL,TRUE,TOMSON SCRAP METAL,PO Box 102,1100 6th Ave,Brackenridge,PA,15014,United States
+2279,"Supplier,Expense",,PITT PENN RECYCLING CO LLC,TRUE,PITT PENN RECYCLING CO LLC,426 Freeport Road,PO Box 276,Creighton,PA,15030,United States
+2282,"Supplier,Expense",,M DAVIS GROUP,TRUE,M DAVIS GROUP,2300 Palmer St,,Pittsburgh,PA,15218,United States
+2245,"Supplier,Expense",,ALLEGHENY RECYCLED PRODUCTS,TRUE,ALLEGHENY RECYCLED PRODUCTS,"4201 Grand Ave, Ste 1",,Pittsburg,PA,15225,United States
+1351,Supplier,Ricardo Pereira,GREENSTAR RECYCLING - PITTSBURGH,TRUE,GREENSTAR RECYCLING - PITTSBURGH,4100 Grand Ave,,Pittsburgh,PA,15225,United States
+1215,"Customer,Supplier,Expense",,EKMAN RECYCLING,TRUE,EKMAN RECYCLING,P.O. Box 644238,,Pittsburgh,PA,15264,United States
+2136,"Supplier,Expense",Ricardo Pereira,GATEWAY RECYCLING,TRUE,GATEWAY RECYCLING,28 Summit Park Dr.,,Pittsburgh,PA,15275,United States
+2236,"Customer,Supplier,Expense",Tiffany White,UNIVERSAL PLASTICS PURCHASING,TRUE,UNIVERSAL PLASTICS PURCHASING,59 Bay Hill Drive,,Latrobe,PA,15650,United States
+1756,"Supplier,Expense",Ricardo Pereira,ELK COUNTY SOLID WASTE AUTHORITY,TRUE,ELK COUNTY SOLID WASTE AUTHORITY,850 Washington Street,,St Marys,PA,15857,United States
+1856,"Supplier,Expense",Ricardo Pereira,KEYSTONE POWDERED METAL COMPANY,TRUE,KEYSTONE POWDERED METAL COMPANY,251 State Street,,St Mary's,PA,15857,United States
+1892,"Supplier,Expense",Ricardo Pereira,CONTAINERS N PALLETS LLC,TRUE,CONTAINERS N PALLETS LLC,100 South Stateline Rd,,Pulaski,PA,16143,United States
+2190,"Customer,Expense",Arthur Buyanovskiy,REGENEX,TRUE,REGENEX,P.O Box 608,West Middlesex,,PA,16159,United States
+2346,"Supplier,Expense",Ricardo Pereira,ARMSTRONG RECYCLING CENTER,TRUE,ARMSTRONG RECYCLING CENTER,402 Market Street,,kittaning,PA,16201,United States
+2524,"Supplier,Expense",Igor Beylin,ENGINEERED PLASTICS,TRUE,ENGINEERED PLASTICS,1367 W 12th Street,,Erie,PA,16501,United States
+1749,"Supplier,Expense",Ricardo Pereira,CENTRE COUNTY RECYCLING & REFUSE,TRUE,CENTRE COUNTY RECYCLING & REFUSE,253 Transfer Road,,Bellefonte,PA,16823,United States
+2509,"Customer,Supplier,Expense",Arthur Akopyan,PEACHEY PALLET,TRUE,PEACHEY PALLET,5278 Brush Valley Rd,,Rebersburg,PA,16872,United States
+2228,"Supplier,Expense",Igor Beylin,PENN PALLET INC,TRUE,PENN PALLET INC,553 Indpendent Rd,,Greensburg,PA,16881,United States
+2552,"Supplier,Expense",Igor Beylin,CARGILL,TRUE,CARGILL,2700 Yetter Ct,,Camp Hill,PA,17011,United States
+1717,"Supplier,Expense",Ricardo Pereira,CONSOLIDATED SCRAP RESOURCE INC,TRUE,CONSOLIDATED SCRAP RESOURCE INC,328 N 14th St,,Lebanon,PA,17046,United States
+2503,"Supplier,Expense",Ricardo Pereira,INDUSTRIAL PALLET CORP,TRUE,INDUSTRIAL PALLET CORP,255 N Carlisle St,,Greencastle,PA,17225,United States
+2587,"Supplier,Expense",Ricardo Pereira,PRO PALLET LLC,TRUE,PRO PALLET LLC,1730 Butter Rd,,Dover,PA,17315,United States
+1364,Supplier,Igor Beylin,PENN WASTE RECYCLING,TRUE,PENN WASTE RECYCLING,PO BOX 3066,,YORK,PA,17402,United States
+2461,"Customer,Supplier,Expense",Ricardo Pereira,FOUR SEASONS PRODUCE,TRUE,FOUR SEASONS PRODUCE,400 Wabash Rd,,Ephrata,PA,17522,United States
+1331,Supplier,Igor Beylin,ZOOK'S PLASTIC RECOVERY,TRUE,ZOOK'S PLASTIC RECOVERY,183  S.Farmersville Rd.,,Leola,PA,17540,United States
+1986,Customer,,TRIGON PLASTICS LLC,TRUE,Trigon Plastics LLC,172 Orlan Road,,New Holland,PA,17557,United States
+1617,Expense,,MARK UPDEGRAFF TRUCKING INC,TRUE,MARK UPDEGRAFF TRUCKING INC,215 Reading Ave,,Williamsport,PA,17701,United States
+1703,"Supplier,Expense",Ricardo Pereira,STAIMAN RECYCLING CORP,TRUE,STAIMAN RECYCLING CORP,PO Box 1235,,Williamsport,PA,17703,United States
+1613,"Supplier,Expense",Ricardo Pereira,LYCOMING COUNTY RESOURCE MNGT SERVICES,TRUE,LYCOMING COUNTY RESOURCE MNGT SERVICES,PO BOX 187,,Montgomery,PA,17752,United States
+2446,"Supplier,Expense",Igor Beylin,EMPIRE KOSHER POULTRY,TRUE,EMPIRE KOSHER POULTRY,370 Mattern Rd,,Beaver Springs,PA,17812,United States
+2093,"Supplier,Expense",Ricardo Pereira,KEYSTONE PALLET AND RECYCLING LLC,TRUE,KEYSTONE PALLET AND RECYCLING LLC,13 Industrial Rd. Building 4,,Milton,PA,17847,United States
+1946,Expense,,FCI SCHUYLKILL/ UNICOR RECYCLING,TRUE,FCI SCHUYLKILL/ UNICOR RECYCLING,I-81(exit 116) & Rt 901 West,,Minersville,PA,17954,United States
+2493,"Supplier,Expense",Igor Beylin,AAA PLASTICS & PAPER RECYCLING,TRUE,AAA PLASTICS & PAPER RECYCLING,PO Box 147,,Bath,PA,18014,United States
+1702,"Customer,Supplier,Expense",Ricardo Pereira,IHC TRADING,TRUE,IHC TRADING,PO Box 601,,Bethlehem,PA,18016,United States
+1747,"Customer,Supplier,Expense",Ricardo Pereira,PALLET PRO INC,TRUE,PALLET PRO INC,2121 Willow park Rd,,Bethlehem,PA,18020,United States
+1490,Expense,,DST EXPRESS INC,TRUE,DST EXPRESS INC,8942 Pathfinder Rd,,Breinigsville,PA,18031,United States
+1791,"Supplier,Expense",Ricardo Pereira,QRH POLYMERS,TRUE,QRH POLYMERS,400 Island Park Rd,Bldg 28,Easton,PA,18042,United States
+2201,"Customer,Supplier,Expense",Ricardo Pereira,HESS WOOD RECYCLING INC,TRUE,HESS WOOD RECYCLING INC,2357 Newlins Mill Rd,,Easton,PA,18045,United States
+1678,"Customer,Supplier,Expense",,KJ PLASTICS INC,TRUE,KJ PLASTICS INC,105 Gravel Pike,,Green Lane,PA,18054,United States
+2147,"Supplier,Expense",Ricardo Pereira,NAZARETH PALLET COMPANY,TRUE,NAZARETH PALLET COMPANY,800 Held Dr,,Northampton,PA,18067,United States
+1855,"Supplier,Expense",Ricardo Pereira,PLASTIC WORLD RECYCLING INC,TRUE,PLASTIC WORLD RECYCLING INC,700 lehigh Street,,Palmerton,PA,18071,United States
+1533,Supplier,Igor Beylin,CONCORD PLASTICS INC,TRUE,CONCORD PLASTICS INC,225 Jaycee Drive,,West Hazleton,PA,18202,United States
+1610,"Customer,Supplier,Expense",,ULTRA POLY CORPORATION,TRUE,ULTRA POLY CORPORATION,102 Demi Rd,P.O. Box 330,Portland,PA,18351,United States
+1769,"Supplier,Expense",Ricardo Pereira,DK TRADING CORPORATION,TRUE,DK TRADING CORPORATION,PO Box E,,Clarks Summit,PA,18411,United States
+1333,Supplier,Ricardo Pereira,ANTHRACITE AUTO PARTS,TRUE,ANTHRACITE AUTO PARTS,900 S 5th avenue,,Scranton,PA,18504,United States
+2435,"Customer,Expense",Igor Beylin,L & S PLASTICS INC,TRUE,L & S PLASTICS INC,1120 Oak Hill Road,,Mountain Top,PA,18707,United States
+2149,"Supplier,Expense",,TIMI PLASTICS INC,TRUE,TIMI PLASTICS INC,4 South River Street,,Towanda,PA,18848,United States
+2485,"Supplier,Expense",Igor Beylin,COMPLETE LIQUIDATORS,TRUE,COMPLETE LIQUIDATORS,2207 Radcliffe St,Dock B,Bristol,PA,19007,United States
+2395,"Supplier,Expense",Ricardo Pereira,CORPORATE GRIND LLC,TRUE,CORPORATE GRIND LLC,PO BOX 594,,Bristol,PA,19007,United States
+2063,Supplier,Ricardo Pereira,MOLDAMATIC LLC,TRUE,MOLDAMATIC LLC,29 Noeland Ave,,Penndel,PA,19047,United States
+1285,Supplier,Ricardo Pereira,ACCURATE PAPER RECYCLING,TRUE,ACCURATE PAPER RECYCLING,508 E Baltimore Ave,,Lansdowne,PA,19050,United States
+2365,Expense,,CL FREIGHTS,TRUE,CL FREIGHTS,"8102 W Chester Pike, Ste 105",,Upper Darby,PA,19082,United States
+1524,"Supplier,Expense",Arthur Akopyan,UNITED STATES RECYCLING,TRUE,UNITED STATES RECYCLING,6101 Tacony Street,,Philadelphia,PA,19135,United States
+1418,"Customer,Supplier",Ricardo Pereira,REVOLUTION RECOVERY LLC,TRUE,REVOLUTION RECOVERY LLC,7333 Milnor St,,Philadelphia,PA,19136,United States
+2024,"Customer,Supplier,Expense",Ricardo Pereira,VEPAR LLC,TRUE,VEPAR LLC,PO BOX 2376,,Frazer,PA,19355,United States
+1527,"Supplier,Expense",Ricardo Pereira,TOTAL RECYCLE INC,TRUE,TOTAL RECYCLE INC,ATT: ANGIE BRIDI,2650 Audobon Road,Audobon,PA,19403,United States
+2420,"Customer,Expense",,NATIONAL BOX EXCHANGE INC,TRUE,NATIONAL BOX EXCHANGE INC,209 Crystal Ct,,Blue Bell,PA,19422,United States
+1757,"Customer,Supplier,Expense",Ricardo Pereira,PHILADELPHIA PLASTIC RECYCLING,TRUE,PHILADELPHIA PLASTIC RECYCLING,1013 Conshohocken Road,suite 209,Conshohocken,PA,19428,United States
+1694,"Supplier,Expense",Ricardo Pereira,RAPID RECYCLING,TRUE,RAPID RECYCLING,5 Brower Ave,,Oaks,PA,19456,United States
+1510,"Supplier,Expense",Igor Beylin,COUGLES RECYCLING INC,TRUE,COUGLES RECYCLING INC,1000 South 4th Street,,Hamburg,PA,19526,United States
+2449,"Customer,Supplier,Expense",Igor Beylin,BYHEART,TRUE,BYHEART,61 Vanguard Drive,,Reading,PA,19606,United States
+1788,"Supplier,Expense",Ricardo Pereira,DIAMOND K INC,TRUE,DIAMOND K INC,900 Battle Street,,Scranton,PA,,United States
+2242,"Supplier,Expense",Ricardo Pereira,PREMIER METAL & RECYCLING INC,TRUE,PREMIER METAL & RECYCLING INC,1013 Delaum Rd,,St Mary's,PA,15857-3359,United States
+2427,Expense,,STANDARD LOGISTICS,TRUE,STANDARD LOGISTICS,PO Box 7247-6705,,Philadelphia,PA,19170-0001,United States
+1766,"Supplier,Expense",Ricardo Pereira,ATLAS PALLET CORP,TRUE,ATLAS PALLET CORP,50 Old Mill Street,,Mohegan,RI,2830,United States
+2517,"Customer,Supplier,Expense",Ricardo Pereira,OCEAN STATE JOBBERS,TRUE,OCEAN STATE JOBBERS,375 Commerce Park Road,,North Kingstown,RI,2852,United States
+2401,"Supplier,Expense",Ricardo Pereira,BERGER RECYCLING,TRUE,BERGER RECYCLING,126 Front Street,,Pawtucket,RI,2860,United States
+1785,"Customer,Supplier,Expense",Ricardo Pereira,LOST BROTHERS PALLET CORP,TRUE,LOST BROTHERS PALLET CORP,PO Box 485,,Woonsocket,RI,2895,United States
+2531,"Supplier,Expense",Ricardo Pereira,HANSEN PALLET CO,TRUE,HANSEN PALLET CO,1334 Elbert Taylor Rd,,Pelion,SC,29123,United States
+1975,"Customer,Supplier,Expense",,HODGE DISTRIBUTION & LOGISTICS,TRUE,HODGE DISTRIBUTION & LOGISTICS,2075 Lynette Drive,,Sumter,SC,29154,United States
+2617,"Supplier,Expense",Igor Beylin,CAPITAL RECOVERY SERVICES,TRUE,CAPITAL RECOVERY SERVICES,117 Littlejohn St,,Spartanburg,SC,29301,United States
+2179,"Supplier,Expense",Igor Beylin,LNT PALLET COMPANY,TRUE,LNT PALLET COMPANY,2994 Fairforest Clevedale Rd,,Spartanburg,SC,29301,United States
+1846,"Supplier,Expense",Igor Beylin,A PLUS PALLET CO LLC,TRUE,A PLUS PALLET CO LLC,120 Sun N Sand Rd,,Spartanburg,SC,29303,United States
+2340,"Supplier,Expense",Igor Beylin,NORMAN TEXTILE SALES,TRUE,NORMAN TEXTILE SALES,1 Bomar St,,Inman,SC,29349,United States
+2119,"Supplier,Expense",Arthur Buyanovskiy,BLACKROCK PLASTICS LLC,TRUE,BLACKROCK PLASTICS LLC,215 East Bay Street,Suite 301,Charleston,SC,29401,United States
+2010,Supplier,Igor Beylin,GLOBAL RECOVERY LLC,TRUE,GLOBAL RECOVERY LLC,139 Pioneer Gym Rd,,Harleyville,SC,29448,United States
+2536,"Customer,Supplier,Expense",Igor Beylin,POWER PLASTIC RECYCLING,TRUE,POWER PLASTIC RECYCLING,PO Box 431,,Johns Island,SC,29457,United States
+2628,"Supplier,Expense",Igor Beylin,PACKIQ,TRUE,PACKIQ,2274 Volvo Car Drive,,Ridgeville,SC,29472,United States
+1709,"Supplier,Expense",Igor Beylin,HORRY COUNTY SOLID WASTE AUTHORITY,TRUE,HORRY COUNTY SOLID WASTE AUTHORITY,P.O. Box 1664,,Conway,SC,29528,United States
+2458,Supplier,Igor Beylin,POLYTECH RESOURCES LLC,TRUE,POLYTECH RESOURCES LLC,806 Lamar Highway,,Darlington,SC,29532,United States
+1870,"Customer,Expense",,HILEX POLY,TRUE,HILEX POLY,101 E Carolina Avenue,,Hartville,SC,29550,United States
+1739,Expense,,UCW LOGISTICS LLC,TRUE,UCW LOGISTICS LLC,325 W McBee Ave,,Greenville,SC,29601,United States
+2618,"Customer,Supplier,Expense",Arthur Akopyan,PHARMACEUTICAL ASSOCIATES,TRUE,PHARMACEUTICAL ASSOCIATES,1700 Perimeter Road,,Greenville,SC,29605,United States
+1972,"Customer,Supplier",,HILTON DISPLAYS,TRUE,HILTON DISPLAYS,125 Hillside Dr,,Greenville,SC,29607,United States
+2629,"Customer,Expense",Igor Beylin,ATD INC,TRUE,ATD INC,715 Rutherford Road,,Greenville,SC,29609,United States
+1607,"Customer,Supplier,Expense",,RECOVER USA,TRUE,RECOVER USA,191 Clear Springs Ct,,Greer,SC,29651,United States
+1976,"Customer,Supplier,Expense",,CATAWBA PLASTICS,TRUE,CATAWBA PLASTICS,3007 Pickney Road,,CHESTER,SC,29706,United States
+2499,"Supplier,Expense",,GAF,TRUE,GAF,902 Old Richburg Rd,,Chester,SC,29706,United States
+1292,"Customer,Supplier,Expense",,CHS PLASTICS INC,TRUE,CHS PLASTICS INC,1750 Hwy 160 West,Suite 101-166,Fort Mill,SC,29708,United States
+1875,"Customer,Supplier,Expense",Arthur Akopyan,FAST GROWING TREES,TRUE,FAST GROWING TREES,2621 Old Nation Rd,,Fort Mill,SC,29715,United States
+2276,"Customer,Expense",,SUN FIBER LLC,TRUE,SUN FIBER LLC,1247 Frederic Drive,,Richburg,SC,29729,United States
+2142,"Customer,Supplier,Expense",Igor Beylin,UPSTREAM RECYCLING,TRUE,UPSTREAM RECYCLING,581 Rainbow Falls Rd,,Granville,SC,29829,United States
+2441,"Customer,Supplier,Expense",Mack McMurray,DOUG HEIRS,TRUE,DOUG HEIRS,788 Chert Quarry Rd,,Martin,SC,29836,United States
+1884,"Customer,Supplier,Expense",Igor Beylin,FORT JACKSON ARMY BASE,TRUE,FORT JACKSON ARMY BASE,3392 Magruder Ave.,DFMWR / Qualified Recycling Program (QRP),Columbia,SC,29207-5608,United States
+1731,"Supplier,Expense",Tiffany White,MILLENNIUM RECYCLING,TRUE,MILLENNIUM RECYCLING,305 E 50th St N,,Sioux Falls,SD,57104,United States
+1947,"Supplier,Expense",Tiffany White,LASKO DISTRIBUTION CENTER,TRUE,LASKO DISTRIBUTION CENTER,300 Confederate Dr,,Franklin,TN,37064,United States
+1250,Supplier,Arthur Akopyan,PEFORMANCE FOOD GROUP - TN,TRUE,PEFORMANCE FOOD GROUP - TN,825 Maddox-Simpson Pkwy,,Lebanon,TN,37087,United States
+2036,"Customer,Supplier",Tiffany White,ALLAN COMPANY,TRUE,ALLAN COMPANY,13 Athletes Way,,Mt Juliet,TN,37122,United States
+2479,"Supplier,Expense",,ITNOLAP PALLET,TRUE,ITNOLAP PALLET,1142 Haley Road,,Murfreesboro,TN,37129,United States
+1238,Supplier,Arthur Akopyan,MID-SOUTH RECYCLING,TRUE,MID-SOUTH RECYCLING,1022 Industrial Park Rd,,New Johnsonville,TN,37134,United States
+2229,"Customer,Expense",,INGRAM EXPRESS SERVICES,TRUE,INGRAM EXPRESS SERVICES,337 Hill Ave,,NASHVILLE,TN,37210,United States
+2133,Expense,,M & W LOGISTICS GROUP INC,TRUE,M & W LOGISTICS GROUP INC,1110 Pumping Station Road,,Nashville,TN,37210,United States
+1786,"Customer,Supplier,Expense",Arthur Akopyan,PLANET RECYCLING,TRUE,PLANET RECYCLING,PO Box 150887,,Nashville,TN,37215,United States
+2073,Supplier,Tiffany White,ELORA PALLET,TRUE,ELORA PALLET,641 Donaldson Grove Rd.,,Elora,TN,37328,United States
+1494,"Supplier,Expense",Arthur Akopyan,ISUSTAIN INC,TRUE,ISUSTAIN INC,PO Box 700,,Soddy Daisy,TN,37384,United States
+2204,"Supplier,Expense",Tiffany White,CCR IND LLC,TRUE,CCR IND LLC,PO Box 1411,,Tullahoma,TN,37388,United States
+1941,"Customer,Supplier",Tiffany White,COFFEE COUNTY RECYCLING CENTER,TRUE,COFFEE COUNTY RECYCLING CENTER,101 Wilson St.,,Tullahoma,TN,37388,United States
+2606,"Supplier,Expense",Lindsey Malyavko,HAMILTON PLASTICS INC,TRUE,HAMILTON PLASTICS INC,2641 Riverport Rd,,Chattanooga,TN,37406,United States
+1555,Expense,,LOGISTICS MADE SIMPLE INC,TRUE,LOGISTICS MADE SIMPLE INC,2115 Chapman Road,Suite 107,Chattanooga,TN,37421,United States
+2148,"Supplier,Expense",Tiffany White,LIGHTING RESOURCES INC,TRUE,LIGHTING RESOURCES INC,2212 Buffalo Rd,Suite 100,Johnson City,TN,37604,United States
+1225,Supplier,Arthur Akopyan,GREENEVILLE IRON & METALS,TRUE,GREENEVILLE IRON & METALS,PO Box 1718,,Greeneville,TN,37744,United States
+2212,"Supplier,Expense",Tiffany White,HT HACKNEY,TRUE,HT HACKNEY,2500 Buttermilk Rd W,,Lenoir City,TN,37771,United States
+1871,"Supplier,Expense",,LAKEWAY PALLET,TRUE,LAKEWAY PALLET,330 US-25,,Newport,TN,37821,United States
+2057,Supplier,Tiffany White,MYERS DIVERSIFIED,TRUE,MYERS DIVERSIFIED,880 Dixie Hwy,,Newport,TN,37821,United States
+2081,"Customer,Supplier",Igor Beylin,SCOTT PLASTICS INC,TRUE,SCOTT PLASTICS INC,234 Dynatex Rd,,"Sunbright,",TN,37872,United States
+2061,Supplier,Tiffany White,ADVANCED WASTE MANAGEMENT,TRUE,ADVANCED WASTE MANAGEMENT,6675 Hunter Rd,,Talbott,TN,37877,United States
+2573,"Supplier,Expense",Tiffany White,ARGENTUM RECYCLING,TRUE,ARGENTUM RECYCLING,3010 E. Industrial Pkwy,,Knoxville,TN,37921,United States
+2221,"Supplier,Expense",Tiffany White,SILVER PHOENIX LLC,TRUE,SILVER PHOENIX LLC,3010 Industrial Parkway East,,Knoxville,TN,37921,United States
+2079,"Customer,Supplier,Expense",Tiffany White,UNIVERSAL ENVIRONMENTAL SERVICES,TRUE,UNIVERSAL ENVIRONMENTAL SERVICES,200 W Springdale Ave,,Knoxville,TN,37921,United States
+2381,"Customer,Expense",,OMEGA PLASTICS LLC,TRUE,OMEGA PLASTICS LLC,2636 Byington Solway Rd,,Knoxville,TN,37931,United States
+2542,"Supplier,Expense",Igor Beylin,FURROW AUCTION COMPANY,TRUE,FURROW AUCTION COMPANY,10319 Cogdill Rd,,Knoxville,TN,37932,United States
+2600,"Supplier,Expense",,DURA-LINE,TRUE,DURA-LINE,11400 Parkside Drive,Suite 300,Knoxville,TN,37934,United States
+1605,Customer,,RAPAC LP,TRUE,RAPAC LP,65 Industrial Park Rd,,Oakland,TN,38060,United States
+1461,"Supplier,Expense",Igor Beylin,MEMPHIS RECYCLING SERVICES,TRUE,MEMPHIS RECYCLING SERVICES,1131 Agnes Place,,Memphis,TN,38104,United States
+2005,"Customer,Supplier",Mack McMurray,HGD WASTE,TRUE,HGD WASTE,1054 Kansas St,,Memphis,TN,38106,United States
+1140,"Customer,Supplier,Expense",Arthur Akopyan,RECYCLE SOLUTIONS,TRUE,RECYCLE SOLUTIONS,1054 KANSAS STREET,,MEMPHIS,TN,38106,United States
+2262,"Supplier,Expense",Ricardo Pereira,PALLET SERVICES LLC,TRUE,PALLET SERVICES LLC,3358 Gemini Dr,,Memphis,TN,38109,United States
+1867,Supplier,,TITAN PALLET COMPANY LLC,TRUE,TITAN PALLET COMPANY LLC,1725 Airways Blvd.,,Memphis,TN,38114,United States
+1918,"Customer,Supplier",Igor Beylin,DRUMCO INC,TRUE,DRUMCO INC,3299 Tulane Rd,,Memphis,TN,38116,United States
+2630,Expense,,JIT-EX LLC,TRUE,JIT-EX LLC,3344 Cazassa Road,,Memphis,TN,38116,United States
+2224,"Supplier,Expense",Igor Beylin,FORTUNE SKY RECYCLING,TRUE,FORTUNE SKY RECYCLING,4210 BF Goodrich Blvd,,Memphis,TN,38118,United States
+2072,Expense,,PALADIN FREIGHT,TRUE,PALADIN FREIGHT,4895 Outland Center Dr.,Suite 102,Memphis,TN,38118,United States
+2601,"Customer,Expense",,SERAPHIM PLASTICS LLC,TRUE,SERAPHIM PLASTICS LLC,3412 Jackson Ave,Suite 7,Memphis,TN,38122,United States
+2539,"Customer,Expense",Arthur Buyanovskiy,MEMPHIS TIRE RECYCLERS LLC,TRUE,MEMPHIS TIRE RECYCLERS LLC,3961 S Lakewood Dr,,Memphis,TN,38128,United States
+1667,"Supplier,Expense",Arthur Akopyan,WASTE SOLUTIONS INC,TRUE,WASTE SOLUTIONS INC,2874 Shelby Street,Suite 211,Bartlett,TN,38134,United States
+1843,"Customer,Supplier,Expense",Arthur Akopyan,THE PALLET FACTORY,TRUE,THE PALLET FACTORY,PO Box 181055,,Memphis,TN,38181,United States
+2558,"Supplier,Expense",Igor Beylin,INTERNATIONAL PAPER,TRUE,INTERNATIONAL PAPER,6400 Poplar Ave,,Memphis,TN,38197,United States
+2255,"Customer,Expense",,INSOURCE MATERIALS,TRUE,INSOURCE MATERIALS,170 Mark I Dr,,Henry,TN,38231,United States
+2608,"Supplier,Expense",Igor Beylin,EVERGREEN RECYCLERS,TRUE,EVERGREEN RECYCLERS,240 Novy Street,,Jackson,TN,38301,United States
+2368,"Supplier,Expense",Arthur Akopyan,RTS SOLUTIONS LLC,TRUE,RTS SOLUTIONS LLC,96 American Dr.,Ste 100A,Jackson,TN,38301,United States
+2313,"Customer,Supplier,Expense",Tiffany White,501K RECYCLING LLC,TRUE,501K RECYCLING LLC,540 Beaver Creek Rd,,Huntingdon,TN,38344,United States
+2308,"Supplier,Expense",Ricardo Pereira,M&J FARMS,TRUE,M&J FARMS,1360 Davis Rd,,Lexington,TN,38351,United States
+2369,"Customer,Supplier,Expense",Arthur Akopyan,PARKER PALLET,TRUE,PARKER PALLET,85 Gibson Hwy,,Milan,TN,38358,United States
+1991,Supplier,Tiffany White,APPERTAIN CORP,TRUE,APPERTAIN CORP,302 Eighth St.,,Pulaski,TN,38478,United States
+1169,Expense,,PFS TRANSPORTATION INC,TRUE,PFS TRANSPORTATION INC,PO Box 1752,,Memphis,TN,38101-1752,United States
+2305,"Supplier,Expense",Ricardo Pereira,HD PALLET COMPANY LLC,TRUE,HD PALLET COMPANY LLC,"1910 Madison Ave., Ste 66",,Memphis,TN,38104-2620,United States
+1883,Supplier,Igor Beylin,METROPLEX WOOD PALLETS,TRUE,METROPLEX WOOD PALLETS,P.O. Box 21276,,Houston,TX,21276,United States
+2155,"Customer,Expense",,TRUE PLASTICS RECYCLING LLC,TRUE,TRUE PLASTICS RECYCLING LLC,2908 COMMODORE DR,,CARROLLTON,TX,75007,United States
+2597,Expense,,DM PLASTICS INC,TRUE,DM PLASTICS INC,691 VZ County Road 1519,,Grand Saline,TX,75140,United States
+2442,"Customer,Supplier,Expense",,MAUSER PACKAGING - SOUTH PLAINFIELD,TRUE,MAUSER PACKAGING - SOUTH PLAINFIELD,PO Box 212061,,Dallas,TX,75211,United States
+2418,"Customer,Expense",,SPOT-ON SERVICES,TRUE,SPOT-ON SERVICES,410 Hillburn Drive,,Dallas,TX,75217,United States
+1751,"Customer,Expense",,CARBONLITE RECYCLING LLC,TRUE,CARBONLITE RECYCLING LLC,4685 Mountain Creek Pkwy,,Dallas,TX,75236,United States
+1878,"Supplier,Expense",,PAL-SERV,TRUE,PAL-SERV,4100 Platinum Way,,Dallas,TX,75237,United States
+1990,Supplier,Igor Beylin,PLASTIC PALLET PRODUCTION,TRUE,PLASTIC PALLET PRODUCTION,4100 Platinum Way,,Dallas,TX,75237,United States
+2029,"Customer,Supplier",Igor Beylin,FCC ENVIRONMENTAL SERVICES,TRUE,FCC ENVIRONMENTAL SERVICES,5200 Simpson Stuart Rd,,Dallas,TX,75241,United States
+1631,"Supplier,Expense",Igor Beylin,ATC PLASTICS LLC,TRUE,ATC PLASTICS LLC,PO BOX 660367,,Dallas,TX,75266,United States
+2075,"Customer,Supplier,Expense",,REVOLUTION COMPANY,TRUE,REVOLUTION COMPANY,P.O. Box 660367,,Dallas,TX,75266,United States
+2609,"Customer,Supplier,Expense",Arthur Buyanovskiy,BR INTERNATIONAL USA LLC,TRUE,BR INTERNATIONAL USA LLC,1208 Commercial Blvd N,,Arlington,TX,76001,United States
+1584,"Customer,Expense",,PETMATE,TRUE,PETMATE,PO Box 1246,,Arlington,TX,76004,United States
+1570,Expense,,AMINO TRANSPORT INC,TRUE,AMINO TRANSPORT INC,PO 54220,,Hurst,TX,76054,United States
+2342,"Customer,Supplier",Arthur Buyanovskiy,APJ RECYCLING,TRUE,APJ RECYCLING,401 N CARROLL AVE #180,,SOUTHLAKE,TX,76092,United States
+1993,"Supplier,Expense",Ricardo Pereira,FRICKS PALLET COMPANY,TRUE,FRICKS PALLET COMPANY,101 Go Forth Road,,Ft. Worth,TX,76126,United States
+1679,"Supplier,Expense",,EVERGREEN RECYCLING,TRUE,EVERGREEN RECYCLING,1110 Everman Pkwy,,FORT WORTH,TX,76140,United States
+2516,"Supplier,Expense",Igor Beylin,HELLO BELLO,TRUE,HELLO BELLO,2101 Texas Central Pkwy,,Waco,TX,76712,United States
+2185,"Supplier,Expense",Tiffany White,ANSUYA POLYMERS,TRUE,ANSUYA POLYMERS,3016 Canal Street,,Houston,TX,77003,United States
+2399,"Customer,Supplier,Expense",,RECYCLING TECHNOLOGY CONSULTANTS,TRUE,RECYCLING TECHNOLOGY CONSULTANTS,3635 TRAILMOBILE DRIVE,,Houston,TX,77013,United States
+2227,"Supplier,Expense",,BYRD TRADING LLC,TRUE,BYRD TRADING LLC,222 Grove Street,,Houston,TX,77020,United States
+2556,"Supplier,Expense",Ricardo Pereira,LOPEZ & CO METALS LLC,TRUE,LOPEZ & CO METALS LLC,222 Grove Street,,Houston,TX,77020,United States
+2021,"Customer,Supplier",Ricardo Pereira,LOPEZ SCRAP METAL,TRUE,LOPEZ SCRAP METAL,"2160 Harbor St,",,Houston,TX,77020,United States
+2443,"Supplier,Expense",Ricardo Pereira,GOLD STAR METALS,TRUE,GOLD STAR METALS,7944 Dockal Road,,Houston,TX,77028,United States
+1741,"Customer,Supplier,Expense",,AVANGARD INNOVATIVE,TRUE,AVANGARD INNOVATIVE,11906 Brittmoore Oark Drive,,Houston,TX,77041,United States
+2373,Expense,,NAV LOGISTICS INC,TRUE,NAV LOGISTICS INC,12620 FM 1960 A-4,,Houston,TX,77065,United States
+2581,Expense,,MV HOUSTON CROSS DOCK,TRUE,MV HOUSTON CROSS DOCK,7075 Cypress Creek Pkwy,,Houston,TX,77066,United States
+1922,"Customer,Supplier",,ENVIRONMENTAL WASTE RECYCLING INC,TRUE,ENVIRONMENTAL WASTE RECYCLING INC,8420 Rayson Rd.,,Houston,TX,77080,United States
+1729,"Supplier,Expense",Ricardo Pereira,FLORES PALLET LLC,TRUE,FLORES PALLET LLC,6101 Dixie Drive,,Houston,TX,77087,United States
+1178,Expense,,TRANSMAR DISTRIBUTION SERVICES LTD,TRUE,TRANSMAR DISTRIBUTION SERVICES LTD,PO Box 15644,8525 Market Street Rd,Houston,TX,77220,United States
+2364,Expense,,GRAVITY CONCEPTS LIMITED,TRUE,GRAVITY CONCEPTS LIMITED,17505 Telge Rd,Suite 102,Cypress,TX,77429,United States
+1598,"Customer,Supplier,Expense",,LAUDADIO POLYMERS INC,TRUE,LAUDADIO POLYMERS INC,20701 Clay Center Dr.,,Katy,TX,77449,United States
+1873,"Supplier,Expense",Igor Beylin,AKROTEX EXTRUSION INC,TRUE,AKROTEX EXTRUSION INC,PO Box 1508,Attn: Deesie Garza,Orange,TX,77630,United States
+2563,"Supplier,Expense",Igor Beylin,AV CARGO SOLUTIONS,TRUE,AV CARGO SOLUTIONS,1901 Aduanales Lane,,Laredo,TX,78041,United States
+1662,"Customer,Expense",,RPM RECYCLING,TRUE,RPM RECYCLING,2037 W Summit Ave,,San Antonio,TX,78201,United States
+2060,"Customer,Expense",Arthur Buyanovskiy,BALLYHOO PLASTICS LLC,TRUE,BALLYHOO PLASTICS LLC,430 South Padre Island Drive,,Corpus Christi,TX,78405,United States
+2336,"Supplier,Expense",Arthur Buyanovskiy,FLEX TECH HOSE & TUBING LLC,TRUE,FLEX TECH HOSE & TUBING LLC,1100 Civic Center Loop,,San Marcos,TX,78666,United States
+1380,"Customer,Supplier",,BALCONES RECYCLING,TRUE,BALCONES RECYCLING,9301 Johnny Morris Road,,Austin,TX,78724,United States
+1879,"Customer,Supplier,Expense",,PIVOT TRADING,TRUE,PIVOT TRADING,11601 W Hwy 290,Suite A101393,Austin,TX,78737,United States
+2268,Expense,,FREIGHTPROS,TRUE,FREIGHTPROS,2535 Brockton Dr,Suite 500,Austin,TX,78758,United States
+1988,Supplier,Igor Beylin,CITY OF PLAINVIEW,TRUE,CITY OF PLAINVIEW,1018 E 4th Street,,Plainview,TX,79072,United States
+1736,"Supplier,Expense",Igor Beylin,BUTTS RECYCLING INC,TRUE,BUTTS RECYCLING INC,26 W Industrial Loop,,Midland,TX,79701,United States
+2426,"Supplier,Expense",Igor Beylin,W SILVER RECYCLING,TRUE,W SILVER RECYCLING,601 N Mesa Street,Suite 1500,El Paso,TX,79901,United States
+2339,Expense,,RECYCLING & WASTE REDUCTION,TRUE,RECYCLING & WASTE REDUCTION,2812 North Nichols Street,,Ft Worth,TX,86106,United States
+2417,"Customer,Supplier,Expense",,IBC TOTE RECYCLING LLC,TRUE,IBC TOTE RECYCLING LLC,772 Lyonwood Ave,,Austin,TX,91789,United States
+1488,Expense,,GLOBAL EXPRESS LOGISTICS INC,TRUE,GLOBAL EXPRESS LOGISTICS INC,P.O. Box 840267,,Dallas,TX,75284-0267,United States
+1315,Supplier,Igor Beylin,BFI RALEIGH RECYCLERY,TRUE,BFI RALEIGH RECYCLERY,PO Box 841977,,Dallas,TX,75284-1977,United States
+1851,Expense,,FULMER LOGISTICS SERVICES INC,TRUE,FULMER LOGISTICS SERVICES INC,P.O. BOX 202056,,DALLAS,TX,75320-2056,United States
+1395,"Customer,Supplier",,FEDERAL INTERNATIONAL,TRUE,FEDERAL INTERNATIONAL,PO Box 203505,,Dallas,TX,75320-3505,United States
+1671,"Customer,Supplier,Expense",Ricardo Pereira,FEDERAL RECYCLING & WASTE SOLUTIONS,TRUE,FEDERAL RECYCLING & WASTE SOLUTIONS,PO Box 203505,,Dallas,TX,75320-3505,United States
+1620,Expense,,ARRIVE LOGISTICS LLC,TRUE,ARRIVE LOGISTICS LLC,PO Box 207779,,Dallas,TX,75320-7779,United States
+1615,Expense,,JE KOCAK TRUCKING & TRANS SVS LLC,TRUE,JE KOCAK TRUCKING & TRANS SVS LLC,PO Box 961029,,Fort Worth,TX,76161-1029,United States
+2054,"Supplier,Expense",Ricardo Pereira,VIKOZ ENTERPRISES INC,TRUE,VIKOZ ENTERPRISES INC,"1270 E, Siesta Dr",,Sandy,UT,84093,United States
+1569,Expense,,SAVAGE LOGISTICS INC,TRUE,SAVAGE LOGISTICS INC,Dept 418,PO Box 30015,Salt Lake City,UT,84157,United States
+1504,Expense,,TRANS DYNAMICS INC,TRUE,TRANS DYNAMICS INC,PO Box 57908,,Salt Lake City,UT,84157,United States
+1475,"Customer,Supplier,Expense",Igor Beylin,INTERWEST PAPER,TRUE,INTERWEST PAPER,PO Box 65382,,Salt Lake City,UT,84165,United States
+2107,"Customer,Expense",Arthur Buyanovskiy,MERCURY POLYMERS LLC,TRUE,MERCURY POLYMERS LLC,12110 Sunset Hills Rd,Ste 600,Reston,VA,20194,United States
+1254,Supplier,Arthur Akopyan,PLASTIC REUSE,TRUE,PLASTIC REUSE,8529 crestview drive,,Fairfax,VA,22031,United States
+2505,"Supplier,Expense",,IN HOME VACCINES LLC,TRUE,IN HOME VACCINES LLC,3213 Cofer Rd,,Falls Church,VA,22042,United States
+1267,Supplier,Arthur Akopyan,SOUTHERN SCRAP / PRES WMS,TRUE,SOUTHERN SCRAP / PRES WMS,PO Box 3235,,Winchester,VA,22604,United States
+1742,"Supplier,Expense",Igor Beylin,GREEN EARTH LLC,TRUE,GREEN EARTH LLC,P.O. Box 1347,,Harrisonburg,VA,22803,United States
+1998,Supplier,Igor Beylin,BLUE RIDGE PALLET LLC,TRUE,BLUE RIDGE PALLET LLC,17 Commonwealth Dr.,PO Box 147,Lyndhurst,VA,22952,United States
+2264,"Supplier,Expense",Ricardo Pereira,ALLIED PALLET CO,TRUE,ALLIED PALLET CO,7151 Poindexter Rd.,,New Kent,VA,23124,United States
+1760,"Supplier,Expense",Igor Beylin,AMERICAN PALLET INC,TRUE,AMERICAN PALLET INC,PO Box 17615,,Richmond,VA,23226,United States
+2525,"Customer,Supplier,Expense",Arthur Akopyan,GXO,TRUE,GXO,1501 Bellwood Road,,Richmond,VA,23237,United States
+1929,"Customer,Supplier,Expense",Igor Beylin,BIRDSONG PEANUTS,TRUE,BIRDSONG PEANUTS,311 Factory St,,Suffolk,VA,23434,United States
+2447,"Supplier,Expense",Mack McMurray,RIVER AND RAIL ENVIRONMENTAL,TRUE,RIVER AND RAIL ENVIRONMENTAL,425 S Saratoga St,,Suffolk,VA,23434,United States
+2568,"Supplier,Expense",Igor Beylin,ATLANTIC TRANSPORT LLC,TRUE,ATLANTIC TRANSPORT LLC,4325 Wishart Rd,,Virginia Beach,VA,23455,United States
+1131,"Customer,Supplier",Arthur Akopyan,RDS,TRUE,RDS,PO Box 5569,,Virginia Beach,VA,23471,United States
+1915,Supplier,Tiffany White,EMI RECYCLING,TRUE,EMI RECYCLING,636 Commerce Street,,Stuart,VA,24171,United States
+,,,,TRUE,,,,,,,
+2118,Customer,,TREX COMPANY,TRUE,TREX COMPANY,160 Exeter Drive,,Winchester,VA,22603-8605,United States
+1199,"Customer,Supplier,Expense",Arthur Akopyan,BUTLER PAPER RECYCLING INC,TRUE,BUTLER PAPER RECYCLING INC,PO Box 1602,,Suffolk,VA,23439-1602,United States
+2267,Expense,,CAVALRY TRUCKING LLC,TRUE,CAVALRY TRUCKING LLC,PO Box 262,,Bridgewater Corners,VT,5035,United States
+1335,"Customer,Supplier,Expense",Ricardo Pereira,CASELLA WASTE SYSTEMS,TRUE,CASELLA WASTE SYSTEMS,PO BOX 1364,,Williston,VT,5495,United States
+1904,"Customer,Supplier,Expense",Ricardo Pereira,HAYES RECYCLED PALLETS,TRUE,HAYES RECYCLED PALLETS,16 Maple St,,Leicester,VT,5733,United States
+2124,Expense,,QUEST TRANSPORTATION,TRUE,QUEST TRANSPORTATION,2280 Memorial Drive,PO Box 247,Saint Johnsbury,VT,05819-0247,United States
+1866,"Customer,Supplier,Expense",,HAMILTON POLYMERS COMPANY,TRUE,HAMILTON POLYMERS COMPANY,10355 NE Valley Rd. #4650,,Rollingbay,WA,98061,United States
+2166,"Customer,Expense",,GREEN RHINO RECYCLING,TRUE,GREEN RHINO RECYCLING,2809 Academy Drive SE,,Auburn,WA,98092,United States
+1695,"Supplier,Expense",Igor Beylin,REPUBLIC SERVICES INC,TRUE,REPUBLIC SERVICES INC,2733 3rd Avenue South,,Seattle,WA,98134,United States
+1507,Expense,,DELTA LOGISTICS LLC,TRUE,DELTA LOGISTICS LLC,Orange Commercial Credit,PO Box 11099,Olympia,WA,98508,United States
+2622,"Customer,Expense",,JIFRAM EXTRUSIONS INC,TRUE,JIFRAM EXTRUSIONS INC,320 Forest Avenue,,Sheboygan Falls,WI,53085,United States
+1520,"Supplier,Expense",Arthur Buyanovskiy,AMERICAN METAL & PAPER RECYCLING INC,TRUE,AMERICAN METAL & PAPER RECYCLING INC,935 Schoenhaar Drive,,West Bend,WI,53090,United States
+1453,"Supplier,Expense",Lindsey Malyavko,JOHNS DISPOSAL SERVICES,TRUE,JOHNS DISPOSAL SERVICES,7311 Omega Cr,,Franksville,WI,53126,United States
+2565,"Supplier,Expense",Arthur Akopyan,FENCE FINDERS LLC,TRUE,FENCE FINDERS LLC,1290 Lincoln Ave,,Waukesha,WI,53186,United States
+1391,Supplier,,DR PLASTICS INC,TRUE,DR PLASTICS INC,"W9390 State Road 59,",,Whitewater,WI,53190,United States
+1576,"Supplier,Expense",,ALLIED RESOURCE RECOVERY INC,TRUE,ALLIED RESOURCE RECOVERY INC,1911 S. 80th Street,,West Allis,WI,53219,United States
+2419,"Supplier,Expense",Mack McMurray,COMPLETE RECYCLING SOLUTIONS LLC,TRUE,COMPLETE RECYCLING SOLUTIONS LLC,2529 East Norwich Avenue,,Milwaukee,WI,53235,United States
+1860,"Supplier,Expense",,MID AMERICA STEEL DRUM COMPANY,TRUE,MID AMERICA STEEL DRUM COMPANY,3950 S Pennsylvania Ave,,St Francis,WI,53235,United States
+2309,"Customer,Expense",,PLACON CORP,TRUE,PLACON CORP,6096 McKee Road,,Madison,WI,53719,United States
+1589,"Customer,Supplier,Expense",,GAR PLASTICS INC,TRUE,GAR PLASTICS INC,240 North Birdsey St,,Columbus,WI,53925,United States
+1836,"Customer,Supplier,Expense",Lindsey Malyavko,ARONSON RECYCLING,TRUE,ARONSON RECYCLING,P.O. Box 509,,Waupun,WI,53963,United States
+1540,"Customer,Supplier,Expense",,BYPRODUCT RECYCLING LLC,TRUE,BYPRODUCT RECYCLING LLC,W239 Deering Lane,,Kaukauna,WI,54130,United States
+2414,"Supplier,Expense",Mack McMurray,MS MATERIALS LLC,TRUE,MS MATERIALS LLC,P.O. Box 1997,,Appleton,WI,54140,United States
+2574,"Supplier,Expense",Arthur Buyanovskiy,CROSS INDUSTRIES,TRUE,CROSS INDUSTRIES,P.O.Box 127,,Saumico,WI,54173,United States
+1545,Expense,,B&D WAREHOUSE - INVENTORY ONLY,TRUE,B&D WAREHOUSE - INVENTORY ONLY,2148 Badgerland Drive,,Green Bay,WI,54307,United States
+1386,Supplier,Tiffany White,COMMERCIAL RECYCLING CORP,TRUE,COMMERCIAL RECYCLING CORP,W. 6779 State Highway 64,,Medford,WI,54451,United States
+2225,"Supplier,Expense",Ricardo Pereira,HAY CREEK PALLET,TRUE,HAY CREEK PALLET,5094 2nd Ave,,Pittsville,WI,54466,United States
+1673,"Supplier,Expense",Lindsey Malyavko,ADVANCED DISPOSAL WI,TRUE,ADVANCED DISPOSAL WI,600 Moore Rd,,Plover,WI,54467,United States
+1535,Supplier,,EAGLE WASTE & RECYCLING INC,TRUE,EAGLE WASTE & RECYCLING INC,PO Box 729,,Eagle River,WI,54521,United States
+1814,"Supplier,Expense",Lindsey Malyavko,GREEN CIRCLE RECYCLING LLC,TRUE,GREEN CIRCLE RECYCLING LLC,2850 Larson Street,,La Crosse,WI,54603,United States
+1625,"Supplier,Expense",,D&M RECYCLING INC,TRUE,D&M RECYCLING INC,841 2nd Ave SW,,Onalaska,WI,54650,United States
+2380,"Supplier,Expense",Tiffany White,DYNAMIC LIFECYCLE INNOVATIONS,TRUE,DYNAMIC LIFECYCLE INNOVATIONS,N5549 County Rd Z,,Onalaska,WI,54650,United States
+2528,"Supplier,Expense",Igor Beylin,VENTEK SOLUTIONS LLC,TRUE,VENTEK SOLUTIONS LLC,210 Spring Street,,Eau Claire,WI,54703,United States
+1571,"Supplier,Expense",Lindsey Malyavko,DUNN COUNTY SOLID WASTE & RECYCLING,TRUE,DUNN COUNTY SOLID WASTE & RECYCLING,800 Wilson Avenue,Room 235,Menomonie,WI,54751,United States
+1958,"Supplier,Expense",Lindsey Malyavko,PACKAGING PARTNERS LTD,TRUE,PACKAGING PARTNERS LTD,10700 W. Venture Dr,,Franklin,WI,54751,United States
+2456,"Supplier,Expense",,APPLETON PALLETS,TRUE,APPLETON PALLETS,N 3080 Jeske Rd,,Appleton,WI,54913,United States
+2041,"Customer,Supplier,Expense",Arthur Buyanovskiy,GREENVIEW MATERIALS INC,TRUE,GREENVIEW MATERIALS INC,1800 W Rogers Ave,,Appleton,WI,54914,United States
+1780,"Supplier,Expense",Igor Beylin,KONZ WOOD PRODUCTS,TRUE,KONZ WOOD PRODUCTS,616 N Perkins Street,,Appleton,WI,54914,United States
+2501,"Customer,Expense",Igor Beylin,W WAREHOUSING,TRUE,W WAREHOUSING,1800 Rogers Ave,,Appleton,WI,54914,United States
+2135,"Supplier,Expense",Igor Beylin,PERFORMANCE PALLET CORP,TRUE,PERFORMANCE PALLET CORP,112 N. Mainline Drive,,Seymour,WI,54165-1174,United States
+1400,Supplier,,IROW SHREDDING RECYCLING,TRUE,IROW SHREDDING RECYCLING,1040 Indianhead Drive,,Mosinee,WI,54455-9603,United States
+1412,Supplier,Lindsey Malyavko,OUTAGAMIE COUNTY RECYCLING,TRUE,OUTAGAMIE COUNTY RECYCLING,1419 Holland Road,,Appleton,WI,54911-8985,United States
+2355,"Supplier,Expense",Igor Beylin,JACKSON COUNTY DEVELOPMENTAL CENTER,TRUE,JACKSON COUNTY DEVELOPMENTAL CENTER,270 Jack Burlingame Dr,,Millwood,WV,25262,United States
+2235,"Supplier,Expense",Ricardo Pereira,KANAWHA COUNTY SOLID WASTE AUTHORITY,TRUE,KANAWHA COUNTY SOLID WASTE AUTHORITY,600 Slack Street,,Charleston,WV,25301,United States

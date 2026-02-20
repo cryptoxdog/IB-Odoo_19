@@ -46,9 +46,10 @@ class PlasticosAutomationConfig(models.Model):
 
     active = fields.Boolean(default=True)
 
-    _sql_constraints = [
-        ("singleton_check", "CHECK(id IS NOT NULL)", "Only one automation configuration record is allowed."),
-    ]
+    _singleton_check = models.Constraint(
+        "CHECK(id IS NOT NULL)",
+        "Only one automation configuration record is allowed.",
+    )
 
     @api.constrains("active")
     def _check_singleton(self):
