@@ -43,10 +43,17 @@
 
 | Bug Type | Example | Fix |
 |----------|---------|-----|
-| `KeyError: 'documents.folder'` | `plasticos_documents_native` tries to create records for Enterprise-only model | Set `auto_install: True` so module only installs when Enterprise `documents` is present |
+| `KeyError: 'documents.folder'` | `plasticos_documents_native` tries to create records for Enterprise-only model | Set `installable: False` until Enterprise `documents` is manually installed via Apps |
 | Enterprise model in XML data | `model="documents.folder"`, `model="documents.tag"` | Keep in Enterprise-only module with proper dependency declaration |
 
-### 7. Manifest Warnings
+### 7. Duplicate Field Labels
+
+| Bug Type | Example | Fix |
+|----------|---------|-----|
+| Two fields with same label | `polymer` and `polymer_id` both labeled "Polymer" | Add `string="Polymer Code"` to computed field |
+| Warning in logs | `Two fields (polymer, polymer_id) have the same label` | Differentiate labels with "Code" suffix for computed Selection fields |
+
+### 8. Manifest Warnings
 
 | Bug Type | Example | Fix |
 |----------|---------|-----|
@@ -101,7 +108,8 @@
 | `plasticos_geolocalize/models/res_partner_geo.py` | No rate limiting on geocoding API | Disabled auto-geocode, added 1.1s delay in cron |
 | `plasticos_buyer_match_engine/models/buyer_capability.py` | `_sql_constraints` deprecated | Converted to `models.Constraint` |
 | `plasticos_buyer_match_engine/models/buyer_capability.py` | Duplicate field labels (source_type, polymer, form) | Added "Code" suffix to computed field labels |
-| `plasticos_documents_native/__manifest__.py` | `KeyError: 'documents.folder'` — Enterprise module not installed | Set `auto_install: True` to only install when Enterprise `documents` is present |
+| `plasticos_documents_native/__manifest__.py` | `KeyError: 'documents.folder'` — Enterprise module not installed | Set `installable: False` until Enterprise `documents` is manually installed via Apps |
+| `plasticos_material_profile/models/material_profile.py` | Duplicate field labels (polymer, form, color, source_type) | Added "Code" suffix to computed Selection field labels |
 
 ### Verified Clean (No Issues Found)
 
