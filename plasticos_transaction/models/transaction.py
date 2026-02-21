@@ -465,6 +465,8 @@ class PlasticosTransaction(models.Model):
                 "SELECT id FROM plasticos_transaction WHERE id = %s FOR UPDATE",
                 (rec.id,),
             )
+            if rec.state == "closed":
+                raise UserError("Transaction is already closed.")
             if not rec.customer_invoice_id or rec.customer_invoice_id.state != "posted":
                 raise UserError("Customer invoice must be posted.")
 

@@ -17,7 +17,6 @@
         <field name="state">code</field>
         <field name="code">
 # Send supplier confirmation request when PO is confirmed
-from datetime import timedelta
 for po in records.filtered(lambda p: p.state == 'purchase'):
     # Set response deadline from config
     deadline_hours = int(env['ir.config_parameter'].sudo().get_param('plasticos.supplier_response_deadline_hours', 48))

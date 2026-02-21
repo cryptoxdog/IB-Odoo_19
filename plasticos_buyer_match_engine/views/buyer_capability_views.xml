@@ -80,7 +80,7 @@
                 <filter name="active" string="Active" domain="[('active','=',True)]"/>
                 <filter name="inactive" string="Archived" domain="[('active','=',False)]"/>
                 <separator/>
-                <group expand="0" string="Group By">
+                <group name="group_by">
                     <filter name="group_polymer" string="Polymer" context="{'group_by': 'polymer_id'}"/>
                     <filter name="group_form" string="Form" context="{'group_by': 'form_id'}"/>
                     <filter name="group_facility" string="Facility" context="{'group_by': 'facility_id'}"/>
