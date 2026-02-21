@@ -30,11 +30,15 @@
                   <field name="polymer_id"/>
                   <field name="sub_grade"/>
                   <field name="form_id"/>
+                  <field name="origin_form_id"/>
                 </group>
                 <group string="Appearance">
                   <field name="color_id"/>
                   <field name="color_flexibility"/>
                 </group>
+              </group>
+              <group string="Attributes">
+                <field name="material_attribute_ids" widget="many2many_tags"/>
               </group>
             </page>
 
@@ -60,7 +64,8 @@
                 <group>
                   <field name="moisture_percent"/>
                   <field name="contamination_percent"/>
-                  <field name="contains_metal"/>
+                  <field name="has_metal"/>
+                  <field name="is_metalized"/>
                   <field name="contains_fr"/>
                 </group>
               </group>
@@ -76,7 +81,7 @@
                   <field name="frequency"/>
                 </group>
                 <group string="Packaging">
-                  <field name="packaging_type"/>
+                  <field name="packaging_type_id"/>
                   <field name="avg_truckloads_per_month"/>
                 </group>
               </group>
@@ -130,11 +135,15 @@
                         <field name="polymer_id"/>
                         <field name="sub_grade"/>
                         <field name="form_id"/>
+                        <field name="origin_form_id"/>
                       </group>
                       <group string="Appearance">
                         <field name="color_id"/>
                         <field name="color_flexibility"/>
                       </group>
+                    </group>
+                    <group string="Attributes">
+                      <field name="material_attribute_ids" widget="many2many_tags"/>
                     </group>
                   </page>
                   <page string="Source &amp; Process">
@@ -158,7 +167,8 @@
                       <group>
                         <field name="moisture_percent"/>
                         <field name="contamination_percent"/>
-                        <field name="contains_metal"/>
+                        <field name="has_metal"/>
+                        <field name="is_metalized"/>
                         <field name="contains_fr"/>
                       </group>
                     </group>
@@ -173,7 +183,7 @@
                         <field name="frequency"/>
                       </group>
                       <group string="Packaging">
-                        <field name="packaging_type"/>
+                        <field name="packaging_type_id"/>
                         <field name="avg_truckloads_per_month"/>
                       </group>
                     </group>
