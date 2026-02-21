@@ -39,7 +39,14 @@
 | Missing `<data>` wrapper | `email_templates.xml` | Add `<data noupdate="1">` wrapper |
 | Deprecated cron field | `numbercall` field | Remove deprecated field |
 
-### 6. Manifest Warnings
+### 6. Enterprise Module Dependencies
+
+| Bug Type | Example | Fix |
+|----------|---------|-----|
+| `KeyError: 'documents.folder'` | `plasticos_documents_native` tries to create records for Enterprise-only model | Set `auto_install: True` so module only installs when Enterprise `documents` is present |
+| Enterprise model in XML data | `model="documents.folder"`, `model="documents.tag"` | Keep in Enterprise-only module with proper dependency declaration |
+
+### 7. Manifest Warnings
 
 | Bug Type | Example | Fix |
 |----------|---------|-----|
@@ -74,6 +81,11 @@
 
 # Duplicate labels
 - Multiple fields with same string= value
+
+# Enterprise dependencies
+- model="documents.folder/tag/facet" (requires Enterprise)
+- _inherit = "documents.document" (requires Enterprise)
+- depends: ["documents", "documents_account", "hr_expense", "sign", "planning"]
 ```
 
 ---
@@ -89,6 +101,7 @@
 | `plasticos_geolocalize/models/res_partner_geo.py` | No rate limiting on geocoding API | Disabled auto-geocode, added 1.1s delay in cron |
 | `plasticos_buyer_match_engine/models/buyer_capability.py` | `_sql_constraints` deprecated | Converted to `models.Constraint` |
 | `plasticos_buyer_match_engine/models/buyer_capability.py` | Duplicate field labels (source_type, polymer, form) | Added "Code" suffix to computed field labels |
+| `plasticos_documents_native/__manifest__.py` | `KeyError: 'documents.folder'` — Enterprise module not installed | Set `auto_install: True` to only install when Enterprise `documents` is present |
 
 ### Verified Clean (No Issues Found)
 
@@ -98,6 +111,7 @@
 | `numbercall` (deprecated cron field) | All `.xml` | None found |
 | Missing `author`/`license` in manifests | All `__manifest__.py` | All present |
 | `category_id` on `res.groups` | All `.xml` | Fixed (only 1 file had it) |
+| Enterprise model references | All `.xml` | Only in `plasticos_documents_native` (isolated, fixed) |
 
 ### Remaining Warnings (Cosmetic)
 
@@ -116,3 +130,4 @@
 | `8052bb5` | fix: remove category_id from res.groups (Odoo 19) |
 | `ce82795` | fix: correct record rule domain - sale_order_id not transaction_id |
 | `pending` | fix: _sql_constraints → models.Constraint, fix duplicate labels |
+| `pending` | fix: plasticos_documents_native auto_install for Enterprise dependency |
