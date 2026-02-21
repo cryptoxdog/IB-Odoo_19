@@ -1,40 +1,57 @@
-# Ignore everything except allowed paths
-/*
-!/.gitignore
-!/.github/
-!/plasticos_commission/
-!/plasticos_documents/
-!/plasticos_facility_profile/
-!/plasticos_intake/
-!/plasticos_logistics/
-!/plasticos_material_profile/
-!/plasticos_transaction/
-!/plasticos_foundation_seed/
-!/plasticos_matching/
-!/plasticos_offer/
-!/plasticos_partner_import/
-!/plasticos_automation/
-!/plasticos_logistics_automation/
-!/plasticos_documents_extension/
-!/plasticos_dev_tools/
-!/plasticos_polymer/
-!/plasticos_web_leads/
-!/plasticos_intake_normalizer/
-!/plasticos_documents_native/
-!/plasticos_security_base/
-!/plasticos_geolocalize/
-!/plasticos_web_lead_ai_triage/
-!/plasticos_buyer_match_engine/
-!/reports/
-
-# Ignore within allowed paths
-**/__pycache__/
+# ═══════════════════════════════════════════════════════════
+# System / IDE
+# ═══════════════════════════════════════════════════════════
+.DS_Store
 **/.DS_Store
-**/*.pyc
+.cursor/
+.cursor-commands
+.env
+.suite6-config.json
+.workflows/
+.github/
 
-# Ignore test folders (not ready for CI)
+# ═══════════════════════════════════════════════════════════
+# Python
+# ═══════════════════════════════════════════════════════════
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.eggs/
+*.egg-info/
+*.egg
+
+# ═══════════════════════════════════════════════════════════
+# Local / Working folders (not for repo)
+# ═══════════════════════════════════════════════════════════
+Files To Harvest/
+PlasticOS/
+_Source Files/
+addons/
+docs/
+l9_trace/
+reports/
+telemetry/
+tests-odoo/
+
+# ═══════════════════════════════════════════════════════════
+# Local files (not for repo)
+# ═══════════════════════════════════════════════════════════
+docker-compose.yml
+export_odoo_index.py
+installation logs.md
+run-odoo-tests.sh
+workflow_state.md
+
+# ═══════════════════════════════════════════════════════════
+# Module test folders (not ready for CI)
+# ═══════════════════════════════════════════════════════════
 plasticos_transaction/tests/
 plasticos_intake/tests/
 plasticos_logistics/tests/
 plasticos_documents/tests/
 plasticos_commission/tests/
+
