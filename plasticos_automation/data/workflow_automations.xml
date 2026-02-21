@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="1">
     <!-- ============================================
-         HARVESTED WORKFLOW AUTOMATIONS (from linda_logistics_v6)
-         Adapted refs: linda_logistics_v6.* → plasticos_automation.*
-         Adapted models: sm.tx → plasticos.transaction, qc.claim → plasticos.claim
+         WORKFLOW AUTOMATIONS - Odoo 19 Pattern
+         Migrated from inline code to action_server_ids
          ============================================ -->
 
     <!-- ═══════════════════════════════════════════
-         SERVER ACTIONS
+         SERVER ACTIONS (ir.actions.server)
+         These contain the actual code logic
          ═══════════════════════════════════════════ -->
 
     <!-- Action: Auto Send PO Confirmation Request -->
@@ -61,46 +61,8 @@ for claim in records.filtered(lambda c: c.is_overdue and c.state in ['pending', 
         </field>
     </record>
 
-    <!-- ═══════════════════════════════════════════
-         AUTOMATED RULES (TRIGGERS)
-         ═══════════════════════════════════════════ -->
-
-    <!-- Rule: Trigger PO Confirmation on Purchase Order Confirmation -->
-    <record id="rule_trigger_po_confirmation" model="base.automation">
-        <field name="name">Trigger PO Supplier Confirmation</field>
-        <field name="model_id" ref="purchase.model_purchase_order"/>
-        <field name="state">code</field>
-        <field name="code">
-# Trigger when PO state changes to 'purchase'
-action = env.ref('plasticos_automation.action_auto_send_po_confirmation', raise_if_not_found=False)
-if action:
-    action.with_context(active_ids=records.ids).run()
-        </field>
-        <field name="trigger">on_write</field>
-        <field name="filter_pre_domain">[('state', '!=', 'purchase')]</field>
-        <field name="filter_domain">[('state', '=', 'purchase')]</field>
-        <field name="active" eval="True"/>
-    </record>
-
-    <!-- Rule: Trigger SO Buyer Notification on Sale Order Confirmation -->
-    <record id="rule_trigger_so_notification" model="base.automation">
-        <field name="name">Trigger SO Buyer Notification</field>
-        <field name="model_id" ref="sale.model_sale_order"/>
-        <field name="state">code</field>
-        <field name="code">
-# Trigger when SO state changes to 'sale'
-action = env.ref('plasticos_automation.action_auto_send_so_buyer', raise_if_not_found=False)
-if action:
-    action.with_context(active_ids=records.ids).run()
-        </field>
-        <field name="trigger">on_write</field>
-        <field name="filter_pre_domain">[('state', '!=', 'sale')]</field>
-        <field name="filter_domain">[('state', '=', 'sale')]</field>
-        <field name="active" eval="True"/>
-    </record>
-
-    <!-- Rule: Auto Create QC Claim Notification -->
-    <record id="rule_qc_claim_notification" model="base.automation">
+    <!-- Action: QC Claim Notification to Supplier -->
+    <record id="action_qc_claim_notification" model="ir.actions.server">
         <field name="name">QC Claim Notification to Supplier</field>
         <field name="model_id" ref="plasticos_claims.model_plasticos_claim"/>
         <field name="state">code</field>
@@ -113,14 +75,10 @@ for claim in records.filtered(lambda c: c.state == 'escalated'):
         template.send_mail(claim.id, force_send=True)
         claim.message_post(body=f"Quality claim notification sent to {supplier.name}")
         </field>
-        <field name="trigger">on_write</field>
-        <field name="filter_pre_domain">[('state', '!=', 'escalated')]</field>
-        <field name="filter_domain">[('state', '=', 'escalated')]</field>
-        <field name="active" eval="True"/>
     </record>
 
-    <!-- Rule: Mark TX as Delivered on DO Done -->
-    <record id="rule_tx_delivered_on_do_done" model="base.automation">
+    <!-- Action: Mark TX as Delivered on DO Done -->
+    <record id="action_tx_delivered_on_do_done" model="ir.actions.server">
         <field name="name">Mark TX as Delivered on DO Done</field>
         <field name="model_id" ref="stock.model_stock_picking"/>
         <field name="state">code</field>
@@ -136,9 +94,54 @@ for picking in records.filtered(lambda p: p.state == 'done'):
             })
             tx.message_post(body=f"Delivery completed - DO {picking.name}")
         </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════
+         AUTOMATED RULES (base.automation)
+         Odoo 19 pattern: use action_server_ids instead of inline code
+         ═══════════════════════════════════════════ -->
+
+    <!-- Rule: Trigger PO Confirmation on Purchase Order Confirmation -->
+    <record id="rule_trigger_po_confirmation" model="base.automation">
+        <field name="name">Trigger PO Supplier Confirmation</field>
+        <field name="model_id" ref="purchase.model_purchase_order"/>
+        <field name="trigger">on_write</field>
+        <field name="filter_pre_domain">[('state', '!=', 'purchase')]</field>
+        <field name="filter_domain">[('state', '=', 'purchase')]</field>
+        <field name="action_server_ids" eval="[(4, ref('action_auto_send_po_confirmation'))]"/>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Rule: Trigger SO Buyer Notification on Sale Order Confirmation -->
+    <record id="rule_trigger_so_notification" model="base.automation">
+        <field name="name">Trigger SO Buyer Notification</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="trigger">on_write</field>
+        <field name="filter_pre_domain">[('state', '!=', 'sale')]</field>
+        <field name="filter_domain">[('state', '=', 'sale')]</field>
+        <field name="action_server_ids" eval="[(4, ref('action_auto_send_so_buyer'))]"/>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Rule: Auto Create QC Claim Notification -->
+    <record id="rule_qc_claim_notification" model="base.automation">
+        <field name="name">QC Claim Notification to Supplier</field>
+        <field name="model_id" ref="plasticos_claims.model_plasticos_claim"/>
+        <field name="trigger">on_write</field>
+        <field name="filter_pre_domain">[('state', '!=', 'escalated')]</field>
+        <field name="filter_domain">[('state', '=', 'escalated')]</field>
+        <field name="action_server_ids" eval="[(4, ref('action_qc_claim_notification'))]"/>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Rule: Mark TX as Delivered on DO Done -->
+    <record id="rule_tx_delivered_on_do_done" model="base.automation">
+        <field name="name">Mark TX as Delivered on DO Done</field>
+        <field name="model_id" ref="stock.model_stock_picking"/>
         <field name="trigger">on_write</field>
         <field name="filter_pre_domain">[('state', '!=', 'done')]</field>
         <field name="filter_domain">[('state', '=', 'done')]</field>
+        <field name="action_server_ids" eval="[(4, ref('action_tx_delivered_on_do_done'))]"/>
         <field name="active" eval="True"/>
     </record>
 
