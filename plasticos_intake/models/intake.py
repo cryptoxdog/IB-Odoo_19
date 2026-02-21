@@ -189,7 +189,7 @@ class PlasticosIntake(models.Model):
     )
 
     # ═════════════════════════════════════════════════════════
-    # Frequency (Volume + Deal Terms)
+    # Frequency (Volume)
     # ═════════════════════════════════════════════════════════
 
     quantity_per_load_lbs = fields.Integer(
@@ -197,16 +197,6 @@ class PlasticosIntake(models.Model):
         required=True,
     )
     loads_per_month = fields.Integer(string="Loads / Month")
-    deal_type = fields.Selection(
-        [
-            ("contract", "Contract"),
-            ("recurring", "Recurring"),
-            ("spot", "Spot"),
-            ("trial", "Trial"),
-        ],
-        string="Deal Type",
-        default="spot",
-    )
 
     # ═════════════════════════════════════════════════════════
     # Onboarding Status
@@ -270,7 +260,7 @@ class PlasticosIntake(models.Model):
     # Computed
     # ═════════════════════════════════════════════════════════
 
-    @api.depends("partner_id", "facility_id", "polymer", "id")
+    @api.depends("partner_id", "facility_id", "polymer")
     def _compute_name(self):
         """Auto-generate display name from company/facility + polymer."""
         for rec in self:

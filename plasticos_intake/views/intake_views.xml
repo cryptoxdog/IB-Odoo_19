@@ -47,9 +47,6 @@
                 <filter name="group_onboarding"
                         string="Onboarding Status"
                         context="{'group_by': 'onboarding_status'}"/>
-                <filter name="group_deal_type"
-                        string="Deal Type"
-                        context="{'group_by': 'deal_type'}"/>
             </search>
         </field>
     </record>
@@ -71,7 +68,6 @@
                 <field name="source_type_id" optional="show"/>
                 <field name="quantity_per_load_lbs"/>
                 <field name="loads_per_month" optional="show"/>
-                <field name="deal_type"/>
                 <field name="onboarding_status"
                        decoration-info="onboarding_status == 'draft'"
                        decoration-warning="onboarding_status == 'profiled'"
@@ -148,7 +144,6 @@
                         <group string="Volume &amp; Frequency">
                             <field name="quantity_per_load_lbs"/>
                             <field name="loads_per_month"/>
-                            <field name="deal_type"/>
                         </group>
                     </group>
 
