@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <record id="plasticos_partner_type_tree" model="ir.ui.view">
+    <field name="name">plasticos.partner.type.tree</field>
+    <field name="model">plasticos.partner.type</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="sequence" widget="handle"/>
+        <field name="name"/>
+        <field name="code"/>
+        <field name="is_facility"/>
+        <field name="active"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="plasticos_partner_type_form" model="ir.ui.view">
+    <field name="name">plasticos.partner.type.form</field>
+    <field name="model">plasticos.partner.type</field>
+    <field name="arch" type="xml">
+      <form>
+        <sheet>
+          <group>
+            <group>
+              <field name="name"/>
+              <field name="code"/>
+            </group>
+            <group>
+              <field name="is_facility"/>
+              <field name="active"/>
+              <field name="sequence"/>
+            </group>
+          </group>
+          <group>
+            <field name="description"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_plasticos_partner_type" model="ir.actions.act_window">
+    <field name="name">Partner Types</field>
+    <field name="res_model">plasticos.partner.type</field>
+    <field name="view_mode">list,form</field>
+  </record>
+
+</odoo>

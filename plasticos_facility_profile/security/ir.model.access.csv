@@ -2,3 +2,5 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_plasticos_facility_profile,access_plasticos_facility_profile,model_plasticos_facility_profile,base.group_user,1,1,1,1
 access_plasticos_equipment_type,access_plasticos_equipment_type,model_plasticos_equipment_type,base.group_user,1,0,0,0
 access_plasticos_equipment_type_admin,access_plasticos_equipment_type_admin,model_plasticos_equipment_type,base.group_system,1,1,1,1
+access_plasticos_partner_type,access_plasticos_partner_type,model_plasticos_partner_type,base.group_user,1,0,0,0
+access_plasticos_partner_type_admin,access_plasticos_partner_type_admin,model_plasticos_partner_type,base.group_system,1,1,1,1

@@ -146,7 +146,7 @@
               invisible="not parent_id">
 
           <group>
-            <field name="x_facility_role"/>
+            <field name="partner_type_id" options="{'no_create': True}"/>
           </group>
 
           <field name="facility_profile_ids">

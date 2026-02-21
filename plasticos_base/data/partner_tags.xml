@@ -2,31 +2,38 @@
 <odoo>
   <data noupdate="0">
 
-    <record id="tag_customer" model="res.partner.category">
-      <field name="name">Customer</field>
-    </record>
-
-    <record id="tag_supplier" model="res.partner.category">
-      <field name="name">Supplier</field>
+    <!-- Partner Role Tags (for categorization) -->
+    <record id="category_partner_roles" model="res.partner.category">
+      <field name="name">Partner Roles</field>
     </record>
 
     <record id="tag_buyer" model="res.partner.category">
+      <field name="parent_id" ref="category_partner_roles"/>
       <field name="name">Buyer</field>
     </record>
 
+    <record id="tag_supplier" model="res.partner.category">
+      <field name="parent_id" ref="category_partner_roles"/>
+      <field name="name">Supplier</field>
+    </record>
+
     <record id="tag_broker" model="res.partner.category">
+      <field name="parent_id" ref="category_partner_roles"/>
       <field name="name">Broker</field>
     </record>
 
     <record id="tag_carrier" model="res.partner.category">
+      <field name="parent_id" ref="category_partner_roles"/>
       <field name="name">Carrier</field>
     </record>
 
     <record id="tag_processor" model="res.partner.category">
+      <field name="parent_id" ref="category_partner_roles"/>
       <field name="name">Processor</field>
     </record>
 
     <record id="tag_expense" model="res.partner.category">
+      <field name="parent_id" ref="category_partner_roles"/>
       <field name="name">Expense</field>
     </record>
 

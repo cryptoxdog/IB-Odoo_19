@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+
+    <!-- Canonical Partner/Facility Types -->
+
+    <record id="partner_type_processor" model="plasticos.partner.type">
+      <field name="name">Processor</field>
+      <field name="code">processor</field>
+      <field name="description">Plastics processor - converts raw materials into products.</field>
+      <field name="is_facility">True</field>
+      <field name="sequence">10</field>
+    </record>
+
+    <record id="partner_type_broker" model="plasticos.partner.type">
+      <field name="name">Broker</field>
+      <field name="code">broker</field>
+      <field name="description">Material broker - facilitates transactions between buyers and sellers.</field>
+      <field name="is_facility">False</field>
+      <field name="sequence">20</field>
+    </record>
+
+    <record id="partner_type_manufacturer" model="plasticos.partner.type">
+      <field name="name">Manufacturer</field>
+      <field name="code">manufacturer</field>
+      <field name="description">Original manufacturer of plastic products.</field>
+      <field name="is_facility">True</field>
+      <field name="sequence">30</field>
+    </record>
+
+    <record id="partner_type_mrf" model="plasticos.partner.type">
+      <field name="name">MRF</field>
+      <field name="code">mrf</field>
+      <field name="description">Materials Recovery Facility - sorts and processes recyclables.</field>
+      <field name="is_facility">True</field>
+      <field name="sequence">40</field>
+    </record>
+
+    <record id="partner_type_compounder" model="plasticos.partner.type">
+      <field name="name">Compounder</field>
+      <field name="code">compounder</field>
+      <field name="description">Compounds and blends polymer materials.</field>
+      <field name="is_facility">True</field>
+      <field name="sequence">50</field>
+    </record>
+
+    <record id="partner_type_recycler" model="plasticos.partner.type">
+      <field name="name">Recycler</field>
+      <field name="code">recycler</field>
+      <field name="description">Recycles plastic materials for reuse.</field>
+      <field name="is_facility">True</field>
+      <field name="sequence">60</field>
+    </record>
+
+    <record id="partner_type_distributor" model="plasticos.partner.type">
+      <field name="name">Distributor</field>
+      <field name="code">distributor</field>
+      <field name="description">Distributes materials to end customers.</field>
+      <field name="is_facility">True</field>
+      <field name="sequence">70</field>
+    </record>
+
+    <record id="partner_type_carrier" model="plasticos.partner.type">
+      <field name="name">Carrier</field>
+      <field name="code">carrier</field>
+      <field name="description">Transportation and logistics provider.</field>
+      <field name="is_facility">False</field>
+      <field name="sequence">80</field>
+    </record>
+
+    <record id="partner_type_other" model="plasticos.partner.type">
+      <field name="name">Other</field>
+      <field name="code">other</field>
+      <field name="description">Other partner type not classified above.</field>
+      <field name="is_facility">True</field>
+      <field name="sequence">999</field>
+    </record>
+
+  </data>
+</odoo>
