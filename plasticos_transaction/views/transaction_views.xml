@@ -44,9 +44,20 @@
                             <field name="purchase_order_ids" widget="many2many_tags"/>
                             <field name="load_id"/>
                         </group>
-                        <group string="Financials">
+                        <group string="Revenue">
                             <field name="revenue_total"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Costs">
+                            <field name="purchase_cost_total"/>
+                            <field name="freight_cost_total"/>
+                            <field name="other_expenses"/>
                             <field name="cost_total"/>
+                        </group>
+                        <group string="Recoveries &amp; Margin">
+                            <field name="freight_chargebacks"/>
+                            <field name="lightweight_penalties"/>
                             <field name="gross_margin"/>
                             <field name="net_margin"/>
                         </group>
@@ -76,6 +87,17 @@
                             <group>
                                 <field name="compliance_status"/>
                             </group>
+                        </page>
+                        <page string="Claims">
+                            <field name="claim_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="case_type"/>
+                                    <field name="severity"/>
+                                    <field name="state"/>
+                                    <field name="recovery_amount"/>
+                                </list>
+                            </field>
                         </page>
                         <page string="Historical Lines" invisible="line_count == 0">
                             <group>

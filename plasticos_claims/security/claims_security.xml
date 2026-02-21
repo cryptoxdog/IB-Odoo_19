@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_claims" model="ir.module.category">
+        <field name="name">Claims</field>
+        <field name="sequence">50</field>
+    </record>
+
+    <record id="group_claims_user" model="res.groups">
+        <field name="name">Claims User</field>
+        <field name="category_id" ref="module_category_claims"/>
+        <field name="comment">Can create, view, and edit claims. Cannot delete.</field>
+    </record>
+
+    <record id="group_claims_manager" model="res.groups">
+        <field name="name">Claims Manager</field>
+        <field name="category_id" ref="module_category_claims"/>
+        <field name="implied_ids" eval="[(4, ref('group_claims_user'))]"/>
+        <field name="comment">Full control over claims including deletion. Receives escalations.</field>
+    </record>
+
+    <!-- Record rules -->
+    <record id="claim_rule_user_read" model="ir.rule">
+        <field name="name">Claims: User can read all</field>
+        <field name="model_id" ref="model_plasticos_claim"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_claims_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="claim_rule_manager_full" model="ir.rule">
+        <field name="name">Claims: Manager full access</field>
+        <field name="model_id" ref="model_plasticos_claim"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_claims_manager'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+</odoo>

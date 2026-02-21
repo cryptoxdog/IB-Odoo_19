@@ -1,0 +1,27 @@
+{
+    "name": "PlasticOS Claims",
+    "version": "19.0.1.0.0",
+    "summary": "QC cases, claims, chargebacks, and compliance workflows",
+    "license": "LGPL-3",
+    "author": "PlasticOS",
+    "category": "Operations/Quality",
+    "depends": [
+        "base",
+        "mail",
+        "plasticos_transaction",
+        "plasticos_documents",
+        "plasticos_logistics",
+    ],
+    "data": [
+        "security/claims_security.xml",
+        "security/ir.model.access.csv",
+        "data/claim_sequence.xml",
+        "data/claim_cron.xml",
+        "data/mail_templates.xml",
+        "views/claim_views.xml",
+        "views/claim_menus.xml",
+    ],
+    "installable": True,
+    "auto_install": False,
+    "application": False,
+}

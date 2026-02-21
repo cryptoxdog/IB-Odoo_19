@@ -40,6 +40,26 @@ class PlasticosTransaction(models.Model):
         domain=[("move_type", "=", "in_invoice")]
     )
 
+    # ── RevOps Financial Fields ──────────────────────────────
+    other_expenses = fields.Float(
+        string="Other Expenses",
+        help="Manual field for any other direct costs not captured in bills.",
+    )
+    freight_chargebacks = fields.Float(
+        string="Freight Chargebacks",
+        help="Credits recovered from carriers (CST violations, blown double-blinds).",
+    )
+    lightweight_penalties = fields.Float(
+        string="Lightweight Penalties",
+        help="Credits recovered from suppliers for loading below minimum weight.",
+    )
+    claim_ids = fields.One2many(
+        "plasticos.claim",
+        "transaction_id",
+        string="Claims",
+        help="QC cases, chargebacks, and penalty claims linked to this transaction.",
+    )
+
     # Historical line items from cieTrade import
     line_ids = fields.One2many(
         "plasticos.transaction.line",
@@ -68,10 +88,43 @@ class PlasticosTransaction(models.Model):
         store=True,
     )
 
-    revenue_total = fields.Float(compute="_compute_financials", store=True)
-    cost_total = fields.Float(compute="_compute_financials", store=True)
-    gross_margin = fields.Float(compute="_compute_financials", store=True)
-    net_margin = fields.Float(compute="_compute_financials", store=True)
+    # ── Computed Financial Totals ──────────────────────────────
+    revenue_total = fields.Float(
+        string="Revenue Total",
+        compute="_compute_financials",
+        store=True,
+        help="Total from customer invoice(s).",
+    )
+    purchase_cost_total = fields.Float(
+        string="Purchase Cost",
+        compute="_compute_financials",
+        store=True,
+        help="Total from vendor bill(s).",
+    )
+    freight_cost_total = fields.Float(
+        string="Freight Cost",
+        compute="_compute_financials",
+        store=True,
+        help="Total from carrier bill(s).",
+    )
+    cost_total = fields.Float(
+        string="Total Cost",
+        compute="_compute_financials",
+        store=True,
+        help="Sum of purchase + freight + other expenses.",
+    )
+    gross_margin = fields.Float(
+        string="Gross Margin",
+        compute="_compute_financials",
+        store=True,
+        help="Revenue - costs + chargebacks + penalties (pre-commission).",
+    )
+    net_margin = fields.Float(
+        string="Net Margin",
+        compute="_compute_net_margin",
+        store=True,
+        help="Gross margin - commission (company profit).",
+    )
 
     commission_rule_id = fields.Many2one("plasticos.commission.rule")
     commission_amount = fields.Float(compute="_compute_commission", store=True)
@@ -112,18 +165,62 @@ class PlasticosTransaction(models.Model):
     @api.depends(
         "customer_invoice_id.amount_total",
         "vendor_bill_ids.amount_total",
-        "freight_bill_ids.amount_total"
+        "freight_bill_ids.amount_total",
+        "other_expenses",
+        "freight_chargebacks",
+        "lightweight_penalties",
     )
     def _compute_financials(self):
+        """RevOps formula: gross_margin = revenue - costs + recoveries."""
         for rec in self:
             revenue = rec.customer_invoice_id.amount_total if rec.customer_invoice_id else 0.0
-            vendor_cost = sum(rec.vendor_bill_ids.mapped("amount_total"))
+            purchase_cost = sum(rec.vendor_bill_ids.mapped("amount_total"))
             freight_cost = sum(rec.freight_bill_ids.mapped("amount_total"))
-            cost = vendor_cost + freight_cost
+            other = rec.other_expenses or 0.0
+
+            # Recoveries reduce effective cost
+            chargebacks = rec.freight_chargebacks or 0.0
+            penalties = rec.lightweight_penalties or 0.0
+
+            total_cost = purchase_cost + freight_cost + other
+            gross = revenue - total_cost + chargebacks + penalties
+
             rec.revenue_total = revenue
-            rec.cost_total = cost
-            rec.gross_margin = revenue - cost
-            rec.net_margin = revenue - cost
+            rec.purchase_cost_total = purchase_cost
+            rec.freight_cost_total = freight_cost
+            rec.cost_total = total_cost
+            rec.gross_margin = gross
+
+    @api.depends("gross_margin", "commission_amount")
+    def _compute_net_margin(self):
+        """Net margin = gross margin - commission."""
+        for rec in self:
+            rec.net_margin = rec.gross_margin - (rec.commission_amount or 0.0)
+
+    def _compute_chargebacks_penalties(self):
+        """Sum recoveries from linked claims (plasticos.claim).
+
+        Called by claim module when claims are resolved. Chargebacks and
+        penalties are credits that reduce effective cost.
+        """
+        Claim = self.env.get("plasticos.claim")
+        if not Claim:
+            # Claims module not installed
+            for rec in self:
+                rec.freight_chargebacks = 0.0
+                rec.lightweight_penalties = 0.0
+            return
+        for rec in self:
+            claims = Claim.search([
+                ("transaction_id", "=", rec.id),
+                ("state", "=", "resolved"),
+            ])
+            rec.freight_chargebacks = sum(
+                c.recovery_amount for c in claims if c.case_type == "freight_chargeback"
+            )
+            rec.lightweight_penalties = sum(
+                c.recovery_amount for c in claims if c.case_type == "lightweight_penalty"
+            )
 
     @api.depends("gross_margin", "commission_rule_id", "state", "commission_locked", "commission_locked_amount")
     def _compute_commission(self):
