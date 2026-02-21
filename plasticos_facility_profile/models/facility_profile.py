@@ -62,7 +62,7 @@ class PlasticosFacilityProfile(models.Model):
     freeform_notes = fields.Text()
 
     # ═════════════════════════════════════════════════════════
-    # BCP Capability Extension (from Mack v7.0r BCP Schema)
+    # BCP Capability Extension (from PlasticOS BCP Schema)
     # ═════════════════════════════════════════════════════════
 
     # ── Polymer Acceptance ───────────────────────────────────

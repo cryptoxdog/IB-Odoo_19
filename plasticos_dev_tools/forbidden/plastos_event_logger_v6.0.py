@@ -22,7 +22,7 @@ class PlastOSEventLogger(models.Model):
     event_key = fields.Char(required=True)
     reference_model = fields.Char()
     reference_id = fields.Integer()
-    actor = fields.Char(default="Mack-01")
+    actor = fields.Char(default="PlasticOS-Agent")
     timestamp = fields.Datetime(default=fields.Datetime.now)
 
     @api.model
@@ -37,7 +37,7 @@ class PlastOSEventLogger(models.Model):
             'reference_model': model,
             'reference_id': record_id,
             'summary': message or "",
-            'actor': user or "Mack-01",
+            'actor': user or "PlasticOS-Agent",
         })
         target = self.env[model].browse(record_id)
         cfg = policy.get(event_key, {})

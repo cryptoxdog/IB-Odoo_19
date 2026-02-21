@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="email_template_claim_created" model="mail.template">
+        <field name="name">Claim: New Claim Notification</field>
+        <field name="model_id" ref="model_plasticos_claim"/>
+        <field name="subject">New Claim Created: {{ object.name }}</field>
+        <field name="email_from">{{ (object.company_id.email or user.email_formatted) }}</field>
+        <field name="email_to">{{ object.transaction_id.user_id.email or '' }}</field>
+        <field name="body_html"><![CDATA[
+<div style="margin: 0px; padding: 0px;">
+    <p>Hello,</p>
+    <p>A new claim has been created and requires attention:</p>
+    <table style="border-collapse: collapse; width: 100%;">
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Reference</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ object.name }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Transaction</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ object.transaction_id.name }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Type</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ object.case_type }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Severity</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ object.severity }}</td>
+        </tr>
+    </table>
+    <p style="margin-top: 16px;">
+        <strong>Note:</strong> The Quality Manager will handle all buyer communication.
+        Please review the claim in Odoo for updates.
+    </p>
+    <p>Best regards,<br/>PlasticOS</p>
+</div>
+]]></field>
+        <field name="auto_delete" eval="True"/>
+    </record>
+
+    <record id="email_template_claim_escalated" model="mail.template">
+        <field name="name">Claim: Escalation Notification</field>
+        <field name="model_id" ref="model_plasticos_claim"/>
+        <field name="subject">ESCALATED: Claim {{ object.name }} - SLA Breach</field>
+        <field name="email_from">{{ (object.company_id.email or user.email_formatted) }}</field>
+        <field name="body_html"><![CDATA[
+<div style="margin: 0px; padding: 0px;">
+    <p><strong style="color: #e74c3c;">⚠️ SLA BREACH</strong></p>
+    <p>The following claim has been automatically escalated due to exceeding the {{ object.sla_hours }}-hour SLA:</p>
+    <table style="border-collapse: collapse; width: 100%;">
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Reference</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ object.name }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Transaction</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ object.transaction_id.name }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Opened At</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ object.opened_at }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Escalated At</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{{ object.escalated_at }}</td>
+        </tr>
+    </table>
+    <p style="margin-top: 16px;">Please review and take immediate action.</p>
+</div>
+]]></field>
+        <field name="auto_delete" eval="True"/>
+    </record>
+
+    <!-- Harvested: QC Claim Notification to Supplier -->
+    <record id="email_template_qc_claim_notification" model="mail.template">
+        <field name="name">QC Claim Notification to Supplier</field>
+        <field name="model_id" ref="model_plasticos_claim"/>
+        <field name="subject">Quality Claim Filed: {{ object.name }}</field>
+        <field name="email_from">{{ (user.email_formatted or '') }}</field>
+        <field name="email_to">{{ object.transaction_id.supplier_id.email or '' }}</field>
+        <field name="body_html"><![CDATA[
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8f9fa; padding: 20px;">
+    <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #dc3545; margin: 0; font-size: 28px;">Quality Claim Filed</h1>
+            <div style="height: 3px; background: linear-gradient(90deg, #dc3545, #fd7e14); margin: 15px auto; width: 100px;"></div>
+        </div>
+        
+        <p style="font-size: 16px; color: #333;">Hello {{ object.transaction_id.supplier_id.name }},</p>
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            A quality claim has been filed for transaction <strong style="color: #dc3545;">{{ object.transaction_id.name }}</strong>.
+        </p>
+        
+        <div style="background-color: #f8d7da; padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #dc3545;">
+            <h3 style="margin-top: 0; color: #721c24; font-size: 20px;">Claim Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #721c24;">Claim Number:</td>
+                    <td style="padding: 8px 0; color: #721c24;">{{ object.name }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #721c24;">Claim Type:</td>
+                    <td style="padding: 8px 0; color: #721c24;">{{ object.case_type }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #721c24;">Severity:</td>
+                    <td style="padding: 8px 0; color: #721c24;">{{ object.severity }}</td>
+                </tr>
+                {% if object.claimed_amount %}
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #721c24;">Claimed Amount:</td>
+                    <td style="padding: 8px 0; color: #721c24; font-weight: bold;">${{ object.claimed_amount }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+        
+        {% if object.description %}
+        <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #ffc107;">
+            <h3 style="margin-top: 0; color: #856404; font-size: 18px;">Description</h3>
+            <p style="margin: 10px 0; color: #856404; line-height: 1.6;">
+                {{ object.description }}
+            </p>
+        </div>
+        {% endif %}
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            Our quality control team will investigate this claim and contact you with findings. 
+            Please provide any relevant documentation or information that may help resolve this matter.
+        </p>
+        
+        <div style="border-top: 2px solid #e9ecef; padding-top: 20px; margin-top: 30px; text-align: center;">
+            <p style="color: #666; font-size: 14px; margin: 5px 0;">
+                Best regards,<br/>
+                <strong>{{ user.name }}</strong><br/>
+                Quality Control Department<br/>
+                {{ user.company_id.name }}
+            </p>
+        </div>
+    </div>
+</div>
+]]></field>
+        <field name="auto_delete" eval="False"/>
+    </record>
+    </data>
+</odoo>

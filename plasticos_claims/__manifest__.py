@@ -17,7 +17,7 @@
         "security/ir.model.access.csv",
         "data/claim_sequence.xml",
         "data/claim_cron.xml",
-        "data/mail_templates.xml",
+        "data/email_templates.xml",
         "views/claim_views.xml",
         "views/claim_menus.xml",
     ],

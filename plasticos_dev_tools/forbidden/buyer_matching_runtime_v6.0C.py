@@ -14,9 +14,9 @@ Buyer Matching Runtime Engine
 Executes dynamic matching logic between offers and buyers.
 
 Integrates with:
-- `mack.trust.calculator` for trust index weighting
-- `mack.buyer.card` for capability profiling
-- `mack.offer.card` for offer metadata and requirements
+- `plasticos.trust.calculator` for trust index weighting
+- `plasticos.buyer.profile` for capability profiling
+- `plasticos.offer` for offer metadata and requirements
 
 Runtime matches are stored in transient memory for human review
 before dispatch or automation handoff.
@@ -27,11 +27,11 @@ import datetime
 from odoo import models, fields, api
 
 class BuyerMatchingRuntime(models.Model):
-    _name = "mack.buyer.runtime"
+    _name = "plasticos.buyer.runtime"
     _description = "Buyer Matching Runtime Engine"
 
-    offer_id = fields.Many2one("mack.offer.card", string="Offer")
-    buyer_id = fields.Many2one("mack.buyer.card", string="Matched Buyer")
+    offer_id = fields.Many2one("plasticos.offer", string="Offer")
+    buyer_id = fields.Many2one("plasticos.buyer.profile", string="Matched Buyer")
     match_score = fields.Float("Match Score", digits=(5, 2))
     match_reason = fields.Text("Match Rationale")
     timestamp = fields.Datetime("Timestamp", default=datetime.datetime.now)
@@ -42,8 +42,8 @@ class BuyerMatchingRuntime(models.Model):
     @api.model
     def run_match(self, offer_id):
         """Execute the buyer matching pipeline for the given offer."""
-        offer = self.env["mack.offer.card"].browse(offer_id)
-        buyers = self.env["mack.buyer.card"].search([])
+        offer = self.env["plasticos.offer"].browse(offer_id)
+        buyers = self.env["plasticos.buyer.profile"].search([])
         results = []
 
         for buyer in buyers:
@@ -133,12 +133,12 @@ class BuyerMatchingRuntime(models.Model):
     @api.model
     def scheduled_match_all(self):
         """Cron job to re-run matches on all active offers nightly."""
-        offers = self.env["mack.offer.card"].search([("state", "=", "open")])
+        offers = self.env["plasticos.offer"].search([("state", "=", "open")])
         for offer in offers:
             self.run_match(offer.id)
-        self.env["mack.decision.ledger"].create({
+        self.env["plasticos.decision.ledger"].create({
             "timestamp": datetime.datetime.now(),
-            "actor": "Mack Buyer Matching Engine",
+            "actor": "PlasticOS Buyer Matching Engine",
             "context": "system",
             "message": f"Auto-match completed for {len(offers)} offers."
         })

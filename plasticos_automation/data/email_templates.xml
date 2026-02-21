@@ -3,11 +3,11 @@
     <data noupdate="1">
 
         <!-- ═══════════════════════════════════════════════════════════════════
-             SUPPLIER / BROKER FOLLOW-UP TEMPLATES
+             SUPPLIER / TRUCKER FOLLOW-UP TEMPLATES
              ═══════════════════════════════════════════════════════════════════ -->
 
         <!-- Supplier Follow-up Template -->
-        <record id="mail_template_supplier_followup" model="mail.template">
+        <record id="email_template_supplier_followup" model="mail.template">
             <field name="name">PlasticOS: Supplier Readiness Follow-up</field>
             <field name="model_id" ref="purchase.model_purchase_order"/>
             <field name="subject">Follow-up: Readiness Confirmation Required — {{ object.name }}</field>
@@ -24,21 +24,21 @@ Please confirm readiness at your earliest convenience.</p>
             <field name="auto_delete" eval="True"/>
         </record>
 
-        <!-- Broker Follow-up Template -->
-        <record id="mail_template_broker_followup" model="mail.template">
-            <field name="name">PlasticOS: Broker Receipt Follow-up</field>
+        <!-- Trucker Follow-up Template -->
+        <record id="email_template_trucker_followup" model="mail.template">
+            <field name="name">PlasticOS: Trucker Receipt Follow-up</field>
             <field name="model_id" ref="stock.model_stock_picking"/>
             <field name="subject">Follow-up: Receipt Confirmation Required — {{ object.name }}</field>
             <field name="body_html"><![CDATA[
-<p>Dear {{ object.x_broker_id.name }},</p>
+<p>Dear {{ object.x_trucker_id.name }},</p>
 <p>This is an automated follow-up regarding Delivery Order <strong>{{ object.name }}</strong>.</p>
 <p>We have not yet received confirmation of receipt of the dispatch packet.
 Please confirm receipt at your earliest convenience.</p>
-<p>Follow-up attempt: #{{ object.x_broker_followup_count }}</p>
+<p>Follow-up attempt: #{{ object.x_trucker_followup_count }}</p>
 <p>Thank you,<br/>PlasticOS Logistics</p>
             ]]></field>
             <field name="email_from">{{ (object.company_id.email or user.email) }}</field>
-            <field name="email_to">{{ object.x_broker_id.email }}</field>
+            <field name="email_to">{{ object.x_trucker_id.email }}</field>
             <field name="auto_delete" eval="True"/>
         </record>
 
@@ -47,7 +47,7 @@ Please confirm receipt at your earliest convenience.</p>
              ═══════════════════════════════════════════════════════════════════ -->
 
         <!-- Delivery Order Email Template -->
-        <record id="mail_template_delivery_order" model="mail.template">
+        <record id="email_template_delivery_order" model="mail.template">
             <field name="name">PlasticOS: Delivery Order to Carrier</field>
             <field name="model_id" ref="plasticos_logistics.model_plasticos_load"/>
             <field name="subject">DELIVERY ORDER {{ object.name }} — {{ object.pickup_partner_id.city or '' }} to {{ object.delivery_partner_id.city or '' }}</field>
@@ -103,7 +103,7 @@ Please confirm receipt at your earliest convenience.</p>
         </record>
 
         <!-- BOL Pickup Email Template -->
-        <record id="mail_template_bol_pickup" model="mail.template">
+        <record id="email_template_bol_pickup" model="mail.template">
             <field name="name">PlasticOS: BOL Pickup to Carrier</field>
             <field name="model_id" ref="plasticos_logistics.model_plasticos_load"/>
             <field name="subject">BOL - PICKUP {{ object.name }} — {{ object.pickup_partner_id.name or '' }}</field>
@@ -146,7 +146,7 @@ Use this BOL document at the pickup location. Do NOT share delivery destination 
         </record>
 
         <!-- BOL Delivery Email Template -->
-        <record id="mail_template_bol_delivery" model="mail.template">
+        <record id="email_template_bol_delivery" model="mail.template">
             <field name="name">PlasticOS: BOL Delivery to Carrier</field>
             <field name="model_id" ref="plasticos_logistics.model_plasticos_load"/>
             <field name="subject">BOL - DELIVERY {{ object.name }} — {{ object.delivery_partner_id.name or '' }}</field>
@@ -188,7 +188,7 @@ Use this BOL document at the pickup location. Do NOT share delivery destination 
         </record>
 
         <!-- Combined Dispatch Packet (All 3 docs) -->
-        <record id="mail_template_dispatch_packet" model="mail.template">
+        <record id="email_template_dispatch_packet" model="mail.template">
             <field name="name">PlasticOS: Full Dispatch Packet to Carrier</field>
             <field name="model_id" ref="plasticos_logistics.model_plasticos_load"/>
             <field name="subject">DISPATCH PACKET {{ object.name }} — {{ object.pickup_partner_id.city or '' }} to {{ object.delivery_partner_id.city or '' }}</field>
@@ -243,6 +243,235 @@ Use this BOL document at the pickup location. Do NOT share delivery destination 
             <field name="email_from">{{ (object.sale_order_id.company_id.email or user.email) }}</field>
             <field name="email_to">{{ object.carrier_id.email }}</field>
             <field name="report_template_ids" eval="[(4, ref('plasticos_logistics.action_report_delivery_order')), (4, ref('plasticos_logistics.action_report_bol_pickup')), (4, ref('plasticos_logistics.action_report_bol_delivery'))]"/>
+            <field name="auto_delete" eval="False"/>
+        </record>
+
+        <!-- ============================================
+             HARVESTED TEMPLATES (from linda_logistics_v6)
+             ============================================ -->
+
+        <!-- PO to Supplier - Ready for Pickup Confirmation -->
+        <record id="email_template_po_supplier_ready" model="mail.template">
+            <field name="name">PO to Supplier - Ready for Pickup?</field>
+            <field name="model_id" ref="purchase.model_purchase_order"/>
+            <field name="subject">PO {{ object.name }}: Ready for Pickup Confirmation Required</field>
+            <field name="email_from">{{ (user.email_formatted or '') }}</field>
+            <field name="email_to">{{ object.partner_id.email or '' }}</field>
+            <field name="body_html"><![CDATA[
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8f9fa; padding: 20px;">
+    <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #2E86AB; margin: 0; font-size: 28px;">Pickup Confirmation Required</h1>
+            <div style="height: 3px; background: linear-gradient(90deg, #2E86AB, #A23B72); margin: 15px auto; width: 100px;"></div>
+        </div>
+        
+        <p style="font-size: 16px; color: #333;">Hello {{ object.partner_id.name }},</p>
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            We have issued Purchase Order <strong style="color: #2E86AB;">{{ object.name }}</strong> and need to confirm if the load is <strong>Ready for Pickup</strong>.
+        </p>
+        
+        <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #2E86AB;">
+            <h3 style="margin-top: 0; color: #2E86AB; font-size: 20px;">Order Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #555;">PO Number:</td>
+                    <td style="padding: 8px 0; color: #333;">{{ object.name }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #555;">Order Date:</td>
+                    <td style="padding: 8px 0; color: #333;">{{ object.date_order }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #555;">Expected Delivery:</td>
+                    <td style="padding: 8px 0; color: #333;">{{ object.date_planned or 'TBD' }}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #ffc107;">
+            <h3 style="margin-top: 0; color: #856404; font-size: 18px;">Line Items</h3>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                {% for line in object.order_line %}
+                    <li style="margin: 8px 0; color: #333; font-size: 15px;">
+                        <strong>{{ line.product_id.display_name }}</strong> — 
+                        {{ line.product_qty }} {{ line.product_uom.name }}
+                        {% if line.price_unit %} @ ${{ line.price_unit }}{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <div style="background-color: #d1ecf1; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #17a2b8;">
+            <h3 style="margin-top: 0; color: #0c5460; font-size: 18px;">Next Steps</h3>
+            <p style="margin: 10px 0; color: #0c5460; font-size: 15px;">
+                Please reply to this email to confirm when the load is ready for pickup. 
+                Include any special pickup instructions or requirements.
+            </p>
+        </div>
+        
+        <div style="border-top: 2px solid #e9ecef; padding-top: 20px; margin-top: 30px; text-align: center;">
+            <p style="color: #666; font-size: 14px; margin: 5px 0;">
+                Best regards,<br/>
+                <strong>{{ user.name }}</strong><br/>
+                {{ user.company_id.name }}<br/>
+                {% if user.phone %}{{ user.phone }}{% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+]]></field>
+            <field name="auto_delete" eval="False"/>
+        </record>
+
+        <!-- SO to Buyer Confirmation -->
+        <record id="email_template_so_to_buyer" model="mail.template">
+            <field name="name">SO to Buyer</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="subject">Sales Order {{ object.name }} - Confirmation</field>
+            <field name="email_from">{{ (user.email_formatted or '') }}</field>
+            <field name="email_to">{{ object.partner_id.email or '' }}</field>
+            <field name="body_html"><![CDATA[
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8f9fa; padding: 20px;">
+    <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #28a745; margin: 0; font-size: 28px;">Sales Order Confirmation</h1>
+            <div style="height: 3px; background: linear-gradient(90deg, #28a745, #20c997); margin: 15px auto; width: 100px;"></div>
+        </div>
+        
+        <p style="font-size: 16px; color: #333;">Hello {{ object.partner_id.name }},</p>
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            Please find your Sales Order <strong style="color: #28a745;">{{ object.name }}</strong> confirmation attached.
+        </p>
+        
+        <div style="background: linear-gradient(135deg, #d4edda, #c3e6cb); padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #28a745;">
+            <h3 style="margin-top: 0; color: #155724; font-size: 20px;">Order Summary</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #155724;">SO Number:</td>
+                    <td style="padding: 8px 0; color: #155724;">{{ object.name }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #155724;">Order Date:</td>
+                    <td style="padding: 8px 0; color: #155724;">{{ object.date_order }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #155724;">Total Amount:</td>
+                    <td style="padding: 8px 0; color: #155724; font-size: 18px; font-weight: bold;">{{ object.amount_total }}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            Please review the attached sales order and contact us if you have any questions.
+        </p>
+        
+        <div style="border-top: 2px solid #e9ecef; padding-top: 20px; margin-top: 30px; text-align: center;">
+            <p style="color: #666; font-size: 14px; margin: 5px 0;">
+                Best regards,<br/>
+                <strong>{{ user.name }}</strong><br/>
+                {{ user.company_id.name }}
+            </p>
+        </div>
+    </div>
+</div>
+]]></field>
+            <field name="report_template_ids" eval="[(4, ref('sale.action_report_saleorder'))]"/>
+            <field name="auto_delete" eval="False"/>
+        </record>
+
+        <!-- Request Dock Appointment -->
+        <record id="email_template_request_dock_appointment" model="mail.template">
+            <field name="name">Request Dock Appointment</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="subject">Dock Appointment Request — {{ object.name }}</field>
+            <field name="email_from">{{ (user.email_formatted or '') }}</field>
+            <field name="email_to">{{ object.partner_id.email or '' }}</field>
+            <field name="body_html"><![CDATA[
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8f9fa; padding: 20px;">
+    <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #fd7e14; margin: 0; font-size: 28px;">Dock Appointment Required</h1>
+            <div style="height: 3px; background: linear-gradient(90deg, #fd7e14, #ffc107); margin: 15px auto; width: 100px;"></div>
+        </div>
+        
+        <p style="font-size: 16px; color: #333;">Hello {{ object.partner_id.name }},</p>
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            The delivery term for Sales Order <strong style="color: #fd7e14;">{{ object.name }}</strong> requires a <strong>Dock Appointment</strong>.
+        </p>
+        
+        <div style="background-color: #fff3cd; padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #ffc107;">
+            <h3 style="margin-top: 0; color: #856404; font-size: 20px;">Action Required</h3>
+            <p style="margin: 10px 0; color: #856404; font-size: 16px; font-weight: bold;">
+                Please provide the next available dock appointment time for delivery.
+            </p>
+            <div style="margin: 15px 0;">
+                <p style="margin: 5px 0; color: #856404;"><strong>Estimated Delivery:</strong> {{ object.commitment_date or 'TBD' }}</p>
+            </div>
+        </div>
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            Once you provide the appointment time, we will coordinate with our trucker to schedule the delivery accordingly.
+        </p>
+        
+        <div style="border-top: 2px solid #e9ecef; padding-top: 20px; margin-top: 30px; text-align: center;">
+            <p style="color: #666; font-size: 14px; margin: 5px 0;">
+                Best regards,<br/>
+                <strong>{{ user.name }}</strong><br/>
+                {{ user.company_id.name }}
+            </p>
+        </div>
+    </div>
+</div>
+]]></field>
+            <field name="auto_delete" eval="False"/>
+        </record>
+
+        <!-- Supplier Ready Confirmed -->
+        <record id="email_template_supplier_ready_confirmed" model="mail.template">
+            <field name="name">Supplier Ready Confirmed</field>
+            <field name="model_id" ref="purchase.model_purchase_order"/>
+            <field name="subject">Confirmed: PO {{ object.name }} Ready for Pickup</field>
+            <field name="email_from">{{ (user.email_formatted or '') }}</field>
+            <field name="email_to">{{ object.partner_id.email or '' }}</field>
+            <field name="body_html"><![CDATA[
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #d4edda; padding: 20px;">
+    <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #155724; margin: 0; font-size: 28px;">Pickup Confirmed</h1>
+            <div style="height: 3px; background: linear-gradient(90deg, #28a745, #20c997); margin: 15px auto; width: 100px;"></div>
+        </div>
+        
+        <p style="font-size: 16px; color: #333;">Hello {{ object.partner_id.name }},</p>
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            Thank you for confirming that Purchase Order <strong style="color: #155724;">{{ object.name }}</strong> is ready for pickup.
+        </p>
+        
+        <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #28a745;">
+            <h3 style="margin-top: 0; color: #155724; font-size: 18px;">Next Steps</h3>
+            <p style="margin: 10px 0; color: #155724;">
+                We are now coordinating with our trucker to schedule pickup. 
+                You should expect the carrier to contact you within the next 24-48 hours.
+            </p>
+        </div>
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+            We will keep you updated on the pickup schedule and provide carrier contact information once confirmed.
+        </p>
+        
+        <div style="border-top: 2px solid #e9ecef; padding-top: 20px; margin-top: 30px; text-align: center;">
+            <p style="color: #666; font-size: 14px; margin: 5px 0;">
+                Thank you for your business!<br/>
+                <strong>{{ user.name }}</strong><br/>
+                {{ user.company_id.name }}
+            </p>
+        </div>
+    </div>
+</div>
+]]></field>
             <field name="auto_delete" eval="False"/>
         </record>
 

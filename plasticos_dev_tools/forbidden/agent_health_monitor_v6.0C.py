@@ -30,7 +30,7 @@ import statistics
 from odoo import models, fields, api
 
 class AgentHealthMonitor(models.Model):
-    _name = "mack.agent.health"
+    _name = "plasticos.agent.health"
     _description = "Autonomous Agent Health Monitor"
     _order = "last_check desc"
 
@@ -96,7 +96,7 @@ class AgentHealthMonitor(models.Model):
 
     def _escalate(self, record):
         """Escalates abnormal conditions to governance and recovery systems."""
-        governance = self.env["mack.governance.ledger"]
+        governance = self.env["plasticos.governance.ledger"]
         governance.log_event(
             event_type="alert",
             actor="AgentHealthMonitor",
@@ -105,7 +105,7 @@ class AgentHealthMonitor(models.Model):
             message=f"Agent {record.agent_name} is {record.status.upper()} - {record.notes}"
         )
         if record.status == "critical":
-            recovery = self.env["mack.recovery.daemon"]
+            recovery = self.env["plasticos.recovery.daemon"]
             recovery.detect_failure(record.agent_name, Exception("Critical health alert"))
         return True
 
@@ -116,7 +116,7 @@ class AgentHealthMonitor(models.Model):
 
 def initialize_health_monitor(env):
     """Registers the health monitor and performs first diagnostic pass."""
-    monitor = env["mack.agent.health"]
+    monitor = env["plasticos.agent.health"]
     monitor.poll_agents()
 
 # End of File

@@ -63,7 +63,7 @@ class PurchaseOrderAutomation(models.Model):
 
             # Send mail template if available
             template = self.env.ref(
-                "plasticos_automation.mail_template_supplier_followup",
+                "plasticos_automation.email_template_supplier_followup",
                 raise_if_not_found=False,
             )
             if template:

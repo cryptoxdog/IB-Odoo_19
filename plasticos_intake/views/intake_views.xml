@@ -9,7 +9,7 @@
         <field name="name">plasticos.intake.search</field>
         <field name="model">plasticos.intake</field>
         <field name="arch" type="xml">
-            <search>
+            <search string="Intake Search">
                 <field name="name"/>
                 <field name="partner_id"/>
                 <field name="facility_id"/>
@@ -17,7 +17,6 @@
                 <field name="polymer"/>
                 <field name="form"/>
                 <field name="material_profile_id"/>
-                <separator/>
                 <filter name="filter_draft"
                         string="Draft"
                         domain="[('onboarding_status', '=', 'draft')]"/>
@@ -30,31 +29,27 @@
                 <filter name="filter_ready"
                         string="Ready"
                         domain="[('onboarding_status', '=', 'ready')]"/>
-                <separator/>
                 <filter name="filter_matched"
                         string="Matched"
                         domain="[('match_status', '=', 'matched')]"/>
                 <filter name="filter_pending"
                         string="Pending Match"
                         domain="[('match_status', '=', 'pending')]"/>
-                <separator/>
-                <group expand="0" string="Group By">
-                    <filter name="group_partner"
-                            string="Company"
-                            context="{'group_by': 'partner_id'}"/>
-                    <filter name="group_facility"
-                            string="Facility"
-                            context="{'group_by': 'facility_id'}"/>
-                    <filter name="group_polymer"
-                            string="Polymer"
-                            context="{'group_by': 'polymer'}"/>
-                    <filter name="group_onboarding"
-                            string="Onboarding Status"
-                            context="{'group_by': 'onboarding_status'}"/>
-                    <filter name="group_deal_type"
-                            string="Deal Type"
-                            context="{'group_by': 'deal_type'}"/>
-                </group>
+                <filter name="group_partner"
+                        string="Company"
+                        context="{'group_by': 'partner_id'}"/>
+                <filter name="group_facility"
+                        string="Facility"
+                        context="{'group_by': 'facility_id'}"/>
+                <filter name="group_polymer"
+                        string="Polymer"
+                        context="{'group_by': 'polymer'}"/>
+                <filter name="group_onboarding"
+                        string="Onboarding Status"
+                        context="{'group_by': 'onboarding_status'}"/>
+                <filter name="group_deal_type"
+                        string="Deal Type"
+                        context="{'group_by': 'deal_type'}"/>
             </search>
         </field>
     </record>
@@ -138,7 +133,6 @@
                         <group string="Contact Person">
                             <field name="contact_id"/>
                             <field name="contact_phone"/>
-                            <field name="contact_mobile"/>
                             <field name="contact_email" widget="email"/>
                         </group>
                     </group>

@@ -12,7 +12,7 @@
         "plasticos_logistics",
         "plasticos_transaction",
         "plasticos_intake",
-        "plasticos_polymer",
+        "plasticos_material_profile",
         "plasticos_security_base",
     ],
     "data": [

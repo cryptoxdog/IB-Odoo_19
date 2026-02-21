@@ -128,9 +128,74 @@ class PlasticosClaim(models.Model):
         string="Notes",
         help="Internal notes and discussion.",
     )
+    description = fields.Text(
+        string="Description",
+        help="Detailed description of the quality issue.",
+    )
     resolution_note = fields.Text(
         string="Resolution Note",
         help="Required explanation when resolving the case.",
+    )
+
+    # ── Investigation (harvested from linda_logistics_v6) ───
+    investigation_notes = fields.Text(
+        string="Investigation Notes",
+        help="Notes from the investigation process.",
+    )
+    root_cause = fields.Text(
+        string="Root Cause",
+        help="Identified root cause of the issue.",
+    )
+    corrective_action = fields.Text(
+        string="Corrective Action",
+        help="Actions taken to prevent recurrence.",
+    )
+    resolution_type = fields.Selection(
+        [
+            ("credit", "Credit Note"),
+            ("replacement", "Replacement Material"),
+            ("discount", "Price Discount"),
+            ("rejected", "Claim Rejected"),
+            ("other", "Other Resolution"),
+        ],
+        string="Resolution Type",
+        help="How the claim was resolved.",
+    )
+
+    # ── Escalation Tracking ────────────────────────────────
+    escalation_level = fields.Integer(
+        string="Escalation Level",
+        default=0,
+        help="Number of times this claim has been escalated.",
+    )
+    escalated_to_id = fields.Many2one(
+        "res.users",
+        string="Escalated To",
+        help="User this claim was escalated to.",
+    )
+    escalation_reason = fields.Text(
+        string="Escalation Reason",
+        help="Reason for escalation.",
+    )
+
+    # ── Photo Evidence ─────────────────────────────────────
+    photo_ids = fields.Many2many(
+        "ir.attachment",
+        "plasticos_claim_photo_rel",
+        "claim_id",
+        "attachment_id",
+        string="Photos",
+        help="Photo evidence of the quality issue.",
+    )
+
+    # ── Computed ───────────────────────────────────────────
+    days_open = fields.Integer(
+        string="Days Open",
+        compute="_compute_days_open",
+    )
+    is_overdue = fields.Boolean(
+        string="Overdue",
+        compute="_compute_is_overdue",
     )
 
     # ── Constraints ──────────────────────────────────────────
@@ -161,13 +226,19 @@ class PlasticosClaim(models.Model):
             if rec.state == "pending":
                 rec.state = "in_progress"
 
-    def action_escalate(self):
+    def action_escalate(self, reason=None, escalate_to=None):
         for rec in self:
             if rec.state in ("pending", "in_progress"):
-                rec.write({
+                vals = {
                     "state": "escalated",
                     "escalated_at": fields.Datetime.now(),
-                })
+                    "escalation_level": rec.escalation_level + 1,
+                }
+                if reason:
+                    vals["escalation_reason"] = reason
+                if escalate_to:
+                    vals["escalated_to_id"] = escalate_to.id if hasattr(escalate_to, "id") else escalate_to
+                rec.write(vals)
                 rec._create_escalation_activity()
 
     def action_resolve(self):
@@ -192,6 +263,27 @@ class PlasticosClaim(models.Model):
                     "state": "in_progress",
                     "resolved_at": False,
                 })
+
+    # ── Computed Methods (harvested) ──────────────────────────
+    @api.depends("opened_at", "state")
+    def _compute_days_open(self):
+        now = fields.Datetime.now()
+        for rec in self:
+            if rec.opened_at and rec.state not in ("resolved", "archived"):
+                delta = now - rec.opened_at
+                rec.days_open = delta.days
+            else:
+                rec.days_open = 0
+
+    @api.depends("opened_at", "sla_hours", "state")
+    def _compute_is_overdue(self):
+        now = fields.Datetime.now()
+        for rec in self:
+            if rec.opened_at and rec.state not in ("resolved", "archived"):
+                deadline = rec.opened_at + timedelta(hours=rec.sla_hours)
+                rec.is_overdue = now > deadline
+            else:
+                rec.is_overdue = False
 
     # ── SLA Cron ─────────────────────────────────────────────
     @api.model

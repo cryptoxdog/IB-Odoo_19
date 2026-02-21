@@ -2,23 +2,23 @@
 # ============================================
 # Canonical Header (v4.0 Production Baseline)
 # ============================================
-# File Name: mack_offer_handler.py
+# File Name: offer_handler.py
 # Version: 4.6
 # Created: 2025-10-17
 # Author: Igor Beylin
 # Domain: Plastic Recycling / AI-Augmented ERP
-# Purpose: Offer drafting, validation, and dispatch runtime for Mack Core Agent
+# Purpose: Offer drafting, validation, and dispatch runtime for PlasticOS
 # Related Files: odoo_model_offer_response_v4.0.py, ../agents/offer_drafting_agent_v4.5.yaml, plastos_event_logger_v4.5.py
 # ============================================
 
 """
-Mack Offer Handler
-==================
+Offer Handler
+=============
 This runtime module governs offer creation, validation, and lifecycle management.
-Integrated directly with Odoo 19 models (`sale.order`, `res.partner`, `mack.offer.log`).
+Integrated directly with Odoo 19 models (`sale.order`, `res.partner`, `plasticos.offer.log`).
 
 Core Capabilities:
-- Composes offers using buyer cards and pricing schema.
+- Composes offers using buyer profiles and pricing schema.
 - Validates data consistency before dispatch.
 - Logs and audits all actions to Decision Ledger.
 - Responds dynamically to buyer acceptance, rejection, or counteroffers.
@@ -34,11 +34,11 @@ from odoo import models, fields, api
 # ------------------------------------------------------------
 # Offer Handler Class
 # ------------------------------------------------------------
-class MackOfferHandler(models.Model):
-    _name = "mack.offer.handler"
-    _description = "Mack Offer Drafting and Response Handler"
+class OfferHandler(models.Model):
+    _name = "plasticos.offer.handler"
+    _description = "Offer Drafting and Response Handler"
 
-    buyer_card_id = fields.Many2one("mack.buyer.card", string="Buyer Card")
+    buyer_profile_id = fields.Many2one("plasticos.buyer.profile", string="Buyer Profile")
     offer_text = fields.Text("Offer Body")
     offer_status = fields.Selection(
         [("draft", "Draft"), ("pending", "Pending"), ("sent", "Sent"),
@@ -56,7 +56,7 @@ class MackOfferHandler(models.Model):
     # --------------------------------------------------------
     @api.model
     def compose_offer(self, buyer_id, material_grade, proposed_price):
-        buyer = self.env["mack.buyer.card"].browse(buyer_id)
+        buyer = self.env["plasticos.buyer.profile"].browse(buyer_id)
         trust_index = buyer.trust_index
         greeting = "Hi {0},".format(buyer.contact_name or "there")
         tone_tag = self._select_tone(trust_index)
@@ -71,7 +71,7 @@ class MackOfferHandler(models.Model):
         )
 
         offer_record = self.create({
-            "buyer_card_id": buyer.id,
+            "buyer_profile_id": buyer.id,
             "offer_text": offer_body,
             "proposed_price": proposed_price,
             "product_grade": material_grade,
@@ -97,8 +97,8 @@ class MackOfferHandler(models.Model):
     # --------------------------------------------------------
     def send_offer(self):
         for record in self:
-            mail_template = self.env.ref("mack.email_template_offer")
-            mail_template.send_mail(record.id, force_send=True)
+            email_template = self.env.ref("plasticos_automation.email_template_offer")
+            email_template.send_mail(record.id, force_send=True)
             record.offer_status = "sent"
             record._log_offer_action("Offer sent via email.")
 
@@ -131,9 +131,9 @@ class MackOfferHandler(models.Model):
     # Logging Utility
     # --------------------------------------------------------
     def _log_offer_action(self, message):
-        self.env["mack.decision.ledger"].create({
+        self.env["plasticos.decision.ledger"].create({
             "timestamp": datetime.datetime.now(),
-            "actor": "Mack Offer Handler",
+            "actor": "PlasticOS Offer Handler",
             "context": self._name,
             "message": message,
             "record_ref": self.id

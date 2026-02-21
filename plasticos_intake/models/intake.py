@@ -54,11 +54,7 @@ class PlasticosIntake(models.Model):
         string="Contact Phone",
         readonly=True,
     )
-    contact_mobile = fields.Char(
-        related="contact_id.mobile",
-        string="Contact Mobile",
-        readonly=True,
-    )
+    # Note: 'mobile' field removed in Odoo 19 from res.partner base model
     contact_email = fields.Char(
         related="contact_id.email",
         string="Contact Email",

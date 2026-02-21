@@ -29,7 +29,7 @@ import traceback
 from odoo import models, fields, api
 
 class ErrorRecoveryDaemon(models.Model):
-    _name = "mack.recovery.daemon"
+    _name = "plasticos.recovery.daemon"
     _description = "Autonomous Error Recovery Daemon"
     _order = "timestamp desc"
 
@@ -117,7 +117,7 @@ class ErrorRecoveryDaemon(models.Model):
 
     def _notify_governance(self, record):
         """Sends structured event to Governance Ledger."""
-        ledger = self.env["mack.governance.ledger"]
+        ledger = self.env["plasticos.governance.ledger"]
         ledger.log_event(
             event_type="warning",
             actor="ErrorRecoveryDaemon",
@@ -134,7 +134,7 @@ class ErrorRecoveryDaemon(models.Model):
 
 def register_recovery_daemon(env):
     """Registers error monitoring across all autonomous modules."""
-    daemon = env["mack.recovery.daemon"]
+    daemon = env["plasticos.recovery.daemon"]
     modules = ["buyer_matching_runtime", "offer_dispatch", "governance"]
     for module in modules:
         daemon.create({

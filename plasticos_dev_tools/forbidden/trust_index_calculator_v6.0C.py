@@ -15,17 +15,17 @@ This module calculates, updates, and tracks the composite trust score
 for each buyer in the system. The Trust Index reflects a weighted balance
 of quantitative performance data and qualitative relationship signals.
 
-Designed for Odoo 19 integration under model: `mack.buyer.card`.
+Designed for Odoo 19 integration under model: `plasticos.buyer.profile`.
 """
 
 import datetime
 from odoo import models, fields, api
 
 class TrustIndexCalculator(models.Model):
-    _name = "mack.trust.calculator"
+    _name = "plasticos.trust.calculator"
     _description = "Trust Index Calculator and Updater"
 
-    buyer_id = fields.Many2one("mack.buyer.card", string="Buyer")
+    buyer_id = fields.Many2one("plasticos.buyer.profile", string="Buyer")
     trust_index = fields.Float("Trust Index", digits=(5, 2), default=50.0)
     last_update = fields.Datetime("Last Updated")
     reliability_score = fields.Float("Reliability", digits=(5, 2))
@@ -39,7 +39,7 @@ class TrustIndexCalculator(models.Model):
     # ------------------------------------------------------------
     @api.model
     def compute_trust_index(self, buyer_id):
-        buyer = self.env["mack.buyer.card"].browse(buyer_id)
+        buyer = self.env["plasticos.buyer.profile"].browse(buyer_id)
         history = self._fetch_buyer_history(buyer)
 
         reliability = self._score_reliability(history)
@@ -109,12 +109,12 @@ class TrustIndexCalculator(models.Model):
     @api.model
     def scheduled_recalculation(self):
         """Nightly cron to refresh trust indices for all buyers."""
-        buyers = self.env["mack.buyer.card"].search([])
+        buyers = self.env["plasticos.buyer.profile"].search([])
         for buyer in buyers:
             self.compute_trust_index(buyer.id)
-        self.env["mack.decision.ledger"].create({
+        self.env["plasticos.decision.ledger"].create({
             "timestamp": datetime.datetime.now(),
-            "actor": "Mack Trust Index Calculator",
+            "actor": "PlasticOS Trust Index Calculator",
             "context": "system",
             "message": f"Trust Index recalculated for {len(buyers)} buyers."
         })

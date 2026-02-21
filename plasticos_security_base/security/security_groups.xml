@@ -40,4 +40,47 @@
         </field>
     </record>
 
+    <!-- ============================================
+         HARVESTED GROUPS (from linda_logistics_v6)
+         ============================================ -->
+
+    <!-- Logistics Operations (extends base Logistics) -->
+    <record id="group_logistics_ops" model="res.groups">
+        <field name="name">Logistics Operations</field>
+        <field name="category_id" ref="module_category_plasticos"/>
+        <field name="implied_ids" eval="[(4, ref('group_logistics'))]"/>
+        <field name="comment">Full access to logistics automation features including freight rate requests, supplier confirmations, and trucker communications</field>
+    </record>
+
+    <!-- Quality Control Manager -->
+    <record id="group_qc_manager" model="res.groups">
+        <field name="name">QC Manager</field>
+        <field name="category_id" ref="module_category_plasticos"/>
+        <field name="comment">Quality control claim management and resolution authority</field>
+    </record>
+
+    <!-- Accounting Operations (extends base Accounting) -->
+    <record id="group_accounting_ops" model="res.groups">
+        <field name="name">Accounting Operations</field>
+        <field name="category_id" ref="module_category_plasticos"/>
+        <field name="implied_ids" eval="[(4, ref('group_accounting'))]"/>
+        <field name="comment">Invoice processing, penalty calculations, and financial reconciliation</field>
+    </record>
+
+    <!-- Operations Manager (inherits all operational groups) -->
+    <record id="group_operations_manager" model="res.groups">
+        <field name="name">Operations Manager</field>
+        <field name="category_id" ref="module_category_plasticos"/>
+        <field name="implied_ids" eval="[(4, ref('group_logistics_ops')), (4, ref('group_qc_manager')), (4, ref('group_accounting_ops'))]"/>
+        <field name="comment">Full operational oversight with escalation authority</field>
+    </record>
+
+    <!-- System Administrator -->
+    <record id="group_system_admin" model="res.groups">
+        <field name="name">PlasticOS System Admin</field>
+        <field name="category_id" ref="module_category_plasticos"/>
+        <field name="implied_ids" eval="[(4, ref('group_operations_manager'))]"/>
+        <field name="comment">Complete system administration including configuration and advanced settings</field>
+    </record>
+
 </odoo>

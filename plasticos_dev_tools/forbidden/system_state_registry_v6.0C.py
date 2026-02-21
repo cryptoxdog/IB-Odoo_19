@@ -29,7 +29,7 @@ import datetime
 from odoo import models, fields, api
 
 class SystemStateRegistry(models.Model):
-    _name = "mack.system.state"
+    _name = "plasticos.system.state"
     _description = "System State Registry"
     _order = "timestamp desc"
 
@@ -63,7 +63,7 @@ class SystemStateRegistry(models.Model):
 
     def _log_to_governance(self, entry):
         """Reports all state changes to governance layer."""
-        ledger = self.env["mack.governance.ledger"]
+        ledger = self.env["plasticos.governance.ledger"]
         ledger.log_event(
             event_type="info",
             actor="SystemStateRegistry",
@@ -98,7 +98,7 @@ class SystemStateRegistry(models.Model):
                 entry.verified = False
                 corrupt_entries.append(entry.id)
         if corrupt_entries:
-            governance = self.env["mack.governance.ledger"]
+            governance = self.env["plasticos.governance.ledger"]
             governance.log_event(
                 event_type="warning",
                 actor="SystemStateRegistry",
@@ -114,7 +114,7 @@ class SystemStateRegistry(models.Model):
 
 def initialize_system_state_registry(env):
     """Initialize registry and perform baseline snapshot of critical modules."""
-    registry = env["mack.system.state"]
+    registry = env["plasticos.system.state"]
     for module in ["governance", "buyer_matching", "offer_dispatch", "recovery_daemon"]:
         registry.record_state(
             module_name=module,

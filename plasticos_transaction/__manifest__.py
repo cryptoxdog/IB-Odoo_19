@@ -11,7 +11,6 @@
         "sale_management",
         "purchase",
         "plasticos_logistics",
-        "plasticos_documents",
         "plasticos_material_profile",
         "plasticos_facility_profile",
         "plasticos_intake",

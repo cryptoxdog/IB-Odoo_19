@@ -185,7 +185,7 @@ class PlasticosLoad(models.Model):
         """Open email composer with Delivery Order attached."""
         self.ensure_one()
         template = self.env.ref(
-            "plasticos_logistics_automation.mail_template_delivery_order",
+            "plasticos_logistics_automation.email_template_delivery_order",
             raise_if_not_found=False,
         )
         return self._open_mail_composer(template)
@@ -194,7 +194,7 @@ class PlasticosLoad(models.Model):
         """Open email composer with BOL Pickup attached."""
         self.ensure_one()
         template = self.env.ref(
-            "plasticos_logistics_automation.mail_template_bol_pickup",
+            "plasticos_logistics_automation.email_template_bol_pickup",
             raise_if_not_found=False,
         )
         return self._open_mail_composer(template)
@@ -203,7 +203,7 @@ class PlasticosLoad(models.Model):
         """Open email composer with BOL Delivery attached."""
         self.ensure_one()
         template = self.env.ref(
-            "plasticos_logistics_automation.mail_template_bol_delivery",
+            "plasticos_logistics_automation.email_template_bol_delivery",
             raise_if_not_found=False,
         )
         return self._open_mail_composer(template)
@@ -212,7 +212,7 @@ class PlasticosLoad(models.Model):
         """Open email composer with full dispatch packet (all 3 docs)."""
         self.ensure_one()
         template = self.env.ref(
-            "plasticos_logistics_automation.mail_template_dispatch_packet",
+            "plasticos_logistics_automation.email_template_dispatch_packet",
             raise_if_not_found=False,
         )
         return self._open_mail_composer(template)

@@ -1,0 +1,172 @@
+# PlasticOS Odoo Module README Configuration
+# Generated: 2026-02-20
+# ============================================
+
+version: "1.0.0"
+repo_type: "odoo"
+
+# Subsystem definitions for README generation
+subsystems:
+  # Core Business Modules
+  plasticos_transaction:
+    path: "plasticos_transaction"
+    tier: "core"
+    purpose: "Core transaction spine - orchestrates deals from intake to delivery"
+    summary: "Transaction lifecycle management with commission tracking"
+    
+  plasticos_claims:
+    path: "plasticos_claims"
+    tier: "core"
+    purpose: "Quality control claims management with escalation workflows"
+    summary: "Claim tracking, SLA monitoring, and resolution"
+    
+  plasticos_offer:
+    path: "plasticos_offer"
+    tier: "core"
+    purpose: "Offer generation and tracking for matched intakes"
+    summary: "Offer lifecycle from draft to acceptance"
+    
+  plasticos_intake:
+    path: "plasticos_intake"
+    tier: "core"
+    purpose: "Material intake capture and normalization"
+    summary: "Lead capture and material specification"
+    
+  plasticos_logistics:
+    path: "plasticos_logistics"
+    tier: "core"
+    purpose: "Load management, dispatch, and delivery tracking"
+    summary: "Logistics coordination with trucker communications"
+
+  # Foundation Modules
+  plasticos_base:
+    path: "plasticos_base"
+    tier: "foundation"
+    purpose: "Base configuration, tags, and sales rep assignments"
+    summary: "Foundation data and partner categorization"
+    
+  plasticos_security_base:
+    path: "plasticos_security_base"
+    tier: "foundation"
+    purpose: "Security groups and access control foundation"
+    summary: "Role-based access control across all modules"
+    
+  plasticos_accounting:
+    path: "plasticos_accounting"
+    tier: "foundation"
+    purpose: "Chart of accounts and payment terms"
+    summary: "Accounting configuration for PlasticOS"
+
+  # Material & Facility Profiles
+  plasticos_material_profile:
+    path: "plasticos_material_profile"
+    tier: "domain"
+    purpose: "Material taxonomy - polymers, forms, colors, sources"
+    summary: "Material specification and classification"
+    
+  plasticos_facility_profile:
+    path: "plasticos_facility_profile"
+    tier: "domain"
+    purpose: "Facility profiles with equipment and capabilities"
+    summary: "Partner facility specifications"
+
+  # Matching & Analytics
+  plasticos_matching:
+    path: "plasticos_matching"
+    tier: "analytics"
+    purpose: "Buyer-intake matching engine"
+    summary: "Match scoring and result tracking"
+    
+  plasticos_buyer_match_engine:
+    path: "plasticos_buyer_match_engine"
+    tier: "analytics"
+    purpose: "Advanced buyer capability matching"
+    summary: "Capability-based buyer selection"
+
+  # Automation & Integration
+  plasticos_automation:
+    path: "plasticos_automation"
+    tier: "automation"
+    purpose: "Workflow automation, crons, and email triggers"
+    summary: "Automated workflows and notifications"
+    
+  plasticos_intake_normalizer:
+    path: "plasticos_intake_normalizer"
+    tier: "automation"
+    purpose: "Batch normalization of intake records"
+    summary: "Material specification standardization"
+    
+  plasticos_geolocalize:
+    path: "plasticos_geolocalize"
+    tier: "automation"
+    purpose: "Geolocation backfill for intakes"
+    summary: "Address geocoding automation"
+
+  # Documents & Compliance
+  plasticos_documents:
+    path: "plasticos_documents"
+    tier: "compliance"
+    purpose: "Document management and compliance tracking"
+    summary: "Document rules, validation, and storage"
+    
+  plasticos_documents_native:
+    path: "plasticos_documents_native"
+    tier: "compliance"
+    purpose: "Native Odoo Documents integration"
+    summary: "Odoo Documents module bridge"
+
+  # Import & Integration
+  plasticos_partner_import:
+    path: "plasticos_partner_import"
+    tier: "integration"
+    purpose: "Partner and facility CSV import service"
+    summary: "Bulk partner data import"
+    
+  plasticos_web_leads:
+    path: "plasticos_web_leads"
+    tier: "integration"
+    purpose: "Web lead capture and routing"
+    summary: "Inbound lead processing"
+
+  # Development Tools
+  plasticos_dev_tools:
+    path: "plasticos_dev_tools"
+    tier: "dev"
+    purpose: "Development utilities, validators, and test tools"
+    summary: "Developer tooling and forbidden/quarantined code"
+
+# Template for README generation
+template: |
+  ---
+  component_id: "{component_id}"
+  component_name: "{component_name}"
+  module_version: "{version}"
+  layer: "{tier}"
+  domain: "plasticos"
+  type: "odoo_module"
+  status: "active"
+  purpose: "{purpose}"
+  summary: "{summary}"
+  ---
+
+  # {component_name}
+
+  ## Purpose
+  {purpose}
+
+  ## Summary
+  {summary}
+
+  ## Structure
+  ```
+  {structure}
+  ```
+
+  ## Dependencies
+  {dependencies}
+
+  ## Models
+  {models}
+
+  ## Tier
+  {tier}

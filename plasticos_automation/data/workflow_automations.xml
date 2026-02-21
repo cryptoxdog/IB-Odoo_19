@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- ============================================
+         HARVESTED WORKFLOW AUTOMATIONS (from linda_logistics_v6)
+         Adapted refs: linda_logistics_v6.* → plasticos_automation.*
+         Adapted models: sm.tx → plasticos.transaction, qc.claim → plasticos.claim
+         ============================================ -->
+
+    <!-- ═══════════════════════════════════════════
+         SERVER ACTIONS
+         ═══════════════════════════════════════════ -->
+
+    <!-- Action: Auto Send PO Confirmation Request -->
+    <record id="action_auto_send_po_confirmation" model="ir.actions.server">
+        <field name="name">Auto Send PO Confirmation Request</field>
+        <field name="model_id" ref="purchase.model_purchase_order"/>
+        <field name="state">code</field>
+        <field name="code">
+# Send supplier confirmation request when PO is confirmed
+from datetime import timedelta
+for po in records.filtered(lambda p: p.state == 'purchase'):
+    # Set response deadline from config
+    deadline_hours = int(env['ir.config_parameter'].sudo().get_param('plasticos.supplier_response_deadline_hours', 48))
+    
+    # Send email template
+    template = env.ref('plasticos_automation.email_template_po_supplier_ready', raise_if_not_found=False)
+    if template:
+        template.send_mail(po.id, force_send=True)
+        
+    # Log activity
+    po.message_post(body='Supplier confirmation request sent')
+        </field>
+    </record>
+
+    <!-- Action: Auto Send SO to Buyer -->
+    <record id="action_auto_send_so_buyer" model="ir.actions.server">
+        <field name="name">Auto Send SO to Buyer</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="state">code</field>
+        <field name="code">
+# Send SO confirmation to buyer when order is confirmed
+for so in records.filtered(lambda s: s.state == 'sale'):
+    # Send email template
+    template = env.ref('plasticos_automation.email_template_so_to_buyer', raise_if_not_found=False)
+    if template:
+        template.send_mail(so.id, force_send=True)
+    
+    # Log activity
+    so.message_post(body='Sales order confirmation sent to buyer')
+        </field>
+    </record>
+
+    <!-- Action: Auto QC Claim Escalation -->
+    <record id="action_auto_qc_escalation" model="ir.actions.server">
+        <field name="name">Auto QC Claim Escalation</field>
+        <field name="model_id" ref="plasticos_claims.model_plasticos_claim"/>
+        <field name="state">code</field>
+        <field name="code">
+# Auto escalate overdue QC claims
+for claim in records.filtered(lambda c: c.is_overdue and c.state in ['pending', 'in_progress'] and c.escalation_level == 0):
+    claim.action_escalate(reason='Auto-escalated due to SLA breach')
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════
+         AUTOMATED RULES (TRIGGERS)
+         ═══════════════════════════════════════════ -->
+
+    <!-- Rule: Trigger PO Confirmation on Purchase Order Confirmation -->
+    <record id="rule_trigger_po_confirmation" model="base.automation">
+        <field name="name">Trigger PO Supplier Confirmation</field>
+        <field name="model_id" ref="purchase.model_purchase_order"/>
+        <field name="state">code</field>
+        <field name="code">
+# Trigger when PO state changes to 'purchase'
+action = env.ref('plasticos_automation.action_auto_send_po_confirmation', raise_if_not_found=False)
+if action:
+    action.with_context(active_ids=records.ids).run()
+        </field>
+        <field name="trigger">on_write</field>
+        <field name="filter_pre_domain">[('state', '!=', 'purchase')]</field>
+        <field name="filter_domain">[('state', '=', 'purchase')]</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Rule: Trigger SO Buyer Notification on Sale Order Confirmation -->
+    <record id="rule_trigger_so_notification" model="base.automation">
+        <field name="name">Trigger SO Buyer Notification</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="state">code</field>
+        <field name="code">
+# Trigger when SO state changes to 'sale'
+action = env.ref('plasticos_automation.action_auto_send_so_buyer', raise_if_not_found=False)
+if action:
+    action.with_context(active_ids=records.ids).run()
+        </field>
+        <field name="trigger">on_write</field>
+        <field name="filter_pre_domain">[('state', '!=', 'sale')]</field>
+        <field name="filter_domain">[('state', '=', 'sale')]</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Rule: Auto Create QC Claim Notification -->
+    <record id="rule_qc_claim_notification" model="base.automation">
+        <field name="name">QC Claim Notification to Supplier</field>
+        <field name="model_id" ref="plasticos_claims.model_plasticos_claim"/>
+        <field name="state">code</field>
+        <field name="code">
+# Send notification when QC claim is escalated
+for claim in records.filtered(lambda c: c.state == 'escalated'):
+    template = env.ref('plasticos_claims.email_template_qc_claim_notification', raise_if_not_found=False)
+    supplier = claim.transaction_id.supplier_id if claim.transaction_id else None
+    if template and supplier and supplier.email:
+        template.send_mail(claim.id, force_send=True)
+        claim.message_post(body=f"Quality claim notification sent to {supplier.name}")
+        </field>
+        <field name="trigger">on_write</field>
+        <field name="filter_pre_domain">[('state', '!=', 'escalated')]</field>
+        <field name="filter_domain">[('state', '=', 'escalated')]</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Rule: Mark TX as Delivered on DO Done -->
+    <record id="rule_tx_delivered_on_do_done" model="base.automation">
+        <field name="name">Mark TX as Delivered on DO Done</field>
+        <field name="model_id" ref="stock.model_stock_picking"/>
+        <field name="state">code</field>
+        <field name="code">
+# Update TX status when delivery is completed
+for picking in records.filtered(lambda p: p.state == 'done'):
+    # Check if picking has a linked transaction via sale order
+    if picking.sale_id:
+        tx = env['plasticos.transaction'].search([('sale_order_id', '=', picking.sale_id.id)], limit=1)
+        if tx and tx.state in ('in_progress', 'in_transit'):
+            tx.write({
+                'state': 'delivered',
+            })
+            tx.message_post(body=f"Delivery completed - DO {picking.name}")
+        </field>
+        <field name="trigger">on_write</field>
+        <field name="filter_pre_domain">[('state', '!=', 'done')]</field>
+        <field name="filter_domain">[('state', '=', 'done')]</field>
+        <field name="active" eval="True"/>
+    </record>
+
+</odoo>

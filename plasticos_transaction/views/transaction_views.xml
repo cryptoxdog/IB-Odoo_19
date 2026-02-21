@@ -88,17 +88,7 @@
                                 <field name="compliance_status"/>
                             </group>
                         </page>
-                        <page string="Claims">
-                            <field name="claim_ids" readonly="1">
-                                <list>
-                                    <field name="name"/>
-                                    <field name="case_type"/>
-                                    <field name="severity"/>
-                                    <field name="state"/>
-                                    <field name="recovery_amount"/>
-                                </list>
-                            </field>
-                        </page>
+                        <!-- Claims page moved to plasticos_claims module which extends this view -->
                         <page string="Historical Lines" invisible="line_count == 0">
                             <group>
                                 <group string="Historical Totals (from cieTrade)">

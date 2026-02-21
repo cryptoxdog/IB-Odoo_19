@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- ============================================
+         HARVESTED CONFIG PARAMETERS (from linda_logistics_v6)
+         System-wide configuration for transaction processing
+         ============================================ -->
+
+    <!-- Weight Variance Tolerance (%) - triggers review if exceeded -->
+    <record id="config_weight_variance_tolerance" model="ir.config_parameter">
+        <field name="key">plasticos.weight_variance_tolerance</field>
+        <field name="value">5.0</field>
+    </record>
+
+    <!-- Weight Variance Auto-Approve (%) - auto-approve if within this threshold -->
+    <record id="config_weight_auto_approve" model="ir.config_parameter">
+        <field name="key">plasticos.weight_variance_auto_approve</field>
+        <field name="value">2.0</field>
+    </record>
+
+    <!-- Freight Variance Tolerance (%) - triggers review if exceeded -->
+    <record id="config_freight_variance_tolerance" model="ir.config_parameter">
+        <field name="key">plasticos.freight_variance_tolerance</field>
+        <field name="value">10.0</field>
+    </record>
+
+    <!-- Supplier Response Deadline (hours) -->
+    <record id="config_supplier_response_deadline_hours" model="ir.config_parameter">
+        <field name="key">plasticos.supplier_response_deadline_hours</field>
+        <field name="value">48</field>
+    </record>
+
+    <!-- Trucker Response Deadline (hours) -->
+    <record id="config_trucker_response_deadline_hours" model="ir.config_parameter">
+        <field name="key">plasticos.trucker_response_deadline_hours</field>
+        <field name="value">24</field>
+    </record>
+
+    <!-- Document Deadline (days) -->
+    <record id="config_document_deadline_days" model="ir.config_parameter">
+        <field name="key">plasticos.document_deadline_days</field>
+        <field name="value">5</field>
+    </record>
+
+    <!-- QC Claim SLA (days) -->
+    <record id="config_qc_claim_sla_days" model="ir.config_parameter">
+        <field name="key">plasticos.qc_claim_sla_days</field>
+        <field name="value">7</field>
+    </record>
+
+</odoo>

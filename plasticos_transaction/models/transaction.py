@@ -23,6 +23,112 @@ class PlasticosTransaction(models.Model):
 
     load_id = fields.Many2one("plasticos.load")
 
+    # ── Partner References (harvested from linda_logistics_v6) ──
+    supplier_id = fields.Many2one(
+        "res.partner",
+        string="Supplier",
+        domain=[("is_company", "=", True), ("supplier_rank", ">", 0)],
+        tracking=True,
+        index=True,
+    )
+    buyer_id = fields.Many2one(
+        "res.partner",
+        string="Buyer",
+        domain=[("is_company", "=", True), ("customer_rank", ">", 0)],
+        tracking=True,
+        index=True,
+    )
+    carrier_id = fields.Many2one(
+        "res.partner",
+        string="Carrier",
+        domain=[("is_company", "=", True)],
+        tracking=True,
+    )
+
+    # ── Product Info (harvested) ───────────────────────────────
+    product_id = fields.Many2one(
+        "product.product",
+        string="Product",
+        tracking=True,
+    )
+    quantity = fields.Float(
+        string="Quantity",
+        digits="Product Unit of Measure",
+        tracking=True,
+    )
+    uom_id = fields.Many2one(
+        "uom.uom",
+        string="Unit of Measure",
+    )
+    unit_price = fields.Float(
+        string="Unit Price",
+        digits="Product Price",
+        tracking=True,
+    )
+
+    # ── Logistics Dates (harvested) ────────────────────────────
+    expected_pickup_date = fields.Datetime(
+        string="Expected Pickup Date",
+        tracking=True,
+    )
+    actual_pickup_date = fields.Datetime(
+        string="Actual Pickup Date",
+        tracking=True,
+    )
+    expected_delivery_date = fields.Datetime(
+        string="Expected Delivery Date",
+        tracking=True,
+    )
+    actual_delivery_date = fields.Datetime(
+        string="Actual Delivery Date",
+        tracking=True,
+    )
+
+    # ── Logistics Terms (harvested) ────────────────────────────
+    delivery_term = fields.Selection(
+        [
+            ("fcfs", "First Come First Served"),
+            ("appointment", "Appointment Required"),
+        ],
+        string="Delivery Term",
+        default="fcfs",
+        tracking=True,
+    )
+    freight_rate = fields.Float(
+        string="Freight Rate",
+        digits="Product Price",
+        tracking=True,
+    )
+    freight_actual = fields.Float(
+        string="Actual Freight Cost",
+        digits="Product Price",
+        tracking=True,
+    )
+
+    # ── Weight Tracking (harvested) ────────────────────────────
+    expected_weight = fields.Float(
+        string="Expected Weight (lbs)",
+        tracking=True,
+    )
+    actual_weight = fields.Float(
+        string="Actual Weight (lbs)",
+        tracking=True,
+    )
+    weight_variance_percent = fields.Float(
+        string="Weight Variance %",
+        compute="_compute_weight_variance",
+        store=True,
+    )
+
+    # ── Quality Control ────────────────────────────────────────
+    # NOTE: has_quality_claim is now a simple stored field.
+    # The compute logic was moved to plasticos_claims module
+    # which extends this model with claim_ids and recomputes this field.
+    has_quality_claim = fields.Boolean(
+        string="Has Quality Claim",
+        default=False,
+    )
+
     customer_invoice_id = fields.Many2one(
         "account.move",
         domain=[("move_type", "=", "out_invoice")]
@@ -53,12 +159,13 @@ class PlasticosTransaction(models.Model):
         string="Lightweight Penalties",
         help="Credits recovered from suppliers for loading below minimum weight.",
     )
-    claim_ids = fields.One2many(
-        "plasticos.claim",
-        "transaction_id",
-        string="Claims",
-        help="QC cases, chargebacks, and penalty claims linked to this transaction.",
-    )
+    # NOTE: claim_ids field moved to plasticos_claims module to avoid circular dependency
+    # claim_ids = fields.One2many(
+    #     "plasticos.claim",
+    #     "transaction_id",
+    #     string="Claims",
+    #     help="QC cases, chargebacks, and penalty claims linked to this transaction.",
+    # )
 
     # Historical line items from cieTrade import
     line_ids = fields.One2many(
@@ -141,7 +248,14 @@ class PlasticosTransaction(models.Model):
     state = fields.Selection([
         ("draft", "Draft"),
         ("active", "Active"),
-        ("closed", "Closed")
+        ("pending_supplier", "Pending Supplier"),
+        ("supplier_ready", "Supplier Ready"),
+        ("in_progress", "In Progress"),
+        ("in_transit", "In Transit"),
+        ("delivered", "Delivered"),
+        ("invoiced", "Invoiced"),
+        ("closed", "Closed"),
+        ("cancelled", "Cancelled"),
     ], default="draft", tracking=True, index=True)
 
     # ── Constraints (Odoo 19 models.Constraint) ──────────────
@@ -149,6 +263,20 @@ class PlasticosTransaction(models.Model):
         "unique(name)",
         "Transaction reference must be unique.",
     )
+
+    # ── Computed Methods (harvested) ──────────────────────────
+    @api.depends("expected_weight", "actual_weight")
+    def _compute_weight_variance(self):
+        for rec in self:
+            if rec.expected_weight and rec.actual_weight:
+                rec.weight_variance_percent = (
+                    abs(rec.actual_weight - rec.expected_weight) / rec.expected_weight * 100
+                )
+            else:
+                rec.weight_variance_percent = 0.0
+
+    # NOTE: _compute_has_quality_claim moved to plasticos_claims module
+    # which extends plasticos.transaction with claim_ids field
 
     @api.depends("line_ids")
     def _compute_line_count(self):
@@ -233,7 +361,12 @@ class PlasticosTransaction(models.Model):
 
     @api.depends("create_date")
     def _compute_compliance(self):
-        service = self.env["plasticos.compliance.service"]
+        service = self.env.get("plasticos.compliance.service")
+        if not service:
+            # Compliance module not installed
+            for rec in self:
+                rec.compliance_status = "compliant"
+            return
         for rec in self:
             if service.is_compliant("plasticos.transaction", rec.id):
                 rec.compliance_status = "compliant"
