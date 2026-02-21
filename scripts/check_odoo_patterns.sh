@@ -92,6 +92,26 @@ else
     echo -e "${GREEN}OK${NC}"
 fi
 
+# 7. Empty __init__.py in Odoo modules (models won't load)
+echo -n "Checking empty __init__.py in modules... "
+EMPTY_INITS=""
+for init_file in $(git ls-files '*/__init__.py' 2>/dev/null); do
+    # Check if it's in a plasticos_* module directory
+    if [[ "$init_file" == plasticos_*/__init__.py ]] || [[ "$init_file" == plasticos_*/models/__init__.py ]]; then
+        if [ ! -s "$init_file" ]; then
+            EMPTY_INITS="$EMPTY_INITS $init_file"
+        fi
+    fi
+done
+if [ -n "$EMPTY_INITS" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$EMPTY_INITS"
+    echo -e "${YELLOW}Fix: Add 'from . import models' or model imports${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
 echo ""
 if [ $ERRORS -gt 0 ]; then
     echo -e "${RED}❌ Found $ERRORS Odoo pattern issue(s)${NC}"
