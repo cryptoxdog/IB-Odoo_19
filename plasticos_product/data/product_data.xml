@@ -6,9 +6,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_mixed"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_mixed"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -19,9 +19,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_engineering"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_abs"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -31,9 +31,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_engineering"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pmma"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_sheet"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_clear"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_sheet"/>
+      <field name="color_id" ref="plasticos_material_profile.color_clear"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">SHEET</field>
       <field name="color_code">CLR</field>
@@ -44,9 +44,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_other"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_metal"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -57,9 +57,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_mixed"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_mixed"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_parts"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_mixed"/>
+      <field name="form_id" ref="plasticos_material_profile.form_parts"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_mixed"/>
       <field name="type_code">MIXED</field>
       <field name="form_code">PART</field>
       <field name="color_code">MIX</field>
@@ -70,9 +70,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_bopp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_film"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_film"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">FILM</field>
       <field name="color_code">MIX</field>
@@ -83,9 +83,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_mixed"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_mrp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_mixed"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_mixed"/>
       <field name="type_code">MIXED</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -96,9 +96,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_ps"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_eps"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_densified"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_white"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_densified"/>
+      <field name="color_id" ref="plasticos_material_profile.color_white"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">DENS</field>
       <field name="color_code">WHT</field>
@@ -109,9 +109,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_boxes"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_reusable"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_reusable"/>
       <field name="type_code">REUSE</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -122,9 +122,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_boxes"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_pallets"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_reusable"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_reusable"/>
       <field name="type_code">REUSE</field>
       <field name="form_code">PAL</field>
       <field name="color_code">MIX</field>
@@ -135,9 +135,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_regrind"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -148,9 +148,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_regrind"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -161,9 +161,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_natural"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_natural"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">NAT</field>
@@ -174,9 +174,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -187,9 +187,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_black"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_black"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">BALE</field>
       <field name="color_code">BLK</field>
@@ -200,9 +200,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -213,9 +213,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -226,9 +226,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_loose"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_loose"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">LOOSE</field>
       <field name="color_code">MIX</field>
@@ -239,9 +239,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_regrind"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -252,9 +252,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -265,9 +265,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -278,9 +278,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_regrind"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -291,9 +291,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -304,9 +304,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -317,9 +317,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_natural"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_natural"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">NAT</field>
@@ -330,9 +330,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_purge"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_black"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_purge"/>
+      <field name="color_id" ref="plasticos_material_profile.color_black"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">PURGE</field>
       <field name="color_code">BLK</field>
@@ -343,9 +343,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -356,9 +356,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_sheet"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_black"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_sheet"/>
+      <field name="color_id" ref="plasticos_material_profile.color_black"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">SHEET</field>
       <field name="color_code">BLK</field>
@@ -369,9 +369,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -382,9 +382,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -395,9 +395,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -408,9 +408,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_ps"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hips"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -421,9 +421,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_ps"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hips"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -434,9 +434,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hmw_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_regrind"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -447,9 +447,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hmw_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -460,9 +460,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hmw_hdpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -473,9 +473,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_ldpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_ldpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -486,9 +486,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_ldpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_ldpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_film"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_clear"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_film"/>
+      <field name="color_id" ref="plasticos_material_profile.color_clear"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">FILM</field>
       <field name="color_code">CLR</field>
@@ -499,9 +499,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_ldpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_ldpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_film"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_film"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">FILM</field>
       <field name="color_code">MIX</field>
@@ -512,9 +512,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_ldpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_ldpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_film"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_film"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">FILM</field>
       <field name="color_code">MIX</field>
@@ -525,9 +525,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_ldpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_ldpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_film"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_film"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">FILM</field>
       <field name="color_code">MIX</field>
@@ -538,10 +538,10 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_ldpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_ldpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_film"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_print"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_printed")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_film"/>
+      <field name="color_id" ref="plasticos_material_profile.color_print"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_printed")])]"/>
       <field name="type_code">PC</field>
       <field name="form_code">FILM</field>
       <field name="color_code">PRINT</field>
@@ -552,9 +552,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_ldpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_ldpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_film"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_film"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">FILM</field>
       <field name="color_code">MIX</field>
@@ -565,9 +565,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_ldpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_ldpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_pellet"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_natural"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_off_spec"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pellet"/>
+      <field name="color_id" ref="plasticos_material_profile.color_natural"/>
+      <field name="type_id" ref="plasticos_material_profile.source_off_spec"/>
       <field name="type_code">OFF</field>
       <field name="form_code">PELLET</field>
       <field name="color_code">NAT</field>
@@ -578,9 +578,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_ldpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_ldpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_film"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_film"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">FILM</field>
       <field name="color_code">MIX</field>
@@ -591,9 +591,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_ldpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_ldpe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -604,9 +604,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_mixed"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_mrp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_mixed"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_mixed"/>
       <field name="type_code">MIXED</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -617,9 +617,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_engineering"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pa"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_parts"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_parts"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">PART</field>
       <field name="color_code">MIX</field>
@@ -630,9 +630,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_engineering"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pa"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_regrind"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -643,9 +643,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_other"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_occ"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -656,9 +656,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_engineering"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pc_pmma"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -669,9 +669,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_engineering"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pc_pmma"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_sheet"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_red"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_sheet"/>
+      <field name="color_id" ref="plasticos_material_profile.color_red"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">SHEET</field>
       <field name="color_code">RED</field>
@@ -682,9 +682,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_other"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp_pe"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_regrind"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -695,9 +695,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pet"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pet"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_no_value"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_no_value"/>
       <field name="type_code">CONT</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -708,9 +708,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pet"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pet"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_regrind"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -721,9 +721,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pet"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pet"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -734,9 +734,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pet"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pet"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -747,9 +747,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pet"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pet"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_film"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_clear"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_film"/>
+      <field name="color_id" ref="plasticos_material_profile.color_clear"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">FILM</field>
       <field name="color_code">CLR</field>
@@ -760,9 +760,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pet"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pet"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_flake"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_flake"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">FLAKE</field>
       <field name="color_code">MIX</field>
@@ -773,9 +773,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pet"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pet"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_floorsweep"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_floorsweep"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">SWEEP</field>
       <field name="color_code">MIX</field>
@@ -786,9 +786,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pet"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pet"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_pellet"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_clear"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_off_spec"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pellet"/>
+      <field name="color_id" ref="plasticos_material_profile.color_clear"/>
+      <field name="type_id" ref="plasticos_material_profile.source_off_spec"/>
       <field name="type_code">OFF</field>
       <field name="form_code">PELL</field>
       <field name="color_code">CLR</field>
@@ -799,9 +799,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pet"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pet"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -812,9 +812,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pet"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pet"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -825,9 +825,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pet"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pet"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -838,9 +838,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_pallets"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">PAL</field>
       <field name="color_code">MIX</field>
@@ -851,9 +851,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_pallets"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">PAL</field>
       <field name="color_code">MIX</field>
@@ -864,9 +864,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_pallets"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">PAL</field>
       <field name="color_code">MIX</field>
@@ -877,9 +877,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_pallets"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_black"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
+      <field name="color_id" ref="plasticos_material_profile.color_black"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">PAL</field>
       <field name="color_code">BLK</field>
@@ -890,9 +890,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_pallets"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">PAL</field>
       <field name="color_code">MIX</field>
@@ -903,9 +903,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_pallets"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">PAL</field>
       <field name="color_code">MIX</field>
@@ -916,9 +916,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_pallets"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">PAL</field>
       <field name="color_code">MIX</field>
@@ -929,9 +929,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_pallets"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">PAL</field>
       <field name="color_code">MIX</field>
@@ -942,9 +942,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_pallets"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">PAL</field>
       <field name="color_code">MIX</field>
@@ -955,9 +955,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -968,9 +968,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -981,9 +981,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -994,9 +994,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -1007,9 +1007,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_film"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_film"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">FILM</field>
       <field name="color_code">MIX</field>
@@ -1020,9 +1020,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -1033,9 +1033,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_pellet"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_black"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_off_spec"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pellet"/>
+      <field name="color_id" ref="plasticos_material_profile.color_black"/>
+      <field name="type_id" ref="plasticos_material_profile.source_off_spec"/>
       <field name="type_code">OFF</field>
       <field name="form_code">PELL</field>
       <field name="color_code">BLK</field>
@@ -1046,9 +1046,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -1059,9 +1059,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_purge"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_purge"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">PURGE</field>
       <field name="color_code">MIX</field>
@@ -1072,9 +1072,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_regrind"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -1085,9 +1085,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -1098,9 +1098,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -1111,9 +1111,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_reusable"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_reusable"/>
       <field name="type_code">REUSE</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -1124,9 +1124,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -1137,9 +1137,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -1150,9 +1150,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_industrial"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_industrial"/>
       <field name="type_code">PI</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -1163,9 +1163,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pvc"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pvc"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -1176,9 +1176,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pvc"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pvc"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -1189,9 +1189,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pvc"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pvc"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_regrind"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="material_attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -1202,9 +1202,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pvc"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pvc"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -1215,9 +1215,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_engineering"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_tpo"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_bale"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_post_consumer"/>
+      <field name="form_id" ref="plasticos_material_profile.form_bale"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
       <field name="type_code">PC</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -1228,9 +1228,9 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
-      <field name="material_form_id" ref="plasticos_material_profile.form_pallets"/>
-      <field name="material_color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="source_type_id" ref="plasticos_material_profile.source_reusable"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
+      <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
+      <field name="type_id" ref="plasticos_material_profile.source_reusable"/>
       <field name="type_code">REUSE</field>
       <field name="form_code">PAL</field>
       <field name="color_code">MIX</field>

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <data noupdate="1">
-    <!-- Root category for scrap plastics -->
+    <!-- Root category for scrap plastics (standalone root - no parent dependency) -->
     <record id="product_category_scrap" model="product.category">
       <field name="name">Scrap Plastics</field>
-      <field name="parent_id" ref="product.product_category_all"/>
+      <!-- No parent_id - this becomes a root category to avoid dependency on product.product_category_all -->
     </record>
 
     <!-- Polymer-based subcategories -->

@@ -28,7 +28,7 @@ class ProductTemplate(models.Model):
         string="Polymer",
         help="Primary polymer type (HDPE, LDPE, PP, etc.). Required.",
     )
-    material_form_id = fields.Many2one(
+    form_id = fields.Many2one(
         "plasticos.material.form",
         string="Form",
         help="Current physical form (Regrind, Flake, Pellet, etc.). Required.",
@@ -40,22 +40,22 @@ class ProductTemplate(models.Model):
         string="Origin Form",
         help="What the material was before processing (Drums, Bottles, Film). Optional.",
     )
-    packaging_type_id = fields.Many2one(
+    packaging_id = fields.Many2one(
         "plasticos.packaging.type",
         string="Packaging",
         help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales). Optional.",
     )
-    material_color_id = fields.Many2one(
+    color_id = fields.Many2one(
         "plasticos.material.color",
         string="Color",
         help="Color of the material. Optional.",
     )
-    source_type_id = fields.Many2one(
+    type_id = fields.Many2one(
         "plasticos.source.type",
         string="Source Type",
         help="Source/origin type (Post-Consumer, Post-Industrial, etc.). Optional.",
     )
-    material_attribute_ids = fields.Many2many(
+    attribute_ids = fields.Many2many(
         "plasticos.material.attribute",
         string="Attributes",
         help="Material condition attributes (Clean, With Metal, Printed, etc.). Optional.",
