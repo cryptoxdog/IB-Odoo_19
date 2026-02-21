@@ -10,12 +10,12 @@
         <field name="model">plasticos.intake</field>
         <field name="arch" type="xml">
             <search string="Intake Search">
-                <field name="name"/>
                 <field name="partner_id"/>
                 <field name="facility_id"/>
                 <field name="contact_id"/>
                 <field name="polymer"/>
                 <field name="form"/>
+                <field name="source_type_id"/>
                 <field name="material_profile_id"/>
                 <filter name="filter_draft"
                         string="Draft"
@@ -63,13 +63,12 @@
         <field name="model">plasticos.intake</field>
         <field name="arch" type="xml">
             <list>
-                <field name="name"/>
                 <field name="partner_id"/>
                 <field name="facility_id" optional="show"/>
                 <field name="contact_id" optional="hide"/>
-                <field name="material_profile_id" optional="show"/>
                 <field name="polymer"/>
                 <field name="form"/>
+                <field name="source_type_id" optional="show"/>
                 <field name="quantity_per_load_lbs"/>
                 <field name="loads_per_month" optional="show"/>
                 <field name="deal_type"/>
@@ -125,7 +124,6 @@
                     <!-- Identity + Contact Header -->
                     <group>
                         <group string="Company &amp; Facility">
-                            <field name="name"/>
                             <field name="partner_id"/>
                             <field name="facility_id"/>
                             <field name="material_profile_id"/>
@@ -137,37 +135,33 @@
                         </group>
                     </group>
 
+                    <!-- Material Section (main page, not in tab) -->
+                    <group>
+                        <group string="Material">
+                            <field name="polymer"/>
+                            <field name="form"/>
+                            <field name="color"/>
+                            <field name="source_type_id"/>
+                            <field name="grade_hint"/>
+                            <field name="packaging_type"/>
+                        </group>
+                        <group string="Volume &amp; Frequency">
+                            <field name="quantity_per_load_lbs"/>
+                            <field name="loads_per_month"/>
+                            <field name="deal_type"/>
+                        </group>
+                    </group>
+
                     <notebook>
-                        <!-- Tab 1: Material -->
-                        <page string="Material">
-                            <group string="Raw Description">
-                                <field name="material_hint_text"/>
-                            </group>
+                        <!-- Tab 1: Origin -->
+                        <page string="Origin">
                             <group>
-                                <group string="Material Snapshot">
-                                    <field name="polymer"/>
-                                    <field name="form"/>
-                                    <field name="color"/>
-                                    <field name="source_type"/>
-                                    <field name="grade_hint"/>
-                                </group>
-                                <group string="Origin">
+                                <group string="Application">
                                     <field name="origin_application"/>
                                     <field name="origin_sector"/>
                                     <field name="origin_process_type"/>
                                 </group>
-                            </group>
-                        </page>
-
-                        <!-- Tab 2: Frequency (moved before Quality per #14) -->
-                        <page string="Frequency">
-                            <group>
-                                <group string="Volume">
-                                    <field name="quantity_per_load_lbs"/>
-                                    <field name="loads_per_month"/>
-                                </group>
                                 <group string="Deal Terms">
-                                    <field name="deal_type"/>
                                     <field name="contract_duration_months"/>
                                 </group>
                             </group>

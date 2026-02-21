@@ -12,7 +12,11 @@ class PlasticosIntake(models.Model):
     # Identity
     # ═════════════════════════════════════════════════════════
 
-    name = fields.Char(required=True, tracking=True)
+    name = fields.Char(
+        compute="_compute_name",
+        store=True,
+        index=True,
+    )
     partner_id = fields.Many2one(
         "res.partner",
         string="Company",
@@ -98,14 +102,6 @@ class PlasticosIntake(models.Model):
     )
 
     # ═════════════════════════════════════════════════════════
-    # Raw Broker Layer
-    # ═════════════════════════════════════════════════════════
-
-    material_hint_text = fields.Text(
-        help="Raw broker description. Parsed later by L9.",
-    )
-
-    # ═════════════════════════════════════════════════════════
     # Material Snapshot (Schema-Aligned)
     # Kept as editable Char/Selection for manual intake and
     # backward compatibility. Can be pre-filled from profile.
@@ -114,8 +110,26 @@ class PlasticosIntake(models.Model):
     polymer = fields.Char(required=True, index=True)
     form = fields.Char(required=True, index=True)
     color = fields.Char()
-    source_type = fields.Char()
+    source_type_id = fields.Many2one(
+        "plasticos.source.type",
+        string="Source Type",
+        index=True,
+        ondelete="restrict",
+        help="Canonical source type from the master registry.",
+    )
     grade_hint = fields.Char()
+    packaging_type = fields.Selection(
+        [
+            ("bale", "Bale"),
+            ("bulk_trailer", "Bulk Trailer"),
+            ("gaylord", "Gaylord"),
+            ("loose", "Loose"),
+            ("other", "Other"),
+            ("palletized", "Palletized"),
+            ("supersack", "Super Sack"),
+        ],
+        string="Packaging",
+    )
 
     # ═════════════════════════════════════════════════════════
     # Observed Quality (Instance-Level)
@@ -142,30 +156,36 @@ class PlasticosIntake(models.Model):
     # Origin Intelligence
     # ═════════════════════════════════════════════════════════
 
-    origin_application = fields.Char()
+    origin_application = fields.Char(
+        string="Intended Use",
+        help="What the material was originally used for or intended application.",
+    )
     origin_sector = fields.Selection(
         [
-            ("medical", "Medical"),
             ("automotive", "Automotive"),
-            ("packaging", "Packaging"),
             ("construction", "Construction"),
             ("consumer_goods", "Consumer Goods"),
+            ("food", "Food Grade"),
             ("industrial", "Industrial"),
+            ("medical", "Medical Grade"),
             ("other", "Other"),
+            ("packaging", "Packaging"),
         ],
+        string="Sector",
     )
     origin_process_type = fields.Selection(
         [
-            ("injection", "Injection Molding"),
-            ("extrusion", "Extrusion"),
             ("blow_mold", "Blow Molding"),
-            ("thermoform", "Thermoforming"),
-            ("rotomold", "Rotational Molding"),
+            ("compounding", "Compounding"),
+            ("extrusion", "Extrusion"),
             ("film_blown", "Film Blown"),
             ("film_cast", "Film Cast"),
-            ("compounding", "Compounding"),
+            ("injection", "Injection Molding"),
             ("other", "Other"),
+            ("rotomold", "Rotational Molding"),
+            ("thermoform", "Thermoforming"),
         ],
+        string="Process Type",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -179,11 +199,12 @@ class PlasticosIntake(models.Model):
     loads_per_month = fields.Integer(string="Loads / Month")
     deal_type = fields.Selection(
         [
-            ("spot", "Spot"),
-            ("recurring", "Recurring"),
             ("contract", "Contract"),
+            ("recurring", "Recurring"),
+            ("spot", "Spot"),
             ("trial", "Trial"),
         ],
+        string="Deal Type",
         default="spot",
     )
     contract_duration_months = fields.Integer(string="Contract Duration (mo)")
@@ -195,8 +216,8 @@ class PlasticosIntake(models.Model):
     onboarding_status = fields.Selection(
         [
             ("draft", "Draft"),
-            ("profiled", "Profiled"),
             ("normalized", "Normalized"),
+            ("profiled", "Profiled"),
             ("ready", "Ready for Matching"),
         ],
         default="draft",
@@ -218,11 +239,11 @@ class PlasticosIntake(models.Model):
 
     match_status = fields.Selection(
         [
-            ("pending", "Pending"),
-            ("normalized", "Normalized"),
-            ("matched", "Matched"),
-            ("rejected", "Rejected"),
             ("error", "Error"),
+            ("matched", "Matched"),
+            ("normalized", "Normalized"),
+            ("pending", "Pending"),
+            ("rejected", "Rejected"),
         ],
         default="pending",
         tracking=True,
@@ -245,6 +266,26 @@ class PlasticosIntake(models.Model):
         "unique(last_packet_id, last_packet_version)",
         "Duplicate packet emission detected.",
     )
+
+    # ═════════════════════════════════════════════════════════
+    # Computed
+    # ═════════════════════════════════════════════════════════
+
+    @api.depends("partner_id", "facility_id", "polymer", "id")
+    def _compute_name(self):
+        """Auto-generate display name from company/facility + polymer."""
+        for rec in self:
+            parts = []
+            if rec.facility_id and rec.facility_id != rec.partner_id:
+                parts.append(rec.facility_id.name or "")
+            elif rec.partner_id:
+                parts.append(rec.partner_id.name or "")
+            if rec.polymer:
+                parts.append(rec.polymer.upper())
+            if parts:
+                rec.name = " - ".join(filter(None, parts))
+            else:
+                rec.name = f"Intake #{rec.id or 'New'}"
 
     # ═════════════════════════════════════════════════════════
     # Onchange — Smart Cascade
@@ -342,7 +383,7 @@ class PlasticosIntake(models.Model):
         self.polymer = mp.polymer_id.code if mp.polymer_id else self.polymer
         self.form = mp.form_id.code if mp.form_id else self.form
         self.color = mp.color_id.code if mp.color_id else self.color
-        self.source_type = mp.source_type_id.code if mp.source_type_id else self.source_type
+        self.source_type_id = mp.source_type_id.id if mp.source_type_id else self.source_type_id
         self.mfi_value = mp.melt_flow_index or self.mfi_value
         self.density_value = mp.density or self.density_value
         self.contamination_pct = (
