@@ -47,6 +47,7 @@ class PlasticosBuyerCapability(models.Model):
             ("ocean_recovered", "Ocean Recovered"),
             ("unknown", "Unknown"),
         ],
+        string="Source Type Code",
         compute="_compute_source_type_code",
         store=True,
         index=True,
@@ -87,6 +88,7 @@ class PlasticosBuyerCapability(models.Model):
             ("ewaste", "E-Waste"),
             ("other", "Other"),
         ],
+        string="Polymer Code",
         compute="_compute_polymer_code",
         store=True,
         index=True,
@@ -118,6 +120,7 @@ class PlasticosBuyerCapability(models.Model):
             ("re_useable", "Re-Useable"),
             ("other", "Other"),
         ],
+        string="Form Code",
         compute="_compute_form_code",
         store=True,
         index=True,
@@ -178,13 +181,11 @@ class PlasticosBuyerCapability(models.Model):
         help="Reject intake if seller is farther than this from buyer facility.",
     )
 
-    _sql_constraints = [
-        (
-            "unique_lane",
-            "unique(facility_id, source_type_id, polymer_id, form_id, process_type)",
-            "Duplicate capability lane for this facility.",
-        )
-    ]
+    # Odoo 19: Use models.Constraint instead of _sql_constraints
+    _unique_lane = models.Constraint(
+        "unique(facility_id, source_type_id, polymer_id, form_id, process_type)",
+        "Duplicate capability lane for this facility.",
+    )
 
     @api.depends("source_type_id", "source_type_id.code")
     def _compute_source_type_code(self):
