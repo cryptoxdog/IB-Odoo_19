@@ -10,23 +10,8 @@
       <field name="name">Material Types</field>
     </record>
 
-    <!-- Polymer Partner Tags (for partner categorization) -->
-    <record id="partner_tag_polymer_abs" model="res.partner.category">
-      <field name="parent_id" ref="category_polymers"/>
-      <field name="name">ABS</field>
-    </record>
-    <record id="partner_tag_polymer_bopp" model="res.partner.category">
-      <field name="parent_id" ref="category_polymers"/>
-      <field name="name">BOPP</field>
-    </record>
-    <record id="partner_tag_polymer_boxes" model="res.partner.category">
-      <field name="parent_id" ref="category_polymers"/>
-      <field name="name">BOXES</field>
-    </record>
-    <record id="partner_tag_polymer_eps" model="res.partner.category">
-      <field name="parent_id" ref="category_polymers"/>
-      <field name="name">EPS</field>
-    </record>
+    <!-- Polymer Partner Tags (aligned with plasticos.polymer master data) -->
+    <!-- Commodity Polymers -->
     <record id="partner_tag_polymer_hdpe" model="res.partner.category">
       <field name="parent_id" ref="category_polymers"/>
       <field name="name">HDPE</field>
@@ -35,18 +20,106 @@
       <field name="parent_id" ref="category_polymers"/>
       <field name="name">HMW HDPE</field>
     </record>
-    <record id="partner_tag_polymer_hips" model="res.partner.category">
-      <field name="parent_id" ref="category_polymers"/>
-      <field name="name">HIPS</field>
-    </record>
     <record id="partner_tag_polymer_ldpe" model="res.partner.category">
       <field name="parent_id" ref="category_polymers"/>
       <field name="name">LDPE</field>
     </record>
-    <record id="partner_tag_polymer_metal" model="res.partner.category">
+    <record id="partner_tag_polymer_lldpe" model="res.partner.category">
       <field name="parent_id" ref="category_polymers"/>
-      <field name="name">Metal</field>
+      <field name="name">LLDPE</field>
     </record>
+    <record id="partner_tag_polymer_pp" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">PP</field>
+    </record>
+    <record id="partner_tag_polymer_bopp" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">BOPP</field>
+    </record>
+    <record id="partner_tag_polymer_pet" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">PET</field>
+    </record>
+    <record id="partner_tag_polymer_rpet" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">rPET</field>
+    </record>
+    <record id="partner_tag_polymer_ps" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">PS</field>
+    </record>
+    <record id="partner_tag_polymer_eps" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">EPS</field>
+    </record>
+    <record id="partner_tag_polymer_hips" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">HIPS</field>
+    </record>
+    <record id="partner_tag_polymer_pvc" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">PVC</field>
+    </record>
+    <record id="partner_tag_polymer_eva" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">EVA</field>
+    </record>
+    <!-- Engineering Polymers -->
+    <record id="partner_tag_polymer_abs" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">ABS</field>
+    </record>
+    <record id="partner_tag_polymer_pa" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">PA</field>
+    </record>
+    <record id="partner_tag_polymer_pc" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">PC</field>
+    </record>
+    <record id="partner_tag_polymer_pbt" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">PBT</field>
+    </record>
+    <record id="partner_tag_polymer_pom" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">POM</field>
+    </record>
+    <record id="partner_tag_polymer_pmma" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">PMMA</field>
+    </record>
+    <record id="partner_tag_polymer_ppo" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">PPO</field>
+    </record>
+    <!-- Specialty Polymers -->
+    <record id="partner_tag_polymer_tpe" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">TPE</field>
+    </record>
+    <record id="partner_tag_polymer_tpo" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">TPO</field>
+    </record>
+    <record id="partner_tag_polymer_tpu" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">TPU</field>
+    </record>
+    <record id="partner_tag_polymer_pla" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">PLA</field>
+    </record>
+    <!-- Blends -->
+    <record id="partner_tag_polymer_pp_pe" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">PP-PE</field>
+    </record>
+    <record id="partner_tag_polymer_pc_pmma" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">PC-PMMA</field>
+    </record>
+    <!-- Mixed / Special -->
     <record id="partner_tag_polymer_mixed" model="res.partner.category">
       <field name="parent_id" ref="category_polymers"/>
       <field name="name">Mixed</field>
@@ -55,45 +128,26 @@
       <field name="parent_id" ref="category_polymers"/>
       <field name="name">MRP</field>
     </record>
+    <record id="partner_tag_polymer_ewaste" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">E-Waste</field>
+    </record>
+    <!-- Non-Polymer Materials (kept for partner tagging) -->
+    <record id="partner_tag_polymer_metal" model="res.partner.category">
+      <field name="parent_id" ref="category_polymers"/>
+      <field name="name">Metal</field>
+    </record>
     <record id="partner_tag_polymer_occ" model="res.partner.category">
       <field name="parent_id" ref="category_polymers"/>
       <field name="name">OCC</field>
     </record>
-    <record id="partner_tag_polymer_pa" model="res.partner.category">
+    <record id="partner_tag_polymer_boxes" model="res.partner.category">
       <field name="parent_id" ref="category_polymers"/>
-      <field name="name">PA</field>
+      <field name="name">BOXES</field>
     </record>
     <record id="partner_tag_polymer_pallets" model="res.partner.category">
       <field name="parent_id" ref="category_polymers"/>
       <field name="name">PALLETS</field>
-    </record>
-    <record id="partner_tag_polymer_pc_pmma" model="res.partner.category">
-      <field name="parent_id" ref="category_polymers"/>
-      <field name="name">PC-PMMA</field>
-    </record>
-    <record id="partner_tag_polymer_pet" model="res.partner.category">
-      <field name="parent_id" ref="category_polymers"/>
-      <field name="name">PET</field>
-    </record>
-    <record id="partner_tag_polymer_pmma" model="res.partner.category">
-      <field name="parent_id" ref="category_polymers"/>
-      <field name="name">PMMA</field>
-    </record>
-    <record id="partner_tag_polymer_pp" model="res.partner.category">
-      <field name="parent_id" ref="category_polymers"/>
-      <field name="name">PP</field>
-    </record>
-    <record id="partner_tag_polymer_pp_pe" model="res.partner.category">
-      <field name="parent_id" ref="category_polymers"/>
-      <field name="name">PP-PE</field>
-    </record>
-    <record id="partner_tag_polymer_pvc" model="res.partner.category">
-      <field name="parent_id" ref="category_polymers"/>
-      <field name="name">PVC</field>
-    </record>
-    <record id="partner_tag_polymer_tpo" model="res.partner.category">
-      <field name="parent_id" ref="category_polymers"/>
-      <field name="name">TPO</field>
     </record>
 
     <!-- Additional Parent Categories for AI Triage -->
@@ -307,6 +361,39 @@
     <record id="color_yellow" model="res.partner.category">
       <field name="parent_id" ref="category_colors"/>
       <field name="name">Yellow</field>
+    </record>
+
+    <!-- Grades (certification/compliance tags) -->
+    <record id="category_grades" model="res.partner.category">
+      <field name="name">Grades</field>
+    </record>
+    <record id="grade_food_grade" model="res.partner.category">
+      <field name="parent_id" ref="category_grades"/>
+      <field name="name">Food Grade</field>
+    </record>
+    <record id="grade_medical_grade" model="res.partner.category">
+      <field name="parent_id" ref="category_grades"/>
+      <field name="name">Medical Grade</field>
+    </record>
+    <record id="grade_fda_approved" model="res.partner.category">
+      <field name="parent_id" ref="category_grades"/>
+      <field name="name">FDA Approved</field>
+    </record>
+    <record id="grade_usp_class_vi" model="res.partner.category">
+      <field name="parent_id" ref="category_grades"/>
+      <field name="name">USP Class VI</field>
+    </record>
+    <record id="grade_prime" model="res.partner.category">
+      <field name="parent_id" ref="category_grades"/>
+      <field name="name">Prime</field>
+    </record>
+    <record id="grade_wide_spec" model="res.partner.category">
+      <field name="parent_id" ref="category_grades"/>
+      <field name="name">Wide Spec</field>
+    </record>
+    <record id="grade_off_grade" model="res.partner.category">
+      <field name="parent_id" ref="category_grades"/>
+      <field name="name">Off-Grade</field>
     </record>
 
     <!-- Material Types (quality/condition descriptors) -->
