@@ -1,5 +1,10 @@
 # PlasticOS Python Dependencies
 # Odoo.sh reads this file and installs packages automatically
+# See: https://www.odoo.com/documentation/19.0/administration/odoo_sh/advanced/containers.html
 
 # Required for plasticos_web_leads AI triage
 openai>=1.0.0
+
+# requests is typically pre-installed but declared for completeness
+# (matches external_dependencies in plasticos_web_leads/__manifest__.py)
+requests>=2.28.0
