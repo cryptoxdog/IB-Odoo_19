@@ -13,6 +13,7 @@
                 <field name="lead_id"/>
                 <field name="company_name"/>
                 <field name="decision"/>
+                <field name="lead_source"/>
                 <field name="state"/>
                 <field name="estimated_lbs_per_load"/>
                 <field name="estimated_loads_per_month"/>
@@ -39,11 +40,22 @@
                             type="object"
                             class="btn-primary"
                             invisible="state != 'error'"/>
+                    <button name="action_retry_triage"
+                            string="Re-Run Triage"
+                            type="object"
+                            class="btn-warning"
+                            invisible="state not in ('error', 'skipped', 'received')"/>
                     <button name="action_force_create_intake"
                             string="Force Create Intake"
                             type="object"
                             class="btn-secondary"
                             invisible="intake_id"/>
+                    <button name="action_force_hot"
+                            string="Force HOT"
+                            type="object"
+                            class="btn-danger"
+                            invisible="decision != 'cold' or intake_id"
+                            confirm="Override COLD classification and create intake?"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="received,intake_created"/>
                 </header>
@@ -55,6 +67,7 @@
                         <group string="Classification">
                             <field name="decision"/>
                             <field name="source"/>
+                            <field name="lead_source"/>
                         </group>
                         <group string="Links">
                             <field name="partner_id"/>
@@ -94,13 +107,27 @@
                         </page>
                         <page string="AI Analysis" name="ai_analysis_page">
                             <group>
-                                <field name="ai_analysis" widget="text"/>
-                                <field name="decision_reasons" widget="text"/>
+                                <field name="ai_analysis" widget="json"/>
+                                <field name="decision_reasons" widget="json"/>
+                            </group>
+                        </page>
+                        <page string="AI Triage" name="ai_triage_page">
+                            <group string="AI Normalization">
+                                <field name="ai_normalized" widget="json"/>
+                            </group>
+                            <group string="Vision Analysis">
+                                <field name="ai_vision_results" widget="json"/>
+                            </group>
+                            <group string="Image URLs">
+                                <field name="image_urls" widget="json"/>
+                            </group>
+                            <group string="Triage Audit Log">
+                                <field name="triage_log" widget="text" readonly="1"/>
                             </group>
                         </page>
                         <page string="Raw Payload" name="raw_payload_page">
                             <group>
-                                <field name="raw_payload" widget="text"/>
+                                <field name="raw_payload" widget="json"/>
                             </group>
                         </page>
                         <page string="Error" name="error_page" invisible="state != 'error'">
@@ -116,17 +143,9 @@
     </record>
 
     <!-- ════════════════════════════════════════════════════ -->
-    <!-- Action + Menu                                        -->
+    <!-- Search View                                          -->
     <!-- ════════════════════════════════════════════════════ -->
 
-    <record id="action_web_lead" model="ir.actions.act_window">
-        <field name="name">Web Leads</field>
-        <field name="res_model">plasticos.web.lead</field>
-        <field name="view_mode">list,form</field>
-        <field name="context">{'search_default_hot': 1}</field>
-    </record>
-
-    <!-- Search View -->
     <record id="view_web_lead_search" model="ir.ui.view">
         <field name="name">plasticos.web.lead.search</field>
         <field name="model">plasticos.web.lead</field>
@@ -136,6 +155,7 @@
                 <field name="company_name"/>
                 <field name="decision"/>
                 <field name="state"/>
+                <field name="lead_source"/>
                 <separator/>
                 <filter name="hot" string="HOT Leads"
                         domain="[('decision','=','hot')]"/>
@@ -144,12 +164,32 @@
                 <filter name="errors" string="Errors"
                         domain="[('state','=','error')]"/>
                 <separator/>
+                <filter name="web_leads" string="Web Leads"
+                        domain="[('lead_source','=','web_lead')]"/>
+                <filter name="sales_manual" string="Sales Manual"
+                        domain="[('lead_source','=','sales_manual')]"/>
+                <filter name="linkedin_ai" string="LinkedIn AI"
+                        domain="[('lead_source','=','linkedin_ai')]"/>
+                <separator/>
                 <filter name="group_decision" string="Group by Decision"
                         context="{'group_by': 'decision'}"/>
                 <filter name="group_state" string="Group by State"
                         context="{'group_by': 'state'}"/>
+                <filter name="group_lead_source" string="Group by Lead Source"
+                        context="{'group_by': 'lead_source'}"/>
             </search>
         </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- Action + Menu                                        -->
+    <!-- ════════════════════════════════════════════════════ -->
+
+    <record id="action_web_lead" model="ir.actions.act_window">
+        <field name="name">Web Leads</field>
+        <field name="res_model">plasticos.web.lead</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_hot': 1}</field>
     </record>
 
 </odoo>

@@ -1,65 +1,119 @@
-import logging
-import json
+# -*- coding: utf-8 -*-
+# ═══════════════════════════════════════════════════════════
+# Model : plasticos.web.lead
+# Purpose: Web lead ingestion with AI-powered triage pipeline:
+#          1. Receive raw Cognito payload OR pre-processed agent payload
+#          2. AI normalization (1 LLM call)
+#          3. Image analysis (1 Vision call per image)
+#          4. Deterministic HOT/COLD classification
+#          5. HOT → partner + intake + attachments
+# ═══════════════════════════════════════════════════════════
+from __future__ import annotations
 
-from odoo import models, fields, api
+import base64
+import json
+import logging
+import uuid
+from typing import Any
+
+import requests as http_requests
+
+from odoo import api, fields, models
 from odoo.exceptions import UserError
+
+from . import ai_normalizer
+from . import image_analyzer
+from .classification_engine import classify_lead
 
 _logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════════════
-# Mapping helpers — translate lead_intake agent output
-# to plasticos.intake field values.
+# Mapping helpers — translate AI output to Odoo field values
 # ═══════════════════════════════════════════════════════════
 
-_POLYMER_MAP = {
+_POLYMER_NORMALIZE: dict[str, str] = {
     "hdpe": "hdpe",
     "ldpe": "ldpe",
     "lldpe": "lldpe",
     "pp": "pp",
     "pet": "pet",
+    "rpet": "rpet",
     "ps": "ps",
+    "hips": "hips",
     "pvc": "pvc",
+    "eva": "eva",
     "abs": "abs",
+    "nylon": "nylon",
+    "pa": "nylon",
     "pc": "pc",
-    "pa": "pa",
-    "nylon": "pa",
+    "pbt": "pbt",
+    "pom": "pom",
+    "acetal": "pom",
+    "pmma": "pmma",
+    "ppo": "ppo",
     "tpe": "tpe",
     "tpu": "tpu",
-    "pmma": "pmma",
-    "acetal": "pom",
-    "pom": "pom",
+    "pla": "pla",
+    "e-waste": "ewaste",
+    "ewaste": "ewaste",
 }
 
-_FORM_MAP = {
-    "regrind": "regrind",
-    "pellet": "pellet",
-    "pellets": "pellet",
+_FORM_NORMALIZE: dict[str, str] = {
     "bale": "bale",
     "baled": "bale",
-    "film": "film",
-    "bottle": "bottle",
-    "bottles": "bottle",
+    "regrind": "regrind",
     "flake": "flake",
     "flakes": "flake",
+    "pellet": "pellet",
+    "pellets": "pellet",
+    "rollstock": "rollstock",
     "purge": "purge",
     "lump": "lump",
     "lumps": "lump",
+    "film": "film",
+    "sheet": "sheet",
+    "powder": "powder",
+    "parts": "parts",
+    "part": "parts",
+    "re-useable": "re_useable",
+    "reuseable": "re_useable",
+    "reusable": "re_useable",
+    "bottle": "bottle",
+    "bottles": "bottle",
     "roll": "roll",
     "rolls": "roll",
-    "sheet": "sheet",
-    "part": "part",
-    "parts": "part",
 }
 
-_FREQUENCY_MAP = {
-    "ongoing": "ongoing",
+_SOURCE_NORMALIZE: dict[str, str] = {
+    "post_industrial": "post_industrial",
+    "post-industrial": "post_industrial",
+    "post_consumer": "post_consumer",
+    "post-consumer": "post_consumer",
+    "post_commercial": "post_commercial",
+    "post-commercial": "post_commercial",
+    "agricultural": "agricultural",
+    "prime": "prime",
+    "virgin": "prime",
+    "wide_spec": "wide_spec",
+    "wide spec": "wide_spec",
+    "off_spec": "off_spec",
+    "off spec": "off_spec",
+    "ocean_recovered": "ocean_recovered",
+    "ocean": "ocean_recovered",
+}
+
+_FREQ_TO_DEAL: dict[str, str] = {
+    "ongoing": "recurring",
+    "monthly": "recurring",
+    "weekly": "recurring",
     "one_time": "spot",
+    "one-time": "spot",
     "spot": "spot",
     "unclear": "spot",
 }
 
 
-def _safe_int(val, default=0):
+def _safe_int(val: Any, default: int = 0) -> int:
     """Coerce to int, returning default on failure."""
     if val is None:
         return default
@@ -70,7 +124,7 @@ def _safe_int(val, default=0):
 
 
 class PlasticosWebLead(models.Model):
-    """Stores every inbound web lead from the lead_intake agent.
+    """Stores every inbound web lead from Cognito forms or external agents.
 
     HOT leads automatically generate a plasticos.intake record and
     (optionally) a res.partner. COLD leads are stored for reference
@@ -83,24 +137,39 @@ class PlasticosWebLead(models.Model):
     _order = "create_date desc"
     _rec_name = "lead_id"
 
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
     # Identity
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
 
     lead_id = fields.Char(
         required=True,
         index=True,
         tracking=True,
-        help="Unique lead identifier from the agent (e.g. WL123).",
+        help="Unique lead identifier (e.g. WL123 or CG-abc123).",
     )
     source = fields.Char(
         default="cognito_form",
         help="Origin system identifier.",
     )
+    lead_source = fields.Selection(
+        [
+            ("web_lead", "Web Lead (Marketing)"),
+            ("sales_manual", "Sales Manual Entry"),
+            ("linkedin_ai", "LinkedIn AI Prospecting"),
+            ("referral", "Referral"),
+            ("trade_show", "Trade Show"),
+            ("other", "Other"),
+        ],
+        string="Lead Source",
+        default="web_lead",
+        index=True,
+        tracking=True,
+        help="How this lead was acquired. Critical for marketing vs. sales attribution.",
+    )
 
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
     # Raw Data (immutable after creation)
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
 
     raw_payload = fields.Json(
         readonly=True,
@@ -108,12 +177,12 @@ class PlasticosWebLead(models.Model):
     )
     ai_analysis = fields.Json(
         readonly=True,
-        help="AI analysis output from the lead_intake agent.",
+        help="AI analysis output (merged from LLM + Vision).",
     )
 
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
     # Classification
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
 
     decision = fields.Selection(
         [
@@ -129,9 +198,9 @@ class PlasticosWebLead(models.Model):
         help="Reasons for the HOT/COLD classification.",
     )
 
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
     # Extracted Fields (denormalized for display)
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
 
     company_name = fields.Char()
     contact_name = fields.Char()
@@ -147,9 +216,34 @@ class PlasticosWebLead(models.Model):
     has_contaminants = fields.Boolean()
     contaminant_notes = fields.Text()
 
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
+    # AI Triage Fields
+    # ═══════════════════════════════════════════════════════════
+
+    ai_normalized = fields.Json(
+        string="AI Normalized Data",
+        readonly=True,
+        help="Structured output from the LLM normalization call.",
+    )
+    ai_vision_results = fields.Json(
+        string="AI Vision Results",
+        readonly=True,
+        help="Structured output from Vision API image analysis.",
+    )
+    triage_log = fields.Text(
+        string="Triage Audit Log",
+        readonly=True,
+        help="Step-by-step log of the triage pipeline execution.",
+    )
+    image_urls = fields.Json(
+        string="Image URLs",
+        readonly=True,
+        help="URLs of images submitted with the form.",
+    )
+
+    # ═══════════════════════════════════════════════════════════
     # Processing State
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
 
     state = fields.Selection(
         [
@@ -166,9 +260,9 @@ class PlasticosWebLead(models.Model):
         readonly=True,
     )
 
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
     # Links
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
 
     partner_id = fields.Many2one(
         "res.partner",
@@ -183,22 +277,101 @@ class PlasticosWebLead(models.Model):
         ondelete="set null",
     )
 
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
     # Constraints
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
 
     _check_unique_lead = models.Constraint(
         "unique(lead_id)",
         "A web lead with this ID already exists (idempotency guard).",
     )
 
-    # ═════════════════════════════════════════════════════════
-    # Core Logic — Create from Agent Payload
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
+    # Entry Point 1: Direct Cognito Ingestion (AI Triage)
+    # ═══════════════════════════════════════════════════════════
 
     @api.model
-    def create_from_agent(self, payload):
-        """Create a web lead record from the lead_intake agent's output.
+    def create_from_cognito(self, raw_payload: dict[str, Any]) -> "PlasticosWebLead":
+        """Ingest a raw Cognito form submission directly.
+
+        The entire triage pipeline runs inside Odoo:
+          1. Parse raw Cognito fields
+          2. Generate unique lead_id
+          3. Create web.lead record (state=received)
+          4. Run AI normalization
+          5. Run image analysis
+          6. Deterministic classification
+          7. HOT → partner + intake + attachments
+        """
+        lead_id = raw_payload.get("EntryId") or raw_payload.get(
+            "entry_id"
+        ) or f"CG-{uuid.uuid4().hex[:12]}"
+
+        existing = self.search([("lead_id", "=", str(lead_id))], limit=1)
+        if existing:
+            _logger.info("Duplicate Cognito submission %s — returning existing.", lead_id)
+            return existing
+
+        company = (
+            raw_payload.get("YourBusinessCompanyName", "")
+            or raw_payload.get("CompanyName", "")
+            or ""
+        ).strip()
+        contact = (
+            raw_payload.get("YourName", "")
+            or raw_payload.get("Name", "")
+            or ""
+        ).strip()
+        email = (
+            raw_payload.get("Email", "")
+            or raw_payload.get("EmailAddress", "")
+            or ""
+        ).strip()
+        phone = (
+            raw_payload.get("Phone", "")
+            or raw_payload.get("PhoneNumber", "")
+            or ""
+        ).strip()
+        material_desc = (
+            raw_payload.get("DescribeYourMaterial", "")
+            or raw_payload.get("WhatTypeOfPlastic", "")
+            or ""
+        ).strip()
+        quantity_text = (raw_payload.get("WhatIsTheQuantity", "") or "").strip()
+        contaminants = (raw_payload.get("AreThereAnyContaminants", "") or "").strip()
+
+        image_urls = self._extract_image_urls(raw_payload)
+
+        vals = {
+            "lead_id": str(lead_id),
+            "source": "cognito_form",
+            "lead_source": "web_lead",
+            "decision": "cold",
+            "raw_payload": raw_payload,
+            "company_name": company or "Unknown",
+            "contact_name": contact,
+            "contact_email": email,
+            "contact_phone": phone,
+            "material_description": material_desc,
+            "quantity_text": quantity_text,
+            "has_contaminants": bool(contaminants),
+            "contaminant_notes": contaminants or False,
+            "image_urls": image_urls,
+            "state": "received",
+        }
+        lead = self.create(vals)
+        _logger.info("Web lead %s created from Cognito form.", lead_id)
+
+        lead._run_triage_pipeline()
+        return lead
+
+    # ═══════════════════════════════════════════════════════════
+    # Entry Point 2: Pre-Processed Agent Payload (Legacy)
+    # ═══════════════════════════════════════════════════════════
+
+    @api.model
+    def create_from_agent(self, payload: dict[str, Any]) -> "PlasticosWebLead":
+        """Create a web lead from a pre-processed agent payload.
 
         Expected payload structure::
 
@@ -208,19 +381,7 @@ class PlasticosWebLead(models.Model):
                 "decision": "Hot",
                 "decision_reasons": ["monthly_lbs >= 10000", ...],
                 "raw_payload": { ... Cognito form fields ... },
-                "ai_analysis": {
-                    "quantity": {
-                        "per_load_lbs": 40000,
-                        "loads_per_month": 2,
-                        "confidence": 0.85
-                    },
-                    "frequency": {
-                        "frequency": "ongoing",
-                        "confidence": 0.7
-                    },
-                    "material": { ... },
-                    "observations": [ ... ]
-                }
+                "ai_analysis": { ... }
             }
 
         Returns the created web.lead record.
@@ -229,7 +390,6 @@ class PlasticosWebLead(models.Model):
         if not lead_id:
             raise UserError("Missing required field: lead_id")
 
-        # Idempotency: if already exists, return existing
         existing = self.search([("lead_id", "=", lead_id)], limit=1)
         if existing:
             _logger.info("Web lead %s already exists, returning existing.", lead_id)
@@ -239,10 +399,8 @@ class PlasticosWebLead(models.Model):
         ai = payload.get("ai_analysis", {})
         ai_qty = ai.get("quantity", {})
         ai_freq = ai.get("frequency", {})
-        ai_material = ai.get("material", {})
         decision_raw = (payload.get("decision") or "cold").lower()
 
-        # Extract contact fields from Cognito form
         company = raw.get("YourBusinessCompanyName", "").strip()
         contact = raw.get("YourName", "").strip()
         email = raw.get("Email", "").strip()
@@ -256,6 +414,7 @@ class PlasticosWebLead(models.Model):
         vals = {
             "lead_id": lead_id,
             "source": payload.get("source", "cognito_form"),
+            "lead_source": "web_lead",
             "decision": "hot" if decision_raw == "hot" else "cold",
             "decision_reasons": payload.get("decision_reasons"),
             "raw_payload": raw,
@@ -276,26 +435,287 @@ class PlasticosWebLead(models.Model):
         lead = self.create(vals)
         _logger.info("Web lead %s created (decision=%s).", lead_id, lead.decision)
 
-        # Process HOT leads immediately
         if lead.decision == "hot":
-            lead._process_hot_lead()
+            lead._process_hot_lead_simple()
         else:
             lead.write({"state": "skipped"})
 
         return lead
 
-    def _process_hot_lead(self):
-        """Convert a HOT web lead into a partner + intake record."""
+    # ═══════════════════════════════════════════════════════════
+    # AI Triage Pipeline
+    # ═══════════════════════════════════════════════════════════
+
+    def _run_triage_pipeline(self):
+        """Execute the full AI triage pipeline on this web lead.
+
+        Steps:
+          1. AI normalization (if enabled)
+          2. Image analysis (if enabled and images present)
+          3. Deterministic classification
+          4. Process result (HOT → intake, COLD → archive)
+        """
+        self.ensure_one()
+        config = self.env["plasticos.web.lead.config"].sudo().get_config()
+        log_lines: list[str] = []
+
+        try:
+            # Step 1: AI Normalization
+            ai_data: dict[str, Any] = {}
+            if config.ai_enabled and config.openai_api_key:
+                log_lines.append("Step 1: Running AI normalization...")
+                ai_data = ai_normalizer.normalize_with_llm(
+                    raw_payload=self.raw_payload or {},
+                    api_key=config.openai_api_key,
+                    model=config.openai_model or "gpt-4.1-mini",
+                )
+                self.write({"ai_normalized": ai_data})
+                if ai_data.get("error"):
+                    log_lines.append(f"  WARNING: AI error — {ai_data['error']}")
+                else:
+                    log_lines.append(
+                        f"  OK: polymer={ai_data.get('polymer')}, "
+                        f"form={ai_data.get('form')}, "
+                        f"lbs={ai_data.get('estimated_lbs_per_load')}"
+                    )
+            else:
+                log_lines.append("Step 1: AI normalization SKIPPED (disabled or no key).")
+
+            # Step 2: Image Analysis
+            vision_results: list[dict[str, Any]] = []
+            urls = self.image_urls or []
+            if config.vision_enabled and config.openai_api_key and urls:
+                log_lines.append(f"Step 2: Analyzing {len(urls)} image(s)...")
+                vision_results = image_analyzer.analyze_multiple_images(
+                    image_urls=urls,
+                    api_key=config.openai_api_key,
+                    model=config.openai_vision_model or "gpt-4.1-mini",
+                )
+                self.write({"ai_vision_results": vision_results})
+                for i, vr in enumerate(vision_results):
+                    if vr.get("error"):
+                        log_lines.append(f"  Image {i+1}: ERROR — {vr['error']}")
+                    else:
+                        log_lines.append(
+                            f"  Image {i+1}: form={vr.get('observed_form')}, "
+                            f"color={vr.get('observed_color')}, "
+                            f"confidence={vr.get('confidence', 0):.2f}"
+                        )
+            else:
+                log_lines.append("Step 2: Image analysis SKIPPED.")
+
+            # Step 3: Merge AI + Vision data
+            merged = self._merge_ai_and_vision(ai_data, vision_results)
+            log_lines.append(
+                f"Step 3: Merged data — polymer={merged.get('polymer')}, "
+                f"form={merged.get('form')}, lbs={merged.get('estimated_lbs')}"
+            )
+
+            # Step 4: Deterministic Classification
+            log_lines.append("Step 4: Running deterministic classification...")
+            result = classify_lead(
+                polymer=merged.get("polymer"),
+                material_description=self.material_description,
+                estimated_lbs=merged.get("estimated_lbs", 0),
+                source_description=merged.get("source_description", ""),
+                source_type=merged.get("source_type"),
+                reject_materials=config.get_reject_materials(),
+                reject_sources=config.get_reject_sources(),
+                hot_min_lbs=config.hot_min_lbs or 10000,
+                cold_max_lbs=config.cold_max_lbs or 8000,
+            )
+            log_lines.append(f"  Decision: {result.decision.upper()}")
+            for reason in result.reasons:
+                log_lines.append(f"  Reason: {reason}")
+
+            # Step 5: Write classification result
+            write_vals: dict[str, Any] = {
+                "decision": result.decision,
+                "decision_reasons": {
+                    "reasons": result.reasons,
+                    "cold_gates": result.cold_gates_triggered,
+                    "hot_qualifiers": result.hot_qualifiers_met,
+                },
+                "ai_analysis": merged,
+                "estimated_lbs_per_load": merged.get("estimated_lbs", 0),
+                "estimated_loads_per_month": merged.get("loads_per_month", 0),
+                "frequency": merged.get("frequency", ""),
+            }
+            self.write(write_vals)
+
+            # Step 6: Process HOT leads
+            if result.decision == "hot":
+                log_lines.append("Step 5: Processing HOT lead → partner + intake...")
+                self._process_hot_lead_triage(merged, config)
+                log_lines.append("  Done: intake created.")
+            else:
+                log_lines.append("Step 5: COLD lead — archived.")
+                self.write({"state": "skipped"})
+
+            # Step 7: Fetch and attach images
+            if urls:
+                log_lines.append(f"Step 6: Fetching {len(urls)} image(s) as attachments...")
+                self._fetch_and_attach_images(urls)
+                log_lines.append("  Done: images attached.")
+
+        except Exception as exc:
+            _logger.exception("Triage pipeline error for lead %s", self.lead_id)
+            log_lines.append(f"ERROR: {exc}")
+            self.write({
+                "state": "error",
+                "error_message": str(exc),
+            })
+
+        self.write({"triage_log": "\n".join(log_lines)})
+
+    # ═══════════════════════════════════════════════════════════
+    # Merge AI + Vision
+    # ═══════════════════════════════════════════════════════════
+
+    def _merge_ai_and_vision(
+        self,
+        ai_data: dict[str, Any],
+        vision_results: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Merge text-based AI normalization with vision analysis.
+
+        Text AI is authoritative for polymer, weight, source.
+        Vision is authoritative for form, color, contamination.
+        """
+        merged: dict[str, Any] = {}
+
+        polymer_raw = (ai_data.get("polymer") or "").lower().strip()
+        merged["polymer"] = _POLYMER_NORMALIZE.get(polymer_raw, polymer_raw or None)
+        merged["form"] = _FORM_NORMALIZE.get(
+            (ai_data.get("form") or "").lower().strip(), None
+        )
+        merged["color"] = (ai_data.get("color") or "").lower().strip() or None
+        merged["source_type"] = _SOURCE_NORMALIZE.get(
+            (ai_data.get("source_type") or "").lower().strip(), None
+        )
+        merged["estimated_lbs"] = _safe_int(
+            ai_data.get("estimated_lbs_per_load"), 0
+        )
+        merged["loads_per_month"] = _safe_int(
+            ai_data.get("loads_per_month"), 0
+        )
+        merged["is_plastic"] = ai_data.get("is_plastic", True)
+        merged["is_commercial_source"] = ai_data.get("is_commercial_source", False)
+        merged["material_summary"] = ai_data.get("material_summary", "")
+        merged["contaminants_noted"] = ai_data.get("contaminants_noted")
+        merged["confidence"] = ai_data.get("confidence", 0.5)
+        merged["frequency"] = (ai_data.get("frequency") or "").lower().strip()
+
+        raw = self.raw_payload or {}
+        merged["source_description"] = (
+            raw.get("WhatIsTheSourceOfThisMaterial", "")
+            or raw.get("Source", "")
+            or ""
+        )
+
+        if vision_results:
+            best_vision = max(
+                [v for v in vision_results if not v.get("error")],
+                key=lambda v: v.get("confidence", 0),
+                default={},
+            )
+            if best_vision:
+                v_form = _FORM_NORMALIZE.get(
+                    (best_vision.get("observed_form") or "").lower().strip()
+                )
+                if v_form and not merged["form"]:
+                    merged["form"] = v_form
+                v_color = (best_vision.get("observed_color") or "").lower().strip()
+                if v_color and not merged["color"]:
+                    merged["color"] = v_color
+                if best_vision.get("contamination_visible"):
+                    merged["contamination_visible"] = True
+                    merged["contamination_notes"] = best_vision.get("contamination_notes")
+                merged["vision_summary"] = best_vision.get("visual_summary", "")
+
+        return merged
+
+    # ═══════════════════════════════════════════════════════════
+    # HOT Lead Processing (Triage Pipeline)
+    # ═══════════════════════════════════════════════════════════
+
+    def _process_hot_lead_triage(self, merged: dict[str, Any], config: Any):
+        """Create partner + intake from a HOT-classified lead (triage pipeline)."""
+        self.ensure_one()
+
+        partner = self._find_or_create_partner()
+        self.write({"partner_id": partner.id})
+
+        if config.auto_create_intake:
+            intake = self._create_intake_triage(partner, merged, config)
+            self.write({
+                "intake_id": intake.id,
+                "state": "intake_created",
+            })
+            _logger.info(
+                "HOT lead %s → partner %s, intake %s",
+                self.lead_id, partner.id, intake.id,
+            )
+        else:
+            self.write({"state": "intake_created"})
+
+    def _create_intake_triage(
+        self,
+        partner: Any,
+        merged: dict[str, Any],
+        config: Any,
+    ):
+        """Create a plasticos.intake record from merged AI data."""
+        polymer = merged.get("polymer") or "other"
+        form = merged.get("form") or "other"
+        source_type = merged.get("source_type") or config.default_source_type or "post_consumer"
+        qty_per_load = max(merged.get("estimated_lbs", 0), 1)
+        loads_per_month = max(merged.get("loads_per_month", 0), 0)
+
+        freq_raw = merged.get("frequency", "")
+        deal_type = _FREQ_TO_DEAL.get(freq_raw, "spot")
+
+        facility = partner
+        children = self.env["res.partner"].search([
+            ("parent_id", "=", partner.id),
+            ("type", "!=", "contact"),
+        ], limit=1)
+        if children:
+            facility = children
+
+        intake_vals = {
+            "name": f"WEB-{self.lead_id}",
+            "partner_id": facility.id,
+            "polymer": polymer,
+            "form": form,
+            "source_type": source_type,
+            "quantity_per_load_lbs": qty_per_load,
+            "loads_per_month": loads_per_month,
+            "deal_type": deal_type,
+            "contamination_notes": merged.get("contaminants_noted") or self.contaminant_notes or False,
+            "match_status": "pending",
+            "onboarding_status": "draft",
+            "material_hint_text": merged.get("material_summary", ""),
+        }
+
+        Intake = self.env["plasticos.intake"]
+        intake = Intake.create(intake_vals)
+        return intake
+
+    # ═══════════════════════════════════════════════════════════
+    # HOT Lead Processing (Simple/Legacy)
+    # ═══════════════════════════════════════════════════════════
+
+    def _process_hot_lead_simple(self):
+        """Convert a HOT web lead into a partner + intake (legacy flow)."""
         self.ensure_one()
         config = self.env["plasticos.web.lead.config"].get_config()
 
         try:
-            # 1. Find or create partner
-            partner = self._find_or_create_partner(config)
+            partner = self._find_or_create_partner()
             self.write({"partner_id": partner.id})
 
-            # 2. Create intake
-            intake = self._create_intake(partner, config)
+            intake = self._create_intake_simple(partner, config)
             self.write({
                 "intake_id": intake.id,
                 "state": "intake_created",
@@ -313,75 +733,30 @@ class PlasticosWebLead(models.Model):
                 "error_message": str(exc),
             })
 
-    def _find_or_create_partner(self, config):
-        """Find existing partner by company name or create a new one."""
-        Partner = self.env["res.partner"]
-        name = self.company_name or "Unknown Web Lead"
-
-        # Try exact match first
-        partner = Partner.search([("name", "=ilike", name)], limit=1)
-        if partner:
-            return partner
-
-        if not config.auto_create_partner:
-            raise UserError(
-                f"No partner found for '{name}' and auto-create is disabled."
-            )
-
-        # Create new partner
-        partner_vals = {
-            "name": name,
-            "is_company": True,
-            "comment": f"Auto-created from web lead {self.lead_id}",
-        }
-        if self.contact_email:
-            partner_vals["email"] = self.contact_email
-        if self.contact_phone:
-            partner_vals["phone"] = self.contact_phone
-
-        partner = Partner.create(partner_vals)
-        _logger.info("Auto-created partner '%s' (id=%s) from web lead.", name, partner.id)
-
-        # Create contact under company if we have a contact name
-        if self.contact_name:
-            Partner.create({
-                "name": self.contact_name,
-                "parent_id": partner.id,
-                "email": self.contact_email or False,
-                "phone": self.contact_phone or False,
-                "type": "contact",
-            })
-
-        return partner
-
-    def _create_intake(self, partner, config):
-        """Create a plasticos.intake record from this web lead."""
+    def _create_intake_simple(self, partner: Any, config: Any):
+        """Create intake from pre-processed agent payload (legacy)."""
         ai = self.ai_analysis or {}
         ai_qty = ai.get("quantity", {})
         ai_freq = ai.get("frequency", {})
         ai_material = ai.get("material", {})
 
-        # Map polymer from AI analysis
         polymer_raw = (
             ai_material.get("polymer", "")
             or ai_material.get("resin_type", "")
             or ""
         ).lower().strip()
-        polymer = _POLYMER_MAP.get(polymer_raw, False)
+        polymer = _POLYMER_NORMALIZE.get(polymer_raw, False)
 
-        # Map form from AI analysis
         form_raw = (
             ai_material.get("form", "")
             or ai_material.get("material_form", "")
             or ""
         ).lower().strip()
-        form = _FORM_MAP.get(form_raw, False)
+        form = _FORM_NORMALIZE.get(form_raw, False)
 
-        # Map frequency to deal_type
         freq_raw = (ai_freq.get("frequency") or "").lower()
-        deal_type = _FREQUENCY_MAP.get(freq_raw, "spot")
+        deal_type = _FREQ_TO_DEAL.get(freq_raw, "spot")
 
-        # Quantity — use AI output, fall back to 0 (will fail constraint)
         qty_per_load = _safe_int(ai_qty.get("per_load_lbs"), 40000)
         loads_per_month = _safe_int(ai_qty.get("loads_per_month"), 1)
 
@@ -396,7 +771,6 @@ class PlasticosWebLead(models.Model):
             "match_status": "pending",
         }
 
-        # Only set polymer/form if we have valid mapped values
         if polymer:
             intake_vals["polymer"] = polymer
         if form:
@@ -406,22 +780,172 @@ class PlasticosWebLead(models.Model):
         intake = Intake.create(intake_vals)
         return intake
 
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
+    # Partner Handling
+    # ═══════════════════════════════════════════════════════════
+
+    def _find_or_create_partner(self):
+        """Find existing partner by company name or create a new one."""
+        Partner = self.env["res.partner"]
+        name = self.company_name or "Unknown Web Lead"
+
+        partner = Partner.search([("name", "=ilike", name)], limit=1)
+        if partner:
+            return partner
+
+        config = self.env["plasticos.web.lead.config"].sudo().get_config()
+        if not config.auto_create_partner:
+            raise UserError(
+                f"No partner found for '{name}' and auto-create is disabled."
+            )
+
+        partner_vals = {
+            "name": name,
+            "is_company": True,
+            "comment": f"Auto-created from web lead {self.lead_id}",
+        }
+        if self.contact_email:
+            partner_vals["email"] = self.contact_email
+        if self.contact_phone:
+            partner_vals["phone"] = self.contact_phone
+
+        partner = Partner.create(partner_vals)
+        _logger.info("Auto-created partner '%s' (id=%s).", name, partner.id)
+
+        if self.contact_name:
+            Partner.create({
+                "name": self.contact_name,
+                "parent_id": partner.id,
+                "email": self.contact_email or False,
+                "phone": self.contact_phone or False,
+                "type": "contact",
+            })
+
+        return partner
+
+    # ═══════════════════════════════════════════════════════════
+    # Image Handling
+    # ═══════════════════════════════════════════════════════════
+
+    def _extract_image_urls(self, raw_payload: dict[str, Any]) -> list[str]:
+        """Extract image URLs from a Cognito form payload."""
+        urls: list[str] = []
+        for key, val in raw_payload.items():
+            if isinstance(val, str) and self._looks_like_image_url(val):
+                urls.append(val)
+            elif isinstance(val, list):
+                for item in val:
+                    if isinstance(item, str) and self._looks_like_image_url(item):
+                        urls.append(item)
+                    elif isinstance(item, dict) and item.get("url"):
+                        url = item["url"]
+                        if self._looks_like_image_url(url):
+                            urls.append(url)
+            elif isinstance(val, dict) and val.get("url"):
+                url = val["url"]
+                if self._looks_like_image_url(url):
+                    urls.append(url)
+        return urls
+
+    @staticmethod
+    def _looks_like_image_url(url: str) -> bool:
+        """Heuristic: does this URL look like an image?"""
+        lower = url.lower()
+        return (
+            lower.startswith("http")
+            and any(
+                ext in lower
+                for ext in (".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".heic")
+            )
+        )
+
+    def _fetch_and_attach_images(self, urls: list[str]):
+        """Download images from URLs and create ir.attachment records."""
+        self.ensure_one()
+        Attachment = self.env["ir.attachment"]
+
+        for i, url in enumerate(urls[:10]):
+            try:
+                resp = http_requests.get(url, timeout=30, stream=True)
+                resp.raise_for_status()
+                content = resp.content
+                if not content:
+                    continue
+
+                fname = f"web_lead_{self.lead_id}_img_{i+1}"
+                content_type = resp.headers.get("Content-Type", "image/jpeg")
+                ext = ".jpg"
+                if "png" in content_type:
+                    ext = ".png"
+                elif "webp" in content_type:
+                    ext = ".webp"
+                elif "gif" in content_type:
+                    ext = ".gif"
+                fname += ext
+
+                att_vals = {
+                    "name": fname,
+                    "type": "binary",
+                    "datas": base64.b64encode(content).decode("ascii"),
+                    "res_model": "plasticos.web.lead",
+                    "res_id": self.id,
+                    "mimetype": content_type,
+                }
+                Attachment.create(att_vals)
+
+                if self.intake_id:
+                    Attachment.create({
+                        "name": fname,
+                        "type": "binary",
+                        "datas": base64.b64encode(content).decode("ascii"),
+                        "res_model": "plasticos.intake",
+                        "res_id": self.intake_id.id,
+                        "mimetype": content_type,
+                    })
+
+                _logger.info("Attached image %s to web lead %s.", fname, self.lead_id)
+
+            except Exception as exc:
+                _logger.warning(
+                    "Failed to fetch image %s for lead %s: %s",
+                    url[:80], self.lead_id, exc,
+                )
+
+    # ═══════════════════════════════════════════════════════════
     # Manual Actions
-    # ═════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
 
     def action_retry_processing(self):
-        """Retry processing a lead that errored."""
+        """Retry processing a lead that errored (legacy flow)."""
         for rec in self:
             if rec.state != "error":
                 raise UserError("Only errored leads can be retried.")
             if rec.decision == "hot":
-                rec._process_hot_lead()
+                rec._process_hot_lead_simple()
 
     def action_force_create_intake(self):
         """Force-create an intake from a COLD lead (manual override)."""
         for rec in self:
             if rec.intake_id:
                 raise UserError("Intake already exists for this lead.")
-            config = self.env["plasticos.web.lead.config"].get_config()
-            rec._process_hot_lead()
+            rec._process_hot_lead_simple()
+
+    def action_retry_triage(self):
+        """Re-run the AI triage pipeline on an errored or cold lead."""
+        for rec in self:
+            if rec.state not in ("error", "skipped", "received"):
+                raise UserError("Only errored, skipped, or received leads can be re-triaged.")
+            rec._run_triage_pipeline()
+
+    def action_force_hot(self):
+        """Manually override a COLD lead to HOT and create intake."""
+        for rec in self:
+            if rec.intake_id:
+                raise UserError("Intake already exists for this lead.")
+            config = rec.env["plasticos.web.lead.config"].sudo().get_config()
+            merged = rec.ai_normalized or rec.ai_analysis or {}
+            rec.write({
+                "decision": "hot",
+                "decision_reasons": {"reasons": ["Manual override by user"]},
+            })
+            rec._process_hot_lead_triage(merged, config)

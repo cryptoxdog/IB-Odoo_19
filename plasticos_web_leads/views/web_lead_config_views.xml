@@ -15,6 +15,7 @@
                         <group>
                             <field name="is_active"/>
                             <field name="auto_create_partner"/>
+                            <field name="auto_create_intake"/>
                         </group>
                         <group>
                             <field name="default_source_type"/>
@@ -27,16 +28,42 @@
                                     string="Generate New API Key"
                                     type="object"
                                     class="btn-warning"
-                                    confirm="This will invalidate the current key. The lead_intake agent will need the new key. Continue?"/>
+                                    confirm="This will invalidate the current key. External integrations will need the new key. Continue?"/>
                         </group>
+                    </group>
+                    <group string="OpenAI Credentials (AI Triage)">
+                        <group>
+                            <field name="openai_api_key" password="True"/>
+                            <field name="openai_model"/>
+                            <field name="openai_vision_model"/>
+                        </group>
+                        <group>
+                            <field name="ai_enabled"/>
+                            <field name="vision_enabled"/>
+                        </group>
+                    </group>
+                    <group string="Classification Thresholds">
+                        <group>
+                            <field name="hot_min_lbs"/>
+                            <field name="cold_max_lbs"/>
+                        </group>
+                    </group>
+                    <group string="Reject Lists">
+                        <field name="reject_materials" widget="text"
+                               placeholder="vinyl siding|appliances|conduit|pvc pipe"/>
+                        <field name="reject_sources" widget="text"
+                               placeholder="residential|individual|homeowner|drop-off"/>
                     </group>
                     <separator string="Integration Guide"/>
                     <div class="alert alert-info" role="alert">
-                        <p><strong>Endpoint:</strong> <code>POST /api/v1/web-lead</code></p>
-                        <p><strong>Health Check:</strong> <code>GET /api/v1/web-lead/health</code></p>
+                        <p><strong>Endpoints:</strong></p>
+                        <ul>
+                            <li><code>POST /api/v1/web-lead</code> — Pre-processed agent payload (legacy)</li>
+                            <li><code>POST /api/v1/cognito-webhook</code> — Raw Cognito form (AI triage)</li>
+                            <li><code>GET /api/v1/web-lead/health</code> — Health check (no auth)</li>
+                        </ul>
                         <p><strong>Auth:</strong> <code>Authorization: Bearer &lt;api_key&gt;</code></p>
-                        <p>The lead_intake agent sends HOT/COLD decisions here.
-                           HOT leads automatically create a partner and intake record.</p>
+                        <p>HOT leads automatically create a partner and intake record.</p>
                     </div>
                 </sheet>
             </form>
@@ -54,5 +81,14 @@
         <field name="target">current</field>
         <field name="res_id" ref="web_lead_config_default"/>
     </record>
+
+    <!-- Menu item under Settings -->
+    <menuitem
+        id="menu_web_lead_config"
+        name="Web Lead Config"
+        parent="base.menu_administration"
+        action="action_web_lead_config"
+        sequence="91"
+    />
 
 </odoo>
