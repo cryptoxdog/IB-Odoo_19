@@ -2,7 +2,7 @@
     "name": "Plasticos Documents — Native Bridge",
     "version": "19.0.1.0.2",
     "summary": "Bridge to Odoo Enterprise Documents with AI auto-sort, "
-               "email alias, and plastics-specific field extensions",
+    "email alias, and plastics-specific field extensions",
     "category": "Document Management",
     "author": "PlasticOS",
     "license": "LGPL-3",
@@ -18,8 +18,8 @@
     # Currently set to installable: False to prevent rebuild failures.
     # ══════════════════════════════════════════════════════════════════════════
     "depends": [
-        "documents",           # Enterprise: Document Management
-        "documents_account",   # Enterprise: Documents ↔ Accounting bridge
+        "documents",  # Enterprise: Document Management
+        "documents_account",  # Enterprise: Documents ↔ Accounting bridge
         "plasticos_documents",
         "plasticos_logistics",
         "plasticos_transaction",

@@ -12,6 +12,7 @@ Usage (Odoo shell) - CSV import:
         facility_csv="/path/to/2. Counterparties - Child - FACILITY LOCATIONS.csv"
     )
 """
+
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -19,12 +20,14 @@ _logger = logging.getLogger(__name__)
 
 def run(env, corporate=None, facilities=None, contacts=None):
     """Execute partner import from dict lists and return counts."""
-    _logger.info("run_import invoked with %d corporates, %d facilities, %d contacts",
-                 len(corporate or []), len(facilities or []), len(contacts or []))
-
-    return env["plasticos.partner.import.service"].run_full_import(
-        corporate, facilities, contacts
+    _logger.info(
+        "run_import invoked with %d corporates, %d facilities, %d contacts",
+        len(corporate or []),
+        len(facilities or []),
+        len(contacts or []),
     )
+
+    return env["plasticos.partner.import.service"].run_full_import(corporate, facilities, contacts)
 
 
 def run_csv(env, corporate_csv, facility_csv):
@@ -46,9 +49,6 @@ def run_csv(env, corporate_csv, facility_csv):
             facility_csv="docs/2. Counterparties - Child - FACILITY LOCATIONS.csv"
         )
     """
-    _logger.info("run_csv invoked with corporate=%s, facility=%s",
-                 corporate_csv, facility_csv)
+    _logger.info("run_csv invoked with corporate=%s, facility=%s", corporate_csv, facility_csv)
 
-    return env["plasticos.partner.import.service"].run_csv_import(
-        corporate_csv, facility_csv
-    )
+    return env["plasticos.partner.import.service"].run_csv_import(corporate_csv, facility_csv)

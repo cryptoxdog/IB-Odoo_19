@@ -264,13 +264,13 @@ Use this BOL document at the pickup location. Do NOT share delivery destination 
             <h1 style="color: #2E86AB; margin: 0; font-size: 28px;">Pickup Confirmation Required</h1>
             <div style="height: 3px; background: linear-gradient(90deg, #2E86AB, #A23B72); margin: 15px auto; width: 100px;"></div>
         </div>
-        
+
         <p style="font-size: 16px; color: #333;">Hello {{ object.partner_id.name }},</p>
-        
+
         <p style="font-size: 16px; color: #333; line-height: 1.6;">
             We have issued Purchase Order <strong style="color: #2E86AB;">{{ object.name }}</strong> and need to confirm if the load is <strong>Ready for Pickup</strong>.
         </p>
-        
+
         <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #2E86AB;">
             <h3 style="margin-top: 0; color: #2E86AB; font-size: 20px;">Order Details</h3>
             <table style="width: 100%; border-collapse: collapse;">
@@ -288,28 +288,28 @@ Use this BOL document at the pickup location. Do NOT share delivery destination 
                 </tr>
             </table>
         </div>
-        
+
         <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #ffc107;">
             <h3 style="margin-top: 0; color: #856404; font-size: 18px;">Line Items</h3>
             <ul style="margin: 10px 0; padding-left: 20px;">
                 {% for line in object.order_line %}
                     <li style="margin: 8px 0; color: #333; font-size: 15px;">
-                        <strong>{{ line.product_id.display_name }}</strong> — 
+                        <strong>{{ line.product_id.display_name }}</strong> —
                         {{ line.product_qty }} {{ line.product_uom.name }}
                         {% if line.price_unit %} @ ${{ line.price_unit }}{% endif %}
                     </li>
                 {% endfor %}
             </ul>
         </div>
-        
+
         <div style="background-color: #d1ecf1; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #17a2b8;">
             <h3 style="margin-top: 0; color: #0c5460; font-size: 18px;">Next Steps</h3>
             <p style="margin: 10px 0; color: #0c5460; font-size: 15px;">
-                Please reply to this email to confirm when the load is ready for pickup. 
+                Please reply to this email to confirm when the load is ready for pickup.
                 Include any special pickup instructions or requirements.
             </p>
         </div>
-        
+
         <div style="border-top: 2px solid #e9ecef; padding-top: 20px; margin-top: 30px; text-align: center;">
             <p style="color: #666; font-size: 14px; margin: 5px 0;">
                 Best regards,<br/>
@@ -338,13 +338,13 @@ Use this BOL document at the pickup location. Do NOT share delivery destination 
             <h1 style="color: #28a745; margin: 0; font-size: 28px;">Sales Order Confirmation</h1>
             <div style="height: 3px; background: linear-gradient(90deg, #28a745, #20c997); margin: 15px auto; width: 100px;"></div>
         </div>
-        
+
         <p style="font-size: 16px; color: #333;">Hello {{ object.partner_id.name }},</p>
-        
+
         <p style="font-size: 16px; color: #333; line-height: 1.6;">
             Please find your Sales Order <strong style="color: #28a745;">{{ object.name }}</strong> confirmation attached.
         </p>
-        
+
         <div style="background: linear-gradient(135deg, #d4edda, #c3e6cb); padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #28a745;">
             <h3 style="margin-top: 0; color: #155724; font-size: 20px;">Order Summary</h3>
             <table style="width: 100%; border-collapse: collapse;">
@@ -362,11 +362,11 @@ Use this BOL document at the pickup location. Do NOT share delivery destination 
                 </tr>
             </table>
         </div>
-        
+
         <p style="font-size: 16px; color: #333; line-height: 1.6;">
             Please review the attached sales order and contact us if you have any questions.
         </p>
-        
+
         <div style="border-top: 2px solid #e9ecef; padding-top: 20px; margin-top: 30px; text-align: center;">
             <p style="color: #666; font-size: 14px; margin: 5px 0;">
                 Best regards,<br/>
@@ -395,13 +395,13 @@ Use this BOL document at the pickup location. Do NOT share delivery destination 
             <h1 style="color: #fd7e14; margin: 0; font-size: 28px;">Dock Appointment Required</h1>
             <div style="height: 3px; background: linear-gradient(90deg, #fd7e14, #ffc107); margin: 15px auto; width: 100px;"></div>
         </div>
-        
+
         <p style="font-size: 16px; color: #333;">Hello {{ object.partner_id.name }},</p>
-        
+
         <p style="font-size: 16px; color: #333; line-height: 1.6;">
             The delivery term for Sales Order <strong style="color: #fd7e14;">{{ object.name }}</strong> requires a <strong>Dock Appointment</strong>.
         </p>
-        
+
         <div style="background-color: #fff3cd; padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #ffc107;">
             <h3 style="margin-top: 0; color: #856404; font-size: 20px;">Action Required</h3>
             <p style="margin: 10px 0; color: #856404; font-size: 16px; font-weight: bold;">
@@ -411,11 +411,11 @@ Use this BOL document at the pickup location. Do NOT share delivery destination 
                 <p style="margin: 5px 0; color: #856404;"><strong>Estimated Delivery:</strong> {{ object.commitment_date or 'TBD' }}</p>
             </div>
         </div>
-        
+
         <p style="font-size: 16px; color: #333; line-height: 1.6;">
             Once you provide the appointment time, we will coordinate with our trucker to schedule the delivery accordingly.
         </p>
-        
+
         <div style="border-top: 2px solid #e9ecef; padding-top: 20px; margin-top: 30px; text-align: center;">
             <p style="color: #666; font-size: 14px; margin: 5px 0;">
                 Best regards,<br/>
@@ -443,25 +443,25 @@ Use this BOL document at the pickup location. Do NOT share delivery destination 
             <h1 style="color: #155724; margin: 0; font-size: 28px;">Pickup Confirmed</h1>
             <div style="height: 3px; background: linear-gradient(90deg, #28a745, #20c997); margin: 15px auto; width: 100px;"></div>
         </div>
-        
+
         <p style="font-size: 16px; color: #333;">Hello {{ object.partner_id.name }},</p>
-        
+
         <p style="font-size: 16px; color: #333; line-height: 1.6;">
             Thank you for confirming that Purchase Order <strong style="color: #155724;">{{ object.name }}</strong> is ready for pickup.
         </p>
-        
+
         <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #28a745;">
             <h3 style="margin-top: 0; color: #155724; font-size: 18px;">Next Steps</h3>
             <p style="margin: 10px 0; color: #155724;">
-                We are now coordinating with our trucker to schedule pickup. 
+                We are now coordinating with our trucker to schedule pickup.
                 You should expect the carrier to contact you within the next 24-48 hours.
             </p>
         </div>
-        
+
         <p style="font-size: 16px; color: #333; line-height: 1.6;">
             We will keep you updated on the pickup schedule and provide carrier contact information once confirmed.
         </p>
-        
+
         <div style="border-top: 2px solid #e9ecef; padding-top: 20px; margin-top: 30px; text-align: center;">
             <p style="color: #666; font-size: 14px; margin: 5px 0;">
                 Thank you for your business!<br/>

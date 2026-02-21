@@ -34,7 +34,7 @@ class SaleOrderAutomation(models.Model):
             rec.x_appt_requested = True
             rec.x_appt_requested_on = fields.Datetime.now()
             rec.message_post(
-                body="Dock appointment requested for SO %s." % rec.name,
+                body=f"Dock appointment requested for SO {rec.name}.",
                 message_type="notification",
             )
             _logger.info(

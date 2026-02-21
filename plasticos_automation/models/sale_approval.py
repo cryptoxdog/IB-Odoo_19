@@ -28,7 +28,7 @@ class SaleOrder(models.Model):
             if order.amount_total > config.sale_approval_threshold and not order.x_approved:
                 raise UserError(
                     "Approval required before confirmation. "
-                    "Order total %.2f exceeds threshold %.2f." % (order.amount_total, config.sale_approval_threshold)
+                    f"Order total {order.amount_total:.2f} exceeds threshold {config.sale_approval_threshold:.2f}."
                 )
 
         return super().action_confirm()
@@ -51,7 +51,7 @@ class SaleOrder(models.Model):
             order.x_requires_approval = True
             self.env["plasticos.automation.log"].create(
                 {
-                    "name": "Approval flag for %s" % order.name,
+                    "name": f"Approval flag for {order.name}",
                     "model_name": "sale.order",
                     "res_id": order.id,
                     "action_type": "approval_flag",

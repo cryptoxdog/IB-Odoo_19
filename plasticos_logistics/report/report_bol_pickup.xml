@@ -56,8 +56,8 @@
                                     <t t-if="doc.pickup_partner_id">
                                         <strong><t t-esc="doc.pickup_partner_id.name"/></strong><br/>
                                         <t t-esc="doc.pickup_partner_id.street or ''"/><br/>
-                                        <t t-esc="doc.pickup_partner_id.city or ''"/>, 
-                                        <t t-esc="doc.pickup_partner_id.state_id.code or ''"/> 
+                                        <t t-esc="doc.pickup_partner_id.city or ''"/>,
+                                        <t t-esc="doc.pickup_partner_id.state_id.code or ''"/>
                                         <t t-esc="doc.pickup_partner_id.zip or ''"/>
                                     </t>
                                 </td>
@@ -66,8 +66,8 @@
                                     <t t-if="doc.sale_order_id.company_id">
                                         <strong><t t-esc="doc.sale_order_id.company_id.name"/></strong><br/>
                                         <t t-esc="doc.sale_order_id.company_id.street or ''"/><br/>
-                                        <t t-esc="doc.sale_order_id.company_id.city or ''"/>, 
-                                        <t t-esc="doc.sale_order_id.company_id.state_id.code or ''"/> 
+                                        <t t-esc="doc.sale_order_id.company_id.city or ''"/>,
+                                        <t t-esc="doc.sale_order_id.company_id.state_id.code or ''"/>
                                         <t t-esc="doc.sale_order_id.company_id.zip or ''"/>
                                     </t>
                                 </td>

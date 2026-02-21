@@ -90,8 +90,7 @@ class PlasticosLoadAutomation(models.Model):
                 load.x_escalation_level = new_level
 
                 load.message_post(
-                    body="SLA breach [%s]: load stuck in '%s' for %.1f hours "
-                    "(limit: %d hours)." % (new_level.upper(), load.state, delta_hours, limit_hours),
+                    body=f"SLA breach [{new_level.upper()}]: load stuck in '{load.state}' for {delta_hours:.1f} hours (limit: {limit_hours} hours).",
                     message_type="notification",
                 )
 
@@ -99,7 +98,7 @@ class PlasticosLoadAutomation(models.Model):
                 if log_model is not None:
                     log_model.create(
                         {
-                            "name": "SLA breach [%s] for %s" % (new_level, load.name),
+                            "name": f"SLA breach [{new_level}] for {load.name}",
                             "model_name": "plasticos.load",
                             "res_id": load.id,
                             "action_type": "logistics_escalation",

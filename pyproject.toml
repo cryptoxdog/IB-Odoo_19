@@ -43,6 +43,8 @@ section-order = ["future", "standard-library", "third-party", "first-party", "lo
 check-typed-exception = true
 
 [tool.ruff.lint.per-file-ignores]
+# Odoo __init__.py files - imports ARE used by Odoo's model registry
+"__init__.py" = ["F401", "I001"]
 # __manifest__.py files have bare dicts (Odoo convention)
 "__manifest__.py" = ["B018"]
 # Test files can have unused variables, assertions, undefined env
@@ -62,11 +64,6 @@ check-typed-exception = true
 "ai_*.py" = ["UP031"]
 # Web leads - complex legacy code
 "web_lead.py" = ["B007"]
-# Automation models - legacy percent formatting
-"**/automation/models/*.py" = ["UP031"]
-"*_automation.py" = ["UP031"]
-"*_approval.py" = ["UP031"]
-"*_alert.py" = ["UP031"]
 # Transaction docs - unused var during dev
 "transaction_docs.py" = ["F841"]
 

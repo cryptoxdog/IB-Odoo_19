@@ -49,12 +49,11 @@ class StockPickingAutomation(models.Model):
 
         for picking in pickings:
             picking.x_trucker_followup_count += 1
+            trucker_name = picking.x_trucker_id.name or "Unknown"
 
             # Post chatter notification
             picking.message_post(
-                body="Automated follow-up #%d: trucker %s has not confirmed "
-                "receipt for %s."
-                % (picking.x_trucker_followup_count, picking.x_trucker_id.name or "Unknown", picking.name),
+                body=f"Automated follow-up #{picking.x_trucker_followup_count}: trucker {trucker_name} has not confirmed receipt for {picking.name}.",
                 message_type="notification",
             )
 
@@ -70,7 +69,7 @@ class StockPickingAutomation(models.Model):
             if log_model is not None:
                 log_model.create(
                     {
-                        "name": "Trucker follow-up #%d for %s" % (picking.x_trucker_followup_count, picking.name),
+                        "name": f"Trucker follow-up #{picking.x_trucker_followup_count} for {picking.name}",
                         "model_name": "stock.picking",
                         "res_id": picking.id,
                         "action_type": "logistics_followup",
@@ -82,10 +81,8 @@ class StockPickingAutomation(models.Model):
                 picking.activity_schedule(
                     "mail.mail_activity_data_todo",
                     user_id=picking.user_id.id or self.env.user.id,
-                    summary="ESCALATION: Trucker receipt unconfirmed on %s" % picking.name,
-                    note="Follow-up #%d sent. Trucker %s has not confirmed "
-                    "receipt. Manual intervention required."
-                    % (picking.x_trucker_followup_count, picking.x_trucker_id.name or "Unknown"),
+                    summary=f"ESCALATION: Trucker receipt unconfirmed on {picking.name}",
+                    note=f"Follow-up #{picking.x_trucker_followup_count} sent. Trucker {trucker_name} has not confirmed receipt. Manual intervention required.",
                 )
 
             _logger.info(

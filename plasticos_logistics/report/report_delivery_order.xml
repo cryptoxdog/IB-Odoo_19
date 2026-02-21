@@ -32,8 +32,8 @@
                             <t t-if="doc.sale_order_id.company_id">
                                 <strong style="font-size: 14px;"><t t-esc="doc.sale_order_id.company_id.name"/></strong><br/>
                                 <t t-esc="doc.sale_order_id.company_id.street or ''"/><br/>
-                                <t t-esc="doc.sale_order_id.company_id.city or ''"/> 
-                                <t t-esc="doc.sale_order_id.company_id.state_id.code or ''"/> 
+                                <t t-esc="doc.sale_order_id.company_id.city or ''"/>
+                                <t t-esc="doc.sale_order_id.company_id.state_id.code or ''"/>
                                 <t t-esc="doc.sale_order_id.company_id.zip or ''"/><br/>
                                 <t t-if="doc.sale_order_id.company_id.website">
                                     <t t-esc="doc.sale_order_id.company_id.website"/>
@@ -62,7 +62,7 @@
                         <table class="table table-bordered" style="margin-bottom: 15px;">
                             <tr>
                                 <td style="width: 50%;">
-                                    <strong>RATE:</strong> 
+                                    <strong>RATE:</strong>
                                     <t t-esc="'%.2f' % doc.rate_amount"/> USD
                                 </td>
                                 <td style="width: 50%;">
@@ -109,7 +109,7 @@
                                     <strong>PICKUP FOR:</strong> <t t-esc="doc.sale_order_id.company_id.name or ''"/>
                                 </td>
                                 <td style="width: 50%;">
-                                    <strong>PICKUP DATE:</strong> 
+                                    <strong>PICKUP DATE:</strong>
                                     <t t-esc="doc.pickup_datetime" t-options='{"widget": "datetime", "format": "MM/dd/yy h:mma"}'/>
                                 </td>
                             </tr>
@@ -119,8 +119,8 @@
                                     <t t-if="doc.pickup_partner_id">
                                         <t t-esc="doc.pickup_partner_id.name"/><br/>
                                         <t t-esc="doc.pickup_partner_id.street or ''"/><br/>
-                                        <t t-esc="(doc.pickup_partner_id.city or '').upper()"/>, 
-                                        <t t-esc="doc.pickup_partner_id.state_id.code or ''"/> 
+                                        <t t-esc="(doc.pickup_partner_id.city or '').upper()"/>,
+                                        <t t-esc="doc.pickup_partner_id.state_id.code or ''"/>
                                         <t t-esc="doc.pickup_partner_id.zip or ''"/>
                                     </t>
                                 </td>
@@ -166,8 +166,8 @@
                                     <t t-if="doc.delivery_partner_id">
                                         <t t-esc="doc.delivery_partner_id.name"/><br/>
                                         <t t-esc="doc.delivery_partner_id.street or ''"/><br/>
-                                        <t t-esc="(doc.delivery_partner_id.city or '').upper()"/>, 
-                                        <t t-esc="doc.delivery_partner_id.state_id.code or ''"/> 
+                                        <t t-esc="(doc.delivery_partner_id.city or '').upper()"/>,
+                                        <t t-esc="doc.delivery_partner_id.state_id.code or ''"/>
                                         <t t-esc="doc.delivery_partner_id.zip or ''"/>
                                     </t>
                                 </td>
@@ -195,7 +195,7 @@
 
                         <!-- Document Submission -->
                         <div style="margin-bottom: 15px; text-align: center;">
-                            <strong>Send All Docs to 
+                            <strong>Send All Docs to
                                 <t t-if="doc.sale_order_id.company_id.email">
                                     <t t-esc="doc.sale_order_id.company_id.email"/>
                                 </t>
@@ -205,7 +205,7 @@
                         <!-- Legal Footer -->
                         <div style="font-size: 10px; text-align: justify; border-top: 2px solid #000; padding-top: 10px;">
                             By Accepting This Delivery Order, The Above Named Trucker Agrees To Obtain LIGHT &amp; HEAVY 3rd Party Certified Scale
-                            Tickets &amp; PROTECT THE BLIND PICK UP By Using The BOL-PICKUP Document Prepared By 
+                            Tickets &amp; PROTECT THE BLIND PICK UP By Using The BOL-PICKUP Document Prepared By
                             <t t-esc="doc.sale_order_id.company_id.name or 'Company'"/>
                         </div>
 

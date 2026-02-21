@@ -71,4 +71,3 @@ transaction_views.xml
 ## plasticos_web_leads
 web_lead_config_views.xml
 web_lead_views.xml
-

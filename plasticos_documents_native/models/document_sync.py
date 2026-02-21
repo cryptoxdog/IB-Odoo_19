@@ -76,8 +76,7 @@ class DocumentSyncService(models.AbstractModel):
             tag = PlasticosTag.search([("code", "=", "OTHER")], limit=1)
         if not tag:
             _logger.warning(
-                "No plasticos.document.tag found for code '%s'; "
-                "skipping sync for document %s",
+                "No plasticos.document.tag found for code '%s'; " "skipping sync for document %s",
                 tag_code,
                 native_doc.id,
             )
@@ -117,13 +116,15 @@ class DocumentSyncService(models.AbstractModel):
         if not legacy:
             return self.env["plasticos.document"]
 
-        legacy.write({
-            "verified": native_doc.x_verified,
-            "verified_by": native_doc.x_verified_by.id if native_doc.x_verified_by else False,
-            "verified_at": native_doc.x_verified_at,
-            "override": native_doc.x_override,
-            "override_reason": native_doc.x_override_reason,
-        })
+        legacy.write(
+            {
+                "verified": native_doc.x_verified,
+                "verified_by": native_doc.x_verified_by.id if native_doc.x_verified_by else False,
+                "verified_at": native_doc.x_verified_at,
+                "override": native_doc.x_override,
+                "override_reason": native_doc.x_override_reason,
+            }
+        )
         return legacy
 
     @api.model
@@ -152,11 +153,13 @@ class DocumentSyncService(models.AbstractModel):
         not yet synced (e.g., if the create hook was bypassed).
         """
         NativeDoc = self.env["documents.document"]
-        unlinked = NativeDoc.search([
-            ("x_plasticos_doc_id", "=", False),
-            ("x_doc_type", "!=", False),
-            ("attachment_id", "!=", False),
-        ])
+        unlinked = NativeDoc.search(
+            [
+                ("x_plasticos_doc_id", "=", False),
+                ("x_doc_type", "!=", False),
+                ("attachment_id", "!=", False),
+            ]
+        )
         count = 0
         for doc in unlinked:
             try:

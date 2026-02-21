@@ -66,7 +66,8 @@ class ResPartnerGeo(models.Model):
                 failed += 1
                 _logger.warning(
                     "Geo backfill: failed for partner %s (%s).",
-                    partner.id, partner.name,
+                    partner.id,
+                    partner.name,
                     exc_info=True,
                 )
                 # Still rate limit on failure to avoid hammering API
@@ -74,5 +75,7 @@ class ResPartnerGeo(models.Model):
 
         _logger.info(
             "Geo backfill complete: %d/%d partners geocoded, %d failed.",
-            success, len(partners), failed,
+            success,
+            len(partners),
+            failed,
         )

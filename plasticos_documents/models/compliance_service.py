@@ -6,22 +6,21 @@ class PlasticosComplianceService(models.AbstractModel):
     _description = "Compliance Service"
 
     def get_missing_documents(self, res_model, res_id):
-        rules = self.env["plasticos.document.rule"].search([
-            ("res_model", "=", res_model),
-            ("active", "=", True)
-        ])
+        rules = self.env["plasticos.document.rule"].search([("res_model", "=", res_model), ("active", "=", True)])
 
         missing = []
 
         for rule in rules:
-            docs = self.env["plasticos.document"].search([
-                ("res_model", "=", res_model),
-                ("res_id", "=", res_id),
-                ("tag_id", "=", rule.tag_id.id),
-                "|",
-                ("verified", "=", True),
-                ("override", "=", True)
-            ])
+            docs = self.env["plasticos.document"].search(
+                [
+                    ("res_model", "=", res_model),
+                    ("res_id", "=", res_id),
+                    ("tag_id", "=", rule.tag_id.id),
+                    "|",
+                    ("verified", "=", True),
+                    ("override", "=", True),
+                ]
+            )
 
             if not docs:
                 missing.append(rule.tag_id.code)

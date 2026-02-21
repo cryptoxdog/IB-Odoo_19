@@ -37,13 +37,12 @@ class ProductProduct(models.Model):
 
             if product.qty_available < threshold:
                 product.message_post(
-                    body="Automated alert: stock level %.2f is below threshold %.2f."
-                    % (product.qty_available, threshold),
+                    body=f"Automated alert: stock level {product.qty_available:.2f} is below threshold {threshold:.2f}.",
                 )
 
                 self.env["plasticos.automation.log"].create(
                     {
-                        "name": "Stock alert %s" % product.display_name,
+                        "name": f"Stock alert {product.display_name}",
                         "model_name": "product.product",
                         "res_id": product.id,
                         "action_type": "stock_alert",

@@ -20,12 +20,12 @@
 for po in records.filtered(lambda p: p.state == 'purchase'):
     # Set response deadline from config
     deadline_hours = int(env['ir.config_parameter'].sudo().get_param('plasticos.supplier_response_deadline_hours', 48))
-    
+
     # Send email template
     template = env.ref('plasticos_automation.email_template_po_supplier_ready', raise_if_not_found=False)
     if template:
         template.send_mail(po.id, force_send=True)
-        
+
     # Log activity
     po.message_post(body='Supplier confirmation request sent')
         </field>
@@ -43,7 +43,7 @@ for so in records.filtered(lambda s: s.state == 'sale'):
     template = env.ref('plasticos_automation.email_template_so_to_buyer', raise_if_not_found=False)
     if template:
         template.send_mail(so.id, force_send=True)
-    
+
     # Log activity
     so.message_post(body='Sales order confirmation sent to buyer')
         </field>

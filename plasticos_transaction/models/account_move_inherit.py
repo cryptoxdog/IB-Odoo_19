@@ -12,11 +12,13 @@ class AccountMove(models.Model):
 
     def button_cancel(self):
         for move in self:
-            tx = self.env["plasticos.transaction"].search([
-                "|",
-                ("customer_invoice_id", "=", move.id),
-                ("vendor_bill_ids", "in", move.id),
-            ])
+            tx = self.env["plasticos.transaction"].search(
+                [
+                    "|",
+                    ("customer_invoice_id", "=", move.id),
+                    ("vendor_bill_ids", "in", move.id),
+                ]
+            )
             if tx.filtered(lambda t: t.state == "closed"):
                 raise UserError("Cannot cancel invoice/bill linked to closed transaction.")
         return super().button_cancel()
@@ -43,11 +45,13 @@ class AccountMove(models.Model):
 
             # Block credit note post when reversed move is linked to closed transaction
             if rec.move_type in ("out_refund", "in_refund") and rec.reversed_entry_id:
-                tx = self.env["plasticos.transaction"].search([
-                    "|",
-                    ("customer_invoice_id", "=", rec.reversed_entry_id.id),
-                    ("vendor_bill_ids", "in", rec.reversed_entry_id.id),
-                ])
+                tx = self.env["plasticos.transaction"].search(
+                    [
+                        "|",
+                        ("customer_invoice_id", "=", rec.reversed_entry_id.id),
+                        ("vendor_bill_ids", "in", rec.reversed_entry_id.id),
+                    ]
+                )
                 if tx.filtered(lambda t: t.state == "closed"):
                     raise UserError("Cannot post credit note for closed transaction.")
 
@@ -55,11 +59,13 @@ class AccountMove(models.Model):
 
     def unlink(self):
         for move in self:
-            tx = self.env["plasticos.transaction"].search([
-                "|",
-                ("customer_invoice_id", "=", move.id),
-                ("vendor_bill_ids", "in", move.id),
-            ])
+            tx = self.env["plasticos.transaction"].search(
+                [
+                    "|",
+                    ("customer_invoice_id", "=", move.id),
+                    ("vendor_bill_ids", "in", move.id),
+                ]
+            )
             if tx.filtered(lambda t: t.state == "closed"):
                 raise UserError("Cannot delete invoice/bill linked to closed transaction.")
         return super().unlink()

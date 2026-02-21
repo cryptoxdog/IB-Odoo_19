@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <data noupdate="1">
-    <!-- 
+    <!--
     Material Forms - Current physical state of the material
-    
+
     This is what the material IS now (not what it was, not how it's packaged)
     Examples: "LDPE Film" or "HDPE Regrind" or "PP Pellets"
-    
+
     Origin Forms (Drums, Buckets, Bottles) are separate - use origin_form_id
     Packaging (Bales, Gaylords) are separate - use packaging_type_id
     -->

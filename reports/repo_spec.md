@@ -240,21 +240,21 @@ install_order:
 
 patterns:
   versioning: "{odoo_version}.{major}.{minor}.{patch}"  # e.g., 19.0.1.0.0
-  
+
   model_naming:
     - plasticos.{domain}             # Main model
     - plasticos.{domain}.{sub}       # Sub-model
-    
+
   field_conventions:
     - _ids suffix for O2M/M2M
     - _id suffix for M2O
     - x_ prefix for res.partner extensions
-    
+
   state_machines:
     - All use Selection field named "state"
     - Transitions via action_* methods
     - Tracking enabled for audit
-    
+
   security:
     - ir.model.access.csv per module
     - XML groups in security/*.xml
@@ -272,12 +272,12 @@ constraints:
     - compliance_status == "compliant"
     - gross_margin >= 0
     - user in group_plasticos_manager
-    
+
   immutability:
     - Closed transactions: protected fields locked
     - Commission locked: rule cannot change
     - Customer invoice: cannot reassign once set
-    
+
   uniqueness:
     - Transaction name (sequence-generated)
     - Material profile: unique(partner_id, polymer, form) implied
@@ -295,11 +295,11 @@ docs:
     - docs/docs/compliance_gate.md       # Compliance rules
     - docs/docs/commission_freeze.md     # Commission lock logic
     - docs/docs/lifecycle_diagram.md     # Transaction lifecycle
-    
+
   procedures:
     - docs/docs/production_admin_playbook.md
     - docs/docs/audit_procedure.md
-    
+
   import:
     - docs/docs/plasticos_partner_import.md
     - docs/migration-suite.md            # Test suite spec
@@ -311,21 +311,21 @@ docs:
 
 quick_ref:
   run_tests: "./run-odoo-tests.sh"
-  
+
   import_transactions: |
     env["plasticos.transaction.import.service"].run_csv_import(
         "/path/to/cieTrade.WksDetail.csv",
         dry_run=False
     )
-    
+
   close_transaction: |
     tx = env["plasticos.transaction"].browse(id)
     tx.action_close()  # Validates all constraints
-    
+
   check_compliance: |
     svc = env["plasticos.compliance.service"]
     svc.is_compliant("plasticos.transaction", tx_id)
-    
+
   compute_commission: |
     svc = env["plasticos.commission.service"]
     amount = svc.compute_commission(tx)

@@ -7,11 +7,13 @@ class PlasticosAuditCron(models.Model):
 
     def run_monthly_audit(self):
         tx_model = self.env["plasticos.transaction"]
-        violations = tx_model.search([
-            ("state", "=", "closed"),
-            "|",
-            ("gross_margin", "<", 0),
-            ("commission_locked", "=", False),
-        ])
+        violations = tx_model.search(
+            [
+                ("state", "=", "closed"),
+                "|",
+                ("gross_margin", "<", 0),
+                ("commission_locked", "=", False),
+            ]
+        )
         if violations:
             raise Exception("Audit violations detected in closed transactions.")

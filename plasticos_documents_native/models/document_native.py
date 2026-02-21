@@ -105,19 +105,20 @@ class DocumentNative(models.Model):
         "plasticos.document",
         string="Plasticos Document",
         readonly=True,
-        help="Link to the legacy plasticos.document record for backward "
-             "compatibility.",
+        help="Link to the legacy plasticos.document record for backward " "compatibility.",
     )
 
     # ── Actions ──────────────────────────────────────────────
     def action_verify(self):
         """Mark the document as verified by the current user."""
         for rec in self:
-            rec.write({
-                "x_verified": True,
-                "x_verified_by": self.env.user.id,
-                "x_verified_at": fields.Datetime.now(),
-            })
+            rec.write(
+                {
+                    "x_verified": True,
+                    "x_verified_by": self.env.user.id,
+                    "x_verified_at": fields.Datetime.now(),
+                }
+            )
         _logger.info(
             "Documents verified: %s",
             ", ".join(str(r.id) for r in self),
@@ -128,6 +129,7 @@ class DocumentNative(models.Model):
         self.ensure_one()
         if not self.env.user.has_group("base.group_system"):
             from odoo.exceptions import UserError
+
             raise UserError("Only administrators can override documents.")
         self.write({"x_override": True})
         _logger.info(

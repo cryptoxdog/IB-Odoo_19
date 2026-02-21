@@ -68,4 +68,3 @@ sequence.xml
 ## plasticos_web_leads
 logistics_ir_rules.xml
 web_lead_config_data.xml
-

@@ -13,25 +13,25 @@ subsystems:
     tier: "core"
     purpose: "Core transaction spine - orchestrates deals from intake to delivery"
     summary: "Transaction lifecycle management with commission tracking"
-    
+
   plasticos_claims:
     path: "plasticos_claims"
     tier: "core"
     purpose: "Quality control claims management with escalation workflows"
     summary: "Claim tracking, SLA monitoring, and resolution"
-    
+
   plasticos_offer:
     path: "plasticos_offer"
     tier: "core"
     purpose: "Offer generation and tracking for matched intakes"
     summary: "Offer lifecycle from draft to acceptance"
-    
+
   plasticos_intake:
     path: "plasticos_intake"
     tier: "core"
     purpose: "Material intake capture and normalization"
     summary: "Lead capture and material specification"
-    
+
   plasticos_logistics:
     path: "plasticos_logistics"
     tier: "core"
@@ -44,13 +44,13 @@ subsystems:
     tier: "foundation"
     purpose: "Base configuration, tags, and sales rep assignments"
     summary: "Foundation data and partner categorization"
-    
+
   plasticos_security_base:
     path: "plasticos_security_base"
     tier: "foundation"
     purpose: "Security groups and access control foundation"
     summary: "Role-based access control across all modules"
-    
+
   plasticos_accounting:
     path: "plasticos_accounting"
     tier: "foundation"
@@ -63,7 +63,7 @@ subsystems:
     tier: "domain"
     purpose: "Material taxonomy - polymers, forms, colors, sources"
     summary: "Material specification and classification"
-    
+
   plasticos_facility_profile:
     path: "plasticos_facility_profile"
     tier: "domain"
@@ -76,7 +76,7 @@ subsystems:
     tier: "analytics"
     purpose: "Buyer-intake matching engine"
     summary: "Match scoring and result tracking"
-    
+
   plasticos_buyer_match_engine:
     path: "plasticos_buyer_match_engine"
     tier: "analytics"
@@ -89,13 +89,13 @@ subsystems:
     tier: "automation"
     purpose: "Workflow automation, crons, and email triggers"
     summary: "Automated workflows and notifications"
-    
+
   plasticos_intake_normalizer:
     path: "plasticos_intake_normalizer"
     tier: "automation"
     purpose: "Batch normalization of intake records"
     summary: "Material specification standardization"
-    
+
   plasticos_geolocalize:
     path: "plasticos_geolocalize"
     tier: "automation"
@@ -108,7 +108,7 @@ subsystems:
     tier: "compliance"
     purpose: "Document management and compliance tracking"
     summary: "Document rules, validation, and storage"
-    
+
   plasticos_documents_native:
     path: "plasticos_documents_native"
     tier: "compliance"
@@ -121,7 +121,7 @@ subsystems:
     tier: "integration"
     purpose: "Partner and facility CSV import service"
     summary: "Bulk partner data import"
-    
+
   plasticos_web_leads:
     path: "plasticos_web_leads"
     tier: "integration"

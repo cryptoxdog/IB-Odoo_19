@@ -1,8 +1,7 @@
 {
     "name": "PlasticOS Intake",
     "version": "19.0.4.0.0",
-    "summary": "Transactional Material Intake — contact intelligence, "
-               "smart memory, UX normalization",
+    "summary": "Transactional Material Intake — contact intelligence, " "smart memory, UX normalization",
     "author": "PlasticOS",
     "depends": [
         "base",

@@ -61,11 +61,13 @@ def export_index(env):
     for m in ir_models:
         if any(m.model.startswith(p) for p in _PLASTICOS_PREFIXES):
             field_count = len(m.field_id)
-            index["models"].append({
-                "model": m.model,
-                "name": m.name,
-                "fields": field_count,
-            })
+            index["models"].append(
+                {
+                    "model": m.model,
+                    "name": m.name,
+                    "fields": field_count,
+                }
+            )
             print("  %-45s %3d fields" % (m.model, field_count))
     print("  Total: %d models" % len(index["models"]))
 
@@ -75,27 +77,33 @@ def export_index(env):
     for cron in crons:
         model_name = cron.model_id.model if cron.model_id else ""
         if any(model_name.startswith(p) for p in _PLASTICOS_PREFIXES):
-            index["crons"].append({
-                "name": cron.name,
-                "model": model_name,
-                "interval": "%d %s" % (cron.interval_number, cron.interval_type),
-                "active": cron.active,
-            })
+            index["crons"].append(
+                {
+                    "name": cron.name,
+                    "model": model_name,
+                    "interval": "%d %s" % (cron.interval_number, cron.interval_type),
+                    "active": cron.active,
+                }
+            )
             status = "ACTIVE" if cron.active else "INACTIVE"
             print("  [%s] %s" % (status, cron.name))
     print("  Total: %d cron jobs" % len(index["crons"]))
 
     # ── Security Groups ────────────────────────────────────────
     print("\n[3/4] Indexing PlasticOS security groups...")
-    groups = env["res.groups"].search([
-        ("name", "ilike", "plasticos"),
-    ])
+    groups = env["res.groups"].search(
+        [
+            ("name", "ilike", "plasticos"),
+        ]
+    )
     for group in groups:
-        index["groups"].append({
-            "name": group.name,
-            "id": group.id,
-            "users_count": len(group.users),
-        })
+        index["groups"].append(
+            {
+                "name": group.name,
+                "id": group.id,
+                "users_count": len(group.users),
+            }
+        )
         print("  %s (%d users)" % (group.name, len(group.users)))
     print("  Total: %d groups" % len(index["groups"]))
 
@@ -107,12 +115,14 @@ def export_index(env):
             model_obj = env[model_name]
             for fname, fobj in model_obj._fields.items():
                 if fname.startswith("x_"):
-                    index["custom_fields"].append({
-                        "model": model_name,
-                        "field": fname,
-                        "type": fobj.type,
-                        "string": fobj.string,
-                    })
+                    index["custom_fields"].append(
+                        {
+                            "model": model_name,
+                            "field": fname,
+                            "type": fobj.type,
+                            "string": fobj.string,
+                        }
+                    )
     print("  Total: %d custom fields" % len(index["custom_fields"]))
 
     # ── Summary ────────────────────────────────────────────────

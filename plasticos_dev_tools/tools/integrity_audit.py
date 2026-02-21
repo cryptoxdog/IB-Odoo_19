@@ -57,37 +57,42 @@ def run_integrity_audit(env):
         try:
             target = env[doc.res_model].browse(doc.res_id)
             if not target.exists():
-                results["orphaned_documents"].append({
+                results["orphaned_documents"].append(
+                    {
+                        "doc_id": doc.id,
+                        "doc_name": doc.name,
+                        "res_model": doc.res_model,
+                        "res_id": doc.res_id,
+                    }
+                )
+        except (KeyError, ValueError):
+            results["orphaned_documents"].append(
+                {
                     "doc_id": doc.id,
                     "doc_name": doc.name,
                     "res_model": doc.res_model,
                     "res_id": doc.res_id,
-                })
-        except (KeyError, ValueError):
-            results["orphaned_documents"].append({
-                "doc_id": doc.id,
-                "doc_name": doc.name,
-                "res_model": doc.res_model,
-                "res_id": doc.res_id,
-                "error": "Model not found in registry",
-            })
+                    "error": "Model not found in registry",
+                }
+            )
     print("  Found %d orphaned documents." % len(results["orphaned_documents"]))
 
     # ── Check 2: Transactions Without Compliance Rules ─────────
     print("\n[2/5] Checking transactions without compliance rules...")
-    rules = env["plasticos.document.rule"].search([
-        ("res_model", "=", "plasticos.transaction"),
-        ("active", "=", True),
-    ])
+    rules = env["plasticos.document.rule"].search(
+        [
+            ("res_model", "=", "plasticos.transaction"),
+            ("active", "=", True),
+        ]
+    )
     if not rules:
-        results["missing_compliance_rules"].append(
-            "No active compliance rules found for plasticos.transaction"
-        )
+        results["missing_compliance_rules"].append("No active compliance rules found for plasticos.transaction")
     print("  Active rules: %d" % len(rules))
 
     # ── Check 3: Stuck Loads ───────────────────────────────────
     print("\n[3/5] Checking for loads stuck beyond SLA...")
     from odoo import fields as odoo_fields
+
     now = odoo_fields.Datetime.now()
     sla_hours = {
         "awaiting_ready": 48,
@@ -96,22 +101,26 @@ def run_integrity_audit(env):
         "scheduled": 24,
         "dispatched": 72,
     }
-    loads = env["plasticos.load"].search([
-        ("state", "in", list(sla_hours.keys())),
-    ])
+    loads = env["plasticos.load"].search(
+        [
+            ("state", "in", list(sla_hours.keys())),
+        ]
+    )
     for load in loads:
         if not load.entered_state_at:
             continue
         limit = sla_hours.get(load.state, 0)
         delta = (now - load.entered_state_at).total_seconds() / 3600
         if delta > limit:
-            results["stuck_loads"].append({
-                "load_id": load.id,
-                "load_name": load.name,
-                "state": load.state,
-                "hours_stuck": round(delta, 1),
-                "sla_limit": limit,
-            })
+            results["stuck_loads"].append(
+                {
+                    "load_id": load.id,
+                    "load_name": load.name,
+                    "state": load.state,
+                    "hours_stuck": round(delta, 1),
+                    "sla_limit": limit,
+                }
+            )
     print("  Found %d loads beyond SLA." % len(results["stuck_loads"]))
 
     # ── Check 4: Invalid Rule Model References ─────────────────
@@ -119,11 +128,13 @@ def run_integrity_audit(env):
     all_rules = env["plasticos.document.rule"].search([("active", "=", True)])
     for rule in all_rules:
         if rule.res_model not in env:
-            results["invalid_rule_models"].append({
-                "rule_id": rule.id,
-                "rule_name": rule.name,
-                "res_model": rule.res_model,
-            })
+            results["invalid_rule_models"].append(
+                {
+                    "rule_id": rule.id,
+                    "rule_name": rule.name,
+                    "res_model": rule.res_model,
+                }
+            )
     print("  Found %d invalid model references." % len(results["invalid_rule_models"]))
 
     # ── Check 5: Duplicate Tag Codes ───────────────────────────
@@ -134,11 +145,13 @@ def run_integrity_audit(env):
         code_counts.setdefault(tag.code, []).append(tag.id)
     for code, ids in code_counts.items():
         if len(ids) > 1:
-            results["duplicate_tag_codes"].append({
-                "code": code,
-                "tag_ids": ids,
-                "count": len(ids),
-            })
+            results["duplicate_tag_codes"].append(
+                {
+                    "code": code,
+                    "tag_ids": ids,
+                    "count": len(ids),
+                }
+            )
     print("  Found %d duplicate tag codes." % len(results["duplicate_tag_codes"]))
 
     # ── Summary ────────────────────────────────────────────────

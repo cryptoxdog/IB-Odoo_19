@@ -32,13 +32,12 @@ class ResPartner(models.Model):
 
         for partner in partners:
             partner.message_post(
-                body="Automated alert: contract expires on %s (within %d days)."
-                % (partner.x_contract_end_date, config.contract_alert_days_before),
+                body=f"Automated alert: contract expires on {partner.x_contract_end_date} (within {config.contract_alert_days_before} days).",
             )
 
             self.env["plasticos.automation.log"].create(
                 {
-                    "name": "Contract renewal alert %s" % partner.name,
+                    "name": f"Contract renewal alert {partner.name}",
                     "model_name": "res.partner",
                     "res_id": partner.id,
                     "action_type": "contract_alert",

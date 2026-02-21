@@ -11,9 +11,7 @@ class PlasticosLoad(models.Model):
 
         if "state" in vals and vals["state"] == "closed":
             for rec in self:
-                tx = self.env["plasticos.transaction"].search(
-                    [("load_id", "=", rec.id)], limit=1
-                )
+                tx = self.env["plasticos.transaction"].search([("load_id", "=", rec.id)], limit=1)
                 if tx:
                     tx.message_post(body="Logistics closed.")
 

@@ -31,13 +31,13 @@ class AccountMove(models.Model):
 
         for inv in overdue:
             inv.message_post(
-                body="Automated reminder: invoice is overdue by more than %d days." % config.invoice_overdue_days,
+                body=f"Automated reminder: invoice is overdue by more than {config.invoice_overdue_days} days.",
             )
             inv.x_last_reminder_date = fields.Date.today()
 
             self.env["plasticos.automation.log"].create(
                 {
-                    "name": "Invoice reminder %s" % inv.name,
+                    "name": f"Invoice reminder {inv.name}",
                     "model_name": "account.move",
                     "res_id": inv.id,
                     "action_type": "invoice_reminder",

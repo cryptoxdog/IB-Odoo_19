@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <data noupdate="1">
-    <!-- 
+    <!--
     Material Attributes (multi-select condition modifiers)
-    
+
     Boolean field mappings:
     - With Metal -> has_metal=True
     - No Metal -> has_metal=False

@@ -8,11 +8,30 @@ _logger = logging.getLogger(__name__)
 # Canonical polymer list — loaded from plasticos.polymer table
 # Fallback to hardcoded list if table not available
 # ─────────────────────────────────────────────────────────────
-FALLBACK_POLYMERS = frozenset([
-    "HDPE", "LDPE", "LLDPE", "PP", "PET", "rPET",
-    "PVC", "PC", "PS", "ABS", "PA", "PLA",
-    "TPE", "TPU", "PEEK", "PEI", "POM", "PPS", "PTFE", "EVA",
-])
+FALLBACK_POLYMERS = frozenset(
+    [
+        "HDPE",
+        "LDPE",
+        "LLDPE",
+        "PP",
+        "PET",
+        "rPET",
+        "PVC",
+        "PC",
+        "PS",
+        "ABS",
+        "PA",
+        "PLA",
+        "TPE",
+        "TPU",
+        "PEEK",
+        "PEI",
+        "POM",
+        "PPS",
+        "PTFE",
+        "EVA",
+    ]
+)
 
 # Packet schema version — bumped when the packet structure changes.
 # L9 adapter uses this to decide how to parse the payload.
@@ -35,7 +54,7 @@ class PlasticosNormalizerConfig(models.Model):
         string="Require Canonical Polymer",
         default=True,
         help="When True, polymer must be in the 20-type canonical list. "
-             "When False, any non-empty polymer value is accepted.",
+        "When False, any non-empty polymer value is accepted.",
     )
     require_partner = fields.Boolean(
         string="Require Partner",

@@ -57,8 +57,7 @@ class PurchaseOrderAutomation(models.Model):
 
             # Post chatter notification
             order.message_post(
-                body="Automated follow-up #%d: supplier has not confirmed "
-                "readiness for pickup on PO %s." % (order.x_followup_count, order.name),
+                body=f"Automated follow-up #{order.x_followup_count}: supplier has not confirmed readiness for pickup on PO {order.name}.",
                 message_type="notification",
             )
 
@@ -74,7 +73,7 @@ class PurchaseOrderAutomation(models.Model):
             if log_model is not None:
                 log_model.create(
                     {
-                        "name": "Supplier follow-up #%d for %s" % (order.x_followup_count, order.name),
+                        "name": f"Supplier follow-up #{order.x_followup_count} for {order.name}",
                         "model_name": "purchase.order",
                         "res_id": order.id,
                         "action_type": "logistics_followup",
@@ -83,13 +82,12 @@ class PurchaseOrderAutomation(models.Model):
 
             # Escalate after 3 follow-ups
             if order.x_followup_count >= 3:
+                supplier_name = order.partner_id.name or "Unknown"
                 order.activity_schedule(
                     "mail.mail_activity_data_todo",
                     user_id=order.user_id.id or self.env.user.id,
-                    summary="ESCALATION: Supplier readiness unconfirmed on %s" % order.name,
-                    note="Follow-up #%d sent. Supplier %s has not confirmed "
-                    "readiness. Manual intervention required."
-                    % (order.x_followup_count, order.partner_id.name or "Unknown"),
+                    summary=f"ESCALATION: Supplier readiness unconfirmed on {order.name}",
+                    note=f"Follow-up #{order.x_followup_count} sent. Supplier {supplier_name} has not confirmed readiness. Manual intervention required.",
                 )
 
             _logger.info(

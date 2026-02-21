@@ -53,13 +53,15 @@ class PlasticosIntakeNormalizer(models.Model):
         errors, warnings = self._validate_for_normalization(config)
 
         if errors:
-            self.write({
-                "normalization_errors": errors,
-                "normalization_warnings": warnings,
-                "normalization_ts": fields.Datetime.now(),
-                "match_status": "error",
-                "normalized": False,
-            })
+            self.write(
+                {
+                    "normalization_errors": errors,
+                    "normalization_warnings": warnings,
+                    "normalization_ts": fields.Datetime.now(),
+                    "match_status": "error",
+                    "normalized": False,
+                }
+            )
             self._log_normalization("error", errors)
             raise UserError(
                 "Normalization failed with %d error(s):\n\n%s"
@@ -69,21 +71,25 @@ class PlasticosIntakeNormalizer(models.Model):
         packet = self._assemble_packet()
         packet_id = f"PKT-{uuid.uuid4().hex[:12].upper()}"
 
-        self.write({
-            "normalized": True,
-            "match_status": "normalized",
-            "normalization_errors": None,
-            "normalization_warnings": warnings or None,
-            "normalization_ts": fields.Datetime.now(),
-            "last_packet_id": packet_id,
-            "last_packet_version": PACKET_SCHEMA_VERSION,
-            "last_packet_payload": packet,
-            "last_packet_ts": fields.Datetime.now(),
-        })
+        self.write(
+            {
+                "normalized": True,
+                "match_status": "normalized",
+                "normalization_errors": None,
+                "normalization_warnings": warnings or None,
+                "normalization_ts": fields.Datetime.now(),
+                "last_packet_id": packet_id,
+                "last_packet_version": PACKET_SCHEMA_VERSION,
+                "last_packet_payload": packet,
+                "last_packet_ts": fields.Datetime.now(),
+            }
+        )
         self._log_normalization("normalized", None)
         _logger.info(
             "Intake %s normalized → packet %s (v%s)",
-            self.name, packet_id, PACKET_SCHEMA_VERSION,
+            self.name,
+            packet_id,
+            PACKET_SCHEMA_VERSION,
         )
 
     def action_mark_normalized(self):
@@ -121,13 +127,15 @@ class PlasticosIntakeNormalizer(models.Model):
                 errors, warnings = rec._validate_for_normalization(config)
 
                 if errors:
-                    rec.write({
-                        "normalization_errors": errors,
-                        "normalization_warnings": warnings,
-                        "normalization_ts": fields.Datetime.now(),
-                        "match_status": "error",
-                        "normalized": False,
-                    })
+                    rec.write(
+                        {
+                            "normalization_errors": errors,
+                            "normalization_warnings": warnings,
+                            "normalization_ts": fields.Datetime.now(),
+                            "match_status": "error",
+                            "normalized": False,
+                        }
+                    )
                     rec._log_normalization("error", errors)
                     error_count += 1
                     continue
@@ -135,37 +143,42 @@ class PlasticosIntakeNormalizer(models.Model):
                 packet = rec._assemble_packet()
                 packet_id = f"PKT-{uuid.uuid4().hex[:12].upper()}"
 
-                rec.write({
-                    "normalized": True,
-                    "match_status": "normalized",
-                    "normalization_errors": None,
-                    "normalization_warnings": warnings or None,
-                    "normalization_ts": fields.Datetime.now(),
-                    "last_packet_id": packet_id,
-                    "last_packet_version": PACKET_SCHEMA_VERSION,
-                    "last_packet_payload": packet,
-                    "last_packet_ts": fields.Datetime.now(),
-                })
+                rec.write(
+                    {
+                        "normalized": True,
+                        "match_status": "normalized",
+                        "normalization_errors": None,
+                        "normalization_warnings": warnings or None,
+                        "normalization_ts": fields.Datetime.now(),
+                        "last_packet_id": packet_id,
+                        "last_packet_version": PACKET_SCHEMA_VERSION,
+                        "last_packet_payload": packet,
+                        "last_packet_ts": fields.Datetime.now(),
+                    }
+                )
                 rec._log_normalization("normalized", None)
                 success_count += 1
 
             except Exception as exc:
                 _logger.exception(
-                    "Unexpected error normalizing intake %s", rec.name,
+                    "Unexpected error normalizing intake %s",
+                    rec.name,
                 )
-                rec.write({
-                    "normalization_errors": [
-                        {"field": "_system", "message": str(exc)}
-                    ],
-                    "normalization_ts": fields.Datetime.now(),
-                    "match_status": "error",
-                    "normalized": False,
-                })
+                rec.write(
+                    {
+                        "normalization_errors": [{"field": "_system", "message": str(exc)}],
+                        "normalization_ts": fields.Datetime.now(),
+                        "match_status": "error",
+                        "normalized": False,
+                    }
+                )
                 error_count += 1
 
         _logger.info(
             "Batch normalize complete: %d success, %d errors out of %d.",
-            success_count, error_count, len(pending),
+            success_count,
+            error_count,
+            len(pending),
         )
 
     # ═════════════════════════════════════════════════════
@@ -184,98 +197,122 @@ class PlasticosIntakeNormalizer(models.Model):
 
         # ── Required fields ──────────────────────────────
         if not self.polymer:
-            errors.append({
-                "field": "polymer",
-                "message": "Polymer is required.",
-                "code": "INT-003",
-            })
+            errors.append(
+                {
+                    "field": "polymer",
+                    "message": "Polymer is required.",
+                    "code": "INT-003",
+                }
+            )
         elif config.require_polymer_in_canonical:
             polymer_upper = (self.polymer or "").strip().upper()
             canonical_polymers = self._get_canonical_polymers()
             if polymer_upper not in canonical_polymers:
-                errors.append({
-                    "field": "polymer",
-                    "message": f"Polymer '{self.polymer}' is not in the canonical "
-                               f"polymer list. Accepted: {sorted(canonical_polymers)}",
-                    "code": "INT-003",
-                })
+                errors.append(
+                    {
+                        "field": "polymer",
+                        "message": f"Polymer '{self.polymer}' is not in the canonical "
+                        f"polymer list. Accepted: {sorted(canonical_polymers)}",
+                        "code": "INT-003",
+                    }
+                )
 
         if not self.form:
-            errors.append({
-                "field": "form",
-                "message": "Form is required.",
-                "code": "INT-007",
-            })
+            errors.append(
+                {
+                    "field": "form",
+                    "message": "Form is required.",
+                    "code": "INT-007",
+                }
+            )
 
         if config.require_positive_quantity:
             if not self.quantity_per_load_lbs or self.quantity_per_load_lbs <= 0:
-                errors.append({
-                    "field": "quantity_per_load_lbs",
-                    "message": "Quantity per load must be positive.",
-                    "code": "INT-005",
-                })
+                errors.append(
+                    {
+                        "field": "quantity_per_load_lbs",
+                        "message": "Quantity per load must be positive.",
+                        "code": "INT-005",
+                    }
+                )
 
         if config.require_partner and not self.partner_id:
-            errors.append({
-                "field": "partner_id",
-                "message": "Partner is required.",
-                "code": "INT-004",
-            })
+            errors.append(
+                {
+                    "field": "partner_id",
+                    "message": "Partner is required.",
+                    "code": "INT-004",
+                }
+            )
 
         # ── Range validations (non-blocking if field empty) ──
         if config.validate_density_range and self.density_value:
             density_min = config.density_min or 0.0
             density_max = config.density_max or 0.0
             if self.density_value <= 0:
-                errors.append({
-                    "field": "density_value",
-                    "message": f"Density {self.density_value} must be greater than 0.",
-                    "code": "INT-007",
-                })
+                errors.append(
+                    {
+                        "field": "density_value",
+                        "message": f"Density {self.density_value} must be greater than 0.",
+                        "code": "INT-007",
+                    }
+                )
             elif density_max > 0 and not (density_min <= self.density_value <= density_max):
-                errors.append({
-                    "field": "density_value",
-                    "message": f"Density {self.density_value} outside configured range "
-                               f"{density_min}–{density_max} g/cm³.",
-                    "code": "INT-007",
-                })
+                errors.append(
+                    {
+                        "field": "density_value",
+                        "message": f"Density {self.density_value} outside configured range "
+                        f"{density_min}–{density_max} g/cm³.",
+                        "code": "INT-007",
+                    }
+                )
 
         if config.validate_mfi_positive and self.mfi_value:
             if self.mfi_value < 0:
-                errors.append({
-                    "field": "mfi_value",
-                    "message": f"MFI value {self.mfi_value} cannot be negative.",
-                    "code": "INT-007",
-                })
+                errors.append(
+                    {
+                        "field": "mfi_value",
+                        "message": f"MFI value {self.mfi_value} cannot be negative.",
+                        "code": "INT-007",
+                    }
+                )
 
         # ── Warnings (non-blocking) ─────────────────────
         if not self.color:
-            warnings.append({
-                "field": "color",
-                "message": "Color not specified — matching may be less precise.",
-                "code": "WARN-001",
-            })
+            warnings.append(
+                {
+                    "field": "color",
+                    "message": "Color not specified — matching may be less precise.",
+                    "code": "WARN-001",
+                }
+            )
 
         if not self.loads_per_month:
-            warnings.append({
-                "field": "loads_per_month",
-                "message": "Loads per month not specified — defaults to 1.",
-                "code": "WARN-002",
-            })
+            warnings.append(
+                {
+                    "field": "loads_per_month",
+                    "message": "Loads per month not specified — defaults to 1.",
+                    "code": "WARN-002",
+                }
+            )
 
         if not self.lat and not self.lon:
-            warnings.append({
-                "field": "geo",
-                "message": "No coordinates — geo-matching disabled for this intake.",
-                "code": "WARN-003",
-            })
+            warnings.append(
+                {
+                    "field": "geo",
+                    "message": "No coordinates — geo-matching disabled for this intake.",
+                    "code": "WARN-003",
+                }
+            )
 
         if not self.source_type:
-            warnings.append({
-                "field": "source_type",
-                "message": "Source type not specified — defaults to 'unknown'.",
-                "code": "WARN-004",
-            })
+            warnings.append(
+                {
+                    "field": "source_type",
+                    "message": "Source type not specified — defaults to 'unknown'.",
+                    "code": "WARN-004",
+                }
+            )
 
         # ── Material profile cross-check ─────────────────
         if hasattr(self, "material_profile_id") and self.material_profile_id:
@@ -284,13 +321,15 @@ class PlasticosIntakeNormalizer(models.Model):
                 mp_polymer = (mp.polymer_id.code or "").strip().upper()
                 intake_polymer = (self.polymer or "").strip().upper()
                 if mp_polymer and intake_polymer and mp_polymer != intake_polymer:
-                    warnings.append({
-                        "field": "polymer",
-                        "message": f"Intake polymer '{self.polymer}' differs from "
-                                   f"material profile polymer '{mp.polymer_id.code}'. "
-                                   f"Verify alignment.",
-                        "code": "WARN-005",
-                    })
+                    warnings.append(
+                        {
+                            "field": "polymer",
+                            "message": f"Intake polymer '{self.polymer}' differs from "
+                            f"material profile polymer '{mp.polymer_id.code}'. "
+                            f"Verify alignment.",
+                            "code": "WARN-005",
+                        }
+                    )
 
         return errors, warnings
 
@@ -313,10 +352,8 @@ class PlasticosIntakeNormalizer(models.Model):
             "schema_version": PACKET_SCHEMA_VERSION,
             "intake_id": self.name,
             "odoo_record_id": self.id,
-
             # ── Identity ─────────────────────────────────
             "partner": self._assemble_partner_block(),
-
             # ── Quality Specs ────────────────────────────
             "quality": {
                 "mfi_value": self.mfi_value or None,
@@ -330,14 +367,12 @@ class PlasticosIntakeNormalizer(models.Model):
                 "filler_pct": self.filler_pct or None,
                 "contamination_notes": self.contamination_notes or None,
             },
-
             # ── Origin Intelligence ──────────────────────
             "origin": {
                 "application": self.origin_application or None,
                 "sector": self.origin_sector or None,
                 "process_type": self.origin_process_type or None,
             },
-
             # ── Frequency (commercial terms) ─────────────
             "frequency": {
                 "quantity_per_load_lbs": self.quantity_per_load_lbs,
@@ -345,13 +380,10 @@ class PlasticosIntakeNormalizer(models.Model):
                 "deal_type": self.deal_type or "spot",
                 "contract_duration_months": self.contract_duration_months or None,
             },
-
             # ── Geo ──────────────────────────────────────
             "geo": self._assemble_geo_block(),
-
             # ── Material Profile Enrichment ──────────────
             "material_profile": self._assemble_material_profile_block(),
-
             # ── Facility Capability Enrichment ───────────
             "facility_capability": self._assemble_facility_block(),
         }
@@ -439,7 +471,8 @@ class PlasticosIntakeNormalizer(models.Model):
             return None
 
         profile = FP.search(
-            [("partner_id", "=", target.id)], limit=1,
+            [("partner_id", "=", target.id)],
+            limit=1,
         )
         if not profile:
             return None
@@ -458,15 +491,12 @@ class PlasticosIntakeNormalizer(models.Model):
         if hasattr(profile, "capacity_lbs_month"):
             block["capacity_lbs_month"] = profile.capacity_lbs_month or None
         if hasattr(profile, "contamination_tolerance_pct"):
-            block["contamination_tolerance_pct"] = (
-                profile.contamination_tolerance_pct or None
-            )
+            block["contamination_tolerance_pct"] = profile.contamination_tolerance_pct or None
 
         # Accepted polymers (M2M from PR #5)
         if hasattr(profile, "accepted_polymer_ids") and profile.accepted_polymer_ids:
             block["accepted_polymers"] = [
-                {"id": p.id, "code": p.code, "name": p.name}
-                for p in profile.accepted_polymer_ids
+                {"id": p.id, "code": p.code, "name": p.name} for p in profile.accepted_polymer_ids
             ]
         else:
             block["accepted_polymers"] = []
@@ -509,14 +539,17 @@ class PlasticosIntakeNormalizer(models.Model):
             detail = json.dumps(errors, indent=2)
 
         try:
-            AutoLog.sudo().create({
-                "model_name": "plasticos.intake",
-                "record_id": self.id,
-                "action_type": f"normalize_{action}",
-                "detail": detail or f"Packet {self.last_packet_id or 'N/A'}",
-            })
+            AutoLog.sudo().create(
+                {
+                    "model_name": "plasticos.intake",
+                    "record_id": self.id,
+                    "action_type": f"normalize_{action}",
+                    "detail": detail or f"Packet {self.last_packet_id or 'N/A'}",
+                }
+            )
         except Exception:
             _logger.debug(
-                "Could not write automation log for intake %s", self.name,
+                "Could not write automation log for intake %s",
+                self.name,
                 exc_info=True,
             )

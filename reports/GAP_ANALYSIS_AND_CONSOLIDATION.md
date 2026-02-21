@@ -1,7 +1,7 @@
 # PlasticOS IB-Odoo 19 — Gap Analysis & Module Consolidation Report
 
-**Date:** 2026-02-19  
-**Scope:** All 21 module directories on `staging`, 6 open PRs (#12–#17), 17 PRs total  
+**Date:** 2026-02-19
+**Scope:** All 21 module directories on `staging`, 6 open PRs (#12–#17), 17 PRs total
 **Method:** Full source audit — manifests, models, views, security, data, dependencies, field alignment
 
 ---
@@ -18,7 +18,7 @@ The repo contains **17 installable modules** on staging plus **4 unmerged module
 
 ### GAP-1: No Intake → Transaction Link
 
-**Severity: CRITICAL**  
+**Severity: CRITICAL**
 **Current state:** `plasticos.transaction` has no `intake_id` field. `plasticos.intake` has no `transaction_id` field. The entire pipeline (Intake → Match → Offer → Transaction) is **broken at the last step**. When an offer is accepted, `action_accept()` simply sets state to "accepted" — it does not create a transaction, sale order, or purchase order.
 
 **Impact:** The core revenue pipeline has no way to convert accepted offers into billable transactions. This is the single highest-leverage gap in the system.
@@ -29,7 +29,7 @@ The repo contains **17 installable modules** on staging plus **4 unmerged module
 
 ### GAP-2: Reference Type Models Are Orphaned
 
-**Severity: HIGH**  
+**Severity: HIGH**
 **Current state:** `plasticos_foundation_seed` defines 5 reference type models (`plasticos.form.type`, `plasticos.color.type`, `plasticos.source.type`, `plasticos.process.type`, `plasticos.deal.type`) with seed data. **Zero modules reference them via relational fields.** Instead, `plasticos.intake`, `plasticos.material.profile`, and `plasticos.facility.profile` all use inline `Selection` fields or `Char` fields for the same concepts.
 
 **Impact:** The seed data is installed but never queried. Selection values are hardcoded in 3+ modules and will drift. Adding a new polymer form requires editing Python code in multiple files instead of adding one XML record.
@@ -40,7 +40,7 @@ The repo contains **17 installable modules** on staging plus **4 unmerged module
 
 ### GAP-3: `plasticos_polymer` Ghost Module on Staging
 
-**Severity: HIGH**  
+**Severity: HIGH**
 **Current state:** The `plasticos_polymer/` directory on staging contains **only `__pycache__` files** — no `__init__.py`, no `__manifest__.py`, no source code. The polymer model (`plasticos.polymer`) was correctly consolidated into `plasticos_material_profile` (commit `d162b95`), but the empty directory was not cleaned up. Meanwhile, `plasticos_documents_native` (PR #13) still declares `plasticos_polymer` as a dependency.
 
 **Impact:** PR #13 cannot install because it depends on a module that does not exist on staging. The ghost directory will confuse developers.
@@ -51,7 +51,7 @@ The repo contains **17 installable modules** on staging plus **4 unmerged module
 
 ### GAP-4: `sales_rep_id` Referenced in Security Rules but Missing from Transaction Model
 
-**Severity: HIGH**  
+**Severity: HIGH**
 **Current state:** PR #12 (`plasticos_security_base`) defines a record rule `rule_transaction_sales_rep` with domain `[('sales_rep_id', '=', user.id)]`. The `plasticos.transaction` model has **no `sales_rep_id` field**. This will cause a runtime error when any Sales Rep user tries to access transactions.
 
 **Impact:** The entire RBAC system for Sales Reps will crash on transaction access.
@@ -62,7 +62,7 @@ The repo contains **17 installable modules** on staging plus **4 unmerged module
 
 ### GAP-5: Intake `polymer`/`form`/`color`/`source_type` Are Char Fields — Not Validated
 
-**Severity: HIGH**  
+**Severity: HIGH**
 **Current state:** `plasticos.intake` uses `fields.Char` for `polymer`, `form`, `color`, and `source_type`. These accept any freeform text. Meanwhile, `plasticos.material.profile` uses `fields.Selection` with controlled lists for the same concepts. The normalizer has to do runtime validation to catch mismatches.
 
 **Impact:** Dirty data enters the system at the intake level. The normalizer catches some errors, but matching and reporting will produce inconsistent results when intake records use "HDPE" vs "hdpe" vs "High Density PE".
@@ -73,7 +73,7 @@ The repo contains **17 installable modules** on staging plus **4 unmerged module
 
 ### GAP-6: Four Modules Stuck on Feature Branches — Not Merged to Staging
 
-**Severity: MEDIUM-HIGH**  
+**Severity: MEDIUM-HIGH**
 **Current state:** Four modules exist only on feature branches with only `__pycache__` artifacts on staging:
 
 | Module | Branch | PR | Status |
@@ -91,7 +91,7 @@ The repo contains **17 installable modules** on staging plus **4 unmerged module
 
 ### GAP-7: `numbercall` Field in Normalizer Cron (Deprecated in Odoo 19)
 
-**Severity: MEDIUM**  
+**Severity: MEDIUM**
 **Current state:** `plasticos_intake_normalizer/data/cron_batch_normalize.xml` uses `<field name="numbercall">-1</field>`. This field was deprecated in Odoo 19 and will cause a warning or error on install.
 
 **Impact:** Module install may fail or log warnings.

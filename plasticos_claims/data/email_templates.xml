@@ -86,13 +86,13 @@
             <h1 style="color: #dc3545; margin: 0; font-size: 28px;">Quality Claim Filed</h1>
             <div style="height: 3px; background: linear-gradient(90deg, #dc3545, #fd7e14); margin: 15px auto; width: 100px;"></div>
         </div>
-        
+
         <p style="font-size: 16px; color: #333;">Hello {{ object.transaction_id.supplier_id.name }},</p>
-        
+
         <p style="font-size: 16px; color: #333; line-height: 1.6;">
             A quality claim has been filed for transaction <strong style="color: #dc3545;">{{ object.transaction_id.name }}</strong>.
         </p>
-        
+
         <div style="background-color: #f8d7da; padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #dc3545;">
             <h3 style="margin-top: 0; color: #721c24; font-size: 20px;">Claim Details</h3>
             <table style="width: 100%; border-collapse: collapse;">
@@ -116,7 +116,7 @@
                 {% endif %}
             </table>
         </div>
-        
+
         {% if object.description %}
         <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #ffc107;">
             <h3 style="margin-top: 0; color: #856404; font-size: 18px;">Description</h3>
@@ -125,12 +125,12 @@
             </p>
         </div>
         {% endif %}
-        
+
         <p style="font-size: 16px; color: #333; line-height: 1.6;">
-            Our quality control team will investigate this claim and contact you with findings. 
+            Our quality control team will investigate this claim and contact you with findings.
             Please provide any relevant documentation or information that may help resolve this matter.
         </p>
-        
+
         <div style="border-top: 2px solid #e9ecef; padding-top: 20px; margin-top: 30px; text-align: center;">
             <p style="color: #666; font-size: 14px; margin: 5px 0;">
                 Best regards,<br/>
