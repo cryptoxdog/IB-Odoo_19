@@ -344,9 +344,9 @@ class PlasticosIntake(models.Model):
         if not mp:
             return
         self.polymer = mp.polymer_id.code if mp.polymer_id else self.polymer
-        self.form = mp.form or self.form
-        self.color = mp.color or self.color
-        self.source_type = mp.source_type or self.source_type
+        self.form = mp.form_id.code if mp.form_id else self.form
+        self.color = mp.color_id.code if mp.color_id else self.color
+        self.source_type = mp.source_type_id.code if mp.source_type_id else self.source_type
         self.mfi_value = mp.melt_flow_index or self.mfi_value
         self.density_value = mp.density or self.density_value
         self.contamination_pct = (

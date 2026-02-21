@@ -7,9 +7,9 @@
         <field name="arch" type="xml">
             <list>
                 <field name="facility_id"/>
-                <field name="source_type"/>
-                <field name="polymer"/>
-                <field name="form"/>
+                <field name="source_type_id"/>
+                <field name="polymer_id"/>
+                <field name="form_id"/>
                 <field name="process_type" optional="show"/>
                 <field name="max_contamination_pct" optional="show"/>
                 <field name="max_moisture_pct" optional="show"/>
@@ -32,9 +32,9 @@
 
                     <group>
                         <group string="Material Identity">
-                            <field name="source_type"/>
-                            <field name="polymer"/>
-                            <field name="form"/>
+                            <field name="source_type_id"/>
+                            <field name="polymer_id"/>
+                            <field name="form_id"/>
                             <field name="process_type"/>
                         </group>
                         <group string="Quality Gates">
@@ -74,17 +74,17 @@
         <field name="arch" type="xml">
             <search>
                 <field name="facility_id"/>
-                <field name="polymer"/>
-                <field name="form"/>
-                <field name="source_type"/>
+                <field name="polymer_id"/>
+                <field name="form_id"/>
+                <field name="source_type_id"/>
                 <filter name="active" string="Active" domain="[('active','=',True)]"/>
                 <filter name="inactive" string="Archived" domain="[('active','=',False)]"/>
                 <separator/>
                 <group expand="0" string="Group By">
-                    <filter name="group_polymer" string="Polymer" context="{'group_by': 'polymer'}"/>
-                    <filter name="group_form" string="Form" context="{'group_by': 'form'}"/>
+                    <filter name="group_polymer" string="Polymer" context="{'group_by': 'polymer_id'}"/>
+                    <filter name="group_form" string="Form" context="{'group_by': 'form_id'}"/>
                     <filter name="group_facility" string="Facility" context="{'group_by': 'facility_id'}"/>
-                    <filter name="group_source" string="Source Type" context="{'group_by': 'source_type'}"/>
+                    <filter name="group_source" string="Source Type" context="{'group_by': 'source_type_id'}"/>
                 </group>
             </search>
         </field>

@@ -1,7 +1,7 @@
 {
     "name": "PlasticOS Material Profile",
-    "version": "19.0.3.0.0",
-    "summary": "Material identity profiles with canonical polymer master",
+    "version": "19.0.4.0.0",
+    "summary": "Material identity profiles with canonical master registries",
     "license": "LGPL-3",
     "author": "PlasticOS",
     "category": "Hidden",
@@ -13,7 +13,13 @@
     "data": [
         "security/ir.model.access.csv",
         "data/polymer_data.xml",
+        "data/material_form_data.xml",
+        "data/material_color_data.xml",
+        "data/source_type_data.xml",
         "views/polymer_views.xml",
+        "views/material_form_views.xml",
+        "views/material_color_views.xml",
+        "views/source_type_views.xml",
         "views/material_profile_views.xml",
     ],
     "installable": True,

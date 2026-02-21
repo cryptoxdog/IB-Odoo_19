@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="1">
+    <record id="form_bale" model="plasticos.material.form">
+      <field name="name">Bale</field>
+      <field name="code">bale</field>
+      <field name="description">Compressed bales of plastic material, typically film or fiber.</field>
+      <field name="sequence">10</field>
+    </record>
+    <record id="form_regrind" model="plasticos.material.form">
+      <field name="name">Regrind</field>
+      <field name="code">regrind</field>
+      <field name="description">Ground plastic from production scrap or post-consumer material.</field>
+      <field name="sequence">20</field>
+    </record>
+    <record id="form_flake" model="plasticos.material.form">
+      <field name="name">Flake</field>
+      <field name="code">flake</field>
+      <field name="description">Washed and processed plastic chips, typically from bottles or containers.</field>
+      <field name="sequence">30</field>
+    </record>
+    <record id="form_pellet" model="plasticos.material.form">
+      <field name="name">Pellet</field>
+      <field name="code">pellet</field>
+      <field name="description">Extruded and cut plastic pellets ready for molding.</field>
+      <field name="sequence">40</field>
+    </record>
+    <record id="form_rollstock" model="plasticos.material.form">
+      <field name="name">Rollstock</field>
+      <field name="code">rollstock</field>
+      <field name="description">Rolls of plastic film or sheet material.</field>
+      <field name="sequence">50</field>
+    </record>
+    <record id="form_purge" model="plasticos.material.form">
+      <field name="name">Purge</field>
+      <field name="code">purge</field>
+      <field name="description">Material purged from extruders or molding machines during color/material changes.</field>
+      <field name="sequence">60</field>
+    </record>
+    <record id="form_lump" model="plasticos.material.form">
+      <field name="name">Lump</field>
+      <field name="code">lump</field>
+      <field name="description">Large chunks or lumps of plastic, often from purge or failed parts.</field>
+      <field name="sequence">70</field>
+    </record>
+    <record id="form_film" model="plasticos.material.form">
+      <field name="name">Film</field>
+      <field name="code">film</field>
+      <field name="description">Thin plastic film, loose or bundled.</field>
+      <field name="sequence">80</field>
+    </record>
+    <record id="form_sheet" model="plasticos.material.form">
+      <field name="name">Sheet</field>
+      <field name="code">sheet</field>
+      <field name="description">Rigid plastic sheets or panels.</field>
+      <field name="sequence">90</field>
+    </record>
+    <record id="form_powder" model="plasticos.material.form">
+      <field name="name">Powder</field>
+      <field name="code">powder</field>
+      <field name="description">Finely ground plastic powder, typically for rotomolding.</field>
+      <field name="sequence">100</field>
+    </record>
+    <record id="form_parts" model="plasticos.material.form">
+      <field name="name">Parts</field>
+      <field name="code">parts</field>
+      <field name="description">Whole or broken plastic parts, often from manufacturing rejects.</field>
+      <field name="sequence">110</field>
+    </record>
+    <record id="form_reuseable" model="plasticos.material.form">
+      <field name="name">Re-Useable</field>
+      <field name="code">re_useable</field>
+      <field name="description">Items that can be reused as-is without reprocessing.</field>
+      <field name="sequence">120</field>
+    </record>
+    <record id="form_other" model="plasticos.material.form">
+      <field name="name">Other</field>
+      <field name="code">other</field>
+      <field name="description">Other material forms not listed above.</field>
+      <field name="sequence">999</field>
+    </record>
+  </data>
+</odoo>

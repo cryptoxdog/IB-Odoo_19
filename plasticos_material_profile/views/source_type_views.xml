@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- ── List View ───────────────────────────────────────── -->
+  <record id="plasticos_source_type_view_list" model="ir.ui.view">
+    <field name="name">plasticos.source.type.list</field>
+    <field name="model">plasticos.source.type</field>
+    <field name="arch" type="xml">
+      <list editable="bottom">
+        <field name="sequence" widget="handle"/>
+        <field name="name"/>
+        <field name="code"/>
+        <field name="description"/>
+      </list>
+    </field>
+  </record>
+
+  <!-- ── Action ──────────────────────────────────────────── -->
+  <record id="plasticos_source_type_action" model="ir.actions.act_window">
+    <field name="name">Source Types</field>
+    <field name="res_model">plasticos.source.type</field>
+    <field name="view_mode">list</field>
+  </record>
+</odoo>

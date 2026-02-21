@@ -7,9 +7,9 @@
     <field name="arch" type="xml">
       <list editable="bottom">
         <field name="polymer_id"/>
-        <field name="form"/>
-        <field name="color"/>
-        <field name="source_type"/>
+        <field name="form_id"/>
+        <field name="color_id"/>
+        <field name="source_type_id"/>
         <field name="monthly_volume_lbs"/>
         <field name="contamination_percent"/>
       </list>
@@ -29,10 +29,10 @@
                 <group string="Material">
                   <field name="polymer_id"/>
                   <field name="sub_grade"/>
-                  <field name="form"/>
+                  <field name="form_id"/>
                 </group>
                 <group string="Appearance">
-                  <field name="color"/>
+                  <field name="color_id"/>
                   <field name="color_flexibility"/>
                 </group>
               </group>
@@ -41,7 +41,7 @@
             <page string="Source &amp; Process">
               <group>
                 <group>
-                  <field name="source_type"/>
+                  <field name="source_type_id"/>
                   <field name="origin_process_type"/>
                 </group>
                 <group>
@@ -115,9 +115,9 @@
           <field name="material_profile_ids">
             <list editable="bottom">
               <field name="polymer_id"/>
-              <field name="form"/>
-              <field name="color"/>
-              <field name="source_type"/>
+              <field name="form_id"/>
+              <field name="color_id"/>
+              <field name="source_type_id"/>
               <field name="monthly_volume_lbs"/>
               <field name="contamination_percent"/>
             </list>
@@ -129,10 +129,10 @@
                       <group string="Material">
                         <field name="polymer_id"/>
                         <field name="sub_grade"/>
-                        <field name="form"/>
+                        <field name="form_id"/>
                       </group>
                       <group string="Appearance">
-                        <field name="color"/>
+                        <field name="color_id"/>
                         <field name="color_flexibility"/>
                       </group>
                     </group>
@@ -140,7 +140,7 @@
                   <page string="Source &amp; Process">
                     <group>
                       <group>
-                        <field name="source_type"/>
+                        <field name="source_type_id"/>
                         <field name="origin_process_type"/>
                       </group>
                       <group>

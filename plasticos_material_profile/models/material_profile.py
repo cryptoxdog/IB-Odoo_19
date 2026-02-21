@@ -64,6 +64,17 @@ class PlasticosMaterialProfile(models.Model):
 
     sub_grade = fields.Char()
 
+    # ── Form (Many2one to master) ────────────────────────────
+    form_id = fields.Many2one(
+        "plasticos.material.form",
+        string="Form",
+        required=True,
+        index=True,
+        ondelete="restrict",
+        tracking=True,
+        help="Canonical material form from the master registry.",
+    )
+    # Backward-compatible computed field
     form = fields.Selection(
         [
             ("bale", "Bale"),
@@ -80,21 +91,41 @@ class PlasticosMaterialProfile(models.Model):
             ("re_useable", "Re-Useable"),
             ("other", "Other"),
         ],
+        compute="_compute_form_code",
+        store=True,
         index=True,
-        required=True,
+        help="Auto-populated from form_id. Kept for backward compatibility.",
     )
 
-    # ── Color ────────────────────────────────────────────────
+    # ── Color (Many2one to master) ───────────────────────────
+    color_id = fields.Many2one(
+        "plasticos.material.color",
+        string="Color",
+        index=True,
+        ondelete="restrict",
+        tracking=True,
+        help="Canonical material color from the master registry.",
+    )
+    # Backward-compatible computed field
     color = fields.Selection(
         [
             ("natural", "Natural"),
             ("white", "White"),
             ("black", "Black"),
             ("clear", "Clear"),
+            ("blue", "Blue"),
+            ("red", "Red"),
+            ("green", "Green"),
+            ("yellow", "Yellow"),
+            ("orange", "Orange"),
+            ("gray", "Gray"),
+            ("brown", "Brown"),
             ("mixed", "Mixed"),
             ("other", "Other"),
         ],
-        help="Primary color of the material.",
+        compute="_compute_color_code",
+        store=True,
+        help="Auto-populated from color_id. Kept for backward compatibility.",
     )
     color_flexibility = fields.Selection(
         [
@@ -105,7 +136,16 @@ class PlasticosMaterialProfile(models.Model):
         help="How flexible the buyer/seller is on color.",
     )
 
-    # ── Source & Process ─────────────────────────────────────
+    # ── Source Type (Many2one to master) ─────────────────────
+    source_type_id = fields.Many2one(
+        "plasticos.source.type",
+        string="Source Type",
+        index=True,
+        ondelete="restrict",
+        tracking=True,
+        help="Canonical source type from the master registry.",
+    )
+    # Backward-compatible computed field
     source_type = fields.Selection(
         [
             ("post_industrial", "Post-Industrial"),
@@ -118,6 +158,9 @@ class PlasticosMaterialProfile(models.Model):
             ("ocean_recovered", "Ocean Recovered"),
             ("unknown", "Unknown"),
         ],
+        compute="_compute_source_type_code",
+        store=True,
+        help="Auto-populated from source_type_id. Kept for backward compatibility.",
     )
 
     origin_process_type = fields.Selection(
@@ -188,7 +231,7 @@ class PlasticosMaterialProfile(models.Model):
     # ═════════════════════════════════════════════════════════
 
     _check_unique_partner_polymer = models.Constraint(
-        "unique(partner_id, polymer_id, form)",
+        "unique(partner_id, polymer_id, form_id)",
         "A facility may only have one profile per polymer + form combination.",
     )
 
@@ -200,6 +243,21 @@ class PlasticosMaterialProfile(models.Model):
     def _compute_polymer_code(self):
         for rec in self:
             rec.polymer = rec.polymer_id.code if rec.polymer_id else False
+
+    @api.depends("form_id", "form_id.code")
+    def _compute_form_code(self):
+        for rec in self:
+            rec.form = rec.form_id.code if rec.form_id else False
+
+    @api.depends("color_id", "color_id.code")
+    def _compute_color_code(self):
+        for rec in self:
+            rec.color = rec.color_id.code if rec.color_id else False
+
+    @api.depends("source_type_id", "source_type_id.code")
+    def _compute_source_type_code(self):
+        for rec in self:
+            rec.source_type = rec.source_type_id.code if rec.source_type_id else False
 
     # ═════════════════════════════════════════════════════════
     # Validation
@@ -240,8 +298,10 @@ class PlasticosMaterialProfile(models.Model):
                 "partner_id": rec.partner_id.id,
                 "polymer": rec.polymer_id.code if rec.polymer_id else None,
                 "polymer_name": rec.polymer_id.name if rec.polymer_id else None,
-                "form": rec.form,
-                "color": rec.color,
+                "form": rec.form_id.code if rec.form_id else None,
+                "form_name": rec.form_id.name if rec.form_id else None,
+                "color": rec.color_id.code if rec.color_id else None,
+                "color_name": rec.color_id.name if rec.color_id else None,
                 "quality": {
                     "mfi": rec.melt_flow_index,
                     "density": rec.density,
@@ -256,7 +316,8 @@ class PlasticosMaterialProfile(models.Model):
                     "frequency": rec.frequency,
                 },
                 "source": {
-                    "source_type": rec.source_type,
+                    "source_type": rec.source_type_id.code if rec.source_type_id else None,
+                    "source_type_name": rec.source_type_id.name if rec.source_type_id else None,
                     "origin_process": rec.origin_process_type,
                     "washed": rec.previously_washed,
                     "pelletized": rec.previously_pelletized,

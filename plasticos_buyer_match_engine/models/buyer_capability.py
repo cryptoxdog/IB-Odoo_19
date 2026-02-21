@@ -1,4 +1,4 @@
-from odoo import models, fields
+from odoo import models, fields, api
 
 
 class PlasticosBuyerCapability(models.Model):
@@ -24,8 +24,17 @@ class PlasticosBuyerCapability(models.Model):
         index=True,
     )
 
-    # ── Identity gates (aligned with material.profile selections) ──
+    # ── Identity gates (Many2one to master registries) ──
 
+    source_type_id = fields.Many2one(
+        "plasticos.source.type",
+        string="Source Type",
+        required=True,
+        index=True,
+        ondelete="restrict",
+        help="Canonical source type from the master registry.",
+    )
+    # Backward-compatible computed field
     source_type = fields.Selection(
         selection=[
             ("post_industrial", "Post-Industrial"),
@@ -38,10 +47,21 @@ class PlasticosBuyerCapability(models.Model):
             ("ocean_recovered", "Ocean Recovered"),
             ("unknown", "Unknown"),
         ],
-        required=True,
+        compute="_compute_source_type_code",
+        store=True,
         index=True,
+        help="Auto-populated from source_type_id. Kept for backward compatibility.",
     )
 
+    polymer_id = fields.Many2one(
+        "plasticos.polymer",
+        string="Polymer",
+        required=True,
+        index=True,
+        ondelete="restrict",
+        help="Canonical polymer type from the master registry.",
+    )
+    # Backward-compatible computed field
     polymer = fields.Selection(
         selection=[
             ("hdpe", "HDPE"),
@@ -67,10 +87,21 @@ class PlasticosBuyerCapability(models.Model):
             ("ewaste", "E-Waste"),
             ("other", "Other"),
         ],
-        required=True,
+        compute="_compute_polymer_code",
+        store=True,
         index=True,
+        help="Auto-populated from polymer_id. Kept for backward compatibility.",
     )
 
+    form_id = fields.Many2one(
+        "plasticos.material.form",
+        string="Form",
+        required=True,
+        index=True,
+        ondelete="restrict",
+        help="Canonical material form from the master registry.",
+    )
+    # Backward-compatible computed field
     form = fields.Selection(
         selection=[
             ("bale", "Bale"),
@@ -87,8 +118,10 @@ class PlasticosBuyerCapability(models.Model):
             ("re_useable", "Re-Useable"),
             ("other", "Other"),
         ],
-        required=True,
+        compute="_compute_form_code",
+        store=True,
         index=True,
+        help="Auto-populated from form_id. Kept for backward compatibility.",
     )
 
     process_type = fields.Selection(
@@ -148,7 +181,22 @@ class PlasticosBuyerCapability(models.Model):
     _sql_constraints = [
         (
             "unique_lane",
-            "unique(facility_id, source_type, polymer, form, process_type)",
+            "unique(facility_id, source_type_id, polymer_id, form_id, process_type)",
             "Duplicate capability lane for this facility.",
         )
     ]
+
+    @api.depends("source_type_id", "source_type_id.code")
+    def _compute_source_type_code(self):
+        for rec in self:
+            rec.source_type = rec.source_type_id.code if rec.source_type_id else False
+
+    @api.depends("polymer_id", "polymer_id.code")
+    def _compute_polymer_code(self):
+        for rec in self:
+            rec.polymer = rec.polymer_id.code if rec.polymer_id else False
+
+    @api.depends("form_id", "form_id.code")
+    def _compute_form_code(self):
+        for rec in self:
+            rec.form = rec.form_id.code if rec.form_id else False
