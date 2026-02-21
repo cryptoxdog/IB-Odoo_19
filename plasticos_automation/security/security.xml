@@ -15,5 +15,10 @@
                 Manages logistics automation settings and reviews escalation logs.
             </field>
         </record>
+
+        <!-- Make admin group imply automation manager groups -->
+        <record id="base.group_system" model="res.groups">
+            <field name="implied_ids" eval="[(4, ref('group_plasticos_automation_manager')), (4, ref('group_logistics_automation_manager'))]"/>
+        </record>
     </data>
 </odoo>

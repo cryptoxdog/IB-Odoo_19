@@ -207,7 +207,6 @@ class PlasticosIntake(models.Model):
         string="Deal Type",
         default="spot",
     )
-    contract_duration_months = fields.Integer(string="Contract Duration (mo)")
 
     # ═════════════════════════════════════════════════════════
     # Onboarding Status

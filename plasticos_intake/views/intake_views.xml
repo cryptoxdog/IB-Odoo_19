@@ -161,9 +161,6 @@
                                     <field name="origin_sector"/>
                                     <field name="origin_process_type"/>
                                 </group>
-                                <group string="Deal Terms">
-                                    <field name="contract_duration_months"/>
-                                </group>
                             </group>
                         </page>
 
