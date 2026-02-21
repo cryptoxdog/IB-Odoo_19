@@ -457,8 +457,8 @@ class PlasticosTransaction(models.Model):
         self.state = "active"
 
     def action_close(self):
-        service_docs = self.env["plasticos.compliance.service"]
-        service_commission = self.env["plasticos.commission.service"]
+        service_docs = self.env.get("plasticos.compliance.service")
+        service_commission = self.env.get("plasticos.commission.service")
 
         for rec in self:
             self.env.cr.execute(
@@ -474,7 +474,7 @@ class PlasticosTransaction(models.Model):
             if rec.load_id and rec.load_id.state != "closed":
                 raise UserError("Logistics must be closed.")
 
-            if not service_docs.is_compliant("plasticos.transaction", rec.id):
+            if service_docs and not service_docs.is_compliant("plasticos.transaction", rec.id):
                 raise UserError("Required documents missing.")
 
             if not self.env.user.has_group("plasticos_transaction.group_plasticos_manager"):
@@ -483,7 +483,7 @@ class PlasticosTransaction(models.Model):
             if rec.gross_margin < 0:
                 raise UserError("Cannot close transaction with negative gross margin.")
 
-            amount = service_commission.compute_commission(rec)
+            amount = service_commission.compute_commission(rec) if service_commission else 0.0
             rec.write({
                 "commission_locked_amount": amount,
                 "commission_locked": True,
