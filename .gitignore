@@ -24,6 +24,7 @@
 !/plasticos_security_base/
 !/plasticos_geolocalize/
 !/plasticos_web_lead_ai_triage/
+!/plasticos_buyer_match_engine/
 !/reports/
 
 # Ignore within allowed paths

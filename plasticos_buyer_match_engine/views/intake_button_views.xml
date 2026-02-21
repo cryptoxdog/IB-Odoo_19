@@ -1,0 +1,19 @@
+<odoo>
+
+    <!-- Add "Match to Buyers" button to the intake form header -->
+    <record id="view_intake_form_match_button" model="ir.ui.view">
+        <field name="name">plasticos.intake.form.match.button</field>
+        <field name="model">plasticos.intake</field>
+        <field name="inherit_id" ref="plasticos_intake.view_plasticos_intake_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_match_to_buyers"
+                        string="Match to Buyers"
+                        type="object"
+                        class="btn-primary"
+                        invisible="not material_profile_id"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
