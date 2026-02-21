@@ -121,6 +121,30 @@
 | `category_id` on `res.groups` | All `.xml` | Fixed (only 1 file had it) |
 | Enterprise model references | All `.xml` | Only in `plasticos_documents_native` (isolated, fixed) |
 
+### 9. Field Type Mismatches
+
+| Bug Type | Example | Fix |
+|----------|---------|-----|
+| Char fields instead of Many2one | `polymer`, `form`, `color` as Char in intake | Convert to Many2one referencing master registries |
+| View references wrong field name | `packaging_type` in view but `packaging_type_id` in model | Fix view to use correct field name |
+
+### 10. Data Overlap / Drift
+
+| Bug Type | Example | Fix |
+|----------|---------|-----|
+| Same value in multiple master data files | `Loose` in both forms and packaging | Remove from forms, keep in packaging only |
+| Duplicate conceptual values | `Reusable` in source_type and attributes | Remove from source_type, keep as attribute |
+| `Mixed` in multiple places | source_type, attributes, colors | Remove from source_type (keep in attributes and colors - different context) |
+
+### 11. Missing Fields in Views
+
+| Bug Type | Example | Fix |
+|----------|---------|-----|
+| Model field not in view | `origin_form_id` defined but not visible | Add to Material section in form view |
+| `material_attribute_ids` not visible | Many2many field exists but not in UI | Add with `widget="many2many_tags"` |
+
+---
+
 ### Remaining Warnings (Cosmetic)
 
 | Warning | Location | Status |
@@ -137,5 +161,21 @@
 | `32dded2` | fix: disable auto-geocoding, add rate limiting to cron |
 | `8052bb5` | fix: remove category_id from res.groups (Odoo 19) |
 | `ce82795` | fix: correct record rule domain - sale_order_id not transaction_id |
-| `pending` | fix: _sql_constraints → models.Constraint, fix duplicate labels |
-| `pending` | fix: plasticos_documents_native auto_install for Enterprise dependency |
+| `35c636e` | feat: Add material attributes, packaging types, convert intake to dropdowns |
+| `62de211` | fix: Minor model adjustments for material attributes and product |
+| `cb01665` | chore: Remove wizards folder |
+
+---
+
+## Fixed This Session (2026-02-21)
+
+| File | Issue | Fix |
+|------|-------|-----|
+| `plasticos_intake/models/intake.py` | `polymer`, `form`, `color` were Char fields (not dropdowns) | Converted to Many2one: `polymer_id`, `form_id`, `color_id` |
+| `plasticos_intake/views/intake_views.xml` | View referenced `packaging_type` but model has `packaging_type_id` | Fixed field name in view |
+| `plasticos_intake/views/intake_views.xml` | `origin_form_id` not visible in UI | Added to Material section |
+| `plasticos_intake/views/intake_views.xml` | `material_attribute_ids` not visible | Added with many2many_tags widget |
+| `plasticos_material_profile/data/material_form_data.xml` | `Loose` duplicated in forms AND packaging | Removed from forms (keep in packaging only) |
+| `plasticos_material_profile/data/source_type_data.xml` | `Reusable`, `Mixed`, `Unknown` duplicated as source types AND attributes | Removed from source_type (keep as attributes) |
+| `plasticos_material_profile/data/source_type_data.xml` | `No Value` was source type but should be attribute | Moved to attributes |
+| `plasticos_material_profile/data/material_attribute_data.xml` | `Contaminated` renamed | Changed to `Oily` per user request |
