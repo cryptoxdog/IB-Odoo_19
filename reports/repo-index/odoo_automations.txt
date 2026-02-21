@@ -1,0 +1,8 @@
+# PlasticOS Automated Actions Index
+# Generated: 2026-02-20
+# ============================================
+
+rule_qc_claim_notification | plasticos_automation/data/workflow_automations.xml
+rule_trigger_po_confirmation | plasticos_automation/data/workflow_automations.xml
+rule_trigger_so_notification | plasticos_automation/data/workflow_automations.xml
+rule_tx_delivered_on_do_done | plasticos_automation/data/workflow_automations.xml

@@ -1,0 +1,74 @@
+# PlasticOS Views Index
+# Generated: 2026-02-20
+# ============================================
+
+## plasticos_automation
+automation_config_views.xml
+automation_log_views.xml
+purchase_order_views.xml
+sale_order_views.xml
+stock_picking_views.xml
+
+## plasticos_buyer_match_engine
+buyer_capability_views.xml
+intake_button_views.xml
+
+## plasticos_claims
+claim_menus.xml
+claim_views.xml
+
+## plasticos_documents
+document_extension_views.xml
+document_rule_views.xml
+document_tag_views.xml
+document_views.xml
+transaction_docs_views.xml
+validation_matrix_views.xml
+
+## plasticos_documents_native
+document_native_views.xml
+
+## plasticos_facility_profile
+facility_profile_views.xml
+partner_type_views.xml
+
+## plasticos_geolocalize
+intake_geo_views.xml
+
+## plasticos_intake
+intake_views.xml
+
+## plasticos_intake_normalizer
+intake_normalizer_views.xml
+normalizer_config_views.xml
+
+## plasticos_logistics
+load_views.xml
+sale_order_button.xml
+
+## plasticos_matching
+match_result_views.xml
+
+## plasticos_material_profile
+material_color_views.xml
+material_form_views.xml
+material_profile_views.xml
+polymer_views.xml
+process_type_views.xml
+source_type_views.xml
+
+## plasticos_offer
+offer_views.xml
+
+## plasticos_security_base
+res_partner_views.xml
+
+## plasticos_transaction
+commission_views.xml
+transaction_docs_views.xml
+transaction_views.xml
+
+## plasticos_web_leads
+web_lead_config_views.xml
+web_lead_views.xml
+

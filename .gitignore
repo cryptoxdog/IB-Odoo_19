@@ -33,7 +33,8 @@ _Source Files/
 addons/
 docs/
 l9_trace/
-reports/
+reports/*
+!reports/repo-index/
 telemetry/
 tests-odoo/
 

@@ -22,7 +22,7 @@ class AccountMove(models.Model):
         return super().button_cancel()
 
     def action_post(self):
-        service = self.env["plasticos.compliance.service"]
+        service = self.env.get("plasticos.compliance.service")
         res = super().action_post()
 
         for rec in self:
@@ -31,7 +31,7 @@ class AccountMove(models.Model):
                 if so and so.transaction_id:
                     tx = so.transaction_id
 
-                    if not service.is_compliant("plasticos.transaction", tx.id):
+                    if service and not service.is_compliant("plasticos.transaction", tx.id):
                         raise UserError("Missing required documents for invoice posting.")
 
                     tx.customer_invoice_id = rec.id

@@ -151,7 +151,7 @@
                 <filter string="Penalties" name="penalties" domain="[('case_type', '=', 'lightweight_penalty')]"/>
                 <separator/>
                 <filter string="My Claims" name="my_claims" domain="[('assignee_id', '=', uid)]"/>
-                <group expand="0" string="Group By">
+                <group name="group_by">
                     <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
                     <filter string="Type" name="group_type" context="{'group_by': 'case_type'}"/>
                     <filter string="Severity" name="group_severity" context="{'group_by': 'severity'}"/>

@@ -1,0 +1,71 @@
+# PlasticOS XML Data File Index
+# Generated: 2026-02-20
+# ============================================
+
+## plasticos_accounting
+accounts.xml
+payment_terms.xml
+
+## plasticos_automation
+automation_config_data.xml
+config_parameters.xml
+contract_renewal_cron.xml
+cron_load_sla.xml
+cron_supplier_followup.xml
+cron_trucker_followup.xml
+email_templates.xml
+invoice_reminder_cron.xml
+sale_approval_cron.xml
+stock_alert_cron.xml
+workflow_automations.xml
+
+## plasticos_base
+material_taxonomy.xml
+partner_tags.xml
+sales_reps.xml
+
+## plasticos_claims
+claim_cron.xml
+claim_sequence.xml
+email_templates.xml
+
+## plasticos_documents
+cron.xml
+cron_missing_docs.xml
+document_tags_data.xml
+
+## plasticos_documents_native
+document_folders.xml
+document_tags.xml
+
+## plasticos_facility_profile
+equipment_type_data.xml
+partner_type_data.xml
+
+## plasticos_geolocalize
+cron_geo_backfill.xml
+
+## plasticos_intake_normalizer
+cron_batch_normalize.xml
+normalizer_config_data.xml
+
+## plasticos_logistics
+cron.xml
+incoterms.xml
+
+## plasticos_material_profile
+material_color_data.xml
+material_form_data.xml
+polymer_data.xml
+process_type_data.xml
+source_type_data.xml
+
+## plasticos_transaction
+audit_cron.xml
+cron_missing_docs.xml
+sequence.xml
+
+## plasticos_web_leads
+logistics_ir_rules.xml
+web_lead_config_data.xml
+
