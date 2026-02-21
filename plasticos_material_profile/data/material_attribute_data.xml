@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="1">
+    <!-- 
+    Material Attributes (multi-select condition modifiers)
+    
+    Boolean field mappings:
+    - With Metal -> has_metal=True
+    - No Metal -> has_metal=False
+    - Metalized -> is_metalized=True (film coating, different from metal contamination)
+    - Contaminated -> is_contaminated=True
+    -->
+    <record id="attr_clean" model="plasticos.material.attribute">
+      <field name="name">Clean</field>
+      <field name="code">clean</field>
+      <field name="description">Clean material without contamination, ready for processing.</field>
+      <field name="sequence">10</field>
+    </record>
+    <record id="attr_dry" model="plasticos.material.attribute">
+      <field name="name">Dry</field>
+      <field name="code">dry</field>
+      <field name="description">Dry material ready for processing.</field>
+      <field name="sequence">20</field>
+    </record>
+    <record id="attr_with_moisture" model="plasticos.material.attribute">
+      <field name="name">With Moisture</field>
+      <field name="code">with_moisture</field>
+      <field name="description">Material with moisture content.</field>
+      <field name="sequence">30</field>
+    </record>
+    <record id="attr_reusable" model="plasticos.material.attribute">
+      <field name="name">Reusable</field>
+      <field name="code">reusable</field>
+      <field name="description">Items that can be reused as-is without reprocessing.</field>
+      <field name="sequence">40</field>
+    </record>
+    <record id="attr_repro" model="plasticos.material.attribute">
+      <field name="name">Repro</field>
+      <field name="code">repro</field>
+      <field name="description">Reprocessed material (e.g., repro pellets from scrap).</field>
+      <field name="sequence">50</field>
+    </record>
+    <record id="attr_mixed" model="plasticos.material.attribute">
+      <field name="name">Mixed</field>
+      <field name="code">mixed</field>
+      <field name="description">Mixed materials from multiple sources or types.</field>
+      <field name="sequence">60</field>
+    </record>
+    <record id="attr_metalized" model="plasticos.material.attribute">
+      <field name="name">Metalized</field>
+      <field name="code">metalized</field>
+      <field name="description">Film with metallic coating (e.g., chip bags, candy wrappers).</field>
+      <field name="boolean_field">is_metalized</field>
+      <field name="boolean_value" eval="True"/>
+      <field name="sequence">70</field>
+    </record>
+    <record id="attr_with_metal" model="plasticos.material.attribute">
+      <field name="name">With Metal</field>
+      <field name="code">with_metal</field>
+      <field name="description">Contains metal contamination (e.g., rebar, staples, metal inserts).</field>
+      <field name="boolean_field">has_metal</field>
+      <field name="boolean_value" eval="True"/>
+      <field name="sequence">80</field>
+    </record>
+    <record id="attr_no_metal" model="plasticos.material.attribute">
+      <field name="name">No Metal</field>
+      <field name="code">no_metal</field>
+      <field name="description">Verified free of metal contamination.</field>
+      <field name="boolean_field">has_metal</field>
+      <field name="boolean_value" eval="False"/>
+      <field name="sequence">90</field>
+    </record>
+    <record id="attr_printed" model="plasticos.material.attribute">
+      <field name="name">Printed</field>
+      <field name="code">printed</field>
+      <field name="description">Material with printing/graphics/ink.</field>
+      <field name="sequence">100</field>
+    </record>
+    <record id="attr_no_print" model="plasticos.material.attribute">
+      <field name="name">No Print</field>
+      <field name="code">no_print</field>
+      <field name="description">Material without printing.</field>
+      <field name="sequence">110</field>
+    </record>
+    <record id="attr_oily" model="plasticos.material.attribute">
+      <field name="name">Oily</field>
+      <field name="code">oily</field>
+      <field name="description">Material with oil contamination.</field>
+      <field name="sequence">120</field>
+    </record>
+    <record id="attr_no_value" model="plasticos.material.attribute">
+      <field name="name">No Value</field>
+      <field name="code">no_value</field>
+      <field name="description">Material with no commercial value, for disposal.</field>
+      <field name="sequence">130</field>
+    </record>
+  </data>
+</odoo>

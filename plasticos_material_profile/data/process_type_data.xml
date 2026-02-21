@@ -19,6 +19,12 @@
       <field name="description">Inflating heated plastic into hollow shapes.</field>
       <field name="sequence">30</field>
     </record>
+    <record id="process_compounding" model="plasticos.process.type">
+      <field name="name">Compounding</field>
+      <field name="code">compounding</field>
+      <field name="description">Mixing polymers with additives to create custom blends.</field>
+      <field name="sequence">35</field>
+    </record>
     <record id="process_thermoform" model="plasticos.process.type">
       <field name="name">Thermoforming</field>
       <field name="code">thermoform</field>
@@ -42,12 +48,6 @@
       <field name="code">film_cast</field>
       <field name="description">Extruding plastic onto a chilled roller to create film.</field>
       <field name="sequence">70</field>
-    </record>
-    <record id="process_compounding" model="plasticos.process.type">
-      <field name="name">Compounding</field>
-      <field name="code">compounding</field>
-      <field name="description">Mixing polymers with additives to create custom blends.</field>
-      <field name="sequence">80</field>
     </record>
     <record id="process_other" model="plasticos.process.type">
       <field name="name">Other</field>

@@ -107,9 +107,29 @@ class PlasticosIntake(models.Model):
     # backward compatibility. Can be pre-filled from profile.
     # ═════════════════════════════════════════════════════════
 
-    polymer = fields.Char(required=True, index=True)
-    form = fields.Char(required=True, index=True)
-    color = fields.Char()
+    polymer_id = fields.Many2one(
+        "plasticos.polymer",
+        string="Polymer",
+        required=True,
+        index=True,
+        ondelete="restrict",
+        help="Polymer type from master registry.",
+    )
+    form_id = fields.Many2one(
+        "plasticos.material.form",
+        string="Form",
+        required=True,
+        index=True,
+        ondelete="restrict",
+        help="Material form from master registry.",
+    )
+    color_id = fields.Many2one(
+        "plasticos.material.color",
+        string="Color",
+        index=True,
+        ondelete="restrict",
+        help="Material color from master registry.",
+    )
     source_type_id = fields.Many2one(
         "plasticos.source.type",
         string="Source Type",
@@ -118,17 +138,29 @@ class PlasticosIntake(models.Model):
         help="Canonical source type from the master registry.",
     )
     grade_hint = fields.Char()
-    packaging_type = fields.Selection(
-        [
-            ("bale", "Bale"),
-            ("bulk_trailer", "Bulk Trailer"),
-            ("gaylord", "Gaylord"),
-            ("loose", "Loose"),
-            ("other", "Other"),
-            ("palletized", "Palletized"),
-            ("supersack", "Super Sack"),
-        ],
+    
+    # ── Origin Form (what it was before processing) ──────────
+    origin_form_id = fields.Many2one(
+        "plasticos.material.form",
+        string="Origin Form",
+        help="What the material was before processing (Drums, Bottles, Film). Optional.",
+    )
+    
+    # ── Packaging ────────────────────────────────────────────
+    packaging_type_id = fields.Many2one(
+        "plasticos.packaging.type",
         string="Packaging",
+        help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales). Optional.",
+    )
+
+    # ═════════════════════════════════════════════════════════
+    # Material Attributes (multi-select)
+    # ═════════════════════════════════════════════════════════
+
+    material_attribute_ids = fields.Many2many(
+        "plasticos.material.attribute",
+        string="Material Attributes",
+        help="Condition attributes: Clean, Metalized, With Metal, Printed, etc.",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -145,7 +177,14 @@ class PlasticosIntake(models.Model):
         string="Contamination (%)",
         help="Total contamination as a percentage.",
     )
-    has_metal = fields.Boolean(string="Metal Present")
+    has_metal = fields.Boolean(
+        string="Has Metal",
+        help="Contains metal contamination. Synced with 'With Metal'/'No Metal' attributes.",
+    )
+    is_metalized = fields.Boolean(
+        string="Metalized Film",
+        help="Film with metallic coating (e.g., chip bags). Synced with 'Metalized' attribute.",
+    )
     has_fr = fields.Boolean(string="Flame Retardant")
     has_residue = fields.Boolean(string="Residue Present")
     filler_type = fields.Char()
@@ -260,7 +299,7 @@ class PlasticosIntake(models.Model):
     # Computed
     # ═════════════════════════════════════════════════════════
 
-    @api.depends("partner_id", "facility_id", "polymer")
+    @api.depends("partner_id", "facility_id", "polymer_id")
     def _compute_name(self):
         """Auto-generate display name from company/facility + polymer."""
         for rec in self:
@@ -269,8 +308,8 @@ class PlasticosIntake(models.Model):
                 parts.append(rec.facility_id.name or "")
             elif rec.partner_id:
                 parts.append(rec.partner_id.name or "")
-            if rec.polymer:
-                parts.append(rec.polymer.upper())
+            if rec.polymer_id:
+                parts.append(rec.polymer_id.name.upper())
             if parts:
                 rec.name = " - ".join(filter(None, parts))
             else:
@@ -369,17 +408,72 @@ class PlasticosIntake(models.Model):
         mp = self.material_profile_id
         if not mp:
             return
-        self.polymer = mp.polymer_id.code if mp.polymer_id else self.polymer
-        self.form = mp.form_id.code if mp.form_id else self.form
-        self.color = mp.color_id.code if mp.color_id else self.color
+        self.polymer_id = mp.polymer_id.id if mp.polymer_id else self.polymer_id
+        self.form_id = mp.form_id.id if mp.form_id else self.form_id
+        self.color_id = mp.color_id.id if mp.color_id else self.color_id
         self.source_type_id = mp.source_type_id.id if mp.source_type_id else self.source_type_id
+        self.origin_form_id = mp.origin_form_id.id if mp.origin_form_id else self.origin_form_id
+        self.packaging_type_id = mp.packaging_type_id.id if mp.packaging_type_id else self.packaging_type_id
         self.mfi_value = mp.melt_flow_index or self.mfi_value
         self.density_value = mp.density or self.density_value
         self.contamination_pct = (
             mp.contamination_percent or self.contamination_pct
         )
+        # Copy attributes from profile
+        if mp.material_attribute_ids:
+            self.material_attribute_ids = [(6, 0, mp.material_attribute_ids.ids)]
+            self.has_metal = mp.has_metal
+            self.is_metalized = mp.is_metalized
         if not self.onboarding_status or self.onboarding_status == "draft":
             self.onboarding_status = "profiled"
+
+    # ═════════════════════════════════════════════════════════
+    # Attribute ↔ Boolean Sync
+    # ═════════════════════════════════════════════════════════
+
+    @api.onchange("material_attribute_ids")
+    def _onchange_material_attributes(self):
+        """Sync boolean fields when attributes change."""
+        attr_codes = set(self.material_attribute_ids.mapped("code"))
+        # Metal contamination: With Metal vs No Metal
+        if "with_metal" in attr_codes:
+            self.has_metal = True
+        elif "no_metal" in attr_codes:
+            self.has_metal = False
+        # Metalized film coating
+        if "metalized" in attr_codes:
+            self.is_metalized = True
+        else:
+            self.is_metalized = False
+
+    @api.onchange("has_metal")
+    def _onchange_has_metal(self):
+        """Sync attributes when has_metal boolean changes."""
+        Attribute = self.env["plasticos.material.attribute"]
+        with_metal = Attribute.search([("code", "=", "with_metal")], limit=1)
+        no_metal = Attribute.search([("code", "=", "no_metal")], limit=1)
+        if self.has_metal:
+            if with_metal and with_metal not in self.material_attribute_ids:
+                self.material_attribute_ids = [(4, with_metal.id)]
+            if no_metal and no_metal in self.material_attribute_ids:
+                self.material_attribute_ids = [(3, no_metal.id)]
+        else:
+            if no_metal and no_metal not in self.material_attribute_ids:
+                self.material_attribute_ids = [(4, no_metal.id)]
+            if with_metal and with_metal in self.material_attribute_ids:
+                self.material_attribute_ids = [(3, with_metal.id)]
+
+    @api.onchange("is_metalized")
+    def _onchange_is_metalized(self):
+        """Sync attributes when is_metalized boolean changes."""
+        Attribute = self.env["plasticos.material.attribute"]
+        metalized = Attribute.search([("code", "=", "metalized")], limit=1)
+        if self.is_metalized:
+            if metalized and metalized not in self.material_attribute_ids:
+                self.material_attribute_ids = [(4, metalized.id)]
+        else:
+            if metalized and metalized in self.material_attribute_ids:
+                self.material_attribute_ids = [(3, metalized.id)]
 
     # ═════════════════════════════════════════════════════════
     # Validation

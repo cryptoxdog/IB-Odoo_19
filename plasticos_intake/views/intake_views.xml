@@ -13,8 +13,8 @@
                 <field name="partner_id"/>
                 <field name="facility_id"/>
                 <field name="contact_id"/>
-                <field name="polymer"/>
-                <field name="form"/>
+                <field name="polymer_id"/>
+                <field name="form_id"/>
                 <field name="source_type_id"/>
                 <field name="material_profile_id"/>
                 <filter name="filter_draft"
@@ -43,7 +43,7 @@
                         context="{'group_by': 'facility_id'}"/>
                 <filter name="group_polymer"
                         string="Polymer"
-                        context="{'group_by': 'polymer'}"/>
+                        context="{'group_by': 'polymer_id'}"/>
                 <filter name="group_onboarding"
                         string="Onboarding Status"
                         context="{'group_by': 'onboarding_status'}"/>
@@ -63,8 +63,8 @@
                 <field name="partner_id"/>
                 <field name="facility_id" optional="show"/>
                 <field name="contact_id" optional="hide"/>
-                <field name="polymer"/>
-                <field name="form"/>
+                <field name="polymer_id"/>
+                <field name="form_id"/>
                 <field name="source_type_id" optional="show"/>
                 <field name="quantity_per_load_lbs"/>
                 <field name="loads_per_month" optional="show"/>
@@ -134,16 +134,18 @@
                     <!-- Material Section (main page, not in tab) -->
                     <group>
                         <group string="Material">
-                            <field name="polymer"/>
-                            <field name="form"/>
-                            <field name="color"/>
+                            <field name="polymer_id"/>
+                            <field name="form_id"/>
+                            <field name="origin_form_id"/>
+                            <field name="color_id"/>
                             <field name="source_type_id"/>
-                            <field name="grade_hint"/>
-                            <field name="packaging_type"/>
+                            <field name="packaging_type_id"/>
+                            <field name="material_attribute_ids" widget="many2many_tags"/>
                         </group>
                         <group string="Volume &amp; Frequency">
                             <field name="quantity_per_load_lbs"/>
                             <field name="loads_per_month"/>
+                            <field name="grade_hint"/>
                         </group>
                     </group>
 

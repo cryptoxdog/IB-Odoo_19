@@ -1,81 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <data noupdate="1">
+    <record id="color_clear" model="plasticos.material.color">
+      <field name="name">Clear</field>
+      <field name="code">clear</field>
+      <field name="hex_code">#E0E0E0</field>
+      <field name="sequence">10</field>
+    </record>
     <record id="color_natural" model="plasticos.material.color">
       <field name="name">Natural</field>
       <field name="code">natural</field>
       <field name="hex_code">#F5F5DC</field>
-      <field name="sequence">10</field>
+      <field name="sequence">20</field>
     </record>
     <record id="color_white" model="plasticos.material.color">
       <field name="name">White</field>
       <field name="code">white</field>
       <field name="hex_code">#FFFFFF</field>
-      <field name="sequence">20</field>
+      <field name="sequence">30</field>
     </record>
     <record id="color_black" model="plasticos.material.color">
       <field name="name">Black</field>
       <field name="code">black</field>
       <field name="hex_code">#000000</field>
-      <field name="sequence">30</field>
-    </record>
-    <record id="color_clear" model="plasticos.material.color">
-      <field name="name">Clear</field>
-      <field name="code">clear</field>
-      <field name="hex_code">#E0E0E0</field>
       <field name="sequence">40</field>
+    </record>
+    <record id="color_mixed" model="plasticos.material.color">
+      <field name="name">Mixed Color</field>
+      <field name="code">mixed</field>
+      <field name="sequence">50</field>
     </record>
     <record id="color_blue" model="plasticos.material.color">
       <field name="name">Blue</field>
       <field name="code">blue</field>
       <field name="hex_code">#0000FF</field>
-      <field name="sequence">50</field>
+      <field name="sequence">60</field>
+    </record>
+    <record id="color_blue_white" model="plasticos.material.color">
+      <field name="name">Blue/White</field>
+      <field name="code">blue_white</field>
+      <field name="hex_code">#87CEEB</field>
+      <field name="sequence">65</field>
     </record>
     <record id="color_red" model="plasticos.material.color">
       <field name="name">Red</field>
       <field name="code">red</field>
       <field name="hex_code">#FF0000</field>
-      <field name="sequence">60</field>
+      <field name="sequence">70</field>
     </record>
     <record id="color_green" model="plasticos.material.color">
       <field name="name">Green</field>
       <field name="code">green</field>
       <field name="hex_code">#00FF00</field>
-      <field name="sequence">70</field>
+      <field name="sequence">80</field>
     </record>
     <record id="color_yellow" model="plasticos.material.color">
       <field name="name">Yellow</field>
       <field name="code">yellow</field>
       <field name="hex_code">#FFFF00</field>
-      <field name="sequence">80</field>
+      <field name="sequence">90</field>
     </record>
     <record id="color_orange" model="plasticos.material.color">
       <field name="name">Orange</field>
       <field name="code">orange</field>
       <field name="hex_code">#FFA500</field>
-      <field name="sequence">90</field>
+      <field name="sequence">100</field>
     </record>
     <record id="color_gray" model="plasticos.material.color">
       <field name="name">Gray</field>
       <field name="code">gray</field>
       <field name="hex_code">#808080</field>
-      <field name="sequence">100</field>
-    </record>
-    <record id="color_brown" model="plasticos.material.color">
-      <field name="name">Brown</field>
-      <field name="code">brown</field>
-      <field name="hex_code">#8B4513</field>
       <field name="sequence">110</field>
-    </record>
-    <record id="color_mixed" model="plasticos.material.color">
-      <field name="name">Mixed</field>
-      <field name="code">mixed</field>
-      <field name="sequence">900</field>
-    </record>
-    <record id="color_other" model="plasticos.material.color">
-      <field name="name">Other</field>
-      <field name="code">other</field>
-      <field name="sequence">999</field>
     </record>
   </data>
 </odoo>

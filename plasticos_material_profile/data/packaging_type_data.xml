@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="1">
+    <!-- 
+    Packaging Types - How material is shipped/stored
+    Distinct from Form (what it IS) - this is how it's PACKAGED
+    -->
+    <record id="packaging_bales" model="plasticos.packaging.type">
+      <field name="name">Bales</field>
+      <field name="code">bales</field>
+      <field name="description">Compressed bales, typically for film or fiber.</field>
+      <field name="sequence">10</field>
+    </record>
+    <record id="packaging_gaylords" model="plasticos.packaging.type">
+      <field name="name">Gaylords</field>
+      <field name="code">gaylords</field>
+      <field name="description">Gaylord boxes (octagonal or square bulk containers).</field>
+      <field name="sequence">20</field>
+    </record>
+    <record id="packaging_supersacks" model="plasticos.packaging.type">
+      <field name="name">Super Sacks</field>
+      <field name="code">supersacks</field>
+      <field name="description">FIBC (Flexible Intermediate Bulk Container) bags.</field>
+      <field name="sequence">30</field>
+    </record>
+    <record id="packaging_palletized" model="plasticos.packaging.type">
+      <field name="name">Palletized</field>
+      <field name="code">palletized</field>
+      <field name="description">Material stacked and wrapped on pallets.</field>
+      <field name="sequence">40</field>
+    </record>
+    <record id="packaging_loose" model="plasticos.packaging.type">
+      <field name="name">Loose</field>
+      <field name="code">loose</field>
+      <field name="description">Loose bulk material, not packaged.</field>
+      <field name="sequence">50</field>
+    </record>
+    <record id="packaging_bulk_trailer" model="plasticos.packaging.type">
+      <field name="name">Bulk Trailer</field>
+      <field name="code">bulk_trailer</field>
+      <field name="description">Loose material loaded directly into trailer.</field>
+      <field name="sequence">60</field>
+    </record>
+    <record id="packaging_other" model="plasticos.packaging.type">
+      <field name="name">Other</field>
+      <field name="code">other</field>
+      <field name="description">Other packaging types.</field>
+      <field name="sequence">999</field>
+    </record>
+  </data>
+</odoo>

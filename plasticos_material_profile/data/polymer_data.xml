@@ -2,21 +2,29 @@
 <odoo>
   <data noupdate="1">
     <!-- ── Commodity Polymers ────────────────────────────── -->
+    <record id="polymer_pp" model="plasticos.polymer">
+      <field name="name">PP</field>
+      <field name="code">pp</field>
+      <field name="full_name">Polypropylene</field>
+      <field name="resin_id_code">5</field>
+      <field name="category">commodity</field>
+      <field name="sequence">10</field>
+    </record>
     <record id="polymer_hdpe" model="plasticos.polymer">
       <field name="name">HDPE</field>
       <field name="code">hdpe</field>
       <field name="full_name">High-Density Polyethylene</field>
       <field name="resin_id_code">2</field>
       <field name="category">commodity</field>
-      <field name="sequence">10</field>
+      <field name="sequence">20</field>
     </record>
-    <record id="polymer_hmw_hdpe" model="plasticos.polymer">
-      <field name="name">HMW HDPE</field>
-      <field name="code">hmw_hdpe</field>
+    <record id="polymer_hdpe_hmw" model="plasticos.polymer">
+      <field name="name">HDPE HMW</field>
+      <field name="code">hdpe_hmw</field>
       <field name="full_name">High Molecular Weight HDPE</field>
       <field name="resin_id_code">2</field>
       <field name="category">commodity</field>
-      <field name="sequence">15</field>
+      <field name="sequence">30</field>
     </record>
     <record id="polymer_ldpe" model="plasticos.polymer">
       <field name="name">LDPE</field>
@@ -24,7 +32,7 @@
       <field name="full_name">Low-Density Polyethylene</field>
       <field name="resin_id_code">4</field>
       <field name="category">commodity</field>
-      <field name="sequence">20</field>
+      <field name="sequence">40</field>
     </record>
     <record id="polymer_lldpe" model="plasticos.polymer">
       <field name="name">LLDPE</field>
@@ -32,23 +40,21 @@
       <field name="full_name">Linear Low-Density Polyethylene</field>
       <field name="resin_id_code">4</field>
       <field name="category">commodity</field>
-      <field name="sequence">30</field>
+      <field name="sequence">50</field>
     </record>
-    <record id="polymer_pp" model="plasticos.polymer">
-      <field name="name">PP</field>
-      <field name="code">pp</field>
-      <field name="full_name">Polypropylene</field>
-      <field name="resin_id_code">5</field>
+    <record id="polymer_plastic_pallets" model="plasticos.polymer">
+      <field name="name">Plastic Pallets</field>
+      <field name="code">plastic_pallets</field>
+      <field name="full_name">Plastic Pallets</field>
       <field name="category">commodity</field>
-      <field name="sequence">40</field>
+      <field name="sequence">55</field>
     </record>
-    <record id="polymer_bopp" model="plasticos.polymer">
-      <field name="name">BOPP</field>
-      <field name="code">bopp</field>
-      <field name="full_name">Biaxially Oriented Polypropylene</field>
-      <field name="resin_id_code">5</field>
+    <record id="polymer_gaylord_boxes" model="plasticos.polymer">
+      <field name="name">Gaylord Boxes</field>
+      <field name="code">gaylord_boxes</field>
+      <field name="full_name">Gaylord Boxes</field>
       <field name="category">commodity</field>
-      <field name="sequence">45</field>
+      <field name="sequence">57</field>
     </record>
     <record id="polymer_pet" model="plasticos.polymer">
       <field name="name">PET</field>
@@ -56,31 +62,15 @@
       <field name="full_name">Polyethylene Terephthalate</field>
       <field name="resin_id_code">1</field>
       <field name="category">commodity</field>
-      <field name="sequence">50</field>
+      <field name="sequence">70</field>
     </record>
-    <record id="polymer_rpet" model="plasticos.polymer">
-      <field name="name">rPET</field>
-      <field name="code">rpet</field>
-      <field name="full_name">Recycled Polyethylene Terephthalate</field>
-      <field name="resin_id_code">1</field>
+    <record id="polymer_abs" model="plasticos.polymer">
+      <field name="name">ABS</field>
+      <field name="code">abs</field>
+      <field name="full_name">Acrylonitrile Butadiene Styrene</field>
+      <field name="resin_id_code">7</field>
       <field name="category">commodity</field>
-      <field name="sequence">55</field>
-    </record>
-    <record id="polymer_ps" model="plasticos.polymer">
-      <field name="name">PS</field>
-      <field name="code">ps</field>
-      <field name="full_name">Polystyrene</field>
-      <field name="resin_id_code">6</field>
-      <field name="category">commodity</field>
-      <field name="sequence">60</field>
-    </record>
-    <record id="polymer_eps" model="plasticos.polymer">
-      <field name="name">EPS</field>
-      <field name="code">eps</field>
-      <field name="full_name">Expanded Polystyrene</field>
-      <field name="resin_id_code">6</field>
-      <field name="category">commodity</field>
-      <field name="sequence">62</field>
+      <field name="sequence">80</field>
     </record>
     <record id="polymer_hips" model="plasticos.polymer">
       <field name="name">HIPS</field>
@@ -88,7 +78,23 @@
       <field name="full_name">High-Impact Polystyrene</field>
       <field name="resin_id_code">6</field>
       <field name="category">commodity</field>
-      <field name="sequence">65</field>
+      <field name="sequence">90</field>
+    </record>
+    <record id="polymer_ps" model="plasticos.polymer">
+      <field name="name">PS</field>
+      <field name="code">ps</field>
+      <field name="full_name">Polystyrene</field>
+      <field name="resin_id_code">6</field>
+      <field name="category">commodity</field>
+      <field name="sequence">100</field>
+    </record>
+    <record id="polymer_eps" model="plasticos.polymer">
+      <field name="name">EPS</field>
+      <field name="code">eps</field>
+      <field name="full_name">Expanded Polystyrene</field>
+      <field name="resin_id_code">6</field>
+      <field name="category">commodity</field>
+      <field name="sequence">110</field>
     </record>
     <record id="polymer_pvc" model="plasticos.polymer">
       <field name="name">PVC</field>
@@ -96,31 +102,15 @@
       <field name="full_name">Polyvinyl Chloride</field>
       <field name="resin_id_code">3</field>
       <field name="category">commodity</field>
-      <field name="sequence">70</field>
-    </record>
-    <record id="polymer_eva" model="plasticos.polymer">
-      <field name="name">EVA</field>
-      <field name="code">eva</field>
-      <field name="full_name">Ethylene-Vinyl Acetate</field>
-      <field name="category">commodity</field>
-      <field name="sequence">75</field>
+      <field name="sequence">120</field>
     </record>
     <!-- ── Engineering Polymers ──────────────────────────── -->
-    <record id="polymer_abs" model="plasticos.polymer">
-      <field name="name">ABS</field>
-      <field name="code">abs</field>
-      <field name="full_name">Acrylonitrile Butadiene Styrene</field>
-      <field name="resin_id_code">7</field>
+    <record id="polymer_pmma" model="plasticos.polymer">
+      <field name="name">PMMA</field>
+      <field name="code">pmma</field>
+      <field name="full_name">Polymethyl Methacrylate (Acrylic)</field>
       <field name="category">engineering</field>
-      <field name="sequence">100</field>
-    </record>
-    <record id="polymer_pa" model="plasticos.polymer">
-      <field name="name">PA (Nylon)</field>
-      <field name="code">nylon</field>
-      <field name="full_name">Polyamide</field>
-      <field name="resin_id_code">7</field>
-      <field name="category">engineering</field>
-      <field name="sequence">110</field>
+      <field name="sequence">140</field>
     </record>
     <record id="polymer_pc" model="plasticos.polymer">
       <field name="name">PC</field>
@@ -128,35 +118,44 @@
       <field name="full_name">Polycarbonate</field>
       <field name="resin_id_code">7</field>
       <field name="category">engineering</field>
-      <field name="sequence">120</field>
+      <field name="sequence">150</field>
+    </record>
+    <record id="polymer_pc_pmma" model="plasticos.polymer">
+      <field name="name">PC-PMMA</field>
+      <field name="code">pc_pmma</field>
+      <field name="full_name">Polycarbonate-Acrylic Blend</field>
+      <field name="resin_id_code">7</field>
+      <field name="category">engineering</field>
+      <field name="sequence">155</field>
+    </record>
+    <record id="polymer_pa" model="plasticos.polymer">
+      <field name="name">PA (Nylon)</field>
+      <field name="code">nylon</field>
+      <field name="full_name">Polyamide</field>
+      <field name="resin_id_code">7</field>
+      <field name="category">engineering</field>
+      <field name="sequence">160</field>
     </record>
     <record id="polymer_pbt" model="plasticos.polymer">
       <field name="name">PBT</field>
       <field name="code">pbt</field>
       <field name="full_name">Polybutylene Terephthalate</field>
       <field name="category">engineering</field>
-      <field name="sequence">130</field>
+      <field name="sequence">170</field>
     </record>
     <record id="polymer_pom" model="plasticos.polymer">
       <field name="name">POM</field>
       <field name="code">pom</field>
       <field name="full_name">Polyoxymethylene (Acetal)</field>
       <field name="category">engineering</field>
-      <field name="sequence">140</field>
-    </record>
-    <record id="polymer_pmma" model="plasticos.polymer">
-      <field name="name">PMMA</field>
-      <field name="code">pmma</field>
-      <field name="full_name">Polymethyl Methacrylate (Acrylic)</field>
-      <field name="category">engineering</field>
-      <field name="sequence">150</field>
+      <field name="sequence">180</field>
     </record>
     <record id="polymer_ppo" model="plasticos.polymer">
       <field name="name">PPO</field>
       <field name="code">ppo</field>
       <field name="full_name">Polyphenylene Oxide</field>
       <field name="category">engineering</field>
-      <field name="sequence">160</field>
+      <field name="sequence">190</field>
     </record>
     <!-- ── Specialty Polymers ────────────────────────────── -->
     <record id="polymer_tpe" model="plasticos.polymer">
@@ -171,47 +170,22 @@
       <field name="code">tpo</field>
       <field name="full_name">Thermoplastic Olefin</field>
       <field name="category">specialty</field>
-      <field name="sequence">205</field>
-    </record>
-    <record id="polymer_tpu" model="plasticos.polymer">
-      <field name="name">TPU</field>
-      <field name="code">tpu</field>
-      <field name="full_name">Thermoplastic Polyurethane</field>
-      <field name="category">specialty</field>
       <field name="sequence">210</field>
     </record>
-    <record id="polymer_pla" model="plasticos.polymer">
-      <field name="name">PLA</field>
-      <field name="code">pla</field>
-      <field name="full_name">Polylactic Acid</field>
+    <record id="polymer_bopp" model="plasticos.polymer">
+      <field name="name">BOPP</field>
+      <field name="code">bopp</field>
+      <field name="full_name">Biaxially Oriented Polypropylene</field>
+      <field name="resin_id_code">5</field>
+      <field name="category">specialty</field>
+      <field name="sequence">215</field>
+    </record>
+    <record id="polymer_eva" model="plasticos.polymer">
+      <field name="name">EVA</field>
+      <field name="code">eva</field>
+      <field name="full_name">Ethylene-Vinyl Acetate</field>
       <field name="category">specialty</field>
       <field name="sequence">220</field>
-    </record>
-    <!-- ── Blends ────────────────────────────────────────── -->
-    <record id="polymer_pp_pe" model="plasticos.polymer">
-      <field name="name">PP-PE</field>
-      <field name="code">pp_pe</field>
-      <field name="full_name">Polypropylene-Polyethylene Blend</field>
-      <field name="resin_id_code">7</field>
-      <field name="category">specialty</field>
-      <field name="sequence">250</field>
-    </record>
-    <record id="polymer_pc_pmma" model="plasticos.polymer">
-      <field name="name">PC-PMMA</field>
-      <field name="code">pc_pmma</field>
-      <field name="full_name">Polycarbonate-Acrylic Blend</field>
-      <field name="resin_id_code">7</field>
-      <field name="category">specialty</field>
-      <field name="sequence">255</field>
-    </record>
-    <!-- ── Mixed / Non-Resin Categories ──────────────────── -->
-    <record id="polymer_mixed" model="plasticos.polymer">
-      <field name="name">Mixed</field>
-      <field name="code">mixed</field>
-      <field name="full_name">Mixed Plastics</field>
-      <field name="resin_id_code">7</field>
-      <field name="category">specialty</field>
-      <field name="sequence">280</field>
     </record>
     <record id="polymer_mrp" model="plasticos.polymer">
       <field name="name">MRP</field>
@@ -219,14 +193,29 @@
       <field name="full_name">Mixed Rigid Plastic</field>
       <field name="resin_id_code">7</field>
       <field name="category">specialty</field>
-      <field name="sequence">285</field>
+      <field name="sequence">230</field>
     </record>
     <record id="polymer_ewaste" model="plasticos.polymer">
       <field name="name">E-Waste</field>
       <field name="code">ewaste</field>
       <field name="full_name">Electronic Waste Plastics</field>
       <field name="category">specialty</field>
+      <field name="sequence">240</field>
+    </record>
+    <!-- Non-Plastic Categories (for complete product catalog) -->
+    <record id="polymer_occ" model="plasticos.polymer">
+      <field name="name">OCC</field>
+      <field name="code">occ</field>
+      <field name="full_name">Old Corrugated Cardboard</field>
+      <field name="category">specialty</field>
       <field name="sequence">300</field>
+    </record>
+    <record id="polymer_metal" model="plasticos.polymer">
+      <field name="name">Metal</field>
+      <field name="code">metal</field>
+      <field name="full_name">Metal (Aluminum, Steel, etc.)</field>
+      <field name="category">specialty</field>
+      <field name="sequence">310</field>
     </record>
   </data>
 </odoo>

@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <data noupdate="1">
-    <record id="source_post_industrial" model="plasticos.source.type">
-      <field name="name">Post-Industrial</field>
-      <field name="code">post_industrial</field>
-      <field name="description">Scrap generated during manufacturing processes, never reached consumer.</field>
-      <field name="sequence">10</field>
-    </record>
     <record id="source_post_consumer" model="plasticos.source.type">
       <field name="name">Post-Consumer</field>
       <field name="code">post_consumer</field>
       <field name="description">Material collected after consumer use (curbside, MRF, etc.).</field>
+      <field name="sequence">10</field>
+    </record>
+    <record id="source_post_industrial" model="plasticos.source.type">
+      <field name="name">Post-Industrial</field>
+      <field name="code">post_industrial</field>
+      <field name="description">Scrap generated during manufacturing processes, never reached consumer.</field>
       <field name="sequence">20</field>
     </record>
     <record id="source_post_commercial" model="plasticos.source.type">
@@ -48,12 +48,6 @@
       <field name="code">ocean_recovered</field>
       <field name="description">Plastic recovered from ocean or waterway cleanup efforts.</field>
       <field name="sequence">80</field>
-    </record>
-    <record id="source_unknown" model="plasticos.source.type">
-      <field name="name">Unknown</field>
-      <field name="code">unknown</field>
-      <field name="description">Source type not determined or not specified.</field>
-      <field name="sequence">999</field>
     </record>
   </data>
 </odoo>

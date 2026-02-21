@@ -12,6 +12,8 @@
     ],
     "data": [
         "security/ir.model.access.csv",
+        "data/material_attribute_data.xml",
+        "data/packaging_type_data.xml",
         "data/polymer_data.xml",
         "data/material_form_data.xml",
         "data/material_color_data.xml",

@@ -1,4 +1,6 @@
+from . import material_attribute
 from . import material_profile
+from . import packaging_type
 from . import polymer
 from . import material_form
 from . import material_color

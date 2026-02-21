@@ -184,13 +184,28 @@ class PlasticosMaterialProfile(models.Model):
     previously_washed = fields.Boolean()
     previously_pelletized = fields.Boolean()
 
+    # ── Material Attributes (multi-select) ─────────────────────
+    material_attribute_ids = fields.Many2many(
+        "plasticos.material.attribute",
+        string="Material Attributes",
+        help="Condition attributes: Clean, Metalized, With Metal, Printed, etc.",
+    )
+
     # ── Quality ──────────────────────────────────────────────
     melt_flow_index = fields.Float(index=True)
     density = fields.Float()
     moisture_percent = fields.Float()
     contamination_percent = fields.Float(index=True)
-    contains_metal = fields.Boolean()
-    contains_fr = fields.Boolean()
+    # Boolean flags linked to material_attribute_ids
+    has_metal = fields.Boolean(
+        string="Has Metal",
+        help="Contains metal contamination. Synced with 'With Metal'/'No Metal' attributes.",
+    )
+    is_metalized = fields.Boolean(
+        string="Metalized Film",
+        help="Film with metallic coating (e.g., chip bags). Synced with 'Metalized' attribute.",
+    )
+    contains_fr = fields.Boolean(string="Contains FR")
 
     # ── Volume ───────────────────────────────────────────────
     avg_lot_size_lbs = fields.Float(index=True)
@@ -208,16 +223,18 @@ class PlasticosMaterialProfile(models.Model):
         ],
     )
 
+    # ── Origin Form (what it was before processing) ──────────
+    origin_form_id = fields.Many2one(
+        "plasticos.material.form",
+        string="Origin Form",
+        help="What the material was before processing (Drums, Bottles, Film). Optional.",
+    )
+
     # ── Packaging ────────────────────────────────────────────
-    packaging_type = fields.Selection(
-        [
-            ("gaylord", "Gaylord"),
-            ("supersack", "Super Sack"),
-            ("loose", "Loose"),
-            ("palletized", "Palletized"),
-            ("bulk_trailer", "Bulk Trailer"),
-            ("other", "Other"),
-        ],
+    packaging_type_id = fields.Many2one(
+        "plasticos.packaging.type",
+        string="Packaging",
+        help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales). Optional.",
     )
 
     avg_truckloads_per_month = fields.Float()
@@ -264,6 +281,56 @@ class PlasticosMaterialProfile(models.Model):
             rec.source_type = rec.source_type_id.code if rec.source_type_id else False
 
     # ═════════════════════════════════════════════════════════
+    # Attribute ↔ Boolean Sync
+    # ═════════════════════════════════════════════════════════
+
+    @api.onchange("material_attribute_ids")
+    def _onchange_material_attributes(self):
+        """Sync boolean fields when attributes change."""
+        attr_codes = set(self.material_attribute_ids.mapped("code"))
+        # Metal contamination: With Metal vs No Metal
+        if "with_metal" in attr_codes:
+            self.has_metal = True
+        elif "no_metal" in attr_codes:
+            self.has_metal = False
+        # Metalized film coating
+        if "metalized" in attr_codes:
+            self.is_metalized = True
+        else:
+            self.is_metalized = False
+
+    @api.onchange("has_metal")
+    def _onchange_has_metal(self):
+        """Sync attributes when has_metal boolean changes."""
+        Attribute = self.env["plasticos.material.attribute"]
+        with_metal = Attribute.search([("code", "=", "with_metal")], limit=1)
+        no_metal = Attribute.search([("code", "=", "no_metal")], limit=1)
+        if self.has_metal:
+            # Add With Metal, remove No Metal
+            if with_metal and with_metal not in self.material_attribute_ids:
+                self.material_attribute_ids = [(4, with_metal.id)]
+            if no_metal and no_metal in self.material_attribute_ids:
+                self.material_attribute_ids = [(3, no_metal.id)]
+        else:
+            # Add No Metal, remove With Metal
+            if no_metal and no_metal not in self.material_attribute_ids:
+                self.material_attribute_ids = [(4, no_metal.id)]
+            if with_metal and with_metal in self.material_attribute_ids:
+                self.material_attribute_ids = [(3, with_metal.id)]
+
+    @api.onchange("is_metalized")
+    def _onchange_is_metalized(self):
+        """Sync attributes when is_metalized boolean changes."""
+        Attribute = self.env["plasticos.material.attribute"]
+        metalized = Attribute.search([("code", "=", "metalized")], limit=1)
+        if self.is_metalized:
+            if metalized and metalized not in self.material_attribute_ids:
+                self.material_attribute_ids = [(4, metalized.id)]
+        else:
+            if metalized and metalized in self.material_attribute_ids:
+                self.material_attribute_ids = [(3, metalized.id)]
+
+    # ═════════════════════════════════════════════════════════
     # Validation
     # ═════════════════════════════════════════════════════════
 
@@ -306,12 +373,14 @@ class PlasticosMaterialProfile(models.Model):
                 "form_name": rec.form_id.name if rec.form_id else None,
                 "color": rec.color_id.code if rec.color_id else None,
                 "color_name": rec.color_id.name if rec.color_id else None,
+                "attributes": rec.material_attribute_ids.mapped("code"),
                 "quality": {
                     "mfi": rec.melt_flow_index,
                     "density": rec.density,
                     "moisture": rec.moisture_percent,
                     "contamination": rec.contamination_percent,
-                    "metal": rec.contains_metal,
+                    "has_metal": rec.has_metal,
+                    "is_metalized": rec.is_metalized,
                     "fr": rec.contains_fr,
                 },
                 "volume": {
