@@ -2,58 +2,95 @@
 <odoo>
     <data noupdate="1">
 
-        <!-- ── Supplier Document Tags ──────────────────────────── -->
-        <record id="tag_supplier_bol" model="plasticos.document.tag">
-            <field name="name">Supplier BOL</field>
-            <field name="code">SUPPLIER_BOL</field>
-        </record>
-        <record id="tag_supplier_scale_ticket" model="plasticos.document.tag">
-            <field name="name">Supplier Scale Ticket</field>
-            <field name="code">SUPPLIER_SCALE</field>
-        </record>
-        <record id="tag_supplier_loading_pics" model="plasticos.document.tag">
-            <field name="name">Supplier Loading Pics</field>
-            <field name="code">SUPPLIER_LOADING_PICS</field>
-        </record>
-        <record id="tag_supplier_invoice" model="plasticos.document.tag">
-            <field name="name">Supplier Invoice</field>
-            <field name="code">SUPPLIER_INVOICE</field>
-        </record>
-        <record id="tag_supplier_packing_list" model="plasticos.document.tag">
-            <field name="name">Supplier Packing List</field>
-            <field name="code">SUPPLIER_PACKING_LIST</field>
+        <!-- ══════════════════════════════════════════════════════════
+             Document Tags — Aligned with plasticos_documents_native
+             
+             Codes match DOC_TYPE_TAG_MAP in document_sync.py for
+             seamless sync between native Enterprise docs and legacy.
+             ══════════════════════════════════════════════════════════ -->
+
+        <!-- ── Core Document Types ───────────────────────────────── -->
+        <record id="tag_bol" model="plasticos.document.tag">
+            <field name="name">Bill of Lading</field>
+            <field name="code">BOL</field>
         </record>
 
-        <!-- ── Carrier Document Tags ───────────────────────────── -->
-        <record id="tag_carrier_bol" model="plasticos.document.tag">
-            <field name="name">Carrier BOL</field>
-            <field name="code">CARRIER_BOL</field>
-        </record>
-        <record id="tag_carrier_cst" model="plasticos.document.tag">
-            <field name="name">Carrier CST</field>
-            <field name="code">CARRIER_CST</field>
-        </record>
-        <record id="tag_carrier_invoice" model="plasticos.document.tag">
-            <field name="name">Carrier Invoice</field>
-            <field name="code">CARRIER_INVOICE</field>
-        </record>
-        <record id="tag_carrier_do_confirmation" model="plasticos.document.tag">
-            <field name="name">Carrier DO Confirmation</field>
-            <field name="code">CARRIER_DO_CONFIRM</field>
+        <record id="tag_invoice" model="plasticos.document.tag">
+            <field name="name">Invoice / Vendor Bill</field>
+            <field name="code">INV</field>
         </record>
 
-        <!-- ── Buyer Document Tags ─────────────────────────────── -->
-        <record id="tag_buyer_po" model="plasticos.document.tag">
-            <field name="name">Buyer PO</field>
-            <field name="code">BUYER_PO</field>
+        <record id="tag_scale_ticket" model="plasticos.document.tag">
+            <field name="name">Scale Ticket</field>
+            <field name="code">SCALE</field>
         </record>
-        <record id="tag_buyer_receiving_report" model="plasticos.document.tag">
-            <field name="name">Buyer Receiving Report</field>
-            <field name="code">BUYER_RECEIVING_REPORT</field>
+
+        <record id="tag_loading_pic" model="plasticos.document.tag">
+            <field name="name">Loading Pic</field>
+            <field name="code">PHOTO</field>
         </record>
-        <record id="tag_buyer_claim_pics" model="plasticos.document.tag">
-            <field name="name">Buyer Claim Pics</field>
-            <field name="code">BUYER_CLAIM_PICS</field>
+
+        <record id="tag_packing_list" model="plasticos.document.tag">
+            <field name="name">Packing List</field>
+            <field name="code">PACKING</field>
+        </record>
+
+        <record id="tag_customer_order" model="plasticos.document.tag">
+            <field name="name">Customer Order</field>
+            <field name="code">CO</field>
+        </record>
+
+        <record id="tag_receiving_report" model="plasticos.document.tag">
+            <field name="name">Receiving Report</field>
+            <field name="code">RECEIVING</field>
+        </record>
+
+        <!-- ── Carrier-Specific ──────────────────────────────────── -->
+        <record id="tag_cst" model="plasticos.document.tag">
+            <field name="name">Carrier Scale Ticket (CST)</field>
+            <field name="code">CST</field>
+        </record>
+
+        <record id="tag_delivery_order" model="plasticos.document.tag">
+            <field name="name">Delivery Order Confirmation</field>
+            <field name="code">DO</field>
+        </record>
+
+        <!-- ── Compliance / Legal ────────────────────────────────── -->
+        <record id="tag_contract" model="plasticos.document.tag">
+            <field name="name">Contract</field>
+            <field name="code">CONTRACT</field>
+        </record>
+
+        <record id="tag_certification" model="plasticos.document.tag">
+            <field name="name">Certification</field>
+            <field name="code">CERT</field>
+        </record>
+
+        <record id="tag_permit" model="plasticos.document.tag">
+            <field name="name">Permit</field>
+            <field name="code">PERMIT</field>
+        </record>
+
+        <record id="tag_lab_report" model="plasticos.document.tag">
+            <field name="name">Lab / Test Report</field>
+            <field name="code">LAB</field>
+        </record>
+
+        <!-- ── Other ─────────────────────────────────────────────── -->
+        <record id="tag_correspondence" model="plasticos.document.tag">
+            <field name="name">Correspondence</field>
+            <field name="code">CORR</field>
+        </record>
+
+        <record id="tag_claim_photo" model="plasticos.document.tag">
+            <field name="name">Claim Photo</field>
+            <field name="code">CLAIM_PHOTO</field>
+        </record>
+
+        <record id="tag_other" model="plasticos.document.tag">
+            <field name="name">Other</field>
+            <field name="code">OTHER</field>
         </record>
 
     </data>

@@ -27,10 +27,13 @@ class DocumentSyncService(models.AbstractModel):
 
     # ── Tag Mapping ──────────────────────────────────────────
     # Maps x_doc_type selection values to plasticos.document.tag codes.
+    # Aligned with plasticos_documents/data/document_tags_data.xml
     DOC_TYPE_TAG_MAP = {
         "bol": "BOL",
         "invoice": "INV",
         "scale_ticket": "SCALE",
+        "loading_pic": "PHOTO",
+        "customer_order": "CO",
         "contract": "CONTRACT",
         "certification": "CERT",
         "permit": "PERMIT",
