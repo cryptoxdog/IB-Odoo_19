@@ -20,9 +20,8 @@
         "plasticos_material_profile",
         "purchase",
     ],
-    # Note: openai is optional - code handles gracefully if not installed
     "external_dependencies": {
-        "python": ["requests"],
+        "python": ["openai", "requests"],
     },
     "data": [
         "security/ir.model.access.csv",
