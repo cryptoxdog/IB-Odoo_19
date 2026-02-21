@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="1">
+    <record id="process_injection" model="plasticos.process.type">
+      <field name="name">Injection Molding</field>
+      <field name="code">injection</field>
+      <field name="description">High-pressure injection of molten plastic into molds.</field>
+      <field name="sequence">10</field>
+    </record>
+    <record id="process_extrusion" model="plasticos.process.type">
+      <field name="name">Extrusion</field>
+      <field name="code">extrusion</field>
+      <field name="description">Continuous pushing of molten plastic through a die.</field>
+      <field name="sequence">20</field>
+    </record>
+    <record id="process_blow_mold" model="plasticos.process.type">
+      <field name="name">Blow Molding</field>
+      <field name="code">blow_mold</field>
+      <field name="description">Inflating heated plastic into hollow shapes.</field>
+      <field name="sequence">30</field>
+    </record>
+    <record id="process_thermoform" model="plasticos.process.type">
+      <field name="name">Thermoforming</field>
+      <field name="code">thermoform</field>
+      <field name="description">Heating sheet plastic and forming over molds.</field>
+      <field name="sequence">40</field>
+    </record>
+    <record id="process_rotomold" model="plasticos.process.type">
+      <field name="name">Rotational Molding</field>
+      <field name="code">rotomold</field>
+      <field name="description">Rotating mold with plastic powder to coat interior.</field>
+      <field name="sequence">50</field>
+    </record>
+    <record id="process_film_blown" model="plasticos.process.type">
+      <field name="name">Film Blown</field>
+      <field name="code">film_blown</field>
+      <field name="description">Extruding plastic into a tube and inflating to create film.</field>
+      <field name="sequence">60</field>
+    </record>
+    <record id="process_film_cast" model="plasticos.process.type">
+      <field name="name">Film Cast</field>
+      <field name="code">film_cast</field>
+      <field name="description">Extruding plastic onto a chilled roller to create film.</field>
+      <field name="sequence">70</field>
+    </record>
+    <record id="process_compounding" model="plasticos.process.type">
+      <field name="name">Compounding</field>
+      <field name="code">compounding</field>
+      <field name="description">Mixing polymers with additives to create custom blends.</field>
+      <field name="sequence">80</field>
+    </record>
+    <record id="process_other" model="plasticos.process.type">
+      <field name="name">Other</field>
+      <field name="code">other</field>
+      <field name="description">Other manufacturing processes not listed above.</field>
+      <field name="sequence">999</field>
+    </record>
+  </data>
+</odoo>

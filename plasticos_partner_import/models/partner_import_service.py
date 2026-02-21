@@ -115,8 +115,8 @@ class PlasticosPartnerImportService(models.AbstractModel):
 
     def _get_default_payment_term(self):
         """Get default payment term (Net 30) for partners."""
-        # Try XML ID first (from plasticos_foundation_seed)
-        term = self.env.ref('plasticos_foundation_seed.payment_term_net_30', raise_if_not_found=False)
+        # Try XML ID first (from plasticos_accounting)
+        term = self.env.ref('plasticos_accounting.payment_term_net_30', raise_if_not_found=False)
         if term:
             return term.id
         # Fallback: search by name
