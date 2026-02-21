@@ -4,18 +4,18 @@
 # Version: 4.0C
 # Created: 2025-10-28T09:48:00Z
 # Author: Igor Beylin
-# Purpose: Real-time health monitoring and diagnostics agent 
-#          for autonomous Odoo 19 subsystems. Ensures uptime, 
-#          validates AI agent responsiveness, and maintains 
+# Purpose: Real-time health monitoring and diagnostics agent
+#          for autonomous Odoo 19 subsystems. Ensures uptime,
+#          validates AI agent responsiveness, and maintains
 #          telemetry logs for proactive intervention.
 # ============================================================
 
 """
 Agent Health Monitor
 ====================
-This module implements a non-intrusive monitoring layer that 
-tracks system health indicators and AI agent stability across 
-all operational nodes. It functions as a heartbeat system and 
+This module implements a non-intrusive monitoring layer that
+tracks system health indicators and AI agent stability across
+all operational nodes. It functions as a heartbeat system and
 diagnostic observer, ensuring no silent failures occur.
 
 Core Responsibilities:
@@ -26,8 +26,9 @@ Core Responsibilities:
 """
 
 import datetime
-import statistics
-from odoo import models, fields, api
+
+from odoo import api, fields, models
+
 
 class AgentHealthMonitor(models.Model):
     _name = "plasticos.agent.health"
@@ -39,11 +40,11 @@ class AgentHealthMonitor(models.Model):
     avg_response_time = fields.Float("Average Response Time (ms)")
     uptime_ratio = fields.Float("Uptime % (24h)", default=100.0)
     anomaly_score = fields.Float("Anomaly Score", default=0.0)
-    status = fields.Selection([
-        ("healthy", "Healthy"),
-        ("warning", "Warning"),
-        ("critical", "Critical")
-    ], default="healthy", string="System Status")
+    status = fields.Selection(
+        [("healthy", "Healthy"), ("warning", "Warning"), ("critical", "Critical")],
+        default="healthy",
+        string="System Status",
+    )
     notes = fields.Text("Diagnostic Notes")
 
     @api.model
@@ -66,14 +67,11 @@ class AgentHealthMonitor(models.Model):
     def _check_agent(self, agent_name):
         """Simulates agent ping and collects response metrics."""
         import random
+
         latency = random.uniform(50, 500)
         uptime = random.uniform(95, 100)
         deviation = random.uniform(0, 1)
-        return {
-            "latency": latency,
-            "uptime": uptime,
-            "anomaly": deviation
-        }
+        return {"latency": latency, "uptime": uptime, "anomaly": deviation}
 
     def _log_metrics(self, agent, metrics):
         """Records metrics to database and classifies status."""
@@ -84,14 +82,16 @@ class AgentHealthMonitor(models.Model):
         else:
             status = "healthy"
 
-        record = self.create({
-            "agent_name": agent,
-            "avg_response_time": metrics["latency"],
-            "uptime_ratio": metrics["uptime"],
-            "anomaly_score": metrics["anomaly"],
-            "status": status,
-            "notes": f"Latency: {metrics['latency']:.1f}ms | Uptime: {metrics['uptime']:.2f}%"
-        })
+        record = self.create(
+            {
+                "agent_name": agent,
+                "avg_response_time": metrics["latency"],
+                "uptime_ratio": metrics["uptime"],
+                "anomaly_score": metrics["anomaly"],
+                "status": status,
+                "notes": f"Latency: {metrics['latency']:.1f}ms | Uptime: {metrics['uptime']:.2f}%",
+            }
+        )
         return record
 
     def _escalate(self, record):
@@ -102,7 +102,7 @@ class AgentHealthMonitor(models.Model):
             actor="AgentHealthMonitor",
             module=record.agent_name,
             context_ref="health_check",
-            message=f"Agent {record.agent_name} is {record.status.upper()} - {record.notes}"
+            message=f"Agent {record.agent_name} is {record.status.upper()} - {record.notes}",
         )
         if record.status == "critical":
             recovery = self.env["plasticos.recovery.daemon"]
@@ -114,10 +114,12 @@ class AgentHealthMonitor(models.Model):
 # SYSTEM INITIALIZATION HOOK
 # ------------------------------------------------------------
 
+
 def initialize_health_monitor(env):
     """Registers the health monitor and performs first diagnostic pass."""
     monitor = env["plasticos.agent.health"]
     monitor.poll_agents()
+
 
 # End of File
 # ============================================================

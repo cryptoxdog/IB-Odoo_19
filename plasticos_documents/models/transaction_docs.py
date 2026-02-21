@@ -1,7 +1,7 @@
-from odoo import models, fields, api
-
-from datetime import date, timedelta
 import logging
+from datetime import date, timedelta
+
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -63,25 +63,32 @@ class PlasticosTransactionDocs(models.Model):
 
         for tx in self:
             missing_codes = compliance.get_missing_documents(
-                "plasticos.transaction", tx.id,
+                "plasticos.transaction",
+                tx.id,
             )
             missing_set = set(missing_codes) if missing_codes else set()
 
             # Look up which tags belong to which category
-            supplier_tags = matrix_model.search([
-                ("doc_category", "=", "supplier"),
-                ("active", "=", True),
-            ]).mapped("tag_id.code")
+            supplier_tags = matrix_model.search(
+                [
+                    ("doc_category", "=", "supplier"),
+                    ("active", "=", True),
+                ]
+            ).mapped("tag_id.code")
 
-            carrier_tags = matrix_model.search([
-                ("doc_category", "=", "carrier"),
-                ("active", "=", True),
-            ]).mapped("tag_id.code")
+            carrier_tags = matrix_model.search(
+                [
+                    ("doc_category", "=", "carrier"),
+                    ("active", "=", True),
+                ]
+            ).mapped("tag_id.code")
 
-            buyer_tags = matrix_model.search([
-                ("doc_category", "=", "buyer"),
-                ("active", "=", True),
-            ]).mapped("tag_id.code")
+            buyer_tags = matrix_model.search(
+                [
+                    ("doc_category", "=", "buyer"),
+                    ("active", "=", True),
+                ]
+            ).mapped("tag_id.code")
 
             tx.x_missing_supplier_docs = bool(missing_set & set(supplier_tags))
             tx.x_missing_carrier_docs = bool(missing_set & set(carrier_tags))
@@ -112,9 +119,11 @@ class PlasticosTransactionDocs(models.Model):
         since transaction creation. Posts reminders and escalation
         activities as needed. Logs all actions to plasticos.automation.log.
         """
-        transactions = self.search([
-            ("state", "=", "active"),
-        ])
+        transactions = self.search(
+            [
+                ("state", "=", "active"),
+            ]
+        )
 
         log_model = self.env.get("plasticos.automation.log")
         matrix_model = self.env["plasticos.document.validation.matrix"]
@@ -124,11 +133,7 @@ class PlasticosTransactionDocs(models.Model):
             # Recompute missing flags
             tx._compute_missing_doc_flags()
 
-            has_missing = (
-                tx.x_missing_supplier_docs
-                or tx.x_missing_carrier_docs
-                or tx.x_missing_buyer_docs
-            )
+            has_missing = tx.x_missing_supplier_docs or tx.x_missing_carrier_docs or tx.x_missing_buyer_docs
 
             if not has_missing:
                 if tx.x_missing_doc_status != "complete":
@@ -144,10 +149,12 @@ class PlasticosTransactionDocs(models.Model):
             overdue_threshold = 2
             escalation_threshold = 5
 
-            rules = self.env["plasticos.document.rule"].search([
-                ("res_model", "=", "plasticos.transaction"),
-                ("active", "=", True),
-            ])
+            rules = self.env["plasticos.document.rule"].search(
+                [
+                    ("res_model", "=", "plasticos.transaction"),
+                    ("active", "=", True),
+                ]
+            )
             for rule in rules:
                 if hasattr(rule, "x_overdue_business_days") and rule.x_overdue_business_days:
                     overdue_threshold = min(overdue_threshold, rule.x_overdue_business_days)
@@ -171,18 +178,19 @@ class PlasticosTransactionDocs(models.Model):
                 tx.x_last_doc_reminder_date = today
                 tx.message_post(
                     body="Automated reminder: transaction %s has missing "
-                         "documents (overdue by %d business days)."
-                         % (tx.name, bd),
+                    "documents (overdue by %d business days)." % (tx.name, bd),
                     message_type="notification",
                 )
 
                 if log_model is not None:
-                    log_model.create({
-                        "name": "Doc reminder for %s" % tx.name,
-                        "model_name": "plasticos.transaction",
-                        "res_id": tx.id,
-                        "action_type": "doc_reminder",
-                    })
+                    log_model.create(
+                        {
+                            "name": "Doc reminder for %s" % tx.name,
+                            "model_name": "plasticos.transaction",
+                            "res_id": tx.id,
+                            "action_type": "doc_reminder",
+                        }
+                    )
 
             # Escalate
             elif new_status == "escalated":
@@ -191,21 +199,21 @@ class PlasticosTransactionDocs(models.Model):
                     user_id=self.env.user.id,
                     summary="ESCALATION: Missing documents on %s" % tx.name,
                     note="Transaction %s has missing documents for %d "
-                         "business days. Manual intervention required."
-                         % (tx.name, bd),
+                    "business days. Manual intervention required." % (tx.name, bd),
                 )
 
                 if log_model is not None:
-                    log_model.create({
-                        "name": "Doc escalation for %s" % tx.name,
-                        "model_name": "plasticos.transaction",
-                        "res_id": tx.id,
-                        "action_type": "doc_escalation",
-                    })
+                    log_model.create(
+                        {
+                            "name": "Doc escalation for %s" % tx.name,
+                            "model_name": "plasticos.transaction",
+                            "res_id": tx.id,
+                            "action_type": "doc_escalation",
+                        }
+                    )
 
             _logger.info(
-                "Documents extension: TX %s status=%s (bd=%d, missing: "
-                "supplier=%s, carrier=%s, buyer=%s)",
+                "Documents extension: TX %s status=%s (bd=%d, missing: " "supplier=%s, carrier=%s, buyer=%s)",
                 tx.name,
                 new_status,
                 bd,

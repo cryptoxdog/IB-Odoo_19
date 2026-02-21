@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Claim Bulk Update Wizard Form -->
+    <record id="view_claim_bulk_update_wizard_form" model="ir.ui.view">
+        <field name="name">plasticos.claim.bulk.update.wizard.form</field>
+        <field name="model">plasticos.claim.bulk.update.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Bulk Update Claims">
+                <group>
+                    <field name="claim_count" readonly="1"/>
+                    <field name="action_type" widget="radio"/>
+                </group>
+                <group invisible="action_type != 'status'">
+                    <field name="new_state"/>
+                    <field name="resolution_note" invisible="new_state != 'resolved'"/>
+                </group>
+                <group invisible="action_type != 'assign'">
+                    <field name="assignee_id"/>
+                </group>
+                <group invisible="action_type != 'escalate'">
+                    <field name="escalation_reason"/>
+                    <field name="assignee_id" string="Escalate To"/>
+                </group>
+                <group>
+                    <field name="reason"/>
+                </group>
+                <field name="claim_ids" invisible="1"/>
+                <footer>
+                    <button name="action_execute" string="Execute" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action to open wizard from list view -->
+    <record id="action_claim_bulk_update_wizard" model="ir.actions.act_window">
+        <field name="name">Bulk Update Claims</field>
+        <field name="res_model">plasticos.claim.bulk.update.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="plasticos_claims.model_plasticos_claim"/>
+        <field name="binding_view_types">list</field>
+    </record>
+</odoo>

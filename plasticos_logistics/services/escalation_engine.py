@@ -1,6 +1,5 @@
 from odoo import fields
 
-
 ESCALATION_HOURS = {
     "awaiting_ready": 48,
     "ready_confirmed": 24,
@@ -12,9 +11,7 @@ ESCALATION_HOURS = {
 
 def check_escalations(env):
     now = fields.Datetime.now()
-    loads = env["plasticos.load"].search([
-        ("state", "in", list(ESCALATION_HOURS.keys()))
-    ])
+    loads = env["plasticos.load"].search([("state", "in", list(ESCALATION_HOURS.keys()))])
     for load in loads:
         if not load.entered_state_at:
             continue

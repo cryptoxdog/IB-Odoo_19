@@ -1,6 +1,6 @@
-from odoo import models, fields, api
-
 import logging
+
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -36,12 +36,14 @@ class StockPickingAutomation(models.Model):
         Targets outgoing pickings with a trucker assigned but no receipt
         confirmation. Escalates to manager after 3 follow-ups.
         """
-        pickings = self.search([
-            ("picking_type_code", "=", "outgoing"),
-            ("x_trucker_id", "!=", False),
-            ("x_receipt_confirmation", "=", False),
-            ("state", "not in", ("done", "cancel")),
-        ])
+        pickings = self.search(
+            [
+                ("picking_type_code", "=", "outgoing"),
+                ("x_trucker_id", "!=", False),
+                ("x_receipt_confirmation", "=", False),
+                ("state", "not in", ("done", "cancel")),
+            ]
+        )
 
         log_model = self.env.get("plasticos.automation.log")
 
@@ -51,10 +53,8 @@ class StockPickingAutomation(models.Model):
             # Post chatter notification
             picking.message_post(
                 body="Automated follow-up #%d: trucker %s has not confirmed "
-                     "receipt for %s."
-                     % (picking.x_trucker_followup_count,
-                        picking.x_trucker_id.name or "Unknown",
-                        picking.name),
+                "receipt for %s."
+                % (picking.x_trucker_followup_count, picking.x_trucker_id.name or "Unknown", picking.name),
                 message_type="notification",
             )
 
@@ -68,25 +68,24 @@ class StockPickingAutomation(models.Model):
 
             # Log to automation log
             if log_model is not None:
-                log_model.create({
-                    "name": "Trucker follow-up #%d for %s"
-                            % (picking.x_trucker_followup_count, picking.name),
-                    "model_name": "stock.picking",
-                    "res_id": picking.id,
-                    "action_type": "logistics_followup",
-                })
+                log_model.create(
+                    {
+                        "name": "Trucker follow-up #%d for %s" % (picking.x_trucker_followup_count, picking.name),
+                        "model_name": "stock.picking",
+                        "res_id": picking.id,
+                        "action_type": "logistics_followup",
+                    }
+                )
 
             # Escalate after 3 follow-ups
             if picking.x_trucker_followup_count >= 3:
                 picking.activity_schedule(
                     "mail.mail_activity_data_todo",
                     user_id=picking.user_id.id or self.env.user.id,
-                    summary="ESCALATION: Trucker receipt unconfirmed on %s"
-                            % picking.name,
+                    summary="ESCALATION: Trucker receipt unconfirmed on %s" % picking.name,
                     note="Follow-up #%d sent. Trucker %s has not confirmed "
-                         "receipt. Manual intervention required."
-                         % (picking.x_trucker_followup_count,
-                            picking.x_trucker_id.name or "Unknown"),
+                    "receipt. Manual intervention required."
+                    % (picking.x_trucker_followup_count, picking.x_trucker_id.name or "Unknown"),
                 )
 
             _logger.info(

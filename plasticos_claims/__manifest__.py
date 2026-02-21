@@ -20,6 +20,7 @@
         "data/email_templates.xml",
         "views/claim_views.xml",
         "views/claim_menus.xml",
+        "views/claim_bulk_update_wizard_views.xml",
     ],
     "installable": True,
     "auto_install": False,

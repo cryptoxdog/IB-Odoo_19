@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ═══════════════════════════════════════════════════════════
 # Module : ai_normalizer
 # Purpose: Single LLM call to normalize freeform Cognito form
@@ -15,24 +14,61 @@ _logger = logging.getLogger(__name__)
 
 # ── Canonical value lists fed into the prompt ────────────────
 CANONICAL_POLYMERS = [
-    "HDPE", "LDPE", "LLDPE", "PP", "PET", "rPET", "PS", "HIPS",
-    "PVC", "EVA", "ABS", "Nylon", "PC", "PBT", "POM", "PMMA",
-    "PPO", "TPE", "TPU", "PLA", "E-Waste",
+    "HDPE",
+    "LDPE",
+    "LLDPE",
+    "PP",
+    "PET",
+    "rPET",
+    "PS",
+    "HIPS",
+    "PVC",
+    "EVA",
+    "ABS",
+    "Nylon",
+    "PC",
+    "PBT",
+    "POM",
+    "PMMA",
+    "PPO",
+    "TPE",
+    "TPU",
+    "PLA",
+    "E-Waste",
 ]
 
 CANONICAL_FORMS = [
-    "Bale", "Regrind", "Flake", "Pellet", "Rollstock", "Purge",
-    "Lump", "Film", "Sheet", "Powder", "Parts", "Re-Useable",
+    "Bale",
+    "Regrind",
+    "Flake",
+    "Pellet",
+    "Rollstock",
+    "Purge",
+    "Lump",
+    "Film",
+    "Sheet",
+    "Powder",
+    "Parts",
+    "Re-Useable",
 ]
 
 CANONICAL_SOURCE_TYPES = [
-    "post_industrial", "post_consumer", "post_commercial",
-    "agricultural", "prime", "wide_spec", "off_spec",
+    "post_industrial",
+    "post_consumer",
+    "post_commercial",
+    "agricultural",
+    "prime",
+    "wide_spec",
+    "off_spec",
     "ocean_recovered",
 ]
 
 CANONICAL_COLORS = [
-    "natural", "white", "black", "clear", "mixed",
+    "natural",
+    "white",
+    "black",
+    "clear",
+    "mixed",
 ]
 
 # ── System prompt (kept tight — one call, one purpose) ───────

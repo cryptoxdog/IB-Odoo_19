@@ -4,18 +4,18 @@
 # Version: 4.0C
 # Created: 2025-10-28T09:56:00Z
 # Author: Igor Beylin
-# Purpose: Centralized registry maintaining live and historical 
-#          state data for all AI modules and core processes within 
-#          Odoo 19. Enables traceability, rollback, and temporal 
+# Purpose: Centralized registry maintaining live and historical
+#          state data for all AI modules and core processes within
+#          Odoo 19. Enables traceability, rollback, and temporal
 #          analysis for governance and diagnostics.
 # ============================================================
 
 """
 System State Registry
 =====================
-The System State Registry acts as a canonical log and state-store 
-for all key AI subsystems and operational processes. It provides 
-continuous state snapshots, temporal rollback capabilities, and 
+The System State Registry acts as a canonical log and state-store
+for all key AI subsystems and operational processes. It provides
+continuous state snapshots, temporal rollback capabilities, and
 insight into both live and archived configurations.
 
 Core Responsibilities:
@@ -26,7 +26,9 @@ Core Responsibilities:
 """
 
 import datetime
-from odoo import models, fields, api
+
+from odoo import api, fields, models
+
 
 class SystemStateRegistry(models.Model):
     _name = "plasticos.system.state"
@@ -37,12 +39,9 @@ class SystemStateRegistry(models.Model):
     module_name = fields.Char("Module", required=True)
     state_key = fields.Char("State Key", required=True)
     state_value = fields.Text("State Value", required=True)
-    change_type = fields.Selection([
-        ("update", "Update"),
-        ("rollback", "Rollback"),
-        ("rebuild", "Rebuild"),
-        ("reset", "Reset")
-    ], default="update")
+    change_type = fields.Selection(
+        [("update", "Update"), ("rollback", "Rollback"), ("rebuild", "Rebuild"), ("reset", "Reset")], default="update"
+    )
     actor = fields.Char("Modified By", default="system")
     context = fields.Char("Operational Context")
     verified = fields.Boolean("Integrity Verified", default=True)
@@ -50,14 +49,16 @@ class SystemStateRegistry(models.Model):
     @api.model
     def record_state(self, module_name, state_key, state_value, change_type="update", actor="system", context=None):
         """Creates a new entry in the system state registry."""
-        entry = self.create({
-            "module_name": module_name,
-            "state_key": state_key,
-            "state_value": state_value,
-            "change_type": change_type,
-            "actor": actor,
-            "context": context or "unspecified"
-        })
+        entry = self.create(
+            {
+                "module_name": module_name,
+                "state_key": state_key,
+                "state_value": state_value,
+                "change_type": change_type,
+                "actor": actor,
+                "context": context or "unspecified",
+            }
+        )
         self._log_to_governance(entry)
         return entry
 
@@ -69,23 +70,27 @@ class SystemStateRegistry(models.Model):
             actor="SystemStateRegistry",
             module=entry.module_name,
             context_ref=entry.state_key,
-            message=f"State {entry.change_type.upper()} at {entry.timestamp.isoformat()}"
+            message=f"State {entry.change_type.upper()} at {entry.timestamp.isoformat()}",
         )
         return True
 
     @api.model
     def rollback_state(self, module_name, state_key):
         """Performs a rollback to the previous recorded state."""
-        last_entry = self.search([("module_name", "=", module_name), ("state_key", "=", state_key)], limit=1, order="timestamp desc")
+        last_entry = self.search(
+            [("module_name", "=", module_name), ("state_key", "=", state_key)], limit=1, order="timestamp desc"
+        )
         if not last_entry:
             return False
-        rollback_entry = self.create({
-            "module_name": module_name,
-            "state_key": state_key,
-            "state_value": last_entry.state_value,
-            "change_type": "rollback",
-            "actor": "rollback_daemon"
-        })
+        rollback_entry = self.create(
+            {
+                "module_name": module_name,
+                "state_key": state_key,
+                "state_value": last_entry.state_value,
+                "change_type": "rollback",
+                "actor": "rollback_daemon",
+            }
+        )
         self._log_to_governance(rollback_entry)
         return rollback_entry
 
@@ -104,13 +109,15 @@ class SystemStateRegistry(models.Model):
                 actor="SystemStateRegistry",
                 module="registry",
                 context_ref="integrity_check",
-                message=f"{len(corrupt_entries)} entries failed integrity validation."
+                message=f"{len(corrupt_entries)} entries failed integrity validation.",
             )
         return len(corrupt_entries)
+
 
 # ------------------------------------------------------------
 # SYSTEM INITIALIZATION HOOK
 # ------------------------------------------------------------
+
 
 def initialize_system_state_registry(env):
     """Initialize registry and perform baseline snapshot of critical modules."""
@@ -121,8 +128,9 @@ def initialize_system_state_registry(env):
             state_key="startup_snapshot",
             state_value="initialized",
             change_type="update",
-            actor="bootstrap"
+            actor="bootstrap",
         )
+
 
 # End of File
 # ============================================================

@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import api, fields, models
 from odoo.exceptions import UserError
 
 
@@ -29,14 +29,9 @@ class PlasticosDocument(models.Model):
 
         if record.res_model == "plasticos.load":
             # Look up transaction via reverse relation (transaction.load_id -> load)
-            tx = self.env["plasticos.transaction"].search(
-                [("load_id", "=", record.res_id)], limit=1
-            )
+            tx = self.env["plasticos.transaction"].search([("load_id", "=", record.res_id)], limit=1)
             if tx:
-                self.env["plasticos.compliance.service"].get_missing_documents(
-                    "plasticos.transaction",
-                    tx.id
-                )
+                self.env["plasticos.compliance.service"].get_missing_documents("plasticos.transaction", tx.id)
 
         return record
 

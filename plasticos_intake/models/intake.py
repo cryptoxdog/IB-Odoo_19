@@ -1,5 +1,5 @@
-from odoo import models, fields, api
-from odoo.exceptions import ValidationError, UserError
+from odoo import api, fields, models
+from odoo.exceptions import UserError, ValidationError
 
 
 class PlasticosIntake(models.Model):
@@ -31,22 +31,16 @@ class PlasticosIntake(models.Model):
         string="Facility",
         tracking=True,
         index=True,
-        domain="['|',"
-               " ('id', '=', partner_id),"
-               " ('parent_id', '=', partner_id)]",
-        help="The facility (child location) or the company itself "
-             "when it is also the processing site.",
+        domain="['|'," " ('id', '=', partner_id)," " ('parent_id', '=', partner_id)]",
+        help="The facility (child location) or the company itself " "when it is also the processing site.",
     )
     contact_id = fields.Many2one(
         "res.partner",
         string="Contact Person",
         tracking=True,
         index=True,
-        domain="['|',"
-               " ('parent_id', '=', facility_id),"
-               " ('parent_id', '=', partner_id)]",
-        help="The person at the facility you are dealing with. "
-             "Auto-selected from preferred contact memory.",
+        domain="['|'," " ('parent_id', '=', facility_id)," " ('parent_id', '=', partner_id)]",
+        help="The person at the facility you are dealing with. " "Auto-selected from preferred contact memory.",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -94,11 +88,9 @@ class PlasticosIntake(models.Model):
         string="Material Profile",
         index=True,
         ondelete="set null",
-        domain="['|',"
-               " ('partner_id', '=', facility_id),"
-               " ('partner_id', '=', partner_id)]",
+        domain="['|'," " ('partner_id', '=', facility_id)," " ('partner_id', '=', partner_id)]",
         help="Link to the canonical material profile. When set, snapshot "
-             "fields below auto-populate from the profile.",
+        "fields below auto-populate from the profile.",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -138,14 +130,14 @@ class PlasticosIntake(models.Model):
         help="Canonical source type from the master registry.",
     )
     grade_hint = fields.Char()
-    
+
     # ── Origin Form (what it was before processing) ──────────
     origin_form_id = fields.Many2one(
         "plasticos.material.form",
         string="Origin Form",
         help="What the material was before processing (Drums, Bottles, Film). Optional.",
     )
-    
+
     # ── Packaging ────────────────────────────────────────────
     packaging_type_id = fields.Many2one(
         "plasticos.packaging.type",
@@ -335,10 +327,12 @@ class PlasticosIntake(models.Model):
             return
 
         partner = self.partner_id
-        children = self.env["res.partner"].search([
-            ("parent_id", "=", partner.id),
-            ("is_company", "=", True),
-        ])
+        children = self.env["res.partner"].search(
+            [
+                ("parent_id", "=", partner.id),
+                ("is_company", "=", True),
+            ]
+        )
 
         if not children:
             # Company IS the facility (standalone or flagship)
@@ -376,11 +370,13 @@ class PlasticosIntake(models.Model):
                 return
 
         # Auto-select if single contact
-        contacts = self.env["res.partner"].search([
-            ("parent_id", "=", facility.id),
-            ("is_company", "=", False),
-            ("type", "in", ["contact", False]),
-        ])
+        contacts = self.env["res.partner"].search(
+            [
+                ("parent_id", "=", facility.id),
+                ("is_company", "=", False),
+                ("type", "in", ["contact", False]),
+            ]
+        )
         if len(contacts) == 1:
             self.contact_id = contacts[0].id
 
@@ -394,9 +390,11 @@ class PlasticosIntake(models.Model):
         if self.contact_id and self.facility_id:
             # Write preferred contact memory (sudo to bypass ACL)
             if self.facility_id.x_preferred_contact_id != self.contact_id:
-                self.facility_id.sudo().write({
-                    "x_preferred_contact_id": self.contact_id.id,
-                })
+                self.facility_id.sudo().write(
+                    {
+                        "x_preferred_contact_id": self.contact_id.id,
+                    }
+                )
 
     # ═════════════════════════════════════════════════════════
     # Onchange — pre-fill from material profile
@@ -416,9 +414,7 @@ class PlasticosIntake(models.Model):
         self.packaging_type_id = mp.packaging_type_id.id if mp.packaging_type_id else self.packaging_type_id
         self.mfi_value = mp.melt_flow_index or self.mfi_value
         self.density_value = mp.density or self.density_value
-        self.contamination_pct = (
-            mp.contamination_percent or self.contamination_pct
-        )
+        self.contamination_pct = mp.contamination_percent or self.contamination_pct
         # Copy attributes from profile
         if mp.material_attribute_ids:
             self.material_attribute_ids = [(6, 0, mp.material_attribute_ids.ids)]
@@ -497,11 +493,13 @@ class PlasticosIntake(models.Model):
 
     def action_mark_normalized(self):
         for rec in self:
-            rec.write({
-                "normalized": True,
-                "match_status": "normalized",
-                "onboarding_status": "normalized",
-            })
+            rec.write(
+                {
+                    "normalized": True,
+                    "match_status": "normalized",
+                    "onboarding_status": "normalized",
+                }
+            )
 
     def action_mark_ready(self):
         """Mark intake as ready for matching after normalization."""
@@ -515,15 +513,11 @@ class PlasticosIntake(models.Model):
             if not rec.normalized:
                 raise UserError("Intake must be normalized before match.")
             # L9 adapter stub — will be consumed by SDK adapter
-            raise UserError(
-                "L9 adapter not yet configured. Enable l9_trace module."
-            )
+            raise UserError("L9 adapter not yet configured. Enable l9_trace module.")
 
     def action_replay_last_packet(self):
         for rec in self:
             if not rec.last_packet_payload:
                 raise UserError("No stored packet to replay.")
             # L9 adapter stub
-            raise UserError(
-                "L9 adapter not yet configured. Enable l9_trace module."
-            )
+            raise UserError("L9 adapter not yet configured. Enable l9_trace module.")

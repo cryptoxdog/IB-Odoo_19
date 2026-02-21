@@ -1,13 +1,15 @@
-from odoo import models, fields, api
-from odoo.exceptions import UserError
-import uuid
 import logging
+import uuid
+
+from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
 # Stub for l9_trace (enable when module available)
 # from odoo.addons.l9_trace.services.trace_kernel import TraceKernel
 # from odoo.addons.l9_trace.services.correlation import new_correlation_id
+
 
 def new_correlation_id():
     """Generate correlation ID (stub for l9_trace)"""
@@ -42,10 +44,7 @@ class PlasticosLoad(models.Model):
     cycle_time_hours = fields.Float(compute="_compute_cycle_time", store=True, index=True)
 
     # ── Pickup Location Fields ──────────────────────────────────────
-    pickup_partner_id = fields.Many2one(
-        "res.partner", string="Pickup Location",
-        help="Shipper/pickup location for BOL"
-    )
+    pickup_partner_id = fields.Many2one("res.partner", string="Pickup Location", help="Shipper/pickup location for BOL")
     pickup_contact_name = fields.Char(string="Pickup Contact")
     pickup_contact_phone = fields.Char(string="Pickup Phone")
     pickup_contact_mobile = fields.Char(string="Pickup Mobile")
@@ -55,8 +54,7 @@ class PlasticosLoad(models.Model):
 
     # ── Delivery Location Fields ────────────────────────────────────
     delivery_partner_id = fields.Many2one(
-        "res.partner", string="Delivery Location",
-        help="Consignee/delivery location for BOL"
+        "res.partner", string="Delivery Location", help="Consignee/delivery location for BOL"
     )
     delivery_contact_name = fields.Char(string="Delivery Contact")
     delivery_contact_phone = fields.Char(string="Delivery Phone")
@@ -82,18 +80,22 @@ class PlasticosLoad(models.Model):
     straps_bars_needed = fields.Boolean(string="Straps/Bars Needed", default=True)
     notes = fields.Text(string="Notes/Comments")
 
-    state = fields.Selection([
-        ("draft", "Draft"),
-        ("awaiting_ready", "Awaiting Ready"),
-        ("ready_confirmed", "Ready Confirmed"),
-        ("rate_confirmed", "Rate Confirmed"),
-        ("scheduled", "Scheduled"),
-        ("dispatched", "Dispatched"),
-        ("picked_up", "Picked Up"),
-        ("delivered", "Delivered"),
-        ("closed", "Closed"),
-        ("exception", "Exception"),
-    ], default="draft", tracking=True)
+    state = fields.Selection(
+        [
+            ("draft", "Draft"),
+            ("awaiting_ready", "Awaiting Ready"),
+            ("ready_confirmed", "Ready Confirmed"),
+            ("rate_confirmed", "Rate Confirmed"),
+            ("scheduled", "Scheduled"),
+            ("dispatched", "Dispatched"),
+            ("picked_up", "Picked Up"),
+            ("delivered", "Delivered"),
+            ("closed", "Closed"),
+            ("exception", "Exception"),
+        ],
+        default="draft",
+        tracking=True,
+    )
 
     def write(self, vals):
         for rec in self:
@@ -158,18 +160,17 @@ class PlasticosLoad(models.Model):
                 vals["delivered_at"] = fields.Datetime.now()
             rec.write(vals)
             # Log state transition (l9_trace integration disabled)
-            _logger.info(
-                "Load %s state transition: %s -> %s (correlation: %s)",
-                rec.id, old, new_state, correlation_id
-            )
+            _logger.info("Load %s state transition: %s -> %s (correlation: %s)", rec.id, old, new_state, correlation_id)
 
     def _store_rate_memory(self):
-        self.env["plasticos.rate.memory"].create({
-            "carrier_id": self.carrier_id.id,
-            "lane_key": self._lane_key(),
-            "rate_amount": self.rate_amount,
-            "rate_date": fields.Date.today(),
-        })
+        self.env["plasticos.rate.memory"].create(
+            {
+                "carrier_id": self.carrier_id.id,
+                "lane_key": self._lane_key(),
+                "rate_amount": self.rate_amount,
+                "rate_date": fields.Date.today(),
+            }
+        )
 
     def _lane_key(self):
         so = self.sale_order_id
@@ -177,6 +178,7 @@ class PlasticosLoad(models.Model):
 
     def _cron_escalation_check(self):
         from odoo.addons.plasticos_logistics.services.escalation_engine import check_escalations
+
         check_escalations(self.env)
 
     # ── Email Send Actions (Paperless) ──────────────────────────────

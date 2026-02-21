@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ============================================
 # Canonical Header (v4.0 Production Baseline)
 # ============================================
@@ -28,8 +27,9 @@ Core Capabilities:
 # Imports and Environment
 # ------------------------------------------------------------
 import datetime
-import json
-from odoo import models, fields, api
+
+from odoo import api, fields, models
+
 
 # ------------------------------------------------------------
 # Offer Handler Class
@@ -41,9 +41,15 @@ class OfferHandler(models.Model):
     buyer_profile_id = fields.Many2one("plasticos.buyer.profile", string="Buyer Profile")
     offer_text = fields.Text("Offer Body")
     offer_status = fields.Selection(
-        [("draft", "Draft"), ("pending", "Pending"), ("sent", "Sent"),
-         ("accepted", "Accepted"), ("rejected", "Rejected"), ("countered", "Countered")],
-        default="draft"
+        [
+            ("draft", "Draft"),
+            ("pending", "Pending"),
+            ("sent", "Sent"),
+            ("accepted", "Accepted"),
+            ("rejected", "Rejected"),
+            ("countered", "Countered"),
+        ],
+        default="draft",
     )
     proposed_price = fields.Float("Proposed Price")
     product_grade = fields.Char("Material Grade")
@@ -70,14 +76,16 @@ class OfferHandler(models.Model):
             "Please confirm receipt or reach out with any adjustments."
         )
 
-        offer_record = self.create({
-            "buyer_profile_id": buyer.id,
-            "offer_text": offer_body,
-            "proposed_price": proposed_price,
-            "product_grade": material_grade,
-            "validity_date": datetime.date.today() + datetime.timedelta(days=3),
-            "trust_index_snapshot": trust_index,
-        })
+        offer_record = self.create(
+            {
+                "buyer_profile_id": buyer.id,
+                "offer_text": offer_body,
+                "proposed_price": proposed_price,
+                "product_grade": material_grade,
+                "validity_date": datetime.date.today() + datetime.timedelta(days=3),
+                "trust_index_snapshot": trust_index,
+            }
+        )
 
         return offer_record
 
@@ -131,13 +139,16 @@ class OfferHandler(models.Model):
     # Logging Utility
     # --------------------------------------------------------
     def _log_offer_action(self, message):
-        self.env["plasticos.decision.ledger"].create({
-            "timestamp": datetime.datetime.now(),
-            "actor": "PlasticOS Offer Handler",
-            "context": self._name,
-            "message": message,
-            "record_ref": self.id
-        })
+        self.env["plasticos.decision.ledger"].create(
+            {
+                "timestamp": datetime.datetime.now(),
+                "actor": "PlasticOS Offer Handler",
+                "context": self._name,
+                "message": message,
+                "record_ref": self.id,
+            }
+        )
+
 
 # End of File
 # ============================================================

@@ -1,4 +1,5 @@
 import logging
+
 from odoo import models
 from odoo.exceptions import ValidationError
 
@@ -36,11 +37,13 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         - Facilities: company_type=company, parent_id set, x_facility_role set
         - Contacts: company_type=person, parent_id set, is_company=False
         """
-        partners = self.env["res.partner"].search([
-            "|",
-            ("company_type", "=", "company"),
-            ("company_type", "=", "person"),
-        ])
+        partners = self.env["res.partner"].search(
+            [
+                "|",
+                ("company_type", "=", "company"),
+                ("company_type", "=", "person"),
+            ]
+        )
 
         errors = []
         for p in partners:

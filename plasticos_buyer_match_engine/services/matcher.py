@@ -7,7 +7,7 @@ sorted by distance ascending (closest first).
 """
 
 import logging
-from math import radians, sin, cos, sqrt, atan2
+from math import atan2, cos, radians, sin, sqrt
 
 _logger = logging.getLogger(__name__)
 
@@ -97,11 +97,7 @@ class PlasticosMatcher:
             return self._reject(cap, "contamination_exceeds_limit")
 
         # Quality gate: moisture
-        if (
-            cap.max_moisture_pct
-            and material.moisture_percent
-            and material.moisture_percent > cap.max_moisture_pct
-        ):
+        if cap.max_moisture_pct and material.moisture_percent and material.moisture_percent > cap.max_moisture_pct:
             return self._reject(cap, "moisture_exceeds_limit")
 
         # Volume gate: minimum
@@ -166,10 +162,7 @@ class PlasticosMatcher:
         dlat = radians(lat2 - lat1)
         dlon = radians(lon2 - lon1)
 
-        a = (
-            sin(dlat / 2) ** 2
-            + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
-        )
+        a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
         c = 2 * atan2(sqrt(a), sqrt(1 - a))
 
         return R * c

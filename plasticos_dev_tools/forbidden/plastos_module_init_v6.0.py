@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ============================================
 # Canonical Header (v4.0 Production Baseline)
 # ============================================
@@ -11,21 +10,24 @@
 # Related Files: ../__init__.py, ../__manifest__.py, ../models/__init__.py
 # ============================================
 
-from odoo import api, SUPERUSER_ID
+from odoo import SUPERUSER_ID, api
+
 
 def pre_init_hook(cr):
     cr.execute("SELECT 'Initializing PlastOS v4.3 Modules'")
 
+
 def post_init_hook(cr, registry):
     env = api.Environment(cr, SUPERUSER_ID, {})
-    env["ir.logging"].create({
-        "name": "PlastOS Init",
-        "type": "server",
-        "dbname": cr.dbname,
-        "level": "info",
-        "message": "All PlastOS v4.3 modules initialized successfully",
-        "path": "init",
-        "func": "post_init_hook",
-        "line": "1"
-    })
-
+    env["ir.logging"].create(
+        {
+            "name": "PlastOS Init",
+            "type": "server",
+            "dbname": cr.dbname,
+            "level": "info",
+            "message": "All PlastOS v4.3 modules initialized successfully",
+            "path": "init",
+            "func": "post_init_hook",
+            "line": "1",
+        }
+    )

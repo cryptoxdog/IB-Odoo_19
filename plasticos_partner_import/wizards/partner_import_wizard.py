@@ -3,9 +3,10 @@ Partner Import Wizard
 Provides UI to trigger the partner import from CSV files.
 """
 
-import os
 import logging
-from odoo import models, fields, api, _
+import os
+
+from odoo import _, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
@@ -69,14 +70,13 @@ class PartnerImportWizard(models.TransientModel):
 
     def _get_module_path(self):
         """Get the path to the plasticos_partner_import module."""
-        module = self.env["ir.module.module"].search(
-            [("name", "=", "plasticos_partner_import")], limit=1
-        )
+        module = self.env["ir.module.module"].search([("name", "=", "plasticos_partner_import")], limit=1)
         if not module:
             raise UserError(_("Module plasticos_partner_import not found."))
 
         # Get module path from addons
         import odoo.modules.module as mod
+
         path = mod.get_module_path("plasticos_partner_import")
         if not path:
             raise UserError(_("Could not determine module path."))
@@ -113,32 +113,24 @@ class PartnerImportWizard(models.TransientModel):
                 if self.import_mode in ("full", "corporate_only"):
                     corporate_path = os.path.join(module_path, DEFAULT_CORPORATE_CSV)
                     if not os.path.exists(corporate_path):
-                        raise UserError(
-                            _("Default corporate CSV not found: %s") % corporate_path
-                        )
+                        raise UserError(_("Default corporate CSV not found: %s") % corporate_path)
 
                 if self.import_mode in ("full", "facility_only"):
                     facility_path = os.path.join(module_path, DEFAULT_FACILITY_CSV)
                     if not os.path.exists(facility_path):
-                        raise UserError(
-                            _("Default facility CSV not found: %s") % facility_path
-                        )
+                        raise UserError(_("Default facility CSV not found: %s") % facility_path)
             else:
                 # Use uploaded files
                 if self.import_mode in ("full", "corporate_only"):
                     if not self.corporate_file:
                         raise UserError(_("Please upload a Corporate CSV file."))
-                    corporate_path = self._save_uploaded_file(
-                        self.corporate_file, self.corporate_filename
-                    )
+                    corporate_path = self._save_uploaded_file(self.corporate_file, self.corporate_filename)
                     temp_files.append(corporate_path)
 
                 if self.import_mode in ("full", "facility_only"):
                     if not self.facility_file:
                         raise UserError(_("Please upload a Facility CSV file."))
-                    facility_path = self._save_uploaded_file(
-                        self.facility_file, self.facility_filename
-                    )
+                    facility_path = self._save_uploaded_file(self.facility_file, self.facility_filename)
                     temp_files.append(facility_path)
 
             if self.dry_run:

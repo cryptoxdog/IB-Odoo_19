@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Load Bulk Update Wizard Form -->
+    <record id="view_load_bulk_update_wizard_form" model="ir.ui.view">
+        <field name="name">plasticos.load.bulk.update.wizard.form</field>
+        <field name="model">plasticos.load.bulk.update.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Bulk Update Loads">
+                <group>
+                    <field name="load_count" readonly="1"/>
+                    <field name="new_state"/>
+                    <field name="reason"/>
+                </group>
+                <field name="load_ids" invisible="1"/>
+                <footer>
+                    <button name="action_update_status" string="Update Status" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action to open wizard from list view -->
+    <record id="action_load_bulk_update_wizard" model="ir.actions.act_window">
+        <field name="name">Bulk Update Loads</field>
+        <field name="res_model">plasticos.load.bulk.update.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="plasticos_logistics.model_plasticos_load"/>
+        <field name="binding_view_types">list</field>
+    </record>
+</odoo>

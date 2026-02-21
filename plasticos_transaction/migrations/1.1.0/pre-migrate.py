@@ -6,7 +6,8 @@ def migrate(cr, version):
     """)
     ids = [row[0] for row in cr.fetchall()]
 
-    from odoo import api, SUPERUSER_ID
+    from odoo import SUPERUSER_ID, api
+
     env = api.Environment(cr, SUPERUSER_ID, {})
 
     for tx_id in ids:

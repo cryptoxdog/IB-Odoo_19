@@ -1,4 +1,4 @@
-from odoo import models, api
+from odoo import api, models
 
 
 class PlasticosDocumentInherit(models.Model):
@@ -24,9 +24,7 @@ class PlasticosDocumentInherit(models.Model):
         # Find transaction via load or direct link
         tx = None
         if self.res_model == "plasticos.load":
-            tx = self.env["plasticos.transaction"].search(
-                [("load_id", "=", self.res_id)], limit=1
-            )
+            tx = self.env["plasticos.transaction"].search([("load_id", "=", self.res_id)], limit=1)
         elif self.res_model == "plasticos.transaction":
             tx = self.env["plasticos.transaction"].browse(self.res_id)
 
@@ -35,19 +33,24 @@ class PlasticosDocumentInherit(models.Model):
 
         # Create claim
         Claim = self.env["plasticos.claim"]
-        existing = Claim.search([
-            ("source_document_id", "=", self.id),
-        ], limit=1)
+        existing = Claim.search(
+            [
+                ("source_document_id", "=", self.id),
+            ],
+            limit=1,
+        )
         if existing:
             return
 
-        claim = Claim.create({
-            "transaction_id": tx.id,
-            "source_document_id": self.id,
-            "case_type": "buyer_claim",
-            "severity": "medium",
-            "notes": f"Auto-created from document: {self.name}",
-        })
+        claim = Claim.create(
+            {
+                "transaction_id": tx.id,
+                "source_document_id": self.id,
+                "case_type": "buyer_claim",
+                "severity": "medium",
+                "notes": f"Auto-created from document: {self.name}",
+            }
+        )
 
         # Notify sales rep and quality manager
         claim._send_claim_notification()

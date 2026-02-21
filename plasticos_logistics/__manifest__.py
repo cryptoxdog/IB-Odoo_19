@@ -11,6 +11,7 @@
         "data/cron.xml",
         "views/load_views.xml",
         "views/sale_order_button.xml",
+        "views/load_bulk_update_wizard_views.xml",
         "report/load_reports.xml",
         "report/report_bol_pickup.xml",
         "report/report_bol_delivery.xml",

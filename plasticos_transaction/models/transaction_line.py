@@ -4,7 +4,8 @@ Transaction Line model for storing cieTrade WksDetail records.
 Each line represents a material line item within a transaction,
 capturing weight, pricing, and material specifications.
 """
-from odoo import models, fields, api
+
+from odoo import api, fields, models
 
 
 class PlasticosTransactionLine(models.Model):
@@ -48,11 +49,15 @@ class PlasticosTransactionLine(models.Model):
         digits=(16, 6),
         help="Weight purchased from supplier",
     )
-    weight_uom = fields.Selection([
-        ("L", "Pounds (lbs)"),
-        ("S", "Short Tons"),
-        ("E", "Each"),
-    ], string="Weight UOM", default="L")
+    weight_uom = fields.Selection(
+        [
+            ("L", "Pounds (lbs)"),
+            ("S", "Short Tons"),
+            ("E", "Each"),
+        ],
+        string="Weight UOM",
+        default="L",
+    )
 
     # Pricing
     sale_price = fields.Float(
@@ -91,19 +96,23 @@ class PlasticosTransactionLine(models.Model):
     )
     lot_no = fields.Char(string="Lot Number")
     container_no = fields.Char(string="Container Number")
-    unit_type = fields.Selection([
-        ("B", "Bale"),
-        ("G", "Gaylord"),
-        ("X", "Box"),
-        ("P", "Pallet"),
-        ("L", "Loose"),
-        ("A", "Bag"),
-        ("F", "Flat"),
-        ("H", "Hopper"),
-        ("C", "Container"),
-        ("E", "Each"),
-        ("O", "Other"),
-    ], string="Unit Type", help="Container/packaging type")
+    unit_type = fields.Selection(
+        [
+            ("B", "Bale"),
+            ("G", "Gaylord"),
+            ("X", "Box"),
+            ("P", "Pallet"),
+            ("L", "Loose"),
+            ("A", "Bag"),
+            ("F", "Flat"),
+            ("H", "Hopper"),
+            ("C", "Container"),
+            ("E", "Each"),
+            ("O", "Other"),
+        ],
+        string="Unit Type",
+        help="Container/packaging type",
+    )
     units = fields.Float(
         string="Units",
         default=1.0,

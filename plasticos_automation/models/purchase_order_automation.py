@@ -1,6 +1,6 @@
-from odoo import models, fields, api
-
 import logging
+
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -42,10 +42,12 @@ class PurchaseOrderAutomation(models.Model):
         Targets confirmed POs where x_ready_for_pickup is still False.
         Escalates to manager after 3 follow-ups.
         """
-        orders = self.search([
-            ("state", "=", "purchase"),
-            ("x_ready_for_pickup", "=", False),
-        ])
+        orders = self.search(
+            [
+                ("state", "=", "purchase"),
+                ("x_ready_for_pickup", "=", False),
+            ]
+        )
 
         log_model = self.env.get("plasticos.automation.log")
 
@@ -56,8 +58,7 @@ class PurchaseOrderAutomation(models.Model):
             # Post chatter notification
             order.message_post(
                 body="Automated follow-up #%d: supplier has not confirmed "
-                     "readiness for pickup on PO %s."
-                     % (order.x_followup_count, order.name),
+                "readiness for pickup on PO %s." % (order.x_followup_count, order.name),
                 message_type="notification",
             )
 
@@ -71,25 +72,24 @@ class PurchaseOrderAutomation(models.Model):
 
             # Log to automation log
             if log_model is not None:
-                log_model.create({
-                    "name": "Supplier follow-up #%d for %s"
-                            % (order.x_followup_count, order.name),
-                    "model_name": "purchase.order",
-                    "res_id": order.id,
-                    "action_type": "logistics_followup",
-                })
+                log_model.create(
+                    {
+                        "name": "Supplier follow-up #%d for %s" % (order.x_followup_count, order.name),
+                        "model_name": "purchase.order",
+                        "res_id": order.id,
+                        "action_type": "logistics_followup",
+                    }
+                )
 
             # Escalate after 3 follow-ups
             if order.x_followup_count >= 3:
                 order.activity_schedule(
                     "mail.mail_activity_data_todo",
                     user_id=order.user_id.id or self.env.user.id,
-                    summary="ESCALATION: Supplier readiness unconfirmed on %s"
-                            % order.name,
+                    summary="ESCALATION: Supplier readiness unconfirmed on %s" % order.name,
                     note="Follow-up #%d sent. Supplier %s has not confirmed "
-                         "readiness. Manual intervention required."
-                         % (order.x_followup_count,
-                            order.partner_id.name or "Unknown"),
+                    "readiness. Manual intervention required."
+                    % (order.x_followup_count, order.partner_id.name or "Unknown"),
                 )
 
             _logger.info(

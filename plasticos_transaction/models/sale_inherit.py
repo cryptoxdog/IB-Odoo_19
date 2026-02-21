@@ -1,4 +1,4 @@
-from odoo import models, fields
+from odoo import fields, models
 
 
 class SaleOrder(models.Model):
@@ -11,10 +11,9 @@ class SaleOrder(models.Model):
 
         for rec in self:
             if not rec.transaction_id:
-                transaction = self.env["plasticos.transaction"].create({
-                    "name": f"TX-{rec.name}",
-                    "sale_order_id": rec.id
-                })
+                transaction = self.env["plasticos.transaction"].create(
+                    {"name": f"TX-{rec.name}", "sale_order_id": rec.id}
+                )
                 rec.transaction_id = transaction.id
                 transaction.action_activate()
 

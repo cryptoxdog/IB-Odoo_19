@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
 
@@ -350,9 +350,7 @@ class PlasticosMaterialProfile(models.Model):
     def _check_partner_is_facility(self):
         for rec in self:
             if not rec.partner_id.parent_id:
-                raise ValidationError(
-                    "Material profiles can only attach to facility-level partners."
-                )
+                raise ValidationError("Material profiles can only attach to facility-level partners.")
 
     # ═════════════════════════════════════════════════════════
     # CRUD

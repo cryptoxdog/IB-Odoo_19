@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ═══════════════════════════════════════════════════════════
 # Module : image_analyzer
 # Purpose: Single Vision API call to extract objective facts
@@ -73,8 +72,7 @@ def analyze_image(
                         {
                             "type": "text",
                             "text": (
-                                "Analyze this image of recycled plastic material. "
-                                "Return structured JSON only."
+                                "Analyze this image of recycled plastic material. " "Return structured JSON only."
                             ),
                         },
                         {

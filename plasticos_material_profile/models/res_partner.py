@@ -1,15 +1,11 @@
-from odoo import models, fields
+from odoo import fields, models
 from odoo.exceptions import ValidationError
 
 
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
-    material_profile_ids = fields.One2many(
-        "plasticos.material.profile",
-        "partner_id",
-        string="Material Profiles"
-    )
+    material_profile_ids = fields.One2many("plasticos.material.profile", "partner_id", string="Material Profiles")
 
     def write(self, vals):
         if "parent_id" in vals and not vals.get("parent_id"):

@@ -1,7 +1,7 @@
 import logging
 
-from odoo import models, fields, api
-from odoo.exceptions import ValidationError, UserError
+from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -220,11 +220,13 @@ class PlasticosOffer(models.Model):
         for rec in self:
             if rec.state not in ("sent", "responded"):
                 raise UserError("Only sent or responded offers can be accepted.")
-            rec.write({
-                "state": "accepted",
-                "accepted_by": self.env.uid,
-                "accepted_date": fields.Datetime.now(),
-            })
+            rec.write(
+                {
+                    "state": "accepted",
+                    "accepted_by": self.env.uid,
+                    "accepted_date": fields.Datetime.now(),
+                }
+            )
         _logger.info("Offers accepted: %s", self.mapped("display_name"))
 
     def action_reject(self):

@@ -19,7 +19,9 @@ Designed for Odoo 19 integration under model: `plasticos.buyer.profile`.
 """
 
 import datetime
-from odoo import models, fields, api
+
+from odoo import api, fields, models
+
 
 class TrustIndexCalculator(models.Model):
     _name = "plasticos.trust.calculator"
@@ -48,22 +50,19 @@ class TrustIndexCalculator(models.Model):
         sentiment = self._score_sentiment(history)
 
         # Composite weighting (modifiable in env var policy)
-        trust_index = (
-            reliability * 0.35 +
-            payment * 0.30 +
-            engagement * 0.20 +
-            sentiment * 0.15
-        )
+        trust_index = reliability * 0.35 + payment * 0.30 + engagement * 0.20 + sentiment * 0.15
 
-        record = self.create({
-            "buyer_id": buyer.id,
-            "trust_index": trust_index,
-            "reliability_score": reliability,
-            "payment_score": payment,
-            "engagement_score": engagement,
-            "sentiment_score": sentiment,
-            "last_update": datetime.datetime.now(),
-        })
+        record = self.create(
+            {
+                "buyer_id": buyer.id,
+                "trust_index": trust_index,
+                "reliability_score": reliability,
+                "payment_score": payment,
+                "engagement_score": engagement,
+                "sentiment_score": sentiment,
+                "last_update": datetime.datetime.now(),
+            }
+        )
 
         buyer.trust_index = trust_index
         return trust_index
@@ -75,9 +74,9 @@ class TrustIndexCalculator(models.Model):
         """Pulls order, payment, and correspondence logs for scoring."""
         orders = self.env["sale.order"].search([("partner_id", "=", buyer.partner_id.id)])
         payments = self.env["account.payment"].search([("partner_id", "=", buyer.partner_id.id)])
-        communications = self.env["mail.message"].search([
-            ("model", "=", "res.partner"), ("res_id", "=", buyer.partner_id.id)
-        ])
+        communications = self.env["mail.message"].search(
+            [("model", "=", "res.partner"), ("res_id", "=", buyer.partner_id.id)]
+        )
         return {"orders": orders, "payments": payments, "messages": communications}
 
     def _score_reliability(self, history):
@@ -112,12 +111,15 @@ class TrustIndexCalculator(models.Model):
         buyers = self.env["plasticos.buyer.profile"].search([])
         for buyer in buyers:
             self.compute_trust_index(buyer.id)
-        self.env["plasticos.decision.ledger"].create({
-            "timestamp": datetime.datetime.now(),
-            "actor": "PlasticOS Trust Index Calculator",
-            "context": "system",
-            "message": f"Trust Index recalculated for {len(buyers)} buyers."
-        })
+        self.env["plasticos.decision.ledger"].create(
+            {
+                "timestamp": datetime.datetime.now(),
+                "actor": "PlasticOS Trust Index Calculator",
+                "context": "system",
+                "message": f"Trust Index recalculated for {len(buyers)} buyers.",
+            }
+        )
+
 
 # End of File
 # ============================================================

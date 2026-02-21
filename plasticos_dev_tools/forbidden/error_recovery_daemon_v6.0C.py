@@ -4,8 +4,8 @@
 # Version: 4.0C
 # Created: 2025-10-28T09:42:00Z
 # Author: Igor Beylin
-# Purpose: Autonomous system recovery process for AI modules 
-#          running within Odoo 19. Provides detection, isolation, 
+# Purpose: Autonomous system recovery process for AI modules
+#          running within Odoo 19. Provides detection, isolation,
 #          and self-healing mechanisms to ensure continuous uptime.
 # ============================================================
 
@@ -13,8 +13,8 @@
 Error Recovery Daemon
 =====================
 This module introduces a self-healing layer to monitor and recover
-autonomous subsystems such as Buyer Matching, Offer Dispatch, and 
-Governance Logic. The daemon uses dynamic health checks and adaptive 
+autonomous subsystems such as Buyer Matching, Offer Dispatch, and
+Governance Logic. The daemon uses dynamic health checks and adaptive
 recovery routines based on severity grading.
 
 Core Functions:
@@ -25,8 +25,9 @@ Core Functions:
 """
 
 import datetime
-import traceback
-from odoo import models, fields, api
+
+from odoo import api, fields, models
+
 
 class ErrorRecoveryDaemon(models.Model):
     _name = "plasticos.recovery.daemon"
@@ -36,32 +37,31 @@ class ErrorRecoveryDaemon(models.Model):
     timestamp = fields.Datetime(default=lambda self: datetime.datetime.utcnow(), readonly=True)
     module_name = fields.Char("Affected Module", required=True)
     error_type = fields.Char("Error Type")
-    severity = fields.Selection([
-        ("low", "Low"),
-        ("medium", "Medium"),
-        ("high", "High"),
-        ("critical", "Critical")
-    ], default="low", string="Severity Level")
+    severity = fields.Selection(
+        [("low", "Low"), ("medium", "Medium"), ("high", "High"), ("critical", "Critical")],
+        default="low",
+        string="Severity Level",
+    )
     error_message = fields.Text("Error Message")
     recovery_action = fields.Text("Recovery Action")
-    status = fields.Selection([
-        ("pending", "Pending"),
-        ("resolved", "Resolved"),
-        ("failed", "Failed")
-    ], default="pending")
+    status = fields.Selection(
+        [("pending", "Pending"), ("resolved", "Resolved"), ("failed", "Failed")], default="pending"
+    )
     trace_id = fields.Char("Trace ID", index=True)
 
     @api.model
     def detect_failure(self, module_name, exception):
         """Intercepts errors and triggers the recovery sequence."""
         severity = self._classify_severity(exception)
-        record = self.create({
-            "module_name": module_name,
-            "error_type": type(exception).__name__,
-            "severity": severity,
-            "error_message": str(exception),
-            "trace_id": self._generate_trace_id()
-        })
+        record = self.create(
+            {
+                "module_name": module_name,
+                "error_type": type(exception).__name__,
+                "severity": severity,
+                "error_message": str(exception),
+                "trace_id": self._generate_trace_id(),
+            }
+        )
         self._notify_governance(record)
         return self._execute_recovery(record)
 
@@ -86,7 +86,7 @@ class ErrorRecoveryDaemon(models.Model):
             "low": self._recover_soft_reset,
             "medium": self._recover_module_restart,
             "high": self._recover_service_rebuild,
-            "critical": self._recover_full_system_failover
+            "critical": self._recover_full_system_failover,
         }
         try:
             result = actions.get(record.severity, self._recover_soft_reset)(record)
@@ -123,7 +123,7 @@ class ErrorRecoveryDaemon(models.Model):
             actor="ErrorRecoveryDaemon",
             module=record.module_name,
             context_ref="exception",
-            message=f"Failure detected: {record.error_message[:200]}"
+            message=f"Failure detected: {record.error_message[:200]}",
         )
         return True
 
@@ -132,17 +132,21 @@ class ErrorRecoveryDaemon(models.Model):
 # SYSTEM INITIALIZATION HOOK
 # ------------------------------------------------------------
 
+
 def register_recovery_daemon(env):
     """Registers error monitoring across all autonomous modules."""
     daemon = env["plasticos.recovery.daemon"]
     modules = ["buyer_matching_runtime", "offer_dispatch", "governance"]
     for module in modules:
-        daemon.create({
-            "module_name": module,
-            "error_message": "Initialized error tracking",
-            "severity": "low",
-            "status": "resolved"
-        })
+        daemon.create(
+            {
+                "module_name": module,
+                "error_message": "Initialized error tracking",
+                "severity": "low",
+                "status": "resolved",
+            }
+        )
+
 
 # End of File
 # ============================================================

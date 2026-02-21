@@ -1,7 +1,7 @@
-from odoo import models, fields, api
-
-from datetime import timedelta
 import logging
+from datetime import timedelta
+
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -22,11 +22,13 @@ class ResPartner(models.Model):
             days=config.contract_alert_days_before,
         )
 
-        partners = self.search([
-            ("x_contract_end_date", "!=", False),
-            ("x_contract_end_date", "<=", threshold_date),
-            ("x_contract_end_date", ">=", fields.Date.today()),
-        ])
+        partners = self.search(
+            [
+                ("x_contract_end_date", "!=", False),
+                ("x_contract_end_date", "<=", threshold_date),
+                ("x_contract_end_date", ">=", fields.Date.today()),
+            ]
+        )
 
         for partner in partners:
             partner.message_post(
@@ -34,12 +36,14 @@ class ResPartner(models.Model):
                 % (partner.x_contract_end_date, config.contract_alert_days_before),
             )
 
-            self.env["plasticos.automation.log"].create({
-                "name": "Contract renewal alert %s" % partner.name,
-                "model_name": "res.partner",
-                "res_id": partner.id,
-                "action_type": "contract_alert",
-            })
+            self.env["plasticos.automation.log"].create(
+                {
+                    "name": "Contract renewal alert %s" % partner.name,
+                    "model_name": "res.partner",
+                    "res_id": partner.id,
+                    "action_type": "contract_alert",
+                }
+            )
             _logger.info(
                 "Automation: contract renewal alert for %s (expires=%s)",
                 partner.name,

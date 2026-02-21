@@ -10,13 +10,13 @@ Usage (shell):
         "/path/to/cieTrade.WksDetail.csv"
     )
 """
+
 import csv
 import logging
 import re
 from collections import defaultdict
 
-from odoo import models, api
-from odoo.exceptions import ValidationError
+from odoo import api, models
 
 _logger = logging.getLogger(__name__)
 
@@ -98,7 +98,7 @@ class PlasticosTransactionImportService(models.AbstractModel):
     def _read_csv(self, csv_path: str) -> list:
         """Read CSV file and return list of row dicts."""
         try:
-            with open(csv_path, "r", encoding="utf-8-sig") as f:
+            with open(csv_path, encoding="utf-8-sig") as f:
                 reader = csv.DictReader(f)
                 return list(reader)
         except Exception as e:
@@ -148,10 +148,14 @@ class PlasticosTransactionImportService(models.AbstractModel):
             return (None, len(line_rows))
 
         # Create transaction
-        tx = self.env["plasticos.transaction"].with_context(
-            import_mode=True,  # Skip validation constraints during import
-            tracking_disable=True,  # Skip mail tracking
-        ).create(tx_vals)
+        tx = (
+            self.env["plasticos.transaction"]
+            .with_context(
+                import_mode=True,  # Skip validation constraints during import
+                tracking_disable=True,  # Skip mail tracking
+            )
+            .create(tx_vals)
+        )
 
         # Register external ID
         self._create_external_id("plasticos.transaction", tx.id, ext_id)
@@ -274,10 +278,12 @@ class PlasticosTransactionImportService(models.AbstractModel):
     def _create_external_id(self, model: str, res_id: int, ext_id: str) -> None:
         """Create ir.model.data record for external ID."""
         module, name = ext_id.split(".", 1)
-        self.env["ir.model.data"].create({
-            "module": module,
-            "name": name,
-            "model": model,
-            "res_id": res_id,
-            "noupdate": True,
-        })
+        self.env["ir.model.data"].create(
+            {
+                "module": module,
+                "name": name,
+                "model": model,
+                "res_id": res_id,
+                "noupdate": True,
+            }
+        )

@@ -1,4 +1,4 @@
-from odoo import models, fields
+from odoo import fields, models
 
 
 class PlasticosEquipmentType(models.Model):
@@ -11,11 +11,16 @@ class PlasticosEquipmentType(models.Model):
         required=True,
         help="Machine-readable key, e.g. 'horizontal_baler'.",
     )
-    category = fields.Selection([
-        ("equipment", "Equipment"),
-        ("handling", "Material Handling"),
-        ("quality", "Quality Processing"),
-    ], required=True, default="equipment", index=True)
+    category = fields.Selection(
+        [
+            ("equipment", "Equipment"),
+            ("handling", "Material Handling"),
+            ("quality", "Quality Processing"),
+        ],
+        required=True,
+        default="equipment",
+        index=True,
+    )
     sequence = fields.Integer(default=10)
     active = fields.Boolean(default=True)
 

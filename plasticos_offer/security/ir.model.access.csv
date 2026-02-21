@@ -1,3 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_offer_user,plasticos.offer.user,model_plasticos_offer,base.group_user,1,0,0,0
 access_offer_manager,plasticos.offer.manager,model_plasticos_offer,base.group_system,1,1,1,1
+access_offer_bulk_wizard_user,plasticos.offer.bulk.action.wizard.user,model_plasticos_offer_bulk_action_wizard,base.group_user,1,1,1,1

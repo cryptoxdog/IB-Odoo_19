@@ -1,4 +1,4 @@
-from odoo import api, SUPERUSER_ID
+from odoo import SUPERUSER_ID, api
 
 
 def migrate(cr, version):
@@ -10,6 +10,4 @@ def migrate(cr, version):
     )
     for group in duplicates:
         if group["customer_invoice_id_count"] > 1:
-            raise Exception(
-                "Duplicate customer_invoice_id links detected. Resolve manually before upgrade."
-            )
+            raise Exception("Duplicate customer_invoice_id links detected. Resolve manually before upgrade.")

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Offer Bulk Action Wizard Form -->
+    <record id="view_offer_bulk_action_wizard_form" model="ir.ui.view">
+        <field name="name">plasticos.offer.bulk.action.wizard.form</field>
+        <field name="model">plasticos.offer.bulk.action.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Bulk Offer Actions">
+                <group>
+                    <field name="offer_count" readonly="1"/>
+                    <field name="action_type" widget="radio"/>
+                </group>
+                <group invisible="action_type != 'reject'">
+                    <field name="rejection_reason" required="action_type == 'reject'"/>
+                </group>
+                <group>
+                    <field name="notes"/>
+                </group>
+                <field name="offer_ids" invisible="1"/>
+                <footer>
+                    <button name="action_execute" string="Execute" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action to open wizard from list view -->
+    <record id="action_offer_bulk_action_wizard" model="ir.actions.act_window">
+        <field name="name">Bulk Offer Actions</field>
+        <field name="res_model">plasticos.offer.bulk.action.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="plasticos_offer.model_plasticos_offer"/>
+        <field name="binding_view_types">list</field>
+    </record>
+</odoo>

@@ -1,7 +1,7 @@
-from odoo import models, fields, api
-from odoo.exceptions import ValidationError
-
 import logging
+
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -56,10 +56,12 @@ class PlasticosAutomationConfig(models.Model):
         """Ensure only one active configuration record exists."""
         for record in self:
             if record.active:
-                existing = self.search([
-                    ("active", "=", True),
-                    ("id", "!=", record.id),
-                ])
+                existing = self.search(
+                    [
+                        ("active", "=", True),
+                        ("id", "!=", record.id),
+                    ]
+                )
                 if existing:
                     raise ValidationError(
                         "Only one active automation configuration record is allowed. "
@@ -77,8 +79,7 @@ class PlasticosAutomationConfig(models.Model):
         config = self.search([("active", "=", True)], limit=1)
         if not config:
             raise ValidationError(
-                "Automation configuration not defined. "
-                "Please configure PlasticOS Automation settings."
+                "Automation configuration not defined. " "Please configure PlasticOS Automation settings."
             )
         return config
 

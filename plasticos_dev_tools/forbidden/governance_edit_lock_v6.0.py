@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ============================================
 # Canonical Header (v4.0 Production Baseline)
 # ============================================
@@ -14,6 +13,7 @@
 from odoo import api, models
 from odoo.exceptions import AccessError
 
+
 class GovernanceEditLock(models.AbstractModel):
     _name = "plastos.governance_edit_lock"
     _description = "Governance Edit Lock"
@@ -23,4 +23,3 @@ class GovernanceEditLock(models.AbstractModel):
         if user.login not in ["igor@plastos.ai", "Igor-01"]:
             raise AccessError("Only Igor may modify governance policies.")
         return True
-

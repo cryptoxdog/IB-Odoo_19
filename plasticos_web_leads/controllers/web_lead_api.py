@@ -2,7 +2,7 @@ import json
 import logging
 
 from odoo import http
-from odoo.http import request, Response
+from odoo.http import Response, request
 
 _logger = logging.getLogger(__name__)
 
@@ -190,7 +190,9 @@ class WebLeadController(http.Controller):
 
             _logger.info(
                 "Cognito webhook → lead %s: decision=%s, state=%s",
-                lead.lead_id, lead.decision, lead.state,
+                lead.lead_id,
+                lead.decision,
+                lead.state,
             )
             return self._json_response(200, response_data)
 
@@ -214,14 +216,17 @@ class WebLeadController(http.Controller):
         try:
             Config = request.env["plasticos.web.lead.config"].sudo()
             config = Config.get_config()
-            return self._json_response(200, {
-                "status": "ok",
-                "endpoint_active": config.is_active,
-                "api_key_configured": bool(config.api_key),
-                "openai_configured": bool(config.openai_api_key),
-                "ai_enabled": config.ai_enabled,
-                "vision_enabled": config.vision_enabled,
-            })
+            return self._json_response(
+                200,
+                {
+                    "status": "ok",
+                    "endpoint_active": config.is_active,
+                    "api_key_configured": bool(config.api_key),
+                    "openai_configured": bool(config.openai_api_key),
+                    "ai_enabled": config.ai_enabled,
+                    "vision_enabled": config.vision_enabled,
+                },
+            )
         except Exception as exc:
             return self._json_error(500, f"Health check failed: {exc}")
 

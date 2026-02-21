@@ -137,7 +137,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
       <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -150,7 +150,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
       <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -189,7 +189,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
       <field name="form_id" ref="plasticos_material_profile.form_bale"/>
       <field name="color_id" ref="plasticos_material_profile.color_black"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">BALE</field>
       <field name="color_code">BLK</field>
@@ -241,7 +241,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
       <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -267,7 +267,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
       <field name="form_id" ref="plasticos_material_profile.form_bale"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -280,7 +280,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
       <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -345,7 +345,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe"/>
       <field name="form_id" ref="plasticos_material_profile.form_bale"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -436,7 +436,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hmw_hdpe"/>
       <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -449,7 +449,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_hmw_hdpe"/>
       <field name="form_id" ref="plasticos_material_profile.form_bale"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">BALE</field>
       <field name="color_code">MIX</field>
@@ -514,7 +514,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_ldpe"/>
       <field name="form_id" ref="plasticos_material_profile.form_film"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">FILM</field>
       <field name="color_code">MIX</field>
@@ -527,7 +527,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_ldpe"/>
       <field name="form_id" ref="plasticos_material_profile.form_film"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">FILM</field>
       <field name="color_code">MIX</field>
@@ -541,7 +541,7 @@
       <field name="form_id" ref="plasticos_material_profile.form_film"/>
       <field name="color_id" ref="plasticos_material_profile.color_print"/>
       <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_printed")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_printed')])]"/>
       <field name="type_code">PC</field>
       <field name="form_code">FILM</field>
       <field name="color_code">PRINT</field>
@@ -632,7 +632,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pa"/>
       <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -652,7 +652,7 @@
       <field name="description">Old Corrugated Cardboard</field>
     </record>
     <record id="product_pc__pmma_postindustrial" model="product.template">
-      <field name="name">PC & PMMA Post-Industrial</field>
+      <field name="name">PC &amp; PMMA Post-Industrial</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_engineering"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pc_pmma"/>
@@ -684,7 +684,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp_pe"/>
       <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -710,7 +710,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pet"/>
       <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -762,7 +762,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pet"/>
       <field name="form_id" ref="plasticos_material_profile.form_flake"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">FLAKE</field>
       <field name="color_code">MIX</field>
@@ -1074,7 +1074,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
       <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>
@@ -1133,7 +1133,7 @@
       <field name="description">PP Trays And Containers</field>
     </record>
     <record id="product_pp_tubs__lids" model="product.template">
-      <field name="name">PP Tubs & Lids</field>
+      <field name="name">PP Tubs &amp; Lids</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
@@ -1191,7 +1191,7 @@
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pvc"/>
       <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
-      <field name="attribute_ids" eval="[(6, 0, [ref("attr_clean")])]"/>
+      <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
       <field name="type_code">CLEAN</field>
       <field name="form_code">RG</field>
       <field name="color_code">MIX</field>

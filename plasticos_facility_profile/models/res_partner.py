@@ -1,15 +1,11 @@
-from odoo import api, models, fields
+from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
 
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
-    facility_profile_ids = fields.One2many(
-        "plasticos.facility.profile",
-        "partner_id",
-        string="Facility Capabilities"
-    )
+    facility_profile_ids = fields.One2many("plasticos.facility.profile", "partner_id", string="Facility Capabilities")
 
     partner_type_id = fields.Many2one(
         "plasticos.partner.type",
@@ -44,9 +40,7 @@ class ResPartner(models.Model):
         PartnerType = self.env["plasticos.partner.type"]
         for rec in self:
             if rec.x_facility_role:
-                partner_type = PartnerType.search(
-                    [("code", "=", rec.x_facility_role)], limit=1
-                )
+                partner_type = PartnerType.search([("code", "=", rec.x_facility_role)], limit=1)
                 rec.partner_type_id = partner_type.id if partner_type else False
             else:
                 rec.partner_type_id = False
@@ -55,16 +49,13 @@ class ResPartner(models.Model):
         "res.partner",
         string="Preferred Contact",
         help="Last-selected contact for this company/facility. "
-             "Auto-populated when a user selects a contact on an intake. "
-             "Used to auto-fill contact on subsequent intakes.",
+        "Auto-populated when a user selects a contact on an intake. "
+        "Used to auto-fill contact on subsequent intakes.",
     )
 
     def write(self, vals):
         if "parent_id" in vals and not vals.get("parent_id"):
             for rec in self:
                 if rec.facility_profile_ids:
-                    raise ValidationError(
-                        "Cannot convert facility to parent while "
-                        "capability profile exists."
-                    )
+                    raise ValidationError("Cannot convert facility to parent while " "capability profile exists.")
         return super().write(vals)

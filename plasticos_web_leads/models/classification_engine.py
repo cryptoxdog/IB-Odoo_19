@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ═══════════════════════════════════════════════════════════
 # Module : classification_engine
 # Purpose: Deterministic HOT/COLD classification — zero LLM.
@@ -22,6 +21,7 @@ HOT qualification (all must be true):
 
 Everything else → COLD with reasons.
 """
+
 from __future__ import annotations
 
 import logging
@@ -30,20 +30,54 @@ from dataclasses import dataclass, field
 _logger = logging.getLogger(__name__)
 
 # ── Non-plastic keywords ────────────────────────────────────
-_NON_PLASTIC_KEYWORDS = frozenset([
-    "metal", "steel", "aluminum", "aluminium", "copper", "brass",
-    "wood", "lumber", "paper", "cardboard", "glass", "ceramic",
-    "concrete", "asphalt", "dirt", "soil", "food waste", "organic",
-    "textile", "fabric", "cloth", "rubber tire",
-])
+_NON_PLASTIC_KEYWORDS = frozenset(
+    [
+        "metal",
+        "steel",
+        "aluminum",
+        "aluminium",
+        "copper",
+        "brass",
+        "wood",
+        "lumber",
+        "paper",
+        "cardboard",
+        "glass",
+        "ceramic",
+        "concrete",
+        "asphalt",
+        "dirt",
+        "soil",
+        "food waste",
+        "organic",
+        "textile",
+        "fabric",
+        "cloth",
+        "rubber tire",
+    ]
+)
 
 # ── Commercial / industrial source indicators ───────────────
-_COMMERCIAL_INDICATORS = frozenset([
-    "commercial", "industrial", "manufacturing", "factory",
-    "warehouse", "distribution", "plant", "facility", "processor",
-    "recycler", "broker", "post-industrial", "post_industrial",
-    "post-commercial", "post_commercial", "agricultural",
-])
+_COMMERCIAL_INDICATORS = frozenset(
+    [
+        "commercial",
+        "industrial",
+        "manufacturing",
+        "factory",
+        "warehouse",
+        "distribution",
+        "plant",
+        "facility",
+        "processor",
+        "recycler",
+        "broker",
+        "post-industrial",
+        "post_industrial",
+        "post-commercial",
+        "post_commercial",
+        "agricultural",
+    ]
+)
 
 
 @dataclass

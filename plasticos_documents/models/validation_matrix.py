@@ -1,7 +1,7 @@
-from odoo import models, fields, api
-from odoo.exceptions import ValidationError
-
 import logging
+
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -56,12 +56,14 @@ class PlasticosDocumentValidationMatrix(models.Model):
     def _check_unique_category_tag(self):
         """Prevent duplicate category+tag combinations."""
         for rec in self:
-            existing = self.search([
-                ("doc_category", "=", rec.doc_category),
-                ("tag_id", "=", rec.tag_id.id),
-                ("id", "!=", rec.id),
-                ("active", "=", True),
-            ])
+            existing = self.search(
+                [
+                    ("doc_category", "=", rec.doc_category),
+                    ("tag_id", "=", rec.tag_id.id),
+                    ("id", "!=", rec.id),
+                    ("active", "=", True),
+                ]
+            )
             if existing:
                 raise ValidationError(
                     "A validation matrix entry for category '%s' with tag '%s' "

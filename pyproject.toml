@@ -1,0 +1,102 @@
+# Odoo 19 ReBoot - Python project configuration
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+# Exclude Odoo core and external addons
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "*.egg-info",
+]
+
+[tool.ruff.lint]
+# Enable common rules, but be lenient for Odoo patterns
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "UP",     # pyupgrade
+]
+
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "E731",   # lambda assignment (common in Odoo)
+    "B008",   # function call in default arg (Odoo fields pattern)
+    "B905",   # zip without strict (Python 3.10+)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "odoo",
+    "odoo.addons",
+]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+[tool.ruff.lint.flake8-bandit]
+# Security checks
+check-typed-exception = true
+
+[tool.ruff.lint.per-file-ignores]
+# __manifest__.py files have bare dicts (Odoo convention)
+"__manifest__.py" = ["B018"]
+# Test files can have unused variables, assertions, undefined env
+"test_*.py" = ["F841", "B011", "F821"]
+"**/tests/*.py" = ["F841", "B011", "F821"]
+# Legacy/forbidden code - don't enforce strict style
+"**/forbidden/*.py" = ["UP031", "UP030", "F841", "W291", "W293"]
+# Dev tools - relaxed rules
+"**/tools/*.py" = ["UP031", "F821"]
+# Wizards - allow single-letter loop vars for Odoo recordsets
+"**/wizards/*.py" = ["E741"]
+# Import services - may have unused vars during development
+"*_import_service.py" = ["F841"]
+# Validation matrices - legacy percent formatting
+"*validation_matrix*.py" = ["UP031"]
+# AI/ML code - may use percent formatting
+"ai_*.py" = ["UP031"]
+# Web leads - complex legacy code
+"web_lead.py" = ["B007"]
+# Automation models - legacy percent formatting
+"**/automation/models/*.py" = ["UP031"]
+"*_automation.py" = ["UP031"]
+"*_approval.py" = ["UP031"]
+"*_alert.py" = ["UP031"]
+# Transaction docs - unused var during dev
+"transaction_docs.py" = ["F841"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# =============================================================================
+# ODOO-SPECIFIC PATTERNS TO GREP FOR (not catchable by ruff, use grep/CI script)
+# =============================================================================
+# These patterns cause Odoo 19 runtime errors but ruff can't detect them.
+# Add to CI as grep checks or use odoo --test-enable
+#
+# 1. _sql_constraints (deprecated in Odoo 17+)
+#    grep -r "_sql_constraints" --include="*.py"
+#    Fix: Convert to models.Constraint
+#
+# 2. @api.depends("id") (disallowed in Odoo 19)
+#    grep -r '@api.depends.*"id"' --include="*.py"
+#    Fix: Remove "id" from depends list
+#
+# 3. @api.one / @api.multi (removed in Odoo 13+)
+#    grep -r "@api.one\|@api.multi" --include="*.py"
+#    Fix: Remove decorator, update method signature
+#
+# 4. category_id on res.groups (removed in Odoo 19)
+#    grep -r 'category_id.*ref=' --include="*.xml"
+#    Fix: Remove category_id field from group records
+#
+# 5. numbercall on ir.cron (deprecated)
+#    grep -r "numbercall" --include="*.xml"
+#    Fix: Remove field
+# =============================================================================

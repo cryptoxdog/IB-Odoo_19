@@ -1,6 +1,6 @@
-from odoo import models, fields, api
-
 import logging
+
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -52,9 +52,11 @@ class PlasticosLoadAutomation(models.Model):
         now = fields.Datetime.now()
         monitored_states = list(_SLA_HOURS.keys())
 
-        loads = self.search([
-            ("state", "in", monitored_states),
-        ])
+        loads = self.search(
+            [
+                ("state", "in", monitored_states),
+            ]
+        )
 
         log_model = self.env.get("plasticos.automation.log")
 
@@ -89,25 +91,23 @@ class PlasticosLoadAutomation(models.Model):
 
                 load.message_post(
                     body="SLA breach [%s]: load stuck in '%s' for %.1f hours "
-                         "(limit: %d hours)."
-                         % (new_level.upper(), load.state,
-                            delta_hours, limit_hours),
+                    "(limit: %d hours)." % (new_level.upper(), load.state, delta_hours, limit_hours),
                     message_type="notification",
                 )
 
                 # Log to automation log
                 if log_model is not None:
-                    log_model.create({
-                        "name": "SLA breach [%s] for %s"
-                                % (new_level, load.name),
-                        "model_name": "plasticos.load",
-                        "res_id": load.id,
-                        "action_type": "logistics_escalation",
-                    })
+                    log_model.create(
+                        {
+                            "name": "SLA breach [%s] for %s" % (new_level, load.name),
+                            "model_name": "plasticos.load",
+                            "res_id": load.id,
+                            "action_type": "logistics_escalation",
+                        }
+                    )
 
                 _logger.info(
-                    "Logistics automation: SLA breach [%s] for load %s "
-                    "(state=%s, hours=%.1f, limit=%d)",
+                    "Logistics automation: SLA breach [%s] for load %s " "(state=%s, hours=%.1f, limit=%d)",
                     new_level,
                     load.name,
                     load.state,

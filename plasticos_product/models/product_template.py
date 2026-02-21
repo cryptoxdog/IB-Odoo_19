@@ -1,10 +1,10 @@
-from odoo import models, fields
+from odoo import fields, models
 
 
 class ProductTemplate(models.Model):
     """
     Extends product.template with plastics-specific material fields.
-    
+
     Product Structure:
     - Polymer (required): HDPE, LDPE, PP, PET, etc.
     - Form (required): Current physical form - Regrind, Flake, Pellet, etc.
@@ -12,7 +12,7 @@ class ProductTemplate(models.Model):
     - Packaging (optional): How it's shipped - Gaylords, Super Sacks, Bales
     - Color (optional): Blue, Natural, Mixed
     - Attributes (optional): Conditions - Clean, With Metal, Printed
-    
+
     Example: "HDPE Drum Regrind - Clean Bales"
     - Polymer: HDPE
     - Form: Regrind (current form)
@@ -20,6 +20,7 @@ class ProductTemplate(models.Model):
     - Packaging: Bales (how shipped)
     - Attributes: Clean
     """
+
     _inherit = "product.template"
 
     # ── Required Fields ────────────────────────────────────────

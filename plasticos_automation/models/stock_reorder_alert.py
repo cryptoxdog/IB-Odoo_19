@@ -1,6 +1,6 @@
-from odoo import models, fields, api
-
 import logging
+
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -11,8 +11,7 @@ class ProductProduct(models.Model):
     x_min_stock_threshold = fields.Float(
         string="Min Stock Threshold",
         default=0.0,
-        help="Per-product minimum stock level override. "
-             "Falls back to the global default if zero.",
+        help="Per-product minimum stock level override. " "Falls back to the global default if zero.",
     )
 
     @api.model
@@ -25,9 +24,11 @@ class ProductProduct(models.Model):
         config = self.env["plasticos.automation.config"].get_config()
         global_threshold = config.stock_threshold_default
 
-        products = self.search([
-            ("type", "=", "product"),
-        ])
+        products = self.search(
+            [
+                ("type", "=", "product"),
+            ]
+        )
 
         for product in products:
             threshold = product.x_min_stock_threshold or global_threshold
@@ -40,12 +41,14 @@ class ProductProduct(models.Model):
                     % (product.qty_available, threshold),
                 )
 
-                self.env["plasticos.automation.log"].create({
-                    "name": "Stock alert %s" % product.display_name,
-                    "model_name": "product.product",
-                    "res_id": product.id,
-                    "action_type": "stock_alert",
-                })
+                self.env["plasticos.automation.log"].create(
+                    {
+                        "name": "Stock alert %s" % product.display_name,
+                        "model_name": "product.product",
+                        "res_id": product.id,
+                        "action_type": "stock_alert",
+                    }
+                )
                 _logger.info(
                     "Automation: stock alert for %s (qty=%.2f, threshold=%.2f)",
                     product.display_name,

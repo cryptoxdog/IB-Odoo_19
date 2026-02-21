@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import api, fields, models
 from odoo.exceptions import UserError
 
 
@@ -129,21 +129,14 @@ class PlasticosTransaction(models.Model):
         default=False,
     )
 
-    customer_invoice_id = fields.Many2one(
-        "account.move",
-        domain=[("move_type", "=", "out_invoice")]
-    )
+    customer_invoice_id = fields.Many2one("account.move", domain=[("move_type", "=", "out_invoice")])
 
     vendor_bill_ids = fields.Many2many(
-        "account.move",
-        relation="plasticos_tx_vendor_rel",
-        domain=[("move_type", "=", "in_invoice")]
+        "account.move", relation="plasticos_tx_vendor_rel", domain=[("move_type", "=", "in_invoice")]
     )
 
     freight_bill_ids = fields.Many2many(
-        "account.move",
-        relation="plasticos_tx_freight_rel",
-        domain=[("move_type", "=", "in_invoice")]
+        "account.move", relation="plasticos_tx_freight_rel", domain=[("move_type", "=", "in_invoice")]
     )
 
     # ── RevOps Financial Fields ──────────────────────────────
@@ -245,18 +238,23 @@ class PlasticosTransaction(models.Model):
         index=True,
     )
 
-    state = fields.Selection([
-        ("draft", "Draft"),
-        ("active", "Active"),
-        ("pending_supplier", "Pending Supplier"),
-        ("supplier_ready", "Supplier Ready"),
-        ("in_progress", "In Progress"),
-        ("in_transit", "In Transit"),
-        ("delivered", "Delivered"),
-        ("invoiced", "Invoiced"),
-        ("closed", "Closed"),
-        ("cancelled", "Cancelled"),
-    ], default="draft", tracking=True, index=True)
+    state = fields.Selection(
+        [
+            ("draft", "Draft"),
+            ("active", "Active"),
+            ("pending_supplier", "Pending Supplier"),
+            ("supplier_ready", "Supplier Ready"),
+            ("in_progress", "In Progress"),
+            ("in_transit", "In Transit"),
+            ("delivered", "Delivered"),
+            ("invoiced", "Invoiced"),
+            ("closed", "Closed"),
+            ("cancelled", "Cancelled"),
+        ],
+        default="draft",
+        tracking=True,
+        index=True,
+    )
 
     # ── Constraints (Odoo 19 models.Constraint) ──────────────
     _check_unique_name = models.Constraint(
@@ -269,9 +267,7 @@ class PlasticosTransaction(models.Model):
     def _compute_weight_variance(self):
         for rec in self:
             if rec.expected_weight and rec.actual_weight:
-                rec.weight_variance_percent = (
-                    abs(rec.actual_weight - rec.expected_weight) / rec.expected_weight * 100
-                )
+                rec.weight_variance_percent = abs(rec.actual_weight - rec.expected_weight) / rec.expected_weight * 100
             else:
                 rec.weight_variance_percent = 0.0
 
@@ -339,16 +335,14 @@ class PlasticosTransaction(models.Model):
                 rec.lightweight_penalties = 0.0
             return
         for rec in self:
-            claims = Claim.search([
-                ("transaction_id", "=", rec.id),
-                ("state", "=", "resolved"),
-            ])
-            rec.freight_chargebacks = sum(
-                c.recovery_amount for c in claims if c.case_type == "freight_chargeback"
+            claims = Claim.search(
+                [
+                    ("transaction_id", "=", rec.id),
+                    ("state", "=", "resolved"),
+                ]
             )
-            rec.lightweight_penalties = sum(
-                c.recovery_amount for c in claims if c.case_type == "lightweight_penalty"
-            )
+            rec.freight_chargebacks = sum(c.recovery_amount for c in claims if c.case_type == "freight_chargeback")
+            rec.lightweight_penalties = sum(c.recovery_amount for c in claims if c.case_type == "lightweight_penalty")
 
     @api.depends("gross_margin", "commission_rule_id", "state", "commission_locked", "commission_locked_amount")
     def _compute_commission(self):
@@ -377,17 +371,14 @@ class PlasticosTransaction(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get("name", "New") == "New":
-                vals["name"] = (
-                    self.env["ir.sequence"].next_by_code("plasticos.transaction") or "New"
-                )
+                vals["name"] = self.env["ir.sequence"].next_by_code("plasticos.transaction") or "New"
         return super().create(vals_list)
 
     def write(self, vals):
         for rec in self:
             if "state" in vals:
-                allow = (
-                    vals.get("state") == "active"
-                    or (vals.get("state") == "closed" and vals.get("commission_locked") is True)
+                allow = vals.get("state") == "active" or (
+                    vals.get("state") == "closed" and vals.get("commission_locked") is True
                 )
                 if not allow:
                     raise UserError("State can only be changed via action methods.")
@@ -412,35 +403,47 @@ class PlasticosTransaction(models.Model):
             if "vendor_bill_ids" in vals:
                 for cmd in vals["vendor_bill_ids"]:
                     if cmd[0] == 4:
-                        other = self.search([
-                            ("vendor_bill_ids", "in", [cmd[1]]),
-                            ("id", "!=", rec.id),
-                        ], limit=1)
+                        other = self.search(
+                            [
+                                ("vendor_bill_ids", "in", [cmd[1]]),
+                                ("id", "!=", rec.id),
+                            ],
+                            limit=1,
+                        )
                         if other:
                             raise UserError("Vendor bill already linked to another transaction.")
                     elif cmd[0] == 6:
                         for bid in cmd[2]:
-                            other = self.search([
-                                ("vendor_bill_ids", "in", [bid]),
-                                ("id", "!=", rec.id),
-                            ], limit=1)
+                            other = self.search(
+                                [
+                                    ("vendor_bill_ids", "in", [bid]),
+                                    ("id", "!=", rec.id),
+                                ],
+                                limit=1,
+                            )
                             if other:
                                 raise UserError("Vendor bill already linked to another transaction.")
             if "freight_bill_ids" in vals:
                 for cmd in vals["freight_bill_ids"]:
                     if cmd[0] == 4:
-                        other = self.search([
-                            ("freight_bill_ids", "in", [cmd[1]]),
-                            ("id", "!=", rec.id),
-                        ], limit=1)
+                        other = self.search(
+                            [
+                                ("freight_bill_ids", "in", [cmd[1]]),
+                                ("id", "!=", rec.id),
+                            ],
+                            limit=1,
+                        )
                         if other:
                             raise UserError("Freight bill already linked to another transaction.")
                     elif cmd[0] == 6:
                         for bid in cmd[2]:
-                            other = self.search([
-                                ("freight_bill_ids", "in", [bid]),
-                                ("id", "!=", rec.id),
-                            ], limit=1)
+                            other = self.search(
+                                [
+                                    ("freight_bill_ids", "in", [bid]),
+                                    ("id", "!=", rec.id),
+                                ],
+                                limit=1,
+                            )
                             if other:
                                 raise UserError("Freight bill already linked to another transaction.")
         return super().write(vals)
@@ -486,8 +489,10 @@ class PlasticosTransaction(models.Model):
                 raise UserError("Cannot close transaction with negative gross margin.")
 
             amount = service_commission.compute_commission(rec) if service_commission else 0.0
-            rec.write({
-                "commission_locked_amount": amount,
-                "commission_locked": True,
-                "state": "closed",
-            })
+            rec.write(
+                {
+                    "commission_locked_amount": amount,
+                    "commission_locked": True,
+                    "state": "closed",
+                }
+            )

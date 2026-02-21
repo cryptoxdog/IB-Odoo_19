@@ -1,5 +1,6 @@
-from odoo import models, _
+from odoo import _, models
 from odoo.exceptions import UserError
+
 from ..services.matcher import PlasticosMatcher
 
 
@@ -16,8 +17,7 @@ class PlasticosIntake(models.Model):
             if not record.material_profile_id:
                 raise UserError(
                     _(
-                        "Intake '%s' has no material profile. "
-                        "Link a material profile before matching.",
+                        "Intake '%s' has no material profile. " "Link a material profile before matching.",
                         record.name,
                     )
                 )

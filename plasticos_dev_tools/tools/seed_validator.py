@@ -23,8 +23,6 @@ Read-only validation that checks:
 This script performs NO writes. It only reads and reports.
 """
 
-import os
-import csv
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -62,10 +60,7 @@ def validate_seeds(env, addons_path=None):
     tag_issues = []
     for tag in tags:
         if tag.code in seen_codes:
-            tag_issues.append(
-                "Duplicate code '%s': tag IDs %d and %d"
-                % (tag.code, seen_codes[tag.code], tag.id)
-            )
+            tag_issues.append("Duplicate code '%s': tag IDs %d and %d" % (tag.code, seen_codes[tag.code], tag.id))
         else:
             seen_codes[tag.code] = tag.id
     results["tag_uniqueness"] = tag_issues
@@ -86,8 +81,7 @@ def validate_seeds(env, addons_path=None):
                     model_obj = env[model_name]
                     if not hasattr(model_obj, method_name):
                         cron_issues.append(
-                            "Cron '%s': method '%s' not found on model '%s'"
-                            % (cron.name, method_name, model_name)
+                            "Cron '%s': method '%s' not found on model '%s'" % (cron.name, method_name, model_name)
                         )
     results["cron_methods"] = cron_issues
     print("  Issues: %d" % len(cron_issues))
@@ -98,10 +92,7 @@ def validate_seeds(env, addons_path=None):
     acls = env["ir.model.access"].search([])
     for acl in acls:
         if acl.model_id and acl.model_id.model not in env:
-            acl_issues.append(
-                "ACL '%s': model '%s' not in registry"
-                % (acl.name, acl.model_id.model)
-            )
+            acl_issues.append("ACL '%s': model '%s' not in registry" % (acl.name, acl.model_id.model))
     results["acl_models"] = acl_issues
     print("  Issues: %d" % len(acl_issues))
 

@@ -1,4 +1,4 @@
-from odoo import models, fields, api
+from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
 
@@ -178,10 +178,7 @@ class PlasticosFacilityProfile(models.Model):
     def _check_partner_is_facility(self):
         for rec in self:
             if not rec.partner_id.parent_id:
-                raise ValidationError(
-                    "Capability profile can only be attached to "
-                    "facility-level partners."
-                )
+                raise ValidationError("Capability profile can only be attached to " "facility-level partners.")
 
     @api.constrains("density_min", "density_max")
     def _check_density_range(self):
@@ -214,13 +211,16 @@ class PlasticosFacilityProfile(models.Model):
 
     def unlink(self):
         for rec in self:
-            if rec.env["sale.order"].search_count([
-                ("partner_id", "=", rec.partner_id.id),
-                ("state", "!=", "cancel"),
-            ]) > 0:
-                raise ValidationError(
-                    "Cannot delete capability profile linked to active transaction."
+            if (
+                rec.env["sale.order"].search_count(
+                    [
+                        ("partner_id", "=", rec.partner_id.id),
+                        ("state", "!=", "cancel"),
+                    ]
                 )
+                > 0
+            ):
+                raise ValidationError("Cannot delete capability profile linked to active transaction.")
         return super().unlink()
 
     # ═════════════════════════════════════════════════════════
@@ -261,9 +261,7 @@ class PlasticosFacilityProfile(models.Model):
                 "spot": rec.accepts_spot,
                 "contract": rec.prefers_contract,
                 # BCP extension fields
-                "accepted_polymers": list(
-                    rec.accepted_polymer_ids.mapped("code")
-                ),
+                "accepted_polymers": list(rec.accepted_polymer_ids.mapped("code")),
                 "form_preference": rec.form_preference,
                 "process_type": rec.process_type,
                 "feedstock_type": rec.feedstock_type,

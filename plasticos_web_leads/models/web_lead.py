@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ═══════════════════════════════════════════════════════════
 # Model : plasticos.web.lead
 # Purpose: Web lead ingestion with AI-powered triage pipeline:
@@ -11,7 +10,6 @@
 from __future__ import annotations
 
 import base64
-import json
 import logging
 import uuid
 from typing import Any
@@ -21,8 +19,7 @@ import requests as http_requests
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 
-from . import ai_normalizer
-from . import image_analyzer
+from . import ai_normalizer, image_analyzer
 from .classification_engine import classify_lead
 
 _logger = logging.getLogger(__name__)
@@ -291,7 +288,7 @@ class PlasticosWebLead(models.Model):
     # ═══════════════════════════════════════════════════════════
 
     @api.model
-    def create_from_cognito(self, raw_payload: dict[str, Any]) -> "PlasticosWebLead":
+    def create_from_cognito(self, raw_payload: dict[str, Any]) -> PlasticosWebLead:
         """Ingest a raw Cognito form submission directly.
 
         The entire triage pipeline runs inside Odoo:
@@ -303,39 +300,19 @@ class PlasticosWebLead(models.Model):
           6. Deterministic classification
           7. HOT → partner + intake + attachments
         """
-        lead_id = raw_payload.get("EntryId") or raw_payload.get(
-            "entry_id"
-        ) or f"CG-{uuid.uuid4().hex[:12]}"
+        lead_id = raw_payload.get("EntryId") or raw_payload.get("entry_id") or f"CG-{uuid.uuid4().hex[:12]}"
 
         existing = self.search([("lead_id", "=", str(lead_id))], limit=1)
         if existing:
             _logger.info("Duplicate Cognito submission %s — returning existing.", lead_id)
             return existing
 
-        company = (
-            raw_payload.get("YourBusinessCompanyName", "")
-            or raw_payload.get("CompanyName", "")
-            or ""
-        ).strip()
-        contact = (
-            raw_payload.get("YourName", "")
-            or raw_payload.get("Name", "")
-            or ""
-        ).strip()
-        email = (
-            raw_payload.get("Email", "")
-            or raw_payload.get("EmailAddress", "")
-            or ""
-        ).strip()
-        phone = (
-            raw_payload.get("Phone", "")
-            or raw_payload.get("PhoneNumber", "")
-            or ""
-        ).strip()
+        company = (raw_payload.get("YourBusinessCompanyName", "") or raw_payload.get("CompanyName", "") or "").strip()
+        contact = (raw_payload.get("YourName", "") or raw_payload.get("Name", "") or "").strip()
+        email = (raw_payload.get("Email", "") or raw_payload.get("EmailAddress", "") or "").strip()
+        phone = (raw_payload.get("Phone", "") or raw_payload.get("PhoneNumber", "") or "").strip()
         material_desc = (
-            raw_payload.get("DescribeYourMaterial", "")
-            or raw_payload.get("WhatTypeOfPlastic", "")
-            or ""
+            raw_payload.get("DescribeYourMaterial", "") or raw_payload.get("WhatTypeOfPlastic", "") or ""
         ).strip()
         quantity_text = (raw_payload.get("WhatIsTheQuantity", "") or "").strip()
         contaminants = (raw_payload.get("AreThereAnyContaminants", "") or "").strip()
@@ -370,7 +347,7 @@ class PlasticosWebLead(models.Model):
     # ═══════════════════════════════════════════════════════════
 
     @api.model
-    def create_from_agent(self, payload: dict[str, Any]) -> "PlasticosWebLead":
+    def create_from_agent(self, payload: dict[str, Any]) -> PlasticosWebLead:
         """Create a web lead from a pre-processed agent payload.
 
         Expected payload structure::
@@ -407,9 +384,7 @@ class PlasticosWebLead(models.Model):
         phone = raw.get("Phone", "").strip()
         qty_text = raw.get("WhatIsTheQuantity", "")
         contaminants = raw.get("AreThereAnyContaminants", "")
-        material_desc = raw.get("DescribeYourMaterial", "") or raw.get(
-            "WhatTypeOfPlastic", ""
-        )
+        material_desc = raw.get("DescribeYourMaterial", "") or raw.get("WhatTypeOfPlastic", "")
 
         vals = {
             "lead_id": lead_id,
@@ -561,10 +536,12 @@ class PlasticosWebLead(models.Model):
         except Exception as exc:
             _logger.exception("Triage pipeline error for lead %s", self.lead_id)
             log_lines.append(f"ERROR: {exc}")
-            self.write({
-                "state": "error",
-                "error_message": str(exc),
-            })
+            self.write(
+                {
+                    "state": "error",
+                    "error_message": str(exc),
+                }
+            )
 
         self.write({"triage_log": "\n".join(log_lines)})
 
@@ -586,19 +563,11 @@ class PlasticosWebLead(models.Model):
 
         polymer_raw = (ai_data.get("polymer") or "").lower().strip()
         merged["polymer"] = _POLYMER_NORMALIZE.get(polymer_raw, polymer_raw or None)
-        merged["form"] = _FORM_NORMALIZE.get(
-            (ai_data.get("form") or "").lower().strip(), None
-        )
+        merged["form"] = _FORM_NORMALIZE.get((ai_data.get("form") or "").lower().strip(), None)
         merged["color"] = (ai_data.get("color") or "").lower().strip() or None
-        merged["source_type"] = _SOURCE_NORMALIZE.get(
-            (ai_data.get("source_type") or "").lower().strip(), None
-        )
-        merged["estimated_lbs"] = _safe_int(
-            ai_data.get("estimated_lbs_per_load"), 0
-        )
-        merged["loads_per_month"] = _safe_int(
-            ai_data.get("loads_per_month"), 0
-        )
+        merged["source_type"] = _SOURCE_NORMALIZE.get((ai_data.get("source_type") or "").lower().strip(), None)
+        merged["estimated_lbs"] = _safe_int(ai_data.get("estimated_lbs_per_load"), 0)
+        merged["loads_per_month"] = _safe_int(ai_data.get("loads_per_month"), 0)
         merged["is_plastic"] = ai_data.get("is_plastic", True)
         merged["is_commercial_source"] = ai_data.get("is_commercial_source", False)
         merged["material_summary"] = ai_data.get("material_summary", "")
@@ -607,11 +576,7 @@ class PlasticosWebLead(models.Model):
         merged["frequency"] = (ai_data.get("frequency") or "").lower().strip()
 
         raw = self.raw_payload or {}
-        merged["source_description"] = (
-            raw.get("WhatIsTheSourceOfThisMaterial", "")
-            or raw.get("Source", "")
-            or ""
-        )
+        merged["source_description"] = raw.get("WhatIsTheSourceOfThisMaterial", "") or raw.get("Source", "") or ""
 
         if vision_results:
             best_vision = max(
@@ -620,9 +585,7 @@ class PlasticosWebLead(models.Model):
                 default={},
             )
             if best_vision:
-                v_form = _FORM_NORMALIZE.get(
-                    (best_vision.get("observed_form") or "").lower().strip()
-                )
+                v_form = _FORM_NORMALIZE.get((best_vision.get("observed_form") or "").lower().strip())
                 if v_form and not merged["form"]:
                     merged["form"] = v_form
                 v_color = (best_vision.get("observed_color") or "").lower().strip()
@@ -648,13 +611,17 @@ class PlasticosWebLead(models.Model):
 
         if config.auto_create_intake:
             intake = self._create_intake_triage(partner, merged, config)
-            self.write({
-                "intake_id": intake.id,
-                "state": "intake_created",
-            })
+            self.write(
+                {
+                    "intake_id": intake.id,
+                    "state": "intake_created",
+                }
+            )
             _logger.info(
                 "HOT lead %s → partner %s, intake %s",
-                self.lead_id, partner.id, intake.id,
+                self.lead_id,
+                partner.id,
+                intake.id,
             )
         else:
             self.write({"state": "intake_created"})
@@ -676,10 +643,13 @@ class PlasticosWebLead(models.Model):
         deal_type = _FREQ_TO_DEAL.get(freq_raw, "spot")
 
         facility = partner
-        children = self.env["res.partner"].search([
-            ("parent_id", "=", partner.id),
-            ("type", "!=", "contact"),
-        ], limit=1)
+        children = self.env["res.partner"].search(
+            [
+                ("parent_id", "=", partner.id),
+                ("type", "!=", "contact"),
+            ],
+            limit=1,
+        )
         if children:
             facility = children
 
@@ -716,22 +686,28 @@ class PlasticosWebLead(models.Model):
             self.write({"partner_id": partner.id})
 
             intake = self._create_intake_simple(partner, config)
-            self.write({
-                "intake_id": intake.id,
-                "state": "intake_created",
-            })
+            self.write(
+                {
+                    "intake_id": intake.id,
+                    "state": "intake_created",
+                }
+            )
 
             _logger.info(
                 "HOT lead %s → partner %s, intake %s",
-                self.lead_id, partner.id, intake.id,
+                self.lead_id,
+                partner.id,
+                intake.id,
             )
 
         except Exception as exc:
             _logger.exception("Error processing HOT lead %s", self.lead_id)
-            self.write({
-                "state": "error",
-                "error_message": str(exc),
-            })
+            self.write(
+                {
+                    "state": "error",
+                    "error_message": str(exc),
+                }
+            )
 
     def _create_intake_simple(self, partner: Any, config: Any):
         """Create intake from pre-processed agent payload (legacy)."""
@@ -740,18 +716,10 @@ class PlasticosWebLead(models.Model):
         ai_freq = ai.get("frequency", {})
         ai_material = ai.get("material", {})
 
-        polymer_raw = (
-            ai_material.get("polymer", "")
-            or ai_material.get("resin_type", "")
-            or ""
-        ).lower().strip()
+        polymer_raw = (ai_material.get("polymer", "") or ai_material.get("resin_type", "") or "").lower().strip()
         polymer = _POLYMER_NORMALIZE.get(polymer_raw, False)
 
-        form_raw = (
-            ai_material.get("form", "")
-            or ai_material.get("material_form", "")
-            or ""
-        ).lower().strip()
+        form_raw = (ai_material.get("form", "") or ai_material.get("material_form", "") or "").lower().strip()
         form = _FORM_NORMALIZE.get(form_raw, False)
 
         freq_raw = (ai_freq.get("frequency") or "").lower()
@@ -795,9 +763,7 @@ class PlasticosWebLead(models.Model):
 
         config = self.env["plasticos.web.lead.config"].sudo().get_config()
         if not config.auto_create_partner:
-            raise UserError(
-                f"No partner found for '{name}' and auto-create is disabled."
-            )
+            raise UserError(f"No partner found for '{name}' and auto-create is disabled.")
 
         partner_vals = {
             "name": name,
@@ -813,13 +779,15 @@ class PlasticosWebLead(models.Model):
         _logger.info("Auto-created partner '%s' (id=%s).", name, partner.id)
 
         if self.contact_name:
-            Partner.create({
-                "name": self.contact_name,
-                "parent_id": partner.id,
-                "email": self.contact_email or False,
-                "phone": self.contact_phone or False,
-                "type": "contact",
-            })
+            Partner.create(
+                {
+                    "name": self.contact_name,
+                    "parent_id": partner.id,
+                    "email": self.contact_email or False,
+                    "phone": self.contact_phone or False,
+                    "type": "contact",
+                }
+            )
 
         return partner
 
@@ -851,12 +819,8 @@ class PlasticosWebLead(models.Model):
     def _looks_like_image_url(url: str) -> bool:
         """Heuristic: does this URL look like an image?"""
         lower = url.lower()
-        return (
-            lower.startswith("http")
-            and any(
-                ext in lower
-                for ext in (".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".heic")
-            )
+        return lower.startswith("http") and any(
+            ext in lower for ext in (".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".heic")
         )
 
     def _fetch_and_attach_images(self, urls: list[str]):
@@ -894,21 +858,25 @@ class PlasticosWebLead(models.Model):
                 Attachment.create(att_vals)
 
                 if self.intake_id:
-                    Attachment.create({
-                        "name": fname,
-                        "type": "binary",
-                        "datas": base64.b64encode(content).decode("ascii"),
-                        "res_model": "plasticos.intake",
-                        "res_id": self.intake_id.id,
-                        "mimetype": content_type,
-                    })
+                    Attachment.create(
+                        {
+                            "name": fname,
+                            "type": "binary",
+                            "datas": base64.b64encode(content).decode("ascii"),
+                            "res_model": "plasticos.intake",
+                            "res_id": self.intake_id.id,
+                            "mimetype": content_type,
+                        }
+                    )
 
                 _logger.info("Attached image %s to web lead %s.", fname, self.lead_id)
 
             except Exception as exc:
                 _logger.warning(
                     "Failed to fetch image %s for lead %s: %s",
-                    url[:80], self.lead_id, exc,
+                    url[:80],
+                    self.lead_id,
+                    exc,
                 )
 
     # ═══════════════════════════════════════════════════════════
@@ -944,8 +912,10 @@ class PlasticosWebLead(models.Model):
                 raise UserError("Intake already exists for this lead.")
             config = rec.env["plasticos.web.lead.config"].sudo().get_config()
             merged = rec.ai_normalized or rec.ai_analysis or {}
-            rec.write({
-                "decision": "hot",
-                "decision_reasons": {"reasons": ["Manual override by user"]},
-            })
+            rec.write(
+                {
+                    "decision": "hot",
+                    "decision_reasons": {"reasons": ["Manual override by user"]},
+                }
+            )
             rec._process_hot_lead_triage(merged, config)

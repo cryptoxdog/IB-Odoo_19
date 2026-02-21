@@ -1,7 +1,6 @@
 import logging
 
-from odoo import models, fields, api
-from odoo.exceptions import ValidationError
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -185,11 +184,13 @@ class PlasticosMatchResult(models.Model):
     def action_accept(self):
         """Accept this match result — marks it for offer generation."""
         for rec in self:
-            rec.write({
-                "state": "accepted",
-                "reviewed_by": self.env.uid,
-                "reviewed_date": fields.Datetime.now(),
-            })
+            rec.write(
+                {
+                    "state": "accepted",
+                    "reviewed_by": self.env.uid,
+                    "reviewed_date": fields.Datetime.now(),
+                }
+            )
         _logger.info(
             "Match results accepted: %s",
             self.mapped("display_name"),
@@ -198,11 +199,13 @@ class PlasticosMatchResult(models.Model):
     def action_reject(self):
         """Reject this match result."""
         for rec in self:
-            rec.write({
-                "state": "rejected",
-                "reviewed_by": self.env.uid,
-                "reviewed_date": fields.Datetime.now(),
-            })
+            rec.write(
+                {
+                    "state": "rejected",
+                    "reviewed_by": self.env.uid,
+                    "reviewed_date": fields.Datetime.now(),
+                }
+            )
         _logger.info(
             "Match results rejected: %s",
             self.mapped("display_name"),

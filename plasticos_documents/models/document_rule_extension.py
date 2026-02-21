@@ -1,6 +1,6 @@
-from odoo import models, fields
-
 import logging
+
+from odoo import fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -22,14 +22,12 @@ class PlasticosDocumentRuleExtension(models.Model):
     x_overdue_business_days = fields.Integer(
         string="Overdue After (Business Days)",
         default=1,
-        help="Number of business days after which a missing document "
-             "is considered overdue.",
+        help="Number of business days after which a missing document " "is considered overdue.",
     )
     x_escalation_business_days = fields.Integer(
         string="Escalate After (Business Days)",
         default=5,
-        help="Number of business days after which a missing document "
-             "triggers escalation.",
+        help="Number of business days after which a missing document " "triggers escalation.",
     )
     x_required_for_dispatch = fields.Boolean(
         string="Required for Dispatch",

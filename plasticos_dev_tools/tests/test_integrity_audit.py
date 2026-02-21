@@ -6,7 +6,7 @@
 from odoo.tests import TransactionCase, tagged
 
 
-@tagged('post_install', '-at_install')
+@tagged("post_install", "-at_install")
 class TestIntegrityAudit(TransactionCase):
     """Integrity audit tests for PlasticOS data consistency."""
 
@@ -21,22 +21,18 @@ class TestIntegrityAudit(TransactionCase):
                     orphaned.append(doc.name)
             except (KeyError, ValueError):
                 orphaned.append(f"{doc.name} (model {doc.res_model} not found)")
-        
-        self.assertEqual(
-            len(orphaned), 0,
-            f"Found {len(orphaned)} orphaned documents: {orphaned[:5]}"
-        )
+
+        self.assertEqual(len(orphaned), 0, f"Found {len(orphaned)} orphaned documents: {orphaned[:5]}")
 
     def test_compliance_rules_exist(self):
         """Verify compliance rules are defined for transactions."""
-        rules = self.env["plasticos.document.rule"].search([
-            ("res_model", "=", "plasticos.transaction"),
-            ("active", "=", True),
-        ])
-        self.assertTrue(
-            rules,
-            "No active compliance rules found for plasticos.transaction"
+        rules = self.env["plasticos.document.rule"].search(
+            [
+                ("res_model", "=", "plasticos.transaction"),
+                ("active", "=", True),
+            ]
         )
+        self.assertTrue(rules, "No active compliance rules found for plasticos.transaction")
 
     def test_no_invalid_rule_models(self):
         """Verify all document rules reference valid models."""
@@ -45,11 +41,8 @@ class TestIntegrityAudit(TransactionCase):
         for rule in rules:
             if rule.res_model not in self.env:
                 invalid.append(f"{rule.name} -> {rule.res_model}")
-        
-        self.assertEqual(
-            len(invalid), 0,
-            f"Found {len(invalid)} rules with invalid models: {invalid}"
-        )
+
+        self.assertEqual(len(invalid), 0, f"Found {len(invalid)} rules with invalid models: {invalid}")
 
     def test_no_duplicate_tag_codes(self):
         """Verify document tag codes are unique."""
@@ -57,9 +50,6 @@ class TestIntegrityAudit(TransactionCase):
         code_counts = {}
         for tag in tags:
             code_counts.setdefault(tag.code, []).append(tag.id)
-        
+
         duplicates = {code: ids for code, ids in code_counts.items() if len(ids) > 1}
-        self.assertEqual(
-            len(duplicates), 0,
-            f"Found duplicate tag codes: {duplicates}"
-        )
+        self.assertEqual(len(duplicates), 0, f"Found duplicate tag codes: {duplicates}")

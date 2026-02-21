@@ -1,0 +1,42 @@
+# Pre-commit hooks for Odoo 19 development
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # Python linting with ruff (fast, replaces flake8/isort/pyupgrade)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.0
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-xml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+
+  # Odoo-specific pattern checks (catches what ruff/mypy can't)
+  - repo: local
+    hooks:
+      - id: odoo-patterns
+        name: Odoo 19 pattern check
+        entry: ./scripts/check_odoo_patterns.sh
+        language: script
+        pass_filenames: false
+        always_run: true
+
+  # Python type checking (optional - can be slow)
+  # Uncomment if you want mypy
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v1.8.0
+  #   hooks:
+  #     - id: mypy
+  #       additional_dependencies: []

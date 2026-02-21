@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ═══════════════════════════════════════════════════════════
 # Module : plasticos_web_leads
 # Purpose: Web lead ingestion with AI-powered triage pipeline.
@@ -29,6 +28,7 @@
         "data/logistics_ir_rules.xml",
         "views/web_lead_views.xml",
         "views/web_lead_config_views.xml",
+        "views/lead_bulk_action_wizard_views.xml",
     ],
     "installable": True,
     "auto_install": False,

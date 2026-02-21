@@ -14,6 +14,7 @@
     "data": [
         "security/ir.model.access.csv",
         "views/offer_views.xml",
+        "views/offer_bulk_action_wizard_views.xml",
     ],
     "installable": True,
     "application": False,

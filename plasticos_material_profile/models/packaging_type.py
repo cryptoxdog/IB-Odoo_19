@@ -1,10 +1,10 @@
-from odoo import models, fields
+from odoo import fields, models
 
 
 class PlasticosPackagingType(models.Model):
     """
     Packaging types for how material is shipped/stored.
-    
+
     Distinct from Form (what the material IS) - this is how it's packaged.
     Examples: Gaylords, Super Sacks, Bales, Loose, Palletized
     """

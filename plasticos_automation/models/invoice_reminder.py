@@ -1,7 +1,7 @@
-from odoo import models, fields, api
-
-from datetime import timedelta
 import logging
+from datetime import timedelta
+
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -20,26 +20,29 @@ class AccountMove(models.Model):
         config = self.env["plasticos.automation.config"].get_config()
         cutoff = fields.Date.today() - timedelta(days=config.invoice_overdue_days)
 
-        overdue = self.search([
-            ("move_type", "=", "out_invoice"),
-            ("state", "=", "posted"),
-            ("payment_state", "!=", "paid"),
-            ("invoice_date_due", "<=", cutoff),
-        ])
+        overdue = self.search(
+            [
+                ("move_type", "=", "out_invoice"),
+                ("state", "=", "posted"),
+                ("payment_state", "!=", "paid"),
+                ("invoice_date_due", "<=", cutoff),
+            ]
+        )
 
         for inv in overdue:
             inv.message_post(
-                body="Automated reminder: invoice is overdue by more than %d days."
-                % config.invoice_overdue_days,
+                body="Automated reminder: invoice is overdue by more than %d days." % config.invoice_overdue_days,
             )
             inv.x_last_reminder_date = fields.Date.today()
 
-            self.env["plasticos.automation.log"].create({
-                "name": "Invoice reminder %s" % inv.name,
-                "model_name": "account.move",
-                "res_id": inv.id,
-                "action_type": "invoice_reminder",
-            })
+            self.env["plasticos.automation.log"].create(
+                {
+                    "name": "Invoice reminder %s" % inv.name,
+                    "model_name": "account.move",
+                    "res_id": inv.id,
+                    "action_type": "invoice_reminder",
+                }
+            )
             _logger.info(
                 "Automation: sent overdue reminder for %s (due=%s, cutoff=%s)",
                 inv.name,

@@ -1,6 +1,7 @@
-import logging
 import csv
+import logging
 import re
+
 from odoo import models
 from odoo.exceptions import ValidationError
 
@@ -9,8 +10,8 @@ _logger = logging.getLogger(__name__)
 BATCH_SIZE = 100  # Commit every N records
 
 # Contact types in Odoo
-CONTACT_TYPE_AR = "invoice"    # AR contact - we pay them
-CONTACT_TYPE_AP = "contact"    # AP contact - they pay us  
+CONTACT_TYPE_AR = "invoice"  # AR contact - we pay them
+CONTACT_TYPE_AP = "contact"  # AP contact - they pay us
 CONTACT_TYPE_DELIVERY = "delivery"  # Shipping contact
 
 # Facility types that are invoice/remit addresses
@@ -36,12 +37,14 @@ class PlasticosPartnerImportService(models.AbstractModel):
         model = self.env[model_name]
         rec = model.create(values)
 
-        self.env["ir.model.data"].create({
-            "name": external_id.split(".")[-1],
-            "module": external_id.split(".")[0],
-            "model": model_name,
-            "res_id": rec.id,
-        })
+        self.env["ir.model.data"].create(
+            {
+                "name": external_id.split(".")[-1],
+                "module": external_id.split(".")[0],
+                "model": model_name,
+                "res_id": rec.id,
+            }
+        )
 
         _logger.debug("Created %s via %s (id=%d)", model_name, external_id, rec.id)
         return rec
@@ -73,11 +76,9 @@ class PlasticosPartnerImportService(models.AbstractModel):
         """Lookup res.country by name."""
         if not country_name:
             return False
-        country = self.env["res.country"].search([
-            "|",
-            ("name", "ilike", country_name.strip()),
-            ("code", "=", country_name.strip().upper()[:2])
-        ], limit=1)
+        country = self.env["res.country"].search(
+            ["|", ("name", "ilike", country_name.strip()), ("code", "=", country_name.strip().upper()[:2])], limit=1
+        )
         return country.id if country else False
 
     def _parse_role(self, role_str):
@@ -116,11 +117,11 @@ class PlasticosPartnerImportService(models.AbstractModel):
     def _get_default_payment_term(self):
         """Get default payment term (Net 30) for partners."""
         # Try XML ID first (from plasticos_accounting)
-        term = self.env.ref('plasticos_accounting.payment_term_net_30', raise_if_not_found=False)
+        term = self.env.ref("plasticos_accounting.payment_term_net_30", raise_if_not_found=False)
         if term:
             return term.id
         # Fallback: search by name
-        term = self.env['account.payment.term'].search([('name', '=', 'Net 30')], limit=1)
+        term = self.env["account.payment.term"].search([("name", "=", "Net 30")], limit=1)
         return term.id if term else False
 
     # -------------------------------------------------------------------------
@@ -164,8 +165,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
         Returns:
             dict with counts
         """
-        _logger.info("Starting CSV import: corporate=%s, facility=%s",
-                     corporate_csv_path, facility_csv_path)
+        _logger.info("Starting CSV import: corporate=%s, facility=%s", corporate_csv_path, facility_csv_path)
 
         self.env["plasticos.partner.import.validation"].validate_reference_integrity()
 
@@ -196,7 +196,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
                      city, state_id, zip, country
         """
         count = 0
-        with open(csv_path, "r", encoding="utf-8-sig") as f:
+        with open(csv_path, encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
             for i, row in enumerate(reader):
                 try:
@@ -271,7 +271,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
         contact_count = 0
         contacts_created = {}  # Track contacts by (parent_id, name, email) to dedupe
 
-        with open(csv_path, "r", encoding="utf-8-sig") as f:
+        with open(csv_path, encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
             for i, row in enumerate(reader):
                 try:
@@ -282,8 +282,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
                         contact_count += 1
                     if (facility_count + contact_count) % BATCH_SIZE == 0:
                         self.env.cr.commit()
-                        _logger.info("Facilities progress: %d facilities, %d contacts",
-                                     facility_count, contact_count)
+                        _logger.info("Facilities progress: %d facilities, %d contacts", facility_count, contact_count)
                 except Exception as e:
                     _logger.error("Error at facility row %d: %s", i, e)
                     raise
@@ -371,8 +370,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
 
         if contact_name and contact_name not in ("Primary", "United States"):
             contact = self._create_facility_contact(
-                facility, parent, contact_name, contact_phone, contact_email,
-                facility_type, contacts_created
+                facility, parent, contact_name, contact_phone, contact_email, facility_type, contacts_created
             )
 
         return facility, contact
@@ -380,24 +378,29 @@ class PlasticosPartnerImportService(models.AbstractModel):
     def _find_corporate_by_name(self, name):
         """Find corporate partner by name."""
         # Try exact match first
-        partner = self.env["res.partner"].search([
-            ("name", "=", name),
-            ("parent_id", "=", False),
-            ("is_company", "=", True),
-        ], limit=1)
+        partner = self.env["res.partner"].search(
+            [
+                ("name", "=", name),
+                ("parent_id", "=", False),
+                ("is_company", "=", True),
+            ],
+            limit=1,
+        )
         if partner:
             return partner
 
         # Try ilike match
-        partner = self.env["res.partner"].search([
-            ("name", "ilike", name),
-            ("parent_id", "=", False),
-            ("is_company", "=", True),
-        ], limit=1)
+        partner = self.env["res.partner"].search(
+            [
+                ("name", "ilike", name),
+                ("parent_id", "=", False),
+                ("is_company", "=", True),
+            ],
+            limit=1,
+        )
         return partner
 
-    def _create_facility_contact(self, facility, corporate, name, phone, email,
-                                  facility_type, contacts_created):
+    def _create_facility_contact(self, facility, corporate, name, phone, email, facility_type, contacts_created):
         """
         Create contact under facility with AR/AP logic.
 
@@ -431,10 +434,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
         if facility_type == "Location":
             contact_type = CONTACT_TYPE_DELIVERY
 
-        external_id = self._make_external_id(
-            "contact",
-            f"{corporate.name}_{name}_{facility.id}"
-        )
+        external_id = self._make_external_id("contact", f"{corporate.name}_{name}_{facility.id}")
 
         vals = {
             "name": name,

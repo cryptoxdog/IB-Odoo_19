@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from odoo import models, fields, api
+from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
 
@@ -215,9 +215,7 @@ class PlasticosClaim(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get("name", "New") == "New":
-                vals["name"] = (
-                    self.env["ir.sequence"].next_by_code("plasticos.claim") or "New"
-                )
+                vals["name"] = self.env["ir.sequence"].next_by_code("plasticos.claim") or "New"
         return super().create(vals_list)
 
     # ── Actions ──────────────────────────────────────────────
@@ -245,10 +243,12 @@ class PlasticosClaim(models.Model):
         for rec in self:
             if not rec.resolution_note:
                 raise ValidationError("Please provide a resolution note before resolving.")
-            rec.write({
-                "state": "resolved",
-                "resolved_at": fields.Datetime.now(),
-            })
+            rec.write(
+                {
+                    "state": "resolved",
+                    "resolved_at": fields.Datetime.now(),
+                }
+            )
             rec._update_transaction_recoveries()
 
     def action_archive(self):
@@ -259,10 +259,12 @@ class PlasticosClaim(models.Model):
     def action_reopen(self):
         for rec in self:
             if rec.state in ("resolved", "archived"):
-                rec.write({
-                    "state": "in_progress",
-                    "resolved_at": False,
-                })
+                rec.write(
+                    {
+                        "state": "in_progress",
+                        "resolved_at": False,
+                    }
+                )
 
     # ── Computed Methods (harvested) ──────────────────────────
     @api.depends("opened_at", "state")
@@ -311,9 +313,7 @@ class PlasticosClaim(models.Model):
     def _create_escalation_activity(self):
         """Create activity for quality manager on escalation."""
         self.ensure_one()
-        quality_manager_group = self.env.ref(
-            "plasticos_claims.group_claims_manager", raise_if_not_found=False
-        )
+        quality_manager_group = self.env.ref("plasticos_claims.group_claims_manager", raise_if_not_found=False)
         if quality_manager_group and quality_manager_group.users:
             manager = quality_manager_group.users[0]
             self.activity_schedule(
@@ -341,19 +341,19 @@ class PlasticosClaim(models.Model):
             return
 
         tx = self.transaction_id
-        resolved_claims = self.search([
-            ("transaction_id", "=", tx.id),
-            ("state", "=", "resolved"),
-        ])
-
-        chargebacks = sum(
-            c.recovery_amount for c in resolved_claims if c.case_type == "freight_chargeback"
-        )
-        penalties = sum(
-            c.recovery_amount for c in resolved_claims if c.case_type == "lightweight_penalty"
+        resolved_claims = self.search(
+            [
+                ("transaction_id", "=", tx.id),
+                ("state", "=", "resolved"),
+            ]
         )
 
-        tx.write({
-            "freight_chargebacks": chargebacks,
-            "lightweight_penalties": penalties,
-        })
+        chargebacks = sum(c.recovery_amount for c in resolved_claims if c.case_type == "freight_chargeback")
+        penalties = sum(c.recovery_amount for c in resolved_claims if c.case_type == "lightweight_penalty")
+
+        tx.write(
+            {
+                "freight_chargebacks": chargebacks,
+                "lightweight_penalties": penalties,
+            }
+        )

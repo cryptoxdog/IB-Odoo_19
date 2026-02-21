@@ -22,9 +22,11 @@ Runtime matches are stored in transient memory for human review
 before dispatch or automation handoff.
 """
 
-import math
 import datetime
-from odoo import models, fields, api
+import math
+
+from odoo import api, fields, models
+
 
 class BuyerMatchingRuntime(models.Model):
     _name = "plasticos.buyer.runtime"
@@ -55,12 +57,14 @@ class BuyerMatchingRuntime(models.Model):
 
         # Log and persist top matches
         for record in ranked[:10]:
-            self.create({
-                "offer_id": offer.id,
-                "buyer_id": record["buyer"].id,
-                "match_score": record["score"],
-                "match_reason": record["reason"],
-            })
+            self.create(
+                {
+                    "offer_id": offer.id,
+                    "buyer_id": record["buyer"].id,
+                    "match_score": record["score"],
+                    "match_reason": record["reason"],
+                }
+            )
 
         offer.last_match_run = datetime.datetime.now()
         offer.top_buyer = ranked[0]["buyer"].id if ranked else False
@@ -79,18 +83,9 @@ class BuyerMatchingRuntime(models.Model):
         rec = self._score_recency(buyer)
         compat = self._score_material_compatibility(buyer, offer)
 
-        score = (
-            trust * 0.30 +
-            geo * 0.25 +
-            cap * 0.25 +
-            rec * 0.10 +
-            compat * 0.10
-        )
+        score = trust * 0.30 + geo * 0.25 + cap * 0.25 + rec * 0.10 + compat * 0.10
 
-        reason = (
-            f"Trust {trust:.1f}, Geo {geo:.1f}, Capability {cap:.1f}, "
-            f"Recency {rec:.1f}, Material {compat:.1f}"
-        )
+        reason = f"Trust {trust:.1f}, Geo {geo:.1f}, Capability {cap:.1f}, " f"Recency {rec:.1f}, Material {compat:.1f}"
 
         return round(score, 2), reason
 
@@ -102,8 +97,8 @@ class BuyerMatchingRuntime(models.Model):
         lat1, lon1, lat2, lon2 = map(math.radians, [buyer.lat, buyer.lon, offer.lat, offer.lon])
         dlat = lat2 - lat1
         dlon = lon2 - lon1
-        a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         distance = R * c
         # Normalize inverse distance
         return max(0, 100 - min(distance / 10, 100))
@@ -136,12 +131,15 @@ class BuyerMatchingRuntime(models.Model):
         offers = self.env["plasticos.offer"].search([("state", "=", "open")])
         for offer in offers:
             self.run_match(offer.id)
-        self.env["plasticos.decision.ledger"].create({
-            "timestamp": datetime.datetime.now(),
-            "actor": "PlasticOS Buyer Matching Engine",
-            "context": "system",
-            "message": f"Auto-match completed for {len(offers)} offers."
-        })
+        self.env["plasticos.decision.ledger"].create(
+            {
+                "timestamp": datetime.datetime.now(),
+                "actor": "PlasticOS Buyer Matching Engine",
+                "context": "system",
+                "message": f"Auto-match completed for {len(offers)} offers.",
+            }
+        )
+
 
 # End of File
 # ============================================================

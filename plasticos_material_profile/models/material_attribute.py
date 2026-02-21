@@ -1,10 +1,10 @@
-from odoo import models, fields, api
+from odoo import fields, models
 
 
 class PlasticosMaterialAttribute(models.Model):
     """
     Material attributes for multi-select on products and material profiles.
-    
+
     These are condition modifiers that can be combined:
     - Clean, Dry, Wet (moisture/cleanliness)
     - Metalized (film with metallic coating - e.g., chip bags)
