@@ -230,20 +230,19 @@ class PlasticosIntake(models.Model):
     loads_per_month = fields.Integer(string="Loads / Month")
 
     # ═════════════════════════════════════════════════════════
-    # Onboarding Status
+    # Status (simplified 2-stage workflow)
     # ═════════════════════════════════════════════════════════
 
-    onboarding_status = fields.Selection(
+    state = fields.Selection(
         [
             ("draft", "Draft"),
-            ("normalized", "Normalized"),
-            ("profiled", "Profiled"),
-            ("ready", "Ready for Matching"),
+            ("matched", "Matched"),
         ],
         default="draft",
         tracking=True,
         index=True,
-        help="Tracks the intake's progression through the onboarding pipeline.",
+        string="Status",
+        help="Draft = user editing. Matched = submitted and buyer matches found.",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -254,37 +253,18 @@ class PlasticosIntake(models.Model):
     lon = fields.Float(string="Longitude")
 
     # ═════════════════════════════════════════════════════════
-    # Matching / Debug (admin-only in UI)
+    # Match Results (populated after submission)
     # ═════════════════════════════════════════════════════════
 
-    match_status = fields.Selection(
-        [
-            ("error", "Error"),
-            ("matched", "Matched"),
-            ("normalized", "Normalized"),
-            ("pending", "Pending"),
-            ("rejected", "Rejected"),
-        ],
-        default="pending",
-        tracking=True,
+    match_count = fields.Integer(
+        string="Matches Found",
+        readonly=True,
+        help="Number of buyer matches found.",
     )
-    match_response = fields.Json(string="Match Response (JSON)")
-    normalized = fields.Boolean(
-        default=False,
-        help="Must be True before adapter emits packet.",
-    )
-    last_packet_id = fields.Char(string="Packet ID", index=True)
-    last_packet_version = fields.Char(string="Packet Version")
-    last_packet_payload = fields.Json(string="Packet Payload (JSON)")
-    last_packet_ts = fields.Datetime(string="Packet Timestamp")
-
-    # ═════════════════════════════════════════════════════════
-    # Constraints
-    # ═════════════════════════════════════════════════════════
-
-    _check_unique_packet = models.Constraint(
-        "unique(last_packet_id, last_packet_version)",
-        "Duplicate packet emission detected.",
+    match_response = fields.Json(
+        string="Match Results",
+        readonly=True,
+        help="JSON response from matching engine.",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -420,8 +400,6 @@ class PlasticosIntake(models.Model):
             self.material_attribute_ids = [(6, 0, mp.material_attribute_ids.ids)]
             self.has_metal = mp.has_metal
             self.is_metalized = mp.is_metalized
-        if not self.onboarding_status or self.onboarding_status == "draft":
-            self.onboarding_status = "profiled"
 
     # ═════════════════════════════════════════════════════════
     # Attribute ↔ Boolean Sync
@@ -491,33 +469,32 @@ class PlasticosIntake(models.Model):
     # Actions
     # ═════════════════════════════════════════════════════════
 
-    def action_mark_normalized(self):
+    def action_submit(self):
+        """Submit intake for buyer matching.
+
+        Single-click action: validates, runs matching engine, updates state.
+        """
         for rec in self:
+            if rec.state != "draft":
+                raise UserError("Only draft intakes can be submitted.")
+
+            # TODO: Call buyer matching engine here
+            # For now, mark as matched with placeholder
             rec.write(
                 {
-                    "normalized": True,
-                    "match_status": "normalized",
-                    "onboarding_status": "normalized",
+                    "state": "matched",
+                    "match_count": 0,
+                    "match_response": {"status": "pending_integration"},
                 }
             )
 
-    def action_mark_ready(self):
-        """Mark intake as ready for matching after normalization."""
+    def action_reset_to_draft(self):
+        """Reset matched intake back to draft for editing."""
         for rec in self:
-            if not rec.normalized:
-                raise UserError("Intake must be normalized before marking ready.")
-            rec.write({"onboarding_status": "ready"})
-
-    def action_run_buyer_match(self):
-        for rec in self:
-            if not rec.normalized:
-                raise UserError("Intake must be normalized before match.")
-            # L9 adapter stub — will be consumed by SDK adapter
-            raise UserError("L9 adapter not yet configured. Enable l9_trace module.")
-
-    def action_replay_last_packet(self):
-        for rec in self:
-            if not rec.last_packet_payload:
-                raise UserError("No stored packet to replay.")
-            # L9 adapter stub
-            raise UserError("L9 adapter not yet configured. Enable l9_trace module.")
+            rec.write(
+                {
+                    "state": "draft",
+                    "match_count": 0,
+                    "match_response": False,
+                }
+            )

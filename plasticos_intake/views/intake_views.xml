@@ -19,22 +19,11 @@
                 <field name="material_profile_id"/>
                 <filter name="filter_draft"
                         string="Draft"
-                        domain="[('onboarding_status', '=', 'draft')]"/>
-                <filter name="filter_profiled"
-                        string="Profiled"
-                        domain="[('onboarding_status', '=', 'profiled')]"/>
-                <filter name="filter_normalized"
-                        string="Normalized"
-                        domain="[('onboarding_status', '=', 'normalized')]"/>
-                <filter name="filter_ready"
-                        string="Ready"
-                        domain="[('onboarding_status', '=', 'ready')]"/>
+                        domain="[('state', '=', 'draft')]"/>
                 <filter name="filter_matched"
                         string="Matched"
-                        domain="[('match_status', '=', 'matched')]"/>
-                <filter name="filter_pending"
-                        string="Pending Match"
-                        domain="[('match_status', '=', 'pending')]"/>
+                        domain="[('state', '=', 'matched')]"/>
+                <separator/>
                 <filter name="group_partner"
                         string="Company"
                         context="{'group_by': 'partner_id'}"/>
@@ -44,9 +33,9 @@
                 <filter name="group_polymer"
                         string="Polymer"
                         context="{'group_by': 'polymer_id'}"/>
-                <filter name="group_onboarding"
-                        string="Onboarding Status"
-                        context="{'group_by': 'onboarding_status'}"/>
+                <filter name="group_state"
+                        string="Status"
+                        context="{'group_by': 'state'}"/>
             </search>
         </field>
     </record>
@@ -68,15 +57,10 @@
                 <field name="source_type_id" optional="show"/>
                 <field name="quantity_per_load_lbs"/>
                 <field name="loads_per_month" optional="show"/>
-                <field name="onboarding_status"
-                       decoration-info="onboarding_status == 'draft'"
-                       decoration-warning="onboarding_status == 'profiled'"
-                       decoration-success="onboarding_status in ('normalized', 'ready')"
-                       widget="badge"/>
-                <field name="match_status"
-                       decoration-info="match_status == 'pending'"
-                       decoration-success="match_status in ('normalized', 'matched')"
-                       decoration-danger="match_status in ('rejected', 'error')"
+                <field name="match_count" optional="show"/>
+                <field name="state"
+                       decoration-info="state == 'draft'"
+                       decoration-success="state == 'matched'"
                        widget="badge"/>
             </list>
         </field>
@@ -93,28 +77,21 @@
             <form>
                 <header>
                     <button
-                        name="action_mark_normalized"
+                        name="action_submit"
                         type="object"
-                        string="Mark Normalized"
+                        string="Submit for Matching"
                         class="btn-primary"
-                        invisible="normalized"
+                        invisible="state != 'draft'"
                     />
                     <button
-                        name="action_mark_ready"
+                        name="action_reset_to_draft"
                         type="object"
-                        string="Mark Ready"
-                        class="btn-primary"
-                        invisible="onboarding_status != 'normalized'"
+                        string="Edit"
+                        class="btn-secondary"
+                        invisible="state != 'matched'"
                     />
-                    <button
-                        name="action_run_buyer_match"
-                        type="object"
-                        string="Run Buyer Match"
-                        class="btn-success"
-                        invisible="onboarding_status != 'ready'"
-                    />
-                    <field name="onboarding_status" widget="statusbar"
-                           statusbar_visible="draft,profiled,normalized,ready"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,matched"/>
                 </header>
                 <sheet>
                     <!-- Identity + Contact Header -->
@@ -199,33 +176,15 @@
                             </group>
                         </page>
 
-                        <!-- Tab 5: Matching -->
-                        <page string="Matching">
+                        <!-- Tab 5: Match Results -->
+                        <page string="Match Results" invisible="state != 'matched'">
                             <group>
-                                <group string="Status">
-                                    <field name="match_status"/>
-                                    <field name="normalized"/>
-                                </group>
-                                <group string="Packet">
-                                    <field name="last_packet_id" readonly="1"/>
-                                    <field name="last_packet_version" readonly="1"/>
-                                    <field name="last_packet_ts" readonly="1"/>
+                                <group string="Summary">
+                                    <field name="match_count"/>
                                 </group>
                             </group>
-                            <group string="Match Response">
+                            <group string="Match Details">
                                 <field name="match_response" readonly="1"/>
-                            </group>
-                            <group string="Last Packet Payload">
-                                <field name="last_packet_payload" readonly="1"/>
-                            </group>
-                        </page>
-
-                        <!-- Tab 6: Debug (admin-only per #14) -->
-                        <page string="Debug"
-                              groups="base.group_system">
-                            <group string="JSON Payloads">
-                                <field name="match_response"/>
-                                <field name="last_packet_payload"/>
                             </group>
                         </page>
                     </notebook>
