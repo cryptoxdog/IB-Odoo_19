@@ -206,11 +206,11 @@
                             <field name="match_line_ids" nolabel="1">
                                 <list editable="bottom" decoration-success="selected">
                                     <field name="selected" string="Select"/>
-                                    <field name="match_score" string="Match %"/>
                                     <field name="buyer_name" string="Buyer"/>
                                     <field name="buyer_city"/>
                                     <field name="buyer_state"/>
                                     <field name="match_reason" string="Why Matched"/>
+                                    <field name="match_score" string="Match %"/>
                                     <field name="typical_price" string="$/lb" optional="show"/>
                                 </list>
                             </field>
