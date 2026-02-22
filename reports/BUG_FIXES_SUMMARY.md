@@ -193,6 +193,58 @@
 
 ---
 
+### Fixed 2026-02-21 (Session 4) - Critical Audit Fixes
+
+| File | Issue | Fix |
+|------|-------|-----|
+| `plasticos_logistics/data/cron.xml` | Missing module prefix in `model_id` ref | Added `plasticos_logistics.` prefix |
+| `plasticos_documents/data/cron.xml` | Missing module prefix in `model_id` ref | Added `plasticos_documents.` prefix |
+| `plasticos_logistics/models/sale_order_inherit.py` | Empty inherit file (dead code) | Deleted file + removed import |
+| `plasticos_transaction/models/purchase_inherit.py` | Empty inherit file (dead code) | Deleted file + removed import |
+| `plasticos_transaction/models/load_inherit.py` | Empty inherit file (dead code) | Deleted file + removed import |
+| `plasticos_transaction/models/account_move_inherit.py` | Empty inherit file (dead code) | Deleted file + removed import |
+| `plasticos_material_profile/models/material_profile.py` | Namespace drift (`PlastosMaterialProfile`) | Fixed to `PlasticosMaterialProfile` |
+| `plasticos_transaction/models/transaction.py` | Missing denormalized profile refs (slow 3-hop traversals) | Added `supplier_profile_id`, `buyer_profile_id` computed fields |
+| `plasticos_product/models/product_template.py` | Product-material disconnect | Added `material_profile_id` link |
+| `plasticos_product/data/product_data.xml` | XML syntax error - nested quotes in `eval` + missing module prefix | Fixed `ref("attr_clean")` → `ref('plasticos_material_profile.attr_clean')` (18 occurrences) |
+
+### 12. Namespace Drift
+
+| Bug Type | Example | Fix |
+|----------|---------|-----|
+| Class name missing "ico" | `PlastosMaterialProfile` | Fix to `PlasticosMaterialProfile` |
+| Inconsistent naming | `PlastosFacilityCapability` vs `PlasticosFacilityProfile` | Standardize all to `Plasticos*` |
+
+### 13. XML Cron Model References
+
+| Bug Type | Example | Fix |
+|----------|---------|-----|
+| Missing module prefix in `model_id` ref | `ref="model_plasticos_load"` | Add module prefix: `ref="plasticos_logistics.model_plasticos_load"` |
+| Cross-module ref without namespace | `ref="model_plasticos_document"` | Add module prefix: `ref="plasticos_documents.model_plasticos_document"` |
+
+### 14. Empty Inherit Files (Dead Code)
+
+| Bug Type | Example | Fix |
+|----------|---------|-----|
+| Inherit file with only class stub | `class SaleOrder(models.Model): _inherit = "sale.order"` with no fields | Delete file + remove from `__init__.py` |
+| Orphaned imports | `from . import sale_order_inherit` pointing to deleted file | Remove import line |
+
+### 15. XML eval() Quote Issues
+
+| Bug Type | Example | Fix |
+|----------|---------|-----|
+| Nested double quotes in eval | `eval="[(6, 0, [ref("attr_clean")])]"` | Use single quotes inside: `ref('attr_clean')` |
+| Missing module prefix in ref() | `ref('attr_clean')` | Add module: `ref('plasticos_material_profile.attr_clean')` |
+
+### 16. Missing Denormalized Fields
+
+| Bug Type | Example | Fix |
+|----------|---------|-----|
+| Slow multi-hop traversals | Transaction → Partner → Profile requires 3 queries | Add denormalized `supplier_profile_id`, `buyer_profile_id` |
+| Product-material disconnect | Products have no link to material profiles | Add `material_profile_id` to `product.template` |
+
+---
+
 ### Remaining Warnings (Cosmetic)
 
 | Warning | Location | Status |

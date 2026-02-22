@@ -1,7 +1,7 @@
 <odoo>
     <record id="cron_followup" model="ir.cron">
         <field name="name">Plasticos Follow-up Check</field>
-        <field name="model_id" ref="model_plasticos_load"/>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_load"/>
         <field name="state">code</field>
         <field name="code">model.search([('state','=','awaiting_ready')])</field>
         <field name="interval_number">7</field>
@@ -9,7 +9,7 @@
     </record>
     <record id="cron_escalation" model="ir.cron">
         <field name="name">Plasticos Escalation Monitor</field>
-        <field name="model_id" ref="model_plasticos_load"/>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_load"/>
         <field name="state">code</field>
         <field name="code">model._cron_escalation_check()</field>
         <field name="interval_number">1</field>

@@ -45,6 +45,22 @@ class PlasticosTransaction(models.Model):
         tracking=True,
     )
 
+    # ── Denormalized Material Profile Links (fast lookup) ──────
+    supplier_profile_id = fields.Many2one(
+        "plasticos.material.profile",
+        string="Supplier Material Profile",
+        compute="_compute_profile_refs",
+        store=True,
+        help="Denormalized link to supplier's material profile for fast lookup.",
+    )
+    buyer_profile_id = fields.Many2one(
+        "plasticos.material.profile",
+        string="Buyer Material Profile",
+        compute="_compute_profile_refs",
+        store=True,
+        help="Denormalized link to buyer's material profile for fast lookup.",
+    )
+
     # ── Product Info (harvested) ───────────────────────────────
     product_id = fields.Many2one(
         "product.product",
@@ -263,6 +279,41 @@ class PlasticosTransaction(models.Model):
     )
 
     # ── Computed Methods (harvested) ──────────────────────────
+    @api.depends("supplier_id", "buyer_id", "product_id", "product_id.polymer_id", "product_id.form_id")
+    def _compute_profile_refs(self):
+        """Denormalize material profile links for fast lookup.
+
+        Matches supplier/buyer to their material profile based on the
+        transaction's product polymer+form. Avoids slow 3-hop traversals.
+        """
+        Profile = self.env["plasticos.material.profile"]
+        for rec in self:
+            supplier_profile = False
+            buyer_profile = False
+            if rec.product_id and rec.product_id.polymer_id and rec.product_id.form_id:
+                polymer_id = rec.product_id.polymer_id.id
+                form_id = rec.product_id.form_id.id
+                if rec.supplier_id:
+                    supplier_profile = Profile.search(
+                        [
+                            ("partner_id", "=", rec.supplier_id.id),
+                            ("polymer_id", "=", polymer_id),
+                            ("form_id", "=", form_id),
+                        ],
+                        limit=1,
+                    )
+                if rec.buyer_id:
+                    buyer_profile = Profile.search(
+                        [
+                            ("partner_id", "=", rec.buyer_id.id),
+                            ("polymer_id", "=", polymer_id),
+                            ("form_id", "=", form_id),
+                        ],
+                        limit=1,
+                    )
+            rec.supplier_profile_id = supplier_profile
+            rec.buyer_profile_id = buyer_profile
+
     @api.depends("expected_weight", "actual_weight")
     def _compute_weight_variance(self):
         for rec in self:

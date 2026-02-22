@@ -44,6 +44,19 @@ class PlasticosIntake(models.Model):
     )
 
     # ═════════════════════════════════════════════════════════
+    # Assignment (for web lead routing)
+    # ═════════════════════════════════════════════════════════
+
+    assigned_user_id = fields.Many2one(
+        "res.users",
+        string="Assign To",
+        tracking=True,
+        index=True,
+        domain="[('share', '=', False)]",
+        help="Sales rep assigned to follow up on this intake. " "Dropdown shows all internal users (non-portal).",
+    )
+
+    # ═════════════════════════════════════════════════════════
     # Contact Details (auto-pulled, never manually entered)
     # ═════════════════════════════════════════════════════════
 

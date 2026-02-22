@@ -75,3 +75,11 @@ class ProductTemplate(models.Model):
         string="Color Code",
         help="Short code for color (e.g., MIX, NAT, BLK).",
     )
+
+    # ── Material Profile Link ────────────────────────────────────
+    material_profile_id = fields.Many2one(
+        "plasticos.material.profile",
+        string="Material Profile",
+        help="Links this product SKU to a specific material identity profile. "
+        "Enables product-level material tracking and buyer matching.",
+    )
