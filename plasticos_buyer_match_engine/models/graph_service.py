@@ -3,8 +3,13 @@
 Implements plasticos.graph.service (AbstractModel): sync Facility/MaterialProfile
 nodes and run graph traversal for match_buyers_for_intake. Uses
 services.neo4j_pool. Public API: execute_cypher_query() (aligns with
-execute_cypher_query.md); internal sync uses _execute_cypher() (optional, no-op
-when Neo4j not configured).
+doc/execute_cypher_pooled.md); internal sync uses _execute_cypher() (optional,
+no-op when Neo4j not configured).
+
+See also:
+    - doc/graph_service_spec.md: Full AbstractModel skeleton specification
+    - doc/execute_cypher_basic.md: Basic driver-per-call implementation
+    - doc/execute_cypher_pooled.md: Pooled connection + metrics version
 """
 
 import logging
