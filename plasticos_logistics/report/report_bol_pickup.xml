@@ -13,7 +13,7 @@
                         <!-- Header -->
                         <div class="text-center" style="border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;">
                             <h2 style="margin: 0; font-weight: bold;">STRAIGHT BILL OF LADING - SHORT FORM</h2>
-                            <h3 style="margin: 5px 0;">BOL - PICKUP NO. <t t-esc="doc.name"/></h3>
+                            <h3 style="margin: 5px 0;">BOL - PICKUP NO. <t t-out="doc.name"/></h3>
                         </div>
 
                         <!-- Legal Text -->
@@ -35,15 +35,15 @@
                             <tr>
                                 <td style="width: 40%;">
                                     <strong>CARRIER NAME</strong><br/>
-                                    <t t-esc="doc.carrier_id.name or ''"/>
+                                    <t t-out="doc.carrier_id.name or ''"/>
                                 </td>
                                 <td style="width: 30%;">
                                     <strong>TRAILER NUMBER</strong><br/>
-                                    <t t-esc="doc.trailer_number or ''"/>
+                                    <t t-out="doc.trailer_number or ''"/>
                                 </td>
                                 <td style="width: 30%;">
                                     <strong>SEAL NUMBER</strong><br/>
-                                    <t t-esc="doc.seal_number or ''"/>
+                                    <t t-out="doc.seal_number or ''"/>
                                 </td>
                             </tr>
                         </table>
@@ -54,21 +54,21 @@
                                 <td style="width: 50%;">
                                     <strong>CONSIGNEE:</strong><br/>
                                     <t t-if="doc.pickup_partner_id">
-                                        <strong><t t-esc="doc.pickup_partner_id.name"/></strong><br/>
-                                        <t t-esc="doc.pickup_partner_id.street or ''"/><br/>
-                                        <t t-esc="doc.pickup_partner_id.city or ''"/>,
-                                        <t t-esc="doc.pickup_partner_id.state_id.code or ''"/>
-                                        <t t-esc="doc.pickup_partner_id.zip or ''"/>
+                                        <strong><t t-out="doc.pickup_partner_id.name"/></strong><br/>
+                                        <t t-out="doc.pickup_partner_id.street or ''"/><br/>
+                                        <t t-out="doc.pickup_partner_id.city or ''"/>,
+                                        <t t-out="doc.pickup_partner_id.state_id.code or ''"/>
+                                        <t t-out="doc.pickup_partner_id.zip or ''"/>
                                     </t>
                                 </td>
                                 <td style="width: 50%;">
                                     <strong>SHIPPER:</strong><br/>
                                     <t t-if="doc.sale_order_id.company_id">
-                                        <strong><t t-esc="doc.sale_order_id.company_id.name"/></strong><br/>
-                                        <t t-esc="doc.sale_order_id.company_id.street or ''"/><br/>
-                                        <t t-esc="doc.sale_order_id.company_id.city or ''"/>,
-                                        <t t-esc="doc.sale_order_id.company_id.state_id.code or ''"/>
-                                        <t t-esc="doc.sale_order_id.company_id.zip or ''"/>
+                                        <strong><t t-out="doc.sale_order_id.company_id.name"/></strong><br/>
+                                        <t t-out="doc.sale_order_id.company_id.street or ''"/><br/>
+                                        <t t-out="doc.sale_order_id.company_id.city or ''"/>,
+                                        <t t-out="doc.sale_order_id.company_id.state_id.code or ''"/>
+                                        <t t-out="doc.sale_order_id.company_id.zip or ''"/>
                                     </t>
                                 </td>
                             </tr>
@@ -79,13 +79,13 @@
                             <tr>
                                 <td style="width: 60%;">
                                     <strong>NOTES:</strong><br/>
-                                    <t t-esc="doc.notes or ''"/>
+                                    <t t-out="doc.notes or ''"/>
                                 </td>
                                 <td style="width: 40%;">
                                     <strong>DATE</strong><br/>
-                                    <t t-esc="doc.pickup_datetime" t-options='{"widget": "date"}'/><br/><br/>
+                                    <t t-out="doc.pickup_datetime" t-options='{"widget": "date"}'/><br/><br/>
                                     <strong>REFERENCE NO.</strong><br/>
-                                    <t t-esc="doc.pickup_reference or ''"/>
+                                    <t t-out="doc.pickup_reference or ''"/>
                                 </td>
                             </tr>
                         </table>
@@ -104,9 +104,9 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><t t-esc="int(doc.quantity)"/></td>
-                                    <td><t t-esc="doc.quantity_uom or 'Each'"/></td>
-                                    <td><t t-esc="doc.product_description or ''"/></td>
+                                    <td><t t-out="int(doc.quantity)"/></td>
+                                    <td><t t-out="doc.quantity_uom or 'Each'"/></td>
+                                    <td><t t-out="doc.product_description or ''"/></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -115,7 +115,7 @@
                         <table class="table table-bordered" style="margin-bottom: 15px;">
                             <tr>
                                 <td style="width: 33%;">
-                                    <strong>Pickup No.:</strong> <t t-esc="doc.name"/>
+                                    <strong>Pickup No.:</strong> <t t-out="doc.name"/>
                                 </td>
                                 <td style="width: 33%;">
                                     <strong>Time In:</strong> _______________
@@ -126,7 +126,7 @@
                             </tr>
                             <tr>
                                 <td colspan="3" class="text-right">
-                                    <strong>TOTAL UNITS:</strong> <t t-esc="int(doc.quantity)"/> <t t-esc="doc.quantity_uom or 'Each'"/>
+                                    <strong>TOTAL UNITS:</strong> <t t-out="int(doc.quantity)"/> <t t-out="doc.quantity_uom or 'Each'"/>
                                 </td>
                             </tr>
                         </table>
@@ -156,9 +156,9 @@
                         <table class="table table-bordered" style="margin-top: 20px;">
                             <tr>
                                 <td style="width: 25%;"><strong>SHIPPER</strong></td>
-                                <td style="width: 25%;"><t t-esc="doc.pickup_partner_id.name or ''"/></td>
+                                <td style="width: 25%;"><t t-out="doc.pickup_partner_id.name or ''"/></td>
                                 <td style="width: 25%;"><strong>CARRIER</strong></td>
-                                <td style="width: 25%;"><t t-esc="doc.carrier_id.name or ''"/></td>
+                                <td style="width: 25%;"><t t-out="doc.carrier_id.name or ''"/></td>
                             </tr>
                             <tr>
                                 <td><strong>DATE</strong></td>

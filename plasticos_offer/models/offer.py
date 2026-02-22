@@ -68,11 +68,13 @@ class PlasticosOffer(models.Model):
 
     polymer = fields.Char(
         related="intake_id.polymer_id.name",
+        string="Polymer",
         store=True,
         index=True,
     )
     form = fields.Char(
         related="intake_id.form_id.name",
+        string="Form",
         store=True,
     )
 

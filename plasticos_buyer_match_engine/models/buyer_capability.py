@@ -181,7 +181,6 @@ class PlasticosBuyerCapability(models.Model):
         help="Reject intake if seller is farther than this from buyer facility.",
     )
 
-    # Odoo 19: Use models.Constraint instead of _sql_constraints
     _unique_lane = models.Constraint(
         "unique(facility_id, source_type_id, polymer_id, form_id, process_type)",
         "Duplicate capability lane for this facility.",

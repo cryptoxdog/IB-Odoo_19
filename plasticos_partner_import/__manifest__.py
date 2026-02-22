@@ -14,6 +14,7 @@
     "data": [
         "security/ir.model.access.csv",
         "views/partner_import_wizard_views.xml",
+        "views/partner_bulk_update_wizard_views.xml",
     ],
     "installable": True,
     "application": False,

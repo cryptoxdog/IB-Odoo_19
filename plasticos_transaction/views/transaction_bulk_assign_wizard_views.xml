@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Transaction Bulk Assign Wizard Form View -->
+    <record id="view_transaction_bulk_assign_wizard_form" model="ir.ui.view">
+        <field name="name">plasticos.transaction.bulk.assign.wizard.form</field>
+        <field name="model">plasticos.transaction.bulk.assign.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Bulk Assign Partners to Transactions">
+                <group>
+                    <group>
+                        <field name="transaction_count" readonly="1"/>
+                    </group>
+                    <group>
+                        <field name="action_type" widget="radio"/>
+                    </group>
+                </group>
+
+                <group string="Partner Selection">
+                    <field name="supplier_id"
+                           invisible="action_type == 'assign_buyer'"
+                           required="action_type in ('assign_supplier', 'assign_both')"/>
+                    <field name="buyer_id"
+                           invisible="action_type == 'assign_supplier'"
+                           required="action_type in ('assign_buyer', 'assign_both')"/>
+                </group>
+
+                <group string="Audit Trail">
+                    <field name="reason" placeholder="Enter reason for this bulk assignment..."/>
+                </group>
+
+                <field name="transaction_ids" invisible="1"/>
+
+                <footer>
+                    <button name="action_execute" string="Assign Partners" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action bound to plasticos.transaction list view -->
+    <record id="action_transaction_bulk_assign_wizard" model="ir.actions.act_window">
+        <field name="name">Bulk Assign Partners</field>
+        <field name="res_model">plasticos.transaction.bulk.assign.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="plasticos_transaction.model_plasticos_transaction"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+</odoo>

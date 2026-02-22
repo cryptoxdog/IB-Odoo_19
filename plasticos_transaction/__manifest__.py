@@ -25,6 +25,7 @@
         "views/transaction_views.xml",
         "views/commission_views.xml",
         "views/transaction_bulk_update_wizard_views.xml",
+        "views/transaction_bulk_assign_wizard_views.xml",
     ],
     "installable": True,
     "application": False,

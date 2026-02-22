@@ -386,3 +386,65 @@ pre-commit run ruff --all-files
 | 9 | Empty inherit files | Dead code | #14 |
 | 10 | Cron `model_id` refs | Missing module prefix | #13 |
 | 11 | XML `eval` quotes | Nested double quotes | #15 |
+
+---
+
+## Created 2026-02-22 (Session 4) - Partner & Transaction Bulk Wizards
+
+### New Wizards Created
+
+| Module | Wizard | Purpose |
+|--------|--------|---------|
+| `plasticos_partner_import` | `plasticos.partner.bulk.update.wizard` | Bulk update partners (salesperson, categories, privacy, company type, payment terms) |
+| `plasticos_transaction` | `plasticos.transaction.bulk.assign.wizard` | Bulk assign suppliers/buyers to transactions |
+
+### Partner Bulk Update Wizard Features
+
+| Action | Description |
+|--------|-------------|
+| Assign Salesperson | Set `user_id` on multiple partners |
+| Assign Category/Tags | Add or replace `category_id` tags |
+| Set Private Flag | Toggle `x_private` (requires plasticos_security_base) |
+| Set Company Type | Change `is_company` (Company/Individual) |
+| Assign Payment Terms | Set customer/vendor payment terms |
+
+### Transaction Bulk Assign Wizard Features
+
+| Action | Description |
+|--------|-------------|
+| Assign Supplier | Set `supplier_id` on multiple transactions |
+| Assign Buyer | Set `buyer_id` on multiple transactions |
+| Assign Both | Set both supplier and buyer at once |
+
+### Files Created/Modified
+
+**plasticos_partner_import:**
+- `wizards/__init__.py` - Added `partner_bulk_update_wizard`
+- `wizards/partner_bulk_update_wizard.py` - New transient model
+- `views/partner_bulk_update_wizard_views.xml` - Form view + action binding
+- `__manifest__.py` - Added view to data list
+- `security/ir.model.access.csv` - Added ACL rule
+
+**plasticos_transaction:**
+- `wizards/__init__.py` - Added `transaction_bulk_assign_wizard`
+- `wizards/transaction_bulk_assign_wizard.py` - New transient model
+- `views/transaction_bulk_assign_wizard_views.xml` - Form view + action binding
+- `__manifest__.py` - Added view to data list
+- `security/ir.model.access.csv` - Added ACL rules
+
+### Usage
+
+1. **Partner Bulk Update:**
+   - Go to Contacts → List view
+   - Select multiple partners (checkboxes)
+   - Click Action → "Bulk Update Partners"
+   - Choose action type and fill required fields
+   - Click "Execute"
+
+2. **Transaction Bulk Assign:**
+   - Go to Transactions → List view
+   - Select multiple transactions (checkboxes)
+   - Click Action → "Bulk Assign Partners"
+   - Choose supplier/buyer/both
+   - Select partners and enter reason
+   - Click "Assign Partners"

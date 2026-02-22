@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Partner Bulk Update Wizard Form View -->
+    <record id="view_partner_bulk_update_wizard_form" model="ir.ui.view">
+        <field name="name">plasticos.partner.bulk.update.wizard.form</field>
+        <field name="model">plasticos.partner.bulk.update.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Bulk Update Partners">
+                <group>
+                    <group string="Selection Summary">
+                        <field name="partner_count" readonly="1"/>
+                        <field name="company_count" readonly="1"/>
+                        <field name="contact_count" readonly="1"/>
+                    </group>
+                    <group string="Action">
+                        <field name="action_type" widget="radio"/>
+                    </group>
+                </group>
+
+                <!-- Salesperson Assignment -->
+                <group string="Salesperson" invisible="action_type != 'assign_salesperson'">
+                    <field name="user_id" required="action_type == 'assign_salesperson'"/>
+                </group>
+
+                <!-- Category/Tags Assignment -->
+                <group string="Categories/Tags" invisible="action_type != 'assign_category'">
+                    <field name="category_ids" widget="many2many_tags"
+                           required="action_type == 'assign_category'"/>
+                    <field name="category_mode" widget="radio"/>
+                </group>
+
+                <!-- Private Flag -->
+                <group string="Privacy Setting" invisible="action_type != 'set_private'">
+                    <field name="x_private"/>
+                    <div class="alert alert-info" role="alert">
+                        <strong>Note:</strong> Private partners are only visible to their assigned salesperson
+                        and users with elevated permissions.
+                    </div>
+                </group>
+
+                <!-- Company Type -->
+                <group string="Company Type" invisible="action_type != 'set_company_type'">
+                    <field name="company_type" widget="radio"
+                           required="action_type == 'set_company_type'"/>
+                </group>
+
+                <!-- Payment Terms -->
+                <group string="Payment Terms" invisible="action_type != 'assign_payment_terms'">
+                    <field name="property_payment_term_id"/>
+                    <field name="property_supplier_payment_term_id"/>
+                </group>
+
+                <!-- Reason (always visible) -->
+                <group string="Audit Trail">
+                    <field name="reason" placeholder="Enter reason for this bulk update..."/>
+                </group>
+
+                <field name="partner_ids" invisible="1"/>
+
+                <footer>
+                    <button name="action_execute" string="Execute" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action bound to res.partner list view -->
+    <record id="action_partner_bulk_update_wizard" model="ir.actions.act_window">
+        <field name="name">Bulk Update Partners</field>
+        <field name="res_model">plasticos.partner.bulk.update.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="base.model_res_partner"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+</odoo>

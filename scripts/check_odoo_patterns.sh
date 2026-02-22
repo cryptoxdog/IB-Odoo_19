@@ -20,6 +20,11 @@
 # 13. string attribute on <search> (invalid RNG)
 # 14. string on <group name="group_by"> (invalid RNG)
 # 15. decoration-secondary (invalid decoration)
+# 16. t-esc deprecated (use t-out in Odoo 17+)
+# 17. Module dependency wiring
+# 18. Related fields with old intake paths (polymer→polymer_id)
+# 19. Deprecated attrs= attribute (Odoo 17+)
+# 20. Deprecated states= attribute (Odoo 17+)
 
 set -e
 
@@ -248,7 +253,21 @@ else
     echo -e "${GREEN}OK${NC}"
 fi
 
-# 16. Module dependency wiring check
+# 16. t-esc deprecated in QWeb (Odoo 17+, use t-out)
+echo -n "Checking deprecated t-esc in QWeb... "
+MATCHES=$(echo "$XML_FILES" | xargs grep -E 't-esc=' 2>/dev/null || true)
+if [ -n "$MATCHES" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$MATCHES" | head -10
+    COUNT=$(echo "$MATCHES" | wc -l | tr -d ' ')
+    echo "... ($COUNT occurrences total)"
+    echo -e "${YELLOW}Fix: Replace t-esc with t-out (Odoo 17+ deprecation)${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 17. Module dependency wiring check
 echo -n "Checking module dependency wiring... "
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! python3 "$SCRIPT_DIR/check_module_wiring.py" > /dev/null 2>&1; then
@@ -256,6 +275,47 @@ if ! python3 "$SCRIPT_DIR/check_module_wiring.py" > /dev/null 2>&1; then
     # Run again to show output
     python3 "$SCRIPT_DIR/check_module_wiring.py" 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^✗|references model|Add to" | head -15
     echo -e "${YELLOW}Fix: Add missing dependencies to __manifest__.py${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 18. Related fields pointing to old intake field names (refactored to Many2one)
+# intake.polymer → intake.polymer_id, intake.form → intake.form_id, etc.
+echo -n "Checking related fields with old intake paths... "
+MATCHES=$(echo "$PY_FILES" | xargs grep -E 'related=["'"'"'][^"'"'"']*intake[^"'"'"']*\.(polymer|form|color|source_type)["'"'"']' 2>/dev/null | grep -v '_id' || true)
+if [ -n "$MATCHES" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$MATCHES"
+    echo -e "${YELLOW}Fix: Update related path to use Many2one (e.g., intake_id.polymer_id.name instead of intake_id.polymer)${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 19. Deprecated attrs= attribute in views (Odoo 17+ uses invisible/readonly/required directly)
+echo -n "Checking deprecated attrs= in views... "
+MATCHES=$(echo "$XML_FILES" | xargs grep -E '\sattrs=' 2>/dev/null || true)
+if [ -n "$MATCHES" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$MATCHES" | head -5
+    COUNT=$(echo "$MATCHES" | wc -l | tr -d ' ')
+    echo "... ($COUNT occurrences total)"
+    echo -e "${YELLOW}Fix: Replace attrs={'invisible': ...} with invisible=\"...\" (Odoo 17+)${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 20. Deprecated states= attribute on fields (Odoo 17+ uses invisible/readonly)
+echo -n "Checking deprecated states= on fields... "
+MATCHES=$(echo "$XML_FILES" | xargs grep -E '\sstates=' 2>/dev/null || true)
+if [ -n "$MATCHES" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$MATCHES" | head -5
+    COUNT=$(echo "$MATCHES" | wc -l | tr -d ' ')
+    echo "... ($COUNT occurrences total)"
+    echo -e "${YELLOW}Fix: Replace states= with invisible=\"state == 'x'\" (Odoo 17+)${NC}"
     ERRORS=$((ERRORS + 1))
 else
     echo -e "${GREEN}OK${NC}"
