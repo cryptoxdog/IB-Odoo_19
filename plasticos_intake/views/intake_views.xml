@@ -195,16 +195,25 @@
                             </group>
                         </page>
 
-                        <!-- Tab 5: Match Results -->
-                        <page string="Match Results" invisible="status != 'matched'">
+                        <!-- Tab 5: Buyer Matches -->
+                        <page string="Buyer Matches" invisible="status != 'matched'">
                             <group>
-                                <group string="Summary">
-                                    <field name="match_count"/>
+                                <group>
+                                    <field name="match_count" string="Total Matches"/>
+                                    <field name="selected_count" string="Selected for Offer"/>
                                 </group>
                             </group>
-                            <group string="Match Details">
-                                <field name="match_response" readonly="1"/>
-                            </group>
+                            <field name="match_line_ids" nolabel="1">
+                                <list editable="bottom" decoration-success="selected">
+                                    <field name="selected" string="Select"/>
+                                    <field name="match_score" string="Match %"/>
+                                    <field name="buyer_name" string="Buyer"/>
+                                    <field name="buyer_city"/>
+                                    <field name="buyer_state"/>
+                                    <field name="match_reason" string="Why Matched"/>
+                                    <field name="typical_price" string="$/lb" optional="show"/>
+                                </list>
+                            </field>
                         </page>
                     </notebook>
                 </sheet>
