@@ -1,15 +1,17 @@
 """Neo4j graph orchestration for buyer matching.
 
 Implements plasticos.graph.service (AbstractModel): sync Facility/MaterialProfile
-nodes and run graph traversal for match_buyers_for_intake. Uses
-services.neo4j_pool. Public API: execute_cypher_query() (aligns with
-doc/execute_cypher_pooled.md); internal sync uses _execute_cypher() (optional,
-no-op when Neo4j not configured).
+nodes and run graph traversal for match_buyers_for_intake.
 
-See also:
-    - doc/graph_service_spec.md: Full AbstractModel skeleton specification
-    - doc/execute_cypher_basic.md: Basic driver-per-call implementation
-    - doc/execute_cypher_pooled.md: Pooled connection + metrics version
+Architecture:
+    - services/neo4j_pool.py: Connection pooling with circuit breaker
+    - services/monitoring.py: Metrics collection (timing, counters)
+
+Public API:
+    - execute_cypher_query(): Pooled + metrics, raises UserError on failure
+    - _execute_cypher(): Optional/graceful, returns [] on failure (for hooks)
+    - sync_facility_nodes(), sync_material_nodes(), sync_all(): Graph sync
+    - match_buyers_for_intake(): Graph-based buyer matching
 """
 
 import logging
@@ -102,38 +104,66 @@ class PlasticosGraphService(models.AbstractModel):
         )
 
     def execute_cypher_query(self, query, params=None, metadata=None):
-        """Execute a Cypher query with shared pool; raises UserError on Neo4j failure.
+        """Execute a Cypher query with shared pool + metrics.
+
+        This is the advanced pooled+metrics version from doc/execute_cypher_pooled.md.
 
         :param query: Cypher query string.
         :param params: Optional dict of parameters.
         :param metadata: Optional dict (e.g. {"name": "sync_facility"}).
         :return: list of dict rows from Neo4j (record.data() per row).
         """
+        from odoo.addons.plasticos_buyer_match_engine.services.monitoring import get_metrics
+
         self.ensure_one()
         params = params or {}
         metadata = metadata or {}
         op_name = metadata.get("name", "neo4j.query")
+
+        metrics = get_metrics()
         pool = self._get_pool()
 
         _logger.info("Neo4j query start: %s | metadata=%s", op_name, metadata)
 
         try:
-            with pool.session() as session:
-                result = session.run(query, params)
-                rows = [record.data() for record in result]
+            with metrics.measure(op_name):
+                with pool.session() as session:
+                    result = session.run(query, params)
+                    rows = [record.data() for record in result]
+
+            metrics.increment(f"{op_name}.rows", len(rows))
             _logger.info("Neo4j query ok: %s | rows=%d", op_name, len(rows))
             return rows
+
         except ServiceUnavailable as exc:
-            _logger.error("Neo4j service unavailable: %s | metadata=%s", exc, metadata, exc_info=True)
+            metrics.increment(f"{op_name}.service_unavailable")
+            _logger.error(
+                "Neo4j service unavailable: %s | metadata=%s",
+                exc,
+                metadata,
+                exc_info=True,
+            )
             raise UserError(
-                "Neo4j service is unavailable. Please try again later or contact your administrator."
+                "Neo4j service is unavailable. Please try again later or " "contact your administrator."
             ) from exc
+
         except Neo4jError as exc:
-            _logger.error("Neo4j error: %s | metadata=%s", exc, metadata, exc_info=True)
+            metrics.increment(f"{op_name}.neo4j_error")
+            _logger.error(
+                "Neo4j error: %s | metadata=%s",
+                exc,
+                metadata,
+                exc_info=True,
+            )
             raise UserError("Neo4j query failed:\n%s" % (getattr(exc, "message", str(exc)))) from exc
+
         except Exception as exc:
-            _logger.exception("Unexpected error while executing Neo4j query | metadata=%s", metadata)
-            raise UserError("Unexpected error while communicating with Neo4j. Check Odoo logs for details.") from exc
+            metrics.increment(f"{op_name}.unexpected_error")
+            _logger.exception(
+                "Unexpected error while executing Neo4j query | metadata=%s",
+                metadata,
+            )
+            raise UserError("Unexpected error while communicating with Neo4j. " "Check Odoo logs for details.") from exc
 
     def _get_driver(self):
         """Return pool or None when Neo4j is optional (hooks/sync); no UserError."""
