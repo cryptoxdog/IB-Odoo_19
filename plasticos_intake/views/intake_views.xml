@@ -20,10 +20,10 @@
                 <field name="material_profile_id"/>
                 <filter name="filter_draft"
                         string="Draft"
-                        domain="[('state', '=', 'draft')]"/>
+                        domain="[('status', '=', 'draft')]"/>
                 <filter name="filter_matched"
                         string="Matched"
-                        domain="[('state', '=', 'matched')]"/>
+                        domain="[('status', '=', 'matched')]"/>
                 <filter name="filter_unassigned"
                         string="Unassigned"
                         domain="[('assigned_user_id', '=', False)]"/>
@@ -43,9 +43,9 @@
                 <filter name="group_polymer"
                         string="Polymer"
                         context="{'group_by': 'polymer_id'}"/>
-                <filter name="group_state"
+                <filter name="group_status"
                         string="Status"
-                        context="{'group_by': 'state'}"/>
+                        context="{'group_by': 'status'}"/>
             </search>
         </field>
     </record>
@@ -69,9 +69,9 @@
                 <field name="quantity_per_load_lbs"/>
                 <field name="loads_per_month" optional="show"/>
                 <field name="match_count" optional="show"/>
-                <field name="state"
-                       decoration-info="state == 'draft'"
-                       decoration-success="state == 'matched'"
+                <field name="status"
+                       decoration-info="status == 'draft'"
+                       decoration-success="status == 'matched'"
                        widget="badge"/>
             </list>
         </field>
@@ -88,20 +88,20 @@
             <form>
                 <header>
                     <button
-                        name="action_submit"
+                        name="action_match_to_buyers"
                         type="object"
-                        string="Submit for Matching"
+                        string="Match To Buyers"
                         class="btn-primary"
-                        invisible="state != 'draft'"
+                        invisible="status != 'draft'"
                     />
                     <button
                         name="action_reset_to_draft"
                         type="object"
                         string="Edit"
                         class="btn-secondary"
-                        invisible="state != 'matched'"
+                        invisible="status != 'matched'"
                     />
-                    <field name="state" widget="statusbar"
+                    <field name="status" widget="statusbar"
                            statusbar_visible="draft,matched"/>
                 </header>
                 <sheet>
@@ -189,7 +189,7 @@
                         </page>
 
                         <!-- Tab 5: Match Results -->
-                        <page string="Match Results" invisible="state != 'matched'">
+                        <page string="Match Results" invisible="status != 'matched'">
                             <group>
                                 <group string="Summary">
                                     <field name="match_count"/>

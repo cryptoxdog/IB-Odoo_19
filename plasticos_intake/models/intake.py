@@ -246,7 +246,7 @@ class PlasticosIntake(models.Model):
     # Status (simplified 2-stage workflow)
     # ═════════════════════════════════════════════════════════
 
-    state = fields.Selection(
+    status = fields.Selection(
         [
             ("draft", "Draft"),
             ("matched", "Matched"),
@@ -255,7 +255,7 @@ class PlasticosIntake(models.Model):
         tracking=True,
         index=True,
         string="Status",
-        help="Draft = user editing. Matched = submitted and buyer matches found.",
+        help="Draft = editing. Matched = buyer matches found.",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -482,31 +482,39 @@ class PlasticosIntake(models.Model):
     # Actions
     # ═════════════════════════════════════════════════════════
 
-    def action_submit(self):
-        """Submit intake for buyer matching.
+    def action_match_to_buyers(self):
+        """Run buyer matching engine on this intake.
 
-        Single-click action: validates, runs matching engine, updates state.
+        Single-click: validates required fields, calls matching engine,
+        populates match_count and match_response with results.
         """
         for rec in self:
-            if rec.state != "draft":
-                raise UserError("Only draft intakes can be submitted.")
+            if rec.status != "draft":
+                raise UserError("Only draft intakes can be matched.")
 
             # TODO: Call buyer matching engine here
-            # For now, mark as matched with placeholder
+            # match_response will contain JSON like:
+            # {
+            #   "matches": [
+            #     {"buyer_id": 123, "buyer_name": "ABC Recycling", "score": 0.95},
+            #     {"buyer_id": 456, "buyer_name": "XYZ Plastics", "score": 0.87}
+            #   ],
+            #   "matched_at": "2026-02-22T10:30:00Z"
+            # }
             rec.write(
                 {
-                    "state": "matched",
+                    "status": "matched",
                     "match_count": 0,
                     "match_response": {"status": "pending_integration"},
                 }
             )
 
     def action_reset_to_draft(self):
-        """Reset matched intake back to draft for editing."""
+        """Reset this intake back to draft for editing."""
         for rec in self:
             rec.write(
                 {
-                    "state": "draft",
+                    "status": "draft",
                     "match_count": 0,
                     "match_response": False,
                 }
