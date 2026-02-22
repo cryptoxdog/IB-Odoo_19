@@ -1,0 +1,813 @@
+# MACK Knowledge Base: HIPS (High Impact Polystyrene) Compounding & Recycling v7.0r
+# Purpose: Enable MACK reasoning for HIPS material identification and buyer matching
+# Compatible with: MACK v7.0 Odoo reasoning engine
+# Last Updated: 2025-11-05
+# Data Sources: ASTM D4549, comprehensive HIPS/PS recycling research, WEEE supply chain analysis
+
+metadata:
+  polymer_family: "Styrenics"
+  polymer_type: "HIPS"
+  full_name: "High Impact Polystyrene"
+  resin_id_code: 6
+  cas_number: "9003-55-8"
+  version: "7.0r"
+  last_updated: "2025-11-05"
+  data_quality: "verified"
+  source_tier: "tier_1"  # ASTM standards + comprehensive recycling research
+
+# ============================================================================
+# MATERIAL PROPERTIES & GRADES
+# ============================================================================
+
+material_grades:
+  - grade_id: "HIPS_APPLIANCE_GRADE"
+    grade_name: "HIPS - Appliance Housing Grade"
+    description: "Impact-modified PS for appliance housings and structural parts"
+    type: "virgin"
+
+    rubber_content:
+      polybutadiene_pct: [5, 15]
+      particle_size_um: [0.5, 3.0]
+      grafting: "styrene grafted onto rubber backbone"
+
+    melt_flow_rate:
+      value_g_10min: [3, 12]
+      test_conditions: "200°C/5kg"
+      test_method: "ASTM D1238"
+
+    density:
+      range_g_cm3: [1.03, 1.06]
+      typical_g_cm3: 1.04
+      test_method: "ASTM D792"
+      note: "Slightly lower than GPPS due to rubber content"
+
+    processing_temperatures:
+      melt_temp_c: [180, 250]
+      optimal_range_c: [200, 230]
+
+    mechanical_properties:
+      tensile_strength_mpa: [20, 40]
+      flexural_modulus_mpa: [1800, 2500]
+      impact_strength_j_m: [80, 150]  # Significantly higher than GPPS
+      hdt_c: [65, 85]
+      elongation_at_break_pct: [15, 50]
+      test_method: "ASTM D638, D790, D256, D648"
+
+    appearance:
+      clarity: "opaque"
+      color: "typically white, gray, or colored"
+      surface_finish: "matte to semi-gloss"
+
+    applications:
+      primary:
+        - "Appliance housings (refrigerators, TVs, monitors)"
+        - "Electronics housings (computers, printers)"
+        - "Automotive interior components"
+      secondary:
+        - "Toys and sporting goods"
+        - "Food packaging containers"
+        - "Point-of-purchase displays"
+        - "Protective packaging"
+
+    pcr_compatibility:
+      max_pcr_pct: 50
+      typical_pcr_pct: [15, 35]
+      quality_requirements: "Moderate - rubber phase compensates for property loss, <0.8% contamination acceptable"
+      unique_advantage: "HIPS tensile strength maintains or improves during initial recycling (unique among thermoplastics)"
+
+    market_data:
+      availability: "abundant"
+      demand: "high"
+      primary_sources: "WEEE electronics (70% collection efficiency), appliance manufacturing"
+
+  - grade_id: "HIPS_WEEE_PCR"
+    grade_name: "HIPS - WEEE Electronics PCR"
+    description: "Post-consumer recycled HIPS from WEEE electronics stream"
+    type: "pcr"
+
+    source_characteristics:
+      primary_source: "WEEE electronics (TV housings, computer cases, monitor bezels)"
+      collection_efficiency_pct: 70
+      sorting_purity_pct: 90
+      processing_cost_usd_ton: 260
+      recycling_rate_pct: 25
+      supply_chain_maturity: "high"
+
+    property_retention:
+      tensile_strength_mpa: [25, 32]
+      note_tensile: "Stable or improved vs virgin (22-35 MPa) - unique HIPS advantage"
+      impact_strength_kj_m2: [35, 38]
+      note_impact: "Minimal loss from virgin (36-39 kJ/m²)"
+      multi_cycle_retention:
+        tensile_pct_after_6_cycles: 82
+        impact_pct_after_6_cycles: 68
+
+    contamination_profile:
+      typical_contaminants:
+        - "Metals (screws, brackets): <100 ppm"
+        - "Adhesives: <0.3%"
+        - "Labels/printing: <0.2%"
+        - "Other plastics (ABS, PC): <2%"
+      contamination_level: "low"
+      contamination_pct: [0.5, 2.0]
+
+    applications:
+      suitable_for:
+        - "Electronics housing (non-critical)"
+        - "Appliance components (interior)"
+        - "Automotive interior trim"
+        - "Industrial housings"
+      not_suitable_for:
+        - "Food contact applications"
+        - "Medical devices"
+        - "Structural load-bearing"
+
+    buyer_requirements:
+      purity_min_pct: 92
+      max_pcr_blend_pct: 50
+      impact_strength_min_j_m: 80
+      certifications_preferred:
+        - "UL listed (electrical safety)"
+        - "RoHS compliant"
+
+  - grade_id: "HIPS_APPLIANCE_PCR"
+    grade_name: "HIPS - Appliance Manufacturing PCR"
+    description: "Post-consumer recycled HIPS from appliance stream"
+    type: "pcr"
+
+    source_characteristics:
+      primary_source: "Appliance housings (refrigerators, dishwashers, washing machines)"
+      collection_efficiency_pct: 55
+      sorting_purity_pct: 85
+      processing_cost_usd_ton: 280
+      supply_chain_maturity: "medium-high"
+
+    property_retention:
+      tensile_strength_mpa: [22, 30]
+      impact_strength_kj_m2: [32, 36]
+
+    contamination_profile:
+      typical_contaminants:
+        - "Metals: <150 ppm"
+        - "Adhesives: <0.5%"
+        - "Labels: <0.3%"
+        - "Mixed plastics: <3%"
+      contamination_level: "low-medium"
+      contamination_pct: [1.0, 3.0]
+
+    applications:
+      suitable_for:
+        - "Appliance components (non-visible)"
+        - "Industrial housings"
+        - "Construction applications"
+      not_suitable_for:
+        - "Electronics housing (critical)"
+        - "Food contact"
+
+  - grade_id: "HIPS_CONSUMER_GOODS_PCR"
+    grade_name: "HIPS - Consumer Goods PCR"
+    description: "Post-consumer recycled HIPS from consumer goods stream"
+    type: "pcr"
+
+    source_characteristics:
+      primary_source: "Toys, household items, packaging"
+      collection_efficiency_pct: 45
+      sorting_purity_pct: 80
+      processing_cost_usd_ton: 310
+      supply_chain_maturity: "medium"
+
+    property_retention:
+      tensile_strength_mpa: [20, 28]
+      impact_strength_kj_m2: [28, 34]
+
+    contamination_profile:
+      typical_contaminants:
+        - "Mixed colors: high"
+        - "Printing inks: 1-3%"
+        - "Adhesives: <1%"
+        - "Mixed plastics: <5%"
+      contamination_level: "medium"
+      contamination_pct: [2.0, 5.0]
+
+    applications:
+      suitable_for:
+        - "Non-critical consumer goods"
+        - "Industrial applications"
+        - "Construction materials"
+      not_suitable_for:
+        - "Electronics"
+        - "Appliances (visible)"
+        - "Food contact"
+
+  - grade_id: "HIPS_PIR_SINGLE_CYCLE"
+    grade_name: "HIPS - Post-Industrial Regrind (Single Cycle)"
+    description: "Post-industrial HIPS regrind from manufacturing scrap"
+    type: "pir"
+
+    source_characteristics:
+      primary_source: "Manufacturing scrap (injection molding, thermoforming)"
+      contamination_level: "very low"
+      processing_history: "single cycle"
+
+    property_retention:
+      tensile_strength_pct_of_virgin: [95, 100]
+      impact_strength_pct_of_virgin: [92, 98]
+      note: "Minimal property degradation with known processing history"
+
+    contamination_profile:
+      typical_contaminants:
+        - "Minimal - clean manufacturing environment"
+      contamination_pct: [0.1, 0.5]
+
+    applications:
+      suitable_for:
+        - "All HIPS applications (with appropriate blend ratio)"
+        - "Electronics housing"
+        - "Appliance components"
+        - "Food packaging (with FDA approval)"
+
+    buyer_requirements:
+      purity_min_pct: 98
+      max_pcr_blend_pct: 80
+      certifications_preferred:
+        - "FDA food contact (if applicable)"
+        - "UL listed"
+
+# ============================================================================
+# RECYCLING RULES & PROPERTY RETENTION
+# ============================================================================
+
+recycling_rules:
+  - rule_id: "HIPS_UNIQUE_PROPERTY_RETENTION"
+    material_type: "HIPS"
+    rule: "HIPS demonstrates unique property retention advantage - tensile strength maintains or improves during initial recycling"
+    reasoning: "Unlike most thermoplastics, HIPS tensile strength maintains or improves slightly during initial recycling (25-32 MPa recycled vs 22-35 MPa virgin). Rubber phase provides resilience against chain scission. Impact strength shows minimal degradation (35-38 kJ/m² vs 36-39 kJ/m²)."
+    confidence: 0.92
+    source: "Comprehensive HIPS/PS recycling research 2024-2025"
+    property_data:
+      tensile_virgin_mpa: [22, 35]
+      tensile_recycled_mpa: [25, 32]
+      impact_virgin_kj_m2: [36, 39]
+      impact_recycled_kj_m2: [35, 38]
+
+  - rule_id: "HIPS_MULTI_CYCLE_DEGRADATION"
+    material_type: "HIPS"
+    rule: "HIPS multi-cycle property retention superior to GPPS"
+    reasoning: "After 6 recycling cycles, HIPS retains 82% tensile strength and 68% impact strength. Superior to GPPS (62% tensile, 50% impact). Rubber modification provides resilience."
+    confidence: 0.90
+    source: "Comprehensive HIPS/PS recycling research"
+    multi_cycle_data:
+      cycle_6_tensile_retention_pct: 82
+      cycle_6_impact_retention_pct: 68
+      comparison_gpps_tensile_pct: 62
+      comparison_gpps_impact_pct: 50
+
+  - rule_id: "HIPS_WEEE_SUPPLY_CHAIN_EXCELLENCE"
+    material_type: "HIPS"
+    source_type: "WEEE electronics"
+    rule: "WEEE-sourced HIPS has superior supply chain metrics and commands premium"
+    reasoning: "WEEE HIPS: 70% collection efficiency (vs 45% general), 90% sorting purity (vs 85%), $260/ton processing cost (vs $280), 25% recycling rate (vs 0.1% general HIPS). Established electronics manufacturer relationships."
+    confidence: 0.88
+    supply_chain_data:
+      weee_collection_efficiency_pct: 70
+      general_collection_efficiency_pct: 45
+      weee_sorting_purity_pct: 90
+      general_sorting_purity_pct: 85
+      weee_processing_cost_usd_ton: 260
+      general_processing_cost_usd_ton: 280
+      weee_recycling_rate_pct: 25
+      general_recycling_rate_pct: 0.1
+
+  - rule_id: "HIPS_CONTAMINATION_TOLERANCE"
+    material_type: "HIPS"
+    rule: "HIPS more tolerant of contamination than GPPS due to rubber phase"
+    reasoning: "Rubber phase in HIPS masks minor property variations from contamination. Acceptable contamination: <0.8% for most applications, <2% for non-critical applications. GPPS requires <0.5% for most uses."
+    confidence: 0.85
+    contamination_thresholds:
+      critical_applications_max_pct: 0.8
+      non_critical_applications_max_pct: 2.0
+      comparison_gpps_critical_max_pct: 0.5
+
+  - rule_id: "HIPS_CYCLE_LIMITS_BY_APPLICATION"
+    rule: "HIPS recycling cycle limits vary by application tier"
+    reasoning: "Premium electronics: 1-3 cycles max, General appliances: 4-5 cycles acceptable, Industrial/construction: 6+ cycles OK. Property retention data supports tiered approach."
+    confidence: 0.85
+    application_tiers:
+      premium_electronics_max_cycles: 3
+      general_appliances_max_cycles: 5
+      industrial_construction_max_cycles: 6
+
+  - rule_id: "HIPS_RUBBER_PHASE_CRITICAL"
+    rule: "Rubber phase morphology critical to HIPS performance"
+    reasoning: "5-15% polybutadiene content with 0.5-3.0 μm particle size provides impact resistance. Recycling can affect rubber phase distribution. Multiple cycles may degrade rubber phase effectiveness."
+    confidence: 0.88
+    rubber_specifications:
+      polybutadiene_content_pct: [5, 15]
+      particle_size_um: [0.5, 3.0]
+
+  - rule_id: "HIPS_BETTER_THAN_GPPS_RECYCLING"
+    rule: "HIPS consistently outperforms GPPS in recycling metrics"
+    reasoning: "Property retention, contamination tolerance, and multi-cycle performance all superior. Rubber modification provides resilience. Recommend HIPS over GPPS for recycled content applications when impact resistance needed."
+    confidence: 0.90
+
+# ============================================================================
+# CONTAMINATION PROFILES
+# ============================================================================
+
+contamination_profiles:
+  - profile_id: "HIPS_WEEE_CLEAN"
+    material_type: "HIPS"
+    source: "WEEE electronics"
+    contamination_level: "low"
+    typical_contaminants:
+      - "Metals (screws, brackets): <100 ppm"
+      - "Adhesives: <0.3%"
+      - "Labels/printing: <0.2%"
+      - "Other plastics (ABS, PC): <2%"
+    sorting_purity_pct: 90
+    collection_efficiency_pct: 70
+    processing_cost_usd_ton: 260
+    economic_viability: "excellent"
+    value_range_note: "Premium due to supply chain excellence"
+
+  - profile_id: "HIPS_APPLIANCE_MODERATE"
+    material_type: "HIPS"
+    source: "appliance manufacturing"
+    contamination_level: "low-medium"
+    typical_contaminants:
+      - "Metals: <150 ppm"
+      - "Adhesives: <0.5%"
+      - "Labels: <0.3%"
+      - "Mixed plastics: <3%"
+    sorting_purity_pct: 85
+    collection_efficiency_pct: 55
+    processing_cost_usd_ton: 280
+    economic_viability: "good"
+
+  - profile_id: "HIPS_CONSUMER_MIXED"
+    material_type: "HIPS"
+    source: "consumer goods"
+    contamination_level: "medium"
+    typical_contaminants:
+      - "Mixed colors: high"
+      - "Printing inks: 1-3%"
+      - "Adhesives: <1%"
+      - "Mixed plastics: <5%"
+    sorting_purity_pct: 80
+    collection_efficiency_pct: 45
+    processing_cost_usd_ton: 310
+    economic_viability: "moderate"
+
+  - profile_id: "HIPS_CONTAMINATED_HIGH"
+    material_type: "HIPS"
+    source: "mixed waste stream"
+    contamination_level: "high"
+    typical_contaminants:
+      - "Mixed plastics: 5-15%"
+      - "Dirt/debris: 2-5%"
+      - "Metals: >200 ppm"
+      - "Organics: >1%"
+    sorting_purity_pct: 60
+    economic_viability: "poor"
+    note: "Requires extensive cleaning, limited applications"
+
+# ============================================================================
+# BUYER PROFILES & MATCHING RULES
+# ============================================================================
+
+buyer_profiles:
+  - buyer_id: "HIPS_ELECTRONICS_HOUSING_PREMIUM"
+    buyer_type: "Electronics manufacturer (premium)"
+    industry_segment: "Consumer electronics"
+
+    material_requirements:
+      polymer_types: ["HIPS"]
+      purity_min_pct: 95
+      max_pcr_pct: 50
+      preferred_source: "WEEE electronics"
+      color_preference: "black, gray, or consistent single color"
+      form_preference: "pellets or clean regrind"
+
+    quality_specifications:
+      impact_strength_min_j_m: 80
+      tensile_strength_min_mpa: 25
+      contamination_max_pct: 0.8
+      moisture_max_ppm: 500
+      metal_content_max_ppm: 100
+
+    certifications_required:
+      - "UL listed (electrical safety)"
+      - "RoHS compliant"
+      - "REACH compliant"
+
+    certifications_preferred:
+      - "ISO 9001 supplier"
+      - "Traceability documentation"
+
+    applications:
+      - "TV housings and bezels"
+      - "Computer housings and components"
+      - "Monitor housings"
+      - "Printer housings"
+
+    volume_range_tons_month: [50, 500]
+    price_sensitivity: "moderate"
+    quality_priority: "high"
+
+    matching_priority:
+      weee_source: "highest"
+      pir_single_cycle: "high"
+      appliance_pcr: "medium"
+      consumer_pcr: "low"
+
+  - buyer_id: "HIPS_APPLIANCE_COMPONENTS"
+    buyer_type: "Appliance manufacturer"
+    industry_segment: "Home appliances"
+
+    material_requirements:
+      polymer_types: ["HIPS"]
+      purity_min_pct: 92
+      max_pcr_pct: 60
+      preferred_source: "WEEE electronics, appliance manufacturing"
+      color_preference: "white, gray, or colored"
+      form_preference: "pellets"
+
+    quality_specifications:
+      impact_strength_min_j_m: 70
+      tensile_strength_min_mpa: 22
+      contamination_max_pct: 1.5
+      moisture_max_ppm: 600
+
+    certifications_required:
+      - "UL listed"
+
+    certifications_preferred:
+      - "Energy Star compliance (for appliance)"
+      - "ISO 9001"
+
+    applications:
+      - "Refrigerator interior components"
+      - "Dishwasher components"
+      - "Washing machine components"
+      - "Appliance housings (non-visible)"
+
+    volume_range_tons_month: [100, 1000]
+    price_sensitivity: "high"
+    quality_priority: "medium"
+
+    matching_priority:
+      weee_source: "high"
+      appliance_pcr: "highest"
+      pir_single_cycle: "high"
+      consumer_pcr: "medium"
+
+  - buyer_id: "HIPS_AUTOMOTIVE_INTERIOR"
+    buyer_type: "Automotive tier 1/2 supplier"
+    industry_segment: "Automotive"
+
+    material_requirements:
+      polymer_types: ["HIPS"]
+      purity_min_pct: 93
+      max_pcr_pct: 50
+      preferred_source: "WEEE electronics, PIR"
+      color_preference: "black, gray, or automotive colors"
+      form_preference: "pellets"
+
+    quality_specifications:
+      impact_strength_min_j_m: 75
+      tensile_strength_min_mpa: 24
+      contamination_max_pct: 1.0
+      odor: "none to minimal"
+
+    certifications_required:
+      - "IATF 16949 (automotive quality)"
+      - "OEM approval"
+
+    certifications_preferred:
+      - "ISO 14001 (environmental)"
+      - "Traceability documentation"
+
+    applications:
+      - "Interior trim panels"
+      - "Console components"
+      - "Door panel components"
+      - "Non-visible interior parts"
+
+    volume_range_tons_month: [50, 300]
+    price_sensitivity: "moderate"
+    quality_priority: "high"
+
+    matching_priority:
+      weee_source: "highest"
+      pir_single_cycle: "highest"
+      appliance_pcr: "medium"
+      consumer_pcr: "low"
+
+  - buyer_id: "HIPS_INDUSTRIAL_HOUSING"
+    buyer_type: "Industrial equipment manufacturer"
+    industry_segment: "Industrial"
+
+    material_requirements:
+      polymer_types: ["HIPS"]
+      purity_min_pct: 88
+      max_pcr_pct: 80
+      preferred_source: "any"
+      color_preference: "any"
+      form_preference: "pellets or regrind"
+
+    quality_specifications:
+      impact_strength_min_j_m: 60
+      tensile_strength_min_mpa: 20
+      contamination_max_pct: 3.0
+
+    certifications_required: []
+    certifications_preferred:
+      - "ISO 9001"
+
+    applications:
+      - "Industrial equipment housings"
+      - "Protective enclosures"
+      - "Non-critical components"
+
+    volume_range_tons_month: [20, 200]
+    price_sensitivity: "very high"
+    quality_priority: "low"
+
+    matching_priority:
+      consumer_pcr: "highest"
+      appliance_pcr: "high"
+      weee_source: "medium"
+      pir_single_cycle: "medium"
+
+  - buyer_id: "HIPS_CONSTRUCTION_MATERIALS"
+    buyer_type: "Construction materials manufacturer"
+    industry_segment: "Construction"
+
+    material_requirements:
+      polymer_types: ["HIPS"]
+      purity_min_pct: 80
+      max_pcr_pct: 100
+      preferred_source: "any"
+      color_preference: "any"
+      form_preference: "any"
+
+    quality_specifications:
+      impact_strength_min_j_m: 50
+      tensile_strength_min_mpa: 18
+      contamination_max_pct: 5.0
+
+    certifications_required: []
+
+    applications:
+      - "Construction panels"
+      - "Insulation backing"
+      - "Non-structural components"
+
+    volume_range_tons_month: [100, 1000]
+    price_sensitivity: "very high"
+    quality_priority: "very low"
+
+    matching_priority:
+      consumer_pcr: "highest"
+      appliance_pcr: "high"
+      weee_source: "low"
+      pir_single_cycle: "low"
+
+# ============================================================================
+# QUALITY INDICATORS & TESTING
+# ============================================================================
+
+quality_indicators:
+  - indicator_id: "HIPS_IMPACT_STRENGTH"
+    test_method: "ASTM D256 (Izod notched)"
+    material_types: ["HIPS"]
+    thresholds:
+      excellent:
+        value_j_m: [100, 150]
+        applications: "All applications including premium electronics"
+      good:
+        value_j_m: [80, 100]
+        applications: "Electronics, appliances, automotive"
+      acceptable:
+        value_j_m: [60, 80]
+        applications: "General industrial, non-critical"
+      poor:
+        value_j_m: [0, 60]
+        applications: "Construction only, limited use"
+    significance: "Critical for HIPS performance - primary differentiator from GPPS"
+
+  - indicator_id: "HIPS_TENSILE_STRENGTH"
+    test_method: "ASTM D638"
+    material_types: ["HIPS"]
+    thresholds:
+      excellent:
+        value_mpa: [30, 40]
+        note: "Exceeds virgin baseline, indicates good recycling"
+      good:
+        value_mpa: [25, 30]
+        note: "Typical recycled HIPS, suitable for most applications"
+      acceptable:
+        value_mpa: [20, 25]
+        note: "Lower end, suitable for non-critical applications"
+      poor:
+        value_mpa: [0, 20]
+        note: "Significant degradation, limited applications"
+    significance: "Unique HIPS advantage - maintains or improves with recycling"
+
+  - indicator_id: "HIPS_MFR_CONSISTENCY"
+    test_method: "ASTM D1238 (200°C/5kg)"
+    material_types: ["HIPS"]
+    thresholds:
+      excellent: "±5% of target MFR"
+      good: "±10% of target MFR"
+      acceptable: "±15% of target MFR"
+      poor: ">±15% of target MFR"
+    significance: "Indicates processing consistency and molecular weight stability"
+
+  - indicator_id: "HIPS_CONTAMINATION_LEVEL"
+    test_method: "Visual inspection + FTIR"
+    material_types: ["HIPS"]
+    thresholds:
+      excellent:
+        contamination_pct: [0, 0.8]
+        applications: "All applications including premium electronics"
+      good:
+        contamination_pct: [0.8, 2.0]
+        applications: "General appliances, automotive, industrial"
+      acceptable:
+        contamination_pct: [2.0, 3.0]
+        applications: "Non-critical industrial, construction"
+      poor:
+        contamination_pct: [3.0, 100]
+        applications: "Very limited, requires extensive cleaning"
+    significance: "HIPS more tolerant than GPPS, but still critical for premium applications"
+
+  - indicator_id: "HIPS_RUBBER_PHASE_INTEGRITY"
+    test_method: "Microscopy + impact testing"
+    material_types: ["HIPS"]
+    assessment:
+      excellent: "Uniform rubber phase distribution, particle size 0.5-3.0 μm, impact >100 J/m"
+      good: "Good rubber phase distribution, impact 80-100 J/m"
+      acceptable: "Some rubber phase degradation, impact 60-80 J/m"
+      poor: "Significant rubber phase degradation, impact <60 J/m"
+    significance: "Rubber phase integrity critical to HIPS performance"
+
+# ============================================================================
+# INFERENCE RULES & MATCHING LOGIC
+# ============================================================================
+
+inference_rules:
+  - rule_id: "HIPS_SOURCE_IDENTIFICATION"
+    inference_type: "material_identification"
+    logic: "IF impact_strength >60 J/m AND opaque AND density 1.03-1.06 g/cm³ THEN HIPS"
+    confidence: 0.92
+
+  - rule_id: "HIPS_WEEE_SOURCE_PREMIUM_MATCHING"
+    inference_type: "buyer_matching"
+    logic: "IF source=WEEE_electronics AND purity>90% THEN match_to_electronics_buyers_first"
+    reasoning: "WEEE HIPS has superior supply chain metrics, highest quality, commands premium. Electronics buyers value traceability and consistent quality."
+    confidence: 0.88
+
+  - rule_id: "HIPS_PROPERTY_RETENTION_ADVANTAGE"
+    inference_type: "buyer_matching"
+    logic: "IF material=HIPS AND cycles<=3 THEN suitable_for_premium_applications"
+    reasoning: "HIPS unique property retention (tensile maintains/improves) makes it suitable for premium applications even with recycled content."
+    confidence: 0.90
+
+  - rule_id: "HIPS_CONTAMINATION_TIER_MATCHING"
+    inference_type: "buyer_matching"
+    logic: "IF contamination<0.8% THEN electronics_buyers; IF contamination<2% THEN appliance_buyers; IF contamination<3% THEN industrial_buyers; IF contamination<5% THEN construction_buyers"
+    reasoning: "Contamination tolerance varies by application tier. Match material quality to buyer requirements."
+    confidence: 0.85
+
+  - rule_id: "HIPS_IMPACT_STRENGTH_CRITICAL"
+    inference_type: "buyer_matching"
+    logic: "IF impact_strength<60 J/m THEN exclude_electronics_and_appliance_buyers"
+    reasoning: "Impact strength is defining characteristic of HIPS. Below 60 J/m indicates significant degradation, unsuitable for primary applications."
+    confidence: 0.88
+
+  - rule_id: "HIPS_MULTI_CYCLE_LIMITS"
+    inference_type: "quality_assessment"
+    logic: "IF cycles>6 THEN construction_only; IF cycles>3 THEN exclude_electronics"
+    reasoning: "Multi-cycle property retention data: 82% tensile, 68% impact after 6 cycles. Premium applications require <3 cycles."
+    confidence: 0.85
+
+  - rule_id: "HIPS_PREFER_OVER_GPPS"
+    inference_type: "buyer_matching"
+    logic: "IF application_requires_impact_resistance THEN prefer_HIPS_over_GPPS"
+    reasoning: "HIPS superior property retention, contamination tolerance, and multi-cycle performance vs GPPS. Recommend HIPS for recycled content when impact needed."
+    confidence: 0.90
+
+  - rule_id: "HIPS_COLOR_MATCHING"
+    inference_type: "buyer_matching"
+    logic: "IF color=mixed THEN exclude_visible_applications; IF color=black_or_gray THEN suitable_for_electronics_automotive"
+    reasoning: "Color consistency critical for visible applications. Mixed colors limit to non-visible or construction uses."
+    confidence: 0.82
+
+# ============================================================================
+# STANDARDS & TESTING METHODS
+# ============================================================================
+
+standards:
+  - standard_id: "ASTM_D4549"
+    title: "Classification System for Polystyrene Materials"
+    scope: "Defines PS and HIPS types, grades, and property requirements"
+    key_parameters:
+      - "Melt flow rate"
+      - "Density"
+      - "Impact strength"
+      - "Tensile properties"
+    relevance: "Primary classification standard for HIPS materials"
+
+  - standard_id: "ASTM_D256"
+    title: "Impact Resistance of Plastics (Izod)"
+    scope: "Impact strength testing for HIPS"
+    significance: "Critical test for HIPS - defines primary performance characteristic"
+
+  - standard_id: "ASTM_D638"
+    title: "Tensile Properties of Plastics"
+    scope: "Tensile strength and elongation testing"
+    significance: "Monitors HIPS unique property retention advantage"
+
+  - standard_id: "ASTM_D1238"
+    title: "Melt Flow Rates of Thermoplastics"
+    test_conditions: "200°C/5kg for HIPS"
+    significance: "Indicates molecular weight and processability"
+
+  - standard_id: "UL_94"
+    title: "Flammability of Plastic Materials"
+    scope: "Flammability classification for electrical applications"
+    relevance: "Required for electronics housing applications"
+
+# ============================================================================
+# MARKET INTELLIGENCE
+# ============================================================================
+
+market_intelligence:
+  supply_demand:
+    current_state: "Growing demand for recycled HIPS, limited by collection infrastructure"
+    trends:
+      - "WEEE collection infrastructure maturing (25% recycling rate vs 0.1% general)"
+      - "Electronics manufacturers seeking recycled content for sustainability goals"
+      - "Appliance manufacturers adopting recycled content mandates"
+      - "Property retention advantage driving HIPS preference over GPPS for recycling"
+      - "Chemical recycling (depolymerization) expanding for PS/HIPS"
+
+  supply_chain_maturity:
+    weee_electronics: "High - 70% collection, 90% sorting purity, established relationships"
+    appliances: "Medium-High - 55% collection, 85% sorting purity"
+    consumer_goods: "Medium - 45% collection, 80% sorting purity"
+    food_service: "Low - not applicable to HIPS"
+
+  regulatory:
+    current:
+      - "EU WEEE Directive mandates electronics recycling"
+      - "California recycled content mandates expanding"
+      - "Extended Producer Responsibility (EPR) for electronics"
+      - "RoHS compliance required for electronics"
+    emerging:
+      - "Minimum recycled content requirements for appliances"
+      - "Chemical recycling regulatory frameworks developing"
+      - "Traceability requirements for recycled content"
+
+# ============================================================================
+# PROCESSING GUIDANCE
+# ============================================================================
+
+processing_guidance:
+  drying:
+    required: true
+    temperature_c: [70, 80]
+    duration_hours: [2, 4]
+    moisture_target_ppm: 500
+    reasoning: "HIPS hygroscopic, moisture causes surface defects and property degradation"
+
+  temperature_control:
+    critical: true
+    optimal_range_c: [200, 230]
+    degradation_onset_c: 280
+    warning: "Yellowing indicates thermal degradation, rubber phase degradation"
+
+  mixing_pcr_virgin:
+    recommended_method: "Dry blend or masterbatch"
+    homogenization: "Critical for property consistency"
+    max_pcr_pct_by_application:
+      electronics_premium: 50
+      appliances_general: 60
+      automotive_interior: 50
+      industrial: 80
+      construction: 100
+
+  contamination_removal:
+    metal_detection: "Required for electronics applications (UL compliance)"
+    washing: "Required for high contamination sources"
+    sorting: "Critical - ABS and PC contamination affects properties"
+
+  rubber_phase_preservation:
+    avoid_excessive_shear: "High shear can damage rubber phase morphology"
+    avoid_multiple_reprocessing: "Each cycle degrades rubber phase"
+    monitor_impact_strength: "Primary indicator of rubber phase integrity"
+
+# ============================================================================
+# END OF HIPS KB v7.0r
+# ============================================================================

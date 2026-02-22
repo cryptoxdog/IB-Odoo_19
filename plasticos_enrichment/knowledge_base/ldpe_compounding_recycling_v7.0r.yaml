@@ -1,0 +1,1703 @@
+# MACK Knowledge Base: LDPE (Low-Density Polyethylene) Compounding & Recycling v7.0r
+# Purpose: Enable MACK reasoning for LDPE material identification, buyer matching
+# Compatible with: MACK v7.0 Odoo reasoning engine
+# Last Updated: 2025-11-05
+# Data Sources: ASTM D1248, D1238, D638, D792, industry research, 11 research files
+
+metadata:
+  polymer_family: "Polyolefin"
+  polymer_type: "LDPE"
+  full_name: "Low-Density Polyethylene"
+  resin_id_code: 4
+  cas_number: "9002-88-4"
+  version: "7.0r"
+  last_updated: "2025-11-05"
+  data_quality: "verified"
+  source_tier: "tier_1"  # ASTM standards + manufacturer data + 11 research files
+
+
+
+# ============================================================================
+# MATERIAL PROPERTIES & GRADES
+# ============================================================================
+
+material_grades:
+  - grade_id: "LDPE_FILM_BLOWN"
+    grade_name: "LDPE Blown Film Grade"
+    description: "Low MI for bubble stability in blown film extrusion"
+    type: "virgin"
+
+    melt_index:
+      range_g_10min: [0.5, 2.0]
+      typical_g_10min: 1.0
+      test_method: "ASTM D1238 (190°C/2.16 kg)"
+      significance: "Lower MI provides better bubble stability and melt strength"
+
+    density:
+      range_g_cm3: [0.915, 0.925]
+      typical_g_cm3: 0.920
+      test_method: "ASTM D792"
+
+    processing_temperatures:
+      extrusion_temp_c: [160, 200]
+      die_temp_c: [180, 210]
+      blow_up_ratio: [2.0, 4.0]
+
+    mechanical_properties:
+      tensile_strength_mpa: [8, 15]
+      elongation_at_break_pct: [300, 700]
+      tear_strength_g: [80, 200]  # Elmendorf
+      dart_drop_impact_g: [50, 200]
+      test_method: "ASTM D638, D1922, D1709"
+
+    optical_properties:
+      haze_pct: [2, 8]
+      gloss_pct: [20, 60]  # @ 45°
+      test_method: "ASTM D1003, D2457"
+
+    applications:
+      primary:
+        - "Shopping bags and grocery bags"
+        - "Food packaging films"
+        - "Agricultural films (greenhouse, mulch)"
+      secondary:
+        - "Shrink wrap"
+        - "Protective packaging"
+
+    pcr_compatibility:
+      max_pcr_pct: 50
+      typical_pcr_pct: [25, 40]
+      quality_requirements: "Moderate contamination tolerance, consistent MFI"
+
+    market_data:
+      availability: "abundant"
+      demand: "high"
+
+  - grade_id: "LDPE_FILM_CAST"
+    grade_name: "LDPE Cast Film Grade"
+    description: "Higher MI for easier processing in cast film extrusion"
+    type: "virgin"
+
+    melt_index:
+      range_g_10min: [2.0, 8.0]
+      typical_g_10min: 4.0
+      test_method: "ASTM D1238 (190°C/2.16 kg)"
+      significance: "Higher MI enables faster line speeds and easier processing"
+
+    density:
+      range_g_cm3: [0.915, 0.925]
+      typical_g_cm3: 0.920
+      test_method: "ASTM D792"
+
+    processing_temperatures:
+      extrusion_temp_c: [160, 200]
+      die_temp_c: [180, 210]
+      draw_down_ratio: [10, 50]
+
+    mechanical_properties:
+      tensile_strength_mpa: [8, 15]
+      elongation_at_break_pct: [300, 700]
+      test_method: "ASTM D638"
+
+    optical_properties:
+      haze_pct: [1, 5]  # Lower than blown film
+      gloss_pct: [40, 80]  # Higher than blown film
+      clarity: "excellent"
+      test_method: "ASTM D1003, D2457"
+
+    applications:
+      primary:
+        - "Stretch film and cling film"
+        - "Lamination films"
+        - "Food packaging (high clarity)"
+      secondary:
+        - "Protective films"
+        - "Barrier films (coextruded)"
+
+    pcr_compatibility:
+      max_pcr_pct: 40
+      typical_pcr_pct: [20, 30]
+      quality_requirements: "Moderate to high - clarity critical"
+
+    market_data:
+      availability: "abundant"
+      demand: "high"
+
+  - grade_id: "LDPE_WIRE_CABLE"
+    grade_name: "LDPE Wire and Cable Grade"
+    description: "Electrical insulation grade with excellent dielectric properties"
+    type: "virgin"
+
+    melt_index:
+      range_g_10min: [1.5, 4.0]
+      typical_g_10min: 2.5
+      test_method: "ASTM D1238 (190°C/2.16 kg)"
+
+    density:
+      range_g_cm3: [0.918, 0.925]
+      typical_g_cm3: 0.922
+      test_method: "ASTM D792"
+
+    processing_temperatures:
+      extrusion_temp_c: [180, 230]
+      crosshead_temp_c: [200, 250]
+
+    electrical_properties:
+      dielectric_strength_kv_mm: [18, 25]
+      volume_resistivity_ohm_cm: [1e16, 1e17]
+      dielectric_constant: [2.2, 2.3]  # @ 1 kHz
+      dissipation_factor: [0.0002, 0.0005]  # @ 1 kHz
+      test_method: "ASTM D149, D257, D150"
+
+    thermal_properties:
+      melting_point_c: [105, 115]
+      continuous_use_temp_c: [70, 90]
+
+    applications:
+      primary:
+        - "Primary wire insulation"
+        - "Cable jacketing"
+        - "Telecommunications cables"
+      secondary:
+        - "Power cables (low to medium voltage)"
+        - "Automotive wire harnesses"
+
+    regulatory_requirements:
+      - "UL 44 (thermoset-insulated wires and cables)"
+      - "UL 1581 (electrical wires and cables)"
+      - "NEC (National Electrical Code)"
+
+    pcr_compatibility:
+      max_pcr_pct: 15
+      typical_pcr_pct: [5, 10]
+      quality_requirements: "Strict - electrical properties critical"
+
+    market_data:
+      availability: "abundant"
+      demand: "high"
+
+  - grade_id: "LDPE_ROTOMOLDING"
+    grade_name: "LDPE Rotomolding Grade"
+    description: "Optimized MI for rotational molding applications"
+    type: "virgin"
+
+    melt_index:
+      range_g_10min: [3.0, 8.0]
+      typical_g_10min: 5.0
+      test_method: "ASTM D1238 (190°C/2.16 kg)"
+      significance: "Balanced MI for good flow and part quality"
+
+    density:
+      range_g_cm3: [0.920, 0.930]
+      typical_g_cm3: 0.925
+      test_method: "ASTM D792"
+
+    processing_parameters:
+      oven_temp_c: [250, 350]
+      mold_temp_c: [200, 280]
+      cycle_time_min: [20, 60]
+
+    mechanical_properties:
+      tensile_strength_mpa: [12, 18]
+      flexural_modulus_mpa: [200, 400]
+      impact_strength_j_m: [600, 1000]  # Izod notched
+      escr_hours: [1000, 5000]  # Environmental stress crack resistance
+      test_method: "ASTM D638, D790, D256, D1693"
+
+    applications:
+      primary:
+        - "Storage tanks and containers"
+        - "Playground equipment"
+        - "Kayaks and boats"
+      secondary:
+        - "Agricultural tanks"
+        - "Industrial containers"
+
+    pcr_compatibility:
+      max_pcr_pct: 30
+      typical_pcr_pct: [15, 25]
+      quality_requirements: "Moderate - consistent MI critical"
+
+    market_data:
+      availability: "moderate"
+      demand: "moderate"
+
+  - grade_id: "LDPE_INJECTION_MOLDING"
+    grade_name: "LDPE Injection Molding Grade"
+    description: "Higher MI for injection molding applications"
+    type: "virgin"
+
+    melt_index:
+      range_g_10min: [4.0, 20.0]
+      typical_g_10min: 10.0
+      test_method: "ASTM D1238 (190°C/2.16 kg)"
+      significance: "High MI for easy mold filling"
+
+    density:
+      range_g_cm3: [0.918, 0.928]
+      typical_g_cm3: 0.923
+      test_method: "ASTM D792"
+
+    processing_temperatures:
+      barrel_temp_c: [160, 220]
+      nozzle_temp_c: [180, 230]
+      mold_temp_c: [20, 50]
+
+    mechanical_properties:
+      tensile_strength_mpa: [10, 16]
+      flexural_modulus_mpa: [200, 350]
+      impact_strength_j_m: [400, 800]
+      test_method: "ASTM D638, D790, D256"
+
+    applications:
+      primary:
+        - "Containers and lids"
+        - "Toys and household goods"
+        - "Laboratory ware"
+      secondary:
+        - "Closures and caps"
+        - "Flexible hinges"
+
+    pcr_compatibility:
+      max_pcr_pct: 40
+      typical_pcr_pct: [25, 35]
+      quality_requirements: "Moderate - consistent flow critical"
+
+    market_data:
+      availability: "abundant"
+      demand: "moderate"
+
+  - grade_id: "LDPE_EXTRUSION_COATING"
+    grade_name: "LDPE Extrusion Coating Grade"
+    description: "Optimized for coating paper, paperboard, and other substrates"
+    type: "virgin"
+
+    melt_index:
+      range_g_10min: [3.0, 12.0]
+      typical_g_10min: 6.0
+      test_method: "ASTM D1238 (190°C/2.16 kg)"
+
+    density:
+      range_g_cm3: [0.918, 0.925]
+      typical_g_cm3: 0.922
+      test_method: "ASTM D792"
+
+    processing_temperatures:
+      extrusion_temp_c: [280, 320]
+      die_temp_c: [300, 330]
+
+    coating_properties:
+      coat_weight_g_m2: [10, 50]
+      adhesion: "excellent"
+      moisture_barrier: "good"
+      grease_resistance: "excellent"
+
+    applications:
+      primary:
+        - "Paper coating (milk cartons, juice boxes)"
+        - "Paperboard coating (food packaging)"
+        - "Aluminum foil lamination"
+      secondary:
+        - "Textile coating"
+        - "Protective coatings"
+
+    regulatory_requirements:
+      - "FDA 21 CFR 177.1520 (food contact)"
+
+    pcr_compatibility:
+      max_pcr_pct: 25
+      typical_pcr_pct: [10, 20]
+      quality_requirements: "High - food contact applications"
+
+    market_data:
+      availability: "abundant"
+      demand: "high"
+
+  - grade_id: "LDPE_PCR_FILM_CLEAR"
+    grade_name: "Post-Consumer Recycled LDPE Film (Clear)"
+    description: "Recycled clear film from post-consumer sources"
+    type: "post_consumer"
+
+    melt_index:
+      range_g_10min: [0.8, 4.0]
+      typical_g_10min: 2.0
+      test_method: "ASTM D1238 (190°C/2.16 kg)"
+      significance: "MI increases with recycling cycles"
+
+    density:
+      range_g_cm3: [0.918, 0.928]
+      typical_g_cm3: 0.923
+      test_method: "ASTM D792"
+      significance: "Density increases due to oxidation"
+
+    mechanical_properties:
+      tensile_strength_mpa: [6, 12]  # 20-40% lower than virgin
+      elongation_at_break_pct: [150, 400]  # 30-60% lower than virgin
+      test_method: "ASTM D638"
+
+    contamination_profile:
+      foreign_polymers_pct: [0.1, 0.5]
+      dirt_organics_pct: [0.2, 1.0]
+      moisture_ppm: [500, 2000]
+      odor: "minimal to moderate"
+
+    quality_variation:
+      consistency: "moderate"
+      color_variation: "low to moderate"
+      property_variation_pct: [10, 25]
+
+    applications:
+      primary:
+        - "Trash bags and bin liners"
+        - "Non-food packaging films"
+        - "Agricultural films (non-critical)"
+      secondary:
+        - "Blended with virgin for food packaging (10-30%)"
+        - "Construction films"
+
+    pcr_compatibility:
+      max_pcr_pct: 100
+      typical_pcr_pct: [80, 100]
+      quality_requirements: "Flexible - can handle moderate contamination"
+
+    market_data:
+      availability: "moderate"
+      demand: "high"
+      typical_discount_vs_virgin_pct: [30, 50]
+
+  - grade_id: "LDPE_PCR_FILM_COLORED"
+    grade_name: "Post-Consumer Recycled LDPE Film (Colored)"
+    description: "Recycled colored/mixed film from post-consumer sources"
+    type: "post_consumer"
+
+    melt_index:
+      range_g_10min: [1.0, 5.0]
+      typical_g_10min: 2.5
+      test_method: "ASTM D1238 (190°C/2.16 kg)"
+
+    density:
+      range_g_cm3: [0.920, 0.930]
+      typical_g_cm3: 0.925
+      test_method: "ASTM D792"
+
+    mechanical_properties:
+      tensile_strength_mpa: [5, 10]  # 30-50% lower than virgin
+      elongation_at_break_pct: [100, 300]  # 40-70% lower than virgin
+      test_method: "ASTM D638"
+
+    contamination_profile:
+      foreign_polymers_pct: [0.2, 1.0]
+      dirt_organics_pct: [0.5, 2.0]
+      moisture_ppm: [1000, 3000]
+      odor: "moderate to strong"
+
+    quality_variation:
+      consistency: "low to moderate"
+      color_variation: "high"
+      property_variation_pct: [15, 35]
+
+    applications:
+      primary:
+        - "Trash bags (colored)"
+        - "Construction films"
+        - "Non-appearance applications"
+      secondary:
+        - "Compounding feedstock"
+        - "Lumber and decking (blended)"
+
+    pcr_compatibility:
+      max_pcr_pct: 100
+      typical_pcr_pct: [90, 100]
+      quality_requirements: "Very flexible - high contamination tolerance"
+
+    market_data:
+      availability: "moderate"
+      demand: "moderate"
+      typical_discount_vs_virgin_pct: [40, 60]
+
+  - grade_id: "LDPE_PIR_FILM"
+    grade_name: "Post-Industrial Recycled LDPE Film"
+    description: "Clean regrind from manufacturing scrap (single processing cycle)"
+    type: "post_industrial"
+
+    melt_index:
+      range_g_10min: [0.6, 3.0]
+      typical_g_10min: 1.5
+      test_method: "ASTM D1238 (190°C/2.16 kg)"
+      significance: "Minimal MI change from single cycle"
+
+    density:
+      range_g_cm3: [0.916, 0.926]
+      typical_g_cm3: 0.921
+      test_method: "ASTM D792"
+
+    mechanical_properties:
+      tensile_strength_mpa: [7, 14]  # 10-20% lower than virgin
+      elongation_at_break_pct: [250, 600]  # 10-30% lower than virgin
+      test_method: "ASTM D638"
+
+    contamination_profile:
+      foreign_polymers_pct: [0.01, 0.1]
+      dirt_organics_pct: [0.05, 0.3]
+      moisture_ppm: [200, 800]
+      odor: "minimal"
+
+    quality_variation:
+      consistency: "high"
+      color_variation: "low"
+      property_variation_pct: [5, 15]
+
+    applications:
+      primary:
+        - "Blended with virgin for film (30-50%)"
+        - "Non-critical film applications (100% PIR)"
+        - "Injection molding"
+      secondary:
+        - "Extrusion coating"
+        - "Rotomolding"
+
+    pcr_compatibility:
+      max_pcr_pct: 100
+      typical_pcr_pct: [50, 100]
+      quality_requirements: "Moderate - known processing history"
+
+    market_data:
+      availability: "moderate"
+      demand: "high"
+      typical_discount_vs_virgin_pct: [20, 35]
+
+  - grade_id: "LDPE_PCR_PELLETS_PREMIUM"
+    grade_name: "Premium Recycled LDPE Pellets"
+    description: "High-quality pelletized PCR from clean, sorted sources"
+    type: "post_consumer"
+
+    melt_index:
+      range_g_10min: [0.8, 3.5]
+      typical_g_10min: 2.0
+      test_method: "ASTM D1238 (190°C/2.16 kg)"
+
+    density:
+      range_g_cm3: [0.918, 0.926]
+      typical_g_cm3: 0.922
+      test_method: "ASTM D792"
+
+    mechanical_properties:
+      tensile_strength_mpa: [7, 13]  # 15-30% lower than virgin
+      elongation_at_break_pct: [200, 500]  # 20-40% lower than virgin
+      test_method: "ASTM D638"
+
+    contamination_profile:
+      foreign_polymers_pct: [0.05, 0.3]
+      dirt_organics_pct: [0.1, 0.5]
+      moisture_ppm: [200, 600]
+      odor: "minimal"
+
+    quality_variation:
+      consistency: "high"
+      color_variation: "low to moderate"
+      property_variation_pct: [8, 18]
+
+    processing_advantages:
+      - "Pelletized form (ready to use)"
+      - "Consistent feeding"
+      - "Reduced dust"
+      - "Better mixing with virgin"
+
+    applications:
+      primary:
+        - "Film applications (blended 20-40% with virgin)"
+        - "Injection molding"
+        - "Extrusion coating"
+      secondary:
+        - "Rotomolding"
+        - "Compounding"
+
+    pcr_compatibility:
+      max_pcr_pct: 100
+      typical_pcr_pct: [60, 100]
+      quality_requirements: "Moderate to high - premium grade"
+
+    market_data:
+      availability: "moderate"
+      demand: "high"
+      typical_discount_vs_virgin_pct: [20, 35]
+
+# ============================================================================
+# RECYCLING RULES
+# ============================================================================
+
+recycling_rules:
+  - rule_id: "LDPE_RR_001"
+    rule_name: "Film vs. Rigid Segregation"
+    condition: "Material stream contains both LDPE film and rigid LDPE"
+    action: "Separate film and rigid streams before processing"
+    reasoning: "Different processing parameters and end applications. Film has lower density and different flow characteristics."
+    confidence: 0.90
+    exceptions:
+      - "Intentional blending for specific applications"
+    sources:
+      - "Industry best practices"
+      - "ASTM D1248 classification"
+
+  - rule_id: "LDPE_RR_002"
+    rule_name: "Melt Index Compatibility"
+    condition: "Blending LDPE materials from different sources"
+    action: "Match melt index ranges (±2 g/10min) or test blend compatibility"
+    reasoning: "Significant MI mismatch causes processing issues and property variation in final product"
+    confidence: 0.85
+    exceptions:
+      - "Intentional MI modification through blending"
+      - "Compatibility testing performed"
+    sources:
+      - "Processing guidelines"
+      - "ASTM D1238"
+
+  - rule_id: "LDPE_RR_003"
+    rule_name: "Moisture Control for Film"
+    condition: "Processing recycled LDPE film"
+    action: "Dry material to <1000 ppm moisture for film, <500 ppm for injection molding"
+    reasoning: "Moisture causes bubbles, surface defects, and property degradation during processing"
+    confidence: 0.92
+    exceptions:
+      - "Material stored in moisture-controlled environment with verified low moisture"
+    sources:
+      - "ASTM processing guidelines"
+      - "Industry best practices"
+
+  - rule_id: "LDPE_RR_004"
+    rule_name: "Contamination Limits for Food Contact"
+    condition: "Recycled LDPE intended for food contact applications"
+    action: "Ensure contamination <0.3%, require FDA compliance documentation, limit to indirect food contact or blend ≤30% with virgin"
+    reasoning: "FDA regulations restrict recycled content in direct food contact. Contamination affects safety and regulatory compliance."
+    confidence: 0.95
+    exceptions:
+      - "FDA-approved recycling process"
+      - "Indirect food contact applications"
+    sources:
+      - "FDA 21 CFR 177.1520"
+      - "Food packaging regulations"
+
+  - rule_id: "LDPE_RR_005"
+    rule_name: "Cross-Polymer Contamination Limits"
+    condition: "LDPE stream contains other polyolefins (HDPE, PP, LLDPE)"
+    action: "For film applications: <2% total contamination. For non-critical applications: <5% acceptable."
+    reasoning: "Cross-contamination affects optical properties (haze), mechanical properties, and processability"
+    confidence: 0.88
+    exceptions:
+      - "Non-appearance applications with higher tolerance"
+      - "Intentional polyolefin blends"
+    sources:
+      - "Film quality standards"
+      - "Processing research"
+
+  - rule_id: "LDPE_RR_006"
+    rule_name: "Processing Temperature Control"
+    condition: "Processing any LDPE material"
+    action: "Maintain processing temperature 160-220°C for extrusion, 280-330°C for coating. Avoid exceeding 350°C."
+    reasoning: "LDPE degrades above 350°C, causing discoloration, odor, and property loss. Optimal range ensures good processing without degradation."
+    confidence: 0.93
+    exceptions:
+      - "Specific high-temperature applications with stabilizers"
+    sources:
+      - "ASTM processing standards"
+      - "Manufacturer guidelines"
+
+  - rule_id: "LDPE_RR_007"
+    rule_name: "Multiple Cycle Property Degradation"
+    condition: "Material has undergone multiple mechanical recycling cycles"
+    action: "Limit to 4-6 mechanical recycling cycles, then downgrade to lower-value applications or blend with virgin"
+    reasoning: "Progressive chain scission, oxidation, and property loss with each cycle. After 6 cycles, significant degradation occurs."
+    confidence: 0.85
+    exceptions:
+      - "Chemical recycling to restore polymer structure"
+      - "Use in non-critical applications"
+    sources:
+      - "Recycling research"
+      - "Lifecycle analysis studies"
+
+  - rule_id: "LDPE_RR_008"
+    rule_name: "Odor Management for Film Applications"
+    condition: "Recycled LDPE has moderate to strong odor"
+    action: "Restrict to non-food applications or blend ≤20% with virgin. Consider chemical treatment or deodorization."
+    reasoning: "Odor indicates contamination or degradation. Unacceptable for food contact and consumer-facing applications."
+    confidence: 0.90
+    exceptions:
+      - "Deodorization treatment performed"
+      - "Non-consumer applications (construction, industrial)"
+    sources:
+      - "Food packaging standards"
+      - "Quality control guidelines"
+
+  - rule_id: "LDPE_RR_009"
+    rule_name: "Color Sorting for Appearance Applications"
+    condition: "Recycled LDPE intended for visible film or consumer products"
+    action: "Sort by color or plan for opaque pigmentation to mask color variation"
+    reasoning: "Mixed colors create aesthetic issues in appearance-critical applications. Color sorting or heavy pigmentation required."
+    confidence: 0.82
+    exceptions:
+      - "Black or dark-colored applications (masks color variation)"
+      - "Non-appearance applications"
+    sources:
+      - "Industry best practices"
+      - "Quality control guidelines"
+
+  - rule_id: "LDPE_RR_010"
+    rule_name: "Dirt and Organics Removal"
+    condition: "Recycled LDPE contains >0.5% dirt, labels, or organic contamination"
+    action: "Implement washing and screening process. Hot wash (60-80°C) with detergent, screen to remove particulates."
+    reasoning: "Dirt and organics cause gel formation, surface defects, and filter plugging during processing"
+    confidence: 0.88
+    exceptions:
+      - "Non-critical applications with high contamination tolerance"
+    sources:
+      - "Recycling process guidelines"
+      - "Washing best practices"
+
+  - rule_id: "LDPE_RR_011"
+    rule_name: "Density Separation for Quality Control"
+    condition: "Mixed plastic stream contains LDPE and other polymers"
+    action: "Use sink-float separation (water density 1.0 g/cm³). LDPE floats, PVC/PET sink. Separate HDPE/PP by density gradient."
+    reasoning: "Density separation is cost-effective method to remove heavier contaminants and improve LDPE purity"
+    confidence: 0.90
+    exceptions:
+      - "NIR sorting available (more precise)"
+      - "Single-source material with known composition"
+    sources:
+      - "Recycling technology guidelines"
+      - "Density separation research"
+
+  - rule_id: "LDPE_RR_012"
+    rule_name: "Agricultural Film Recycling Challenges"
+    condition: "LDPE from agricultural applications (greenhouse, mulch, silage)"
+    action: "Expect high contamination (soil, organic matter, UV degradation). Require intensive washing and screening. Limit to non-critical applications."
+    reasoning: "Agricultural films have severe contamination and UV degradation. Require specialized processing and have limited end applications."
+    confidence: 0.87
+    exceptions:
+      - "Clean greenhouse film (lower contamination)"
+      - "Specialized agricultural film recycling facilities"
+    sources:
+      - "Agricultural film recycling research"
+      - "Industry challenges"
+
+# ============================================================================
+# CONTAMINATION PROFILES
+# ============================================================================
+
+contamination_profiles:
+  - contaminant: "HDPE (High-Density Polyethylene)"
+    sources:
+      - "Mixed polyolefin collection"
+      - "Sorting errors"
+      - "Multi-layer films"
+    detection_methods:
+      - "Density separation (HDPE sinks at 1.0 g/cm³, LDPE floats)"
+      - "NIR spectroscopy"
+      - "DSC (different melting points)"
+    tolerance_limits:
+      strict: "1%"  # Film applications
+      moderate: "3%"  # General applications
+      lenient: "5%"  # Non-critical applications
+    impact:
+      physical: "Increased haze, reduced flexibility, surface defects"
+      chemical: "Compatible but different properties"
+      processing: "Higher processing temperature needed"
+    removal_methods:
+      - "Density gradient separation"
+      - "NIR sorting"
+    references:
+      - "Polyolefin recycling guidelines"
+
+  - contaminant: "PP (Polypropylene)"
+    sources:
+      - "Mixed polyolefin collection"
+      - "Multi-layer films"
+      - "Packaging contamination"
+    detection_methods:
+      - "Density separation (PP floats but different density than LDPE)"
+      - "NIR spectroscopy"
+      - "DSC (melting point 160-165°C vs LDPE 105-115°C)"
+    tolerance_limits:
+      strict: "1%"
+      moderate: "3%"
+      lenient: "5%"
+    impact:
+      physical: "Increased haze, brittleness, surface defects"
+      chemical: "Compatible but different melting point"
+      processing: "Processing temperature mismatch"
+    removal_methods:
+      - "Density gradient separation (fine-tuned)"
+      - "NIR sorting"
+    sources:
+      - "Polyolefin recycling research"
+
+  - contaminant: "PET (Polyethylene Terephthalate)"
+    sources:
+      - "Mixed plastic collection"
+      - "Packaging contamination"
+      - "Labeling materials"
+    detection_methods:
+      - "Density separation (PET sinks, LDPE floats)"
+      - "NIR spectroscopy"
+      - "Visual inspection (rigid, clear)"
+    tolerance_limits:
+      strict: "0.1%"
+      moderate: "0.3%"
+      lenient: "0.5%"
+    impact:
+      physical: "Gel formation due to high melting point (260°C)"
+      chemical: "Incompatible chemistry"
+      processing: "Creates hard spots, filter plugging"
+    removal_methods:
+      - "Sink-float separation (very effective)"
+      - "NIR sorting"
+    sources:
+      - "Contamination studies"
+
+  - contaminant: "PVC (Polyvinyl Chloride)"
+    sources:
+      - "Mixed plastic collection"
+      - "Packaging contamination"
+    detection_methods:
+      - "Density separation (PVC sinks, LDPE floats)"
+      - "NIR spectroscopy"
+      - "Beilstein test (copper wire flame test for chlorine)"
+    tolerance_limits:
+      strict: "0.05%"
+      moderate: "0.1%"
+      lenient: "0.2%"
+    impact:
+      physical: "Severe degradation, discoloration, HCl release"
+      chemical: "Highly incompatible, catalyzes degradation"
+      processing: "Equipment corrosion, safety hazard"
+    removal_methods:
+      - "Sink-float separation (very effective)"
+      - "NIR sorting"
+      - "Manual sorting"
+    sources:
+      - "Processing safety guidelines"
+
+  - contaminant: "PS (Polystyrene)"
+    sources:
+      - "Mixed plastic collection"
+      - "Packaging contamination"
+    detection_methods:
+      - "Density separation (PS sinks slightly, LDPE floats)"
+      - "NIR spectroscopy"
+      - "Visual inspection (brittle, clear or white)"
+    tolerance_limits:
+      strict: "0.2%"
+      moderate: "0.5%"
+      lenient: "1.0%"
+    impact:
+      physical: "Brittleness, surface defects"
+      chemical: "Incompatible chemistry"
+      processing: "Thermal degradation at LDPE processing temps"
+    removal_methods:
+      - "Density separation"
+      - "NIR sorting"
+    sources:
+      - "Processing guidelines"
+
+  - contaminant: "Dirt, Soil, Sand"
+    sources:
+      - "Agricultural films"
+      - "Post-consumer collection"
+      - "Outdoor storage"
+    detection_methods:
+      - "Visual inspection"
+      - "Washing and screening"
+      - "Ash content testing"
+    tolerance_limits:
+      strict: "0.2%"  # Film applications
+      moderate: "0.5%"  # General applications
+      lenient: "1.0%"  # Non-critical applications
+    impact:
+      physical: "Gel formation, surface defects, abrasion"
+      chemical: "Minimal chemical impact"
+      processing: "Filter screen plugging, wear on equipment"
+    removal_methods:
+      - "Hot water washing (60-80°C)"
+      - "Screening and filtration"
+      - "Air classification"
+    sources:
+      - "Recycling best practices"
+
+  - contaminant: "Labels, Adhesives, Inks"
+    sources:
+      - "Post-consumer packaging"
+      - "Labeling materials"
+    detection_methods:
+      - "Visual inspection"
+      - "Washing effectiveness testing"
+    tolerance_limits:
+      strict: "0.1%"
+      moderate: "0.3%"
+      lenient: "0.5%"
+    impact:
+      physical: "Gel formation, discoloration, surface defects"
+      chemical: "Adhesive residue affects properties"
+      processing: "Filter plugging, contamination"
+    removal_methods:
+      - "Hot water washing with detergent"
+      - "Caustic washing (for stubborn adhesives)"
+      - "Screening"
+    sources:
+      - "Washing process guidelines"
+
+  - contaminant: "Organic Matter (Food, Grease)"
+    sources:
+      - "Food packaging"
+      - "Agricultural films"
+      - "Post-consumer collection"
+    detection_methods:
+      - "Visual inspection"
+      - "Odor detection"
+      - "Washing effectiveness testing"
+    tolerance_limits:
+      strict: "0.1%"  # Food contact applications
+      moderate: "0.5%"  # General applications
+      lenient: "1.0%"  # Non-critical applications
+    impact:
+      physical: "Odor, discoloration, microbial growth"
+      chemical: "Degradation products, odor compounds"
+      processing: "Odor in final product, quality issues"
+    removal_methods:
+      - "Hot water washing (70-90°C) with detergent"
+      - "Deodorization treatment"
+      - "Activated carbon filtration"
+    sources:
+      - "Food packaging recycling guidelines"
+
+  - contaminant: "Moisture"
+    sources:
+      - "Outdoor storage"
+      - "Washing process"
+      - "Atmospheric absorption"
+    detection_methods:
+      - "Moisture analyzer"
+      - "Karl Fischer titration"
+      - "Loss on drying (LOD)"
+    tolerance_limits:
+      strict: "500 ppm"  # Injection molding
+      moderate: "1000 ppm"  # Film extrusion
+      lenient: "2000 ppm"  # Non-critical applications
+    impact:
+      physical: "Bubble formation, surface defects (splay marks)"
+      chemical: "Minimal hydrolysis (unlike PET)"
+      processing: "Surface defects, dimensional instability"
+    removal_methods:
+      - "Hot air drying (60-80°C, 2-4 hours)"
+      - "Desiccant drying"
+      - "Dewatering extruder"
+    sources:
+      - "ASTM processing standards"
+      - "Drying guidelines"
+
+  - contaminant: "Metal (Aluminum, Steel)"
+    sources:
+      - "Packaging materials (aluminum foil laminates)"
+      - "Processing equipment wear"
+      - "Collection contamination"
+    detection_methods:
+      - "Metal detector"
+      - "Magnetic separation (ferrous)"
+      - "Eddy current separation (non-ferrous)"
+    tolerance_limits:
+      strict: "10 ppm"
+      moderate: "50 ppm"
+      lenient: "100 ppm"
+    impact:
+      physical: "Equipment wear, product defects"
+      chemical: "Minimal chemical impact"
+      processing: "Filter damage, product contamination"
+    removal_methods:
+      - "Magnetic separation (ferrous metals)"
+      - "Eddy current separation (aluminum)"
+      - "Metal detection and rejection"
+    sources:
+      - "Processing safety guidelines"
+
+# ============================================================================
+# BUYER PROFILES
+# ============================================================================
+
+buyer_profiles:
+  - buyer_id: "LDPE_BP_001"
+    buyer_type: "Film Manufacturer (Food Packaging)"
+    industry: "Food Packaging"
+    typical_companies:
+      - "Berry Global"
+      - "Sealed Air"
+      - "Amcor"
+      - "Novolex"
+
+    requirements:
+      grade_preferences:
+        - "LDPE_FILM_BLOWN"
+        - "LDPE_FILM_CAST"
+        - "LDPE_PIR_FILM (blended 20-30% with virgin)"
+      quality_threshold: "strict"
+      volume_range_tons_month: [100, 1000]
+      certifications:
+        - "FDA 21 CFR 177.1520 (food contact)"
+        - "BRC Global Standard for Food Safety"
+        - "SQF (Safe Quality Food)"
+      price_sensitivity: "moderate"
+
+    decision_criteria:
+      - criterion: "FDA compliance"
+        weight: 0.30
+      - criterion: "Contamination <0.3%"
+        weight: 0.25
+      - criterion: "Odor (minimal)"
+        weight: 0.20
+      - criterion: "Melt index consistency"
+        weight: 0.15
+      - criterion: "Price"
+        weight: 0.10
+
+    red_flags:
+      - "Odor present"
+      - "Contamination >0.5%"
+      - "No FDA compliance documentation"
+      - "Color variation (for clear film)"
+
+    sources:
+      - "Food packaging industry standards"
+      - "FDA regulations"
+
+  - buyer_id: "LDPE_BP_002"
+    buyer_type: "Film Manufacturer (Non-Food)"
+    industry: "Packaging"
+    typical_companies:
+      - "Inteplast Group"
+      - "Poly-America"
+      - "AEP Industries"
+      - "Sigma Plastics Group"
+
+    requirements:
+      grade_preferences:
+        - "LDPE_FILM_BLOWN"
+        - "LDPE_FILM_CAST"
+        - "LDPE_PCR_FILM_CLEAR"
+        - "LDPE_PCR_PELLETS_PREMIUM"
+      quality_threshold: "moderate"
+      volume_range_tons_month: [200, 2000]
+      certifications: []
+      price_sensitivity: "high"
+
+    decision_criteria:
+      - criterion: "Price"
+        weight: 0.35
+      - criterion: "Volume consistency"
+        weight: 0.25
+      - criterion: "Melt index consistency"
+        weight: 0.20
+      - criterion: "Contamination <1%"
+        weight: 0.15
+      - criterion: "Moisture <1000 ppm"
+        weight: 0.05
+
+    red_flags:
+      - "Contamination >2%"
+      - "Inconsistent MI (>±3 g/10min)"
+      - "High moisture (>2000 ppm)"
+
+    sources:
+      - "Film industry practices"
+
+  - buyer_id: "LDPE_BP_003"
+    buyer_type: "Wire and Cable Manufacturer"
+    industry: "Electrical"
+    typical_companies:
+      - "Southwire"
+      - "General Cable"
+      - "Prysmian Group"
+      - "Nexans"
+
+    requirements:
+      grade_preferences:
+        - "LDPE_WIRE_CABLE"
+      quality_threshold: "very strict"
+      volume_range_tons_month: [50, 500]
+      certifications:
+        - "UL 44 (thermoset-insulated wires)"
+        - "UL 1581 (electrical wires and cables)"
+        - "NEC compliance"
+      price_sensitivity: "low"
+
+    decision_criteria:
+      - criterion: "Electrical properties (dielectric strength, resistivity)"
+        weight: 0.40
+      - criterion: "UL certification"
+        weight: 0.25
+      - criterion: "Contamination <0.1%"
+        weight: 0.20
+      - criterion: "Consistent MI"
+        weight: 0.10
+      - criterion: "Price"
+        weight: 0.05
+
+    red_flags:
+      - "No UL certification"
+      - "Failed electrical property testing"
+      - "Contamination >0.2%"
+      - "Recycled content (virgin only for critical applications)"
+
+    sources:
+      - "UL standards"
+      - "Wire/cable manufacturer requirements"
+
+  - buyer_id: "LDPE_BP_004"
+    buyer_type: "Rotomolding Processor"
+    industry: "Plastics Manufacturing"
+    typical_companies:
+      - "Dutchland Plastics"
+      - "Granger Plastics"
+      - "Roto Dynamics"
+      - "Hedstrom Plastics"
+
+    requirements:
+      grade_preferences:
+        - "LDPE_ROTOMOLDING"
+        - "LDPE_PIR_FILM (blended 20-30% with virgin)"
+      quality_threshold: "moderate"
+      volume_range_tons_month: [10, 100]
+      certifications: []
+      price_sensitivity: "moderate"
+
+    decision_criteria:
+      - criterion: "Melt index (3-8 g/10min)"
+        weight: 0.35
+      - criterion: "Impact resistance"
+        weight: 0.25
+      - criterion: "Price"
+        weight: 0.20
+      - criterion: "Contamination <0.5%"
+        weight: 0.15
+      - criterion: "Color consistency"
+        weight: 0.05
+
+    red_flags:
+      - "MI outside 2-10 g/10min range"
+      - "High contamination (>1%)"
+      - "Poor impact strength"
+
+    sources:
+      - "Rotomolding industry practices"
+
+  - buyer_id: "LDPE_BP_005"
+    buyer_type: "Injection Molding Processor"
+    industry: "Plastics Manufacturing"
+    typical_companies:
+      - "Berry Global"
+      - "Pactiv Evergreen"
+      - "Dart Container"
+      - "Regional molders"
+
+    requirements:
+      grade_preferences:
+        - "LDPE_INJECTION_MOLDING"
+        - "LDPE_PCR_PELLETS_PREMIUM (blended 25-40% with virgin)"
+      quality_threshold: "moderate"
+      volume_range_tons_month: [20, 200]
+      certifications: []
+      price_sensitivity: "high"
+
+    decision_criteria:
+      - criterion: "Price"
+        weight: 0.35
+      - criterion: "Melt index (4-20 g/10min)"
+        weight: 0.30
+      - criterion: "Contamination <1%"
+        weight: 0.20
+      - criterion: "Moisture <500 ppm"
+        weight: 0.10
+      - criterion: "Color consistency"
+        weight: 0.05
+
+    red_flags:
+      - "MI outside 2-25 g/10min range"
+      - "High moisture (>1000 ppm)"
+      - "Contamination >2%"
+
+    sources:
+      - "Injection molding practices"
+
+  - buyer_id: "LDPE_BP_006"
+    buyer_type: "Extrusion Coating Processor"
+    industry: "Packaging"
+    typical_companies:
+      - "Mondi"
+      - "Sappi"
+      - "Graphic Packaging"
+      - "WestRock"
+
+    requirements:
+      grade_preferences:
+        - "LDPE_EXTRUSION_COATING"
+        - "LDPE_PIR_FILM (blended 10-20% with virgin)"
+      quality_threshold: "high"
+      volume_range_tons_month: [50, 500]
+      certifications:
+        - "FDA 21 CFR 177.1520 (food contact)"
+        - "BRC Global Standard"
+      price_sensitivity: "moderate"
+
+    decision_criteria:
+      - criterion: "FDA compliance (food contact)"
+        weight: 0.30
+      - criterion: "Adhesion properties"
+        weight: 0.25
+      - criterion: "Contamination <0.3%"
+        weight: 0.20
+      - criterion: "Melt index (3-12 g/10min)"
+        weight: 0.15
+      - criterion: "Price"
+        weight: 0.10
+
+    red_flags:
+      - "No FDA compliance"
+      - "Poor adhesion"
+      - "Contamination >0.5%"
+      - "Odor present"
+
+    sources:
+      - "Coating industry standards"
+      - "FDA regulations"
+
+  - buyer_id: "LDPE_BP_007"
+    buyer_type: "Agricultural Film Manufacturer"
+    industry: "Agriculture"
+    typical_companies:
+      - "Berry Global (agricultural division)"
+      - "RKW Group"
+      - "Armando Alvarez Group"
+      - "BASF (agricultural films)"
+
+    requirements:
+      grade_preferences:
+        - "LDPE_FILM_BLOWN"
+        - "LDPE_PCR_FILM_CLEAR"
+        - "LDPE_PCR_FILM_COLORED"
+      quality_threshold: "moderate to low"
+      volume_range_tons_month: [100, 1000]
+      certifications: []
+      price_sensitivity: "very high"
+
+    decision_criteria:
+      - criterion: "Price (lowest cost)"
+        weight: 0.50
+      - criterion: "Volume availability"
+        weight: 0.25
+      - criterion: "Melt index consistency"
+        weight: 0.15
+      - criterion: "Contamination <2%"
+        weight: 0.10
+
+    red_flags:
+      - "Price above $0.40/lb"
+      - "Inconsistent supply"
+      - "Contamination >3%"
+
+    sources:
+      - "Agricultural film industry"
+
+  - buyer_id: "LDPE_BP_008"
+    buyer_type: "Compounding/Recycling Facility"
+    industry: "Recycling"
+    typical_companies:
+      - "KW Plastics"
+      - "MBA Polymers"
+      - "EFS-Plastics"
+      - "Regional compounders"
+
+    requirements:
+      grade_preferences:
+        - "LDPE_PCR_FILM_CLEAR"
+        - "LDPE_PCR_FILM_COLORED"
+        - "LDPE_PIR_FILM"
+        - "Any LDPE scrap"
+      quality_threshold: "flexible"
+      volume_range_tons_month: [200, 5000]
+      certifications: []
+      price_sensitivity: "very high"
+
+    decision_criteria:
+      - criterion: "Price (lowest cost)"
+        weight: 0.50
+      - criterion: "Volume consistency"
+        weight: 0.30
+      - criterion: "LDPE content >80%"
+        weight: 0.15
+      - criterion: "Logistics (location)"
+        weight: 0.05
+
+    red_flags:
+      - "LDPE content <70%"
+      - "Excessive moisture (>5%)"
+      - "Hazardous contamination"
+
+    sources:
+      - "Recycling industry practices"
+
+# ============================================================================
+# QUALITY INDICATORS
+# ============================================================================
+
+quality_indicators:
+  - indicator_name: "Single-Source Material"
+    category: "source"
+    measurement: "Material from single manufacturer/facility with known processing history"
+    impact_on_price: "+12%"
+    impact_on_quality: "+1.2 points"
+    applicable_grades:
+      - "All grades"
+    verification_method: "Supplier documentation, traceability records"
+    sources:
+      - "Industry best practices"
+
+  - indicator_name: "Clear Film (No Color)"
+    category: "physical"
+    measurement: "Clear, colorless film with no pigmentation"
+    impact_on_price: "+15%"
+    impact_on_quality: "+1.5 points"
+    applicable_grades:
+      - "LDPE_PCR_FILM_CLEAR"
+      - "LDPE_PIR_FILM"
+    verification_method: "Visual inspection, color measurement"
+    sources:
+      - "Film quality standards"
+
+  - indicator_name: "Low Contamination (<0.3%)"
+    category: "physical"
+    measurement: "Foreign polymer contamination <0.3%"
+    impact_on_price: "+12%"
+    impact_on_quality: "+1.2 points"
+    applicable_grades:
+      - "LDPE_FILM_BLOWN"
+      - "LDPE_FILM_CAST"
+      - "LDPE_EXTRUSION_COATING"
+    verification_method: "Density separation testing, visual inspection, ash content"
+    sources:
+      - "Quality control standards"
+
+  - indicator_name: "Low Moisture (<500 ppm)"
+    category: "physical"
+    measurement: "Moisture content <500 ppm (ready to process)"
+    impact_on_price: "+8%"
+    impact_on_quality: "+0.8 points"
+    applicable_grades:
+      - "All grades"
+    verification_method: "Moisture analyzer, Karl Fischer titration"
+    sources:
+      - "ASTM processing standards"
+
+  - indicator_name: "Consistent Melt Index (±1 g/10min)"
+    category: "physical"
+    measurement: "Melt index variation within ±1 g/10min across batches"
+    impact_on_price: "+10%"
+    impact_on_quality: "+1.0 points"
+    applicable_grades:
+      - "All grades"
+    verification_method: "ASTM D1238 testing on multiple batches"
+    sources:
+      - "ASTM D1238"
+      - "Processing consistency standards"
+
+  - indicator_name: "FDA Compliance Documentation"
+    category: "certification"
+    measurement: "FDA 21 CFR 177.1520 compliance documentation"
+    impact_on_price: "+20%"
+    impact_on_quality: "+2.0 points"
+    applicable_grades:
+      - "LDPE_EXTRUSION_COATING"
+      - "LDPE_PIR_FILM (for food contact)"
+    verification_method: "FDA compliance certificate, testing documentation"
+    sources:
+      - "FDA regulations"
+
+  - indicator_name: "Minimal Odor"
+    category: "physical"
+    measurement: "No detectable odor or minimal odor"
+    impact_on_price: "+10%"
+    impact_on_quality: "+1.0 points"
+    applicable_grades:
+      - "LDPE_FILM_BLOWN"
+      - "LDPE_FILM_CAST"
+      - "LDPE_EXTRUSION_COATING"
+    verification_method: "Sensory evaluation, odor testing"
+    sources:
+      - "Food packaging standards"
+
+  - indicator_name: "Pelletized Form"
+    category: "physical"
+    measurement: "Material in pellet form (not flake or bale)"
+    impact_on_price: "+8%"
+    impact_on_quality: "+0.8 points"
+    applicable_grades:
+      - "LDPE_PCR_PELLETS_PREMIUM"
+    verification_method: "Visual inspection, particle size measurement"
+    sources:
+      - "Processing convenience standards"
+
+  - indicator_name: "Post-Industrial (Single Cycle)"
+    category: "source"
+    measurement: "PIR material with only one processing cycle"
+    impact_on_price: "+10%"
+    impact_on_quality: "+1.0 points"
+    applicable_grades:
+      - "LDPE_PIR_FILM"
+    verification_method: "Supplier documentation, property testing"
+    sources:
+      - "Recycling guidelines"
+
+  - indicator_name: "Low Dirt/Organics (<0.3%)"
+    category: "physical"
+    measurement: "Dirt, labels, organic matter <0.3%"
+    impact_on_price: "+10%"
+    impact_on_quality: "+1.0 points"
+    applicable_grades:
+      - "All recycled grades"
+    verification_method: "Visual inspection, washing effectiveness, ash content"
+    sources:
+      - "Quality control standards"
+
+  - indicator_name: "Washed and Cleaned"
+    category: "processing"
+    measurement: "Material has undergone hot water washing and screening"
+    impact_on_price: "+7%"
+    impact_on_quality: "+0.7 points"
+    applicable_grades:
+      - "All recycled grades"
+    verification_method: "Process documentation, visual inspection"
+    sources:
+      - "Recycling best practices"
+
+  - indicator_name: "Baled/Densified Material"
+    category: "physical"
+    measurement: "Baled or densified for efficient logistics"
+    impact_on_price: "+3%"
+    impact_on_quality: "+0.3 points"
+    applicable_grades:
+      - "All recycled grades"
+    verification_method: "Visual inspection, bulk density measurement"
+    sources:
+      - "Logistics best practices"
+
+  - indicator_name: "Traceability Documentation"
+    category: "documentation"
+    measurement: "Complete traceability from source to processing"
+    impact_on_price: "+6%"
+    impact_on_quality: "+0.6 points"
+    applicable_grades:
+      - "All grades"
+    verification_method: "Chain of custody documentation"
+    sources:
+      - "Quality management systems"
+
+  - indicator_name: "Volume Consistency"
+    category: "source"
+    measurement: "Consistent monthly supply (±10%)"
+    impact_on_price: "+5%"
+    impact_on_quality: "+0.5 points"
+    applicable_grades:
+      - "All grades"
+    verification_method: "Historical supply records"
+    sources:
+      - "Buyer preferences"
+
+  - indicator_name: "UL Certification (Wire/Cable)"
+    category: "certification"
+    measurement: "UL 44 or UL 1581 certification"
+    impact_on_price: "+25%"
+    impact_on_quality: "+2.5 points"
+    applicable_grades:
+      - "LDPE_WIRE_CABLE"
+    verification_method: "UL certification documentation"
+    sources:
+      - "UL standards"
+
+# ============================================================================
+# INFERENCE RULES
+# ============================================================================
+
+inference_rules:
+  - inference_id: "LDPE_INF_001"
+    inference_type: "property"
+    premise: "Material is LDPE film regrind, but melt index not provided"
+    conclusion: "Infer MI = 2.0 g/10min (range 1.0-3.0)"
+    confidence: 0.70
+    reasoning: "Most post-consumer LDPE film has MI 1-4 g/10min. MI=2.0 is typical average for blown film."
+    examples:
+      - input: "LDPE film regrind, no MI data"
+        output: "MI = 2.0 g/10min (confidence 70%)"
+    sources:
+      - "LDPE recycling research"
+      - "ASTM D1238"
+
+  - inference_id: "LDPE_INF_002"
+    inference_type: "property"
+    premise: "Material stored outdoors, moisture content not specified"
+    conclusion: "Infer moisture = 1500-2500 ppm"
+    confidence: 0.68
+    reasoning: "Outdoor storage typically results in 1000-3000 ppm moisture depending on climate. 1500-2500 ppm is typical range."
+    examples:
+      - input: "LDPE film bales, outdoor storage, no moisture data"
+        output: "Moisture = 2000 ppm (confidence 68%), requires drying"
+    sources:
+      - "Storage guidelines"
+
+  - inference_id: "LDPE_INF_003"
+    inference_type: "property"
+    premise: "Material stored indoors, moisture content not specified"
+    conclusion: "Infer moisture = 500-1000 ppm"
+    confidence: 0.72
+    reasoning: "Indoor storage in controlled environment typically results in 300-1200 ppm moisture. 500-1000 ppm is typical."
+    examples:
+      - input: "LDPE regrind, indoor storage, no moisture data"
+        output: "Moisture = 750 ppm (confidence 72%), minimal drying needed"
+    sources:
+      - "Storage guidelines"
+
+  - inference_id: "LDPE_INF_004"
+    inference_type: "quality"
+    premise: "Post-consumer film, contamination level not quantified"
+    conclusion: "Infer contamination = 0.5-1.5%"
+    confidence: 0.65
+    reasoning: "Typical post-consumer LDPE film has 0.3-2.0% contamination after basic sorting. 0.5-1.5% is average for decent quality."
+    examples:
+      - input: "Post-consumer LDPE film, no contamination data"
+        output: "Contamination = 1.0% (confidence 65%)"
+    sources:
+      - "Recycling industry data"
+
+  - inference_id: "LDPE_INF_005"
+    inference_type: "quality"
+    premise: "Post-industrial film, contamination level not quantified"
+    conclusion: "Infer contamination = 0.1-0.3%"
+    confidence: 0.75
+    reasoning: "Post-industrial regrind from single source typically has very low contamination. 0.1-0.3% is typical."
+    examples:
+      - input: "Post-industrial LDPE film, no contamination data"
+        output: "Contamination = 0.2% (confidence 75%)"
+    sources:
+      - "Industry best practices"
+
+  - inference_id: "LDPE_INF_006"
+    inference_type: "application"
+    premise: "MI = 0.5-2.0 g/10min, clear film, low contamination"
+    conclusion: "Suitable for blown film applications (blended with virgin or 100% recycled)"
+    confidence: 0.82
+    reasoning: "Low MI provides good bubble stability for blown film. Clear and low contamination suitable for film."
+    examples:
+      - input: "MI = 1.5, clear, contamination = 0.3%"
+        output: "Suitable for blown film (30% blend or 100% non-food), confidence 82%"
+    sources:
+      - "Film processing guidelines"
+
+  - inference_id: "LDPE_INF_007"
+    inference_type: "application"
+    premise: "MI = 4-12 g/10min, moderate contamination"
+    conclusion: "Suitable for injection molding or cast film (non-critical applications)"
+    confidence: 0.78
+    reasoning: "Higher MI suitable for injection molding and cast film. Moderate contamination acceptable for non-critical uses."
+    examples:
+      - input: "MI = 8, contamination = 1.2%"
+        output: "Suitable for injection molding (non-food containers), confidence 78%"
+    sources:
+      - "Processing guidelines"
+
+  - inference_id: "LDPE_INF_008"
+    inference_type: "pricing"
+    premise: "Material quality indicators: clear film, low contamination, single-source, low moisture"
+    conclusion: "Price = Virgin baseline × (0.70-0.85) + quality premiums"
+    confidence: 0.75
+    reasoning: "High-quality recycled LDPE with multiple positive indicators commands 70-85% of virgin price plus quality premiums."
+    examples:
+      - input: "Clear PIR film, contamination 0.2%, moisture 400 ppm, single-source"
+        output: "Price = $0.35-0.45/lb (confidence 75%)"
+    sources:
+      - "Market intelligence"
+      - "Pricing data"
+
+  - inference_id: "LDPE_INF_009"
+    inference_type: "processing"
+    premise: "Material has moisture >1000 ppm"
+    conclusion: "Requires drying at 60-80°C for 2-4 hours before processing"
+    confidence: 0.88
+    reasoning: "Moisture >1000 ppm causes processing defects. Drying to <500 ppm recommended for quality processing."
+    examples:
+      - input: "Moisture = 1800 ppm"
+        output: "Dry at 70°C for 3 hours (confidence 88%)"
+    sources:
+      - "ASTM processing guidelines"
+
+  - inference_id: "LDPE_INF_010"
+    inference_type: "quality"
+    premise: "Material has moderate to strong odor"
+    conclusion: "Restrict to non-food applications or blend ≤20% with virgin"
+    confidence: 0.85
+    reasoning: "Odor indicates contamination or degradation. Unacceptable for food contact and consumer-facing applications."
+    examples:
+      - input: "LDPE film with moderate odor"
+        output: "Restrict to trash bags, construction film, or blend ≤20% (confidence 85%)"
+    sources:
+      - "Food packaging standards"
+
+  - inference_id: "LDPE_INF_011"
+    inference_type: "buyer_matching"
+    premise: "Material: MI 1.5, clear, contamination 0.3%, minimal odor, FDA compliant"
+    conclusion: "Best match: Film manufacturer (food packaging) with 20-30% blend with virgin"
+    confidence: 0.83
+    reasoning: "Low MI, clear, low contamination, and FDA compliance meet food packaging requirements when blended."
+    examples:
+      - input: "MI 1.5, clear, contamination 0.3%, minimal odor, FDA compliant"
+        output: "Match: Berry Global, Amcor (food packaging film, 25% blend), confidence 83%"
+    sources:
+      - "Buyer profile analysis"
+      - "FDA requirements"
+
+  - inference_id: "LDPE_INF_012"
+    inference_type: "application"
+    premise: "Agricultural film source with high contamination (soil, organic matter)"
+    conclusion: "Downgrade to non-critical applications (construction film, compounding feedstock)"
+    confidence: 0.80
+    reasoning: "Agricultural films have severe contamination and UV degradation. Unsuitable for food contact or appearance applications."
+    examples:
+      - input: "Agricultural mulch film, contamination 2.5%, UV degraded"
+        output: "Downgrade to construction film or compounding (confidence 80%)"
+    sources:
+      - "Agricultural film recycling research"
+
+# ============================================================================
+# MARKET INTELLIGENCE
+# ============================================================================
+
+market_intelligence:
+  # Note: Pricing moved to pricing_model section for dynamic reasoning
+
+  supply_demand:
+    current_state: "Tightening for quality recycled material"
+    trends:
+      - "Strong demand from film companies"
+      - "Recycled LDPE prices rising (narrowing gap with virgin)"
+      - "Film scrap prices surged 21.67% in October 2025"
+      - "Domestic processing matching output to demand"
+      - "Quality premiums increasing (clear vs colored, low contamination)"
+
+  regulatory:
+    current:
+      - "FDA 21 CFR 177.1520 (food contact) - limits recycled content or requires FDA approval"
+      - "BRC Global Standard for Food Safety"
+      - "SQF (Safe Quality Food) certification"
+      - "State-level plastic bag bans (increasing recycled content mandates)"
+
+    pending:
+      - "Extended producer responsibility (EPR) for packaging"
+      - "Minimum recycled content mandates (California, other states)"
+      - "Circular economy regulations (EU)"
+
+  technology:
+    emerging:
+      - "Advanced sorting (AI-powered NIR, robotics) - improves quality of recycled streams"
+      - "Chemical recycling (pyrolysis, gasification) - handles contaminated feedstock"
+      - "Dissolution/reprecipitation - purifies LDPE streams"
+      - "Digital watermarking for traceability - improves recycling efficiency"
+      - "Deodorization technologies - enables food contact applications"
+
+    impact: "Advanced sorting improves PCR quality. Chemical recycling enables use of contaminated feedstock. Deodorization expands food contact applications."
+
+  sources:
+    - "BusinessAnalytiq LDPE Price Index (October 2025)"
+    - "Plastics News Recycled LDPE Pricing (March 2025)"
+    - "RecycleInMe LDPE Film Scrap Data (August-October 2025)"
+    - "Recycle.net Exchange Listings (October 2025)"
+    - "Industry research and market data"
+
+# ============================================================================
+# ASTM STANDARDS
+# ============================================================================
+
+astm_standards:
+  - standard_id: "ASTM D1248"
+    title: "Standard Specification for Polyethylene Plastics Extrusion Materials for Wire and Cable"
+    scope: "Covers LDPE materials for wire and cable applications"
+    key_requirements:
+      - "Density classification (Type I: 0.910-0.925 g/cm³)"
+      - "Melt index ranges by category"
+      - "Electrical property requirements"
+      - "Tensile strength and elongation"
+    applicable_grades:
+      - "LDPE_WIRE_CABLE"
+    testing_methods:
+      - "Density (ASTM D792)"
+      - "Melt index (ASTM D1238)"
+      - "Tensile properties (ASTM D638)"
+    sources:
+      - "ASTM D1248 standard"
+
+  - standard_id: "ASTM D1238"
+    title: "Standard Test Method for Melt Flow Rates of Thermoplastics by Extrusion Plastometer"
+    scope: "Defines method for measuring melt flow rate (melt index) of thermoplastics"
+    key_requirements:
+      - "Test conditions: 190°C, 2.16 kg load for polyethylene"
+      - "Precision requirements"
+      - "Sample preparation"
+    applicable_grades:
+      - "All LDPE grades"
+    testing_methods:
+      - "Extrusion plastometer"
+      - "Weight measurement"
+    sources:
+      - "ASTM D1238 standard"
+
+  - standard_id: "ASTM D792"
+    title: "Standard Test Methods for Density and Specific Gravity (Relative Density) of Plastics by Displacement"
+    scope: "Defines methods for measuring density of plastic materials"
+    key_requirements:
+      - "Displacement method (water or other liquid)"
+      - "Temperature control (23°C)"
+      - "Precision requirements"
+    applicable_grades:
+      - "All LDPE grades"
+    testing_methods:
+      - "Water displacement"
+      - "Density gradient column"
+    sources:
+      - "ASTM D792 standard"
+
+  - standard_id: "ASTM D638"
+    title: "Standard Test Method for Tensile Properties of Plastics"
+    scope: "Defines method for measuring tensile strength, modulus, elongation"
+    key_requirements:
+      - "Standard specimen geometry (Type I, IV, V)"
+      - "Test speed (50 mm/min typical)"
+      - "Measurement precision"
+    applicable_grades:
+      - "All LDPE grades"
+    testing_methods:
+      - "Tensile testing machine"
+      - "Extensometer"
+    sources:
+      - "ASTM D638 standard"
+
+  - standard_id: "ASTM D1693"
+    title: "Standard Test Method for Environmental Stress-Cracking of Ethylene Plastics"
+    scope: "Measures resistance to environmental stress cracking"
+    key_requirements:
+      - "Test conditions (50°C, 100% Igepal solution)"
+      - "Specimen preparation (notched)"
+      - "Time to failure measurement"
+    applicable_grades:
+      - "LDPE_ROTOMOLDING"
+      - "LDPE_INJECTION_MOLDING"
+    testing_methods:
+      - "Constant tensile load apparatus"
+      - "Time to failure observation"
+    sources:
+      - "ASTM D1693 standard"
+
+# ============================================================================
+# END OF KNOWLEDGE BASE
+# ============================================================================

@@ -279,7 +279,13 @@ class PlasticosTransaction(models.Model):
     )
 
     # ── Computed Methods (harvested) ──────────────────────────
-    @api.depends("supplier_id", "buyer_id", "product_id", "product_id.polymer_id", "product_id.form_id")
+    @api.depends(
+        "supplier_id",
+        "buyer_id",
+        "product_id",
+        "product_id.product_tmpl_id.polymer_id",
+        "product_id.product_tmpl_id.form_id",
+    )
     def _compute_profile_refs(self):
         """Denormalize material profile links for fast lookup.
 
@@ -290,9 +296,10 @@ class PlasticosTransaction(models.Model):
         for rec in self:
             supplier_profile = False
             buyer_profile = False
-            if rec.product_id and rec.product_id.polymer_id and rec.product_id.form_id:
-                polymer_id = rec.product_id.polymer_id.id
-                form_id = rec.product_id.form_id.id
+            tmpl = rec.product_id.product_tmpl_id if rec.product_id else False
+            if tmpl and tmpl.polymer_id and tmpl.form_id:
+                polymer_id = tmpl.polymer_id.id
+                form_id = tmpl.form_id.id
                 if rec.supplier_id:
                     supplier_profile = Profile.search(
                         [

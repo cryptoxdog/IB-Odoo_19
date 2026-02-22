@@ -43,6 +43,9 @@ class TransactionBulkAssignWizard(models.TransientModel):
 
     transaction_ids = fields.Many2many(
         "plasticos.transaction",
+        relation="tx_bulk_assign_wiz_rel",
+        column1="wizard_id",
+        column2="transaction_id",
         string="Transactions",
         readonly=True,
     )

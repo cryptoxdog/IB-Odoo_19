@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo noupdate="1">
+    <!--
+        Enrichment + Inference Pipeline (Sequential)
+        =============================================
+        1. Enrichment cron runs first: crawl → extract → inject
+        2. Inference runs automatically after each successful injection
+           (chained inside action_cron_enrich_pending)
+
+        To run inference separately, enable cron_inference_standalone.
+    -->
+    <record id="cron_enrichment_daily" model="ir.cron">
+        <field name="name">Buyer CRM Enrichment + Inference — Daily</field>
+        <field name="model_id" ref="plasticos_enrichment.model_plasticos_enrichment_run"/>
+        <field name="state">code</field>
+        <field name="code">model.action_cron_enrich_pending(run_inference=True)</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active">True</field>
+    </record>
+
+    <!-- Optional: Standalone inference cron (disabled by default) -->
+    <record id="cron_inference_standalone" model="ir.cron">
+        <field name="name">Material Profile Inference — Standalone</field>
+        <field name="model_id" ref="plasticos_enrichment.model_plasticos_enrichment_run"/>
+        <field name="state">code</field>
+        <field name="code">model.action_cron_inference_only()</field>
+        <field name="interval_number">6</field>
+        <field name="interval_type">hours</field>
+        <field name="active">False</field>
+    </record>
+</odoo>

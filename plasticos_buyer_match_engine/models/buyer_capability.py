@@ -106,14 +106,13 @@ class PlasticosBuyerCapability(models.Model):
     # Backward-compatible computed field
     form = fields.Selection(
         selection=[
-            ("bale", "Bale"),
+            ("bales", "Bales"),
             ("regrind", "Regrind"),
             ("flake", "Flake"),
             ("pellet", "Pellet"),
             ("rollstock", "Rollstock"),
             ("purge", "Purge"),
             ("lump", "Lump"),
-            ("film", "Film"),
             ("sheet", "Sheet"),
             ("powder", "Powder"),
             ("parts", "Parts"),

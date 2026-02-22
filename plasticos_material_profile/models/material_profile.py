@@ -87,6 +87,7 @@ class PlasticosMaterialProfile(models.Model):
     # Backward-compatible computed field
     form = fields.Selection(
         [
+            ("bales", "Bales"),
             ("film", "Film"),
             ("regrind", "Regrind"),
             ("flake", "Flake"),
@@ -104,6 +105,8 @@ class PlasticosMaterialProfile(models.Model):
             ("drums", "Drums"),
             ("buckets", "Buckets"),
             ("bottles", "Bottles"),
+            ("loose", "Loose"),
+            ("pallets", "Pallets"),
             ("other", "Other"),
         ],
         string="Form Code",

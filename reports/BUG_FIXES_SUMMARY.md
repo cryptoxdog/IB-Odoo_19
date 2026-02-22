@@ -448,3 +448,51 @@ pre-commit run ruff --all-files
    - Choose supplier/buyer/both
    - Select partners and enter reason
    - Click "Assign Partners"
+
+### Transaction Import Wizard (CSV)
+
+**New Wizard:** `plasticos.transaction.import.wizard`
+
+**Purpose:** Import historical transactions from cieTrade WksDetail CSV export.
+
+**Features:**
+- Uses default `cieTrade.WksDetail.csv` file in module or upload custom CSV
+- Groups line items by `BuySellNo` to create parent transactions
+- Creates `plasticos.transaction.line` records for each detail row
+- Dry-run preview mode before actual import
+- Skip existing transactions option
+- Aggregates totals (sale, purchase, weight) to parent transaction
+
+**CSV Column Mapping:**
+
+| CSV Column | Odoo Field | Description |
+|------------|------------|-------------|
+| `BuySellNo` | `transaction.name` | Transaction reference |
+| `DetailID` | `line.detail_id` | Original detail ID |
+| `GradeID` | `line.grade_id` | Material grade code |
+| `InvoiceDesc` | `line.description` | Material description |
+| `SWeight` | `line.sale_weight` | Sale weight |
+| `SPrice` | `line.sale_price` | Sale unit price |
+| `SAmount` | `line.sale_amount` | Sale total |
+| `PWeight` | `line.purchase_weight` | Purchase weight |
+| `PPrice` | `line.purchase_price` | Purchase unit price |
+| `PAmount` | `line.purchase_amount` | Purchase total |
+| `Color` | `line.color` | Color attribute |
+| `ContainerNo` | `line.container_no` | Container number |
+| `SealNo` | `line.seal_no` | Seal number |
+| `SPo` | `line.sale_po` | Customer PO |
+| `PPo` | `line.purchase_po` | Supplier PO |
+
+**Files Created/Modified:**
+- `wizards/transaction_import_wizard.py` - New transient model
+- `views/transaction_import_wizard_views.xml` - Form view + menu item
+- `models/transaction_line.py` - Added `seal_no` field
+- `wizards/__init__.py` - Added import
+- `__manifest__.py` - Added view file
+- `security/ir.model.access.csv` - Added ACL
+
+**Usage:**
+1. Go to PlasticOS menu → "Import Transactions (CSV)"
+2. Choose to use default file or upload custom CSV
+3. Click "Preview" to see what will be imported
+4. Uncheck "Dry Run" and click "Confirm Import" to execute

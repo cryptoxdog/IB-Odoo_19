@@ -15,6 +15,7 @@
         "plasticos_material_profile",
         "plasticos_facility_profile",
         "plasticos_intake",
+        "plasticos_product",
     ],
     "data": [
         "security/security_hardening.xml",
@@ -26,6 +27,7 @@
         "views/commission_views.xml",
         "views/transaction_bulk_update_wizard_views.xml",
         "views/transaction_bulk_assign_wizard_views.xml",
+        "views/transaction_import_wizard_views.xml",
     ],
     "installable": True,
     "application": False,

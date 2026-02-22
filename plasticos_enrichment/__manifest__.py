@@ -1,0 +1,27 @@
+{
+    "name": "PlastOS Buyer CRM Enrichment Engine",
+    "version": "19.0.1.0.0",
+    "summary": "AI-powered web intelligence extraction for buyer material profiles",
+    "category": "CRM",
+    "author": "PlastOS",
+    "website": "https://github.com/cryptoxdog/Odoo_19",
+    "depends": [
+        "base",
+        "mail",
+        "contacts",
+        "plasticos_material_profile",
+        "plasticos_inference_engine",
+    ],
+    "data": [
+        "security/security.xml",
+        "security/ir.model.access.csv",
+        "data/sequence.xml",
+        "data/cron.xml",
+        "views/enrichment_run_views.xml",
+        "views/enrichment_source_views.xml",
+        "views/res_partner_enrichment.xml",
+    ],
+    "installable": True,
+    "application": False,
+    "license": "LGPL-3",
+}

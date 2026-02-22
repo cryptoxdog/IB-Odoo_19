@@ -56,8 +56,9 @@ _POLYMER_NORMALIZE: dict[str, str] = {
 }
 
 _FORM_NORMALIZE: dict[str, str] = {
-    "bale": "bale",
-    "baled": "bale",
+    "bale": "bales",
+    "baled": "bales",
+    "bales": "bales",
     "regrind": "regrind",
     "flake": "flake",
     "flakes": "flake",
@@ -67,7 +68,7 @@ _FORM_NORMALIZE: dict[str, str] = {
     "purge": "purge",
     "lump": "lump",
     "lumps": "lump",
-    "film": "film",
+    "film": "rollstock",
     "sheet": "sheet",
     "powder": "powder",
     "parts": "parts",

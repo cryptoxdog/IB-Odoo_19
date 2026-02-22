@@ -121,6 +121,7 @@ class PlasticosTransactionLine(models.Model):
     )
     condition = fields.Char(string="Condition")
     color = fields.Char(string="Color")
+    seal_no = fields.Char(string="Seal Number")
 
     # PO references
     sale_po = fields.Char(string="Sale PO")

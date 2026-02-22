@@ -1,0 +1,865 @@
+# MACK Knowledge Base: PP (Polypropylene) Compounding & Recycling v7.0r
+# Purpose: Enable MACK reasoning for PP material identification and buyer matching
+# Compatible with: MACK v7.0 Odoo reasoning engine
+# Last Updated: 2025-11-05
+# Data Sources: ASTM D4101, comprehensive PP recycling research, automotive/packaging standards
+
+metadata:
+  polymer_family: "Polyolefins"
+  polymer_type: "PP"
+  full_name: "Polypropylene"
+  resin_id_code: 5
+  structure: "Linear backbone with methyl side groups, isotactic/syndiotactic/atactic"
+  version: "7.0r"
+  last_updated: "2025-11-05"
+  data_quality: "verified"
+  source_tier: "tier_1"
+  note: "Highest volume commodity plastic after PE - 80M tonnes/year globally"
+
+# ============================================================================
+# PRODUCT-TO-SCRAP MAPPING (Bidirectional Reasoning)
+# ============================================================================
+
+product_scrap_mapping:
+  automotive_products:
+    - product: "Automotive bumpers and fascia"
+      scrap_grade: "pp_impact_copolymer"
+      scrap_quality_tier: [2, 3]
+      typical_contamination_pct: [2.0, 5.0]
+      typical_contaminants: ["paint/coating 1-3%", "TPO/TPE <2%", "adhesives <0.5%"]
+      suitable_buyers: ["automotive_tier2", "industrial_applications"]
+      reverse_reasoning: "IF buyer_needs_automotive_bumpers THEN source_automotive_pp_icp_tier2_tier3"
+
+    - product: "Automotive interior trim and panels"
+      scrap_grade: "pp_homopolymer or pp_copolymer"
+      scrap_quality_tier: [1, 2]
+      typical_contamination_pct: [0.5, 2.0]
+      typical_contaminants: ["adhesives <0.5%", "foam backing <1%"]
+      suitable_buyers: ["automotive_tier1", "automotive_tier2"]
+
+    - product: "Automotive battery cases"
+      scrap_grade: "pp_homopolymer"
+      scrap_quality_tier: [2, 3]
+      typical_contamination_pct: [1.0, 3.0]
+      typical_contaminants: ["acid residue <1%", "metals <100ppm"]
+      suitable_buyers: ["automotive_tier2", "industrial_applications"]
+      note: "Requires washing to remove acid residue"
+
+  packaging_products:
+    - product: "Food containers (rigid PP)"
+      scrap_grade: "pp_random_copolymer"
+      scrap_quality_tier: [2, 3]
+      typical_contamination_pct: [1.0, 4.0]
+      typical_contaminants: ["food residue 1-3%", "labels <0.5%", "printing inks <0.5%"]
+      suitable_buyers: ["packaging_non_food", "industrial_containers"]
+      reverse_reasoning: "IF buyer_needs_food_containers THEN source_pp_copolymer_tier2_tier3_non_food_only"
+      note: "Food contact scrap → non-food applications only"
+
+    - product: "Bottle caps and closures"
+      scrap_grade: "pp_homopolymer"
+      scrap_quality_tier: [1, 2]
+      typical_contamination_pct: [0.5, 2.0]
+      typical_contaminants: ["minimal - clean manufacturing"]
+      suitable_buyers: ["packaging_manufacturers", "injection_molders"]
+
+    - product: "Flexible packaging (PP film)"
+      scrap_grade: "pp_random_copolymer_film"
+      scrap_quality_tier: [2, 3]
+      typical_contamination_pct: [2.0, 5.0]
+      typical_contaminants: ["food residue 1-3%", "printing inks 1-2%", "adhesives <1%"]
+      suitable_buyers: ["film_manufacturers_non_food", "industrial_film"]
+
+    - product: "Woven bags (raffia, big bags)"
+      scrap_grade: "pp_homopolymer_raffia"
+      scrap_quality_tier: [2, 3]
+      typical_contamination_pct: [3.0, 8.0]
+      typical_contaminants: ["dirt/dust 2-5%", "organic matter 1-3%"]
+      suitable_buyers: ["raffia_manufacturers", "industrial_applications"]
+
+  medical_products:
+    - product: "Medical syringes and devices"
+      scrap_grade: "pp_homopolymer_medical"
+      scrap_quality_tier: [1]
+      typical_contamination_pct: [0.1, 0.5]
+      typical_contaminants: ["minimal - medical grade PIR only"]
+      suitable_buyers: ["medical_device_manufacturers", "pharmaceutical_packaging"]
+      reverse_reasoning: "IF buyer_needs_medical_devices THEN source_medical_pp_pir_tier1_only"
+      note: "Medical PIR only - post-consumer medical waste not recyclable"
+
+    - product: "Pharmaceutical packaging"
+      scrap_grade: "pp_random_copolymer_pharmaceutical"
+      scrap_quality_tier: [1]
+      typical_contamination_pct: [0.1, 0.5]
+      suitable_buyers: ["pharmaceutical_packaging", "medical_device_manufacturers"]
+
+  textile_products:
+    - product: "Non-woven fabrics (hygiene, medical)"
+      scrap_grade: "pp_homopolymer_fiber"
+      scrap_quality_tier: [3, 4]
+      typical_contamination_pct: [5.0, 15.0]
+      typical_contaminants: ["organic matter 3-10%", "mixed fibers 2-5%"]
+      suitable_buyers: ["textile_recyclers", "downcycled_applications"]
+      note: "High contamination - limited recycling value"
+
+    - product: "Carpets and rugs (PP backing)"
+      scrap_grade: "pp_homopolymer"
+      scrap_quality_tier: [3, 4]
+      typical_contamination_pct: [8.0, 20.0]
+      suitable_buyers: ["chemical_recycling", "downcycled_applications"]
+
+  industrial_products:
+    - product: "Industrial containers and pallets"
+      scrap_grade: "pp_homopolymer or pp_copolymer"
+      scrap_quality_tier: [2, 3]
+      typical_contamination_pct: [2.0, 5.0]
+      typical_contaminants: ["dirt/dust 1-3%", "oils <1%"]
+      suitable_buyers: ["industrial_container_manufacturers", "pallet_manufacturers"]
+
+    - product: "Pipes and fittings"
+      scrap_grade: "pp_random_copolymer_pipe"
+      scrap_quality_tier: [1, 2]
+      typical_contamination_pct: [0.5, 2.0]
+      suitable_buyers: ["pipe_manufacturers", "industrial_applications"]
+
+  manufacturing_scrap:
+    - product: "Injection molding PIR (runners, sprues)"
+      scrap_grade: "any_pp_grade"
+      scrap_quality_tier: [1]
+      typical_contamination_pct: [0.1, 0.5]
+      typical_contaminants: ["minimal - clean manufacturing"]
+      suitable_buyers: ["all_pp_buyers"]
+      reverse_reasoning: "IF buyer_needs_high_quality_pp THEN source_injection_pir_tier1"
+      note: "Injection PIR is highest quality PP scrap - premium value"
+
+# ============================================================================
+# SOURCE QUALITY TIER DEFINITIONS (PP-Specific)
+# ============================================================================
+
+source_quality_tiers:
+  tier_1_premium:
+    definition: "Manufacturing PIR, single-source, minimal contamination, known grade"
+    contamination_max_pct: 0.5
+    pe_contamination_max_pct: 0.5
+    moisture_max_pct: 0.1
+    ash_max_pct: 1.0
+    property_retention_min_pct: 95
+    sorting_purity_min_pct: 99
+    processing_history: "Single cycle or virgin manufacturing scrap"
+    mfr_increase_max_pct: 20
+    examples:
+      - "Injection molding PIR (runners, sprues)"
+      - "Medical device manufacturing PIR"
+      - "Automotive component manufacturing scrap"
+      - "Packaging manufacturing PIR (caps, containers)"
+    suitable_applications:
+      - "Medical devices"
+      - "Food contact (indirect)"
+      - "Automotive visible components"
+      - "Premium packaging"
+    value_premium_pct: [25, 40]
+
+  tier_2_standard:
+    definition: "Post-industrial or sorted post-consumer, moderate contamination"
+    contamination_max_pct: 3.0
+    pe_contamination_max_pct: 3.0
+    moisture_max_pct: 0.2
+    ash_max_pct: 2.0
+    property_retention_min_pct: 80
+    sorting_purity_min_pct: 85
+    processing_history: "1-3 recycling cycles"
+    mfr_increase_max_pct: 50
+    examples:
+      - "Sorted post-consumer packaging (washed)"
+      - "Automotive components (sorted)"
+      - "Industrial containers (used)"
+      - "Post-consumer bottle caps (sorted)"
+    suitable_applications:
+      - "Automotive interior (non-visible)"
+      - "Packaging (non-food)"
+      - "Industrial containers"
+      - "Consumer goods"
+    value_premium_pct: [0, 0]
+
+  tier_3_utility:
+    definition: "Mixed post-consumer, higher contamination, multiple cycles"
+    contamination_max_pct: 8.0
+    pe_contamination_max_pct: 8.0
+    moisture_max_pct: 0.5
+    ash_max_pct: 3.0
+    property_retention_min_pct: 60
+    sorting_purity_min_pct: 70
+    processing_history: "3-6 recycling cycles or unknown"
+    mfr_increase_max_pct: 100
+    examples:
+      - "Mixed post-consumer PP (unsorted)"
+      - "Contaminated packaging waste"
+      - "General waste stream PP"
+      - "Woven bags (used, contaminated)"
+    suitable_applications:
+      - "Industrial applications (non-critical)"
+      - "Construction materials"
+      - "Low-value consumer goods"
+      - "Downcycled products"
+    value_discount_pct: [45, 60]
+
+  tier_4_marginal:
+    definition: "Heavily contaminated, degraded, multiple unknown cycles"
+    contamination_min_pct: 8.0
+    property_retention_max_pct: 60
+    processing_history: ">6 cycles or severely degraded"
+    mfr_min_g_10min: 150
+    examples:
+      - "Heavily contaminated textile waste"
+      - "Degraded carpet backing"
+      - "Mixed polymer waste streams"
+    suitable_applications:
+      - "Chemical recycling feedstock"
+      - "Pyrolysis feedstock"
+      - "Very limited mechanical recycling"
+    value_discount_pct: [70, 85]
+
+# ============================================================================
+# MATERIAL PROPERTIES & GRADES
+# ============================================================================
+
+material_grades:
+  - grade_id: "PP_HOMOPOLYMER_INJECTION"
+    grade_name: "PP Homopolymer - Injection Molding"
+    description: "High crystallinity PP for rigid applications requiring stiffness and heat resistance"
+    type: "virgin"
+    polymer_structure: "isotactic homopolymer"
+
+    melt_flow_rate:
+      injection_g_10min: [2, 30]
+      test_conditions: "230°C/2.16kg"
+      test_method: "ASTM D1238"
+      note: "MFI for PP always @230°C/2.16kg - do not convert"
+
+    density:
+      value_g_cm3: [0.900, 0.910]
+      test_method: "ASTM D792"
+
+    mechanical_properties:
+      tensile_strength_mpa: [30, 38]
+      flexural_modulus_mpa: [1400, 1800]
+      impact_strength_j_m: [20, 80]
+      hdt_c: [95, 105]
+      crystallinity_pct: [65, 75]
+      isotacticity_pct: [95, 99]
+
+    thermal_properties:
+      melting_point_c: [160, 166]
+      processing_temp_c: [190, 260]
+
+    applications:
+      primary:
+        - product: "Bottle caps and closures"
+          scrap_source: "Packaging manufacturing PIR, post-consumer sorted"
+          quality_tier_required: [1, 2]
+        - product: "Automotive battery cases"
+          scrap_source: "Automotive manufacturing, end-of-life vehicles"
+          quality_tier_required: [2, 3]
+        - product: "Industrial containers and pallets"
+          scrap_source: "Industrial use, manufacturing PIR"
+          quality_tier_required: [2, 3]
+      secondary:
+        - product: "Rigid packaging"
+          scrap_source: "Packaging manufacturing, post-consumer"
+          quality_tier_required: [2, 3]
+
+    pcr_compatibility:
+      max_pcr_pct: 100
+      typical_pcr_pct: [25, 75]
+      note: "PP highly recyclable - up to 100% PCR in non-critical applications"
+
+  - grade_id: "PP_RANDOM_COPOLYMER"
+    grade_name: "PP Random Copolymer (PP-R)"
+    description: "Enhanced flexibility and transparency for food containers and pipes"
+    type: "virgin"
+    polymer_structure: "random copolymer (ethylene 2-7%)"
+
+    melt_flow_rate:
+      general_g_10min: [2, 50]
+      test_conditions: "230°C/2.16kg"
+
+    density:
+      value_g_cm3: [0.895, 0.905]
+      note: "Lower density than homopolymer due to ethylene"
+
+    mechanical_properties:
+      tensile_strength_mpa: [28, 35]
+      flexural_modulus_mpa: [1200, 1600]
+      impact_strength_j_m: [30, 100]
+      hdt_c: [85, 95]
+      crystallinity_pct: [35, 55]
+      isotacticity_pct: [70, 85]
+
+    thermal_properties:
+      melting_point_c: [145, 158]
+      processing_temp_c: [180, 240]
+
+    applications:
+      primary:
+        - product: "Food containers (rigid PP)"
+          scrap_source: "Food packaging manufacturing, post-consumer"
+          quality_tier_required: [2, 3]
+          note: "Food contact scrap → non-food applications only"
+        - product: "Pipes and fittings (PP-R)"
+          scrap_source: "Pipe manufacturing PIR, construction"
+          quality_tier_required: [1, 2]
+        - product: "Flexible packaging films"
+          scrap_source: "Film manufacturing, post-consumer"
+          quality_tier_required: [2, 3]
+
+  - grade_id: "PP_IMPACT_COPOLYMER"
+    grade_name: "PP Impact Copolymer (ICP)"
+    description: "Rubber-modified PP for high impact resistance (automotive bumpers)"
+    type: "virgin"
+    polymer_structure: "impact copolymer (EPR rubber phase 5-25%)"
+
+    melt_flow_rate:
+      general_g_10min: [5, 35]
+      test_conditions: "230°C/2.16kg"
+
+    density:
+      value_g_cm3: [0.890, 0.900]
+      note: "Lowest density due to rubber phase"
+
+    mechanical_properties:
+      tensile_strength_mpa: [25, 32]
+      impact_strength_j_m: [100, 500]
+      hdt_c: [75, 90]
+      crystallinity_pct: [40, 58]
+      note: "Superior impact resistance, reduced stiffness"
+
+    applications:
+      primary:
+        - product: "Automotive bumpers and fascia"
+          scrap_source: "Automotive manufacturing, end-of-life vehicles"
+          quality_tier_required: [2, 3]
+        - product: "Appliance housings (impact-resistant)"
+          scrap_source: "Appliance manufacturing, post-consumer"
+          quality_tier_required: [2, 3]
+
+    recycling_challenges:
+      rubber_degradation: "Rubber phase degrades during thermal cycling"
+      density_separation: "Low density overlaps with PE - separation difficult"
+      chemical_recycling_preferred: true
+
+  - grade_id: "PP_HOMOPOLYMER_RAFFIA"
+    grade_name: "PP Homopolymer - Raffia/Weave"
+    description: "Low MFI PP for woven bags, big bags, and strapping"
+    type: "virgin"
+
+    melt_flow_rate:
+      raffia_g_10min: [2, 5]
+      test_conditions: "230°C/2.16kg"
+      note: "Low MFI for high molecular weight and strength"
+
+    applications:
+      primary:
+        - product: "Woven bags (raffia, big bags)"
+          scrap_source: "Industrial use, agriculture, construction"
+          quality_tier_required: [2, 3]
+        - product: "Strapping and banding"
+          scrap_source: "Industrial use, manufacturing PIR"
+          quality_tier_required: [2, 3]
+
+  - grade_id: "PP_HOMOPOLYMER_FIBER"
+    grade_name: "PP Homopolymer - Fiber/Non-Woven"
+    description: "High MFI PP for fiber, non-woven, and textile applications"
+    type: "virgin"
+
+    melt_flow_rate:
+      fiber_g_10min: [10, 40]
+      test_conditions: "230°C/2.16kg"
+      note: "High MFI for thin fiber production"
+
+    applications:
+      primary:
+        - product: "Non-woven fabrics (hygiene, medical)"
+          scrap_source: "Manufacturing PIR, post-consumer (limited)"
+          quality_tier_required: [3, 4]
+          note: "High contamination - limited recycling value"
+        - product: "Carpets and rugs (PP backing)"
+          scrap_source: "Post-consumer carpet waste"
+          quality_tier_required: [3, 4]
+
+  - grade_id: "PP_MEDICAL_GRADE"
+    grade_name: "PP Medical Grade"
+    description: "USP Class VI certified PP for medical devices and pharmaceutical packaging"
+    type: "virgin"
+
+    certifications:
+      - "USP Class VI"
+      - "ISO 10993 biocompatibility"
+      - "FDA 21 CFR 177.1520"
+
+    applications:
+      primary:
+        - product: "Medical syringes and devices"
+          scrap_source: "Medical device manufacturing PIR only"
+          quality_tier_required: [1]
+          note: "Medical PIR only - post-consumer medical waste not recyclable"
+        - product: "Pharmaceutical packaging"
+          scrap_source: "Pharmaceutical manufacturing PIR only"
+          quality_tier_required: [1]
+
+# ============================================================================
+# RECYCLING RULES & CONTAMINATION PROFILES
+# ============================================================================
+
+recycling_rules:
+  - rule_id: "PP_MFR_DEGRADATION_CYCLES"
+    material_type: "PP"
+    rule: "PP MFR increases exponentially with recycling cycles - limits reuse"
+    reasoning: "Virgin PP: MFI 10 g/10min. After 1 cycle: 11.67 (+17%). After 6 cycles: 75.4 (+654%). After 20 cycles: 300-500. High MFR (>150) limits applications to fiber/film only."
+    confidence: 0.92
+    mfr_progression:
+      virgin_g_10min: 10
+      cycle_1_g_10min: 11.67
+      cycle_6_g_10min: 75.4
+      cycle_20_g_10min: [300, 500]
+    application_limits:
+      mfr_0_5: "raffia, sheet (8-12 cycles)"
+      mfr_15_30: "injection, thin-wall (4-8 cycles)"
+      mfr_60_150: "fiber, film (2-4 cycles)"
+      mfr_150_plus: "limited applications (1-2 cycles)"
+
+  - rule_id: "PP_PE_CONTAMINATION_TOLERANCE"
+    material_type: "PP"
+    rule: "PE contamination tolerance varies dramatically by application"
+    reasoning: "Food contact: ≤0.5% PE. Medical: ≤1% PE. Automotive: ≤5% PE. Electronics: ≤3% PE. Industrial: ≤8% PE. Textile: ≤15% PE. Higher contamination reduces value 20-50%."
+    confidence: 0.90
+    contamination_limits:
+      food_contact_pct: 0.5
+      medical_pct: 1.0
+      automotive_pct: 5.0
+      electronics_pct: 3.0
+      industrial_pct: 8.0
+      textile_pct: 15.0
+
+  - rule_id: "PP_INJECTION_PIR_PREMIUM"
+    material_type: "PP"
+    rule: "Injection molding PIR is highest quality PP scrap - Tier 1"
+    reasoning: "Injection PIR (runners, sprues): clean, single grade, known MFI, minimal contamination (<0.5%), 95%+ property retention. Premium value 25-40% above market."
+    confidence: 0.95
+    pir_characteristics:
+      contamination_pct: [0.1, 0.5]
+      quality_tier: 1
+      property_retention_pct: [95, 100]
+      value_premium_pct: [25, 40]
+
+  - rule_id: "PP_FOOD_CONTACT_RESTRICTION"
+    material_type: "PP"
+    rule: "Post-consumer food contact PP cannot be reused for direct food contact"
+    reasoning: "FDA regulations restrict PCR from food contact applications. Route to indirect food contact (0-10% PCR) or non-food applications (25-100% PCR)."
+    confidence: 0.98
+    restriction: "food_contact_pcr → non_food_or_indirect_only"
+    pcr_limits:
+      direct_food_contact_pct: 0
+      indirect_food_contact_pct: [0, 10]
+      non_food_pct: [25, 100]
+
+  - rule_id: "PP_HOMOPOLYMER_VS_COPOLYMER_SEPARATION"
+    material_type: "PP"
+    rule: "PP homopolymer and copolymer require separation for optimal recycling"
+    reasoning: "Homopolymer (density 0.900-0.910, Tm 160-166°C) vs Copolymer (density 0.895-0.905, Tm 145-158°C). Mixed grades reduce property consistency. Density separation achieves 90-95% purity."
+    confidence: 0.85
+    separation_efficiency_pct: [90, 95]
+
+  - rule_id: "PP_STABILIZER_REQUIREMENT"
+    material_type: "PP"
+    rule: "Antioxidant stabilizers critical for multi-cycle PP recycling"
+    reasoning: "Stabilizer addition maintains molecular weight through multiple cycles, prevents chain scission. Without stabilizers: 60-70% MW reduction after 6 cycles. With stabilizers: 20-30% MW reduction."
+    confidence: 0.88
+    mw_reduction_without_stabilizer_pct: [60, 70]
+    mw_reduction_with_stabilizer_pct: [20, 30]
+
+contamination_profiles:
+  - profile_id: "PP_INJECTION_PIR"
+    material_type: "PP"
+    source: "Injection molding PIR (runners, sprues)"
+    contamination_level: "minimal"
+    quality_tier: 1
+    typical_contaminants:
+      - "Minimal - clean manufacturing environment"
+      - "Possible colorants: <0.1%"
+    sorting_purity_pct: 99
+    suitable_applications:
+      - "All PP injection molding applications"
+      - "Medical devices (if medical-grade PIR)"
+      - "Food contact (indirect)"
+
+  - profile_id: "PP_AUTOMOTIVE_BUMPERS"
+    material_type: "PP"
+    source: "Automotive bumpers (end-of-life vehicles)"
+    contamination_level: "medium"
+    quality_tier: 3
+    typical_contaminants:
+      - "Paint/coating: 1-3%"
+      - "TPO/TPE: <2%"
+      - "Adhesives: <0.5%"
+      - "Dirt/grime: 1-2%"
+    sorting_purity_pct: 75
+    suitable_applications:
+      - "Automotive components (non-visible)"
+      - "Industrial applications"
+      - "Construction materials"
+
+  - profile_id: "PP_FOOD_CONTAINERS_POST_CONSUMER"
+    material_type: "PP"
+    source: "Post-consumer food containers (sorted, washed)"
+    contamination_level: "low-medium"
+    quality_tier: 2
+    typical_contaminants:
+      - "Food residue: 1-3% (before washing)"
+      - "Labels: <0.5%"
+      - "Printing inks: <0.5%"
+      - "PE contamination: 1-2%"
+    sorting_purity_pct: 85
+    processing_requirements:
+      washing: "required"
+      drying: "required"
+    suitable_applications:
+      - "Packaging (non-food)"
+      - "Industrial containers"
+      - "Consumer goods"
+
+  - profile_id: "PP_WOVEN_BAGS_INDUSTRIAL"
+    material_type: "PP"
+    source: "Woven bags (industrial use, agriculture)"
+    contamination_level: "high"
+    quality_tier: 3
+    typical_contaminants:
+      - "Dirt/dust: 2-5%"
+      - "Organic matter: 1-3%"
+      - "Printing inks: 1-2%"
+    sorting_purity_pct: 70
+    suitable_applications:
+      - "Raffia/weave recycling"
+      - "Industrial applications (non-critical)"
+      - "Construction materials"
+
+# ============================================================================
+# BUYER PROFILES & MATCHING RULES
+# ============================================================================
+
+buyer_profiles:
+  - buyer_id: "PP_AUTOMOTIVE_TIER2"
+    buyer_type: "Automotive tier 2 supplier"
+    industry_segment: "Automotive"
+
+    material_requirements:
+      polymer_types: ["PP_homopolymer", "PP_impact_copolymer"]
+      purity_min_pct: 85
+      max_pcr_pct: 50
+      preferred_source: "Automotive manufacturing PIR, sorted automotive scrap"
+      quality_tier_required: [2, 3]
+      pe_contamination_max_pct: 5.0
+      color_preference: "black, gray, automotive colors"
+      form_preference: "pellets"
+
+    quality_specifications:
+      mfi_range_g_10min: [5, 35]
+      tensile_strength_min_mpa: 25
+      impact_strength_min_j_m: 100
+      contamination_max_pct: 5.0
+
+    applications:
+      - "Automotive bumpers and fascia"
+      - "Interior trim panels"
+      - "Non-visible components"
+
+    volume_range_tons_month: [100, 1000]
+
+  - buyer_id: "PP_PACKAGING_NON_FOOD"
+    buyer_type: "Packaging manufacturer (non-food)"
+    industry_segment: "Packaging"
+
+    material_requirements:
+      polymer_types: ["PP_homopolymer", "PP_random_copolymer"]
+      purity_min_pct: 80
+      max_pcr_pct: 100
+      preferred_source: "Packaging manufacturing PIR, post-consumer sorted"
+      quality_tier_required: [2, 3]
+      pe_contamination_max_pct: 3.0
+      color_preference: "any"
+      form_preference: "pellets"
+
+    quality_specifications:
+      mfi_range_g_10min: [2, 30]
+      contamination_max_pct: 3.0
+
+    applications:
+      - "Rigid containers (non-food)"
+      - "Bottle caps and closures"
+      - "Industrial packaging"
+
+    volume_range_tons_month: [200, 2000]
+
+  - buyer_id: "PP_MEDICAL_DEVICE_MANUFACTURERS"
+    buyer_type: "Medical device manufacturer"
+    industry_segment: "Medical"
+
+    material_requirements:
+      polymer_types: ["PP_medical_grade"]
+      purity_min_pct: 99
+      max_pcr_pct: 15
+      preferred_source: "Medical device manufacturing PIR only"
+      quality_tier_required: [1]
+      pe_contamination_max_pct: 1.0
+      color_preference: "natural or clear"
+      form_preference: "pellets"
+
+    quality_specifications:
+      contamination_max_pct: 0.5
+      odor: "none"
+
+    certifications_required:
+      - "USP Class VI"
+      - "ISO 10993 biocompatibility"
+      - "FDA 21 CFR 177.1520"
+
+    applications:
+      - "Medical syringes and devices"
+      - "Pharmaceutical packaging"
+
+    volume_range_tons_month: [10, 100]
+
+  - buyer_id: "PP_INDUSTRIAL_CONTAINER_MANUFACTURERS"
+    buyer_type: "Industrial container manufacturer"
+    industry_segment: "Industrial"
+
+    material_requirements:
+      polymer_types: ["PP_homopolymer", "PP_copolymer"]
+      purity_min_pct: 75
+      max_pcr_pct: 100
+      preferred_source: "any"
+      quality_tier_required: [3, 4]
+      pe_contamination_max_pct: 8.0
+      color_preference: "any"
+      form_preference: "pellets or regrind"
+
+    quality_specifications:
+      contamination_max_pct: 8.0
+
+    applications:
+      - "Industrial containers and pallets"
+      - "Crates and bins"
+      - "Non-critical applications"
+
+    volume_range_tons_month: [300, 3000]
+
+  - buyer_id: "PP_RAFFIA_MANUFACTURERS"
+    buyer_type: "Raffia/woven bag manufacturer"
+    industry_segment: "Packaging/Industrial"
+
+    material_requirements:
+      polymer_types: ["PP_homopolymer_raffia"]
+      purity_min_pct: 70
+      max_pcr_pct: 100
+      preferred_source: "Woven bag scrap, manufacturing PIR"
+      quality_tier_required: [2, 3]
+      mfi_preference_g_10min: [2, 5]
+      color_preference: "any"
+      form_preference: "pellets"
+
+    quality_specifications:
+      contamination_max_pct: 8.0
+
+    applications:
+      - "Woven bags (raffia, big bags)"
+      - "Strapping and banding"
+
+    volume_range_tons_month: [200, 2000]
+
+  - buyer_id: "PP_PIPE_MANUFACTURERS"
+    buyer_type: "Pipe manufacturer"
+    industry_segment: "Construction/Industrial"
+
+    material_requirements:
+      polymer_types: ["PP_random_copolymer_pipe"]
+      purity_min_pct: 90
+      max_pcr_pct: 30
+      preferred_source: "Pipe manufacturing PIR, sorted pipe scrap"
+      quality_tier_required: [1, 2]
+      pe_contamination_max_pct: 2.0
+      color_preference: "natural or consistent"
+      form_preference: "pellets"
+
+    quality_specifications:
+      mfi_range_g_10min: [0.5, 7]
+      contamination_max_pct: 2.0
+
+    certifications_required:
+      - "Pressure pipe standards (if applicable)"
+
+    applications:
+      - "Pipes and fittings (PP-R)"
+      - "Industrial piping"
+
+    volume_range_tons_month: [100, 1000]
+
+# ============================================================================
+# QUALITY INDICATORS & TESTING
+# ============================================================================
+
+quality_indicators:
+  - indicator_id: "PP_MFI_CONSISTENCY"
+    test_method: "ASTM D1238 (230°C/2.16kg)"
+    material_types: ["PP"]
+    thresholds:
+      low_mfi: [0.5, 5]
+      medium_mfi: [15, 30]
+      high_mfi: [60, 150]
+      very_high_mfi: [150, 500]
+    significance: "Critical for application matching and recycling cycle assessment"
+    note: "PP MFI always @230°C/2.16kg - do not convert to 190°C"
+
+  - indicator_id: "PP_PE_CONTAMINATION"
+    test_method: "FTIR or DSC"
+    material_types: ["PP"]
+    thresholds:
+      excellent:
+        pe_contamination_pct: [0, 0.5]
+      good:
+        pe_contamination_pct: [0.5, 3.0]
+      acceptable:
+        pe_contamination_pct: [3.0, 8.0]
+      poor:
+        pe_contamination_pct: [8.0, 100]
+    significance: "Determines application suitability and quality tier"
+
+  - indicator_id: "PP_COLOR_CONSISTENCY"
+    test_method: "Visual inspection"
+    material_types: ["PP"]
+    thresholds:
+      excellent: "Natural/clear, consistent color"
+      good: "Single consistent color"
+      acceptable: "Mixed colors or moderate discoloration"
+      poor: "Heavily mixed or degraded color"
+    significance: "Indicates thermal degradation and source quality"
+
+  - indicator_id: "PP_ASH_CONTENT"
+    test_method: "ASTM D2584"
+    material_types: ["PP"]
+    thresholds:
+      excellent:
+        ash_pct: [0, 1.0]
+      good:
+        ash_pct: [1.0, 2.0]
+      acceptable:
+        ash_pct: [2.0, 3.0]
+      poor:
+        ash_pct: [3.0, 100]
+    significance: "Indicates filler content and contamination level"
+
+# ============================================================================
+# INFERENCE RULES & MATCHING LOGIC
+# ============================================================================
+
+inference_rules:
+  - rule_id: "PP_PRODUCT_TO_BUYER_FORWARD"
+    inference_type: "buyer_matching"
+    logic: "IF product=bottle_caps THEN grade=pp_homopolymer AND quality_tier=[1,2] AND match_buyers=[packaging_non_food, injection_molders]"
+    reasoning: "Forward reasoning from product to suitable buyers based on grade and quality tier"
+    confidence: 0.90
+
+  - rule_id: "PP_BUYER_TO_SOURCE_BACKWARD"
+    inference_type: "source_matching"
+    logic: "IF buyer=medical_device_manufacturers THEN require_grade=pp_medical AND require_tier=1 AND require_source=medical_pir_only"
+    reasoning: "Backward reasoning from buyer requirements to acceptable sources"
+    confidence: 0.98
+
+  - rule_id: "PP_INJECTION_PIR_PREMIUM_MATCHING"
+    inference_type: "buyer_matching"
+    logic: "IF source=injection_pir AND contamination<0.5% THEN tier=1 AND match_all_buyers"
+    reasoning: "Injection PIR is premium quality - suitable for all PP applications"
+    confidence: 0.95
+
+  - rule_id: "PP_MFI_APPLICATION_MATCHING"
+    inference_type: "application_matching"
+    logic: "IF mfi<5 THEN raffia_sheet; IF mfi=15-30 THEN injection_thin_wall; IF mfi=60-150 THEN fiber_film; IF mfi>150 THEN limited_applications"
+    reasoning: "MFI determines application suitability"
+    confidence: 0.92
+
+  - rule_id: "PP_FOOD_CONTACT_EXCLUSION"
+    inference_type: "application_matching"
+    logic: "IF source=post_consumer_food_contact THEN exclude_direct_food_contact AND route_to_indirect_or_non_food"
+    reasoning: "FDA restrictions on PCR food contact"
+    confidence: 0.98
+
+  - rule_id: "PP_PE_CONTAMINATION_ROUTING"
+    inference_type: "buyer_matching"
+    logic: "IF pe_contamination<0.5% THEN food_medical_buyers; IF pe<3% THEN automotive_electronics; IF pe<8% THEN industrial; IF pe>8% THEN textile_downcycled"
+    reasoning: "PE contamination level determines buyer tier matching"
+    confidence: 0.88
+
+  - rule_id: "PP_HOMOPOLYMER_COPOLYMER_SEPARATION"
+    inference_type: "processing_requirement"
+    logic: "IF mixed_homopolymer_copolymer THEN density_separation_recommended FOR optimal_properties"
+    reasoning: "Separation improves property consistency and value"
+    confidence: 0.85
+
+# ============================================================================
+# STANDARDS & TESTING METHODS
+# ============================================================================
+
+standards:
+  - standard_id: "ASTM_D4101"
+    title: "Classification System for Polypropylene Materials"
+    scope: "Defines PP types, grades, and property requirements"
+    relevance: "Primary classification standard for PP materials"
+
+  - standard_id: "ASTM_D1238"
+    title: "Melt Flow Rates of Thermoplastics"
+    test_conditions: "230°C/2.16kg for PP"
+    significance: "Critical for PP processability and quality assessment"
+    note: "PP MFI always @230°C/2.16kg - do not convert"
+
+  - standard_id: "USP_CLASS_VI"
+    title: "Biological Reactivity Tests, In Vivo"
+    scope: "Biocompatibility testing for medical devices"
+    relevance: "Required for PP in medical device applications"
+
+  - standard_id: "FDA_21_CFR_177_1520"
+    title: "Olefin Polymers"
+    scope: "FDA regulations for food contact plastics"
+    relevance: "Required for PP in food packaging applications"
+
+# ============================================================================
+# PROCESSING GUIDANCE
+# ============================================================================
+
+processing_guidance:
+  drying:
+    required: false
+    note: "PP not hygroscopic - drying optional unless moisture contamination present"
+
+  temperature_control:
+    processing_temp_c: [190, 260]
+    optimal_range_c: [220, 240]
+    degradation_onset_c: 280
+
+  mixing_pcr_virgin:
+    recommended_method: "Dry blend or masterbatch"
+    max_pcr_pct_by_application:
+      medical_devices: 15
+      food_contact_indirect: 10
+      automotive_interior: 50
+      packaging_non_food: 100
+      industrial_containers: 100
+
+  contamination_removal:
+    washing: "Required for post-consumer sources"
+    sorting: "Critical - separate PP homopolymer from copolymer, separate from PE"
+    density_separation: "Effective for PP/PE separation (0.900-0.910 vs 0.910-0.940)"
+
+  stabilization:
+    antioxidants: "Highly recommended for multi-cycle recycling"
+    benefit: "Reduces MW degradation from 60-70% to 20-30% after 6 cycles"
+
+# ============================================================================
+# END OF PP KB v7.0r
+# ============================================================================

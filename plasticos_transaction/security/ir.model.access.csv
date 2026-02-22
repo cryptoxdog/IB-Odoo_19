@@ -5,5 +5,5 @@ access_transaction_line_manager,transaction.line.manager,model_plasticos_transac
 access_audit_cron_user,audit.cron.user,model_plasticos_audit_cron,base.group_user,1,0,0,0
 access_commission_rule_admin,commission.rule.admin,model_plasticos_commission_rule,base.group_system,1,1,1,1
 access_transaction_bulk_wizard_user,transaction.bulk.wizard.user,model_plasticos_tx_bulk_wizard,base.group_user,1,1,1,1
-access_transaction_bulk_update_wizard_user,transaction.bulk.update.wizard.user,model_plasticos_transaction_bulk_update_wizard,base.group_user,1,1,1,1
 access_transaction_bulk_assign_wizard_user,transaction.bulk.assign.wizard.user,model_plasticos_transaction_bulk_assign_wizard,base.group_user,1,1,1,1
+access_transaction_import_wizard_user,transaction.import.wizard.user,model_plasticos_transaction_import_wizard,base.group_user,1,1,1,1

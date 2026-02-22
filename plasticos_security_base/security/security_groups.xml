@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="0">
 
+    <!-- ============================================
+         Odoo 19 Security: Category → Privilege → Group
+         ============================================ -->
+
     <!-- Application Category -->
     <record id="module_category_plasticos" model="ir.module.category">
         <field name="name">Plasticos</field>
@@ -8,14 +12,41 @@
         <field name="sequence">200</field>
     </record>
 
+    <!-- Privileges (Odoo 19: intermediate layer between category and groups) -->
+    <record id="privilege_sales" model="res.groups.privilege">
+        <field name="name">Sales</field>
+        <field name="category_id" ref="module_category_plasticos"/>
+    </record>
+
+    <record id="privilege_logistics" model="res.groups.privilege">
+        <field name="name">Logistics</field>
+        <field name="category_id" ref="module_category_plasticos"/>
+    </record>
+
+    <record id="privilege_accounting" model="res.groups.privilege">
+        <field name="name">Accounting</field>
+        <field name="category_id" ref="module_category_plasticos"/>
+    </record>
+
+    <record id="privilege_quality" model="res.groups.privilege">
+        <field name="name">Quality Control</field>
+        <field name="category_id" ref="module_category_plasticos"/>
+    </record>
+
+    <record id="privilege_administration" model="res.groups.privilege">
+        <field name="name">Administration</field>
+        <field name="category_id" ref="module_category_plasticos"/>
+    </record>
+
     <!-- ============================================
          SECURITY GROUPS (Odoo 19 format)
-         Note: category_id removed in Odoo 19
+         Groups link to privileges via privilege_id
          ============================================ -->
 
     <!-- Sales Rep -->
     <record id="group_sales_rep" model="res.groups">
         <field name="name">Sales Rep</field>
+        <field name="privilege_id" ref="privilege_sales"/>
         <field name="comment">
             Owns relationships and deals.  Row-level isolation ensures
             Sales Reps only see their own partners, transactions, orders,
@@ -26,6 +57,7 @@
     <!-- Logistics -->
     <record id="group_logistics" model="res.groups">
         <field name="name">Logistics</field>
+        <field name="privilege_id" ref="privilege_logistics"/>
         <field name="comment">
             Manages freight, loads, dispatching, and rate memory.
             Broad read access on operational data.  Read-only on
@@ -36,6 +68,7 @@
     <!-- Accounting -->
     <record id="group_accounting" model="res.groups">
         <field name="name">Accounting</field>
+        <field name="privilege_id" ref="privilege_accounting"/>
         <field name="comment">
             Owns commission rules and financial documents.
             Read-only on most operational data.
@@ -45,6 +78,7 @@
     <!-- Logistics Operations (extends base Logistics) -->
     <record id="group_logistics_ops" model="res.groups">
         <field name="name">Logistics Operations</field>
+        <field name="privilege_id" ref="privilege_logistics"/>
         <field name="implied_ids" eval="[(4, ref('group_logistics'))]"/>
         <field name="comment">Full access to logistics automation features including freight rate requests, supplier confirmations, and trucker communications</field>
     </record>
@@ -52,12 +86,14 @@
     <!-- Quality Control Manager -->
     <record id="group_qc_manager" model="res.groups">
         <field name="name">QC Manager</field>
+        <field name="privilege_id" ref="privilege_quality"/>
         <field name="comment">Quality control claim management and resolution authority</field>
     </record>
 
     <!-- Accounting Operations (extends base Accounting) -->
     <record id="group_accounting_ops" model="res.groups">
         <field name="name">Accounting Operations</field>
+        <field name="privilege_id" ref="privilege_accounting"/>
         <field name="implied_ids" eval="[(4, ref('group_accounting'))]"/>
         <field name="comment">Invoice processing, penalty calculations, and financial reconciliation</field>
     </record>
@@ -65,6 +101,7 @@
     <!-- Operations Manager (inherits all operational groups) -->
     <record id="group_operations_manager" model="res.groups">
         <field name="name">Operations Manager</field>
+        <field name="privilege_id" ref="privilege_administration"/>
         <field name="implied_ids" eval="[(4, ref('group_logistics_ops')), (4, ref('group_qc_manager')), (4, ref('group_accounting_ops'))]"/>
         <field name="comment">Full operational oversight with escalation authority</field>
     </record>
@@ -72,6 +109,7 @@
     <!-- System Administrator -->
     <record id="group_system_admin" model="res.groups">
         <field name="name">PlasticOS System Admin</field>
+        <field name="privilege_id" ref="privilege_administration"/>
         <field name="implied_ids" eval="[(4, ref('group_operations_manager'))]"/>
         <field name="comment">Complete system administration including configuration and advanced settings</field>
     </record>

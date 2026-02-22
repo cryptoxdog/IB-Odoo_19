@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_enrichment_run_tree" model="ir.ui.view">
+        <field name="name">plasticos.enrichment.run.tree</field>
+        <field name="model">plasticos.enrichment.run</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'injected'"
+                       decoration-warning="state == 'review'"
+                       decoration-danger="state == 'failed'"
+                       decoration-info="state in ('crawling', 'extracting')"/>
+                <field name="confidence_score" widget="progressbar"/>
+                <field name="profiles_created"/>
+                <field name="profiles_updated"/>
+                <field name="fields_written"/>
+                <field name="injected_at"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_enrichment_run_form" model="ir.ui.view">
+        <field name="name">plasticos.enrichment.run.form</field>
+        <field name="model">plasticos.enrichment.run</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_execute" string="Execute"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'draft'"/>
+                    <button name="action_inject" string="Inject"
+                            type="object" class="oe_highlight"
+                            invisible="state not in ('validated', 'review')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,crawling,extracting,validated,injected"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="confidence_score" widget="progressbar"/>
+                        </group>
+                        <group>
+                            <field name="profiles_created"/>
+                            <field name="profiles_updated"/>
+                            <field name="fields_written"/>
+                            <field name="injected_at"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Sources">
+                            <field name="source_ids">
+                                <list editable="bottom">
+                                    <field name="url"/>
+                                    <field name="source_type"/>
+                                    <field name="crawl_status" widget="badge"/>
+                                    <field name="last_crawled_at"/>
+                                    <field name="error_message"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Extractions">
+                            <field name="extraction_ids">
+                                <list>
+                                    <field name="source_id"/>
+                                    <field name="confidence"/>
+                                    <field name="governance_passed"/>
+                                    <field name="is_injectable"/>
+                                    <field name="extracted_at"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Provenance">
+                            <field name="provenance_ids">
+                                <list>
+                                    <field name="target_field"/>
+                                    <field name="value_written"/>
+                                    <field name="previous_value"/>
+                                    <field name="status" widget="badge"/>
+                                    <field name="confidence"/>
+                                    <field name="inference_type"/>
+                                    <field name="source_sentence"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Issues"
+                              invisible="not validation_issues">
+                            <field name="validation_issues"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_enrichment_run" model="ir.actions.act_window">
+        <field name="name">Enrichment Runs</field>
+        <field name="res_model">plasticos.enrichment.run</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_enrichment_root"
+              name="Enrichment"
+              parent="contacts.menu_contacts"
+              sequence="30"/>
+    <menuitem id="menu_enrichment_runs"
+              name="Enrichment Runs"
+              parent="menu_enrichment_root"
+              action="action_enrichment_run"
+              sequence="10"/>
+</odoo>

@@ -1,0 +1,177 @@
+# MACK Knowledge Base: PMMA (Acrylic) Compounding & Recycling v7.0r
+# Purpose: Enable MACK reasoning for PMMA material identification and buyer matching
+# Compatible with: MACK v7.0 Odoo reasoning engine
+# Last Updated: 2025-11-05
+
+metadata:
+  polymer_family: "Engineering Thermoplastics"
+  polymer_type: "PMMA"
+  full_name: "Polymethyl Methacrylate (Acrylic)"
+  structure: "Transparent thermoplastic"
+  version: "7.0r"
+  last_updated: "2025-11-05"
+  data_quality: "verified"
+  source_tier: "tier_3"
+  note: "Optical clarity - automotive lighting, signage, displays"
+
+product_scrap_mapping:
+  automotive_products:
+    - product: "Automotive lighting (headlights, taillights)"
+      scrap_grade: "pmma_optical"
+      scrap_quality_tier: [2, 3]
+      typical_contamination_pct: [1.0, 3.0]
+      suitable_buyers: ["automotive_lighting", "signage_manufacturers"]
+      reverse_reasoning: "IF buyer_needs_automotive_lighting THEN source_pmma_optical_tier2_tier3"
+      note: "Largest PMMA application"
+
+    - product: "Instrument panels and displays"
+      scrap_grade: "pmma_general"
+      scrap_quality_tier: [2, 3]
+      typical_contamination_pct: [1.0, 3.0]
+      suitable_buyers: ["automotive_tier2", "consumer_electronics"]
+
+  signage_products:
+    - product: "LED signs and displays"
+      scrap_grade: "pmma_optical"
+      scrap_quality_tier: [2, 3]
+      typical_contamination_pct: [1.0, 5.0]
+      suitable_buyers: ["signage_manufacturers", "lighting_manufacturers"]
+
+  manufacturing_scrap:
+    - product: "Injection molding PIR"
+      scrap_grade: "any_pmma"
+      scrap_quality_tier: [1]
+      typical_contamination_pct: [0.1, 0.5]
+      suitable_buyers: ["all_pmma_buyers"]
+      note: "Premium quality - Tier 1"
+
+source_quality_tiers:
+  tier_1_premium:
+    definition: "Manufacturing PIR, optical clarity maintained"
+    contamination_max_pct: 0.5
+    property_retention_min_pct: 95
+    suitable_applications: ["Automotive lighting", "Premium signage"]
+    value_premium_pct: [25, 40]
+
+  tier_2_standard:
+    definition: "Post-industrial, moderate contamination"
+    contamination_max_pct: 3.0
+    property_retention_min_pct: 80
+    suitable_applications: ["General signage", "Consumer goods"]
+
+  tier_3_utility:
+    definition: "Mixed post-consumer"
+    contamination_max_pct: 8.0
+    property_retention_min_pct: 65
+    suitable_applications: ["Low-value applications"]
+    value_discount_pct: [40, 55]
+
+material_grades:
+  - grade_id: "PMMA_OPTICAL"
+    grade_name: "Optical-grade PMMA"
+    description: "High clarity for lighting applications"
+    applications:
+      primary:
+        - product: "Automotive lighting"
+          scrap_source: "Automotive manufacturing, end-of-life vehicles"
+          quality_tier_required: [2, 3]
+        - product: "LED signs"
+          scrap_source: "Signage manufacturing, post-consumer"
+          quality_tier_required: [2, 3]
+    pcr_compatibility:
+      max_pcr_pct: 30
+      typical_pcr_pct: [10, 30]
+
+  - grade_id: "PMMA_GENERAL"
+    grade_name: "General-purpose PMMA"
+    description: "Standard acrylic for general applications"
+    applications:
+      primary:
+        - product: "Displays and instrument panels"
+          scrap_source: "Manufacturing PIR, post-consumer"
+          quality_tier_required: [2, 3]
+    pcr_compatibility:
+      max_pcr_pct: 50
+      typical_pcr_pct: [15, 50]
+
+recycling_rules:
+  - rule_id: "PMMA_OPTICAL_CLARITY_CRITICAL"
+    material_type: "PMMA"
+    rule: "Optical clarity is critical - contamination >3% reduces light transmission"
+    confidence: 0.92
+
+  - rule_id: "PMMA_INJECTION_PIR_PREMIUM"
+    material_type: "PMMA"
+    rule: "Injection PIR maintains optical clarity - Tier 1"
+    confidence: 0.95
+
+contamination_profiles:
+  - profile_id: "PMMA_AUTOMOTIVE_LIGHTING"
+    material_type: "PMMA"
+    source: "Automotive lighting"
+    contamination_level: "low-medium"
+    quality_tier: 2
+    typical_contaminants: ["coatings <1%", "adhesives <1%"]
+    suitable_applications: ["Automotive lighting", "Signage"]
+
+buyer_profiles:
+  - buyer_id: "PMMA_AUTOMOTIVE_LIGHTING"
+    buyer_type: "Automotive lighting manufacturer"
+    industry_segment: "Automotive"
+    material_requirements:
+      polymer_types: ["PMMA_optical"]
+      purity_min_pct: 90
+      max_pcr_pct: 30
+      quality_tier_required: [2, 3]
+    applications: ["Automotive lighting"]
+    volume_range_tons_month: [50, 500]
+
+  - buyer_id: "PMMA_SIGNAGE_MANUFACTURERS"
+    buyer_type: "Signage manufacturer"
+    industry_segment: "Commercial"
+    material_requirements:
+      polymer_types: ["PMMA_optical", "PMMA_general"]
+      purity_min_pct: 85
+      max_pcr_pct: 50
+      quality_tier_required: [2, 3]
+    applications: ["LED signs and displays"]
+    volume_range_tons_month: [100, 1000]
+
+quality_indicators:
+  - indicator_id: "PMMA_LIGHT_TRANSMISSION"
+    test_method: "ASTM D1003"
+    significance: "Critical for optical applications"
+
+  - indicator_id: "PMMA_COLOR_CONSISTENCY"
+    test_method: "Visual inspection"
+    significance: "Indicates thermal degradation"
+
+inference_rules:
+  - rule_id: "PMMA_PRODUCT_TO_BUYER_FORWARD"
+    inference_type: "buyer_matching"
+    logic: "IF product=automotive_lighting THEN grade=pmma_optical AND match_buyers=[automotive_lighting, signage]"
+    confidence: 0.90
+
+  - rule_id: "PMMA_OPTICAL_CLARITY_MATCHING"
+    inference_type: "quality_control"
+    logic: "IF light_transmission<90% THEN reject_optical_applications"
+    confidence: 0.92
+
+standards:
+  - standard_id: "ASTM_D1003"
+    title: "Haze and Luminous Transmittance of Transparent Plastics"
+    relevance: "Critical for optical PMMA quality"
+
+processing_guidance:
+  drying:
+    required: true
+    moisture_threshold_pct: 0.05
+    drying_temp_c: [80, 90]
+    drying_time_hours: [2, 4]
+  temperature_control:
+    processing_temp_c: [220, 260]
+  mixing_pcr_virgin:
+    max_pcr_pct_by_application:
+      automotive_lighting: 30
+      signage: 50
+      general_applications: 60

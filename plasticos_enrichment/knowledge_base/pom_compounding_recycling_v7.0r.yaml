@@ -1,0 +1,196 @@
+# MACK Knowledge Base: POM (Acetal) Compounding & Recycling v7.0r
+# Purpose: Enable MACK reasoning for POM material identification and buyer matching
+# Compatible with: MACK v7.0 Odoo reasoning engine
+# Last Updated: 2025-11-05
+
+metadata:
+  polymer_family: "Engineering Thermoplastics"
+  polymer_type: "POM"
+  full_name: "Polyoxymethylene (Acetal)"
+  common_types: "POM-H (homopolymer), POM-C (copolymer)"
+  structure: "Crystalline thermoplastic"
+  version: "7.0r"
+  last_updated: "2025-11-05"
+  data_quality: "verified"
+  source_tier: "tier_3"
+  note: "Precision parts - gears, bearings, automotive components"
+
+product_scrap_mapping:
+  automotive_products:
+    - product: "Automotive gears and bearings"
+      scrap_grade: "pom_h or pom_c"
+      scrap_quality_tier: [1, 2]
+      typical_contamination_pct: [0.5, 2.0]
+      typical_contaminants: ["lubricants <1%"]
+      suitable_buyers: ["automotive_tier2", "industrial_gears"]
+      reverse_reasoning: "IF buyer_needs_precision_gears THEN source_pom_tier1_tier2"
+      note: "Largest POM application"
+
+    - product: "Automotive fuel system components"
+      scrap_grade: "pom_c"
+      scrap_quality_tier: [1, 2]
+      typical_contamination_pct: [0.5, 2.0]
+      suitable_buyers: ["automotive_tier1", "automotive_tier2"]
+
+  industrial_products:
+    - product: "Industrial gears, bearings, bushings"
+      scrap_grade: "pom_h or pom_c"
+      scrap_quality_tier: [1, 2]
+      typical_contamination_pct: [1.0, 3.0]
+      typical_contaminants: ["lubricants 1-2%", "wear particles <0.5%"]
+      suitable_buyers: ["industrial_gears", "industrial_applications"]
+
+  consumer_products:
+    - product: "Zippers and fasteners"
+      scrap_grade: "pom_c"
+      scrap_quality_tier: [2, 3]
+      typical_contamination_pct: [2.0, 5.0]
+      suitable_buyers: ["consumer_goods", "industrial_applications"]
+
+  manufacturing_scrap:
+    - product: "Injection molding PIR"
+      scrap_grade: "any_pom"
+      scrap_quality_tier: [1]
+      typical_contamination_pct: [0.1, 0.5]
+      suitable_buyers: ["all_pom_buyers"]
+      note: "Premium quality - Tier 1"
+
+source_quality_tiers:
+  tier_1_premium:
+    definition: "Manufacturing PIR, precision maintained"
+    contamination_max_pct: 0.5
+    property_retention_min_pct: 95
+    suitable_applications: ["Automotive gears", "Precision components"]
+    value_premium_pct: [25, 40]
+
+  tier_2_standard:
+    definition: "Post-industrial, moderate contamination"
+    contamination_max_pct: 3.0
+    property_retention_min_pct: 80
+    suitable_applications: ["Industrial gears", "General engineering"]
+
+  tier_3_utility:
+    definition: "Mixed post-consumer"
+    contamination_max_pct: 8.0
+    property_retention_min_pct: 65
+    suitable_applications: ["Low-value applications"]
+    value_discount_pct: [40, 55]
+
+material_grades:
+  - grade_id: "POM_H_HOMOPOLYMER"
+    grade_name: "POM-H (Homopolymer)"
+    description: "Higher strength and stiffness"
+    applications:
+      primary:
+        - product: "Automotive gears and bearings"
+          scrap_source: "Automotive manufacturing, end-of-life vehicles"
+          quality_tier_required: [1, 2]
+        - product: "Industrial precision parts"
+          scrap_source: "Industrial manufacturing PIR"
+          quality_tier_required: [1, 2]
+    pcr_compatibility:
+      max_pcr_pct: 30
+      typical_pcr_pct: [10, 30]
+
+  - grade_id: "POM_C_COPOLYMER"
+    grade_name: "POM-C (Copolymer)"
+    description: "Better chemical resistance and dimensional stability"
+    applications:
+      primary:
+        - product: "Automotive fuel system components"
+          scrap_source: "Automotive manufacturing"
+          quality_tier_required: [1, 2]
+        - product: "Zippers and fasteners"
+          scrap_source: "Consumer goods manufacturing, post-consumer"
+          quality_tier_required: [2, 3]
+    pcr_compatibility:
+      max_pcr_pct: 40
+      typical_pcr_pct: [15, 40]
+
+recycling_rules:
+  - rule_id: "POM_PRECISION_CRITICAL"
+    material_type: "POM"
+    rule: "Dimensional stability critical - contamination >3% affects precision"
+    confidence: 0.92
+
+  - rule_id: "POM_INJECTION_PIR_PREMIUM"
+    material_type: "POM"
+    rule: "Injection PIR maintains precision - Tier 1"
+    confidence: 0.95
+
+  - rule_id: "POM_LOW_FRICTION"
+    material_type: "POM"
+    rule: "POM has inherently low friction - ideal for gears and bearings"
+    confidence: 0.90
+
+contamination_profiles:
+  - profile_id: "POM_AUTOMOTIVE_GEARS"
+    material_type: "POM"
+    source: "Automotive gears"
+    contamination_level: "low"
+    quality_tier: 2
+    typical_contaminants: ["lubricants <1%", "wear particles <0.5%"]
+    suitable_applications: ["Automotive gears", "Industrial gears"]
+
+buyer_profiles:
+  - buyer_id: "POM_AUTOMOTIVE_TIER2"
+    buyer_type: "Automotive tier 2 supplier"
+    industry_segment: "Automotive"
+    material_requirements:
+      polymer_types: ["POM_H", "POM_C"]
+      purity_min_pct: 90
+      max_pcr_pct: 30
+      quality_tier_required: [1, 2]
+    applications: ["Automotive gears and bearings", "Fuel system components"]
+    volume_range_tons_month: [50, 500]
+
+  - buyer_id: "POM_INDUSTRIAL_GEARS"
+    buyer_type: "Industrial gears manufacturer"
+    industry_segment: "Industrial"
+    material_requirements:
+      polymer_types: ["POM_H", "POM_C"]
+      purity_min_pct: 85
+      max_pcr_pct: 40
+      quality_tier_required: [1, 2]
+    applications: ["Industrial gears, bearings, bushings"]
+    volume_range_tons_month: [50, 500]
+
+quality_indicators:
+  - indicator_id: "POM_DIMENSIONAL_STABILITY"
+    test_method: "ISO 294-4"
+    significance: "Critical for precision applications"
+
+  - indicator_id: "POM_FRICTION_COEFFICIENT"
+    test_method: "ASTM D1894"
+    significance: "Key property for gears and bearings"
+
+inference_rules:
+  - rule_id: "POM_PRODUCT_TO_BUYER_FORWARD"
+    inference_type: "buyer_matching"
+    logic: "IF product=automotive_gears THEN grade=pom_h AND match_buyers=[automotive_tier2, industrial_gears]"
+    confidence: 0.90
+
+  - rule_id: "POM_PRECISION_MATCHING"
+    inference_type: "quality_control"
+    logic: "IF contamination>3% THEN reject_precision_applications"
+    confidence: 0.92
+
+standards:
+  - standard_id: "ISO_294_4"
+    title: "Determination of shrinkage"
+    relevance: "Critical for POM dimensional stability"
+
+processing_guidance:
+  drying:
+    required: true
+    moisture_threshold_pct: 0.02
+    drying_temp_c: [80, 100]
+    drying_time_hours: [2, 4]
+  temperature_control:
+    pom_h_processing_temp_c: [190, 220]
+    pom_c_processing_temp_c: [180, 210]
+  mixing_pcr_virgin:
+    max_pcr_pct_by_application:
+      automotive_gears: 30
+      industrial_gears: 40
+      consumer_goods: 50

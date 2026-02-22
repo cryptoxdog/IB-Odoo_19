@@ -208,3 +208,58 @@ class PartnerImportWizard(models.TransientModel):
             "domain": [("is_company", "=", True)],
             "context": {"search_default_filter_companies": 1},
         }
+
+    def action_audit_import(self):
+        """Run import integrity audit and show results (no changes)."""
+        self.ensure_one()
+        validation = self.env["plasticos.partner.import.validation"]
+        report = validation.audit_import_integrity()
+
+        lines = ["=== Import integrity audit ===\n", report["summary"], ""]
+        if report["old_external_ids"]:
+            lines.append(f"Old external IDs (plasticos_import): {len(report['old_external_ids'])}")
+            for item in report["old_external_ids"][:15]:
+                lines.append(f"  - {item['xmlid']} → {item['partner']} (id={item['res_id']})")
+            if len(report["old_external_ids"]) > 15:
+                lines.append(f"  ... and {len(report['old_external_ids']) - 15} more")
+            lines.append("")
+        if report["facilities_missing_role"]:
+            lines.append(f"Facilities missing x_facility_role: {len(report['facilities_missing_role'])}")
+            for item in report["facilities_missing_role"][:15]:
+                lines.append(f"  - {item['name']} (id={item['id']}, parent: {item['parent']})")
+            if len(report["facilities_missing_role"]) > 15:
+                lines.append(f"  ... and {len(report['facilities_missing_role']) - 15} more")
+            lines.append("")
+        if report["contacts_missing_parent"]:
+            lines.append(f"Contacts with no parent: {len(report['contacts_missing_parent'])}")
+            for item in report["contacts_missing_parent"][:10]:
+                lines.append(f"  - {item['name']} (id={item['id']})")
+            lines.append("")
+        if report["duplicate_external_ids"]:
+            lines.append(
+                f"Duplicates (same name in old and new module): {len(report['duplicate_external_ids'])} — "
+                "run Repair to migrate only non-duplicates."
+            )
+
+        self.result_message = "\n".join(lines)
+        self.state = "done"
+        return self._return_wizard()
+
+    def action_repair_import(self):
+        """Fix facilities missing x_facility_role and migrate old external IDs (plasticos_import → plasticos_partner_import)."""
+        self.ensure_one()
+        validation = self.env["plasticos.partner.import.validation"]
+        report = validation.repair_import_data(dry_run=False)
+
+        lines = [
+            "=== Import repair (applied) ===",
+            report["summary"],
+            "",
+        ]
+        if report["errors"]:
+            lines.append("Errors:")
+            for err in report["errors"][:10]:
+                lines.append(f"  - {err}")
+        self.result_message = "\n".join(lines)
+        self.state = "done"
+        return self._return_wizard()

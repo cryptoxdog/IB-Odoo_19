@@ -1,3 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_buyer_capability_admin,buyer.capability.admin,model_plasticos_buyer_capability,base.group_system,1,1,1,1
 access_buyer_capability_user,buyer.capability.user,model_plasticos_buyer_capability,base.group_user,1,0,0,0
+access_graph_sync_log_user,graph.sync.log.user,model_plasticos_graph_sync_log,base.group_user,1,0,0,0
+access_graph_sync_log_admin,graph.sync.log.admin,model_plasticos_graph_sync_log,base.group_system,1,1,1,1

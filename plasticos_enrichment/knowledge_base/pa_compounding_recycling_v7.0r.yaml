@@ -1,0 +1,793 @@
+# MACK Knowledge Base: PA (Polyamide/Nylon) Compounding & Recycling v7.0r
+# Purpose: Enable MACK reasoning for PA material identification and buyer matching
+# Compatible with: MACK v7.0 Odoo reasoning engine
+# Last Updated: 2025-11-05
+# Data Sources: ISO 307, comprehensive PA recycling research, automotive/electronics standards
+
+metadata:
+  polymer_family: "Engineering Thermoplastics"
+  polymer_type: "PA"
+  full_name: "Polyamide (Nylon)"
+  common_grades: "PA6, PA66, PA6/66"
+  structure: "Polyamide with amide linkages, hygroscopic"
+  version: "7.0r"
+  last_updated: "2025-11-05"
+  data_quality: "verified"
+  source_tier: "tier_2"
+  note: "Engineering plastic - automotive, electronics, industrial applications"
+
+# ============================================================================
+# PRODUCT-TO-SCRAP MAPPING (Bidirectional Reasoning)
+# ============================================================================
+
+product_scrap_mapping:
+  automotive_products:
+    - product: "Automotive engine components (intake manifolds, covers)"
+      scrap_grade: "pa66_gf30"
+      scrap_quality_tier: [1, 2]
+      typical_contamination_pct: [0.5, 2.0]
+      typical_contaminants: ["oil residue <1%", "metal inserts <0.5%"]
+      suitable_buyers: ["automotive_tier2", "industrial_engineering"]
+      reverse_reasoning: "IF buyer_needs_engine_components THEN source_pa66_gf30_tier1_tier2"
+      note: "High-temp applications require PA66 GF30"
+
+    - product: "Automotive interior parts (door handles, brackets)"
+      scrap_grade: "pa6_gf15_or_pa66_gf15"
+      scrap_quality_tier: [2, 3]
+      typical_contamination_pct: [1.0, 3.0]
+      typical_contaminants: ["paint/coating <1%", "adhesives <0.5%"]
+      suitable_buyers: ["automotive_tier2", "industrial_applications"]
+
+    - product: "Automotive gears and bearings"
+      scrap_grade: "pa6_unfilled_or_pa66_unfilled"
+      scrap_quality_tier: [1, 2]
+      typical_contamination_pct: [0.5, 2.0]
+      typical_contaminants: ["lubricants <1%", "minimal"]
+      suitable_buyers: ["automotive_tier1", "industrial_gears"]
+
+  electronics_products:
+    - product: "Electronics housings and connectors"
+      scrap_grade: "pa66_gf15_or_pa6_gf15"
+      scrap_quality_tier: [2, 3]
+      typical_contamination_pct: [1.0, 3.0]
+      typical_contaminants: ["metal inserts <0.5%", "adhesives <0.5%"]
+      suitable_buyers: ["electronics_manufacturers", "industrial_applications"]
+      reverse_reasoning: "IF buyer_needs_electronics_housings THEN source_pa66_gf15_tier2_tier3"
+
+    - product: "Electrical connectors and switches"
+      scrap_grade: "pa66_unfilled"
+      scrap_quality_tier: [1, 2]
+      typical_contamination_pct: [0.5, 2.0]
+      suitable_buyers: ["electronics_manufacturers", "electrical_component_manufacturers"]
+
+  industrial_products:
+    - product: "Industrial gears, bearings, bushings"
+      scrap_grade: "pa6_unfilled_or_pa66_unfilled"
+      scrap_quality_tier: [1, 2]
+      typical_contamination_pct: [1.0, 3.0]
+      typical_contaminants: ["lubricants 1-2%", "wear particles <0.5%"]
+      suitable_buyers: ["industrial_gears", "industrial_applications"]
+
+    - product: "Industrial housings and enclosures"
+      scrap_grade: "pa6_gf20_or_pa66_gf20"
+      scrap_quality_tier: [2, 3]
+      typical_contamination_pct: [2.0, 5.0]
+      suitable_buyers: ["industrial_applications", "construction_hardware"]
+
+  textile_products:
+    - product: "Nylon fibers and textiles (carpets, clothing)"
+      scrap_grade: "pa6_unfilled"
+      scrap_quality_tier: [3, 4]
+      typical_contamination_pct: [5.0, 15.0]
+      typical_contaminants: ["dyes 2-5%", "organic matter 3-8%", "mixed fibers 2-5%"]
+      suitable_buyers: ["textile_recyclers", "chemical_recycling", "downcycled_applications"]
+      note: "High contamination - chemical recycling preferred"
+
+  consumer_products:
+    - product: "Consumer appliances (housings, components)"
+      scrap_grade: "pa6_gf10_or_pa66_gf10"
+      scrap_quality_tier: [2, 3]
+      typical_contamination_pct: [2.0, 5.0]
+      typical_contaminants: ["mixed polymers <2%", "adhesives <1%"]
+      suitable_buyers: ["consumer_appliance_manufacturers", "industrial_applications"]
+
+  manufacturing_scrap:
+    - product: "Injection molding PIR (runners, sprues)"
+      scrap_grade: "any_pa_grade"
+      scrap_quality_tier: [1]
+      typical_contamination_pct: [0.1, 0.5]
+      typical_contaminants: ["minimal - clean manufacturing"]
+      suitable_buyers: ["all_pa_buyers"]
+      reverse_reasoning: "IF buyer_needs_high_quality_pa THEN source_injection_pir_tier1"
+      note: "Injection PIR is highest quality PA scrap - premium value"
+
+# ============================================================================
+# SOURCE QUALITY TIER DEFINITIONS (PA-Specific)
+# ============================================================================
+
+source_quality_tiers:
+  tier_1_premium:
+    definition: "Manufacturing PIR, single-source, minimal contamination, known grade and filler %"
+    contamination_max_pct: 0.5
+    glass_contamination_max_pct: 2.0
+    talc_contamination_max_pct: 1.0
+    other_polymer_max_pct: 1.0
+    chemical_contamination_max_ppm: 500
+    moisture_max_pct: 0.08
+    ash_max_pct: 1.0
+    property_retention_min_pct: 95
+    sorting_purity_min_pct: 99
+    processing_history: "Single cycle or virgin manufacturing scrap"
+    examples:
+      - "Injection molding PIR (runners, sprues)"
+      - "Automotive component manufacturing scrap"
+      - "Electronics manufacturing PIR"
+    suitable_applications:
+      - "Automotive engine components"
+      - "Electrical connectors"
+      - "Medical devices (non-critical)"
+      - "Food contact (indirect)"
+    value_premium_pct: [25, 40]
+
+  tier_2_standard:
+    definition: "Post-industrial or sorted post-consumer, moderate contamination"
+    contamination_max_pct: 3.0
+    glass_contamination_max_pct: 8.0
+    talc_contamination_max_pct: 5.0
+    other_polymer_max_pct: 3.0
+    chemical_contamination_max_ppm: 1000
+    moisture_max_pct: 0.10
+    ash_max_pct: 5.0
+    property_retention_min_pct: 80
+    sorting_purity_min_pct: 85
+    processing_history: "1-3 recycling cycles"
+    examples:
+      - "Sorted automotive components"
+      - "Electronics housings (sorted)"
+      - "Industrial parts (used)"
+    suitable_applications:
+      - "Automotive interior parts"
+      - "Electronics housings"
+      - "Industrial gears/bearings"
+      - "Consumer appliances"
+    value_premium_pct: [0, 0]
+
+  tier_3_utility:
+    definition: "Mixed post-consumer, higher contamination, multiple cycles"
+    contamination_max_pct: 8.0
+    glass_contamination_max_pct: 15.0
+    talc_contamination_max_pct: 12.0
+    other_polymer_max_pct: 8.0
+    chemical_contamination_max_ppm: 2000
+    moisture_max_pct: 0.15
+    ash_max_pct: 10.0
+    property_retention_min_pct: 60
+    sorting_purity_min_pct: 70
+    processing_history: "3-6 recycling cycles or unknown"
+    examples:
+      - "Mixed post-consumer PA (unsorted)"
+      - "General waste stream PA"
+      - "Contaminated industrial parts"
+    suitable_applications:
+      - "General engineering applications"
+      - "Construction hardware"
+      - "Low-value consumer goods"
+    value_discount_pct: [40, 55]
+
+  tier_4_marginal:
+    definition: "Heavily contaminated, degraded, textile waste"
+    contamination_min_pct: 8.0
+    property_retention_max_pct: 60
+    processing_history: ">6 cycles or textile waste"
+    examples:
+      - "Nylon textile waste (carpets, clothing)"
+      - "Heavily contaminated mixed waste"
+      - "Degraded automotive parts"
+    suitable_applications:
+      - "Chemical recycling feedstock (caprolactam recovery)"
+      - "Pyrolysis feedstock"
+      - "Very limited mechanical recycling"
+    value_discount_pct: [70, 85]
+
+# ============================================================================
+# MATERIAL PROPERTIES & GRADES
+# ============================================================================
+
+material_grades:
+  - grade_id: "PA6_UNFILLED"
+    grade_name: "PA6 Unfilled (Virgin)"
+    description: "Standard PA6 for general engineering applications"
+    type: "virgin"
+
+    thermal_properties:
+      melting_point_c: [215, 225]
+      glass_transition_c: [47, 51]
+      processing_temp_c: [240, 270]
+      hdt_0_45mpa_c: [180, 190]
+      hdt_1_8mpa_c: [65, 75]
+
+    density:
+      value_g_cm3: [1.13, 1.15]
+      test_method: "ISO 1183"
+
+    mechanical_properties:
+      tensile_strength_mpa: [60, 85]
+      elongation_at_break_pct: [150, 300]
+      impact_strength_kj_m2: [50, 100]
+
+    moisture_properties:
+      water_absorption_24h_pct: [2.4, 4.0]
+      moisture_max_pct: 0.10
+      drying_required: true
+      drying_temp_c: [80, 100]
+      drying_time_hours: [4, 8]
+
+    applications:
+      primary:
+        - product: "Automotive gears and bearings"
+          scrap_source: "Automotive manufacturing, end-of-life vehicles"
+          quality_tier_required: [1, 2]
+        - product: "Industrial gears, bearings, bushings"
+          scrap_source: "Industrial use, manufacturing PIR"
+          quality_tier_required: [1, 2]
+        - product: "Consumer appliances"
+          scrap_source: "Manufacturing PIR, post-consumer"
+          quality_tier_required: [2, 3]
+
+    pcr_compatibility:
+      max_pcr_pct: 50
+      typical_pcr_pct: [15, 50]
+
+  - grade_id: "PA66_UNFILLED"
+    grade_name: "PA66 Unfilled (Virgin)"
+    description: "Higher performance PA66 for demanding applications"
+    type: "virgin"
+
+    thermal_properties:
+      melting_point_c: [255, 265]
+      glass_transition_c: [54, 68]
+      processing_temp_c: [270, 300]
+      hdt_0_45mpa_c: [210, 220]
+      hdt_1_8mpa_c: [85, 95]
+
+    density:
+      value_g_cm3: [1.14, 1.20]
+
+    mechanical_properties:
+      tensile_strength_mpa: [75, 90]
+      elongation_at_break_pct: [60, 100]
+      impact_strength_kj_m2: [40, 80]
+
+    moisture_properties:
+      water_absorption_24h_pct: [1.5, 2.8]
+      moisture_max_pct: 0.08
+      drying_required: true
+
+    applications:
+      primary:
+        - product: "Electrical connectors and switches"
+          scrap_source: "Electronics manufacturing PIR, post-consumer"
+          quality_tier_required: [1, 2]
+        - product: "Automotive components (high-temp)"
+          scrap_source: "Automotive manufacturing, end-of-life vehicles"
+          quality_tier_required: [1, 2]
+
+    pcr_compatibility:
+      max_pcr_pct: 40
+      typical_pcr_pct: [10, 40]
+      note: "Lower PCR tolerance due to higher performance requirements"
+
+  - grade_id: "PA6_GF30"
+    grade_name: "PA6 + 30% Glass Fiber"
+    description: "High-strength PA6 for structural applications"
+    type: "virgin"
+
+    density:
+      value_g_cm3: [1.35, 1.37]
+
+    mechanical_properties:
+      tensile_strength_mpa: [165, 210]
+      flexural_modulus_gpa: [10.0, 13.5]
+      impact_strength_kj_m2: [12, 28]
+      hdt_1_8mpa_c: [215, 235]
+
+    moisture_properties:
+      water_absorption_24h_pct: [1.0, 1.8]
+      moisture_max_pct: 0.08
+
+    applications:
+      primary:
+        - product: "Automotive structural components"
+          scrap_source: "Automotive manufacturing, end-of-life vehicles"
+          quality_tier_required: [1, 2]
+        - product: "Industrial housings and enclosures"
+          scrap_source: "Industrial use, manufacturing PIR"
+          quality_tier_required: [2, 3]
+
+    pcr_compatibility:
+      max_pcr_pct: 30
+      typical_pcr_pct: [10, 30]
+      note: "Glass fiber content must be consistent for property retention"
+
+  - grade_id: "PA66_GF30"
+    grade_name: "PA66 + 30% Glass Fiber"
+    description: "Ultra-high performance PA66 for demanding applications"
+    type: "virgin"
+
+    density:
+      value_g_cm3: [1.38, 1.40]
+
+    mechanical_properties:
+      tensile_strength_mpa: [185, 225]
+      flexural_modulus_gpa: [11.0, 15.0]
+      impact_strength_kj_m2: [10, 25]
+      hdt_1_8mpa_c: [225, 245]
+
+    moisture_properties:
+      water_absorption_24h_pct: [0.7, 1.5]
+      moisture_max_pct: 0.08
+
+    applications:
+      primary:
+        - product: "Automotive engine components (intake manifolds, covers)"
+          scrap_source: "Automotive manufacturing, end-of-life vehicles"
+          quality_tier_required: [1, 2]
+          note: "High-temp applications - premium grade"
+        - product: "Industrial structural components"
+          scrap_source: "Industrial use, manufacturing PIR"
+          quality_tier_required: [1, 2]
+
+    pcr_compatibility:
+      max_pcr_pct: 25
+      typical_pcr_pct: [10, 25]
+
+  - grade_id: "PA6_TEXTILE_FIBER"
+    grade_name: "PA6 Textile Fiber"
+    description: "PA6 for textile and fiber applications"
+    type: "virgin"
+
+    applications:
+      primary:
+        - product: "Nylon fibers and textiles (carpets, clothing)"
+          scrap_source: "Textile manufacturing, post-consumer textiles"
+          quality_tier_required: [3, 4]
+          note: "High contamination - chemical recycling preferred"
+
+    recycling_challenges:
+      high_contamination: "Dyes, organic matter, mixed fibers"
+      chemical_recycling_preferred: true
+      caprolactam_recovery: "75-95% yield via hydrolysis"
+
+# ============================================================================
+# RECYCLING RULES & CONTAMINATION PROFILES
+# ============================================================================
+
+recycling_rules:
+  - rule_id: "PA_MOISTURE_CRITICAL"
+    material_type: "PA"
+    rule: "PA is hygroscopic - moisture >0.10% causes hydrolysis and degradation"
+    reasoning: "PA absorbs moisture from air. Moisture >0.10% causes hydrolytic degradation during processing, reducing molecular weight and properties. Drying required before processing."
+    confidence: 0.95
+    moisture_max_pct: 0.10
+    drying_required: true
+    drying_temp_c: [80, 100]
+    drying_time_hours: [4, 8]
+
+  - rule_id: "PA_REGRIND_RETENTION_CYCLES"
+    material_type: "PA"
+    rule: "PA6 retains ~70% tensile strength after 3 cycles, PA66 ~75%"
+    reasoning: "After 3 cycles: PA6 tensile -22%, PA66 tensile -25%. Property retention 70-75%. Blend with virgin or use stabilizers."
+    confidence: 0.88
+    property_retention_pct: [70, 75]
+    cycles: 3
+
+  - rule_id: "PA_GLASS_FIBER_CONSISTENCY"
+    material_type: "PA"
+    rule: "Glass fiber content must be consistent for property retention"
+    reasoning: "GF content variation >5% causes significant property inconsistency. Separate GF10, GF15, GF20, GF30 grades for optimal recycling."
+    confidence: 0.92
+    gf_variation_max_pct: 5.0
+
+  - rule_id: "PA_TEXTILE_CHEMICAL_RECYCLING"
+    material_type: "PA"
+    rule: "Textile PA waste requires chemical recycling (caprolactam recovery)"
+    reasoning: "Textile PA contaminated with dyes, organic matter, mixed fibers. Mechanical recycling not viable. Chemical recycling via hydrolysis achieves 75-95% caprolactam yield."
+    confidence: 0.90
+    chemical_recycling_preferred: true
+    caprolactam_yield_pct: [75, 95]
+
+  - rule_id: "PA_INJECTION_PIR_PREMIUM"
+    material_type: "PA"
+    rule: "Injection molding PIR is highest quality PA scrap - Tier 1"
+    reasoning: "Injection PIR (runners, sprues): clean, single grade, known filler %, minimal contamination (<0.5%), 95%+ property retention. Premium value 25-40% above market."
+    confidence: 0.95
+    pir_characteristics:
+      contamination_pct: [0.1, 0.5]
+      quality_tier: 1
+      property_retention_pct: [95, 100]
+      value_premium_pct: [25, 40]
+
+  - rule_id: "PA6_PA66_SEPARATION"
+    material_type: "PA"
+    rule: "PA6 and PA66 should be separated for optimal recycling"
+    reasoning: "PA6 (Tm 215-225°C) and PA66 (Tm 255-265°C) have different processing requirements. Mixed grades reduce property consistency. Separate for best results."
+    confidence: 0.85
+    separation_recommended: true
+
+contamination_profiles:
+  - profile_id: "PA_INJECTION_PIR"
+    material_type: "PA"
+    source: "Injection molding PIR (runners, sprues)"
+    contamination_level: "minimal"
+    quality_tier: 1
+    typical_contaminants:
+      - "Minimal - clean manufacturing environment"
+      - "Known filler % (if GF)"
+    sorting_purity_pct: 99
+    suitable_applications:
+      - "All PA injection molding applications"
+      - "Automotive engine components"
+      - "Electrical connectors"
+
+  - profile_id: "PA_AUTOMOTIVE_COMPONENTS"
+    material_type: "PA"
+    source: "Automotive components (end-of-life vehicles)"
+    contamination_level: "low-medium"
+    quality_tier: 2
+    typical_contaminants:
+      - "Oil residue: <1%"
+      - "Metal inserts: <0.5%"
+      - "Paint/coating: <1%"
+    sorting_purity_pct: 85
+    processing_requirements:
+      washing: "recommended"
+      drying: "required"
+    suitable_applications:
+      - "Automotive interior parts"
+      - "Industrial applications"
+      - "Consumer appliances"
+
+  - profile_id: "PA_ELECTRONICS_HOUSINGS"
+    material_type: "PA"
+    source: "Electronics housings (post-consumer)"
+    contamination_level: "low-medium"
+    quality_tier: 2
+    typical_contaminants:
+      - "Metal inserts: <0.5%"
+      - "Adhesives: <0.5%"
+      - "Mixed PA grades: 1-2%"
+    sorting_purity_pct: 85
+    suitable_applications:
+      - "Electronics housings"
+      - "Industrial applications"
+
+  - profile_id: "PA_TEXTILE_WASTE"
+    material_type: "PA"
+    source: "Nylon textile waste (carpets, clothing)"
+    contamination_level: "very high"
+    quality_tier: 4
+    typical_contaminants:
+      - "Dyes: 2-5%"
+      - "Organic matter: 3-8%"
+      - "Mixed fibers: 2-5%"
+    sorting_purity_pct: 50
+    suitable_applications:
+      - "Chemical recycling (caprolactam recovery)"
+      - "Pyrolysis feedstock"
+    note: "Mechanical recycling not viable - chemical recycling preferred"
+
+# ============================================================================
+# BUYER PROFILES & MATCHING RULES
+# ============================================================================
+
+buyer_profiles:
+  - buyer_id: "PA_AUTOMOTIVE_TIER1"
+    buyer_type: "Automotive tier 1 supplier (engine components)"
+    industry_segment: "Automotive"
+
+    material_requirements:
+      polymer_types: ["PA66_GF30"]
+      purity_min_pct: 95
+      max_pcr_pct: 25
+      preferred_source: "Automotive manufacturing PIR, sorted automotive scrap"
+      quality_tier_required: [1, 2]
+      glass_contamination_max_pct: 2.0
+      other_polymer_max_pct: 1.0
+      moisture_max_pct: 0.08
+      color_preference: "black or natural"
+      form_preference: "pellets"
+
+    quality_specifications:
+      tensile_strength_min_mpa: 185
+      hdt_1_8mpa_min_c: 225
+      contamination_max_pct: 2.0
+
+    applications:
+      - "Automotive engine components (intake manifolds, covers)"
+
+    volume_range_tons_month: [50, 500]
+
+  - buyer_id: "PA_AUTOMOTIVE_TIER2"
+    buyer_type: "Automotive tier 2 supplier (interior parts)"
+    industry_segment: "Automotive"
+
+    material_requirements:
+      polymer_types: ["PA6_GF15", "PA66_GF15", "PA6_unfilled"]
+      purity_min_pct: 85
+      max_pcr_pct: 50
+      preferred_source: "Automotive manufacturing PIR, sorted automotive scrap"
+      quality_tier_required: [2, 3]
+      glass_contamination_max_pct: 8.0
+      other_polymer_max_pct: 3.0
+      color_preference: "any"
+      form_preference: "pellets"
+
+    quality_specifications:
+      contamination_max_pct: 3.0
+
+    applications:
+      - "Automotive interior parts (door handles, brackets)"
+      - "Automotive gears and bearings"
+
+    volume_range_tons_month: [100, 1000]
+
+  - buyer_id: "PA_ELECTRONICS_MANUFACTURERS"
+    buyer_type: "Electronics manufacturer"
+    industry_segment: "Electronics"
+
+    material_requirements:
+      polymer_types: ["PA66_GF15", "PA6_GF15", "PA66_unfilled"]
+      purity_min_pct: 85
+      max_pcr_pct: 40
+      preferred_source: "Electronics manufacturing PIR, sorted electronics scrap"
+      quality_tier_required: [2, 3]
+      glass_contamination_max_pct: 5.0
+      other_polymer_max_pct: 2.0
+      color_preference: "black or natural"
+      form_preference: "pellets"
+
+    quality_specifications:
+      contamination_max_pct: 3.0
+
+    applications:
+      - "Electronics housings and connectors"
+      - "Electrical connectors and switches"
+
+    volume_range_tons_month: [50, 500]
+
+  - buyer_id: "PA_INDUSTRIAL_GEARS"
+    buyer_type: "Industrial gears and bearings manufacturer"
+    industry_segment: "Industrial"
+
+    material_requirements:
+      polymer_types: ["PA6_unfilled", "PA66_unfilled"]
+      purity_min_pct: 90
+      max_pcr_pct: 40
+      preferred_source: "Industrial manufacturing PIR, sorted industrial scrap"
+      quality_tier_required: [1, 2]
+      other_polymer_max_pct: 2.0
+      color_preference: "natural or black"
+      form_preference: "pellets"
+
+    quality_specifications:
+      contamination_max_pct: 2.0
+
+    applications:
+      - "Industrial gears, bearings, bushings"
+
+    volume_range_tons_month: [50, 500]
+
+  - buyer_id: "PA_CONSUMER_APPLIANCE_MANUFACTURERS"
+    buyer_type: "Consumer appliance manufacturer"
+    industry_segment: "Consumer Goods"
+
+    material_requirements:
+      polymer_types: ["PA6_GF10", "PA66_GF10", "PA6_unfilled"]
+      purity_min_pct: 75
+      max_pcr_pct: 60
+      preferred_source: "any"
+      quality_tier_required: [2, 3]
+      glass_contamination_max_pct: 10.0
+      other_polymer_max_pct: 5.0
+      color_preference: "any"
+      form_preference: "pellets"
+
+    quality_specifications:
+      contamination_max_pct: 5.0
+
+    applications:
+      - "Consumer appliances (housings, components)"
+
+    volume_range_tons_month: [100, 1000]
+
+  - buyer_id: "PA_CHEMICAL_RECYCLERS"
+    buyer_type: "Chemical recycler (caprolactam recovery)"
+    industry_segment: "Chemical Recycling"
+
+    material_requirements:
+      polymer_types: ["PA6_textile", "PA6_contaminated"]
+      purity_min_pct: 50
+      max_pcr_pct: 100
+      preferred_source: "Textile waste, heavily contaminated PA6"
+      quality_tier_required: [4]
+      color_preference: "any"
+      form_preference: "any"
+
+    applications:
+      - "Caprolactam recovery via hydrolysis"
+      - "Chemical feedstock"
+
+    volume_range_tons_month: [200, 2000]
+    note: "Accepts heavily contaminated PA6 for chemical recycling"
+
+# ============================================================================
+# QUALITY INDICATORS & TESTING
+# ============================================================================
+
+quality_indicators:
+  - indicator_id: "PA_MOISTURE_CONTENT"
+    test_method: "Karl Fischer (ISO 15512)"
+    material_types: ["PA"]
+    thresholds:
+      excellent:
+        moisture_pct: [0, 0.05]
+      good:
+        moisture_pct: [0.05, 0.08]
+      acceptable:
+        moisture_pct: [0.08, 0.10]
+      poor:
+        moisture_pct: [0.10, 100]
+    significance: "Critical - moisture causes hydrolytic degradation"
+    action: "dry_if_above_0.10"
+
+  - indicator_id: "PA_ASH_CONTENT"
+    test_method: "ASTM D2584"
+    material_types: ["PA"]
+    thresholds:
+      unfilled:
+        ash_pct: [0, 1.0]
+      gf10:
+        ash_pct: [5, 12]
+      gf15:
+        ash_pct: [10, 18]
+      gf20:
+        ash_pct: [15, 25]
+      gf30:
+        ash_pct: [25, 35]
+    significance: "Indicates filler content (GF, talc, etc.)"
+
+  - indicator_id: "PA_DENSITY"
+    test_method: "ISO 1183"
+    material_types: ["PA"]
+    thresholds:
+      pa6_unfilled: [1.13, 1.15]
+      pa66_unfilled: [1.14, 1.20]
+      pa6_gf30: [1.35, 1.37]
+      pa66_gf30: [1.38, 1.40]
+    significance: "Indicates PA type and filler content"
+
+  - indicator_id: "PA_COLOR_CONSISTENCY"
+    test_method: "Visual inspection"
+    material_types: ["PA"]
+    thresholds:
+      excellent: "Natural/clear, consistent color"
+      good: "Single consistent color"
+      acceptable: "Mixed colors or moderate discoloration"
+      poor: "Heavily mixed or degraded color"
+    significance: "Indicates thermal degradation and source quality"
+
+# ============================================================================
+# INFERENCE RULES & MATCHING LOGIC
+# ============================================================================
+
+inference_rules:
+  - rule_id: "PA_PRODUCT_TO_BUYER_FORWARD"
+    inference_type: "buyer_matching"
+    logic: "IF product=engine_components THEN grade=pa66_gf30 AND quality_tier=[1,2] AND match_buyers=[automotive_tier1]"
+    reasoning: "Forward reasoning from product to suitable buyers based on grade and quality tier"
+    confidence: 0.90
+
+  - rule_id: "PA_BUYER_TO_SOURCE_BACKWARD"
+    inference_type: "source_matching"
+    logic: "IF buyer=automotive_tier1 THEN require_grade=pa66_gf30 AND require_tier=[1,2] AND require_moisture<0.08"
+    reasoning: "Backward reasoning from buyer requirements to acceptable sources"
+    confidence: 0.98
+
+  - rule_id: "PA_INJECTION_PIR_PREMIUM_MATCHING"
+    inference_type: "buyer_matching"
+    logic: "IF source=injection_pir AND contamination<0.5% THEN tier=1 AND match_all_buyers"
+    reasoning: "Injection PIR is premium quality - suitable for all PA applications"
+    confidence: 0.95
+
+  - rule_id: "PA_MOISTURE_REJECTION"
+    inference_type: "quality_control"
+    logic: "IF moisture>0.10% THEN require_drying OR reject"
+    reasoning: "Moisture >0.10% causes hydrolytic degradation - drying required"
+    confidence: 0.95
+
+  - rule_id: "PA_TEXTILE_CHEMICAL_ROUTING"
+    inference_type: "buyer_matching"
+    logic: "IF source=textile_waste THEN route_to_chemical_recycling"
+    reasoning: "Textile PA heavily contaminated - mechanical recycling not viable"
+    confidence: 0.90
+
+  - rule_id: "PA_GF_CONTENT_MATCHING"
+    inference_type: "buyer_matching"
+    logic: "IF gf_content>=30% THEN automotive_structural OR industrial_housings; IF gf_content<10% THEN gears_bearings OR consumer_appliances"
+    reasoning: "GF content determines application suitability"
+    confidence: 0.88
+
+  - rule_id: "PA6_PA66_SEPARATION_ROUTING"
+    inference_type: "processing_requirement"
+    logic: "IF mixed_pa6_pa66 THEN separation_recommended FOR optimal_properties"
+    reasoning: "PA6 and PA66 have different processing requirements - separation improves quality"
+    confidence: 0.85
+
+# ============================================================================
+# STANDARDS & TESTING METHODS
+# ============================================================================
+
+standards:
+  - standard_id: "ISO_307"
+    title: "Plastics - Polyamides - Determination of viscosity number"
+    scope: "Defines relative viscosity (RV) measurement for PA"
+    relevance: "Primary quality indicator for PA molecular weight"
+
+  - standard_id: "ISO_1183"
+    title: "Plastics - Methods for determining the density"
+    scope: "Density measurement for PA type identification"
+    relevance: "Distinguishes PA6, PA66, and filler content"
+
+  - standard_id: "ISO_62"
+    title: "Plastics - Determination of water absorption"
+    scope: "Water absorption measurement"
+    relevance: "Critical for PA moisture management"
+
+  - standard_id: "ISO_527"
+    title: "Plastics - Determination of tensile properties"
+    scope: "Tensile strength and elongation measurement"
+    relevance: "Key mechanical property for PA quality assessment"
+
+  - standard_id: "ISO_15512"
+    title: "Plastics - Determination of water content (Karl Fischer)"
+    scope: "Moisture content measurement"
+    relevance: "Critical for PA processing quality control"
+
+# ============================================================================
+# PROCESSING GUIDANCE
+# ============================================================================
+
+processing_guidance:
+  drying:
+    required: true
+    note: "PA is hygroscopic - drying REQUIRED before processing"
+    moisture_threshold_pct: 0.10
+    drying_temp_c: [80, 100]
+    drying_time_hours: [4, 8]
+
+  temperature_control:
+    pa6_processing_temp_c: [240, 270]
+    pa66_processing_temp_c: [270, 300]
+    degradation_onset_c: 320
+
+  mixing_pcr_virgin:
+    recommended_method: "Dry blend or masterbatch"
+    max_pcr_pct_by_application:
+      automotive_engine: 25
+      automotive_interior: 50
+      electronics_housings: 40
+      industrial_gears: 40
+      consumer_appliances: 60
+
+  contamination_removal:
+    washing: "Recommended for post-consumer sources"
+    sorting: "Critical - separate PA6 from PA66, separate by GF content"
+    moisture_removal: "REQUIRED - drying before processing"
+
+  chemical_recycling:
+    textile_waste: "Hydrolysis for caprolactam recovery (75-95% yield)"
+    contaminated_pa6: "Chemical recycling preferred over mechanical"
+
+# ============================================================================
+# END OF PA KB v7.0r
+# ============================================================================

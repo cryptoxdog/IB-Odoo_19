@@ -222,7 +222,7 @@
       <field name="code">mixed</field>
       <field name="full_name">Mixed / Co-mingled</field>
       <field name="category">commodity</field>
-      <field name="sequence">15</field>
+      <field name="sequence">235</field>
     </record>
     <record id="polymer_pp_pe" model="plasticos.polymer">
       <field name="name">PP/PE</field>

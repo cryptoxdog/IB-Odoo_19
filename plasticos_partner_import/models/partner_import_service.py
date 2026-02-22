@@ -94,7 +94,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
         """Generate external ID from name."""
         # Sanitize: lowercase, replace non-alphanum with underscore
         safe = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
-        return f"plasticos_import.{prefix}_{safe}"
+        return f"plasticos_partner_import.{prefix}_{safe}"
 
     def _normalize_email(self, email_str):
         """Extract first valid email from potentially messy string."""
@@ -159,21 +159,26 @@ class PlasticosPartnerImportService(models.AbstractModel):
         Import from CSV files directly.
 
         Args:
-            corporate_csv_path: Path to corporate CSV (file 1)
-            facility_csv_path: Path to facility CSV (file 2)
+            corporate_csv_path: Path to corporate CSV (file 1), or None to skip
+            facility_csv_path: Path to facility CSV (file 2), or None to skip
 
         Returns:
-            dict with counts
+            dict with counts (corporates, facilities, contacts; and for wizard: corporates_created, etc.)
         """
         _logger.info("Starting CSV import: corporate=%s, facility=%s", corporate_csv_path, facility_csv_path)
 
         self.env["plasticos.partner.import.validation"].validate_reference_integrity()
 
-        # Phase 1: Load corporates
-        corporate_count = self._import_corporate_csv(corporate_csv_path)
+        # Phase 1: Load corporates (only if path provided)
+        corporate_count = 0
+        if corporate_csv_path:
+            corporate_count = self._import_corporate_csv(corporate_csv_path)
 
-        # Phase 2: Load facilities and their contacts
-        facility_count, contact_count = self._import_facility_csv(facility_csv_path)
+        # Phase 2: Load facilities and their contacts (only if path provided)
+        facility_count = 0
+        contact_count = 0
+        if facility_csv_path:
+            facility_count, contact_count = self._import_facility_csv(facility_csv_path)
 
         self.env["plasticos.partner.import.validation"].validate_partner_graph()
 
@@ -181,6 +186,13 @@ class PlasticosPartnerImportService(models.AbstractModel):
             "corporates": corporate_count,
             "facilities": facility_count,
             "contacts": contact_count,
+            # Wizard-friendly keys (no created/updated split in CSV flow)
+            "corporates_created": corporate_count,
+            "corporates_updated": 0,
+            "facilities_created": facility_count,
+            "facilities_updated": 0,
+            "contacts_created": contact_count,
+            "errors": [],
         }
         _logger.info("CSV import complete: %s", counts)
         return counts

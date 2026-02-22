@@ -78,11 +78,10 @@ class PlasticosFacilityProfile(models.Model):
     # ── Form Preference ──────────────────────────────────────
     form_preference = fields.Selection(
         [
+            ("bales", "Bales"),
             ("flake", "Flake"),
             ("pellet", "Pellet"),
             ("regrind", "Regrind"),
-            ("bale", "Bale"),
-            ("film", "Film"),
             ("sheet", "Sheet"),
             ("parts", "Parts"),
             ("powder", "Powder"),

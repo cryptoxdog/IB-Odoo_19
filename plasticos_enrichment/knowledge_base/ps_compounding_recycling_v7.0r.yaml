@@ -1,0 +1,547 @@
+# MACK Knowledge Base: PS (Polystyrene) Compounding & Recycling v7.0r
+# Purpose: Enable MACK reasoning for PS material identification, buyer matching
+# Compatible with: MACK v7.0 Odoo reasoning engine
+# Last Updated: 2025-11-05
+# Data Sources: ASTM D4549, C578, ISO 2897, comprehensive HIPS/PS recycling research
+
+metadata:
+  polymer_family: "Styrenics"
+  polymer_type: "PS"
+  full_name: "Polystyrene"
+  resin_id_code: 6
+  cas_number: "9003-53-6"
+  version: "7.0r"
+  last_updated: "2025-11-05"
+  data_quality: "verified"
+  source_tier: "tier_1"  # ASTM standards + comprehensive recycling research
+
+
+# ============================================================================
+# MATERIAL PROPERTIES & GRADES
+# ============================================================================
+
+material_grades:
+  - grade_id: "PS_GPPS_HIGH_FLOW"
+    grade_name: "General Purpose PS (GPPS) - High Flow"
+    description: "Crystal clear PS for thin-wall packaging and complex geometries"
+    type: "virgin"
+
+    melt_flow_rate:
+      value_g_10min: [15, 25]
+      test_conditions: "200°C/5kg"
+      test_method: "ASTM D1238"
+
+    density:
+      range_g_cm3: [1.04, 1.06]
+      typical_g_cm3: 1.05
+      test_method: "ASTM D792"
+
+    processing_temperatures:
+      melt_temp_c: [180, 260]
+      optimal_range_c: [200, 240]
+      decomposition_temp_c: 300
+
+    mechanical_properties:
+      tensile_strength_mpa: [35, 50]
+      flexural_modulus_mpa: [3000, 3500]
+      impact_strength_j_m: [15, 25]  # Brittle
+      hdt_c: [70, 100]
+      elongation_at_break_pct: [1, 4]
+      test_method: "ASTM D638, D790, D256, D648"
+
+    optical_properties:
+      light_transmission_pct: 90
+      clarity: "excellent"
+      haze: "low"
+
+    applications:
+      primary:
+        - "Disposable cups and containers"
+        - "CD/DVD cases"
+        - "Packaging applications"
+      secondary:
+        - "Laboratory equipment"
+        - "Optical components"
+
+    pcr_compatibility:
+      max_pcr_pct: 30
+      typical_pcr_pct: [10, 20]
+      quality_requirements: "Strict - optical clarity critical, <0.5% contamination"
+
+    market_data:
+      availability: "abundant"
+      demand: "moderate"
+
+  - grade_id: "PS_HIPS_APPLIANCE"
+    grade_name: "High Impact PS (HIPS) - Appliance Grade"
+    description: "Impact-modified PS for appliance housings and structural parts"
+    type: "virgin"
+
+    rubber_content:
+      polybutadiene_pct: [5, 15]
+      particle_size_um: [0.5, 3.0]
+
+    melt_flow_rate:
+      value_g_10min: [3, 12]
+      test_conditions: "200°C/5kg"
+      test_method: "ASTM D1238"
+
+    density:
+      range_g_cm3: [1.03, 1.06]
+      typical_g_cm3: 1.04
+      test_method: "ASTM D792"
+
+    processing_temperatures:
+      melt_temp_c: [180, 250]
+      optimal_range_c: [200, 230]
+
+    mechanical_properties:
+      tensile_strength_mpa: [20, 40]
+      flexural_modulus_mpa: [1800, 2500]
+      impact_strength_j_m: [80, 150]  # Significantly higher than GPPS
+      hdt_c: [65, 85]
+      elongation_at_break_pct: [15, 50]
+      test_method: "ASTM D638, D790, D256, D648"
+
+    appearance:
+      clarity: "opaque"
+      color: "typically white or colored"
+
+    applications:
+      primary:
+        - "Appliance housings (refrigerators, TVs)"
+        - "Automotive interior components"
+        - "Electronics housings"
+      secondary:
+        - "Toys and sporting goods"
+        - "Food packaging containers"
+        - "Point-of-purchase displays"
+
+    pcr_compatibility:
+      max_pcr_pct: 50
+      typical_pcr_pct: [15, 35]
+      quality_requirements: "Moderate - rubber phase compensates for property loss, <0.8% contamination acceptable"
+      property_retention_note: "HIPS tensile strength maintains or improves during initial recycling (unique advantage)"
+
+    market_data:
+      availability: "abundant"
+      demand: "high"
+
+  - grade_id: "PS_EPS_INSULATION"
+    grade_name: "Expandable PS (EPS) - Insulation Grade"
+    description: "EPS beads for building insulation and packaging applications"
+    type: "virgin"
+
+    bead_specifications:
+      bead_size_mm: [0.5, 3.0]
+      pentane_content_pct: [4, 8]
+      expansion_ratio: [20, 50]
+
+    foam_density:
+      low_density_kg_m3: [12, 20]
+      medium_density_kg_m3: [20, 35]
+      high_density_kg_m3: [35, 50]
+      test_method: "ASTM C578"
+
+    processing_parameters:
+      pre_expansion_temp_c: [80, 100]
+      molding_temp_c: [100, 120]
+      steam_pressure_mpa: [0.05, 0.2]
+      aging_time_hours: [4, 24]
+
+    mechanical_properties:
+      compressive_strength_kpa: [70, 350]
+      flexural_strength_kpa: [200, 700]
+      thermal_conductivity_w_m_k: [0.030, 0.040]
+      water_absorption_pct: 4
+      test_method: "ASTM D1621, C203, C272"
+
+    applications:
+      primary:
+        - "Building insulation"
+        - "Protective packaging"
+        - "Food containers (cups, trays)"
+      secondary:
+        - "Flotation devices"
+        - "Geofoam (civil engineering)"
+
+    pcr_compatibility:
+      max_pcr_pct: 40
+      typical_pcr_pct: [20, 30]
+      quality_requirements: "Moderate - foam structure masks property changes, contamination affects expansion"
+      densification_requirement: "Yes - $50k-500k equipment for 50:1 volume reduction"
+
+    market_data:
+      availability: "abundant"
+      demand: "high"
+      recycling_rate_global: "5%"
+      recycling_rate_europe: "30%"
+
+# ============================================================================
+# RECYCLING RULES & CONTAMINATION PROFILES
+# ============================================================================
+
+recycling_rules:
+  - rule_id: "PS_HIPS_PROPERTY_RETENTION"
+    material_type: "HIPS"
+    rule: "HIPS demonstrates unique property retention advantage during recycling"
+    reasoning: "Unlike most thermoplastics, HIPS tensile strength maintains or improves slightly during initial recycling (25-32 MPa recycled vs 22-35 MPa virgin). Impact strength shows minimal degradation (35-38 kJ/m² vs 36-39 kJ/m²). Multi-cycle retention: 82% tensile, 68% impact after 6 cycles."
+    confidence: 0.92
+    source: "Comprehensive HIPS/PS recycling research 2024-2025"
+
+  - rule_id: "PS_GPPS_DEGRADATION"
+    material_type: "GPPS"
+    rule: "GPPS shows greater property degradation than HIPS during recycling"
+    reasoning: "GPPS tensile strength decreases 10-20% (30-45 MPa), impact strength declines 20-30% (1.5-2.5 kJ/m²). Multi-cycle retention: 62% tensile, 50% impact after 6 cycles. Lack of rubber modification makes GPPS more susceptible to chain scission."
+    confidence: 0.90
+    source: "Comprehensive HIPS/PS recycling research"
+
+  - rule_id: "PS_WEEE_HIPS_PREMIUM"
+    material_type: "HIPS"
+    source_type: "WEEE electronics"
+    rule: "WEEE-sourced HIPS commands significant premium due to superior supply chain"
+    reasoning: "WEEE HIPS: 70% collection efficiency (vs 45% general), 90% sorting purity (vs 85%), $260/ton processing cost (vs $280), 25% recycling rate (vs 0.1% general HIPS). Established electronics manufacturer relationships."
+    confidence: 0.88
+    value_premium_pct: [15, 25]
+
+  - rule_id: "PS_FOOD_SERVICE_CHALLENGE"
+    material_type: "GPPS"
+    source_type: "food service"
+    rule: "Food service PS presents severe supply chain challenges"
+    reasoning: "Only 10% collection efficiency, 60% sorting purity (contamination), $420/ton processing cost (highest among PS streams), 1,200 kt/year global generation. Food residues, inks, mixed materials create quality issues."
+    confidence: 0.85
+    value_discount_pct: [20, 30]
+
+  - rule_id: "PS_EPS_DENSIFICATION_CRITICAL"
+    material_type: "EPS"
+    rule: "EPS densification is critical economic requirement"
+    reasoning: "EPS is 98% air, 2% plastic. Without densification, transportation is uneconomical. Densification equipment ($50k-500k) achieves 50:1 volume reduction, enabling viable recycling for insulation applications."
+    confidence: 0.90
+    equipment_requirement: "densifier"
+
+  - rule_id: "PS_MULTI_CYCLE_LIMITS"
+    rule: "PS recycling cycle limits vary by type and application"
+    reasoning: "HIPS premium apps: 1-3 cycles max, HIPS industrial: 4-5 cycles acceptable, HIPS construction: 6+ cycles OK. GPPS premium: 1-2 cycles max, GPPS general: 3-4 cycles limit, GPPS 5+ unsuitable."
+    confidence: 0.85
+
+  - rule_id: "PS_CLARITY_DEGRADATION"
+    material_type: "GPPS"
+    rule: "Optical clarity degrades significantly with recycling"
+    reasoning: "GPPS clarity (>90% light transmission virgin) decreases with each cycle due to contamination, oxidation, and molecular weight changes. Limits PCR use in optical applications."
+    confidence: 0.88
+
+  - rule_id: "PS_BRITTLENESS_INCREASE"
+    material_type: "GPPS"
+    rule: "GPPS brittleness increases with recycling, limiting structural applications"
+    reasoning: "Already brittle virgin GPPS (1.5-2.5 kJ/m² impact) becomes more brittle with recycling. HIPS rubber phase compensates, making HIPS more recyclable."
+    confidence: 0.90
+
+contamination_profiles:
+  - profile_id: "PS_WEEE_HIPS_CLEAN"
+    material_type: "HIPS"
+    source: "WEEE electronics"
+    contamination_level: "low"
+    typical_contaminants:
+      - "Metals (screws, brackets): <100 ppm"
+      - "Adhesives: <0.3%"
+      - "Labels/printing: <0.2%"
+      - "Other plastics (ABS, PC): <2%"
+    sorting_purity_pct: 90
+    collection_efficiency_pct: 70
+    processing_cost_usd_ton: 260
+    value_range_usd_ton: [720, 850]
+
+  - profile_id: "PS_FOOD_SERVICE_CONTAMINATED"
+    material_type: "GPPS"
+    source: "food service"
+    contamination_level: "high"
+    typical_contaminants:
+      - "Food residues: 5-15%"
+      - "Inks and printing: 1-3%"
+      - "Mixed materials: 3-8%"
+      - "Moisture: >1000 ppm"
+    sorting_purity_pct: 60
+    collection_efficiency_pct: 10
+    processing_cost_usd_ton: 420
+    value_range_usd_ton: [100, 250]
+    washing_required: true
+
+  - profile_id: "PS_EPS_CONSTRUCTION"
+    material_type: "EPS"
+    source: "construction/demolition"
+    contamination_level: "high"
+    typical_contaminants:
+      - "Concrete dust: 5-20%"
+      - "Adhesives: 2-5%"
+      - "Construction debris: 3-10%"
+      - "Moisture: >2000 ppm"
+    sorting_purity_pct: 70
+    collection_efficiency_pct: 10
+    processing_cost_usd_ton: 380
+    densification_required: true
+    value_range_usd_ton: [80, 180]
+
+# ============================================================================
+# BUYER PROFILES
+# ============================================================================
+
+buyer_profiles:
+  - buyer_id: "PS_ELECTRONICS_HOUSING"
+    buyer_type: "Electronics manufacturer"
+    material_requirements:
+      polymer_types: ["HIPS"]
+      purity_min_pct: 95
+      max_pcr_pct: 50
+      color_preference: "consistent single color or black"
+      form_preference: "pellets or regrind"
+
+    quality_specifications:
+      impact_strength_min_j_m: 80
+      tensile_strength_min_mpa: 25
+      contamination_max_pct: 0.8
+      moisture_max_ppm: 500
+
+    certifications_required:
+      - "UL listed (electrical safety)"
+      - "RoHS compliant"
+
+    applications:
+      - "TV housings"
+      - "Computer housings"
+      - "Monitor bezels"
+
+    volume_range_tons_month: [50, 500]
+    price_sensitivity: "moderate"
+
+  - buyer_id: "PS_PACKAGING_THERMOFORM"
+    buyer_type: "Packaging manufacturer"
+    material_requirements:
+      polymer_types: ["GPPS"]
+      purity_min_pct: 92
+      max_pcr_pct: 30
+      color_preference: "clear or white"
+      form_preference: "pellets"
+
+    quality_specifications:
+      clarity: "high (for clear applications)"
+      tensile_strength_min_mpa: 35
+      contamination_max_pct: 0.5
+      odor: "none to minimal"
+
+    certifications_required:
+      - "FDA food contact (for food packaging)"
+
+    applications:
+      - "Clamshell packaging"
+      - "Blister packs"
+      - "Food trays"
+
+    volume_range_tons_month: [100, 1000]
+    price_sensitivity: "high"
+
+  - buyer_id: "PS_EPS_INSULATION"
+    buyer_type: "Building materials manufacturer"
+    material_requirements:
+      polymer_types: ["EPS"]
+      purity_min_pct: 80
+      max_pcr_pct: 100
+      color_preference: "any"
+      form_preference: "densified bales or pellets"
+
+    quality_specifications:
+      thermal_conductivity_max_w_m_k: 0.040
+      compressive_strength_min_kpa: 70
+      contamination_max_pct: 5
+
+    certifications_required:
+      - "ASTM C578 (thermal insulation)"
+
+    applications:
+      - "Building insulation panels"
+      - "Geofoam"
+
+    volume_range_tons_month: [200, 2000]
+    price_sensitivity: "very high"
+    densification_equipment: "required"
+
+# ============================================================================
+# QUALITY INDICATORS
+# ============================================================================
+
+quality_indicators:
+  - indicator_id: "PS_IMPACT_STRENGTH"
+    test_method: "ASTM D256 (Izod notched)"
+    material_types: ["HIPS", "GPPS"]
+    thresholds:
+      excellent:
+        hips_j_m: [100, 150]
+        gpps_j_m: [20, 25]
+      good:
+        hips_j_m: [80, 100]
+        gpps_j_m: [15, 20]
+      acceptable:
+        hips_j_m: [60, 80]
+        gpps_j_m: [10, 15]
+      poor:
+        hips_j_m: [0, 60]
+        gpps_j_m: [0, 10]
+    significance: "Critical for HIPS applications, GPPS inherently brittle"
+
+  - indicator_id: "PS_OPTICAL_CLARITY"
+    test_method: "ASTM D1003 (haze and light transmission)"
+    material_types: ["GPPS"]
+    thresholds:
+      excellent:
+        light_transmission_pct: [88, 92]
+        haze_pct: [0, 3]
+      good:
+        light_transmission_pct: [82, 88]
+        haze_pct: [3, 6]
+      acceptable:
+        light_transmission_pct: [75, 82]
+        haze_pct: [6, 10]
+      poor:
+        light_transmission_pct: [0, 75]
+        haze_pct: [10, 100]
+    significance: "Critical for clear packaging and optical applications"
+
+  - indicator_id: "PS_MFR_CONSISTENCY"
+    test_method: "ASTM D1238 (200°C/5kg)"
+    material_types: ["HIPS", "GPPS", "EPS"]
+    thresholds:
+      excellent: "±5% of target MFR"
+      good: "±10% of target MFR"
+      acceptable: "±15% of target MFR"
+      poor: ">±15% of target MFR"
+    significance: "Indicates processing consistency and molecular weight stability"
+
+# ============================================================================
+# INFERENCE RULES
+# ============================================================================
+
+inference_rules:
+  - rule_id: "PS_TYPE_IDENTIFICATION"
+    inference_type: "material_identification"
+    logic: "IF impact_strength >60 J/m THEN HIPS; IF impact_strength <30 J/m AND clear THEN GPPS; IF density <0.8 g/cm³ THEN EPS"
+    confidence: 0.92
+
+  - rule_id: "PS_WEEE_SOURCE_PREMIUM"
+    inference_type: "pricing"
+    logic: "IF material=HIPS AND source=WEEE electronics THEN apply +15-25% premium due to superior supply chain"
+    confidence: 0.88
+
+  - rule_id: "PS_FOOD_SERVICE_DISCOUNT"
+    inference_type: "pricing"
+    logic: "IF source=food_service THEN apply -20-30% discount due to contamination and collection challenges"
+    confidence: 0.85
+
+  - rule_id: "PS_EPS_DENSIFICATION_REQUIREMENT"
+    inference_type: "processing"
+    logic: "IF material=EPS AND form=loose_foam THEN densification_required=true AND equipment_cost=$50k-500k"
+    confidence: 0.90
+
+  - rule_id: "PS_HIPS_PCR_ADVANTAGE"
+    inference_type: "buyer_matching"
+    logic: "IF application=structural AND impact_required THEN prefer_HIPS_over_GPPS due to property retention advantage"
+    confidence: 0.88
+
+  - rule_id: "PS_CLARITY_CRITICAL_APPS"
+    inference_type: "buyer_matching"
+    logic: "IF application=optical OR packaging_clear THEN require GPPS AND max_pcr_pct=20% due to clarity degradation"
+    confidence: 0.90
+
+# ============================================================================
+# STANDARDS & TESTING
+# ============================================================================
+
+standards:
+  - standard_id: "ASTM_D4549"
+    title: "Classification System for Polystyrene Materials"
+    scope: "Defines PS types, grades, and property requirements"
+    key_parameters:
+      - "Melt flow rate"
+      - "Density"
+      - "Impact strength"
+      - "Tensile properties"
+    relevance: "Primary classification standard for PS materials"
+
+  - standard_id: "ASTM_C578"
+    title: "Rigid Cellular Polystyrene Thermal Insulation"
+    scope: "EPS insulation specifications and testing"
+    key_parameters:
+      - "Thermal conductivity"
+      - "Compressive strength"
+      - "Water absorption"
+      - "Density"
+    relevance: "Critical for EPS insulation applications"
+
+  - standard_id: "ASTM_D1238"
+    title: "Melt Flow Rates of Thermoplastics"
+    test_conditions: "200°C/5kg for PS"
+    significance: "Indicates molecular weight and processability"
+
+  - standard_id: "ISO_2897"
+    title: "Polystyrene (PS) molding and extrusion materials"
+    scope: "International PS material specifications"
+    relevance: "Global trade and quality standards"
+
+# ============================================================================
+# MARKET INTELLIGENCE
+# ============================================================================
+
+market_intelligence:
+  # Note: Pricing moved to pricing_model section for dynamic reasoning
+
+  supply_demand:
+    current_state: "Balanced with regional variations"
+    trends:
+      - "EPS bans in many jurisdictions reducing food service demand"
+      - "WEEE HIPS recycling infrastructure maturing (25% rate)"
+      - "Chemical recycling (depolymerization to styrene) expanding"
+      - "Low overall PS recycling rate (0.1% globally, 5% EPS)"
+      - "Growing demand for recycled content in electronics"
+
+  regulatory:
+    current:
+      - "EPS food service bans in 100+ US cities/states"
+      - "EU Single-Use Plastics Directive restricts PS food service"
+      - "California recycled content mandates expanding"
+      - "FDA food contact approval required for food packaging PCR"
+    emerging:
+      - "Extended Producer Responsibility (EPR) for PS packaging"
+      - "Minimum recycled content requirements spreading"
+      - "Chemical recycling regulatory frameworks developing"
+
+# ============================================================================
+# PROCESSING GUIDANCE
+# ============================================================================
+
+processing_guidance:
+  drying:
+    required: true
+    temperature_c: [70, 80]
+    duration_hours: [2, 4]
+    moisture_target_ppm: 300
+    reasoning: "PS is hygroscopic, moisture causes degradation and surface defects"
+
+  temperature_control:
+    critical: true
+    degradation_onset_c: 300
+    color_change_warning: "Yellowing indicates thermal degradation"
+
+  mixing_pcr_virgin:
+    recommended_method: "Dry blend or masterbatch"
+    homogenization: "Critical for property consistency"
+    max_pcr_pct_by_application:
+      optical: 20
+      structural_hips: 50
+      insulation_eps: 100
+
+  contamination_removal:
+    metal_detection: "Required for electronics applications"
+    washing: "Required for food service sourced material"
+    densification: "Required for EPS (50:1 volume reduction)"
+
+# ============================================================================
+# END OF PS KB v7.0r
+# ============================================================================

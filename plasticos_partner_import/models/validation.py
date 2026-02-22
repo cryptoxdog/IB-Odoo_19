@@ -74,3 +74,152 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
 
         _logger.info("Partner graph validated: %d partners checked", len(partners))
         return True
+
+    def audit_import_integrity(self):
+        """
+        Report possible issues after a partial or incorrect import.
+        Does not raise; returns a dict of findings for display or repair.
+
+        Returns:
+            dict with keys: old_external_ids, facilities_missing_role,
+            contacts_missing_parent, duplicate_external_ids, summary
+        """
+        IrModelData = self.env["ir.model.data"]
+        Partner = self.env["res.partner"]
+
+        # 1. Partners with old external ID module (plasticos_import instead of plasticos_partner_import)
+        old_data = IrModelData.search(
+            [
+                ("module", "=", "plasticos_import"),
+                ("model", "=", "res.partner"),
+                ("res_id", "!=", 0),
+            ]
+        )
+        old_external_ids = [
+            {"xmlid": f"{d.module}.{d.name}", "res_id": d.res_id, "partner": Partner.browse(d.res_id).name}
+            for d in old_data
+            if Partner.browse(d.res_id).exists()
+        ]
+
+        # 2. Facility companies (company + parent) missing x_facility_role
+        facilities = Partner.search(
+            [
+                ("company_type", "=", "company"),
+                ("parent_id", "!=", False),
+            ]
+        )
+        facilities_missing_role = [
+            {"id": p.id, "name": p.name, "parent": p.parent_id.name} for p in facilities if not p.x_facility_role
+        ]
+
+        # 3. Contacts (person) with no parent
+        contacts_no_parent = Partner.search(
+            [
+                ("company_type", "=", "person"),
+                ("parent_id", "=", False),
+            ]
+        )
+        contacts_missing_parent = [{"id": p.id, "name": p.name} for p in contacts_no_parent]
+
+        # 4. Duplicate external ID names (same name under old and new module)
+        new_module_data = IrModelData.search(
+            [
+                ("module", "=", "plasticos_partner_import"),
+                ("model", "=", "res.partner"),
+            ]
+        )
+        new_names = {d.name for d in new_module_data}
+        duplicate_external_ids = [item for item in old_external_ids if item["xmlid"].split(".")[-1] in new_names]
+
+        summary_parts = []
+        if old_external_ids:
+            summary_parts.append(f"{len(old_external_ids)} partner(s) with old external ID (plasticos_import)")
+        if facilities_missing_role:
+            summary_parts.append(f"{len(facilities_missing_role)} facility(ies) missing x_facility_role")
+        if contacts_missing_parent:
+            summary_parts.append(f"{len(contacts_missing_parent)} contact(s) with no parent")
+        if duplicate_external_ids:
+            summary_parts.append(
+                f"{len(duplicate_external_ids)} duplicate(s): same name exists under plasticos_partner_import"
+            )
+        summary = "; ".join(summary_parts) if summary_parts else "No issues found."
+
+        return {
+            "old_external_ids": old_external_ids,
+            "facilities_missing_role": facilities_missing_role,
+            "contacts_missing_parent": contacts_missing_parent,
+            "duplicate_external_ids": duplicate_external_ids,
+            "summary": summary,
+        }
+
+    def repair_import_data(self, dry_run=True):
+        """
+        Fix common post-import issues:
+        - Set x_facility_role = 'other' for facility companies that lack it.
+        - Migrate ir.model.data from module plasticos_import to plasticos_partner_import
+          only when no duplicate (same name) exists in plasticos_partner_import.
+
+        Returns:
+            dict with keys: facilities_fixed, external_ids_migrated, errors, summary
+        """
+        Partner = self.env["res.partner"]
+        IrModelData = self.env["ir.model.data"]
+
+        facilities_fixed = 0
+        external_ids_migrated = 0
+        errors = []
+
+        if not dry_run:
+            # Fix facilities missing x_facility_role
+            facilities = Partner.search(
+                [
+                    ("company_type", "=", "company"),
+                    ("parent_id", "!=", False),
+                    ("x_facility_role", "=", False),
+                ]
+            )
+            for p in facilities:
+                try:
+                    p.x_facility_role = "other"
+                    facilities_fixed += 1
+                except Exception as e:
+                    errors.append(f"Facility id={p.id} ({p.name}): {e}")
+
+            # Migrate external IDs: plasticos_import -> plasticos_partner_import where no duplicate
+            new_names = set(
+                IrModelData.search(
+                    [
+                        ("module", "=", "plasticos_partner_import"),
+                        ("model", "=", "res.partner"),
+                    ]
+                ).mapped("name")
+            )
+            old_data = IrModelData.search(
+                [
+                    ("module", "=", "plasticos_import"),
+                    ("model", "=", "res.partner"),
+                ]
+            )
+            for d in old_data:
+                if d.name in new_names:
+                    continue
+                try:
+                    d.module = "plasticos_partner_import"
+                    external_ids_migrated += 1
+                except Exception as e:
+                    errors.append(f"ir.model.data id={d.id} ({d.module}.{d.name}): {e}")
+
+        summary = (
+            "Dry run: no changes."
+            if dry_run
+            else (
+                f"Fixed {facilities_fixed} facility role(s); migrated {external_ids_migrated} external ID(s)."
+                + (" " + "; ".join(errors[:5]) if errors else "")
+            )
+        )
+        return {
+            "facilities_fixed": facilities_fixed,
+            "external_ids_migrated": external_ids_migrated,
+            "errors": errors,
+            "summary": summary,
+        }

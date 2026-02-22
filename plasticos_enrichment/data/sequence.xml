@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo noupdate="1">
+    <record id="seq_enrichment_run" model="ir.sequence">
+        <field name="name">Enrichment Run Sequence</field>
+        <field name="code">plasticos.enrichment.run</field>
+        <field name="prefix">ENR-</field>
+        <field name="padding">5</field>
+    </record>
+</odoo>

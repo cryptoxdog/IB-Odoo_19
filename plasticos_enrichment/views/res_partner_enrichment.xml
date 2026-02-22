@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_partner_form_enrichment" model="ir.ui.view">
+        <field name="name">res.partner.form.enrichment</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Enrichment">
+                    <group string="Sources">
+                        <field name="enrichment_source_ids" nolabel="1">
+                            <list editable="bottom">
+                                <field name="url" widget="url"/>
+                                <field name="source_type"/>
+                                <field name="crawl_status" widget="badge"/>
+                                <field name="last_crawled_at"/>
+                            </list>
+                        </field>
+                    </group>
+                    <group string="Runs">
+                        <field name="enrichment_run_ids" nolabel="1">
+                            <list>
+                                <field name="name"/>
+                                <field name="state" widget="badge"/>
+                                <field name="confidence_score"/>
+                                <field name="profiles_created"/>
+                                <field name="profiles_updated"/>
+                                <field name="injected_at"/>
+                            </list>
+                        </field>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

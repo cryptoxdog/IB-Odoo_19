@@ -40,6 +40,12 @@
                 <footer>
                     <button name="action_import" type="object" string="Import"
                             class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_audit_import" type="object" string="Audit import"
+                            class="btn-secondary" invisible="state != 'draft'"
+                            title="Check for issues (old external IDs, missing facility role, etc.)"/>
+                    <button name="action_repair_import" type="object" string="Repair import"
+                            class="btn-secondary" invisible="state != 'draft'"
+                            title="Fix facilities missing x_facility_role and migrate old external IDs"/>
                     <button name="action_view_partners" type="object" string="View Partners"
                             class="btn-secondary" invisible="state != 'done'"/>
                     <button name="action_close" type="object" string="Close"
