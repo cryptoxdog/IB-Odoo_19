@@ -101,6 +101,13 @@
                         class="btn-secondary"
                         invisible="status != 'matched'"
                     />
+                    <button
+                        name="action_send_offers"
+                        type="object"
+                        string="Send Offers to Selected"
+                        class="btn-success"
+                        invisible="status != 'matched' or selected_count == 0"
+                    />
                     <field name="status" widget="statusbar"
                            statusbar_visible="draft,matched"/>
                 </header>

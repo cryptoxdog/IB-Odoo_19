@@ -207,6 +207,7 @@
 | `plasticos_transaction/models/transaction.py` | Missing denormalized profile refs (slow 3-hop traversals) | Added `supplier_profile_id`, `buyer_profile_id` computed fields |
 | `plasticos_product/models/product_template.py` | Product-material disconnect | Added `material_profile_id` link |
 | `plasticos_product/data/product_data.xml` | XML syntax error - nested quotes in `eval` + missing module prefix | Fixed `ref("attr_clean")` → `ref('plasticos_material_profile.attr_clean')` (18 occurrences) |
+| `plasticos_claims/data/claim_cron.xml` | Missing module prefix in `model_id` ref | Added `plasticos_claims.` prefix |
 
 ### 12. Namespace Drift
 
@@ -307,19 +308,34 @@
 | `plasticos_product/data/product_data.xml:655` | Unescaped `&` in `PC & PMMA` | `check-xml` |
 | `plasticos_product/data/product_data.xml:1136` | Unescaped `&` in `PP Tubs & Lids` | `check-xml` |
 
-### Bugs That CANNOT Be Caught by Ruff/Mypy (Odoo-Specific)
+### Bugs NOW Caught by `check_odoo_patterns.sh` (Custom CI)
 
-These require Odoo runtime validation — no static tool catches them:
+These are Odoo-specific bugs that ruff/mypy cannot catch, but our custom CI script now detects:
+
+| Bug Type | Example | CI Check |
+|----------|---------|----------|
+| `@api.depends("id")` | Odoo 19 disallows depending on `id` | ✅ `check_odoo_patterns.sh` |
+| `_sql_constraints` deprecation | Odoo 19 requires `models.Constraint` | ✅ `check_odoo_patterns.sh` |
+| `category_id` on `res.groups` | Removed in Odoo 19 | ✅ `check_odoo_patterns.sh` |
+| `@api.one/@api.multi` | Removed in Odoo 13+ | ✅ `check_odoo_patterns.sh` |
+| `numbercall` on ir.cron | Deprecated cron field | ✅ `check_odoo_patterns.sh` |
+| Unescaped `&` in XML | Causes parse errors | ✅ `check_odoo_patterns.sh` |
+| Empty `__init__.py` in modules | Models won't load | ✅ `check_odoo_patterns.sh` |
+| Namespace drift (`PlastoS` vs `PlasticoS`) | Inconsistent class naming | ✅ `check_odoo_patterns.sh` |
+| Empty inherit files | Dead code | ✅ `check_odoo_patterns.sh` |
+| Cron `model_id` missing module prefix | `ref="model_plasticos_*"` without module | ✅ `check_odoo_patterns.sh` |
+| XML `eval` with nested double quotes | `eval="[ref("id")]"` | ✅ `check_odoo_patterns.sh` |
+
+### Bugs That Still Require Odoo Runtime Validation
+
+These cannot be caught by static analysis — require `odoo -i module --test-enable`:
 
 | Bug Type | Example | Why Static Tools Miss It |
 |----------|---------|--------------------------|
-| Invalid field references in domains | `transaction_id.user_id` on model without `transaction_id` | Ruff doesn't know Odoo model schemas |
+| Invalid field references in domains | `transaction_id.user_id` on model without `transaction_id` | Requires model schema knowledge |
 | Field name mismatches (view ↔ model) | `packaging_type` in view but `packaging_type_id` in model | XML views aren't type-checked against Python models |
-| External ID references | `ref="product.product_category_all"` (doesn't exist) | Ruff can't validate Odoo XML IDs |
-| `@api.depends("id")` | Odoo 19 disallows depending on `id` | Ruff doesn't know Odoo decorator semantics |
-| `_sql_constraints` deprecation | Odoo 19 requires `models.Constraint` | Ruff doesn't track Odoo version changes |
-| `category_id` on `res.groups` | Removed in Odoo 19 | Ruff doesn't know Odoo model changes |
-| Enterprise module dependencies | `model="documents.folder"` | Ruff can't validate installed Odoo modules |
+| External ID references to non-existent records | `ref="product.product_category_all"` (doesn't exist) | Requires database state |
+| Enterprise module dependencies | `model="documents.folder"` | Requires installed module list |
 
 ### Python Issues Found by Ruff (Not Blocking, Style)
 
@@ -348,9 +364,25 @@ pre-commit run ruff --all-files
 
 ### Recommendation: Future Bug Prevention
 
-| Prevention Method | Bugs Prevented |
-|-------------------|----------------|
-| **Pre-commit hooks** (now active) | XML syntax, Python syntax, formatting |
-| **Odoo test suite** (`-i module --test-enable`) | Field references, domains, views |
-| **Manual review checklist** | Odoo version breaking changes, Enterprise deps |
-| **CI/CD pipeline** | All of the above, automated |
+| Prevention Method | Bugs Prevented | Status |
+|-------------------|----------------|--------|
+| **Pre-commit hooks** (now active) | XML syntax, Python syntax, formatting | ✅ Active |
+| **`check_odoo_patterns.sh`** (custom CI) | Odoo 19 breaking changes, namespace drift, dead code, cron refs, eval quotes | ✅ Active (11 checks) |
+| **Odoo test suite** (`-i module --test-enable`) | Field references, domains, views, external IDs | Manual |
+| **Manual review checklist** | Enterprise deps, complex business logic | Manual |
+
+### CI Checks Summary (11 Total)
+
+| # | Check | Pattern | Bug # |
+|---|-------|---------|-------|
+| 1 | `_sql_constraints` | Deprecated in Odoo 17+ | #1 |
+| 2 | `@api.depends("id")` | Disallowed in Odoo 19 | #1 |
+| 3 | `@api.one/@api.multi` | Removed in Odoo 13+ | #1 |
+| 4 | `category_id` on `res.groups` | Removed in Odoo 19 | #1 |
+| 5 | `numbercall` on ir.cron | Deprecated | #5 |
+| 6 | Unescaped `&` in XML | Parse errors | #5 |
+| 7 | Empty `__init__.py` | Models won't load | #5 |
+| 8 | Namespace drift | `PlastoS` vs `PlasticoS` | #12 |
+| 9 | Empty inherit files | Dead code | #14 |
+| 10 | Cron `model_id` refs | Missing module prefix | #13 |
+| 11 | XML `eval` quotes | Nested double quotes | #15 |

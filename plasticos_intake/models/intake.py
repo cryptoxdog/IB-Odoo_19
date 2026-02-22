@@ -266,19 +266,31 @@ class PlasticosIntake(models.Model):
     lon = fields.Float(string="Longitude")
 
     # ═════════════════════════════════════════════════════════
-    # Match Results (populated after submission)
+    # Match Results (populated after matching)
     # ═════════════════════════════════════════════════════════
 
+    match_line_ids = fields.One2many(
+        "plasticos.intake.match",
+        "intake_id",
+        string="Buyer Matches",
+        help="Potential buyers matched to this intake, sorted by match score.",
+    )
     match_count = fields.Integer(
         string="Matches Found",
-        readonly=True,
-        help="Number of buyer matches found.",
+        compute="_compute_match_count",
+        store=True,
     )
-    match_response = fields.Json(
-        string="Match Results",
-        readonly=True,
-        help="JSON response from matching engine.",
+    selected_count = fields.Integer(
+        string="Selected for Offer",
+        compute="_compute_match_count",
+        store=True,
     )
+
+    @api.depends("match_line_ids", "match_line_ids.selected")
+    def _compute_match_count(self):
+        for rec in self:
+            rec.match_count = len(rec.match_line_ids)
+            rec.selected_count = len(rec.match_line_ids.filtered("selected"))
 
     # ═════════════════════════════════════════════════════════
     # Computed
@@ -485,37 +497,59 @@ class PlasticosIntake(models.Model):
     def action_match_to_buyers(self):
         """Run buyer matching engine on this intake.
 
-        Single-click: validates required fields, calls matching engine,
-        populates match_count and match_response with results.
+        Calls matching engine, creates match lines sorted by score,
+        transitions status to 'matched'.
         """
         for rec in self:
             if rec.status != "draft":
                 raise UserError("Only draft intakes can be matched.")
 
+            # Clear any existing matches
+            rec.match_line_ids.unlink()
+
             # TODO: Call buyer matching engine here
-            # match_response will contain JSON like:
-            # {
-            #   "matches": [
-            #     {"buyer_id": 123, "buyer_name": "ABC Recycling", "score": 0.95},
-            #     {"buyer_id": 456, "buyer_name": "XYZ Plastics", "score": 0.87}
-            #   ],
-            #   "matched_at": "2026-02-22T10:30:00Z"
-            # }
-            rec.write(
-                {
-                    "status": "matched",
-                    "match_count": 0,
-                    "match_response": {"status": "pending_integration"},
-                }
-            )
+            # Engine should return list of dicts:
+            # [
+            #   {"buyer_id": 123, "match_score": 95.0, "match_reason": "Exact polymer match"},
+            #   {"buyer_id": 456, "match_score": 87.5, "match_reason": "Similar form"},
+            # ]
+            # For now, placeholder - no matches until engine integrated
+            matches = []
+
+            # Create match lines from engine results
+            for match in matches:
+                self.env["plasticos.intake.match"].create(
+                    {
+                        "intake_id": rec.id,
+                        "buyer_id": match.get("buyer_id"),
+                        "match_score": match.get("match_score", 0),
+                        "match_reason": match.get("match_reason", ""),
+                        "typical_price": match.get("typical_price", 0),
+                    }
+                )
+
+            rec.status = "matched"
 
     def action_reset_to_draft(self):
         """Reset this intake back to draft for editing."""
         for rec in self:
-            rec.write(
-                {
-                    "status": "draft",
-                    "match_count": 0,
-                    "match_response": False,
-                }
-            )
+            rec.match_line_ids.unlink()
+            rec.status = "draft"
+
+    def action_send_offers(self):
+        """Send offers to selected buyers.
+
+        Opens offer creation wizard/form for selected match lines.
+        """
+        self.ensure_one()
+        selected = self.match_line_ids.filtered("selected")
+        if not selected:
+            raise UserError("Please select at least one buyer to send offers to.")
+
+        # TODO: When offer module exists, create offers here
+        # For now, placeholder message
+        raise UserError(
+            f"Offer module not yet installed. "
+            f"Would send offers to {len(selected)} buyer(s): "
+            f"{', '.join(selected.mapped('buyer_name'))}"
+        )

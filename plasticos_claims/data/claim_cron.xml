@@ -2,7 +2,7 @@
 <odoo>
     <record id="cron_claim_sla_check" model="ir.cron">
         <field name="name">Claims: SLA Check and Reminders</field>
-        <field name="model_id" ref="model_plasticos_claim"/>
+        <field name="model_id" ref="plasticos_claims.model_plasticos_claim"/>
         <field name="state">code</field>
         <field name="code">model._cron_check_sla()</field>
         <field name="interval_number">1</field>

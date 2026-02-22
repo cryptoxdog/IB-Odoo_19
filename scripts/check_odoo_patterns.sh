@@ -3,6 +3,19 @@
 # Catches Odoo-specific bugs that ruff/mypy cannot detect
 # Only scans files tracked by git (respects .gitignore)
 # Run: ./scripts/check_odoo_patterns.sh
+#
+# Bug patterns checked (see reports/BUG_FIXES_SUMMARY.md):
+# 1. _sql_constraints (deprecated)
+# 2. @api.depends("id") (disallowed)
+# 3. @api.one/@api.multi (removed)
+# 4. category_id on res.groups (removed)
+# 5. numbercall on ir.cron (deprecated)
+# 6. Unescaped & in XML
+# 7. Empty __init__.py in modules
+# 8. Namespace drift (PlastoS vs PlasticoS)
+# 9. Empty inherit files (dead code)
+# 10. XML cron model_id missing module prefix
+# 11. XML eval() with nested double quotes
 
 set -e
 
@@ -107,6 +120,75 @@ if [ -n "$EMPTY_INITS" ]; then
     echo -e "${RED}FOUND${NC}"
     echo "$EMPTY_INITS"
     echo -e "${YELLOW}Fix: Add 'from . import models' or model imports${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 8. Namespace drift (PlastoS vs PlasticoS) - Bug #12
+echo -n "Checking namespace drift (PlastoS vs PlasticoS)... "
+MATCHES=$(echo "$PY_FILES" | xargs grep -E 'class Plastos[A-Z]' 2>/dev/null | grep -v 'Plasticos' || true)
+if [ -n "$MATCHES" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$MATCHES"
+    echo -e "${YELLOW}Fix: Rename class from Plastos* to Plasticos*${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 9. Empty inherit files (dead code) - Bug #14
+echo -n "Checking empty inherit files... "
+EMPTY_INHERITS=""
+for py_file in $(echo "$PY_FILES" | grep '_inherit\.py$'); do
+    # Check if file only has class stub with _inherit and no fields/methods
+    CONTENT=$(cat "$py_file" 2>/dev/null | grep -v '^#' | grep -v '^$' | grep -v 'from\|import' || true)
+    LINE_COUNT=$(echo "$CONTENT" | wc -l | tr -d ' ')
+    # If file has < 5 non-empty, non-import lines, it's likely empty
+    if [ "$LINE_COUNT" -lt 5 ]; then
+        # Check if it only has _inherit and nothing else meaningful
+        HAS_FIELDS=$(echo "$CONTENT" | grep -E '^\s+\w+\s*=\s*fields\.' || true)
+        HAS_METHODS=$(echo "$CONTENT" | grep -E '^\s+def\s+' || true)
+        if [ -z "$HAS_FIELDS" ] && [ -z "$HAS_METHODS" ]; then
+            EMPTY_INHERITS="$EMPTY_INHERITS $py_file"
+        fi
+    fi
+done
+if [ -n "$EMPTY_INHERITS" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$EMPTY_INHERITS"
+    echo -e "${YELLOW}Fix: Delete empty inherit files and remove from __init__.py${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 10. XML cron model_id missing module prefix - Bug #13
+echo -n "Checking cron model_id refs without module prefix... "
+MATCHES=""
+for xml_file in $(echo "$XML_FILES" | grep 'cron\.xml$'); do
+    # Look for model_id refs that don't have a module prefix (no dot before model_)
+    FOUND=$(grep -E 'ref="model_plasticos' "$xml_file" 2>/dev/null | grep -v '\.' || true)
+    if [ -n "$FOUND" ]; then
+        MATCHES="$MATCHES\n$xml_file:\n$FOUND"
+    fi
+done
+if [ -n "$MATCHES" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo -e "$MATCHES"
+    echo -e "${YELLOW}Fix: Add module prefix to model_id refs (e.g., ref=\"plasticos_logistics.model_plasticos_load\")${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 11. XML eval() with nested double quotes - Bug #15
+echo -n "Checking XML eval with nested double quotes... "
+MATCHES=$(echo "$XML_FILES" | xargs grep -E 'eval="[^"]*ref\("[^"]*"\)[^"]*"' 2>/dev/null || true)
+if [ -n "$MATCHES" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$MATCHES"
+    echo -e "${YELLOW}Fix: Use single quotes inside eval: ref('external_id') instead of ref(\"external_id\")${NC}"
     ERRORS=$((ERRORS + 1))
 else
     echo -e "${GREEN}OK${NC}"
