@@ -7,6 +7,7 @@
     "depends": [
         "base",
         "mail",
+        "product",
         "account",
         "sale_management",
         "purchase",

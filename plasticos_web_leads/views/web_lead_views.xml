@@ -12,9 +12,15 @@
             <list string="Web Leads" decoration-success="decision=='hot'" decoration-muted="state=='skipped'">
                 <field name="lead_id"/>
                 <field name="company_name"/>
-                <field name="decision"/>
+                <field name="decision" widget="badge"
+                       decoration-success="decision == 'hot'"
+                       decoration-muted="decision == 'cold'"/>
                 <field name="lead_source"/>
-                <field name="state"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'received'"
+                       decoration-success="state == 'intake_created'"
+                       decoration-muted="state == 'skipped'"
+                       decoration-danger="state == 'error'"/>
                 <field name="estimated_lbs_per_load"/>
                 <field name="estimated_loads_per_month"/>
                 <field name="frequency"/>
@@ -143,6 +149,68 @@
     </record>
 
     <!-- ════════════════════════════════════════════════════ -->
+    <!-- Kanban View                                          -->
+    <!-- ════════════════════════════════════════════════════ -->
+
+    <record id="view_web_lead_kanban" model="ir.ui.view">
+        <field name="name">plasticos.web.lead.kanban</field>
+        <field name="model">plasticos.web.lead</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="decision" class="o_kanban_small_column">
+                <field name="lead_id"/>
+                <field name="company_name"/>
+                <field name="contact_name"/>
+                <field name="decision"/>
+                <field name="state"/>
+                <field name="lead_source"/>
+                <field name="estimated_lbs_per_load"/>
+                <field name="intake_id"/>
+                <progressbar field="state"
+                             colors='{"received": "info", "intake_created": "success", "skipped": "muted", "error": "danger"}'/>
+                <templates>
+                    <t t-name="card">
+                        <div t-attf-class="#{record.decision.raw_value == 'hot' ? 'border-success border-2' : record.state.raw_value == 'error' ? 'border-danger border-2' : ''}">
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title">
+                                        <field name="company_name"/>
+                                    </strong>
+                                    <span class="o_kanban_record_subtitle text-muted">
+                                        <field name="lead_id"/>
+                                    </span>
+                                </div>
+                                <span t-attf-class="badge #{record.decision.raw_value == 'hot' ? 'bg-success' : 'bg-secondary'}">
+                                    <field name="decision"/>
+                                </span>
+                            </div>
+                            <div class="o_kanban_record_body">
+                                <div><i class="fa fa-user"/> <field name="contact_name"/></div>
+                                <div t-if="record.estimated_lbs_per_load.raw_value" class="mt-1">
+                                    <span class="badge bg-info">
+                                        <field name="estimated_lbs_per_load"/> lbs/load
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_bottom">
+                                <div class="oe_kanban_bottom_left">
+                                    <span class="badge bg-secondary">
+                                        <field name="lead_source"/>
+                                    </span>
+                                </div>
+                                <div class="oe_kanban_bottom_right">
+                                    <span t-if="record.intake_id.raw_value" class="badge bg-success">
+                                        <i class="fa fa-check"/> Intake
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════ -->
     <!-- Search View                                          -->
     <!-- ════════════════════════════════════════════════════ -->
 
@@ -150,7 +218,7 @@
         <field name="name">plasticos.web.lead.search</field>
         <field name="model">plasticos.web.lead</field>
         <field name="arch" type="xml">
-            <search string="Web Leads">
+            <search>
                 <field name="lead_id"/>
                 <field name="company_name"/>
                 <field name="decision"/>
@@ -188,8 +256,18 @@
     <record id="action_web_lead" model="ir.actions.act_window">
         <field name="name">Web Leads</field>
         <field name="res_model">plasticos.web.lead</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_web_lead_search"/>
         <field name="context">{'search_default_hot': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No web leads yet
+            </p>
+            <p>
+                Web leads are automatically captured from the website form
+                and triaged by AI into HOT or COLD classifications.
+            </p>
+        </field>
     </record>
 
 </odoo>

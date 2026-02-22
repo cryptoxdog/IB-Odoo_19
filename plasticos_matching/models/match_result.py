@@ -34,12 +34,12 @@ class PlasticosMatchResult(models.Model):
 
     # Denormalized for list-view performance — no joins needed
     intake_polymer = fields.Char(
-        related="intake_id.polymer",
+        related="intake_id.polymer_id.name",
         store=True,
         index=True,
     )
     intake_form = fields.Char(
-        related="intake_id.form",
+        related="intake_id.form_id.name",
         store=True,
     )
     intake_partner_id = fields.Many2one(

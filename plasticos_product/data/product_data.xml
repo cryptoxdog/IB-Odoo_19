@@ -108,7 +108,7 @@
       <field name="name">Gaylord Boxes</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
-      <field name="polymer_id" ref="plasticos_material_profile.polymer_boxes"/>
+      <field name="polymer_id" ref="plasticos_material_profile.polymer_gaylord_boxes"/>
       <field name="form_id" ref="plasticos_material_profile.form_bale"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
       <field name="type_id" ref="plasticos_material_profile.source_reusable"/>
@@ -121,7 +121,7 @@
       <field name="name">Gaylords / Pallets Rebate</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
-      <field name="polymer_id" ref="plasticos_material_profile.polymer_boxes"/>
+      <field name="polymer_id" ref="plasticos_material_profile.polymer_gaylord_boxes"/>
       <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
       <field name="type_id" ref="plasticos_material_profile.source_reusable"/>
@@ -433,7 +433,7 @@
       <field name="name">HMW Gas Tank Regrind - HDPE</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
-      <field name="polymer_id" ref="plasticos_material_profile.polymer_hmw_hdpe"/>
+      <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe_hmw"/>
       <field name="form_id" ref="plasticos_material_profile.form_regrind"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
       <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
@@ -446,7 +446,7 @@
       <field name="name">HMW Repro - HDPE</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
-      <field name="polymer_id" ref="plasticos_material_profile.polymer_hmw_hdpe"/>
+      <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe_hmw"/>
       <field name="form_id" ref="plasticos_material_profile.form_bale"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
       <field name="attribute_ids" eval="[(6, 0, [ref('plasticos_material_profile.attr_clean')])]"/>
@@ -459,7 +459,7 @@
       <field name="name">IBC Totes</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_hdpe"/>
-      <field name="polymer_id" ref="plasticos_material_profile.polymer_hmw_hdpe"/>
+      <field name="polymer_id" ref="plasticos_material_profile.polymer_hdpe_hmw"/>
       <field name="form_id" ref="plasticos_material_profile.form_bale"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
       <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
@@ -565,7 +565,7 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_ldpe"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_ldpe"/>
-      <field name="form_id" ref="plasticos_material_profile.form_pellet"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pellets"/>
       <field name="color_id" ref="plasticos_material_profile.color_natural"/>
       <field name="type_id" ref="plasticos_material_profile.source_off_spec"/>
       <field name="type_code">OFF</field>
@@ -786,7 +786,7 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pet"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pet"/>
-      <field name="form_id" ref="plasticos_material_profile.form_pellet"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pellets"/>
       <field name="color_id" ref="plasticos_material_profile.color_clear"/>
       <field name="type_id" ref="plasticos_material_profile.source_off_spec"/>
       <field name="type_code">OFF</field>
@@ -837,7 +837,7 @@
       <field name="name">Plastic Pallets - Compression Molded</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
-      <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
+      <field name="polymer_id" ref="plasticos_material_profile.polymer_plastic_pallets"/>
       <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
       <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
@@ -850,7 +850,7 @@
       <field name="name">Plastic Pallets - HDPE HMW/Dunnage (No Metal Re-Bar)</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
-      <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
+      <field name="polymer_id" ref="plasticos_material_profile.polymer_plastic_pallets"/>
       <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
       <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
@@ -863,7 +863,7 @@
       <field name="name">Plastic Pallets - HDPE Injection</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
-      <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
+      <field name="polymer_id" ref="plasticos_material_profile.polymer_plastic_pallets"/>
       <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
       <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
@@ -876,7 +876,7 @@
       <field name="name">Plastic Pallets - IGPS Recovered</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
-      <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
+      <field name="polymer_id" ref="plasticos_material_profile.polymer_plastic_pallets"/>
       <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
       <field name="color_id" ref="plasticos_material_profile.color_black"/>
       <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
@@ -889,7 +889,7 @@
       <field name="name">Plastic Pallets - LDPE / PP</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
-      <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
+      <field name="polymer_id" ref="plasticos_material_profile.polymer_plastic_pallets"/>
       <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
       <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
@@ -902,7 +902,7 @@
       <field name="name">Plastic Pallets - Mixed</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
-      <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
+      <field name="polymer_id" ref="plasticos_material_profile.polymer_plastic_pallets"/>
       <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
       <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
@@ -915,7 +915,7 @@
       <field name="name">Plastic Pallets - No Metal</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
-      <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
+      <field name="polymer_id" ref="plasticos_material_profile.polymer_plastic_pallets"/>
       <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
       <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
@@ -928,7 +928,7 @@
       <field name="name">Plastic Pallets - PP Clean</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
-      <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
+      <field name="polymer_id" ref="plasticos_material_profile.polymer_plastic_pallets"/>
       <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
       <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
@@ -941,7 +941,7 @@
       <field name="name">Plastic Pallets - USPS Postal</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
-      <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
+      <field name="polymer_id" ref="plasticos_material_profile.polymer_plastic_pallets"/>
       <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
       <field name="type_id" ref="plasticos_material_profile.source_post_consumer"/>
@@ -1033,7 +1033,7 @@
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pp"/>
       <field name="polymer_id" ref="plasticos_material_profile.polymer_pp"/>
-      <field name="form_id" ref="plasticos_material_profile.form_pellet"/>
+      <field name="form_id" ref="plasticos_material_profile.form_pellets"/>
       <field name="color_id" ref="plasticos_material_profile.color_black"/>
       <field name="type_id" ref="plasticos_material_profile.source_off_spec"/>
       <field name="type_code">OFF</field>
@@ -1227,7 +1227,7 @@
       <field name="name">Wood Pallets – Reusable Standard</field>
       <field name="type">consu</field>
       <field name="categ_id" ref="product_category_pallets"/>
-      <field name="polymer_id" ref="plasticos_material_profile.polymer_pallets"/>
+      <field name="polymer_id" ref="plasticos_material_profile.polymer_plastic_pallets"/>
       <field name="form_id" ref="plasticos_material_profile.form_pallets"/>
       <field name="color_id" ref="plasticos_material_profile.color_mixed"/>
       <field name="type_id" ref="plasticos_material_profile.source_reusable"/>

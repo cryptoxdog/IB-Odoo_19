@@ -23,7 +23,7 @@ repos:
         args: ['--maxkb=1000']
       - id: check-merge-conflict
 
-  # Odoo-specific pattern checks (catches what ruff/mypy can't)
+  # Odoo-specific checks (catches what ruff/mypy can't)
   - repo: local
     hooks:
       - id: odoo-patterns
@@ -32,6 +32,14 @@ repos:
         language: script
         pass_filenames: false
         always_run: true
+
+      - id: module-wiring
+        name: Module dependency wiring check
+        entry: python3 scripts/check_module_wiring.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
 
   # Python type checking (optional - can be slow)
   # Uncomment if you want mypy

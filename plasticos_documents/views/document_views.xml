@@ -1,15 +1,62 @@
 <odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SEARCH VIEW
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_document_search" model="ir.ui.view">
+        <field name="name">plasticos.document.search</field>
+        <field name="model">plasticos.document</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="tag_id"/>
+                <field name="res_model"/>
+                <field name="verified_by"/>
+                <filter name="filter_verified" string="Verified"
+                        domain="[('verified', '=', True)]"/>
+                <filter name="filter_unverified" string="Unverified"
+                        domain="[('verified', '=', False)]"/>
+                <filter name="filter_override" string="Has Override"
+                        domain="[('override', '=', True)]"/>
+                <separator/>
+                <filter name="filter_active" string="Active"
+                        domain="[('active', '=', True)]"/>
+                <filter name="filter_archived" string="Archived"
+                        domain="[('active', '=', False)]"/>
+                <separator/>
+                <group name="group_by">
+                    <filter name="group_tag" string="Tag"
+                            context="{'group_by': 'tag_id'}"/>
+                    <filter name="group_model" string="Related Model"
+                            context="{'group_by': 'res_model'}"/>
+                    <filter name="group_verified_by" string="Verified By"
+                            context="{'group_by': 'verified_by'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         LIST VIEW
+         ═══════════════════════════════════════════════════════════════════ -->
+
     <record id="view_document_tree" model="ir.ui.view">
         <field name="name">plasticos.document.tree</field>
         <field name="model">plasticos.document</field>
         <field name="arch" type="xml">
-            <list>
+            <list decoration-success="verified"
+                  decoration-warning="not verified and not override"
+                  decoration-muted="not active">
                 <field name="name"/>
                 <field name="res_model"/>
                 <field name="res_id"/>
                 <field name="tag_id"/>
-                <field name="verified"/>
-                <field name="override"/>
+                <field name="verified" widget="boolean"/>
+                <field name="verified_by" optional="show" widget="many2one_avatar_user"/>
+                <field name="verified_at" optional="hide"/>
+                <field name="override" widget="boolean"/>
+                <field name="active" invisible="1"/>
             </list>
         </field>
     </record>
@@ -57,6 +104,16 @@
         <field name="name">Documents</field>
         <field name="res_model">plasticos.document</field>
         <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_document_search"/>
+        <field name="context">{'search_default_filter_unverified': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No documents yet
+            </p>
+            <p>
+                Documents are attached to records for compliance verification.
+            </p>
+        </field>
     </record>
 
     <menuitem id="menu_documents_root"

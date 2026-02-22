@@ -26,6 +26,26 @@ class PlasticosIntakeNormalizer(models.Model):
 
     _inherit = "plasticos.intake"
 
+    # ── Fields written by normalizer (must exist for view and .write()) ────────
+    normalized = fields.Boolean(
+        string="Normalized",
+        default=False,
+        help="True after successful normalization (packet assembled).",
+    )
+    match_status = fields.Selection(
+        selection=[
+            ("pending", "Pending"),
+            ("normalized", "Normalized"),
+            ("error", "Error"),
+        ],
+        string="Match Status",
+        default="pending",
+    )
+    last_packet_id = fields.Char(string="Last Packet ID", readonly=True)
+    last_packet_version = fields.Char(string="Last Packet Version", readonly=True)
+    last_packet_ts = fields.Datetime(string="Last Packet At", readonly=True)
+    last_packet_payload = fields.Json(string="Last Packet Payload", readonly=True)
+
     # ── Additional fields for normalization audit ────────
     normalization_errors = fields.Json(
         string="Normalization Errors",

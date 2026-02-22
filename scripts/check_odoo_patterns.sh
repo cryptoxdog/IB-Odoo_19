@@ -16,6 +16,10 @@
 # 9. Empty inherit files (dead code)
 # 10. XML cron model_id missing module prefix
 # 11. XML eval() with nested double quotes
+# 12. <tree> instead of <list> (Odoo 19)
+# 13. string attribute on <search> (invalid RNG)
+# 14. string on <group name="group_by"> (invalid RNG)
+# 15. decoration-secondary (invalid decoration)
 
 set -e
 
@@ -189,6 +193,69 @@ if [ -n "$MATCHES" ]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
     echo -e "${YELLOW}Fix: Use single quotes inside eval: ref('external_id') instead of ref(\"external_id\")${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 12. <tree> instead of <list> in view definitions (Odoo 19)
+echo -n "Checking <tree> instead of <list> in views... "
+MATCHES=$(echo "$XML_FILES" | xargs grep -E '<tree[^>]*>' 2>/dev/null | grep -v 'tree.txt' || true)
+if [ -n "$MATCHES" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$MATCHES"
+    echo -e "${YELLOW}Fix: Replace <tree> with <list> (Odoo 19 requires <list>)${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 13. string attribute on <search> element (invalid in Odoo 19 RNG)
+echo -n "Checking string attribute on <search>... "
+MATCHES=$(echo "$XML_FILES" | xargs grep -E '<search[^>]+string=' 2>/dev/null || true)
+if [ -n "$MATCHES" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$MATCHES"
+    echo -e "${YELLOW}Fix: Remove string attribute from <search> element${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 14. string attribute on <group name="group_by"> in search views (invalid in Odoo 19 RNG)
+echo -n "Checking string on group_by in search views... "
+MATCHES=$(echo "$XML_FILES" | xargs grep -E '<group[^>]+name="group_by"[^>]+string=' 2>/dev/null || true)
+MATCHES2=$(echo "$XML_FILES" | xargs grep -E '<group[^>]+string=[^>]+name="group_by"' 2>/dev/null || true)
+COMBINED="$MATCHES$MATCHES2"
+if [ -n "$COMBINED" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$COMBINED"
+    echo -e "${YELLOW}Fix: Remove string attribute from <group name=\"group_by\"> in search views${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 15. decoration-secondary (invalid Odoo decoration)
+echo -n "Checking invalid decoration-secondary... "
+MATCHES=$(echo "$XML_FILES" | xargs grep -E 'decoration-secondary=' 2>/dev/null || true)
+if [ -n "$MATCHES" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$MATCHES"
+    echo -e "${YELLOW}Fix: Use valid decorations: decoration-info, decoration-success, decoration-warning, decoration-danger, decoration-muted${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 16. Module dependency wiring check
+echo -n "Checking module dependency wiring... "
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if ! python3 "$SCRIPT_DIR/check_module_wiring.py" > /dev/null 2>&1; then
+    echo -e "${RED}FOUND${NC}"
+    # Run again to show output
+    python3 "$SCRIPT_DIR/check_module_wiring.py" 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "^✗|references model|Add to" | head -15
+    echo -e "${YELLOW}Fix: Add missing dependencies to __manifest__.py${NC}"
     ERRORS=$((ERRORS + 1))
 else
     echo -e "${GREEN}OK${NC}"

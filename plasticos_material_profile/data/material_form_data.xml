@@ -118,5 +118,23 @@
       <field name="description">Other material forms not listed above.</field>
       <field name="sequence">999</field>
     </record>
+    <record id="form_bale" model="plasticos.material.form">
+      <field name="name">Bale</field>
+      <field name="code">bale</field>
+      <field name="description">Compressed bale of material (common for scrap).</field>
+      <field name="sequence">150</field>
+    </record>
+    <record id="form_loose" model="plasticos.material.form">
+      <field name="name">Loose</field>
+      <field name="code">loose</field>
+      <field name="description">Loose bulk material (unbaled).</field>
+      <field name="sequence">155</field>
+    </record>
+    <record id="form_pallets" model="plasticos.material.form">
+      <field name="name">Pallets</field>
+      <field name="code">pallets</field>
+      <field name="description">Plastic pallets or pallet parts.</field>
+      <field name="sequence">165</field>
+    </record>
   </data>
 </odoo>

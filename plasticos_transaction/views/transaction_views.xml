@@ -1,11 +1,62 @@
 <odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SEARCH VIEW
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_transaction_search" model="ir.ui.view">
+        <field name="name">plasticos.transaction.search</field>
+        <field name="model">plasticos.transaction</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="user_id"/>
+                <field name="sale_order_id"/>
+                <field name="supplier_id"/>
+                <field name="buyer_id"/>
+                <filter name="filter_draft" string="Draft"
+                        domain="[('state', '=', 'draft')]"/>
+                <filter name="filter_active" string="Active"
+                        domain="[('state', '=', 'active')]"/>
+                <filter name="filter_closed" string="Closed"
+                        domain="[('state', '=', 'closed')]"/>
+                <separator/>
+                <filter name="filter_my_transactions" string="My Transactions"
+                        domain="[('user_id', '=', uid)]"/>
+                <filter name="filter_compliant" string="Compliant"
+                        domain="[('compliance_status', '=', 'compliant')]"/>
+                <filter name="filter_non_compliant" string="Non-Compliant"
+                        domain="[('compliance_status', '!=', 'compliant')]"/>
+                <separator/>
+                <group name="group_by">
+                    <filter name="group_state" string="Status"
+                            context="{'group_by': 'state'}"/>
+                    <filter name="group_user" string="Salesperson"
+                            context="{'group_by': 'user_id'}"/>
+                    <filter name="group_supplier" string="Supplier"
+                            context="{'group_by': 'supplier_id'}"/>
+                    <filter name="group_buyer" string="Buyer"
+                            context="{'group_by': 'buyer_id'}"/>
+                    <filter name="group_compliance" string="Compliance"
+                            context="{'group_by': 'compliance_status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         LIST VIEW
+         ═══════════════════════════════════════════════════════════════════ -->
+
     <record id="view_transaction_tree" model="ir.ui.view">
         <field name="name">plasticos.transaction.tree</field>
         <field name="model">plasticos.transaction</field>
         <field name="arch" type="xml">
-            <list>
+            <list decoration-info="state == 'draft'"
+                  decoration-success="state == 'active'"
+                  decoration-muted="state == 'closed'">
                 <field name="name"/>
-                <field name="user_id" optional="show"/>
+                <field name="user_id" optional="show" widget="many2one_avatar_user"/>
                 <field name="sale_order_id" optional="show"/>
                 <field name="line_count" optional="hide"/>
                 <field name="historical_sale_total" optional="show" sum="Historical Sale"/>
@@ -15,10 +66,51 @@
                 <field name="cost_total" optional="hide" sum="Total Cost"/>
                 <field name="gross_margin" optional="hide" sum="Total Margin"/>
                 <field name="compliance_status"/>
-                <field name="state"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-success="state == 'active'"
+                       decoration-muted="state == 'closed'"/>
             </list>
         </field>
     </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         PIVOT VIEW
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_transaction_pivot" model="ir.ui.view">
+        <field name="name">plasticos.transaction.pivot</field>
+        <field name="model">plasticos.transaction</field>
+        <field name="arch" type="xml">
+            <pivot string="Transaction Analysis">
+                <field name="state" type="col"/>
+                <field name="user_id" type="row"/>
+                <field name="revenue_total" type="measure"/>
+                <field name="cost_total" type="measure"/>
+                <field name="gross_margin" type="measure"/>
+                <field name="historical_margin" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         GRAPH VIEW
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_transaction_graph" model="ir.ui.view">
+        <field name="name">plasticos.transaction.graph</field>
+        <field name="model">plasticos.transaction</field>
+        <field name="arch" type="xml">
+            <graph string="Transactions by Salesperson" type="bar">
+                <field name="user_id"/>
+                <field name="gross_margin" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         FORM VIEW
+         ═══════════════════════════════════════════════════════════════════ -->
 
     <record id="view_transaction_form" model="ir.ui.view">
         <field name="name">plasticos.transaction.form</field>
@@ -27,9 +119,9 @@
             <form>
                 <header>
                     <button name="action_activate" type="object" string="Activate"
-                            invisible="state != 'draft'" class="oe_highlight"/>
+                            invisible="state != 'draft'" class="btn-primary"/>
                     <button name="action_close" type="object" string="Close"
-                            invisible="state != 'active'" class="oe_highlight"/>
+                            invisible="state != 'active'" class="btn-success"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,active,closed"/>
                 </header>
                 <sheet>
@@ -123,6 +215,17 @@
     <record id="action_transaction" model="ir.actions.act_window">
         <field name="name">Transactions</field>
         <field name="res_model">plasticos.transaction</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">list,pivot,graph,form</field>
+        <field name="search_view_id" ref="view_transaction_search"/>
+        <field name="context">{'search_default_filter_draft': 1, 'search_default_filter_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No transactions yet
+            </p>
+            <p>
+                Transactions link sales orders, purchase orders, and loads together
+                to track revenue, costs, and margins.
+            </p>
+        </field>
     </record>
 </odoo>

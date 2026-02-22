@@ -1,10 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+    <!-- Tree view for transaction_ids in wizard (comodel = plasticos.transaction) -->
+    <record id="view_plasticos_transaction_bulk_wizard_tree" model="ir.ui.view">
+        <field name="name">plasticos.transaction.bulk.wizard.tree</field>
+        <field name="model">plasticos.transaction</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="supplier_id"/>
+                <field name="buyer_id"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state in ('active', 'delivered', 'closed')" decoration-warning="state in ('pending_supplier', 'in_progress', 'in_transit')" decoration-danger="state == 'cancelled'"/>
+            </list>
+        </field>
+    </record>
+
     <!-- Wizard Form View -->
     <record id="view_transaction_bulk_update_wizard_form" model="ir.ui.view">
-        <field name="name">plasticos.transaction.bulk.update.wizard.form</field>
-        <field name="model">plasticos.transaction.bulk.update.wizard</field>
+        <field name="name">plasticos.tx.bulk.wizard.form</field>
+        <field name="model">plasticos.tx.bulk.wizard</field>
         <field name="arch" type="xml">
             <form string="Bulk Update Transaction Status">
                 <group>
@@ -17,14 +31,7 @@
                     <field name="reason" required="1" placeholder="Enter reason for status change..."/>
                 </group>
                 <group string="Transactions to Update">
-                    <field name="transaction_ids" nolabel="1" readonly="1">
-                        <tree>
-                            <field name="name"/>
-                            <field name="supplier_id"/>
-                            <field name="buyer_id"/>
-                            <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state in ('active', 'delivered', 'closed')" decoration-warning="state in ('pending_supplier', 'in_progress', 'in_transit')" decoration-danger="state == 'cancelled'"/>
-                        </tree>
-                    </field>
+                    <field name="transaction_ids" nolabel="1" readonly="1" view_id="ref('view_plasticos_transaction_bulk_wizard_tree')"/>
                 </group>
                 <footer>
                     <button name="action_update_status" string="Update Status" type="object" class="btn-primary"/>
@@ -37,7 +44,7 @@
     <!-- Wizard Action (bound to transaction list view) -->
     <record id="action_transaction_bulk_update_wizard" model="ir.actions.act_window">
         <field name="name">Bulk Update Status</field>
-        <field name="res_model">plasticos.transaction.bulk.update.wizard</field>
+        <field name="res_model">plasticos.tx.bulk.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
         <field name="binding_model_id" ref="model_plasticos_transaction"/>

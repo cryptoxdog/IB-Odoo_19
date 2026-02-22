@@ -1,6 +1,9 @@
 <odoo>
 
-  <!-- Standalone list view for material profiles -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       LIST VIEW
+       ═══════════════════════════════════════════════════════════════════ -->
+
   <record id="view_material_profile_list" model="ir.ui.view">
     <field name="name">plasticos.material.profile.list</field>
     <field name="model">plasticos.material.profile</field>
@@ -10,13 +13,16 @@
         <field name="form_id"/>
         <field name="color_id"/>
         <field name="source_type_id"/>
-        <field name="monthly_volume_lbs"/>
+        <field name="monthly_volume_lbs" sum="Total Monthly Volume"/>
         <field name="contamination_percent"/>
       </list>
     </field>
   </record>
 
-  <!-- Standalone form view for material profiles -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       FORM VIEW (Standalone)
+       ═══════════════════════════════════════════════════════════════════ -->
+
   <record id="view_material_profile_form" model="ir.ui.view">
     <field name="name">plasticos.material.profile.form</field>
     <field name="model">plasticos.material.profile</field>
@@ -105,7 +111,11 @@
     </field>
   </record>
 
-  <!-- Inherit res.partner form to add Material Profiles tab -->
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PARTNER FORM EXTENSION (Material Profiles Tab)
+       Uses view reference to avoid duplication
+       ═══════════════════════════════════════════════════════════════════ -->
+
   <record id="view_partner_form_material_tab" model="ir.ui.view">
     <field name="name">res.partner.form.material.tab</field>
     <field name="model">res.partner</field>
@@ -117,92 +127,16 @@
         <page string="Material Profiles"
               invisible="not parent_id">
 
-          <field name="material_profile_ids">
+          <field name="material_profile_ids"
+                 context="{'form_view_ref': 'plasticos_material_profile.view_material_profile_form'}">
             <list editable="bottom">
               <field name="polymer_id"/>
               <field name="form_id"/>
               <field name="color_id"/>
               <field name="source_type_id"/>
-              <field name="monthly_volume_lbs"/>
+              <field name="monthly_volume_lbs" sum="Total Monthly Volume"/>
               <field name="contamination_percent"/>
             </list>
-            <form>
-              <sheet>
-                <notebook>
-                  <page string="Identity">
-                    <group>
-                      <group string="Material">
-                        <field name="polymer_id"/>
-                        <field name="sub_grade"/>
-                        <field name="form_id"/>
-                        <field name="origin_form_id"/>
-                      </group>
-                      <group string="Appearance">
-                        <field name="color_id"/>
-                        <field name="color_flexibility"/>
-                      </group>
-                    </group>
-                    <group string="Attributes">
-                      <field name="material_attribute_ids" widget="many2many_tags"/>
-                    </group>
-                  </page>
-                  <page string="Source &amp; Process">
-                    <group>
-                      <group>
-                        <field name="source_type_id"/>
-                        <field name="origin_process_type"/>
-                      </group>
-                      <group>
-                        <field name="previously_washed"/>
-                        <field name="previously_pelletized"/>
-                      </group>
-                    </group>
-                  </page>
-                  <page string="Quality">
-                    <group>
-                      <group>
-                        <field name="melt_flow_index"/>
-                        <field name="density"/>
-                      </group>
-                      <group>
-                        <field name="moisture_percent"/>
-                        <field name="contamination_percent"/>
-                        <field name="has_metal"/>
-                        <field name="is_metalized"/>
-                        <field name="contains_fr"/>
-                      </group>
-                    </group>
-                  </page>
-                  <page string="Volume &amp; Packaging">
-                    <group>
-                      <group string="Volume">
-                        <field name="avg_lot_size_lbs"/>
-                        <field name="min_lot_size_lbs"/>
-                        <field name="max_lot_size_lbs"/>
-                        <field name="monthly_volume_lbs"/>
-                        <field name="frequency"/>
-                      </group>
-                      <group string="Packaging">
-                        <field name="packaging_type_id"/>
-                        <field name="avg_truckloads_per_month"/>
-                      </group>
-                    </group>
-                  </page>
-                  <page string="Compliance &amp; Notes">
-                    <group>
-                      <group string="Compliance">
-                        <field name="food_grade"/>
-                        <field name="medical_grade"/>
-                        <field name="certification_notes"/>
-                      </group>
-                      <group string="Notes">
-                        <field name="freeform_notes"/>
-                      </group>
-                    </group>
-                  </page>
-                </notebook>
-              </sheet>
-            </form>
           </field>
 
         </page>

@@ -217,5 +217,19 @@
       <field name="category">specialty</field>
       <field name="sequence">310</field>
     </record>
+    <record id="polymer_mixed" model="plasticos.polymer">
+      <field name="name">Mixed</field>
+      <field name="code">mixed</field>
+      <field name="full_name">Mixed / Co-mingled</field>
+      <field name="category">commodity</field>
+      <field name="sequence">15</field>
+    </record>
+    <record id="polymer_pp_pe" model="plasticos.polymer">
+      <field name="name">PP/PE</field>
+      <field name="code">pp_pe</field>
+      <field name="full_name">Polypropylene / Polyethylene Mix</field>
+      <field name="category">commodity</field>
+      <field name="sequence">25</field>
+    </record>
   </data>
 </odoo>

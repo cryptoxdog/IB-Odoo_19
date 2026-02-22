@@ -11,11 +11,16 @@
                 <field name="load_id" optional="show"/>
                 <field name="case_type"/>
                 <field name="severity"/>
-                <field name="assignee_id" optional="show"/>
+                <field name="assignee_id" optional="show" widget="many2one_avatar_user"/>
                 <field name="claimed_amount" optional="hide" sum="Total Claimed"/>
                 <field name="recovery_amount" optional="hide" sum="Total Recovered"/>
                 <field name="opened_at" optional="hide"/>
-                <field name="state"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'pending'"
+                       decoration-warning="state == 'in_progress'"
+                       decoration-danger="state == 'escalated'"
+                       decoration-success="state == 'resolved'"
+                       decoration-muted="state == 'archived'"/>
             </list>
         </field>
     </record>
@@ -28,11 +33,11 @@
             <form>
                 <header>
                     <button name="action_start" type="object" string="Start"
-                            invisible="state != 'pending'" class="oe_highlight"/>
+                            invisible="state != 'pending'" class="btn-primary"/>
                     <button name="action_escalate" type="object" string="Escalate"
                             invisible="state not in ('pending', 'in_progress')" class="btn-warning"/>
                     <button name="action_resolve" type="object" string="Resolve"
-                            invisible="state not in ('pending', 'in_progress', 'escalated')" class="oe_highlight"/>
+                            invisible="state not in ('pending', 'in_progress', 'escalated')" class="btn-success"/>
                     <button name="action_archive" type="object" string="Archive"
                             invisible="state != 'resolved'"/>
                     <button name="action_reopen" type="object" string="Re-open"

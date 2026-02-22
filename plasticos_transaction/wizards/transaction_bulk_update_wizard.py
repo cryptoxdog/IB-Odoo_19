@@ -8,7 +8,7 @@ from odoo.exceptions import UserError
 
 
 class TransactionBulkUpdateWizard(models.TransientModel):
-    _name = "plasticos.transaction.bulk.update.wizard"
+    _name = "plasticos.tx.bulk.wizard"
     _description = "Bulk Update Transaction Status"
 
     new_state = fields.Selection(

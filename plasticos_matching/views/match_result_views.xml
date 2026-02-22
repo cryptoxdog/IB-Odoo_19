@@ -1,6 +1,54 @@
 <odoo>
 
-    <!-- List View -->
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SEARCH VIEW
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_match_result_search" model="ir.ui.view">
+        <field name="name">plasticos.match.result.search</field>
+        <field name="model">plasticos.match.result</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="intake_id"/>
+                <field name="intake_partner_id" string="Supplier"/>
+                <field name="buyer_partner_id"/>
+                <field name="intake_polymer"/>
+                <filter name="filter_pending" string="Pending"
+                        domain="[('state', '=', 'pending')]"/>
+                <filter name="filter_accepted" string="Accepted"
+                        domain="[('state', '=', 'accepted')]"/>
+                <filter name="filter_rejected" string="Rejected"
+                        domain="[('state', '=', 'rejected')]"/>
+                <filter name="filter_expired" string="Expired"
+                        domain="[('state', '=', 'expired')]"/>
+                <separator/>
+                <filter name="filter_high_score" string="High Score (80%+)"
+                        domain="[('score', '&gt;=', 80)]"/>
+                <filter name="filter_high_confidence" string="High Confidence"
+                        domain="[('confidence', '&gt;=', 0.8)]"/>
+                <separator/>
+                <group name="group_by">
+                    <filter name="group_state" string="Status"
+                            context="{'group_by': 'state'}"/>
+                    <filter name="group_supplier" string="Supplier"
+                            context="{'group_by': 'intake_partner_id'}"/>
+                    <filter name="group_buyer" string="Buyer"
+                            context="{'group_by': 'buyer_partner_id'}"/>
+                    <filter name="group_polymer" string="Polymer"
+                            context="{'group_by': 'intake_polymer'}"/>
+                    <filter name="group_intake" string="Intake"
+                            context="{'group_by': 'intake_id'}"/>
+                    <filter name="group_date" string="Match Date"
+                            context="{'group_by': 'create_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         LIST VIEW
+         ═══════════════════════════════════════════════════════════════════ -->
+
     <record id="view_match_result_list" model="ir.ui.view">
         <field name="name">plasticos.match.result.list</field>
         <field name="model">plasticos.match.result</field>
@@ -16,13 +64,79 @@
                 <field name="buyer_facility_id" optional="hide"/>
                 <field name="score" widget="progressbar"/>
                 <field name="confidence" optional="show"/>
-                <field name="state"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'pending'"
+                       decoration-success="state == 'accepted'"
+                       decoration-danger="state == 'rejected'"
+                       decoration-muted="state == 'expired'"/>
                 <field name="create_date" string="Matched On"/>
             </list>
         </field>
     </record>
 
-    <!-- Form View -->
+    <!-- ═══════════════════════════════════════════════════════════════════
+         KANBAN VIEW
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_match_result_kanban" model="ir.ui.view">
+        <field name="name">plasticos.match.result.kanban</field>
+        <field name="model">plasticos.match.result</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column">
+                <field name="intake_id"/>
+                <field name="intake_polymer"/>
+                <field name="intake_partner_id"/>
+                <field name="buyer_partner_id"/>
+                <field name="score"/>
+                <field name="confidence"/>
+                <field name="state"/>
+                <field name="reviewed_by"/>
+                <progressbar field="state"
+                             colors='{"pending": "info", "accepted": "success", "rejected": "danger", "expired": "muted"}'/>
+                <templates>
+                    <t t-name="card">
+                        <div class="o_kanban_record_top">
+                            <div class="o_kanban_record_headings">
+                                <strong class="o_kanban_record_title">
+                                    <field name="intake_id"/>
+                                </strong>
+                            </div>
+                            <span class="badge bg-primary">
+                                <field name="intake_polymer"/>
+                            </span>
+                        </div>
+                        <div class="o_kanban_record_body">
+                            <div><strong>Supplier:</strong> <field name="intake_partner_id"/></div>
+                            <div><strong>Buyer:</strong> <field name="buyer_partner_id"/></div>
+                            <div class="mt-2">
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar bg-success" role="progressbar"
+                                         t-attf-style="width: #{record.score.raw_value}%;">
+                                        <field name="score"/>%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="o_kanban_record_bottom">
+                            <div class="oe_kanban_bottom_left">
+                                <span class="text-muted">
+                                    Conf: <field name="confidence"/>
+                                </span>
+                            </div>
+                            <div class="oe_kanban_bottom_right">
+                                <field name="reviewed_by" widget="many2one_avatar_user"/>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         FORM VIEW
+         ═══════════════════════════════════════════════════════════════════ -->
+
     <record id="view_match_result_form" model="ir.ui.view">
         <field name="name">plasticos.match.result.form</field>
         <field name="model">plasticos.match.result</field>
@@ -93,12 +207,25 @@
         </field>
     </record>
 
-    <!-- Action -->
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ACTION
+         ═══════════════════════════════════════════════════════════════════ -->
+
     <record id="action_match_result" model="ir.actions.act_window">
         <field name="name">Match Results</field>
         <field name="res_model">plasticos.match.result</field>
-        <field name="view_mode">list,form</field>
-        <field name="context">{'search_default_state': 'pending'}</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_match_result_search"/>
+        <field name="context">{'search_default_filter_pending': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No match results yet
+            </p>
+            <p>
+                Match results are generated when intakes are matched to buyers.
+                Review and accept matches to create offers.
+            </p>
+        </field>
     </record>
 
     <!-- Menu under PlasticOS root -->

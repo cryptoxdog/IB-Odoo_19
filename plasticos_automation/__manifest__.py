@@ -8,6 +8,7 @@
         "base",
         "base_automation",
         "mail",
+        "product",
         "sale_management",
         "account",
         "stock",

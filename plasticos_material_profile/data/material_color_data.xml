@@ -72,5 +72,10 @@
       <field name="hex_code">#808080</field>
       <field name="sequence">110</field>
     </record>
+    <record id="color_print" model="plasticos.material.color">
+      <field name="name">Print</field>
+      <field name="code">print</field>
+      <field name="sequence">115</field>
+    </record>
   </data>
 </odoo>
