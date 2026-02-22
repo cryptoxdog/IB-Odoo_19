@@ -467,7 +467,7 @@ class EnrichmentService(models.AbstractModel):
             "extract a separate object with these fields:\n"
             "- polymer: resin type (HDPE, PP, LDPE, PET, ABS, etc.)\n"
             "- subgrade: specific grade code if mentioned\n"
-            "- form: physical form (bale, regrind, pellet, flake, "
+            "- form: physical form (bales, regrind, pellet, flake, "
             "film, roll, sheet, etc.)\n"
             "- source_type: clean, post-consumer, post-industrial, "
             "off-grade, mixed, contaminated\n"

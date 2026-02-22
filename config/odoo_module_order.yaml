@@ -1,0 +1,41 @@
+# PlasticOS Odoo module install order (topological: dependencies before dependents).
+# Used by scripts/rebuild-odoo-no-demo.sh and scripts/run-odoo-tests.sh.
+# Odoo resolves dependencies from __manifest__.py; this order ensures consistency
+# and documents the intended load sequence for Docker/CI and for human readers.
+#
+# Optional modules (excluded from default install):
+#   - plasticos_web_leads: requires pip openai, requests (not in base image)
+#   - plasticos_documents_native: installable=False; requires Odoo Enterprise documents
+#   - plasticos_dev_tools: installable=False (dev only)
+#
+# Default install order (no optional):
+default_install_order:
+  - plasticos_accounting
+  - plasticos_base
+  - plasticos_material_profile
+  - plasticos_inference_engine
+  - plasticos_logistics
+  - plasticos_facility_profile
+  - plasticos_intake
+  - plasticos_product
+  - plasticos_transaction
+  - plasticos_documents
+  - plasticos_matching
+  - plasticos_offer
+  - plasticos_claims
+  - plasticos_automation
+  - plasticos_intake_normalizer
+  - plasticos_buyer_match_engine
+  - plasticos_partner_import
+  - plasticos_geolocalize
+  - plasticos_enrichment
+  - plasticos_security_base
+
+# Optional (add to ODOO_REBUILD_MODULES / ODOO_TEST_MODULES when needed):
+optional_modules:
+  - plasticos_web_leads   # needs: pip install openai requests
+
+# Not installable or Enterprise-only (do not add to install list):
+excluded_modules:
+  - plasticos_dev_tools       # installable: False
+  - plasticos_documents_native # installable: False; Enterprise documents

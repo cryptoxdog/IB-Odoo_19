@@ -30,8 +30,9 @@ ODOO_DB_NAME_DEFAULT="${ODOO_DB_NAME:-odoo}"
 
 DB_NAME="${1:-$ODOO_DB_NAME_DEFAULT}"
 
-# Module list: from ODOO_REBUILD_MODULES or default (same as run-odoo-tests.sh)
-MODULES="${ODOO_REBUILD_MODULES:-plasticos_accounting,plasticos_automation,plasticos_base,plasticos_buyer_match_engine,plasticos_claims,plasticos_documents,plasticos_facility_profile,plasticos_intake,plasticos_intake_normalizer,plasticos_logistics,plasticos_matching,plasticos_material_profile,plasticos_offer,plasticos_partner_import,plasticos_product,plasticos_transaction}"
+# Module list: from ODOO_REBUILD_MODULES or default (topological order from config/odoo_module_order.yaml)
+_DEFAULT_MODULES="$(python3 "$ROOT/scripts/get_odoo_module_order.py" 2>/dev/null)"
+MODULES="${ODOO_REBUILD_MODULES:-${_DEFAULT_MODULES:-plasticos_accounting,plasticos_base,plasticos_material_profile,plasticos_inference_engine,plasticos_logistics,plasticos_facility_profile,plasticos_intake,plasticos_product,plasticos_transaction,plasticos_documents,plasticos_matching,plasticos_offer,plasticos_claims,plasticos_automation,plasticos_intake_normalizer,plasticos_buyer_match_engine,plasticos_partner_import,plasticos_geolocalize,plasticos_enrichment,plasticos_security_base}}"
 
 echo "Rebuilding database '$DB_NAME' with NO demo data (--without-demo=all)"
 echo "Modules: $MODULES"

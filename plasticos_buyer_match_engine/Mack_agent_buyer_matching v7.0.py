@@ -10,8 +10,8 @@ historical performance data to create optimal trading partnerships.
 Version: 6.0.0
 Created: 2025-10-28
 Owner: Igor Beylin
-Tags: mack, fastapi, plastos, v6.0, agent, buyer, matching
-Domain: plastos.mack.fastapi
+Tags: mack, fastapi, plasticos, v6.0, agent, buyer, matching
+Domain: plasticos.mack.fastapi
 Type: agent
 Production Ready: true
 """

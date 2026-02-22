@@ -10,7 +10,7 @@ class PlasticosMaterialForm(models.Model):
     code = fields.Char(
         required=True,
         index=True,
-        help="Canonical lowercase code (e.g. bale, regrind, pellet).",
+        help="Canonical lowercase code (e.g. bales, regrind, pellet).",
     )
     description = fields.Text(
         help="Detailed description of this material form.",

@@ -1,7 +1,7 @@
 # ============================================
 # Canonical Header (v4.0 Production Baseline)
 # ============================================
-# File Name: plastos_module_init_v4.5.py
+# File Name: plasticos_module_init_v4.5.py
 # Version: 4.6
 # Created: 2025-10-17
 # Author: Igor Beylin

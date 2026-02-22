@@ -13,7 +13,7 @@
     <record id="form_bale" model="plasticos.material.form">
       <field name="name">Bales</field>
       <field name="code">bales</field>
-      <field name="description">Compressed bale of material (common for scrap).</field>
+      <field name="description">Compressed bales of material (common for scrap).</field>
       <field name="sequence">5</field>
     </record>
     <record id="form_regrind" model="plasticos.material.form">

@@ -1,7 +1,7 @@
 # ============================================
 # Canonical Header (v4.0 Production Baseline)
 # ============================================
-# File Name: plastos_event_logger_v4.5.py
+# File Name: plasticos_event_logger_v4.5.py
 # Version: 4.6
 # Created: 2025-10-17
 # Author: Igor Beylin
@@ -16,7 +16,7 @@ from odoo import api, fields, models
 
 
 class PlastOSEventLogger(models.Model):
-    _name = "plastos.event_logger"
+    _name = "plasticos.event_logger"
     _description = "Unified Event Logger v4.3"
 
     name = fields.Char()
@@ -33,7 +33,7 @@ class PlastOSEventLogger(models.Model):
             policy = json.loads(policy_str)
         except (json.JSONDecodeError, TypeError):
             policy = {}
-        ledger = self.env["plastos.decision_ledger"].create(
+        ledger = self.env["plasticos.decision_ledger"].create(
             {
                 "event": event_key,
                 "reference_model": model,

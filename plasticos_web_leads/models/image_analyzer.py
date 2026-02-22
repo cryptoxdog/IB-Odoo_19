@@ -20,7 +20,7 @@ Return ONLY valid JSON — no markdown, no commentary.
 Output schema:
 {
   "observed_polymer_hint": "<best guess polymer type or null>",
-  "observed_form": "<bale|regrind|flake|pellet|film|lump|purge|parts|other|null>",
+  "observed_form": "<bales|regrind|flake|pellet|film|lump|purge|parts|other|null>",
   "observed_color": "<natural|white|black|clear|mixed|other|null>",
   "contamination_visible": <true|false>,
   "contamination_notes": "<description or null>",

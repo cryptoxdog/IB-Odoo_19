@@ -15,11 +15,11 @@ from odoo.exceptions import AccessError
 
 
 class GovernanceEditLock(models.AbstractModel):
-    _name = "plastos.governance_edit_lock"
+    _name = "plasticos.governance_edit_lock"
     _description = "Governance Edit Lock"
 
     @api.model
     def check_governance_edit_permission(self, user):
-        if user.login not in ["igor@plastos.ai", "Igor-01"]:
+        if user.login not in ["igor@plasticos.ai", "Igor-01"]:
             raise AccessError("Only Igor may modify governance policies.")
         return True

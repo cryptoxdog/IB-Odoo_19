@@ -133,7 +133,7 @@ def _try_match(rule: dict, req: InferenceRequest) -> dict | None:
             if any(kw in app or kw in notes for kw in ("agricultural", "outdoor", "soil")):
                 return {"field": "processing_requirement", "value": "washing_required"}
         if "pelletiz" in logic or "pelletiz" in rule_text:
-            if form in ("bale", "regrind", "flake", "loose"):
+            if form in ("bales", "regrind", "flake", "loose"):
                 return {"field": "processing_requirement", "value": "pelletizing_recommended"}
 
     # ── Contamination assessment ─────────────────────────────

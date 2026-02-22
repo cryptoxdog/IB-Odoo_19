@@ -7,6 +7,11 @@ class TestInjection(TransactionCase):
 
     def setUp(self):
         super().setUp()
+        # Ensure canonical forms exist (in case data load order differs in full suite)
+        Form = self.env["plasticos.material.form"]
+        for code, name in (("bales", "Bales"), ("other", "Other")):
+            if not Form.search([("code", "=", code)], limit=1):
+                Form.create({"name": name, "code": code, "description": f"Test {name} form."})
         # Create a parent company (required for facility-level partners)
         self.company = self.env["res.partner"].create(
             {
@@ -45,7 +50,7 @@ class TestInjection(TransactionCase):
                 "material_json": [
                     {
                         "polymer": "hdpe",
-                        "form": "bale",
+                        "form": "bales",
                         "source_type": "post-industrial",
                         "monthly_volume_lbs": 100000,
                         "food_grade": True,

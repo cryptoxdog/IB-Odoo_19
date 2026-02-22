@@ -84,7 +84,7 @@ class TestNormalization(TransactionCase):
     def test_provenance_generated(self):
         raw = {
             "polymer": "LDPE",
-            "form": "bale",
+            "form": "bales",
             "contains_metal": False,
             "confidence": 0.92,
             "inference_type": "explicit",

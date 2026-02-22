@@ -35,7 +35,7 @@ _PROCESS_KEYWORDS: dict[str, tuple[str, ...]] = {
 }
 
 _FORM_KEYWORDS: dict[str, tuple[str, ...]] = {
-    "bale": ("bale",),
+    "bales": ("bales",),
     "regrind": ("regrind", "reg"),
     "pellet": ("pellet", "pell"),
     "flake": ("flake",),

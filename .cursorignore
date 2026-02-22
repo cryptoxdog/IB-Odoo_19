@@ -1,0 +1,4 @@
+# Cursor agent can read these (they stay gitignored in .gitignore).
+# Negation so they are NOT Cursor-ignored.
+!.cursor/
+!.cursor-commands/

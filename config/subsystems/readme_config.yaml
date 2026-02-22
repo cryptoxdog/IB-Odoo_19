@@ -70,6 +70,12 @@ subsystems:
     purpose: "Facility profiles with equipment and capabilities"
     summary: "Partner facility specifications"
 
+  plasticos_product:
+    path: "plasticos_product"
+    tier: "domain"
+    purpose: "Scrap plastic product catalog with material attributes"
+    summary: "Product catalog linked to polymer, form, color, source type"
+
   # Matching & Analytics
   plasticos_matching:
     path: "plasticos_matching"
@@ -101,6 +107,18 @@ subsystems:
     tier: "automation"
     purpose: "Geolocation backfill for intakes"
     summary: "Address geocoding automation"
+
+  plasticos_inference_engine:
+    path: "plasticos_inference_engine"
+    tier: "automation"
+    purpose: "Inference and AI pipeline base"
+    summary: "Base for enrichment and inference services"
+
+  plasticos_enrichment:
+    path: "plasticos_enrichment"
+    tier: "automation"
+    purpose: "AI-powered partner and intake enrichment"
+    summary: "Enrichment runs and knowledge base integration"
 
   # Documents & Compliance
   plasticos_documents:

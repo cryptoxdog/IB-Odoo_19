@@ -7,7 +7,7 @@
 # Author: Igor Beylin
 # Domain: Plastic Recycling / AI-Augmented ERP
 # Purpose: Offer drafting, validation, and dispatch runtime for PlasticOS
-# Related Files: odoo_model_offer_response_v4.0.py, ../agents/offer_drafting_agent_v4.5.yaml, plastos_event_logger_v4.5.py
+# Related Files: odoo_model_offer_response_v4.0.py, ../agents/offer_drafting_agent_v4.5.yaml, plasticos_event_logger_v4.5.py
 # ============================================
 
 """

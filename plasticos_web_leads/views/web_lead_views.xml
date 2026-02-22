@@ -184,7 +184,7 @@
                                 </span>
                             </div>
                             <div class="o_kanban_record_body">
-                                <div><i class="fa fa-user"/> <field name="contact_name"/></div>
+                                <div><i class="fa fa-user" title="Contact"/> <field name="contact_name"/></div>
                                 <div t-if="record.estimated_lbs_per_load.raw_value" class="mt-1">
                                     <span class="badge bg-info">
                                         <field name="estimated_lbs_per_load"/> lbs/load
