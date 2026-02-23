@@ -6,4 +6,3 @@ from . import document_rule_extension
 from . import document_tag
 from . import document_validation_matrix
 from . import transaction_docs
-from . import validation_matrix
