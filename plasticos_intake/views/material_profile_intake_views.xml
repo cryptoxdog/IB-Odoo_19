@@ -1,0 +1,71 @@
+<odoo>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       MATERIAL PROFILE FORM EXTENSION (Add Intake Buttons)
+       ═══════════════════════════════════════════════════════════════════ -->
+
+  <record id="view_material_profile_form_intake" model="ir.ui.view">
+    <field name="name">plasticos.material.profile.form.intake</field>
+    <field name="model">plasticos.material.profile</field>
+    <field name="inherit_id" ref="plasticos_material_profile.view_material_profile_form"/>
+    <field name="arch" type="xml">
+
+      <!-- Add Create Intake button to header (first position) -->
+      <xpath expr="//header/button[@name='action_create_purchase_order']" position="before">
+        <button name="action_create_intake"
+                string="Create Intake"
+                type="object"
+                class="btn-primary"
+                icon="fa-inbox"/>
+      </xpath>
+
+      <!-- Add Intake stat button to button box (first position) -->
+      <xpath expr="//div[@name='button_box']" position="inside">
+        <button name="action_view_intakes"
+                type="object"
+                class="oe_stat_button"
+                icon="fa-inbox">
+          <field name="intake_count" string="Intakes" widget="statinfo"/>
+        </button>
+      </xpath>
+
+    </field>
+  </record>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       PARTNER FORM EXTENSION (Add Intake Buttons)
+       ═══════════════════════════════════════════════════════════════════ -->
+
+  <record id="view_partner_form_intake" model="ir.ui.view">
+    <field name="name">res.partner.form.intake</field>
+    <field name="model">res.partner</field>
+    <field name="inherit_id" ref="base.view_partner_form"/>
+    <field name="arch" type="xml">
+
+      <!-- Add Create Intake button to header for facilities -->
+      <xpath expr="//form/sheet" position="before">
+        <header>
+          <button name="action_create_intake"
+                  string="Create Intake"
+                  type="object"
+                  class="btn-primary"
+                  icon="fa-inbox"
+                  invisible="not is_facility"/>
+        </header>
+      </xpath>
+
+      <!-- Add Intake stat button to button box -->
+      <xpath expr="//div[@name='button_box']" position="inside">
+        <button name="action_view_intakes"
+                type="object"
+                class="oe_stat_button"
+                icon="fa-inbox"
+                invisible="intake_count == 0">
+          <field name="intake_count" string="Intakes" widget="statinfo"/>
+        </button>
+      </xpath>
+
+    </field>
+  </record>
+
+</odoo>

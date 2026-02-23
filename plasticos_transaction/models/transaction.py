@@ -61,6 +61,25 @@ class PlasticosTransaction(models.Model):
         help="Denormalized link to buyer's material profile for fast lookup.",
     )
 
+    # Denormalized profile references (computed/stored for fast lookup)
+    buyer_facility_id = fields.Many2one(
+        "plasticos.facility.profile",
+        string="Buyer Facility Profile",
+        compute="_compute_profiles",
+        store=True,
+        index=True,
+        help="Cached facility capability profile from sale order partner",
+    )
+
+    supplier_material_id = fields.Many2one(
+        "plasticos.material.profile",
+        string="Supplier Material Profile (PO)",
+        compute="_compute_profiles",
+        store=True,
+        index=True,
+        help="Cached material profile from primary purchase order partner",
+    )
+
     # ── Product Info (harvested) ───────────────────────────────
     product_id = fields.Many2one(
         "product.product",
@@ -319,6 +338,31 @@ class PlasticosTransaction(models.Model):
                     )
             rec.supplier_profile_id = supplier_profile
             rec.buyer_profile_id = buyer_profile
+
+    @api.depends("sale_order_id.partner_id", "purchase_order_ids.partner_id")
+    def _compute_profiles(self):
+        for rec in self:
+            # Buyer facility from sale order partner
+            if rec.sale_order_id and rec.sale_order_id.partner_id:
+                facility = self.env["plasticos.facility.profile"].search(
+                    [("partner_id", "=", rec.sale_order_id.partner_id.id)], limit=1
+                )
+                rec.buyer_facility_id = facility
+            else:
+                rec.buyer_facility_id = False
+
+            # Supplier material from first purchase order partner
+            if rec.purchase_order_ids:
+                first_po = rec.purchase_order_ids[0]
+                if first_po.partner_id:
+                    material = self.env["plasticos.material.profile"].search(
+                        [("partner_id", "=", first_po.partner_id.id)], limit=1
+                    )
+                    rec.supplier_material_id = material
+                else:
+                    rec.supplier_material_id = False
+            else:
+                rec.supplier_material_id = False
 
     @api.depends("expected_weight", "actual_weight")
     def _compute_weight_variance(self):

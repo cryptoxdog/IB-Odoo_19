@@ -13,6 +13,7 @@
     "data": [
         "security/ir.model.access.csv",
         "views/intake_views.xml",
+        "views/material_profile_intake_views.xml",
     ],
     "installable": True,
     "application": False,
