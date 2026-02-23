@@ -21,7 +21,12 @@ class SaleOrder(models.Model):
     )
 
     def action_confirm(self):
-        """Gate confirmation on approval for orders exceeding threshold."""
+        """Gate confirmation on approval for orders exceeding threshold.
+
+        MRO Note: This module depends on plasticos_transaction.
+        This override runs BEFORE plasticos_transaction.action_confirm() (via super),
+        ensuring the approval check happens before the transaction is created.
+        """
         config = self.env["plasticos.automation.config"].get_config()
 
         for order in self:

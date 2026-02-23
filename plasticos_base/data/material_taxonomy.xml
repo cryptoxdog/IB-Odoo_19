@@ -252,10 +252,6 @@
       <field name="parent_id" ref="category_source_types"/>
       <field name="name">Clean</field>
     </record>
-    <record id="source_type_clean_upper" model="res.partner.category">
-      <field name="parent_id" ref="category_source_types"/>
-      <field name="name">CLEAN</field>
-    </record>
     <record id="source_type_cont" model="res.partner.category">
       <field name="parent_id" ref="category_source_types"/>
       <field name="name">CONT</field>
@@ -263,10 +259,6 @@
     <record id="source_type_mixed" model="res.partner.category">
       <field name="parent_id" ref="category_source_types"/>
       <field name="name">Mixed</field>
-    </record>
-    <record id="source_type_mixed_upper" model="res.partner.category">
-      <field name="parent_id" ref="category_source_types"/>
-      <field name="name">MIXED</field>
     </record>
     <record id="source_type_no_value" model="res.partner.category">
       <field name="parent_id" ref="category_source_types"/>
