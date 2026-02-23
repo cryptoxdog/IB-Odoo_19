@@ -9,6 +9,7 @@
         "plasticos_material_profile",
         "plasticos_matching",
         "plasticos_facility_profile",
+        "plasticos_graph",
     ],
     "data": [
         "security/ir.model.access.csv",

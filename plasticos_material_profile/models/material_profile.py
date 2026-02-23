@@ -364,7 +364,10 @@ class PlasticosMaterialProfile(models.Model):
         self.ensure_one()
         POLine = self.env["purchase.order.line"]
         if "material_profile_id" not in POLine._fields:
-            return {"type": "ir.actions.act_window_close"}
+            raise ValidationError(
+                "PO line tracking requires the 'PlasticOS Order Lines' module.\n\n"
+                "Install 'plasticos_order_lines' from Apps to enable this feature."
+            )
         return {
             "type": "ir.actions.act_window",
             "name": f"Purchase Lines - {self.polymer_id.name}",
@@ -381,7 +384,10 @@ class PlasticosMaterialProfile(models.Model):
         self.ensure_one()
         SOLine = self.env["sale.order.line"]
         if "material_profile_id" not in SOLine._fields:
-            return {"type": "ir.actions.act_window_close"}
+            raise ValidationError(
+                "SO line tracking requires the 'PlasticOS Order Lines' module.\n\n"
+                "Install 'plasticos_order_lines' from Apps to enable this feature."
+            )
         return {
             "type": "ir.actions.act_window",
             "name": f"Sale Lines - {self.polymer_id.name}",
@@ -501,10 +507,18 @@ class PlasticosMaterialProfile(models.Model):
     def action_create_purchase_order(self):
         """Create a PO with a line pre-filled from this material profile.
 
-        If plasticos_order_lines is installed, includes full material spec fields.
-        Otherwise, creates a basic PO line with just product and description.
+        Requires plasticos_order_lines module for full material spec on PO lines.
         """
         self.ensure_one()
+
+        # Require plasticos_order_lines for material spec fields
+        POLine = self.env["purchase.order.line"]
+        if "material_profile_id" not in POLine._fields:
+            raise ValidationError(
+                "Creating POs from material profiles requires the 'PlasticOS Order Lines' module.\n\n"
+                "Install 'plasticos_order_lines' from Apps to enable this feature."
+            )
+
         # Check if product module is installed and polymer has product_id field
         product_id = False
         product_uom_id = False
@@ -518,28 +532,19 @@ class PlasticosMaterialProfile(models.Model):
                 product_id = self.polymer_id.product_id.id
                 product_uom_id = self.polymer_id.product_id.uom_id.id if self.polymer_id.product_id.uom_id else False
 
-        # Build order line vals - base fields that always exist
         line_vals = {
             "product_id": product_id,
             "name": f"{self.polymer_id.name} - {self.partner_id.name}",
             "product_qty": 1,
             "product_uom": product_uom_id,
+            "material_profile_id": self.id,
+            "color_id": self.color_id.id if self.color_id else False,
+            "form_id": self.form_id.id if self.form_id else False,
+            "packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
+            "source_type_id": self.source_type_id.id if self.source_type_id else False,
+            "filler_type_id": self.filler_type_id.id if self.filler_type_id else False,
+            "material_attribute_ids": [(6, 0, self.material_attribute_ids.ids)],
         }
-
-        # Add material spec fields only if plasticos_order_lines is installed
-        POLine = self.env["purchase.order.line"]
-        if "material_profile_id" in POLine._fields:
-            line_vals.update(
-                {
-                    "material_profile_id": self.id,
-                    "color_id": self.color_id.id if self.color_id else False,
-                    "form_id": self.form_id.id if self.form_id else False,
-                    "packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
-                    "source_type_id": self.source_type_id.id if self.source_type_id else False,
-                    "filler_type_id": self.filler_type_id.id if self.filler_type_id else False,
-                    "material_attribute_ids": [(6, 0, self.material_attribute_ids.ids)],
-                }
-            )
 
         return {
             "type": "ir.actions.act_window",
