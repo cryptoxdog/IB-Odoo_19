@@ -1,9 +1,6 @@
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
-# Optional module model name (runtime-guarded, not a hard dependency)
-_INTAKE_MODEL = "plasticos" + ".intake"  # noqa: ISC003
-
 
 class PlasticosMaterialProfile(models.Model):
     _name = "plasticos.material.profile"
@@ -281,10 +278,7 @@ class PlasticosMaterialProfile(models.Model):
     freeform_notes = fields.Text()
 
     # ── Navigation: Related Record Counts ──────────────────────
-    intake_count = fields.Integer(
-        string="Intakes",
-        compute="_compute_intake_count",
-    )
+    # NOTE: intake_count is added by plasticos_intake module via inheritance
     po_line_count = fields.Integer(
         string="PO Lines",
         compute="_compute_po_line_count",
@@ -334,49 +328,43 @@ class PlasticosMaterialProfile(models.Model):
         for rec in self:
             rec.source_type = rec.source_type_id.code if rec.source_type_id else False
 
-    def _compute_intake_count(self):
-        """Count intakes linked to this profile (if intake module installed)."""
-        if _INTAKE_MODEL not in self.env:
-            for rec in self:
-                rec.intake_count = 0
-            return
-        Intake = self.env[_INTAKE_MODEL]
-        for rec in self:
-            rec.intake_count = Intake.search_count([("material_profile_id", "=", rec.id)])
-
     def _compute_po_line_count(self):
-        """Count PO lines linked to this profile."""
+        """Count PO lines linked to this profile.
+
+        Requires plasticos_order_lines module to be installed.
+        Returns 0 if material_profile_id field doesn't exist on purchase.order.line.
+        """
         POLine = self.env["purchase.order.line"]
+        has_field = "material_profile_id" in POLine._fields
         for rec in self:
-            rec.po_line_count = POLine.search_count([("material_profile_id", "=", rec.id)])
+            rec.po_line_count = POLine.search_count([("material_profile_id", "=", rec.id)]) if has_field else 0
 
     def _compute_so_line_count(self):
-        """Count SO lines linked to this profile."""
+        """Count SO lines linked to this profile.
+
+        Requires plasticos_order_lines module to be installed.
+        Returns 0 if material_profile_id field doesn't exist on sale.order.line.
+        """
         SOLine = self.env["sale.order.line"]
+        has_field = "material_profile_id" in SOLine._fields
         for rec in self:
-            rec.so_line_count = SOLine.search_count([("material_profile_id", "=", rec.id)])
+            rec.so_line_count = SOLine.search_count([("material_profile_id", "=", rec.id)]) if has_field else 0
 
     # ═════════════════════════════════════════════════════════
     # Navigation Actions (Jump To)
     # ═════════════════════════════════════════════════════════
-
-    def action_view_intakes(self):
-        """Navigate to intakes linked to this profile (if intake module installed)."""
-        self.ensure_one()
-        if _INTAKE_MODEL not in self.env:
-            return
-        return {
-            "type": "ir.actions.act_window",
-            "name": f"Intakes - {self.polymer_id.name}",
-            "res_model": _INTAKE_MODEL,
-            "view_mode": "list,form",
-            "domain": [("material_profile_id", "=", self.id)],
-            "context": {"default_material_profile_id": self.id},
-        }
+    # NOTE: action_view_intakes and action_create_intake are added by
+    # plasticos_intake module via inheritance to avoid circular dependency.
 
     def action_view_po_lines(self):
-        """Navigate to PO lines linked to this profile."""
+        """Navigate to PO lines linked to this profile.
+
+        Requires plasticos_order_lines module to be installed.
+        """
         self.ensure_one()
+        POLine = self.env["purchase.order.line"]
+        if "material_profile_id" not in POLine._fields:
+            return {"type": "ir.actions.act_window_close"}
         return {
             "type": "ir.actions.act_window",
             "name": f"Purchase Lines - {self.polymer_id.name}",
@@ -386,8 +374,14 @@ class PlasticosMaterialProfile(models.Model):
         }
 
     def action_view_so_lines(self):
-        """Navigate to SO lines linked to this profile."""
+        """Navigate to SO lines linked to this profile.
+
+        Requires plasticos_order_lines module to be installed.
+        """
         self.ensure_one()
+        SOLine = self.env["sale.order.line"]
+        if "material_profile_id" not in SOLine._fields:
+            return {"type": "ir.actions.act_window_close"}
         return {
             "type": "ir.actions.act_window",
             "name": f"Sale Lines - {self.polymer_id.name}",
@@ -500,43 +494,16 @@ class PlasticosMaterialProfile(models.Model):
         return res
 
     # ═════════════════════════════════════════════════════════
-    # Actions: Create Intake / Make PO
+    # Actions: Make PO
     # ═════════════════════════════════════════════════════════
-
-    def action_create_intake(self):
-        """Open intake form pre-filled from this material profile."""
-        self.ensure_one()
-        if _INTAKE_MODEL not in self.env:
-            return
-        return {
-            "type": "ir.actions.act_window",
-            "name": "Create Intake",
-            "res_model": _INTAKE_MODEL,
-            "view_mode": "form",
-            "target": "current",
-            "context": {
-                "default_supplier_id": self.partner_id.parent_id.id,
-                "default_facility_id": self.partner_id.id,
-                "default_polymer_id": self.polymer_id.id,
-                "default_form_id": self.form_id.id,
-                "default_color_id": self.color_id.id if self.color_id else False,
-                "default_source_type_id": self.source_type_id.id if self.source_type_id else False,
-                "default_packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
-                "default_origin_form_id": self.origin_form_id.id if self.origin_form_id else False,
-                "default_filler_type_id": self.filler_type_id.id if self.filler_type_id else False,
-                "default_material_attribute_ids": [(6, 0, self.material_attribute_ids.ids)],
-                "default_mfi_value": self.melt_flow_index,
-                "default_density_value": self.density,
-                "default_moisture_pct": self.moisture_percent,
-                "default_contamination_pct": self.contamination_percent,
-                "default_has_metal": self.has_metal,
-                "default_has_fr": self.contains_fr,
-                "default_material_profile_id": self.id,
-            },
-        }
+    # NOTE: action_create_intake is added by plasticos_intake module.
 
     def action_create_purchase_order(self):
-        """Create a PO with a line pre-filled from this material profile."""
+        """Create a PO with a line pre-filled from this material profile.
+
+        If plasticos_order_lines is installed, includes full material spec fields.
+        Otherwise, creates a basic PO line with just product and description.
+        """
         self.ensure_one()
         # Check if product module is installed and polymer has product_id field
         product_id = False
@@ -551,6 +518,29 @@ class PlasticosMaterialProfile(models.Model):
                 product_id = self.polymer_id.product_id.id
                 product_uom_id = self.polymer_id.product_id.uom_id.id if self.polymer_id.product_id.uom_id else False
 
+        # Build order line vals - base fields that always exist
+        line_vals = {
+            "product_id": product_id,
+            "name": f"{self.polymer_id.name} - {self.partner_id.name}",
+            "product_qty": 1,
+            "product_uom": product_uom_id,
+        }
+
+        # Add material spec fields only if plasticos_order_lines is installed
+        POLine = self.env["purchase.order.line"]
+        if "material_profile_id" in POLine._fields:
+            line_vals.update(
+                {
+                    "material_profile_id": self.id,
+                    "color_id": self.color_id.id if self.color_id else False,
+                    "form_id": self.form_id.id if self.form_id else False,
+                    "packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
+                    "source_type_id": self.source_type_id.id if self.source_type_id else False,
+                    "filler_type_id": self.filler_type_id.id if self.filler_type_id else False,
+                    "material_attribute_ids": [(6, 0, self.material_attribute_ids.ids)],
+                }
+            )
+
         return {
             "type": "ir.actions.act_window",
             "name": "Create Purchase Order",
@@ -559,25 +549,7 @@ class PlasticosMaterialProfile(models.Model):
             "target": "current",
             "context": {
                 "default_partner_id": self.partner_id.parent_id.id if self.partner_id.parent_id else self.partner_id.id,
-                "default_order_line": [
-                    (
-                        0,
-                        0,
-                        {
-                            "product_id": product_id,
-                            "material_profile_id": self.id,
-                            "color_id": self.color_id.id if self.color_id else False,
-                            "form_id": self.form_id.id if self.form_id else False,
-                            "packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
-                            "source_type_id": self.source_type_id.id if self.source_type_id else False,
-                            "filler_type_id": self.filler_type_id.id if self.filler_type_id else False,
-                            "material_attribute_ids": [(6, 0, self.material_attribute_ids.ids)],
-                            "name": f"{self.polymer_id.name} - {self.partner_id.name}",
-                            "product_qty": 1,
-                            "product_uom": product_uom_id,
-                        },
-                    )
-                ],
+                "default_order_line": [(0, 0, line_vals)],
             },
         }
 
