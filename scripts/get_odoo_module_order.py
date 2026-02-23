@@ -22,12 +22,14 @@ def main() -> None:
         default = [
             "plasticos_accounting",
             "plasticos_base",
+            "plasticos_security_base",
             "plasticos_material_profile",
             "plasticos_inference_engine",
             "plasticos_logistics",
             "plasticos_facility_profile",
             "plasticos_intake",
             "plasticos_product",
+            "plasticos_order_lines",
             "plasticos_transaction",
             "plasticos_documents",
             "plasticos_matching",
@@ -39,7 +41,6 @@ def main() -> None:
             "plasticos_partner_import",
             "plasticos_geolocalize",
             "plasticos_enrichment",
-            "plasticos_security_base",
         ]
         optional = ["plasticos_web_leads"]
         if "--optional" in sys.argv:
@@ -52,12 +53,14 @@ def main() -> None:
         default = [
             "plasticos_accounting",
             "plasticos_base",
+            "plasticos_security_base",
             "plasticos_material_profile",
             "plasticos_inference_engine",
             "plasticos_logistics",
             "plasticos_facility_profile",
             "plasticos_intake",
             "plasticos_product",
+            "plasticos_order_lines",
             "plasticos_transaction",
             "plasticos_documents",
             "plasticos_matching",
@@ -69,7 +72,6 @@ def main() -> None:
             "plasticos_partner_import",
             "plasticos_geolocalize",
             "plasticos_enrichment",
-            "plasticos_security_base",
         ]
         if "--optional" in sys.argv:
             default.append("plasticos_web_leads")

@@ -12,12 +12,14 @@
 default_install_order:
   - plasticos_accounting
   - plasticos_base
+  - plasticos_security_base
   - plasticos_material_profile
   - plasticos_inference_engine
   - plasticos_logistics
   - plasticos_facility_profile
   - plasticos_intake
   - plasticos_product
+  - plasticos_order_lines
   - plasticos_transaction
   - plasticos_documents
   - plasticos_matching
@@ -29,10 +31,9 @@ default_install_order:
   - plasticos_partner_import
   - plasticos_geolocalize
   - plasticos_enrichment
-  - plasticos_security_base
 
-# Optional (add to ODOO_REBUILD_MODULES / ODOO_TEST_MODULES when needed):
-optional_modules:
+# Web leads module (tested separately after core modules pass):
+web_leads_module:
   - plasticos_web_leads   # needs: pip install openai requests
 
 # Not installable or Enterprise-only (do not add to install list):

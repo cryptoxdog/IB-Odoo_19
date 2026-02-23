@@ -371,7 +371,7 @@ pre-commit run ruff --all-files
 | **Odoo test suite** (`-i module --test-enable`) | Field references, domains, views, external IDs | Manual |
 | **Manual review checklist** | Enterprise deps, complex business logic | Manual |
 
-### CI Checks Summary (11 Total)
+### CI Checks Summary (12 Total)
 
 | # | Check | Pattern | Bug # |
 |---|-------|---------|-------|
@@ -386,6 +386,7 @@ pre-commit run ruff --all-files
 | 9 | Empty inherit files | Dead code | #14 |
 | 10 | Cron `model_id` refs | Missing module prefix | #13 |
 | 11 | XML `eval` quotes | Nested double quotes | #15 |
+| 12 | String writes to Many2one | `"polymer": val` instead of `"polymer_id": rec.id` | #21 |
 
 ---
 
@@ -496,3 +497,50 @@ pre-commit run ruff --all-files
 2. Choose to use default file or upload custom CSV
 3. Click "Preview" to see what will be imported
 4. Uncheck "Dry Run" and click "Confirm Import" to execute
+
+---
+
+## Fixed 2026-02-23 (Session 5) - Web Lead Intake Bug Fixes
+
+### Critical Bugs Fixed (from `docs/02-24-2026/code audit.md`)
+
+| Bug ID | File | Issue | Fix |
+|--------|------|-------|-----|
+| BUG-073 | `plasticos_web_leads/models/web_lead.py` | `_create_intake_triage()` and `_create_intake_simple()` wrote string codes to Many2one fields (`"polymer": "hdpe"` instead of `"polymer_id": rec.id`) | Refactored to look up records from master registries (`plasticos.polymer`, `plasticos.material.form`, `plasticos.source.type`) by code and pass record IDs |
+| BUG-074 | `plasticos_intake/models/intake.py` | `deal_type` field referenced but did not exist on `plasticos.intake` model | Added `deal_type` Selection field (spot/contract/recurring) and `contract_duration_months` Integer field |
+| BUG-075 | `plasticos_intake/models/intake.py` | `polymer_id` and `form_id` were `required=True` but web leads may not have valid codes | Changed both to `required=False` to allow intake creation with pending normalization |
+| BUG-079 | `plasticos_buyer_match_engine/models/graph_service.py` | Cypher query typo: `tx.count` should be `tx.tx_count` (property name mismatch) | Fixed typo in Stage 2 query at line 1345 |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `plasticos_web_leads/models/web_lead.py` | Refactored `_create_intake_triage()` and `_create_intake_simple()` to use registry lookups; fixed `_notify_admin_hot_intake()` to use `polymer_id.name` instead of `intake.polymer` |
+| `plasticos_intake/models/intake.py` | Added `deal_type` and `contract_duration_months` fields; changed `polymer_id` and `form_id` to `required=False` |
+| `plasticos_buyer_match_engine/models/graph_service.py` | Fixed `tx.count` → `tx.tx_count` typo |
+| `scripts/check_odoo_patterns.sh` | Added check #21: String writes to Many2one fields |
+| `reports/BUG_FIXES_SUMMARY.md` | Updated with session 5 fixes |
+
+### CI Enhancement
+
+Added new pre-commit check to catch BUG-073 pattern in the future:
+
+```bash
+# Check #21: String writes to Many2one fields
+# Catches: "polymer": value, "form": value, "source_type": value
+# when target model has _id fields (should be polymer_id, form_id, etc.)
+```
+
+### Bugs Verified as False Positives
+
+| Bug ID | Claim | Reality |
+|--------|-------|---------|
+| BUG-076 | `lead_source` field doesn't exist on `res.partner` | **FALSE** - Field defined in `plasticos_facility_profile/models/res_partner.py` lines 67-79 |
+| BUG-077 | `plasticos.intake.match` model doesn't exist | **FALSE** - Model defined in `plasticos_intake/models/intake_match.py` line 11 |
+
+### Bugs Noted for Review (Context-Dependent)
+
+| Bug ID | Issue | Status |
+|--------|-------|--------|
+| BUG-078 | `getattr(fp, "is_buyer", True)` defaults to True if attribute missing | **PARTIAL** - Safe fallback but may mask data issues |
+| BUG-080 | `ensure_one()` on AbstractModel in `_get_config()` | **CONTEXT-DEPENDENT** - Works if called correctly, crashes if called with empty recordset |

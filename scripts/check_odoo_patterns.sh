@@ -25,6 +25,7 @@
 # 18. Related fields with old intake paths (polymer→polymer_id)
 # 19. Deprecated attrs= attribute (Odoo 17+)
 # 20. Deprecated states= attribute (Odoo 17+)
+# 21. String writes to Many2one fields (BUG-073 pattern)
 
 set -e
 
@@ -316,6 +317,22 @@ if [ -n "$MATCHES" ]; then
     COUNT=$(echo "$MATCHES" | wc -l | tr -d ' ')
     echo "... ($COUNT occurrences total)"
     echo -e "${YELLOW}Fix: Replace states= with invisible=\"state == 'x'\" (Odoo 17+)${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 21. Writing string values to Many2one fields (BUG-073 pattern)
+# Catches: "polymer": value, "form": value, "source_type": value when target model has _id fields
+# Excludes: graph_service (builds query params), matcher.py (builds result dicts),
+#           enrichment_service (builds API payloads), material_profile.py (builds export packets),
+#           transaction_import (legacy CSV import uses Char fields for historical data)
+echo -n "Checking string writes to Many2one fields... "
+MATCHES=$(echo "$PY_FILES" | xargs grep -E '"(polymer|form|source_type)":\s*\w+' 2>/dev/null | grep -v '_id' | grep -v 'graph_service' | grep -v 'matcher.py' | grep -v 'enrichment_service' | grep -v 'material_profile.py' | grep -v 'transaction_import' || true)
+if [ -n "$MATCHES" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$MATCHES"
+    echo -e "${YELLOW}Fix: Use Many2one field names (polymer_id, form_id, source_type_id) with record IDs, not string codes${NC}"
     ERRORS=$((ERRORS + 1))
 else
     echo -e "${GREEN}OK${NC}"

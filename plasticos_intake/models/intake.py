@@ -125,18 +125,18 @@ class PlasticosIntake(models.Model):
     polymer_id = fields.Many2one(
         "plasticos.polymer",
         string="Polymer",
-        required=True,
+        required=False,
         index=True,
         ondelete="restrict",
-        help="Polymer type from master registry.",
+        help="Polymer type from master registry. Optional for web lead intakes pending normalization.",
     )
     form_id = fields.Many2one(
         "plasticos.material.form",
         string="Form",
-        required=True,
+        required=False,
         index=True,
         ondelete="restrict",
-        help="Material form from master registry.",
+        help="Material form from master registry. Optional for web lead intakes pending normalization.",
     )
     color_id = fields.Many2one(
         "plasticos.material.color",
@@ -277,6 +277,20 @@ class PlasticosIntake(models.Model):
         required=True,
     )
     loads_per_month = fields.Integer(string="Loads / Month")
+    deal_type = fields.Selection(
+        [
+            ("spot", "Spot"),
+            ("contract", "Contract"),
+            ("recurring", "Recurring"),
+        ],
+        string="Deal Type",
+        default="spot",
+        help="Spot = one-time. Contract = fixed term. Recurring = ongoing.",
+    )
+    contract_duration_months = fields.Integer(
+        string="Contract Duration (months)",
+        help="For contract deals, the expected duration in months.",
+    )
 
     # ═════════════════════════════════════════════════════════
     # Status (simplified 2-stage workflow)

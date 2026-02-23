@@ -632,21 +632,43 @@ class PlasticosWebLead(models.Model):
         )
 
     def _create_intake_triage(self, merged: dict[str, Any], config: Any):
-        """Create intake record WITHOUT partner (deferred until buyer-match)."""
-        polymer = merged.get("polymer") or "other"
-        form = merged.get("form") or "other"
-        source_type = merged.get("source_type") or config.default_source_type or "post_consumer"
+        """Create intake record WITHOUT partner (deferred until buyer-match).
+
+        Looks up polymer_id, form_id, source_type_id from master registries
+        by code. Falls back to 'other' record if code not found.
+        """
+        polymer_code = merged.get("polymer") or "other"
+        form_code = merged.get("form") or "other"
+        source_type_code = merged.get("source_type") or config.default_source_type or "post_consumer"
         qty_per_load = max(merged.get("estimated_lbs", 0), 1)
         loads_per_month = max(merged.get("loads_per_month", 0), 0)
 
         freq_raw = merged.get("frequency", "")
         deal_type = _FREQ_TO_DEAL.get(freq_raw, "spot")
 
+        # Look up Many2one records by code (BUG-073 fix)
+        Polymer = self.env["plasticos.polymer"]
+        Form = self.env["plasticos.material.form"]
+        SourceType = self.env["plasticos.source.type"]
+
+        polymer_rec = Polymer.search([("code", "=ilike", polymer_code)], limit=1)
+        if not polymer_rec:
+            polymer_rec = Polymer.search([("code", "=ilike", "other")], limit=1)
+
+        form_rec = Form.search([("code", "=ilike", form_code)], limit=1)
+        if not form_rec:
+            form_rec = Form.search([("code", "=ilike", "other")], limit=1)
+
+        source_type_rec = SourceType.search([("code", "=ilike", source_type_code)], limit=1)
+        if not source_type_rec:
+            source_type_rec = SourceType.search([("code", "=ilike", "post_consumer")], limit=1)
+
         intake_vals = {
             "pending_company_name": self.company_name or "Unknown",
-            "polymer": polymer,
-            "form": form,
-            "source_type": source_type,
+            "source_lead_id": self.id,
+            "polymer_id": polymer_rec.id if polymer_rec else False,
+            "form_id": form_rec.id if form_rec else False,
+            "source_type_id": source_type_rec.id if source_type_rec else False,
             "quantity_per_load_lbs": qty_per_load,
             "loads_per_month": loads_per_month,
             "deal_type": deal_type,
@@ -672,6 +694,10 @@ class PlasticosWebLead(models.Model):
         if hasattr(config, "intake_reviewer_id") and config.intake_reviewer_id:
             reviewer_id = config.intake_reviewer_id.id
 
+        # Build material description from Many2one fields
+        polymer_name = intake.polymer_id.name if intake.polymer_id else "Unknown"
+        form_name = intake.form_id.name if intake.form_id else "Unknown"
+
         intake.activity_schedule(
             "mail.mail_activity_data_todo",
             user_id=reviewer_id,
@@ -680,7 +706,7 @@ class PlasticosWebLead(models.Model):
                 f"<p>New HOT lead from web form requires review:</p>"
                 f"<ul>"
                 f"<li><b>Company:</b> {self.company_name or 'Unknown'}</li>"
-                f"<li><b>Material:</b> {intake.polymer} / {intake.form}</li>"
+                f"<li><b>Material:</b> {polymer_name} / {form_name}</li>"
                 f"<li><b>Quantity:</b> {intake.quantity_per_load_lbs:,.0f} lbs/load</li>"
                 f"<li><b>Lead ID:</b> {self.lead_id}</li>"
                 f"</ul>"
@@ -729,17 +755,23 @@ class PlasticosWebLead(models.Model):
             )
 
     def _create_intake_simple(self, config: Any):
-        """Create intake WITHOUT partner from pre-processed agent payload."""
+        """Create intake WITHOUT partner from pre-processed agent payload.
+
+        Looks up polymer_id, form_id, source_type_id from master registries
+        by normalized code. Falls back to 'other' record if code not found.
+        """
         ai = self.ai_analysis or {}
         ai_qty = ai.get("quantity", {})
         ai_freq = ai.get("frequency", {})
         ai_material = ai.get("material", {})
 
         polymer_raw = (ai_material.get("polymer", "") or ai_material.get("resin_type", "") or "").lower().strip()
-        polymer = _POLYMER_NORMALIZE.get(polymer_raw, False)
+        polymer_code = _POLYMER_NORMALIZE.get(polymer_raw, "other")
 
         form_raw = (ai_material.get("form", "") or ai_material.get("material_form", "") or "").lower().strip()
-        form = _FORM_NORMALIZE.get(form_raw, False)
+        form_code = _FORM_NORMALIZE.get(form_raw, "other")
+
+        source_type_code = config.default_source_type or "post_consumer"
 
         freq_raw = (ai_freq.get("frequency") or "").lower()
         deal_type = _FREQ_TO_DEAL.get(freq_raw, "spot")
@@ -747,19 +779,37 @@ class PlasticosWebLead(models.Model):
         qty_per_load = _safe_int(ai_qty.get("per_load_lbs"), 40000)
         loads_per_month = _safe_int(ai_qty.get("loads_per_month"), 1)
 
+        # Look up Many2one records by code (BUG-073 fix)
+        Polymer = self.env["plasticos.polymer"]
+        Form = self.env["plasticos.material.form"]
+        SourceType = self.env["plasticos.source.type"]
+
+        polymer_rec = Polymer.search([("code", "=ilike", polymer_code)], limit=1) if polymer_code else False
+        if polymer_code and not polymer_rec:
+            polymer_rec = Polymer.search([("code", "=ilike", "other")], limit=1)
+
+        form_rec = Form.search([("code", "=ilike", form_code)], limit=1) if form_code else False
+        if form_code and not form_rec:
+            form_rec = Form.search([("code", "=ilike", "other")], limit=1)
+
+        source_type_rec = SourceType.search([("code", "=ilike", source_type_code)], limit=1)
+        if not source_type_rec:
+            source_type_rec = SourceType.search([("code", "=ilike", "post_consumer")], limit=1)
+
         intake_vals = {
             "pending_company_name": self.company_name or "Unknown",
-            "source_type": config.default_source_type or "post_consumer",
+            "source_lead_id": self.id,
+            "source_type_id": source_type_rec.id if source_type_rec else False,
             "quantity_per_load_lbs": max(qty_per_load, 1),
             "loads_per_month": max(loads_per_month, 0),
             "deal_type": deal_type,
             "contamination_notes": self.contaminant_notes or False,
         }
 
-        if polymer:
-            intake_vals["polymer"] = polymer
-        if form:
-            intake_vals["form"] = form
+        if polymer_rec:
+            intake_vals["polymer_id"] = polymer_rec.id
+        if form_rec:
+            intake_vals["form_id"] = form_rec.id
 
         Intake = self.env["plasticos.intake"]
         intake = Intake.create(intake_vals)

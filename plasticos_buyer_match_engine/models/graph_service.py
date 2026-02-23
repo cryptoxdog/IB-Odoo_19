@@ -113,9 +113,7 @@ class PlasticosGraphService(models.AbstractModel):
         :param metadata: Optional dict (e.g. {"name": "sync_facility"}).
         :return: list of dict rows from Neo4j (record.data() per row).
         """
-        from odoo.addons.plasticos_buyer_match_engine.services.monitoring import (
-            get_metrics,  # pyright: ignore[reportMissingImports]
-        )
+        from ..services.monitoring import get_metrics  # Relative import for pyright
 
         self.ensure_one()
         params = params or {}
@@ -1344,7 +1342,7 @@ class PlasticosGraphService(models.AbstractModel):
         // ── Transaction history ─────────────────────────────────────────────
         OPTIONAL MATCH (supplier:Facility {facility_id: $supplier_facility_id})-[tx:TRANSACTED_WITH]->(f)
         WITH f, m, form_match, color_match, source_match, process_match,
-             COALESCE(tx.count, 0) AS tx_count
+             COALESCE(tx.tx_count, 0) AS tx_count
 
         // ── Geo distance (if coordinates available) ─────────────────────────
         WITH f, m, form_match, color_match, source_match, process_match, tx_count,
