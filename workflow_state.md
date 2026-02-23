@@ -41,6 +41,7 @@ Odoo 19 PlasticOS suite: intake, transaction, logistics, documents, commission, 
 
 ## Recent Changes
 
+- 2026-02-23: Enhanced Cypher Buyer Matching — Integrated 45-step reasoning framework into `graph_service.py`. Removed redundant polymer gate (MaterialProfile is sufficient). Broker bypass for form-equipment gates. Wash line threshold 5% (was 1%). Removed PP contamination gate (HDPE/PP blends common). Flake no wash_line requirement. Rollstock no equipment requirement. PVC gate requires sorting_line per Step 10. Transaction edge sync with recency weighting. Full facility property sync to Neo4j. Created `CYPHER_BUYER_MATCH_LOGIC.md` documentation.
 - 2026-02-24: V3 Audit Fixes — Restored mistakenly deleted inherit files in `plasticos_transaction` (`account_move_inherit`, `load_inherit`, `purchase_inherit`). Fixed null safety in email templates. Documented MRO in `sale_approval.py`. Removed duplicate partner category tags in `plasticos_base`. Set all automation crons to inactive by default.
 - 2026-02-24: Enhanced transaction and material profile linkage — Added denormalized `buyer_facility_id` and `supplier_material_id` to `plasticos_transaction` for fast lookup and correct model linkage (Buyer → Facility, Supplier → Material). Added `product_template` linkage (`material_profile_id`) to `plasticos_material_profile` to enable product-based material profile lookup. Registered missing models in `plasticos_intake` to satisfy module wiring check.
 - 2026-02-22: Docker & Security Fixes — Created Dockerfile for custom Odoo 19 image with requirements.txt (openai, neo4j, requests); updated docker-compose.yml for local Mac testing; deleted docker-compose.prod.yml (Odoo.sh handles prod); updated all modules to Odoo 19 3-layer security model (Category → Privilege → Group); fixed @api.depends path (product_tmpl_id), duplicate ACL entries, missing plasticos_product dependency.
@@ -90,13 +91,13 @@ Odoo 19 PlasticOS suite: intake, transaction, logistics, documents, commission, 
 1. Start full Odoo stack: `docker compose -p plasticos_prod -f docker-compose.prod.yml up -d`
 2. Initialize Neo4j graph schema: `./scripts/setup_neo4j.sh --init-schema`
 3. Test "Match To Buyers" button on an intake — verify Neo4j graph matching works with fallback.
-4. Create KB migration script to rebuild polymer KBs using v8.0 template and v7.0r data.
-5. Test enrichment + inference pipeline in Odoo with new v8.0 KB files.
+4. Test enrichment + inference pipeline in Odoo with new v8.0 KB files (KB migration/rebuild done elsewhere; import when ready).
 
 ---
 
 ## Recent Sessions (7-day window)
 
+- ✅ 2026-02-23: Enhanced Cypher Buyer Matching — 45-step framework integration, broker bypass, wash line 5%, PP gate removed, transaction recency weighting, Neo4j sync, documentation.
 - ✅ 2026-02-24: V3 Audit Fixes — Restored mistakenly deleted files, fixed email templates, documented MRO, deduplicated tags, disabled crons.
 - ✅ 2026-02-24: Audit Fixes — Removed duplicate model definition in `plasticos_documents` (validation_matrix.py). Populated empty ACL CSV in `plasticos_product`. Verified audit report findings (mostly false positives due to stale index).
 - ✅ 2026-02-24: Enhanced transaction and material profile linkage — Added denormalized fields to `plasticos_transaction` and product linkage to `plasticos_material_profile`.

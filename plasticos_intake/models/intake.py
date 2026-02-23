@@ -32,17 +32,9 @@ class PlasticosIntake(models.Model):
         "Cleared when partner_id is set during buyer matching.",
     )
     company_display = fields.Char(
-        string="Company",
+        string="Company Name",
         compute="_compute_company_display",
         help="Shows partner name or pending company name for list views.",
-    )
-    source_lead_id = fields.Many2one(
-        "plasticos.web.lead",
-        string="Source Web Lead",
-        readonly=True,
-        index=True,
-        ondelete="set null",
-        help="The web lead that created this intake, if any.",
     )
     facility_id = fields.Many2one(
         "res.partner",
@@ -673,16 +665,16 @@ class PlasticosIntake(models.Model):
             "name": name,
             "is_company": True,
             "supplier_rank": 1,
+            "lead_source": "web_lead",
             "comment": f"Created from web lead intake {self.name}",
         }
 
-        # Pull contact info from source lead if available
-        if self.source_lead_id:
-            lead = self.source_lead_id
-            if lead.contact_email:
-                partner_vals["email"] = lead.contact_email
-            if lead.contact_phone:
-                partner_vals["phone"] = lead.contact_phone
+        # Pull contact info from intake's contact if available
+        if self.contact_id:
+            if self.contact_id.email:
+                partner_vals["email"] = self.contact_id.email
+            if self.contact_id.phone:
+                partner_vals["phone"] = self.contact_id.phone
 
         partner = Partner.create(partner_vals)
         self.write(

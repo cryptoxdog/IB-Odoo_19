@@ -277,6 +277,13 @@ class PlasticosGraphService(models.AbstractModel):
                         (fp.process_type for fp in profiles if fp.process_type),
                         None,
                     ),
+                    # Application class (first non-null from profiles)
+                    "application_class": next(
+                        (fp.application_class for fp in profiles if getattr(fp, "application_class", None)),
+                        None,
+                    ),
+                    # Filler acceptance
+                    "accepts_filled_materials": any(getattr(fp, "accepts_filled_materials", False) for fp in profiles),
                     # Lot size constraints
                     "min_lot_size_lbs": min(
                         (fp.min_lot_size_lbs for fp in profiles if fp.min_lot_size_lbs),
@@ -347,6 +354,9 @@ class PlasticosGraphService(models.AbstractModel):
             fac.medical_grade_capable = coalesce(f.medical_grade_capable, false),
             // Process type
             fac.process_type      = f.process_type,
+            // Application class and filler acceptance
+            fac.application_class = f.application_class,
+            fac.accepts_filled_materials = coalesce(f.accepts_filled_materials, false),
             // Lot size constraints
             fac.min_lot_size_lbs  = f.min_lot_size_lbs,
             fac.max_lot_size_lbs  = f.max_lot_size_lbs,
@@ -381,6 +391,9 @@ class PlasticosGraphService(models.AbstractModel):
             fac.medical_grade_capable = coalesce(f.medical_grade_capable, fac.medical_grade_capable),
             // Process type
             fac.process_type      = f.process_type,
+            // Application class and filler acceptance
+            fac.application_class = f.application_class,
+            fac.accepts_filled_materials = coalesce(f.accepts_filled_materials, fac.accepts_filled_materials),
             // Lot size constraints
             fac.min_lot_size_lbs  = f.min_lot_size_lbs,
             fac.max_lot_size_lbs  = f.max_lot_size_lbs,
@@ -663,12 +676,20 @@ class PlasticosGraphService(models.AbstractModel):
         medical_grade = bool(getattr(mat, "medical_grade", False) or getattr(intake, "medical_grade_required", False))
 
         # ── Equipment requirement flags (from 45-step framework) ─────────
-        # Dirt > 1% requires wash line
+        # Dirt > 5% requires wash line (Igor: 1% was too aggressive)
         dirt_pct = getattr(mat, "dirt_pct", None) or getattr(intake, "dirt_pct", None) or 0.0
-        requires_wash_line = dirt_pct > 1.0 or contamination_pct > 1.0
+        requires_wash_line = dirt_pct > 5.0 or contamination_pct > 5.0
 
         # Moisture > 500 ppm (0.05%) requires dryer
         requires_dryer = moisture_pct > 0.05 or (moisture_pct == 0 and getattr(intake, "stored_outdoors", False))
+
+        # ── Filler / Additive fields (45-step framework Layer 4) ──────
+        filler_type = mat.filler_type_id.code if mat.filler_type_id else None
+        filler_pct = getattr(mat, "filler_pct", None) or 0.0
+
+        # ── Odor / Oil Residue (from attributes) ────────────────────────
+        has_odor = "has_odor" in attr_codes
+        has_oil_residue = "oil_residue" in attr_codes or "oily" in attr_codes
 
         # ── Supplier facility for transaction history ────────────────────
         supplier_facility_id = intake.partner_id.id if intake.partner_id else None
@@ -715,6 +736,12 @@ class PlasticosGraphService(models.AbstractModel):
             "requires_wash_line": requires_wash_line,
             "requires_dryer": requires_dryer,
             "dirt_pct": dirt_pct,
+            # ── Filler / Additive parameters ─────────────────────────────
+            "filler_type": filler_type,
+            "filler_pct": filler_pct,
+            # ── Odor / Oil Residue (attribute-based) ─────────────────────
+            "has_odor": has_odor,
+            "has_oil_residue": has_oil_residue,
             # ── Transaction history ──────────────────────────────────────
             "supplier_facility_id": supplier_facility_id,
             # ── Scoring weights (configurable) ───────────────────────────
@@ -744,7 +771,7 @@ class PlasticosGraphService(models.AbstractModel):
         10. Geo radius - within maximum shipping distance
 
         EQUIPMENT CAPABILITY GATES (from 45-step framework):
-        - Wash line required if dirt > 1%
+        - Wash line required if dirt > 5%
         - Dryer required if moisture > 500 ppm
         - Form handling (bales, regrind, pellet, flake)
 
@@ -778,13 +805,12 @@ class PlasticosGraphService(models.AbstractModel):
           AND (f.active IS NULL OR f.active = true)
 
         // ── Hard gate 1: Polymer match on MaterialProfile ─────────────────
+        // NOTE: This is the ONLY polymer gate needed. The MaterialProfile
+        // already represents what the facility accepts, so checking
+        // f.accepted_polymers separately would be redundant.
           AND m.polymer = $polymer
 
-        // ── Hard gate 2: Accepted polymers on facility ────────────────────
-          AND ($polymer IN f.accepted_polymers OR f.accepted_polymers IS NULL
-               OR size(f.accepted_polymers) = 0)
-
-        // ── Hard gate 3: Density range ────────────────────────────────────
+        // ── Hard gate 2: Density range ────────────────────────────────────
           AND (f.density_min IS NULL OR $density IS NULL OR f.density_min <= $density)
           AND (f.density_max IS NULL OR $density IS NULL OR f.density_max >= $density)
 
@@ -816,7 +842,7 @@ class PlasticosGraphService(models.AbstractModel):
         // EQUIPMENT CAPABILITY GATES (from 45-step framework)
         // ══════════════════════════════════════════════════════════════════
 
-        // ── Wash line required if dirt > 1% ───────────────────────────────
+        // ── Wash line required if dirt > 5% ───────────────────────────────
           AND (NOT $requires_wash_line OR f.has_wash_line = true)
 
         // ── Dryer required if moisture > 500 ppm ──────────────────────────
@@ -907,16 +933,40 @@ class PlasticosGraphService(models.AbstractModel):
           END
 
         // ══════════════════════════════════════════════════════════════════
-        // PP CONTAMINATION GATE (HDPE processing only)
-        // PP/HDPE incompatibility causes delamination and weak welds
-        // Requires compatibilizer (MAPE) or compounding capability
+        // PP CONTAMINATION GATE — REMOVED
+        // Igor: "companies can blend HDPE and PP to make a product without
+        // compounding!" — This is NOT a hard gate. HDPE/PP blends are common.
+        // ══════════════════════════════════════════════════════════════════
+
+        // ══════════════════════════════════════════════════════════════════
+        // FILLER COMPATIBILITY GATE (45-step framework Layer 4)
+        // Glass-filled material requires buyer who can process glass-filled
+        // Filler > 30% typically requires specialized equipment
         // ══════════════════════════════════════════════════════════════════
           AND CASE
-            // Only applies when intake is HDPE AND has PP contamination
-            WHEN $polymer IN ['hdpe', 'HDPE'] AND $has_pp_contamination = true
+            // If material has filler, buyer must accept filled materials
+            WHEN $filler_type IS NOT NULL AND $filler_pct > 0
             THEN (
-              // Buyer must have compounding capability to add compatibilizer
-              f.process_type = 'compounding'
+              // Buyer must either: accept this filler type OR be a compounder
+              f.accepts_filled_materials = true
+              OR f.process_type = 'compounding'
+              OR f.accepts_filled_materials IS NULL  // NULL = unknown, allow through
+            )
+            ELSE true
+          END
+
+        // ══════════════════════════════════════════════════════════════════
+        // ODOR / OIL RESIDUE GATE (45-step framework Step 30)
+        // Has odor or oil residue excludes consumer product applications
+        // ══════════════════════════════════════════════════════════════════
+          AND CASE
+            // Material with odor or oil residue cannot go to consumer product manufacturers
+            WHEN $has_odor = true OR $has_oil_residue = true
+            THEN (
+              // Exclude food, medical, and consumer packaging buyers
+              f.food_grade_certified = false
+              AND f.medical_grade_capable = false
+              AND (f.application_class IS NULL OR f.application_class NOT IN ['food', 'medical', 'packaging'])
             )
             ELSE true
           END
@@ -967,6 +1017,10 @@ class PlasticosGraphService(models.AbstractModel):
              CASE WHEN f.process_type = $origin_process_type OR $origin_process_type IS NULL
                   THEN 1 ELSE 0 END AS process_match,
 
+             // Application class match (soft signal - boost if buyer has specific application focus)
+             // Buyers with application_class set are specialized and get a small boost
+             CASE WHEN f.application_class IS NOT NULL THEN 0.5 ELSE 0 END AS app_class_match,
+
              // Certification match (30% of hard score)
              CASE WHEN f.food_grade_certified = true AND $food_grade = true THEN 1
                   WHEN $food_grade = false THEN 1
@@ -1005,9 +1059,10 @@ class PlasticosGraphService(models.AbstractModel):
              // Hard gate score: form + source + cert weighted
              (form_match * 0.40 + source_match * 0.30 + cert_match * 0.30) AS hard_score,
 
-             // Soft signal score
+             // Soft signal score (app_class_match adds 5% boost for specialized buyers)
              (color_match * 0.25 + pkg_match * 0.05
-              + origin_form_match * 0.10 + process_match * 0.10 + 0.50) AS soft_raw
+              + origin_form_match * 0.10 + process_match * 0.10
+              + app_class_match * 0.05 + 0.45) AS soft_raw
 
         WITH f, m, distance_m, tx_count, recency_factor, hard_score,
              // Clamp soft_raw into 0..1

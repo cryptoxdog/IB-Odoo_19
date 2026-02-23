@@ -119,8 +119,11 @@
                   <field name="contains_fr"/>
                 </group>
               </group>
-              <group string="Additives">
-                <field name="filler_type_id"/>
+              <group>
+                <group string="Filler / Additives">
+                  <field name="filler_type_id"/>
+                  <field name="filler_pct" invisible="not filler_type_id"/>
+                </group>
               </group>
             </page>
 

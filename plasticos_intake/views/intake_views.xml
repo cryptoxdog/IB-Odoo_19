@@ -245,7 +245,6 @@
                                    invisible="not partner_id and pending_company_name"/>
                             <field name="facility_id" invisible="not partner_id"/>
                             <field name="material_profile_id"/>
-                            <field name="source_lead_id" readonly="1" invisible="not source_lead_id"/>
                         </group>
                         <group string="Contact &amp; Assignment">
                             <field name="contact_id"/>

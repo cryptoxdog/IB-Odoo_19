@@ -115,6 +115,11 @@
                   <field name="medical_grade_capable"/>
                 </group>
               </group>
+              <group>
+                <group string="Material Acceptance">
+                  <field name="accepts_filled_materials"/>
+                </group>
+              </group>
             </page>
 
             <!-- ── Operational Tab ─────────────────────── -->
@@ -150,6 +155,11 @@
     <field name="model">res.partner</field>
     <field name="inherit_id" ref="base.view_partner_form"/>
     <field name="arch" type="xml">
+
+      <!-- Add lead_source to partner form (visible for companies) -->
+      <xpath expr="//field[@name='category_id']" position="after">
+        <field name="lead_source" invisible="not is_company"/>
+      </xpath>
 
       <xpath expr="//sheet/notebook" position="inside">
 

@@ -644,7 +644,6 @@ class PlasticosWebLead(models.Model):
 
         intake_vals = {
             "pending_company_name": self.company_name or "Unknown",
-            "source_lead_id": self.id,
             "polymer": polymer,
             "form": form,
             "source_type": source_type,
@@ -656,6 +655,10 @@ class PlasticosWebLead(models.Model):
 
         Intake = self.env["plasticos.intake"]
         intake = Intake.create(intake_vals)
+
+        # Link this lead to the intake for reference (Many2one on web_lead side)
+        self.intake_id = intake.id
+
         return intake
 
     def _notify_admin_hot_intake(self, intake, config):
@@ -746,7 +749,6 @@ class PlasticosWebLead(models.Model):
 
         intake_vals = {
             "pending_company_name": self.company_name or "Unknown",
-            "source_lead_id": self.id,
             "source_type": config.default_source_type or "post_consumer",
             "quantity_per_load_lbs": max(qty_per_load, 1),
             "loads_per_month": max(loads_per_month, 0),
@@ -761,6 +763,10 @@ class PlasticosWebLead(models.Model):
 
         Intake = self.env["plasticos.intake"]
         intake = Intake.create(intake_vals)
+
+        # Link this lead to the intake for reference (Many2one on web_lead side)
+        self.intake_id = intake.id
+
         return intake
 
     # ═══════════════════════════════════════════════════════════

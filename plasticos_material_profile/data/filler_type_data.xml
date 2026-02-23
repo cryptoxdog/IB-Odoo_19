@@ -17,10 +17,16 @@
       <field name="description">Talc mineral filler for improved stiffness and dimensional stability.</field>
       <field name="sequence">20</field>
     </record>
+    <record id="filler_caco3" model="plasticos.filler.type">
+      <field name="name">CaCO3 Filled</field>
+      <field name="code">caco3</field>
+      <field name="description">Calcium carbonate filler. Balances stiffness + impact better than talc. Common in pipe and profiles.</field>
+      <field name="sequence">25</field>
+    </record>
     <record id="filler_mineral" model="plasticos.filler.type">
       <field name="name">Mineral Filled</field>
       <field name="code">mineral</field>
-      <field name="description">General mineral fillers (calcium carbonate, mica, etc.).</field>
+      <field name="description">General mineral fillers (mica, etc.).</field>
       <field name="sequence">30</field>
     </record>
     <record id="filler_carbon" model="plasticos.filler.type">

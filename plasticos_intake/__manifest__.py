@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Intake",
-    "version": "19.0.4.0.0",
+    "version": "19.0.5.0.0",
     "summary": "Transactional Material Intake — contact intelligence, " "smart memory, UX normalization",
     "author": "PlasticOS",
     "depends": [
@@ -9,7 +9,6 @@
         "mail",
         "plasticos_material_profile",
         "plasticos_facility_profile",
-        "plasticos_web_leads",
     ],
     "data": [
         "security/ir.model.access.csv",

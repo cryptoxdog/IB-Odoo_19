@@ -202,6 +202,13 @@ class PlasticosFacilityProfile(models.Model):
         help="Additional notes about the facility's end-use applications.",
     )
 
+    # ── Filler Acceptance (45-step framework Layer 4) ──────
+    accepts_filled_materials = fields.Boolean(
+        string="Accepts Filled Materials",
+        help="Facility can process glass-filled, talc-filled, or other filled materials. "
+        "Required for materials with filler_pct > 0.",
+    )
+
     # ═════════════════════════════════════════════════════════
     # Constraints
     # ═════════════════════════════════════════════════════════

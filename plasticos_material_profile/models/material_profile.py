@@ -222,6 +222,10 @@ class PlasticosMaterialProfile(models.Model):
         ondelete="restrict",
         help="Glass filled, talc filled, etc.",
     )
+    filler_pct = fields.Float(
+        string="Filler %",
+        help="Percentage of filler content (e.g., 30 for 30% glass filled).",
+    )
 
     # ── Quality ──────────────────────────────────────────────
     melt_flow_index = fields.Float(index=True)
@@ -595,6 +599,11 @@ class PlasticosMaterialProfile(models.Model):
                     "origin_process": rec.origin_process_type,
                     "washed": rec.previously_washed,
                     "pelletized": rec.previously_pelletized,
+                },
+                "filler": {
+                    "type": rec.filler_type_id.code if rec.filler_type_id else None,
+                    "type_name": rec.filler_type_id.name if rec.filler_type_id else None,
+                    "pct": rec.filler_pct,
                 },
             }
             # Stub only — L9 adapter will consume this.

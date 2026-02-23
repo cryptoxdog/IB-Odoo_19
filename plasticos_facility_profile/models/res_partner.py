@@ -64,6 +64,22 @@ class ResPartner(models.Model):
         "Used to auto-fill contact on subsequent intakes.",
     )
 
+    lead_source = fields.Selection(
+        selection=[
+            ("web_lead", "Web Lead"),
+            ("magazine", "Magazine"),
+            ("referral", "Referral"),
+            ("trade_show", "Trade Show"),
+            ("cold_call", "Cold Call"),
+            ("existing_customer", "Existing Customer"),
+            ("other", "Other"),
+        ],
+        string="Lead Source",
+        tracking=True,
+        help="How this counterparty was originally acquired. "
+        "Set automatically when partner is created from a web lead.",
+    )
+
     def write(self, vals):
         if "parent_id" in vals and not vals.get("parent_id"):
             for rec in self:
