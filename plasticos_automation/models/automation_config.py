@@ -46,9 +46,9 @@ class PlasticosAutomationConfig(models.Model):
 
     active = fields.Boolean(default=True)
 
-    _singleton_check = models.Constraint(
-        "CHECK(id IS NOT NULL)",
-        "Only one automation configuration record is allowed.",
+    _singleton_constraint = models.Constraint(
+        "EXCLUDE (active WITH =) WHERE (active = true)",
+        "Only one active automation configuration record is allowed.",
     )
 
     @api.constrains("active")

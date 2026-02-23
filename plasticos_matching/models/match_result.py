@@ -1,6 +1,7 @@
 import logging
 
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -184,6 +185,10 @@ class PlasticosMatchResult(models.Model):
     def action_accept(self):
         """Accept this match result — marks it for offer generation."""
         for rec in self:
+            if rec.state != "pending":
+                raise UserError(
+                    f"Only pending match results can be accepted. " f"'{rec.display_name}' is in state '{rec.state}'."
+                )
             rec.write(
                 {
                     "state": "accepted",
@@ -199,6 +204,10 @@ class PlasticosMatchResult(models.Model):
     def action_reject(self):
         """Reject this match result."""
         for rec in self:
+            if rec.state != "pending":
+                raise UserError(
+                    f"Only pending match results can be rejected. " f"'{rec.display_name}' is in state '{rec.state}'."
+                )
             rec.write(
                 {
                     "state": "rejected",

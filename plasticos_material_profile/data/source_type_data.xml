@@ -49,23 +49,5 @@
       <field name="description">Plastic recovered from ocean or waterway cleanup efforts.</field>
       <field name="sequence">80</field>
     </record>
-    <record id="source_mixed" model="plasticos.source.type">
-      <field name="name">Mixed Source</field>
-      <field name="code">mixed</field>
-      <field name="description">Mixed or unspecified source.</field>
-      <field name="sequence">85</field>
-    </record>
-    <record id="source_reusable" model="plasticos.source.type">
-      <field name="name">Reusable</field>
-      <field name="code">reusable</field>
-      <field name="description">Reusable/returnable packaging or items.</field>
-      <field name="sequence">90</field>
-    </record>
-    <record id="source_no_value" model="plasticos.source.type">
-      <field name="name">No Value</field>
-      <field name="code">no_value</field>
-      <field name="description">Unspecified or N/A.</field>
-      <field name="sequence">99</field>
-    </record>
   </data>
 </odoo>

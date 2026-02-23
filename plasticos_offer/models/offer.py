@@ -234,8 +234,8 @@ class PlasticosOffer(models.Model):
     def action_reject(self):
         """Reject this offer."""
         for rec in self:
-            if rec.state in ("accepted", "cancelled"):
-                raise UserError("Cannot reject an accepted or cancelled offer.")
+            if rec.state in ("accepted", "cancelled", "expired"):
+                raise UserError("Cannot reject an accepted, cancelled, or expired offer.")
             rec.write({"state": "rejected"})
         _logger.info("Offers rejected: %s", self.mapped("display_name"))
 
@@ -252,3 +252,24 @@ class PlasticosOffer(models.Model):
             if rec.state not in ("rejected", "cancelled"):
                 raise UserError("Only rejected or cancelled offers can be reset.")
             rec.write({"state": "draft"})
+
+    @api.model
+    def cron_expire_offers(self):
+        """Auto-expire offers past their valid_until date.
+
+        Runs daily to transition non-terminal offers to 'expired' state.
+        """
+        today = fields.Date.today()
+        offers_to_expire = self.search(
+            [
+                ("valid_until", "<", today),
+                ("state", "in", ("draft", "sent", "responded")),
+            ]
+        )
+        if offers_to_expire:
+            offers_to_expire.write({"state": "expired"})
+            _logger.info(
+                "Cron: expired %d offers past valid_until: %s",
+                len(offers_to_expire),
+                offers_to_expire.mapped("display_name"),
+            )

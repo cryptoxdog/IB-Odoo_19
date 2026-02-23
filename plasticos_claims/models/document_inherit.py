@@ -4,11 +4,16 @@ from odoo import api, models
 class PlasticosDocumentInherit(models.Model):
     _inherit = "plasticos.document"
 
-    @api.model
-    def create(self, vals):
-        record = super().create(vals)
-        record._check_claim_trigger()
-        return record
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Override to trigger claim auto-creation on document upload.
+
+        Uses @api.model_create_multi for Odoo 19 compatibility.
+        """
+        records = super().create(vals_list)
+        for record in records:
+            record._check_claim_trigger()
+        return records
 
     def _check_claim_trigger(self):
         """Auto-create claim when Claim Pics document is uploaded."""
@@ -56,5 +61,25 @@ class PlasticosDocumentInherit(models.Model):
         claim._send_claim_notification()
 
     def _send_claim_notification(self):
-        """Send single email notification for new claim."""
-        pass
+        """Send email notification for auto-created claim.
+
+        Uses the claim notification template if available.
+        Falls back to activity creation if template not found.
+        """
+        self.ensure_one()
+        template = self.env.ref(
+            "plasticos_claims.email_template_claim_created",
+            raise_if_not_found=False,
+        )
+        if template:
+            template.send_mail(self.id, force_send=False)
+        else:
+            # Fallback: create activity for sales rep
+            tx = self.env["plasticos.transaction"].search([("id", "=", self.transaction_id.id)], limit=1)
+            if tx and tx.user_id:
+                self.activity_schedule(
+                    "mail.mail_activity_data_todo",
+                    summary="New Claim Created",
+                    note=f"Claim {self.name} auto-created from document upload.",
+                    user_id=tx.user_id.id,
+                )

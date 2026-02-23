@@ -52,16 +52,19 @@ class SaleOrder(models.Model):
             ]
         )
 
+        log_model = self.env.get("plasticos.automation.log")
+
         for order in orders:
             order.x_requires_approval = True
-            self.env["plasticos.automation.log"].create(
-                {
-                    "name": f"Approval flag for {order.name}",
-                    "model_name": "sale.order",
-                    "res_id": order.id,
-                    "action_type": "approval_flag",
-                }
-            )
+            if log_model:
+                log_model.create(
+                    {
+                        "name": f"Approval flag for {order.name}",
+                        "model_name": "sale.order",
+                        "res_id": order.id,
+                        "action_type": "approval_flag",
+                    }
+                )
             _logger.info(
                 "Automation: flagged %s for approval (total=%.2f, threshold=%.2f)",
                 order.name,
