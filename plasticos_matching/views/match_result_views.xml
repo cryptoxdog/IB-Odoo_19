@@ -175,9 +175,9 @@
                                     <field name="confidence"/>
                                 </group>
                                 <group>
-                                    <field name="l9_run_id"/>
-                                    <field name="l9_model_version"/>
-                                    <field name="l9_timestamp"/>
+                                    <field name="run_id"/>
+                                    <field name="model_version"/>
+                                    <field name="timestamp"/>
                                 </group>
                             </group>
                             <group string="Score Breakdown">
