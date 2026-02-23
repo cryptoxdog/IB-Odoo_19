@@ -343,10 +343,24 @@ class EnrichmentService(models.AbstractModel):
 
     @api.model
     def _resolve_polymer_id(self, code):
-        """Resolve normalized polymer code to plasticos.polymer id."""
+        """Resolve normalized polymer code to plasticos.polymer id.
+
+        Handles mapping from POLYMER_NORMALIZE output to seed data codes.
+        POLYMER_NORMALIZE produces uppercase with spaces/hyphens (e.g., "HMW HDPE", "PC-PMMA").
+        Seed data uses lowercase with underscores (e.g., "hdpe_hmw", "pc_pmma").
+        """
         if not code:
             return self.env["plasticos.polymer"]
-        c = (code or "").strip().lower()
+        # Map normalized codes to seed data codes
+        # Handles special cases where normalize output differs from seed code
+        polymer_code_map = {
+            "HMW HDPE": "hdpe_hmw",
+            "PC-PMMA": "pc_pmma",
+            "PP-PE": "pp_pe",
+            "PA": "nylon",  # PA (Polyamide) stored as "nylon" in seed data
+            "Mixed": "mixed",  # Preserve case for Mixed
+        }
+        c = polymer_code_map.get(code) or (code or "").strip().lower().replace(" ", "_").replace("-", "_")
         return self.env["plasticos.polymer"].search([("code", "=", c)], limit=1)
 
     @api.model
