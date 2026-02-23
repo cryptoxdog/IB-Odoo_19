@@ -12,7 +12,6 @@
         <field name="full_name"/>
         <field name="resin_id_code"/>
         <field name="category"/>
-        <field name="product_id" string="Product" optional="show"/>
       </list>
     </field>
   </record>
@@ -23,17 +22,10 @@
     <field name="model">plasticos.polymer</field>
     <field name="arch" type="xml">
       <search>
-        <field name="name"/>
-        <field name="code"/>
-        <field name="full_name"/>
-        <separator/>
         <filter name="commodity" string="Commodity" domain="[('category', '=', 'commodity')]"/>
         <filter name="engineering" string="Engineering" domain="[('category', '=', 'engineering')]"/>
         <filter name="specialty" string="Specialty" domain="[('category', '=', 'specialty')]"/>
-        <separator/>
-        <group expand="0" string="Group By">
-          <filter name="group_category" string="Category" context="{'group_by': 'category'}"/>
-        </group>
+        <filter name="group_category" string="Category" context="{'group_by': 'category'}"/>
       </search>
     </field>
   </record>
@@ -44,14 +36,6 @@
     <field name="model">plasticos.polymer</field>
     <field name="arch" type="xml">
       <form>
-        <header>
-          <button name="action_create_products"
-                  string="Create Product"
-                  type="object"
-                  class="btn-primary"
-                  icon="fa-cube"
-                  invisible="product_id"/>
-        </header>
         <sheet>
           <group>
             <group>
@@ -65,24 +49,8 @@
               <field name="sequence"/>
             </group>
           </group>
-          <group string="Linked Product">
-            <field name="product_id" readonly="1"/>
-          </group>
         </sheet>
       </form>
-    </field>
-  </record>
-
-  <!-- ── Server Action: Create Products for Selected ────────── -->
-  <record id="plasticos_polymer_action_create_products" model="ir.actions.server">
-    <field name="name">Create Products</field>
-    <field name="model_id" ref="plasticos_material_profile.model_plasticos_polymer"/>
-    <field name="binding_model_id" ref="plasticos_material_profile.model_plasticos_polymer"/>
-    <field name="binding_view_types">list</field>
-    <field name="state">code</field>
-    <field name="code">
-if records:
-    records.action_create_products()
     </field>
   </record>
 

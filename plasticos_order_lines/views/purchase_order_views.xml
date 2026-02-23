@@ -45,23 +45,19 @@
     <field name="inherit_id" ref="purchase.purchase_order_line_search"/>
     <field name="arch" type="xml">
       <xpath expr="//search" position="inside">
-        <separator/>
         <field name="color_id" string="Color"/>
         <field name="form_id" string="Form"/>
         <field name="packaging_type_id" string="Packaging"/>
         <field name="source_type_id" string="Source"/>
         <field name="filler_type_id" string="Filler"/>
         <field name="material_attribute_ids" string="Attributes"/>
-        <separator/>
         <filter string="Has Color" name="has_color" domain="[('color_id', '!=', False)]"/>
         <filter string="Has Form" name="has_form" domain="[('form_id', '!=', False)]"/>
-        <group expand="0" string="Group By Material">
-          <filter string="Color" name="group_color" context="{'group_by': 'color_id'}"/>
-          <filter string="Form" name="group_form" context="{'group_by': 'form_id'}"/>
-          <filter string="Packaging" name="group_packaging" context="{'group_by': 'packaging_type_id'}"/>
-          <filter string="Source" name="group_source" context="{'group_by': 'source_type_id'}"/>
-          <filter string="Filler" name="group_filler" context="{'group_by': 'filler_type_id'}"/>
-        </group>
+        <filter string="Color" name="group_color" context="{'group_by': 'color_id'}"/>
+        <filter string="Form" name="group_form" context="{'group_by': 'form_id'}"/>
+        <filter string="Packaging" name="group_packaging" context="{'group_by': 'packaging_type_id'}"/>
+        <filter string="Source" name="group_source" context="{'group_by': 'source_type_id'}"/>
+        <filter string="Filler" name="group_filler" context="{'group_by': 'filler_type_id'}"/>
       </xpath>
     </field>
   </record>

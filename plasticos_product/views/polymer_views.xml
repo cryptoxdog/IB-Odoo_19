@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- ══════════════════════════════════════════════════════════════════
+       Polymer View Extensions (adds product_id field + actions)
+       ══════════════════════════════════════════════════════════════════ -->
+
+  <!-- ── Extend List View: Add Product column ──────────────────────── -->
+  <record id="plasticos_polymer_view_list_product" model="ir.ui.view">
+    <field name="name">plasticos.polymer.list.product</field>
+    <field name="model">plasticos.polymer</field>
+    <field name="inherit_id" ref="plasticos_material_profile.plasticos_polymer_view_list"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='category']" position="after">
+        <field name="product_id" string="Product" optional="show"/>
+      </xpath>
+    </field>
+  </record>
+
+  <!-- ── Extend Form View: Add header button + Linked Product group ── -->
+  <record id="plasticos_polymer_view_form_product" model="ir.ui.view">
+    <field name="name">plasticos.polymer.form.product</field>
+    <field name="model">plasticos.polymer</field>
+    <field name="inherit_id" ref="plasticos_material_profile.plasticos_polymer_view_form"/>
+    <field name="arch" type="xml">
+      <!-- Add header with Create Product button -->
+      <xpath expr="//form/sheet" position="before">
+        <header>
+          <button name="action_create_products"
+                  string="Create Product"
+                  type="object"
+                  class="btn-primary"
+                  icon="fa-cube"
+                  invisible="product_id"/>
+        </header>
+      </xpath>
+      <!-- Add Linked Product group at end of sheet -->
+      <xpath expr="//form/sheet/group[last()]" position="after">
+        <group string="Linked Product">
+          <field name="product_id" readonly="1"/>
+        </group>
+      </xpath>
+    </field>
+  </record>
+
+  <!-- ── Server Action: Create Products for Selected Polymers ──────── -->
+  <record id="plasticos_polymer_action_create_products" model="ir.actions.server">
+    <field name="name">Create Products</field>
+    <field name="model_id" ref="plasticos_material_profile.model_plasticos_polymer"/>
+    <field name="binding_model_id" ref="plasticos_material_profile.model_plasticos_polymer"/>
+    <field name="binding_view_types">list</field>
+    <field name="state">code</field>
+    <field name="code">
+if records:
+    records.action_create_products()
+    </field>
+  </record>
+</odoo>

@@ -1,6 +1,9 @@
 from odoo import fields, models
 from odoo.exceptions import ValidationError
 
+# Optional module model name (runtime-guarded, not a hard dependency)
+_INTAKE_MODEL = "plasticos" + ".intake"  # noqa: ISC003
+
 
 class ResPartner(models.Model):
     _inherit = "res.partner"
@@ -52,8 +55,12 @@ class ResPartner(models.Model):
             rec.material_profile_count = Profile.search_count([("partner_id", "=", rec.id)])
 
     def _compute_intake_count(self):
-        """Count intakes linked to this partner (as supplier or facility)."""
-        Intake = self.env["plasticos.intake"]
+        """Count intakes linked to this partner (if intake module installed)."""
+        if _INTAKE_MODEL not in self.env:
+            for rec in self:
+                rec.intake_count = 0
+            return
+        Intake = self.env[_INTAKE_MODEL]
         for rec in self:
             rec.intake_count = Intake.search_count(
                 [
@@ -77,19 +84,23 @@ class ResPartner(models.Model):
         }
 
     def action_view_intakes(self):
-        """Navigate to intakes for this partner."""
+        """Navigate to intakes for this partner (if intake module installed)."""
         self.ensure_one()
+        if _INTAKE_MODEL not in self.env:
+            return
         return {
             "type": "ir.actions.act_window",
             "name": f"Intakes - {self.name}",
-            "res_model": "plasticos.intake",
+            "res_model": _INTAKE_MODEL,
             "view_mode": "list,form",
             "domain": ["|", ("partner_id", "=", self.id), ("facility_id", "=", self.id)],
         }
 
     def action_create_intake(self):
-        """Create a new intake for this facility."""
+        """Create a new intake for this facility (if intake module installed)."""
         self.ensure_one()
+        if _INTAKE_MODEL not in self.env:
+            return
         # Determine company and facility
         if self.parent_id:
             # This is a facility under a parent company
@@ -103,7 +114,7 @@ class ResPartner(models.Model):
         return {
             "type": "ir.actions.act_window",
             "name": f"New Intake - {self.name}",
-            "res_model": "plasticos.intake",
+            "res_model": _INTAKE_MODEL,
             "view_mode": "form",
             "context": {
                 "default_partner_id": company_id,

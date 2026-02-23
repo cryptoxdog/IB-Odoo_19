@@ -283,29 +283,29 @@ class PlasticosTransaction(models.Model):
         "supplier_id",
         "buyer_id",
         "product_id",
-        "product_id.product_tmpl_id.polymer_id",
-        "product_id.product_tmpl_id.form_id",
     )
     def _compute_profile_refs(self):
         """Denormalize material profile links for fast lookup.
 
         Matches supplier/buyer to their material profile based on the
-        transaction's product polymer+form. Avoids slow 3-hop traversals.
+        transaction's product polymer. Avoids slow 3-hop traversals.
+
+        Note: product.template has polymer_id (via plasticos_product) but not
+        form_id. We match on polymer only; form matching requires order line fields.
         """
         Profile = self.env["plasticos.material.profile"]
         for rec in self:
             supplier_profile = False
             buyer_profile = False
             tmpl = rec.product_id.product_tmpl_id if rec.product_id else False
-            if tmpl and tmpl.polymer_id and tmpl.form_id:
-                polymer_id = tmpl.polymer_id.id
-                form_id = tmpl.form_id.id
+            # Check if polymer_id exists on template (added by plasticos_product)
+            polymer_id = tmpl.polymer_id.id if tmpl and hasattr(tmpl, "polymer_id") and tmpl.polymer_id else False
+            if polymer_id:
                 if rec.supplier_id:
                     supplier_profile = Profile.search(
                         [
                             ("partner_id", "=", rec.supplier_id.id),
                             ("polymer_id", "=", polymer_id),
-                            ("form_id", "=", form_id),
                         ],
                         limit=1,
                     )
@@ -314,7 +314,6 @@ class PlasticosTransaction(models.Model):
                         [
                             ("partner_id", "=", rec.buyer_id.id),
                             ("polymer_id", "=", polymer_id),
-                            ("form_id", "=", form_id),
                         ],
                         limit=1,
                     )

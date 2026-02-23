@@ -1,6 +1,9 @@
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
+# Optional module model name (runtime-guarded, not a hard dependency)
+_INTAKE_MODEL = "plasticos" + ".intake"  # noqa: ISC003
+
 
 class PlasticosMaterialProfile(models.Model):
     _name = "plasticos.material.profile"
@@ -332,8 +335,12 @@ class PlasticosMaterialProfile(models.Model):
             rec.source_type = rec.source_type_id.code if rec.source_type_id else False
 
     def _compute_intake_count(self):
-        """Count intakes linked to this profile."""
-        Intake = self.env["plasticos.intake"]
+        """Count intakes linked to this profile (if intake module installed)."""
+        if _INTAKE_MODEL not in self.env:
+            for rec in self:
+                rec.intake_count = 0
+            return
+        Intake = self.env[_INTAKE_MODEL]
         for rec in self:
             rec.intake_count = Intake.search_count([("material_profile_id", "=", rec.id)])
 
@@ -354,12 +361,14 @@ class PlasticosMaterialProfile(models.Model):
     # ═════════════════════════════════════════════════════════
 
     def action_view_intakes(self):
-        """Navigate to intakes linked to this profile."""
+        """Navigate to intakes linked to this profile (if intake module installed)."""
         self.ensure_one()
+        if _INTAKE_MODEL not in self.env:
+            return
         return {
             "type": "ir.actions.act_window",
             "name": f"Intakes - {self.polymer_id.name}",
-            "res_model": "plasticos.intake",
+            "res_model": _INTAKE_MODEL,
             "view_mode": "list,form",
             "domain": [("material_profile_id", "=", self.id)],
             "context": {"default_material_profile_id": self.id},
@@ -497,10 +506,12 @@ class PlasticosMaterialProfile(models.Model):
     def action_create_intake(self):
         """Open intake form pre-filled from this material profile."""
         self.ensure_one()
+        if _INTAKE_MODEL not in self.env:
+            return
         return {
             "type": "ir.actions.act_window",
             "name": "Create Intake",
-            "res_model": "plasticos.intake",
+            "res_model": _INTAKE_MODEL,
             "view_mode": "form",
             "target": "current",
             "context": {
@@ -527,9 +538,18 @@ class PlasticosMaterialProfile(models.Model):
     def action_create_purchase_order(self):
         """Create a PO with a line pre-filled from this material profile."""
         self.ensure_one()
-        # Ensure polymer has a product
-        if not self.polymer_id.product_id:
+        # Check if product module is installed and polymer has product_id field
+        product_id = False
+        product_uom_id = False
+        if hasattr(self.polymer_id, "product_id") and self.polymer_id.product_id:
+            product_id = self.polymer_id.product_id.id
+            product_uom_id = self.polymer_id.product_id.uom_id.id if self.polymer_id.product_id.uom_id else False
+        elif hasattr(self.polymer_id, "_ensure_product"):
+            # Product module installed but no product yet - create one
             self.polymer_id._ensure_product()
+            if self.polymer_id.product_id:
+                product_id = self.polymer_id.product_id.id
+                product_uom_id = self.polymer_id.product_id.uom_id.id if self.polymer_id.product_id.uom_id else False
 
         return {
             "type": "ir.actions.act_window",
@@ -538,13 +558,13 @@ class PlasticosMaterialProfile(models.Model):
             "view_mode": "form",
             "target": "current",
             "context": {
-                "default_partner_id": self.partner_id.parent_id.id,
+                "default_partner_id": self.partner_id.parent_id.id if self.partner_id.parent_id else self.partner_id.id,
                 "default_order_line": [
                     (
                         0,
                         0,
                         {
-                            "product_id": self.polymer_id.product_id.id,
+                            "product_id": product_id,
                             "material_profile_id": self.id,
                             "color_id": self.color_id.id if self.color_id else False,
                             "form_id": self.form_id.id if self.form_id else False,
@@ -554,9 +574,7 @@ class PlasticosMaterialProfile(models.Model):
                             "material_attribute_ids": [(6, 0, self.material_attribute_ids.ids)],
                             "name": f"{self.polymer_id.name} - {self.partner_id.name}",
                             "product_qty": 1,
-                            "product_uom": self.polymer_id.product_id.uom_id.id
-                            if self.polymer_id.product_id.uom_id
-                            else False,
+                            "product_uom": product_uom_id,
                         },
                     )
                 ],

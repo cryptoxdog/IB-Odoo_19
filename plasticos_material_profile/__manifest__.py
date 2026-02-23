@@ -9,7 +9,6 @@
         "base",
         "contacts",
         "mail",
-        "plasticos_intake",
         "purchase",
         "sale_management",
     ],

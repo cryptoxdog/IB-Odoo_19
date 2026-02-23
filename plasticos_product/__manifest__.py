@@ -24,6 +24,7 @@ Features:
         "security/ir.model.access.csv",
         "data/product_category_data.xml",
         "data/product_data.xml",
+        "views/polymer_views.xml",
     ],
     "post_init_hook": "_post_init_create_polymer_products",
     "installable": True,
