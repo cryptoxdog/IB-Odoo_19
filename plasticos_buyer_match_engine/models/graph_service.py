@@ -218,27 +218,48 @@ class PlasticosGraphService(models.AbstractModel):
                 _logger.debug("Schema init step skipped: %s", exc)
 
     def _build_facility_payloads(self):
+        """Build Facility node payloads including geo location.
+
+        Queries partners with facility profiles and aggregates capabilities
+        across all profiles for each partner.
+        """
         self.ensure_one()
-        Facility = self.env["plasticos.facility.profile"].search([("active", "=", True)])
+        # Find all partners that have facility profiles
+        partners = self.env["res.partner"].search(
+            [
+                ("facility_profile_ids", "!=", False),
+            ]
+        )
+
         payloads = []
-        for fp in Facility:
-            p = fp.partner_id
+        for partner in partners:
+            profiles = partner.facility_profile_ids.filtered(lambda fp: fp.active)
+            if not profiles:
+                continue
+
+            # Aggregate capabilities across all facility profiles for this partner
             payloads.append(
                 {
-                    "facility_id": p.id,
-                    "partner_id": p.id,
-                    "name": (p.name or "").strip() or "Facility",
-                    "is_buyer": True,
-                    "is_supplier": True,
-                    "lat": getattr(p, "partner_latitude", None) or None,
-                    "lon": getattr(p, "partner_longitude", None) or None,
-                    "city": p.city or None,
-                    "state": p.state_id.name if p.state_id else None,
-                    "country": p.country_id.code if p.country_id else None,
-                    "can_remove_metal": bool(getattr(fp, "can_remove_metal", False)),
-                    "can_filter_fr": bool(getattr(fp, "can_filter_fr", False)),
-                    "min_lot_size_lbs": fp.min_lot_size_lbs or None,
-                    "max_lot_size_lbs": fp.max_lot_size_lbs or None,
+                    "facility_id": partner.id,
+                    "partner_id": partner.id,
+                    "name": partner.name or "",
+                    "is_buyer": bool(any(getattr(fp, "is_buyer", True) for fp in profiles)),
+                    "is_supplier": bool(any(getattr(fp, "is_supplier", True) for fp in profiles)),
+                    "lat": partner.partner_latitude or None,
+                    "lon": partner.partner_longitude or None,
+                    "city": partner.city or None,
+                    "state": partner.state_id.code if partner.state_id else None,
+                    "country": partner.country_id.code if partner.country_id else None,
+                    "can_remove_metal": any(getattr(fp, "can_remove_metal", False) for fp in profiles),
+                    "can_filter_fr": any(getattr(fp, "can_filter_fr", False) for fp in profiles),
+                    "min_lot_size_lbs": min(
+                        (fp.min_lot_size_lbs for fp in profiles if fp.min_lot_size_lbs),
+                        default=None,
+                    ),
+                    "max_lot_size_lbs": max(
+                        (fp.max_lot_size_lbs for fp in profiles if fp.max_lot_size_lbs),
+                        default=None,
+                    ),
                 }
             )
         return payloads
@@ -266,6 +287,7 @@ class PlasticosGraphService(models.AbstractModel):
         return payloads
 
     def sync_facility_nodes(self, trigger="manual"):
+        """Upsert Facility nodes with geo location as Neo4j point."""
         self.ensure_one()
         payloads = self._build_facility_payloads()
         if not payloads:
@@ -275,19 +297,43 @@ class PlasticosGraphService(models.AbstractModel):
         UNWIND $facilities AS f
         MERGE (fac:Facility {facility_id: f.facility_id})
         ON CREATE SET
-            fac.partner_id = f.partner_id, fac.name = f.name,
-            fac.is_buyer = coalesce(f.is_buyer, false), fac.is_supplier = coalesce(f.is_supplier, false),
-            fac.can_remove_metal = coalesce(f.can_remove_metal, false), fac.can_filter_fr = coalesce(f.can_filter_fr, false),
-            fac.min_lot_size_lbs = f.min_lot_size_lbs, fac.max_lot_size_lbs = f.max_lot_size_lbs,
-            fac.city = f.city, fac.state = f.state, fac.country = f.country,
-            fac.created_at_utc = datetime(), fac.updated_at_utc = datetime()
+            fac.partner_id        = f.partner_id,
+            fac.name              = f.name,
+            fac.is_buyer          = coalesce(f.is_buyer, false),
+            fac.is_supplier       = coalesce(f.is_supplier, false),
+            fac.can_remove_metal  = coalesce(f.can_remove_metal, false),
+            fac.can_filter_fr     = coalesce(f.can_filter_fr, false),
+            fac.min_lot_size_lbs  = f.min_lot_size_lbs,
+            fac.max_lot_size_lbs  = f.max_lot_size_lbs,
+            fac.city              = f.city,
+            fac.state             = f.state,
+            fac.country           = f.country,
+            fac.created_at_utc    = datetime(),
+            fac.updated_at_utc    = datetime()
         ON MATCH SET
-            fac.partner_id = f.partner_id, fac.name = f.name,
-            fac.is_buyer = coalesce(f.is_buyer, fac.is_buyer), fac.is_supplier = coalesce(f.is_supplier, fac.is_supplier),
-            fac.can_remove_metal = coalesce(f.can_remove_metal, fac.can_remove_metal), fac.can_filter_fr = coalesce(f.can_filter_fr, fac.can_filter_fr),
-            fac.min_lot_size_lbs = f.min_lot_size_lbs, fac.max_lot_size_lbs = f.max_lot_size_lbs,
-            fac.city = f.city, fac.state = f.state, fac.country = f.country,
-            fac.updated_at_utc = datetime()
+            fac.partner_id        = f.partner_id,
+            fac.name              = f.name,
+            fac.is_buyer          = coalesce(f.is_buyer, fac.is_buyer),
+            fac.is_supplier       = coalesce(f.is_supplier, fac.is_supplier),
+            fac.can_remove_metal  = coalesce(f.can_remove_metal, fac.can_remove_metal),
+            fac.can_filter_fr     = coalesce(f.can_filter_fr, fac.can_filter_fr),
+            fac.min_lot_size_lbs  = f.min_lot_size_lbs,
+            fac.max_lot_size_lbs  = f.max_lot_size_lbs,
+            fac.city              = f.city,
+            fac.state             = f.state,
+            fac.country           = f.country,
+            fac.updated_at_utc    = datetime()
+        WITH fac, f
+        // Set geo location as Neo4j point if lat/lon provided
+        CALL {
+            WITH fac, f
+            WHERE f.lat IS NOT NULL AND f.lon IS NOT NULL
+            SET fac.location = point({
+                latitude:  toFloat(f.lat),
+                longitude: toFloat(f.lon)
+            })
+            RETURN fac AS updated_fac
+        }
         RETURN count(fac) AS n
         """
         try:
@@ -383,31 +429,70 @@ class PlasticosGraphService(models.AbstractModel):
         }
 
     def match_buyers_for_intake(self, intake):
-        """Run graph-based buyer match and write results to plasticos.match.result."""
+        """Run graph-based buyer match with geo distance filtering.
+
+        Uses Neo4j's point() and distance() functions for geo filtering when
+        intake has lat/lon coordinates. Falls back to material-only matching
+        if no coordinates available.
+        """
         self.ensure_one()
         params = self._intake_to_match_params(intake)
         if not params or not params.get("polymer") or not params.get("form"):
             return []
-        query = """
-        MATCH (fac:Facility)-[:HAS_MATERIAL]->(m:MaterialProfile)
-        WHERE m.polymer = $polymer AND m.form = $form
-        RETURN fac.facility_id AS facility_partner_id
-        LIMIT $limit
-        """
-        rows = self._execute_cypher(
-            query, {"polymer": params["polymer"], "form": params["form"], "limit": params["limit"]}
-        )
+
+        # Use geo-aware query if we have coordinates
+        has_geo = params.get("lat") is not None and params.get("lon") is not None
+
+        if has_geo:
+            query = """
+            // Create origin point from intake coordinates
+            WITH point({latitude: $lat, longitude: $lon}) AS origin
+
+            MATCH (fac:Facility {is_buyer: true})-[:HAS_MATERIAL]->(m:MaterialProfile)
+            WHERE m.polymer = $polymer AND m.form = $form
+              AND fac.location IS NOT NULL
+              AND distance(origin, fac.location) <= $max_distance_km * 1000
+
+            RETURN fac.facility_id AS facility_partner_id,
+                   distance(origin, fac.location) / 1000.0 AS distance_km
+            ORDER BY distance_km ASC
+            LIMIT $limit
+            """
+        else:
+            # Fallback: material-only matching without geo filter
+            query = """
+            MATCH (fac:Facility {is_buyer: true})-[:HAS_MATERIAL]->(m:MaterialProfile)
+            WHERE m.polymer = $polymer AND m.form = $form
+            RETURN fac.facility_id AS facility_partner_id, null AS distance_km
+            LIMIT $limit
+            """
+
+        rows = self._execute_cypher(query, params)
         if not rows:
             return []
+
         Match = self.env["plasticos.match.result"].sudo()
         Match.search([("intake_id", "=", intake.id), ("l9_run_id", "=", "graph")]).unlink()
         FacilityProfile = self.env["plasticos.facility.profile"].sudo()
+
         for rank, row in enumerate(rows, start=1):
             partner_id = row.get("facility_partner_id")
             if not partner_id:
                 continue
             facility_profile = FacilityProfile.search([("partner_id", "=", partner_id)], limit=1)
-            score = max(0.0, 100.0 - rank * 2)
+            distance_km = row.get("distance_km")
+
+            # Score: closer = higher score (100 - distance penalty)
+            if distance_km is not None:
+                distance_penalty = min(distance_km / 10.0, 50.0)  # Max 50 point penalty
+                score = max(0.0, 100.0 - distance_penalty - (rank - 1) * 2)
+            else:
+                score = max(0.0, 100.0 - rank * 2)
+
+            breakdown = {"rank": rank, "source": "graph"}
+            if distance_km is not None:
+                breakdown["distance_km"] = round(distance_km, 1)
+
             Match.create(
                 {
                     "intake_id": intake.id,
@@ -415,8 +500,9 @@ class PlasticosGraphService(models.AbstractModel):
                     "facility_profile_id": facility_profile.id if facility_profile else False,
                     "score": score,
                     "confidence": 100.0,
-                    "score_breakdown": {"rank": rank, "source": "graph"},
-                    "match_reasoning": f"Graph match #{rank} (polymer/form)",
+                    "score_breakdown": breakdown,
+                    "match_reasoning": f"Graph match #{rank} (polymer/form"
+                    + (f", {distance_km:.0f}km away)" if distance_km else ")"),
                     "state": "pending",
                     "l9_run_id": "graph",
                     "l9_timestamp": fields.Datetime.now(),

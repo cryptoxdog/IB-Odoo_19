@@ -191,18 +191,44 @@ class PlasticosIntake(models.Model):
         help="Film with metallic coating (e.g., chip bags). Synced with 'Metalized' attribute.",
     )
     has_fr = fields.Boolean(string="Flame Retardant")
-    has_residue = fields.Boolean(string="Residue Present")
-    filler_type = fields.Char()
+    # has_residue computed from contamination_pct - hidden from UI, used for buyer matching
+    has_residue = fields.Boolean(
+        string="Residue Present",
+        compute="_compute_has_residue",
+        store=True,
+        help="Auto-computed: True if contamination_pct > 0.",
+    )
+    filler_type_id = fields.Many2one(
+        "plasticos.filler.type",
+        string="Filler Type",
+        index=True,
+        ondelete="restrict",
+        help="Type of filler additive (Glass Filled, Talc Filled, etc.).",
+    )
     filler_pct = fields.Float(string="Filler (%)")
-    contamination_notes = fields.Text()
+    contamination_notes = fields.Text(string="Contamination")
+    intake_notes = fields.Text(
+        string="Intake Notes",
+        help="Freeform notes about this intake. Will be normalized via LLM.",
+    )
+
+    # ═════════════════════════════════════════════════════════
+    # Computed Quality Fields
+    # ═════════════════════════════════════════════════════════
+
+    @api.depends("contamination_pct")
+    def _compute_has_residue(self):
+        """Auto-compute has_residue from contamination percentage."""
+        for rec in self:
+            rec.has_residue = rec.contamination_pct > 0
 
     # ═════════════════════════════════════════════════════════
     # Origin Intelligence
     # ═════════════════════════════════════════════════════════
 
-    origin_application = fields.Char(
-        string="Intended Use",
-        help="What the material was originally used for or intended application.",
+    origin_application = fields.Text(
+        string="Origin Application",
+        help="What the material was originally used for (freeform, will be normalized).",
     )
     origin_sector = fields.Selection(
         [
@@ -489,6 +515,49 @@ class PlasticosIntake(models.Model):
         for rec in self:
             if rec.loads_per_month and rec.loads_per_month < 0:
                 raise ValidationError("Loads per month cannot be negative.")
+
+    # ═════════════════════════════════════════════════════════
+    # Navigation Actions (Jump To)
+    # ═════════════════════════════════════════════════════════
+
+    def action_view_material_profile(self):
+        """Navigate to the linked material profile."""
+        self.ensure_one()
+        if not self.material_profile_id:
+            return
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Material Profile",
+            "res_model": "plasticos.material.profile",
+            "view_mode": "form",
+            "res_id": self.material_profile_id.id,
+        }
+
+    def action_view_supplier(self):
+        """Navigate to the supplier company."""
+        self.ensure_one()
+        if not self.partner_id:
+            return
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.partner_id.name,
+            "res_model": "res.partner",
+            "view_mode": "form",
+            "res_id": self.partner_id.id,
+        }
+
+    def action_view_facility(self):
+        """Navigate to the facility."""
+        self.ensure_one()
+        if not self.facility_id:
+            return
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.facility_id.name,
+            "res_model": "res.partner",
+            "view_mode": "form",
+            "res_id": self.facility_id.id,
+        }
 
     # ═════════════════════════════════════════════════════════
     # Actions

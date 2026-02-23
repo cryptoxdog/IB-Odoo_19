@@ -3,120 +3,103 @@ from odoo import api, fields, models
 
 class ProductTemplate(models.Model):
     """
-    Extends product.template with plastics-specific material fields.
+    Extends product.template for plastics trading.
 
-    Product Structure:
-    - Polymer (required): HDPE, LDPE, PP, PET, etc.
-    - Form (required): Current physical form - Regrind, Flake, Pellet, etc.
-    - Origin Form (optional): What it was before processing - Drums, Bottles, Film
-    - Packaging (optional): How it's shipped - Gaylords, Super Sacks, Bales
-    - Color (optional): Blue, Natural, Mixed
-    - Attributes (optional): Conditions - Clean, With Metal, Printed
+    Products are auto-created from plasticos.polymer master data (1:1 sync).
+    The product represents the POLYMER only. All other material details
+    (color, form, packaging, source, filler, attributes) live on PO/SO lines.
 
-    Example: "HDPE Drum Regrind - Clean Bales"
-    - Polymer: HDPE
-    - Form: Regrind (current form)
-    - Origin Form: Drums (what it was)
-    - Packaging: Bales (how shipped)
-    - Attributes: Clean
+    Example flow:
+    - Product: "HDPE" (just the polymer)
+    - PO Line: HDPE + Blue + Regrind + Gaylords + Post-Industrial + Clean
+    - Display: "HDPE Blue Regrind - Gaylords - Post-Industrial - Clean"
     """
 
     _inherit = "product.template"
 
-    # ── Required Fields ────────────────────────────────────────
+    # ── Link to Polymer Master ────────────────────────────────────
     polymer_id = fields.Many2one(
         "plasticos.polymer",
         string="Polymer",
-        help="Primary polymer type (HDPE, LDPE, PP, etc.). Required.",
-    )
-    form_id = fields.Many2one(
-        "plasticos.material.form",
-        string="Form",
-        help="Current physical form (Regrind, Flake, Pellet, etc.). Required.",
+        index=True,
+        ondelete="restrict",
+        help="Link to polymer master record. Products are auto-synced from polymers.",
     )
 
-    # ── Optional Fields ────────────────────────────────────────
-    origin_form_id = fields.Many2one(
-        "plasticos.material.form",
-        string="Origin Form",
-        help="What the material was before processing (Drums, Bottles, Film). Optional.",
-    )
-    packaging_id = fields.Many2one(
-        "plasticos.packaging.type",
-        string="Packaging",
-        help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales). Optional.",
-    )
-    color_id = fields.Many2one(
-        "plasticos.material.color",
-        string="Color",
-        help="Color of the material. Optional.",
-    )
-    type_id = fields.Many2one(
-        "plasticos.source.type",
-        string="Source Type",
-        help="Source/origin type (Post-Consumer, Post-Industrial, etc.). Optional.",
-    )
-    attribute_ids = fields.Many2many(
-        "plasticos.material.attribute",
-        string="Attributes",
-        help="Material condition attributes (Clean, With Metal, Printed, etc.). Optional.",
+    # ── Flag for auto-created polymer products ────────────────────
+    is_polymer_product = fields.Boolean(
+        string="Is Polymer Product",
+        default=False,
+        help="True if this product was auto-created from a polymer record.",
     )
 
-    # ── Product Format (computed combination) ───────────────────
-    product_format = fields.Char(
-        string="Product Format",
-        compute="_compute_product_format",
-        store=True,
-        help="Read-only combination: polymer + type + form/packaging + attributes (e.g. HDPE PC Regrind Bales - Clean).",
+
+class PlasticosPolymer(models.Model):
+    """Extend polymer to auto-create products."""
+
+    _inherit = "plasticos.polymer"
+
+    product_id = fields.Many2one(
+        "product.template",
+        string="Product",
+        readonly=True,
+        help="Auto-created product for this polymer.",
     )
 
-    # ── Short Codes (for display/search) ───────────────────────
-    type_code = fields.Char(
-        string="Type Code",
-        help="Short code for source type (e.g., PC, PI).",
-    )
-    form_code = fields.Char(
-        string="Form Code",
-        help="Short code for material form (e.g., BALE, RG, FILM).",
-    )
-    color_code = fields.Char(
-        string="Color Code",
-        help="Short code for color (e.g., MIX, NAT, BLK).",
-    )
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Auto-create product when polymer is created."""
+        records = super().create(vals_list)
+        for rec in records:
+            rec._ensure_product()
+        return records
 
-    @api.depends(
-        "polymer_id",
-        "polymer_id.name",
-        "type_id",
-        "type_id.name",
-        "form_id",
-        "form_id.name",
-        "packaging_id",
-        "packaging_id.name",
-        "attribute_ids",
-        "attribute_ids.name",
-    )
-    def _compute_product_format(self):
-        """Build format string: polymer + type + form/packaging + attributes."""
+    def write(self, vals):
+        """Sync product when polymer is updated."""
+        res = super().write(vals)
+        if "name" in vals or "full_name" in vals:
+            for rec in self:
+                rec._sync_product()
+        return res
+
+    def _ensure_product(self):
+        """Create product if it doesn't exist."""
+        self.ensure_one()
+        if self.product_id:
+            return
+        Product = self.env["product.template"]
+        product = Product.create(
+            {
+                "name": self.name,
+                "type": "consu",
+                "polymer_id": self.id,
+                "is_polymer_product": True,
+                "description": self.full_name or self.name,
+            }
+        )
+        self.product_id = product.id
+
+    def _sync_product(self):
+        """Sync product name with polymer."""
+        self.ensure_one()
+        if self.product_id:
+            self.product_id.write(
+                {
+                    "name": self.name,
+                    "description": self.full_name or self.name,
+                }
+            )
+
+    def action_create_products(self):
+        """Batch action to create products for all polymers."""
         for rec in self:
-            parts = []
-            if rec.polymer_id:
-                parts.append(rec.polymer_id.name or "")
-            if rec.type_id:
-                parts.append(rec.type_id.name or "")
-            if rec.form_id:
-                parts.append(rec.form_id.name or "")
-            if rec.packaging_id:
-                parts.append(rec.packaging_id.name or "")
-            attr = rec.attribute_ids.mapped("name") if rec.attribute_ids else []
-            if attr:
-                parts.append("- " + ", ".join(attr))
-            rec.product_format = " ".join(p for p in parts if p) or ""
-
-    # ── Material Profile Link ────────────────────────────────────
-    material_profile_id = fields.Many2one(
-        "plasticos.material.profile",
-        string="Material Profile",
-        help="Links this product SKU to a specific material identity profile. "
-        "Enables product-level material tracking and buyer matching.",
-    )
+            rec._ensure_product()
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": "Products Created",
+                "message": f"Created/verified products for {len(self)} polymers.",
+                "type": "success",
+            },
+        }

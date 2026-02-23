@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="1">
+    <!--
+    Filler Types - Additives mixed into plastic to modify properties
+    Common in engineering plastics and automotive applications
+    -->
+    <record id="filler_glass" model="plasticos.filler.type">
+      <field name="name">Glass Filled</field>
+      <field name="code">glass</field>
+      <field name="description">Glass fiber reinforced plastic (GF). Common percentages: 10%, 20%, 30%, 40%.</field>
+      <field name="sequence">10</field>
+    </record>
+    <record id="filler_talc" model="plasticos.filler.type">
+      <field name="name">Talc Filled</field>
+      <field name="code">talc</field>
+      <field name="description">Talc mineral filler for improved stiffness and dimensional stability.</field>
+      <field name="sequence">20</field>
+    </record>
+    <record id="filler_mineral" model="plasticos.filler.type">
+      <field name="name">Mineral Filled</field>
+      <field name="code">mineral</field>
+      <field name="description">General mineral fillers (calcium carbonate, mica, etc.).</field>
+      <field name="sequence">30</field>
+    </record>
+    <record id="filler_carbon" model="plasticos.filler.type">
+      <field name="name">Carbon Filled</field>
+      <field name="code">carbon</field>
+      <field name="description">Carbon fiber or carbon black reinforcement.</field>
+      <field name="sequence">40</field>
+    </record>
+    <record id="filler_wood" model="plasticos.filler.type">
+      <field name="name">Wood Filled</field>
+      <field name="code">wood</field>
+      <field name="description">Wood fiber or wood flour composite (WPC).</field>
+      <field name="sequence">50</field>
+    </record>
+    <record id="filler_other" model="plasticos.filler.type">
+      <field name="name">Other Filler</field>
+      <field name="code">other</field>
+      <field name="description">Other filler types not listed above.</field>
+      <field name="sequence">999</field>
+    </record>
+  </data>
+</odoo>

@@ -28,16 +28,69 @@
     <field name="model">plasticos.material.profile</field>
     <field name="arch" type="xml">
       <form>
+        <header>
+          <button name="action_create_intake"
+                  string="Create Intake"
+                  type="object"
+                  class="btn-primary"
+                  icon="fa-inbox"/>
+          <button name="action_create_purchase_order"
+                  string="Make PO"
+                  type="object"
+                  class="btn-secondary"
+                  icon="fa-shopping-cart"/>
+        </header>
         <sheet>
+          <!-- ═══ Smart Buttons (Jump To) ═══ -->
+          <div class="oe_button_box" name="button_box">
+            <button name="action_view_intakes"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-inbox">
+              <field name="intake_count" string="Intakes" widget="statinfo"/>
+            </button>
+            <button name="action_view_po_lines"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-shopping-cart">
+              <field name="po_line_count" string="PO Lines" widget="statinfo"/>
+            </button>
+            <button name="action_view_so_lines"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-truck">
+              <field name="so_line_count" string="SO Lines" widget="statinfo"/>
+            </button>
+            <button name="action_view_facility"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-industry"
+                    invisible="not partner_id">
+              <span class="o_stat_text">Facility</span>
+            </button>
+            <button name="action_view_company"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-building"
+                    invisible="not company_id">
+              <span class="o_stat_text">Company</span>
+            </button>
+          </div>
           <notebook>
             <page string="Identity">
               <group>
+                <group string="Source">
+                  <field name="partner_id" string="Facility"/>
+                  <field name="company_id" string="Company" readonly="1"/>
+                </group>
                 <group string="Material">
                   <field name="polymer_id"/>
                   <field name="sub_grade"/>
                   <field name="form_id"/>
                   <field name="origin_form_id"/>
                 </group>
+              </group>
+              <group>
                 <group string="Appearance">
                   <field name="color_id"/>
                   <field name="color_flexibility"/>
@@ -63,17 +116,20 @@
 
             <page string="Quality">
               <group>
-                <group>
+                <group string="Physical Properties">
                   <field name="melt_flow_index"/>
                   <field name="density"/>
-                </group>
-                <group>
                   <field name="moisture_percent"/>
+                </group>
+                <group string="Contamination">
                   <field name="contamination_percent"/>
                   <field name="has_metal"/>
                   <field name="is_metalized"/>
                   <field name="contains_fr"/>
                 </group>
+              </group>
+              <group string="Additives">
+                <field name="filler_type_id"/>
               </group>
             </page>
 
@@ -121,6 +177,24 @@
     <field name="model">res.partner</field>
     <field name="inherit_id" ref="base.view_partner_form"/>
     <field name="arch" type="xml">
+
+      <!-- ═══ Smart Buttons (Jump To) for Facilities ═══ -->
+      <xpath expr="//div[@name='button_box']" position="inside">
+        <button name="action_view_material_profiles"
+                type="object"
+                class="oe_stat_button"
+                icon="fa-cubes"
+                invisible="material_profile_count == 0">
+          <field name="material_profile_count" string="Profiles" widget="statinfo"/>
+        </button>
+        <button name="action_view_intakes"
+                type="object"
+                class="oe_stat_button"
+                icon="fa-inbox"
+                invisible="intake_count == 0">
+          <field name="intake_count" string="Intakes" widget="statinfo"/>
+        </button>
+      </xpath>
 
       <xpath expr="//sheet/notebook" position="inside">
 

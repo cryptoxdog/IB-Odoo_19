@@ -383,7 +383,7 @@ class PlasticosIntakeNormalizer(models.Model):
                 "has_metal": self.has_metal,
                 "has_fr": self.has_fr,
                 "has_residue": self.has_residue,
-                "filler_type": self.filler_type or None,
+                "filler_type": self.filler_type_id.code if self.filler_type_id else None,
                 "filler_pct": self.filler_pct or None,
                 "contamination_notes": self.contamination_notes or None,
             },

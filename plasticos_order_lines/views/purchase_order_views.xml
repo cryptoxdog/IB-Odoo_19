@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- ══════════════════════════════════════════════════════════════
+       Purchase Order Line - Material Specification Fields
+       ══════════════════════════════════════════════════════════════ -->
+
+  <!-- Extend PO form to show material fields on lines -->
+  <record id="purchase_order_form_inherit_material" model="ir.ui.view">
+    <field name="name">purchase.order.form.material</field>
+    <field name="model">purchase.order</field>
+    <field name="inherit_id" ref="purchase.purchase_order_form"/>
+    <field name="arch" type="xml">
+      <!-- Add material_description column to order lines tree -->
+      <xpath expr="//field[@name='order_line']/list/field[@name='name']" position="after">
+        <field name="material_description" string="Material" optional="show"/>
+        <field name="material_profile_id" string="Profile" optional="hide"/>
+        <!-- Jump to Profile button (icon link) -->
+        <button name="action_view_material_profile"
+                type="object"
+                icon="fa-cubes"
+                title="Jump to Material Profile"
+                class="btn-link p-0"
+                invisible="not material_profile_id"/>
+      </xpath>
+
+      <!-- Add material fields after product in line form -->
+      <xpath expr="//field[@name='order_line']/list/field[@name='product_id']" position="after">
+        <field name="color_id" optional="show"/>
+        <field name="form_id" optional="show"/>
+        <field name="packaging_type_id" optional="hide"/>
+        <field name="source_type_id" optional="hide"/>
+        <field name="filler_type_id" optional="hide"/>
+        <field name="material_attribute_ids" widget="many2many_tags" optional="hide"/>
+      </xpath>
+    </field>
+  </record>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       Purchase Order Line - Search View with Material Filters
+       ══════════════════════════════════════════════════════════════ -->
+
+  <record id="purchase_order_line_search_inherit_material" model="ir.ui.view">
+    <field name="name">purchase.order.line.search.material</field>
+    <field name="model">purchase.order.line</field>
+    <field name="inherit_id" ref="purchase.purchase_order_line_search"/>
+    <field name="arch" type="xml">
+      <xpath expr="//search" position="inside">
+        <separator/>
+        <field name="color_id" string="Color"/>
+        <field name="form_id" string="Form"/>
+        <field name="packaging_type_id" string="Packaging"/>
+        <field name="source_type_id" string="Source"/>
+        <field name="filler_type_id" string="Filler"/>
+        <field name="material_attribute_ids" string="Attributes"/>
+        <separator/>
+        <filter string="Has Color" name="has_color" domain="[('color_id', '!=', False)]"/>
+        <filter string="Has Form" name="has_form" domain="[('form_id', '!=', False)]"/>
+        <group expand="0" string="Group By Material">
+          <filter string="Color" name="group_color" context="{'group_by': 'color_id'}"/>
+          <filter string="Form" name="group_form" context="{'group_by': 'form_id'}"/>
+          <filter string="Packaging" name="group_packaging" context="{'group_by': 'packaging_type_id'}"/>
+          <filter string="Source" name="group_source" context="{'group_by': 'source_type_id'}"/>
+          <filter string="Filler" name="group_filler" context="{'group_by': 'filler_type_id'}"/>
+        </group>
+      </xpath>
+    </field>
+  </record>
+
+</odoo>

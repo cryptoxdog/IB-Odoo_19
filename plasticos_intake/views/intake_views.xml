@@ -208,6 +208,31 @@
                            statusbar_visible="draft,matched"/>
                 </header>
                 <sheet>
+                    <!-- ═══ Smart Buttons (Jump To) ═══ -->
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_material_profile"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-cubes"
+                                invisible="not material_profile_id">
+                            <span class="o_stat_text">Profile</span>
+                        </button>
+                        <button name="action_view_supplier"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-building"
+                                invisible="not partner_id">
+                            <span class="o_stat_text">Company</span>
+                        </button>
+                        <button name="action_view_facility"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-industry"
+                                invisible="not facility_id or facility_id == partner_id">
+                            <span class="o_stat_text">Facility</span>
+                        </button>
+                    </div>
+
                     <!-- Identity + Contact Header -->
                     <group>
                         <group string="Company &amp; Facility">
@@ -245,8 +270,8 @@
                         <!-- Tab 1: Origin -->
                         <page string="Origin">
                             <group>
-                                <group string="Application">
-                                    <field name="origin_application"/>
+                                <group string="Source Origin">
+                                    <field name="origin_application" placeholder="What was this material originally used for?"/>
                                     <field name="origin_sector"/>
                                     <field name="origin_process_type"/>
                                 </group>
@@ -260,18 +285,22 @@
                                     <field name="mfi_value"/>
                                     <field name="density_value"/>
                                     <field name="moisture_pct"/>
-                                    <field name="contamination_pct"/>
                                 </group>
-                                <group string="Contaminants">
+                                <group string="Contamination">
+                                    <field name="contamination_pct"/>
+                                    <field name="contamination_notes" placeholder="Describe contamination..."/>
+                                </group>
+                            </group>
+                            <group>
+                                <group string="Additives &amp; Flags">
                                     <field name="has_metal"/>
                                     <field name="has_fr"/>
-                                    <field name="has_residue"/>
-                                    <field name="filler_type"/>
+                                    <field name="filler_type_id"/>
                                     <field name="filler_pct"/>
                                 </group>
                             </group>
-                            <group string="Notes">
-                                <field name="contamination_notes"/>
+                            <group string="Intake Notes">
+                                <field name="intake_notes" nolabel="1" placeholder="Additional notes about this intake (will be normalized)..."/>
                             </group>
                         </page>
 

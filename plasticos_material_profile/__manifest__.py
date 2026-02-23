@@ -9,9 +9,13 @@
         "base",
         "contacts",
         "mail",
+        "plasticos_intake",
+        "purchase",
+        "sale_management",
     ],
     "data": [
         "security/ir.model.access.csv",
+        "data/filler_type_data.xml",
         "data/material_attribute_data.xml",
         "data/packaging_type_data.xml",
         "data/polymer_data.xml",

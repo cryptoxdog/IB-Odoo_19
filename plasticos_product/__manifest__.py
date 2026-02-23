@@ -1,17 +1,17 @@
 {
     "name": "PlasticOS Product Catalog",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.0.1",
     "category": "Inventory/Product",
-    "summary": "Scrap plastic product catalog with material attributes",
+    "summary": "Scrap plastic product catalog with polymer-synced products",
     "description": """
 PlasticOS Product Catalog
 =========================
 Defines the product catalog for scrap plastic trading operations.
 
 Features:
-- 96 pre-defined scrap plastic products
-- Links products to material profile attributes (polymer, form, color, source type)
-- Product categories for organization
+- Auto-creates one product per polymer (1:1 sync)
+- Products are thin wrappers; full material specs live on order lines
+- Links products to polymer master records
     """,
     "author": "PlasticOS",
     "website": "https://plasticos.io",
@@ -25,6 +25,7 @@ Features:
         "data/product_category_data.xml",
         "data/product_data.xml",
     ],
+    "post_init_hook": "_post_init_create_polymer_products",
     "installable": True,
     "auto_install": False,
     "application": False,

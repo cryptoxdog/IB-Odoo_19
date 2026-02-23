@@ -206,6 +206,21 @@ class PlasticosMaterialProfile(models.Model):
         help="Condition attributes: Clean, Metalized, With Metal, Printed, etc.",
     )
 
+    # Alias for consistency with order lines
+    attribute_ids = fields.Many2many(
+        related="material_attribute_ids",
+        string="Attributes",
+    )
+
+    # ── Filler Type ────────────────────────────────────────────
+    filler_type_id = fields.Many2one(
+        "plasticos.filler.type",
+        string="Filler Type",
+        index=True,
+        ondelete="restrict",
+        help="Glass filled, talc filled, etc.",
+    )
+
     # ── Quality ──────────────────────────────────────────────
     melt_flow_index = fields.Float(index=True)
     density = fields.Float()
@@ -262,6 +277,27 @@ class PlasticosMaterialProfile(models.Model):
     # ── AI Enrichment ────────────────────────────────────────
     freeform_notes = fields.Text()
 
+    # ── Navigation: Related Record Counts ──────────────────────
+    intake_count = fields.Integer(
+        string="Intakes",
+        compute="_compute_intake_count",
+    )
+    po_line_count = fields.Integer(
+        string="PO Lines",
+        compute="_compute_po_line_count",
+    )
+    so_line_count = fields.Integer(
+        string="SO Lines",
+        compute="_compute_so_line_count",
+    )
+
+    # Computed: Parent company for quick navigation
+    company_id = fields.Many2one(
+        related="partner_id.parent_id",
+        string="Company",
+        store=True,
+    )
+
     # ═════════════════════════════════════════════════════════
     # Constraints (Odoo 19 models.Constraint)
     # ═════════════════════════════════════════════════════════
@@ -294,6 +330,88 @@ class PlasticosMaterialProfile(models.Model):
     def _compute_source_type_code(self):
         for rec in self:
             rec.source_type = rec.source_type_id.code if rec.source_type_id else False
+
+    def _compute_intake_count(self):
+        """Count intakes linked to this profile."""
+        Intake = self.env["plasticos.intake"]
+        for rec in self:
+            rec.intake_count = Intake.search_count([("material_profile_id", "=", rec.id)])
+
+    def _compute_po_line_count(self):
+        """Count PO lines linked to this profile."""
+        POLine = self.env["purchase.order.line"]
+        for rec in self:
+            rec.po_line_count = POLine.search_count([("material_profile_id", "=", rec.id)])
+
+    def _compute_so_line_count(self):
+        """Count SO lines linked to this profile."""
+        SOLine = self.env["sale.order.line"]
+        for rec in self:
+            rec.so_line_count = SOLine.search_count([("material_profile_id", "=", rec.id)])
+
+    # ═════════════════════════════════════════════════════════
+    # Navigation Actions (Jump To)
+    # ═════════════════════════════════════════════════════════
+
+    def action_view_intakes(self):
+        """Navigate to intakes linked to this profile."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Intakes - {self.polymer_id.name}",
+            "res_model": "plasticos.intake",
+            "view_mode": "list,form",
+            "domain": [("material_profile_id", "=", self.id)],
+            "context": {"default_material_profile_id": self.id},
+        }
+
+    def action_view_po_lines(self):
+        """Navigate to PO lines linked to this profile."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Purchase Lines - {self.polymer_id.name}",
+            "res_model": "purchase.order.line",
+            "view_mode": "list,form",
+            "domain": [("material_profile_id", "=", self.id)],
+        }
+
+    def action_view_so_lines(self):
+        """Navigate to SO lines linked to this profile."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Sale Lines - {self.polymer_id.name}",
+            "res_model": "sale.order.line",
+            "view_mode": "list,form",
+            "domain": [("material_profile_id", "=", self.id)],
+        }
+
+    def action_view_facility(self):
+        """Navigate to facility (partner_id)."""
+        self.ensure_one()
+        if not self.partner_id:
+            return
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.partner_id.name,
+            "res_model": "res.partner",
+            "view_mode": "form",
+            "res_id": self.partner_id.id,
+        }
+
+    def action_view_company(self):
+        """Navigate to parent company."""
+        self.ensure_one()
+        if not self.company_id:
+            return
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.company_id.name,
+            "res_model": "res.partner",
+            "view_mode": "form",
+            "res_id": self.company_id.id,
+        }
 
     # ═════════════════════════════════════════════════════════
     # Attribute ↔ Boolean Sync
@@ -371,6 +489,79 @@ class PlasticosMaterialProfile(models.Model):
         for rec in self:
             rec._emit_material_packet()
         return res
+
+    # ═════════════════════════════════════════════════════════
+    # Actions: Create Intake / Make PO
+    # ═════════════════════════════════════════════════════════
+
+    def action_create_intake(self):
+        """Open intake form pre-filled from this material profile."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Create Intake",
+            "res_model": "plasticos.intake",
+            "view_mode": "form",
+            "target": "current",
+            "context": {
+                "default_supplier_id": self.partner_id.parent_id.id,
+                "default_facility_id": self.partner_id.id,
+                "default_polymer_id": self.polymer_id.id,
+                "default_form_id": self.form_id.id,
+                "default_color_id": self.color_id.id if self.color_id else False,
+                "default_source_type_id": self.source_type_id.id if self.source_type_id else False,
+                "default_packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
+                "default_origin_form_id": self.origin_form_id.id if self.origin_form_id else False,
+                "default_filler_type_id": self.filler_type_id.id if self.filler_type_id else False,
+                "default_material_attribute_ids": [(6, 0, self.material_attribute_ids.ids)],
+                "default_mfi_value": self.melt_flow_index,
+                "default_density_value": self.density,
+                "default_moisture_pct": self.moisture_percent,
+                "default_contamination_pct": self.contamination_percent,
+                "default_has_metal": self.has_metal,
+                "default_has_fr": self.contains_fr,
+                "default_material_profile_id": self.id,
+            },
+        }
+
+    def action_create_purchase_order(self):
+        """Create a PO with a line pre-filled from this material profile."""
+        self.ensure_one()
+        # Ensure polymer has a product
+        if not self.polymer_id.product_id:
+            self.polymer_id._ensure_product()
+
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Create Purchase Order",
+            "res_model": "purchase.order",
+            "view_mode": "form",
+            "target": "current",
+            "context": {
+                "default_partner_id": self.partner_id.parent_id.id,
+                "default_order_line": [
+                    (
+                        0,
+                        0,
+                        {
+                            "product_id": self.polymer_id.product_id.id,
+                            "material_profile_id": self.id,
+                            "color_id": self.color_id.id if self.color_id else False,
+                            "form_id": self.form_id.id if self.form_id else False,
+                            "packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
+                            "source_type_id": self.source_type_id.id if self.source_type_id else False,
+                            "filler_type_id": self.filler_type_id.id if self.filler_type_id else False,
+                            "material_attribute_ids": [(6, 0, self.material_attribute_ids.ids)],
+                            "name": f"{self.polymer_id.name} - {self.partner_id.name}",
+                            "product_qty": 1,
+                            "product_uom": self.polymer_id.product_id.uom_id.id
+                            if self.polymer_id.product_id.uom_id
+                            else False,
+                        },
+                    )
+                ],
+            },
+        }
 
     # ═════════════════════════════════════════════════════════
     # Capability Packet (stub for L9 adapter)
