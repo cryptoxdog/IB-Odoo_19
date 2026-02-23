@@ -16,6 +16,12 @@
       <field name="description">Compressed bales of material (common for scrap).</field>
       <field name="sequence">5</field>
     </record>
+    <record id="form_film" model="plasticos.material.form">
+      <field name="name">Film</field>
+      <field name="code">film</field>
+      <field name="description">Thin plastic film sheets or rolls.</field>
+      <field name="sequence">10</field>
+    </record>
     <record id="form_regrind" model="plasticos.material.form">
       <field name="name">Regrind</field>
       <field name="code">regrind</field>

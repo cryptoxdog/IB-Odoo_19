@@ -35,6 +35,7 @@ class PlasticosMaterialProfile(models.Model):
         [
             # Commodity
             ("pp", "PP"),
+            ("pp_pe", "PP/PE"),
             ("hdpe", "HDPE"),
             ("hdpe_hmw", "HDPE HMW"),
             ("ldpe", "LDPE"),
@@ -47,6 +48,7 @@ class PlasticosMaterialProfile(models.Model):
             ("ps", "PS"),
             ("eps", "EPS"),
             ("pvc", "PVC"),
+            ("mixed", "Mixed"),
             # Engineering
             ("pmma", "PMMA"),
             ("pc", "PC"),
@@ -140,6 +142,7 @@ class PlasticosMaterialProfile(models.Model):
             ("yellow", "Yellow"),
             ("orange", "Orange"),
             ("gray", "Gray"),
+            ("print", "Print"),
         ],
         string="Color Code",
         compute="_compute_color_code",
@@ -175,6 +178,9 @@ class PlasticosMaterialProfile(models.Model):
             ("wide_spec", "Wide Spec"),
             ("off_spec", "Off Spec"),
             ("ocean_recovered", "Ocean Recovered"),
+            ("mixed", "Mixed Source"),
+            ("reusable", "Reusable"),
+            ("no_value", "No Value"),
         ],
         string="Source Type Code",
         compute="_compute_source_type_code",
