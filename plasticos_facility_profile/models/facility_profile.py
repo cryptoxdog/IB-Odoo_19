@@ -1,5 +1,5 @@
-from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo import api, fields, models  # pyright: ignore[reportMissingImports]
+from odoo.exceptions import ValidationError  # pyright: ignore[reportMissingImports]
 
 
 class PlasticosFacilityProfile(models.Model):
@@ -19,16 +19,49 @@ class PlasticosFacilityProfile(models.Model):
 
     active = fields.Boolean(default=True)
 
-    # ── Equipment (Boolean flags) ────────────────────────────
-    has_horizontal_baler = fields.Boolean(index=True)
-    has_downstroke_baler = fields.Boolean()
-    has_shredder = fields.Boolean()
-    has_granulator = fields.Boolean()
-    has_wash_line = fields.Boolean(index=True)
-    has_pelletizer = fields.Boolean()
-    has_extruder = fields.Boolean()
-    has_compounder = fields.Boolean()
-    has_sorting_line = fields.Boolean()
+    # ── Equipment (Many2many source of truth) ──────────────────
+    equipment_type_ids = fields.Many2many(
+        "plasticos.equipment.type",
+        "facility_profile_equipment_rel",
+        "profile_id",
+        "equipment_type_id",
+        string="Equipment Types",
+        help="Equipment available at this facility.",
+    )
+
+    # ── Equipment (computed Boolean flags for matcher compatibility) ──
+    has_horizontal_baler = fields.Boolean(
+        compute="_compute_equipment_flags",
+        store=True,
+        index=True,
+    )
+    has_downstroke_baler = fields.Boolean(
+        compute="_compute_equipment_flags",
+        store=True,
+    )
+    has_shredder = fields.Boolean(
+        compute="_compute_equipment_flags",
+        store=True,
+    )
+    has_granulator = fields.Boolean(
+        compute="_compute_equipment_flags",
+        store=True,
+    )
+    has_wash_line = fields.Boolean(
+        compute="_compute_equipment_flags",
+        store=True,
+        index=True,
+    )
+    has_extruder = fields.Boolean(
+        string="Has Extruder",
+        help="Facility has extrusion equipment (can process regrind/flake → pellet).",
+        compute="_compute_equipment_flags",
+        store=True,
+    )
+    has_sorting_line = fields.Boolean(
+        compute="_compute_equipment_flags",
+        store=True,
+    )
 
     # ── Throughput ───────────────────────────────────────────
     max_monthly_throughput_lbs = fields.Float(index=True)
@@ -55,7 +88,7 @@ class PlasticosFacilityProfile(models.Model):
     # ── Operational Constraints ──────────────────────────────
     min_lot_size_lbs = fields.Float()
     max_lot_size_lbs = fields.Float()
-    accepts_spot = fields.Boolean(default=True)
+    accepts_spot = fields.Boolean(help="Accepts spot deals. NULL = unknown (assume True in matching).")
     prefers_contract = fields.Boolean()
 
     # ── AI Enrichment ────────────────────────────────────────
@@ -153,8 +186,17 @@ class PlasticosFacilityProfile(models.Model):
     )
 
     # ── Application Context ──────────────────────────────────
-    application_class = fields.Char(
-        help="End-use application class (e.g. packaging, automotive, medical).",
+    application_class = fields.Selection(
+        [
+            ("food", "Food Contact"),
+            ("medical", "Medical"),
+            ("automotive", "Automotive"),
+            ("packaging", "Packaging"),
+            ("agricultural", "Agricultural"),
+            ("construction", "Construction"),
+        ],
+        string="Application Class",
+        help="End-use application class. Determines contamination tolerance thresholds for buyer matching.",
     )
     application_notes = fields.Text(
         help="Additional notes about the facility's end-use applications.",
@@ -190,6 +232,27 @@ class PlasticosFacilityProfile(models.Model):
         for rec in self:
             if rec.melt_index_min and rec.melt_index_max and rec.melt_index_min > rec.melt_index_max:
                 raise ValidationError("Melt index min cannot exceed melt index max.")
+
+    # ═════════════════════════════════════════════════════════
+    # Computed Fields
+    # ═════════════════════════════════════════════════════════
+
+    @api.depends("equipment_type_ids")
+    def _compute_equipment_flags(self):
+        """Compute Boolean equipment flags from equipment_type_ids Many2many.
+
+        Maps equipment_type.code to has_* Boolean fields for backward
+        compatibility with buyer_match_engine queries.
+        """
+        for rec in self:
+            codes = set(rec.equipment_type_ids.mapped("code"))
+            rec.has_horizontal_baler = "horizontal_baler" in codes
+            rec.has_downstroke_baler = "downstroke_baler" in codes
+            rec.has_shredder = "shredder" in codes
+            rec.has_granulator = "granulator" in codes
+            rec.has_wash_line = "wash_line" in codes
+            rec.has_extruder = "extruder" in codes
+            rec.has_sorting_line = "sorting_line" in codes
 
     # ═════════════════════════════════════════════════════════
     # CRUD
@@ -236,9 +299,7 @@ class PlasticosFacilityProfile(models.Model):
                     "wash_line": rec.has_wash_line,
                     "shredder": rec.has_shredder,
                     "granulator": rec.has_granulator,
-                    "pelletizer": rec.has_pelletizer,
                     "extruder": rec.has_extruder,
-                    "compounder": rec.has_compounder,
                     "sorting_line": rec.has_sorting_line,
                 },
                 "throughput": rec.max_monthly_throughput_lbs,

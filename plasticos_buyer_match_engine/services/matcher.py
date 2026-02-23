@@ -1,9 +1,19 @@
-"""Deterministic buyer-matching engine.
+"""Deterministic buyer-matching engine (Stage 1 of two-stage pipeline).
 
 Matches an intake's material profile against buyer capability lanes.
 Gates: identity (source_type + polymer + form) → quality → volume →
 compliance → geo.  Results are written to plasticos.match.result and
 sorted by distance ascending (closest first).
+
+ARCHITECTURE:
+    Stage 1 (THIS): Deterministic hard gates — exact match on polymer, form,
+                    source_type. Eliminates incompatible buyers.
+    Stage 2 (Graph): Range-based gates (MFI, density) + soft signals + scoring.
+
+WHY MATCHER DOESN'T CHECK MFI:
+    MFI is a RANGE (min/max), not an exact match. Ranges require the Graph
+    Service which can do inequality comparisons in Cypher. This matcher
+    handles deterministic gates only.
 """
 
 import logging
@@ -11,20 +21,50 @@ from math import atan2, cos, radians, sin, sqrt
 
 _logger = logging.getLogger(__name__)
 
+# ═══════════════════════════════════════════════════════════════════════════
+# FORM EQUIPMENT CAPABILITY MATRIX
+# ═══════════════════════════════════════════════════════════════════════════
+# Equipment determines what forms a facility can ACTUALLY process:
+#   - Granulator/Shredder: Can break down bales, parts, lumps → regrind
+#   - Pelletizer/Extruder (no granulator): Can only process regrind/flake/pellet
+#   - Compounder: For blending additives, NOT for form conversion
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Forms that require size reduction equipment (granulator/shredder)
+FORMS_REQUIRING_SIZE_REDUCTION = frozenset(["bales", "parts", "lump", "rollstock", "sheet"])
+
+# Forms that are already processed (no size reduction needed)
+FORMS_PRE_PROCESSED = frozenset(["regrind", "flake", "pellet", "powder"])
+
 
 class PlasticosMatcher:
-    """Stateless service — instantiate with an Odoo env, call match()."""
+    """Stateless service — instantiate with an Odoo env, call match().
+
+    This is Stage 1 of the two-stage matching pipeline. It eliminates
+    buyers that cannot physically accept the material based on:
+        - Exact polymer match
+        - Form compatibility (based on equipment)
+        - Source type match
+        - Quality gates (contamination, moisture)
+        - Volume gates (min/max lot size)
+        - Compliance gates (food/medical grade)
+        - Geo gate (radius)
+
+    Survivors are passed to Stage 2 (Graph Service) for refined analysis.
+    """
 
     def __init__(self, env):
         self.env = env
 
     # ── Public API ───────────────────────────────────────────
 
-    def match(self, intake):
+    def match(self, intake, facility_ids=None):
         """Run the full matching pipeline for a single intake record.
 
         Args:
             intake: a ``plasticos.intake`` recordset (single record).
+            facility_ids: optional list of facility partner IDs to filter to.
+                          Used when running as Stage 1 before Graph Service.
 
         Returns:
             list[dict]: eligible matches sorted by distance_miles ascending.
@@ -42,8 +82,15 @@ class PlasticosMatcher:
             ("active", "=", True),
             ("source_type", "=", material.source_type),
             ("polymer", "=", material.polymer),
-            ("form", "=", material.form),
         ]
+
+        # Form matching: either exact match OR equipment-derived capability
+        # We'll filter by equipment in Python after fetching candidates
+        # to allow equipment-based form acceptance
+
+        if facility_ids:
+            domain.append(("facility_id.partner_id", "in", facility_ids))
+
         capabilities = self.env["plasticos.buyer.capability"].search(domain)
 
         _logger.info(
@@ -87,6 +134,13 @@ class PlasticosMatcher:
         If eligible, includes ``capability`` and ``distance_miles``.
         If rejected, includes ``reason``.
         """
+        facility = cap.facility_id
+
+        # ── Form gate (equipment-based) ───────────────────────
+        # Check if facility can handle the material's form based on equipment
+        intake_form = material.form
+        if not self._can_handle_form(facility, intake_form, cap.form):
+            return self._reject(cap, "form_not_compatible")
 
         # Quality gate: contamination
         if (
@@ -128,9 +182,9 @@ class PlasticosMatcher:
 
         buyer_lat = 0
         buyer_lon = 0
-        if cap.facility_id.partner_id:
-            buyer_lat = getattr(cap.facility_id.partner_id, "partner_latitude", 0) or 0
-            buyer_lon = getattr(cap.facility_id.partner_id, "partner_longitude", 0) or 0
+        if facility.partner_id:
+            buyer_lat = getattr(facility.partner_id, "partner_latitude", 0) or 0
+            buyer_lon = getattr(facility.partner_id, "partner_longitude", 0) or 0
 
         distance = self._distance_miles(seller_lat, seller_lon, buyer_lat, buyer_lon)
 
@@ -140,8 +194,90 @@ class PlasticosMatcher:
         return {
             "eligible": True,
             "capability": cap,
+            "facility_id": facility.partner_id.id if facility.partner_id else None,
             "distance_miles": distance,
         }
+
+    def _can_handle_form(self, facility, intake_form, capability_form):
+        """Check if facility can handle the intake form based on equipment.
+
+        Logic:
+            1. Exact match on capability.form always passes
+            2. If intake form requires size reduction (bales, parts, lumps):
+               - Facility MUST have granulator OR shredder
+            3. If intake form is pre-processed (regrind, flake, pellet):
+               - Facility with pelletizer/extruder can handle it
+            4. Equipment-derived capability expands what facility can accept
+
+        Args:
+            facility: plasticos.facility.profile record
+            intake_form: form from material profile (e.g., 'bales')
+            capability_form: form declared in buyer.capability lane
+
+        Returns:
+            bool: True if facility can handle the form
+        """
+        # Exact match on declared capability always passes
+        if intake_form == capability_form:
+            return True
+
+        # Check equipment-derived capability
+        acceptable_forms = self._derive_acceptable_forms(facility)
+        return intake_form in acceptable_forms
+
+    def _derive_acceptable_forms(self, facility):
+        """Derive forms a facility can accept based on equipment.
+
+        Equipment → Form Capability:
+            - Granulator/Shredder: Can break down ANY form to regrind
+            - Extruder: Can process regrind/flake → pellet
+            - Explicit handles_* flags: Always accepted
+
+        NULL Handling (per BOOLEAN_FIELD_MATRIX.md):
+            - NULL equipment = incomplete profile, NOT "doesn't have"
+            - NULL equipment → allow through (don't exclude)
+            - Only exclude if equipment is explicitly False AND form requires it
+
+        Returns:
+            set: Forms this facility can accept
+        """
+        forms = set()
+
+        # Get equipment values (None = unknown, True = has, False = doesn't have)
+        has_granulator = getattr(facility, "has_granulator", None)
+        has_shredder = getattr(facility, "has_shredder", None)
+        has_extruder = getattr(facility, "has_extruder", None)
+
+        # Granulator/shredder = can break down ANY form to regrind
+        # True = explicitly has; None = unknown (allow through)
+        if has_granulator is True or has_shredder is True:
+            forms.update(["bales", "parts", "lump", "rollstock", "sheet", "regrind", "flake", "pellet", "purge"])
+        elif has_granulator is None and has_shredder is None:
+            # NULL equipment = incomplete profile, allow ALL forms through
+            # (Graph Service will do refined filtering with NULL handling)
+            forms.update(["bales", "parts", "lump", "rollstock", "sheet", "regrind", "flake", "pellet", "purge"])
+
+        # Extruder = can process regrind/flake → pellet
+        # Only add these if we haven't already added all forms above
+        if has_extruder is True:
+            forms.update(["regrind", "flake", "pellet"])
+        elif has_extruder is None and not forms:
+            # NULL extruder + no granulator/shredder = allow pre-processed forms
+            forms.update(["regrind", "flake", "pellet"])
+
+        # Always can handle what they explicitly declared (True only, not NULL)
+        if getattr(facility, "handles_bales", None) is True:
+            forms.add("bales")
+        if getattr(facility, "handles_regrind", None) is True:
+            forms.add("regrind")
+        if getattr(facility, "handles_pellet", None) is True:
+            forms.add("pellet")
+        if getattr(facility, "handles_flake", None) is True:
+            forms.add("flake")
+        if getattr(facility, "handles_rollstock", None) is True:
+            forms.add("rollstock")
+
+        return forms
 
     # ── Helpers ──────────────────────────────────────────────
 

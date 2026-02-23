@@ -2,7 +2,7 @@ import logging
 import uuid
 
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -186,45 +186,49 @@ class PlasticosLoad(models.Model):
     def action_send_delivery_order(self):
         """Open email composer with Delivery Order attached."""
         self.ensure_one()
-        template = self.env.ref(
-            "plasticos_logistics_automation.email_template_delivery_order",
-            raise_if_not_found=False,
-        )
+        template = self._get_email_template("email_template_delivery_order")
         return self._open_mail_composer(template)
 
     def action_send_bol_pickup(self):
         """Open email composer with BOL Pickup attached."""
         self.ensure_one()
-        template = self.env.ref(
-            "plasticos_logistics_automation.email_template_bol_pickup",
-            raise_if_not_found=False,
-        )
+        template = self._get_email_template("email_template_bol_pickup")
         return self._open_mail_composer(template)
 
     def action_send_bol_delivery(self):
         """Open email composer with BOL Delivery attached."""
         self.ensure_one()
-        template = self.env.ref(
-            "plasticos_logistics_automation.email_template_bol_delivery",
-            raise_if_not_found=False,
-        )
+        template = self._get_email_template("email_template_bol_delivery")
         return self._open_mail_composer(template)
 
     def action_send_dispatch_packet(self):
         """Open email composer with full dispatch packet (all 3 docs)."""
         self.ensure_one()
-        template = self.env.ref(
-            "plasticos_logistics_automation.email_template_dispatch_packet",
-            raise_if_not_found=False,
-        )
+        template = self._get_email_template("email_template_dispatch_packet")
         return self._open_mail_composer(template)
+
+    def _get_email_template(self, template_name):
+        """Get email template from plasticos_automation module.
+
+        Raises ValidationError with clear message if template not found
+        (plasticos_automation module not installed).
+        """
+        xml_id = f"plasticos_automation.{template_name}"
+        template = self.env.ref(xml_id, raise_if_not_found=False)
+        if not template:
+            raise ValidationError(
+                f"Email template '{template_name}' not found.\n\n"
+                "The plasticos_automation module must be installed to use "
+                "email send actions. Please install it from Apps."
+            )
+        return template
 
     def _open_mail_composer(self, template):
         """Helper to open mail composer wizard with template."""
         ctx = {
             "default_model": "plasticos.load",
             "default_res_ids": self.ids,
-            "default_template_id": template.id if template else False,
+            "default_template_id": template.id,
             "default_composition_mode": "comment",
             "mark_so_as_sent": True,
             "force_email": True,

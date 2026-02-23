@@ -9,6 +9,7 @@
         "mail",
         "plasticos_material_profile",
         "plasticos_facility_profile",
+        "plasticos_web_leads",
     ],
     "data": [
         "security/ir.model.access.csv",

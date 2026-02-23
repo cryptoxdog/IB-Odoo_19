@@ -53,11 +53,13 @@ class PlasticosWebLeadConfig(models.Model):
 
     auto_create_partner = fields.Boolean(
         default=True,
-        help="Automatically create res.partner if company name not found.",
+        help="Create res.partner when admin clicks 'Match to Buyers' on intake. "
+        "Partner is NOT created on lead receipt — only when matching.",
     )
     auto_create_intake = fields.Boolean(
         default=True,
-        help="Automatically create plasticos.intake for HOT leads.",
+        help="Create plasticos.intake for HOT leads (without partner). "
+        "Admin reviews intake before deciding to buyer-match or discard.",
     )
 
     # ═══════════════════════════════════════════════════════════

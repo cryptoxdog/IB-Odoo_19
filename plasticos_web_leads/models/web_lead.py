@@ -604,36 +604,35 @@ class PlasticosWebLead(models.Model):
     # ═══════════════════════════════════════════════════════════
 
     def _process_hot_lead_triage(self, merged: dict[str, Any], config: Any):
-        """Create partner + intake from a HOT-classified lead (triage pipeline)."""
+        """Create intake from HOT lead and notify admin for review.
+
+        NEW FLOW (2026-02-23):
+        - Creates intake WITHOUT partner (partner created only when buyer-matching)
+        - Stores company name as pending_company_name on intake
+        - Notifies admin to review the intake
+        - Partner + material profile created only if admin decides to buyer-match
+        """
         self.ensure_one()
 
-        partner = self._find_or_create_partner()
-        self.write({"partner_id": partner.id})
+        intake = self._create_intake_triage(merged, config)
+        self.write(
+            {
+                "intake_id": intake.id,
+                "state": "intake_created",
+            }
+        )
 
-        if config.auto_create_intake:
-            intake = self._create_intake_triage(partner, merged, config)
-            self.write(
-                {
-                    "intake_id": intake.id,
-                    "state": "intake_created",
-                }
-            )
-            _logger.info(
-                "HOT lead %s → partner %s, intake %s",
-                self.lead_id,
-                partner.id,
-                intake.id,
-            )
-        else:
-            self.write({"state": "intake_created"})
+        # Notify admin to review
+        self._notify_admin_hot_intake(intake, config)
 
-    def _create_intake_triage(
-        self,
-        partner: Any,
-        merged: dict[str, Any],
-        config: Any,
-    ):
-        """Create a plasticos.intake record from merged AI data."""
+        _logger.info(
+            "HOT lead %s → intake %s (pending review, no partner yet)",
+            self.lead_id,
+            intake.id,
+        )
+
+    def _create_intake_triage(self, merged: dict[str, Any], config: Any):
+        """Create intake record WITHOUT partner (deferred until buyer-match)."""
         polymer = merged.get("polymer") or "other"
         form = merged.get("form") or "other"
         source_type = merged.get("source_type") or config.default_source_type or "post_consumer"
@@ -643,20 +642,9 @@ class PlasticosWebLead(models.Model):
         freq_raw = merged.get("frequency", "")
         deal_type = _FREQ_TO_DEAL.get(freq_raw, "spot")
 
-        facility = partner
-        children = self.env["res.partner"].search(
-            [
-                ("parent_id", "=", partner.id),
-                ("type", "!=", "contact"),
-            ],
-            limit=1,
-        )
-        if children:
-            facility = children
-
         intake_vals = {
-            "name": f"WEB-{self.lead_id}",
-            "partner_id": facility.id,
+            "pending_company_name": self.company_name or "Unknown",
+            "source_lead_id": self.id,
             "polymer": polymer,
             "form": form,
             "source_type": source_type,
@@ -664,29 +652,54 @@ class PlasticosWebLead(models.Model):
             "loads_per_month": loads_per_month,
             "deal_type": deal_type,
             "contamination_notes": merged.get("contaminants_noted") or self.contaminant_notes or False,
-            "match_status": "pending",
-            "onboarding_status": "draft",
-            "material_hint_text": merged.get("material_summary", ""),
         }
 
         Intake = self.env["plasticos.intake"]
         intake = Intake.create(intake_vals)
         return intake
 
+    def _notify_admin_hot_intake(self, intake, config):
+        """Create activity for admin to review HOT intake.
+
+        Assigns to configured reviewer or falls back to current user.
+        """
+        reviewer_id = self.env.user.id
+
+        # Check if there's a configured reviewer (could add to config model)
+        if hasattr(config, "intake_reviewer_id") and config.intake_reviewer_id:
+            reviewer_id = config.intake_reviewer_id.id
+
+        intake.activity_schedule(
+            "mail.mail_activity_data_todo",
+            user_id=reviewer_id,
+            summary=f"Review HOT Web Lead: {self.company_name or 'Unknown'}",
+            note=(
+                f"<p>New HOT lead from web form requires review:</p>"
+                f"<ul>"
+                f"<li><b>Company:</b> {self.company_name or 'Unknown'}</li>"
+                f"<li><b>Material:</b> {intake.polymer} / {intake.form}</li>"
+                f"<li><b>Quantity:</b> {intake.quantity_per_load_lbs:,.0f} lbs/load</li>"
+                f"<li><b>Lead ID:</b> {self.lead_id}</li>"
+                f"</ul>"
+                f"<p><b>Action:</b> Click 'Match to Buyers' to create partner and run matching, "
+                f"or delete/archive if not a valid lead.</p>"
+            ),
+        )
+
     # ═══════════════════════════════════════════════════════════
     # HOT Lead Processing (Simple/Legacy)
     # ═══════════════════════════════════════════════════════════
 
     def _process_hot_lead_simple(self):
-        """Convert a HOT web lead into a partner + intake (legacy flow)."""
+        """Create intake from HOT lead and notify admin (simple/legacy flow).
+
+        Same new flow as triage: no partner until buyer-match.
+        """
         self.ensure_one()
         config = self.env["plasticos.web.lead.config"].get_config()
 
         try:
-            partner = self._find_or_create_partner()
-            self.write({"partner_id": partner.id})
-
-            intake = self._create_intake_simple(partner, config)
+            intake = self._create_intake_simple(config)
             self.write(
                 {
                     "intake_id": intake.id,
@@ -694,10 +707,12 @@ class PlasticosWebLead(models.Model):
                 }
             )
 
+            # Notify admin to review
+            self._notify_admin_hot_intake(intake, config)
+
             _logger.info(
-                "HOT lead %s → partner %s, intake %s",
+                "HOT lead %s → intake %s (pending review, no partner yet)",
                 self.lead_id,
-                partner.id,
                 intake.id,
             )
 
@@ -710,8 +725,8 @@ class PlasticosWebLead(models.Model):
                 }
             )
 
-    def _create_intake_simple(self, partner: Any, config: Any):
-        """Create intake from pre-processed agent payload (legacy)."""
+    def _create_intake_simple(self, config: Any):
+        """Create intake WITHOUT partner from pre-processed agent payload."""
         ai = self.ai_analysis or {}
         ai_qty = ai.get("quantity", {})
         ai_freq = ai.get("frequency", {})
@@ -730,14 +745,13 @@ class PlasticosWebLead(models.Model):
         loads_per_month = _safe_int(ai_qty.get("loads_per_month"), 1)
 
         intake_vals = {
-            "name": f"WEB-{self.lead_id}",
-            "partner_id": partner.id,
+            "pending_company_name": self.company_name or "Unknown",
+            "source_lead_id": self.id,
             "source_type": config.default_source_type or "post_consumer",
             "quantity_per_load_lbs": max(qty_per_load, 1),
             "loads_per_month": max(loads_per_month, 0),
             "deal_type": deal_type,
             "contamination_notes": self.contaminant_notes or False,
-            "match_status": "pending",
         }
 
         if polymer:
@@ -754,7 +768,12 @@ class PlasticosWebLead(models.Model):
     # ═══════════════════════════════════════════════════════════
 
     def _find_or_create_partner(self):
-        """Find existing partner by company name or create a new one."""
+        """Find existing partner by company name or create a new one.
+
+        DEPRECATED (2026-02-23): No longer called by main flows.
+        Partner creation now happens in intake.action_match_to_buyers().
+        Kept for manual/utility use.
+        """
         Partner = self.env["res.partner"]
         name = self.company_name or "Unknown Web Lead"
 

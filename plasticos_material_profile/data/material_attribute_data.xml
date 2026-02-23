@@ -94,5 +94,18 @@
       <field name="description">Material with no commercial value, for disposal.</field>
       <field name="sequence">130</field>
     </record>
+    <!-- Cross-polymer contamination attributes (hard gates for buyer matching) -->
+    <record id="attr_pvc_contaminated" model="plasticos.material.attribute">
+      <field name="name">PVC Contaminated</field>
+      <field name="code">pvc_contaminated</field>
+      <field name="description">Contains PVC contamination. Critical for HDPE/PP processing - PVC decomposes at processing temps releasing HCl. Zero tolerance for food/medical applications.</field>
+      <field name="sequence">140</field>
+    </record>
+    <record id="attr_pp_contaminated" model="plasticos.material.attribute">
+      <field name="name">PP Contaminated</field>
+      <field name="code">pp_contaminated</field>
+      <field name="description">Contains PP contamination. Problematic for HDPE processing - causes delamination and weak welds. Requires compatibilizer (MAPE) or compounding capability.</field>
+      <field name="sequence">150</field>
+    </record>
   </data>
 </odoo>

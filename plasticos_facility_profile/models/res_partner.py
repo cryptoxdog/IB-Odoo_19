@@ -13,7 +13,15 @@ class ResPartner(models.Model):
         help="Canonical partner/facility type from master registry.",
     )
 
-    # Backward-compatible computed Selection field
+    # ═══════════════════════════════════════════════════════════════════════
+    # IMPORTANT: x_facility_role vs company_type
+    # ───────────────────────────────────────────────────────────────────────
+    # company_type (Odoo core) = "person" or "company" (legal entity type)
+    # x_facility_role (below) = BUSINESS ROLE (broker, processor, mrf, etc.)
+    #
+    # This field is synced to Neo4j as "facility_role" and used in Cypher
+    # to exclude brokers from equipment gates (they resell, not process).
+    # ═══════════════════════════════════════════════════════════════════════
     x_facility_role = fields.Selection(
         selection=[
             ("processor", "Processor"),
@@ -29,6 +37,9 @@ class ResPartner(models.Model):
         compute="_compute_x_facility_role",
         inverse="_inverse_x_facility_role",
         store=True,
+        help="Business role of this facility. Computed from partner_type_id. "
+        "NOT the same as company_type (person/company). "
+        "Synced to Neo4j as 'facility_role' for buyer matching.",
     )
 
     @api.depends("partner_type_id", "partner_type_id.code")

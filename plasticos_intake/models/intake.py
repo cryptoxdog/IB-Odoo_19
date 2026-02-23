@@ -20,11 +20,29 @@ class PlasticosIntake(models.Model):
     partner_id = fields.Many2one(
         "res.partner",
         string="Company",
-        required=True,
+        required=False,
         tracking=True,
         index=True,
         domain="[('is_company', '=', True)]",
-        help="The parent company or standalone company.",
+        help="The parent company. Optional for web lead intakes pending review.",
+    )
+    pending_company_name = fields.Char(
+        string="Pending Company",
+        help="Company name from web lead, before partner is created. "
+        "Cleared when partner_id is set during buyer matching.",
+    )
+    company_display = fields.Char(
+        string="Company",
+        compute="_compute_company_display",
+        help="Shows partner name or pending company name for list views.",
+    )
+    source_lead_id = fields.Many2one(
+        "plasticos.web.lead",
+        string="Source Web Lead",
+        readonly=True,
+        index=True,
+        ondelete="set null",
+        help="The web lead that created this intake, if any.",
     )
     facility_id = fields.Many2one(
         "res.partner",
@@ -322,7 +340,7 @@ class PlasticosIntake(models.Model):
     # Computed
     # ═════════════════════════════════════════════════════════
 
-    @api.depends("partner_id", "facility_id", "polymer_id")
+    @api.depends("partner_id", "facility_id", "polymer_id", "pending_company_name")
     def _compute_name(self):
         """Auto-generate display name from company/facility + polymer."""
         for rec in self:
@@ -331,12 +349,25 @@ class PlasticosIntake(models.Model):
                 parts.append(rec.facility_id.name or "")
             elif rec.partner_id:
                 parts.append(rec.partner_id.name or "")
+            elif rec.pending_company_name:
+                parts.append(f"[PENDING] {rec.pending_company_name}")
             if rec.polymer_id:
                 parts.append(rec.polymer_id.name.upper())
             if parts:
                 rec.name = " - ".join(filter(None, parts))
             else:
                 rec.name = f"Intake #{rec.id or 'New'}"
+
+    @api.depends("partner_id", "pending_company_name")
+    def _compute_company_display(self):
+        """Show partner name or pending company name for list views."""
+        for rec in self:
+            if rec.partner_id:
+                rec.company_display = rec.partner_id.name
+            elif rec.pending_company_name:
+                rec.company_display = f"⏳ {rec.pending_company_name}"
+            else:
+                rec.company_display = "Unknown"
 
     # ═════════════════════════════════════════════════════════
     # Onchange — Smart Cascade
@@ -566,12 +597,22 @@ class PlasticosIntake(models.Model):
     def action_match_to_buyers(self):
         """Run buyer matching engine on this intake.
 
-        Calls matching engine, creates match lines sorted by score,
+        For web lead intakes without a partner, creates the partner first.
+        Then calls matching engine, creates match lines sorted by score,
         transitions status to 'matched'.
         """
         for rec in self:
             if rec.status != "draft":
                 raise UserError("Only draft intakes can be matched.")
+
+            # Create partner from pending_company_name if not yet created
+            if not rec.partner_id and rec.pending_company_name:
+                rec._create_partner_from_pending()
+
+            if not rec.partner_id:
+                raise UserError(
+                    "Cannot match without a company. " "Please set a company or ensure pending_company_name is filled."
+                )
 
             # Clear any existing matches
             rec.match_line_ids.unlink()
@@ -598,6 +639,62 @@ class PlasticosIntake(models.Model):
                 )
 
             rec.status = "matched"
+
+    def _create_partner_from_pending(self):
+        """Create partner from pending_company_name (web lead flow).
+
+        Called when admin decides to buyer-match a web lead intake.
+        Creates the partner, links it, and clears pending_company_name.
+        """
+        self.ensure_one()
+        if not self.pending_company_name:
+            return
+
+        Partner = self.env["res.partner"]
+        name = self.pending_company_name
+
+        # Check if partner already exists (may have been created elsewhere)
+        existing = Partner.search([("name", "=ilike", name)], limit=1)
+        if existing:
+            self.write(
+                {
+                    "partner_id": existing.id,
+                    "pending_company_name": False,
+                }
+            )
+            self.message_post(
+                body=f"Linked to existing partner: {existing.name}",
+                message_type="notification",
+            )
+            return
+
+        # Create new partner
+        partner_vals = {
+            "name": name,
+            "is_company": True,
+            "supplier_rank": 1,
+            "comment": f"Created from web lead intake {self.name}",
+        }
+
+        # Pull contact info from source lead if available
+        if self.source_lead_id:
+            lead = self.source_lead_id
+            if lead.contact_email:
+                partner_vals["email"] = lead.contact_email
+            if lead.contact_phone:
+                partner_vals["phone"] = lead.contact_phone
+
+        partner = Partner.create(partner_vals)
+        self.write(
+            {
+                "partner_id": partner.id,
+                "pending_company_name": False,
+            }
+        )
+        self.message_post(
+            body=f"Created new partner: {partner.name} (ID: {partner.id})",
+            message_type="notification",
+        )
 
     def action_reset_to_draft(self):
         """Reset this intake back to draft for editing."""
