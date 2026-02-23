@@ -5,7 +5,7 @@
     <field name="name">plasticos.polymer.list</field>
     <field name="model">plasticos.polymer</field>
     <field name="arch" type="xml">
-      <list editable="bottom">
+      <list editable="bottom" default_group_by="category">
         <field name="sequence" widget="handle"/>
         <field name="name"/>
         <field name="code"/>
@@ -14,6 +14,27 @@
         <field name="category"/>
         <field name="product_id" string="Product" optional="show"/>
       </list>
+    </field>
+  </record>
+
+  <!-- ── Search View (filter/group by category) ─────────── -->
+  <record id="plasticos_polymer_view_search" model="ir.ui.view">
+    <field name="name">plasticos.polymer.search</field>
+    <field name="model">plasticos.polymer</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="name"/>
+        <field name="code"/>
+        <field name="full_name"/>
+        <separator/>
+        <filter name="commodity" string="Commodity" domain="[('category', '=', 'commodity')]"/>
+        <filter name="engineering" string="Engineering" domain="[('category', '=', 'engineering')]"/>
+        <filter name="specialty" string="Specialty" domain="[('category', '=', 'specialty')]"/>
+        <separator/>
+        <group expand="0" string="Group By">
+          <filter name="group_category" string="Category" context="{'group_by': 'category'}"/>
+        </group>
+      </search>
     </field>
   </record>
 

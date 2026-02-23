@@ -21,6 +21,30 @@ class ResPartner(models.Model):
         compute="_compute_intake_count",
     )
 
+    # ── Computed: Is this partner a facility? ──────────────────
+    is_facility = fields.Boolean(
+        string="Is Facility",
+        compute="_compute_is_facility",
+        help="True if this is a facility (has parent) or a standalone company (no children)",
+    )
+
+    def _compute_is_facility(self):
+        """
+        A partner is a 'facility' if:
+        - It has a parent_id (it's a child/location), OR
+        - It has no children (standalone company = both HQ and facility)
+        """
+        for rec in self:
+            if rec.parent_id:
+                # Has parent = is a facility/location
+                rec.is_facility = True
+            elif not rec.child_ids:
+                # No parent AND no children = standalone company (is both HQ and facility)
+                rec.is_facility = True
+            else:
+                # Has children but no parent = pure parent company (not a facility)
+                rec.is_facility = False
+
     def _compute_material_profile_count(self):
         """Count material profiles linked to this partner (facility)."""
         Profile = self.env["plasticos.material.profile"]
@@ -61,6 +85,30 @@ class ResPartner(models.Model):
             "res_model": "plasticos.intake",
             "view_mode": "list,form",
             "domain": ["|", ("partner_id", "=", self.id), ("facility_id", "=", self.id)],
+        }
+
+    def action_create_intake(self):
+        """Create a new intake for this facility."""
+        self.ensure_one()
+        # Determine company and facility
+        if self.parent_id:
+            # This is a facility under a parent company
+            company_id = self.parent_id.id
+            facility_id = self.id
+        else:
+            # Standalone company (both HQ and facility)
+            company_id = self.id
+            facility_id = self.id
+
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"New Intake - {self.name}",
+            "res_model": "plasticos.intake",
+            "view_mode": "form",
+            "context": {
+                "default_partner_id": company_id,
+                "default_facility_id": facility_id,
+            },
         }
 
     def write(self, vals):
