@@ -29,11 +29,7 @@
     <field name="arch" type="xml">
       <form>
         <header>
-          <button name="action_create_intake"
-                  string="Create Intake"
-                  type="object"
-                  class="btn-primary"
-                  icon="fa-inbox"/>
+          <!-- Create Intake button added by plasticos_intake module -->
           <button name="action_create_purchase_order"
                   string="Make PO"
                   type="object"
@@ -43,12 +39,7 @@
         <sheet>
           <!-- ═══ Smart Buttons (Jump To) ═══ -->
           <div class="oe_button_box" name="button_box">
-            <button name="action_view_intakes"
-                    type="object"
-                    class="oe_stat_button"
-                    icon="fa-inbox">
-              <field name="intake_count" string="Intakes" widget="statinfo"/>
-            </button>
+            <!-- Intakes button added by plasticos_intake module -->
             <button name="action_view_po_lines"
                     type="object"
                     class="oe_stat_button"
@@ -178,17 +169,7 @@
     <field name="inherit_id" ref="base.view_partner_form"/>
     <field name="arch" type="xml">
 
-      <!-- ═══ Header: Create Intake button for facilities ═══ -->
-      <xpath expr="//form/sheet" position="before">
-        <header>
-          <button name="action_create_intake"
-                  string="Create Intake"
-                  type="object"
-                  class="btn-primary"
-                  icon="fa-inbox"
-                  invisible="not is_facility"/>
-        </header>
-      </xpath>
+      <!-- ═══ Header: Create Intake button added by plasticos_intake module ═══ -->
 
       <!-- ═══ Smart Buttons (Jump To) for Facilities ═══ -->
       <xpath expr="//div[@name='button_box']" position="inside">
@@ -200,13 +181,7 @@
                 invisible="material_profile_count == 0">
           <field name="material_profile_count" string="Profiles" widget="statinfo"/>
         </button>
-        <button name="action_view_intakes"
-                type="object"
-                class="oe_stat_button"
-                icon="fa-inbox"
-                invisible="intake_count == 0">
-          <field name="intake_count" string="Intakes" widget="statinfo"/>
-        </button>
+        <!-- Intakes button added by plasticos_intake module -->
       </xpath>
 
       <xpath expr="//sheet/notebook" position="inside">

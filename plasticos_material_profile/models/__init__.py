@@ -8,4 +8,3 @@ from . import polymer
 from . import process_type
 from . import res_partner
 from . import source_type
-from . import product_template
