@@ -19,7 +19,6 @@ Features:
     "depends": [
         "product",
         "plasticos_material_profile",
-        "plasticos_security_base",
     ],
     "data": [
         "security/ir.model.access.csv",

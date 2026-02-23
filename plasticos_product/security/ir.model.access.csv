@@ -1,9 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_product_template_sales,product.template.sales,product.model_product_template,plasticos_security_base.group_sales_rep,1,0,0,0
-access_product_template_logistics,product.template.logistics,product.model_product_template,plasticos_security_base.group_logistics,1,0,0,0
-access_product_template_accounting,product.template.accounting,product.model_product_template,plasticos_security_base.group_accounting,1,0,0,0
-access_product_template_admin,product.template.admin,product.model_product_template,plasticos_security_base.group_operations_manager,1,1,1,1
-access_plasticos_polymer_sales,plasticos.polymer.sales,model_plasticos_polymer,plasticos_security_base.group_sales_rep,1,0,0,0
-access_plasticos_polymer_logistics,plasticos.polymer.logistics,model_plasticos_polymer,plasticos_security_base.group_logistics,1,0,0,0
-access_plasticos_polymer_accounting,plasticos.polymer.accounting,model_plasticos_polymer,plasticos_security_base.group_accounting,1,0,0,0
-access_plasticos_polymer_admin,plasticos.polymer.admin,model_plasticos_polymer,plasticos_security_base.group_operations_manager,1,1,1,1
+access_product_template_user,product.template.user,product.model_product_template,base.group_user,1,0,0,0
+access_product_template_admin,product.template.admin,product.model_product_template,base.group_system,1,1,1,1
+access_plasticos_polymer_user,plasticos.polymer.user,model_plasticos_polymer,base.group_user,1,0,0,0
+access_plasticos_polymer_admin,plasticos.polymer.admin,model_plasticos_polymer,base.group_system,1,1,1,1

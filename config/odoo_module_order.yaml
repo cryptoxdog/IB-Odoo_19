@@ -12,7 +12,6 @@
 default_install_order:
   - plasticos_accounting
   - plasticos_base
-  - plasticos_security_base
   - plasticos_material_profile
   - plasticos_inference_engine
   - plasticos_logistics
@@ -31,6 +30,7 @@ default_install_order:
   - plasticos_partner_import
   - plasticos_geolocalize
   - plasticos_enrichment
+  - plasticos_security_base
 
 # Web leads module (tested separately after core modules pass):
 web_leads_module:
