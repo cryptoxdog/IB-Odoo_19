@@ -3,8 +3,6 @@ import logging
 from odoo import _, models
 from odoo.exceptions import UserError
 
-from ..services.matcher import PlasticosMatcher
-
 _logger = logging.getLogger(__name__)
 
 
@@ -12,7 +10,7 @@ class PlasticosIntake(models.Model):
     _inherit = "plasticos.intake"
 
     def action_match_to_buyers(self):
-        """Run buyer matching: deterministic matcher + Neo4j graph when available.
+        """Run buyer matching v2.0: facility.profile + Neo4j graph scoring.
 
         Requires a linked material_profile_id. Results are written to
         plasticos.match.result. If Neo4j is unavailable, only deterministic
@@ -29,23 +27,23 @@ class PlasticosIntake(models.Model):
                         record.name,
                     )
                 )
-            matcher = PlasticosMatcher(self.env)
-            matcher.match(record)
 
+            # Use new v2.0 matcher model with mode support
+            matcher = self.env["plasticos.buyer.matcher"]
+            matches = matcher.find_matches_for_supplier(
+                supplier_partner_id=record.partner_id.id,
+                intake_id=record.id,
+                max_results=20,
+                mode=record.match_mode or "strict",
+            )
+
+            _logger.info("Buyer match v2.0 for intake %s: found %d matches", record.name, len(matches))
+
+            # Check if Neo4j was used for scoring (via graph_service.calculate_match_score)
             if self.env.get("plasticos.graph.service"):
                 cfg = self.env["plasticos.graph.service"]._get_config()
                 if cfg.get("uri") and cfg.get("user") and cfg.get("password"):
-                    try:
-                        self.env["plasticos.graph.service"].sudo().match_buyers_for_intake(record)
-                        graph_used = True
-                    except Exception as exc:
-                        _logger.warning(
-                            "Neo4j graph match skipped for intake %s: %s",
-                            record.id,
-                            exc,
-                        )
-                        neo4j_unavailable_for.append(record)
-                        self._notify_neo4j_fallback(record, str(exc))
+                    graph_used = True
                 else:
                     neo4j_unavailable_for.append(record)
                     self._notify_neo4j_fallback(

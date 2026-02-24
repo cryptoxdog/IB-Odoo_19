@@ -1,5 +1,9 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_buyer_capability_admin,buyer.capability.admin,model_plasticos_buyer_capability,base.group_system,1,1,1,1
-access_buyer_capability_user,buyer.capability.user,model_plasticos_buyer_capability,base.group_user,1,0,0,0
+access_buyer_matcher_admin,buyer.matcher.admin,model_plasticos_buyer_matcher,base.group_system,1,1,1,1
+access_buyer_matcher_user,buyer.matcher.user,model_plasticos_buyer_matcher,base.group_user,1,0,0,0
+access_match_result_admin,match.result.admin,model_plasticos_match_result,base.group_system,1,1,1,1
+access_match_result_user,match.result.user,model_plasticos_match_result,base.group_user,1,0,0,0
 access_graph_sync_log_user,graph.sync.log.user,model_plasticos_graph_sync_log,base.group_user,1,0,0,0
 access_graph_sync_log_admin,graph.sync.log.admin,model_plasticos_graph_sync_log,base.group_system,1,1,1,1
+access_match_exclusion_admin,match.exclusion.admin,model_plasticos_match_exclusion,base.group_system,1,1,1,1
+access_match_exclusion_user,match.exclusion.user,model_plasticos_match_exclusion,base.group_user,1,1,1,0

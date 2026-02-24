@@ -23,4 +23,18 @@ Admin gets notification → Reviews intake
             ▼
         No partner ever created ✅
 
-==============
+=========================================
+
+equipment_type_data.xml ──────> plasticos.equipment.type (LOADED)
+                                        │
+                                        │ Many2many
+                                        v
+res.partner ──────────────────> plasticos.facility.profile
+                                        │
+                                        │ equipment_type_ids → computed Booleans
+                                        │ has_shredder = computed from M2M
+                                        v
+                              buyer_match_engine
+                              (queries Boolean flags — unchanged)
+
+=========================================

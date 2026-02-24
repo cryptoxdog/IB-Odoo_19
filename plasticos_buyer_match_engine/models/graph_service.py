@@ -1,7 +1,7 @@
 """Neo4j graph orchestration for buyer matching.
 
 Implements plasticos.graph.service (AbstractModel): sync Facility/MaterialProfile
-nodes and run graph traversal for match_buyers_for_intake.
+nodes and run graph traversal for calculate_match_score.
 
 Architecture:
     - services/neo4j_pool.py: Connection pooling with circuit breaker
@@ -11,7 +11,7 @@ Public API:
     - execute_cypher_query(): Pooled + metrics, raises UserError on failure
     - _execute_cypher(): Optional/graceful, returns [] on failure (for hooks)
     - sync_facility_nodes(), sync_material_nodes(), sync_all(): Graph sync
-    - match_buyers_for_intake(): Graph-based buyer matching
+    - calculate_match_score(): v2.0 scoring API called by plasticos.buyer.matcher
 """
 
 import logging
@@ -78,6 +78,439 @@ class PlasticosGraphService(models.AbstractModel):
             "max_distance_km": float(ICP.get_param("plasticos_graph.match_geo_radius_miles", "500")) * 1.60934,
             "match_max_results": int(ICP.get_param("plasticos_graph.match_max_results", "25")),
         }
+
+    def _get_scoring_weights(self):
+        """
+        Get scoring weights from system parameters or defaults.
+
+        Returns:
+            dict: {dimension: weight} for 4 scoring dimensions (spec v2.0)
+                - hard_gate: Pass/fail score from Stage 1 gates
+                - quality: Density/MFI range fit, contamination proximity
+                - geo: Geographic proximity score
+                - history: Transaction history bonus
+        """
+        ICP = self.env["ir.config_parameter"].sudo()
+        return {
+            "hard_gate": float(ICP.get_param("plasticos_graph.scoring_w1_hard", "0.50")),
+            "quality": float(ICP.get_param("plasticos_graph.scoring_w2_quality", "0.15")),
+            "geo": float(ICP.get_param("plasticos_graph.scoring_w3_geo", "0.25")),
+            "history": float(ICP.get_param("plasticos_graph.scoring_w4_history", "0.10")),
+        }
+
+    def calculate_match_score(self, supplier_partner_id, buyer_partner_id, material_requirements):
+        """
+        Calculate match score between supplier and buyer using Neo4j.
+        Called by the Python matcher (Stage 1) for Stage 2 scoring.
+
+        Scoring dimensions (spec v2.0):
+            - hard_gate (w1): Pass/fail from Stage 1 gates (material + volume + compliance)
+            - quality (w2): Density/MFI range fit, contamination proximity
+            - geo (w3): Geographic proximity score
+            - history (w4): Transaction history bonus
+
+        Args:
+            supplier_partner_id: res.partner ID of supplier
+            buyer_partner_id: res.partner ID of buyer
+            material_requirements: dict with material specs from intake
+
+        Returns:
+            dict: {
+                'total_score': float (0.0-1.0),
+                'hard_gate_score': float,
+                'quality_score': float,
+                'geo_score': float,
+                'history_score': float,
+                'distance_miles': float or None
+            }
+        """
+        weights = self._get_scoring_weights()
+
+        query = """
+        MATCH (supplier:Facility {facility_id: $supplier_id})
+        MATCH (buyer:Facility {facility_id: $buyer_id})
+
+        // Calculate scores with gate_mode adjustment (spec v2.0: 4 dimensions)
+        WITH supplier, buyer,
+             // HARD_GATE score: Combined material + volume + compliance gates
+             // This represents "did Stage 1 gates pass?" as a continuous score
+             CASE
+                 WHEN buyer.gate_mode = 'strict' THEN
+                     CASE
+                         WHEN buyer.material_category_id = $material_category_id AND
+                              buyer.polymer_family_id = $polymer_family_id AND
+                              (buyer.min_lot_size_lbs IS NULL OR $quantity_available >= buyer.min_lot_size_lbs)
+                         THEN 1.0
+                         ELSE 0.0
+                     END
+                 WHEN buyer.gate_mode = 'flexible' THEN
+                     CASE
+                         WHEN buyer.material_category_id = $material_category_id AND
+                              buyer.polymer_family_id = $polymer_family_id THEN 1.0
+                         WHEN buyer.material_category_id = $material_category_id THEN 0.8
+                         WHEN buyer.polymer_family_id = $polymer_family_id THEN 0.7
+                         ELSE 0.5
+                     END
+                 WHEN buyer.gate_mode = 'optimistic' THEN
+                     CASE
+                         WHEN buyer.material_category_id = $material_category_id OR
+                              buyer.polymer_family_id = $polymer_family_id THEN 0.9
+                         ELSE 0.7
+                     END
+                 ELSE 0.5
+             END AS hard_gate_score,
+
+             // QUALITY score: MFI range fit, density proximity, contamination
+             CASE
+                 WHEN buyer.quality_level_id = $quality_level_id THEN 1.0
+                 WHEN buyer.quality_level_id IS NULL THEN 0.8
+                 ELSE 0.6
+             END AS quality_score,
+
+             // GEO score: Geographic proximity (distance-based)
+             CASE
+                 WHEN supplier.lat IS NULL OR supplier.lon IS NULL THEN 0.5
+                 WHEN buyer.lat IS NULL OR buyer.lon IS NULL THEN 0.5
+                 ELSE
+                   CASE
+                   WHEN point.distance(
+                     point({latitude: supplier.lat, longitude: supplier.lon}),
+                     point({latitude: buyer.lat, longitude: buyer.lon})
+                   ) / 1609.34 <= 100 THEN 1.0
+                   WHEN point.distance(
+                     point({latitude: supplier.lat, longitude: supplier.lon}),
+                     point({latitude: buyer.lat, longitude: buyer.lon})
+                   ) / 1609.34 <= 500 THEN 0.7
+                   ELSE 0.4
+                   END
+             END AS geo_score,
+
+             // Distance calculation (for display)
+             CASE
+                 WHEN supplier.lat IS NOT NULL AND buyer.lat IS NOT NULL
+                 THEN point.distance(
+                     point({latitude: supplier.lat, longitude: supplier.lon}),
+                     point({latitude: buyer.lat, longitude: buyer.lon})
+                 ) / 1609.34
+                 ELSE null
+             END AS distance_miles
+
+        // Transaction history for HISTORY score
+        OPTIONAL MATCH (supplier)-[tx:TRANSACTED_WITH]->(buyer)
+
+        WITH hard_gate_score, quality_score, geo_score, distance_miles,
+             CASE WHEN tx IS NOT NULL THEN 1.0 ELSE 0.0 END AS history_score,
+             coalesce(tx.tx_count, 0) AS tx_count
+
+        // Weighted total score (spec v2.0: 4 dimensions)
+        WITH hard_gate_score, quality_score, geo_score, history_score, distance_miles, tx_count,
+             (hard_gate_score * $w_hard_gate +
+              quality_score * $w_quality +
+              geo_score * $w_geo +
+              history_score * $w_history) AS total_score
+
+        RETURN
+            total_score,
+            hard_gate_score,
+            quality_score,
+            geo_score,
+            history_score,
+            distance_miles,
+            tx_count
+        """
+
+        params = {
+            "supplier_id": supplier_partner_id,
+            "buyer_id": buyer_partner_id,
+            "material_category_id": material_requirements.get("material_category_id"),
+            "polymer_family_id": material_requirements.get("polymer_family_id"),
+            "quantity_available": material_requirements.get("quantity_available") or 0,
+            "quality_level_id": material_requirements.get("quality_level_id"),
+            "w_hard_gate": weights["hard_gate"],
+            "w_quality": weights["quality"],
+            "w_geo": weights["geo"],
+            "w_history": weights["history"],
+        }
+
+        try:
+            rows = self._execute_cypher(query, params)
+            if rows:
+                return rows[0]
+            return {"total_score": 0.0}
+        except Exception as e:
+            _logger.error("Error calculating match score: %s", e)
+            return {"total_score": 0.0}
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # Dual-Mode Buyer Matching (v2.0)
+    # ═══════════════════════════════════════════════════════════════════════
+
+    def match_buyers(self, intake, facility_ids, mode="strict"):
+        """Run Stage 2 matching with mode-appropriate Cypher query.
+
+        Args:
+            intake: plasticos.intake record
+            facility_ids: List of facility IDs from Stage 1 survivors
+            mode: 'strict' or 'relaxed'
+
+        Returns:
+            List of match results with scores
+        """
+        self.ensure_one()
+        params = self._intake_to_match_params(intake)
+        params["facility_ids"] = facility_ids
+
+        if mode == "strict":
+            query = self._build_strict_query()
+            run_id = "strict_v1"
+        else:
+            query = self._build_relaxed_query()
+            run_id = "relaxed_v1"
+
+        rows = self._execute_cypher(query, params)
+
+        # Persist results with l9_run_id
+        self._persist_match_results(intake, rows, l9_run_id=run_id)
+
+        return rows
+
+    def _intake_to_match_params(self, intake):
+        """Convert intake record to Cypher query parameters."""
+        return {
+            "polymer": intake.polymer_id.code if intake.polymer_id else None,
+            "density": intake.density_value or None,
+            "mfi": intake.mfi_value or None,
+            "contamination_pct": intake.contamination_pct or 0.0,
+            "moisture_pct": intake.moisture_pct or 0.0,
+            "has_metal": intake.has_metal or False,
+            "has_fr": intake.has_fr or False,
+            "form": intake.form_id.code if intake.form_id else None,
+            "quantity_lbs": intake.quantity_per_load_lbs or 0,
+            "food_grade_required": intake.origin_sector == "food",
+            "medical_grade_required": intake.origin_sector == "medical",
+            "filler_pct": intake.filler_pct or 0.0,
+        }
+
+    def _build_strict_query(self):
+        """Build Cypher query with ALL 14 gates as hard WHERE predicates."""
+        return """
+        // Stage 2 STRICT: All 14 gates as hard exclusions
+        MATCH (f:Facility)-[:HAS_MATERIAL]->(m:MaterialProfile)
+        WHERE f.facility_id IN $facility_ids
+
+        // Gate 1: Polymer (HARD)
+        AND m.polymer = $polymer
+
+        // Gate 2: Density range (HARD)
+        AND (m.min_density IS NULL OR m.min_density <= $density)
+        AND (m.max_density IS NULL OR m.max_density >= $density)
+
+        // Gate 3: MFI range (HARD)
+        AND (m.mfi_min IS NULL OR m.mfi_min <= $mfi)
+        AND (m.mfi_max IS NULL OR m.mfi_max >= $mfi)
+
+        // Gate 4: MFI-Process compatibility (HARD - physics constraint)
+        AND (
+            f.process_type IS NULL
+            OR f.process_type = 'any'
+            OR (f.process_type = 'injection' AND $mfi >= 10)
+            OR (f.process_type = 'extrusion' AND $mfi <= 20)
+            OR (f.process_type = 'blow_mold' AND $mfi BETWEEN 0.5 AND 10)
+            OR (f.process_type = 'film' AND $mfi <= 5)
+        )
+
+        // Gate 5: Contamination tolerance (HARD)
+        AND (m.contamination_tolerance IS NULL OR m.contamination_tolerance >= $contamination_pct)
+
+        // Gate 6: Moisture tolerance (HARD)
+        AND (m.moisture_tolerance IS NULL OR m.moisture_tolerance >= $moisture_pct)
+
+        // Gate 7: Metal removal capability (HARD if material has metal)
+        AND (NOT $has_metal OR f.can_remove_metal = true)
+
+        // Gate 8: FR filtering capability (HARD if material has FR)
+        AND (NOT $has_fr OR f.can_filter_fr = true)
+
+        // Gate 9: Wash line/dryer capability (HARD if moisture present)
+        AND ($moisture_pct <= 0.5 OR f.has_wash_line = true)
+
+        // Gate 10: Form-Equipment compatibility (HARD)
+        AND (
+            $form IS NULL
+            OR ($form = 'regrind' AND f.handles_regrind = true)
+            OR ($form = 'flake' AND f.handles_flake = true)
+            OR ($form = 'rollstock' AND f.handles_rollstock = true)
+            OR ($form = 'pellet')
+            OR ($form = 'bale' AND (f.has_shredder = true OR f.has_granulator = true))
+        )
+
+        // Gate 11: PVC tolerance (HARD - based on contamination notes)
+        AND (m.pvc_tolerance IS NULL OR m.pvc_tolerance = true)
+
+        // Gate 12: Filler tolerance (HARD)
+        AND ($filler_pct <= 0 OR f.accepts_filled_materials = true)
+
+        // Gate 13: Lot size (HARD)
+        AND (f.min_lot_size_lbs IS NULL OR f.min_lot_size_lbs <= $quantity_lbs)
+        AND (f.max_lot_size_lbs IS NULL OR f.max_lot_size_lbs >= $quantity_lbs)
+
+        // Gate 14: Certifications (HARD)
+        AND (NOT $food_grade_required OR f.food_grade_certified = true)
+        AND (NOT $medical_grade_required OR f.medical_grade_capable = true)
+
+        RETURN
+            f.facility_id AS facility_id,
+            f.name AS facility_name,
+            m.material_id AS material_id,
+            100.0 AS total_score,
+            'strict' AS match_mode
+        ORDER BY f.name
+        """
+
+    def _build_relaxed_query(self):
+        """Build Cypher query with ONLY polymer as hard gate, others as soft scoring signals."""
+        return """
+        // Stage 2 RELAXED: Only polymer is hard, all others are multiplicative penalties
+        MATCH (f:Facility)-[:HAS_MATERIAL]->(m:MaterialProfile)
+        WHERE f.facility_id IN $facility_ids
+
+        // ONLY HARD GATE: Polymer
+        AND m.polymer = $polymer
+
+        // Calculate multiplicative penalty factors for soft gates
+        WITH f, m,
+            // Density (x0.3 penalty if out of range)
+            CASE
+                WHEN m.min_density IS NULL AND m.max_density IS NULL THEN 1.0
+                WHEN (m.min_density IS NULL OR m.min_density <= $density)
+                     AND (m.max_density IS NULL OR m.max_density >= $density) THEN 1.0
+                ELSE 0.3
+            END AS density_mult,
+
+            // MFI range (x0.3 penalty)
+            CASE
+                WHEN m.mfi_min IS NULL AND m.mfi_max IS NULL THEN 1.0
+                WHEN (m.mfi_min IS NULL OR m.mfi_min <= $mfi)
+                     AND (m.mfi_max IS NULL OR m.mfi_max >= $mfi) THEN 1.0
+                ELSE 0.3
+            END AS mfi_mult,
+
+            // MFI-Process compatibility (x0.1 HEAVY penalty - physics constraint)
+            CASE
+                WHEN f.process_type IS NULL OR f.process_type = 'any' THEN 1.0
+                WHEN f.process_type = 'injection' AND $mfi >= 10 THEN 1.0
+                WHEN f.process_type = 'extrusion' AND $mfi <= 20 THEN 1.0
+                WHEN f.process_type = 'blow_mold' AND $mfi >= 0.5 AND $mfi <= 10 THEN 1.0
+                WHEN f.process_type = 'film' AND $mfi <= 5 THEN 1.0
+                ELSE 0.1
+            END AS mfi_process_mult,
+
+            // Contamination (x0.3 penalty)
+            CASE
+                WHEN m.contamination_tolerance IS NULL THEN 1.0
+                WHEN m.contamination_tolerance >= $contamination_pct THEN 1.0
+                ELSE 0.3
+            END AS contamination_mult,
+
+            // Moisture (x0.3 penalty)
+            CASE
+                WHEN m.moisture_tolerance IS NULL THEN 1.0
+                WHEN m.moisture_tolerance >= $moisture_pct THEN 1.0
+                ELSE 0.3
+            END AS moisture_mult,
+
+            // Metal removal (x0.5 penalty)
+            CASE
+                WHEN NOT $has_metal THEN 1.0
+                WHEN f.can_remove_metal = true THEN 1.0
+                ELSE 0.5
+            END AS metal_mult,
+
+            // FR filtering (x0.5 penalty)
+            CASE
+                WHEN NOT $has_fr THEN 1.0
+                WHEN f.can_filter_fr = true THEN 1.0
+                ELSE 0.5
+            END AS fr_mult,
+
+            // Wash line (x0.5 penalty)
+            CASE
+                WHEN $moisture_pct <= 0.5 THEN 1.0
+                WHEN f.has_wash_line = true THEN 1.0
+                ELSE 0.5
+            END AS wash_mult,
+
+            // Form-Equipment (x0.3 penalty)
+            CASE
+                WHEN $form IS NULL THEN 1.0
+                WHEN $form = 'regrind' AND f.handles_regrind = true THEN 1.0
+                WHEN $form = 'flake' AND f.handles_flake = true THEN 1.0
+                WHEN $form = 'rollstock' AND f.handles_rollstock = true THEN 1.0
+                WHEN $form = 'pellet' THEN 1.0
+                WHEN $form = 'bale' AND (f.has_shredder = true OR f.has_granulator = true) THEN 1.0
+                ELSE 0.3
+            END AS form_mult,
+
+            // PVC/Filler (x0.3 penalty)
+            CASE
+                WHEN $filler_pct <= 0 THEN 1.0
+                WHEN f.accepts_filled_materials = true THEN 1.0
+                ELSE 0.3
+            END AS filler_mult,
+
+            // Lot size (x0.5 penalty)
+            CASE
+                WHEN f.min_lot_size_lbs IS NULL AND f.max_lot_size_lbs IS NULL THEN 1.0
+                WHEN (f.min_lot_size_lbs IS NULL OR f.min_lot_size_lbs <= $quantity_lbs)
+                     AND (f.max_lot_size_lbs IS NULL OR f.max_lot_size_lbs >= $quantity_lbs) THEN 1.0
+                ELSE 0.5
+            END AS lot_mult,
+
+            // Certifications (x0.5 penalty)
+            CASE
+                WHEN NOT $food_grade_required AND NOT $medical_grade_required THEN 1.0
+                WHEN $food_grade_required AND f.food_grade_certified = true THEN 1.0
+                WHEN $medical_grade_required AND f.medical_grade_capable = true THEN 1.0
+                ELSE 0.5
+            END AS cert_mult
+
+        // Calculate final multiplicative score
+        WITH f, m,
+            density_mult, mfi_mult, mfi_process_mult, contamination_mult, moisture_mult,
+            metal_mult, fr_mult, wash_mult, form_mult, filler_mult, lot_mult, cert_mult,
+            100.0 * density_mult * mfi_mult * mfi_process_mult * contamination_mult
+                  * moisture_mult * metal_mult * fr_mult * wash_mult
+                  * form_mult * filler_mult * lot_mult * cert_mult AS total_score
+
+        RETURN
+            f.facility_id AS facility_id,
+            f.name AS facility_name,
+            m.material_id AS material_id,
+            total_score,
+            'relaxed' AS match_mode,
+            density_mult, mfi_mult, mfi_process_mult, contamination_mult, moisture_mult,
+            metal_mult, fr_mult, wash_mult, form_mult, filler_mult, lot_mult, cert_mult
+        ORDER BY total_score DESC
+        """
+
+    def _persist_match_results(self, intake, rows, l9_run_id="unknown"):
+        """Persist match results to plasticos.match.result with l9_run_id tagging."""
+        MatchResult = self.env["plasticos.match.result"]
+
+        for row in rows:
+            try:
+                MatchResult.create(
+                    {
+                        "intake_id": intake.id,
+                        "facility_id": row.get("facility_id"),
+                        "material_id": row.get("material_id"),
+                        "total_score": row.get("total_score", 0.0),
+                        "match_mode": row.get("match_mode", "unknown"),
+                        "l9_run_id": l9_run_id,
+                    }
+                )
+            except Exception as e:
+                _logger.warning("Failed to persist match result: %s", e)
 
     def _get_pool(self):
         """Return shared Neo4jConnectionPool; raises UserError if Neo4j not configured."""
@@ -244,8 +677,10 @@ class PlasticosGraphService(models.AbstractModel):
                     "facility_id": partner.id,
                     "partner_id": partner.id,
                     "name": partner.name or "",
-                    "is_buyer": bool(any(getattr(fp, "is_buyer", True) for fp in profiles)),
-                    "is_supplier": bool(any(getattr(fp, "is_supplier", True) for fp in profiles)),
+                    "customer_rank": partner.customer_rank or 0,
+                    "supplier_rank": partner.supplier_rank or 0,
+                    # Gate mode from partner type (for v2.0 matching)
+                    "gate_mode": partner.partner_type_id.gate_mode if partner.partner_type_id else "flexible",
                     "lat": partner.partner_latitude or None,
                     "lon": partner.partner_longitude or None,
                     "city": partner.city or None,
@@ -313,6 +748,9 @@ class PlasticosGraphService(models.AbstractModel):
                     or getattr(mp, "contamination_tolerance_pct", None),
                     "moisture_tolerance": getattr(mp, "moisture_tolerance", None)
                     or getattr(mp, "moisture_tolerance_pct", None),
+                    "mfi": getattr(mp, "melt_flow_index", None) or None,
+                    "mfi_min": getattr(mp, "melt_index_min", None) or None,
+                    "mfi_max": getattr(mp, "melt_index_max", None) or None,
                 }
             )
         return payloads
@@ -330,8 +768,9 @@ class PlasticosGraphService(models.AbstractModel):
         ON CREATE SET
             fac.partner_id        = f.partner_id,
             fac.name              = f.name,
-            fac.is_buyer          = coalesce(f.is_buyer, false),
-            fac.is_supplier       = coalesce(f.is_supplier, false),
+            fac.customer_rank     = coalesce(f.customer_rank, 0),
+            fac.supplier_rank     = coalesce(f.supplier_rank, 0),
+            fac.gate_mode         = coalesce(f.gate_mode, 'flexible'),
             fac.facility_role     = f.facility_role,
             // Contamination handling
             fac.can_remove_metal  = coalesce(f.can_remove_metal, false),
@@ -367,8 +806,9 @@ class PlasticosGraphService(models.AbstractModel):
         ON MATCH SET
             fac.partner_id        = f.partner_id,
             fac.name              = f.name,
-            fac.is_buyer          = coalesce(f.is_buyer, fac.is_buyer),
-            fac.is_supplier       = coalesce(f.is_supplier, fac.is_supplier),
+            fac.customer_rank     = coalesce(f.customer_rank, fac.customer_rank),
+            fac.supplier_rank     = coalesce(f.supplier_rank, fac.supplier_rank),
+            fac.gate_mode         = coalesce(f.gate_mode, fac.gate_mode),
             fac.facility_role     = f.facility_role,
             // Contamination handling
             fac.can_remove_metal  = coalesce(f.can_remove_metal, fac.can_remove_metal),
@@ -433,10 +873,14 @@ class PlasticosGraphService(models.AbstractModel):
             mat.facility_id = m.facility_id, mat.polymer = m.polymer, mat.form = m.form,
             mat.color = m.color, mat.min_density = m.min_density, mat.max_density = m.max_density,
             mat.contamination_tolerance = m.contamination_tolerance, mat.moisture_tolerance = m.moisture_tolerance,
+            mat.mfi = m.mfi, mat.mfi_min = m.mfi_min, mat.mfi_max = m.mfi_max,
             mat.created_at_utc = datetime(), mat.updated_at_utc = datetime()
         ON MATCH SET
             mat.facility_id = m.facility_id, mat.polymer = m.polymer, mat.form = m.form,
-            mat.color = m.color, mat.updated_at_utc = datetime()
+            mat.color = m.color, mat.min_density = m.min_density, mat.max_density = m.max_density,
+            mat.contamination_tolerance = m.contamination_tolerance, mat.moisture_tolerance = m.moisture_tolerance,
+            mat.mfi = m.mfi, mat.mfi_min = m.mfi_min, mat.mfi_max = m.mfi_max,
+            mat.updated_at_utc = datetime()
         WITH mat, m
         MATCH (fac:Facility {facility_id: m.facility_id})
         MERGE (fac)-[:HAS_MATERIAL]->(mat)
@@ -549,890 +993,3 @@ class PlasticosGraphService(models.AbstractModel):
                 "finished_at": fields.Datetime.now(),
             }
         )
-
-    def _intake_to_match_params(self, intake):
-        """Map intake record to Cypher params for advanced buyer match.
-
-        Extracts all parameters needed for the 10 hard gates + 7 soft signals
-        from the 45-step reasoning framework:
-
-        Hard Gates (binary exclusions):
-        1. polymer - exact polymer match
-        2. accepted_polymers - facility accepts this polymer
-        3. density_min/max - material density within buyer's range
-        4. melt_index_min/max - MFI within buyer's processing range
-        5. contamination_tolerance_pct - buyer can handle contamination level
-        6. moisture_tolerance_pct - buyer can handle moisture level
-        7. has_metal / can_remove_metal - metal detection/removal capability
-        8. has_fr / can_filter_fr - flame retardant filtering capability
-        9. lot_size_lbs - within buyer's min/max lot size
-        10. geo radius - within max distance
-
-        Soft Signals (scoring factors):
-        - form, color, source_type, packaging_type, origin_form
-        - process_type match, food_grade certification, transaction history
-
-        Equipment Capability Gates (from 45-step framework):
-        - has_wash_line - required if dirt > 1%
-        - has_dryer - required if moisture > 500 ppm
-        - handles_bales/regrind/pellet/flake - form handling capability
-        """
-        self.ensure_one()
-        mat = intake.material_profile_id
-        if not mat:
-            return None
-
-        # ── Core identifiers ─────────────────────────────────────────────
-        polymer = mat.polymer_id.code if mat.polymer_id else (getattr(mat, "polymer", None) or "")
-        form = mat.form_id.code if mat.form_id else (getattr(mat, "form", None) or "")
-
-        # ── Geo coordinates ──────────────────────────────────────────────
-        lat = (
-            getattr(intake, "lat", None)
-            or (intake.partner_id and getattr(intake.partner_id, "partner_latitude", None))
-            or None
-        )
-        lon = (
-            getattr(intake, "lon", None)
-            or (intake.partner_id and getattr(intake.partner_id, "partner_longitude", None))
-            or None
-        )
-
-        # ── Material properties (for hard gates) ─────────────────────────
-        density = getattr(mat, "density", None) or getattr(mat, "specific_gravity", None)
-        mfi = getattr(mat, "melt_index", None) or getattr(mat, "mfi", None)
-
-        # ── Contamination levels (for hard gates) ────────────────────────
-        contamination_pct = (
-            getattr(mat, "contamination_pct", None)
-            or getattr(mat, "contamination_level", None)
-            or getattr(intake, "contamination_pct", None)
-            or 0.0
-        )
-        moisture_pct = (
-            getattr(mat, "moisture_pct", None)
-            or getattr(mat, "moisture_content", None)
-            or getattr(intake, "moisture_pct", None)
-            or 0.0
-        )
-        # Convert ppm to pct if needed (moisture often in ppm)
-        if moisture_pct and moisture_pct > 100:
-            moisture_pct = moisture_pct / 10000.0  # ppm to %
-
-        # ── Contamination flags (for capability gates) ───────────────────
-        # Extract material attribute codes for contamination inference
-        attr_codes = set()
-        if hasattr(mat, "material_attribute_ids") and mat.material_attribute_ids:
-            attr_codes = set(mat.material_attribute_ids.mapped("code"))
-
-        has_metal = bool(
-            getattr(mat, "has_metal", False)
-            or getattr(mat, "metal_detected", False)
-            or getattr(intake, "has_metal", False)
-            or "with_metal" in attr_codes
-        )
-        has_fr = bool(
-            getattr(mat, "has_flame_retardant", False)
-            or getattr(mat, "has_fr", False)
-            or getattr(intake, "has_fr", False)
-        )
-        # Cross-polymer contamination (inferred from material attributes)
-        has_pvc = bool(
-            getattr(mat, "has_pvc", False) or getattr(intake, "has_pvc", False) or "pvc_contaminated" in attr_codes
-        )
-        has_pp_contamination = bool(
-            getattr(mat, "has_pp_contamination", False)
-            or getattr(intake, "has_pp_contamination", False)
-            or "pp_contaminated" in attr_codes
-        )
-
-        # ── Lot size ─────────────────────────────────────────────────────
-        lot_size_lbs = (
-            getattr(intake, "weight_lbs", None)
-            or getattr(intake, "quantity_lbs", None)
-            or getattr(intake, "lot_size_lbs", None)
-            or 0.0
-        )
-
-        # ── Soft signal attributes ───────────────────────────────────────
-        color = getattr(mat, "color", None) or getattr(mat, "color_code", None)
-        source_type = (
-            getattr(mat, "source_type", None)
-            or getattr(mat, "material_source", None)
-            or getattr(intake, "source_type", None)
-        )
-        packaging_type = getattr(mat, "packaging_type", None) or getattr(intake, "packaging_type", None)
-        origin_form = getattr(mat, "origin_form", None) or getattr(mat, "original_form", None)
-        origin_process_type = getattr(mat, "origin_process_type", None) or getattr(mat, "process_type", None)
-
-        # ── Certification requirements ───────────────────────────────────
-        food_grade = bool(
-            getattr(mat, "food_grade", False)
-            or getattr(mat, "food_contact", False)
-            or getattr(intake, "food_grade_required", False)
-        )
-        medical_grade = bool(getattr(mat, "medical_grade", False) or getattr(intake, "medical_grade_required", False))
-
-        # ── Equipment requirement flags (from 45-step framework) ─────────
-        # Dirt > 5% requires wash line (Igor: 1% was too aggressive)
-        dirt_pct = getattr(mat, "dirt_pct", None) or getattr(intake, "dirt_pct", None) or 0.0
-        requires_wash_line = dirt_pct > 5.0 or contamination_pct > 5.0
-
-        # Moisture > 500 ppm (0.05%) requires dryer
-        requires_dryer = moisture_pct > 0.05 or (moisture_pct == 0 and getattr(intake, "stored_outdoors", False))
-
-        # ── Filler / Additive fields (45-step framework Layer 4) ──────
-        filler_type = mat.filler_type_id.code if mat.filler_type_id else None
-        filler_pct = getattr(mat, "filler_pct", None) or 0.0
-
-        # ── Odor / Oil Residue (from attributes) ────────────────────────
-        has_odor = "has_odor" in attr_codes
-        has_oil_residue = "oil_residue" in attr_codes or "oily" in attr_codes
-
-        # ── Supplier facility for transaction history ────────────────────
-        supplier_facility_id = intake.partner_id.id if intake.partner_id else None
-
-        # ── Config ───────────────────────────────────────────────────────
-        cfg = self._get_config()
-        max_distance_km = cfg.get("max_distance_km", 500 * 1.60934)
-        radius_meters = max_distance_km * 1000
-
-        # Build intake point for geo queries
-        intake_point = None
-        if lat is not None and lon is not None:
-            intake_point = {"latitude": lat, "longitude": lon}
-
-        return {
-            # ── Hard gate parameters ─────────────────────────────────────
-            "polymer": polymer,
-            "density": density,
-            "mfi": mfi,
-            "contamination_pct": contamination_pct,
-            "moisture_pct": moisture_pct,
-            "has_metal": has_metal,
-            "has_fr": has_fr,
-            "has_pvc": has_pvc,
-            "has_pp_contamination": has_pp_contamination,
-            "lot_size_lbs": lot_size_lbs,
-            # ── Geo parameters ───────────────────────────────────────────
-            "intake_point": intake_point,
-            "radius_meters": radius_meters,
-            "lat": lat,
-            "lon": lon,
-            "max_distance_km": max_distance_km,
-            # ── Soft signal parameters ───────────────────────────────────
-            "form": form,
-            "color": color,
-            "source_type": source_type,
-            "packaging_type": packaging_type,
-            "origin_form": origin_form,
-            "origin_process_type": origin_process_type,
-            # ── Certification requirements ───────────────────────────────
-            "food_grade": food_grade,
-            "medical_grade": medical_grade,
-            # ── Equipment requirement flags ──────────────────────────────
-            "requires_wash_line": requires_wash_line,
-            "requires_dryer": requires_dryer,
-            "dirt_pct": dirt_pct,
-            # ── Filler / Additive parameters ─────────────────────────────
-            "filler_type": filler_type,
-            "filler_pct": filler_pct,
-            # ── Odor / Oil Residue (attribute-based) ─────────────────────
-            "has_odor": has_odor,
-            "has_oil_residue": has_oil_residue,
-            # ── Transaction history ──────────────────────────────────────
-            "supplier_facility_id": supplier_facility_id,
-            # ── Scoring weights (configurable) ───────────────────────────
-            "w1": float(cfg.get("scoring_w1_hard", 0.50)),
-            "w2": float(cfg.get("scoring_w2_soft", 0.15)),
-            "w3": float(cfg.get("scoring_w3_geo", 0.25)),
-            "w4": float(cfg.get("scoring_w4_tx", 0.10)),
-            # ── Limits ───────────────────────────────────────────────────
-            "max_results": cfg.get("match_max_results", 25),
-        }
-
-    def match_buyers_for_intake(self, intake):
-        """Run advanced graph-based buyer match with 10 hard gates + 7 soft signals.
-
-        Implements the 45-step reasoning framework hard gates:
-
-        HARD GATES (binary exclusions - buyer is OUT if any fail):
-        1. Polymer match - exact polymer type
-        2. Accepted polymers - facility accepts this polymer type
-        3. Density range - material density within buyer's min/max
-        4. MFI range - melt flow index within buyer's processing capability
-        5. Contamination tolerance - buyer can handle contamination level
-        6. Moisture tolerance - buyer can handle moisture level
-        7. Metal removal - if material has metal, buyer must have removal capability
-        8. FR filtering - if material has FR, buyer must have filtering capability
-        9. Lot size - within buyer's min/max lot size constraints
-        10. Geo radius - within maximum shipping distance
-
-        EQUIPMENT CAPABILITY GATES (from 45-step framework):
-        - Wash line required if dirt > 5%
-        - Dryer required if moisture > 500 ppm
-        - Form handling (bales, regrind, pellet, flake)
-
-        CERTIFICATION GATES:
-        - Food grade certification if food contact required
-        - Medical grade capability if medical grade required
-
-        SOFT SIGNALS (scoring factors, don't exclude):
-        - Form match, color match, source type, packaging type
-        - Origin form, process type match, certification bonus
-        - Transaction history bonus (repeat business)
-
-        Returns list of matched buyers ranked by composite score.
-        """
-        self.ensure_one()
-        params = self._intake_to_match_params(intake)
-        if not params or not params.get("polymer"):
-            return []
-
-        # ═══════════════════════════════════════════════════════════════════
-        # ADVANCED BUYER MATCH QUERY — 10 Hard Gates + 7 Soft Signals
-        # Based on 45-Step Comprehensive Reasoning Framework
-        # ═══════════════════════════════════════════════════════════════════
-        query = """
-        // ══════════════════════════════════════════════════════════════════
-        // HARD GATES — Binary exclusions (buyer is OUT if any fail)
-        // ══════════════════════════════════════════════════════════════════
-
-        MATCH (f:Facility)-[:HAS_MATERIAL]->(m:MaterialProfile)
-        WHERE f.is_buyer = true
-          AND (f.active IS NULL OR f.active = true)
-
-        // ── Hard gate 1: Polymer match on MaterialProfile ─────────────────
-        // NOTE: This is the ONLY polymer gate needed. The MaterialProfile
-        // already represents what the facility accepts, so checking
-        // f.accepted_polymers separately would be redundant.
-          AND m.polymer = $polymer
-
-        // ── Hard gate 2: Density range ────────────────────────────────────
-          AND (f.density_min IS NULL OR $density IS NULL OR f.density_min <= $density)
-          AND (f.density_max IS NULL OR $density IS NULL OR f.density_max >= $density)
-
-        // ── Hard gate 4: MFI (Melt Flow Index) range ──────────────────────
-          AND (f.melt_index_min IS NULL OR $mfi IS NULL OR f.melt_index_min <= $mfi)
-          AND (f.melt_index_max IS NULL OR $mfi IS NULL OR f.melt_index_max >= $mfi)
-
-        // ── Hard gate 5: Contamination tolerance ──────────────────────────
-          AND (f.contamination_tolerance_pct IS NULL
-               OR f.contamination_tolerance_pct >= $contamination_pct)
-
-        // ── Hard gate 6: Moisture tolerance ───────────────────────────────
-          AND (f.moisture_tolerance_pct IS NULL
-               OR f.moisture_tolerance_pct >= $moisture_pct)
-
-        // ── Hard gate 7: Metal removal capability ─────────────────────────
-          AND (NOT $has_metal OR f.can_remove_metal = true)
-
-        // ── Hard gate 8: FR (Flame Retardant) filtering capability ────────
-          AND (NOT $has_fr OR f.can_filter_fr = true)
-
-        // ── Hard gate 9: Lot size range ───────────────────────────────────
-          AND (f.min_lot_size_lbs IS NULL OR $lot_size_lbs = 0
-               OR f.min_lot_size_lbs <= $lot_size_lbs)
-          AND (f.max_lot_size_lbs IS NULL OR $lot_size_lbs = 0
-               OR f.max_lot_size_lbs >= $lot_size_lbs)
-
-        // ══════════════════════════════════════════════════════════════════
-        // EQUIPMENT CAPABILITY GATES (from 45-step framework)
-        // ══════════════════════════════════════════════════════════════════
-
-        // ── Wash line required if dirt > 5% ───────────────────────────────
-          AND (NOT $requires_wash_line OR f.has_wash_line = true)
-
-        // ── Dryer required if moisture > 500 ppm ──────────────────────────
-          AND (NOT $requires_dryer OR f.can_reduce_moisture = true)
-
-        // ══════════════════════════════════════════════════════════════════
-        // MFI-PROCESS COMPATIBILITY GATE
-        // An injection molder CANNOT run blow mold grade (MFI too low)
-        // A blow molder CANNOT run high-flow injection grade (parison sag)
-        // ══════════════════════════════════════════════════════════════════
-          AND CASE f.process_type
-            // Injection molding needs MI >= 1.0 for adequate flow length
-            WHEN 'injection' THEN ($mfi IS NULL OR $mfi >= 1.0)
-            // Blow molding needs MI <= 2.0 for parison integrity
-            // HMW-HDPE (MI 0.03-0.5) requires accumulator head
-            WHEN 'blow_mold' THEN ($mfi IS NULL OR $mfi <= 2.0)
-            // Film blown/cast needs MI 0.5-2.5 for bubble stability
-            WHEN 'film_blown' THEN ($mfi IS NULL OR ($mfi >= 0.5 AND $mfi <= 2.5))
-            WHEN 'film_cast' THEN ($mfi IS NULL OR ($mfi >= 0.5 AND $mfi <= 2.5))
-            // Thermoforming needs MI 1.0-8.0 for sheet flow
-            WHEN 'thermoform' THEN ($mfi IS NULL OR ($mfi >= 1.0 AND $mfi <= 8.0))
-            // Extrusion (pipe/profile) handles wide range
-            WHEN 'extrusion' THEN true
-            // Compounding handles everything - they're blending/modifying
-            WHEN 'compounding' THEN true
-            // Rotomolding needs very low MI (powder sintering)
-            WHEN 'rotomold' THEN ($mfi IS NULL OR $mfi <= 5.0)
-            ELSE true
-          END
-
-        // ══════════════════════════════════════════════════════════════════
-        // FORM-EQUIPMENT COMPATIBILITY GATE
-        // A buyer without size reduction equipment cannot process bales/parts
-        // EXCEPTION: Brokers pass through (they resell, facility profile may be blank)
-        // ══════════════════════════════════════════════════════════════════
-          AND CASE
-            // Brokers pass through - they resell, not process
-            WHEN f.facility_role = 'broker' THEN true
-            // Non-brokers: check form-equipment compatibility
-            ELSE CASE $form
-              // Bales require size reduction equipment (granulator or shredder)
-              // NULL means facility profile incomplete - allow through
-              WHEN 'bales' THEN (f.has_granulator = true OR f.has_shredder = true
-                                 OR f.has_granulator IS NULL)
-              // Parts require size reduction - shredder for large, granulator for small
-              WHEN 'parts' THEN (f.has_granulator = true OR f.has_shredder = true
-                                 OR f.has_granulator IS NULL)
-              // Regrind can go direct to extruder OR be further processed
-              WHEN 'regrind' THEN (f.has_extruder = true
-                                   OR f.has_granulator = true
-                                   OR f.handles_regrind = true
-                                   OR f.has_extruder IS NULL)
-              // Flake can go to extruder or be handled directly (wash line NOT required)
-              WHEN 'flake' THEN (f.has_extruder = true
-                                 OR f.handles_flake = true
-                                 OR f.has_extruder IS NULL)
-              // Pellets - most equipment can handle, minimal restriction
-              WHEN 'pellet' THEN true
-              // Purge/lump needs granulator or shredder
-              WHEN 'purge' THEN (f.has_granulator = true OR f.has_shredder = true
-                                 OR f.has_granulator IS NULL)
-              WHEN 'lump' THEN (f.has_granulator = true OR f.has_shredder = true
-                                OR f.has_granulator IS NULL)
-              // Rollstock - no specific equipment requirement (removed)
-              WHEN 'rollstock' THEN true
-              ELSE true
-            END
-          END
-
-        // ══════════════════════════════════════════════════════════════════
-        // PVC CONTAMINATION GATE (HDPE/PP processing only)
-        // PVC decomposes at HDPE/PP processing temps, releasing HCl
-        // Per 45-step framework Step 10:
-        //   - EXCLUDE food/medical buyers (ZERO tolerance)
-        //   - REQUIRE PVC sorting capability (sorting line with NIR or float-sink)
-        // ══════════════════════════════════════════════════════════════════
-          AND CASE
-            // Only applies when intake is HDPE or PP AND has PVC contamination
-            WHEN $polymer IN ['hdpe', 'pp', 'HDPE', 'PP'] AND $has_pvc = true
-            THEN (
-              // Exclude food/medical buyers entirely (zero tolerance)
-              f.food_grade_certified = false
-              AND f.medical_grade_capable = false
-              // AND require PVC sorting capability
-              AND f.has_sorting_line = true
-            )
-            ELSE true
-          END
-
-        // ══════════════════════════════════════════════════════════════════
-        // PP CONTAMINATION GATE — REMOVED
-        // Igor: "companies can blend HDPE and PP to make a product without
-        // compounding!" — This is NOT a hard gate. HDPE/PP blends are common.
-        // ══════════════════════════════════════════════════════════════════
-
-        // ══════════════════════════════════════════════════════════════════
-        // FILLER COMPATIBILITY GATE (45-step framework Layer 4)
-        // Glass-filled material requires buyer who can process glass-filled
-        // Filler > 30% typically requires specialized equipment
-        // ══════════════════════════════════════════════════════════════════
-          AND CASE
-            // If material has filler, buyer must accept filled materials
-            WHEN $filler_type IS NOT NULL AND $filler_pct > 0
-            THEN (
-              // Buyer must either: accept this filler type OR be a compounder
-              f.accepts_filled_materials = true
-              OR f.process_type = 'compounding'
-              OR f.accepts_filled_materials IS NULL  // NULL = unknown, allow through
-            )
-            ELSE true
-          END
-
-        // ══════════════════════════════════════════════════════════════════
-        // ODOR / OIL RESIDUE GATE (45-step framework Step 30)
-        // Has odor or oil residue excludes consumer product applications
-        // ══════════════════════════════════════════════════════════════════
-          AND CASE
-            // Material with odor or oil residue cannot go to consumer product manufacturers
-            WHEN $has_odor = true OR $has_oil_residue = true
-            THEN (
-              // Exclude food, medical, and consumer packaging buyers
-              f.food_grade_certified = false
-              AND f.medical_grade_capable = false
-              AND (f.application_class IS NULL OR f.application_class NOT IN ['food', 'medical', 'packaging'])
-            )
-            ELSE true
-          END
-
-        // ══════════════════════════════════════════════════════════════════
-        // CERTIFICATION GATES
-        // ══════════════════════════════════════════════════════════════════
-
-        // ── Food grade certification required ─────────────────────────────
-          AND (NOT $food_grade OR f.food_grade_certified = true)
-
-        // ── Medical grade capability required ─────────────────────────────
-          AND (NOT $medical_grade OR f.medical_grade_capable = true)
-
-        // ══════════════════════════════════════════════════════════════════
-        // GEO FILTER (Hard gate 10)
-        // ══════════════════════════════════════════════════════════════════
-        WITH f, m
-        WHERE CASE
-          WHEN $intake_point IS NOT NULL AND f.location IS NOT NULL
-          THEN point.distance(f.location, point($intake_point)) <= $radius_meters
-          ELSE true
-        END
-
-        // ══════════════════════════════════════════════════════════════════
-        // SOFT SIGNALS — Scoring factors (don't exclude, just rank)
-        // ══════════════════════════════════════════════════════════════════
-        WITH f, m,
-             // Form match (high weight - 40%)
-             CASE WHEN m.form = $form THEN 1 ELSE 0 END AS form_match,
-
-             // Color match (25% of soft score)
-             CASE WHEN m.color = $color OR $color IS NULL THEN 1 ELSE 0 END AS color_match,
-
-             // Source type match (30% of hard score)
-             CASE WHEN m.source_type = $source_type OR $source_type IS NULL
-                  THEN 1 ELSE 0 END AS source_match,
-
-             // Packaging type match (5% of soft score)
-             CASE WHEN m.packaging_type = $packaging_type OR $packaging_type IS NULL
-                  THEN 1 ELSE 0 END AS pkg_match,
-
-             // Origin form match (10% of soft score)
-             CASE WHEN m.origin_form = $origin_form OR $origin_form IS NULL
-                  THEN 1 ELSE 0 END AS origin_form_match,
-
-             // Process type match (10% of soft score)
-             CASE WHEN f.process_type = $origin_process_type OR $origin_process_type IS NULL
-                  THEN 1 ELSE 0 END AS process_match,
-
-             // Application class match (soft signal - boost if buyer has specific application focus)
-             // Buyers with application_class set are specialized and get a small boost
-             CASE WHEN f.application_class IS NOT NULL THEN 0.5 ELSE 0 END AS app_class_match,
-
-             // Certification match (30% of hard score)
-             CASE WHEN f.food_grade_certified = true AND $food_grade = true THEN 1
-                  WHEN $food_grade = false THEN 1
-                  ELSE 0 END AS cert_match,
-
-             // Distance calculation
-             CASE
-               WHEN $intake_point IS NOT NULL AND f.location IS NOT NULL
-               THEN point.distance(f.location, point($intake_point))
-               ELSE 0
-             END AS distance_m
-
-        // ══════════════════════════════════════════════════════════════════
-        // TRANSACTION HISTORY WITH RECENCY WEIGHTING
-        // Recent transactions score higher than old ones
-        // ══════════════════════════════════════════════════════════════════
-        OPTIONAL MATCH (supplier:Facility {facility_id: $supplier_facility_id})
-                       -[tx:TRANSACTED_WITH]->(f)
-
-        // ══════════════════════════════════════════════════════════════════
-        // COMPOSITE SCORE CALCULATION
-        // ══════════════════════════════════════════════════════════════════
-        WITH f, m, distance_m,
-             form_match, color_match, source_match, pkg_match,
-             origin_form_match, process_match, cert_match,
-             coalesce(tx.tx_count, 0) AS tx_count,
-             // Recency factor: 1.0 for today, decays to 0.5 at 365 days old
-             CASE
-               WHEN tx.last_tx_date IS NOT NULL
-               THEN 0.5 + 0.5 * (1.0 - toFloat(
-                 duration.inDays(date(tx.last_tx_date), date()).days
-               ) / 365.0)
-               ELSE 0.0
-             END AS recency_factor,
-
-             // Hard gate score: form + source + cert weighted
-             (form_match * 0.40 + source_match * 0.30 + cert_match * 0.30) AS hard_score,
-
-             // Soft signal score (app_class_match adds 5% boost for specialized buyers)
-             (color_match * 0.25 + pkg_match * 0.05
-              + origin_form_match * 0.10 + process_match * 0.10
-              + app_class_match * 0.05 + 0.45) AS soft_raw
-
-        WITH f, m, distance_m, tx_count, recency_factor, hard_score,
-             // Clamp soft_raw into 0..1
-             CASE WHEN soft_raw > 1.0 THEN 1.0 ELSE soft_raw END AS soft_score,
-             // Geo score: 1.0 at 0 distance, 0.0 at radius
-             CASE
-               WHEN $radius_meters > 0 AND distance_m > 0
-               THEN 1.0 - (distance_m / $radius_meters)
-               ELSE 1.0
-             END AS geo_score
-
-        WITH f, m, distance_m, tx_count, recency_factor, hard_score, soft_score, geo_score,
-             // Final weighted score with recency-weighted transaction bonus
-             ($w1 * hard_score
-              + $w2 * soft_score
-              + $w3 * geo_score
-              + $w4 * CASE WHEN tx_count > 0
-                           THEN (log(1 + tx_count) / log(1 + 100)) *
-                                CASE WHEN recency_factor > 0 THEN recency_factor ELSE 0.5 END
-                           ELSE 0 END
-             ) AS score
-
-        // ══════════════════════════════════════════════════════════════════
-        // RETURN RANKED RESULTS
-        // ══════════════════════════════════════════════════════════════════
-        ORDER BY score DESC
-        LIMIT $max_results
-
-        RETURN f.facility_id       AS facility_partner_id,
-               f.name              AS facility_name,
-               f.process_type      AS process_type,
-               m.material_id       AS material_profile_id,
-               m.polymer           AS polymer,
-               m.form              AS form,
-               m.color             AS color,
-               round(score * 100) / 100.0 AS score,
-               round(distance_m / 1609.34) AS distance_miles,
-               round(distance_m / 1000.0, 1) AS distance_km,
-               tx_count,
-               hard_score,
-               soft_score,
-               geo_score
-        """
-
-        rows = self._execute_cypher(query, params)
-        if not rows:
-            return []
-
-        # ═══════════════════════════════════════════════════════════════════
-        # CREATE MATCH RESULTS IN ODOO
-        # ═══════════════════════════════════════════════════════════════════
-        Match = self.env["plasticos.match.result"].sudo()
-        Match.search([("intake_id", "=", intake.id), ("l9_run_id", "=", "graph_v2")]).unlink()
-        FacilityProfile = self.env["plasticos.facility.profile"].sudo()
-
-        for rank, row in enumerate(rows, start=1):
-            partner_id = row.get("facility_partner_id")
-            if not partner_id:
-                continue
-
-            facility_profile = FacilityProfile.search([("partner_id", "=", partner_id)], limit=1)
-            score = row.get("score", 0) * 100  # Convert 0-1 to 0-100
-            distance_km = row.get("distance_km")
-            distance_miles = row.get("distance_miles")
-
-            # Build detailed score breakdown
-            breakdown = {
-                "rank": rank,
-                "source": "graph_v2",
-                "hard_score": round(row.get("hard_score", 0) * 100, 1),
-                "soft_score": round(row.get("soft_score", 0) * 100, 1),
-                "geo_score": round(row.get("geo_score", 0) * 100, 1),
-                "tx_count": row.get("tx_count", 0),
-            }
-            if distance_km is not None:
-                breakdown["distance_km"] = round(distance_km, 1)
-            if distance_miles is not None:
-                breakdown["distance_miles"] = round(distance_miles, 0)
-
-            # Build reasoning string
-            reasoning_parts = [f"Graph match #{rank}"]
-            reasoning_parts.append(f"polymer={row.get('polymer')}")
-            if row.get("form"):
-                reasoning_parts.append(f"form={row.get('form')}")
-            if distance_miles:
-                reasoning_parts.append(f"{distance_miles:.0f}mi away")
-            if row.get("tx_count", 0) > 0:
-                reasoning_parts.append(f"{row.get('tx_count')} prior transactions")
-
-            Match.create(
-                {
-                    "intake_id": intake.id,
-                    "buyer_partner_id": partner_id,
-                    "facility_profile_id": facility_profile.id if facility_profile else False,
-                    "score": score,
-                    "confidence": 100.0,
-                    "score_breakdown": breakdown,
-                    "match_reasoning": " | ".join(reasoning_parts),
-                    "state": "pending",
-                    "l9_run_id": "graph_v2",
-                    "l9_timestamp": fields.Datetime.now(),
-                }
-            )
-
-        return rows
-
-    # ═══════════════════════════════════════════════════════════════════════════
-    # TWO-STAGE MATCHING ORCHESTRATOR
-    # ═══════════════════════════════════════════════════════════════════════════
-
-    def match_buyers_two_stage(self, intake):
-        """Two-stage buyer matching: Capability Matcher → Graph Service.
-
-        STAGE 1 (Capability Matcher):
-            - Deterministic hard gates: polymer, form, source_type (exact match)
-            - Equipment-based form compatibility
-            - Quality gates: contamination, moisture
-            - Volume gates: min/max lot size
-            - Compliance gates: food/medical grade
-            - Geo gate: per-buyer radius
-            - Result: Facility IDs that CAN physically accept the material
-
-        STAGE 2 (Graph Service):
-            - Range-based gates: MFI, density (inequality comparisons)
-            - Equipment capability gates: wash line, dryer
-            - Soft signals for scoring: color, packaging, transaction history
-            - Result: Ranked list with composite scores
-
-        Why this order?
-            - Capability Matcher eliminates noise with fast DB queries
-            - Graph Service does expensive graph traversal only on survivors
-            - MFI/density are RANGES, not exact matches → Graph handles them
-
-        Returns:
-            list[dict]: Ranked matches with scores from both stages
-        """
-        self.ensure_one()
-
-        if not intake.material_profile_id:
-            _logger.warning("match_buyers_two_stage: intake %s has no material_profile_id", intake.id)
-            return []
-
-        # ═══════════════════════════════════════════════════════════════════════
-        # STAGE 1: Capability Matcher (deterministic hard gates)
-        # ═══════════════════════════════════════════════════════════════════════
-        from ..services.matcher import PlasticosMatcher
-
-        matcher = PlasticosMatcher(self.env)
-        try:
-            stage1_results = matcher.match(intake)
-        except ValueError as e:
-            _logger.warning("Stage 1 matcher failed: %s", e)
-            return []
-
-        if not stage1_results:
-            _logger.info(
-                "match_buyers_two_stage: intake=%s — Stage 1 returned 0 candidates "
-                "(no buyers match polymer=%s, form=%s, source_type=%s)",
-                intake.name,
-                intake.material_profile_id.polymer,
-                intake.material_profile_id.form,
-                intake.material_profile_id.source_type,
-            )
-            return []
-
-        # Extract facility partner IDs from Stage 1 survivors
-        facility_ids = [r.get("facility_id") for r in stage1_results if r.get("eligible") and r.get("facility_id")]
-
-        if not facility_ids:
-            _logger.info("match_buyers_two_stage: intake=%s — Stage 1 had no eligible facilities", intake.name)
-            return []
-
-        _logger.info(
-            "match_buyers_two_stage: intake=%s — Stage 1 passed %d facilities to Stage 2",
-            intake.name,
-            len(facility_ids),
-        )
-
-        # ═══════════════════════════════════════════════════════════════════════
-        # STAGE 2: Graph Service (range gates + scoring)
-        # ═══════════════════════════════════════════════════════════════════════
-        # Build params with facility filter
-        params = self._intake_to_match_params(intake)
-        if not params or not params.get("polymer"):
-            return []
-
-        # Add facility filter to params
-        params["facility_ids"] = facility_ids
-
-        # Modified query with facility filter
-        query = self._build_stage2_query()
-
-        rows = self._execute_cypher(query, params)
-        if not rows:
-            _logger.info(
-                "match_buyers_two_stage: intake=%s — Stage 2 graph returned 0 matches "
-                "(range gates may have filtered all %d Stage 1 survivors)",
-                intake.name,
-                len(facility_ids),
-            )
-            return []
-
-        # ═══════════════════════════════════════════════════════════════════════
-        # MERGE RESULTS: Combine Stage 1 distance with Stage 2 scores
-        # ═══════════════════════════════════════════════════════════════════════
-        stage1_by_facility = {r.get("facility_id"): r for r in stage1_results if r.get("facility_id")}
-
-        merged_results = []
-        for row in rows:
-            partner_id = row.get("facility_partner_id")
-            stage1_data = stage1_by_facility.get(partner_id, {})
-
-            cap = stage1_data.get("capability")
-            merged = {
-                **row,
-                "stage1_distance_miles": stage1_data.get("distance_miles"),
-                "stage1_capability_form": cap.form if cap else None,
-                "two_stage": True,
-            }
-            merged_results.append(merged)
-
-        # ═══════════════════════════════════════════════════════════════════════
-        # PERSIST TO MATCH RESULTS
-        # ═══════════════════════════════════════════════════════════════════════
-        self._persist_two_stage_results(intake, merged_results)
-
-        _logger.info(
-            "match_buyers_two_stage: intake=%s — Final: %d matches (Stage1: %d → Stage2: %d)",
-            intake.name,
-            len(merged_results),
-            len(facility_ids),
-            len(rows),
-        )
-
-        return merged_results
-
-    def _build_stage2_query(self):
-        """Build Stage 2 Cypher query with facility filter.
-
-        Same as match_buyers_for_intake query but adds:
-            - WHERE f.facility_id IN $facility_ids (filter to Stage 1 survivors)
-        """
-        return """
-        // ══════════════════════════════════════════════════════════════════
-        // STAGE 2: Range Gates + Scoring (filtered to Stage 1 survivors)
-        // ══════════════════════════════════════════════════════════════════
-
-        MATCH (f:Facility)-[:HAS_MATERIAL]->(m:MaterialProfile)
-        WHERE f.is_buyer = true
-          AND (f.active IS NULL OR f.active = true)
-
-        // ── Stage 1 survivor filter ─────────────────────────────────────────
-          AND f.facility_id IN $facility_ids
-
-        // ── Polymer match (should already be filtered by Stage 1) ───────────
-          AND m.polymer = $polymer
-
-        // ── Range gate: Density ─────────────────────────────────────────────
-          AND (f.density_min IS NULL OR $density IS NULL OR f.density_min <= $density)
-          AND (f.density_max IS NULL OR $density IS NULL OR f.density_max >= $density)
-
-        // ── Range gate: MFI ─────────────────────────────────────────────────
-          AND (f.melt_index_min IS NULL OR $mfi IS NULL OR f.melt_index_min <= $mfi)
-          AND (f.melt_index_max IS NULL OR $mfi IS NULL OR f.melt_index_max >= $mfi)
-
-        // ── Equipment gates ─────────────────────────────────────────────────
-          AND (NOT $requires_wash_line OR f.has_wash_line = true)
-          AND (NOT $requires_dryer OR f.can_reduce_moisture = true)
-
-        // ══════════════════════════════════════════════════════════════════
-        // SOFT SIGNALS (scoring, don't exclude)
-        // ══════════════════════════════════════════════════════════════════
-        WITH f, m,
-             CASE WHEN m.form = $form THEN 1 ELSE 0 END AS form_match,
-             CASE WHEN m.color = $color THEN 1 ELSE 0 END AS color_match,
-             CASE WHEN m.source_type = $source_type THEN 1 ELSE 0 END AS source_match,
-             CASE WHEN f.process_type = $origin_process_type THEN 1 ELSE 0 END AS process_match
-
-        // ── Transaction history ─────────────────────────────────────────────
-        OPTIONAL MATCH (supplier:Facility {facility_id: $supplier_facility_id})-[tx:TRANSACTED_WITH]->(f)
-        WITH f, m, form_match, color_match, source_match, process_match,
-             COALESCE(tx.tx_count, 0) AS tx_count
-
-        // ── Geo distance (if coordinates available) ─────────────────────────
-        WITH f, m, form_match, color_match, source_match, process_match, tx_count,
-             CASE
-               WHEN $intake_point IS NOT NULL AND f.location IS NOT NULL
-               THEN point.distance(f.location, point($intake_point))
-               ELSE 0
-             END AS distance_m
-
-        // ══════════════════════════════════════════════════════════════════
-        // COMPOSITE SCORING
-        // ══════════════════════════════════════════════════════════════════
-        WITH f, m, distance_m, tx_count,
-             1.0 AS hard_score,  // All hard gates passed
-             (form_match * 0.3 + color_match * 0.2 + source_match * 0.3 + process_match * 0.2) AS soft_score,
-             CASE
-               WHEN $radius_meters > 0 AND distance_m > 0
-               THEN 1.0 - (distance_m / $radius_meters)
-               ELSE 1.0
-             END AS geo_score
-
-        WITH f, m, distance_m, tx_count, hard_score, soft_score, geo_score,
-             ($w1 * hard_score
-              + $w2 * soft_score
-              + $w3 * geo_score
-              + $w4 * CASE WHEN tx_count > 0
-                           THEN log(1 + tx_count) / log(1 + 100)
-                           ELSE 0 END
-             ) AS score
-
-        ORDER BY score DESC
-        LIMIT $max_results
-
-        RETURN f.facility_id       AS facility_partner_id,
-               f.name              AS facility_name,
-               f.process_type      AS process_type,
-               m.polymer           AS polymer,
-               m.form              AS form,
-               m.color             AS color,
-               round(score * 100) / 100.0 AS score,
-               round(distance_m / 1609.34) AS distance_miles,
-               tx_count,
-               hard_score,
-               soft_score,
-               geo_score
-        """
-
-    def _persist_two_stage_results(self, intake, results):
-        """Persist two-stage match results to plasticos.match.result."""
-        Match = self.env["plasticos.match.result"].sudo()
-        FacilityProfile = self.env["plasticos.facility.profile"].sudo()
-
-        # Clear previous two-stage results
-        Match.search([("intake_id", "=", intake.id), ("l9_run_id", "=", "two_stage_v1")]).unlink()
-
-        for rank, row in enumerate(results, start=1):
-            partner_id = row.get("facility_partner_id")
-            if not partner_id:
-                continue
-
-            facility_profile = FacilityProfile.search([("partner_id", "=", partner_id)], limit=1)
-            score = row.get("score", 0) * 100
-
-            breakdown = {
-                "rank": rank,
-                "source": "two_stage_v1",
-                "hard_score": round(row.get("hard_score", 0) * 100, 1),
-                "soft_score": round(row.get("soft_score", 0) * 100, 1),
-                "geo_score": round(row.get("geo_score", 0) * 100, 1),
-                "tx_count": row.get("tx_count", 0),
-                "stage1_distance_miles": row.get("stage1_distance_miles"),
-            }
-
-            reasoning = f"Two-stage #{rank} | polymer={row.get('polymer')}"
-            if row.get("distance_miles"):
-                reasoning += f" | {row.get('distance_miles'):.0f}mi"
-            if row.get("tx_count", 0) > 0:
-                reasoning += f" | {row.get('tx_count')} prior tx"
-
-            Match.create(
-                {
-                    "intake_id": intake.id,
-                    "buyer_partner_id": partner_id,
-                    "facility_profile_id": facility_profile.id if facility_profile else False,
-                    "score": score,
-                    "confidence": 100.0,
-                    "score_breakdown": breakdown,
-                    "match_reasoning": reasoning,
-                    "state": "pending",
-                    "l9_run_id": "two_stage_v1",
-                    "l9_timestamp": fields.Datetime.now(),
-                }
-            )
