@@ -8,90 +8,71 @@ _logger = logging.getLogger(__name__)
 class PurchaseOrderAutomation(models.Model):
     _inherit = "purchase.order"
 
-    # ── Supplier Confirmation Tracking ─────────────────────────────
-    x_ready_for_pickup = fields.Boolean(
-        string="Ready for Pickup",
-        default=False,
-        help="Set when supplier confirms the load is ready for pickup.",
-    )
-    x_ready_confirmed_on = fields.Datetime(
-        string="Ready Confirmed On",
-        help="Timestamp when supplier confirmed readiness.",
-    )
-    x_followup_count = fields.Integer(
-        string="Supplier Follow-up Count",
-        default=0,
-        help="Number of follow-up reminders sent to supplier.",
-    )
-    x_last_followup_on = fields.Datetime(
-        string="Last Follow-up On",
-        help="Timestamp of the last follow-up sent.",
-    )
-    x_buyer_id = fields.Many2one(
-        "res.partner",
-        string="Buyer (SO Customer)",
-        help="The buyer/customer for this purchase (presell scenarios).",
-    )
-
-    # ── Automation Methods ─────────────────────────────────────────
+    x_ready_for_pickup = fields.Boolean(string="Ready for Pickup", default=False)
+    x_ready_confirmed_on = fields.Datetime(string="Ready Confirmed On")
+    x_followup_count = fields.Integer(string="Supplier Follow-up Count", default=0)
+    x_last_followup_on = fields.Datetime(string="Last Follow-up On")
+    x_buyer_id = fields.Many2one("res.partner", string="Buyer (SO Customer)")
 
     @api.model
     def cron_supplier_followup(self):
-        """Send follow-up reminders to suppliers who have not confirmed readiness.
-
-        Targets confirmed POs where x_ready_for_pickup is still False.
-        Escalates to manager after 3 follow-ups.
-        """
-        orders = self.search(
-            [
-                ("state", "=", "purchase"),
-                ("x_ready_for_pickup", "=", False),
-            ]
+        self.env.cr.execute(
+            "SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_automation.cron_supplier_followup"]
         )
+        if not self.env.cr.fetchone()[0]:
+            _logger.info("Skipping supplier follow-up cron: lock is already held.")
+            return
 
-        log_model = self.env.get("plasticos.automation.log")
-
-        for order in orders:
-            order.x_followup_count += 1
-            order.x_last_followup_on = fields.Datetime.now()
-
-            # Post chatter notification
-            order.message_post(
-                body=f"Automated follow-up #{order.x_followup_count}: supplier has not confirmed readiness for pickup on PO {order.name}.",
-                message_type="notification",
+        try:
+            now = fields.Datetime.now()
+            orders = self.search(
+                [
+                    ("state", "=", "purchase"),
+                    ("x_ready_for_pickup", "=", False),
+                    "|",
+                    ("x_last_followup_on", "=", False),
+                    ("x_last_followup_on", "<", fields.Datetime.subtract(now, days=1)),
+                ],
+                order="x_last_followup_on ASC, id ASC",
+                limit=200,
             )
+            log_model = self.env.get("plasticos.automation.log")
 
-            # Send mail template if available
-            template = self.env.ref(
-                "plasticos_automation.email_template_supplier_followup",
-                raise_if_not_found=False,
-            )
-            if template:
-                template.send_mail(order.id, force_send=False)
-
-            # Log to automation log
-            if log_model is not None:
-                log_model.create(
-                    {
-                        "name": f"Supplier follow-up #{order.x_followup_count} for {order.name}",
-                        "model_name": "purchase.order",
-                        "res_id": order.id,
-                        "action_type": "logistics_followup",
-                    }
+            for order in orders:
+                order.x_followup_count += 1
+                order.x_last_followup_on = now
+                order.message_post(
+                    body=(
+                        f"Automated follow-up #{order.x_followup_count}: supplier has not "
+                        f"confirmed readiness for pickup on PO {order.name}."
+                    ),
+                    message_type="notification",
                 )
-
-            # Escalate after 3 follow-ups
-            if order.x_followup_count >= 3:
-                supplier_name = order.partner_id.name or "Unknown"
-                order.activity_schedule(
-                    "mail.mail_activity_data_todo",
-                    user_id=order.user_id.id or self.env.user.id,
-                    summary=f"ESCALATION: Supplier readiness unconfirmed on {order.name}",
-                    note=f"Follow-up #{order.x_followup_count} sent. Supplier {supplier_name} has not confirmed readiness. Manual intervention required.",
+                template = self.env.ref(
+                    "plasticos_automation.email_template_supplier_followup", raise_if_not_found=False
                 )
-
-            _logger.info(
-                "Logistics automation: supplier follow-up #%d for PO %s",
-                order.x_followup_count,
-                order.name,
+                if template:
+                    template.send_mail(order.id, force_send=False)
+                if log_model is not None:
+                    log_model.create(
+                        {
+                            "name": f"Supplier follow-up #{order.x_followup_count} for {order.name}",
+                            "model_name": "purchase.order",
+                            "res_id": order.id,
+                            "action_type": "logistics_followup",
+                        }
+                    )
+                if order.x_followup_count >= 3:
+                    order.activity_schedule(
+                        "mail.mail_activity_data_todo",
+                        user_id=order.user_id.id or self.env.user.id,
+                        summary=f"ESCALATION: Supplier readiness unconfirmed on {order.name}",
+                        note=(
+                            f"Follow-up #{order.x_followup_count} sent. Supplier "
+                            f"{order.partner_id.name or 'Unknown'} has not confirmed readiness."
+                        ),
+                    )
+        finally:
+            self.env.cr.execute(
+                "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_automation.cron_supplier_followup"]
             )

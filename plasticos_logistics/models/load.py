@@ -177,9 +177,20 @@ class PlasticosLoad(models.Model):
         return f"{so.partner_shipping_id.id}-{so.partner_invoice_id.id}"
 
     def _cron_escalation_check(self):
-        from odoo.addons.plasticos_logistics.services.escalation_engine import check_escalations
+        self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_logistics.cron_escalation_check"])
+        locked = self.env.cr.fetchone()[0]
+        if not locked:
+            _logger.info("Skipping escalation cron: lock is already held.")
+            return
 
-        check_escalations(self.env)
+        try:
+            from odoo.addons.plasticos_logistics.services.escalation_engine import check_escalations
+
+            check_escalations(self.env)
+        finally:
+            self.env.cr.execute(
+                "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_logistics.cron_escalation_check"]
+            )
 
     # ── Email Send Actions (Paperless) ──────────────────────────────
 

@@ -6,6 +6,7 @@
     "author": "PlasticOS",
     "category": "Hidden",
     "depends": [
+        "plasticos_base",
         "base",
         "mail",
         "plasticos_intake",

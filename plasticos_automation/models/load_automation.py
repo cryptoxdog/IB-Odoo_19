@@ -4,8 +4,6 @@ from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
-# SLA thresholds in hours per state.
-# Loads stuck beyond these limits are flagged as SLA-breached.
 _SLA_HOURS = {
     "awaiting_ready": 48,
     "ready_confirmed": 24,
@@ -18,22 +16,10 @@ _SLA_HOURS = {
 class PlasticosLoadAutomation(models.Model):
     _inherit = "plasticos.load"
 
-    # ── Computed Automation Flags ──────────────────────────────────
-    x_awaiting_ready_flag = fields.Boolean(
-        string="Awaiting Ready Flag",
-        compute="_compute_awaiting_ready_flag",
-        store=True,
-        help="True when load is stuck in awaiting_ready state.",
-    )
+    x_awaiting_ready_flag = fields.Boolean(compute="_compute_awaiting_ready_flag", store=True)
     x_escalation_level = fields.Selection(
-        [
-            ("none", "None"),
-            ("warning", "Warning"),
-            ("critical", "Critical"),
-        ],
-        string="Escalation Level",
+        [("none", "None"), ("warning", "Warning"), ("critical", "Critical")],
         default="none",
-        help="Current escalation level based on SLA breach duration.",
     )
 
     @api.depends("state")
@@ -43,73 +29,54 @@ class PlasticosLoadAutomation(models.Model):
 
     @api.model
     def cron_load_sla_check(self):
-        """Check all active loads for SLA breaches and escalate.
+        self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_automation.cron_load_sla_check"])
+        if not self.env.cr.fetchone()[0]:
+            _logger.info("Skipping load SLA cron: lock is already held.")
+            return
 
-        This method replaces the inline escalation logic with a proper
-        model method that logs to plasticos.automation.log.
-        Does NOT mutate load state — only flags, notifies, and logs.
-        """
-        now = fields.Datetime.now()
-        monitored_states = list(_SLA_HOURS.keys())
+        try:
+            now = fields.Datetime.now()
+            loads = self.search(
+                [("state", "in", list(_SLA_HOURS.keys()))],
+                order="entered_state_at ASC, id ASC",
+                limit=500,
+            )
+            log_model = self.env.get("plasticos.automation.log")
 
-        loads = self.search(
-            [
-                ("state", "in", monitored_states),
-            ]
-        )
+            for load in loads:
+                if not load.entered_state_at:
+                    continue
+                limit_hours = _SLA_HOURS.get(load.state)
+                if not limit_hours:
+                    continue
 
-        log_model = self.env.get("plasticos.automation.log")
+                delta_hours = (now - load.entered_state_at).total_seconds() / 3600
+                if delta_hours <= limit_hours:
+                    if load.x_escalation_level != "none":
+                        load.x_escalation_level = "none"
+                    continue
 
-        for load in loads:
-            if not load.entered_state_at:
-                continue
+                if not load.sla_breached:
+                    load.sla_breached = True
 
-            limit_hours = _SLA_HOURS.get(load.state)
-            if not limit_hours:
-                continue
-
-            delta_hours = (now - load.entered_state_at).total_seconds() / 3600
-
-            if delta_hours <= limit_hours:
-                # Within SLA — reset escalation if previously set
-                if load.x_escalation_level != "none":
-                    load.x_escalation_level = "none"
-                continue
-
-            # SLA breached
-            if not load.sla_breached:
-                load.sla_breached = True
-
-            # Determine escalation level
-            if delta_hours > limit_hours * 2:
-                new_level = "critical"
-            else:
-                new_level = "warning"
-
-            if load.x_escalation_level != new_level:
-                load.x_escalation_level = new_level
-
-                load.message_post(
-                    body=f"SLA breach [{new_level.upper()}]: load stuck in '{load.state}' for {delta_hours:.1f} hours (limit: {limit_hours} hours).",
-                    message_type="notification",
-                )
-
-                # Log to automation log
-                if log_model is not None:
-                    log_model.create(
-                        {
-                            "name": f"SLA breach [{new_level}] for {load.name}",
-                            "model_name": "plasticos.load",
-                            "res_id": load.id,
-                            "action_type": "logistics_escalation",
-                        }
+                new_level = "critical" if delta_hours > limit_hours * 2 else "warning"
+                if load.x_escalation_level != new_level:
+                    load.x_escalation_level = new_level
+                    load.message_post(
+                        body=(
+                            f"SLA breach [{new_level.upper()}]: load stuck in '{load.state}' "
+                            f"for {delta_hours:.1f} hours (limit: {limit_hours} hours)."
+                        ),
+                        message_type="notification",
                     )
-
-                _logger.info(
-                    "Logistics automation: SLA breach [%s] for load %s (state=%s, hours=%.1f, limit=%d)",
-                    new_level,
-                    load.name,
-                    load.state,
-                    delta_hours,
-                    limit_hours,
-                )
+                    if log_model is not None:
+                        log_model.create(
+                            {
+                                "name": f"SLA breach [{new_level}] for {load.name}",
+                                "model_name": "plasticos.load",
+                                "res_id": load.id,
+                                "action_type": "logistics_escalation",
+                            }
+                        )
+        finally:
+            self.env.cr.execute("SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_automation.cron_load_sla_check"])

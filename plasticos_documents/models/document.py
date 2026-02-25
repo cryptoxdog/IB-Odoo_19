@@ -139,15 +139,30 @@ class PlasticosDocument(models.Model):
         Resets ``verified`` on any document whose ``x_is_expired`` is True
         so that the compliance service no longer considers them valid.
         """
-        expired = self.search(
-            [
-                ("verified", "=", True),
-                ("x_is_expired", "=", True),
-                ("active", "=", True),
-            ]
+        self.env.cr.execute(
+            "SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_documents.cron_document_compliance_check"]
         )
-        if expired:
-            expired.write({"verified": False})
-            _logger.info("Compliance audit: reset verified flag on %d expired documents.", len(expired))
-        else:
-            _logger.info("Compliance audit: no expired verified documents found.")
+        locked = self.env.cr.fetchone()[0]
+        if not locked:
+            _logger.info("Skipping compliance audit cron: lock is already held.")
+            return
+
+        try:
+            expired = self.search(
+                [
+                    ("verified", "=", True),
+                    ("x_is_expired", "=", True),
+                    ("active", "=", True),
+                ],
+                order="write_date ASC, id ASC",
+                limit=500,
+            )
+            if expired:
+                expired.write({"verified": False})
+                _logger.info("Compliance audit: reset verified flag on %d expired documents.", len(expired))
+            else:
+                _logger.info("Compliance audit: no expired verified documents found.")
+        finally:
+            self.env.cr.execute(
+                "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_documents.cron_document_compliance_check"]
+            )

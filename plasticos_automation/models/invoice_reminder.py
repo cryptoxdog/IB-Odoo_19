@@ -9,43 +9,47 @@ _logger = logging.getLogger(__name__)
 class AccountMove(models.Model):
     _inherit = "account.move"
 
-    x_last_reminder_date = fields.Date(
-        string="Last Reminder Date",
-        help="Date when the last overdue reminder was sent.",
-    )
+    x_last_reminder_date = fields.Date(string="Last Reminder Date")
 
     @api.model
     def cron_invoice_reminder(self):
-        """Send reminders for invoices overdue beyond the configured threshold."""
-        config = self.env["plasticos.automation.config"].get_config()
-        cutoff = fields.Date.today() - timedelta(days=config.invoice_overdue_days)
+        self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_automation.cron_invoice_reminder"])
+        if not self.env.cr.fetchone()[0]:
+            _logger.info("Skipping invoice reminder cron: lock is already held.")
+            return
 
-        overdue = self.search(
-            [
-                ("move_type", "=", "out_invoice"),
-                ("state", "=", "posted"),
-                ("payment_state", "!=", "paid"),
-                ("invoice_date_due", "<=", cutoff),
-            ]
-        )
-
-        for inv in overdue:
-            inv.message_post(
-                body=f"Automated reminder: invoice is overdue by more than {config.invoice_overdue_days} days.",
+        try:
+            config = self.env["plasticos.automation.config"].get_config()
+            today = fields.Date.today()
+            cutoff = today - timedelta(days=config.invoice_overdue_days)
+            overdue = self.search(
+                [
+                    ("move_type", "=", "out_invoice"),
+                    ("state", "=", "posted"),
+                    ("payment_state", "!=", "paid"),
+                    ("invoice_date_due", "<=", cutoff),
+                    "|",
+                    ("x_last_reminder_date", "=", False),
+                    ("x_last_reminder_date", "<", today),
+                ],
+                order="invoice_date_due ASC, id ASC",
+                limit=200,
             )
-            inv.x_last_reminder_date = fields.Date.today()
 
-            self.env["plasticos.automation.log"].create(
-                {
-                    "name": f"Invoice reminder {inv.name}",
-                    "model_name": "account.move",
-                    "res_id": inv.id,
-                    "action_type": "invoice_reminder",
-                }
-            )
-            _logger.info(
-                "Automation: sent overdue reminder for %s (due=%s, cutoff=%s)",
-                inv.name,
-                inv.invoice_date_due,
-                cutoff,
+            for inv in overdue:
+                inv.message_post(
+                    body=f"Automated reminder: invoice is overdue by more than {config.invoice_overdue_days} days.",
+                )
+                inv.x_last_reminder_date = today
+                self.env["plasticos.automation.log"].create(
+                    {
+                        "name": f"Invoice reminder {inv.name}",
+                        "model_name": "account.move",
+                        "res_id": inv.id,
+                        "action_type": "invoice_reminder",
+                    }
+                )
+        finally:
+            self.env.cr.execute(
+                "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_automation.cron_invoice_reminder"]
             )

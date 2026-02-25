@@ -366,7 +366,8 @@ class EnrichmentRun(models.Model):
         profiles = MatProf.search(
             [
                 ("partner_id", "=", self.partner_id.id),
-            ]
+            ],
+            order="id ASC",
         )
 
         inference_count = 0
@@ -404,101 +405,75 @@ class EnrichmentRun(models.Model):
 
     @api.model
     def action_cron_enrich_pending(self, run_inference: bool = True):
-        """Called by ir.cron. Process partners with enrichment
-        sources that have not been crawled in 30+ days.
+        """Called by ir.cron. Process partners with enrichment sources that are stale."""
+        self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_enrichment.cron_enrichment_daily"])
+        if not self.env.cr.fetchone()[0]:
+            _logger.info("Skipping enrichment cron: lock is already held.")
+            return
 
-        Args:
-            run_inference: If True (default), run inference engine
-                after successful injection to fill gaps.
-        """
-        stale_cutoff = fields.Datetime.subtract(
-            fields.Datetime.now(),
-            days=30,
-        )
-        sources = self.env["plasticos.enrichment.source"].search(
-            [
-                ("crawl_status", "in", ("pending", "success")),
-                "|",
-                ("last_crawled_at", "=", False),
-                ("last_crawled_at", "<", stale_cutoff),
-            ],
-            limit=50,
-        )
+        stale_cutoff = fields.Datetime.subtract(fields.Datetime.now(), days=30)
+        try:
+            sources = self.env["plasticos.enrichment.source"].search(
+                [
+                    ("crawl_status", "in", ("pending", "success")),
+                    "|",
+                    ("last_crawled_at", "=", False),
+                    ("last_crawled_at", "<", stale_cutoff),
+                ],
+                order="last_crawled_at ASC, id ASC",
+                limit=50,
+            )
 
-        partner_ids = sources.mapped("partner_id").ids
-        for pid in partner_ids:
-            partner_sources = sources.filtered(
-                lambda s, partner_id=pid: s.partner_id.id == partner_id,
+            for pid in sorted(set(sources.mapped("partner_id").ids)):
+                partner_sources = sources.filtered(lambda src, partner_id=pid: src.partner_id.id == partner_id)
+                run = self.create({"partner_id": pid, "source_ids": [(6, 0, partner_sources.ids)]})
+                try:
+                    run.action_execute()
+                    if run.state == "validated":
+                        run.action_inject()
+                        if run_inference and run.state == "injected":
+                            try:
+                                run.action_run_inference()
+                            except Exception as ie:
+                                _logger.warning("Inference step failed for partner %s: %s", pid, ie)
+                except Exception as exc:
+                    run.write({"state": "failed", "validation_issues": [str(exc)]})
+                    _logger.error("Enrichment cron failed for partner %s: %s", pid, exc)
+        finally:
+            self.env.cr.execute(
+                "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_enrichment.cron_enrichment_daily"]
             )
-            run = self.create(
-                {
-                    "partner_id": pid,
-                    "source_ids": [(6, 0, partner_sources.ids)],
-                }
-            )
-            try:
-                run.action_execute()
-                if run.state == "validated":
-                    run.action_inject()
-                    # Sequential: run inference after injection
-                    if run_inference and run.state == "injected":
-                        try:
-                            run.action_run_inference()
-                        except Exception as ie:
-                            _logger.warning(
-                                "Inference step failed for partner %s: %s",
-                                pid,
-                                ie,
-                            )
-                            # Don't fail the whole run — inference is optional
-            except Exception as e:
-                run.write(
-                    {
-                        "state": "failed",
-                        "validation_issues": [str(e)],
-                    }
-                )
-                _logger.error(
-                    "Enrichment cron failed for partner %s: %s",
-                    pid,
-                    e,
-                )
 
     @api.model
     def action_cron_inference_only(self):
-        """
-        Standalone cron: run inference on all material profiles
-        that have not been inference-augmented recently.
+        """Standalone cron to inference stale profiles."""
+        self.env.cr.execute(
+            "SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_enrichment.cron_inference_standalone"]
+        )
+        locked = self.env.cr.fetchone()[0]
+        if not locked:
+            _logger.info("Skipping inference-only cron: lock is already held.")
+            return 0
 
-        Use this if you want inference on a separate schedule from enrichment.
-        """
         svc = self.env["plasticos.enrichment.service"]
-        MatProf = self.env["plasticos.material.profile"]
-
-        # Find profiles missing quality_tier (proxy for "not inferred")
-        profiles = MatProf.search(
-            [
-                ("quality_tier", "=", False),
-                ("polymer_id", "!=", False),
-            ],
-            limit=100,
-        )
-
-        count = 0
-        for profile in profiles:
-            try:
-                updated = svc.run_inference_on_profile(profile)
-                if updated:
-                    count += 1
-            except Exception as e:
-                _logger.warning(
-                    "Inference cron failed for profile %s: %s",
-                    profile.id,
-                    e,
-                )
-
-        _logger.info(
-            "Inference cron completed: %d profiles augmented",
-            count,
-        )
-        return count
+        mat_prof = self.env["plasticos.material.profile"]
+        try:
+            profiles = mat_prof.search(
+                [("quality_tier", "=", False), ("polymer_id", "!=", False)],
+                order="write_date ASC, id ASC",
+                limit=100,
+            )
+            count = 0
+            for profile in profiles:
+                try:
+                    updated = svc.run_inference_on_profile(profile)
+                    if updated:
+                        count += 1
+                except Exception as exc:
+                    _logger.warning("Inference cron failed for profile %s: %s", profile.id, exc)
+            _logger.info("Inference cron completed: %d profiles augmented", count)
+            return count
+        finally:
+            self.env.cr.execute(
+                "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_enrichment.cron_inference_standalone"]
+            )

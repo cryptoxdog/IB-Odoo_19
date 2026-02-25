@@ -5,6 +5,7 @@
     "author": "PlasticOS",
     "license": "LGPL-3",
     "depends": [
+        "plasticos_base",
         "base",
         "base_automation",
         "mail",

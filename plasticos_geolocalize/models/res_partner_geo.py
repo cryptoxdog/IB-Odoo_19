@@ -1,12 +1,4 @@
-"""Nightly geocode backfill for partners.
-
-This module extends ``res.partner`` to geocode partners via a
-nightly cron job. Auto-geocoding on create/write is DISABLED
-to avoid rate-limiting issues with OpenStreetMap Nominatim
-(strict 1 req/sec limit).
-
-Partners created or updated will be geocoded by the nightly cron.
-"""
+"""Nightly geocode backfill for partners."""
 
 import logging
 import time
@@ -15,85 +7,58 @@ from odoo import api, models
 
 _logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────
-# Geocoding tuning constants
-# ─────────────────────────────────────────────────────────
-_NOMINATIM_DELAY = 1.1  # seconds between successful requests
-_FAILURE_DELAY = 5.0  # seconds to wait after a failure
-_MAX_CONSECUTIVE_FAIL = 3  # abort batch after this many consecutive failures
-_BATCH_SIZE = 50  # partners per cron run (reduced from 100 to limit worker hold time)
+_NOMINATIM_DELAY = 1.1
+_FAILURE_DELAY = 5.0
+_MAX_CONSECUTIVE_FAIL = 3
+_BATCH_SIZE = 50
 
 
 class ResPartnerGeo(models.Model):
     _inherit = "res.partner"
 
-    # ─────────────────────────────────────────────────────────
-    # NOTE: Auto-geocoding on create/write is DISABLED.
-    # OpenStreetMap Nominatim has a strict 1 req/sec rate limit.
-    # Bulk imports would trigger 429 Too Many Requests errors.
-    # All geocoding is handled by the nightly cron with proper
-    # rate limiting.
-    # ─────────────────────────────────────────────────────────
-
-    # ─────────────────────────────────────────────────────────
-    # Nightly Backfill Cron
-    # ─────────────────────────────────────────────────────────
-
     @api.model
     def cron_geo_backfill(self):
-        """Backfill coordinates for partners missing geo data.
-
-        Runs nightly. Processes in batches with rate limiting
-        to respect Nominatim's 1 req/sec limit.
-
-        Hardened for rate-limiting (HTTP 429):
-        - Aborts after MAX_CONSECUTIVE_FAIL failures in a row
-        - Commits after each success so progress survives worker timeouts
-        - Uses longer delay after failures to back off from rate limits
-        """
-        domain = [
-            ("partner_latitude", "in", [0.0, False]),
-            "|",
-            ("street", "!=", False),
-            ("city", "!=", False),
-        ]
-        partners = self.search(domain, limit=_BATCH_SIZE)
-        if not partners:
-            _logger.info("Geo backfill: no partners need geocoding.")
+        self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_geolocalize.ir_cron_geo_backfill"])
+        if not self.env.cr.fetchone()[0]:
+            _logger.info("Skipping geo backfill cron: lock is already held.")
             return
 
-        success = 0
-        failed = 0
-        consecutive_failures = 0
+        try:
+            partners = self.search(
+                [
+                    ("partner_latitude", "in", [0.0, False]),
+                    "|",
+                    ("street", "!=", False),
+                    ("city", "!=", False),
+                ],
+                order="id ASC",
+                limit=_BATCH_SIZE,
+            )
+            if not partners:
+                return
 
-        for partner in partners:
-            try:
-                partner.geo_localize()
-                if partner.partner_latitude:
-                    success += 1
-                    consecutive_failures = 0
-                    self.env.cr.commit()  # pylint: disable=invalid-commit
-                time.sleep(_NOMINATIM_DELAY)
-            except Exception:
-                failed += 1
-                consecutive_failures += 1
-                _logger.warning(
-                    "Geo backfill: failed for partner %s (%s).",
-                    partner.id,
-                    partner.name,
-                    exc_info=True,
-                )
-                if consecutive_failures >= _MAX_CONSECUTIVE_FAIL:
-                    _logger.error(
-                        "Geo backfill: %d consecutive failures — aborting (likely rate-limited or banned).",
-                        consecutive_failures,
+            success = 0
+            failed = 0
+            consecutive_failures = 0
+            for partner in partners:
+                try:
+                    partner.geo_localize()
+                    if partner.partner_latitude:
+                        success += 1
+                        consecutive_failures = 0
+                        self.env.cr.commit()  # pylint: disable=invalid-commit
+                    time.sleep(_NOMINATIM_DELAY)
+                except Exception:
+                    failed += 1
+                    consecutive_failures += 1
+                    _logger.warning(
+                        "Geo backfill: failed for partner %s (%s).", partner.id, partner.name, exc_info=True
                     )
-                    break
-                time.sleep(_FAILURE_DELAY)
-
-        _logger.info(
-            "Geo backfill complete: %d/%d geocoded, %d failed.",
-            success,
-            len(partners),
-            failed,
-        )
+                    if consecutive_failures >= _MAX_CONSECUTIVE_FAIL:
+                        break
+                    time.sleep(_FAILURE_DELAY)
+            _logger.info("Geo backfill complete: %d/%d geocoded, %d failed.", success, len(partners), failed)
+        finally:
+            self.env.cr.execute(
+                "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_geolocalize.ir_cron_geo_backfill"]
+            )
