@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Base",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.0.1",
     "summary": "Core seed data: partner tags, sales reps, material taxonomy tags",
     "license": "LGPL-3",
     "author": "PlasticOS",
@@ -18,6 +18,7 @@
         "data/attachment_maintenance_cron.xml",
         "data/midnight_recompute_cron.xml",
     ],
+    "post_init_hook": "post_init_hook",
     "installable": True,
     "application": False,
 }

@@ -370,6 +370,7 @@ class TestBuyerMatcher(TransactionCase):
             {
                 "partner_id": self.supplier_facility.id,
                 "polymer_id": self.polymer_hdpe.id,
+                "form_id": self.form_bales.id,
                 "active": True,
             }
         )
@@ -390,6 +391,7 @@ class TestBuyerMatcher(TransactionCase):
             {
                 "partner_id": self.supplier_facility.id,
                 "polymer_id": self.polymer_hdpe.id,
+                "form_id": self.form_bales.id,
                 "active": True,
             }
         )
@@ -410,6 +412,7 @@ class TestBuyerMatcher(TransactionCase):
             {
                 "partner_id": self.supplier_facility.id,
                 "polymer_id": self.polymer_hdpe.id,
+                "form_id": self.form_bales.id,
                 "active": True,
             }
         )
@@ -430,6 +433,7 @@ class TestBuyerMatcher(TransactionCase):
             {
                 "partner_id": self.supplier_facility.id,
                 "polymer_id": self.polymer_hdpe.id,
+                "form_id": self.form_bales.id,
                 "active": True,
             }
         )
