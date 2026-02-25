@@ -13,7 +13,7 @@
       <field name="login">IB</field>
       <field name="email">ib@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_ib"/>
-      <field name="group_ids" eval="[(4, ref('base.group_user'))]"/>
+      <!-- group_ids removed for Odoo 19 compatibility -->
     </record>
 
     <record id="partner_sales_rep_ab" model="res.partner">
@@ -28,7 +28,7 @@
       <field name="login">AB</field>
       <field name="email">ab@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_ab"/>
-      <field name="group_ids" eval="[(4, ref('base.group_user'))]"/>
+      <!-- group_ids removed for Odoo 19 compatibility -->
     </record>
 
     <record id="partner_sales_rep_lm" model="res.partner">
@@ -43,7 +43,7 @@
       <field name="login">LM</field>
       <field name="email">lm@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_lm"/>
-      <field name="group_ids" eval="[(4, ref('base.group_user'))]"/>
+      <!-- group_ids removed for Odoo 19 compatibility -->
     </record>
 
     <record id="partner_sales_rep_rp" model="res.partner">
@@ -58,7 +58,7 @@
       <field name="login">RP</field>
       <field name="email">rp@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_rp"/>
-      <field name="group_ids" eval="[(4, ref('base.group_user'))]"/>
+      <!-- group_ids removed for Odoo 19 compatibility -->
     </record>
 
     <record id="partner_sales_rep_aa" model="res.partner">
@@ -73,7 +73,7 @@
       <field name="login">AA</field>
       <field name="email">aa@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_aa"/>
-      <field name="group_ids" eval="[(4, ref('base.group_user'))]"/>
+      <!-- group_ids removed for Odoo 19 compatibility -->
     </record>
 
     <record id="partner_sales_rep_tw" model="res.partner">
@@ -88,7 +88,19 @@
       <field name="login">TW</field>
       <field name="email">sa@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_tw"/>
-      <field name="group_ids" eval="[(4, ref('base.group_user'))]"/>
+      <!-- group_ids removed for Odoo 19 compatibility -->
+    </record>
+
+    <!-- Grant internal-user privilege to all sales reps via res.groups.users M2M -->
+    <record id="base.group_user" model="res.groups">
+      <field name="users" eval="[
+        (4, ref('plasticos_base.user_sales_rep_ib')),
+        (4, ref('plasticos_base.user_sales_rep_ab')),
+        (4, ref('plasticos_base.user_sales_rep_lm')),
+        (4, ref('plasticos_base.user_sales_rep_rp')),
+        (4, ref('plasticos_base.user_sales_rep_aa')),
+        (4, ref('plasticos_base.user_sales_rep_tw')),
+      ]"/>
     </record>
 
   </data>
