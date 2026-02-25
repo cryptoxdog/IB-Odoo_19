@@ -42,7 +42,7 @@ class MaterialProfileGraphHooks(models.Model):
 
     def _trigger_material_sync(self, profiles):
         """Run material graph sync if graph service is available."""
-        if not self.env.get("plasticos.graph.service"):
+        if "plasticos.graph.service" not in self.env:
             return
         try:
             self.env["plasticos.graph.service"].sudo().sync_material_nodes(trigger="material_write")
