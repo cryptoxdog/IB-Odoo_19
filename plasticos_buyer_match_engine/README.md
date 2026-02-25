@@ -36,7 +36,7 @@ views/
 ```
 
 ## Dependencies
-plasticos_intake, plasticos_material_profile, plasticos_matching, plasticos_facility_profile, plasticos_transaction
+plasticos_intake, plasticos_material_profile, plasticos_facility_profile, plasticos_matching, plasticos_transaction
 
 ## Models
 plasticos.buyer.matcher, plasticos.graph.service, plasticos.graph.sync.log, plasticos.match.exclusion

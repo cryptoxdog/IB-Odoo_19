@@ -27,162 +27,162 @@
   ],
   "deps": {
     "plasticos_enrichment": [
-      "plasticos_material_profile",
       "mail",
       "contacts",
-      "plasticos_inference_engine",
-      "base"
+      "plasticos_material_profile",
+      "base",
+      "plasticos_inference_engine"
     ],
     "plasticos_transaction": [
-      "plasticos_logistics",
-      "plasticos_material_profile",
-      "account",
-      "plasticos_product",
-      "mail",
-      "base",
-      "plasticos_facility_profile",
-      "purchase",
       "sale_management",
+      "purchase",
+      "mail",
       "product",
-      "plasticos_intake"
+      "plasticos_facility_profile",
+      "plasticos_material_profile",
+      "base",
+      "plasticos_product",
+      "plasticos_intake",
+      "plasticos_logistics",
+      "account"
     ],
     "plasticos_dev_tools": [
       "base"
     ],
     "plasticos_partner_import": [
-      "account",
+      "plasticos_facility_profile",
       "contacts",
       "base",
-      "plasticos_facility_profile",
-      "plasticos_intake"
+      "plasticos_intake",
+      "account"
     ],
     "plasticos_logistics": [
-      "stock",
+      "mail",
       "sale_management",
-      "mail"
+      "stock"
     ],
     "plasticos_facility_profile": [
-      "plasticos_material_profile",
+      "sale_management",
       "mail",
       "contacts",
-      "base",
-      "sale_management"
-    ],
-    "plasticos_geolocalize": [
-      "base_geolocalize",
-      "base",
-      "plasticos_intake"
-    ],
-    "plasticos_documents": [
-      "plasticos_transaction",
-      "mail",
+      "plasticos_material_profile",
       "base"
     ],
-    "plasticos_web_leads": [
-      "plasticos_material_profile",
+    "plasticos_geolocalize": [
+      "plasticos_intake",
+      "base_geolocalize",
+      "base"
+    ],
+    "plasticos_documents": [
       "mail",
       "base",
+      "plasticos_transaction"
+    ],
+    "plasticos_web_leads": [
       "purchase",
+      "mail",
+      "plasticos_material_profile",
+      "base",
       "plasticos_intake"
     ],
     "plasticos_automation": [
-      "plasticos_transaction",
-      "plasticos_logistics",
-      "plasticos_claims",
-      "account",
-      "mail",
-      "purchase",
+      "sale_management",
       "base_automation",
+      "purchase",
+      "plasticos_claims",
+      "product",
+      "mail",
+      "plasticos_transaction",
       "base",
       "stock",
-      "sale_management",
-      "product"
+      "plasticos_logistics",
+      "account"
     ],
     "plasticos_security_base": [
-      "plasticos_transaction",
-      "plasticos_web_leads",
-      "stock",
-      "plasticos_logistics",
-      "plasticos_material_profile",
-      "account",
-      "plasticos_matching",
-      "plasticos_automation",
       "sale",
-      "base",
-      "plasticos_facility_profile",
+      "plasticos_web_leads",
       "purchase",
+      "plasticos_offer",
+      "plasticos_facility_profile",
+      "plasticos_transaction",
       "plasticos_documents",
+      "plasticos_material_profile",
+      "base",
+      "plasticos_matching",
+      "stock",
       "plasticos_intake",
-      "plasticos_offer"
+      "plasticos_logistics",
+      "plasticos_automation",
+      "account"
     ],
     "plasticos_intake_normalizer": [
-      "plasticos_base",
+      "plasticos_intake",
       "plasticos_material_profile",
-      "plasticos_intake"
+      "plasticos_base"
     ],
     "plasticos_offer": [
       "mail",
-      "plasticos_matching",
+      "plasticos_intake",
       "base",
-      "plasticos_intake"
+      "plasticos_matching"
     ],
     "plasticos_material_profile": [
-      "mail",
-      "contacts",
-      "base",
-      "purchase",
       "sale_management",
-      "product"
+      "purchase",
+      "mail",
+      "product",
+      "contacts",
+      "base"
     ],
     "plasticos_buyer_match_engine": [
+      "plasticos_facility_profile",
       "plasticos_transaction",
       "plasticos_material_profile",
       "plasticos_matching",
-      "plasticos_facility_profile",
       "plasticos_intake"
     ],
     "plasticos_order_lines": [
-      "plasticos_material_profile",
-      "plasticos_product",
+      "sale_management",
       "sale",
       "purchase",
-      "sale_management"
+      "plasticos_material_profile",
+      "plasticos_product"
     ],
     "plasticos_claims": [
-      "plasticos_transaction",
-      "plasticos_logistics",
       "mail",
+      "plasticos_transaction",
+      "plasticos_documents",
       "base",
-      "plasticos_documents"
+      "plasticos_logistics"
     ],
     "plasticos_accounting": [
       "account"
     ],
     "plasticos_base": [
       "sale_management",
-      "contacts",
-      "base"
+      "base",
+      "contacts"
     ],
     "plasticos_intake": [
-      "plasticos_material_profile",
       "mail",
+      "plasticos_facility_profile",
       "contacts",
-      "base",
-      "plasticos_facility_profile"
+      "plasticos_material_profile",
+      "base"
     ],
     "plasticos_product": [
       "product",
       "plasticos_material_profile"
     ],
     "plasticos_documents_native": [
-      "plasticos_transaction",
+      "plasticos_security_base",
       "documents_account",
-      "plasticos_logistics",
+      "plasticos_transaction",
+      "plasticos_documents",
       "plasticos_material_profile",
       "documents",
-      "plasticos_security_base",
-      "plasticos_documents",
-      "plasticos_intake"
+      "plasticos_intake",
+      "plasticos_logistics"
     ],
     "plasticos_inference_engine": [
       "base"
@@ -190,8 +190,8 @@
     "plasticos_matching": [
       "plasticos_facility_profile",
       "mail",
-      "base",
-      "plasticos_intake"
+      "plasticos_intake",
+      "base"
     ]
   }
 }

@@ -31,6 +31,7 @@ grade_engine.py
 inference_init.py
 inference_models.py
 kb_loader.py
+knowledge_base_v8.0/
 models.py
 pipeline_v2.py
 polymer_aliases.py

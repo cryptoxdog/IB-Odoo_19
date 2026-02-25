@@ -1,5 +1,9 @@
 [
   {
+    "file": "tests/test_phantom_enum_values.py",
+    "dir": "tests"
+  },
+  {
     "file": "tests-odoo/test_cursor.py",
     "dir": "tests-odoo"
   },
@@ -110,6 +114,18 @@
   {
     "file": "plasticos_dev_tools/tests/test_seed_validator.py",
     "dir": "plasticos_dev_tools/tests"
+  },
+  {
+    "file": "tests/modules/test_plasticos_buyer_match_engine.py",
+    "dir": "tests/modules"
+  },
+  {
+    "file": "tests/modules/test_cypher_schema_alignment.py",
+    "dir": "tests/modules"
+  },
+  {
+    "file": "tests/modules/test_repo_dependency_integrity.py",
+    "dir": "tests/modules"
   },
   {
     "file": "docs/02-25-2026/3D KG Embedding - HyperGraphs/tests/memory/kge/test_compound_e3d.py",
