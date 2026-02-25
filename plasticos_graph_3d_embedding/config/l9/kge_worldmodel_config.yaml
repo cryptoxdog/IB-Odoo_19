@@ -1,8 +1,0 @@
-# Add to worldmodel_kernel config
-kge:
-  enabled: ${L9_KGE_ENABLED:true}
-  embedding_dim: ${L9_KGE_EMBEDDING_DIM:300}
-  confidence_threshold: ${L9_KGE_CONFIDENCE_THRESHOLD:0.3}
-  device: ${L9_KGE_DEVICE:cuda}
-  update_frequency: "every 100 packets"
-  prediction_batch_size: 512

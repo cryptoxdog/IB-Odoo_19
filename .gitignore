@@ -50,8 +50,13 @@ workflow_state.md
 scripts/
 Transactions.Test.csv.numbers
 plasticos_graph_engine/
+plasticos_graph_engine/**
 plasticos_graph_integration/
+plasticos_graph_integration/**
 plasticos_graph_intelligence/
+plasticos_graph_intelligence/**
+plasticos_graph_3d_embedding/
+plasticos_graph_3d_embedding/**
 
 # ═══════════════════════════════════════════════════════════
 # Module test folders (not ready for CI)

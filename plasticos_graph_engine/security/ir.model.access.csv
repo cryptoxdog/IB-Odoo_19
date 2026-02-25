@@ -1,4 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_emergent_cluster,access_emergent_cluster,model_plasticos_graph_emergent_cluster,base.group_system,1,1,1,1
-access_emergent_grade,access_emergent_grade,model_plasticos_graph_emergent_grade,base.group_system,1,1,1,1
-access_graph_idempotency,access_graph_idempotency,model_plasticos_graph_idempotency,base.group_system,1,1,1,1
