@@ -117,7 +117,7 @@ class PlasticosTransactionDocs(models.Model):
 
         Determines overdue/escalated status based on business days
         since transaction creation. Posts reminders and escalation
-        activities as needed. Logs all actions to plasticos.automation.log.
+        activities as needed.
         """
         transactions = self.search(
             [
@@ -125,7 +125,6 @@ class PlasticosTransactionDocs(models.Model):
             ]
         )
 
-        log_model = self.env["plasticos.automation.log"] if "plasticos.automation.log" in self.env else None
         matrix_model = self.env["plasticos.document.validation.matrix"]
         today = date.today()
 
@@ -182,16 +181,6 @@ class PlasticosTransactionDocs(models.Model):
                     message_type="notification",
                 )
 
-                if log_model is not None:
-                    log_model.create(
-                        {
-                            "name": f"Doc reminder for {tx.name}",
-                            "model_name": "plasticos.transaction",
-                            "res_id": tx.id,
-                            "action_type": "doc_reminder",
-                        }
-                    )
-
             # Escalate
             elif new_status == "escalated":
                 tx.activity_schedule(
@@ -201,16 +190,6 @@ class PlasticosTransactionDocs(models.Model):
                     note=f"Transaction {tx.name} has missing documents for {bd} "
                     "business days. Manual intervention required.",
                 )
-
-                if log_model is not None:
-                    log_model.create(
-                        {
-                            "name": f"Doc escalation for {tx.name}",
-                            "model_name": "plasticos.transaction",
-                            "res_id": tx.id,
-                            "action_type": "doc_escalation",
-                        }
-                    )
 
             _logger.info(
                 "Documents extension: TX %s status=%s (bd=%d, missing: supplier=%s, carrier=%s, buyer=%s)",

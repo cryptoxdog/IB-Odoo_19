@@ -7,9 +7,7 @@
     "depends": [
         "base",
         "mail",
-        "plasticos_automation",
         "plasticos_transaction",
-        "plasticos_automation",
     ],
     "data": [
         "security/security.xml",
