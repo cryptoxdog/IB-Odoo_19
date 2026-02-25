@@ -88,15 +88,64 @@ class PlasticosDocument(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         records = super().create(vals_list)
+        self._trigger_transaction_recompute(records)
+        return records
+
+    def write(self, vals):
+        result = super().write(vals)
+        # Recompute if tag or active status changed (affects missing doc flags)
+        if "tag_id" in vals or "active" in vals or "x_transaction_id" in vals:
+            self._trigger_transaction_recompute(self)
+        return result
+
+    def unlink(self):
+        # Capture transactions before delete
+        transactions = self._get_related_transactions(self)
+        result = super().unlink()
+        # Trigger recompute after delete
+        if transactions:
+            transactions._compute_missing_doc_flags()
+        return result
+
+    def _trigger_transaction_recompute(self, records):
+        """Trigger recomputation of missing doc flags on related transactions.
+
+        R2 fix: Ensures real-time updates when documents are created/modified.
+        """
+        transactions = self._get_related_transactions(records)
+        if transactions:
+            transactions._compute_missing_doc_flags()
+
+    def _get_related_transactions(self, records):
+        """Find all transactions related to the given document records.
+
+        Handles both direct link (x_transaction_id) and polymorphic link (res_model/res_id).
+        """
+        tx_model = self.env["plasticos.transaction"]
+        tx_ids = set()
 
         for record in records:
-            if record.res_model == "plasticos.load":
-                # Look up transaction via reverse relation (transaction.load_id -> load)
-                tx = self.env["plasticos.transaction"].search([("load_id", "=", record.res_id)], limit=1)
-                if tx:
-                    self.env["plasticos.compliance.service"].get_missing_documents("plasticos.transaction", tx.id)
+            # Direct link
+            if record.x_transaction_id:
+                tx_ids.add(record.x_transaction_id.id)
 
-        return records
+            # Polymorphic link: document on transaction directly
+            if record.res_model == "plasticos.transaction":
+                tx_ids.add(record.res_id)
+
+            # Polymorphic link: document on load -> find transaction
+            elif record.res_model == "plasticos.load":
+                tx = tx_model.search([("load_id", "=", record.res_id)], limit=1)
+                if tx:
+                    tx_ids.add(tx.id)
+
+            # Polymorphic link: document on sale order -> find transaction
+            elif record.res_model == "sale.order":
+                tx = tx_model.search([("sale_order_id", "=", record.res_id)], limit=1)
+                if tx:
+                    tx_ids.add(tx.id)
+
+        return tx_model.browse(list(tx_ids)) if tx_ids else tx_model
 
     def action_verify(self):
         for rec in self:
