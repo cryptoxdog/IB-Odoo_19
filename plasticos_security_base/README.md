@@ -20,6 +20,7 @@ Role-based access control across all modules
 
 ## Structure
 ```
+README.md
 README.rst
 __init__.py
 __manifest__.py

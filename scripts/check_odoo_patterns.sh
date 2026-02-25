@@ -5,7 +5,7 @@
 # Run: ./scripts/check_odoo_patterns.sh
 #
 # Bug patterns checked (see reports/BUG_FIXES_SUMMARY.md):
-# 1. _sql_constraints (deprecated in Odoo 17+, use models.Constraint)
+# 1. models.Constraint() (INVALID - does not exist in Odoo API, use _sql_constraints)
 # 2. @api.depends("id") (disallowed)
 # 3. @api.one/@api.multi (removed)
 # 4. category_id on res.groups (removed)
@@ -44,14 +44,15 @@ echo ""
 PY_FILES=$(git ls-files '*.py' 2>/dev/null || find . -name "*.py" -type f)
 XML_FILES=$(git ls-files '*.xml' 2>/dev/null || find . -name "*.xml" -type f)
 
-# 1. _sql_constraints (deprecated in Odoo 17+, use models.Constraint)
+# 1. models.Constraint() (INVALID - does not exist in Odoo API)
+# The correct API is _sql_constraints (all Odoo versions)
 # Exclude: reports/, AI Agent Files/ (docs/specs only)
-echo -n "Checking deprecated _sql_constraints... "
-MATCHES=$(echo "$PY_FILES" | xargs grep -l '_sql_constraints\s*=' 2>/dev/null | grep -v 'reports/' | grep -v 'AI Agent Files/' || true)
+echo -n "Checking invalid models.Constraint()... "
+MATCHES=$(echo "$PY_FILES" | xargs grep -l 'models\.Constraint(' 2>/dev/null | grep -v 'reports/' | grep -v 'AI Agent Files/' || true)
 if [ -n "$MATCHES" ]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES" | sed 's/^/  /'
-    echo -e "${YELLOW}Fix: Convert to models.Constraint(\"SQL\", \"message\") per Odoo 17+${NC}"
+    echo -e "${YELLOW}Fix: models.Constraint() does NOT exist. Use _sql_constraints = [(name, sql, msg), ...]${NC}"
     ERRORS=$((ERRORS + 1))
 else
     echo -e "${GREEN}OK${NC}"

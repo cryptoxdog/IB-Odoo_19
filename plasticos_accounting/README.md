@@ -20,6 +20,7 @@ Accounting configuration for PlasticOS
 
 ## Structure
 ```
+README.md
 README.rst
 __init__.py
 __manifest__.py

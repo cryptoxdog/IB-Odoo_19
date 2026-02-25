@@ -30,8 +30,8 @@
     "suffix": ".md"
   },
   {
-    "file": "AI Agent Files/ENVIRONMENT_SPEC.MD",
-    "name": "ENVIRONMENT_SPEC.MD",
+    "file": "AI Agent Files/ENVIRONMENT_SPEC.md",
+    "name": "ENVIRONMENT_SPEC.md",
     "kind": "doc",
     "suffix": ".md"
   },
@@ -76,12 +76,6 @@
     "name": "MIGRATION_GUIDE.md",
     "kind": "doc",
     "suffix": ".md"
-  },
-  {
-    "file": "AI Agent Files/NEO4J_ONTOLOGY copy.yaml",
-    "name": "NEO4J_ONTOLOGY copy.yaml",
-    "kind": "spec",
-    "suffix": ".yaml"
   },
   {
     "file": "AI Agent Files/NEO4J_ONTOLOGY.md",
@@ -156,10 +150,10 @@
     "suffix": ".json"
   },
   {
-    "file": "AI Agent Files/repo_spec copy.yaml",
-    "name": "repo_spec copy.yaml",
-    "kind": "spec",
-    "suffix": ".yaml"
+    "file": "AI Agent Files/repo_spec.md",
+    "name": "repo_spec.md",
+    "kind": "doc",
+    "suffix": ".md"
   },
   {
     "file": "AI Agent Files/repo_spec.yaml",

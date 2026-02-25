@@ -213,10 +213,13 @@ class PlasticosFacilityProfile(models.Model):
     # Constraints
     # ═════════════════════════════════════════════════════════
 
-    _check_unique_partner = models.Constraint(
-        "unique(partner_id)",
-        "Each facility may only have one capability profile.",
-    )
+    _sql_constraints = [
+        (
+            "unique_partner",
+            "unique(partner_id)",
+            "Each facility may only have one capability profile.",
+        ),
+    ]
 
     # ═════════════════════════════════════════════════════════
     # Validation

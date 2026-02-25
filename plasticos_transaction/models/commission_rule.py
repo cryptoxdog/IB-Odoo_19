@@ -11,7 +11,10 @@ class PlasticosCommissionRule(models.Model):
     active = fields.Boolean(default=True)
 
     # ── Constraints ──────────────────────────────────────────
-    _check_unique_rep = models.Constraint(
-        "unique(sales_rep_id)",
-        "Each sales rep may only have one active commission rule.",
-    )
+    _sql_constraints = [
+        (
+            "unique_sales_rep",
+            "unique(sales_rep_id)",
+            "Each sales rep may only have one active commission rule.",
+        ),
+    ]

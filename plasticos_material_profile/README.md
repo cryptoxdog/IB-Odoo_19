@@ -20,6 +20,7 @@ Material specification and classification
 
 ## Structure
 ```
+README.md
 README.rst
 __init__.py
 __manifest__.py

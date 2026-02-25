@@ -14,7 +14,10 @@ class PlasticosDocumentRule(models.Model):
     active = fields.Boolean(default=True)
 
     # ── Constraints ──────────────────────────────────────────
-    _check_unique_rule = models.Constraint(
-        "unique(tag_id, res_model, client_id)",
-        "Only one rule per tag + model + client combination is allowed.",
-    )
+    _sql_constraints = [
+        (
+            "unique_rule_per_tag_model_client",
+            "unique(tag_id, res_model, client_id)",
+            "Only one rule per tag + model + client combination is allowed.",
+        ),
+    ]

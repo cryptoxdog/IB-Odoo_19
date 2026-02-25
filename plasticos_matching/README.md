@@ -20,6 +20,7 @@ Match scoring and result tracking
 
 ## Structure
 ```
+README.md
 README.rst
 __init__.py
 __manifest__.py

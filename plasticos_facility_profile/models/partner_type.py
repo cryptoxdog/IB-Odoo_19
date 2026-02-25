@@ -35,7 +35,10 @@ class PlasticosPartnerType(models.Model):
         help="Matching mode: strict=exact match required, flexible=partial match acceptable, optimistic=any match gets high score.",
     )
 
-    _check_unique_code = models.Constraint(
-        "unique(code)",
-        "Partner type code must be unique.",
-    )
+    _sql_constraints = [
+        (
+            "unique_code",
+            "unique(code)",
+            "Partner type code must be unique.",
+        ),
+    ]

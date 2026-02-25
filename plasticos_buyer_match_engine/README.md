@@ -22,6 +22,7 @@ Capability-based buyer selection
 ```
 Knowledge Base V8.0/
 Mack_agent_buyer_matching v7.0.py
+README.md
 README.rst
 Readme-IB.md
 __init__.py

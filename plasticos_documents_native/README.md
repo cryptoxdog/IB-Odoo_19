@@ -20,6 +20,7 @@ Odoo Documents module bridge
 
 ## Structure
 ```
+README.md
 README.rst
 __init__.py
 __manifest__.py

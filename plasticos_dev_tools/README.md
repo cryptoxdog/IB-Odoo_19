@@ -20,6 +20,7 @@ Developer tooling and forbidden/quarantined code
 
 ## Structure
 ```
+README.md
 README.rst
 __init__.py
 __manifest__.py

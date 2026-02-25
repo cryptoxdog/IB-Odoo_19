@@ -20,6 +20,7 @@ Enrichment runs and knowledge base integration
 
 ## Structure
 ```
+README.md
 __init__.py
 __manifest__.py
 data/

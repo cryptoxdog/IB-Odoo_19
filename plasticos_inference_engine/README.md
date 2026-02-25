@@ -21,6 +21,7 @@ Base for enrichment and inference services
 ## Structure
 ```
 ARCHITECTURE_v2_segregated.md
+README.md
 __init__.py
 __manifest__.py
 additional files to harvest.md

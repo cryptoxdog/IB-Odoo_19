@@ -98,17 +98,7 @@ jobs:
             MODULE_DIR=$(dirname "$manifest")
             MODULE_NAME=$(basename "$MODULE_DIR")
 
-            python3 -c "
-import ast
-with open('$manifest', 'r') as f:
-    m = ast.literal_eval(f.read())
-print(f\"### {m.get('name', '$MODULE_NAME')}\")
-print(f\"- **Technical Name**: $MODULE_NAME\")
-print(f\"- **Version**: {m.get('version', 'N/A')}\")
-print(f\"- **Summary**: {m.get('summary', 'N/A')}\")
-print(f\"- **Dependencies**: {', '.join(m.get('depends', []))}\")
-print('')
-" >> MODULE_INFO.md
+            python3 scripts/collect_module_info.py "$manifest" "$MODULE_NAME" >> MODULE_INFO.md
           done
 
       - name: Create GitHub Release

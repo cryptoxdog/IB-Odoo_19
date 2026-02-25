@@ -84,6 +84,21 @@ class PartnerImportWizard(models.TransientModel):
             raise UserError(_("Could not determine module path."))
         return path
 
+    def _get_default_csv_path(self, which: str) -> str:
+        """Resolve path for default CSV; ir.config_parameter overrides built-in path."""
+        param = self.env["ir.config_parameter"].sudo()
+        if which == "corporate":
+            custom = param.get_param(CONFIG_CORPORATE_CSV)
+            if custom and os.path.isfile(custom):
+                return custom
+            return os.path.join(self._get_module_path(), DEFAULT_CORPORATE_CSV)
+        if which == "facility":
+            custom = param.get_param(CONFIG_FACILITY_CSV)
+            if custom and os.path.isfile(custom):
+                return custom
+            return os.path.join(self._get_module_path(), DEFAULT_FACILITY_CSV)
+        raise ValueError("which must be 'corporate' or 'facility'")
+
     def _save_uploaded_file(self, binary_data, filename):
         """Save uploaded binary to temp file and return path."""
         import base64

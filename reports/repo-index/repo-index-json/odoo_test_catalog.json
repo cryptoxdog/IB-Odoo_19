@@ -112,6 +112,10 @@
     "dir": "plasticos_dev_tools/tests"
   },
   {
+    "file": "docs/02-25-2026/3D KG Embedding - HyperGraphs/tests/memory/kge/test_compound_e3d.py",
+    "dir": "docs/02-25-2026/3D KG Embedding - HyperGraphs/tests/memory/kge"
+  },
+  {
     "file": "plasticos_buyer_match_engine/tests/test_matcher.py",
     "dir": "plasticos_buyer_match_engine/tests"
   },

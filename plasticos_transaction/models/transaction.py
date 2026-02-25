@@ -292,10 +292,13 @@ class PlasticosTransaction(models.Model):
     )
 
     # ── Constraints ──────────────────────────────────────────
-    _check_unique_name = models.Constraint(
-        "unique(name)",
-        "Transaction reference must be unique.",
-    )
+    _sql_constraints = [
+        (
+            "unique_name",
+            "unique(name)",
+            "Transaction reference must be unique.",
+        ),
+    ]
 
     # ── Computed Methods (harvested) ──────────────────────────
     @api.depends(

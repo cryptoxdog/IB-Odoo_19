@@ -20,6 +20,7 @@ Product catalog linked to polymer, form, color, source type
 
 ## Structure
 ```
+README.md
 __init__.py
 __manifest__.py
 data/

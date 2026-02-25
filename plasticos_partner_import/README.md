@@ -22,6 +22,7 @@ Bulk partner data import
 ```
 1. Counterparties - Parent - CORPORATE-Ready To Import.csv
 2. Counterparties - Child - FACILITY LOCATIONS.csv
+README.md
 README.rst
 __init__.py
 __manifest__.py

@@ -154,20 +154,23 @@ class PlasticosMatchResult(models.Model):
     # Constraints
     # ═════════════════════════════════════════════════════════
 
-    _check_unique_match_per_run = models.Constraint(
-        "unique(intake_id, buyer_partner_id, l9_run_id)",
-        "Duplicate match result for the same intake + buyer + run.",
-    )
-
-    _check_score_range = models.Constraint(
-        "check(score >= 0 AND score <= 100)",
-        "Score must be between 0 and 100.",
-    )
-
-    _check_confidence_range = models.Constraint(
-        "check(confidence >= 0 AND confidence <= 100)",
-        "Confidence must be between 0 and 100.",
-    )
+    _sql_constraints = [
+        (
+            "unique_match_per_run",
+            "unique(intake_id, buyer_partner_id, l9_run_id)",
+            "Duplicate match result for the same intake + buyer + run.",
+        ),
+        (
+            "check_score_range",
+            "check(score >= 0 AND score <= 100)",
+            "Score must be between 0 and 100.",
+        ),
+        (
+            "check_confidence_range",
+            "check(confidence >= 0 AND confidence <= 100)",
+            "Confidence must be between 0 and 100.",
+        ),
+    ]
 
     # ═════════════════════════════════════════════════════════
     # Computed
