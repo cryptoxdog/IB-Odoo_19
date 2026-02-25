@@ -8,7 +8,6 @@
         "base",
         "mail",
         "plasticos_transaction",
-        "plasticos_automation",
     ],
     "data": [
         "security/security.xml",

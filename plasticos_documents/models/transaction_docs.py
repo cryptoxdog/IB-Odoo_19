@@ -136,7 +136,6 @@ class PlasticosTransactionDocs(models.Model):
                 order="create_date ASC, id ASC",
                 limit=300,
             )
-            log_model = self.env["plasticos.automation.log"] if "plasticos.automation.log" in self.env else None
             today = date.today()
 
             for tx in transactions:
@@ -187,15 +186,6 @@ class PlasticosTransactionDocs(models.Model):
                         body=f"Automated reminder: transaction {tx.name} has missing documents (overdue by {bd} business days).",
                         message_type="notification",
                     )
-                    if log_model is not None:
-                        log_model.create(
-                            {
-                                "name": f"Doc reminder for {tx.name}",
-                                "model_name": "plasticos.transaction",
-                                "res_id": tx.id,
-                                "action_type": "doc_reminder",
-                            }
-                        )
                 elif new_status == "escalated":
                     has_today_activity = self.env["mail.activity"].search_count(
                         [
@@ -213,15 +203,6 @@ class PlasticosTransactionDocs(models.Model):
                         summary=f"ESCALATION: Missing documents on {tx.name}",
                         note=f"Transaction {tx.name} has missing documents for {bd} business days. Manual intervention required.",
                     )
-                    if log_model is not None:
-                        log_model.create(
-                            {
-                                "name": f"Doc escalation for {tx.name}",
-                                "model_name": "plasticos.transaction",
-                                "res_id": tx.id,
-                                "action_type": "doc_escalation",
-                            }
-                        )
 
                 _logger.info(
                     "Documents extension: TX %s status=%s (bd=%d, missing: supplier=%s, carrier=%s, buyer=%s)",
