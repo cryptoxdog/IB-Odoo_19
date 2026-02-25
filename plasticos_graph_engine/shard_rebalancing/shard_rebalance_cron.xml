@@ -1,0 +1,10 @@
+<odoo>
+    <record id="ir_cron_shard_rebalance" model="ir.cron">
+        <field name="name">Shard Rebalance</field>
+        <field name="model_id" ref="plasticos_graph_engine.model_plasticos_graph_shard_rebalance"/>
+        <field name="state">code</field>
+        <field name="code">model.generate_plan()</field>
+        <field name="interval_number">6</field>
+        <field name="interval_type">hours</field>
+    </record>
+</odoo>

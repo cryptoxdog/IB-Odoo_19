@@ -1,0 +1,36 @@
+<odoo>
+
+    <!-- Nightly Grade Expansion Analytics -->
+    <record id="ir_cron_expansion_analytics" model="ir.cron">
+        <field name="name">Graph Expansion Analytics</field>
+        <field name="model_id" ref="plasticos_graph_intelligence.model_plasticos_expansion_analytics_service"/>
+        <field name="state">code</field>
+        <field name="code">model.compute()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active">True</field>
+    </record>
+
+    <!-- Weekly Similarity Refresh -->
+    <record id="ir_cron_similarity_refresh" model="ir.cron">
+        <field name="name">Graph Similarity Refresh</field>
+        <field name="model_id" ref="plasticos_graph_intelligence.model_plasticos_graph_gds"/>
+        <field name="state">code</field>
+        <field name="code">model.compute_grade_similarity()</field>
+        <field name="interval_number">7</field>
+        <field name="interval_type">days</field>
+        <field name="active">True</field>
+    </record>
+
+    <!-- Weekly Reinforcement Rebuild -->
+    <record id="ir_cron_reinforcement_rebuild" model="ir.cron">
+        <field name="name">Graph Reinforcement Rebuild</field>
+        <field name="model_id" ref="plasticos_graph_intelligence.model_plasticos_graph_reinforcement"/>
+        <field name="state">code</field>
+        <field name="code">model.rebuild()</field>
+        <field name="interval_number">7</field>
+        <field name="interval_type">days</field>
+        <field name="active">True</field>
+    </record>
+
+</odoo>

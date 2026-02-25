@@ -1,0 +1,15 @@
+<odoo>
+    <record id="ir_cron_graph_engine" model="ir.cron">
+        <field name="name">Graph Engine Processor</field>
+        <field name="model_id" ref="plasticos_graph_engine.model_plasticos_graph_outbox_consumer"/>
+        <field name="state">code</field>
+        <field name="code">
+model.process_queue();
+model.env["plasticos.graph.gds"].compute_grade_similarity();
+model.env["plasticos.graph.capability.inference"].build_capabilities();
+model.env["plasticos.graph.reinforcement"].rebuild();
+        </field>
+        <field name="interval_number">2</field>
+        <field name="interval_type">minutes</field>
+    </record>
+</odoo>
