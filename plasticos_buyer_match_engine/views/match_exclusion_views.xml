@@ -60,16 +60,9 @@
                 <field name="supplier_partner_id"/>
                 <field name="buyer_partner_id"/>
                 <field name="reason"/>
-                <filter name="active" string="Active" domain="[('active', '=', True)]"/>
-                <filter name="permanent" string="Permanent" domain="[('exclusion_type', '=', 'permanent')]"/>
-                <filter name="temporary" string="Temporary" domain="[('exclusion_type', '=', 'temporary')]"/>
-                <separator/>
-                <group expand="0">
-                    <filter name="group_reason" string="Reason" context="{'group_by': 'reason'}"/>
-                    <filter name="group_type" string="Type" context="{'group_by': 'exclusion_type'}"/>
-                    <filter name="group_supplier" string="Supplier" context="{'group_by': 'supplier_partner_id'}"/>
-                    <filter name="group_buyer" string="Buyer" context="{'group_by': 'buyer_partner_id'}"/>
-                </group>
+                <filter name="active_only" string="Active" domain="[('active', '=', True)]"/>
+                <filter name="permanent_only" string="Permanent" domain="[('exclusion_type', '=', 'permanent')]"/>
+                <filter name="temporary_only" string="Temporary" domain="[('exclusion_type', '=', 'temporary')]"/>
             </search>
         </field>
     </record>
@@ -80,7 +73,7 @@
         <field name="res_model">plasticos.match.exclusion</field>
         <field name="view_mode">list,form</field>
         <field name="search_view_id" ref="view_match_exclusion_search"/>
-        <field name="context">{'search_default_active': 1}</field>
+        <field name="context">{'search_default_active_only': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Create your first exclusion
