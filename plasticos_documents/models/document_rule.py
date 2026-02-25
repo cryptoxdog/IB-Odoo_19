@@ -13,8 +13,11 @@ class PlasticosDocumentRule(models.Model):
     required_for_close = fields.Boolean(default=True)
     active = fields.Boolean(default=True)
 
-    # ── Constraints (Odoo 19 models.Constraint) ──────────────
-    _check_unique_rule = models.Constraint(
-        "unique(tag_id, res_model, client_id)",
-        "Only one rule per tag + model + client combination is allowed.",
-    )
+    # ── Constraints ──────────────────────────────────────────
+    _sql_constraints = [
+        (
+            "unique_rule",
+            "unique(tag_id, res_model, client_id)",
+            "Only one rule per tag + model + client combination is allowed.",
+        ),
+    ]

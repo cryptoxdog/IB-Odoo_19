@@ -54,6 +54,52 @@ class PlasticosGraphService(models.AbstractModel):
     _name = "plasticos.graph.service"
     _description = "PlastOS Graph Engine (Neo4j buyer matching)"
 
+    def action_test_neo4j_connection(self):
+        """Test Neo4j connectivity and return status.
+
+        Can be called from Odoo UI (button) or via RPC.
+        Returns dict with connection status and details.
+        """
+        config = self._get_config()
+        uri = config.get("uri", "")
+
+        if not uri:
+            return {
+                "success": False,
+                "message": "Neo4j URI not configured. Set plasticos_graph.neo4j_uri in System Parameters or NEO4J_URI env var.",
+                "uri": "",
+            }
+
+        try:
+            pool_cls = _neo4j_pool()
+            pool = pool_cls(
+                uri=uri,
+                username=config.get("user", ""),
+                password=config.get("password", ""),
+                pool_size=config.get("pool_size", 25),
+                connection_timeout=config.get("connection_timeout", 30),
+            )
+            healthy = pool.health_check()
+            if healthy:
+                return {
+                    "success": True,
+                    "message": f"Neo4j connection successful: {uri}",
+                    "uri": uri,
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"Neo4j health check failed for: {uri}",
+                    "uri": uri,
+                }
+        except Exception as exc:
+            _logger.error("Neo4j connection test failed: %s", exc)
+            return {
+                "success": False,
+                "message": f"Neo4j connection failed: {exc}",
+                "uri": uri,
+            }
+
     def _get_config(self):
         """Return Neo4j connection and match config.
 

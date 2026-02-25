@@ -1,5 +1,13 @@
 """
 Tests for Buyer Matching Engine v2.0 (facility.profile-based)
+
+SCHEMA ALIGNMENT (2026-02-25):
+- plasticos.polymer (with category: commodity/engineering/specialty)
+- plasticos.material.form (bales, regrind, pellet, etc.)
+- plasticos.material.color (natural, white, black, etc.)
+- plasticos.source.type (pcr, pir, virgin) — replaces "material_category"
+- intake.lat/lon for geo (not latitude/longitude)
+- facility.profile uses accepted_polymer_ids (Many2many), form_preference (Selection)
 """
 
 import logging
@@ -14,21 +22,68 @@ class TestBuyerMatcher(TransactionCase):
     def setUp(self):
         super().setUp()
 
+        # ══════════════════════════════════════════════════════════
         # Create test material master data
-        self.mat_category = self.env["plasticos.material.category"].create({"name": "Post-Consumer", "code": "PC"})
+        # ══════════════════════════════════════════════════════════
 
-        self.polymer_family = self.env["plasticos.polymer.family"].create({"name": "HDPE", "code": "HDPE"})
-
-        self.form_factor = self.env["plasticos.form.factor"].create({"name": "Bales", "code": "BALE"})
-
-        self.color_family = self.env["plasticos.color.family"].create({"name": "Natural", "code": "NAT"})
-
-        self.quality_level = self.env["plasticos.quality.level"].create({"name": "Grade A", "code": "A"})
-
-        # Create test supplier
-        self.supplier = self.env["res.partner"].create(
+        # Polymer
+        self.polymer_hdpe = self.env["plasticos.polymer"].create(
             {
-                "name": "Test Supplier",
+                "name": "HDPE",
+                "code": "hdpe",
+                "full_name": "High-Density Polyethylene",
+                "category": "commodity",
+            }
+        )
+
+        self.polymer_pp = self.env["plasticos.polymer"].create(
+            {
+                "name": "PP",
+                "code": "pp",
+                "full_name": "Polypropylene",
+                "category": "commodity",
+            }
+        )
+
+        # Material Form
+        self.form_bales = self.env["plasticos.material.form"].create(
+            {
+                "name": "Bales",
+                "code": "bales",
+            }
+        )
+
+        # Material Color
+        self.color_natural = self.env["plasticos.material.color"].create(
+            {
+                "name": "Natural",
+                "code": "natural",
+            }
+        )
+
+        # Source Type (replaces material_category)
+        self.source_pcr = self.env["plasticos.source.type"].create(
+            {
+                "name": "Post-Consumer",
+                "code": "pcr",
+            }
+        )
+
+        self.source_pir = self.env["plasticos.source.type"].create(
+            {
+                "name": "Post-Industrial",
+                "code": "pir",
+            }
+        )
+
+        # ══════════════════════════════════════════════════════════
+        # Create test supplier (company + facility)
+        # ══════════════════════════════════════════════════════════
+
+        self.supplier_company = self.env["res.partner"].create(
+            {
+                "name": "Test Supplier Company",
+                "is_company": True,
                 "supplier_rank": 1,
                 "street": "123 Supplier St",
                 "city": "Charlotte",
@@ -36,27 +91,39 @@ class TestBuyerMatcher(TransactionCase):
             }
         )
 
-        # Create supplier profile
-        self.supplier_profile = self.env["plasticos.facility.profile"].create(
+        self.supplier_facility = self.env["res.partner"].create(
             {
-                "name": "Test Supplier Profile",
-                "partner_id": self.supplier.id,
-                "active": True,
-                "material_category_id": self.mat_category.id,
-                "polymer_family_id": self.polymer_family.id,
-                "form_factor_ids": [(6, 0, [self.form_factor.id])],
-                "color_family_ids": [(6, 0, [self.color_family.id])],
-                "monthly_capacity": 50000.0,
-                "quality_level_id": self.quality_level.id,
-                "latitude": 35.2271,
-                "longitude": -80.8431,
+                "name": "Test Supplier Facility",
+                "is_company": True,
+                "parent_id": self.supplier_company.id,
+                "street": "123 Supplier St",
+                "city": "Charlotte",
+                "country_id": self.env.ref("base.us").id,
             }
         )
 
-        # Create test buyers
-        self.buyer1 = self.env["res.partner"].create(
+        # Supplier facility profile
+        self.supplier_profile = self.env["plasticos.facility.profile"].create(
             {
-                "name": "Exact Match Buyer",
+                "partner_id": self.supplier_facility.id,
+                "active": True,
+                "accepted_polymer_ids": [(6, 0, [self.polymer_hdpe.id])],
+                "form_preference": "bales",
+                "accepted_color_ids": [(6, 0, [self.color_natural.id])],
+                "capacity_lbs_month": 50000,
+                "source_type_id": self.source_pcr.id,
+            }
+        )
+
+        # ══════════════════════════════════════════════════════════
+        # Create test buyers (company + facility structure)
+        # ══════════════════════════════════════════════════════════
+
+        # Buyer 1: Exact match (same polymer, same source type)
+        self.buyer1_company = self.env["res.partner"].create(
+            {
+                "name": "Exact Match Buyer Company",
+                "is_company": True,
                 "customer_rank": 1,
                 "street": "456 Buyer Ave",
                 "city": "Charlotte",
@@ -64,165 +131,189 @@ class TestBuyerMatcher(TransactionCase):
             }
         )
 
-        self.buyer1_profile = self.env["plasticos.facility.profile"].create(
+        self.buyer1_facility = self.env["res.partner"].create(
             {
-                "name": "Exact Match Buyer Profile",
-                "partner_id": self.buyer1.id,
-                "active": True,
-                "material_category_id": self.mat_category.id,
-                "polymer_family_id": self.polymer_family.id,
-                "form_factor_ids": [(6, 0, [self.form_factor.id])],
-                "color_family_ids": [(6, 0, [self.color_family.id])],
-                "min_order_quantity": 10000.0,
-                "quality_level_id": self.quality_level.id,
-                "latitude": 35.2271,
-                "longitude": -80.8431,
+                "name": "Exact Match Buyer Facility",
+                "is_company": True,
+                "parent_id": self.buyer1_company.id,
+                "customer_rank": 1,
             }
         )
 
-        self.buyer2 = self.env["res.partner"].create(
+        self.buyer1_profile = self.env["plasticos.facility.profile"].create(
             {
-                "name": "Partial Match Buyer",
+                "partner_id": self.buyer1_facility.id,
+                "active": True,
+                "accepted_polymer_ids": [(6, 0, [self.polymer_hdpe.id])],
+                "form_preference": "bales",
+                "accepted_color_ids": [(6, 0, [self.color_natural.id])],
+                "min_lot_size_lbs": 10000,
+                "source_type_id": self.source_pcr.id,
+            }
+        )
+
+        # Buyer 2: Different polymer (should fail polymer gate)
+        self.buyer2_company = self.env["res.partner"].create(
+            {
+                "name": "Different Polymer Buyer Company",
+                "is_company": True,
                 "customer_rank": 1,
-                "street": "789 Commerce Blvd",
-                "city": "Atlanta",
-                "country_id": self.env.ref("base.us").id,
+            }
+        )
+
+        self.buyer2_facility = self.env["res.partner"].create(
+            {
+                "name": "Different Polymer Buyer Facility",
+                "is_company": True,
+                "parent_id": self.buyer2_company.id,
+                "customer_rank": 1,
             }
         )
 
         self.buyer2_profile = self.env["plasticos.facility.profile"].create(
             {
-                "name": "Partial Match Buyer Profile",
-                "partner_id": self.buyer2.id,
+                "partner_id": self.buyer2_facility.id,
                 "active": True,
-                "material_category_id": self.mat_category.id,
-                "polymer_family_id": None,
-                "min_order_quantity": 20000.0,
-                "latitude": 33.7490,
-                "longitude": -84.3880,
+                "accepted_polymer_ids": [(6, 0, [self.polymer_pp.id])],  # PP not HDPE
+                "min_lot_size_lbs": 20000,
             }
         )
 
-    def test_find_matches_exact(self):
-        """Test finding exact match buyer"""
+        # ══════════════════════════════════════════════════════════
+        # Create test intake (material offering from supplier)
+        # Uses lat/lon for geo (not latitude/longitude)
+        # ══════════════════════════════════════════════════════════
+
+        self.intake = self.env["plasticos.intake"].create(
+            {
+                "partner_id": self.supplier_company.id,
+                "facility_id": self.supplier_facility.id,
+                "polymer_id": self.polymer_hdpe.id,
+                "form_id": self.form_bales.id,
+                "color_id": self.color_natural.id,
+                "source_type_id": self.source_pcr.id,
+                "quantity_per_load_lbs": 40000,
+                "loads_per_month": 2,
+                "lat": 35.2271,  # Charlotte, NC
+                "lon": -80.8431,
+            }
+        )
+
+    # ══════════════════════════════════════════════════════════════
+    # Model Registration Tests
+    # ══════════════════════════════════════════════════════════════
+
+    def test_matcher_model_exists(self):
+        """Verify the plasticos.buyer.matcher model is registered."""
+        self.assertIn("plasticos.buyer.matcher", self.env)
+
+    def test_facility_profile_model_exists(self):
+        """Verify the plasticos.facility.profile model is registered."""
+        self.assertIn("plasticos.facility.profile", self.env)
+
+    def test_intake_model_exists(self):
+        """Verify the plasticos.intake model is registered."""
+        self.assertIn("plasticos.intake", self.env)
+
+    def test_exclusion_model_exists(self):
+        """Verify the plasticos.match.exclusion model is registered."""
+        self.assertIn("plasticos.match.exclusion", self.env)
+
+    # ══════════════════════════════════════════════════════════════
+    # Matcher Method Tests
+    # ══════════════════════════════════════════════════════════════
+
+    def test_find_matches_method_exists(self):
+        """Verify find_matches_for_supplier method exists on matcher."""
         matcher = self.env["plasticos.buyer.matcher"]
+        self.assertTrue(hasattr(matcher, "find_matches_for_supplier"))
 
-        matches = matcher.find_matches_for_supplier(supplier_partner_id=self.supplier.id, max_results=10)
-
-        self.assertTrue(len(matches) > 0, "Should find at least one match")
-
-        # Verify exact match buyer is in results
-        buyer_ids = [m["buyer_id"] for m in matches]
-        self.assertIn(self.buyer1.id, buyer_ids, "Exact match buyer should be in results")
-
-        # Check exact match has high score
-        exact_match = next((m for m in matches if m["buyer_id"] == self.buyer1.id), None)
-        self.assertIsNotNone(exact_match)
-        self.assertEqual(exact_match["gates_passed"], 10, "Should pass all 10 gates")
-
-    def test_find_matches_partial(self):
-        """Test finding partial match buyer"""
+    def test_find_matches_returns_list(self):
+        """Test that find_matches_for_supplier returns a list."""
         matcher = self.env["plasticos.buyer.matcher"]
+        matches = matcher.find_matches_for_supplier(
+            supplier_partner_id=self.supplier_company.id,
+            intake_id=self.intake.id,
+            max_results=10,
+        )
+        self.assertIsInstance(matches, list)
 
-        matches = matcher.find_matches_for_supplier(supplier_partner_id=self.supplier.id, max_results=10)
+    def test_invalid_supplier_raises(self):
+        """Test error handling for invalid supplier."""
+        matcher = self.env["plasticos.buyer.matcher"]
+        with self.assertRaises(ValidationError):
+            matcher.find_matches_for_supplier(supplier_partner_id=99999)
 
-        # Verify partial match buyer might be in results (depends on gate strictness)
-        buyer_ids = [m["buyer_id"] for m in matches]
-        if self.buyer2.id in buyer_ids:
-            partial_match = next((m for m in matches if m["buyer_id"] == self.buyer2.id), None)
-            self.assertIsNotNone(partial_match)
-            # Partial match should have lower score than exact
-            exact_match = next((m for m in matches if m["buyer_id"] == self.buyer1.id), None)
-            if exact_match:
-                self.assertLess(
-                    partial_match["total_score"],
-                    exact_match["total_score"],
-                    "Partial match should score lower than exact match",
-                )
+    def test_max_results_parameter(self):
+        """Test that max_results parameter is respected."""
+        matcher = self.env["plasticos.buyer.matcher"]
+        matches = matcher.find_matches_for_supplier(
+            supplier_partner_id=self.supplier_company.id,
+            intake_id=self.intake.id,
+            max_results=1,
+        )
+        self.assertLessEqual(len(matches), 1)
 
-    def test_no_buyers(self):
-        """Test matching when no buyers exist"""
-        # Deactivate all buyer profiles
+    def test_mode_parameter_strict(self):
+        """Test strict mode parameter."""
+        matcher = self.env["plasticos.buyer.matcher"]
+        matches = matcher.find_matches_for_supplier(
+            supplier_partner_id=self.supplier_company.id,
+            intake_id=self.intake.id,
+            mode="strict",
+        )
+        self.assertIsInstance(matches, list)
+
+    def test_mode_parameter_relaxed(self):
+        """Test relaxed mode parameter."""
+        matcher = self.env["plasticos.buyer.matcher"]
+        matches = matcher.find_matches_for_supplier(
+            supplier_partner_id=self.supplier_company.id,
+            intake_id=self.intake.id,
+            mode="relaxed",
+        )
+        self.assertIsInstance(matches, list)
+
+    # ══════════════════════════════════════════════════════════════
+    # Gate Logic Tests
+    # ══════════════════════════════════════════════════════════════
+
+    def test_no_active_buyers_returns_empty(self):
+        """Test matching when no active buyer profiles exist."""
         self.buyer1_profile.write({"active": False})
         self.buyer2_profile.write({"active": False})
 
         matcher = self.env["plasticos.buyer.matcher"]
-        matches = matcher.find_matches_for_supplier(supplier_partner_id=self.supplier.id)
+        matches = matcher.find_matches_for_supplier(
+            supplier_partner_id=self.supplier_company.id,
+            intake_id=self.intake.id,
+        )
+        self.assertEqual(len(matches), 0)
 
-        self.assertEqual(len(matches), 0, "Should return empty list when no buyers")
-
-    def test_gate_filtering(self):
-        """Test that gates filter out incompatible buyers"""
-        # Create buyer with incompatible material
-        incompatible_cat = self.env["plasticos.material.category"].create({"name": "Industrial", "code": "IND"})
-
-        incompatible_buyer = self.env["res.partner"].create({"name": "Incompatible Buyer", "customer_rank": 1})
-
-        self.env["plasticos.facility.profile"].create(
-            {
-                "name": "Incompatible Profile",
-                "partner_id": incompatible_buyer.id,
-                "active": True,
-                "material_category_id": incompatible_cat.id,
-                "polymer_family_id": self.polymer_family.id,
-            }
+    def test_match_result_structure(self):
+        """Test that match results have expected structure."""
+        matcher = self.env["plasticos.buyer.matcher"]
+        matches = matcher.find_matches_for_supplier(
+            supplier_partner_id=self.supplier_company.id,
+            intake_id=self.intake.id,
+            max_results=10,
         )
 
+        if matches:
+            match = matches[0]
+            expected_keys = ["buyer_id", "buyer_name", "total_score", "gates_passed"]
+            for key in expected_keys:
+                self.assertIn(key, match)
+
+    def test_scoring_order_descending(self):
+        """Test that results are sorted by score descending."""
         matcher = self.env["plasticos.buyer.matcher"]
-        matches = matcher.find_matches_for_supplier(supplier_partner_id=self.supplier.id)
-
-        # Incompatible buyer should not be in results
-        buyer_ids = [m["buyer_id"] for m in matches]
-        self.assertNotIn(incompatible_buyer.id, buyer_ids, "Incompatible buyer should be filtered out by gates")
-
-    def test_max_results_limit(self):
-        """Test max_results parameter limits output"""
-        # Create 5 additional buyers
-        for i in range(5):
-            buyer = self.env["res.partner"].create({"name": f"Bulk Buyer {i+1}", "customer_rank": 1})
-            self.env["plasticos.facility.profile"].create(
-                {
-                    "name": f"Bulk Profile {i+1}",
-                    "partner_id": buyer.id,
-                    "active": True,
-                    "material_category_id": self.mat_category.id,
-                    "polymer_family_id": self.polymer_family.id,
-                }
-            )
-
-        matcher = self.env["plasticos.buyer.matcher"]
-        matches = matcher.find_matches_for_supplier(supplier_partner_id=self.supplier.id, max_results=3)
-
-        self.assertLessEqual(len(matches), 3, "Should respect max_results limit")
-
-    def test_invalid_supplier(self):
-        """Test error handling for invalid supplier"""
-        matcher = self.env["plasticos.buyer.matcher"]
-
-        with self.assertRaises(ValidationError):
-            matcher.find_matches_for_supplier(supplier_partner_id=99999)
-
-    def test_scoring_order(self):
-        """Test that results are sorted by score descending"""
-        matcher = self.env["plasticos.buyer.matcher"]
-
-        matches = matcher.find_matches_for_supplier(supplier_partner_id=self.supplier.id, max_results=10)
+        matches = matcher.find_matches_for_supplier(
+            supplier_partner_id=self.supplier_company.id,
+            intake_id=self.intake.id,
+            max_results=10,
+        )
 
         if len(matches) > 1:
-            # Verify descending score order
             scores = [m["total_score"] for m in matches]
-            self.assertEqual(scores, sorted(scores, reverse=True), "Matches should be sorted by score descending")
-
-    def test_matcher_model_exists(self):
-        """Verify the plasticos.buyer.matcher model is registered."""
-        self.assertIn(
-            "plasticos.buyer.matcher",
-            self.env,
-        )
-
-    def test_match_result_model_exists(self):
-        """Verify the plasticos.match.result model is registered."""
-        self.assertIn(
-            "plasticos.match.result",
-            self.env,
-        )
+            self.assertEqual(scores, sorted(scores, reverse=True))

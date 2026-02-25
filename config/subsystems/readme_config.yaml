@@ -1,6 +1,8 @@
 # PlasticOS Odoo Module README Configuration
 # Generated: 2026-02-20
 # ============================================
+# Optional: core_docs (list of doc filenames), doc_search_paths (where to find them)
+# See /readme command for full core docs catalog (18 files)
 
 version: "1.0.0"
 repo_type: "odoo"

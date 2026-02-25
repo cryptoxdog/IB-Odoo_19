@@ -1,0 +1,5733 @@
+[
+  {
+    "module": "plasticos_enrichment",
+    "file": "plasticos_enrichment/models/enrichment_provenance.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "contacts",
+      "plasticos_material_profile",
+      "plasticos_inference_engine"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/sequence.xml",
+      "data/cron.xml",
+      "views/enrichment_run_views.xml",
+      "views/enrichment_source_views.xml",
+      "views/res_partner_enrichment.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.enrichment.provenance",
+    "_inherit": null,
+    "_description": "Per-field Enrichment Provenance",
+    "fields": [
+      [
+        "run_id",
+        "Many2one"
+      ],
+      [
+        "partner_id",
+        "Many2one"
+      ],
+      [
+        "target_model",
+        "Char"
+      ],
+      [
+        "target_field",
+        "Char"
+      ],
+      [
+        "value_written",
+        "Char"
+      ],
+      [
+        "previous_value",
+        "Char"
+      ],
+      [
+        "source_url",
+        "Char"
+      ],
+      [
+        "source_sentence",
+        "Text"
+      ],
+      [
+        "confidence",
+        "Float"
+      ],
+      [
+        "inference_type",
+        "Selection"
+      ],
+      [
+        "status",
+        "Selection"
+      ],
+      [
+        "created_at",
+        "Datetime"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "EnrichmentProvenance",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_enrichment",
+    "file": "plasticos_enrichment/models/enrichment_source.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "contacts",
+      "plasticos_material_profile",
+      "plasticos_inference_engine"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/sequence.xml",
+      "data/cron.xml",
+      "views/enrichment_run_views.xml",
+      "views/enrichment_source_views.xml",
+      "views/res_partner_enrichment.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.enrichment.source",
+    "_inherit": null,
+    "_description": "Enrichment Crawl Source",
+    "fields": [
+      [
+        "partner_id",
+        "Many2one"
+      ],
+      [
+        "source_type",
+        "Selection"
+      ],
+      [
+        "url",
+        "Char"
+      ],
+      [
+        "last_crawled_at",
+        "Datetime"
+      ],
+      [
+        "last_hash",
+        "Char"
+      ],
+      [
+        "active",
+        "Boolean"
+      ],
+      [
+        "crawl_status",
+        "Selection"
+      ],
+      [
+        "raw_content",
+        "Text"
+      ],
+      [
+        "error_message",
+        "Text"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "EnrichmentSource",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_enrichment",
+    "file": "plasticos_enrichment/models/enrichment_run.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "contacts",
+      "plasticos_material_profile",
+      "plasticos_inference_engine"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/sequence.xml",
+      "data/cron.xml",
+      "views/enrichment_run_views.xml",
+      "views/enrichment_source_views.xml",
+      "views/res_partner_enrichment.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.enrichment.run",
+    "_inherit": [
+      "mail.thread"
+    ],
+    "_description": "Buyer Enrichment Run",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "partner_id",
+        "Many2one"
+      ],
+      [
+        "source_ids",
+        "Many2many"
+      ],
+      [
+        "extraction_ids",
+        "One2many"
+      ],
+      [
+        "provenance_ids",
+        "One2many"
+      ],
+      [
+        "state",
+        "Selection"
+      ],
+      [
+        "confidence_score",
+        "Float"
+      ],
+      [
+        "validation_issues",
+        "Json"
+      ],
+      [
+        "injected_at",
+        "Datetime"
+      ],
+      [
+        "profiles_created",
+        "Integer"
+      ],
+      [
+        "profiles_updated",
+        "Integer"
+      ],
+      [
+        "fields_written",
+        "Integer"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_confidence"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "EnrichmentRun",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_enrichment",
+    "file": "plasticos_enrichment/models/enrichment_extraction.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "contacts",
+      "plasticos_material_profile",
+      "plasticos_inference_engine"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/sequence.xml",
+      "data/cron.xml",
+      "views/enrichment_run_views.xml",
+      "views/enrichment_source_views.xml",
+      "views/res_partner_enrichment.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.enrichment.extraction",
+    "_inherit": null,
+    "_description": "AI Extraction Result",
+    "fields": [
+      [
+        "run_id",
+        "Many2one"
+      ],
+      [
+        "source_id",
+        "Many2one"
+      ],
+      [
+        "material_json",
+        "Json"
+      ],
+      [
+        "metadata_json",
+        "Json"
+      ],
+      [
+        "confidence",
+        "Float"
+      ],
+      [
+        "governance_passed",
+        "Boolean"
+      ],
+      [
+        "governance_flags",
+        "Json"
+      ],
+      [
+        "extracted_at",
+        "Datetime"
+      ],
+      [
+        "is_injectable",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_injectable"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "EnrichmentExtraction",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_enrichment",
+    "file": "plasticos_enrichment/models/res_partner.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "contacts",
+      "plasticos_material_profile",
+      "plasticos_inference_engine"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/sequence.xml",
+      "data/cron.xml",
+      "views/enrichment_run_views.xml",
+      "views/enrichment_source_views.xml",
+      "views/res_partner_enrichment.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "res.partner"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "enrichment_run_ids",
+        "One2many"
+      ],
+      [
+        "enrichment_source_ids",
+        "One2many"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "ResPartner",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_enrichment",
+    "file": "plasticos_enrichment/models/enrichment_service.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "contacts",
+      "plasticos_material_profile",
+      "plasticos_inference_engine"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/sequence.xml",
+      "data/cron.xml",
+      "views/enrichment_run_views.xml",
+      "views/enrichment_source_views.xml",
+      "views/res_partner_enrichment.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.enrichment.service",
+    "_inherit": null,
+    "_description": "AI-Powered CRM Enrichment Service",
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": null,
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_transaction",
+    "file": "plasticos_transaction/models/audit_cron.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "product",
+      "account",
+      "sale_management",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_material_profile",
+      "plasticos_facility_profile",
+      "plasticos_intake",
+      "plasticos_product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security_hardening.xml",
+      "security/ir.model.access.csv",
+      "security/commission_acl.xml",
+      "data/sequence.xml",
+      "data/audit_cron.xml",
+      "views/transaction_views.xml",
+      "views/commission_views.xml",
+      "views/transaction_bulk_update_wizard_views.xml",
+      "views/transaction_bulk_assign_wizard_views.xml",
+      "views/transaction_import_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.audit.cron",
+    "_inherit": null,
+    "_description": "Plasticos Monthly Audit Cron",
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosAuditCron",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_transaction",
+    "file": "plasticos_transaction/models/res_users_inherit.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "product",
+      "account",
+      "sale_management",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_material_profile",
+      "plasticos_facility_profile",
+      "plasticos_intake",
+      "plasticos_product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security_hardening.xml",
+      "security/ir.model.access.csv",
+      "security/commission_acl.xml",
+      "data/sequence.xml",
+      "data/audit_cron.xml",
+      "views/transaction_views.xml",
+      "views/commission_views.xml",
+      "views/transaction_bulk_update_wizard_views.xml",
+      "views/transaction_bulk_assign_wizard_views.xml",
+      "views/transaction_import_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "res.users"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "default_commission_rate",
+        "Float"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "ResUsers",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_transaction",
+    "file": "plasticos_transaction/models/transaction.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "product",
+      "account",
+      "sale_management",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_material_profile",
+      "plasticos_facility_profile",
+      "plasticos_intake",
+      "plasticos_product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security_hardening.xml",
+      "security/ir.model.access.csv",
+      "security/commission_acl.xml",
+      "data/sequence.xml",
+      "data/audit_cron.xml",
+      "views/transaction_views.xml",
+      "views/commission_views.xml",
+      "views/transaction_bulk_update_wizard_views.xml",
+      "views/transaction_bulk_assign_wizard_views.xml",
+      "views/transaction_import_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.transaction",
+    "_inherit": [
+      "mail.thread"
+    ],
+    "_description": "Plasticos Transaction",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "user_id",
+        "Many2one"
+      ],
+      [
+        "sale_order_id",
+        "Many2one"
+      ],
+      [
+        "purchase_order_ids",
+        "Many2many"
+      ],
+      [
+        "load_id",
+        "Many2one"
+      ],
+      [
+        "supplier_id",
+        "Many2one"
+      ],
+      [
+        "buyer_id",
+        "Many2one"
+      ],
+      [
+        "carrier_id",
+        "Many2one"
+      ],
+      [
+        "supplier_profile_id",
+        "Many2one"
+      ],
+      [
+        "buyer_profile_id",
+        "Many2one"
+      ],
+      [
+        "buyer_facility_id",
+        "Many2one"
+      ],
+      [
+        "supplier_material_id",
+        "Many2one"
+      ],
+      [
+        "product_id",
+        "Many2one"
+      ],
+      [
+        "quantity",
+        "Float"
+      ],
+      [
+        "uom_id",
+        "Many2one"
+      ],
+      [
+        "unit_price",
+        "Float"
+      ],
+      [
+        "expected_pickup_date",
+        "Datetime"
+      ],
+      [
+        "actual_pickup_date",
+        "Datetime"
+      ],
+      [
+        "expected_delivery_date",
+        "Datetime"
+      ],
+      [
+        "actual_delivery_date",
+        "Datetime"
+      ],
+      [
+        "delivery_term",
+        "Selection"
+      ],
+      [
+        "freight_rate",
+        "Float"
+      ],
+      [
+        "freight_actual",
+        "Float"
+      ],
+      [
+        "expected_weight",
+        "Float"
+      ],
+      [
+        "actual_weight",
+        "Float"
+      ],
+      [
+        "weight_variance_percent",
+        "Float"
+      ],
+      [
+        "has_quality_claim",
+        "Boolean"
+      ],
+      [
+        "customer_invoice_id",
+        "Many2one"
+      ],
+      [
+        "vendor_bill_ids",
+        "Many2many"
+      ],
+      [
+        "freight_bill_ids",
+        "Many2many"
+      ],
+      [
+        "other_expenses",
+        "Float"
+      ],
+      [
+        "freight_chargebacks",
+        "Float"
+      ],
+      [
+        "lightweight_penalties",
+        "Float"
+      ],
+      [
+        "claim_ids",
+        "One2many"
+      ],
+      [
+        "line_ids",
+        "One2many"
+      ],
+      [
+        "line_count",
+        "Integer"
+      ],
+      [
+        "historical_sale_total",
+        "Float"
+      ],
+      [
+        "historical_purchase_total",
+        "Float"
+      ],
+      [
+        "historical_margin",
+        "Float"
+      ],
+      [
+        "revenue_total",
+        "Float"
+      ],
+      [
+        "purchase_cost_total",
+        "Float"
+      ],
+      [
+        "freight_cost_total",
+        "Float"
+      ],
+      [
+        "cost_total",
+        "Float"
+      ],
+      [
+        "gross_margin",
+        "Float"
+      ],
+      [
+        "net_margin",
+        "Float"
+      ],
+      [
+        "commission_rule_id",
+        "Many2one"
+      ],
+      [
+        "commission_amount",
+        "Float"
+      ],
+      [
+        "commission_locked",
+        "Boolean"
+      ],
+      [
+        "commission_locked_amount",
+        "Float"
+      ],
+      [
+        "compliance_status",
+        "Selection"
+      ],
+      [
+        "state",
+        "Selection"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_profile_refs",
+      "_compute_profiles",
+      "_compute_weight_variance",
+      "_compute_line_count",
+      "_compute_historical_totals",
+      "_compute_financials",
+      "_compute_net_margin",
+      "_compute_chargebacks_penalties",
+      "_compute_commission",
+      "_compute_compliance"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosTransaction",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_transaction",
+    "file": "plasticos_transaction/models/sale_inherit.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "product",
+      "account",
+      "sale_management",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_material_profile",
+      "plasticos_facility_profile",
+      "plasticos_intake",
+      "plasticos_product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security_hardening.xml",
+      "security/ir.model.access.csv",
+      "security/commission_acl.xml",
+      "data/sequence.xml",
+      "data/audit_cron.xml",
+      "views/transaction_views.xml",
+      "views/commission_views.xml",
+      "views/transaction_bulk_update_wizard_views.xml",
+      "views/transaction_bulk_assign_wizard_views.xml",
+      "views/transaction_import_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "sale.order"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "transaction_id",
+        "Many2one"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "SaleOrder",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_transaction",
+    "file": "plasticos_transaction/models/transaction_line.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "product",
+      "account",
+      "sale_management",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_material_profile",
+      "plasticos_facility_profile",
+      "plasticos_intake",
+      "plasticos_product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security_hardening.xml",
+      "security/ir.model.access.csv",
+      "security/commission_acl.xml",
+      "data/sequence.xml",
+      "data/audit_cron.xml",
+      "views/transaction_views.xml",
+      "views/commission_views.xml",
+      "views/transaction_bulk_update_wizard_views.xml",
+      "views/transaction_bulk_assign_wizard_views.xml",
+      "views/transaction_import_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.transaction.line",
+    "_inherit": null,
+    "_description": "Transaction Line Item",
+    "fields": [
+      [
+        "transaction_id",
+        "Many2one"
+      ],
+      [
+        "detail_id",
+        "Char"
+      ],
+      [
+        "grade_id",
+        "Char"
+      ],
+      [
+        "description",
+        "Char"
+      ],
+      [
+        "sale_weight",
+        "Float"
+      ],
+      [
+        "purchase_weight",
+        "Float"
+      ],
+      [
+        "weight_uom",
+        "Selection"
+      ],
+      [
+        "sale_price",
+        "Float"
+      ],
+      [
+        "purchase_price",
+        "Float"
+      ],
+      [
+        "sale_amount",
+        "Float"
+      ],
+      [
+        "purchase_amount",
+        "Float"
+      ],
+      [
+        "margin",
+        "Float"
+      ],
+      [
+        "specifications",
+        "Text"
+      ],
+      [
+        "lot_no",
+        "Char"
+      ],
+      [
+        "container_no",
+        "Char"
+      ],
+      [
+        "unit_type",
+        "Selection"
+      ],
+      [
+        "units",
+        "Float"
+      ],
+      [
+        "condition",
+        "Char"
+      ],
+      [
+        "color",
+        "Char"
+      ],
+      [
+        "seal_no",
+        "Char"
+      ],
+      [
+        "sale_po",
+        "Char"
+      ],
+      [
+        "purchase_po",
+        "Char"
+      ],
+      [
+        "sale_weight_lbs",
+        "Float"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_weight_lbs",
+      "_compute_margin"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosTransactionLine",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_transaction",
+    "file": "plasticos_transaction/models/transaction_import_service.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "product",
+      "account",
+      "sale_management",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_material_profile",
+      "plasticos_facility_profile",
+      "plasticos_intake",
+      "plasticos_product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security_hardening.xml",
+      "security/ir.model.access.csv",
+      "security/commission_acl.xml",
+      "data/sequence.xml",
+      "data/audit_cron.xml",
+      "views/transaction_views.xml",
+      "views/commission_views.xml",
+      "views/transaction_bulk_update_wizard_views.xml",
+      "views/transaction_bulk_assign_wizard_views.xml",
+      "views/transaction_import_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.transaction.import.service",
+    "_inherit": null,
+    "_description": "Transaction CSV Import Service",
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": null,
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_transaction",
+    "file": "plasticos_transaction/models/purchase_inherit.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "product",
+      "account",
+      "sale_management",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_material_profile",
+      "plasticos_facility_profile",
+      "plasticos_intake",
+      "plasticos_product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security_hardening.xml",
+      "security/ir.model.access.csv",
+      "security/commission_acl.xml",
+      "data/sequence.xml",
+      "data/audit_cron.xml",
+      "views/transaction_views.xml",
+      "views/commission_views.xml",
+      "views/transaction_bulk_update_wizard_views.xml",
+      "views/transaction_bulk_assign_wizard_views.xml",
+      "views/transaction_import_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "purchase.order"
+    ],
+    "_description": null,
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PurchaseOrder",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_transaction",
+    "file": "plasticos_transaction/models/commission_rule.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "product",
+      "account",
+      "sale_management",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_material_profile",
+      "plasticos_facility_profile",
+      "plasticos_intake",
+      "plasticos_product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security_hardening.xml",
+      "security/ir.model.access.csv",
+      "security/commission_acl.xml",
+      "data/sequence.xml",
+      "data/audit_cron.xml",
+      "views/transaction_views.xml",
+      "views/commission_views.xml",
+      "views/transaction_bulk_update_wizard_views.xml",
+      "views/transaction_bulk_assign_wizard_views.xml",
+      "views/transaction_import_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.commission.rule",
+    "_inherit": null,
+    "_description": "Commission Rule",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "sales_rep_id",
+        "Many2one"
+      ],
+      [
+        "percentage",
+        "Float"
+      ],
+      [
+        "active",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosCommissionRule",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_transaction",
+    "file": "plasticos_transaction/models/load_inherit.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "product",
+      "account",
+      "sale_management",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_material_profile",
+      "plasticos_facility_profile",
+      "plasticos_intake",
+      "plasticos_product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security_hardening.xml",
+      "security/ir.model.access.csv",
+      "security/commission_acl.xml",
+      "data/sequence.xml",
+      "data/audit_cron.xml",
+      "views/transaction_views.xml",
+      "views/commission_views.xml",
+      "views/transaction_bulk_update_wizard_views.xml",
+      "views/transaction_bulk_assign_wizard_views.xml",
+      "views/transaction_import_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "plasticos.load"
+    ],
+    "_description": null,
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosLoad",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_transaction",
+    "file": "plasticos_transaction/models/commission_service.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "product",
+      "account",
+      "sale_management",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_material_profile",
+      "plasticos_facility_profile",
+      "plasticos_intake",
+      "plasticos_product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security_hardening.xml",
+      "security/ir.model.access.csv",
+      "security/commission_acl.xml",
+      "data/sequence.xml",
+      "data/audit_cron.xml",
+      "views/transaction_views.xml",
+      "views/commission_views.xml",
+      "views/transaction_bulk_update_wizard_views.xml",
+      "views/transaction_bulk_assign_wizard_views.xml",
+      "views/transaction_import_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.commission.service",
+    "_inherit": null,
+    "_description": "Commission Service",
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": null,
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_transaction",
+    "file": "plasticos_transaction/models/account_move_inherit.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "product",
+      "account",
+      "sale_management",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_material_profile",
+      "plasticos_facility_profile",
+      "plasticos_intake",
+      "plasticos_product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security_hardening.xml",
+      "security/ir.model.access.csv",
+      "security/commission_acl.xml",
+      "data/sequence.xml",
+      "data/audit_cron.xml",
+      "views/transaction_views.xml",
+      "views/commission_views.xml",
+      "views/transaction_bulk_update_wizard_views.xml",
+      "views/transaction_bulk_assign_wizard_views.xml",
+      "views/transaction_import_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "account.move"
+    ],
+    "_description": null,
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "AccountMove",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_partner_import",
+    "file": "plasticos_partner_import/models/partner_import_service.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "account",
+      "plasticos_facility_profile"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/partner_import_wizard_views.xml",
+      "views/partner_bulk_update_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.partner.import.service",
+    "_inherit": null,
+    "_description": "Deterministic Partner Import Service",
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": null,
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_partner_import",
+    "file": "plasticos_partner_import/models/validation.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "account",
+      "plasticos_facility_profile"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/partner_import_wizard_views.xml",
+      "views/partner_bulk_update_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.partner.import.validation",
+    "_inherit": null,
+    "_description": "Partner Import Validation",
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": null,
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_logistics",
+    "file": "plasticos_logistics/models/dispatch.py",
+    "manifest_depends": [
+      "sale_management",
+      "stock",
+      "mail"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/incoterms.xml",
+      "data/cron.xml",
+      "views/load_views.xml",
+      "views/sale_order_button.xml",
+      "views/load_bulk_update_wizard_views.xml",
+      "report/load_reports.xml",
+      "report/report_bol_pickup.xml",
+      "report/report_bol_delivery.xml",
+      "report/report_delivery_order.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.dispatch",
+    "_inherit": null,
+    "_description": "Plasticos Dispatch",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "state",
+        "Selection"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosDispatch",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_logistics",
+    "file": "plasticos_logistics/models/sale_order_inherit.py",
+    "manifest_depends": [
+      "sale_management",
+      "stock",
+      "mail"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/incoterms.xml",
+      "data/cron.xml",
+      "views/load_views.xml",
+      "views/sale_order_button.xml",
+      "views/load_bulk_update_wizard_views.xml",
+      "report/load_reports.xml",
+      "report/report_bol_pickup.xml",
+      "report/report_bol_delivery.xml",
+      "report/report_delivery_order.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "sale.order"
+    ],
+    "_description": null,
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "SaleOrderInherit",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_logistics",
+    "file": "plasticos_logistics/models/rate_memory.py",
+    "manifest_depends": [
+      "sale_management",
+      "stock",
+      "mail"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/incoterms.xml",
+      "data/cron.xml",
+      "views/load_views.xml",
+      "views/sale_order_button.xml",
+      "views/load_bulk_update_wizard_views.xml",
+      "report/load_reports.xml",
+      "report/report_bol_pickup.xml",
+      "report/report_bol_delivery.xml",
+      "report/report_delivery_order.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.rate.memory",
+    "_inherit": null,
+    "_description": "Plasticos Rate Memory",
+    "fields": [
+      [
+        "carrier_id",
+        "Many2one"
+      ],
+      [
+        "lane_key",
+        "Char"
+      ],
+      [
+        "rate_amount",
+        "Float"
+      ],
+      [
+        "rate_date",
+        "Date"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosRateMemory",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_logistics",
+    "file": "plasticos_logistics/models/load.py",
+    "manifest_depends": [
+      "sale_management",
+      "stock",
+      "mail"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/incoterms.xml",
+      "data/cron.xml",
+      "views/load_views.xml",
+      "views/sale_order_button.xml",
+      "views/load_bulk_update_wizard_views.xml",
+      "report/load_reports.xml",
+      "report/report_bol_pickup.xml",
+      "report/report_bol_delivery.xml",
+      "report/report_delivery_order.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.load",
+    "_inherit": [
+      "mail.thread"
+    ],
+    "_description": "Plasticos Logistics Load",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "sale_order_id",
+        "Many2one"
+      ],
+      [
+        "carrier_id",
+        "Many2one"
+      ],
+      [
+        "rate_amount",
+        "Float"
+      ],
+      [
+        "rate_confirmed_at",
+        "Datetime"
+      ],
+      [
+        "rate_auto_reused",
+        "Boolean"
+      ],
+      [
+        "ready_confirmed_by",
+        "Char"
+      ],
+      [
+        "ready_confirmed_at",
+        "Datetime"
+      ],
+      [
+        "pickup_datetime",
+        "Datetime"
+      ],
+      [
+        "delivery_datetime",
+        "Datetime"
+      ],
+      [
+        "bol_pickup_attached",
+        "Boolean"
+      ],
+      [
+        "bol_delivery_attached",
+        "Boolean"
+      ],
+      [
+        "entered_state_at",
+        "Datetime"
+      ],
+      [
+        "sla_breached",
+        "Boolean"
+      ],
+      [
+        "dispatched_at",
+        "Datetime"
+      ],
+      [
+        "delivered_at",
+        "Datetime"
+      ],
+      [
+        "cycle_time_hours",
+        "Float"
+      ],
+      [
+        "pickup_partner_id",
+        "Many2one"
+      ],
+      [
+        "pickup_contact_name",
+        "Char"
+      ],
+      [
+        "pickup_contact_phone",
+        "Char"
+      ],
+      [
+        "pickup_contact_mobile",
+        "Char"
+      ],
+      [
+        "pickup_reference",
+        "Char"
+      ],
+      [
+        "pickup_hours",
+        "Char"
+      ],
+      [
+        "pickup_instructions",
+        "Text"
+      ],
+      [
+        "delivery_partner_id",
+        "Many2one"
+      ],
+      [
+        "delivery_contact_name",
+        "Char"
+      ],
+      [
+        "delivery_contact_phone",
+        "Char"
+      ],
+      [
+        "delivery_contact_mobile",
+        "Char"
+      ],
+      [
+        "delivery_reference",
+        "Char"
+      ],
+      [
+        "delivery_hours",
+        "Char"
+      ],
+      [
+        "delivery_instructions",
+        "Text"
+      ],
+      [
+        "carrier_contact_name",
+        "Char"
+      ],
+      [
+        "carrier_contact_phone",
+        "Char"
+      ],
+      [
+        "trailer_number",
+        "Char"
+      ],
+      [
+        "seal_number",
+        "Char"
+      ],
+      [
+        "product_description",
+        "Char"
+      ],
+      [
+        "quantity",
+        "Float"
+      ],
+      [
+        "quantity_uom",
+        "Char"
+      ],
+      [
+        "reference_weight",
+        "Float"
+      ],
+      [
+        "double_blind",
+        "Boolean"
+      ],
+      [
+        "straps_bars_needed",
+        "Boolean"
+      ],
+      [
+        "notes",
+        "Text"
+      ],
+      [
+        "state",
+        "Selection"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_cycle_time"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosLoad",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_facility_profile",
+    "file": "plasticos_facility_profile/models/facility_profile.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "sale_management",
+      "plasticos_material_profile"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/equipment_type_data.xml",
+      "data/partner_type_data.xml",
+      "views/partner_type_views.xml",
+      "views/facility_profile_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.facility.profile",
+    "_inherit": [
+      "mail.thread"
+    ],
+    "_description": "Facility Capability Profile",
+    "fields": [
+      [
+        "partner_id",
+        "Many2one"
+      ],
+      [
+        "active",
+        "Boolean"
+      ],
+      [
+        "source_type_id",
+        "Many2one"
+      ],
+      [
+        "equipment_type_ids",
+        "Many2many"
+      ],
+      [
+        "has_horizontal_baler",
+        "Boolean"
+      ],
+      [
+        "has_downstroke_baler",
+        "Boolean"
+      ],
+      [
+        "has_shredder",
+        "Boolean"
+      ],
+      [
+        "has_granulator",
+        "Boolean"
+      ],
+      [
+        "has_wash_line",
+        "Boolean"
+      ],
+      [
+        "has_extruder",
+        "Boolean"
+      ],
+      [
+        "has_sorting_line",
+        "Boolean"
+      ],
+      [
+        "max_monthly_throughput_lbs",
+        "Float"
+      ],
+      [
+        "avg_truckload_lbs",
+        "Float"
+      ],
+      [
+        "handles_bales",
+        "Boolean"
+      ],
+      [
+        "handles_regrind",
+        "Boolean"
+      ],
+      [
+        "handles_pellet",
+        "Boolean"
+      ],
+      [
+        "handles_flake",
+        "Boolean"
+      ],
+      [
+        "handles_rollstock",
+        "Boolean"
+      ],
+      [
+        "can_remove_metal",
+        "Boolean"
+      ],
+      [
+        "can_reduce_moisture",
+        "Boolean"
+      ],
+      [
+        "can_filter_fr",
+        "Boolean"
+      ],
+      [
+        "can_screen_fines",
+        "Boolean"
+      ],
+      [
+        "iso_certified",
+        "Boolean"
+      ],
+      [
+        "food_grade_certified",
+        "Boolean"
+      ],
+      [
+        "medical_grade_capable",
+        "Boolean"
+      ],
+      [
+        "min_lot_size_lbs",
+        "Float"
+      ],
+      [
+        "max_lot_size_lbs",
+        "Float"
+      ],
+      [
+        "accepts_spot",
+        "Boolean"
+      ],
+      [
+        "prefers_contract",
+        "Boolean"
+      ],
+      [
+        "freeform_notes",
+        "Text"
+      ],
+      [
+        "accepted_polymer_ids",
+        "Many2many"
+      ],
+      [
+        "form_preference",
+        "Selection"
+      ],
+      [
+        "process_type",
+        "Selection"
+      ],
+      [
+        "density_min",
+        "Float"
+      ],
+      [
+        "density_max",
+        "Float"
+      ],
+      [
+        "contamination_tolerance_pct",
+        "Float"
+      ],
+      [
+        "moisture_tolerance_pct",
+        "Float"
+      ],
+      [
+        "capacity_lbs_month",
+        "Integer"
+      ],
+      [
+        "pcr_pct_min",
+        "Float"
+      ],
+      [
+        "pcr_pct_max",
+        "Float"
+      ],
+      [
+        "application_class",
+        "Selection"
+      ],
+      [
+        "application_notes",
+        "Text"
+      ],
+      [
+        "accepts_filled_materials",
+        "Boolean"
+      ],
+      [
+        "max_filler_pct",
+        "Float"
+      ],
+      [
+        "accepted_filler_type_ids",
+        "Many2many"
+      ],
+      [
+        "accepted_color_ids",
+        "Many2many"
+      ],
+      [
+        "accepts_any_color",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_equipment_flags"
+    ],
+    "api_constrains": [
+      "partner_id",
+      "density_min",
+      "density_max"
+    ],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosFacilityProfile",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_facility_profile",
+    "file": "plasticos_facility_profile/models/partner_type.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "sale_management",
+      "plasticos_material_profile"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/equipment_type_data.xml",
+      "data/partner_type_data.xml",
+      "views/partner_type_views.xml",
+      "views/facility_profile_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.partner.type",
+    "_inherit": null,
+    "_description": "Partner Type Master",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "code",
+        "Char"
+      ],
+      [
+        "description",
+        "Text"
+      ],
+      [
+        "is_facility",
+        "Boolean"
+      ],
+      [
+        "active",
+        "Boolean"
+      ],
+      [
+        "sequence",
+        "Integer"
+      ],
+      [
+        "gate_mode",
+        "Selection"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosPartnerType",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_facility_profile",
+    "file": "plasticos_facility_profile/models/equipment_type.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "sale_management",
+      "plasticos_material_profile"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/equipment_type_data.xml",
+      "data/partner_type_data.xml",
+      "views/partner_type_views.xml",
+      "views/facility_profile_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.equipment.type",
+    "_inherit": null,
+    "_description": "Equipment Type Master",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "code",
+        "Char"
+      ],
+      [
+        "category",
+        "Selection"
+      ],
+      [
+        "sequence",
+        "Integer"
+      ],
+      [
+        "active",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosEquipmentType",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_facility_profile",
+    "file": "plasticos_facility_profile/models/res_partner.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "sale_management",
+      "plasticos_material_profile"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/equipment_type_data.xml",
+      "data/partner_type_data.xml",
+      "views/partner_type_views.xml",
+      "views/facility_profile_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "res.partner"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "facility_profile_ids",
+        "One2many"
+      ],
+      [
+        "partner_type_id",
+        "Many2one"
+      ],
+      [
+        "x_facility_role",
+        "Selection"
+      ],
+      [
+        "x_preferred_contact_id",
+        "Many2one"
+      ],
+      [
+        "lead_source",
+        "Selection"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_x_facility_role"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "ResPartner",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_geolocalize",
+    "file": "plasticos_geolocalize/models/res_partner_geo.py",
+    "manifest_depends": [
+      "base",
+      "base_geolocalize",
+      "plasticos_intake"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/cron_geo_backfill.xml",
+      "views/intake_geo_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "res.partner"
+    ],
+    "_description": null,
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "ResPartnerGeo",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_geolocalize",
+    "file": "plasticos_geolocalize/models/intake_geo.py",
+    "manifest_depends": [
+      "base",
+      "base_geolocalize",
+      "plasticos_intake"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/cron_geo_backfill.xml",
+      "views/intake_geo_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "plasticos.intake"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "lat",
+        "Float"
+      ],
+      [
+        "lon",
+        "Float"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosIntakeGeo",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_documents",
+    "file": "plasticos_documents/models/document_validation_matrix.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "views/document_tag_views.xml",
+      "views/document_rule_views.xml",
+      "views/document_views.xml",
+      "views/document_extension_views.xml",
+      "views/validation_matrix_views.xml",
+      "views/transaction_docs_views.xml",
+      "data/cron.xml",
+      "data/document_tags_data.xml",
+      "data/cron_missing_docs.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.document.validation.matrix",
+    "_inherit": null,
+    "_description": "Document Validation Matrix",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "sequence",
+        "Integer"
+      ],
+      [
+        "doc_category",
+        "Selection"
+      ],
+      [
+        "tag_id",
+        "Many2one"
+      ],
+      [
+        "required_for_close",
+        "Boolean"
+      ],
+      [
+        "required_for_invoice",
+        "Boolean"
+      ],
+      [
+        "required_for_dispatch",
+        "Boolean"
+      ],
+      [
+        "active",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [
+      "doc_category",
+      "tag_id"
+    ],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosDocumentValidationMatrix",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_documents",
+    "file": "plasticos_documents/models/transaction_docs.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "views/document_tag_views.xml",
+      "views/document_rule_views.xml",
+      "views/document_views.xml",
+      "views/document_extension_views.xml",
+      "views/validation_matrix_views.xml",
+      "views/transaction_docs_views.xml",
+      "data/cron.xml",
+      "data/document_tags_data.xml",
+      "data/cron_missing_docs.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "plasticos.transaction"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "x_missing_doc_status",
+        "Selection"
+      ],
+      [
+        "x_missing_supplier_docs",
+        "Boolean"
+      ],
+      [
+        "x_missing_carrier_docs",
+        "Boolean"
+      ],
+      [
+        "x_missing_buyer_docs",
+        "Boolean"
+      ],
+      [
+        "x_doc_reminder_count",
+        "Integer"
+      ],
+      [
+        "x_last_doc_reminder_date",
+        "Date"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_missing_doc_flags"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosTransactionDocs",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_documents",
+    "file": "plasticos_documents/models/document_rule_extension.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "views/document_tag_views.xml",
+      "views/document_rule_views.xml",
+      "views/document_views.xml",
+      "views/document_extension_views.xml",
+      "views/validation_matrix_views.xml",
+      "views/transaction_docs_views.xml",
+      "data/cron.xml",
+      "data/document_tags_data.xml",
+      "data/cron_missing_docs.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "plasticos.document.rule"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "x_doc_category",
+        "Selection"
+      ],
+      [
+        "x_overdue_business_days",
+        "Integer"
+      ],
+      [
+        "x_escalation_business_days",
+        "Integer"
+      ],
+      [
+        "x_required_for_dispatch",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosDocumentRuleExtension",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_documents",
+    "file": "plasticos_documents/models/document_tag.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "views/document_tag_views.xml",
+      "views/document_rule_views.xml",
+      "views/document_views.xml",
+      "views/document_extension_views.xml",
+      "views/validation_matrix_views.xml",
+      "views/transaction_docs_views.xml",
+      "data/cron.xml",
+      "data/document_tags_data.xml",
+      "data/cron_missing_docs.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.document.tag",
+    "_inherit": null,
+    "_description": "Document Tag",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "code",
+        "Char"
+      ],
+      [
+        "active",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosDocumentTag",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_documents",
+    "file": "plasticos_documents/models/document_extension.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "views/document_tag_views.xml",
+      "views/document_rule_views.xml",
+      "views/document_views.xml",
+      "views/document_extension_views.xml",
+      "views/validation_matrix_views.xml",
+      "views/transaction_docs_views.xml",
+      "data/cron.xml",
+      "data/document_tags_data.xml",
+      "data/cron_missing_docs.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "plasticos.document"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "x_expiry_date",
+        "Date"
+      ],
+      [
+        "x_is_expired",
+        "Boolean"
+      ],
+      [
+        "x_version",
+        "Integer"
+      ],
+      [
+        "x_superseded_by",
+        "Many2one"
+      ],
+      [
+        "x_is_current",
+        "Boolean"
+      ],
+      [
+        "x_transaction_id",
+        "Many2one"
+      ],
+      [
+        "x_doc_category",
+        "Selection"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_is_expired"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosDocumentExtension",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_documents",
+    "file": "plasticos_documents/models/compliance_service.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "views/document_tag_views.xml",
+      "views/document_rule_views.xml",
+      "views/document_views.xml",
+      "views/document_extension_views.xml",
+      "views/validation_matrix_views.xml",
+      "views/transaction_docs_views.xml",
+      "data/cron.xml",
+      "data/document_tags_data.xml",
+      "data/cron_missing_docs.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.compliance.service",
+    "_inherit": null,
+    "_description": "Compliance Service",
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": null,
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_documents",
+    "file": "plasticos_documents/models/document.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "views/document_tag_views.xml",
+      "views/document_rule_views.xml",
+      "views/document_views.xml",
+      "views/document_extension_views.xml",
+      "views/validation_matrix_views.xml",
+      "views/transaction_docs_views.xml",
+      "data/cron.xml",
+      "data/document_tags_data.xml",
+      "data/cron_missing_docs.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.document",
+    "_inherit": [
+      "mail.thread"
+    ],
+    "_description": "Plasticos Document",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "res_model",
+        "Char"
+      ],
+      [
+        "res_id",
+        "Integer"
+      ],
+      [
+        "attachment_id",
+        "Many2one"
+      ],
+      [
+        "tag_id",
+        "Many2one"
+      ],
+      [
+        "verified",
+        "Boolean"
+      ],
+      [
+        "verified_by",
+        "Many2one"
+      ],
+      [
+        "verified_at",
+        "Datetime"
+      ],
+      [
+        "override",
+        "Boolean"
+      ],
+      [
+        "override_reason",
+        "Text"
+      ],
+      [
+        "active",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosDocument",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_documents",
+    "file": "plasticos_documents/models/document_rule.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "views/document_tag_views.xml",
+      "views/document_rule_views.xml",
+      "views/document_views.xml",
+      "views/document_extension_views.xml",
+      "views/validation_matrix_views.xml",
+      "views/transaction_docs_views.xml",
+      "data/cron.xml",
+      "data/document_tags_data.xml",
+      "data/cron_missing_docs.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.document.rule",
+    "_inherit": null,
+    "_description": "Document Compliance Rule",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "tag_id",
+        "Many2one"
+      ],
+      [
+        "res_model",
+        "Char"
+      ],
+      [
+        "client_id",
+        "Many2one"
+      ],
+      [
+        "required_for_invoice",
+        "Boolean"
+      ],
+      [
+        "required_for_close",
+        "Boolean"
+      ],
+      [
+        "active",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosDocumentRule",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_web_leads",
+    "file": "plasticos_web_leads/models/web_lead_config.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "plasticos_intake",
+      "plasticos_material_profile",
+      "purchase"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/web_lead_config_data.xml",
+      "data/logistics_ir_rules.xml",
+      "views/web_lead_views.xml",
+      "views/web_lead_config_views.xml",
+      "views/lead_bulk_action_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.web.lead.config",
+    "_inherit": null,
+    "_description": "Web Lead Configuration",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "api_key",
+        "Char"
+      ],
+      [
+        "is_active",
+        "Boolean"
+      ],
+      [
+        "default_source_type",
+        "Selection"
+      ],
+      [
+        "auto_create_partner",
+        "Boolean"
+      ],
+      [
+        "auto_create_intake",
+        "Boolean"
+      ],
+      [
+        "openai_api_key",
+        "Char"
+      ],
+      [
+        "openai_model",
+        "Char"
+      ],
+      [
+        "openai_vision_model",
+        "Char"
+      ],
+      [
+        "hot_min_lbs",
+        "Integer"
+      ],
+      [
+        "cold_max_lbs",
+        "Integer"
+      ],
+      [
+        "reject_materials",
+        "Text"
+      ],
+      [
+        "reject_sources",
+        "Text"
+      ],
+      [
+        "ai_enabled",
+        "Boolean"
+      ],
+      [
+        "vision_enabled",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosWebLeadConfig",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_web_leads",
+    "file": "plasticos_web_leads/models/web_lead.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "plasticos_intake",
+      "plasticos_material_profile",
+      "purchase"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/web_lead_config_data.xml",
+      "data/logistics_ir_rules.xml",
+      "views/web_lead_views.xml",
+      "views/web_lead_config_views.xml",
+      "views/lead_bulk_action_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.web.lead",
+    "_inherit": [
+      "mail.thread"
+    ],
+    "_description": "Web Lead",
+    "fields": [
+      [
+        "lead_id",
+        "Char"
+      ],
+      [
+        "source",
+        "Char"
+      ],
+      [
+        "lead_source",
+        "Selection"
+      ],
+      [
+        "raw_payload",
+        "Json"
+      ],
+      [
+        "ai_analysis",
+        "Json"
+      ],
+      [
+        "decision",
+        "Selection"
+      ],
+      [
+        "decision_reasons",
+        "Json"
+      ],
+      [
+        "company_name",
+        "Char"
+      ],
+      [
+        "contact_name",
+        "Char"
+      ],
+      [
+        "contact_email",
+        "Char"
+      ],
+      [
+        "contact_phone",
+        "Char"
+      ],
+      [
+        "material_description",
+        "Text"
+      ],
+      [
+        "quantity_text",
+        "Char"
+      ],
+      [
+        "estimated_lbs_per_load",
+        "Integer"
+      ],
+      [
+        "estimated_loads_per_month",
+        "Integer"
+      ],
+      [
+        "frequency",
+        "Char"
+      ],
+      [
+        "has_contaminants",
+        "Boolean"
+      ],
+      [
+        "contaminant_notes",
+        "Text"
+      ],
+      [
+        "ai_normalized",
+        "Json"
+      ],
+      [
+        "ai_vision_results",
+        "Json"
+      ],
+      [
+        "triage_log",
+        "Text"
+      ],
+      [
+        "image_urls",
+        "Json"
+      ],
+      [
+        "state",
+        "Selection"
+      ],
+      [
+        "error_message",
+        "Text"
+      ],
+      [
+        "partner_id",
+        "Many2one"
+      ],
+      [
+        "intake_id",
+        "Many2one"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosWebLead",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_automation",
+    "file": "plasticos_automation/models/sale_approval.py",
+    "manifest_depends": [
+      "base",
+      "base_automation",
+      "mail",
+      "product",
+      "sale_management",
+      "account",
+      "stock",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_transaction",
+      "plasticos_claims"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/automation_config_data.xml",
+      "data/config_parameters.xml",
+      "data/sale_approval_cron.xml",
+      "data/invoice_reminder_cron.xml",
+      "data/contract_renewal_cron.xml",
+      "data/stock_alert_cron.xml",
+      "data/email_templates.xml",
+      "data/cron_supplier_followup.xml",
+      "data/cron_trucker_followup.xml",
+      "data/cron_load_sla.xml",
+      "data/workflow_automations.xml",
+      "views/automation_config_views.xml",
+      "views/automation_log_views.xml",
+      "views/purchase_order_views.xml",
+      "views/sale_order_views.xml",
+      "views/stock_picking_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "sale.order"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "x_requires_approval",
+        "Boolean"
+      ],
+      [
+        "x_approved",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "SaleOrder",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_automation",
+    "file": "plasticos_automation/models/stock_picking_automation.py",
+    "manifest_depends": [
+      "base",
+      "base_automation",
+      "mail",
+      "product",
+      "sale_management",
+      "account",
+      "stock",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_transaction",
+      "plasticos_claims"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/automation_config_data.xml",
+      "data/config_parameters.xml",
+      "data/sale_approval_cron.xml",
+      "data/invoice_reminder_cron.xml",
+      "data/contract_renewal_cron.xml",
+      "data/stock_alert_cron.xml",
+      "data/email_templates.xml",
+      "data/cron_supplier_followup.xml",
+      "data/cron_trucker_followup.xml",
+      "data/cron_load_sla.xml",
+      "data/workflow_automations.xml",
+      "views/automation_config_views.xml",
+      "views/automation_log_views.xml",
+      "views/purchase_order_views.xml",
+      "views/sale_order_views.xml",
+      "views/stock_picking_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "stock.picking"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "x_trucker_id",
+        "Many2one"
+      ],
+      [
+        "x_receipt_confirmation",
+        "Boolean"
+      ],
+      [
+        "x_trucker_notified_on",
+        "Datetime"
+      ],
+      [
+        "x_trucker_followup_count",
+        "Integer"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "StockPickingAutomation",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_automation",
+    "file": "plasticos_automation/models/purchase_order_automation.py",
+    "manifest_depends": [
+      "base",
+      "base_automation",
+      "mail",
+      "product",
+      "sale_management",
+      "account",
+      "stock",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_transaction",
+      "plasticos_claims"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/automation_config_data.xml",
+      "data/config_parameters.xml",
+      "data/sale_approval_cron.xml",
+      "data/invoice_reminder_cron.xml",
+      "data/contract_renewal_cron.xml",
+      "data/stock_alert_cron.xml",
+      "data/email_templates.xml",
+      "data/cron_supplier_followup.xml",
+      "data/cron_trucker_followup.xml",
+      "data/cron_load_sla.xml",
+      "data/workflow_automations.xml",
+      "views/automation_config_views.xml",
+      "views/automation_log_views.xml",
+      "views/purchase_order_views.xml",
+      "views/sale_order_views.xml",
+      "views/stock_picking_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "purchase.order"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "x_ready_for_pickup",
+        "Boolean"
+      ],
+      [
+        "x_ready_confirmed_on",
+        "Datetime"
+      ],
+      [
+        "x_followup_count",
+        "Integer"
+      ],
+      [
+        "x_last_followup_on",
+        "Datetime"
+      ],
+      [
+        "x_buyer_id",
+        "Many2one"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PurchaseOrderAutomation",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_automation",
+    "file": "plasticos_automation/models/stock_reorder_alert.py",
+    "manifest_depends": [
+      "base",
+      "base_automation",
+      "mail",
+      "product",
+      "sale_management",
+      "account",
+      "stock",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_transaction",
+      "plasticos_claims"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/automation_config_data.xml",
+      "data/config_parameters.xml",
+      "data/sale_approval_cron.xml",
+      "data/invoice_reminder_cron.xml",
+      "data/contract_renewal_cron.xml",
+      "data/stock_alert_cron.xml",
+      "data/email_templates.xml",
+      "data/cron_supplier_followup.xml",
+      "data/cron_trucker_followup.xml",
+      "data/cron_load_sla.xml",
+      "data/workflow_automations.xml",
+      "views/automation_config_views.xml",
+      "views/automation_log_views.xml",
+      "views/purchase_order_views.xml",
+      "views/sale_order_views.xml",
+      "views/stock_picking_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "product.product"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "x_min_stock_threshold",
+        "Float"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "ProductProduct",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_automation",
+    "file": "plasticos_automation/models/automation_config.py",
+    "manifest_depends": [
+      "base",
+      "base_automation",
+      "mail",
+      "product",
+      "sale_management",
+      "account",
+      "stock",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_transaction",
+      "plasticos_claims"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/automation_config_data.xml",
+      "data/config_parameters.xml",
+      "data/sale_approval_cron.xml",
+      "data/invoice_reminder_cron.xml",
+      "data/contract_renewal_cron.xml",
+      "data/stock_alert_cron.xml",
+      "data/email_templates.xml",
+      "data/cron_supplier_followup.xml",
+      "data/cron_trucker_followup.xml",
+      "data/cron_load_sla.xml",
+      "data/workflow_automations.xml",
+      "views/automation_config_views.xml",
+      "views/automation_log_views.xml",
+      "views/purchase_order_views.xml",
+      "views/sale_order_views.xml",
+      "views/stock_picking_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.automation.config",
+    "_inherit": null,
+    "_description": "PlasticOS Automation Configuration",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "sale_approval_threshold",
+        "Float"
+      ],
+      [
+        "invoice_overdue_days",
+        "Integer"
+      ],
+      [
+        "contract_alert_days_before",
+        "Integer"
+      ],
+      [
+        "stock_threshold_default",
+        "Float"
+      ],
+      [
+        "active",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [
+      "active",
+      "sale_approval_threshold",
+      "invoice_overdue_days",
+      "contract_alert_days_before",
+      "stock_threshold_default",
+      ""
+    ],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosAutomationConfig",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_automation",
+    "file": "plasticos_automation/models/automation_log.py",
+    "manifest_depends": [
+      "base",
+      "base_automation",
+      "mail",
+      "product",
+      "sale_management",
+      "account",
+      "stock",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_transaction",
+      "plasticos_claims"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/automation_config_data.xml",
+      "data/config_parameters.xml",
+      "data/sale_approval_cron.xml",
+      "data/invoice_reminder_cron.xml",
+      "data/contract_renewal_cron.xml",
+      "data/stock_alert_cron.xml",
+      "data/email_templates.xml",
+      "data/cron_supplier_followup.xml",
+      "data/cron_trucker_followup.xml",
+      "data/cron_load_sla.xml",
+      "data/workflow_automations.xml",
+      "views/automation_config_views.xml",
+      "views/automation_log_views.xml",
+      "views/purchase_order_views.xml",
+      "views/sale_order_views.xml",
+      "views/stock_picking_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.automation.log",
+    "_inherit": null,
+    "_description": "Automation Execution Log",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "model_name",
+        "Char"
+      ],
+      [
+        "res_id",
+        "Integer"
+      ],
+      [
+        "action_type",
+        "Selection"
+      ],
+      [
+        "note",
+        "Text"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosAutomationLog",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_automation",
+    "file": "plasticos_automation/models/sale_order_automation.py",
+    "manifest_depends": [
+      "base",
+      "base_automation",
+      "mail",
+      "product",
+      "sale_management",
+      "account",
+      "stock",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_transaction",
+      "plasticos_claims"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/automation_config_data.xml",
+      "data/config_parameters.xml",
+      "data/sale_approval_cron.xml",
+      "data/invoice_reminder_cron.xml",
+      "data/contract_renewal_cron.xml",
+      "data/stock_alert_cron.xml",
+      "data/email_templates.xml",
+      "data/cron_supplier_followup.xml",
+      "data/cron_trucker_followup.xml",
+      "data/cron_load_sla.xml",
+      "data/workflow_automations.xml",
+      "views/automation_config_views.xml",
+      "views/automation_log_views.xml",
+      "views/purchase_order_views.xml",
+      "views/sale_order_views.xml",
+      "views/stock_picking_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "sale.order"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "x_delivery_term",
+        "Selection"
+      ],
+      [
+        "x_appt_requested",
+        "Boolean"
+      ],
+      [
+        "x_appt_requested_on",
+        "Datetime"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "SaleOrderAutomation",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_automation",
+    "file": "plasticos_automation/models/load_automation.py",
+    "manifest_depends": [
+      "base",
+      "base_automation",
+      "mail",
+      "product",
+      "sale_management",
+      "account",
+      "stock",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_transaction",
+      "plasticos_claims"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/automation_config_data.xml",
+      "data/config_parameters.xml",
+      "data/sale_approval_cron.xml",
+      "data/invoice_reminder_cron.xml",
+      "data/contract_renewal_cron.xml",
+      "data/stock_alert_cron.xml",
+      "data/email_templates.xml",
+      "data/cron_supplier_followup.xml",
+      "data/cron_trucker_followup.xml",
+      "data/cron_load_sla.xml",
+      "data/workflow_automations.xml",
+      "views/automation_config_views.xml",
+      "views/automation_log_views.xml",
+      "views/purchase_order_views.xml",
+      "views/sale_order_views.xml",
+      "views/stock_picking_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "plasticos.load"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "x_awaiting_ready_flag",
+        "Boolean"
+      ],
+      [
+        "x_escalation_level",
+        "Selection"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_awaiting_ready_flag"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosLoadAutomation",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_automation",
+    "file": "plasticos_automation/models/contract_renewal.py",
+    "manifest_depends": [
+      "base",
+      "base_automation",
+      "mail",
+      "product",
+      "sale_management",
+      "account",
+      "stock",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_transaction",
+      "plasticos_claims"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/automation_config_data.xml",
+      "data/config_parameters.xml",
+      "data/sale_approval_cron.xml",
+      "data/invoice_reminder_cron.xml",
+      "data/contract_renewal_cron.xml",
+      "data/stock_alert_cron.xml",
+      "data/email_templates.xml",
+      "data/cron_supplier_followup.xml",
+      "data/cron_trucker_followup.xml",
+      "data/cron_load_sla.xml",
+      "data/workflow_automations.xml",
+      "views/automation_config_views.xml",
+      "views/automation_log_views.xml",
+      "views/purchase_order_views.xml",
+      "views/sale_order_views.xml",
+      "views/stock_picking_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "res.partner"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "x_contract_end_date",
+        "Date"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "ResPartner",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_automation",
+    "file": "plasticos_automation/models/invoice_reminder.py",
+    "manifest_depends": [
+      "base",
+      "base_automation",
+      "mail",
+      "product",
+      "sale_management",
+      "account",
+      "stock",
+      "purchase",
+      "plasticos_logistics",
+      "plasticos_transaction",
+      "plasticos_claims"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security.xml",
+      "security/ir.model.access.csv",
+      "data/automation_config_data.xml",
+      "data/config_parameters.xml",
+      "data/sale_approval_cron.xml",
+      "data/invoice_reminder_cron.xml",
+      "data/contract_renewal_cron.xml",
+      "data/stock_alert_cron.xml",
+      "data/email_templates.xml",
+      "data/cron_supplier_followup.xml",
+      "data/cron_trucker_followup.xml",
+      "data/cron_load_sla.xml",
+      "data/workflow_automations.xml",
+      "views/automation_config_views.xml",
+      "views/automation_log_views.xml",
+      "views/purchase_order_views.xml",
+      "views/sale_order_views.xml",
+      "views/stock_picking_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "account.move"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "x_last_reminder_date",
+        "Date"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "AccountMove",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_security_base",
+    "file": "plasticos_security_base/models/res_partner.py",
+    "manifest_depends": [
+      "base",
+      "sale",
+      "purchase",
+      "account",
+      "stock",
+      "plasticos_transaction",
+      "plasticos_intake",
+      "plasticos_material_profile",
+      "plasticos_facility_profile",
+      "plasticos_matching",
+      "plasticos_offer",
+      "plasticos_logistics",
+      "plasticos_documents",
+      "plasticos_automation",
+      "plasticos_web_leads"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/security_groups.xml",
+      "security/record_rules.xml",
+      "security/ir.model.access.csv",
+      "views/res_partner_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "res.partner"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "x_private",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "ResPartnerPrivate",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_intake_normalizer",
+    "file": "plasticos_intake_normalizer/models/normalizer_config.py",
+    "manifest_depends": [
+      "plasticos_intake",
+      "plasticos_material_profile",
+      "plasticos_base"
+    ],
+    "installable": true,
+    "data_files": [
+      "data/normalizer_config_data.xml",
+      "data/cron_batch_normalize.xml",
+      "security/ir.model.access.csv",
+      "views/normalizer_config_views.xml",
+      "views/intake_normalizer_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.normalizer.config",
+    "_inherit": null,
+    "_description": "Intake Normalizer Configuration",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "require_polymer_in_canonical",
+        "Boolean"
+      ],
+      [
+        "require_partner",
+        "Boolean"
+      ],
+      [
+        "require_positive_quantity",
+        "Boolean"
+      ],
+      [
+        "validate_density_range",
+        "Boolean"
+      ],
+      [
+        "density_min",
+        "Float"
+      ],
+      [
+        "density_max",
+        "Float"
+      ],
+      [
+        "validate_mfi_positive",
+        "Boolean"
+      ],
+      [
+        "batch_limit",
+        "Integer"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosNormalizerConfig",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_intake_normalizer",
+    "file": "plasticos_intake_normalizer/models/intake_normalizer.py",
+    "manifest_depends": [
+      "plasticos_intake",
+      "plasticos_material_profile",
+      "plasticos_base"
+    ],
+    "installable": true,
+    "data_files": [
+      "data/normalizer_config_data.xml",
+      "data/cron_batch_normalize.xml",
+      "security/ir.model.access.csv",
+      "views/normalizer_config_views.xml",
+      "views/intake_normalizer_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "plasticos.intake"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "normalized",
+        "Boolean"
+      ],
+      [
+        "match_status",
+        "Selection"
+      ],
+      [
+        "last_packet_id",
+        "Char"
+      ],
+      [
+        "last_packet_version",
+        "Char"
+      ],
+      [
+        "last_packet_ts",
+        "Datetime"
+      ],
+      [
+        "last_packet_payload",
+        "Json"
+      ],
+      [
+        "normalization_errors",
+        "Json"
+      ],
+      [
+        "normalization_warnings",
+        "Json"
+      ],
+      [
+        "normalization_ts",
+        "Datetime"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosIntakeNormalizer",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_offer",
+    "file": "plasticos_offer/models/offer.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "plasticos_intake",
+      "plasticos_matching"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/offer_cron.xml",
+      "views/offer_views.xml",
+      "views/offer_bulk_action_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.offer",
+    "_inherit": [
+      "mail.thread",
+      "mail.activity.mixin"
+    ],
+    "_description": "Material Offer",
+    "fields": [
+      [
+        "match_result_id",
+        "Many2one"
+      ],
+      [
+        "intake_id",
+        "Many2one"
+      ],
+      [
+        "supplier_id",
+        "Many2one"
+      ],
+      [
+        "buyer_id",
+        "Many2one"
+      ],
+      [
+        "polymer",
+        "Char"
+      ],
+      [
+        "form",
+        "Char"
+      ],
+      [
+        "price_per_lb",
+        "Float"
+      ],
+      [
+        "currency_id",
+        "Many2one"
+      ],
+      [
+        "quantity_lbs",
+        "Float"
+      ],
+      [
+        "loads",
+        "Integer"
+      ],
+      [
+        "delivery_terms",
+        "Selection"
+      ],
+      [
+        "payment_terms",
+        "Selection"
+      ],
+      [
+        "valid_until",
+        "Date"
+      ],
+      [
+        "notes",
+        "Text"
+      ],
+      [
+        "state",
+        "Selection"
+      ],
+      [
+        "response_notes",
+        "Text"
+      ],
+      [
+        "counter_price_per_lb",
+        "Float"
+      ],
+      [
+        "accepted_by",
+        "Many2one"
+      ],
+      [
+        "accepted_date",
+        "Datetime"
+      ],
+      [
+        "rejection_reason",
+        "Text"
+      ],
+      [
+        "display_name",
+        "Char"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_display_name"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosOffer",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_material_profile",
+    "file": "plasticos_material_profile/models/filler_type.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "purchase",
+      "sale_management",
+      "product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/filler_type_data.xml",
+      "data/material_attribute_data.xml",
+      "data/packaging_type_data.xml",
+      "data/polymer_data.xml",
+      "data/material_form_data.xml",
+      "data/material_color_data.xml",
+      "data/source_type_data.xml",
+      "data/process_type_data.xml",
+      "views/polymer_views.xml",
+      "views/material_form_views.xml",
+      "views/material_color_views.xml",
+      "views/source_type_views.xml",
+      "views/process_type_views.xml",
+      "views/material_profile_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.filler.type",
+    "_inherit": null,
+    "_description": "Filler Type",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "code",
+        "Char"
+      ],
+      [
+        "description",
+        "Text"
+      ],
+      [
+        "sequence",
+        "Integer"
+      ],
+      [
+        "active",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosFillerType",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_material_profile",
+    "file": "plasticos_material_profile/models/material_profile.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "purchase",
+      "sale_management",
+      "product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/filler_type_data.xml",
+      "data/material_attribute_data.xml",
+      "data/packaging_type_data.xml",
+      "data/polymer_data.xml",
+      "data/material_form_data.xml",
+      "data/material_color_data.xml",
+      "data/source_type_data.xml",
+      "data/process_type_data.xml",
+      "views/polymer_views.xml",
+      "views/material_form_views.xml",
+      "views/material_color_views.xml",
+      "views/source_type_views.xml",
+      "views/process_type_views.xml",
+      "views/material_profile_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.material.profile",
+    "_inherit": [
+      "mail.thread"
+    ],
+    "_description": "Material Identity Profile",
+    "fields": [
+      [
+        "partner_id",
+        "Many2one"
+      ],
+      [
+        "active",
+        "Boolean"
+      ],
+      [
+        "polymer_id",
+        "Many2one"
+      ],
+      [
+        "polymer",
+        "Selection"
+      ],
+      [
+        "sub_grade",
+        "Char"
+      ],
+      [
+        "form_id",
+        "Many2one"
+      ],
+      [
+        "form",
+        "Selection"
+      ],
+      [
+        "color_id",
+        "Many2one"
+      ],
+      [
+        "color",
+        "Selection"
+      ],
+      [
+        "color_flexibility",
+        "Selection"
+      ],
+      [
+        "source_type_id",
+        "Many2one"
+      ],
+      [
+        "source_type",
+        "Selection"
+      ],
+      [
+        "origin_process_type",
+        "Selection"
+      ],
+      [
+        "previously_washed",
+        "Boolean"
+      ],
+      [
+        "previously_pelletized",
+        "Boolean"
+      ],
+      [
+        "material_attribute_ids",
+        "Many2many"
+      ],
+      [
+        "attribute_ids",
+        "Many2many"
+      ],
+      [
+        "filler_type_id",
+        "Many2one"
+      ],
+      [
+        "filler_pct",
+        "Float"
+      ],
+      [
+        "melt_flow_index",
+        "Float"
+      ],
+      [
+        "melt_index_min",
+        "Float"
+      ],
+      [
+        "melt_index_max",
+        "Float"
+      ],
+      [
+        "density",
+        "Float"
+      ],
+      [
+        "moisture_percent",
+        "Float"
+      ],
+      [
+        "contamination_percent",
+        "Float"
+      ],
+      [
+        "has_metal",
+        "Boolean"
+      ],
+      [
+        "is_metalized",
+        "Boolean"
+      ],
+      [
+        "contains_fr",
+        "Boolean"
+      ],
+      [
+        "avg_lot_size_lbs",
+        "Float"
+      ],
+      [
+        "min_lot_size_lbs",
+        "Float"
+      ],
+      [
+        "max_lot_size_lbs",
+        "Float"
+      ],
+      [
+        "monthly_volume_lbs",
+        "Float"
+      ],
+      [
+        "frequency",
+        "Selection"
+      ],
+      [
+        "origin_form_id",
+        "Many2one"
+      ],
+      [
+        "packaging_type_id",
+        "Many2one"
+      ],
+      [
+        "avg_truckloads_per_month",
+        "Float"
+      ],
+      [
+        "food_grade",
+        "Boolean"
+      ],
+      [
+        "medical_grade",
+        "Boolean"
+      ],
+      [
+        "certification_notes",
+        "Text"
+      ],
+      [
+        "freeform_notes",
+        "Text"
+      ],
+      [
+        "po_line_count",
+        "Integer"
+      ],
+      [
+        "so_line_count",
+        "Integer"
+      ],
+      [
+        "company_id",
+        "Many2one"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_polymer_code",
+      "_compute_form_code",
+      "_compute_color_code",
+      "_compute_source_type_code",
+      "_compute_po_line_count",
+      "_compute_so_line_count"
+    ],
+    "api_constrains": [
+      "partner_id",
+      "melt_index_min",
+      "melt_index_max"
+    ],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosMaterialProfile",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_material_profile",
+    "file": "plasticos_material_profile/models/process_type.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "purchase",
+      "sale_management",
+      "product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/filler_type_data.xml",
+      "data/material_attribute_data.xml",
+      "data/packaging_type_data.xml",
+      "data/polymer_data.xml",
+      "data/material_form_data.xml",
+      "data/material_color_data.xml",
+      "data/source_type_data.xml",
+      "data/process_type_data.xml",
+      "views/polymer_views.xml",
+      "views/material_form_views.xml",
+      "views/material_color_views.xml",
+      "views/source_type_views.xml",
+      "views/process_type_views.xml",
+      "views/material_profile_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.process.type",
+    "_inherit": null,
+    "_description": "Process Type Master",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "code",
+        "Char"
+      ],
+      [
+        "description",
+        "Text"
+      ],
+      [
+        "active",
+        "Boolean"
+      ],
+      [
+        "sequence",
+        "Integer"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosProcessType",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_material_profile",
+    "file": "plasticos_material_profile/models/source_type.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "purchase",
+      "sale_management",
+      "product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/filler_type_data.xml",
+      "data/material_attribute_data.xml",
+      "data/packaging_type_data.xml",
+      "data/polymer_data.xml",
+      "data/material_form_data.xml",
+      "data/material_color_data.xml",
+      "data/source_type_data.xml",
+      "data/process_type_data.xml",
+      "views/polymer_views.xml",
+      "views/material_form_views.xml",
+      "views/material_color_views.xml",
+      "views/source_type_views.xml",
+      "views/process_type_views.xml",
+      "views/material_profile_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.source.type",
+    "_inherit": null,
+    "_description": "Material Source Type Master",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "code",
+        "Char"
+      ],
+      [
+        "description",
+        "Text"
+      ],
+      [
+        "active",
+        "Boolean"
+      ],
+      [
+        "sequence",
+        "Integer"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosSourceType",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_material_profile",
+    "file": "plasticos_material_profile/models/material_attribute.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "purchase",
+      "sale_management",
+      "product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/filler_type_data.xml",
+      "data/material_attribute_data.xml",
+      "data/packaging_type_data.xml",
+      "data/polymer_data.xml",
+      "data/material_form_data.xml",
+      "data/material_color_data.xml",
+      "data/source_type_data.xml",
+      "data/process_type_data.xml",
+      "views/polymer_views.xml",
+      "views/material_form_views.xml",
+      "views/material_color_views.xml",
+      "views/source_type_views.xml",
+      "views/process_type_views.xml",
+      "views/material_profile_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.material.attribute",
+    "_inherit": null,
+    "_description": "Material Attribute",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "code",
+        "Char"
+      ],
+      [
+        "description",
+        "Text"
+      ],
+      [
+        "sequence",
+        "Integer"
+      ],
+      [
+        "active",
+        "Boolean"
+      ],
+      [
+        "boolean_field",
+        "Char"
+      ],
+      [
+        "boolean_value",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosMaterialAttribute",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_material_profile",
+    "file": "plasticos_material_profile/models/packaging_type.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "purchase",
+      "sale_management",
+      "product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/filler_type_data.xml",
+      "data/material_attribute_data.xml",
+      "data/packaging_type_data.xml",
+      "data/polymer_data.xml",
+      "data/material_form_data.xml",
+      "data/material_color_data.xml",
+      "data/source_type_data.xml",
+      "data/process_type_data.xml",
+      "views/polymer_views.xml",
+      "views/material_form_views.xml",
+      "views/material_color_views.xml",
+      "views/source_type_views.xml",
+      "views/process_type_views.xml",
+      "views/material_profile_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.packaging.type",
+    "_inherit": null,
+    "_description": "Packaging Type",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "code",
+        "Char"
+      ],
+      [
+        "description",
+        "Text"
+      ],
+      [
+        "sequence",
+        "Integer"
+      ],
+      [
+        "active",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosPackagingType",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_material_profile",
+    "file": "plasticos_material_profile/models/material_form.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "purchase",
+      "sale_management",
+      "product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/filler_type_data.xml",
+      "data/material_attribute_data.xml",
+      "data/packaging_type_data.xml",
+      "data/polymer_data.xml",
+      "data/material_form_data.xml",
+      "data/material_color_data.xml",
+      "data/source_type_data.xml",
+      "data/process_type_data.xml",
+      "views/polymer_views.xml",
+      "views/material_form_views.xml",
+      "views/material_color_views.xml",
+      "views/source_type_views.xml",
+      "views/process_type_views.xml",
+      "views/material_profile_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.material.form",
+    "_inherit": null,
+    "_description": "Material Form Master",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "code",
+        "Char"
+      ],
+      [
+        "description",
+        "Text"
+      ],
+      [
+        "active",
+        "Boolean"
+      ],
+      [
+        "sequence",
+        "Integer"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosMaterialForm",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_material_profile",
+    "file": "plasticos_material_profile/models/polymer.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "purchase",
+      "sale_management",
+      "product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/filler_type_data.xml",
+      "data/material_attribute_data.xml",
+      "data/packaging_type_data.xml",
+      "data/polymer_data.xml",
+      "data/material_form_data.xml",
+      "data/material_color_data.xml",
+      "data/source_type_data.xml",
+      "data/process_type_data.xml",
+      "views/polymer_views.xml",
+      "views/material_form_views.xml",
+      "views/material_color_views.xml",
+      "views/source_type_views.xml",
+      "views/process_type_views.xml",
+      "views/material_profile_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.polymer",
+    "_inherit": null,
+    "_description": "Polymer Type Master",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "code",
+        "Char"
+      ],
+      [
+        "full_name",
+        "Char"
+      ],
+      [
+        "resin_id_code",
+        "Char"
+      ],
+      [
+        "category",
+        "Selection"
+      ],
+      [
+        "active",
+        "Boolean"
+      ],
+      [
+        "sequence",
+        "Integer"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosPolymer",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_material_profile",
+    "file": "plasticos_material_profile/models/res_partner.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "purchase",
+      "sale_management",
+      "product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/filler_type_data.xml",
+      "data/material_attribute_data.xml",
+      "data/packaging_type_data.xml",
+      "data/polymer_data.xml",
+      "data/material_form_data.xml",
+      "data/material_color_data.xml",
+      "data/source_type_data.xml",
+      "data/process_type_data.xml",
+      "views/polymer_views.xml",
+      "views/material_form_views.xml",
+      "views/material_color_views.xml",
+      "views/source_type_views.xml",
+      "views/process_type_views.xml",
+      "views/material_profile_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "res.partner"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "material_profile_ids",
+        "One2many"
+      ],
+      [
+        "material_profile_count",
+        "Integer"
+      ],
+      [
+        "is_facility",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_is_facility",
+      "_compute_material_profile_count"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "ResPartner",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_material_profile",
+    "file": "plasticos_material_profile/models/material_color.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "purchase",
+      "sale_management",
+      "product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/filler_type_data.xml",
+      "data/material_attribute_data.xml",
+      "data/packaging_type_data.xml",
+      "data/polymer_data.xml",
+      "data/material_form_data.xml",
+      "data/material_color_data.xml",
+      "data/source_type_data.xml",
+      "data/process_type_data.xml",
+      "views/polymer_views.xml",
+      "views/material_form_views.xml",
+      "views/material_color_views.xml",
+      "views/source_type_views.xml",
+      "views/process_type_views.xml",
+      "views/material_profile_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.material.color",
+    "_inherit": null,
+    "_description": "Material Color Master",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "code",
+        "Char"
+      ],
+      [
+        "hex_code",
+        "Char"
+      ],
+      [
+        "active",
+        "Boolean"
+      ],
+      [
+        "sequence",
+        "Integer"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosMaterialColor",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_buyer_match_engine",
+    "file": "plasticos_buyer_match_engine/models/intake_extension.py",
+    "manifest_depends": [
+      "plasticos_intake",
+      "plasticos_material_profile",
+      "plasticos_matching",
+      "plasticos_facility_profile",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/intake_button_views.xml",
+      "views/match_exclusion_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "plasticos.intake"
+    ],
+    "_description": null,
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosIntake",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_buyer_match_engine",
+    "file": "plasticos_buyer_match_engine/models/matcher.py",
+    "manifest_depends": [
+      "plasticos_intake",
+      "plasticos_material_profile",
+      "plasticos_matching",
+      "plasticos_facility_profile",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/intake_button_views.xml",
+      "views/match_exclusion_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.buyer.matcher",
+    "_inherit": null,
+    "_description": "Buyer Matching Orchestrator",
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "BuyerMatcher",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_buyer_match_engine",
+    "file": "plasticos_buyer_match_engine/models/graph_service.py",
+    "manifest_depends": [
+      "plasticos_intake",
+      "plasticos_material_profile",
+      "plasticos_matching",
+      "plasticos_facility_profile",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/intake_button_views.xml",
+      "views/match_exclusion_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.graph.service",
+    "_inherit": null,
+    "_description": "plasticos Graph Engine (Neo4j buyer matching)",
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": null,
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_buyer_match_engine",
+    "file": "plasticos_buyer_match_engine/models/graph_sync_log.py",
+    "manifest_depends": [
+      "plasticos_intake",
+      "plasticos_material_profile",
+      "plasticos_matching",
+      "plasticos_facility_profile",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/intake_button_views.xml",
+      "views/match_exclusion_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.graph.sync.log",
+    "_inherit": null,
+    "_description": "Graph Sync Audit Log",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "sync_type",
+        "Selection"
+      ],
+      [
+        "record_count",
+        "Integer"
+      ],
+      [
+        "status",
+        "Selection"
+      ],
+      [
+        "error_message",
+        "Text"
+      ],
+      [
+        "started_at",
+        "Datetime"
+      ],
+      [
+        "finished_at",
+        "Datetime"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosGraphSyncLog",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_buyer_match_engine",
+    "file": "plasticos_buyer_match_engine/models/facility_profile_graph_hooks.py",
+    "manifest_depends": [
+      "plasticos_intake",
+      "plasticos_material_profile",
+      "plasticos_matching",
+      "plasticos_facility_profile",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/intake_button_views.xml",
+      "views/match_exclusion_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "res.partner"
+    ],
+    "_description": null,
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "ResPartnerGraphHooks",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_buyer_match_engine",
+    "file": "plasticos_buyer_match_engine/models/match_exclusion.py",
+    "manifest_depends": [
+      "plasticos_intake",
+      "plasticos_material_profile",
+      "plasticos_matching",
+      "plasticos_facility_profile",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/intake_button_views.xml",
+      "views/match_exclusion_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.match.exclusion",
+    "_inherit": [
+      "mail.thread"
+    ],
+    "_description": "Buyer-Supplier Match Exclusion",
+    "fields": [
+      [
+        "supplier_partner_id",
+        "Many2one"
+      ],
+      [
+        "buyer_partner_id",
+        "Many2one"
+      ],
+      [
+        "reason",
+        "Selection"
+      ],
+      [
+        "reason_notes",
+        "Text"
+      ],
+      [
+        "exclusion_type",
+        "Selection"
+      ],
+      [
+        "expiry_date",
+        "Date"
+      ],
+      [
+        "active",
+        "Boolean"
+      ],
+      [
+        "created_by_uid",
+        "Many2one"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [
+      "exclusion_type",
+      "expiry_date",
+      "supplier_partner_id",
+      "buyer_partner_id"
+    ],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosMatchExclusion",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_buyer_match_engine",
+    "file": "plasticos_buyer_match_engine/models/intake_graph_hooks.py",
+    "manifest_depends": [
+      "plasticos_intake",
+      "plasticos_material_profile",
+      "plasticos_matching",
+      "plasticos_facility_profile",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/intake_button_views.xml",
+      "views/match_exclusion_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "plasticos.intake"
+    ],
+    "_description": null,
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "IntakeGraphHooks",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_buyer_match_engine",
+    "file": "plasticos_buyer_match_engine/models/material_profile_graph_hooks.py",
+    "manifest_depends": [
+      "plasticos_intake",
+      "plasticos_material_profile",
+      "plasticos_matching",
+      "plasticos_facility_profile",
+      "plasticos_transaction"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/intake_button_views.xml",
+      "views/match_exclusion_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "plasticos.material.profile"
+    ],
+    "_description": null,
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "MaterialProfileGraphHooks",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_order_lines",
+    "file": "plasticos_order_lines/models/purchase_order_line.py",
+    "manifest_depends": [
+      "purchase",
+      "sale",
+      "sale_management",
+      "plasticos_material_profile",
+      "plasticos_product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/purchase_order_views.xml",
+      "views/sale_order_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "purchase.order.line"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "material_profile_id",
+        "Many2one"
+      ],
+      [
+        "color_id",
+        "Many2one"
+      ],
+      [
+        "form_id",
+        "Many2one"
+      ],
+      [
+        "packaging_type_id",
+        "Many2one"
+      ],
+      [
+        "source_type_id",
+        "Many2one"
+      ],
+      [
+        "filler_type_id",
+        "Many2one"
+      ],
+      [
+        "material_attribute_ids",
+        "Many2many"
+      ],
+      [
+        "material_description",
+        "Char"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_material_description"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PurchaseOrderLine",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_order_lines",
+    "file": "plasticos_order_lines/models/sale_order_line.py",
+    "manifest_depends": [
+      "purchase",
+      "sale",
+      "sale_management",
+      "plasticos_material_profile",
+      "plasticos_product"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/purchase_order_views.xml",
+      "views/sale_order_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "sale.order.line"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "material_profile_id",
+        "Many2one"
+      ],
+      [
+        "color_id",
+        "Many2one"
+      ],
+      [
+        "form_id",
+        "Many2one"
+      ],
+      [
+        "packaging_type_id",
+        "Many2one"
+      ],
+      [
+        "source_type_id",
+        "Many2one"
+      ],
+      [
+        "filler_type_id",
+        "Many2one"
+      ],
+      [
+        "material_attribute_ids",
+        "Many2many"
+      ],
+      [
+        "material_description",
+        "Char"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_material_description"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "SaleOrderLine",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_claims",
+    "file": "plasticos_claims/models/claim.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "plasticos_transaction",
+      "plasticos_documents",
+      "plasticos_logistics"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/claims_security.xml",
+      "security/ir.model.access.csv",
+      "data/claim_sequence.xml",
+      "data/claim_cron.xml",
+      "data/email_templates.xml",
+      "views/claim_views.xml",
+      "views/claim_menus.xml",
+      "views/claim_bulk_update_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.claim",
+    "_inherit": [
+      "mail.thread",
+      "mail.activity.mixin"
+    ],
+    "_description": "QC Case / Claim",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "transaction_id",
+        "Many2one"
+      ],
+      [
+        "load_id",
+        "Many2one"
+      ],
+      [
+        "source_document_id",
+        "Many2one"
+      ],
+      [
+        "case_type",
+        "Selection"
+      ],
+      [
+        "severity",
+        "Selection"
+      ],
+      [
+        "state",
+        "Selection"
+      ],
+      [
+        "assignee_id",
+        "Many2one"
+      ],
+      [
+        "opened_at",
+        "Datetime"
+      ],
+      [
+        "escalated_at",
+        "Datetime"
+      ],
+      [
+        "resolved_at",
+        "Datetime"
+      ],
+      [
+        "last_reminder_at",
+        "Datetime"
+      ],
+      [
+        "sla_hours",
+        "Integer"
+      ],
+      [
+        "claimed_amount",
+        "Float"
+      ],
+      [
+        "recovery_amount",
+        "Float"
+      ],
+      [
+        "notes",
+        "Text"
+      ],
+      [
+        "description",
+        "Text"
+      ],
+      [
+        "resolution_note",
+        "Text"
+      ],
+      [
+        "investigation_notes",
+        "Text"
+      ],
+      [
+        "root_cause",
+        "Text"
+      ],
+      [
+        "corrective_action",
+        "Text"
+      ],
+      [
+        "resolution_type",
+        "Selection"
+      ],
+      [
+        "escalation_level",
+        "Integer"
+      ],
+      [
+        "escalated_to_id",
+        "Many2one"
+      ],
+      [
+        "escalation_reason",
+        "Text"
+      ],
+      [
+        "photo_ids",
+        "Many2many"
+      ],
+      [
+        "days_open",
+        "Integer"
+      ],
+      [
+        "is_overdue",
+        "Boolean"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_days_open",
+      "_compute_is_overdue"
+    ],
+    "api_constrains": [
+      "state",
+      "resolution_note"
+    ],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosClaim",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_claims",
+    "file": "plasticos_claims/models/document_inherit.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "plasticos_transaction",
+      "plasticos_documents",
+      "plasticos_logistics"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/claims_security.xml",
+      "security/ir.model.access.csv",
+      "data/claim_sequence.xml",
+      "data/claim_cron.xml",
+      "data/email_templates.xml",
+      "views/claim_views.xml",
+      "views/claim_menus.xml",
+      "views/claim_bulk_update_wizard_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "plasticos.document"
+    ],
+    "_description": null,
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosDocumentInherit",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_intake",
+    "file": "plasticos_intake/models/intake.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "plasticos_material_profile",
+      "plasticos_facility_profile"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/intake_views.xml",
+      "views/material_profile_intake_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.intake",
+    "_inherit": [
+      "mail.thread",
+      "mail.activity.mixin"
+    ],
+    "_description": "PlasticOS Material Intake",
+    "fields": [
+      [
+        "name",
+        "Char"
+      ],
+      [
+        "partner_id",
+        "Many2one"
+      ],
+      [
+        "pending_company_name",
+        "Char"
+      ],
+      [
+        "company_display",
+        "Char"
+      ],
+      [
+        "facility_id",
+        "Many2one"
+      ],
+      [
+        "contact_id",
+        "Many2one"
+      ],
+      [
+        "assigned_user_id",
+        "Many2one"
+      ],
+      [
+        "contact_phone",
+        "Char"
+      ],
+      [
+        "contact_email",
+        "Char"
+      ],
+      [
+        "facility_phone",
+        "Char"
+      ],
+      [
+        "facility_street",
+        "Char"
+      ],
+      [
+        "facility_city",
+        "Char"
+      ],
+      [
+        "facility_state",
+        "Char"
+      ],
+      [
+        "material_profile_id",
+        "Many2one"
+      ],
+      [
+        "polymer_id",
+        "Many2one"
+      ],
+      [
+        "form_id",
+        "Many2one"
+      ],
+      [
+        "color_id",
+        "Many2one"
+      ],
+      [
+        "source_type_id",
+        "Many2one"
+      ],
+      [
+        "grade_hint",
+        "Char"
+      ],
+      [
+        "origin_form_id",
+        "Many2one"
+      ],
+      [
+        "packaging_type_id",
+        "Many2one"
+      ],
+      [
+        "material_attribute_ids",
+        "Many2many"
+      ],
+      [
+        "mfi_value",
+        "Float"
+      ],
+      [
+        "density_value",
+        "Float"
+      ],
+      [
+        "moisture_pct",
+        "Float"
+      ],
+      [
+        "contamination_pct",
+        "Float"
+      ],
+      [
+        "has_metal",
+        "Boolean"
+      ],
+      [
+        "is_metalized",
+        "Boolean"
+      ],
+      [
+        "has_fr",
+        "Boolean"
+      ],
+      [
+        "has_residue",
+        "Boolean"
+      ],
+      [
+        "filler_type_id",
+        "Many2one"
+      ],
+      [
+        "filler_pct",
+        "Float"
+      ],
+      [
+        "contamination_notes",
+        "Text"
+      ],
+      [
+        "intake_notes",
+        "Text"
+      ],
+      [
+        "origin_application",
+        "Text"
+      ],
+      [
+        "origin_sector",
+        "Selection"
+      ],
+      [
+        "origin_process_type",
+        "Selection"
+      ],
+      [
+        "quantity_per_load_lbs",
+        "Integer"
+      ],
+      [
+        "loads_per_month",
+        "Integer"
+      ],
+      [
+        "deal_type",
+        "Selection"
+      ],
+      [
+        "contract_duration_months",
+        "Integer"
+      ],
+      [
+        "status",
+        "Selection"
+      ],
+      [
+        "match_mode",
+        "Selection"
+      ],
+      [
+        "lat",
+        "Float"
+      ],
+      [
+        "lon",
+        "Float"
+      ],
+      [
+        "match_line_ids",
+        "One2many"
+      ],
+      [
+        "match_count",
+        "Integer"
+      ],
+      [
+        "selected_count",
+        "Integer"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_has_residue",
+      "_compute_match_count",
+      "_compute_name",
+      "_compute_company_display"
+    ],
+    "api_constrains": [
+      "quantity_per_load_lbs",
+      "loads_per_month"
+    ],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosIntake",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_intake",
+    "file": "plasticos_intake/models/res_partner_intake.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "plasticos_material_profile",
+      "plasticos_facility_profile"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/intake_views.xml",
+      "views/material_profile_intake_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "res.partner"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "intake_count",
+        "Integer"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_intake_count"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "ResPartnerIntake",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_intake",
+    "file": "plasticos_intake/models/intake_match.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "plasticos_material_profile",
+      "plasticos_facility_profile"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/intake_views.xml",
+      "views/material_profile_intake_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.intake.match",
+    "_inherit": null,
+    "_description": "Intake Buyer Match",
+    "fields": [
+      [
+        "intake_id",
+        "Many2one"
+      ],
+      [
+        "buyer_id",
+        "Many2one"
+      ],
+      [
+        "buyer_name",
+        "Char"
+      ],
+      [
+        "buyer_city",
+        "Char"
+      ],
+      [
+        "buyer_state",
+        "Char"
+      ],
+      [
+        "match_score",
+        "Float"
+      ],
+      [
+        "match_reason",
+        "Char"
+      ],
+      [
+        "selected",
+        "Boolean"
+      ],
+      [
+        "typical_price",
+        "Float"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_display_name"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "IntakeBuyerMatch",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_intake",
+    "file": "plasticos_intake/models/material_profile_intake.py",
+    "manifest_depends": [
+      "base",
+      "contacts",
+      "mail",
+      "plasticos_material_profile",
+      "plasticos_facility_profile"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/intake_views.xml",
+      "views/material_profile_intake_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "plasticos.material.profile"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "intake_count",
+        "Integer"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_intake_count"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosMaterialProfileIntake",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_product",
+    "file": "plasticos_product/models/product_template.py",
+    "manifest_depends": [
+      "product",
+      "plasticos_material_profile"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/product_category_data.xml",
+      "data/product_data.xml",
+      "views/polymer_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "product.template"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "polymer_id",
+        "Many2one"
+      ],
+      [
+        "is_polymer_product",
+        "Boolean"
+      ],
+      [
+        "product_id",
+        "Many2one"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "ProductTemplate",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_documents_native",
+    "file": "plasticos_documents_native/models/document_native.py",
+    "manifest_depends": [
+      "documents",
+      "documents_account",
+      "plasticos_documents",
+      "plasticos_logistics",
+      "plasticos_transaction",
+      "plasticos_intake",
+      "plasticos_material_profile",
+      "plasticos_security_base"
+    ],
+    "installable": false,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/document_folders.xml",
+      "data/document_tags.xml",
+      "views/document_native_views.xml"
+    ],
+    "demo_files": [],
+    "_name": null,
+    "_inherit": [
+      "documents.document"
+    ],
+    "_description": null,
+    "fields": [
+      [
+        "x_polymer_id",
+        "Many2one"
+      ],
+      [
+        "x_load_id",
+        "Many2one"
+      ],
+      [
+        "x_transaction_id",
+        "Many2one"
+      ],
+      [
+        "x_intake_id",
+        "Many2one"
+      ],
+      [
+        "x_doc_type",
+        "Selection"
+      ],
+      [
+        "x_verified",
+        "Boolean"
+      ],
+      [
+        "x_verified_by",
+        "Many2one"
+      ],
+      [
+        "x_verified_at",
+        "Datetime"
+      ],
+      [
+        "x_override",
+        "Boolean"
+      ],
+      [
+        "x_override_reason",
+        "Text"
+      ],
+      [
+        "x_plasticos_doc_id",
+        "Many2one"
+      ]
+    ],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "DocumentNative",
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_documents_native",
+    "file": "plasticos_documents_native/models/document_sync.py",
+    "manifest_depends": [
+      "documents",
+      "documents_account",
+      "plasticos_documents",
+      "plasticos_logistics",
+      "plasticos_transaction",
+      "plasticos_intake",
+      "plasticos_material_profile",
+      "plasticos_security_base"
+    ],
+    "installable": false,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "data/document_folders.xml",
+      "data/document_tags.xml",
+      "views/document_native_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.document.sync",
+    "_inherit": null,
+    "_description": "Native \u2194 Legacy Document Sync Service",
+    "fields": [],
+    "compute_methods": [],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": null,
+    "namespace_drift": null
+  },
+  {
+    "module": "plasticos_matching",
+    "file": "plasticos_matching/models/match_result.py",
+    "manifest_depends": [
+      "base",
+      "mail",
+      "plasticos_intake",
+      "plasticos_facility_profile"
+    ],
+    "installable": true,
+    "data_files": [
+      "security/ir.model.access.csv",
+      "views/match_result_views.xml"
+    ],
+    "demo_files": [],
+    "_name": "plasticos.match.result",
+    "_inherit": [
+      "mail.thread"
+    ],
+    "_description": "Material\u2013Buyer Match Result",
+    "fields": [
+      [
+        "intake_id",
+        "Many2one"
+      ],
+      [
+        "intake_polymer",
+        "Char"
+      ],
+      [
+        "intake_form",
+        "Char"
+      ],
+      [
+        "intake_partner_id",
+        "Many2one"
+      ],
+      [
+        "buyer_partner_id",
+        "Many2one"
+      ],
+      [
+        "buyer_facility_id",
+        "Many2one"
+      ],
+      [
+        "facility_profile_id",
+        "Many2one"
+      ],
+      [
+        "score",
+        "Float"
+      ],
+      [
+        "confidence",
+        "Float"
+      ],
+      [
+        "score_breakdown",
+        "Json"
+      ],
+      [
+        "match_reasoning",
+        "Text"
+      ],
+      [
+        "run_id",
+        "Char"
+      ],
+      [
+        "model_version",
+        "Char"
+      ],
+      [
+        "timestamp",
+        "Datetime"
+      ],
+      [
+        "state",
+        "Selection"
+      ],
+      [
+        "reviewed_by",
+        "Many2one"
+      ],
+      [
+        "reviewed_date",
+        "Datetime"
+      ],
+      [
+        "rejection_reason",
+        "Text"
+      ],
+      [
+        "display_name",
+        "Char"
+      ]
+    ],
+    "compute_methods": [
+      "_compute_display_name"
+    ],
+    "api_constrains": [],
+    "_sql_constraints": [],
+    "models_constraint": [],
+    "class_name": "PlasticosMatchResult",
+    "namespace_drift": null
+  }
+]

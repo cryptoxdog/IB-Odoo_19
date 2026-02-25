@@ -10,8 +10,11 @@ class PlasticosRateMemory(models.Model):
     rate_amount = fields.Float(required=True)
     rate_date = fields.Date(required=True, index=True)
 
-    # ── Constraints (Odoo 19 models.Constraint) ──────────────
-    _check_unique_rate = models.Constraint(
-        "unique(carrier_id, lane_key, rate_date)",
-        "Only one rate per carrier + lane + date is allowed.",
-    )
+    # ── Constraints ──────────────────────────────────────────
+    _sql_constraints = [
+        (
+            "unique_rate",
+            "unique(carrier_id, lane_key, rate_date)",
+            "Only one rate per carrier + lane + date is allowed.",
+        ),
+    ]

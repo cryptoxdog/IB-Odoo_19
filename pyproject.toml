@@ -72,14 +72,63 @@ quote-style = "double"
 indent-style = "space"
 
 # =============================================================================
-# ODOO-SPECIFIC PATTERNS TO GREP FOR (not catchable by ruff, use grep/CI script)
+# MYPY TYPE CHECKING
 # =============================================================================
-# These patterns cause Odoo 19 runtime errors but ruff can't detect them.
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = false  # Too noisy for Odoo (returns recordsets as Any)
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = [
+    "^tests-odoo/",
+    "^addons/",
+    "^\\.venv/",
+    "^venv/",
+    ".*/migrations/.*",  # Odoo migration scripts (not regular modules)
+    "^scripts/",         # Utility scripts
+    "^plasticos_dev_tools/",  # Dev tools (relaxed checking)
+]
+
+# Odoo-specific: Be lenient on untyped defs (Odoo models rarely have full types)
+disallow_untyped_defs = false
+check_untyped_defs = false  # Odoo methods often lack type hints
+
+# Catch common errors
+warn_redundant_casts = true
+warn_unused_ignores = false  # Too noisy during gradual adoption
+no_implicit_optional = false  # Odoo uses None defaults extensively
+
+# Per-module overrides
+[[tool.mypy.overrides]]
+module = [
+    "odoo.*",
+    "odoo.addons.*",
+]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+    "plasticos_inference_engine.*",
+]
+ignore_errors = true  # Heavy refactoring in progress
+
+[[tool.mypy.overrides]]
+module = [
+    "plasticos_web_leads.*",
+    "plasticos_enrichment.*",
+    "plasticos_buyer_match_engine.*",
+]
+ignore_errors = true  # Complex Odoo recordset patterns, gradual typing
+
+# =============================================================================
+# ODOO-SPECIFIC PATTERNS TO GREP FOR (not catchable by ruff/mypy, use grep/CI script)
+# =============================================================================
+# These patterns cause Odoo 19 runtime errors but static analysis can't detect them.
 # Add to CI as grep checks or use odoo --test-enable
 #
-# 1. _sql_constraints (deprecated in Odoo 17+)
-#    grep -r "_sql_constraints" --include="*.py"
-#    Fix: Convert to models.Constraint
+# 1. models.Constraint (INVALID - does not exist in any Odoo version)
+#    grep -r "models\.Constraint(" --include="*.py"
+#    Fix: Convert to _sql_constraints = [("name", "SQL", "message"), ...]
 #
 # 2. @api.depends("id") (disallowed in Odoo 19)
 #    grep -r '@api.depends.*"id"' --include="*.py"

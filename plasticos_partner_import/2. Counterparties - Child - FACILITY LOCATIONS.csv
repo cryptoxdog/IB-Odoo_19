@@ -1950,9 +1950,9 @@ SCOTT PLASTICS INC,Invoice,,,,INVOICE,SCOTT PLASTICS INC,234 Dynatex Rd,,"Sunbri
 0,Location,,,,"ONEIDA, TN",Scott Plastics,712 Industrial Lane,,Oneida,TN,37841,United States,Gary Raper,865-343-7123,dan@scottcomputers.com; manager@scottplasticsllc.com; officemgr@scottrecycling.com; manager@scottplasticsllc.com; ib@scrapmanagement.com
 0,Location,,,,PRIMARY ADDRESS,SCOTT PLASTICS LLC,146 N Oakhill,,Louisville,TN,37777,United States,,,
 0,Location,,,,"SUNBRIGHT, TN",SCOTT PLASTICS INC,234 Dynatex Rd,,Sunbright,TN,37872,United States,Dan Scott,865-973-3067,dan@scottcomputers.com
-SCRAP MANAGEMENT,Inv/Remit,,,,INVOICE,SCRAP MANAGEMENT,1600 Matthews-Mint Hill Rd Suite E,,Matthews,NC,28105,United States,Igor Beylin,(704) 251-8889,ib@scrapmanagement.com
-SCRAP MANAGEMENT,Location,,,,TLC WAREHOUSE,TLC WORLDWIDE LOGISTICS,550 S Industrial Park Rd,,Holly Springs,MS,38635,United States,,,
-SCRAP MANAGEMENT SALISBURY WAREHOUSE,Remit,,,,INVOICE,SCRAP MANAGEMENT,1325 Litton Dr,,Salibury,NC,28147,United States,,,
+,Inv/Remit,,,,INVOICE,,1600 Matthews-Mint Hill Rd Suite E,,Matthews,NC,28105,United States,Igor Beylin,(704) 251-8889,ib@scrapmanagement.com
+,Location,,,,TLC WAREHOUSE,TLC WORLDWIDE LOGISTICS,550 S Industrial Park Rd,,Holly Springs,MS,38635,United States,,,
+SALISBURY WAREHOUSE,Remit,,,,INVOICE,,1325 Litton Dr,,Salibury,NC,28147,United States,,,
 SD POLYMERS LLC,Invoice,,,,INVOICE,SD POLYMERS LLC,600 Guy Paine Rd,Warehouse 5C,Macon,GA,31206,United States,Skylar Linto,478-285-6466,skylar@sdpolymers.net; Kayla@sdpolymers.net; lm@scrapmanagement.com
 SDS LOGISTICS SERVICES,Remit,,,,PRIMARY,SDS LOGISTICS SERVICES,19 Colonial Drive,Suite 27,Youngstown,OH,44505,United States,Paul Kello,(330) 759-8066,paul.kello@sdslogistics.com;paul.kello@sdslogistics.com
 SEAFRIGO,Remit,,,,INVOICE,SEAFRIGO,735 Dowd Ave,,Elizabeth,NJ,7201,United States,Robert Heim,908-438-3943,r.heim@seafrigo-usa.com; aa@scrapmanagement.com

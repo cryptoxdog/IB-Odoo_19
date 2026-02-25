@@ -1,6 +1,7 @@
 # Pre-commit hooks for Odoo 19 development
-# Install: pip install pre-commit && pre-commit install
+# Install: pip install pre-commit && pre-commit install && pre-commit install --hook-type pre-push
 # Run manually: pre-commit run --all-files
+# Pre-push (index export): pre-commit run --hook-stage pre-push
 
 repos:
   # Python linting with ruff (fast, replaces flake8/isort/pyupgrade)
@@ -43,10 +44,40 @@ repos:
         always_run: true
         stages: [pre-commit]
 
-  # Python type checking (optional - can be slow)
-  # Uncomment if you want mypy
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: v1.8.0
-  #   hooks:
-  #     - id: mypy
-  #       additional_dependencies: []
+      - id: export-odoo-index
+        name: Export Odoo repo index
+        entry: python3 scripts/export_odoo_index.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: generate-subsystem-readmes
+        name: Generate subsystem READMEs
+        entry: python3 scripts/generate_subsystem_readmes.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+  # Python type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.0
+    hooks:
+      - id: mypy
+        args: [--config-file=pyproject.toml]
+        additional_dependencies: []
+        exclude: |
+          (?x)^(
+            tests-odoo/.*|
+            addons/.*|
+            \.venv/.*|
+            venv/.*|
+            .*/migrations/.*|
+            scripts/.*|
+            plasticos_dev_tools/.*|
+            plasticos_inference_engine/.*|
+            plasticos_web_leads/.*|
+            plasticos_enrichment/.*|
+            plasticos_buyer_match_engine/.*
+          )$

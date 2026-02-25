@@ -1,0 +1,5154 @@
+[
+  {
+    "qualified_id": "plasticos_enrichment.module_category_enrichment",
+    "module": "plasticos_enrichment",
+    "xml_id": "module_category_enrichment",
+    "model": "ir.module.category",
+    "noupdate": false,
+    "source_file": "plasticos_enrichment/security/security.xml"
+  },
+  {
+    "qualified_id": "plasticos_enrichment.privilege_enrichment",
+    "module": "plasticos_enrichment",
+    "xml_id": "privilege_enrichment",
+    "model": "res.groups.privilege",
+    "noupdate": false,
+    "source_file": "plasticos_enrichment/security/security.xml"
+  },
+  {
+    "qualified_id": "plasticos_enrichment.group_enrichment_user",
+    "module": "plasticos_enrichment",
+    "xml_id": "group_enrichment_user",
+    "model": "res.groups",
+    "noupdate": false,
+    "source_file": "plasticos_enrichment/security/security.xml"
+  },
+  {
+    "qualified_id": "plasticos_enrichment.group_enrichment_manager",
+    "module": "plasticos_enrichment",
+    "xml_id": "group_enrichment_manager",
+    "model": "res.groups",
+    "noupdate": false,
+    "source_file": "plasticos_enrichment/security/security.xml"
+  },
+  {
+    "qualified_id": "plasticos_enrichment.seq_enrichment_run",
+    "module": "plasticos_enrichment",
+    "xml_id": "seq_enrichment_run",
+    "model": "ir.sequence",
+    "noupdate": false,
+    "source_file": "plasticos_enrichment/data/sequence.xml"
+  },
+  {
+    "qualified_id": "plasticos_enrichment.cron_enrichment_daily",
+    "module": "plasticos_enrichment",
+    "xml_id": "cron_enrichment_daily",
+    "model": "ir.cron",
+    "noupdate": false,
+    "source_file": "plasticos_enrichment/data/cron.xml"
+  },
+  {
+    "qualified_id": "plasticos_enrichment.cron_inference_standalone",
+    "module": "plasticos_enrichment",
+    "xml_id": "cron_inference_standalone",
+    "model": "ir.cron",
+    "noupdate": false,
+    "source_file": "plasticos_enrichment/data/cron.xml"
+  },
+  {
+    "qualified_id": "plasticos_enrichment.view_enrichment_run_tree",
+    "module": "plasticos_enrichment",
+    "xml_id": "view_enrichment_run_tree",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_enrichment/views/enrichment_run_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_enrichment.view_enrichment_run_form",
+    "module": "plasticos_enrichment",
+    "xml_id": "view_enrichment_run_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_enrichment/views/enrichment_run_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_enrichment.action_enrichment_run",
+    "module": "plasticos_enrichment",
+    "xml_id": "action_enrichment_run",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_enrichment/views/enrichment_run_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_enrichment.view_enrichment_source_tree",
+    "module": "plasticos_enrichment",
+    "xml_id": "view_enrichment_source_tree",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_enrichment/views/enrichment_source_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_enrichment.action_enrichment_source",
+    "module": "plasticos_enrichment",
+    "xml_id": "action_enrichment_source",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_enrichment/views/enrichment_source_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_enrichment.view_partner_form_enrichment",
+    "module": "plasticos_enrichment",
+    "xml_id": "view_partner_form_enrichment",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_enrichment/views/res_partner_enrichment.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.module_category_transaction",
+    "module": "plasticos_transaction",
+    "xml_id": "module_category_transaction",
+    "model": "ir.module.category",
+    "noupdate": true,
+    "source_file": "plasticos_transaction/security/security_hardening.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.privilege_transaction",
+    "module": "plasticos_transaction",
+    "xml_id": "privilege_transaction",
+    "model": "res.groups.privilege",
+    "noupdate": true,
+    "source_file": "plasticos_transaction/security/security_hardening.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.group_plasticos_manager",
+    "module": "plasticos_transaction",
+    "xml_id": "group_plasticos_manager",
+    "model": "res.groups",
+    "noupdate": true,
+    "source_file": "plasticos_transaction/security/security_hardening.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.rule_plasticos_close_restrict",
+    "module": "plasticos_transaction",
+    "xml_id": "rule_plasticos_close_restrict",
+    "model": "ir.rule",
+    "noupdate": true,
+    "source_file": "plasticos_transaction/security/security_hardening.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.group_plasticos_commission_manager",
+    "module": "plasticos_transaction",
+    "xml_id": "group_plasticos_commission_manager",
+    "model": "res.groups",
+    "noupdate": true,
+    "source_file": "plasticos_transaction/security/commission_acl.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.access_commission_rule_manager",
+    "module": "plasticos_transaction",
+    "xml_id": "access_commission_rule_manager",
+    "model": "ir.model.access",
+    "noupdate": true,
+    "source_file": "plasticos_transaction/security/commission_acl.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.seq_plasticos_transaction",
+    "module": "plasticos_transaction",
+    "xml_id": "seq_plasticos_transaction",
+    "model": "ir.sequence",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/data/sequence.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.cron_plasticos_monthly_audit",
+    "module": "plasticos_transaction",
+    "xml_id": "cron_plasticos_monthly_audit",
+    "model": "ir.cron",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/data/audit_cron.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.view_transaction_search",
+    "module": "plasticos_transaction",
+    "xml_id": "view_transaction_search",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/views/transaction_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.view_transaction_tree",
+    "module": "plasticos_transaction",
+    "xml_id": "view_transaction_tree",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/views/transaction_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.view_transaction_pivot",
+    "module": "plasticos_transaction",
+    "xml_id": "view_transaction_pivot",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/views/transaction_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.view_transaction_graph",
+    "module": "plasticos_transaction",
+    "xml_id": "view_transaction_graph",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/views/transaction_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.view_transaction_form",
+    "module": "plasticos_transaction",
+    "xml_id": "view_transaction_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/views/transaction_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.action_transaction",
+    "module": "plasticos_transaction",
+    "xml_id": "action_transaction",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/views/transaction_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.view_commission_rule_tree",
+    "module": "plasticos_transaction",
+    "xml_id": "view_commission_rule_tree",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/views/commission_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.view_plasticos_transaction_bulk_wizard_tree",
+    "module": "plasticos_transaction",
+    "xml_id": "view_plasticos_transaction_bulk_wizard_tree",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/views/transaction_bulk_update_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.view_transaction_bulk_update_wizard_form",
+    "module": "plasticos_transaction",
+    "xml_id": "view_transaction_bulk_update_wizard_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/views/transaction_bulk_update_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.action_transaction_bulk_update_wizard",
+    "module": "plasticos_transaction",
+    "xml_id": "action_transaction_bulk_update_wizard",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/views/transaction_bulk_update_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.view_transaction_bulk_assign_wizard_form",
+    "module": "plasticos_transaction",
+    "xml_id": "view_transaction_bulk_assign_wizard_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/views/transaction_bulk_assign_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.action_transaction_bulk_assign_wizard",
+    "module": "plasticos_transaction",
+    "xml_id": "action_transaction_bulk_assign_wizard",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/views/transaction_bulk_assign_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.view_transaction_import_wizard_form",
+    "module": "plasticos_transaction",
+    "xml_id": "view_transaction_import_wizard_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/views/transaction_import_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_transaction.action_transaction_import_wizard",
+    "module": "plasticos_transaction",
+    "xml_id": "action_transaction_import_wizard",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_transaction/views/transaction_import_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_partner_import.view_partner_import_wizard_form",
+    "module": "plasticos_partner_import",
+    "xml_id": "view_partner_import_wizard_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_partner_import/views/partner_import_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_partner_import.action_partner_import_wizard",
+    "module": "plasticos_partner_import",
+    "xml_id": "action_partner_import_wizard",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_partner_import/views/partner_import_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_partner_import.view_partner_bulk_update_wizard_form",
+    "module": "plasticos_partner_import",
+    "xml_id": "view_partner_bulk_update_wizard_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_partner_import/views/partner_bulk_update_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_partner_import.action_partner_bulk_update_wizard",
+    "module": "plasticos_partner_import",
+    "xml_id": "action_partner_bulk_update_wizard",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_partner_import/views/partner_bulk_update_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.incoterm_fob",
+    "module": "plasticos_logistics",
+    "xml_id": "incoterm_fob",
+    "model": "account.incoterms",
+    "noupdate": true,
+    "source_file": "plasticos_logistics/data/incoterms.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.incoterm_supplier_delivered",
+    "module": "plasticos_logistics",
+    "xml_id": "incoterm_supplier_delivered",
+    "model": "account.incoterms",
+    "noupdate": true,
+    "source_file": "plasticos_logistics/data/incoterms.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.incoterm_buyer_pickup",
+    "module": "plasticos_logistics",
+    "xml_id": "incoterm_buyer_pickup",
+    "model": "account.incoterms",
+    "noupdate": true,
+    "source_file": "plasticos_logistics/data/incoterms.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.incoterm_fas",
+    "module": "plasticos_logistics",
+    "xml_id": "incoterm_fas",
+    "model": "account.incoterms",
+    "noupdate": true,
+    "source_file": "plasticos_logistics/data/incoterms.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.cron_followup",
+    "module": "plasticos_logistics",
+    "xml_id": "cron_followup",
+    "model": "ir.cron",
+    "noupdate": false,
+    "source_file": "plasticos_logistics/data/cron.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.cron_escalation",
+    "module": "plasticos_logistics",
+    "xml_id": "cron_escalation",
+    "model": "ir.cron",
+    "noupdate": false,
+    "source_file": "plasticos_logistics/data/cron.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.view_load_search",
+    "module": "plasticos_logistics",
+    "xml_id": "view_load_search",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_logistics/views/load_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.view_load_tree",
+    "module": "plasticos_logistics",
+    "xml_id": "view_load_tree",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_logistics/views/load_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.view_load_kanban",
+    "module": "plasticos_logistics",
+    "xml_id": "view_load_kanban",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_logistics/views/load_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.view_load_calendar",
+    "module": "plasticos_logistics",
+    "xml_id": "view_load_calendar",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_logistics/views/load_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.view_load_form",
+    "module": "plasticos_logistics",
+    "xml_id": "view_load_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_logistics/views/load_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.action_plasticos_load",
+    "module": "plasticos_logistics",
+    "xml_id": "action_plasticos_load",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_logistics/views/load_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.view_sale_order_button",
+    "module": "plasticos_logistics",
+    "xml_id": "view_sale_order_button",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_logistics/views/sale_order_button.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.view_load_bulk_update_wizard_form",
+    "module": "plasticos_logistics",
+    "xml_id": "view_load_bulk_update_wizard_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_logistics/views/load_bulk_update_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.action_load_bulk_update_wizard",
+    "module": "plasticos_logistics",
+    "xml_id": "action_load_bulk_update_wizard",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_logistics/views/load_bulk_update_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.action_report_bol_pickup",
+    "module": "plasticos_logistics",
+    "xml_id": "action_report_bol_pickup",
+    "model": "ir.actions.report",
+    "noupdate": false,
+    "source_file": "plasticos_logistics/report/load_reports.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.action_report_bol_delivery",
+    "module": "plasticos_logistics",
+    "xml_id": "action_report_bol_delivery",
+    "model": "ir.actions.report",
+    "noupdate": false,
+    "source_file": "plasticos_logistics/report/load_reports.xml"
+  },
+  {
+    "qualified_id": "plasticos_logistics.action_report_delivery_order",
+    "module": "plasticos_logistics",
+    "xml_id": "action_report_delivery_order",
+    "model": "ir.actions.report",
+    "noupdate": false,
+    "source_file": "plasticos_logistics/report/load_reports.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.equip_horizontal_baler",
+    "module": "plasticos_facility_profile",
+    "xml_id": "equip_horizontal_baler",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.equip_downstroke_baler",
+    "module": "plasticos_facility_profile",
+    "xml_id": "equip_downstroke_baler",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.equip_shredder",
+    "module": "plasticos_facility_profile",
+    "xml_id": "equip_shredder",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.equip_granulator",
+    "module": "plasticos_facility_profile",
+    "xml_id": "equip_granulator",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.equip_wash_line",
+    "module": "plasticos_facility_profile",
+    "xml_id": "equip_wash_line",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.equip_pelletizer",
+    "module": "plasticos_facility_profile",
+    "xml_id": "equip_pelletizer",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.equip_extruder",
+    "module": "plasticos_facility_profile",
+    "xml_id": "equip_extruder",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.equip_compounder",
+    "module": "plasticos_facility_profile",
+    "xml_id": "equip_compounder",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.equip_sorting_line",
+    "module": "plasticos_facility_profile",
+    "xml_id": "equip_sorting_line",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.handling_bales",
+    "module": "plasticos_facility_profile",
+    "xml_id": "handling_bales",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.handling_regrind",
+    "module": "plasticos_facility_profile",
+    "xml_id": "handling_regrind",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.handling_pellet",
+    "module": "plasticos_facility_profile",
+    "xml_id": "handling_pellet",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.handling_flake",
+    "module": "plasticos_facility_profile",
+    "xml_id": "handling_flake",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.handling_rollstock",
+    "module": "plasticos_facility_profile",
+    "xml_id": "handling_rollstock",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.quality_metal_removal",
+    "module": "plasticos_facility_profile",
+    "xml_id": "quality_metal_removal",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.quality_moisture_reduction",
+    "module": "plasticos_facility_profile",
+    "xml_id": "quality_moisture_reduction",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.quality_fr_filtration",
+    "module": "plasticos_facility_profile",
+    "xml_id": "quality_fr_filtration",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.quality_fines_screening",
+    "module": "plasticos_facility_profile",
+    "xml_id": "quality_fines_screening",
+    "model": "plasticos.equipment.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/equipment_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.partner_type_processor",
+    "module": "plasticos_facility_profile",
+    "xml_id": "partner_type_processor",
+    "model": "plasticos.partner.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.partner_type_broker",
+    "module": "plasticos_facility_profile",
+    "xml_id": "partner_type_broker",
+    "model": "plasticos.partner.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.partner_type_manufacturer",
+    "module": "plasticos_facility_profile",
+    "xml_id": "partner_type_manufacturer",
+    "model": "plasticos.partner.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.partner_type_mrf",
+    "module": "plasticos_facility_profile",
+    "xml_id": "partner_type_mrf",
+    "model": "plasticos.partner.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.partner_type_compounder",
+    "module": "plasticos_facility_profile",
+    "xml_id": "partner_type_compounder",
+    "model": "plasticos.partner.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.partner_type_recycler",
+    "module": "plasticos_facility_profile",
+    "xml_id": "partner_type_recycler",
+    "model": "plasticos.partner.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.partner_type_distributor",
+    "module": "plasticos_facility_profile",
+    "xml_id": "partner_type_distributor",
+    "model": "plasticos.partner.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.partner_type_carrier",
+    "module": "plasticos_facility_profile",
+    "xml_id": "partner_type_carrier",
+    "model": "plasticos.partner.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.partner_type_end_user",
+    "module": "plasticos_facility_profile",
+    "xml_id": "partner_type_end_user",
+    "model": "plasticos.partner.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.partner_type_grinder",
+    "module": "plasticos_facility_profile",
+    "xml_id": "partner_type_grinder",
+    "model": "plasticos.partner.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.partner_type_toll_processor",
+    "module": "plasticos_facility_profile",
+    "xml_id": "partner_type_toll_processor",
+    "model": "plasticos.partner.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.partner_type_converter",
+    "module": "plasticos_facility_profile",
+    "xml_id": "partner_type_converter",
+    "model": "plasticos.partner.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.partner_type_other",
+    "module": "plasticos_facility_profile",
+    "xml_id": "partner_type_other",
+    "model": "plasticos.partner.type",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.plasticos_partner_type_tree",
+    "module": "plasticos_facility_profile",
+    "xml_id": "plasticos_partner_type_tree",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/views/partner_type_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.plasticos_partner_type_form",
+    "module": "plasticos_facility_profile",
+    "xml_id": "plasticos_partner_type_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/views/partner_type_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.action_plasticos_partner_type",
+    "module": "plasticos_facility_profile",
+    "xml_id": "action_plasticos_partner_type",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/views/partner_type_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.view_facility_profile_list",
+    "module": "plasticos_facility_profile",
+    "xml_id": "view_facility_profile_list",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/views/facility_profile_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.view_facility_profile_form",
+    "module": "plasticos_facility_profile",
+    "xml_id": "view_facility_profile_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/views/facility_profile_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_facility_profile.view_partner_form_profile_tab",
+    "module": "plasticos_facility_profile",
+    "xml_id": "view_partner_form_profile_tab",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_facility_profile/views/facility_profile_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_geolocalize.ir_cron_geo_backfill",
+    "module": "plasticos_geolocalize",
+    "xml_id": "ir_cron_geo_backfill",
+    "model": "ir.cron",
+    "noupdate": false,
+    "source_file": "plasticos_geolocalize/data/cron_geo_backfill.xml"
+  },
+  {
+    "qualified_id": "plasticos_geolocalize.view_partner_geo_status",
+    "module": "plasticos_geolocalize",
+    "xml_id": "view_partner_geo_status",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_geolocalize/views/intake_geo_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.module_category_documents",
+    "module": "plasticos_documents",
+    "xml_id": "module_category_documents",
+    "model": "ir.module.category",
+    "noupdate": true,
+    "source_file": "plasticos_documents/security/security.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.privilege_documents",
+    "module": "plasticos_documents",
+    "xml_id": "privilege_documents",
+    "model": "res.groups.privilege",
+    "noupdate": true,
+    "source_file": "plasticos_documents/security/security.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.group_documents_user",
+    "module": "plasticos_documents",
+    "xml_id": "group_documents_user",
+    "model": "res.groups",
+    "noupdate": true,
+    "source_file": "plasticos_documents/security/security.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.group_documents_manager",
+    "module": "plasticos_documents",
+    "xml_id": "group_documents_manager",
+    "model": "res.groups",
+    "noupdate": true,
+    "source_file": "plasticos_documents/security/security.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.group_documents_extension_manager",
+    "module": "plasticos_documents",
+    "xml_id": "group_documents_extension_manager",
+    "model": "res.groups",
+    "noupdate": true,
+    "source_file": "plasticos_documents/security/security.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.view_document_tag_tree",
+    "module": "plasticos_documents",
+    "xml_id": "view_document_tag_tree",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_documents/views/document_tag_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.view_document_rule_tree",
+    "module": "plasticos_documents",
+    "xml_id": "view_document_rule_tree",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_documents/views/document_rule_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.view_document_search",
+    "module": "plasticos_documents",
+    "xml_id": "view_document_search",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_documents/views/document_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.view_document_tree",
+    "module": "plasticos_documents",
+    "xml_id": "view_document_tree",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_documents/views/document_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.view_document_form",
+    "module": "plasticos_documents",
+    "xml_id": "view_document_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_documents/views/document_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.action_document_list",
+    "module": "plasticos_documents",
+    "xml_id": "action_document_list",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_documents/views/document_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.view_document_form",
+    "module": "plasticos_documents",
+    "xml_id": "view_document_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_documents/views/document_extension_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.action_document",
+    "module": "plasticos_documents",
+    "xml_id": "action_document",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_documents/views/document_extension_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.view_validation_matrix_list",
+    "module": "plasticos_documents",
+    "xml_id": "view_validation_matrix_list",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_documents/views/validation_matrix_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.view_validation_matrix_form",
+    "module": "plasticos_documents",
+    "xml_id": "view_validation_matrix_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_documents/views/validation_matrix_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.action_validation_matrix",
+    "module": "plasticos_documents",
+    "xml_id": "action_validation_matrix",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_documents/views/validation_matrix_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.view_transaction_form_docs",
+    "module": "plasticos_documents",
+    "xml_id": "view_transaction_form_docs",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_documents/views/transaction_docs_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.cron_document_compliance_check",
+    "module": "plasticos_documents",
+    "xml_id": "cron_document_compliance_check",
+    "model": "ir.cron",
+    "noupdate": false,
+    "source_file": "plasticos_documents/data/cron.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_bol",
+    "module": "plasticos_documents",
+    "xml_id": "tag_bol",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_invoice",
+    "module": "plasticos_documents",
+    "xml_id": "tag_invoice",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_scale_ticket",
+    "module": "plasticos_documents",
+    "xml_id": "tag_scale_ticket",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_loading_pic",
+    "module": "plasticos_documents",
+    "xml_id": "tag_loading_pic",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_packing_list",
+    "module": "plasticos_documents",
+    "xml_id": "tag_packing_list",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_customer_order",
+    "module": "plasticos_documents",
+    "xml_id": "tag_customer_order",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_receiving_report",
+    "module": "plasticos_documents",
+    "xml_id": "tag_receiving_report",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_cst",
+    "module": "plasticos_documents",
+    "xml_id": "tag_cst",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_delivery_order",
+    "module": "plasticos_documents",
+    "xml_id": "tag_delivery_order",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_contract",
+    "module": "plasticos_documents",
+    "xml_id": "tag_contract",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_certification",
+    "module": "plasticos_documents",
+    "xml_id": "tag_certification",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_permit",
+    "module": "plasticos_documents",
+    "xml_id": "tag_permit",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_lab_report",
+    "module": "plasticos_documents",
+    "xml_id": "tag_lab_report",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_correspondence",
+    "module": "plasticos_documents",
+    "xml_id": "tag_correspondence",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_claim_photo",
+    "module": "plasticos_documents",
+    "xml_id": "tag_claim_photo",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.tag_other",
+    "module": "plasticos_documents",
+    "xml_id": "tag_other",
+    "model": "plasticos.document.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/document_tags_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents.cron_check_missing_docs",
+    "module": "plasticos_documents",
+    "xml_id": "cron_check_missing_docs",
+    "model": "ir.cron",
+    "noupdate": true,
+    "source_file": "plasticos_documents/data/cron_missing_docs.xml"
+  },
+  {
+    "qualified_id": "plasticos_web_leads.web_lead_config_default",
+    "module": "plasticos_web_leads",
+    "xml_id": "web_lead_config_default",
+    "model": "plasticos.web.lead.config",
+    "noupdate": true,
+    "source_file": "plasticos_web_leads/data/web_lead_config_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_web_leads.module_category_web_leads",
+    "module": "plasticos_web_leads",
+    "xml_id": "module_category_web_leads",
+    "model": "ir.module.category",
+    "noupdate": true,
+    "source_file": "plasticos_web_leads/data/logistics_ir_rules.xml"
+  },
+  {
+    "qualified_id": "plasticos_web_leads.privilege_web_leads",
+    "module": "plasticos_web_leads",
+    "xml_id": "privilege_web_leads",
+    "model": "res.groups.privilege",
+    "noupdate": true,
+    "source_file": "plasticos_web_leads/data/logistics_ir_rules.xml"
+  },
+  {
+    "qualified_id": "plasticos_web_leads.group_logistics_team",
+    "module": "plasticos_web_leads",
+    "xml_id": "group_logistics_team",
+    "model": "res.groups",
+    "noupdate": true,
+    "source_file": "plasticos_web_leads/data/logistics_ir_rules.xml"
+  },
+  {
+    "qualified_id": "plasticos_web_leads.rule_logistics_partner_confirmed_po",
+    "module": "plasticos_web_leads",
+    "xml_id": "rule_logistics_partner_confirmed_po",
+    "model": "ir.rule",
+    "noupdate": true,
+    "source_file": "plasticos_web_leads/data/logistics_ir_rules.xml"
+  },
+  {
+    "qualified_id": "plasticos_web_leads.rule_logistics_no_web_leads",
+    "module": "plasticos_web_leads",
+    "xml_id": "rule_logistics_no_web_leads",
+    "model": "ir.rule",
+    "noupdate": true,
+    "source_file": "plasticos_web_leads/data/logistics_ir_rules.xml"
+  },
+  {
+    "qualified_id": "plasticos_web_leads.view_web_lead_list",
+    "module": "plasticos_web_leads",
+    "xml_id": "view_web_lead_list",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_web_leads/views/web_lead_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_web_leads.view_web_lead_form",
+    "module": "plasticos_web_leads",
+    "xml_id": "view_web_lead_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_web_leads/views/web_lead_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_web_leads.view_web_lead_kanban",
+    "module": "plasticos_web_leads",
+    "xml_id": "view_web_lead_kanban",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_web_leads/views/web_lead_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_web_leads.view_web_lead_search",
+    "module": "plasticos_web_leads",
+    "xml_id": "view_web_lead_search",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_web_leads/views/web_lead_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_web_leads.action_web_lead",
+    "module": "plasticos_web_leads",
+    "xml_id": "action_web_lead",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_web_leads/views/web_lead_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_web_leads.view_web_lead_config_form",
+    "module": "plasticos_web_leads",
+    "xml_id": "view_web_lead_config_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_web_leads/views/web_lead_config_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_web_leads.action_web_lead_config",
+    "module": "plasticos_web_leads",
+    "xml_id": "action_web_lead_config",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_web_leads/views/web_lead_config_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_web_leads.view_lead_bulk_action_wizard_form",
+    "module": "plasticos_web_leads",
+    "xml_id": "view_lead_bulk_action_wizard_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_web_leads/views/lead_bulk_action_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_web_leads.action_lead_bulk_action_wizard",
+    "module": "plasticos_web_leads",
+    "xml_id": "action_lead_bulk_action_wizard",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_web_leads/views/lead_bulk_action_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.module_category_automation",
+    "module": "plasticos_automation",
+    "xml_id": "module_category_automation",
+    "model": "ir.module.category",
+    "noupdate": true,
+    "source_file": "plasticos_automation/security/security.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.privilege_automation",
+    "module": "plasticos_automation",
+    "xml_id": "privilege_automation",
+    "model": "res.groups.privilege",
+    "noupdate": true,
+    "source_file": "plasticos_automation/security/security.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.group_plasticos_automation_manager",
+    "module": "plasticos_automation",
+    "xml_id": "group_plasticos_automation_manager",
+    "model": "res.groups",
+    "noupdate": true,
+    "source_file": "plasticos_automation/security/security.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.group_logistics_automation_manager",
+    "module": "plasticos_automation",
+    "xml_id": "group_logistics_automation_manager",
+    "model": "res.groups",
+    "noupdate": true,
+    "source_file": "plasticos_automation/security/security.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.base.group_system",
+    "module": "plasticos_automation",
+    "xml_id": "base.group_system",
+    "model": "res.groups",
+    "noupdate": true,
+    "source_file": "plasticos_automation/security/security.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.default_automation_config",
+    "module": "plasticos_automation",
+    "xml_id": "default_automation_config",
+    "model": "plasticos.automation.config",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/automation_config_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.config_weight_variance_tolerance",
+    "module": "plasticos_automation",
+    "xml_id": "config_weight_variance_tolerance",
+    "model": "ir.config_parameter",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/config_parameters.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.config_weight_auto_approve",
+    "module": "plasticos_automation",
+    "xml_id": "config_weight_auto_approve",
+    "model": "ir.config_parameter",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/config_parameters.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.config_freight_variance_tolerance",
+    "module": "plasticos_automation",
+    "xml_id": "config_freight_variance_tolerance",
+    "model": "ir.config_parameter",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/config_parameters.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.config_supplier_response_deadline_hours",
+    "module": "plasticos_automation",
+    "xml_id": "config_supplier_response_deadline_hours",
+    "model": "ir.config_parameter",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/config_parameters.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.config_trucker_response_deadline_hours",
+    "module": "plasticos_automation",
+    "xml_id": "config_trucker_response_deadline_hours",
+    "model": "ir.config_parameter",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/config_parameters.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.config_document_deadline_days",
+    "module": "plasticos_automation",
+    "xml_id": "config_document_deadline_days",
+    "model": "ir.config_parameter",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/config_parameters.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.config_qc_claim_sla_days",
+    "module": "plasticos_automation",
+    "xml_id": "config_qc_claim_sla_days",
+    "model": "ir.config_parameter",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/config_parameters.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.cron_sale_approval_flag",
+    "module": "plasticos_automation",
+    "xml_id": "cron_sale_approval_flag",
+    "model": "ir.cron",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/sale_approval_cron.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.cron_invoice_reminder",
+    "module": "plasticos_automation",
+    "xml_id": "cron_invoice_reminder",
+    "model": "ir.cron",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/invoice_reminder_cron.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.cron_contract_renewal_alert",
+    "module": "plasticos_automation",
+    "xml_id": "cron_contract_renewal_alert",
+    "model": "ir.cron",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/contract_renewal_cron.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.cron_stock_reorder_alert",
+    "module": "plasticos_automation",
+    "xml_id": "cron_stock_reorder_alert",
+    "model": "ir.cron",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/stock_alert_cron.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.email_template_supplier_followup",
+    "module": "plasticos_automation",
+    "xml_id": "email_template_supplier_followup",
+    "model": "mail.template",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/email_templates.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.email_template_trucker_followup",
+    "module": "plasticos_automation",
+    "xml_id": "email_template_trucker_followup",
+    "model": "mail.template",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/email_templates.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.email_template_delivery_order",
+    "module": "plasticos_automation",
+    "xml_id": "email_template_delivery_order",
+    "model": "mail.template",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/email_templates.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.email_template_bol_pickup",
+    "module": "plasticos_automation",
+    "xml_id": "email_template_bol_pickup",
+    "model": "mail.template",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/email_templates.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.email_template_bol_delivery",
+    "module": "plasticos_automation",
+    "xml_id": "email_template_bol_delivery",
+    "model": "mail.template",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/email_templates.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.email_template_dispatch_packet",
+    "module": "plasticos_automation",
+    "xml_id": "email_template_dispatch_packet",
+    "model": "mail.template",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/email_templates.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.email_template_po_supplier_ready",
+    "module": "plasticos_automation",
+    "xml_id": "email_template_po_supplier_ready",
+    "model": "mail.template",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/email_templates.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.email_template_so_to_buyer",
+    "module": "plasticos_automation",
+    "xml_id": "email_template_so_to_buyer",
+    "model": "mail.template",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/email_templates.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.email_template_request_dock_appointment",
+    "module": "plasticos_automation",
+    "xml_id": "email_template_request_dock_appointment",
+    "model": "mail.template",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/email_templates.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.email_template_supplier_ready_confirmed",
+    "module": "plasticos_automation",
+    "xml_id": "email_template_supplier_ready_confirmed",
+    "model": "mail.template",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/email_templates.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.cron_supplier_followup",
+    "module": "plasticos_automation",
+    "xml_id": "cron_supplier_followup",
+    "model": "ir.cron",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/cron_supplier_followup.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.cron_trucker_followup",
+    "module": "plasticos_automation",
+    "xml_id": "cron_trucker_followup",
+    "model": "ir.cron",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/cron_trucker_followup.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.cron_load_sla_check",
+    "module": "plasticos_automation",
+    "xml_id": "cron_load_sla_check",
+    "model": "ir.cron",
+    "noupdate": true,
+    "source_file": "plasticos_automation/data/cron_load_sla.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.action_auto_send_po_confirmation",
+    "module": "plasticos_automation",
+    "xml_id": "action_auto_send_po_confirmation",
+    "model": "ir.actions.server",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/workflow_automations.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.action_auto_send_so_buyer",
+    "module": "plasticos_automation",
+    "xml_id": "action_auto_send_so_buyer",
+    "model": "ir.actions.server",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/workflow_automations.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.action_auto_qc_escalation",
+    "module": "plasticos_automation",
+    "xml_id": "action_auto_qc_escalation",
+    "model": "ir.actions.server",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/workflow_automations.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.action_qc_claim_notification",
+    "module": "plasticos_automation",
+    "xml_id": "action_qc_claim_notification",
+    "model": "ir.actions.server",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/workflow_automations.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.action_tx_delivered_on_do_done",
+    "module": "plasticos_automation",
+    "xml_id": "action_tx_delivered_on_do_done",
+    "model": "ir.actions.server",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/workflow_automations.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.rule_trigger_po_confirmation",
+    "module": "plasticos_automation",
+    "xml_id": "rule_trigger_po_confirmation",
+    "model": "base.automation",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/workflow_automations.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.rule_trigger_so_notification",
+    "module": "plasticos_automation",
+    "xml_id": "rule_trigger_so_notification",
+    "model": "base.automation",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/workflow_automations.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.rule_qc_claim_notification",
+    "module": "plasticos_automation",
+    "xml_id": "rule_qc_claim_notification",
+    "model": "base.automation",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/workflow_automations.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.rule_tx_delivered_on_do_done",
+    "module": "plasticos_automation",
+    "xml_id": "rule_tx_delivered_on_do_done",
+    "model": "base.automation",
+    "noupdate": false,
+    "source_file": "plasticos_automation/data/workflow_automations.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.view_automation_config_form",
+    "module": "plasticos_automation",
+    "xml_id": "view_automation_config_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_automation/views/automation_config_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.action_automation_config",
+    "module": "plasticos_automation",
+    "xml_id": "action_automation_config",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_automation/views/automation_config_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.view_automation_log_list",
+    "module": "plasticos_automation",
+    "xml_id": "view_automation_log_list",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_automation/views/automation_log_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.view_automation_log_form",
+    "module": "plasticos_automation",
+    "xml_id": "view_automation_log_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_automation/views/automation_log_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.action_automation_log",
+    "module": "plasticos_automation",
+    "xml_id": "action_automation_log",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_automation/views/automation_log_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.view_purchase_order_form_logistics",
+    "module": "plasticos_automation",
+    "xml_id": "view_purchase_order_form_logistics",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_automation/views/purchase_order_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.view_sale_order_form_logistics",
+    "module": "plasticos_automation",
+    "xml_id": "view_sale_order_form_logistics",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_automation/views/sale_order_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_automation.view_stock_picking_form_logistics",
+    "module": "plasticos_automation",
+    "xml_id": "view_stock_picking_form_logistics",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_automation/views/stock_picking_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.module_category_plasticos",
+    "module": "plasticos_security_base",
+    "xml_id": "module_category_plasticos",
+    "model": "ir.module.category",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/security_groups.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.privilege_sales",
+    "module": "plasticos_security_base",
+    "xml_id": "privilege_sales",
+    "model": "res.groups.privilege",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/security_groups.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.privilege_logistics",
+    "module": "plasticos_security_base",
+    "xml_id": "privilege_logistics",
+    "model": "res.groups.privilege",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/security_groups.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.privilege_accounting",
+    "module": "plasticos_security_base",
+    "xml_id": "privilege_accounting",
+    "model": "res.groups.privilege",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/security_groups.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.privilege_quality",
+    "module": "plasticos_security_base",
+    "xml_id": "privilege_quality",
+    "model": "res.groups.privilege",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/security_groups.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.privilege_administration",
+    "module": "plasticos_security_base",
+    "xml_id": "privilege_administration",
+    "model": "res.groups.privilege",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/security_groups.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.group_sales_rep",
+    "module": "plasticos_security_base",
+    "xml_id": "group_sales_rep",
+    "model": "res.groups",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/security_groups.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.group_logistics",
+    "module": "plasticos_security_base",
+    "xml_id": "group_logistics",
+    "model": "res.groups",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/security_groups.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.group_accounting",
+    "module": "plasticos_security_base",
+    "xml_id": "group_accounting",
+    "model": "res.groups",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/security_groups.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.group_logistics_ops",
+    "module": "plasticos_security_base",
+    "xml_id": "group_logistics_ops",
+    "model": "res.groups",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/security_groups.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.group_qc_manager",
+    "module": "plasticos_security_base",
+    "xml_id": "group_qc_manager",
+    "model": "res.groups",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/security_groups.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.group_accounting_ops",
+    "module": "plasticos_security_base",
+    "xml_id": "group_accounting_ops",
+    "model": "res.groups",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/security_groups.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.group_operations_manager",
+    "module": "plasticos_security_base",
+    "xml_id": "group_operations_manager",
+    "model": "res.groups",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/security_groups.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.group_system_admin",
+    "module": "plasticos_security_base",
+    "xml_id": "group_system_admin",
+    "model": "res.groups",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/security_groups.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.rule_partner_private",
+    "module": "plasticos_security_base",
+    "xml_id": "rule_partner_private",
+    "model": "ir.rule",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/record_rules.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.rule_transaction_sales_rep",
+    "module": "plasticos_security_base",
+    "xml_id": "rule_transaction_sales_rep",
+    "model": "ir.rule",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/record_rules.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.rule_sale_order_sales_rep",
+    "module": "plasticos_security_base",
+    "xml_id": "rule_sale_order_sales_rep",
+    "model": "ir.rule",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/record_rules.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.rule_purchase_order_sales_rep",
+    "module": "plasticos_security_base",
+    "xml_id": "rule_purchase_order_sales_rep",
+    "model": "ir.rule",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/record_rules.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.rule_account_move_sales_rep",
+    "module": "plasticos_security_base",
+    "xml_id": "rule_account_move_sales_rep",
+    "model": "ir.rule",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/record_rules.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.rule_load_sales_rep",
+    "module": "plasticos_security_base",
+    "xml_id": "rule_load_sales_rep",
+    "model": "ir.rule",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/security/record_rules.xml"
+  },
+  {
+    "qualified_id": "plasticos_security_base.view_partner_form_private",
+    "module": "plasticos_security_base",
+    "xml_id": "view_partner_form_private",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_security_base/views/res_partner_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_intake_normalizer.normalizer_config_default",
+    "module": "plasticos_intake_normalizer",
+    "xml_id": "normalizer_config_default",
+    "model": "plasticos.normalizer.config",
+    "noupdate": true,
+    "source_file": "plasticos_intake_normalizer/data/normalizer_config_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_intake_normalizer.cron_batch_normalize_intakes",
+    "module": "plasticos_intake_normalizer",
+    "xml_id": "cron_batch_normalize_intakes",
+    "model": "ir.cron",
+    "noupdate": true,
+    "source_file": "plasticos_intake_normalizer/data/cron_batch_normalize.xml"
+  },
+  {
+    "qualified_id": "plasticos_intake_normalizer.view_normalizer_config_form",
+    "module": "plasticos_intake_normalizer",
+    "xml_id": "view_normalizer_config_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_intake_normalizer/views/normalizer_config_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_intake_normalizer.action_normalizer_config",
+    "module": "plasticos_intake_normalizer",
+    "xml_id": "action_normalizer_config",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_intake_normalizer/views/normalizer_config_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_intake_normalizer.view_intake_form_normalizer",
+    "module": "plasticos_intake_normalizer",
+    "xml_id": "view_intake_form_normalizer",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_intake_normalizer/views/intake_normalizer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_offer.ir_cron_expire_offers",
+    "module": "plasticos_offer",
+    "xml_id": "ir_cron_expire_offers",
+    "model": "ir.cron",
+    "noupdate": false,
+    "source_file": "plasticos_offer/data/offer_cron.xml"
+  },
+  {
+    "qualified_id": "plasticos_offer.view_offer_search",
+    "module": "plasticos_offer",
+    "xml_id": "view_offer_search",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_offer/views/offer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_offer.view_offer_list",
+    "module": "plasticos_offer",
+    "xml_id": "view_offer_list",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_offer/views/offer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_offer.view_offer_kanban",
+    "module": "plasticos_offer",
+    "xml_id": "view_offer_kanban",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_offer/views/offer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_offer.view_offer_calendar",
+    "module": "plasticos_offer",
+    "xml_id": "view_offer_calendar",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_offer/views/offer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_offer.view_offer_pivot",
+    "module": "plasticos_offer",
+    "xml_id": "view_offer_pivot",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_offer/views/offer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_offer.view_offer_graph",
+    "module": "plasticos_offer",
+    "xml_id": "view_offer_graph",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_offer/views/offer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_offer.view_offer_form",
+    "module": "plasticos_offer",
+    "xml_id": "view_offer_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_offer/views/offer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_offer.action_offer",
+    "module": "plasticos_offer",
+    "xml_id": "action_offer",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_offer/views/offer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_offer.view_offer_bulk_action_wizard_form",
+    "module": "plasticos_offer",
+    "xml_id": "view_offer_bulk_action_wizard_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_offer/views/offer_bulk_action_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_offer.action_offer_bulk_action_wizard",
+    "module": "plasticos_offer",
+    "xml_id": "action_offer_bulk_action_wizard",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_offer/views/offer_bulk_action_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.filler_glass",
+    "module": "plasticos_material_profile",
+    "xml_id": "filler_glass",
+    "model": "plasticos.filler.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/filler_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.filler_talc",
+    "module": "plasticos_material_profile",
+    "xml_id": "filler_talc",
+    "model": "plasticos.filler.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/filler_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.filler_caco3",
+    "module": "plasticos_material_profile",
+    "xml_id": "filler_caco3",
+    "model": "plasticos.filler.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/filler_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.filler_mineral",
+    "module": "plasticos_material_profile",
+    "xml_id": "filler_mineral",
+    "model": "plasticos.filler.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/filler_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.filler_carbon",
+    "module": "plasticos_material_profile",
+    "xml_id": "filler_carbon",
+    "model": "plasticos.filler.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/filler_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.filler_wood",
+    "module": "plasticos_material_profile",
+    "xml_id": "filler_wood",
+    "model": "plasticos.filler.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/filler_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.filler_other",
+    "module": "plasticos_material_profile",
+    "xml_id": "filler_other",
+    "model": "plasticos.filler.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/filler_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_clean",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_clean",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_dry",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_dry",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_with_moisture",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_with_moisture",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_reusable",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_reusable",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_repro",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_repro",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_mixed",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_mixed",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_metalized",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_metalized",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_with_metal",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_with_metal",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_no_metal",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_no_metal",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_printed",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_printed",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_no_print",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_no_print",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_oily",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_oily",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_no_value",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_no_value",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_pvc_contaminated",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_pvc_contaminated",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_pp_contaminated",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_pp_contaminated",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_has_odor",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_has_odor",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.attr_oil_residue",
+    "module": "plasticos_material_profile",
+    "xml_id": "attr_oil_residue",
+    "model": "plasticos.material.attribute",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_attribute_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.packaging_bales",
+    "module": "plasticos_material_profile",
+    "xml_id": "packaging_bales",
+    "model": "plasticos.packaging.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/packaging_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.packaging_gaylords",
+    "module": "plasticos_material_profile",
+    "xml_id": "packaging_gaylords",
+    "model": "plasticos.packaging.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/packaging_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.packaging_supersacks",
+    "module": "plasticos_material_profile",
+    "xml_id": "packaging_supersacks",
+    "model": "plasticos.packaging.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/packaging_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.packaging_palletized",
+    "module": "plasticos_material_profile",
+    "xml_id": "packaging_palletized",
+    "model": "plasticos.packaging.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/packaging_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.packaging_loose",
+    "module": "plasticos_material_profile",
+    "xml_id": "packaging_loose",
+    "model": "plasticos.packaging.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/packaging_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.packaging_bulk_trailer",
+    "module": "plasticos_material_profile",
+    "xml_id": "packaging_bulk_trailer",
+    "model": "plasticos.packaging.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/packaging_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.packaging_other",
+    "module": "plasticos_material_profile",
+    "xml_id": "packaging_other",
+    "model": "plasticos.packaging.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/packaging_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_pp",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_pp",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_hdpe",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_hdpe",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_hdpe_hmw",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_hdpe_hmw",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_ldpe",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_ldpe",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_lldpe",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_lldpe",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_plastic_pallets",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_plastic_pallets",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_gaylord_boxes",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_gaylord_boxes",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_pet",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_pet",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_abs",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_abs",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_hips",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_hips",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_ps",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_ps",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_eps",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_eps",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_pvc",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_pvc",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_pmma",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_pmma",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_pc",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_pc",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_pc_pmma",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_pc_pmma",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_pa",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_pa",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_pbt",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_pbt",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_pom",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_pom",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_ppo",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_ppo",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_tpe",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_tpe",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_tpo",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_tpo",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_bopp",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_bopp",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_eva",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_eva",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_mrp",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_mrp",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_ewaste",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_ewaste",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_occ",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_occ",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_metal",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_metal",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_mixed",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_mixed",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.polymer_pp_pe",
+    "module": "plasticos_material_profile",
+    "xml_id": "polymer_pp_pe",
+    "model": "plasticos.polymer",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/polymer_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_bale",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_bale",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_film",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_film",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_regrind",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_regrind",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_flake",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_flake",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_rollstock",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_rollstock",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_pellets",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_pellets",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_purge",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_purge",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_chopped",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_chopped",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_shred",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_shred",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_densified",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_densified",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_parts",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_parts",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_sheet",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_sheet",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_powder",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_powder",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_logs",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_logs",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_floorsweep",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_floorsweep",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_drums",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_drums",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_buckets",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_buckets",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_bottles",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_bottles",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_other",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_other",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_loose",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_loose",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.form_pallets",
+    "module": "plasticos_material_profile",
+    "xml_id": "form_pallets",
+    "model": "plasticos.material.form",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_form_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.color_clear",
+    "module": "plasticos_material_profile",
+    "xml_id": "color_clear",
+    "model": "plasticos.material.color",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_color_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.color_natural",
+    "module": "plasticos_material_profile",
+    "xml_id": "color_natural",
+    "model": "plasticos.material.color",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_color_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.color_white",
+    "module": "plasticos_material_profile",
+    "xml_id": "color_white",
+    "model": "plasticos.material.color",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_color_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.color_black",
+    "module": "plasticos_material_profile",
+    "xml_id": "color_black",
+    "model": "plasticos.material.color",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_color_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.color_mixed",
+    "module": "plasticos_material_profile",
+    "xml_id": "color_mixed",
+    "model": "plasticos.material.color",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_color_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.color_blue",
+    "module": "plasticos_material_profile",
+    "xml_id": "color_blue",
+    "model": "plasticos.material.color",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_color_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.color_blue_white",
+    "module": "plasticos_material_profile",
+    "xml_id": "color_blue_white",
+    "model": "plasticos.material.color",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_color_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.color_red",
+    "module": "plasticos_material_profile",
+    "xml_id": "color_red",
+    "model": "plasticos.material.color",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_color_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.color_green",
+    "module": "plasticos_material_profile",
+    "xml_id": "color_green",
+    "model": "plasticos.material.color",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_color_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.color_yellow",
+    "module": "plasticos_material_profile",
+    "xml_id": "color_yellow",
+    "model": "plasticos.material.color",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_color_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.color_orange",
+    "module": "plasticos_material_profile",
+    "xml_id": "color_orange",
+    "model": "plasticos.material.color",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_color_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.color_gray",
+    "module": "plasticos_material_profile",
+    "xml_id": "color_gray",
+    "model": "plasticos.material.color",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/material_color_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.source_post_consumer",
+    "module": "plasticos_material_profile",
+    "xml_id": "source_post_consumer",
+    "model": "plasticos.source.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/source_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.source_post_industrial",
+    "module": "plasticos_material_profile",
+    "xml_id": "source_post_industrial",
+    "model": "plasticos.source.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/source_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.source_post_commercial",
+    "module": "plasticos_material_profile",
+    "xml_id": "source_post_commercial",
+    "model": "plasticos.source.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/source_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.source_agricultural",
+    "module": "plasticos_material_profile",
+    "xml_id": "source_agricultural",
+    "model": "plasticos.source.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/source_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.source_prime",
+    "module": "plasticos_material_profile",
+    "xml_id": "source_prime",
+    "model": "plasticos.source.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/source_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.source_wide_spec",
+    "module": "plasticos_material_profile",
+    "xml_id": "source_wide_spec",
+    "model": "plasticos.source.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/source_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.source_off_spec",
+    "module": "plasticos_material_profile",
+    "xml_id": "source_off_spec",
+    "model": "plasticos.source.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/source_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.source_ocean_recovered",
+    "module": "plasticos_material_profile",
+    "xml_id": "source_ocean_recovered",
+    "model": "plasticos.source.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/source_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.process_injection",
+    "module": "plasticos_material_profile",
+    "xml_id": "process_injection",
+    "model": "plasticos.process.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/process_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.process_extrusion",
+    "module": "plasticos_material_profile",
+    "xml_id": "process_extrusion",
+    "model": "plasticos.process.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/process_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.process_blow_mold",
+    "module": "plasticos_material_profile",
+    "xml_id": "process_blow_mold",
+    "model": "plasticos.process.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/process_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.process_compounding",
+    "module": "plasticos_material_profile",
+    "xml_id": "process_compounding",
+    "model": "plasticos.process.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/process_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.process_thermoform",
+    "module": "plasticos_material_profile",
+    "xml_id": "process_thermoform",
+    "model": "plasticos.process.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/process_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.process_rotomold",
+    "module": "plasticos_material_profile",
+    "xml_id": "process_rotomold",
+    "model": "plasticos.process.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/process_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.process_film_blown",
+    "module": "plasticos_material_profile",
+    "xml_id": "process_film_blown",
+    "model": "plasticos.process.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/process_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.process_film_cast",
+    "module": "plasticos_material_profile",
+    "xml_id": "process_film_cast",
+    "model": "plasticos.process.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/process_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.process_other",
+    "module": "plasticos_material_profile",
+    "xml_id": "process_other",
+    "model": "plasticos.process.type",
+    "noupdate": true,
+    "source_file": "plasticos_material_profile/data/process_type_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.plasticos_polymer_view_list",
+    "module": "plasticos_material_profile",
+    "xml_id": "plasticos_polymer_view_list",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_material_profile/views/polymer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.plasticos_polymer_view_search",
+    "module": "plasticos_material_profile",
+    "xml_id": "plasticos_polymer_view_search",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_material_profile/views/polymer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.plasticos_polymer_view_form",
+    "module": "plasticos_material_profile",
+    "xml_id": "plasticos_polymer_view_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_material_profile/views/polymer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.plasticos_polymer_action",
+    "module": "plasticos_material_profile",
+    "xml_id": "plasticos_polymer_action",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_material_profile/views/polymer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.plasticos_material_form_view_list",
+    "module": "plasticos_material_profile",
+    "xml_id": "plasticos_material_form_view_list",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_material_profile/views/material_form_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.plasticos_material_form_action",
+    "module": "plasticos_material_profile",
+    "xml_id": "plasticos_material_form_action",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_material_profile/views/material_form_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.plasticos_material_color_view_list",
+    "module": "plasticos_material_profile",
+    "xml_id": "plasticos_material_color_view_list",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_material_profile/views/material_color_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.plasticos_material_color_action",
+    "module": "plasticos_material_profile",
+    "xml_id": "plasticos_material_color_action",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_material_profile/views/material_color_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.plasticos_source_type_view_list",
+    "module": "plasticos_material_profile",
+    "xml_id": "plasticos_source_type_view_list",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_material_profile/views/source_type_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.plasticos_source_type_action",
+    "module": "plasticos_material_profile",
+    "xml_id": "plasticos_source_type_action",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_material_profile/views/source_type_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.plasticos_process_type_view_list",
+    "module": "plasticos_material_profile",
+    "xml_id": "plasticos_process_type_view_list",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_material_profile/views/process_type_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.plasticos_process_type_action",
+    "module": "plasticos_material_profile",
+    "xml_id": "plasticos_process_type_action",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_material_profile/views/process_type_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.view_material_profile_list",
+    "module": "plasticos_material_profile",
+    "xml_id": "view_material_profile_list",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_material_profile/views/material_profile_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.view_material_profile_form",
+    "module": "plasticos_material_profile",
+    "xml_id": "view_material_profile_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_material_profile/views/material_profile_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_material_profile.view_partner_form_material_tab",
+    "module": "plasticos_material_profile",
+    "xml_id": "view_partner_form_material_tab",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_material_profile/views/material_profile_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_buyer_match_engine.view_intake_form_match_button",
+    "module": "plasticos_buyer_match_engine",
+    "xml_id": "view_intake_form_match_button",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_buyer_match_engine/views/intake_button_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_buyer_match_engine.view_match_exclusion_tree",
+    "module": "plasticos_buyer_match_engine",
+    "xml_id": "view_match_exclusion_tree",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_buyer_match_engine.view_match_exclusion_form",
+    "module": "plasticos_buyer_match_engine",
+    "xml_id": "view_match_exclusion_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_buyer_match_engine.view_match_exclusion_search",
+    "module": "plasticos_buyer_match_engine",
+    "xml_id": "view_match_exclusion_search",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_buyer_match_engine.action_match_exclusion",
+    "module": "plasticos_buyer_match_engine",
+    "xml_id": "action_match_exclusion",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_buyer_match_engine.ir_cron_expire_exclusions",
+    "module": "plasticos_buyer_match_engine",
+    "xml_id": "ir_cron_expire_exclusions",
+    "model": "ir.cron",
+    "noupdate": false,
+    "source_file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_order_lines.purchase_order_form_inherit_material",
+    "module": "plasticos_order_lines",
+    "xml_id": "purchase_order_form_inherit_material",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_order_lines/views/purchase_order_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_order_lines.purchase_order_line_search_inherit_material",
+    "module": "plasticos_order_lines",
+    "xml_id": "purchase_order_line_search_inherit_material",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_order_lines/views/purchase_order_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_order_lines.sale_order_form_inherit_material",
+    "module": "plasticos_order_lines",
+    "xml_id": "sale_order_form_inherit_material",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_order_lines/views/sale_order_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_order_lines.sale_order_line_search_inherit_material",
+    "module": "plasticos_order_lines",
+    "xml_id": "sale_order_line_search_inherit_material",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_order_lines/views/sale_order_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.module_category_claims",
+    "module": "plasticos_claims",
+    "xml_id": "module_category_claims",
+    "model": "ir.module.category",
+    "noupdate": false,
+    "source_file": "plasticos_claims/security/claims_security.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.privilege_claims",
+    "module": "plasticos_claims",
+    "xml_id": "privilege_claims",
+    "model": "res.groups.privilege",
+    "noupdate": false,
+    "source_file": "plasticos_claims/security/claims_security.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.group_claims_user",
+    "module": "plasticos_claims",
+    "xml_id": "group_claims_user",
+    "model": "res.groups",
+    "noupdate": false,
+    "source_file": "plasticos_claims/security/claims_security.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.group_claims_manager",
+    "module": "plasticos_claims",
+    "xml_id": "group_claims_manager",
+    "model": "res.groups",
+    "noupdate": false,
+    "source_file": "plasticos_claims/security/claims_security.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.claim_rule_user_read",
+    "module": "plasticos_claims",
+    "xml_id": "claim_rule_user_read",
+    "model": "ir.rule",
+    "noupdate": false,
+    "source_file": "plasticos_claims/security/claims_security.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.claim_rule_manager_full",
+    "module": "plasticos_claims",
+    "xml_id": "claim_rule_manager_full",
+    "model": "ir.rule",
+    "noupdate": false,
+    "source_file": "plasticos_claims/security/claims_security.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.seq_claim",
+    "module": "plasticos_claims",
+    "xml_id": "seq_claim",
+    "model": "ir.sequence",
+    "noupdate": false,
+    "source_file": "plasticos_claims/data/claim_sequence.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.cron_claim_sla_check",
+    "module": "plasticos_claims",
+    "xml_id": "cron_claim_sla_check",
+    "model": "ir.cron",
+    "noupdate": false,
+    "source_file": "plasticos_claims/data/claim_cron.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.email_template_claim_created",
+    "module": "plasticos_claims",
+    "xml_id": "email_template_claim_created",
+    "model": "mail.template",
+    "noupdate": true,
+    "source_file": "plasticos_claims/data/email_templates.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.email_template_claim_escalated",
+    "module": "plasticos_claims",
+    "xml_id": "email_template_claim_escalated",
+    "model": "mail.template",
+    "noupdate": true,
+    "source_file": "plasticos_claims/data/email_templates.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.email_template_qc_claim_notification",
+    "module": "plasticos_claims",
+    "xml_id": "email_template_qc_claim_notification",
+    "model": "mail.template",
+    "noupdate": true,
+    "source_file": "plasticos_claims/data/email_templates.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.view_claim_list",
+    "module": "plasticos_claims",
+    "xml_id": "view_claim_list",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_claims/views/claim_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.view_claim_form",
+    "module": "plasticos_claims",
+    "xml_id": "view_claim_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_claims/views/claim_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.view_claim_kanban",
+    "module": "plasticos_claims",
+    "xml_id": "view_claim_kanban",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_claims/views/claim_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.view_claim_search",
+    "module": "plasticos_claims",
+    "xml_id": "view_claim_search",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_claims/views/claim_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.action_claims",
+    "module": "plasticos_claims",
+    "xml_id": "action_claims",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_claims/views/claim_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.view_claim_bulk_update_wizard_form",
+    "module": "plasticos_claims",
+    "xml_id": "view_claim_bulk_update_wizard_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_claims/views/claim_bulk_update_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_claims.action_claim_bulk_update_wizard",
+    "module": "plasticos_claims",
+    "xml_id": "action_claim_bulk_update_wizard",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_claims/views/claim_bulk_update_wizard_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.payment_term_net_15",
+    "module": "plasticos_accounting",
+    "xml_id": "payment_term_net_15",
+    "model": "account.payment.term",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/payment_terms.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.payment_term_net_30",
+    "module": "plasticos_accounting",
+    "xml_id": "payment_term_net_30",
+    "model": "account.payment.term",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/payment_terms.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.payment_term_net_45",
+    "module": "plasticos_accounting",
+    "xml_id": "payment_term_net_45",
+    "model": "account.payment.term",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/payment_terms.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.payment_term_net_60",
+    "module": "plasticos_accounting",
+    "xml_id": "payment_term_net_60",
+    "model": "account.payment.term",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/payment_terms.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.payment_term_2_10_net_30",
+    "module": "plasticos_accounting",
+    "xml_id": "payment_term_2_10_net_30",
+    "model": "account.payment.term",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/payment_terms.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.payment_term_1_15_net_45",
+    "module": "plasticos_accounting",
+    "xml_id": "payment_term_1_15_net_45",
+    "model": "account.payment.term",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/payment_terms.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.payment_term_cod",
+    "module": "plasticos_accounting",
+    "xml_id": "payment_term_cod",
+    "model": "account.payment.term",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/payment_terms.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.payment_term_prepaid",
+    "module": "plasticos_accounting",
+    "xml_id": "payment_term_prepaid",
+    "model": "account.payment.term",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/payment_terms.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.payment_term_50_down_50_cod",
+    "module": "plasticos_accounting",
+    "xml_id": "payment_term_50_down_50_cod",
+    "model": "account.payment.term",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/payment_terms.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_40050_sales_income",
+    "module": "plasticos_accounting",
+    "xml_id": "account_40050_sales_income",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_40075_tax_refund",
+    "module": "plasticos_accounting",
+    "xml_id": "account_40075_tax_refund",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_50100_material_cost",
+    "module": "plasticos_accounting",
+    "xml_id": "account_50100_material_cost",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_50700_national_box_exchange",
+    "module": "plasticos_accounting",
+    "xml_id": "account_50700_national_box_exchange",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_62556_d_b",
+    "module": "plasticos_accounting",
+    "xml_id": "account_62556_d_b",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_62621_google_web_services",
+    "module": "plasticos_accounting",
+    "xml_id": "account_62621_google_web_services",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_66100_salary_w2_sasha_josie",
+    "module": "plasticos_accounting",
+    "xml_id": "account_66100_salary_w2_sasha_josie",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_66210_salary_w2_admin_tn",
+    "module": "plasticos_accounting",
+    "xml_id": "account_66210_salary_w2_admin_tn",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_67100_sales",
+    "module": "plasticos_accounting",
+    "xml_id": "account_67100_sales",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_67200_outsourced_labor_upwork",
+    "module": "plasticos_accounting",
+    "xml_id": "account_67200_outsourced_labor_upwork",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68100_rent_expense",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68100_rent_expense",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68120_security_system",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68120_security_system",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68125_electric_utility",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68125_electric_utility",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68150_cleaning_service",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68150_cleaning_service",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68155_furniture",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68155_furniture",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68200_office_supplies",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68200_office_supplies",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68210_uniform",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68210_uniform",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68220_tools_hardware",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68220_tools_hardware",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68251_usps",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68251_usps",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68252_ups",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68252_ups",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68310_cell_phones",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68310_cell_phones",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68320_land_lines_internet",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68320_land_lines_internet",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68330_web_hosting",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68330_web_hosting",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68410_computer_hardware",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68410_computer_hardware",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68420_computer_software",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68420_computer_software",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68510_advertising_print_web",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68510_advertising_print_web",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68520_marketing",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68520_marketing",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68540_conference_registration",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68540_conference_registration",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68622_apple",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68622_apple",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68631_association_membership_fees",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68631_association_membership_fees",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68710_bank_service_charges",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68710_bank_service_charges",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68730_credit_card_fees",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68730_credit_card_fees",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68815_vanillasoft_crm",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68815_vanillasoft_crm",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68840_web_design",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68840_web_design",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68850_legal_fees",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68850_legal_fees",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68860_accountant",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68860_accountant",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68925_travel_insurance",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68925_travel_insurance",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68940_worker_s_compensation",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68940_worker_s_compensation",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68951_airfare",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68951_airfare",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68952_lodging",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68952_lodging",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68953_fuel",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68953_fuel",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68954_tolls",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68954_tolls",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_68955_parking",
+    "module": "plasticos_accounting",
+    "xml_id": "account_68955_parking",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_69000_lease_equipment",
+    "module": "plasticos_accounting",
+    "xml_id": "account_69000_lease_equipment",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_69500_repairs_and_maintenance",
+    "module": "plasticos_accounting",
+    "xml_id": "account_69500_repairs_and_maintenance",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_69856_taxi",
+    "module": "plasticos_accounting",
+    "xml_id": "account_69856_taxi",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_69901_meals",
+    "module": "plasticos_accounting",
+    "xml_id": "account_69901_meals",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_69903_entertainment",
+    "module": "plasticos_accounting",
+    "xml_id": "account_69903_entertainment",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_69905_gym_membership",
+    "module": "plasticos_accounting",
+    "xml_id": "account_69905_gym_membership",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_70100_federal_tax_witholding",
+    "module": "plasticos_accounting",
+    "xml_id": "account_70100_federal_tax_witholding",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_70320_tn_secretary_of_state",
+    "module": "plasticos_accounting",
+    "xml_id": "account_70320_tn_secretary_of_state",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_70330_nc_secretary_of_state",
+    "module": "plasticos_accounting",
+    "xml_id": "account_70330_nc_secretary_of_state",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_70340_nc_dept_of_revenue",
+    "module": "plasticos_accounting",
+    "xml_id": "account_70340_nc_dept_of_revenue",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_70350_nc_division_of_employment",
+    "module": "plasticos_accounting",
+    "xml_id": "account_70350_nc_division_of_employment",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_70400_tn_dept_of_revenue",
+    "module": "plasticos_accounting",
+    "xml_id": "account_70400_tn_dept_of_revenue",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_70450_tn_dept_of_labor",
+    "module": "plasticos_accounting",
+    "xml_id": "account_70450_tn_dept_of_labor",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_accounting.account_80000_ask_my_accountant",
+    "module": "plasticos_accounting",
+    "xml_id": "account_80000_ask_my_accountant",
+    "model": "account.account",
+    "noupdate": true,
+    "source_file": "plasticos_accounting/data/accounts.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.category_partner_roles",
+    "module": "plasticos_base",
+    "xml_id": "category_partner_roles",
+    "model": "res.partner.category",
+    "noupdate": false,
+    "source_file": "plasticos_base/data/partner_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.tag_buyer",
+    "module": "plasticos_base",
+    "xml_id": "tag_buyer",
+    "model": "res.partner.category",
+    "noupdate": false,
+    "source_file": "plasticos_base/data/partner_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.tag_supplier",
+    "module": "plasticos_base",
+    "xml_id": "tag_supplier",
+    "model": "res.partner.category",
+    "noupdate": false,
+    "source_file": "plasticos_base/data/partner_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.tag_broker",
+    "module": "plasticos_base",
+    "xml_id": "tag_broker",
+    "model": "res.partner.category",
+    "noupdate": false,
+    "source_file": "plasticos_base/data/partner_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.tag_carrier",
+    "module": "plasticos_base",
+    "xml_id": "tag_carrier",
+    "model": "res.partner.category",
+    "noupdate": false,
+    "source_file": "plasticos_base/data/partner_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.tag_processor",
+    "module": "plasticos_base",
+    "xml_id": "tag_processor",
+    "model": "res.partner.category",
+    "noupdate": false,
+    "source_file": "plasticos_base/data/partner_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.tag_expense",
+    "module": "plasticos_base",
+    "xml_id": "tag_expense",
+    "model": "res.partner.category",
+    "noupdate": false,
+    "source_file": "plasticos_base/data/partner_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.category_polymers",
+    "module": "plasticos_base",
+    "xml_id": "category_polymers",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.category_material_types",
+    "module": "plasticos_base",
+    "xml_id": "category_material_types",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_hdpe",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_hdpe",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_hmw_hdpe",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_hmw_hdpe",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_ldpe",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_ldpe",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_lldpe",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_lldpe",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_pp",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_pp",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_bopp",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_bopp",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_pet",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_pet",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_rpet",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_rpet",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_ps",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_ps",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_eps",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_eps",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_hips",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_hips",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_pvc",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_pvc",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_eva",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_eva",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_abs",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_abs",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_pa",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_pa",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_pc",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_pc",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_pbt",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_pbt",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_pom",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_pom",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_pmma",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_pmma",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_ppo",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_ppo",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_tpe",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_tpe",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_tpo",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_tpo",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_tpu",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_tpu",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_pla",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_pla",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_pp_pe",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_pp_pe",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_pc_pmma",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_pc_pmma",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_mixed",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_mixed",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_mrp",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_mrp",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_ewaste",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_ewaste",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_metal",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_metal",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_occ",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_occ",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_boxes",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_boxes",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_tag_polymer_pallets",
+    "module": "plasticos_base",
+    "xml_id": "partner_tag_polymer_pallets",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.category_forms",
+    "module": "plasticos_base",
+    "xml_id": "category_forms",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.category_source_types",
+    "module": "plasticos_base",
+    "xml_id": "category_source_types",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.category_colors",
+    "module": "plasticos_base",
+    "xml_id": "category_colors",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_bag",
+    "module": "plasticos_base",
+    "xml_id": "form_bag",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_bale",
+    "module": "plasticos_base",
+    "xml_id": "form_bale",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_chop",
+    "module": "plasticos_base",
+    "xml_id": "form_chop",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_dens",
+    "module": "plasticos_base",
+    "xml_id": "form_dens",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_film",
+    "module": "plasticos_base",
+    "xml_id": "form_film",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_flake",
+    "module": "plasticos_base",
+    "xml_id": "form_flake",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_gay",
+    "module": "plasticos_base",
+    "xml_id": "form_gay",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_log",
+    "module": "plasticos_base",
+    "xml_id": "form_log",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_loose",
+    "module": "plasticos_base",
+    "xml_id": "form_loose",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_pal",
+    "module": "plasticos_base",
+    "xml_id": "form_pal",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_part",
+    "module": "plasticos_base",
+    "xml_id": "form_part",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_patty",
+    "module": "plasticos_base",
+    "xml_id": "form_patty",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_pell",
+    "module": "plasticos_base",
+    "xml_id": "form_pell",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_purg",
+    "module": "plasticos_base",
+    "xml_id": "form_purg",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_reg",
+    "module": "plasticos_base",
+    "xml_id": "form_reg",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_repro",
+    "module": "plasticos_base",
+    "xml_id": "form_repro",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_rg",
+    "module": "plasticos_base",
+    "xml_id": "form_rg",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_roll",
+    "module": "plasticos_base",
+    "xml_id": "form_roll",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_sheet",
+    "module": "plasticos_base",
+    "xml_id": "form_sheet",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_shred",
+    "module": "plasticos_base",
+    "xml_id": "form_shred",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.form_sweep",
+    "module": "plasticos_base",
+    "xml_id": "form_sweep",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.source_type_clean",
+    "module": "plasticos_base",
+    "xml_id": "source_type_clean",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.source_type_cont",
+    "module": "plasticos_base",
+    "xml_id": "source_type_cont",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.source_type_mixed",
+    "module": "plasticos_base",
+    "xml_id": "source_type_mixed",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.source_type_no_value",
+    "module": "plasticos_base",
+    "xml_id": "source_type_no_value",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.source_type_off_grade",
+    "module": "plasticos_base",
+    "xml_id": "source_type_off_grade",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.source_type_off",
+    "module": "plasticos_base",
+    "xml_id": "source_type_off",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.tag_source_type_post_consumer",
+    "module": "plasticos_base",
+    "xml_id": "tag_source_type_post_consumer",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.source_type_pc",
+    "module": "plasticos_base",
+    "xml_id": "source_type_pc",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.tag_source_type_post_industrial",
+    "module": "plasticos_base",
+    "xml_id": "tag_source_type_post_industrial",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.source_type_pi",
+    "module": "plasticos_base",
+    "xml_id": "source_type_pi",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.source_type_reusable",
+    "module": "plasticos_base",
+    "xml_id": "source_type_reusable",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.source_type_reuse",
+    "module": "plasticos_base",
+    "xml_id": "source_type_reuse",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.color_black",
+    "module": "plasticos_base",
+    "xml_id": "color_black",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.color_blue",
+    "module": "plasticos_base",
+    "xml_id": "color_blue",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.color_blue_white",
+    "module": "plasticos_base",
+    "xml_id": "color_blue_white",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.color_clear",
+    "module": "plasticos_base",
+    "xml_id": "color_clear",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.color_dark",
+    "module": "plasticos_base",
+    "xml_id": "color_dark",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.color_gray",
+    "module": "plasticos_base",
+    "xml_id": "color_gray",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.color_green",
+    "module": "plasticos_base",
+    "xml_id": "color_green",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.color_mixed_color",
+    "module": "plasticos_base",
+    "xml_id": "color_mixed_color",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.color_natural",
+    "module": "plasticos_base",
+    "xml_id": "color_natural",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.color_orange",
+    "module": "plasticos_base",
+    "xml_id": "color_orange",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.color_print",
+    "module": "plasticos_base",
+    "xml_id": "color_print",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.color_red",
+    "module": "plasticos_base",
+    "xml_id": "color_red",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.color_white",
+    "module": "plasticos_base",
+    "xml_id": "color_white",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.color_yellow",
+    "module": "plasticos_base",
+    "xml_id": "color_yellow",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.category_grades",
+    "module": "plasticos_base",
+    "xml_id": "category_grades",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.grade_food_grade",
+    "module": "plasticos_base",
+    "xml_id": "grade_food_grade",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.grade_medical_grade",
+    "module": "plasticos_base",
+    "xml_id": "grade_medical_grade",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.grade_fda_approved",
+    "module": "plasticos_base",
+    "xml_id": "grade_fda_approved",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.grade_usp_class_vi",
+    "module": "plasticos_base",
+    "xml_id": "grade_usp_class_vi",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.grade_prime",
+    "module": "plasticos_base",
+    "xml_id": "grade_prime",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.grade_wide_spec",
+    "module": "plasticos_base",
+    "xml_id": "grade_wide_spec",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.grade_off_grade",
+    "module": "plasticos_base",
+    "xml_id": "grade_off_grade",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.material_type_clean",
+    "module": "plasticos_base",
+    "xml_id": "material_type_clean",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.material_type_dirty",
+    "module": "plasticos_base",
+    "xml_id": "material_type_dirty",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.material_type_dry",
+    "module": "plasticos_base",
+    "xml_id": "material_type_dry",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.material_type_metalized",
+    "module": "plasticos_base",
+    "xml_id": "material_type_metalized",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.material_type_mixed",
+    "module": "plasticos_base",
+    "xml_id": "material_type_mixed",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.material_type_no_metal",
+    "module": "plasticos_base",
+    "xml_id": "material_type_no_metal",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.material_type_no_print",
+    "module": "plasticos_base",
+    "xml_id": "material_type_no_print",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.material_type_off_grade",
+    "module": "plasticos_base",
+    "xml_id": "material_type_off_grade",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.material_type_other",
+    "module": "plasticos_base",
+    "xml_id": "material_type_other",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.material_type_pcr",
+    "module": "plasticos_base",
+    "xml_id": "material_type_pcr",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.material_type_pir",
+    "module": "plasticos_base",
+    "xml_id": "material_type_pir",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.material_type_wet",
+    "module": "plasticos_base",
+    "xml_id": "material_type_wet",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.material_type_with_metal",
+    "module": "plasticos_base",
+    "xml_id": "material_type_with_metal",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.material_type_with_print",
+    "module": "plasticos_base",
+    "xml_id": "material_type_with_print",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.material_type_reusable",
+    "module": "plasticos_base",
+    "xml_id": "material_type_reusable",
+    "model": "res.partner.category",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/material_taxonomy.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_sales_rep_ib",
+    "module": "plasticos_base",
+    "xml_id": "partner_sales_rep_ib",
+    "model": "res.partner",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/sales_reps.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.user_sales_rep_ib",
+    "module": "plasticos_base",
+    "xml_id": "user_sales_rep_ib",
+    "model": "res.users",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/sales_reps.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_sales_rep_ab",
+    "module": "plasticos_base",
+    "xml_id": "partner_sales_rep_ab",
+    "model": "res.partner",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/sales_reps.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.user_sales_rep_ab",
+    "module": "plasticos_base",
+    "xml_id": "user_sales_rep_ab",
+    "model": "res.users",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/sales_reps.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_sales_rep_lm",
+    "module": "plasticos_base",
+    "xml_id": "partner_sales_rep_lm",
+    "model": "res.partner",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/sales_reps.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.user_sales_rep_lm",
+    "module": "plasticos_base",
+    "xml_id": "user_sales_rep_lm",
+    "model": "res.users",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/sales_reps.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_sales_rep_rp",
+    "module": "plasticos_base",
+    "xml_id": "partner_sales_rep_rp",
+    "model": "res.partner",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/sales_reps.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.user_sales_rep_rp",
+    "module": "plasticos_base",
+    "xml_id": "user_sales_rep_rp",
+    "model": "res.users",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/sales_reps.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_sales_rep_aa",
+    "module": "plasticos_base",
+    "xml_id": "partner_sales_rep_aa",
+    "model": "res.partner",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/sales_reps.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.user_sales_rep_aa",
+    "module": "plasticos_base",
+    "xml_id": "user_sales_rep_aa",
+    "model": "res.users",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/sales_reps.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.partner_sales_rep_tw",
+    "module": "plasticos_base",
+    "xml_id": "partner_sales_rep_tw",
+    "model": "res.partner",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/sales_reps.xml"
+  },
+  {
+    "qualified_id": "plasticos_base.user_sales_rep_tw",
+    "module": "plasticos_base",
+    "xml_id": "user_sales_rep_tw",
+    "model": "res.users",
+    "noupdate": true,
+    "source_file": "plasticos_base/data/sales_reps.xml"
+  },
+  {
+    "qualified_id": "plasticos_intake.view_plasticos_intake_search",
+    "module": "plasticos_intake",
+    "xml_id": "view_plasticos_intake_search",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_intake/views/intake_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_intake.view_plasticos_intake_tree",
+    "module": "plasticos_intake",
+    "xml_id": "view_plasticos_intake_tree",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_intake/views/intake_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_intake.view_plasticos_intake_pivot",
+    "module": "plasticos_intake",
+    "xml_id": "view_plasticos_intake_pivot",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_intake/views/intake_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_intake.view_plasticos_intake_graph",
+    "module": "plasticos_intake",
+    "xml_id": "view_plasticos_intake_graph",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_intake/views/intake_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_intake.view_plasticos_intake_kanban",
+    "module": "plasticos_intake",
+    "xml_id": "view_plasticos_intake_kanban",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_intake/views/intake_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_intake.view_plasticos_intake_form",
+    "module": "plasticos_intake",
+    "xml_id": "view_plasticos_intake_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_intake/views/intake_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_intake.plasticos_intake_action",
+    "module": "plasticos_intake",
+    "xml_id": "plasticos_intake_action",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_intake/views/intake_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_intake.view_material_profile_form_intake",
+    "module": "plasticos_intake",
+    "xml_id": "view_material_profile_form_intake",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_intake/views/material_profile_intake_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_intake.view_partner_form_intake",
+    "module": "plasticos_intake",
+    "xml_id": "view_partner_form_intake",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_intake/views/material_profile_intake_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_product.product_category_scrap",
+    "module": "plasticos_product",
+    "xml_id": "product_category_scrap",
+    "model": "product.category",
+    "noupdate": true,
+    "source_file": "plasticos_product/data/product_category_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_product.product_category_hdpe",
+    "module": "plasticos_product",
+    "xml_id": "product_category_hdpe",
+    "model": "product.category",
+    "noupdate": true,
+    "source_file": "plasticos_product/data/product_category_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_product.product_category_ldpe",
+    "module": "plasticos_product",
+    "xml_id": "product_category_ldpe",
+    "model": "product.category",
+    "noupdate": true,
+    "source_file": "plasticos_product/data/product_category_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_product.product_category_pp",
+    "module": "plasticos_product",
+    "xml_id": "product_category_pp",
+    "model": "product.category",
+    "noupdate": true,
+    "source_file": "plasticos_product/data/product_category_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_product.product_category_pet",
+    "module": "plasticos_product",
+    "xml_id": "product_category_pet",
+    "model": "product.category",
+    "noupdate": true,
+    "source_file": "plasticos_product/data/product_category_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_product.product_category_pvc",
+    "module": "plasticos_product",
+    "xml_id": "product_category_pvc",
+    "model": "product.category",
+    "noupdate": true,
+    "source_file": "plasticos_product/data/product_category_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_product.product_category_ps",
+    "module": "plasticos_product",
+    "xml_id": "product_category_ps",
+    "model": "product.category",
+    "noupdate": true,
+    "source_file": "plasticos_product/data/product_category_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_product.product_category_engineering",
+    "module": "plasticos_product",
+    "xml_id": "product_category_engineering",
+    "model": "product.category",
+    "noupdate": true,
+    "source_file": "plasticos_product/data/product_category_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_product.product_category_mixed",
+    "module": "plasticos_product",
+    "xml_id": "product_category_mixed",
+    "model": "product.category",
+    "noupdate": true,
+    "source_file": "plasticos_product/data/product_category_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_product.product_category_pallets",
+    "module": "plasticos_product",
+    "xml_id": "product_category_pallets",
+    "model": "product.category",
+    "noupdate": true,
+    "source_file": "plasticos_product/data/product_category_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_product.product_category_other",
+    "module": "plasticos_product",
+    "xml_id": "product_category_other",
+    "model": "product.category",
+    "noupdate": true,
+    "source_file": "plasticos_product/data/product_category_data.xml"
+  },
+  {
+    "qualified_id": "plasticos_product.plasticos_polymer_view_list_product",
+    "module": "plasticos_product",
+    "xml_id": "plasticos_polymer_view_list_product",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_product/views/polymer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_product.plasticos_polymer_view_form_product",
+    "module": "plasticos_product",
+    "xml_id": "plasticos_polymer_view_form_product",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_product/views/polymer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_product.plasticos_polymer_action_create_products",
+    "module": "plasticos_product",
+    "xml_id": "plasticos_polymer_action_create_products",
+    "model": "ir.actions.server",
+    "noupdate": false,
+    "source_file": "plasticos_product/views/polymer_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.folder_plasticos_root",
+    "module": "plasticos_documents_native",
+    "xml_id": "folder_plasticos_root",
+    "model": "documents.folder",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_folders.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.folder_plasticos_inbox",
+    "module": "plasticos_documents_native",
+    "xml_id": "folder_plasticos_inbox",
+    "model": "documents.folder",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_folders.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.folder_plasticos_bols",
+    "module": "plasticos_documents_native",
+    "xml_id": "folder_plasticos_bols",
+    "model": "documents.folder",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_folders.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.folder_plasticos_vendor_bills",
+    "module": "plasticos_documents_native",
+    "xml_id": "folder_plasticos_vendor_bills",
+    "model": "documents.folder",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_folders.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.folder_plasticos_scale_tickets",
+    "module": "plasticos_documents_native",
+    "xml_id": "folder_plasticos_scale_tickets",
+    "model": "documents.folder",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_folders.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.folder_plasticos_loading_pics",
+    "module": "plasticos_documents_native",
+    "xml_id": "folder_plasticos_loading_pics",
+    "model": "documents.folder",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_folders.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.folder_plasticos_customer_orders",
+    "module": "plasticos_documents_native",
+    "xml_id": "folder_plasticos_customer_orders",
+    "model": "documents.folder",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_folders.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.folder_plasticos_compliance",
+    "module": "plasticos_documents_native",
+    "xml_id": "folder_plasticos_compliance",
+    "model": "documents.folder",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_folders.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.facet_doc_type",
+    "module": "plasticos_documents_native",
+    "xml_id": "facet_doc_type",
+    "model": "documents.facet",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_bol",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_bol",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_vendor_bill",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_vendor_bill",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_scale_ticket",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_scale_ticket",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_loading_pic",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_loading_pic",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_customer_order",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_customer_order",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_contract",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_contract",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_certification",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_certification",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_permit",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_permit",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_lab_report",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_lab_report",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_photo",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_photo",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_correspondence",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_correspondence",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.facet_polymer",
+    "module": "plasticos_documents_native",
+    "xml_id": "facet_polymer",
+    "model": "documents.facet",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_polymer_hdpe",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_polymer_hdpe",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_polymer_ldpe",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_polymer_ldpe",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_polymer_lldpe",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_polymer_lldpe",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_polymer_pp",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_polymer_pp",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_polymer_pet",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_polymer_pet",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_polymer_ps",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_polymer_ps",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_polymer_pvc",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_polymer_pvc",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_polymer_abs",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_polymer_abs",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_polymer_pc",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_polymer_pc",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_polymer_nylon",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_polymer_nylon",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_polymer_mixed",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_polymer_mixed",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.facet_status",
+    "module": "plasticos_documents_native",
+    "xml_id": "facet_status",
+    "model": "documents.facet",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_needs_review",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_needs_review",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_verified",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_verified",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.tag_to_split",
+    "module": "plasticos_documents_native",
+    "xml_id": "tag_to_split",
+    "model": "documents.tag",
+    "noupdate": true,
+    "source_file": "plasticos_documents_native/data/document_tags.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.view_document_form_plasticos",
+    "module": "plasticos_documents_native",
+    "xml_id": "view_document_form_plasticos",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_documents_native/views/document_native_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.view_document_list_plasticos",
+    "module": "plasticos_documents_native",
+    "xml_id": "view_document_list_plasticos",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_documents_native/views/document_native_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_documents_native.view_document_search_plasticos",
+    "module": "plasticos_documents_native",
+    "xml_id": "view_document_search_plasticos",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_documents_native/views/document_native_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_matching.view_match_result_search",
+    "module": "plasticos_matching",
+    "xml_id": "view_match_result_search",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_matching/views/match_result_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_matching.view_match_result_list",
+    "module": "plasticos_matching",
+    "xml_id": "view_match_result_list",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_matching/views/match_result_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_matching.view_match_result_kanban",
+    "module": "plasticos_matching",
+    "xml_id": "view_match_result_kanban",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_matching/views/match_result_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_matching.view_match_result_form",
+    "module": "plasticos_matching",
+    "xml_id": "view_match_result_form",
+    "model": "ir.ui.view",
+    "noupdate": false,
+    "source_file": "plasticos_matching/views/match_result_views.xml"
+  },
+  {
+    "qualified_id": "plasticos_matching.action_match_result",
+    "module": "plasticos_matching",
+    "xml_id": "action_match_result",
+    "model": "ir.actions.act_window",
+    "noupdate": false,
+    "source_file": "plasticos_matching/views/match_result_views.xml"
+  }
+]

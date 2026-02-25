@@ -8,6 +8,12 @@ Major changes from v1.x:
 - Neutral geo scoring (missing coords = 0.0, not penalty)
 - Mode-aware gate checking (strict vs relaxed)
 - Stage 1 (Python) filters, Stage 2 (Cypher) scores
+
+SCHEMA ALIGNMENT (2026-02-25):
+- intake uses: polymer_id, form_id, color_id, source_type_id
+- facility.profile uses: accepted_polymer_ids, form_preference, accepted_color_ids
+- Quantity: intake.quantity_per_load_lbs, profile.min_lot_size_lbs
+- Geo: intake.lat/lon (not latitude/longitude)
 """
 
 import logging
@@ -174,41 +180,49 @@ class BuyerMatcher(models.Model):
         """
         Extract material requirements from supplier intake or profile.
 
+        SCHEMA ALIGNMENT (2026-02-25):
+        - intake.polymer_id (not polymer_family_id)
+        - intake.form_id (not form_factor_ids)
+        - intake.color_id (not color_family_ids)
+        - intake.quantity_per_load_lbs (not quantity_available)
+        - intake.lat/lon (not latitude/longitude)
+
         Returns:
-            dict: {
-                'material_category_id': int or None,
-                'polymer_family_id': int or None,
-                'form_factor_ids': [int, ...],
-                'color_family_ids': [int, ...],
-                'quantity_available': float or None,
-                'quality_level_id': int or None,
-                'additive_ids': [int, ...],
-                'contamination_level': float or None,
-                'certification_ids': [int, ...],
-                'latitude': float or None,
-                'longitude': float or None
-            }
+            dict: Material requirements for gate checking
         """
         if intake:
-            # Primary source: intake record
+            # Primary source: intake record (ACTUAL SCHEMA)
             return {
-                "material_category_id": intake.material_category_id.id if intake.material_category_id else None,
-                "polymer_family_id": intake.polymer_family_id.id if intake.polymer_family_id else None,
-                "form_factor_ids": intake.form_factor_ids.ids if intake.form_factor_ids else [],
-                "color_family_ids": intake.color_family_ids.ids if intake.color_family_ids else [],
-                "quantity_available": intake.quantity_available or None,
-                "quality_level_id": intake.quality_level_id.id if intake.quality_level_id else None,
-                "additive_ids": intake.additive_ids.ids if intake.additive_ids else [],
-                "contamination_level": intake.contamination_level if intake.contamination_level else None,
-                "certification_ids": intake.certification_ids.ids if intake.certification_ids else [],
-                "latitude": intake.latitude if intake.latitude else None,
-                "longitude": intake.longitude if intake.longitude else None,
-                # Enhancement #6: Color Matching
+                # Core material identifiers
+                "polymer_id": intake.polymer_id.id if intake.polymer_id else None,
+                "polymer_code": intake.polymer_id.code if intake.polymer_id else None,
+                "form_id": intake.form_id.id if intake.form_id else None,
+                "form_code": intake.form_id.code if intake.form_id else None,
                 "color_id": intake.color_id.id if intake.color_id else None,
                 "color_code": intake.color_id.code if intake.color_id else None,
-                # Enhancement #7: Filler Matching
-                "filler_pct": intake.filler_pct if intake.filler_pct else 0,
+                "source_type_id": intake.source_type_id.id if intake.source_type_id else None,
+                "source_type_code": intake.source_type_id.code if intake.source_type_id else None,
+                # Quantity
+                "quantity_available": intake.quantity_per_load_lbs or None,
+                # Quality metrics
+                "mfi": intake.mfi_value or None,
+                "density": intake.density_value or None,
+                "moisture_pct": intake.moisture_pct or 0.0,
+                "contamination_pct": intake.contamination_pct or 0.0,
+                # Filler
+                "filler_pct": intake.filler_pct or 0,
                 "filler_type_id": intake.filler_type_id.id if intake.filler_type_id else None,
+                # Origin/application
+                "origin_sector": intake.origin_sector or None,
+                "food_grade_required": intake.origin_sector == "food",
+                "medical_grade_required": intake.origin_sector == "medical",
+                # Geo (intake uses lat/lon, not latitude/longitude)
+                "latitude": intake.lat or None,
+                "longitude": intake.lon or None,
+                # Attributes
+                "has_metal": intake.has_metal or False,
+                "is_metalized": intake.is_metalized or False,
+                "has_fr": intake.has_fr or False,
             }
 
         # Fallback: supplier facility profile
@@ -217,24 +231,40 @@ class BuyerMatcher(models.Model):
         if not profile:
             return None
 
+        # Extract first accepted polymer if available
+        first_polymer = profile.accepted_polymer_ids[:1] if profile.accepted_polymer_ids else None
+
         return {
-            "material_category_id": profile.material_category_id.id if profile.material_category_id else None,
-            "polymer_family_id": profile.polymer_family_id.id if profile.polymer_family_id else None,
-            "form_factor_ids": profile.form_factor_ids.ids if profile.form_factor_ids else [],
-            "color_family_ids": profile.color_family_ids.ids if profile.color_family_ids else [],
-            "quantity_available": profile.monthly_capacity or None,
-            "quality_level_id": profile.quality_level_id.id if profile.quality_level_id else None,
-            "additive_ids": [],  # Not tracked in profile
-            "contamination_level": None,  # Not tracked in profile
-            "certification_ids": profile.certification_ids.ids if profile.certification_ids else [],
-            "latitude": profile.latitude if profile.latitude else None,
-            "longitude": profile.longitude if profile.longitude else None,
-            # Enhancement #6: Color Matching (not tracked in facility profile)
-            "color_id": None,
+            # Core material identifiers (from facility profile)
+            "polymer_id": first_polymer.id if first_polymer else None,
+            "polymer_code": first_polymer.code if first_polymer else None,
+            "form_id": None,  # Profile uses form_preference selection, not form_id
+            "form_code": profile.form_preference or None,
+            "color_id": None,  # Profile uses accepted_color_ids, not single color
             "color_code": None,
-            # Enhancement #7: Filler Matching (not tracked in facility profile)
+            "source_type_id": profile.source_type_id.id if profile.source_type_id else None,
+            "source_type_code": profile.source_type_id.code if profile.source_type_id else None,
+            # Quantity
+            "quantity_available": profile.capacity_lbs_month or None,
+            # Quality metrics (not tracked in facility profile)
+            "mfi": None,
+            "density": None,
+            "moisture_pct": 0.0,
+            "contamination_pct": 0.0,
+            # Filler (not tracked in facility profile as supplier)
             "filler_pct": 0,
             "filler_type_id": None,
+            # Origin/application
+            "origin_sector": None,
+            "food_grade_required": False,
+            "medical_grade_required": False,
+            # Geo (from partner, not profile)
+            "latitude": getattr(supplier, "partner_latitude", None),
+            "longitude": getattr(supplier, "partner_longitude", None),
+            # Attributes
+            "has_metal": False,
+            "is_metalized": False,
+            "has_fr": False,
         }
 
     def _get_buyer_profiles(self, supplier_partner_id=None):
@@ -264,6 +294,12 @@ class BuyerMatcher(models.Model):
         Check all gates for a buyer profile in STRICT mode.
         All gates are hard exclusions. Null-safe: missing dimension = pass.
 
+        SCHEMA ALIGNMENT (2026-02-25):
+        - buyer_profile.accepted_polymer_ids (Many2many, not polymer_family_id)
+        - buyer_profile.form_preference (Selection, not form_factor_ids)
+        - buyer_profile.accepted_color_ids (Many2many, not color_family_ids)
+        - buyer_profile.min_lot_size_lbs (not min_order_quantity)
+
         Returns:
             dict: {
                 'passed': bool,  # True if all gates passed
@@ -273,91 +309,116 @@ class BuyerMatcher(models.Model):
         """
         gates_failed = []
 
-        # Gate 1: Material Category
-        if material_req.get("material_category_id") and buyer_profile.material_category_id:
-            if material_req["material_category_id"] != buyer_profile.material_category_id.id:
-                gates_failed.append("material_category")
-
-        # Gate 2: Polymer Family (HARD in both modes)
-        if material_req.get("polymer_family_id") and buyer_profile.polymer_family_id:
-            if material_req["polymer_family_id"] != buyer_profile.polymer_family_id.id:
+        # Gate 1: Polymer (HARD in both modes)
+        # Buyer's accepted_polymer_ids must include material's polymer
+        material_polymer_id = material_req.get("polymer_id")
+        if material_polymer_id and buyer_profile.accepted_polymer_ids:
+            if material_polymer_id not in buyer_profile.accepted_polymer_ids.ids:
                 gates_failed.append("polymer")
 
-        # Gate 3: Form Factor (any match)
-        if material_req.get("form_factor_ids") and buyer_profile.form_factor_ids:
-            if not any(ff_id in buyer_profile.form_factor_ids.ids for ff_id in material_req["form_factor_ids"]):
+        # Gate 2: Form Factor
+        # Compare material form_code against buyer's form_preference
+        material_form_code = material_req.get("form_code")
+        if material_form_code and buyer_profile.form_preference:
+            if buyer_profile.form_preference != "any" and material_form_code != buyer_profile.form_preference:
                 gates_failed.append("form_factor")
 
-        # Gate 4: Color Family (any match)
-        if material_req.get("color_family_ids") and buyer_profile.color_family_ids:
-            if not any(cf_id in buyer_profile.color_family_ids.ids for cf_id in material_req["color_family_ids"]):
-                gates_failed.append("color_family")
-
-        # Gate 5: Quantity Range
-        if material_req.get("quantity_available") and buyer_profile.min_order_quantity:
-            if material_req["quantity_available"] < buyer_profile.min_order_quantity:
-                gates_failed.append("quantity_range")
-
-        # Gate 6: Quality Level
-        if material_req.get("quality_level_id") and buyer_profile.quality_level_id:
-            if material_req["quality_level_id"] != buyer_profile.quality_level_id.id:
-                gates_failed.append("quality_level")
-
-        # Gate 7: Additive Tolerance
-        if material_req.get("additive_ids") and buyer_profile.prohibited_additives:
-            prohibited_ids = buyer_profile.prohibited_additives.ids
-            if any(add_id in prohibited_ids for add_id in material_req["additive_ids"]):
-                gates_failed.append("additive_tolerance")
-
-        # Gate 8: Contamination Threshold
-        if material_req.get("contamination_level") is not None and buyer_profile.max_contamination_level is not None:
-            if material_req["contamination_level"] > buyer_profile.max_contamination_level:
-                gates_failed.append("contamination")
-
-        # Gate 9: Regulatory Compliance
-        if material_req.get("certification_ids") and buyer_profile.required_certifications:
-            required_ids = buyer_profile.required_certifications.ids
-            if not all(cert_id in material_req["certification_ids"] for cert_id in required_ids):
-                gates_failed.append("certifications")
-
-        # Gate 10: Geographic Range (handled in graph service Stage 2)
-
-        # Gate 11: Color Matching (Enhancement #6)
-        # Natural color accepted by everyone. Mixed requires accepts_any_color.
+        # Gate 3: Color
+        # Natural is universally accepted. Mixed requires accepts_any_color.
         # Otherwise, buyer's accepted_color_ids must include material color.
         material_color_id = material_req.get("color_id")
         material_color_code = material_req.get("color_code")
         if material_color_id:
-            # Natural is universally accepted
             if material_color_code != "natural":
-                # Mixed color requires accepts_any_color
                 if material_color_code == "mixed":
                     if not buyer_profile.accepts_any_color:
                         gates_failed.append("color_mixed_rejected")
-                # Specific color must be in buyer's accepted list (if they have one)
                 elif buyer_profile.accepted_color_ids:
                     if material_color_id not in buyer_profile.accepted_color_ids.ids:
                         if not buyer_profile.accepts_any_color:
                             gates_failed.append("color_not_accepted")
 
-        # Gate 12: Filler Matching (Enhancement #7)
-        # Unfilled material (filler_pct == 0) always passes.
-        # Filled material requires accepts_filled_materials and filler_pct <= max_filler_pct.
-        material_filler_pct = material_req.get("filler_pct", 0) or 0
+        # Gate 4: Quantity Range
+        # Material quantity must meet buyer's minimum lot size
+        quantity_available = material_req.get("quantity_available")
+        if quantity_available and buyer_profile.min_lot_size_lbs:
+            if quantity_available < buyer_profile.min_lot_size_lbs:
+                gates_failed.append("quantity_range")
+
+        # Gate 5: Source Type (PCR/PIR/Virgin)
+        # Hierarchy: virgin accepts all, pir accepts pcr+pir, pcr accepts pcr only
+        material_source = material_req.get("source_type_code")
+        if material_source and buyer_profile.source_type_id:
+            buyer_source = buyer_profile.source_type_id.code
+            if buyer_source == "pcr" and material_source not in ("pcr",):
+                gates_failed.append("source_type")
+            elif buyer_source == "pir" and material_source not in ("pcr", "pir"):
+                gates_failed.append("source_type")
+
+        # Gate 6: Contamination Threshold
+        contamination_pct = material_req.get("contamination_pct") or 0.0
+        if contamination_pct > 0 and buyer_profile.contamination_tolerance_pct:
+            if contamination_pct > buyer_profile.contamination_tolerance_pct:
+                gates_failed.append("contamination")
+
+        # Gate 7: Moisture (dryer capability)
+        moisture_pct = material_req.get("moisture_pct") or 0.0
+        if moisture_pct > 0.5:
+            has_drying = buyer_profile.has_wash_line or buyer_profile.can_reduce_moisture
+            if not has_drying:
+                gates_failed.append("moisture_capability")
+
+        # Gate 8: Filler Matching
+        material_filler_pct = material_req.get("filler_pct") or 0
         material_filler_type_id = material_req.get("filler_type_id")
         if material_filler_pct > 0:
-            # Buyer must accept filled materials
             if not buyer_profile.accepts_filled_materials:
                 gates_failed.append("filled_material_rejected")
-            # Check filler percentage limit
             elif buyer_profile.max_filler_pct and material_filler_pct > buyer_profile.max_filler_pct:
                 gates_failed.append("filler_pct_exceeds_limit")
-            # Check filler type if buyer has restrictions
             elif material_filler_type_id and buyer_profile.accepted_filler_type_ids:
                 if material_filler_type_id not in buyer_profile.accepted_filler_type_ids.ids:
                     gates_failed.append("filler_type_not_accepted")
 
-        return {"passed": len(gates_failed) == 0, "gates_passed": 10 - len(gates_failed), "gates_failed": gates_failed}
+        # Gate 9: Process Type (MFI compatibility)
+        material_mfi = material_req.get("mfi")
+        if material_mfi is not None and buyer_profile.process_type:
+            if not self._check_mfi_process_compatibility(
+                material_req.get("polymer_code"),
+                material_mfi,
+                buyer_profile.process_type,
+            ):
+                gates_failed.append("process_type")
+
+        # Gate 10: Food Grade
+        if material_req.get("food_grade_required"):
+            if not buyer_profile.food_grade_certified:
+                gates_failed.append("food_grade")
+
+        # Gate 11: Medical Grade
+        if material_req.get("medical_grade_required"):
+            if not buyer_profile.medical_grade_capable:
+                gates_failed.append("medical_grade")
+
+        # Gate 12: Geo (Python fallback)
+        ICP = self.env["ir.config_parameter"].sudo()
+        max_distance = float(ICP.get_param("plasticos_graph.match_geo_radius_miles", "0"))
+        if max_distance > 0:
+            mat_lat = material_req.get("latitude")
+            mat_lon = material_req.get("longitude")
+            buyer_lat = getattr(buyer_profile.partner_id, "partner_latitude", None)
+            buyer_lon = getattr(buyer_profile.partner_id, "partner_longitude", None)
+            if mat_lat and mat_lon and buyer_lat and buyer_lon:
+                distance = self._haversine_miles(mat_lat, mat_lon, buyer_lat, buyer_lon)
+                if distance > max_distance:
+                    gates_failed.append("geo_distance")
+
+        total_gates = 12
+        return {
+            "passed": len(gates_failed) == 0,
+            "gates_passed": total_gates - len(gates_failed),
+            "gates_failed": gates_failed,
+        }
 
     def _check_gates_relaxed(self, buyer_profile, material_req):
         """
@@ -373,9 +434,10 @@ class BuyerMatcher(models.Model):
         """
         gates_failed = []
 
-        # ONLY HARD GATE: Polymer Family
-        if material_req.get("polymer_family_id") and buyer_profile.polymer_family_id:
-            if material_req["polymer_family_id"] != buyer_profile.polymer_family_id.id:
+        # ONLY HARD GATE: Polymer
+        material_polymer_id = material_req.get("polymer_id")
+        if material_polymer_id and buyer_profile.accepted_polymer_ids:
+            if material_polymer_id not in buyer_profile.accepted_polymer_ids.ids:
                 gates_failed.append("polymer")
 
         # All other gates are deferred to Stage 2 as soft scoring signals

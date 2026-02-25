@@ -1,0 +1,1510 @@
+# Plasticos KB v8.0 — HDPE
+# Generated: 2026-02-22T23:25:31Z
+# Source format: v7.0r multi-entity
+# Schema: plasticos_kb_v8.0
+
+_metadata:
+  version: '8.0'
+  source_version: 7.0r
+  generated: '2026-02-22T23:25:31Z'
+  data_quality: verified
+  source_tier: tier_1
+  schema_compliant: true
+  source_last_updated: '2025-11-05'
+polymer_identity:
+  polymer_family: Polyolefins
+  polymer_type: HDPE
+  full_name: High-Density Polyethylene
+  resin_id_code: 2
+  structure: Linear backbone with minimal branching, high crystallinity
+  note: Second most common plastic - bottles, pipes, containers
+product_scrap_mapping:
+  packaging_products:
+  - product: Milk jugs and beverage bottles
+    scrap_grade: hdpe_blow_molding
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 1.0
+      - 3.0
+      typical: 2.0
+      unit: '%'
+    typical_contaminants:
+    - labels <0.5%
+    - caps (PP) <1%
+    - residue 1-2%
+    suitable_buyers:
+    - blow_molding_non_food
+    - extrusion_pipe
+    - injection_molders
+    reverse_reasoning: IF buyer_needs_bottles THEN source_hdpe_blow_molding_tier2_tier3_non_food
+    note: Food contact scrap → non-food applications only
+  - product: Detergent and chemical bottles
+    scrap_grade: hdpe_blow_molding
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 2.0
+      - 5.0
+      typical: 3.5
+      unit: '%'
+    typical_contaminants:
+    - chemical residue 1-3%
+    - labels <1%
+    - colorants
+    suitable_buyers:
+    - blow_molding_industrial
+    - extrusion_pipe_non_pressure
+  - product: Caps and closures
+    scrap_grade: hdpe_injection
+    scrap_quality_tier:
+      range:
+      - 1
+      - 2
+      min: 1
+      max: 2
+    typical_contamination_pct:
+      value:
+      - 0.5
+      - 2.0
+      typical: 1.25
+      unit: '%'
+    typical_contaminants:
+    - minimal - clean manufacturing
+    suitable_buyers:
+    - injection_molders
+    - blow_molding_manufacturers
+  pipe_products:
+  - product: Pressure pipe (water, gas)
+    scrap_grade: hdpe_extrusion_pe4710
+    scrap_quality_tier:
+      range:
+      - 1
+      - 2
+      min: 1
+      max: 2
+    typical_contamination_pct:
+      value:
+      - 0.5
+      - 2.0
+      typical: 1.25
+      unit: '%'
+    typical_contaminants:
+    - dirt <1%
+    - minimal contamination
+    suitable_buyers:
+    - pipe_manufacturers_pressure
+    - pipe_manufacturers_non_pressure
+    reverse_reasoning: IF buyer_needs_pressure_pipe THEN source_hdpe_extrusion_pe4710_tier1_tier2
+    note: Pressure pipe requires PE4710 or PE100 grade
+  - product: Drainage and corrugated pipe
+    scrap_grade: hdpe_extrusion_pe3408
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 2.0
+      - 5.0
+      typical: 3.5
+      unit: '%'
+    typical_contaminants:
+    - dirt 1-3%
+    - organic matter 1-2%
+    suitable_buyers:
+    - pipe_manufacturers_non_pressure
+    - extrusion_profile
+  - product: Conduit and cable jacketing
+    scrap_grade: hdpe_extrusion
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 1.0
+      - 3.0
+      typical: 2.0
+      unit: '%'
+    suitable_buyers:
+    - extrusion_manufacturers
+    - pipe_manufacturers_non_pressure
+  industrial_products:
+  - product: Industrial containers and drums
+    scrap_grade: hdpe_blow_molding
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 2.0
+      - 5.0
+      typical: 3.5
+      unit: '%'
+    typical_contaminants:
+    - chemical residue 1-3%
+    - labels <1%
+    suitable_buyers:
+    - blow_molding_industrial
+    - extrusion_pipe_non_pressure
+  - product: Pallets and crates
+    scrap_grade: hdpe_injection or hdpe_extrusion
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 3.0
+      - 8.0
+      typical: 5.5
+      unit: '%'
+    typical_contaminants:
+    - dirt 2-5%
+    - oils <1%
+    - mixed colors
+    suitable_buyers:
+    - injection_molders_industrial
+    - extrusion_profile
+  - product: Geomembranes and liners
+    scrap_grade: hdpe_extrusion_hmw
+    scrap_quality_tier:
+      range:
+      - 1
+      - 2
+      min: 1
+      max: 2
+    typical_contamination_pct:
+      value:
+      - 1.0
+      - 3.0
+      typical: 2.0
+      unit: '%'
+    typical_contaminants:
+    - dirt 1-2%
+    - minimal
+    suitable_buyers:
+    - extrusion_manufacturers_hmw
+    - geomembrane_manufacturers
+  automotive_products:
+  - product: Automotive fuel tanks
+    scrap_grade: hdpe_blow_molding
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 2.0
+      - 5.0
+      typical: 3.5
+      unit: '%'
+    typical_contaminants:
+    - fuel residue 1-3%
+    - additives <1%
+    suitable_buyers:
+    - blow_molding_industrial
+    - extrusion_manufacturers
+    note: Requires washing to remove fuel residue
+  - product: Automotive components (non-visible)
+    scrap_grade: hdpe_injection
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 1.0
+      - 3.0
+      typical: 2.0
+      unit: '%'
+    suitable_buyers:
+    - injection_molders_automotive
+    - injection_molders_industrial
+  manufacturing_scrap:
+  - product: Injection molding PIR (runners, sprues)
+    scrap_grade: hdpe_injection
+    scrap_quality_tier:
+      range:
+      - 1
+      min: 1
+      max: 1
+    typical_contamination_pct:
+      value:
+      - 0.1
+      - 0.5
+      typical: 0.3
+      unit: '%'
+    typical_contaminants:
+    - minimal - clean manufacturing
+    suitable_buyers:
+    - all_hdpe_injection_buyers
+    reverse_reasoning: IF buyer_needs_high_quality_hdpe THEN source_injection_pir_tier1
+    note: Injection PIR is highest quality HDPE scrap - premium value
+  - product: Pipe extrusion PIR
+    scrap_grade: hdpe_extrusion_pe4710
+    scrap_quality_tier:
+      range:
+      - 1
+      min: 1
+      max: 1
+    typical_contamination_pct:
+      value:
+      - 0.1
+      - 0.5
+      typical: 0.3
+      unit: '%'
+    suitable_buyers:
+    - pipe_manufacturers
+    - extrusion_manufacturers
+  - product: Blow molding PIR
+    scrap_grade: hdpe_blow_molding
+    scrap_quality_tier:
+      range:
+      - 1
+      min: 1
+      max: 1
+    typical_contamination_pct:
+      value:
+      - 0.1
+      - 0.5
+      typical: 0.3
+      unit: '%'
+    suitable_buyers:
+    - blow_molding_manufacturers
+    - injection_molders
+source_quality_tiers:
+  tier_1_premium:
+    tier_id: tier_1_premium
+    definition: Manufacturing PIR, single-source, minimal contamination, known grade
+    contamination_max:
+      value:
+      - 0.5
+      - 0.5
+      typical: 0.5
+      unit: '%'
+    pp_contamination_max:
+      value:
+      - 0.5
+      - 0.5
+      typical: 0.5
+      unit: '%'
+    pet_contamination_max_ppm: 25
+    pvc_contamination_max_ppm: 100
+    moisture_max_ppm: 100
+    ash_max:
+      value:
+      - 0.5
+      - 0.5
+      typical: 0.5
+      unit: '%'
+    dirt_max:
+      value:
+      - 0.1
+      - 0.1
+      typical: 0.1
+      unit: '%'
+    property_retention_min:
+      value:
+      - 95.0
+      - 95.0
+      typical: 95.0
+      unit: '%'
+    sorting_purity_min:
+      value:
+      - 99.0
+      - 99.0
+      typical: 99.0
+      unit: '%'
+    processing_history: Single cycle or virgin manufacturing scrap
+    mi_change_max:
+      value:
+      - 20.0
+      - 20.0
+      typical: 20.0
+      unit: '%'
+    examples:
+    - Injection molding PIR (runners, sprues)
+    - Pipe extrusion PIR
+    - Blow molding PIR
+    - Manufacturing trim and edge scrap
+    suitable_applications:
+    - Pressure pipe (PE4710, PE100)
+    - Food contact (indirect)
+    - Automotive visible components
+    - Premium bottles and containers
+    value_premium:
+      value:
+      - 25.0
+      - 40.0
+      typical: 32.5
+      unit: '%'
+  tier_2_standard:
+    tier_id: tier_2_standard
+    definition: Post-industrial or sorted post-consumer, moderate contamination
+    contamination_max:
+      value:
+      - 3.0
+      - 3.0
+      typical: 3.0
+      unit: '%'
+    pp_contamination_max:
+      value:
+      - 3.0
+      - 3.0
+      typical: 3.0
+      unit: '%'
+    pet_contamination_max_ppm: 200
+    pvc_contamination_max_ppm: 1000
+    moisture_max_ppm: 350
+    ash_max:
+      value:
+      - 1.5
+      - 1.5
+      typical: 1.5
+      unit: '%'
+    dirt_max:
+      value:
+      - 0.5
+      - 0.5
+      typical: 0.5
+      unit: '%'
+    property_retention_min:
+      value:
+      - 80.0
+      - 80.0
+      typical: 80.0
+      unit: '%'
+    sorting_purity_min:
+      value:
+      - 85.0
+      - 85.0
+      typical: 85.0
+      unit: '%'
+    processing_history: 1-3 recycling cycles
+    mi_change_max:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    examples:
+    - Sorted post-consumer bottles (washed)
+    - Post-consumer caps and closures
+    - Industrial containers (used)
+    - Pipe scrap (sorted)
+    suitable_applications:
+    - Non-pressure pipe
+    - Bottles and containers (non-food)
+    - Industrial parts
+    - Consumer goods
+    value_premium:
+      value:
+      - 0.0
+      - 0.0
+      typical: 0.0
+      unit: '%'
+  tier_3_utility:
+    tier_id: tier_3_utility
+    definition: Mixed post-consumer, higher contamination, multiple cycles
+    contamination_max:
+      value:
+      - 8.0
+      - 8.0
+      typical: 8.0
+      unit: '%'
+    pp_contamination_max:
+      value:
+      - 5.0
+      - 5.0
+      typical: 5.0
+      unit: '%'
+    pet_contamination_max_ppm: 300
+    pvc_contamination_max_ppm: 1000
+    moisture_max_ppm: 500
+    ash_max:
+      value:
+      - 2.0
+      - 2.0
+      typical: 2.0
+      unit: '%'
+    dirt_max:
+      value:
+      - 0.8
+      - 0.8
+      typical: 0.8
+      unit: '%'
+    property_retention_min:
+      value:
+      - 65.0
+      - 65.0
+      typical: 65.0
+      unit: '%'
+    sorting_purity_min:
+      value:
+      - 70.0
+      - 70.0
+      typical: 70.0
+      unit: '%'
+    processing_history: 3-6 recycling cycles or unknown
+    mi_change_max:
+      value:
+      - 100.0
+      - 100.0
+      typical: 100.0
+      unit: '%'
+    examples:
+    - Mixed post-consumer HDPE (unsorted)
+    - Contaminated packaging waste
+    - General waste stream HDPE
+    - Pallets and crates (used, contaminated)
+    suitable_applications:
+    - Drainage pipe (non-critical)
+    - Industrial applications (non-critical)
+    - Construction materials
+    - Low-value consumer goods
+    value_discount:
+      value:
+      - 40.0
+      - 55.0
+      typical: 47.5
+      unit: '%'
+  tier_4_marginal:
+    tier_id: tier_4_marginal
+    definition: Heavily contaminated, degraded, multiple unknown cycles
+    contamination_min:
+      value:
+      - 8.0
+      - 8.0
+      typical: 8.0
+      unit: '%'
+    property_retention_max:
+      value:
+      - 65.0
+      - 65.0
+      typical: 65.0
+      unit: '%'
+    processing_history: '>6 cycles or severely degraded'
+    examples:
+    - Heavily contaminated mixed plastic waste
+    - Degraded geomembranes
+    - Mixed polymer waste streams
+    suitable_applications:
+    - Chemical recycling feedstock
+    - Pyrolysis feedstock
+    - Very limited mechanical recycling
+    value_discount:
+      value:
+      - 70.0
+      - 85.0
+      typical: 77.5
+      unit: '%'
+material_grades:
+- grade_id: HDPE_INJECTION_MOLDING
+  grade_name: HDPE Injection Molding Grade
+  description: Standard HDPE for injection molding applications
+  type: virgin
+  density:
+    value:
+      value:
+      - 0.952
+      - 0.965
+      typical: 0.9585
+      unit: g/cm³
+    test_method: ASTM D792
+    note: Higher density = increased stiffness and chemical resistance
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 22.0
+      - 31.0
+      typical: 26.5
+      unit: MPa
+    flexural_modulus:
+      value:
+      - 1000.0
+      - 1400.0
+      typical: 1200.0
+      unit: MPa
+    impact_strength:
+      value:
+      - 25.0
+      - 60.0
+      typical: 42.5
+      unit: J/m
+    escr_hours:
+    - 1000
+    - 5000
+  thermal_properties:
+    melting_point:
+      value:
+      - 125.0
+      - 135.0
+      typical: 130.0
+      unit: °C
+    processing_temp:
+      value:
+      - 180.0
+      - 220.0
+      typical: 200.0
+      unit: °C
+    mold_temp:
+      value:
+      - 20.0
+      - 60.0
+      typical: 40.0
+      unit: °C
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 15.0
+      - 50.0
+      typical: 32.5
+      unit: '%'
+    limitations: Color consistency, property uniformity
+  applications:
+    primary:
+    - product: Housewares and containers
+      scrap_source: Manufacturing PIR, post-consumer
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Automotive components
+      scrap_source: Automotive manufacturing, end-of-life vehicles
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Caps and closures
+      scrap_source: Packaging manufacturing PIR, post-consumer sorted
+      quality_tier_required:
+      - 1
+      - 2
+- grade_id: HDPE_EXTRUSION_PE4710
+  grade_name: HDPE Extrusion PE4710 (Pressure Pipe)
+  description: High performance HDPE for pressure pipe applications
+  type: virgin
+  density:
+    value:
+      value:
+      - 0.941
+      - 0.965
+      typical: 0.953
+      unit: g/cm³
+    classification: PE4710
+    test_method: ASTM D792
+  mechanical_properties:
+    hydrostatic_design_basis:
+      value:
+      - 800.0
+      - 1600.0
+      typical: 1200.0
+      unit: psi
+    slow_crack_growth_resistance_hours: 500
+    oxidative_induction_time_min: 20
+  thermal_properties:
+    processing_temp:
+      value:
+      - 160.0
+      - 220.0
+      typical: 190.0
+      unit: °C
+    die_temp:
+      value:
+      - 180.0
+      - 210.0
+      typical: 195.0
+      unit: °C
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 30.0
+      - 30.0
+      typical: 30.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 10.0
+      - 30.0
+      typical: 20.0
+      unit: '%'
+    note: Low PCR for pressure applications due to safety requirements
+  applications:
+    primary:
+    - product: Pressure pipe (water, gas)
+      scrap_source: Pipe manufacturing PIR, infrastructure
+      quality_tier_required:
+      - 1
+      - 2
+      note: Requires PE4710 or PE100 certification
+    - product: Utility pipe systems
+      scrap_source: Pipe manufacturing, construction
+      quality_tier_required:
+      - 1
+      - 2
+- grade_id: HDPE_EXTRUSION_PE3408
+  grade_name: HDPE Extrusion PE3408 (Non-Pressure)
+  description: Lower density HDPE for drainage and non-pressure applications
+  type: virgin
+  density:
+    value:
+      value:
+      - 0.93
+      - 0.94
+      typical: 0.935
+      unit: g/cm³
+    classification: PE3408
+    note: Lower density provides higher flexibility
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 95.0
+      - 95.0
+      typical: 95.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 30.0
+      - 95.0
+      typical: 62.5
+      unit: '%'
+    note: High PCR acceptable for non-pressure applications
+  applications:
+    primary:
+    - product: Drainage and corrugated pipe
+      scrap_source: Pipe manufacturing, construction
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Conduit and cable jacketing
+      scrap_source: Manufacturing PIR, telecommunications
+      quality_tier_required:
+      - 2
+      - 3
+- grade_id: HDPE_BLOW_MOLDING
+  grade_name: HDPE Blow Molding Grade
+  description: HDPE for bottles, containers, and hollow products
+  type: virgin
+  density:
+    value:
+      value:
+      - 0.95
+      - 0.965
+      typical: 0.9575
+      unit: g/cm³
+    high_stiffness:
+      value:
+      - 0.96
+      - 0.97
+      typical: 0.965
+      unit: g/cm³
+  mechanical_properties:
+    escr_hours: 100
+    drop_impact: Meets FDA requirements
+    barrier_properties: Low permeability to moisture and gases
+  thermal_properties:
+    parison_temp:
+      value:
+      - 180.0
+      - 200.0
+      typical: 190.0
+      unit: °C
+    blow_pressure:
+      value:
+      - 0.5
+      - 1.0
+      typical: 0.75
+      unit: MPa
+  pcr_compatibility:
+    food_contact:
+      value:
+      - 10.0
+      - 15.0
+      typical: 12.5
+      unit: '%'
+    non_food:
+      value:
+      - 20.0
+      - 60.0
+      typical: 40.0
+      unit: '%'
+    note: FDA regulations limit PCR for food contact
+  applications:
+    primary:
+    - product: Milk jugs and beverage bottles
+      scrap_source: Post-consumer sorted, manufacturing PIR
+      quality_tier_required:
+      - 2
+      - 3
+      note: Food contact scrap → non-food applications only
+    - product: Detergent and chemical bottles
+      scrap_source: Post-consumer, manufacturing PIR
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Industrial containers
+      scrap_source: Industrial use, manufacturing PIR
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Automotive fuel tanks
+      scrap_source: Automotive manufacturing, end-of-life vehicles
+      quality_tier_required:
+      - 2
+      - 3
+- grade_id: HDPE_HMW
+  grade_name: High Molecular Weight HDPE (HMW-HDPE)
+  description: Ultra-high strength HDPE for demanding applications
+  type: virgin
+  density:
+    value:
+      value:
+      - 0.935
+      - 0.965
+      typical: 0.95
+      unit: g/cm³
+    high_performance:
+      value:
+      - 0.95
+      - 0.965
+      typical: 0.9575
+      unit: g/cm³
+  mechanical_properties:
+    impact_strength:
+      value:
+      - 100.0
+      - 100.0
+      typical: 100.0
+      unit: J/m
+    escr_hours: 5000
+    abrasion_resistance: 50-100% better than standard HDPE
+  thermal_properties:
+    processing_temp:
+      value:
+      - 200.0
+      - 250.0
+      typical: 225.0
+      unit: °C
+    note: High torque requirements due to high melt viscosity
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 40.0
+      - 40.0
+      typical: 40.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 10.0
+      - 40.0
+      typical: 25.0
+      unit: '%'
+    note: Molecular weight distribution sensitivity - strict contamination control
+  applications:
+    primary:
+    - product: Large diameter pipe (>24 inches)
+      scrap_source: Pipe manufacturing PIR, infrastructure
+      quality_tier_required:
+      - 1
+      - 2
+    - product: Geomembranes and liners
+      scrap_source: Manufacturing PIR, construction
+      quality_tier_required:
+      - 1
+      - 2
+    - product: Marine applications
+      scrap_source: Manufacturing PIR, marine industry
+      quality_tier_required:
+      - 1
+      - 2
+  recycling_challenges:
+    high_torque_processing: Requires specialized high-torque extruders
+    mw_distribution_sensitivity: PCR affects molecular weight distribution
+    strict_contamination_control: Extremely low contamination tolerance
+recycling_rules:
+- rule_id: HDPE_REGRIND_RETENTION_CYCLES
+  material_type: HDPE
+  rule: HDPE retains ~65% properties after 3 regrind cycles
+  reasoning: 'After 3 cycles: tensile -35%, impact -40%, MI -40%. Property retention 65%. Blend with virgin or use compatibilizer
+    to restore performance.'
+  confidence: 0.92
+  property_retention_pct: 65
+  cycles: 3
+- rule_id: HDPE_PP_CONTAMINATION_TOLERANCE
+  material_type: HDPE
+  rule: PP contamination ≤5% acceptable with compatibilizer (MAPE)
+  reasoning: PP contamination ≤5 wt% causes negligible property loss when compatibilizer (MAPE) present. Beyond 5%, stiffness
+    and HDT decline.
+  confidence: 0.91
+  pp_contamination_max_pct: 5.0
+  compatibilizer_required: true
+- rule_id: HDPE_PVC_ZERO_TOLERANCE
+  material_type: HDPE
+  rule: PVC contamination >0.1% causes HCl evolution and corrosion
+  reasoning: PVC contamination >0.1 wt% causes HCl evolution above 200°C, leading to equipment corrosion and toxic off-gassing.
+    Zero tolerance for safety.
+  confidence: 0.98
+  pvc_contamination_max_ppm: 1000
+  safety_critical: true
+  action: reject_or_reroute_to_washing
+- rule_id: HDPE_MOISTURE_CONTROL
+  material_type: HDPE
+  rule: Moisture >500 ppm causes bubbles and surface defects
+  reasoning: HDPE not hygroscopic but moisture contamination >500 ppm causes processing defects. Drying recommended for quality
+    applications.
+  confidence: 0.88
+  moisture_max_ppm: 500
+  drying_recommended: true
+- rule_id: HDPE_INJECTION_PIR_PREMIUM
+  material_type: HDPE
+  rule: Injection molding PIR is highest quality HDPE scrap - Tier 1
+  reasoning: 'Injection PIR (runners, sprues): clean, single grade, known MI, minimal contamination (<0.5%), 95%+ property
+    retention. Premium value 25-40% above market.'
+  confidence: 0.95
+  pir_characteristics:
+    contamination:
+      value:
+      - 0.1
+      - 0.5
+      typical: 0.3
+      unit: '%'
+    quality_tier: 1
+    property_retention:
+      value:
+      - 95.0
+      - 100.0
+      typical: 97.5
+      unit: '%'
+    value_premium:
+      value:
+      - 25.0
+      - 40.0
+      typical: 32.5
+      unit: '%'
+- rule_id: HDPE_FOOD_CONTACT_RESTRICTION
+  material_type: HDPE
+  rule: Post-consumer food contact HDPE cannot be reused for direct food contact
+  reasoning: FDA regulations restrict PCR from food contact applications. Route to indirect food contact (10-15% PCR) or non-food
+    applications (20-100% PCR).
+  confidence: 0.98
+  restriction: food_contact_pcr → non_food_or_indirect_only
+  pcr_limits:
+    direct_food_contact:
+      value:
+      - 0.0
+      - 0.0
+      typical: 0.0
+      unit: '%'
+    indirect_food_contact:
+      value:
+      - 10.0
+      - 15.0
+      typical: 12.5
+      unit: '%'
+    non_food:
+      value:
+      - 20.0
+      - 100.0
+      typical: 60.0
+      unit: '%'
+contamination_profiles:
+- profile_id: HDPE_INJECTION_PIR
+  material_type: HDPE
+  source: Injection molding PIR (runners, sprues)
+  contamination_level: minimal
+  quality_tier: 1
+  typical_contaminants:
+  - Minimal - clean manufacturing environment
+  - 'Possible colorants: <0.1%'
+  sorting_purity:
+    value:
+    - 99.0
+    - 99.0
+    typical: 99.0
+    unit: '%'
+  suitable_applications:
+  - All HDPE injection molding applications
+  - Food contact (indirect)
+  - Automotive components
+- profile_id: HDPE_POST_CONSUMER_BOTTLES
+  material_type: HDPE
+  source: Post-consumer bottles (sorted, washed)
+  contamination_level: low-medium
+  quality_tier: 2
+  typical_contaminants:
+  - 'Labels: <0.5%'
+  - 'Caps (PP): <1%'
+  - 'Residue: 1-2%'
+  - 'PP contamination: 1-2%'
+  sorting_purity:
+    value:
+    - 85.0
+    - 85.0
+    typical: 85.0
+    unit: '%'
+  processing_requirements:
+    washing: required
+    drying: recommended
+  suitable_applications:
+  - Bottles and containers (non-food)
+  - Non-pressure pipe
+  - Industrial parts
+- profile_id: HDPE_PIPE_SCRAP
+  material_type: HDPE
+  source: Pipe scrap (construction, infrastructure)
+  contamination_level: low-medium
+  quality_tier: 2
+  typical_contaminants:
+  - 'Dirt: 1-2%'
+  - Minimal contamination
+  sorting_purity:
+    value:
+    - 90.0
+    - 90.0
+    typical: 90.0
+    unit: '%'
+  suitable_applications:
+  - Non-pressure pipe
+  - Extrusion applications
+  - Industrial parts
+- profile_id: HDPE_MIXED_POST_CONSUMER
+  material_type: HDPE
+  source: Mixed post-consumer HDPE (unsorted)
+  contamination_level: high
+  quality_tier: 3
+  typical_contaminants:
+  - 'Dirt: 2-5%'
+  - 'PP contamination: 3-5%'
+  - Mixed colors
+  - 'Labels and adhesives: 1-2%'
+  sorting_purity:
+    value:
+    - 70.0
+    - 70.0
+    typical: 70.0
+    unit: '%'
+  suitable_applications:
+  - Drainage pipe (non-critical)
+  - Industrial applications (non-critical)
+  - Construction materials
+buyer_profiles:
+- buyer_id: HDPE_PIPE_MANUFACTURERS_PRESSURE
+  buyer_type: Pressure pipe manufacturer
+  industry_segment: Infrastructure/Utilities
+  material_requirements:
+    polymer_types:
+    - HDPE_extrusion_PE4710
+    - HDPE_extrusion_PE100
+    purity_min:
+      value:
+      - 90.0
+      - 90.0
+      typical: 90.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 30.0
+      - 30.0
+      typical: 30.0
+      unit: '%'
+    preferred_source: Pipe manufacturing PIR, sorted pipe scrap
+    quality_tier_required:
+    - 1
+    - 2
+    pp_contamination_max:
+      value:
+      - 2.0
+      - 2.0
+      typical: 2.0
+      unit: '%'
+    pvc_contamination_max_ppm: 100
+    color_preference: natural or black
+    form_preference: pellets
+  quality_specifications:
+    mi_range:
+      value:
+      - 0.05
+      - 0.4
+      typical: 0.225
+      unit: g/10min
+    density_min:
+      value:
+      - 0.941
+      - 0.941
+      typical: 0.941
+      unit: g/cm³
+    contamination_max:
+      value:
+      - 2.0
+      - 2.0
+      typical: 2.0
+      unit: '%'
+  certifications_required:
+  - ASTM D3350 PE4710 or PE100
+  - NSF 61 (potable water)
+  - ISO 4427
+  applications:
+  - Pressure pipe (water, gas)
+  - Utility pipe systems
+  volume_range_tons_month:
+  - 200
+  - 2000
+- buyer_id: HDPE_PIPE_MANUFACTURERS_NON_PRESSURE
+  buyer_type: Non-pressure pipe manufacturer
+  industry_segment: Construction/Drainage
+  material_requirements:
+    polymer_types:
+    - HDPE_extrusion_PE3408
+    - HDPE_extrusion
+    purity_min:
+      value:
+      - 75.0
+      - 75.0
+      typical: 75.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 95.0
+      - 95.0
+      typical: 95.0
+      unit: '%'
+    preferred_source: any
+    quality_tier_required:
+    - 2
+    - 3
+    pp_contamination_max:
+      value:
+      - 5.0
+      - 5.0
+      typical: 5.0
+      unit: '%'
+    color_preference: any
+    form_preference: pellets or regrind
+  quality_specifications:
+    contamination_max:
+      value:
+      - 5.0
+      - 5.0
+      typical: 5.0
+      unit: '%'
+  applications:
+  - Drainage and corrugated pipe
+  - Conduit and cable jacketing
+  volume_range_tons_month:
+  - 300
+  - 3000
+- buyer_id: HDPE_BLOW_MOLDING_NON_FOOD
+  buyer_type: Blow molding manufacturer (non-food)
+  industry_segment: Packaging/Industrial
+  material_requirements:
+    polymer_types:
+    - HDPE_blow_molding
+    purity_min:
+      value:
+      - 80.0
+      - 80.0
+      typical: 80.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 60.0
+      - 60.0
+      typical: 60.0
+      unit: '%'
+    preferred_source: Post-consumer bottles (sorted), manufacturing PIR
+    quality_tier_required:
+    - 2
+    - 3
+    pp_contamination_max:
+      value:
+      - 3.0
+      - 3.0
+      typical: 3.0
+      unit: '%'
+    color_preference: any
+    form_preference: pellets
+  quality_specifications:
+    mi_range:
+      value:
+      - 0.2
+      - 0.8
+      typical: 0.5
+      unit: g/10min
+    contamination_max:
+      value:
+      - 3.0
+      - 3.0
+      typical: 3.0
+      unit: '%'
+  applications:
+  - Detergent and chemical bottles
+  - Industrial containers
+  volume_range_tons_month:
+  - 200
+  - 2000
+- buyer_id: HDPE_INJECTION_MOLDERS_INDUSTRIAL
+  buyer_type: Injection molder (industrial applications)
+  industry_segment: Industrial/Consumer Goods
+  material_requirements:
+    polymer_types:
+    - HDPE_injection
+    purity_min:
+      value:
+      - 80.0
+      - 80.0
+      typical: 80.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    preferred_source: Injection PIR, post-consumer sorted
+    quality_tier_required:
+    - 2
+    - 3
+    pp_contamination_max:
+      value:
+      - 3.0
+      - 3.0
+      typical: 3.0
+      unit: '%'
+    color_preference: any
+    form_preference: pellets
+  quality_specifications:
+    mi_range:
+      value:
+      - 8.0
+      - 34.0
+      typical: 21.0
+      unit: g/10min
+    contamination_max:
+      value:
+      - 3.0
+      - 3.0
+      typical: 3.0
+      unit: '%'
+  applications:
+  - Housewares and containers
+  - Industrial parts
+  - Pallets and crates
+  volume_range_tons_month:
+  - 100
+  - 1000
+- buyer_id: HDPE_GEOMEMBRANE_MANUFACTURERS
+  buyer_type: Geomembrane and liner manufacturer
+  industry_segment: Construction/Environmental
+  material_requirements:
+    polymer_types:
+    - HDPE_extrusion_HMW
+    purity_min:
+      value:
+      - 90.0
+      - 90.0
+      typical: 90.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 40.0
+      - 40.0
+      typical: 40.0
+      unit: '%'
+    preferred_source: HMW manufacturing PIR, sorted HMW scrap
+    quality_tier_required:
+    - 1
+    - 2
+    pp_contamination_max:
+      value:
+      - 0.5
+      - 0.5
+      typical: 0.5
+      unit: '%'
+    color_preference: natural or black
+    form_preference: pellets
+  quality_specifications:
+    mi_range:
+      value:
+      - 0.01
+      - 0.3
+      typical: 0.155
+      unit: g/10min
+    contamination_max:
+      value:
+      - 0.5
+      - 0.5
+      typical: 0.5
+      unit: '%'
+  applications:
+  - Geomembranes and liners
+  - Large diameter pipe
+  - Marine applications
+  volume_range_tons_month:
+  - 50
+  - 500
+- buyer_id: HDPE_EXTRUSION_MANUFACTURERS
+  buyer_type: Extrusion manufacturer (general)
+  industry_segment: Manufacturing
+  material_requirements:
+    polymer_types:
+    - HDPE_extrusion
+    - HDPE_blow_molding
+    purity_min:
+      value:
+      - 75.0
+      - 75.0
+      typical: 75.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 100.0
+      - 100.0
+      typical: 100.0
+      unit: '%'
+    preferred_source: any
+    quality_tier_required:
+    - 2
+    - 3
+    pp_contamination_max:
+      value:
+      - 5.0
+      - 5.0
+      typical: 5.0
+      unit: '%'
+    color_preference: any
+    form_preference: pellets or regrind
+  quality_specifications:
+    contamination_max:
+      value:
+      - 5.0
+      - 5.0
+      typical: 5.0
+      unit: '%'
+  applications:
+  - Profile extrusion
+  - Sheet and film
+  - General extrusion applications
+  volume_range_tons_month:
+  - 200
+  - 2000
+quality_indicators:
+- indicator_id: HDPE_MI_CONSISTENCY
+  test_method: ASTM D1238 (190°C/2.16kg)
+  material_types:
+  - HDPE
+  thresholds:
+    ultra_low_mi:
+      value:
+      - 0.01
+      - 0.1
+      typical: 0.055
+      unit: ''
+    low_mi:
+      value:
+      - 0.1
+      - 2.0
+      typical: 1.05
+      unit: ''
+    medium_mi:
+      value:
+      - 8.0
+      - 34.0
+      typical: 21.0
+      unit: ''
+    high_mi:
+      value:
+      - 34.0
+      - 100.0
+      typical: 67.0
+      unit: ''
+  significance: Critical for application matching and processing
+- indicator_id: HDPE_PP_CONTAMINATION
+  test_method: FTIR or DSC
+  material_types:
+  - HDPE
+  thresholds:
+    excellent:
+      pp_contamination:
+        value:
+        - 0.0
+        - 0.5
+        typical: 0.25
+        unit: '%'
+    good:
+      pp_contamination:
+        value:
+        - 0.5
+        - 3.0
+        typical: 1.75
+        unit: '%'
+    acceptable:
+      pp_contamination:
+        value:
+        - 3.0
+        - 5.0
+        typical: 4.0
+        unit: '%'
+    poor:
+      pp_contamination:
+        value:
+        - 5.0
+        - 100.0
+        typical: 52.5
+        unit: '%'
+  significance: Determines application suitability and quality tier
+- indicator_id: HDPE_PVC_CONTAMINATION
+  test_method: FTIR or XRF
+  material_types:
+  - HDPE
+  thresholds:
+    acceptable:
+      pvc_contamination_ppm:
+      - 0
+      - 1000
+    reject:
+      pvc_contamination_ppm:
+      - 1000
+      - 100000
+  significance: Safety critical - PVC causes HCl evolution and corrosion
+  action: reject_if_above_threshold
+- indicator_id: HDPE_COLOR_CONSISTENCY
+  test_method: Visual inspection
+  material_types:
+  - HDPE
+  thresholds:
+    excellent: Natural/clear, consistent color
+    good: Single consistent color
+    acceptable: Mixed colors or moderate discoloration
+    poor: Heavily mixed or degraded color
+  significance: Indicates thermal degradation and source quality
+inference_rules:
+- rule_id: HDPE_PRODUCT_TO_BUYER_FORWARD
+  inference_type: buyer_matching
+  logic: IF product=milk_jugs THEN grade=hdpe_blow_molding AND quality_tier=[2,3] AND match_buyers=[blow_molding_non_food,
+    extrusion_pipe]
+  reasoning: Forward reasoning from product to suitable buyers based on grade and quality tier
+  confidence: 0.9
+- rule_id: HDPE_BUYER_TO_SOURCE_BACKWARD
+  inference_type: source_matching
+  logic: IF buyer=pipe_manufacturers_pressure THEN require_grade=hdpe_pe4710 AND require_tier=[1,2] AND require_certification=PE4710
+  reasoning: Backward reasoning from buyer requirements to acceptable sources
+  confidence: 0.98
+- rule_id: HDPE_INJECTION_PIR_PREMIUM_MATCHING
+  inference_type: buyer_matching
+  logic: IF source=injection_pir AND contamination<0.5% THEN tier=1 AND match_all_buyers
+  reasoning: Injection PIR is premium quality - suitable for all HDPE applications
+  confidence: 0.95
+- rule_id: HDPE_MI_APPLICATION_MATCHING
+  inference_type: application_matching
+  logic: IF mi<0.4 THEN pipe_extrusion; IF mi=0.2-0.8 THEN blow_molding; IF mi=8-34 THEN injection_molding
+  reasoning: MI determines application suitability
+  confidence: 0.92
+- rule_id: HDPE_FOOD_CONTACT_EXCLUSION
+  inference_type: application_matching
+  logic: IF source=post_consumer_food_contact THEN exclude_direct_food_contact AND route_to_indirect_or_non_food
+  reasoning: FDA restrictions on PCR food contact
+  confidence: 0.98
+- rule_id: HDPE_PP_CONTAMINATION_ROUTING
+  inference_type: buyer_matching
+  logic: IF pp_contamination<0.5% THEN pressure_pipe_buyers; IF pp<3% THEN non_pressure_pipe; IF pp<5% THEN industrial_with_compatibilizer;
+    IF pp>5% THEN reject_or_downcycle
+  reasoning: PP contamination level determines buyer tier matching
+  confidence: 0.88
+- rule_id: HDPE_PVC_CONTAMINATION_REJECTION
+  inference_type: quality_control
+  logic: IF pvc_contamination>0.1% THEN reject_or_reroute_to_washing FOR safety
+  reasoning: PVC contamination causes HCl evolution and equipment corrosion
+  confidence: 0.98
+standards:
+- standard_id: ASTM_D3350
+  title: Polyethylene Plastics Pipe and Fittings Materials
+  scope: Defines PE pipe classifications (PE2406, PE3408, PE4710, PE100)
+  relevance: Primary classification standard for HDPE pipe materials
+- standard_id: ASTM_D1248
+  title: Polyethylene Plastics Extrusion Materials
+  scope: Defines HDPE extrusion material classifications
+  relevance: Standard for HDPE extrusion applications
+- standard_id: ASTM_D1238
+  title: Melt Flow Rates of Thermoplastics
+  test_conditions: 190°C/2.16kg for HDPE
+  significance: Critical for HDPE processability and quality assessment
+- standard_id: ASTM_D1693
+  title: Environmental Stress-Crack Resistance (ESCR)
+  scope: Measures resistance to stress cracking
+  relevance: Critical for pipe and container applications
+- standard_id: NSF_61
+  title: Drinking Water System Components
+  scope: Certifies materials for potable water contact
+  relevance: Required for HDPE pressure pipe in water systems
+- standard_id: ISO_4427
+  title: Polyethylene (PE) pipes for water supply
+  scope: International standard for PE water pipe
+  relevance: Global standard for HDPE pressure pipe
+processing_guidance:
+  drying:
+    required: false
+    note: HDPE not hygroscopic - drying optional unless moisture contamination present
+    moisture_threshold_ppm: 500
+  temperature_control:
+    processing_temp:
+      value:
+      - 180.0
+      - 250.0
+      typical: 215.0
+      unit: °C
+    optimal_range:
+      value:
+      - 190.0
+      - 220.0
+      typical: 205.0
+      unit: °C
+    degradation_onset:
+      value:
+      - 280.0
+      - 280.0
+      typical: 280.0
+      unit: °C
+  mixing_pcr_virgin:
+    recommended_method: Dry blend or masterbatch
+    max_pcr_pct_by_application:
+      pressure_pipe: 30
+      non_pressure_pipe: 95
+      food_contact_indirect: 15
+      blow_molding_non_food: 60
+      injection_molding: 50
+  contamination_removal:
+    washing: Required for post-consumer sources
+    sorting: Critical - separate HDPE from PP, PET, PVC
+    density_separation: Effective for HDPE/PP separation (0.952-0.965 vs 0.900-0.910)
+  compatibilization:
+    hdpe_pp_blends: Use MAPE compatibilizer (2-5%) for PP contamination >3%
+    benefit: Reduces property loss from PP contamination

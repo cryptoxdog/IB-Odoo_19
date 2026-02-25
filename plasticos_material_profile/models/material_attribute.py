@@ -31,7 +31,10 @@ class PlasticosMaterialAttribute(models.Model):
         help="Value to set when this attribute is selected.",
     )
 
-    _check_unique_code = models.Constraint(
-        "unique(code)",
-        "Attribute code must be unique.",
-    )
+    _sql_constraints = [
+        (
+            "unique_code",
+            "unique(code)",
+            "Attribute code must be unique.",
+        ),
+    ]

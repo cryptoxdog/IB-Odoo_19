@@ -8,7 +8,6 @@
 .env
 .suite6-config.json
 .workflows/
-.github/
 
 # ═══════════════════════════════════════════════════════════
 # Python
@@ -33,8 +32,6 @@ _Source Files/
 addons/
 docs/
 l9_trace/
-reports/*
-!reports/repo-index/
 telemetry/
 tests-odoo/
 
@@ -48,6 +45,15 @@ run-odoo-tests.sh
 workflow_state.md
 
 # ═══════════════════════════════════════════════════════════
+# Local / Working (not for staging)
+# ═══════════════════════════════════════════════════════════
+scripts/
+Transactions.Test.csv.numbers
+plasticos_graph_engine/
+plasticos_graph_integration/
+plasticos_graph_intelligence/
+
+# ═══════════════════════════════════════════════════════════
 # Module test folders (not ready for CI)
 # ═══════════════════════════════════════════════════════════
 plasticos_transaction/tests/
@@ -55,5 +61,3 @@ plasticos_intake/tests/
 plasticos_logistics/tests/
 plasticos_documents/tests/
 plasticos_commission/tests/
-
-l9_trace/

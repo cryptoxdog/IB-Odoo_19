@@ -1,0 +1,2018 @@
+# plasticos KB v8.0 — PET
+# Converter v1.1.0 | Generated: 2026-02-23T18:56:34Z
+
+_metadata:
+  version: '8.0'
+  converter_version: 1.1.0
+  source_version: 7.0r
+  source_format: polymer_focused_v7.0r
+  generated: '2026-02-23T18:56:34Z'
+  data_quality: verified
+  source_tier: tier_1
+  schema_compliant: true
+  source_last_updated: '2025-11-05'
+polymer_identity:
+  polymer_family: Polyester
+  polymer_type: PET
+  full_name: Polyethylene Terephthalate
+  resin_id_code: 1
+  structure: ''
+material_grades:
+- grade_id: PET_FIBER_GRADE
+  grade_name: Fiber Grade PET
+  description: Lower IV for textile and industrial fiber applications
+  density:
+    amorphous:
+      value:
+      - 1.33
+      - 1.35
+      typical: 1.34
+      unit: g/cm³
+    crystalline:
+      value:
+      - 1.4
+      - 1.41
+      typical: 1.405
+      unit: g/cm³
+    typical:
+      value:
+      - 1.38
+      - 1.38
+      typical: 1.38
+      unit: g/cm³
+    test_method: ASTM D792
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 55.0
+      - 75.0
+      typical: 65.0
+      unit: MPa
+    flexural_modulus:
+      value:
+      - 2800.0
+      - 4100.0
+      typical: 3450.0
+      unit: MPa
+    impact_strength:
+      value:
+      - 25.0
+      - 60.0
+      typical: 42.5
+      unit: J/m
+    hdt_amorphous:
+      value:
+      - 70.0
+      - 80.0
+      typical: 75.0
+      unit: °C
+    hdt_crystalline:
+      value:
+      - 220.0
+      - 240.0
+      typical: 230.0
+      unit: °C
+    test_method: ASTM D638, D790, D256
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 100.0
+      - 100.0
+      typical: 100.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 50.0
+      - 100.0
+      typical: 75.0
+      unit: '%'
+    quality_requirements: Moderate contamination tolerance
+  applications:
+  - Textile fibers (clothing, carpets)
+  - Industrial fibers (tire cord, conveyor belts)
+  - Geotextiles
+  - Filter media
+  - Rope and cordage
+  intrinsic_viscosity:
+    range_dl_g:
+    - 0.4
+    - 0.7
+    typical_dl_g: 0.6
+    test_method: ASTM D4603
+  processing_temperatures:
+    melt_temp:
+      value:
+      - 260.0
+      - 290.0
+      typical: 275.0
+      unit: °C
+    crystallization_temp:
+      value:
+      - 120.0
+      - 140.0
+      typical: 130.0
+      unit: °C
+    glass_transition:
+      value:
+      - 78.0
+      - 81.0
+      typical: 79.5
+      unit: °C
+    drying_temp:
+      value:
+      - 150.0
+      - 150.0
+      typical: 150.0
+      unit: °C
+    drying_hours:
+    - 4
+    - 6
+- grade_id: PET_FILM_GRADE
+  grade_name: Film Grade PET
+  description: Medium IV for packaging and specialty films
+  density:
+    typical:
+      value:
+      - 1.38
+      - 1.38
+      typical: 1.38
+      unit: g/cm³
+    test_method: ASTM D792
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 15.0
+      - 50.0
+      typical: 32.5
+      unit: '%'
+    quality_requirements: Strict contamination control for clarity
+    limitations: Optical clarity requirements limit PCR use
+  applications:
+  - BOPET films (packaging, electrical)
+  - Photographic film base
+  - Magnetic tape base
+  - Solar panel backsheets
+  - Flexible packaging
+  - Labels and graphics
+  intrinsic_viscosity:
+    range_dl_g:
+    - 0.7
+    - 1.0
+    typical_dl_g: 0.8
+    test_method: ASTM D4603
+  processing_temperatures:
+    extrusion_temp:
+      value:
+      - 270.0
+      - 290.0
+      typical: 280.0
+      unit: °C
+    orientation_temp:
+      value:
+      - 80.0
+      - 100.0
+      typical: 90.0
+      unit: °C
+    heat_setting:
+      value:
+      - 200.0
+      - 230.0
+      typical: 215.0
+      unit: °C
+    drying_temp:
+      value:
+      - 150.0
+      - 150.0
+      typical: 150.0
+      unit: °C
+    drying_hours:
+    - 4
+    - 6
+  film_properties:
+    thickness_range_micron:
+    - 6
+    - 350
+    tensile_strength:
+      value:
+      - 200.0
+      - 300.0
+      typical: 250.0
+      unit: MPa
+    elongation:
+      value:
+      - 100.0
+      - 150.0
+      typical: 125.0
+      unit: '%'
+    clarity:
+      value:
+      - 90.0
+      - 90.0
+      typical: 90.0
+      unit: '%'
+    oxygen_transmission_cc_m2_day:
+    - 1
+    - 5
+    water_vapor_transmission_g_m2_day:
+    - 1
+    - 15
+- grade_id: PET_BOTTLE_GRADE
+  grade_name: Bottle Grade PET
+  description: Standard IV for beverage and food containers
+  density:
+    typical:
+      value:
+      - 1.38
+      - 1.38
+      typical: 1.38
+      unit: g/cm³
+    crystallinity:
+      value:
+      - 30.0
+      - 35.0
+      typical: 32.5
+      unit: '%'
+    test_method: ASTM D792
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 100.0
+      - 100.0
+      typical: 100.0
+      unit: '%'
+    food_contact_max:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 25.0
+      - 100.0
+      typical: 62.5
+      unit: '%'
+    quality_requirements: Color sorting, contamination control
+    fda_requirement: Letter of Non-Objection for food contact
+  applications:
+  - Beverage bottles (water, soft drinks, juice)
+  - Food containers (jars, trays)
+  - Personal care containers
+  - Pharmaceutical containers
+  - Household chemical containers
+  intrinsic_viscosity:
+    range_dl_g:
+    - 0.7
+    - 0.78
+    csd_range_dl_g:
+    - 0.8
+    - 0.85
+    typical_dl_g: 0.75
+    test_method: ASTM D4603
+  processing_temperatures:
+    injection_temp:
+      value:
+      - 270.0
+      - 290.0
+      typical: 280.0
+      unit: °C
+    preform_mold:
+      value:
+      - 10.0
+      - 20.0
+      typical: 15.0
+      unit: °C
+    blow_molding:
+      value:
+      - 90.0
+      - 110.0
+      typical: 100.0
+      unit: °C
+    drying_temp:
+      value:
+      - 150.0
+      - 150.0
+      typical: 150.0
+      unit: °C
+    drying_hours:
+    - 4
+    - 6
+  bottle_properties:
+    wall_thickness:
+      value:
+      - 0.3
+      - 0.8
+      typical: 0.55
+      unit: mm
+    burst_pressure:
+      value:
+      - 1.5
+      - 1.5
+      typical: 1.5
+      unit: MPa
+    co2_permeability_cc_mm_m2_day_atm: 0.5
+    acetaldehyde:
+      value:
+      - 1.0
+      - 1.0
+      typical: 1.0
+      unit: ppm
+    crystallinity:
+      value:
+      - 30.0
+      - 35.0
+      typical: 32.5
+      unit: '%'
+- grade_id: PET_APET_GRADE
+  grade_name: Amorphous PET (APET)
+  description: Clear, transparent PET for thermoformed packaging (trays, clamshells, blisters)
+  density:
+    amorphous:
+      value:
+      - 1.33
+      - 1.35
+      typical: 1.34
+      unit: g/cm³
+    typical:
+      value:
+      - 1.34
+      - 1.34
+      typical: 1.34
+      unit: g/cm³
+    test_method: ASTM D792
+    notes: Rapid cooling prevents crystallization
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 50.0
+      - 70.0
+      typical: 60.0
+      unit: MPa
+    impact_strength:
+      value:
+      - 40.0
+      - 80.0
+      typical: 60.0
+      unit: J/m
+    clarity:
+      value:
+      - 85.0
+      - 92.0
+      typical: 88.5
+      unit: '%'
+    hdt:
+      value:
+      - 70.0
+      - 80.0
+      typical: 75.0
+      unit: °C
+    test_method: ASTM D638, D256
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 25.0
+      - 40.0
+      typical: 32.5
+      unit: '%'
+    quality_requirements: Strict clarity requirements, low contamination
+    fda_status: Approved for food contact with proper decontamination
+  applications:
+  - Food trays (fresh produce, bakery, deli)
+  - Clamshell containers (salad, fruit)
+  - Blister packs (retail packaging)
+  - Clear lids and windows
+  - Display packaging
+  intrinsic_viscosity:
+    range_dl_g:
+    - 0.7
+    - 0.85
+    typical_dl_g: 0.78
+    test_method: ASTM D4603
+  crystallinity:
+    typical:
+      value:
+      - 0.0
+      - 0.0
+      typical: 0.0
+      unit: '%'
+    max:
+      value:
+      - 5.0
+      - 5.0
+      typical: 5.0
+      unit: '%'
+    notes: Amorphous structure provides clarity
+  processing_temperatures:
+    extrusion_temp:
+      value:
+      - 260.0
+      - 280.0
+      typical: 270.0
+      unit: °C
+    thermoforming_temp:
+      value:
+      - 120.0
+      - 160.0
+      typical: 140.0
+      unit: °C
+    glass_transition:
+      value:
+      - 78.0
+      - 81.0
+      typical: 79.5
+      unit: °C
+    drying_temp:
+      value:
+      - 150.0
+      - 150.0
+      typical: 150.0
+      unit: °C
+    drying_hours:
+    - 4
+    - 6
+    cooling: rapid_quench
+- grade_id: PET_CPET_GRADE
+  grade_name: Crystalline PET (CPET)
+  description: Heat-resistant crystalline PET for oven-safe and microwaveable packaging
+  density:
+    crystalline:
+      value:
+      - 1.38
+      - 1.4
+      typical: 1.39
+      unit: g/cm³
+    typical:
+      value:
+      - 1.39
+      - 1.39
+      typical: 1.39
+      unit: g/cm³
+    test_method: ASTM D792
+    notes: Controlled crystallization during processing
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 60.0
+      - 80.0
+      typical: 70.0
+      unit: MPa
+    flexural_modulus:
+      value:
+      - 3000.0
+      - 4500.0
+      typical: 3750.0
+      unit: MPa
+    impact_strength:
+      value:
+      - 25.0
+      - 50.0
+      typical: 37.5
+      unit: J/m
+    appearance: translucent_to_opaque
+    test_method: ASTM D638, D790, D256
+  thermal_properties:
+    heat_deflection_temp:
+      value:
+      - 220.0
+      - 240.0
+      typical: 230.0
+      unit: °C
+    max_use_temp:
+      value:
+      - 220.0
+      - 220.0
+      typical: 220.0
+      unit: °C
+    microwave_safe: true
+    oven_safe:
+      value:
+      - 220.0
+      - 220.0
+      typical: 220.0
+      unit: °C
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 30.0
+      - 30.0
+      typical: 30.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 15.0
+      - 25.0
+      typical: 20.0
+      unit: '%'
+    quality_requirements: Very strict - heat resistance critical
+    fda_status: Approved for food contact with proper decontamination
+  applications:
+  - Oven-safe meal trays
+  - Microwaveable food containers
+  - Dual-ovenable packaging
+  - Hot-fill applications
+  - Ready-meal trays
+  intrinsic_viscosity:
+    range_dl_g:
+    - 0.75
+    - 0.9
+    typical_dl_g: 0.82
+    test_method: ASTM D4603
+  crystallinity:
+    typical:
+      value:
+      - 30.0
+      - 40.0
+      typical: 35.0
+      unit: '%'
+    range:
+      value:
+      - 20.0
+      - 45.0
+      typical: 32.5
+      unit: '%'
+    notes: Controlled annealing creates crystalline structure
+  processing_temperatures:
+    extrusion_temp:
+      value:
+      - 270.0
+      - 290.0
+      typical: 280.0
+      unit: °C
+    thermoforming_temp:
+      value:
+      - 140.0
+      - 180.0
+      typical: 160.0
+      unit: °C
+    annealing_temp:
+      value:
+      - 200.0
+      - 230.0
+      typical: 215.0
+      unit: °C
+    crystallization_temp:
+      value:
+      - 120.0
+      - 140.0
+      typical: 130.0
+      unit: °C
+    drying_temp:
+      value:
+      - 150.0
+      - 150.0
+      typical: 150.0
+      unit: °C
+    drying_hours:
+    - 4
+    - 6
+    cooling: controlled_annealing
+- grade_id: PET_PREFORM_GRADE
+  grade_name: Preform Grade PET
+  description: Specialized PET for injection molding bottle preforms (thick-walled blanks for stretch blow molding)
+  density:
+    typical:
+      value:
+      - 1.38
+      - 1.38
+      typical: 1.38
+      unit: g/cm³
+    test_method: ASTM D792
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 60.0
+      - 75.0
+      typical: 67.5
+      unit: MPa
+    elongation:
+      value:
+      - 300.0
+      - 500.0
+      typical: 400.0
+      unit: '%'
+    wall_thickness:
+      value:
+      - 3.0
+      - 5.0
+      typical: 4.0
+      unit: mm
+    test_method: ASTM D638
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 25.0
+      - 35.0
+      typical: 30.0
+      unit: '%'
+    quality_requirements: Strict IV control, low acetaldehyde
+    fda_status: Approved for food contact with proper decontamination
+  applications:
+  - Beverage bottle preforms
+  - Water bottle preforms
+  - Carbonated soft drink preforms
+  - Wide-mouth jar preforms
+  - Custom bottle preforms
+  intrinsic_viscosity:
+    range_dl_g:
+    - 0.78
+    - 0.88
+    typical_dl_g: 0.82
+    test_method: ASTM D4603
+    notes: Higher IV than standard bottle grade for stretch blow molding
+  processing_temperatures:
+    injection_molding_temp:
+      value:
+      - 270.0
+      - 290.0
+      typical: 280.0
+      unit: °C
+    mold_temp:
+      value:
+      - 10.0
+      - 20.0
+      typical: 15.0
+      unit: °C
+    reheat_temp:
+      value:
+      - 100.0
+      - 120.0
+      typical: 110.0
+      unit: °C
+    drying_temp:
+      value:
+      - 150.0
+      - 150.0
+      typical: 150.0
+      unit: °C
+    drying_hours:
+    - 4
+    - 6
+  rheological_properties:
+    melt_strength: high
+    strain_hardening: excellent
+    notes: Critical for stretch blow molding performance
+- grade_id: PET_PETG_GRADE
+  grade_name: PETG (Glycol-Modified PET)
+  description: Amorphous PET modified with CHDM (<50%) for enhanced impact resistance and processability
+  density:
+    typical:
+      value:
+      - 1.26
+      - 1.28
+      typical: 1.27
+      unit: g/cm³
+    test_method: ASTM D792
+    notes: Lower than standard PET due to CHDM modification
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 60.0
+      - 66.0
+      typical: 63.0
+      unit: MPa
+    elongation:
+      value:
+      - 102.0
+      - 118.0
+      typical: 110.0
+      unit: '%'
+    impact_strength:
+      value:
+      - 190.0
+      - 200.0
+      typical: 195.0
+      unit: J/m
+    youngs_modulus:
+      value:
+      - 2.01
+      - 2.11
+      typical: 2.06
+      unit: GPa
+    clarity:
+      value:
+      - 88.0
+      - 92.0
+      typical: 90.0
+      unit: '%'
+    test_method: ASTM D638, D256
+  thermal_properties:
+    max_service_temp:
+      value:
+      - 51.0
+      - 64.0
+      typical: 57.5
+      unit: °C
+    glass_transition:
+      value:
+      - 81.0
+      - 91.0
+      typical: 86.0
+      unit: °C
+    hdt:
+      value:
+      - 65.0
+      - 75.0
+      typical: 70.0
+      unit: °C
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 30.0
+      - 30.0
+      typical: 30.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 15.0
+      - 25.0
+      typical: 20.0
+      unit: '%'
+    quality_requirements: Strict clarity and impact requirements
+    recycling_challenge: Limited infrastructure, can contaminate PET streams
+  applications:
+  - Medical braces and devices
+  - Electronics covers and guards
+  - Point-of-purchase displays
+  - Washing machine components
+  - Appliance housings
+  - 3D printing filament
+  - Protective shields and barriers
+  - Thermoformed packaging
+  chemical_modification:
+    comonomer: CHDM (Cyclohexane Dimethanol)
+    chdm_content:
+      value:
+      - 25.0
+      - 45.0
+      typical: 35.0
+      unit: '%'
+    structure: amorphous
+    crystallinity:
+      value:
+      - 0.0
+      - 0.0
+      typical: 0.0
+      unit: '%'
+  intrinsic_viscosity:
+    range_dl_g:
+    - 0.7
+    - 0.85
+    typical_dl_g: 0.78
+    test_method: ASTM D4603
+  processing_temperatures:
+    extrusion_temp:
+      value:
+      - 230.0
+      - 260.0
+      typical: 245.0
+      unit: °C
+    injection_molding_temp:
+      value:
+      - 240.0
+      - 270.0
+      typical: 255.0
+      unit: °C
+    thermoforming_temp:
+      value:
+      - 120.0
+      - 160.0
+      typical: 140.0
+      unit: °C
+    drying_temp:
+      value:
+      - 65.0
+      - 65.0
+      typical: 65.0
+      unit: °C
+    drying_hours:
+    - 2
+    - 4
+  advantages:
+  - 3-4x better impact resistance than standard PET
+  - Easier to thermoform (lower temps, no crystallization)
+  - Excellent clarity (amorphous structure)
+  - Better chemical resistance than acrylic
+  - Lower cost than polycarbonate
+  - FDA compliant for food contact
+  disadvantages:
+  - Lower heat resistance than standard PET (51-64°C vs 70-240°C)
+  - Lower stiffness (more flexible)
+  - Not widely recycled (infrastructure lacking)
+  - Can contaminate PET recycling streams
+- grade_id: PET_PCTG_GRADE
+  grade_name: PCTG (Polycyclohexylene Terephthalate Glycol)
+  description: High-CHDM modified PET (>50%) for premium impact resistance and durability
+  density:
+    typical:
+      value:
+      - 1.23
+      - 1.27
+      typical: 1.25
+      unit: g/cm³
+    test_method: ASTM D792
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 55.0
+      - 65.0
+      typical: 60.0
+      unit: MPa
+    elongation:
+      value:
+      - 110.0
+      - 150.0
+      typical: 130.0
+      unit: '%'
+    impact_strength:
+      value:
+      - 210.0
+      - 250.0
+      typical: 230.0
+      unit: J/m
+    clarity:
+      value:
+      - 88.0
+      - 93.0
+      typical: 90.5
+      unit: '%'
+    notes: Better impact resistance than PETG and polycarbonate
+  thermal_properties:
+    max_service_temp:
+      value:
+      - 55.0
+      - 70.0
+      typical: 62.5
+      unit: °C
+    glass_transition:
+      value:
+      - 85.0
+      - 95.0
+      typical: 90.0
+      unit: °C
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 25.0
+      - 25.0
+      typical: 25.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 10.0
+      - 20.0
+      typical: 15.0
+      unit: '%'
+    quality_requirements: Very strict - premium applications
+  applications:
+  - Premium packaging
+  - High-impact applications
+  - Durable consumer goods
+  - Medical device housings
+  - Cosmetic packaging
+  chemical_modification:
+    comonomer: CHDM (Cyclohexane Dimethanol)
+    chdm_content:
+      value:
+      - 50.0
+      - 70.0
+      typical: 60.0
+      unit: '%'
+    structure: amorphous
+    crystallinity:
+      value:
+      - 0.0
+      - 0.0
+      typical: 0.0
+      unit: '%'
+    notes: Higher CHDM than PETG provides enhanced impact
+  intrinsic_viscosity:
+    range_dl_g:
+    - 0.72
+    - 0.88
+    typical_dl_g: 0.8
+    test_method: ASTM D4603
+- grade_id: PET_TRITAN_GRADE
+  grade_name: Tritan (High-Temperature PCTG)
+  description: Advanced copolyester with optimized heat resistance and impact strength, BPA-free
+  density:
+    typical:
+      value:
+      - 1.18
+      - 1.2
+      typical: 1.19
+      unit: g/cm³
+    test_method: ASTM D792
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 60.0
+      - 75.0
+      typical: 67.5
+      unit: MPa
+    impact_strength:
+      value:
+      - 250.0
+      - 350.0
+      typical: 300.0
+      unit: J/m
+    clarity:
+      value:
+      - 90.0
+      - 95.0
+      typical: 92.5
+      unit: '%'
+    notes: Exceptional impact strength, best in PET family
+  thermal_properties:
+    max_service_temp:
+      value:
+      - 94.0
+      - 109.0
+      typical: 101.5
+      unit: °C
+    glass_transition:
+      value:
+      - 110.0
+      - 120.0
+      typical: 115.0
+      unit: °C
+    dishwasher_safe: true
+    notes: Significantly higher heat resistance than PETG/PCTG
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 20.0
+      - 20.0
+      typical: 20.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 10.0
+      - 15.0
+      typical: 12.5
+      unit: '%'
+    quality_requirements: Extremely strict - food contact, high performance
+    market_position: Premium copolyester
+  applications:
+  - Water bottles (reusable)
+  - Baby bottles
+  - Food storage containers
+  - Medical devices
+  - Drinkware
+  - Kitchen appliances
+  chemical_modification:
+    comonomer: CHDM (optimized ratio, proprietary)
+    structure: amorphous, refined molecular design
+    crystallinity:
+      value:
+      - 0.0
+      - 0.0
+      typical: 0.0
+      unit: '%'
+    bpa_free: true
+  intrinsic_viscosity:
+    range_dl_g:
+    - 0.75
+    - 0.9
+    typical_dl_g: 0.82
+    test_method: ASTM D4603
+  advantages:
+  - BPA-free (critical for food/beverage)
+  - High heat resistance (dishwasher safe)
+  - Exceptional impact strength
+  - Excellent clarity
+  - Chemical resistant
+- grade_id: PET_PCTA_GRADE
+  grade_name: PCTA (Polycyclohexylene Terephthalate Acetate)
+  description: Acetylated copolyester with superior transparency and chemical resistance
+  density:
+    typical:
+      value:
+      - 1.2
+      - 1.24
+      typical: 1.22
+      unit: g/cm³
+    test_method: ASTM D792
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 58.0
+      - 68.0
+      typical: 63.0
+      unit: MPa
+    clarity:
+      value:
+      - 92.0
+      - 96.0
+      typical: 94.0
+      unit: '%'
+    notes: Superior transparency, highest in PET family
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 15.0
+      - 15.0
+      typical: 15.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 5.0
+      - 10.0
+      typical: 7.5
+      unit: '%'
+    quality_requirements: Extremely strict - specialty applications
+    market_position: Niche/specialty
+  applications:
+  - Chemical-resistant packaging
+  - Laboratory equipment
+  - Cosmetic containers
+  - Pharmaceutical packaging
+  - Specialty applications
+  chemical_modification:
+    comonomer: CHDM + Acetyl groups
+    chdm_content:
+      value:
+      - 50.0
+      - 70.0
+      typical: 60.0
+      unit: '%'
+    acetylation: true
+    structure: amorphous
+    crystallinity:
+      value:
+      - 0.0
+      - 0.0
+      typical: 0.0
+      unit: '%'
+  intrinsic_viscosity:
+    range_dl_g:
+    - 0.72
+    - 0.85
+    typical_dl_g: 0.78
+    test_method: ASTM D4603
+  chemical_properties:
+    chemical_resistance: exceptional
+    chemical_stability: high
+    notes: Acetyl groups provide superior chemical resistance
+- grade_id: PET_ENGINEERING_GRADE
+  grade_name: Engineering Grade PET
+  description: High IV for high-performance engineering applications
+  density:
+    typical:
+      value:
+      - 1.4
+      - 1.4
+      typical: 1.4
+      unit: g/cm³
+    test_method: ASTM D792
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 70.0
+      - 90.0
+      typical: 80.0
+      unit: MPa
+    flexural_modulus:
+      value:
+      - 3500.0
+      - 4500.0
+      typical: 4000.0
+      unit: MPa
+    hdt:
+      value:
+      - 220.0
+      - 240.0
+      typical: 230.0
+      unit: °C
+    continuous_use_temp:
+      value:
+      - 150.0
+      - 180.0
+      typical: 165.0
+      unit: °C
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 30.0
+      - 30.0
+      typical: 30.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 10.0
+      - 30.0
+      typical: 20.0
+      unit: '%'
+    quality_requirements: Extremely strict contamination control
+    limitations: High-performance requirements limit PCR use
+  applications:
+  - Automotive components (under-hood parts)
+  - Electrical/electronic components
+  - Industrial machinery parts
+  - Pump housings and impellers
+  - Chemical processing equipment
+  intrinsic_viscosity:
+    range_dl_g:
+    - 0.8
+    - 1.2
+    high_performance_dl_g:
+    - 1.0
+    - 1.2
+    typical_dl_g: 1.0
+    test_method: ASTM D4603
+  processing_temperatures:
+    injection_temp:
+      value:
+      - 280.0
+      - 300.0
+      typical: 290.0
+      unit: °C
+    mold_temp:
+      value:
+      - 120.0
+      - 140.0
+      typical: 130.0
+      unit: °C
+    drying_temp:
+      value:
+      - 150.0
+      - 150.0
+      typical: 150.0
+      unit: °C
+    drying_hours:
+    - 4
+    - 6
+buyer_profiles:
+- buyer_type: bottle_manufacturer
+  volume_requirements:
+    min_load:
+      value:
+      - 40000.0
+      - 40000.0
+      typical: 40000.0
+      unit: lbs
+    typical_load:
+      value:
+      - 44000.0
+      - 44000.0
+      typical: 44000.0
+      unit: lbs
+    annual_volume:
+      value:
+      - 5000000.0
+      - 50000000.0
+      typical: 27500000.0
+      unit: lbs
+  buyer_archetype: Strict Quality, High Volume
+  material_preferences:
+    grade:
+    - PET_BOTTLE_GRADE
+    iv_range_dl_g:
+    - 0.7
+    - 0.85
+    color:
+    - clear
+    - light_blue
+    - green
+    form:
+    - flake
+    - pellet
+  quality_requirements:
+    moisture_ppm_max: 50
+    pvc_ppm_max: 25
+    pe_pp_ppm_max: 500
+    dirt_pct_max: 0.3
+    metal_ppm_max: 50
+    acetaldehyde_ppm_max: 1.0
+  pricing_sensitivity:
+    price_focus: medium
+    quality_premium_willingness_pct: 10
+    consistency_premium_pct: 5
+  decision_factors:
+  - factor: FDA compliance
+    weight: 0.3
+  - factor: IV consistency
+    weight: 0.25
+  - factor: Color sorting
+    weight: 0.2
+  - factor: Price
+    weight: 0.15
+  - factor: Supply consistency
+    weight: 0.1
+  reasoning_hints:
+    match_logic: Prioritize FDA-compliant, color-sorted material with tight IV control
+    price_reasoning: Willing to pay 10-15% premium for food-contact approved material
+    risk_factors:
+    - PVC contamination
+    - Moisture content
+    - IV variation
+- buyer_type: fiber_manufacturer
+  volume_requirements:
+    min_load:
+      value:
+      - 40000.0
+      - 40000.0
+      typical: 40000.0
+      unit: lbs
+    typical_load:
+      value:
+      - 44000.0
+      - 44000.0
+      typical: 44000.0
+      unit: lbs
+    annual_volume:
+      value:
+      - 10000000.0
+      - 100000000.0
+      typical: 55000000.0
+      unit: lbs
+  buyer_archetype: Volume-Focused, Price-Sensitive
+  material_preferences:
+    grade:
+    - PET_FIBER_GRADE
+    - PET_BOTTLE_GRADE
+    iv_range_dl_g:
+    - 0.4
+    - 0.8
+    color:
+    - any
+    form:
+    - flake
+    - pellet
+    - bale
+  quality_requirements:
+    moisture_ppm_max: 50
+    pvc_ppm_max: 50
+    pe_pp_ppm_max: 1000
+    dirt_pct_max: 0.5
+    metal_ppm_max: 100
+  pricing_sensitivity:
+    price_focus: high
+    quality_premium_willingness_pct: 3
+    consistency_premium_pct: 2
+  decision_factors:
+  - factor: Price
+    weight: 0.4
+  - factor: Volume consistency
+    weight: 0.25
+  - factor: Contamination level
+    weight: 0.2
+  - factor: IV range
+    weight: 0.1
+  - factor: Logistics
+    weight: 0.05
+  reasoning_hints:
+    match_logic: Prioritize low-cost, high-volume streams. Color and minor contamination acceptable.
+    price_reasoning: Highly price-sensitive. Will accept mixed colors and moderate contamination for 15-20% discount.
+    risk_factors:
+    - Excessive PVC
+    - Moisture
+    - Supply interruption
+- buyer_type: film_extruder
+  volume_requirements:
+    min_load:
+      value:
+      - 20000.0
+      - 20000.0
+      typical: 20000.0
+      unit: lbs
+    typical_load:
+      value:
+      - 40000.0
+      - 40000.0
+      typical: 40000.0
+      unit: lbs
+    annual_volume:
+      value:
+      - 1000000.0
+      - 10000000.0
+      typical: 5500000.0
+      unit: lbs
+  buyer_archetype: Quality-Focused, Clarity-Critical
+  material_preferences:
+    grade:
+    - PET_FILM_GRADE
+    iv_range_dl_g:
+    - 0.7
+    - 1.0
+    color:
+    - clear
+    - natural
+    form:
+    - pellet
+  quality_requirements:
+    moisture_ppm_max: 50
+    pvc_ppm_max: 10
+    pe_pp_ppm_max: 200
+    dirt_pct_max: 0.1
+    metal_ppm_max: 25
+    clarity_requirement: high
+  pricing_sensitivity:
+    price_focus: low
+    quality_premium_willingness_pct: 20
+    consistency_premium_pct: 15
+  decision_factors:
+  - factor: Clarity/Optical properties
+    weight: 0.35
+  - factor: Contamination control
+    weight: 0.3
+  - factor: IV consistency
+    weight: 0.2
+  - factor: Price
+    weight: 0.1
+  - factor: Technical support
+    weight: 0.05
+  reasoning_hints:
+    match_logic: Only match clear, virgin-quality material. Strict contamination limits.
+    price_reasoning: Willing to pay 20-30% premium for optical-grade material.
+    risk_factors:
+    - Any contamination
+    - Color
+    - Haze
+- buyer_type: engineering_molder
+  volume_requirements:
+    min_load:
+      value:
+      - 2000.0
+      - 2000.0
+      typical: 2000.0
+      unit: lbs
+    typical_load:
+      value:
+      - 10000.0
+      - 10000.0
+      typical: 10000.0
+      unit: lbs
+    annual_volume:
+      value:
+      - 100000.0
+      - 2000000.0
+      typical: 1050000.0
+      unit: lbs
+  buyer_archetype: Performance-Critical, Low Volume
+  material_preferences:
+    grade:
+    - PET_ENGINEERING_GRADE
+    iv_range_dl_g:
+    - 0.8
+    - 1.2
+    color:
+    - natural
+    - black
+    form:
+    - pellet
+  quality_requirements:
+    moisture_ppm_max: 50
+    pvc_ppm_max: 10
+    pe_pp_ppm_max: 200
+    dirt_pct_max: 0.1
+    metal_ppm_max: 25
+    mechanical_properties: critical
+  pricing_sensitivity:
+    price_focus: very_low
+    quality_premium_willingness_pct: 30
+    consistency_premium_pct: 20
+    technical_support_value: high
+  decision_factors:
+  - factor: Mechanical properties
+    weight: 0.4
+  - factor: Thermal stability
+    weight: 0.25
+  - factor: Contamination control
+    weight: 0.2
+  - factor: Technical support
+    weight: 0.1
+  - factor: Price
+    weight: 0.05
+  reasoning_hints:
+    match_logic: Only match high-IV, virgin or virgin-equivalent material. Performance is critical.
+    price_reasoning: Price is secondary to performance. Will pay 30-50% premium for guaranteed properties.
+    risk_factors:
+    - Property variation
+    - Contamination
+    - Supply reliability
+- buyer_type: sheet_thermoformer
+  volume_requirements:
+    min_load:
+      value:
+      - 20000.0
+      - 20000.0
+      typical: 20000.0
+      unit: lbs
+    typical_load:
+      value:
+      - 40000.0
+      - 40000.0
+      typical: 40000.0
+      unit: lbs
+    annual_volume:
+      value:
+      - 2000000.0
+      - 20000000.0
+      typical: 11000000.0
+      unit: lbs
+  buyer_archetype: Balanced Quality-Price, Medium Volume
+  material_preferences:
+    grade:
+    - PET_BOTTLE_GRADE
+    - PET_FILM_GRADE
+    iv_range_dl_g:
+    - 0.7
+    - 0.9
+    color:
+    - clear
+    - natural
+    - light_colors
+    form:
+    - pellet
+    - flake
+  quality_requirements:
+    moisture_ppm_max: 50
+    pvc_ppm_max: 25
+    pe_pp_ppm_max: 500
+    dirt_pct_max: 0.3
+    metal_ppm_max: 50
+    clarity_requirement: moderate
+  pricing_sensitivity:
+    price_focus: medium
+    quality_premium_willingness_pct: 8
+    consistency_premium_pct: 5
+  decision_factors:
+  - factor: Price
+    weight: 0.3
+  - factor: Clarity
+    weight: 0.25
+  - factor: IV consistency
+    weight: 0.2
+  - factor: Supply consistency
+    weight: 0.15
+  - factor: Contamination level
+    weight: 0.1
+  reasoning_hints:
+    match_logic: Balance price and quality. Moderate clarity requirements. PCR acceptable.
+    price_reasoning: Willing to pay 8-12% premium for clear, consistent material.
+    risk_factors:
+    - Excessive contamination
+    - Color variation
+    - IV drift
+recycling_rules:
+- id: PET_BOTTLE_TO_BOTTLE_V7R
+  when:
+  - source_form: bottle
+  - target_application: bottle
+  - food_contact: true
+  infer:
+    fda_approval_required: true
+    decontamination_process: FDA-approved
+    max_pcr_pct: 50
+    property_retention_pct:
+    - 90
+    - 95
+    acetaldehyde_limit_ppm: 1.0
+  reasoning:
+    mode: deductive
+    logic: FDA requires approved decontamination for food contact. Property retention 90-95% achievable with proper processing.
+    confidence: 0.95
+- id: PET_BOTTLE_TO_FIBER_V7R
+  when:
+  - source_form: bottle
+  - target_application: fiber
+  infer:
+    max_pcr_pct: 100
+    clarity_required: false
+    color_sorting: beneficial
+    property_retention_pct:
+    - 85
+    - 90
+  reasoning:
+    mode: deductive
+    logic: Fiber applications have lower property requirements. Color-sorted streams improve quality but not required.
+    confidence: 0.92
+- id: PET_MOISTURE_CRITICAL_V7R
+  when:
+  - processing_method: any
+  infer:
+    moisture_limit_ppm: 50
+    drying_required: true
+    drying_temp_c: 150
+    drying_hours:
+    - 4
+    - 6
+    hydrolysis_risk: high
+  reasoning:
+    mode: deductive
+    logic: PET is hygroscopic. Moisture >50ppm causes hydrolytic degradation during melt processing, reducing IV and mechanical
+      properties.
+    confidence: 0.98
+- id: PET_PVC_CONTAMINATION_V7R
+  when:
+  - contaminant: PVC
+  infer:
+    fiber_tolerance_ppm: 50
+    bottle_nonfood_tolerance_ppm: 25
+    film_tolerance_ppm: 10
+    engineering_tolerance_ppm: 10
+    degradation_risk: severe
+  reasoning:
+    mode: deductive
+    logic: PVC releases HCl during processing, causing chain scission and discoloration. Black specks form at >50ppm.
+    confidence: 0.97
+- id: PET_RECYCLE_CYCLES_V7R
+  when:
+  - recycle_cycles_le: 3
+  infer:
+    iv_retention_pct:
+    - 85
+    - 95
+    tensile_retention_pct:
+    - 90
+    - 95
+    impact_retention_pct:
+    - 85
+    - 90
+    color_shift: minimal
+  reasoning:
+    mode: inductive
+    logic: Research shows PET maintains 85-95% properties through 3 recycle cycles with proper drying and processing.
+    confidence: 0.88
+- id: PET_RECYCLE_CYCLES_EXCESSIVE_V7R
+  when:
+  - recycle_cycles_gt: 5
+  infer:
+    iv_retention_pct:
+    - 60
+    - 75
+    tensile_retention_pct:
+    - 70
+    - 80
+    brittleness_risk: high
+    yellowing: significant
+    downgrade_recommended: true
+  reasoning:
+    mode: inductive
+    logic: Excessive recycling causes chain scission, yellowing, and brittleness. Downgrade to fiber or non-critical applications.
+    confidence: 0.85
+- id: PET_COLOR_SORTING_BENEFIT_V7R
+  when:
+  - color_sorted: true
+  - target_application:
+    - bottle
+    - film
+  infer:
+    clarity_improvement_pct: 30
+    value_premium_pct: 15
+    buyer_preference: high
+  reasoning:
+    mode: inductive
+    logic: Color-sorted PET (especially clear) commands 15-30% premium for bottle and film applications due to clarity requirements.
+    confidence: 0.9
+contamination_profiles:
+- contaminant_type: PVC
+  severity: critical
+  detection_method: NIR, manual sorting
+  tolerance_by_grade:
+    fiber:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: ppm
+    bottle_nonfood:
+      value:
+      - 25.0
+      - 25.0
+      typical: 25.0
+      unit: ppm
+    film:
+      value:
+      - 10.0
+      - 10.0
+      typical: 10.0
+      unit: ppm
+    engineering:
+      value:
+      - 10.0
+      - 10.0
+      typical: 10.0
+      unit: ppm
+  effects:
+  - HCl release during processing
+  - Chain scission and IV loss
+  - Black specks and discoloration
+  - Equipment corrosion
+  remediation:
+  - NIR sorting
+  - Manual removal of PVC bottles
+  - Density separation
+- contaminant_type: PE/PP
+  severity: moderate
+  detection_method: NIR, density separation
+  tolerance_by_grade:
+    fiber:
+      value:
+      - 1000.0
+      - 1000.0
+      typical: 1000.0
+      unit: ppm
+    bottle_nonfood:
+      value:
+      - 500.0
+      - 500.0
+      typical: 500.0
+      unit: ppm
+    film:
+      value:
+      - 200.0
+      - 200.0
+      typical: 200.0
+      unit: ppm
+    engineering:
+      value:
+      - 200.0
+      - 200.0
+      typical: 200.0
+      unit: ppm
+  effects:
+  - Haze and opacity in clear applications
+  - Reduced barrier properties
+  - Surface defects
+  remediation:
+  - Density separation (PE/PP float, PET sinks)
+  - NIR sorting
+  - Melt filtration
+- contaminant_type: Dirt/Labels
+  severity: moderate
+  detection_method: Visual, optical sorting
+  tolerance_by_grade:
+    fiber:
+      value:
+      - 0.5
+      - 0.5
+      typical: 0.5
+      unit: '%'
+    bottle_nonfood:
+      value:
+      - 0.3
+      - 0.3
+      typical: 0.3
+      unit: '%'
+    film:
+      value:
+      - 0.1
+      - 0.1
+      typical: 0.1
+      unit: '%'
+    engineering:
+      value:
+      - 0.1
+      - 0.1
+      typical: 0.1
+      unit: '%'
+  effects:
+  - Gel formation
+  - Surface defects
+  - Reduced clarity
+  remediation:
+  - Washing and caustic treatment
+  - Label removal systems
+  - Melt filtration
+- contaminant_type: Moisture
+  severity: critical
+  detection_method: Moisture analyzer
+  tolerance:
+    value:
+    - 50.0
+    - 50.0
+    typical: 50.0
+    unit: ppm
+  effects:
+  - Hydrolytic degradation
+  - IV loss during processing
+  - Brittleness
+  - Bubble formation
+  remediation:
+  - Desiccant drying 4-6h @ 150°C
+  - Vacuum drying
+  - Dehumidified storage
+- contaminant_type: Metal
+  severity: moderate
+  detection_method: Metal detector
+  tolerance_by_grade:
+    fiber:
+      value:
+      - 100.0
+      - 100.0
+      typical: 100.0
+      unit: ppm
+    bottle_nonfood:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: ppm
+    film:
+      value:
+      - 25.0
+      - 25.0
+      typical: 25.0
+      unit: ppm
+    engineering:
+      value:
+      - 25.0
+      - 25.0
+      typical: 25.0
+      unit: ppm
+  effects:
+  - Equipment damage
+  - Contamination of final product
+  - FDA rejection for food contact
+  remediation:
+  - Metal detection and rejection
+  - Magnetic separation
+  - Eddy current separation
+quality_indicators:
+- indicator_id: PET_FDA_APPROVED
+  indicator_name: FDA-Approved Decontamination
+  impact: positive
+  value_premium_pct: 20
+  buyer_preference: critical_for_food_contact
+  reasoning:
+    logic: FDA approval enables food-contact applications, commanding 20-30% premium.
+    confidence: 0.95
+- indicator_id: PET_COLOR_SORTED_CLEAR
+  indicator_name: Color-Sorted Clear
+  impact: positive
+  value_premium_pct: 15
+  buyer_preference: high_for_bottle_film
+  reasoning:
+    logic: Clear PET maintains optical properties, preferred for bottle and film applications.
+    confidence: 0.92
+- indicator_id: PET_LOW_PVC
+  indicator_name: Low PVC Contamination (<10ppm)
+  impact: positive
+  value_premium_pct: 10
+  buyer_preference: critical_for_all_grades
+  reasoning:
+    logic: PVC causes severe degradation. <10ppm enables use in all applications.
+    confidence: 0.97
+- indicator_id: PET_CONSISTENT_IV
+  indicator_name: Consistent Intrinsic Viscosity
+  impact: positive
+  value_premium_pct: 5
+  buyer_preference: high_for_bottle_film
+  reasoning:
+    logic: IV consistency (±0.02 dL/g) ensures predictable processing and properties.
+    confidence: 0.9
+- indicator_id: PET_PROPERLY_DRIED
+  indicator_name: Properly Dried (<50ppm moisture)
+  impact: positive
+  value_premium_pct: 0
+  buyer_preference: required_for_all
+  reasoning:
+    logic: Drying is mandatory, not a premium factor. Undried material is unsellable.
+    confidence: 0.98
+- indicator_id: PET_EXCESSIVE_RECYCLE_CYCLES
+  indicator_name: Excessive Recycle Cycles (>5)
+  impact: negative
+  value_discount_pct: 30
+  buyer_preference: avoid
+  reasoning:
+    logic: Excessive recycling causes yellowing, brittleness, and IV loss. Downgrade to fiber.
+    confidence: 0.85
+- indicator_id: PET_HIGH_PVC
+  indicator_name: High PVC Contamination (>50ppm)
+  impact: negative
+  value_discount_pct: 40
+  buyer_preference: reject
+  reasoning:
+    logic: PVC >50ppm causes black specks and equipment damage. Only fiber buyers will accept.
+    confidence: 0.95
+- indicator_id: PET_MIXED_COLORS
+  indicator_name: Mixed Colors (Not Sorted)
+  impact: negative
+  value_discount_pct: 20
+  buyer_preference: fiber_only
+  reasoning:
+    logic: Mixed colors limit applications to fiber and non-critical uses.
+    confidence: 0.88
+inference_rules:
+- rule_id: INF_PET_IV_FROM_GRADE
+  trigger: iv_missing
+  conditions:
+  - grade_known: true
+  infer:
+    fiber_grade_iv_dl_g: 0.6
+    film_grade_iv_dl_g: 0.8
+    bottle_grade_iv_dl_g: 0.75
+    engineering_grade_iv_dl_g: 1.0
+  confidence: 0.85
+  reasoning:
+    mode: abductive
+    logic: If grade is known but IV is missing, infer typical IV for that grade based on industry standards.
+- rule_id: INF_PET_MOISTURE_FROM_FORM
+  trigger: moisture_missing
+  conditions:
+  - form:
+    - flake
+    - pellet
+  - storage: outdoor
+  infer:
+    moisture_ppm: 200
+    drying_required: true
+  confidence: 0.75
+  reasoning:
+    mode: abductive
+    logic: PET stored outdoors typically absorbs 150-250ppm moisture. Assume 200ppm and require drying.
+- rule_id: INF_PET_PVC_FROM_SOURCE
+  trigger: pvc_contamination_missing
+  conditions:
+  - source: curbside
+  - sorting: manual
+  infer:
+    pvc_ppm: 100
+    risk_level: moderate
+  confidence: 0.7
+  reasoning:
+    mode: abductive
+    logic: Curbside collection with manual sorting typically has 50-150ppm PVC. Assume 100ppm.
+- rule_id: INF_PET_PRICE_FROM_GRADE_COLOR
+  trigger: price_missing
+  conditions:
+  - grade_known: true
+  - color_known: true
+  infer:
+    clear_bottle_price_per_lb: 0.55
+    mixed_bottle_price_per_lb: 0.38
+    fiber_price_per_lb: 0.32
+  confidence: 0.8
+  reasoning:
+    mode: deductive
+    logic: Apply typical market prices based on grade and color. Adjust for regional and seasonal factors.
+- rule_id: INF_PET_APPLICATION_FROM_IV
+  trigger: application_missing
+  conditions:
+  - iv_known: true
+  infer:
+    iv_0_40_0_70: fiber
+    iv_0_70_0_78: bottle
+    iv_0_70_1_00: film
+    iv_0_80_1_20: engineering
+  confidence: 0.88
+  reasoning:
+    mode: deductive
+    logic: IV range determines suitable applications based on molecular weight requirements.
+market_intelligence:
+  current_conditions:
+    last_updated: 2025-Q4
+    virgin_pet_price_per_lb: 0.85
+    market_trend: stable
+    demand_outlook: strong
+  pricing_by_grade:
+  - grade: PET_BOTTLE_GRADE
+    form: clear_flake
+    price_range_per_lb:
+    - 0.45
+    - 0.65
+    typical_price_per_lb: 0.55
+    premium_factors:
+    - factor: FDA-approved
+      premium_pct: 20
+    - factor: Color-sorted (clear)
+      premium_pct: 15
+    - factor: Low PVC (<10ppm)
+      premium_pct: 10
+    - factor: Consistent IV
+      premium_pct: 5
+  - grade: PET_BOTTLE_GRADE
+    form: mixed_color_flake
+    price_range_per_lb:
+    - 0.3
+    - 0.45
+    typical_price_per_lb: 0.38
+    discount_factors:
+    - factor: Mixed colors
+      discount_pct: 20
+    - factor: Higher contamination
+      discount_pct: 10
+  - grade: PET_FIBER_GRADE
+    form: bale
+    price_range_per_lb:
+    - 0.25
+    - 0.4
+    typical_price_per_lb: 0.32
+    notes: Lowest value application, high volume
+  - grade: PET_FILM_GRADE
+    form: pellet
+    price_range_per_lb:
+    - 0.6
+    - 0.8
+    typical_price_per_lb: 0.7
+    premium_factors:
+    - factor: Optical clarity
+      premium_pct: 25
+    - factor: Virgin-equivalent
+      premium_pct: 15
+  - grade: PET_ENGINEERING_GRADE
+    form: pellet
+    price_range_per_lb:
+    - 0.75
+    - 1.0
+    typical_price_per_lb: 0.88
+    premium_factors:
+    - factor: High IV (>1.0)
+      premium_pct: 20
+    - factor: Guaranteed properties
+      premium_pct: 15
+  seasonal_patterns:
+    q1:
+      demand: moderate
+      price_trend: stable
+      notes: Post-holiday slowdown
+    q2:
+      demand: high
+      price_trend: increasing
+      notes: Summer beverage season ramp-up
+    q3:
+      demand: peak
+      price_trend: peak
+      notes: Peak beverage season
+    q4:
+      demand: moderate
+      price_trend: decreasing
+      notes: Post-summer decline, holiday packaging
+  regional_pricing:
+    northeast:
+      price_adjustment_pct: 5
+      notes: Higher logistics costs, strong demand
+    southeast:
+      price_adjustment_pct: 0
+      notes: Baseline region
+    midwest:
+      price_adjustment_pct: -3
+      notes: Lower logistics costs, competitive market
+    west_coast:
+      price_adjustment_pct: 8
+      notes: Highest demand, limited supply, CA recycling mandates
+astm_standards:
+- standard_id: ASTM_D4603
+  title: Intrinsic Viscosity of PET
+  description: Primary method for determining molecular weight of PET
+  application: All PET grades
+- standard_id: ASTM_D638
+  title: Tensile Properties of Plastics
+  description: Measures tensile strength, modulus, and elongation
+  application: Mechanical property verification
+- standard_id: ASTM_D792
+  title: Density and Specific Gravity of Plastics
+  description: Determines density and crystallinity
+  application: Quality control and grade verification
+- standard_id: ASTM_D790
+  title: Flexural Properties of Plastics
+  description: Measures flexural strength and modulus
+  application: Engineering grade verification
+- standard_id: ASTM_D256
+  title: Impact Resistance of Plastics
+  description: Izod impact test for toughness
+  application: Quality control for all grades
+- standard_id: ASTM_D3985
+  title: Oxygen Transmission Rate
+  description: Measures gas barrier properties
+  application: Film and bottle grade verification
+- standard_id: ASTM_F1249
+  title: Water Vapor Transmission Rate
+  description: Measures moisture barrier properties
+  application: Film grade verification
+notes:
+  data_quality: All specifications verified against ASTM standards, manufacturer data sheets, and peer-reviewed research
+  verification_date: '2025-11-05'
+  sources:
+  - ASTM D4603, D638, D792, D790, D256
+  - FDA food contact guidelines
+  - Major resin producer technical data sheets
+  - Peer-reviewed polymer science journals
+  limitations:
+  - Market pricing data is Q4 2025 snapshot, subject to change
+  - Regional pricing adjustments are estimates
+  - PCR percentages are typical ranges, actual may vary by processor
+  usage_notes:
+  - Always verify moisture content before processing
+  - PVC contamination is critical - test or verify sorting
+  - FDA approval required for food contact applications
+  - IV testing recommended for quality assurance

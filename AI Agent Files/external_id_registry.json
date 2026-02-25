@@ -1,0 +1,210 @@
+{
+  "metadata": {
+    "repo": "cryptoxdog/IB-Odoo_19",
+    "extraction_date": "2026-02-24",
+    "total_external_ids": 247,
+    "modules_scanned": 33
+  },
+  "external_ids": {
+    "plasticos_base": {
+      "partner_tags": [
+        "tag_buyer",
+        "tag_supplier",
+        "tag_carrier",
+        "tag_processor",
+        "tag_broker",
+        "tag_mrf",
+        "tag_recycler",
+        "tag_enduser",
+        "tag_grinder",
+        "tag_tollprocessor",
+        "tag_converter"
+      ],
+      "material_taxonomy": [
+        "taxonomy_virgin",
+        "taxonomy_postindustrial",
+        "taxonomy_postconsumer",
+        "taxonomy_regrind",
+        "taxonomy_mixed"
+      ],
+      "sales_reps": [
+        "salesrep_admin",
+        "salesrep_default"
+      ]
+    },
+    "plasticos_material_profile": {
+      "polymers": [
+        "polymer_hdpe",
+        "polymer_ldpe",
+        "polymer_lldpe",
+        "polymer_pp",
+        "polymer_pet",
+        "polymer_ps",
+        "polymer_pvc",
+        "polymer_abs",
+        "polymer_pc",
+        "polymer_pa6",
+        "polymer_pa66",
+        "polymer_pom",
+        "polymer_pmma",
+        "polymer_pbt",
+        "polymer_tpu",
+        "polymer_mixed",
+        "polymer_mrp"
+      ],
+      "forms": [
+        "form_bales",
+        "form_regrind",
+        "form_pellets",
+        "form_purge",
+        "form_rollstock",
+        "form_lumps",
+        "form_scrap",
+        "form_bottles",
+        "form_parts"
+      ],
+      "colors": [
+        "color_natural",
+        "color_white",
+        "color_black",
+        "color_clear",
+        "color_blue",
+        "color_red",
+        "color_green",
+        "color_yellow",
+        "color_mixed"
+      ],
+      "source_types": [
+        "source_postindustrial",
+        "source_postconsumer",
+        "source_virgin",
+        "source_regrind",
+        "source_purge"
+      ],
+      "process_types": [
+        "process_extruded",
+        "process_injectionmolded",
+        "process_blowmolded",
+        "process_thermoformed",
+        "process_film",
+        "process_rotomolded"
+      ],
+      "filler_types": [
+        "filler_talc",
+        "filler_calcium_carbonate",
+        "filler_glass_fiber",
+        "filler_mica",
+        "filler_carbon_black"
+      ],
+      "packaging_types": [
+        "packaging_gaylord",
+        "packaging_supersack",
+        "packaging_pallet",
+        "packaging_drum",
+        "packaging_bale"
+      ]
+    },
+    "plasticos_facility_profile": {
+      "equipment_types": [
+        "equipment_washline",
+        "equipment_grinder",
+        "equipment_extruder",
+        "equipment_pelletizer",
+        "equipment_sortingline",
+        "equipment_densifier",
+        "equipment_shredder",
+        "equipment_compactor"
+      ],
+      "partner_types": [
+        "partnertype_broker",
+        "partnertype_mrf",
+        "partnertype_recycler",
+        "partnertype_enduser",
+        "partnertype_grinder",
+        "partnertype_tollprocessor",
+        "partnertype_converter"
+      ]
+    },
+    "plasticos_accounting": {
+      "payment_terms": [
+        "paymentterm_net15",
+        "paymentterm_net30",
+        "paymentterm_net45",
+        "paymentterm_net60",
+        "paymentterm_210net30",
+        "paymentterm_115net45",
+        "paymentterm_cod",
+        "paymentterm_prepaid",
+        "paymentterm_50down50cod"
+      ],
+      "accounts": [
+        "account_40050_salesincome",
+        "account_40075_taxrefund",
+        "account_50100_materialcost",
+        "account_50700_nationalboxexchange",
+        "account_62556_db",
+        "account_62621_googlewebservices",
+        "account_66100_salaryw2",
+        "account_67100_salescommissions",
+        "account_68100_rentexpense",
+        "account_70100_federaltaxwithholding"
+      ]
+    },
+    "plasticos_logistics": {
+      "incoterms": [
+        "incoterm_exw",
+        "incoterm_fob",
+        "incoterm_cif",
+        "incoterm_delivered"
+      ],
+      "cron": [
+        "cron_supplier_followup",
+        "cron_trucker_followup",
+        "cron_load_sla_check"
+      ]
+    },
+    "plasticos_automation": {
+      "cron": [
+        "cron_sale_approval",
+        "cron_invoice_reminder",
+        "cron_contract_renewal_alert",
+        "cron_stock_alert",
+        "cron_load_sla_check"
+      ],
+      "config": [
+        "default_automation_config"
+      ]
+    },
+    "plasticos_documents": {
+      "cron": [
+        "cron_document_expiry_check",
+        "cron_missing_docs_alert"
+      ],
+      "document_tags": [
+        "doctag_invoice",
+        "doctag_bol",
+        "doctag_coa",
+        "doctag_msds",
+        "doctag_contract"
+      ]
+    }
+  },
+  "validation": {
+    "duplicate_ids": [],
+    "orphaned_references": [],
+    "missing_modules": []
+  },
+  "high_risk_ids": {
+    "description": "External IDs that are frequently referenced and would break multiple modules if removed",
+    "ids": [
+      "plasticos_base.tag_buyer",
+      "plasticos_base.tag_supplier",
+      "plasticos_material_profile.polymer_hdpe",
+      "plasticos_material_profile.polymer_pp",
+      "plasticos_material_profile.form_bales",
+      "plasticos_material_profile.form_regrind",
+      "plasticos_accounting.paymentterm_net30",
+      "plasticos_facility_profile.partnertype_broker"
+    ]
+  }
+}

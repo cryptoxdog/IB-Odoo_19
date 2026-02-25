@@ -177,15 +177,18 @@ class PlasticosOffer(models.Model):
     # Constraints
     # ═════════════════════════════════════════════════════════
 
-    _check_price_positive = models.Constraint(
-        "check(price_per_lb >= 0)",
-        "Price per pound cannot be negative.",
-    )
-
-    _check_quantity_positive = models.Constraint(
-        "check(quantity_lbs >= 0)",
-        "Quantity cannot be negative.",
-    )
+    _sql_constraints = [
+        (
+            "check_price_positive",
+            "check(price_per_lb >= 0)",
+            "Price per pound cannot be negative.",
+        ),
+        (
+            "check_quantity_positive",
+            "check(quantity_lbs >= 0)",
+            "Quantity cannot be negative.",
+        ),
+    ]
 
     # ═════════════════════════════════════════════════════════
     # Computed

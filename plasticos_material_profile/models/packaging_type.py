@@ -19,7 +19,10 @@ class PlasticosPackagingType(models.Model):
     sequence = fields.Integer(default=10)
     active = fields.Boolean(default=True)
 
-    _check_unique_code = models.Constraint(
-        "unique(code)",
-        "Packaging type code must be unique.",
-    )
+    _sql_constraints = [
+        (
+            "unique_code",
+            "unique(code)",
+            "Packaging type code must be unique.",
+        ),
+    ]

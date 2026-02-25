@@ -24,8 +24,11 @@ class PlasticosEquipmentType(models.Model):
     sequence = fields.Integer(default=10)
     active = fields.Boolean(default=True)
 
-    # ── Constraints (Odoo 19 models.Constraint) ──────────────
-    _check_unique_code = models.Constraint(
-        "unique(code)",
-        "Equipment type code must be unique.",
-    )
+    # ── Constraints ──────────────────────────────────────────
+    _sql_constraints = [
+        (
+            "unique_code",
+            "unique(code)",
+            "Equipment type code must be unique.",
+        ),
+    ]

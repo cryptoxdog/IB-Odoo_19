@@ -18,7 +18,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install ruff pre-commit
+        run: pip install ruff pre-commit mypy
 
       - name: Run Ruff linter
         run: ruff check .
@@ -34,3 +34,6 @@ jobs:
 
       - name: Odoo 19 pattern checks
         run: ./scripts/check_odoo_patterns.sh
+
+      - name: Run mypy type checking
+        run: mypy . --config-file=pyproject.toml

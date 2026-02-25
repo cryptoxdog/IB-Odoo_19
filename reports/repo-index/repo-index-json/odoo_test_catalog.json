@@ -1,0 +1,126 @@
+[
+  {
+    "file": "tests-odoo/test_cursor.py",
+    "dir": "tests-odoo"
+  },
+  {
+    "file": "tests-odoo/test_module_operations.py",
+    "dir": "tests-odoo"
+  },
+  {
+    "file": "plasticos_enrichment/tests/test_injection.py",
+    "dir": "plasticos_enrichment/tests"
+  },
+  {
+    "file": "plasticos_enrichment/tests/test_normalization.py",
+    "dir": "plasticos_enrichment/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_integrity_enforcement.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_concurrency.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_security_permissions.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_sequence_race.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_financial_audit.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_multi_currency.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_close_race.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_migration.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_legacy_migration.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_migration_safety.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_performance_scale.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_rpc_abuse.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_deterministic_replay.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_full_replay.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_domain_isolation.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_sequence_concurrency.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": "plasticos_transaction/tests/test_compliance_failure.py",
+    "dir": "plasticos_transaction/tests"
+  },
+  {
+    "file": ".cursor/workflows-synced/dags/test_pipeline_dag.py",
+    "dir": ".cursor/workflows-synced/dags"
+  },
+  {
+    "file": "plasticos_dev_tools/tools/test_kb_integration.py",
+    "dir": "plasticos_dev_tools/tools"
+  },
+  {
+    "file": "plasticos_dev_tools/tools/test_enhanced_matching_v6.0.py",
+    "dir": "plasticos_dev_tools/tools"
+  },
+  {
+    "file": "plasticos_dev_tools/tests/test_kb_integration.py",
+    "dir": "plasticos_dev_tools/tests"
+  },
+  {
+    "file": "plasticos_dev_tools/tests/test_integrity_audit.py",
+    "dir": "plasticos_dev_tools/tests"
+  },
+  {
+    "file": "plasticos_dev_tools/tests/test_enhanced_matching_v6.0.py",
+    "dir": "plasticos_dev_tools/tests"
+  },
+  {
+    "file": "plasticos_dev_tools/tests/test_seed_validator.py",
+    "dir": "plasticos_dev_tools/tests"
+  },
+  {
+    "file": "plasticos_buyer_match_engine/tests/test_matcher.py",
+    "dir": "plasticos_buyer_match_engine/tests"
+  },
+  {
+    "file": "plasticos_graph_intelligence/tests/test_ranking_determinism.py",
+    "dir": "plasticos_graph_intelligence/tests"
+  },
+  {
+    "file": "plasticos_intake/tests/test_lazy_partner_sync.py",
+    "dir": "plasticos_intake/tests"
+  }
+]

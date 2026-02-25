@@ -1,3 +1,3 @@
-# Tests disabled for Odoo.sh deployment - require seed data not available during CI
-# Re-enable for local testing with full database
-# from . import test_matcher
+# Tests are self-contained with fixtures created in setUp()
+# Only external dependency: base.us (core Odoo data)
+from . import test_matcher

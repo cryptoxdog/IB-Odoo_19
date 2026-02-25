@@ -24,6 +24,17 @@ class PlasticosPartnerType(models.Model):
     active = fields.Boolean(default=True)
     sequence = fields.Integer(default=10)
 
+    # ── Gate Mode (for buyer matching v2.0) ────────────────────
+    gate_mode = fields.Selection(
+        [
+            ("strict", "Strict"),
+            ("flexible", "Flexible"),
+            ("optimistic", "Optimistic"),
+        ],
+        default="flexible",
+        help="Matching mode: strict=exact match required, flexible=partial match acceptable, optimistic=any match gets high score.",
+    )
+
     _check_unique_code = models.Constraint(
         "unique(code)",
         "Partner type code must be unique.",

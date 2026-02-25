@@ -77,10 +77,13 @@ class PlasticosMatchExclusion(models.Model):
     # Constraints
     # ═════════════════════════════════════════════════════════
 
-    _check_unique_pair = models.Constraint(
-        "unique(supplier_partner_id, buyer_partner_id)",
-        "An exclusion already exists for this supplier-buyer pair.",
-    )
+    _sql_constraints = [
+        (
+            "unique_pair",
+            "unique(supplier_partner_id, buyer_partner_id)",
+            "An exclusion already exists for this supplier-buyer pair.",
+        ),
+    ]
 
     # ═════════════════════════════════════════════════════════
     # Validation

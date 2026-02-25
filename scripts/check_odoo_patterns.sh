@@ -5,7 +5,7 @@
 # Run: ./scripts/check_odoo_patterns.sh
 #
 # Bug patterns checked (see reports/BUG_FIXES_SUMMARY.md):
-# 1. _sql_constraints (deprecated)
+# 1. models.Constraint (INVALID - does not exist in Odoo)
 # 2. @api.depends("id") (disallowed)
 # 3. @api.one/@api.multi (removed)
 # 4. category_id on res.groups (removed)
@@ -43,13 +43,14 @@ echo ""
 PY_FILES=$(git ls-files '*.py' 2>/dev/null || find . -name "*.py" -type f)
 XML_FILES=$(git ls-files '*.xml' 2>/dev/null || find . -name "*.xml" -type f)
 
-# 1. _sql_constraints (deprecated in Odoo 17+)
-echo -n "Checking _sql_constraints... "
-MATCHES=$(echo "$PY_FILES" | xargs grep -l "_sql_constraints" 2>/dev/null | xargs grep "_sql_constraints" 2>/dev/null | grep -v "models.Constraint" | grep -v "export_odoo_index" || true)
+# 1. models.Constraint (INVALID - does not exist in any Odoo version)
+# The correct syntax is _sql_constraints = [("name", "SQL", "message"), ...]
+echo -n "Checking invalid models.Constraint... "
+MATCHES=$(echo "$PY_FILES" | xargs grep -E 'models\.Constraint\(' 2>/dev/null || true)
 if [ -n "$MATCHES" ]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
-    echo -e "${YELLOW}Fix: Convert to models.Constraint${NC}"
+    echo -e "${YELLOW}Fix: Convert to _sql_constraints = [(\"name\", \"SQL\", \"message\"), ...]${NC}"
     ERRORS=$((ERRORS + 1))
 else
     echo -e "${GREEN}OK${NC}"

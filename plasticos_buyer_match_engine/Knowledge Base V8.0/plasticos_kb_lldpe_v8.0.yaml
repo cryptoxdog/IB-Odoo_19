@@ -1,0 +1,1154 @@
+# plasticos KB v8.0 — LLDPE
+# Converter v1.1.0 | Generated: 2026-02-23T18:56:34Z
+
+_metadata:
+  version: '8.0'
+  converter_version: 1.1.0
+  source_version: 7.0r
+  source_format: polymer_focused_v7.0r
+  generated: '2026-02-23T18:56:34Z'
+  data_quality: verified
+  source_tier: tier_1
+  schema_compliant: true
+  source_last_updated: '2025-11-05'
+polymer_identity:
+  polymer_family: Polyolefins
+  polymer_type: LLDPE
+  full_name: Linear Low-Density Polyethylene
+  resin_id_code: 4
+  structure: Linear backbone with short chain branches (10-35 per 1000 C)
+material_grades:
+- grade_id: LLDPE_BUTENE_FILM
+  grade_name: Butene LLDPE Film Grade (C4-LLDPE)
+  description: Cost-effective LLDPE for general film applications
+  type: virgin
+  density:
+    film_grade:
+      value:
+      - 0.918
+      - 0.925
+      typical: 0.9215
+      unit: g/cm³
+    test_method: ASTM D792
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 12.0
+      - 25.0
+      typical: 18.5
+      unit: MPa
+    elongation_at_break:
+      value:
+      - 400.0
+      - 800.0
+      typical: 600.0
+      unit: '%'
+    tear_strength_g:
+    - 100
+    - 300
+    impact_strength:
+      value:
+      - 600.0
+      - 1200.0
+      typical: 900.0
+      unit: J/m
+    test_method: ASTM D638, D1922, D256
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 100.0
+      - 100.0
+      typical: 100.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 25.0
+      - 75.0
+      typical: 50.0
+      unit: '%'
+    note: LLDPE film highly recyclable - up to 100% PCR in non-critical applications
+  applications:
+    primary:
+    - product: Grocery bags and shopping bags
+      scrap_source: Post-consumer retail, film manufacturing PIR
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Trash bags and liners
+      scrap_source: Post-consumer waste, film manufacturing PIR
+      quality_tier_required:
+      - 3
+      - 4
+    - product: Agricultural films (lower performance)
+      scrap_source: Agricultural waste, film PIR
+      quality_tier_required:
+      - 2
+      - 3
+  comonomer: 1-butene (C4)
+  melt_index:
+    film_grade:
+      value:
+      - 0.5
+      - 4.0
+      typical: 2.25
+      unit: g/10min
+    test_conditions: 190°C/2.16kg
+    test_method: ASTM D1238
+- grade_id: LLDPE_HEXENE_FILM
+  grade_name: Hexene LLDPE Film Grade (C6-LLDPE)
+  description: Balanced performance LLDPE for high-quality film applications
+  type: virgin
+  density:
+    film_grade:
+      value:
+      - 0.918
+      - 0.925
+      typical: 0.9215
+      unit: g/cm³
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 15.0
+      - 28.0
+      typical: 21.5
+      unit: MPa
+    elongation_at_break:
+      value:
+      - 500.0
+      - 900.0
+      typical: 700.0
+      unit: '%'
+    tear_strength_g:
+    - 150
+    - 400
+    impact_strength:
+      value:
+      - 700.0
+      - 1400.0
+      typical: 1050.0
+      unit: J/m
+    note: Superior tear strength vs C4-LLDPE
+  applications:
+    primary:
+    - product: Stretch and shrink films
+      scrap_source: Post-industrial stretch wrap, film PIR
+      quality_tier_required:
+      - 1
+      - 2
+    - product: Heavy-duty bags and sacks
+      scrap_source: Post-consumer, film PIR
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Geomembranes and liners
+      scrap_source: Construction/industrial, manufacturing PIR
+      quality_tier_required:
+      - 2
+      - 3
+    secondary:
+    - product: Agricultural films (premium)
+      scrap_source: Agricultural waste, film PIR
+      quality_tier_required:
+      - 2
+      - 3
+  comonomer: 1-hexene (C6)
+  melt_index:
+    film_grade:
+      value:
+      - 0.5
+      - 4.0
+      typical: 2.25
+      unit: g/10min
+    test_conditions: 190°C/2.16kg
+- grade_id: LLDPE_OCTENE_FILM
+  grade_name: Octene LLDPE Film Grade (C8-LLDPE)
+  description: Premium performance LLDPE for demanding film applications
+  type: virgin
+  density:
+    film_grade:
+      value:
+      - 0.918
+      - 0.925
+      typical: 0.9215
+      unit: g/cm³
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 18.0
+      - 32.0
+      typical: 25.0
+      unit: MPa
+    elongation_at_break:
+      value:
+      - 600.0
+      - 1000.0
+      typical: 800.0
+      unit: '%'
+    tear_strength_g:
+    - 200
+    - 500
+    impact_strength:
+      value:
+      - 800.0
+      - 1600.0
+      typical: 1200.0
+      unit: J/m
+    note: Highest tear strength among LLDPE grades
+  applications:
+    primary:
+    - product: Premium food packaging films
+      scrap_source: Food packaging manufacturing PIR only
+      quality_tier_required:
+      - 1
+      note: Food contact scrap → non-food applications only
+    - product: Medical and pharmaceutical packaging
+      scrap_source: Medical packaging manufacturing PIR
+      quality_tier_required:
+      - 1
+    - product: High-performance stretch films
+      scrap_source: Film manufacturing PIR
+      quality_tier_required:
+      - 1
+      - 2
+  comonomer: 1-octene (C8)
+  melt_index:
+    film_grade:
+      value:
+      - 0.5
+      - 4.0
+      typical: 2.25
+      unit: g/10min
+    specialty:
+      value:
+      - 0.3
+      - 1.0
+      typical: 0.65
+      unit: g/10min
+    test_conditions: 190°C/2.16kg
+- grade_id: LLDPE_METALLOCENE
+  grade_name: Metallocene LLDPE (mLLDPE)
+  description: Advanced catalyst LLDPE with superior properties and processability
+  type: virgin
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 20.0
+      - 35.0
+      typical: 27.5
+      unit: MPa
+    elongation_at_break:
+      value:
+      - 700.0
+      - 1200.0
+      typical: 950.0
+      unit: '%'
+    tear_strength_g:
+    - 250
+    - 600
+    impact_strength:
+      value:
+      - 900.0
+      - 1800.0
+      typical: 1350.0
+      unit: J/m
+    dart_drop_impact_g:
+    - 200
+    - 800
+  applications:
+    primary:
+    - product: Premium packaging films
+      scrap_source: Film manufacturing PIR
+      quality_tier_required:
+      - 1
+    - product: Medical device packaging
+      scrap_source: Medical manufacturing PIR
+      quality_tier_required:
+      - 1
+    - product: High-clarity films
+      scrap_source: Film manufacturing PIR
+      quality_tier_required:
+      - 1
+  catalyst: metallocene or constrained geometry
+  molecular_characteristics:
+    mw_distribution: narrow (Mw/Mn = 2.0-2.5)
+    comonomer_distribution: uniform
+  optical_properties:
+    clarity: superior
+    gloss: enhanced
+- grade_id: LLDPE_ROTOMOLDING
+  grade_name: Rotomolding Grade LLDPE
+  description: LLDPE optimized for rotational molding applications
+  type: virgin
+  density:
+    rotomolding:
+      value:
+      - 0.93
+      - 0.94
+      typical: 0.935
+      unit: g/cm³
+    note: Higher density than film grades
+  applications:
+    primary:
+    - product: Rotomolded tanks and containers
+      scrap_source: Rotomolding manufacturing PIR, post-industrial
+      quality_tier_required:
+      - 1
+      - 2
+    - product: Industrial containers
+      scrap_source: Industrial use, manufacturing PIR
+      quality_tier_required:
+      - 2
+      - 3
+  melt_index:
+    rotomolding:
+      value:
+      - 3.0
+      - 8.0
+      typical: 5.5
+      unit: g/10min
+    test_conditions: 190°C/2.16kg
+- grade_id: LLDPE_INJECTION
+  grade_name: Injection Molding Grade LLDPE
+  description: Higher flow LLDPE for injection molding applications
+  type: virgin
+  applications:
+    primary:
+    - product: Pipe and conduit
+      scrap_source: Pipe manufacturing PIR, construction
+      quality_tier_required:
+      - 1
+      - 2
+    - product: Injection molded parts
+      scrap_source: Manufacturing PIR
+      quality_tier_required:
+      - 1
+      - 2
+  melt_index:
+    injection:
+      value:
+      - 15.0
+      - 35.0
+      typical: 25.0
+      unit: g/10min
+    test_conditions: 190°C/2.16kg
+product_scrap_mapping:
+  packaging_film_products:
+  - product: Grocery bags and shopping bags
+    scrap_grade: butene_lldpe_film
+    scrap_quality_tier:
+    - 2
+    - 3
+    typical_contamination_pct:
+    - 2.0
+    - 5.0
+    typical_contaminants:
+    - food residue 1-3%
+    - printing inks <1%
+    - labels <0.5%
+    suitable_buyers:
+    - film_manufacturers_non_food
+    - industrial_film
+    - construction_film
+    reverse_reasoning: IF buyer_needs_grocery_bags THEN source_post_consumer_lldpe_film_tier2_tier3
+  - product: Stretch wrap and pallet wrap
+    scrap_grade: hexene_lldpe_film
+    scrap_quality_tier:
+    - 1
+    - 2
+    typical_contamination_pct:
+    - 0.5
+    - 2.0
+    typical_contaminants:
+    - minimal - industrial use
+    - adhesive residue <0.3%
+    suitable_buyers:
+    - stretch_film_manufacturers
+    - industrial_film
+    - packaging_manufacturers
+    reverse_reasoning: IF buyer_needs_stretch_film THEN source_post_industrial_lldpe_tier1_tier2
+  - product: Food packaging films
+    scrap_grade: octene_lldpe_film or metallocene_lldpe
+    scrap_quality_tier:
+    - 1
+    - 2
+    typical_contamination_pct:
+    - 0.3
+    - 1.5
+    typical_contaminants:
+    - food residue <1%
+    - printing inks <0.5%
+    suitable_buyers:
+    - food_packaging_non_contact
+    - industrial_film
+    note: Food contact scrap cannot be reused for food contact - route to non-food applications
+  - product: Trash bags and liners
+    scrap_grade: butene_lldpe_film
+    scrap_quality_tier:
+    - 3
+    - 4
+    typical_contamination_pct:
+    - 5.0
+    - 15.0
+    typical_contaminants:
+    - heavy contamination
+    - mixed waste
+    suitable_buyers:
+    - construction_film
+    - industrial_non_critical
+  agricultural_products:
+  - product: Agricultural films (greenhouse, mulch)
+    scrap_grade: butene_lldpe_film or hexene_lldpe_film
+    scrap_quality_tier:
+    - 2
+    - 3
+    typical_contamination_pct:
+    - 3.0
+    - 8.0
+    typical_contaminants:
+    - soil/dirt 2-5%
+    - UV degradation
+    - organic matter 1-3%
+    suitable_buyers:
+    - agricultural_film_manufacturers
+    - construction_film
+    - industrial_film
+    reverse_reasoning: IF buyer_needs_agricultural_film THEN source_agricultural_lldpe_tier2_tier3_washed
+  - product: Silage wrap and hay bale wrap
+    scrap_grade: hexene_lldpe_film
+    scrap_quality_tier:
+    - 3
+    - 4
+    typical_contamination_pct:
+    - 5.0
+    - 12.0
+    typical_contaminants:
+    - organic matter 3-8%
+    - soil/dirt 2-4%
+    suitable_buyers:
+    - agricultural_film_recyclers
+    - construction_film
+  industrial_products:
+  - product: Geomembranes and pond liners
+    scrap_grade: hexene_lldpe or octene_lldpe
+    scrap_quality_tier:
+    - 2
+    - 3
+    typical_contamination_pct:
+    - 2.0
+    - 5.0
+    typical_contaminants:
+    - soil/dirt 1-3%
+    - UV degradation
+    suitable_buyers:
+    - geomembrane_manufacturers
+    - construction_film
+    - industrial_film
+  - product: Pipe and conduit (LLDPE-based)
+    scrap_grade: hexene_lldpe_injection
+    scrap_quality_tier:
+    - 1
+    - 2
+    typical_contamination_pct:
+    - 0.5
+    - 2.0
+    suitable_buyers:
+    - pipe_manufacturers
+    - industrial_applications
+  rotomolding_products:
+  - product: Rotomolded tanks and containers
+    scrap_grade: butene_lldpe_rotomolding or hexene_lldpe_rotomolding
+    scrap_quality_tier:
+    - 2
+    - 3
+    typical_contamination_pct:
+    - 1.0
+    - 3.0
+    typical_contaminants:
+    - minimal - industrial use
+    suitable_buyers:
+    - rotomolding_manufacturers
+    - industrial_applications
+  manufacturing_scrap:
+  - product: Film manufacturing edge trim (PIR)
+    scrap_grade: any_lldpe_film_grade
+    scrap_quality_tier:
+    - 1
+    typical_contamination_pct:
+    - 0.1
+    - 0.5
+    typical_contaminants:
+    - minimal - clean manufacturing
+    suitable_buyers:
+    - film_manufacturers
+    - all_lldpe_buyers
+    reverse_reasoning: IF buyer_needs_high_quality_lldpe THEN source_film_pir_tier1
+    note: Film PIR is highest quality LLDPE scrap - premium value
+source_quality_tiers:
+  tier_1_premium:
+    tier_id: tier_1_premium
+    suitable_applications:
+    - Food packaging (non-contact)
+    - Premium stretch film
+    - High-performance films
+    - Medical packaging (non-sterile)
+    definition: Film manufacturing PIR, single-source, minimal contamination
+    contamination_max_pct: 0.5
+    moisture_max_ppm: 1000
+    dirt_max_pct: 0.1
+    property_retention_min_pct: 95
+    sorting_purity_min_pct: 99
+    processing_history: Single cycle or virgin manufacturing scrap
+    examples:
+    - Film manufacturing edge trim (PIR)
+    - Stretch wrap manufacturing scrap
+    - Packaging film PIR (documented grade)
+    - Rotomolding manufacturing scrap
+    value_premium_pct:
+    - 20
+    - 35
+  tier_2_standard:
+    tier_id: tier_2_standard
+    suitable_applications:
+    - Grocery bags
+    - Trash bags
+    - Agricultural films
+    - Industrial films
+    - Construction films
+    definition: Post-industrial or sorted post-consumer, moderate contamination
+    contamination_max_pct: 3.0
+    moisture_max_ppm: 2000
+    dirt_max_pct: 1.0
+    property_retention_min_pct: 80
+    sorting_purity_min_pct: 85
+    processing_history: 1-3 recycling cycles
+    examples:
+    - Post-industrial stretch wrap (used)
+    - Sorted post-consumer film (washed)
+    - Agricultural film (sorted, washed)
+    - Geomembrane scrap
+    value_premium_pct:
+    - 0
+    - 0
+  tier_3_utility:
+    tier_id: tier_3_utility
+    suitable_applications:
+    - Construction films (non-critical)
+    - Industrial applications (low-value)
+    - Trash bags (low-grade)
+    - Downcycled products
+    definition: Mixed post-consumer, higher contamination, multiple cycles
+    contamination_max_pct: 8.0
+    moisture_max_ppm: 5000
+    dirt_max_pct: 3.0
+    property_retention_min_pct: 60
+    sorting_purity_min_pct: 70
+    processing_history: 3-6 recycling cycles or unknown
+    examples:
+    - Mixed post-consumer film (unwashed)
+    - Contaminated agricultural film
+    - General waste stream LLDPE
+    - Mixed grocery bags
+    value_discount_pct:
+    - 40
+    - 60
+  tier_4_marginal:
+    tier_id: tier_4_marginal
+    suitable_applications:
+    - Chemical recycling feedstock
+    - Pyrolysis feedstock
+    - Very limited mechanical recycling
+    definition: Heavily contaminated, degraded, multiple unknown cycles
+    contamination_min_pct: 8.0
+    property_retention_max_pct: 60
+    processing_history: '>6 cycles or severely degraded'
+    examples:
+    - Heavily contaminated trash bags
+    - Degraded agricultural film
+    - Mixed polymer waste streams
+    value_discount_pct:
+    - 70
+    - 85
+buyer_profiles:
+- buyer_type: Stretch film manufacturer
+  material_requirements:
+    polymer_types:
+    - LLDPE_hexene
+    - LLDPE_octene
+    purity_min:
+      value:
+      - 90.0
+      - 90.0
+      typical: 90.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    preferred_source: Post-industrial stretch wrap, film PIR
+    quality_tier_required:
+    - 1
+    - 2
+    color_preference: clear or natural
+    form_preference: pellets or clean film
+  quality_specifications:
+    tear_strength_min_g: 150
+    tensile_strength_min:
+      value:
+      - 15.0
+      - 15.0
+      typical: 15.0
+      unit: MPa
+    contamination_max:
+      value:
+      - 2.0
+      - 2.0
+      typical: 2.0
+      unit: '%'
+    dirt_max:
+      value:
+      - 0.5
+      - 0.5
+      typical: 0.5
+      unit: '%'
+  buyer_id: LLDPE_STRETCH_FILM_MANUFACTURERS
+  industry_segment: Packaging
+  applications:
+  - Stretch wrap and pallet wrap
+  - Industrial packaging films
+  volume_range_tons_month:
+  - 100
+  - 1000
+- buyer_type: Food packaging manufacturer (non-contact)
+  material_requirements:
+    polymer_types:
+    - LLDPE_octene
+    - LLDPE_metallocene
+    purity_min:
+      value:
+      - 95.0
+      - 95.0
+      typical: 95.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 25.0
+      - 25.0
+      typical: 25.0
+      unit: '%'
+    preferred_source: Film manufacturing PIR only
+    quality_tier_required:
+    - 1
+    color_preference: natural or clear
+    form_preference: pellets
+  quality_specifications:
+    contamination_max:
+      value:
+      - 0.5
+      - 0.5
+      typical: 0.5
+      unit: '%'
+    dirt_max:
+      value:
+      - 0.1
+      - 0.1
+      typical: 0.1
+      unit: '%'
+    odor: none
+  buyer_id: LLDPE_FOOD_PACKAGING_NON_CONTACT
+  industry_segment: Food packaging
+  certifications_required:
+  - FDA indirect food contact approval
+  applications:
+  - Food packaging (non-contact layers)
+  - Outer packaging films
+  volume_range_tons_month:
+  - 50
+  - 500
+- buyer_type: Agricultural film manufacturer
+  material_requirements:
+    polymer_types:
+    - LLDPE_butene
+    - LLDPE_hexene
+    purity_min:
+      value:
+      - 75.0
+      - 75.0
+      typical: 75.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 100.0
+      - 100.0
+      typical: 100.0
+      unit: '%'
+    preferred_source: Agricultural film scrap (washed), film PIR
+    quality_tier_required:
+    - 2
+    - 3
+    color_preference: any
+    form_preference: pellets
+  quality_specifications:
+    contamination_max:
+      value:
+      - 5.0
+      - 5.0
+      typical: 5.0
+      unit: '%'
+    dirt_max:
+      value:
+      - 2.0
+      - 2.0
+      typical: 2.0
+      unit: '%'
+  buyer_id: LLDPE_AGRICULTURAL_FILM_MANUFACTURERS
+  industry_segment: Agriculture
+  applications:
+  - Greenhouse films
+  - Mulch films
+  - Silage wrap
+  volume_range_tons_month:
+  - 200
+  - 2000
+- buyer_type: Trash bag manufacturer
+  material_requirements:
+    polymer_types:
+    - LLDPE_butene
+    - LLDPE_hexene
+    purity_min:
+      value:
+      - 70.0
+      - 70.0
+      typical: 70.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 100.0
+      - 100.0
+      typical: 100.0
+      unit: '%'
+    preferred_source: any
+    quality_tier_required:
+    - 3
+    - 4
+    color_preference: black or dark colors
+    form_preference: pellets
+  quality_specifications:
+    contamination_max:
+      value:
+      - 8.0
+      - 8.0
+      typical: 8.0
+      unit: '%'
+  buyer_id: LLDPE_TRASH_BAG_MANUFACTURERS
+  industry_segment: Consumer goods
+  applications:
+  - Trash bags and liners
+  - Low-value bags
+  volume_range_tons_month:
+  - 300
+  - 3000
+- buyer_type: Industrial film manufacturer
+  material_requirements:
+    polymer_types:
+    - LLDPE
+    purity_min:
+      value:
+      - 80.0
+      - 80.0
+      typical: 80.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 100.0
+      - 100.0
+      typical: 100.0
+      unit: '%'
+    preferred_source: any
+    quality_tier_required:
+    - 2
+    - 3
+    color_preference: any
+    form_preference: pellets or regrind
+  quality_specifications:
+    contamination_max:
+      value:
+      - 5.0
+      - 5.0
+      typical: 5.0
+      unit: '%'
+  buyer_id: LLDPE_INDUSTRIAL_FILM_MANUFACTURERS
+  industry_segment: Industrial
+  applications:
+  - Industrial packaging films
+  - Construction films
+  - Protective films
+  volume_range_tons_month:
+  - 100
+  - 1000
+- buyer_type: Rotomolding manufacturer
+  material_requirements:
+    polymer_types:
+    - LLDPE_rotomolding
+    purity_min:
+      value:
+      - 85.0
+      - 85.0
+      typical: 85.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 40.0
+      - 40.0
+      typical: 40.0
+      unit: '%'
+    preferred_source: Rotomolding PIR, post-industrial
+    quality_tier_required:
+    - 1
+    - 2
+    color_preference: any
+    form_preference: powder or pellets
+  quality_specifications:
+    contamination_max:
+      value:
+      - 2.0
+      - 2.0
+      typical: 2.0
+      unit: '%'
+    melt_index_range:
+      value:
+      - 3.0
+      - 8.0
+      typical: 5.5
+      unit: g/10min
+  buyer_id: LLDPE_ROTOMOLDING_MANUFACTURERS
+  industry_segment: Industrial/Consumer
+  applications:
+  - Rotomolded tanks and containers
+  - Industrial containers
+  volume_range_tons_month:
+  - 30
+  - 300
+recycling_rules:
+- rule_id: LLDPE_FILM_PIR_PREMIUM
+  material_type: LLDPE
+  rule: Film manufacturing PIR is highest quality LLDPE scrap - Tier 1
+  reasoning: 'Film edge trim from manufacturing: clean, single grade, known comonomer, minimal contamination (<0.5%), 95%+
+    property retention. Premium value for all applications.'
+  confidence: 0.95
+  pir_characteristics:
+    contamination_pct:
+    - 0.1
+    - 0.5
+    quality_tier: 1
+    property_retention_pct:
+    - 95
+    - 100
+- rule_id: LLDPE_FOOD_CONTACT_RESTRICTION
+  material_type: LLDPE
+  rule: Post-consumer food contact LLDPE cannot be reused for food contact
+  reasoning: 'FDA regulations restrict PCR from food contact applications for direct food contact reuse. Route to non-food
+    applications: grocery bags, trash bags, industrial film.'
+  confidence: 0.98
+  restriction: food_contact_pcr → non_food_applications_only
+- rule_id: LLDPE_AGRICULTURAL_CONTAMINATION
+  material_type: LLDPE
+  source_type: agricultural film
+  rule: Agricultural LLDPE requires washing - soil/organic contamination 3-8%
+  reasoning: Agricultural films (greenhouse, mulch, silage) contaminated with soil (2-5%), organic matter (1-3%), UV degradation.
+    Washing required for Tier 2-3 quality.
+  confidence: 0.9
+  processing_requirements:
+    washing: required
+    contamination_removal: soil, organic matter
+    quality_tier_after_washing:
+    - 2
+    - 3
+- rule_id: LLDPE_STRETCH_WRAP_QUALITY
+  material_type: LLDPE
+  source_type: stretch wrap
+  rule: Post-industrial stretch wrap is Tier 1-2 quality - minimal contamination
+  reasoning: 'Stretch wrap from industrial/warehouse use: minimal contamination (adhesive residue <0.3%), known grade (typically
+    C6-LLDPE), 1-2 cycles. Excellent for stretch film recycling.'
+  confidence: 0.88
+  quality_characteristics:
+    contamination_pct:
+    - 0.5
+    - 2.0
+    quality_tier:
+    - 1
+    - 2
+    typical_grade: hexene_lldpe
+- rule_id: LLDPE_MULTI_CYCLE_TOLERANCE
+  material_type: LLDPE
+  rule: LLDPE tolerates multiple recycling cycles better than LDPE
+  reasoning: 'LLDPE linear structure with short branches: less chain scission than LDPE. Property retention: 80-90% after
+    3 cycles, 60-75% after 6 cycles. Suitable for high-PCR applications.'
+  confidence: 0.85
+  property_retention:
+    after_3_cycles_pct:
+    - 80
+    - 90
+    after_6_cycles_pct:
+    - 60
+    - 75
+- rule_id: LLDPE_COMONOMER_IDENTIFICATION
+  material_type: LLDPE
+  rule: Comonomer type (C4/C6/C8) affects recycling value and applications
+  reasoning: 'C4-LLDPE: lowest value, general applications. C6-LLDPE: balanced, most common. C8-LLDPE: premium value, high-performance.
+    Comonomer identification critical for buyer matching.'
+  confidence: 0.82
+  value_hierarchy: C8 > C6 > C4
+contamination_profiles:
+- profile_id: LLDPE_FILM_PIR
+  material_type: LLDPE
+  source: Film manufacturing PIR (edge trim)
+  contamination_level: minimal
+  quality_tier: 1
+  typical_contaminants:
+  - Minimal - clean manufacturing environment
+  - 'Possible printing inks: <0.1%'
+  sorting_purity:
+    value:
+    - 99.0
+    - 99.0
+    typical: 99.0
+    unit: '%'
+  suitable_applications:
+  - All LLDPE film applications
+  - Food packaging (non-contact)
+  - Premium stretch film
+- profile_id: LLDPE_STRETCH_WRAP_POST_INDUSTRIAL
+  material_type: LLDPE
+  source: Post-industrial stretch wrap (used)
+  contamination_level: low
+  quality_tier: 2
+  typical_contaminants:
+  - 'Adhesive residue: <0.5%'
+  - 'Minimal dirt: <0.3%'
+  sorting_purity:
+    value:
+    - 90.0
+    - 90.0
+    typical: 90.0
+    unit: '%'
+  suitable_applications:
+  - Stretch film recycling
+  - Industrial film
+  - Packaging film
+- profile_id: LLDPE_AGRICULTURAL_FILM_SORTED
+  material_type: LLDPE
+  source: Agricultural film (sorted, washed)
+  contamination_level: medium
+  quality_tier: 3
+  typical_contaminants:
+  - 'Soil/dirt: 2-5% (before washing)'
+  - 'Organic matter: 1-3%'
+  - UV degradation
+  sorting_purity:
+    value:
+    - 75.0
+    - 75.0
+    typical: 75.0
+    unit: '%'
+  processing_requirements:
+    washing: required
+    drying: required
+  suitable_applications:
+  - Agricultural film recycling
+  - Construction films
+  - Industrial films (non-critical)
+- profile_id: LLDPE_GROCERY_BAGS_POST_CONSUMER
+  material_type: LLDPE
+  source: Post-consumer grocery bags (sorted)
+  contamination_level: medium-high
+  quality_tier: 3
+  typical_contaminants:
+  - 'Food residue: 1-3%'
+  - 'Printing inks: <1%'
+  - 'Labels: <0.5%'
+  - 'Mixed LDPE/LLDPE: 5-15%'
+  sorting_purity:
+    value:
+    - 70.0
+    - 70.0
+    typical: 70.0
+    unit: '%'
+  suitable_applications:
+  - Trash bags
+  - Construction films
+  - Industrial films (low-value)
+quality_indicators:
+- indicator_id: LLDPE_TEAR_STRENGTH
+  test_method: ASTM D1922 (Elmendorf)
+  material_types:
+  - LLDPE
+  thresholds:
+    excellent:
+      value_g:
+      - 250
+      - 600
+    good:
+      value_g:
+      - 150
+      - 250
+    acceptable:
+      value_g:
+      - 100
+      - 150
+    poor:
+      value_g:
+      - 0
+      - 100
+  significance: Key property for film applications - indicates comonomer type and quality
+- indicator_id: LLDPE_CONTAMINATION_VISUAL
+  test_method: Visual inspection
+  material_types:
+  - LLDPE
+  thresholds:
+    excellent: Clean, minimal visible contamination, consistent color
+    good: Minor contamination, single color
+    acceptable: Moderate contamination, mixed colors
+    poor: Heavy contamination, degraded appearance
+  significance: Indicates source quality and tier classification
+- indicator_id: LLDPE_MELT_INDEX
+  test_method: ASTM D1238 (190°C/2.16kg)
+  material_types:
+  - LLDPE
+  thresholds:
+    film_grade:
+      value:
+      - 0.5
+      - 4.0
+      typical: 2.25
+      unit: ''
+    rotomolding_grade:
+      value:
+      - 3.0
+      - 8.0
+      typical: 5.5
+      unit: ''
+    injection_grade:
+      value:
+      - 15.0
+      - 35.0
+      typical: 25.0
+      unit: ''
+  significance: Indicates molecular weight and processability - critical for application matching
+- indicator_id: LLDPE_DIRT_CONTENT
+  test_method: Visual inspection or filtration test
+  material_types:
+  - LLDPE
+  thresholds:
+    excellent:
+      dirt:
+        value:
+        - 0.0
+        - 0.1
+        typical: 0.05
+        unit: '%'
+    good:
+      dirt:
+        value:
+        - 0.1
+        - 1.0
+        typical: 0.55
+        unit: '%'
+    acceptable:
+      dirt:
+        value:
+        - 1.0
+        - 3.0
+        typical: 2.0
+        unit: '%'
+    poor:
+      dirt:
+        value:
+        - 3.0
+        - 100.0
+        typical: 51.5
+        unit: '%'
+  significance: Critical for film applications - affects optical properties and processability
+inference_rules:
+- rule_id: LLDPE_PRODUCT_TO_BUYER_FORWARD
+  inference_type: buyer_matching
+  logic: IF product=stretch_wrap THEN grade=hexene_lldpe AND quality_tier=[1,2] AND match_buyers=[stretch_film_manufacturers,
+    industrial_film]
+  reasoning: Forward reasoning from product to suitable buyers based on grade and quality tier
+  confidence: 0.9
+- rule_id: LLDPE_BUYER_TO_SOURCE_BACKWARD
+  inference_type: source_matching
+  logic: IF buyer=food_packaging_non_contact THEN require_grade=octene_or_metallocene AND require_tier=1 AND require_source=film_pir_only
+  reasoning: Backward reasoning from buyer requirements to acceptable sources
+  confidence: 0.95
+- rule_id: LLDPE_FILM_PIR_PREMIUM_MATCHING
+  inference_type: buyer_matching
+  logic: IF source=film_pir AND contamination<0.5% THEN tier=1 AND match_all_buyers
+  reasoning: Film PIR is premium quality - suitable for all LLDPE applications
+  confidence: 0.95
+- rule_id: LLDPE_AGRICULTURAL_WASHING_REQUIREMENT
+  inference_type: processing_requirement
+  logic: IF source=agricultural_film THEN require_washing BEFORE tier_assessment
+  reasoning: Agricultural film requires washing to remove soil/organic contamination
+  confidence: 0.92
+- rule_id: LLDPE_FOOD_CONTACT_EXCLUSION
+  inference_type: application_matching
+  logic: IF source=post_consumer_food_contact THEN exclude_food_contact_reuse AND route_to_non_food
+  reasoning: FDA restrictions on PCR food contact - route to non-food applications
+  confidence: 0.98
+- rule_id: LLDPE_COMONOMER_VALUE_MATCHING
+  inference_type: buyer_matching
+  logic: IF comonomer=C8 THEN premium_applications; IF comonomer=C6 THEN standard_applications; IF comonomer=C4 THEN cost_sensitive_applications
+  reasoning: Comonomer type determines performance tier and buyer matching
+  confidence: 0.85
+- rule_id: LLDPE_STRETCH_WRAP_RECYCLING
+  inference_type: buyer_matching
+  logic: IF product=stretch_wrap AND source=post_industrial THEN tier=[1,2] AND match_buyers=[stretch_film_manufacturers]
+  reasoning: Post-industrial stretch wrap ideal for stretch film recycling
+  confidence: 0.9
+standards:
+- standard_id: ASTM_D1248
+  title: Classification System for Polyethylene Plastics Molding and Extrusion Materials
+  scope: Defines LLDPE types, grades, and property requirements
+  relevance: Primary classification standard for LLDPE materials
+- standard_id: ASTM_D1238
+  title: Melt Flow Rates of Thermoplastics
+  test_conditions: 190°C/2.16kg for LLDPE
+  significance: Indicates molecular weight and processability
+- standard_id: ASTM_D1922
+  title: Propagation Tear Resistance of Plastic Film and Thin Sheeting (Elmendorf)
+  significance: Critical property for LLDPE film applications
+- standard_id: FDA_CFR_177
+  title: 'Indirect Food Additives: Polymers'
+  scope: FDA regulations for food contact plastics
+  relevance: Required for LLDPE in food packaging applications
+processing_guidance:
+  drying:
+    required: false
+    note: LLDPE not hygroscopic - drying optional unless moisture contamination present
+  temperature_control:
+    extrusion_temp:
+      value:
+      - 180.0
+      - 230.0
+      typical: 205.0
+      unit: °C
+    die_temp:
+      value:
+      - 190.0
+      - 220.0
+      typical: 205.0
+      unit: °C
+  mixing_pcr_virgin:
+    recommended_method: Dry blend or inline blending
+    max_pcr_pct_by_application:
+      food_packaging_non_contact: 25
+      stretch_film: 50
+      grocery_bags: 100
+      agricultural_film: 100
+      trash_bags: 100
+  contamination_removal:
+    washing: Required for agricultural film, post-consumer film
+    sorting: Recommended - separate LLDPE from LDPE/HDPE
+    filtration: Recommended for film applications

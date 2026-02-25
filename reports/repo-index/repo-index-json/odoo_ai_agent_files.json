@@ -1,0 +1,146 @@
+[
+  {
+    "file": "AI Agent Files/AGENT.md",
+    "name": "AGENT.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/ARCHITECTURE.md",
+    "name": "ARCHITECTURE.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/CHANGELOG.md",
+    "name": "CHANGELOG.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/CONTRIBUTING.md",
+    "name": "CONTRIBUTING.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/DEPLOYMENT.md",
+    "name": "DEPLOYMENT.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/ENVIRONMENT_SPEC.yaml",
+    "name": "ENVIRONMENT_SPEC.yaml",
+    "kind": "spec",
+    "suffix": ".yaml"
+  },
+  {
+    "file": "AI Agent Files/FAQ.md",
+    "name": "FAQ.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/FIXTURE_POLICY.md",
+    "name": "FIXTURE_POLICY.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/GLOSSARY.md",
+    "name": "GLOSSARY.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/INVARIANTS.md",
+    "name": "INVARIANTS.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/LICENSE",
+    "name": "LICENSE",
+    "kind": "other",
+    "suffix": "(none)"
+  },
+  {
+    "file": "AI Agent Files/MIGRATION_GUIDE.md",
+    "name": "MIGRATION_GUIDE.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/NEO4J_ONTOLOGY.yaml",
+    "name": "NEO4J_ONTOLOGY.yaml",
+    "kind": "spec",
+    "suffix": ".yaml"
+  },
+  {
+    "file": "AI Agent Files/QUICK_START.md",
+    "name": "QUICK_START.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/README.md",
+    "name": "README.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/README_harvested.md",
+    "name": "README_harvested.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/ROADMAP.md",
+    "name": "ROADMAP.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/SECURITY_MODEL.md",
+    "name": "SECURITY_MODEL.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/TEST_STRATEGY.md",
+    "name": "TEST_STRATEGY.md",
+    "kind": "doc",
+    "suffix": ".md"
+  },
+  {
+    "file": "AI Agent Files/compliance_scan.json",
+    "name": "compliance_scan.json",
+    "kind": "data",
+    "suffix": ".json"
+  },
+  {
+    "file": "AI Agent Files/dependency_graph.json",
+    "name": "dependency_graph.json",
+    "kind": "data",
+    "suffix": ".json"
+  },
+  {
+    "file": "AI Agent Files/external_id_registry.json",
+    "name": "external_id_registry.json",
+    "kind": "data",
+    "suffix": ".json"
+  },
+  {
+    "file": "AI Agent Files/model_registry.json",
+    "name": "model_registry.json",
+    "kind": "data",
+    "suffix": ".json"
+  },
+  {
+    "file": "AI Agent Files/repo_spec.yaml",
+    "name": "repo_spec.yaml",
+    "kind": "spec",
+    "suffix": ".yaml"
+  }
+]

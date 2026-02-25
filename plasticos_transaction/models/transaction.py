@@ -291,11 +291,14 @@ class PlasticosTransaction(models.Model):
         index=True,
     )
 
-    # ── Constraints (Odoo 19 models.Constraint) ──────────────
-    _check_unique_name = models.Constraint(
-        "unique(name)",
-        "Transaction reference must be unique.",
-    )
+    # ── Constraints ──────────────────────────────────────────
+    _sql_constraints = [
+        (
+            "unique_name",
+            "unique(name)",
+            "Transaction reference must be unique.",
+        ),
+    ]
 
     # ── Computed Methods (harvested) ──────────────────────────
     @api.depends(

@@ -144,7 +144,7 @@ These are needed to surface enrichment runs and wiring into Odoo 19’s `plastic
     "summary": "AI / KB lead enrichment for PlastOS intake and buyer card",
     "description": "Imports enriched leads from the external enrichment pipeline "
                    "into plasticos.intake and related partner/profile models.",
-    "author": "Scrap Management Inc.",
+    "author": "Inc.",
     "depends": ["plasticosintake", "plasticosmaterialprofile", "contacts", "mail"],
     "data": [
         "security/ir.model.access.csv",

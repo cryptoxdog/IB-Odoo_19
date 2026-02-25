@@ -1,0 +1,1654 @@
+# Plasticos KB v8.0 — ABS
+# Generated: 2026-02-23T02:19:10Z
+# Source format: v7.0r multi-entity
+# Schema: plasticos_kb_v8.0
+
+_metadata:
+  version: '8.0'
+  source_version: 7.0r
+  generated: '2026-02-23T02:19:10Z'
+  data_quality: verified
+  source_tier: tier_1
+  schema_compliant: true
+  source_last_updated: '2025-11-05'
+polymer_identity:
+  polymer_family: Commodity Thermoplastics
+  polymer_type: ABS
+  full_name: Acrylonitrile Butadiene Styrene
+  resin_id_code: 7
+  structure: ''
+product_scrap_mapping:
+  automotive_products:
+  - product: Interior trim panels (dashboards, consoles)
+    scrap_grade: general_purpose_abs
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 1.0
+      - 3.0
+      typical: 2.0
+      unit: '%'
+    typical_contaminants:
+    - adhesives <0.5%
+    - foam backing <1%
+    - metals <100ppm
+    suitable_buyers:
+    - automotive_tier2
+    - industrial_housing
+    - consumer_goods
+    reverse_reasoning: IF buyer_needs_automotive_interior THEN source_automotive_abs_tier2_tier3
+  - product: Bumpers and exterior trim
+    scrap_grade: high_impact_abs
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 1.5
+      - 4.0
+      typical: 2.75
+      unit: '%'
+    typical_contaminants:
+    - paint/coating <2%
+    - UV degradation
+    - dirt <1%
+    suitable_buyers:
+    - automotive_tier2
+    - industrial_applications
+  - product: Automotive instrument panels
+    scrap_grade: general_purpose_abs
+    scrap_quality_tier:
+      range:
+      - 1
+      - 2
+      min: 1
+      max: 2
+    typical_contamination_pct:
+      value:
+      - 0.5
+      - 2.0
+      typical: 1.25
+      unit: '%'
+    suitable_buyers:
+    - automotive_tier1
+    - electronics_housing
+  electronics_products:
+  - product: Computer keyboards and housings
+    scrap_grade: general_purpose_abs
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 0.8
+      - 2.5
+      typical: 1.65
+      unit: '%'
+    typical_contaminants:
+    - metals <150ppm
+    - adhesives <0.3%
+    - labels <0.2%
+    suitable_buyers:
+    - electronics_manufacturers
+    - consumer_goods
+    - industrial_housing
+    reverse_reasoning: IF buyer_needs_electronics_housing THEN source_weee_abs_tier2_tier3
+  - product: Printer housings and components
+    scrap_grade: general_purpose_abs
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 1.0
+      - 3.0
+      typical: 2.0
+      unit: '%'
+    suitable_buyers:
+    - electronics_manufacturers
+    - industrial_housing
+  - product: Electronic device housings
+    scrap_grade: fr_abs
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 1.0
+      - 2.5
+      typical: 1.75
+      unit: '%'
+    suitable_buyers:
+    - electronics_manufacturers
+    - appliance_manufacturers
+  appliance_products:
+  - product: Refrigerator interior components
+    scrap_grade: general_purpose_abs
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 1.5
+      - 3.5
+      typical: 2.5
+      unit: '%'
+    typical_contaminants:
+    - food residue <1%
+    - adhesives <0.5%
+    suitable_buyers:
+    - appliance_manufacturers
+    - industrial_housing
+    reverse_reasoning: IF buyer_needs_appliance_components THEN source_appliance_abs_tier2_tier3
+  - product: Washing machine components
+    scrap_grade: general_purpose_abs
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 1.0
+      - 3.0
+      typical: 2.0
+      unit: '%'
+    suitable_buyers:
+    - appliance_manufacturers
+    - industrial_housing
+  - product: Vacuum cleaner housings
+    scrap_grade: high_impact_abs
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 1.5
+      - 3.5
+      typical: 2.5
+      unit: '%'
+    suitable_buyers:
+    - appliance_manufacturers
+    - consumer_goods
+  consumer_products:
+  - product: Toys (LEGO, building blocks)
+    scrap_grade: general_purpose_abs
+    scrap_quality_tier:
+      range:
+      - 1
+      - 2
+      min: 1
+      max: 2
+    typical_contamination_pct:
+      value:
+      - 0.3
+      - 1.5
+      typical: 0.9
+      unit: '%'
+    typical_contaminants:
+    - printing inks <0.2%
+    - minimal contamination
+    suitable_buyers:
+    - toy_manufacturers
+    - consumer_goods
+    - industrial_housing
+    reverse_reasoning: IF buyer_needs_toys THEN source_toy_abs_pir_tier1_tier2
+    note: Toy-grade ABS often high quality PIR from manufacturing
+  - product: Luggage and cases
+    scrap_grade: high_impact_abs
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 2.0
+      - 4.0
+      typical: 3.0
+      unit: '%'
+    suitable_buyers:
+    - consumer_goods
+    - industrial_applications
+  - product: Sporting goods
+    scrap_grade: high_impact_abs
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 1.5
+      - 3.5
+      typical: 2.5
+      unit: '%'
+    suitable_buyers:
+    - sporting_goods
+    - consumer_goods
+  industrial_products:
+  - product: Power tool housings
+    scrap_grade: high_impact_abs
+    scrap_quality_tier:
+      range:
+      - 1
+      - 2
+      min: 1
+      max: 2
+    typical_contamination_pct:
+      value:
+      - 0.5
+      - 2.0
+      typical: 1.25
+      unit: '%'
+    typical_contaminants:
+    - metal dust <200ppm
+    - oils <0.3%
+    suitable_buyers:
+    - power_tool_manufacturers
+    - industrial_housing
+    reverse_reasoning: IF buyer_needs_power_tools THEN source_power_tool_abs_tier1_tier2
+  - product: Industrial equipment housings
+    scrap_grade: general_purpose_abs
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 1.0
+      - 3.0
+      typical: 2.0
+      unit: '%'
+    suitable_buyers:
+    - industrial_manufacturers
+  plumbing_products:
+  - product: Plumbing fixtures (faucets, drains)
+    scrap_grade: electroplating_abs
+    scrap_quality_tier:
+      range:
+      - 2
+      - 3
+      min: 2
+      max: 3
+    typical_contamination_pct:
+      value:
+      - 1.5
+      - 3.5
+      typical: 2.5
+      unit: '%'
+    typical_contaminants:
+    - chrome/nickel plating <2%
+    - adhesives <0.5%
+    suitable_buyers:
+    - plumbing_manufacturers
+    - industrial_applications
+    note: Electroplated ABS requires de-plating for recycling
+source_quality_tiers:
+  tier_1_premium:
+    tier_id: tier_1_premium
+    definition: Single-source PIR, minimal contamination, documented processing
+    contamination_max:
+      value:
+      - 0.5
+      - 0.5
+      typical: 0.5
+      unit: '%'
+    moisture_max_ppm: 500
+    metal_content_max_ppm: 100
+    property_retention_min:
+      value:
+      - 90.0
+      - 90.0
+      typical: 90.0
+      unit: '%'
+    sorting_purity_min:
+      value:
+      - 98.0
+      - 98.0
+      typical: 98.0
+      unit: '%'
+    processing_history: Single cycle or virgin manufacturing plasticos
+    examples:
+    - Toy manufacturing PIR (LEGO-type)
+    - Automotive component manufacturing scrap (documented)
+    - Power tool manufacturing PIR
+    - Electronics housing PIR (known grade)
+    suitable_applications:
+    - Toys (high quality requirements)
+    - Automotive visible components
+    - Premium electronics housing
+    - Power tools
+    value_premium:
+      value:
+      - 15.0
+      - 25.0
+      typical: 20.0
+      unit: '%'
+  tier_2_standard:
+    tier_id: tier_2_standard
+    definition: Multi-source sorted PCR, moderate contamination
+    contamination_max:
+      value:
+      - 2.5
+      - 2.5
+      typical: 2.5
+      unit: '%'
+    moisture_max_ppm: 1000
+    metal_content_max_ppm: 200
+    property_retention_min:
+      value:
+      - 75.0
+      - 75.0
+      typical: 75.0
+      unit: '%'
+    sorting_purity_min:
+      value:
+      - 85.0
+      - 85.0
+      typical: 85.0
+      unit: '%'
+    processing_history: 1-3 recycling cycles
+    examples:
+    - WEEE electronics housing (sorted)
+    - Post-consumer automotive components (sorted)
+    - Appliance housing scrap (sorted)
+    - General post-consumer ABS (sorted, washed)
+    suitable_applications:
+    - Electronics housing (non-critical)
+    - Automotive interior (non-visible)
+    - Appliance components
+    - Consumer goods (non-toy)
+    - Industrial housings
+    value_premium:
+      value:
+      - 0.0
+      - 0.0
+      typical: 0.0
+      unit: '%'
+  tier_3_utility:
+    tier_id: tier_3_utility
+    definition: Mixed-source, higher contamination, multiple cycles
+    contamination_max:
+      value:
+      - 5.0
+      - 5.0
+      typical: 5.0
+      unit: '%'
+    moisture_max_ppm: 2000
+    metal_content_max_ppm: 400
+    property_retention_min:
+      value:
+      - 60.0
+      - 60.0
+      typical: 60.0
+      unit: '%'
+    sorting_purity_min:
+      value:
+      - 70.0
+      - 70.0
+      typical: 70.0
+      unit: '%'
+    processing_history: 3-6 recycling cycles or unknown
+    examples:
+    - Mixed post-consumer ABS (unsorted)
+    - Contaminated electronics plasticos
+    - General waste stream ABS
+    - Mixed consumer goods
+    suitable_applications:
+    - Industrial applications (non-critical)
+    - Construction materials
+    - Low-value consumer goods
+    - Utility products
+    value_discount:
+      value:
+      - 35.0
+      - 50.0
+      typical: 42.5
+      unit: '%'
+  tier_4_marginal:
+    tier_id: tier_4_marginal
+    definition: Heavily contaminated, degraded, multiple unknown cycles
+    contamination_min:
+      value:
+      - 5.0
+      - 5.0
+      typical: 5.0
+      unit: '%'
+    property_retention_max:
+      value:
+      - 60.0
+      - 60.0
+      typical: 60.0
+      unit: '%'
+    processing_history: '>6 cycles or severely degraded'
+    examples:
+    - Heavily contaminated mixed waste
+    - Degraded consumer goods
+    - Mixed polymer waste streams
+    suitable_applications:
+    - Chemical recycling feedstock
+    - Downcycled products (very limited)
+    - Waste-to-energy
+    value_discount:
+      value:
+      - 60.0
+      - 80.0
+      typical: 70.0
+      unit: '%'
+material_grades:
+- grade_id: ABS_GENERAL_PURPOSE
+  grade_name: General Purpose ABS
+  description: Standard ABS for general applications requiring impact resistance and processability
+  type: virgin
+  melt_flow_rate:
+    value:
+      value:
+      - 2.0
+      - 30.0
+      typical: 16.0
+      unit: g/10min
+    test_conditions: 230°C/3.8kg
+    test_method: ASTM D1238
+    note: Wide range - flow varies significantly by grade
+  density:
+    value:
+      value:
+      - 1.05
+      - 1.05
+      typical: 1.05
+      unit: g/cm³
+    range:
+      value:
+      - 1.02
+      - 1.08
+      typical: 1.05
+      unit: g/cm³
+    test_method: ASTM D792
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 35.0
+      - 55.0
+      typical: 45.0
+      unit: MPa
+    flexural_modulus:
+      value:
+      - 2000.0
+      - 2800.0
+      typical: 2400.0
+      unit: MPa
+    impact_strength:
+      value:
+      - 150.0
+      - 400.0
+      typical: 275.0
+      unit: J/m
+    hdt:
+      value:
+      - 85.0
+      - 105.0
+      typical: 95.0
+      unit: °C
+    elongation_at_break:
+      value:
+      - 15.0
+      - 40.0
+      typical: 27.5
+      unit: '%'
+    test_method: ASTM D638, D790, D256, D648
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 20.0
+      - 40.0
+      typical: 30.0
+      unit: '%'
+    quality_requirements: Moderate contamination control, <2.5% contaminants
+  applications:
+    primary:
+    - product: Appliance housings
+      scrap_source: Appliance manufacturing, post-consumer appliances
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Computer and electronic housings
+      scrap_source: WEEE electronics
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Automotive interior components
+      scrap_source: Automotive manufacturing, end-of-life vehicles
+      quality_tier_required:
+      - 2
+      - 3
+    secondary:
+    - product: Toys and sporting goods
+      scrap_source: Toy manufacturing PIR
+      quality_tier_required:
+      - 1
+      - 2
+    - product: Luggage and cases
+      scrap_source: Consumer goods
+      quality_tier_required:
+      - 2
+      - 3
+  composition:
+    acrylonitrile:
+      value:
+      - 15.0
+      - 35.0
+      typical: 25.0
+      unit: '%'
+    butadiene:
+      value:
+      - 5.0
+      - 30.0
+      typical: 17.5
+      unit: '%'
+    styrene:
+      value:
+      - 40.0
+      - 60.0
+      typical: 50.0
+      unit: '%'
+  processing_temperatures:
+    melt_temp:
+      value:
+      - 200.0
+      - 260.0
+      typical: 230.0
+      unit: °C
+    optimal_range:
+      value:
+      - 220.0
+      - 250.0
+      typical: 235.0
+      unit: °C
+    decomposition_temp:
+      value:
+      - 300.0
+      - 300.0
+      typical: 300.0
+      unit: °C
+    mold_temp:
+      value:
+      - 50.0
+      - 80.0
+      typical: 65.0
+      unit: °C
+- grade_id: ABS_HIGH_IMPACT
+  grade_name: High Impact ABS
+  description: Enhanced impact resistance ABS for demanding applications
+  type: virgin
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 30.0
+      - 45.0
+      typical: 37.5
+      unit: MPa
+    flexural_modulus:
+      value:
+      - 1800.0
+      - 2400.0
+      typical: 2100.0
+      unit: MPa
+    impact_strength:
+      value:
+      - 300.0
+      - 600.0
+      typical: 450.0
+      unit: J/m
+    hdt:
+      value:
+      - 80.0
+      - 95.0
+      typical: 87.5
+      unit: °C
+    elongation_at_break:
+      value:
+      - 25.0
+      - 60.0
+      typical: 42.5
+      unit: '%'
+    note: Superior impact, slightly lower stiffness than GP ABS
+  applications:
+    primary:
+    - product: Automotive bumpers and trim
+      scrap_source: Automotive manufacturing, end-of-life vehicles
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Power tool housings
+      scrap_source: Power tool manufacturing PIR
+      quality_tier_required:
+      - 1
+      - 2
+    - product: Safety helmets
+      scrap_source: Safety equipment manufacturing
+      quality_tier_required:
+      - 1
+      - 2
+    secondary:
+    - product: Outdoor furniture
+      scrap_source: Consumer goods
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Heavy-duty appliance components
+      scrap_source: Appliance manufacturing
+      quality_tier_required:
+      - 2
+      - 3
+  composition:
+    acrylonitrile:
+      value:
+      - 15.0
+      - 25.0
+      typical: 20.0
+      unit: '%'
+    butadiene:
+      value:
+      - 20.0
+      - 30.0
+      typical: 25.0
+      unit: '%'
+    styrene:
+      value:
+      - 45.0
+      - 60.0
+      typical: 52.5
+      unit: '%'
+    note: Higher butadiene content for enhanced impact
+  processing_temperatures:
+    melt_temp:
+      value:
+      - 200.0
+      - 250.0
+      typical: 225.0
+      unit: °C
+    optimal_range:
+      value:
+      - 220.0
+      - 240.0
+      typical: 230.0
+      unit: °C
+- grade_id: ABS_FLAME_RETARDANT
+  grade_name: Flame Retardant ABS (UL94 V-0)
+  description: FR-enhanced ABS for electrical/electronic applications
+  type: virgin
+  mechanical_properties:
+    tensile_strength:
+      value:
+      - 30.0
+      - 50.0
+      typical: 40.0
+      unit: MPa
+    flexural_modulus:
+      value:
+      - 2200.0
+      - 3000.0
+      typical: 2600.0
+      unit: MPa
+    impact_strength:
+      value:
+      - 100.0
+      - 300.0
+      typical: 200.0
+      unit: J/m
+    hdt:
+      value:
+      - 90.0
+      - 110.0
+      typical: 100.0
+      unit: °C
+    note: Reduced impact due to FR additives
+  applications:
+    primary:
+    - product: Electrical and electronic housings
+      scrap_source: WEEE electronics
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Automotive interior components
+      scrap_source: Automotive manufacturing
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Appliance components
+      scrap_source: Appliance manufacturing
+      quality_tier_required:
+      - 2
+      - 3
+    secondary:
+    - product: Building and construction materials
+      scrap_source: Construction
+      quality_tier_required:
+      - 3
+      - 4
+  flame_retardant_system:
+    type: halogenated or halogen-free
+    loading:
+      value:
+      - 10.0
+      - 25.0
+      typical: 17.5
+      unit: '%'
+    common_systems:
+    - brominated + antimony trioxide
+    - phosphorus compounds
+  fire_performance:
+    ul94_rating: V-0, V-1, or V-2
+    oxygen_index:
+      value:
+      - 22.0
+      - 28.0
+      typical: 25.0
+      unit: '%'
+    flame_spread_index: 25
+    test_method: UL 94, ASTM D2863, E162
+- grade_id: ABS_GLASS_FILLED
+  grade_name: Glass Fiber Reinforced ABS (GF10-30%)
+  description: Glass fiber reinforced ABS for high-stiffness structural applications
+  type: virgin
+  applications:
+    primary:
+    - product: Automotive structural components
+      scrap_source: Automotive manufacturing PIR
+      quality_tier_required:
+      - 1
+      - 2
+    - product: Power tool housings
+      scrap_source: Power tool manufacturing PIR
+      quality_tier_required:
+      - 1
+      - 2
+    - product: Industrial equipment parts
+      scrap_source: Industrial manufacturing
+      quality_tier_required:
+      - 2
+      - 3
+  glass_fiber_content:
+    standard_grades:
+      value:
+      - 10.0
+      - 30.0
+      typical: 20.0
+      unit: '%'
+    high_loading:
+      value:
+      - 30.0
+      - 40.0
+      typical: 35.0
+      unit: '%'
+    fiber_length:
+      value:
+      - 0.1
+      - 0.4
+      typical: 0.25
+      unit: mm
+  enhanced_properties:
+    tensile_strength:
+      value:
+      - 60.0
+      - 120.0
+      typical: 90.0
+      unit: MPa
+    flexural_modulus:
+      value:
+      - 4000.0
+      - 8000.0
+      typical: 6000.0
+      unit: MPa
+    impact_strength:
+      value:
+      - 80.0
+      - 200.0
+      typical: 140.0
+      unit: J/m
+    hdt:
+      value:
+      - 120.0
+      - 160.0
+      typical: 140.0
+      unit: °C
+    dimensional_stability: significantly improved
+  processing_considerations:
+    melt_temp:
+      value:
+      - 230.0
+      - 280.0
+      typical: 255.0
+      unit: °C
+    note: Higher than unfilled ABS, increased wear on equipment
+    anisotropy: directional properties due to fiber orientation
+- grade_id: ABS_ELECTROPLATING
+  grade_name: Electroplating Grade ABS
+  description: Optimized for chrome/nickel plating applications
+  type: virgin
+  applications:
+    primary:
+    - product: Plumbing fixtures (faucets, drains)
+      scrap_source: Plumbing manufacturing, post-consumer
+      quality_tier_required:
+      - 2
+      - 3
+      note: Requires de-plating for recycling
+    - product: Automotive trim (chrome-plated)
+      scrap_source: Automotive manufacturing, end-of-life vehicles
+      quality_tier_required:
+      - 2
+      - 3
+  processing_requirements:
+    melt_temp:
+      value:
+      - 220.0
+      - 250.0
+      typical: 235.0
+      unit: °C
+    mold_temp:
+      value:
+      - 50.0
+      - 80.0
+      typical: 65.0
+      unit: °C
+    surface_finish: mirror polish required
+  surface_properties:
+    surface_roughness_ra:
+      value:
+      - 0.1
+      - 0.1
+      typical: 0.1
+      unit: μm
+    adhesion: excellent chrome/nickel adhesion
+    platability: optimized for electroplating
+- grade_id: ABS_PC_BLEND
+  grade_name: PC/ABS Blend
+  description: ABS blended with polycarbonate for enhanced heat and impact resistance
+  type: blend
+  applications:
+    primary:
+    - product: Automotive interior components (premium)
+      scrap_source: Automotive manufacturing PIR
+      quality_tier_required:
+      - 1
+      - 2
+    - product: Electronics housings (premium)
+      scrap_source: WEEE electronics
+      quality_tier_required:
+      - 2
+      - 3
+    note: PC/ABS blend recycling requires separation or dedicated stream
+  composition:
+    abs:
+      value:
+      - 50.0
+      - 85.0
+      typical: 67.5
+      unit: '%'
+    pc:
+      value:
+      - 15.0
+      - 50.0
+      typical: 32.5
+      unit: '%'
+  enhanced_properties:
+    tensile_strength:
+      value:
+      - 40.0
+      - 60.0
+      typical: 50.0
+      unit: MPa
+    impact_strength:
+      value:
+      - 400.0
+      - 700.0
+      typical: 550.0
+      unit: J/m
+    hdt:
+      value:
+      - 100.0
+      - 130.0
+      typical: 115.0
+      unit: °C
+    note: Combines ABS processability with PC heat/impact resistance
+recycling_rules:
+- rule_id: ABS_PIR_VS_PCR_QUALITY
+  rule: ABS PIR significantly higher quality than PCR due to thermal history
+  reasoning: 'PIR ABS: single cycle, known grade, minimal contamination, 90%+ property retention. PCR ABS: multiple cycles,
+    mixed grades, contamination, 60-80% property retention. Impact strength particularly sensitive to recycling.'
+  confidence: 0.88
+  pir_characteristics:
+    property_retention:
+      value:
+      - 90.0
+      - 100.0
+      typical: 95.0
+      unit: '%'
+    contamination:
+      value:
+      - 0.1
+      - 0.5
+      typical: 0.3
+      unit: '%'
+    quality_tier: 1
+  pcr_characteristics:
+    property_retention:
+      value:
+      - 60.0
+      - 80.0
+      typical: 70.0
+      unit: '%'
+    contamination:
+      value:
+      - 1.0
+      - 5.0
+      typical: 3.0
+      unit: '%'
+    quality_tier:
+    - 2
+    - 3
+- rule_id: ABS_IMPACT_DEGRADATION
+  material_type: ABS
+  rule: ABS impact strength degrades with recycling cycles - butadiene oxidation
+  reasoning: Butadiene rubber phase oxidizes during thermal cycling, reducing impact strength 10-20% per cycle. Tensile strength
+    more stable. Impact-critical applications require Tier 1-2 only.
+  confidence: 0.9
+  degradation_rates:
+    impact_strength_loss_per_cycle:
+      value:
+      - 10.0
+      - 20.0
+      typical: 15.0
+      unit: '%'
+    tensile_strength_loss_per_cycle:
+      value:
+      - 3.0
+      - 8.0
+      typical: 5.5
+      unit: '%'
+- rule_id: ABS_WEEE_SOURCE_QUALITY
+  material_type: ABS
+  source_type: WEEE electronics
+  rule: WEEE ABS sources vary widely - sorting by grade critical
+  reasoning: 'WEEE contains GP ABS, FR ABS, PC/ABS blends. Sorting purity 70-85%. Contamination: metals, adhesives, other
+    plastics. Grade identification critical for buyer matching.'
+  confidence: 0.85
+  weee_characteristics:
+    sorting_purity:
+      value:
+      - 70.0
+      - 85.0
+      typical: 77.5
+      unit: '%'
+    typical_grades:
+    - GP ABS
+    - FR ABS
+    - PC/ABS blends
+    contamination:
+      value:
+      - 1.0
+      - 3.5
+      typical: 2.25
+      unit: '%'
+    quality_tier:
+    - 2
+    - 3
+- rule_id: ABS_ELECTROPLATING_CHALLENGE
+  material_type: ABS
+  rule: Electroplated ABS requires de-plating before recycling
+  reasoning: Chrome/nickel plating on ABS (plumbing fixtures, automotive trim) must be removed before recycling. De-plating
+    adds cost but enables Tier 2-3 quality. Unplated scrap is Tier 4.
+  confidence: 0.92
+  processing_requirements:
+    de_plating_required: true
+    de_plating_methods:
+    - chemical stripping
+    - mechanical removal
+    cost_impact: moderate - adds $200-400/ton
+- rule_id: ABS_MULTI_CYCLE_LIMITS
+  rule: ABS recycling cycle limits vary by application tier
+  reasoning: 'Toys/premium: 1-2 cycles max (Tier 1). Electronics/automotive: 3-4 cycles acceptable (Tier 2). Industrial: 5-6
+    cycles OK (Tier 3).'
+  confidence: 0.85
+  cycle_limits:
+    toys_premium_max_cycles: 2
+    electronics_automotive_max_cycles: 4
+    industrial_max_cycles: 6
+- rule_id: ABS_PC_BLEND_SEPARATION
+  material_type: PC/ABS blend
+  rule: PC/ABS blends require separation or dedicated recycling stream
+  reasoning: 'PC/ABS blends common in automotive and electronics. Separation difficult and costly. Best practice: dedicated
+    PC/ABS recycling stream or accept as contaminated ABS (Tier 3).'
+  confidence: 0.87
+  processing_options:
+    dedicated_stream: preferred - maintains blend properties
+    separation: costly - chemical or selective dissolution
+    contaminated_abs: acceptable for Tier 3 applications
+contamination_profiles:
+- profile_id: ABS_WEEE_ELECTRONICS_SORTED
+  material_type: ABS
+  source: WEEE electronics (sorted)
+  contamination_level: low-medium
+  quality_tier: 2
+  typical_contaminants:
+  - 'Metals (screws, brackets): 100-200 ppm'
+  - 'Adhesives: <0.5%'
+  - 'Labels/printing: <0.3%'
+  - 'Other plastics (PS, PC): <2%'
+  sorting_purity:
+    value:
+    - 80.0
+    - 80.0
+    typical: 80.0
+    unit: '%'
+  suitable_applications:
+  - Electronics housing (non-critical)
+  - Industrial housings
+  - Consumer goods
+- profile_id: ABS_AUTOMOTIVE_PIR
+  material_type: ABS
+  source: Automotive manufacturing PIR
+  contamination_level: very low
+  quality_tier: 1
+  typical_contaminants:
+  - Minimal - clean manufacturing environment
+  - 'Paint/coating residue: <0.2%'
+  sorting_purity:
+    value:
+    - 98.0
+    - 98.0
+    typical: 98.0
+    unit: '%'
+  suitable_applications:
+  - Automotive components (all tiers)
+  - Premium electronics
+  - Power tools
+- profile_id: ABS_TOY_MANUFACTURING_PIR
+  material_type: ABS
+  source: Toy manufacturing PIR (LEGO-type)
+  contamination_level: minimal
+  quality_tier: 1
+  typical_contaminants:
+  - 'Printing inks: <0.2%'
+  - Minimal contamination - high quality control
+  sorting_purity:
+    value:
+    - 99.0
+    - 99.0
+    typical: 99.0
+    unit: '%'
+  suitable_applications:
+  - Toys (meets toy safety standards)
+  - Premium consumer goods
+  - Electronics housing
+- profile_id: ABS_APPLIANCE_PCR
+  material_type: ABS
+  source: Post-consumer appliances (sorted)
+  contamination_level: medium
+  quality_tier: 3
+  typical_contaminants:
+  - 'Food residue: 1-2%'
+  - 'Adhesives: 0.5-1%'
+  - 'Mixed plastics: 2-4%'
+  sorting_purity:
+    value:
+    - 75.0
+    - 75.0
+    typical: 75.0
+    unit: '%'
+  suitable_applications:
+  - Appliance components (non-food contact)
+  - Industrial housings
+  - Construction materials
+buyer_profiles:
+- buyer_id: ABS_AUTOMOTIVE_TIER2
+  buyer_type: Automotive tier 2 supplier
+  industry_segment: Automotive
+  material_requirements:
+    polymer_types:
+    - ABS
+    - ABS_high_impact
+    purity_min:
+      value:
+      - 85.0
+      - 85.0
+      typical: 85.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 40.0
+      - 40.0
+      typical: 40.0
+      unit: '%'
+    preferred_source: Automotive manufacturing PIR, sorted WEEE
+    quality_tier_required:
+    - 2
+    - 3
+    color_preference: black, gray, automotive colors
+    form_preference: pellets
+  quality_specifications:
+    impact_strength_min:
+      value:
+      - 200.0
+      - 200.0
+      typical: 200.0
+      unit: J/m
+    tensile_strength_min:
+      value:
+      - 35.0
+      - 35.0
+      typical: 35.0
+      unit: MPa
+    contamination_max:
+      value:
+      - 2.5
+      - 2.5
+      typical: 2.5
+      unit: '%'
+  certifications_required:
+  - IATF 16949 (automotive quality)
+  applications:
+  - Interior trim panels
+  - Bumpers and exterior trim
+  - Non-visible components
+  volume_range_tons_month:
+  - 50
+  - 500
+- buyer_id: ABS_ELECTRONICS_HOUSING
+  buyer_type: Electronics manufacturer
+  industry_segment: Consumer electronics
+  material_requirements:
+    polymer_types:
+    - ABS
+    - ABS_FR
+    purity_min:
+      value:
+      - 80.0
+      - 80.0
+      typical: 80.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    preferred_source: WEEE electronics sorted, electronics PIR
+    quality_tier_required:
+    - 2
+    - 3
+    color_preference: black, white, or consistent single color
+    form_preference: pellets
+  quality_specifications:
+    impact_strength_min:
+      value:
+      - 150.0
+      - 150.0
+      typical: 150.0
+      unit: J/m
+    tensile_strength_min:
+      value:
+      - 35.0
+      - 35.0
+      typical: 35.0
+      unit: MPa
+    contamination_max:
+      value:
+      - 3.0
+      - 3.0
+      typical: 3.0
+      unit: '%'
+    ul94_rating: V-0 or V-1 (if FR required)
+  certifications_required:
+  - RoHS compliant
+  applications:
+  - Computer keyboards and housings
+  - Printer housings
+  - Electronic device housings
+  volume_range_tons_month:
+  - 100
+  - 1000
+- buyer_id: ABS_TOY_MANUFACTURERS
+  buyer_type: Toy manufacturer
+  industry_segment: Toys
+  material_requirements:
+    polymer_types:
+    - ABS
+    purity_min:
+      value:
+      - 95.0
+      - 95.0
+      typical: 95.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 25.0
+      - 25.0
+      typical: 25.0
+      unit: '%'
+    preferred_source: Toy manufacturing PIR only
+    quality_tier_required:
+    - 1
+    - 2
+    color_preference: various - consistent color critical
+    form_preference: pellets
+  quality_specifications:
+    impact_strength_min:
+      value:
+      - 250.0
+      - 250.0
+      typical: 250.0
+      unit: J/m
+    tensile_strength_min:
+      value:
+      - 40.0
+      - 40.0
+      typical: 40.0
+      unit: MPa
+    contamination_max:
+      value:
+      - 1.0
+      - 1.0
+      typical: 1.0
+      unit: '%'
+    heavy_metals: must meet toy safety standards
+  certifications_required:
+  - ASTM F963 (toy safety)
+  - EN 71 (European toy safety)
+  - CPSIA compliant (US)
+  applications:
+  - Building blocks (LEGO-type)
+  - Toy components
+  - Educational toys
+  volume_range_tons_month:
+  - 20
+  - 200
+- buyer_id: ABS_APPLIANCE_MANUFACTURERS
+  buyer_type: Appliance manufacturer
+  industry_segment: Appliances
+  material_requirements:
+    polymer_types:
+    - ABS
+    - ABS_high_impact
+    purity_min:
+      value:
+      - 80.0
+      - 80.0
+      typical: 80.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 60.0
+      - 60.0
+      typical: 60.0
+      unit: '%'
+    preferred_source: any
+    quality_tier_required:
+    - 2
+    - 3
+    color_preference: white, black, or appliance colors
+    form_preference: pellets
+  quality_specifications:
+    impact_strength_min:
+      value:
+      - 150.0
+      - 150.0
+      typical: 150.0
+      unit: J/m
+    tensile_strength_min:
+      value:
+      - 35.0
+      - 35.0
+      typical: 35.0
+      unit: MPa
+    contamination_max:
+      value:
+      - 3.5
+      - 3.5
+      typical: 3.5
+      unit: '%'
+  applications:
+  - Refrigerator interior components
+  - Washing machine components
+  - Vacuum cleaner housings
+  volume_range_tons_month:
+  - 100
+  - 800
+- buyer_id: ABS_POWER_TOOL_MANUFACTURERS
+  buyer_type: Power tool manufacturer
+  industry_segment: Industrial/Consumer tools
+  material_requirements:
+    polymer_types:
+    - ABS_high_impact
+    purity_min:
+      value:
+      - 90.0
+      - 90.0
+      typical: 90.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 30.0
+      - 30.0
+      typical: 30.0
+      unit: '%'
+    preferred_source: Power tool manufacturing PIR, automotive PIR
+    quality_tier_required:
+    - 1
+    - 2
+    color_preference: any
+    form_preference: pellets
+  quality_specifications:
+    impact_strength_min:
+      value:
+      - 300.0
+      - 300.0
+      typical: 300.0
+      unit: J/m
+    tensile_strength_min:
+      value:
+      - 35.0
+      - 35.0
+      typical: 35.0
+      unit: MPa
+    contamination_max:
+      value:
+      - 2.0
+      - 2.0
+      typical: 2.0
+      unit: '%'
+  applications:
+  - Power tool housings
+  - Heavy-duty tool components
+  volume_range_tons_month:
+  - 30
+  - 300
+- buyer_id: ABS_INDUSTRIAL_HOUSING
+  buyer_type: Industrial equipment manufacturer
+  industry_segment: Industrial
+  material_requirements:
+    polymer_types:
+    - ABS
+    - ABS_high_impact
+    - ABS_GF
+    purity_min:
+      value:
+      - 75.0
+      - 75.0
+      typical: 75.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 100.0
+      - 100.0
+      typical: 100.0
+      unit: '%'
+    preferred_source: any
+    quality_tier_required:
+    - 3
+    - 4
+    color_preference: any
+    form_preference: pellets or regrind
+  quality_specifications:
+    impact_strength_min:
+      value:
+      - 100.0
+      - 100.0
+      typical: 100.0
+      unit: J/m
+    tensile_strength_min:
+      value:
+      - 30.0
+      - 30.0
+      typical: 30.0
+      unit: MPa
+    contamination_max:
+      value:
+      - 5.0
+      - 5.0
+      typical: 5.0
+      unit: '%'
+  applications:
+  - Industrial equipment housings
+  - Non-critical components
+  volume_range_tons_month:
+  - 50
+  - 500
+quality_indicators:
+- indicator_id: ABS_IMPACT_STRENGTH
+  test_method: ASTM D256 (Izod notched)
+  material_types:
+  - ABS
+  thresholds:
+    excellent:
+      value:
+        value:
+        - 300.0
+        - 600.0
+        typical: 450.0
+        unit: J/m
+    good:
+      value:
+        value:
+        - 200.0
+        - 300.0
+        typical: 250.0
+        unit: J/m
+    acceptable:
+      value:
+        value:
+        - 100.0
+        - 200.0
+        typical: 150.0
+        unit: J/m
+    poor:
+      value:
+        value:
+        - 0.0
+        - 100.0
+        typical: 50.0
+        unit: J/m
+  significance: Key property of ABS - degrades with recycling cycles
+- indicator_id: ABS_MFI_CONSISTENCY
+  test_method: ASTM D1238 (230°C/3.8kg)
+  material_types:
+  - ABS
+  thresholds:
+    excellent: ±10% of target MFI
+    good: ±20% of target MFI
+    acceptable: ±30% of target MFI
+    poor: '>±30% of target MFI'
+  significance: Indicates molecular weight stability and processability
+- indicator_id: ABS_COLOR_CONSISTENCY
+  test_method: Visual inspection or spectrophotometry
+  material_types:
+  - ABS
+  thresholds:
+    excellent: Single consistent color, no discoloration
+    good: Single color with minor variation
+    acceptable: Mixed colors or moderate discoloration
+    poor: Heavily mixed or degraded color
+  significance: Indicates thermal degradation and source quality
+- indicator_id: ABS_CONTAMINATION_LEVEL
+  test_method: Visual inspection, ash content, metal detection
+  material_types:
+  - ABS
+  thresholds:
+    excellent:
+      total_contamination:
+        value:
+        - 0.0
+        - 0.5
+        typical: 0.25
+        unit: '%'
+      metals_ppm:
+      - 0
+      - 100
+    good:
+      total_contamination:
+        value:
+        - 0.5
+        - 2.5
+        typical: 1.5
+        unit: '%'
+      metals_ppm:
+      - 100
+      - 200
+    acceptable:
+      total_contamination:
+        value:
+        - 2.5
+        - 5.0
+        typical: 3.75
+        unit: '%'
+      metals_ppm:
+      - 200
+      - 400
+    poor:
+      total_contamination:
+        value:
+        - 5.0
+        - 100.0
+        typical: 52.5
+        unit: '%'
+      metals_ppm:
+      - 400
+      - 10000
+  significance: Determines quality tier and application suitability
+inference_rules:
+- rule_id: ABS_PRODUCT_TO_BUYER_FORWARD
+  inference_type: buyer_matching
+  logic: IF product=computer_keyboards THEN grade=general_purpose_abs AND quality_tier=[2,3] AND match_buyers=[electronics_housing,
+    consumer_goods, industrial_housing]
+  reasoning: Forward reasoning from product to suitable buyers based on grade and quality tier
+  confidence: 0.88
+- rule_id: ABS_BUYER_TO_SOURCE_BACKWARD
+  inference_type: source_matching
+  logic: IF buyer=toy_manufacturers AND application=building_blocks THEN require_grade=general_purpose_abs AND require_tier=1
+    AND require_source=toy_pir_only
+  reasoning: Backward reasoning from buyer requirements to acceptable sources
+  confidence: 0.92
+- rule_id: ABS_TIER_ASSESSMENT_FROM_SOURCE
+  inference_type: quality_assessment
+  logic: IF source=weee_electronics AND sorting=sorted AND contamination<2.5% THEN tier=2
+  reasoning: Assess quality tier from source characteristics and contamination
+  confidence: 0.85
+- rule_id: ABS_IMPACT_CRITICAL_TIER_REQUIREMENT
+  inference_type: buyer_matching
+  logic: IF application=power_tools OR application=safety_helmets THEN require_tier=[1,2] AND require_impact_strength>300
+  reasoning: Impact-critical applications require high-quality sources
+  confidence: 0.9
+- rule_id: ABS_ELECTROPLATING_PROCESSING
+  inference_type: processing_requirement
+  logic: IF source=plumbing_fixtures OR chrome_plated=true THEN require_de_plating BEFORE recycling
+  reasoning: Electroplated ABS requires de-plating for recycling
+  confidence: 0.95
+- rule_id: ABS_PC_BLEND_ROUTING
+  inference_type: material_routing
+  logic: IF material=pc_abs_blend THEN route_to_dedicated_stream OR accept_as_tier3_abs
+  reasoning: PC/ABS blends require dedicated stream or accept as contaminated ABS
+  confidence: 0.87
+- rule_id: ABS_CYCLE_LIMIT_BY_APPLICATION
+  inference_type: quality_assessment
+  logic: IF cycles>2 THEN exclude_toys; IF cycles>4 THEN exclude_automotive_electronics; IF cycles>6 THEN industrial_only
+  reasoning: Cycle limits based on application tier requirements
+  confidence: 0.85
+standards:
+- standard_id: ASTM_D4673
+  title: Classification System for ABS Materials
+  scope: Defines ABS types, grades, and property requirements
+  relevance: Primary classification standard for ABS materials
+- standard_id: UL_94
+  title: Flammability of Plastic Materials
+  scope: Flame retardancy classification (V-0, V-1, V-2)
+  relevance: Required for FR-ABS in electrical/electronic applications
+- standard_id: ASTM_F963
+  title: Toy Safety Standard
+  scope: Safety requirements for toys including material composition
+  relevance: Required for ABS used in toys
+- standard_id: ASTM_D1238
+  title: Melt Flow Rates of Thermoplastics
+  test_conditions: 230°C/3.8kg for ABS
+  significance: Indicates molecular weight and processability
+processing_guidance:
+  drying:
+    required: true
+    temperature:
+      value:
+      - 70.0
+      - 80.0
+      typical: 75.0
+      unit: °C
+    duration_hours:
+    - 2
+    - 4
+    moisture_target:
+      value:
+      - 0.1
+      - 0.1
+      typical: 0.1
+      unit: '%'
+    note: ABS moderately hygroscopic - drying recommended
+  temperature_control:
+    optimal_range:
+      value:
+      - 220.0
+      - 250.0
+      typical: 235.0
+      unit: °C
+    degradation_onset:
+      value:
+      - 280.0
+      - 280.0
+      typical: 280.0
+      unit: °C
+    warning: Yellowing and odor indicate thermal degradation
+  mixing_pcr_virgin:
+    recommended_method: Dry blend or masterbatch
+    max_pcr_pct_by_application:
+      toys: 25
+      automotive: 40
+      electronics: 50
+      appliances: 60
+      industrial: 100
+  contamination_removal:
+    metal_detection: Recommended for electronics applications
+    washing: Required for post-consumer sources
+    de_plating: Required for electroplated ABS
+    sorting: Critical - separate GP ABS, FR ABS, PC/ABS blends
