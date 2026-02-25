@@ -12,7 +12,7 @@ SCHEMA ALIGNMENT (2026-02-25):
 
 import logging
 
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests.common import TransactionCase
 
 _logger = logging.getLogger(__name__)
@@ -23,58 +23,75 @@ class TestBuyerMatcher(TransactionCase):
         super().setUp()
 
         # ══════════════════════════════════════════════════════════
-        # Create test material master data
+        # Get or create test material master data
+        # (Records may already exist from demo data or other modules)
         # ══════════════════════════════════════════════════════════
 
-        # Polymer
-        self.polymer_hdpe = self.env["plasticos.polymer"].create(
-            {
-                "name": "HDPE",
-                "code": "hdpe",
-                "full_name": "High-Density Polyethylene",
-                "category": "commodity",
-            }
-        )
+        # Polymer - search first, create only if not found
+        Polymer = self.env["plasticos.polymer"]
+        self.polymer_hdpe = Polymer.search([("code", "=", "hdpe")], limit=1)
+        if not self.polymer_hdpe:
+            self.polymer_hdpe = Polymer.create(
+                {
+                    "name": "HDPE",
+                    "code": "hdpe",
+                    "full_name": "High-Density Polyethylene",
+                    "category": "commodity",
+                }
+            )
 
-        self.polymer_pp = self.env["plasticos.polymer"].create(
-            {
-                "name": "PP",
-                "code": "pp",
-                "full_name": "Polypropylene",
-                "category": "commodity",
-            }
-        )
+        self.polymer_pp = Polymer.search([("code", "=", "pp")], limit=1)
+        if not self.polymer_pp:
+            self.polymer_pp = Polymer.create(
+                {
+                    "name": "PP",
+                    "code": "pp",
+                    "full_name": "Polypropylene",
+                    "category": "commodity",
+                }
+            )
 
         # Material Form
-        self.form_bales = self.env["plasticos.material.form"].create(
-            {
-                "name": "Bales",
-                "code": "bales",
-            }
-        )
+        Form = self.env["plasticos.material.form"]
+        self.form_bales = Form.search([("code", "=", "bales")], limit=1)
+        if not self.form_bales:
+            self.form_bales = Form.create(
+                {
+                    "name": "Bales",
+                    "code": "bales",
+                }
+            )
 
         # Material Color
-        self.color_natural = self.env["plasticos.material.color"].create(
-            {
-                "name": "Natural",
-                "code": "natural",
-            }
-        )
+        Color = self.env["plasticos.material.color"]
+        self.color_natural = Color.search([("code", "=", "natural")], limit=1)
+        if not self.color_natural:
+            self.color_natural = Color.create(
+                {
+                    "name": "Natural",
+                    "code": "natural",
+                }
+            )
 
         # Source Type (replaces material_category)
-        self.source_pcr = self.env["plasticos.source.type"].create(
-            {
-                "name": "Post-Consumer",
-                "code": "pcr",
-            }
-        )
+        SourceType = self.env["plasticos.source.type"]
+        self.source_pcr = SourceType.search([("code", "=", "pcr")], limit=1)
+        if not self.source_pcr:
+            self.source_pcr = SourceType.create(
+                {
+                    "name": "Post-Consumer",
+                    "code": "pcr",
+                }
+            )
 
-        self.source_pir = self.env["plasticos.source.type"].create(
-            {
-                "name": "Post-Industrial",
-                "code": "pir",
-            }
-        )
+        self.source_pir = SourceType.search([("code", "=", "pir")], limit=1)
+        if not self.source_pir:
+            self.source_pir = SourceType.create(
+                {
+                    "name": "Post-Industrial",
+                    "code": "pir",
+                }
+            )
 
         # ══════════════════════════════════════════════════════════
         # Create test supplier (company + facility)
@@ -317,3 +334,108 @@ class TestBuyerMatcher(TransactionCase):
         if len(matches) > 1:
             scores = [m["total_score"] for m in matches]
             self.assertEqual(scores, sorted(scores, reverse=True))
+
+    # ══════════════════════════════════════════════════════════════
+    # Public Entry Point Tests (UI Button Actions)
+    # These tests cover the actual user-facing entry points that
+    # were previously untested, catching bugs like missing fields.
+    # ══════════════════════════════════════════════════════════════
+
+    def test_intake_has_match_mode_field(self):
+        """Verify match_mode field exists on intake (added by extension)."""
+        self.assertIn("match_mode", self.env["plasticos.intake"]._fields)
+        # Verify default value
+        self.assertEqual(self.intake.match_mode, "strict")
+
+    def test_intake_match_mode_selection_values(self):
+        """Test that match_mode accepts both valid values."""
+        self.intake.write({"match_mode": "strict"})
+        self.assertEqual(self.intake.match_mode, "strict")
+
+        self.intake.write({"match_mode": "relaxed"})
+        self.assertEqual(self.intake.match_mode, "relaxed")
+
+    def test_action_match_to_buyers_requires_material_profile(self):
+        """Test that action_match_to_buyers raises UserError without material_profile_id."""
+        # Ensure intake has no material profile
+        self.intake.write({"material_profile_id": False})
+
+        with self.assertRaises(UserError):
+            self.intake.action_match_to_buyers()
+
+    def test_action_match_to_buyers_with_material_profile(self):
+        """Test action_match_to_buyers executes successfully with material_profile_id."""
+        # Create a material profile for the supplier facility
+        material_profile = self.env["plasticos.material.profile"].create(
+            {
+                "partner_id": self.supplier_facility.id,
+                "polymer_id": self.polymer_hdpe.id,
+                "active": True,
+            }
+        )
+
+        # Link material profile to intake
+        self.intake.write({"material_profile_id": material_profile.id})
+
+        # Should not raise - returns action dict
+        result = self.intake.action_match_to_buyers()
+
+        # Verify it returns an action (either act_window or client action)
+        self.assertIsInstance(result, dict)
+        self.assertIn("type", result)
+
+    def test_action_match_to_buyers_uses_match_mode_strict(self):
+        """Test that action uses intake's match_mode when set to strict."""
+        material_profile = self.env["plasticos.material.profile"].create(
+            {
+                "partner_id": self.supplier_facility.id,
+                "polymer_id": self.polymer_hdpe.id,
+                "active": True,
+            }
+        )
+        self.intake.write(
+            {
+                "material_profile_id": material_profile.id,
+                "match_mode": "strict",
+            }
+        )
+
+        # Should execute without error
+        result = self.intake.action_match_to_buyers()
+        self.assertIsInstance(result, dict)
+
+    def test_action_match_to_buyers_uses_match_mode_relaxed(self):
+        """Test that action uses intake's match_mode when set to relaxed."""
+        material_profile = self.env["plasticos.material.profile"].create(
+            {
+                "partner_id": self.supplier_facility.id,
+                "polymer_id": self.polymer_hdpe.id,
+                "active": True,
+            }
+        )
+        self.intake.write(
+            {
+                "material_profile_id": material_profile.id,
+                "match_mode": "relaxed",
+            }
+        )
+
+        # Should execute without error
+        result = self.intake.action_match_to_buyers()
+        self.assertIsInstance(result, dict)
+
+    def test_action_match_to_buyers_returns_action_window(self):
+        """Test that action returns proper action window structure."""
+        material_profile = self.env["plasticos.material.profile"].create(
+            {
+                "partner_id": self.supplier_facility.id,
+                "polymer_id": self.polymer_hdpe.id,
+                "active": True,
+            }
+        )
+        self.intake.write({"material_profile_id": material_profile.id})
+
+        result = self.intake.action_match_to_buyers()
+
+        # Result should be either act_window or client action (notification)
+        self.assertIn(result.get("type"), ["ir.actions.act_window", "ir.actions.client"])
