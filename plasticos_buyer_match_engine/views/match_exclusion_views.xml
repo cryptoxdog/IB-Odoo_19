@@ -64,7 +64,7 @@
                 <filter name="permanent" string="Permanent" domain="[('exclusion_type', '=', 'permanent')]"/>
                 <filter name="temporary" string="Temporary" domain="[('exclusion_type', '=', 'temporary')]"/>
                 <separator/>
-                <group expand="0" string="Group By">
+                <group expand="0">
                     <filter name="group_reason" string="Reason" context="{'group_by': 'reason'}"/>
                     <filter name="group_type" string="Type" context="{'group_by': 'exclusion_type'}"/>
                     <filter name="group_supplier" string="Supplier" context="{'group_by': 'supplier_partner_id'}"/>
