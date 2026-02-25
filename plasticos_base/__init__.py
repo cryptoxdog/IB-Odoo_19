@@ -1,1 +1,1 @@
-# PlasticOS Base - seed data only, no models
+from . import models

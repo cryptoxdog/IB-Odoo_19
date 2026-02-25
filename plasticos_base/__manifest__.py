@@ -14,6 +14,7 @@
         "data/partner_tags.xml",
         "data/material_taxonomy.xml",
         "data/sales_reps.xml",
+        "data/attachment_maintenance_cron.xml",
     ],
     "installable": True,
     "application": False,

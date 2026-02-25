@@ -44,6 +44,7 @@ Odoo 19 PlasticOS suite: intake, transaction, logistics, documents, commission, 
 
 ## Recent Changes
 
+- 2026-02-25: Persisted rebuild-safe runtime hardening — set `plasticos_geolocalize` cron default inactive (`cron_geo_backfill.xml` active=False) to prevent recurring Nominatim block noise on fresh staging DBs. Added `plasticos_base` attachment maintenance model + cron (`ir.attachment._cron_cleanup_missing_filestore_orphans`) to automatically remove orphan rows pointing to missing filestore blobs after rebuilds/restores.
 - 2026-02-25: Odoo 19 compatibility hardening — Converted all remaining `_sql_constraints` declarations to `models.Constraint` across 20 model files (`plasticos_web_leads`, `plasticos_transaction`, `plasticos_offer`, `plasticos_material_profile`, `plasticos_matching`, `plasticos_facility_profile`, `plasticos_claims`, `plasticos_logistics`, `plasticos_documents`, `plasticos_automation`). Confirmed zero `_sql_constraints` left in repo. Also fixed the blocking search-view parse issue earlier in `plasticos_buyer_match_engine/views/match_exclusion_views.xml` and migrated `match_exclusion.py` constraint.
 - 2026-02-23: Bug Fixes BUG-073 to BUG-079 + CI Enhancement — Fixed Many2one field writes in web_lead.py (polymer_id, form_id, source_type_id now use record IDs not strings). Added deal_type/contract_duration_months to intake.py. Relaxed required=False on polymer_id/form_id. Fixed Cypher typo tx.count→tx.tx_count in graph_service.py. Added CI check #21 for string writes to Many2one fields. Disabled tests requiring seed data for Odoo.sh CI (plasticos_enrichment, plasticos_dev_tools, plasticos_buyer_match_engine tests/__init__.py).
 - 2026-02-23: Buyer Matching Enhancements #6, #7, #11 — Implemented Color Matching gate (natural=pass, mixed=requires accepts_any_color, else check accepted_color_ids), Filler Matching gate (unfilled=pass, else check accepts_filled_materials/max_filler_pct/accepted_filler_type_ids), and Exclusion List model (plasticos.match.exclusion with supplier/buyer pair, reason, permanent/temporary expiry). Added fields to facility_profile.py (accepted_color_ids, accepts_any_color, max_filler_pct, accepted_filler_type_ids). Created match_exclusion.py with cron for expiring temporary exclusions. Updated matcher.py with gates 11-12 and exclusion filtering. Deleted source spec files after implementation.
@@ -99,9 +100,9 @@ Odoo 19 PlasticOS suite: intake, transaction, logistics, documents, commission, 
 ## Next Steps
 
 1. Deploy latest `staging` to Odoo.sh and validate registry startup on the target DB.
-2. Repair missing filestore blobs for DB `cryptoxdog-ib-odoo-19-staging-29020761` (restore/sync filestore and/or clean orphan `ir.attachment` rows pointing to missing `store_fname`).
+2. Confirm `PlasticOS: Cleanup Missing Filestore Attachments` cron is active after rebuild and runs successfully.
 3. Re-run cron `Buyer CRM Enrichment + Inference — Daily` and verify no `FileNotFoundError` from `ir_attachment._file_read`.
-4. Identify remaining clients calling `/xmlrpc`, `/xmlrpc/2`, `/jsonrpc` and migrate them to Odoo 19 external API endpoints.
+4. Keep `PlasticOS: Nightly Geo Backfill` disabled until a compliant geocoding provider/UA policy is in place.
 
 ---
 
