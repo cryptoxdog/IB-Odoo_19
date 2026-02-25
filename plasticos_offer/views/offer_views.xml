@@ -27,7 +27,7 @@
                 <filter name="filter_pending_response" string="Pending Response"
                         domain="[('state', 'in', ('sent', 'responded'))]"/>
                 <filter name="filter_expiring_soon" string="Expiring Soon"
-                        domain="[('valid_until', '&lt;=', (context_today() + relativedelta(days=7)).strftime('%Y-%m-%d')),
+                        domain="[('valid_until', '&lt;=', context_today() + relativedelta(days=7)),
                                  ('state', 'in', ('draft', 'sent', 'responded'))]"/>
                 <separator/>
                 <group name="group_by">

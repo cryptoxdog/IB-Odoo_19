@@ -28,11 +28,11 @@
                 <filter name="filter_sla_breached" string="SLA Breached"
                         domain="[('sla_breached', '=', True)]"/>
                 <filter name="filter_today_pickup" string="Pickup Today"
-                        domain="[('pickup_datetime', '&gt;=', (context_today()).strftime('%Y-%m-%d')),
-                                 ('pickup_datetime', '&lt;', (context_today() + relativedelta(days=1)).strftime('%Y-%m-%d'))]"/>
+                        domain="[('pickup_datetime', '&gt;=', context_today()),
+                                 ('pickup_datetime', '&lt;', context_today() + relativedelta(days=1))]"/>
                 <filter name="filter_today_delivery" string="Delivery Today"
-                        domain="[('delivery_datetime', '&gt;=', (context_today()).strftime('%Y-%m-%d')),
-                                 ('delivery_datetime', '&lt;', (context_today() + relativedelta(days=1)).strftime('%Y-%m-%d'))]"/>
+                        domain="[('delivery_datetime', '&gt;=', context_today()),
+                                 ('delivery_datetime', '&lt;', context_today() + relativedelta(days=1))]"/>
                 <separator/>
                 <group name="group_by">
                     <filter name="group_state" string="Status"
