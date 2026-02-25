@@ -56,7 +56,7 @@ class FacilityProfileGraphHooks(models.Model):
 
 def _trigger_facility_graph_sync(env):
     """Run facility graph sync if graph service is available."""
-    if not env.get("plasticos.graph.service"):
+    if "plasticos.graph.service" not in env:
         return
     try:
         env["plasticos.graph.service"].sudo().sync_facility_nodes(trigger="facility_write")

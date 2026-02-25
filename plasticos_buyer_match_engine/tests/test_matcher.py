@@ -103,15 +103,16 @@ class TestBuyerMatcher(TransactionCase):
         )
 
         # Supplier facility profile
+        # NOTE: facility.profile does NOT have accepted_color_ids or source_type_id.
+        # Use feedstock_type (Selection) instead of source_type_id (Many2one).
         self.supplier_profile = self.env["plasticos.facility.profile"].create(
             {
                 "partner_id": self.supplier_facility.id,
                 "active": True,
                 "accepted_polymer_ids": [(6, 0, [self.polymer_hdpe.id])],
                 "form_preference": "bales",
-                "accepted_color_ids": [(6, 0, [self.color_natural.id])],
                 "capacity_lbs_month": 50000,
-                "source_type_id": self.source_pcr.id,
+                "feedstock_type": "post_consumer",
             }
         )
 
@@ -146,9 +147,8 @@ class TestBuyerMatcher(TransactionCase):
                 "active": True,
                 "accepted_polymer_ids": [(6, 0, [self.polymer_hdpe.id])],
                 "form_preference": "bales",
-                "accepted_color_ids": [(6, 0, [self.color_natural.id])],
                 "min_lot_size_lbs": 10000,
-                "source_type_id": self.source_pcr.id,
+                "feedstock_type": "post_consumer",
             }
         )
 

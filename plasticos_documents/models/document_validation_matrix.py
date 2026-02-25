@@ -24,6 +24,7 @@ class PlasticosDocumentValidationMatrix(models.Model):
             ("supplier", "Supplier Document"),
             ("carrier", "Carrier Document"),
             ("buyer", "Buyer Document"),
+            ("internal", "Internal Document"),
         ],
         string="Document Category",
         required=True,

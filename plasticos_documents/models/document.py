@@ -23,17 +23,18 @@ class PlasticosDocument(models.Model):
 
     active = fields.Boolean(default=True)
 
-    @api.model
-    def create(self, vals):
-        record = super().create(vals)
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
 
-        if record.res_model == "plasticos.load":
-            # Look up transaction via reverse relation (transaction.load_id -> load)
-            tx = self.env["plasticos.transaction"].search([("load_id", "=", record.res_id)], limit=1)
-            if tx:
-                self.env["plasticos.compliance.service"].get_missing_documents("plasticos.transaction", tx.id)
+        for record in records:
+            if record.res_model == "plasticos.load":
+                # Look up transaction via reverse relation (transaction.load_id -> load)
+                tx = self.env["plasticos.transaction"].search([("load_id", "=", record.res_id)], limit=1)
+                if tx:
+                    self.env["plasticos.compliance.service"].get_missing_documents("plasticos.transaction", tx.id)
 
-        return record
+        return records
 
     def action_verify(self):
         for rec in self:

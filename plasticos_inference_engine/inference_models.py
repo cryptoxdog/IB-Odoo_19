@@ -7,11 +7,11 @@ Entity-agnostic — works for suppliers, buyers, intakes, material profiles.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class EntityType(str, Enum):
+class EntityType(StrEnum):
     """What kind of record is being inferred against."""
 
     SUPPLIER = "supplier"
@@ -21,7 +21,7 @@ class EntityType(str, Enum):
     UNKNOWN = "unknown"
 
 
-class InferenceSource(str, Enum):
+class InferenceSource(StrEnum):
     """Where the inferred value came from."""
 
     YAML_GRADE = "yaml_grade"
@@ -32,7 +32,7 @@ class InferenceSource(str, Enum):
     DEFAULT = "default"
 
 
-class QualityTier(str, Enum):
+class QualityTier(StrEnum):
     TIER1 = "tier1"
     TIER2 = "tier2"
     TIER3 = "tier3"

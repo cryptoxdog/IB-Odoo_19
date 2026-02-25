@@ -50,7 +50,7 @@ class PlasticosIntake(models.Model):
             _logger.info("Buyer match v2.0 for intake %s: found %d matches", record.name, len(matches))
 
             # Check if Neo4j was used for scoring (via graph_service.calculate_match_score)
-            if self.env.get("plasticos.graph.service"):
+            if "plasticos.graph.service" in self.env:
                 cfg = self.env["plasticos.graph.service"]._get_config()
                 if cfg.get("uri") and cfg.get("user") and cfg.get("password"):
                     graph_used = True

@@ -324,19 +324,15 @@ class BuyerMatcher(models.Model):
                 gates_failed.append("form_factor")
 
         # Gate 3: Color
-        # Natural is universally accepted. Mixed requires accepts_any_color.
-        # Otherwise, buyer's accepted_color_ids must include material color.
-        material_color_id = material_req.get("color_id")
-        material_color_code = material_req.get("color_code")
-        if material_color_id:
-            if material_color_code != "natural":
-                if material_color_code == "mixed":
-                    if not buyer_profile.accepts_any_color:
-                        gates_failed.append("color_mixed_rejected")
-                elif buyer_profile.accepted_color_ids:
-                    if material_color_id not in buyer_profile.accepted_color_ids.ids:
-                        if not buyer_profile.accepts_any_color:
-                            gates_failed.append("color_not_accepted")
+        # NOTE: facility.profile does NOT have accepted_color_ids or
+        # accepts_any_color.  Color matching is deferred to Neo4j Stage 2.
+        # Natural is universally accepted; for other colors we pass here
+        # (null-safe: missing dimension = pass) and let graph scoring
+        # apply the color_match weight.
+        # This gate is intentionally a no-op until facility.profile
+        # gains color fields.
+        # material_color_id = material_req.get("color_id")
+        # material_color_code = material_req.get("color_code")
 
         # Gate 4: Quantity Range
         # Material quantity must meet buyer's minimum lot size
@@ -346,14 +342,19 @@ class BuyerMatcher(models.Model):
                 gates_failed.append("quantity_range")
 
         # Gate 5: Source Type (PCR/PIR/Virgin)
-        # Hierarchy: virgin accepts all, pir accepts pcr+pir, pcr accepts pcr only
+        # facility.profile uses feedstock_type Selection (not source_type_id)
+        # Mapping: post_consumer~pcr, post_industrial~pir, virgin~virgin, mixed=any
         material_source = material_req.get("source_type_code")
-        if material_source and buyer_profile.source_type_id:
-            buyer_source = buyer_profile.source_type_id.code
-            if buyer_source == "pcr" and material_source not in ("pcr",):
-                gates_failed.append("source_type")
-            elif buyer_source == "pir" and material_source not in ("pcr", "pir"):
-                gates_failed.append("source_type")
+        if material_source and buyer_profile.feedstock_type:
+            _fs = buyer_profile.feedstock_type
+            # mixed/unknown = accept anything
+            if _fs not in ("mixed", "unknown"):
+                fs_map = {"post_consumer": "pcr", "post_industrial": "pir", "virgin": "virgin"}
+                buyer_source = fs_map.get(_fs, _fs)
+                if buyer_source == "pcr" and material_source not in ("pcr",):
+                    gates_failed.append("source_type")
+                elif buyer_source == "pir" and material_source not in ("pcr", "pir"):
+                    gates_failed.append("source_type")
 
         # Gate 6: Contamination Threshold
         contamination_pct = material_req.get("contamination_pct") or 0.0
@@ -369,16 +370,12 @@ class BuyerMatcher(models.Model):
                 gates_failed.append("moisture_capability")
 
         # Gate 8: Filler Matching
+        # NOTE: facility.profile only has accepts_filled_materials (Boolean).
+        # max_filler_pct and accepted_filler_type_ids do NOT exist yet.
         material_filler_pct = material_req.get("filler_pct") or 0
-        material_filler_type_id = material_req.get("filler_type_id")
         if material_filler_pct > 0:
             if not buyer_profile.accepts_filled_materials:
                 gates_failed.append("filled_material_rejected")
-            elif buyer_profile.max_filler_pct and material_filler_pct > buyer_profile.max_filler_pct:
-                gates_failed.append("filler_pct_exceeds_limit")
-            elif material_filler_type_id and buyer_profile.accepted_filler_type_ids:
-                if material_filler_type_id not in buyer_profile.accepted_filler_type_ids.ids:
-                    gates_failed.append("filler_type_not_accepted")
 
         # Gate 9: Process Type (MFI compatibility)
         material_mfi = material_req.get("mfi")
@@ -451,3 +448,59 @@ class BuyerMatcher(models.Model):
     def _check_all_gates(self, buyer_profile, material_req):
         """Backward compatibility wrapper - defaults to strict mode."""
         return self._check_gates_strict(buyer_profile, material_req)
+
+    # ═════════════════════════════════════════════════════════════════
+    # Helper Methods (previously missing — caused AttributeError)
+    # ═════════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def _haversine_miles(lat1, lon1, lat2, lon2):
+        """Calculate the great-circle distance between two points (in miles).
+
+        Uses the Haversine formula.  Inputs are in decimal degrees.
+        """
+        import math
+
+        R = 3958.8  # Earth radius in miles
+        d_lat = math.radians(lat2 - lat1)
+        d_lon = math.radians(lon2 - lon1)
+        a = (
+            math.sin(d_lat / 2) ** 2
+            + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(d_lon / 2) ** 2
+        )
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        return R * c
+
+    @staticmethod
+    def _check_mfi_process_compatibility(polymer_code, mfi, process_type):
+        """Return True when the MFI value is compatible with *process_type*.
+
+        Ranges are industry-standard heuristics aligned with the Cypher
+        scoring logic in graph_service.py.  A ``None`` / unknown process
+        type is treated as compatible (null-safe).
+        """
+        if not process_type or not mfi:
+            return True  # null-safe: missing data = pass
+
+        # Canonical MFI ranges per process type
+        ranges = {
+            "injection": (10.0, None),  # MFI >= 10
+            "extrusion": (None, 20.0),  # MFI <= 20
+            "blow_mold": (0.5, 10.0),  # 0.5 <= MFI <= 10
+            "film_blown": (None, 5.0),  # MFI <= 5
+            "film_cast": (None, 5.0),  # MFI <= 5
+            "thermoform": (1.0, 12.0),  # 1 <= MFI <= 12
+            "rotomold": (2.0, 10.0),  # 2 <= MFI <= 10
+            "compounding": (None, None),  # any MFI
+        }
+
+        bounds = ranges.get(process_type)
+        if bounds is None:
+            return True  # unknown process type = pass
+
+        lo, hi = bounds
+        if lo is not None and mfi < lo:
+            return False
+        if hi is not None and mfi > hi:
+            return False
+        return True

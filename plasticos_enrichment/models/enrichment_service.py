@@ -213,9 +213,7 @@ class EnrichmentService(models.AbstractModel):
                     primary_kb_dir,
                 )
             else:
-                raise UserError(
-                    f"Inference KB not found. Checked:\n" f"  - {primary_kb_dir}\n" f"  - {fallback_kb_dir}"
-                )
+                raise UserError(f"Inference KB not found. Checked:\n  - {primary_kb_dir}\n  - {fallback_kb_dir}")
 
             _inference_engine = InferenceEngine(kb_dir)
             _logger.info(

@@ -186,9 +186,9 @@ class TestModuleManifest:
 
     def test_depends_exact(self):
         declared = self.manifest.get("depends", [])
-        assert declared == EXPECTED_DEPENDS, (
-            f"Dependency mismatch.\n" f"  Expected: {EXPECTED_DEPENDS}\n" f"  Got:      {declared}"
-        )
+        assert (
+            declared == EXPECTED_DEPENDS
+        ), f"Dependency mismatch.\n  Expected: {EXPECTED_DEPENDS}\n  Got:      {declared}"
 
     def test_external_dependencies_python(self):
         ext = self.manifest.get("external_dependencies", {})
@@ -797,4 +797,4 @@ class TestGraphIsolation:
                     if "try:" in lines[j]:
                         found_try = True
                         break
-                assert found_try, f"Line {i+1}: neo4j import not wrapped in try/except"
+                assert found_try, f"Line {i + 1}: neo4j import not wrapped in try/except"

@@ -28,7 +28,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install ruff pre-commit mypy
+        run: pip install "ruff==0.3.0" pre-commit mypy
 
       - name: Run Ruff linter
         run: ruff check .

@@ -106,7 +106,6 @@ class PlasticosGraphService(models.AbstractModel):
         Uri, user, password: from System Parameters (plasticos_graph.*) with
         fallback to .env (NEO4J_URI or NEO4J_URL, NEO4J_USER, NEO4J_PASSWORD).
         """
-        self.ensure_one()
         ICP = self.env["ir.config_parameter"].sudo()
         uri = (ICP.get_param("plasticos_graph.neo4j_uri") or "").strip() or _env_neo4j_uri()
         user = (ICP.get_param("plasticos_graph.neo4j_user") or "").strip() or _env_neo4j_user()
@@ -300,7 +299,6 @@ class PlasticosGraphService(models.AbstractModel):
         Returns:
             List of match results with scores
         """
-        self.ensure_one()
         params = self._intake_to_match_params(intake)
         params["facility_ids"] = facility_ids
 
@@ -356,11 +354,14 @@ class PlasticosGraphService(models.AbstractModel):
         // Gate 4: MFI-Process compatibility (HARD - physics constraint)
         AND (
             f.process_type IS NULL
-            OR f.process_type = 'any'
             OR (f.process_type = 'injection' AND $mfi >= 10)
             OR (f.process_type = 'extrusion' AND $mfi <= 20)
             OR (f.process_type = 'blow_mold' AND $mfi BETWEEN 0.5 AND 10)
-            OR (f.process_type = 'film' AND $mfi <= 5)
+            OR (f.process_type = 'film_blown' AND $mfi <= 5)
+            OR (f.process_type = 'film_cast' AND $mfi <= 5)
+            OR (f.process_type = 'thermoform' AND $mfi >= 1 AND $mfi <= 12)
+            OR (f.process_type = 'rotomold' AND $mfi >= 2 AND $mfi <= 10)
+            OR f.process_type IN ['compounding', 'other']
         )
 
         // Gate 5: Contamination tolerance (HARD)
@@ -441,11 +442,15 @@ class PlasticosGraphService(models.AbstractModel):
 
             // MFI-Process compatibility (x0.1 HEAVY penalty - physics constraint)
             CASE
-                WHEN f.process_type IS NULL OR f.process_type = 'any' THEN 1.0
+                WHEN f.process_type IS NULL THEN 1.0
                 WHEN f.process_type = 'injection' AND $mfi >= 10 THEN 1.0
                 WHEN f.process_type = 'extrusion' AND $mfi <= 20 THEN 1.0
                 WHEN f.process_type = 'blow_mold' AND $mfi >= 0.5 AND $mfi <= 10 THEN 1.0
-                WHEN f.process_type = 'film' AND $mfi <= 5 THEN 1.0
+                WHEN f.process_type = 'film_blown' AND $mfi <= 5 THEN 1.0
+                WHEN f.process_type = 'film_cast' AND $mfi <= 5 THEN 1.0
+                WHEN f.process_type = 'thermoform' AND $mfi >= 1 AND $mfi <= 12 THEN 1.0
+                WHEN f.process_type = 'rotomold' AND $mfi >= 2 AND $mfi <= 10 THEN 1.0
+                WHEN f.process_type IN ['compounding', 'other'] THEN 1.0
                 ELSE 0.1
             END AS mfi_process_mult,
 
@@ -538,19 +543,36 @@ class PlasticosGraphService(models.AbstractModel):
         """
 
     def _persist_match_results(self, intake, rows, run_id="unknown"):
-        """Persist match results to plasticos.match.result with run_id tagging."""
+        """Persist match results to plasticos.match.result with run_id tagging.
+
+        Field mapping (graph row -> match.result):
+            facility_id  -> buyer_facility_id  (res.partner Many2one)
+            total_score  -> score              (Float)
+            profile_id   -> facility_profile_id (plasticos.facility.profile Many2one)
+        """
         MatchResult = self.env["plasticos.match.result"]
 
         for row in rows:
             try:
+                # Resolve buyer_partner_id from facility partner
+                buyer_facility_id = row.get("facility_id")
+                buyer_partner_id = None
+                if buyer_facility_id:
+                    profile = self.env["plasticos.facility.profile"].browse(buyer_facility_id)
+                    if profile.exists():
+                        buyer_partner_id = profile.partner_id.parent_id.id or profile.partner_id.id
+
                 MatchResult.create(
                     {
                         "intake_id": intake.id,
-                        "facility_id": row.get("facility_id"),
-                        "material_id": row.get("material_id"),
-                        "total_score": row.get("total_score", 0.0),
-                        "match_mode": row.get("match_mode", "unknown"),
+                        "buyer_partner_id": buyer_partner_id,
+                        "buyer_facility_id": buyer_facility_id,
+                        "facility_profile_id": row.get("profile_id"),
+                        "score": row.get("total_score", 0.0),
+                        "score_breakdown": row.get("score_breakdown"),
                         "run_id": run_id,
+                        "model_version": "2.0.0",
+                        "timestamp": datetime.now(),
                     }
                 )
             except Exception as e:
@@ -558,7 +580,6 @@ class PlasticosGraphService(models.AbstractModel):
 
     def _get_pool(self):
         """Return shared Neo4jConnectionPool; raises UserError if Neo4j not configured."""
-        self.ensure_one()
         cfg = self._get_config()
         uri, user, password = cfg["uri"], cfg["user"], cfg["password"]
         if not uri or not user or not password:
@@ -592,7 +613,6 @@ class PlasticosGraphService(models.AbstractModel):
         """
         from ..services.monitoring import get_metrics  # Relative import for pyright
 
-        self.ensure_one()
         params = params or {}
         metadata = metadata or {}
         op_name = metadata.get("name", "neo4j.query")
@@ -644,7 +664,6 @@ class PlasticosGraphService(models.AbstractModel):
 
     def _get_driver(self):
         """Return pool or None when Neo4j is optional (hooks/sync); no UserError."""
-        self.ensure_one()
         cfg = self._get_config()
         if not cfg.get("password"):
             return None
@@ -666,7 +685,6 @@ class PlasticosGraphService(models.AbstractModel):
 
     def _execute_cypher(self, query, params=None, metadata=None):
         """Execute Cypher when Neo4j is optional; returns [] on missing config or failure."""
-        self.ensure_one()
         params = params or {}
         driver = self._get_driver()
         if not driver or not getattr(driver, "driver", None) or not driver.driver:
@@ -680,7 +698,6 @@ class PlasticosGraphService(models.AbstractModel):
             return []
 
     def initialize_schema(self):
-        self.ensure_one()
         driver = self._get_driver()
         if not driver or not driver.driver:
             return
@@ -700,7 +717,6 @@ class PlasticosGraphService(models.AbstractModel):
         Queries partners with facility profiles and aggregates capabilities
         across all profiles for each partner.
         """
-        self.ensure_one()
         # Find all partners that have facility profiles
         partners = self.env["res.partner"].search(
             [
@@ -775,7 +791,6 @@ class PlasticosGraphService(models.AbstractModel):
         return payloads
 
     def _build_material_payloads(self):
-        self.ensure_one()
         Material = self.env["plasticos.material.profile"].search([("active", "=", True)])
         payloads = []
         for mp in Material:
@@ -801,7 +816,6 @@ class PlasticosGraphService(models.AbstractModel):
 
     def sync_facility_nodes(self, trigger="manual"):
         """Upsert Facility nodes with geo location as Neo4j point."""
-        self.ensure_one()
         payloads = self._build_facility_payloads()
         if not payloads:
             self._create_sync_log("facility", "success", {"records_processed": 0}, None)
@@ -905,7 +919,6 @@ class PlasticosGraphService(models.AbstractModel):
             self._create_sync_log("facility", "failed", None, str(exc))
 
     def sync_material_nodes(self, trigger="manual"):
-        self.ensure_one()
         payloads = self._build_material_payloads()
         if not payloads:
             self._create_sync_log("material", "success", {"records_processed": 0}, None)
@@ -938,7 +951,6 @@ class PlasticosGraphService(models.AbstractModel):
             self._create_sync_log("material", "failed", None, str(exc))
 
     def sync_all(self, trigger="manual"):
-        self.ensure_one()
         self.initialize_schema()
         self.sync_facility_nodes(trigger=trigger)
         self.sync_material_nodes(trigger=trigger)
@@ -952,7 +964,6 @@ class PlasticosGraphService(models.AbstractModel):
         - tx_count: Number of transactions between the pair
         - last_tx_date: Date of most recent transaction
         """
-        self.ensure_one()
 
         # Check if plasticos.transaction model exists
         if "plasticos.transaction" not in self.env:
@@ -1022,7 +1033,6 @@ class PlasticosGraphService(models.AbstractModel):
             self._create_sync_log("transaction", "failed", None, str(exc))
 
     def _create_sync_log(self, sync_type, status, stats=None, error_message=None):
-        self.ensure_one()
         Log = self.env["plasticos.graph.sync.log"].sudo()
         name = f"Graph sync {sync_type} {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
         record_count = (stats or {}).get("records_processed", 0)

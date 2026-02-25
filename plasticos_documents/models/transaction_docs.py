@@ -125,7 +125,7 @@ class PlasticosTransactionDocs(models.Model):
             ]
         )
 
-        log_model = self.env.get("plasticos.automation.log")
+        log_model = self.env["plasticos.automation.log"] if "plasticos.automation.log" in self.env else None
         matrix_model = self.env["plasticos.document.validation.matrix"]
         today = date.today()
 
