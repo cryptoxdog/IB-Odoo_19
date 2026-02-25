@@ -1,0 +1,26 @@
+# Add to observability_kernel config
+metrics:
+  kge:
+    - name: "kge.training.loss"
+      type: "gauge"
+      labels: ["epoch", "variant"]
+    - name: "kge.training.mrr"
+      type: "gauge"
+      labels: ["dataset", "variant"]
+    - name: "kge.inference.latency_ms"
+      type: "histogram"
+      buckets:[^1]
+    - name: "kge.embedding_drift"
+      type: "gauge"
+      labels: ["entity_type"]
+    - name: "kge.predictions_per_update"
+      type: "counter"
+      labels: ["confidence_bucket"]
+
+spans:
+  kge:
+    - name: "kge.training"
+      kind: "internal"
+      attributes: ["epoch", "loss", "mrr", "variant_id", "operator_sequence"]
+    - name: "kge.inference"
+      kind: "internal"

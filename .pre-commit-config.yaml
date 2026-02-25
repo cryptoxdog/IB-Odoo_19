@@ -3,14 +3,6 @@
 # Run manually: pre-commit run --all-files
 # Pre-push (index export): pre-commit run --hook-stage pre-push
 
-exclude: |
-  (?x)^(
-    plasticos_graph_engine/.*|
-    plasticos_graph_integration/.*|
-    plasticos_graph_intelligence/.*|
-    plasticos_graph_3d_embedding/.*
-  )$
-
 repos:
   # Python linting with ruff (fast, replaces flake8/isort/pyupgrade)
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -47,12 +39,14 @@ repos:
         entry: ./scripts/check_odoo_patterns.sh
         language: script
         pass_filenames: false
+        always_run: true
 
       - id: module-wiring
         name: Module dependency wiring check
         entry: python3 scripts/check_module_wiring.py
         language: system
         pass_filenames: false
+        always_run: true
         stages: [pre-commit]
 
       # Index generation disabled - run manually: python3 scripts/export_odoo_index.py

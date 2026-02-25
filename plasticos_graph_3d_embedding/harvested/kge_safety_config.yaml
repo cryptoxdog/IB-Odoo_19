@@ -1,0 +1,13 @@
+# Add to safety_kernel config
+governance:
+  kge_prediction_approval:
+    enabled: true
+    threshold: 0.3
+    approvers: ["igor"]
+    audit_log: true
+
+circuit_breakers:
+  kge_embedding_drift:
+    threshold_sigma: 2.0
+    action: "pause_training"
+    alert: ["l", "igor"]

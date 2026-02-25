@@ -1,0 +1,10 @@
+<odoo>
+    <record id="ir_cron_autonomous_grade_discovery" model="ir.cron">
+        <field name="name">Autonomous Grade Discovery</field>
+        <field name="model_id" ref="plasticos_graph_engine.model_plasticos_graph_discovery_scheduler"/>
+        <field name="state">code</field>
+        <field name="code">model.run()</field>
+        <field name="interval_number">7</field>
+        <field name="interval_type">days</field>
+    </record>
+</odoo>

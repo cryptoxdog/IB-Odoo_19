@@ -3,18 +3,8 @@ name: Lint & Quality Checks
 on:
   push:
     branches: [main, staging]
-    paths-ignore:
-      - 'plasticos_graph_engine/**'
-      - 'plasticos_graph_integration/**'
-      - 'plasticos_graph_intelligence/**'
-      - 'plasticos_graph_3d_embedding/**'
   pull_request:
     branches: [main, staging]
-    paths-ignore:
-      - 'plasticos_graph_engine/**'
-      - 'plasticos_graph_integration/**'
-      - 'plasticos_graph_intelligence/**'
-      - 'plasticos_graph_3d_embedding/**'
 
 jobs:
   lint:

@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_match_request,access_match_request,model_plasticos_match_request,base.group_system,1,1,1,1
+access_match_result,access_match_result,model_plasticos_match_result,base.group_system,1,1,1,1
+access_explainability,access_explainability,model_plasticos_explainability_record,base.group_system,1,1,1,1
+access_expansion_insight,access_expansion_insight,model_plasticos_expansion_insight,base.group_system,1,1,1,1
+access_tolerance_simulation,access_tolerance_simulation,model_plasticos_tolerance_simulation,base.group_system,1,1,1,1
+access_ranking_policy,access_ranking_policy,model_plasticos_ranking_policy,base.group_system,1,1,1,1
