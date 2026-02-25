@@ -64,7 +64,6 @@
                 <filter name="permanent" string="Permanent" domain="[('exclusion_type', '=', 'permanent')]"/>
                 <filter name="temporary" string="Temporary" domain="[('exclusion_type', '=', 'temporary')]"/>
                 <separator/>
-                <filter name="expired" string="Expired" domain="[('exclusion_type', '=', 'temporary'), ('expiry_date', '&lt;', context_today())]"/>
                 <group expand="0" string="Group By">
                     <filter name="group_reason" string="Reason" context="{'group_by': 'reason'}"/>
                     <filter name="group_type" string="Type" context="{'group_by': 'exclusion_type'}"/>

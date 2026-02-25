@@ -74,16 +74,13 @@ class PlasticosMatchExclusion(models.Model):
     )
 
     # ═════════════════════════════════════════════════════════
-    # Constraints
+    # Constraints (Odoo 19: model.Constraint replaces _sql_constraints)
     # ═════════════════════════════════════════════════════════
 
-    _sql_constraints = [
-        (
-            "unique_supplier_buyer_pair",
-            "unique(supplier_partner_id, buyer_partner_id)",
-            "An exclusion already exists for this supplier-buyer pair.",
-        ),
-    ]
+    _unique_supplier_buyer_pair = models.Constraint(
+        "UNIQUE(supplier_partner_id, buyer_partner_id)",
+        "An exclusion already exists for this supplier-buyer pair.",
+    )
 
     # ═════════════════════════════════════════════════════════
     # Validation
