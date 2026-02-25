@@ -108,13 +108,17 @@ class PlasticosDocument(models.Model):
         return result
 
     def _trigger_transaction_recompute(self, records):
-        """Trigger recomputation of missing doc flags on related transactions.
+        """Trigger recomputation of doc-related fields on related transactions.
 
         R2 fix: Ensures real-time updates when documents are created/modified.
+        Issue 3 fix: Also recomputes compliance_status.
         """
         transactions = self._get_related_transactions(records)
         if transactions:
             transactions._compute_missing_doc_flags()
+            # Issue 3 fix: compliance_status depends on documents too
+            if hasattr(transactions, "_compute_compliance"):
+                transactions._compute_compliance()
 
     def _get_related_transactions(self, records):
         """Find all transactions related to the given document records.

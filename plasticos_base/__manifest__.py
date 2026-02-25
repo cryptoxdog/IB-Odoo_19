@@ -16,6 +16,7 @@
         "data/material_taxonomy.xml",
         "data/sales_reps.xml",
         "data/attachment_maintenance_cron.xml",
+        "data/midnight_recompute_cron.xml",
     ],
     "installable": True,
     "application": False,

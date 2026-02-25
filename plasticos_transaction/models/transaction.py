@@ -339,7 +339,7 @@ class PlasticosTransaction(models.Model):
             rec.supplier_profile_id = supplier_profile
             rec.buyer_profile_id = buyer_profile
 
-    @api.depends("sale_order_id.partner_id", "purchase_order_ids.partner_id")
+    @api.depends("sale_order_id", "sale_order_id.partner_id", "purchase_order_ids", "purchase_order_ids.partner_id")
     def _compute_profiles(self):
         for rec in self:
             # Buyer facility from sale order partner
@@ -388,8 +388,11 @@ class PlasticosTransaction(models.Model):
             rec.historical_margin = rec.historical_sale_total - rec.historical_purchase_total
 
     @api.depends(
+        "customer_invoice_id",
         "customer_invoice_id.amount_total",
+        "vendor_bill_ids",
         "vendor_bill_ids.amount_total",
+        "freight_bill_ids",
         "freight_bill_ids.amount_total",
         "other_expenses",
         "freight_chargebacks",
@@ -423,27 +426,15 @@ class PlasticosTransaction(models.Model):
             rec.net_margin = rec.gross_margin - (rec.commission_amount or 0.0)
 
     def _compute_chargebacks_penalties(self):
-        """Sum recoveries from linked claims (plasticos.claim).
+        """Fallback: zero chargebacks/penalties when claims module not installed.
 
-        Called by claim module when claims are resolved. Chargebacks and
-        penalties are credits that reduce effective cost.
+        NOTE: When plasticos_claims is installed, this method is overridden by
+        transaction_claims.py which uses @api.depends("claim_ids", ...) for
+        automatic updates when claims are resolved.
         """
-        Claim = self.env.get("plasticos.claim")
-        if not Claim:
-            # Claims module not installed
-            for rec in self:
-                rec.freight_chargebacks = 0.0
-                rec.lightweight_penalties = 0.0
-            return
         for rec in self:
-            claims = Claim.search(
-                [
-                    ("transaction_id", "=", rec.id),
-                    ("state", "=", "resolved"),
-                ]
-            )
-            rec.freight_chargebacks = sum(c.recovery_amount for c in claims if c.case_type == "freight_chargeback")
-            rec.lightweight_penalties = sum(c.recovery_amount for c in claims if c.case_type == "lightweight_penalty")
+            rec.freight_chargebacks = 0.0
+            rec.lightweight_penalties = 0.0
 
     @api.depends("gross_margin", "commission_rule_id", "state", "commission_locked", "commission_locked_amount")
     def _compute_commission(self):

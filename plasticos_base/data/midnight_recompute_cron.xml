@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo noupdate="1">
+    <!--
+    Midnight Recompute Cron
+
+    Recomputes time-based stored computed fields that depend on "today's date"
+    but can't use @api.depends because time isn't a field.
+
+    Fields handled:
+    - plasticos.document.x_is_expired (depends on x_expiry_date vs today)
+    - plasticos.claim.days_open (depends on opened_at vs now)
+    - plasticos.claim.is_overdue (depends on opened_at + sla_hours vs now)
+
+    Runs at 00:05 daily to ensure all date-based fields are accurate.
+    -->
+    <record id="ir_cron_midnight_recompute" model="ir.cron">
+        <field name="name">PlasticOS: Midnight Time-Based Field Recompute</field>
+        <field name="model_id" ref="plasticos_base.model_plasticos_midnight_recompute" />
+        <field name="state">code</field>
+        <field name="code">model._cron_midnight_recompute()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="nextcall" eval="(datetime.now() + timedelta(days=1)).replace(hour=0, minute=5, second=0).strftime('%Y-%m-%d %H:%M:%S')" />
+        <field name="active">True</field>
+        <field name="user_id" ref="plasticos_base.user_system_cron" />
+    </record>
+</odoo>
