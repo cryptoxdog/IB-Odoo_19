@@ -35,12 +35,16 @@ Odoo 19 PlasticOS suite: intake, transaction, logistics, documents, commission, 
 
 ## Test Status
 
-✅ Passing — 86 modules loaded, 0 failed, 0 errors (52 tests: plasticos_transaction 47, plasticos_buyer_match_engine 5)
+✅ Passing — targeted integrity checks green on 2026-02-25:
+- `pytest tests/modules/test_repo_dependency_integrity.py -k no_sql_constraints -q` → 1 passed
+- `./scripts/check_odoo_patterns.sh` → passed
+- `python3 scripts/check_module_wiring.py` → all 27 modules passed
 
 ---
 
 ## Recent Changes
 
+- 2026-02-25: Odoo 19 compatibility hardening — Converted all remaining `_sql_constraints` declarations to `models.Constraint` across 20 model files (`plasticos_web_leads`, `plasticos_transaction`, `plasticos_offer`, `plasticos_material_profile`, `plasticos_matching`, `plasticos_facility_profile`, `plasticos_claims`, `plasticos_logistics`, `plasticos_documents`, `plasticos_automation`). Confirmed zero `_sql_constraints` left in repo. Also fixed the blocking search-view parse issue earlier in `plasticos_buyer_match_engine/views/match_exclusion_views.xml` and migrated `match_exclusion.py` constraint.
 - 2026-02-23: Bug Fixes BUG-073 to BUG-079 + CI Enhancement — Fixed Many2one field writes in web_lead.py (polymer_id, form_id, source_type_id now use record IDs not strings). Added deal_type/contract_duration_months to intake.py. Relaxed required=False on polymer_id/form_id. Fixed Cypher typo tx.count→tx.tx_count in graph_service.py. Added CI check #21 for string writes to Many2one fields. Disabled tests requiring seed data for Odoo.sh CI (plasticos_enrichment, plasticos_dev_tools, plasticos_buyer_match_engine tests/__init__.py).
 - 2026-02-23: Buyer Matching Enhancements #6, #7, #11 — Implemented Color Matching gate (natural=pass, mixed=requires accepts_any_color, else check accepted_color_ids), Filler Matching gate (unfilled=pass, else check accepts_filled_materials/max_filler_pct/accepted_filler_type_ids), and Exclusion List model (plasticos.match.exclusion with supplier/buyer pair, reason, permanent/temporary expiry). Added fields to facility_profile.py (accepted_color_ids, accepts_any_color, max_filler_pct, accepted_filler_type_ids). Created match_exclusion.py with cron for expiring temporary exclusions. Updated matcher.py with gates 11-12 and exclusion filtering. Deleted source spec files after implementation.
 - 2026-02-23: Buyer Matching Engine v2.0 Dual-Query Architecture — Implemented strict/relaxed mode selection on intake form. Stage 1 (Python) mode-aware gating: strict enforces all 10 gates, relaxed only polymer. Stage 2 (Cypher) dual queries: `_build_strict_query()` (14 hard WHERE gates), `_build_relaxed_query()` (polymer hard, others multiplicative penalties). Added MFI sync to Neo4j MaterialProfile nodes. Updated partner_type_data.xml with gate_mode values (broker→optimistic, mrf/recycler→flexible) and 4 new types (end_user, grinder, toll_processor, converter). Files: graph_service.py, matcher.py, intake_extension.py, intake.py, intake_views.xml, partner_type_data.xml.
@@ -94,15 +98,16 @@ Odoo 19 PlasticOS suite: intake, transaction, logistics, documents, commission, 
 
 ## Next Steps
 
-1. Start full Odoo stack: `docker compose -p plasticos_prod -f docker-compose.prod.yml up -d`
-2. Initialize Neo4j graph schema: `./scripts/setup_neo4j.sh --init-schema`
-3. Test "Match To Buyers" button on an intake — verify Neo4j graph matching works with fallback.
-4. Test enrichment + inference pipeline in Odoo with new v8.0 KB files (KB migration/rebuild done elsewhere; import when ready).
+1. Deploy latest `staging` to Odoo.sh and validate registry startup on the target DB.
+2. Repair missing filestore blobs for DB `cryptoxdog-ib-odoo-19-staging-29020761` (restore/sync filestore and/or clean orphan `ir.attachment` rows pointing to missing `store_fname`).
+3. Re-run cron `Buyer CRM Enrichment + Inference — Daily` and verify no `FileNotFoundError` from `ir_attachment._file_read`.
+4. Identify remaining clients calling `/xmlrpc`, `/xmlrpc/2`, `/jsonrpc` and migrate them to Odoo 19 external API endpoints.
 
 ---
 
 ## Recent Sessions (7-day window)
 
+- ✅ 2026-02-25: GMP constraints migration — converted remaining 20 `_sql_constraints` blocks to `models.Constraint`; ran targeted integrity checks; confirmed no `_sql_constraints` left.
 - ✅ 2026-02-23: Bug Fixes BUG-073 to BUG-079 — Many2one field fixes, deal_type field, Cypher typo fix, CI check #21, disabled seed-dependent tests for Odoo.sh. Build passing.
 - ✅ 2026-02-23: Buyer Matching Enhancements #6, #7, #11 — Color gate, Filler gate, Exclusion List model. 7 files modified, 3 spec files deleted.
 - ✅ 2026-02-23: Buyer Matching Engine v2.0 — Dual-query architecture (strict/relaxed), MFI sync, mode-aware Python gates, 4 new partner types. 6 files modified.

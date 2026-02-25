@@ -279,9 +279,10 @@ class PlasticosWebLead(models.Model):
     # Constraints
     # ═══════════════════════════════════════════════════════════
 
-    _sql_constraints = [
-        ("unique_lead_id", "unique(lead_id)", "A web lead with this ID already exists (idempotency guard)."),
-    ]
+    _unique_lead_id = models.Constraint(
+        "unique(lead_id)",
+        "A web lead with this ID already exists (idempotency guard).",
+    )
 
     # ═══════════════════════════════════════════════════════════
     # Entry Point 1: Direct Cognito Ingestion (AI Triage)

@@ -305,13 +305,10 @@ class PlasticosMaterialProfile(models.Model):
     # Constraints
     # ═════════════════════════════════════════════════════════
 
-    _sql_constraints = [
-        (
-            "unique_partner_polymer_form",
-            "unique(partner_id, polymer_id, form_id)",
-            "A facility may only have one profile per polymer + form combination.",
-        ),
-    ]
+    _unique_partner_polymer_form = models.Constraint(
+        "unique(partner_id, polymer_id, form_id)",
+        "A facility may only have one profile per polymer + form combination.",
+    )
 
     # ═════════════════════════════════════════════════════════
     # Computed

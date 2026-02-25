@@ -11,10 +11,7 @@ class PlasticosRateMemory(models.Model):
     rate_date = fields.Date(required=True, index=True)
 
     # ── Constraints ──────────────────────────────────────────
-    _sql_constraints = [
-        (
-            "unique_carrier_lane_date",
-            "unique(carrier_id, lane_key, rate_date)",
-            "Only one rate per carrier + lane + date is allowed.",
-        ),
-    ]
+    _unique_carrier_lane_date = models.Constraint(
+        "unique(carrier_id, lane_key, rate_date)",
+        "Only one rate per carrier + lane + date is allowed.",
+    )
