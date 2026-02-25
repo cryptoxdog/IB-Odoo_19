@@ -7,7 +7,7 @@
 | `AI Agent Files/CHANGELOG.md` | CHANGELOG.md | doc |
 | `AI Agent Files/CONTRIBUTING.md` | CONTRIBUTING.md | doc |
 | `AI Agent Files/DEPLOYMENT.md` | DEPLOYMENT.md | doc |
-| `AI Agent Files/ENVIRONMENT_SPEC.md` | ENVIRONMENT_SPEC.md | doc |
+| `AI Agent Files/ENVIRONMENT_SPEC.MD` | ENVIRONMENT_SPEC.MD | doc |
 | `AI Agent Files/ENVIRONMENT_SPEC.yaml` | ENVIRONMENT_SPEC.yaml | spec |
 | `AI Agent Files/FAQ.md` | FAQ.md | doc |
 | `AI Agent Files/FIXTURE_POLICY.md` | FIXTURE_POLICY.md | doc |
