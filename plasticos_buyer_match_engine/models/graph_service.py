@@ -313,8 +313,8 @@ class PlasticosGraphService(models.AbstractModel):
 
         rows = self._execute_cypher(query, params)
 
-        # Persist results with l9_run_id
-        self._persist_match_results(intake, rows, l9_run_id=run_id)
+        # Persist results with run_id
+        self._persist_match_results(intake, rows, run_id=run_id)
 
         return rows
 
@@ -537,8 +537,8 @@ class PlasticosGraphService(models.AbstractModel):
         ORDER BY total_score DESC
         """
 
-    def _persist_match_results(self, intake, rows, l9_run_id="unknown"):
-        """Persist match results to plasticos.match.result with l9_run_id tagging."""
+    def _persist_match_results(self, intake, rows, run_id="unknown"):
+        """Persist match results to plasticos.match.result with run_id tagging."""
         MatchResult = self.env["plasticos.match.result"]
 
         for row in rows:
@@ -550,7 +550,7 @@ class PlasticosGraphService(models.AbstractModel):
                         "material_id": row.get("material_id"),
                         "total_score": row.get("total_score", 0.0),
                         "match_mode": row.get("match_mode", "unknown"),
-                        "l9_run_id": l9_run_id,
+                        "run_id": run_id,
                     }
                 )
             except Exception as e:

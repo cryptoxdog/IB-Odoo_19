@@ -7,10 +7,10 @@ _logger = logging.getLogger(__name__)
 
 
 class PlasticosMatchResult(models.Model):
-    """Stores match outcomes produced by the L9 adapter.
+    """Stores match outcomes produced by the matching pipeline.
 
     No scoring logic lives in Odoo. This model is a pure result
-    container: the L9 SDK adapter writes results here, and Odoo
+    container: matching services write results here, and Odoo
     users consume them through views and reports.
     """
 
@@ -81,39 +81,39 @@ class PlasticosMatchResult(models.Model):
     )
 
     # ═════════════════════════════════════════════════════════
-    # Score & Reasoning (written by L9)
+    # Score & Reasoning
     # ═════════════════════════════════════════════════════════
 
     score = fields.Float(
         digits=(5, 2),
         index=True,
         tracking=True,
-        help="Overall match score (0–100). Computed by L9 adapter.",
+        help="Overall match score (0–100).",
     )
     confidence = fields.Float(
         digits=(5, 2),
         help="Confidence level of the match (0–100).",
     )
     score_breakdown = fields.Json(
-        help="Structured breakdown of score components from L9.",
+        help="Structured breakdown of score components.",
     )
     match_reasoning = fields.Text(
         help="Human-readable explanation of why this match was produced.",
     )
 
     # ═════════════════════════════════════════════════════════
-    # L9 Metadata
+    # Run Metadata
     # ═════════════════════════════════════════════════════════
 
-    l9_run_id = fields.Char(
+    run_id = fields.Char(
         index=True,
-        help="Unique identifier of the L9 matching run.",
+        help="Unique identifier of the matching run.",
     )
-    l9_model_version = fields.Char(
-        help="Version of the L9 matching model that produced this result.",
+    model_version = fields.Char(
+        help="Version of the matching model that produced this result.",
     )
-    l9_timestamp = fields.Datetime(
-        help="Timestamp when L9 produced this result.",
+    timestamp = fields.Datetime(
+        help="Timestamp when this result was produced.",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -157,7 +157,7 @@ class PlasticosMatchResult(models.Model):
     _sql_constraints = [
         (
             "unique_match_per_run",
-            "unique(intake_id, buyer_partner_id, l9_run_id)",
+            "unique(intake_id, buyer_partner_id, run_id)",
             "Duplicate match result for the same intake + buyer + run.",
         ),
         (
