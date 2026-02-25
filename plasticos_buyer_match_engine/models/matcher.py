@@ -242,8 +242,8 @@ class BuyerMatcher(models.Model):
             # Core material identifiers (from facility profile)
             "polymer_id": first_polymer.id if first_polymer else None,
             "polymer_code": first_polymer.code if first_polymer else None,
-            "form_id": None,  # Profile uses form_preference selection, not form_id
-            "form_code": profile.form_preference or None,
+            "form_id": profile.form_preference_id.id if profile.form_preference_id else None,
+            "form_code": profile.form_preference_id.code if profile.form_preference_id else None,
             "color_id": None,  # Profile uses accepted_color_ids, not single color
             "color_code": None,
             "source_type_id": profile.source_type_id.id if profile.source_type_id else None,
@@ -300,7 +300,7 @@ class BuyerMatcher(models.Model):
 
         SCHEMA ALIGNMENT (2026-02-25):
         - buyer_profile.accepted_polymer_ids (Many2many, not polymer_family_id)
-        - buyer_profile.form_preference (Selection, not form_factor_ids)
+        - buyer_profile.form_preference_id (Many2one to material.form; empty = any)
         - buyer_profile.accepted_color_ids (Many2many, not color_family_ids)
         - buyer_profile.min_lot_size_lbs (not min_order_quantity)
 
@@ -321,10 +321,12 @@ class BuyerMatcher(models.Model):
                 gates_failed.append("polymer")
 
         # Gate 2: Form Factor
-        # Compare material form_code against buyer's form_preference
+        # Compare material form_code against buyer's form_preference_id.code
+        # Empty form_preference_id means "any form accepted" (no gate).
         material_form_code = material_req.get("form_code")
-        if material_form_code and buyer_profile.form_preference:
-            if buyer_profile.form_preference != "any" and material_form_code != buyer_profile.form_preference:
+        buyer_form_code = buyer_profile.form_preference_id.code if buyer_profile.form_preference_id else None
+        if material_form_code and buyer_form_code:
+            if material_form_code != buyer_form_code:
                 gates_failed.append("form_factor")
 
         # Gate 3: Color

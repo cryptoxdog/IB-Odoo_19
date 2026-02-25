@@ -1,5 +1,6 @@
 from odoo import api, fields, models  # pyright: ignore[reportMissingImports]
 from odoo.exceptions import ValidationError  # pyright: ignore[reportMissingImports]
+from plasticos_material_profile.form_codes import FORM_SELECTION
 
 
 class PlasticosFacilityProfile(models.Model):
@@ -109,18 +110,21 @@ class PlasticosFacilityProfile(models.Model):
     )
 
     # ── Form Preference ──────────────────────────────────────
+    form_preference_id = fields.Many2one(
+        "plasticos.material.form",
+        string="Form Preference",
+        index=True,
+        ondelete="restrict",
+        help="Primary preferred physical form for inbound material. Leave empty for 'any form accepted'.",
+    )
+    # Backward-compatible computed Selection (read-only)
     form_preference = fields.Selection(
-        [
-            ("bales", "Bales"),
-            ("flake", "Flake"),
-            ("pellet", "Pellet"),
-            ("regrind", "Regrind"),
-            ("sheet", "Sheet"),
-            ("parts", "Parts"),
-            ("powder", "Powder"),
-            ("any", "Any"),
-        ],
-        help="Primary preferred physical form for inbound material.",
+        FORM_SELECTION,
+        string="Form Preference Code",
+        compute="_compute_form_preference",
+        store=True,
+        index=True,
+        help="Auto-populated from form_preference_id. Kept for backward compatibility.",
     )
 
     # ── Process Type ──────────────────────────────────────────
@@ -260,6 +264,15 @@ class PlasticosFacilityProfile(models.Model):
             rec.has_wash_line = "wash_line" in codes
             rec.has_extruder = "extruder" in codes
             rec.has_sorting_line = "sorting_line" in codes
+
+    # ═════════════════════════════════════════════════════════
+    # Computed Fields
+    # ═════════════════════════════════════════════════════════
+
+    @api.depends("form_preference_id", "form_preference_id.code")
+    def _compute_form_preference(self):
+        for rec in self:
+            rec.form_preference = rec.form_preference_id.code if rec.form_preference_id else False
 
     # ═════════════════════════════════════════════════════════
     # CRUD

@@ -37,7 +37,7 @@
                 <group string="Processing">
                   <field name="process_type"/>
                   <field name="feedstock_type"/>
-                  <field name="form_preference"/>
+                  <field name="form_preference_id"/>
                   <field name="application_class"/>
                 </group>
                 <group string="Capacity">

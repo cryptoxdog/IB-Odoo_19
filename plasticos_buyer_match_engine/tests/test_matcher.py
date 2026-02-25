@@ -7,7 +7,7 @@ SCHEMA ALIGNMENT (2026-02-25):
 - plasticos.material.color (natural, white, black, etc.)
 - plasticos.source.type (pcr, pir, virgin) — replaces "material_category"
 - intake.lat/lon for geo (not latitude/longitude)
-- facility.profile uses accepted_polymer_ids (Many2many), form_preference (Selection)
+- facility.profile uses accepted_polymer_ids (Many2many), form_preference_id (Many2one to material.form)
 """
 
 import logging
@@ -110,7 +110,7 @@ class TestBuyerMatcher(TransactionCase):
                 "partner_id": self.supplier_facility.id,
                 "active": True,
                 "accepted_polymer_ids": [(6, 0, [self.polymer_hdpe.id])],
-                "form_preference": "bales",
+                "form_preference_id": self.form_bales.id,
                 "capacity_lbs_month": 50000,
                 "feedstock_type": "post_consumer",
             }
@@ -146,7 +146,7 @@ class TestBuyerMatcher(TransactionCase):
                 "partner_id": self.buyer1_facility.id,
                 "active": True,
                 "accepted_polymer_ids": [(6, 0, [self.polymer_hdpe.id])],
-                "form_preference": "bales",
+                "form_preference_id": self.form_bales.id,
                 "min_lot_size_lbs": 10000,
                 "feedstock_type": "post_consumer",
             }

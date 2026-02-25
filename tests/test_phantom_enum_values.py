@@ -1138,9 +1138,15 @@ class TestRegistrySanity:
             assert form in XML_NAMES, f"Expected form '{form}' not found in XML names"
 
     def test_known_selection_keys_in_registry(self):
-        """Spot-check: form_preference options should be registered."""
-        for key in ["bales", "flake", "pellet"]:
-            assert key in ALL_SELECTION_KEYS, f"Expected selection key '{key}' not found"
+        """Spot-check: form codes should be registered (via Selection or XML data).
+
+        Note: form_preference is now a computed Selection derived from a
+        Many2one to material.form.  Its canonical codes live in XML data
+        (material_form_data.xml) and in form_codes.py, so we check
+        ALL_CANONICAL (union of Selection keys + XML codes + XML names).
+        """
+        for key in ["bales", "flake", "pellets"]:
+            assert key in ALL_CANONICAL, f"Expected form code '{key}' not found in canonical registry"
 
     def test_application_class_options(self):
         expected = {"food", "medical", "automotive", "packaging", "agricultural", "construction"}
