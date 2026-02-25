@@ -4485,7 +4485,12 @@
       "plasticos.intake"
     ],
     "_description": null,
-    "fields": [],
+    "fields": [
+      [
+        "match_mode",
+        "Selection"
+      ]
+    ],
     "compute_methods": [],
     "api_constrains": [],
     "_sql_constraints": [],

@@ -381,7 +381,7 @@
 ## plasticos_buyer_match_engine :: None
 - **file:** `plasticos_buyer_match_engine/models/intake_extension.py`
 - **inherit:** ['plasticos.intake']
-- **fields:** 0
+- **fields:** 1
 - **constraints:** @api.constrains=[] _sql=[] models.Constraint=[]
 
 ## plasticos_buyer_match_engine :: plasticos.buyer.matcher
