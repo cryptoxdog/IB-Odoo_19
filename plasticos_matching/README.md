@@ -1,7 +1,7 @@
 ---
 component_id: "plasticos_matching"
 component_name: "Plasticos Matching"
-module_version: "19.0.1.0.0"
+module_version: "19.0.1.0.1"
 layer: "analytics"
 domain: "plasticos"
 type: "odoo_module"
@@ -24,6 +24,7 @@ README.md
 README.rst
 __init__.py
 __manifest__.py
+migrations/
 models/
 security/
 views/

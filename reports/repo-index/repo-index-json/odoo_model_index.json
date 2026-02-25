@@ -5676,15 +5676,15 @@
         "Text"
       ],
       [
-        "l9_run_id",
+        "run_id",
         "Char"
       ],
       [
-        "l9_model_version",
+        "model_version",
         "Char"
       ],
       [
-        "l9_timestamp",
+        "timestamp",
         "Datetime"
       ],
       [

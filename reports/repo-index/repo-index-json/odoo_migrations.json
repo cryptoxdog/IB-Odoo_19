@@ -22,5 +22,11 @@
     "version": "19.0.1.0.0",
     "file": "plasticos_dev_tools/migrations/19.0.1.0.0/post-migrate.py",
     "name": "post-migrate.py"
+  },
+  {
+    "module": "plasticos_matching",
+    "version": "19.0.1.0.1",
+    "file": "plasticos_matching/migrations/19.0.1.0.1/pre-migrate.py",
+    "name": "pre-migrate.py"
   }
 ]
