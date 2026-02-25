@@ -1,6 +1,15 @@
 from odoo import api, fields, models  # pyright: ignore[reportMissingImports]
 from odoo.exceptions import ValidationError  # pyright: ignore[reportMissingImports]
-from plasticos_material_profile.form_codes import FORM_SELECTION
+
+
+def _get_form_selection(self):
+    """Lazy load FORM_SELECTION from plasticos_material_profile.
+
+    Used as selection callable to avoid circular import at module load time.
+    """
+    from odoo.addons.plasticos_material_profile.form_codes import FORM_SELECTION
+
+    return FORM_SELECTION
 
 
 class PlasticosFacilityProfile(models.Model):
@@ -119,7 +128,7 @@ class PlasticosFacilityProfile(models.Model):
     )
     # Backward-compatible computed Selection (read-only)
     form_preference = fields.Selection(
-        FORM_SELECTION,
+        selection=_get_form_selection,
         string="Form Preference Code",
         compute="_compute_form_preference",
         store=True,

@@ -18,8 +18,7 @@ import logging
 from datetime import UTC, datetime
 
 # Inference engine (this addon — no Odoo model dependency)
-from plasticos_inference_engine import InferenceEngine, InferenceRequest
-
+from . import InferenceEngine, InferenceRequest
 from .config import Settings
 from .models import (
     EnrichedLead,
