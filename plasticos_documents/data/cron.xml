@@ -4,7 +4,7 @@
         <field name="name">Document Compliance Audit</field>
         <field name="model_id" ref="plasticos_documents.model_plasticos_document"/>
         <field name="state">code</field>
-        <field name="code">model.env['plasticos.compliance.service'].get_missing_documents('plasticos.document', False)</field>
+        <field name="code">model.env['plasticos.transaction'].cron_check_missing_docs()</field>
         <field name="interval_number">6</field>
         <field name="interval_type">hours</field>
         <field name="active" eval="False"/>
