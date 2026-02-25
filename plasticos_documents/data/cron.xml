@@ -1,10 +1,10 @@
 <odoo>
-    <!-- Compliance audit cron - checks document compliance for all documents -->
+    <!-- Compliance audit cron - batch-check all active documents for expiry -->
     <record id="cron_document_compliance_check" model="ir.cron">
         <field name="name">Document Compliance Audit</field>
         <field name="model_id" ref="plasticos_documents.model_plasticos_document"/>
         <field name="state">code</field>
-        <field name="code">model.env['plasticos.transaction'].cron_check_missing_docs()</field>
+        <field name="code">model._cron_compliance_audit()</field>
         <field name="interval_number">6</field>
         <field name="interval_type">hours</field>
         <field name="active" eval="False"/>
