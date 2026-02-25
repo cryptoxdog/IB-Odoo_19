@@ -1,5 +1,9 @@
+import logging
+
 from odoo import api, fields, models
 from odoo.exceptions import UserError
+
+_logger = logging.getLogger(__name__)
 
 
 class PlasticosDocument(models.Model):
@@ -42,9 +46,39 @@ class PlasticosDocument(models.Model):
             rec.verified_by = self.env.user.id
             rec.verified_at = fields.Datetime.now()
 
-    def action_override(self, reason):
+    def action_override(self, reason=None):
+        """Override document verification.
+
+        Args:
+            reason: Optional override reason string.  When called from a
+                    button action (no positional args), the reason can be
+                    set later via the ``override_reason`` field.
+        """
         if not self.env.user.has_group("plasticos_documents.group_documents_manager"):
             raise UserError("Not authorized to override.")
         for rec in self:
             rec.override = True
-            rec.override_reason = reason
+            if reason:
+                rec.override_reason = reason
+
+    # ── Cron ────────────────────────────────────────────────
+    @api.model
+    def _cron_compliance_audit(self):
+        """Batch compliance audit: flag verified documents that have expired.
+
+        Called by the scheduled action ``cron_document_compliance_check``.
+        Resets ``verified`` on any document whose ``x_is_expired`` is True
+        so that the compliance service no longer considers them valid.
+        """
+        expired = self.search(
+            [
+                ("verified", "=", True),
+                ("x_is_expired", "=", True),
+                ("active", "=", True),
+            ]
+        )
+        if expired:
+            expired.write({"verified": False})
+            _logger.info("Compliance audit: reset verified flag on %d expired documents.", len(expired))
+        else:
+            _logger.info("Compliance audit: no expired verified documents found.")
