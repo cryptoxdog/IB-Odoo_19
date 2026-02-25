@@ -20,10 +20,17 @@ from datetime import datetime
 
 from odoo import fields, models  # pyright: ignore[reportMissingImports]
 from odoo.exceptions import UserError  # pyright: ignore[reportMissingImports]
-from plasticos_material_profile.form_codes import (
-    EQUIPMENT_GATED_FORMS,
-    PASSTHROUGH_FORMS,
-)
+
+
+def _get_form_codes():
+    """Lazy load form codes to avoid import error at module load time."""
+    from odoo.addons.plasticos_material_profile.form_codes import (
+        EQUIPMENT_GATED_FORMS,
+        PASSTHROUGH_FORMS,
+    )
+
+    return EQUIPMENT_GATED_FORMS, PASSTHROUGH_FORMS
+
 
 _logger = logging.getLogger(__name__)
 
@@ -178,7 +185,7 @@ class PlasticosGraphService(models.AbstractModel):
         query = """
         MATCH (supplier:Facility {facility_id: $supplier_id})
         MATCH (buyer:Facility {facility_id: $buyer_id})
-        OPTIONAL MATCH (buyer)-[:HAS_MATERIAL]->(mat:Material)
+        OPTIONAL MATCH (buyer)-[:HAS_MATERIAL]->(mat:MaterialProfile)
 
         // Calculate scores with gate_mode adjustment (spec v2.0: 4 dimensions)
         // Schema alignment: Material.polymer stores the polymer code (e.g., 'HDPE')
@@ -244,7 +251,7 @@ class PlasticosGraphService(models.AbstractModel):
              END AS distance_miles
 
         // Transaction history for HISTORY score
-        OPTIONAL MATCH (supplier)-[tx:SOLD_TO]->(buyer)
+        OPTIONAL MATCH (supplier)-[tx:TRANSACTED_WITH]->(buyer)
 
         WITH hard_gate_score, quality_score, geo_score, distance_miles,
              CASE WHEN tx IS NOT NULL THEN 1.0 ELSE 0.0 END AS history_score,
@@ -344,10 +351,11 @@ class PlasticosGraphService(models.AbstractModel):
         Derived from ``EQUIPMENT_GATED_FORMS`` and ``PASSTHROUGH_FORMS`` in
         ``plasticos_material_profile.form_codes`` — the single source of truth.
         """
+        equipment_gated_forms, passthrough_forms = _get_form_codes()
         lines = ["$form IS NULL"]
-        for form_code, condition in EQUIPMENT_GATED_FORMS.items():
+        for form_code, condition in equipment_gated_forms.items():
             lines.append(f"($form = '{form_code}' AND {condition} = true)")
-        passthrough_list = ", ".join(f"'{c}'" for c in PASSTHROUGH_FORMS)
+        passthrough_list = ", ".join(f"'{c}'" for c in passthrough_forms)
         lines.append(f"($form IN [{passthrough_list}])")
         return "\n            OR ".join(lines)
 
@@ -359,10 +367,11 @@ class PlasticosGraphService(models.AbstractModel):
         equipment is present, passthrough forms always score 1.0, and
         unknown forms get 0.3 penalty.
         """
+        equipment_gated_forms, passthrough_forms = _get_form_codes()
         lines = ["WHEN $form IS NULL THEN 1.0"]
-        for form_code, condition in EQUIPMENT_GATED_FORMS.items():
+        for form_code, condition in equipment_gated_forms.items():
             lines.append(f"WHEN $form = '{form_code}' AND {condition} = true THEN 1.0")
-        passthrough_list = ", ".join(f"'{c}'" for c in PASSTHROUGH_FORMS)
+        passthrough_list = ", ".join(f"'{c}'" for c in passthrough_forms)
         lines.append(f"WHEN $form IN [{passthrough_list}] THEN 1.0")
         lines.append("ELSE 0.3")
         return "\n                ".join(lines)
@@ -372,7 +381,7 @@ class PlasticosGraphService(models.AbstractModel):
         form_gate_where = self._build_form_gate_where()
         return f"""
         // Stage 2 STRICT: All 14 gates as hard exclusions
-        MATCH (f:Facility)-[:HAS_MATERIAL]->(m:Material)
+        MATCH (f:Facility)-[:HAS_MATERIAL]->(m:MaterialProfile)
         WHERE f.facility_id IN $facility_ids
 
         // Gate 1: Polymer (HARD)
@@ -448,7 +457,7 @@ class PlasticosGraphService(models.AbstractModel):
         form_gate_case = self._build_form_gate_case()
         return f"""
         // Stage 2 RELAXED: Only polymer is hard, all others are multiplicative penalties
-        MATCH (f:Facility)-[:HAS_MATERIAL]->(m:Material)
+        MATCH (f:Facility)-[:HAS_MATERIAL]->(m:MaterialProfile)
         WHERE f.facility_id IN $facility_ids
 
         // ONLY HARD GATE: Polymer
@@ -740,7 +749,7 @@ class PlasticosGraphService(models.AbstractModel):
             return
         constraints = [
             "CREATE CONSTRAINT facility_id IF NOT EXISTS FOR (f:Facility) REQUIRE f.facility_id IS UNIQUE",
-            "CREATE CONSTRAINT material_id IF NOT EXISTS FOR (m:Material) REQUIRE m.material_id IS UNIQUE",
+            "CREATE CONSTRAINT material_id IF NOT EXISTS FOR (m:MaterialProfile) REQUIRE m.material_id IS UNIQUE",
         ]
         for cypher in constraints:
             try:
@@ -966,7 +975,7 @@ class PlasticosGraphService(models.AbstractModel):
             return
         query = """
         UNWIND $materials AS m
-        MERGE (mat:Material {material_id: m.material_id})
+        MERGE (mat:MaterialProfile {material_id: m.material_id})
         ON CREATE SET
             mat.facility_id = m.facility_id, mat.polymer = m.polymer, mat.form = m.form,
             mat.color = m.color, mat.min_density = m.min_density, mat.max_density = m.max_density,
@@ -999,7 +1008,7 @@ class PlasticosGraphService(models.AbstractModel):
         self._create_sync_log("full", "success", {"trigger": trigger}, None)
 
     def sync_transaction_edges(self, trigger="manual"):
-        """Sync SOLD_TO edges from plasticos.transaction records.
+        """Sync TRANSACTED_WITH edges from plasticos.transaction records.
 
         Creates edges between supplier and buyer facilities with:
         - tx_count: Number of transactions between the pair
@@ -1055,7 +1064,7 @@ class PlasticosGraphService(models.AbstractModel):
         UNWIND $edges AS e
         MATCH (supplier:Facility {facility_id: e.supplier_id})
         MATCH (buyer:Facility {facility_id: e.buyer_id})
-        MERGE (supplier)-[tx:SOLD_TO]->(buyer)
+        MERGE (supplier)-[tx:TRANSACTED_WITH]->(buyer)
         ON CREATE SET
             tx.tx_count = e.tx_count,
             tx.last_tx_date = e.last_tx_date,

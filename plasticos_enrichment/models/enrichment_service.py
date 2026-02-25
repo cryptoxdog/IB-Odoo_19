@@ -2,22 +2,28 @@ import hashlib
 import json
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import requests as http_requests
 
 from odoo import api, fields, models
-
-# Inference engine (Odoo addon import)
-from odoo.addons.plasticos_inference_engine import (
-    InferenceEngine,
-    InferenceRequest,
-)
 from odoo.exceptions import UserError
+
+if TYPE_CHECKING:
+    from odoo.addons.plasticos_inference_engine import InferenceEngine
 
 _logger = logging.getLogger(__name__)
 
 # Inference engine singleton (loaded once per worker)
-_inference_engine: InferenceEngine | None = None
+_inference_engine: "InferenceEngine | None" = None
+
+
+def _get_inference_classes():
+    """Lazy load inference engine classes to avoid import error at module load time."""
+    from odoo.addons.plasticos_inference_engine import InferenceEngine, InferenceRequest
+
+    return InferenceEngine, InferenceRequest
+
 
 # ── Normalization Maps ──────────────────────────────────────────
 # Deterministic, static. Map AI extraction tokens to actual
@@ -193,10 +199,11 @@ class EnrichmentService(models.AbstractModel):
     # ── Inference Engine ────────────────────────────────────────
 
     @api.model
-    def _get_inference_engine(self) -> InferenceEngine:
+    def _get_inference_engine(self):
         """Return singleton inference engine (loaded once per worker)."""
         global _inference_engine
         if _inference_engine is None:
+            InferenceEngine, _ = _get_inference_classes()
             # Primary KB location: plasticos_inference_engine/knowledge_base_v8.0/
             # This contains the full v8.0 KB set (22 polymers)
             primary_kb_dir = Path(__file__).parent.parent.parent / "plasticos_inference_engine" / "knowledge_base_v8.0"
@@ -239,6 +246,7 @@ class EnrichmentService(models.AbstractModel):
             Dict with original + inferred fields (quality_tier, etc.)
         """
         engine = self._get_inference_engine()
+        _, InferenceRequest = _get_inference_classes()
 
         # Build inference request from profile_vals
         request = InferenceRequest(
