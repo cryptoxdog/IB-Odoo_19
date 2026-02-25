@@ -1,45 +1,42 @@
 ---
-component_id: "plasticos_offer"
-component_name: "Plasticos Offer"
+component_id: "plasticos_dev_tools"
+component_name: "Plasticos Dev Tools"
 module_version: "19.0.1.0.0"
-layer: "core"
+layer: "dev"
 domain: "plasticos"
 type: "odoo_module"
 status: "active"
-purpose: "Offer generation and tracking for matched intakes"
-summary: "Offer lifecycle from draft to acceptance"
+purpose: "Development utilities, validators, and test tools"
+summary: "Developer tooling and forbidden/quarantined code"
 ---
 
-# Plasticos Offer
+# Plasticos Dev Tools
 
 ## Purpose
-Offer generation and tracking for matched intakes
+Development utilities, validators, and test tools
 
 ## Summary
-Offer lifecycle from draft to acceptance
+Developer tooling and forbidden/quarantined code
 
 ## Structure
 ```
-README.md
 README.rst
-TODO/
 __init__.py
 __manifest__.py
-data/
-models/
-security/
-views/
-wizards/
+forbidden/
+migrations/
+tests/
+tools/
 ```
 
 ## Dependencies
-base, mail, plasticos_intake, plasticos_matching
+base
 
 ## Models
-plasticos.offer
+—
 
 ## Tier
-core
+dev
 
 
 ## Related Documentation

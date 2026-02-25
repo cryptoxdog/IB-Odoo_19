@@ -199,7 +199,7 @@
                                 </div>
                                 <div class="oe_kanban_bottom_right">
                                     <span t-if="record.intake_id.raw_value" class="badge bg-success">
-                                        <i class="fa fa-check"/> Intake
+                                        <i class="fa fa-check" title="Has intake"/> Intake
                                     </span>
                                 </div>
                             </div>

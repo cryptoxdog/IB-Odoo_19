@@ -21,7 +21,7 @@ Transaction lifecycle management with commission tracking
 ## Structure
 ```
 GUIDE.md
-PlasticOS_Transaction_History_2025.csv
+README.md
 README.rst
 __init__.py
 __manifest__.py
@@ -44,3 +44,9 @@ plasticos.audit.cron, plasticos.transaction, plasticos.transaction.line, plastic
 
 ## Tier
 core
+
+
+## Related Documentation
+
+- `ARCHITECTURE.md` — # ARCHITECTURE.md — PlasticOS System Architecture  **Repository**: cryptoxdog/IB...
+- `DEPLOYMENT.md` — # DEPLOYMENT.md — PlasticOS Deployment Guide  **Repository**: cryptoxdog/IB-Odoo...

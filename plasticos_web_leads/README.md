@@ -1,43 +1,44 @@
 ---
-component_id: "plasticos_intake"
-component_name: "Plasticos Intake"
-module_version: "19.0.5.0.0"
-layer: "core"
+component_id: "plasticos_web_leads"
+component_name: "Plasticos Web Leads"
+module_version: "19.0.2.0.0"
+layer: "integration"
 domain: "plasticos"
 type: "odoo_module"
 status: "active"
-purpose: "Material intake capture and normalization"
-summary: "Lead capture and material specification"
+purpose: "Web lead capture and routing"
+summary: "Inbound lead processing"
 ---
 
-# Plasticos Intake
+# Plasticos Web Leads
 
 ## Purpose
-Material intake capture and normalization
+Web lead capture and routing
 
 ## Summary
-Lead capture and material specification
+Inbound lead processing
 
 ## Structure
 ```
-README.md
 README.rst
 __init__.py
 __manifest__.py
+controllers/
+data/
 models/
 security/
-tests/
 views/
+wizards/
 ```
 
 ## Dependencies
-base, contacts, mail, plasticos_material_profile, plasticos_facility_profile
+base, mail, plasticos_intake, plasticos_material_profile, purchase
 
 ## Models
-plasticos.intake, plasticos.intake.match
+plasticos.web.lead.config, plasticos.web.lead
 
 ## Tier
-core
+integration
 
 
 ## Related Documentation

@@ -305,13 +305,10 @@ class PlasticosMaterialProfile(models.Model):
     # Constraints (Odoo 19 models.Constraint)
     # ═════════════════════════════════════════════════════════
 
-    _sql_constraints = [
-        (
-            "unique_partner_polymer",
-            "unique(partner_id, polymer_id, form_id)",
-            "A facility may only have one profile per polymer + form combination.",
-        ),
-    ]
+    _check_unique_partner_polymer = models.Constraint(
+        "unique(partner_id, polymer_id, form_id)",
+        "A facility may only have one profile per polymer + form combination.",
+    )
 
     # ═════════════════════════════════════════════════════════
     # Computed

@@ -141,8 +141,8 @@
 ## plasticos_facility_profile :: plasticos.facility.profile
 - **file:** `plasticos_facility_profile/models/facility_profile.py`
 - **inherit:** ['mail.thread']
-- **fields:** 47
-- **constraints:** @api.constrains=['partner_id', 'density_min', 'density_max'] _sql=[] models.Constraint=[]
+- **fields:** 45
+- **constraints:** @api.constrains=['partner_id', 'density_min', 'density_max', 'melt_index_min', 'melt_index_max'] _sql=[] models.Constraint=[]
 
 ## plasticos_facility_profile :: plasticos.partner.type
 - **file:** `plasticos_facility_profile/models/partner_type.py`
@@ -327,8 +327,8 @@
 ## plasticos_material_profile :: plasticos.material.profile
 - **file:** `plasticos_material_profile/models/material_profile.py`
 - **inherit:** ['mail.thread']
-- **fields:** 43
-- **constraints:** @api.constrains=['partner_id', 'melt_index_min', 'melt_index_max'] _sql=[] models.Constraint=[]
+- **fields:** 41
+- **constraints:** @api.constrains=['partner_id'] _sql=[] models.Constraint=[]
 
 ## plasticos_material_profile :: plasticos.process.type
 - **file:** `plasticos_material_profile/models/process_type.py`
@@ -453,7 +453,7 @@
 ## plasticos_intake :: plasticos.intake
 - **file:** `plasticos_intake/models/intake.py`
 - **inherit:** ['mail.thread', 'mail.activity.mixin']
-- **fields:** 48
+- **fields:** 47
 - **constraints:** @api.constrains=['quantity_per_load_lbs', 'loads_per_month'] _sql=[] models.Constraint=[]
 
 ## plasticos_intake :: None

@@ -23,6 +23,7 @@ Logistics coordination with trucker communications
 BOL - DELIVERY-59422.pdf
 BOL - PICKUP-59422.pdf
 DELIVERY ORDER-59422.pdf
+README.md
 README.rst
 __init__.py
 __manifest__.py
@@ -31,7 +32,6 @@ models/
 report/
 security/
 services/
-templates for logistics/
 views/
 wizards/
 ```
@@ -44,3 +44,9 @@ plasticos.dispatch, plasticos.rate.memory, plasticos.load
 
 ## Tier
 core
+
+
+## Related Documentation
+
+- `ARCHITECTURE.md` — # ARCHITECTURE.md — PlasticOS System Architecture  **Repository**: cryptoxdog/IB...
+- `DEPLOYMENT.md` — # DEPLOYMENT.md — PlasticOS Deployment Guide  **Repository**: cryptoxdog/IB-Odoo...

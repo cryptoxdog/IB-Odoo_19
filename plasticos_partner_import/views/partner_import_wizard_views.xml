@@ -70,7 +70,7 @@
               action="action_partner_import_wizard"
               sequence="100"/>
 
-    <!-- Also add to PlasticOS menu if it exists -->
+    <!-- Also add to PlasticOS menu (parent from plasticos_intake; dependency guarantees it exists) -->
     <menuitem id="menu_partner_import_wizard_plasticos"
               name="Import Partners"
               parent="plasticos_intake.plasticos_root_menu"

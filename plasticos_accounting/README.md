@@ -1,45 +1,39 @@
 ---
-component_id: "plasticos_offer"
-component_name: "Plasticos Offer"
+component_id: "plasticos_accounting"
+component_name: "Plasticos Accounting"
 module_version: "19.0.1.0.0"
-layer: "core"
+layer: "foundation"
 domain: "plasticos"
 type: "odoo_module"
 status: "active"
-purpose: "Offer generation and tracking for matched intakes"
-summary: "Offer lifecycle from draft to acceptance"
+purpose: "Chart of accounts and payment terms"
+summary: "Accounting configuration for PlasticOS"
 ---
 
-# Plasticos Offer
+# Plasticos Accounting
 
 ## Purpose
-Offer generation and tracking for matched intakes
+Chart of accounts and payment terms
 
 ## Summary
-Offer lifecycle from draft to acceptance
+Accounting configuration for PlasticOS
 
 ## Structure
 ```
-README.md
 README.rst
-TODO/
 __init__.py
 __manifest__.py
 data/
-models/
-security/
-views/
-wizards/
 ```
 
 ## Dependencies
-base, mail, plasticos_intake, plasticos_matching
+account
 
 ## Models
-plasticos.offer
+—
 
 ## Tier
-core
+foundation
 
 
 ## Related Documentation

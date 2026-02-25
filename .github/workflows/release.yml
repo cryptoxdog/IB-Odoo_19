@@ -1,0 +1,149 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Release version: $VERSION"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Get previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          echo "## What's Changed in v$VERSION" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+
+          if [ -n "$PREV_TAG" ]; then
+            echo "Changes since $PREV_TAG:" >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+
+            # Group commits by type
+            echo "### Features" >> CHANGELOG.md
+            git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)" --grep="^feat" >> CHANGELOG.md || true
+            echo "" >> CHANGELOG.md
+
+            echo "### Bug Fixes" >> CHANGELOG.md
+            git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)" --grep="^fix" >> CHANGELOG.md || true
+            echo "" >> CHANGELOG.md
+
+            echo "### Other Changes" >> CHANGELOG.md
+            git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)" --invert-grep --grep="^feat" --grep="^fix" | head -20 >> CHANGELOG.md || true
+            echo "" >> CHANGELOG.md
+          else
+            echo "Initial release" >> CHANGELOG.md
+          fi
+
+          echo "" >> CHANGELOG.md
+          echo "### Module Versions" >> CHANGELOG.md
+
+          # List all module versions
+          for manifest in $(find . -name "__manifest__.py" -not -path "./.venv/*" | sort); do
+            MODULE_DIR=$(dirname "$manifest")
+            MODULE_NAME=$(basename "$MODULE_DIR")
+            MODULE_VERSION=$(python3 -c "exec(open('$manifest').read()); print(locals().get('version', 'unknown'))" 2>/dev/null || echo "unknown")
+            echo "- **$MODULE_NAME**: $MODULE_VERSION" >> CHANGELOG.md
+          done
+
+          cat CHANGELOG.md
+
+      - name: Collect module info
+        id: modules
+        run: |
+          echo "=== Odoo Modules in Release ===" > MODULE_INFO.md
+          echo "" >> MODULE_INFO.md
+
+          for manifest in $(find . -name "__manifest__.py" -not -path "./.venv/*" | sort); do
+            MODULE_DIR=$(dirname "$manifest")
+            MODULE_NAME=$(basename "$MODULE_DIR")
+
+            python3 -c "
+import ast
+with open('$manifest', 'r') as f:
+    m = ast.literal_eval(f.read())
+print(f\"### {m.get('name', '$MODULE_NAME')}\")
+print(f\"- **Technical Name**: $MODULE_NAME\")
+print(f\"- **Version**: {m.get('version', 'N/A')}\")
+print(f\"- **Summary**: {m.get('summary', 'N/A')}\")
+print(f\"- **Dependencies**: {', '.join(m.get('depends', []))}\")
+print('')
+" >> MODULE_INFO.md
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "PlasticOS v${{ steps.version.outputs.version }}"
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease || false }}
+          generate_release_notes: true
+          files: |
+            MODULE_INFO.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-versions:
+    name: Update Module Versions (Manual Trigger Only)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    needs: create-release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update manifest versions
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          ODOO_VERSION="19.0.$VERSION"
+
+          echo "Updating module versions to $ODOO_VERSION"
+
+          # This is informational only - actual version bumps should be done manually
+          echo "To update all modules to this version, run:"
+          echo ""
+          echo "  find . -name '__manifest__.py' -exec sed -i 's/\"version\": \"19.0.[^\"]*\"/\"version\": \"$ODOO_VERSION\"/' {} \;"
+          echo ""
+          echo "Then commit and push the changes."

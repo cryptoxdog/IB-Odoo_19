@@ -1,45 +1,41 @@
 ---
-component_id: "plasticos_offer"
-component_name: "Plasticos Offer"
-module_version: "19.0.1.0.0"
-layer: "core"
+component_id: "plasticos_product"
+component_name: "Plasticos Product"
+module_version: "19.0.1.0.1"
+layer: "domain"
 domain: "plasticos"
 type: "odoo_module"
 status: "active"
-purpose: "Offer generation and tracking for matched intakes"
-summary: "Offer lifecycle from draft to acceptance"
+purpose: "Scrap plastic product catalog with material attributes"
+summary: "Product catalog linked to polymer, form, color, source type"
 ---
 
-# Plasticos Offer
+# Plasticos Product
 
 ## Purpose
-Offer generation and tracking for matched intakes
+Scrap plastic product catalog with material attributes
 
 ## Summary
-Offer lifecycle from draft to acceptance
+Product catalog linked to polymer, form, color, source type
 
 ## Structure
 ```
-README.md
-README.rst
-TODO/
 __init__.py
 __manifest__.py
 data/
 models/
 security/
 views/
-wizards/
 ```
 
 ## Dependencies
-base, mail, plasticos_intake, plasticos_matching
+product, plasticos_material_profile
 
 ## Models
-plasticos.offer
+—
 
 ## Tier
-core
+domain
 
 
 ## Related Documentation

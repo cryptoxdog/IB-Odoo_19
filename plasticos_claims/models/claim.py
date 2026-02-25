@@ -199,13 +199,10 @@ class PlasticosClaim(models.Model):
     )
 
     # ── Constraints ──────────────────────────────────────────
-    _sql_constraints = [
-        (
-            "unique_name",
-            "unique(name)",
-            "Claim reference must be unique.",
-        ),
-    ]
+    _check_unique_name = models.Constraint(
+        "unique(name)",
+        "Claim reference must be unique.",
+    )
 
     @api.constrains("state", "resolution_note")
     def _check_resolution_note(self):

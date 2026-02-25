@@ -18,10 +18,7 @@ class PlasticosMaterialColor(models.Model):
     active = fields.Boolean(default=True)
     sequence = fields.Integer(default=10)
 
-    _sql_constraints = [
-        (
-            "unique_code",
-            "unique(code)",
-            "Material color code must be unique.",
-        ),
-    ]
+    _check_unique_code = models.Constraint(
+        "unique(code)",
+        "Material color code must be unique.",
+    )

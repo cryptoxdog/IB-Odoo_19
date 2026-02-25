@@ -20,6 +20,7 @@ Claim tracking, SLA monitoring, and resolution
 
 ## Structure
 ```
+README.md
 README.rst
 __init__.py
 __manifest__.py
@@ -38,3 +39,9 @@ plasticos.claim
 
 ## Tier
 core
+
+
+## Related Documentation
+
+- `ARCHITECTURE.md` — # ARCHITECTURE.md — PlasticOS System Architecture  **Repository**: cryptoxdog/IB...
+- `DEPLOYMENT.md` — # DEPLOYMENT.md — PlasticOS Deployment Guide  **Repository**: cryptoxdog/IB-Odoo...

@@ -18,10 +18,7 @@ class PlasticosSourceType(models.Model):
     active = fields.Boolean(default=True)
     sequence = fields.Integer(default=10)
 
-    _sql_constraints = [
-        (
-            "unique_code",
-            "unique(code)",
-            "Source type code must be unique.",
-        ),
-    ]
+    _check_unique_code = models.Constraint(
+        "unique(code)",
+        "Source type code must be unique.",
+    )

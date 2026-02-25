@@ -664,38 +664,6 @@
     "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
   },
   {
-    "qualified_id": "plasticos_facility_profile.partner_type_end_user",
-    "module": "plasticos_facility_profile",
-    "xml_id": "partner_type_end_user",
-    "model": "plasticos.partner.type",
-    "noupdate": false,
-    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
-  },
-  {
-    "qualified_id": "plasticos_facility_profile.partner_type_grinder",
-    "module": "plasticos_facility_profile",
-    "xml_id": "partner_type_grinder",
-    "model": "plasticos.partner.type",
-    "noupdate": false,
-    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
-  },
-  {
-    "qualified_id": "plasticos_facility_profile.partner_type_toll_processor",
-    "module": "plasticos_facility_profile",
-    "xml_id": "partner_type_toll_processor",
-    "model": "plasticos.partner.type",
-    "noupdate": false,
-    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
-  },
-  {
-    "qualified_id": "plasticos_facility_profile.partner_type_converter",
-    "module": "plasticos_facility_profile",
-    "xml_id": "partner_type_converter",
-    "model": "plasticos.partner.type",
-    "noupdate": false,
-    "source_file": "plasticos_facility_profile/data/partner_type_data.xml"
-  },
-  {
     "qualified_id": "plasticos_facility_profile.partner_type_other",
     "module": "plasticos_facility_profile",
     "xml_id": "partner_type_other",

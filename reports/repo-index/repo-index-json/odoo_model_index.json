@@ -1189,7 +1189,8 @@
       "base",
       "contacts",
       "account",
-      "plasticos_facility_profile"
+      "plasticos_facility_profile",
+      "plasticos_intake"
     ],
     "installable": true,
     "data_files": [
@@ -1216,7 +1217,8 @@
       "base",
       "contacts",
       "account",
-      "plasticos_facility_profile"
+      "plasticos_facility_profile",
+      "plasticos_intake"
     ],
     "installable": true,
     "data_files": [
@@ -1607,10 +1609,6 @@
         "Boolean"
       ],
       [
-        "source_type_id",
-        "Many2one"
-      ],
-      [
         "equipment_type_ids",
         "Many2many"
       ],
@@ -1731,11 +1729,23 @@
         "Selection"
       ],
       [
+        "feedstock_type",
+        "Selection"
+      ],
+      [
         "density_min",
         "Float"
       ],
       [
         "density_max",
+        "Float"
+      ],
+      [
+        "melt_index_min",
+        "Float"
+      ],
+      [
+        "melt_index_max",
         "Float"
       ],
       [
@@ -1769,22 +1779,6 @@
       [
         "accepts_filled_materials",
         "Boolean"
-      ],
-      [
-        "max_filler_pct",
-        "Float"
-      ],
-      [
-        "accepted_filler_type_ids",
-        "Many2many"
-      ],
-      [
-        "accepted_color_ids",
-        "Many2many"
-      ],
-      [
-        "accepts_any_color",
-        "Boolean"
       ]
     ],
     "compute_methods": [
@@ -1793,7 +1787,9 @@
     "api_constrains": [
       "partner_id",
       "density_min",
-      "density_max"
+      "density_max",
+      "melt_index_min",
+      "melt_index_max"
     ],
     "_sql_constraints": [],
     "models_constraint": [],
@@ -3858,14 +3854,6 @@
         "Float"
       ],
       [
-        "melt_index_min",
-        "Float"
-      ],
-      [
-        "melt_index_max",
-        "Float"
-      ],
-      [
         "density",
         "Float"
       ],
@@ -3959,9 +3947,7 @@
       "_compute_so_line_count"
     ],
     "api_constrains": [
-      "partner_id",
-      "melt_index_min",
-      "melt_index_max"
+      "partner_id"
     ],
     "_sql_constraints": [],
     "models_constraint": [],
@@ -4554,7 +4540,7 @@
     "demo_files": [],
     "_name": "plasticos.graph.service",
     "_inherit": null,
-    "_description": "plasticos Graph Engine (Neo4j buyer matching)",
+    "_description": "PlastOS Graph Engine (Neo4j buyer matching)",
     "fields": [],
     "compute_methods": [],
     "api_constrains": [],
@@ -5291,10 +5277,6 @@
         "Selection"
       ],
       [
-        "match_mode",
-        "Selection"
-      ],
-      [
         "lat",
         "Float"
       ],
@@ -5689,15 +5671,15 @@
         "Text"
       ],
       [
-        "run_id",
+        "l9_run_id",
         "Char"
       ],
       [
-        "model_version",
+        "l9_model_version",
         "Char"
       ],
       [
-        "timestamp",
+        "l9_timestamp",
         "Datetime"
       ],
       [

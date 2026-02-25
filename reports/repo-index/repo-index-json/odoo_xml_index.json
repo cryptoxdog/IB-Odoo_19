@@ -1437,8 +1437,7 @@
       "code",
       "description",
       "is_facility",
-      "sequence",
-      "gate_mode"
+      "sequence"
     ],
     "refs": [],
     "evals": [],
@@ -1456,8 +1455,7 @@
       "code",
       "description",
       "is_facility",
-      "sequence",
-      "gate_mode"
+      "sequence"
     ],
     "refs": [],
     "evals": [],
@@ -1475,8 +1473,7 @@
       "code",
       "description",
       "is_facility",
-      "sequence",
-      "gate_mode"
+      "sequence"
     ],
     "refs": [],
     "evals": [],
@@ -1494,8 +1491,7 @@
       "code",
       "description",
       "is_facility",
-      "sequence",
-      "gate_mode"
+      "sequence"
     ],
     "refs": [],
     "evals": [],
@@ -1513,8 +1509,7 @@
       "code",
       "description",
       "is_facility",
-      "sequence",
-      "gate_mode"
+      "sequence"
     ],
     "refs": [],
     "evals": [],
@@ -1532,8 +1527,7 @@
       "code",
       "description",
       "is_facility",
-      "sequence",
-      "gate_mode"
+      "sequence"
     ],
     "refs": [],
     "evals": [],
@@ -1570,82 +1564,6 @@
       "description",
       "is_facility",
       "sequence"
-    ],
-    "refs": [],
-    "evals": [],
-    "inherit_id": null
-  },
-  {
-    "module": "plasticos_facility_profile",
-    "file": "plasticos_facility_profile/data/partner_type_data.xml",
-    "load_type": "data",
-    "id": "partner_type_end_user",
-    "model": "plasticos.partner.type",
-    "noupdate": false,
-    "fields": [
-      "name",
-      "code",
-      "description",
-      "is_facility",
-      "sequence",
-      "gate_mode"
-    ],
-    "refs": [],
-    "evals": [],
-    "inherit_id": null
-  },
-  {
-    "module": "plasticos_facility_profile",
-    "file": "plasticos_facility_profile/data/partner_type_data.xml",
-    "load_type": "data",
-    "id": "partner_type_grinder",
-    "model": "plasticos.partner.type",
-    "noupdate": false,
-    "fields": [
-      "name",
-      "code",
-      "description",
-      "is_facility",
-      "sequence",
-      "gate_mode"
-    ],
-    "refs": [],
-    "evals": [],
-    "inherit_id": null
-  },
-  {
-    "module": "plasticos_facility_profile",
-    "file": "plasticos_facility_profile/data/partner_type_data.xml",
-    "load_type": "data",
-    "id": "partner_type_toll_processor",
-    "model": "plasticos.partner.type",
-    "noupdate": false,
-    "fields": [
-      "name",
-      "code",
-      "description",
-      "is_facility",
-      "sequence",
-      "gate_mode"
-    ],
-    "refs": [],
-    "evals": [],
-    "inherit_id": null
-  },
-  {
-    "module": "plasticos_facility_profile",
-    "file": "plasticos_facility_profile/data/partner_type_data.xml",
-    "load_type": "data",
-    "id": "partner_type_converter",
-    "model": "plasticos.partner.type",
-    "noupdate": false,
-    "fields": [
-      "name",
-      "code",
-      "description",
-      "is_facility",
-      "sequence",
-      "gate_mode"
     ],
     "refs": [],
     "evals": [],

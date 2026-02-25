@@ -1,43 +1,42 @@
 ---
-component_id: "plasticos_intake"
-component_name: "Plasticos Intake"
-module_version: "19.0.5.0.0"
-layer: "core"
+component_id: "plasticos_intake_normalizer"
+component_name: "Plasticos Intake Normalizer"
+module_version: "19.0.1.0.0"
+layer: "automation"
 domain: "plasticos"
 type: "odoo_module"
 status: "active"
-purpose: "Material intake capture and normalization"
-summary: "Lead capture and material specification"
+purpose: "Batch normalization of intake records"
+summary: "Material specification standardization"
 ---
 
-# Plasticos Intake
+# Plasticos Intake Normalizer
 
 ## Purpose
-Material intake capture and normalization
+Batch normalization of intake records
 
 ## Summary
-Lead capture and material specification
+Material specification standardization
 
 ## Structure
 ```
-README.md
 README.rst
 __init__.py
 __manifest__.py
+data/
 models/
 security/
-tests/
 views/
 ```
 
 ## Dependencies
-base, contacts, mail, plasticos_material_profile, plasticos_facility_profile
+plasticos_intake, plasticos_material_profile, plasticos_base
 
 ## Models
-plasticos.intake, plasticos.intake.match
+plasticos.normalizer.config
 
 ## Tier
-core
+automation
 
 
 ## Related Documentation

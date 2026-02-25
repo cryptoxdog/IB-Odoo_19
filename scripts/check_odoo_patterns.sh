@@ -5,7 +5,7 @@
 # Run: ./scripts/check_odoo_patterns.sh
 #
 # Bug patterns checked (see reports/BUG_FIXES_SUMMARY.md):
-# 1. models.Constraint (INVALID - does not exist in Odoo)
+# 1. _sql_constraints (deprecated in Odoo 17+, use models.Constraint)
 # 2. @api.depends("id") (disallowed)
 # 3. @api.one/@api.multi (removed)
 # 4. category_id on res.groups (removed)
@@ -25,7 +25,8 @@
 # 18. Related fields with old intake paths (polymer→polymer_id)
 # 19. Deprecated attrs= attribute (Odoo 17+)
 # 20. Deprecated states= attribute (Odoo 17+)
-# 21. String writes to Many2one fields (BUG-073 pattern)
+# 21. Font Awesome icons without title (Odoo 19 accessibility)
+# 22. String writes to Many2one fields (BUG-073 pattern)
 
 set -e
 
@@ -43,14 +44,14 @@ echo ""
 PY_FILES=$(git ls-files '*.py' 2>/dev/null || find . -name "*.py" -type f)
 XML_FILES=$(git ls-files '*.xml' 2>/dev/null || find . -name "*.xml" -type f)
 
-# 1. models.Constraint (INVALID - does not exist in any Odoo version)
-# The correct syntax is _sql_constraints = [("name", "SQL", "message"), ...]
-echo -n "Checking invalid models.Constraint... "
-MATCHES=$(echo "$PY_FILES" | xargs grep -E 'models\.Constraint\(' 2>/dev/null || true)
+# 1. _sql_constraints (deprecated in Odoo 17+, use models.Constraint)
+# Exclude: reports/, AI Agent Files/ (docs/specs only)
+echo -n "Checking deprecated _sql_constraints... "
+MATCHES=$(echo "$PY_FILES" | xargs grep -l '_sql_constraints\s*=' 2>/dev/null | grep -v 'reports/' | grep -v 'AI Agent Files/' || true)
 if [ -n "$MATCHES" ]; then
     echo -e "${RED}FOUND${NC}"
-    echo "$MATCHES"
-    echo -e "${YELLOW}Fix: Convert to _sql_constraints = [(\"name\", \"SQL\", \"message\"), ...]${NC}"
+    echo "$MATCHES" | sed 's/^/  /'
+    echo -e "${YELLOW}Fix: Convert to models.Constraint(\"SQL\", \"message\") per Odoo 17+${NC}"
     ERRORS=$((ERRORS + 1))
 else
     echo -e "${GREEN}OK${NC}"
@@ -323,7 +324,19 @@ else
     echo -e "${GREEN}OK${NC}"
 fi
 
-# 21. Writing string values to Many2one fields (BUG-073 pattern)
+# 21. Font Awesome icons without title (Odoo 19 accessibility)
+echo -n "Checking Font Awesome icons without title... "
+MATCHES=$(echo "$XML_FILES" | xargs grep -E '<i[^>]*class="[^"]*fa[^"]*"' 2>/dev/null | grep -v 'title=' || true)
+if [ -n "$MATCHES" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$MATCHES"
+    echo -e "${YELLOW}Fix: Add title=\"...\" to <i class=\"fa ...\"> for accessibility (Odoo 19)${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
+# 22. Writing string values to Many2one fields (BUG-073 pattern)
 # Catches: "polymer": value, "form": value, "source_type": value when target model has _id fields
 # Excludes: graph_service (builds query params), matcher.py (builds result dicts),
 #           enrichment_service (builds API payloads), material_profile.py (builds export packets),

@@ -11,9 +11,11 @@ from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
-# Default paths relative to module directory
+# Default filenames relative to module directory (overridable via ir.config_parameter)
 DEFAULT_CORPORATE_CSV = "1. Counterparties - Parent - CORPORATE-Ready To Import.csv"
 DEFAULT_FACILITY_CSV = "2. Counterparties - Child - FACILITY LOCATIONS.csv"
+CONFIG_CORPORATE_CSV = "plasticos_partner_import.default_corporate_csv"
+CONFIG_FACILITY_CSV = "plasticos_partner_import.default_facility_csv"
 
 
 class PartnerImportWizard(models.TransientModel):

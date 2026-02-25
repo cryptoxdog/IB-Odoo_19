@@ -1,43 +1,41 @@
 ---
-component_id: "plasticos_intake"
-component_name: "Plasticos Intake"
-module_version: "19.0.5.0.0"
-layer: "core"
+component_id: "plasticos_matching"
+component_name: "Plasticos Matching"
+module_version: "19.0.1.0.0"
+layer: "analytics"
 domain: "plasticos"
 type: "odoo_module"
 status: "active"
-purpose: "Material intake capture and normalization"
-summary: "Lead capture and material specification"
+purpose: "Buyer-intake matching engine"
+summary: "Match scoring and result tracking"
 ---
 
-# Plasticos Intake
+# Plasticos Matching
 
 ## Purpose
-Material intake capture and normalization
+Buyer-intake matching engine
 
 ## Summary
-Lead capture and material specification
+Match scoring and result tracking
 
 ## Structure
 ```
-README.md
 README.rst
 __init__.py
 __manifest__.py
 models/
 security/
-tests/
 views/
 ```
 
 ## Dependencies
-base, contacts, mail, plasticos_material_profile, plasticos_facility_profile
+base, mail, plasticos_intake, plasticos_facility_profile
 
 ## Models
-plasticos.intake, plasticos.intake.match
+plasticos.match.result
 
 ## Tier
-core
+analytics
 
 
 ## Related Documentation

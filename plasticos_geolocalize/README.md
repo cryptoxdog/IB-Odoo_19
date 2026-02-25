@@ -1,43 +1,42 @@
 ---
-component_id: "plasticos_intake"
-component_name: "Plasticos Intake"
-module_version: "19.0.5.0.0"
-layer: "core"
+component_id: "plasticos_geolocalize"
+component_name: "Plasticos Geolocalize"
+module_version: "19.0.1.0.0"
+layer: "automation"
 domain: "plasticos"
 type: "odoo_module"
 status: "active"
-purpose: "Material intake capture and normalization"
-summary: "Lead capture and material specification"
+purpose: "Geolocation backfill for intakes"
+summary: "Address geocoding automation"
 ---
 
-# Plasticos Intake
+# Plasticos Geolocalize
 
 ## Purpose
-Material intake capture and normalization
+Geolocation backfill for intakes
 
 ## Summary
-Lead capture and material specification
+Address geocoding automation
 
 ## Structure
 ```
-README.md
 README.rst
 __init__.py
 __manifest__.py
+data/
 models/
 security/
-tests/
 views/
 ```
 
 ## Dependencies
-base, contacts, mail, plasticos_material_profile, plasticos_facility_profile
+base, base_geolocalize, plasticos_intake
 
 ## Models
-plasticos.intake, plasticos.intake.match
+—
 
 ## Tier
-core
+automation
 
 
 ## Related Documentation

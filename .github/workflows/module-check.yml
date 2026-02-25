@@ -1,0 +1,163 @@
+name: Odoo Module Validation
+
+on:
+  push:
+    branches: [main, staging]
+    paths:
+      - '**/manifest__.py'
+      - '**/__manifest__.py'
+      - '**/models/**'
+      - '**/views/**'
+      - '**/security/**'
+  pull_request:
+    branches: [main, staging]
+
+jobs:
+  validate-manifests:
+    name: Validate Module Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate __manifest__.py files
+        run: |
+          echo "=== Validating Odoo module manifests ==="
+          ERRORS=0
+
+          for manifest in $(find . -name "__manifest__.py" -not -path "./.venv/*" -not -path "./venv/*"); do
+            echo "Checking: $manifest"
+
+            # Check if manifest is valid Python
+            if ! python3 -c "exec(open('$manifest').read())" 2>/dev/null; then
+              echo "  ERROR: Invalid Python syntax in $manifest"
+              ERRORS=$((ERRORS + 1))
+              continue
+            fi
+
+            # Extract and validate required fields
+            python3 -c "
+import ast, sys
+with open('$manifest', 'r') as f:
+    content = f.read()
+try:
+    manifest_dict = ast.literal_eval(content)
+except Exception:
+    print('  ERROR: Cannot parse manifest as dict')
+    sys.exit(1)
+required_fields = ['name', 'version', 'depends']
+missing = [f for f in required_fields if f not in manifest_dict]
+if missing:
+    print(f'  ERROR: Missing required fields: {missing}')
+    sys.exit(1)
+version = manifest_dict.get('version', '')
+if not version.startswith('19.0.'):
+    print(f\"  WARNING: Version '{version}' should start with '19.0.' for Odoo 19\")
+license_val = manifest_dict.get('license', '')
+valid_licenses = ['LGPL-3', 'AGPL-3', 'GPL-3', 'Other proprietary']
+if license_val and license_val not in valid_licenses:
+    print(f\"  WARNING: License '{license_val}' is non-standard\")
+print('  OK')
+"
+
+            if [ $? -ne 0 ]; then
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+
+          echo ""
+          echo "=== Summary ==="
+          if [ $ERRORS -gt 0 ]; then
+            echo "Found $ERRORS manifest error(s)"
+            exit 1
+          else
+            echo "All manifests valid"
+          fi
+
+  check-dependencies:
+    name: Check Module Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run module wiring check
+        run: |
+          if [ -f scripts/check_module_wiring.py ]; then
+            python3 scripts/check_module_wiring.py
+          else
+            echo "Module wiring check script not found, skipping"
+          fi
+
+  validate-xml:
+    name: Validate XML Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install lxml
+        run: pip install lxml
+
+      - name: Validate XML syntax
+        run: |
+          echo "=== Validating XML files ==="
+          ERRORS=0
+
+          for xml in $(find . -name "*.xml" -not -path "./.venv/*" -not -path "./venv/*"); do
+            if ! python3 -c "from lxml import etree; etree.parse('$xml')" 2>/dev/null; then
+              echo "ERROR: Invalid XML: $xml"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+
+          if [ $ERRORS -gt 0 ]; then
+            echo "Found $ERRORS XML error(s)"
+            exit 1
+          else
+            echo "All XML files valid"
+          fi
+
+  check-security-files:
+    name: Validate Security Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check ir.model.access.csv format
+        run: |
+          echo "=== Checking security CSV files ==="
+          ERRORS=0
+
+          for csv in $(find . -name "ir.model.access.csv" -not -path "./.venv/*"); do
+            echo "Checking: $csv"
+
+            # Check header
+            HEADER=$(head -1 "$csv")
+            EXPECTED="id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink"
+
+            if [ "$HEADER" != "$EXPECTED" ]; then
+              echo "  WARNING: Non-standard header in $csv"
+              echo "  Expected: $EXPECTED"
+              echo "  Got: $HEADER"
+            fi
+
+            # Check for empty model_id references
+            if grep -E ',,' "$csv" | grep -v '^#' > /dev/null; then
+              echo "  WARNING: Empty fields detected in $csv"
+            fi
+          done
+
+          echo "Security file check complete"

@@ -110,16 +110,16 @@
                                 <span t-if="record.sla_breached.raw_value" class="badge bg-danger">SLA!</span>
                             </div>
                             <div class="o_kanban_record_body">
-                                <div><i class="fa fa-truck"/> <field name="carrier_id"/></div>
+                                <div><i class="fa fa-truck" title="Carrier"/> <field name="carrier_id"/></div>
                                 <div class="mt-1">
-                                    <div><i class="fa fa-arrow-up text-success"/> <field name="pickup_partner_id"/></div>
-                                    <div><i class="fa fa-arrow-down text-primary"/> <field name="delivery_partner_id"/></div>
+                                    <div><i class="fa fa-arrow-up text-success" title="Pickup"/> <field name="pickup_partner_id"/></div>
+                                    <div><i class="fa fa-arrow-down text-primary" title="Delivery"/> <field name="delivery_partner_id"/></div>
                                 </div>
                             </div>
                             <div class="o_kanban_record_bottom">
                                 <div class="oe_kanban_bottom_left">
                                     <span t-if="record.pickup_datetime.raw_value" class="text-muted">
-                                        <i class="fa fa-calendar"/> <field name="pickup_datetime"/>
+                                        <i class="fa fa-calendar" title="Pickup date"/> <field name="pickup_datetime"/>
                                     </span>
                                 </div>
                                 <div class="oe_kanban_bottom_right">

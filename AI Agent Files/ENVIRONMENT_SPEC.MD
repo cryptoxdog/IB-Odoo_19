@@ -300,13 +300,13 @@ security:
     - "Use environment variables (not hardcoded)"
     - "Rotate passwords every 90 days"
     - "Use strong passwords (16+ characters, mixed case, symbols)"
-  
+
   access_control:
     - "Restrict database access to Odoo service only"
     - "Use firewall rules to limit Neo4j access"
     - "Enable SSL/TLS for production"
     - "Require MFA for admin accounts"
-  
+
   audit_logging:
     - "Enable Odoo audit log"
     - "Log all database changes"
@@ -327,7 +327,7 @@ troubleshooting:
       fix:
         - "./scripts/setup_neo4j.sh --check"
         - "./scripts/setup_neo4j.sh --test"
-    
+
     database_connection_failed:
       check:
         - "Verify POSTGRES_PASSWORD set"
@@ -336,12 +336,12 @@ troubleshooting:
       fix:
         - "docker compose logs db"
         - "Restart database: docker compose restart db"
-  
+
   api_errors:
     openai_rate_limit:
       behavior: "Web leads marked 'COLD' for manual review"
       fix: "Implement exponential backoff (already in code)"
-    
+
     openai_invalid_key:
       behavior: "Web leads marked 'COLD' for manual review"
       fix: "Verify OPENAI_API_KEY starts with 'sk-'"

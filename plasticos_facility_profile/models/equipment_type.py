@@ -25,10 +25,7 @@ class PlasticosEquipmentType(models.Model):
     active = fields.Boolean(default=True)
 
     # ── Constraints ──────────────────────────────────────────
-    _sql_constraints = [
-        (
-            "unique_code",
-            "unique(code)",
-            "Equipment type code must be unique.",
-        ),
-    ]
+    _check_unique_code = models.Constraint(
+        "unique(code)",
+        "Equipment type code must be unique.",
+    )

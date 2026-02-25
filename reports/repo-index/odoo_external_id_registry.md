@@ -85,10 +85,6 @@
 | plasticos_facility_profile.partner_type_recycler | plasticos.partner.type | False | `plasticos_facility_profile/data/partner_type_data.xml` |
 | plasticos_facility_profile.partner_type_distributor | plasticos.partner.type | False | `plasticos_facility_profile/data/partner_type_data.xml` |
 | plasticos_facility_profile.partner_type_carrier | plasticos.partner.type | False | `plasticos_facility_profile/data/partner_type_data.xml` |
-| plasticos_facility_profile.partner_type_end_user | plasticos.partner.type | False | `plasticos_facility_profile/data/partner_type_data.xml` |
-| plasticos_facility_profile.partner_type_grinder | plasticos.partner.type | False | `plasticos_facility_profile/data/partner_type_data.xml` |
-| plasticos_facility_profile.partner_type_toll_processor | plasticos.partner.type | False | `plasticos_facility_profile/data/partner_type_data.xml` |
-| plasticos_facility_profile.partner_type_converter | plasticos.partner.type | False | `plasticos_facility_profile/data/partner_type_data.xml` |
 | plasticos_facility_profile.partner_type_other | plasticos.partner.type | False | `plasticos_facility_profile/data/partner_type_data.xml` |
 | plasticos_facility_profile.plasticos_partner_type_tree | ir.ui.view | False | `plasticos_facility_profile/views/partner_type_views.xml` |
 | plasticos_facility_profile.plasticos_partner_type_form | ir.ui.view | False | `plasticos_facility_profile/views/partner_type_views.xml` |
