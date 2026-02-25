@@ -385,8 +385,12 @@ class PlasticosGraphService(models.AbstractModel):
             OR ($form = 'regrind' AND f.handles_regrind = true)
             OR ($form = 'flake' AND f.handles_flake = true)
             OR ($form = 'rollstock' AND f.handles_rollstock = true)
-            OR ($form = 'pellet')
-            OR ($form = 'bale' AND (f.has_shredder = true OR f.has_granulator = true))
+            OR ($form = 'pellets')
+            OR ($form = 'bales' AND (f.has_shredder = true OR f.has_granulator = true))
+            OR ($form IN ['film', 'chopped', 'shred', 'densified', 'parts',
+                          'sheet', 'powder', 'logs', 'purge', 'loose',
+                          'floorsweep', 'drums', 'buckets', 'bottles',
+                          'pallets', 'other'])
         )
 
         // Gate 11: PVC tolerance (HARD - based on contamination notes)
@@ -495,8 +499,12 @@ class PlasticosGraphService(models.AbstractModel):
                 WHEN $form = 'regrind' AND f.handles_regrind = true THEN 1.0
                 WHEN $form = 'flake' AND f.handles_flake = true THEN 1.0
                 WHEN $form = 'rollstock' AND f.handles_rollstock = true THEN 1.0
-                WHEN $form = 'pellet' THEN 1.0
-                WHEN $form = 'bale' AND (f.has_shredder = true OR f.has_granulator = true) THEN 1.0
+                WHEN $form = 'pellets' THEN 1.0
+                WHEN $form = 'bales' AND (f.has_shredder = true OR f.has_granulator = true) THEN 1.0
+                WHEN $form IN ['film', 'chopped', 'shred', 'densified', 'parts',
+                               'sheet', 'powder', 'logs', 'purge', 'loose',
+                               'floorsweep', 'drums', 'buckets', 'bottles',
+                               'pallets', 'other'] THEN 1.0
                 ELSE 0.3
             END AS form_mult,
 
