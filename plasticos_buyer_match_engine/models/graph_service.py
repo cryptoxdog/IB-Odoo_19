@@ -20,6 +20,10 @@ from datetime import datetime
 
 from odoo import fields, models  # pyright: ignore[reportMissingImports]
 from odoo.exceptions import UserError  # pyright: ignore[reportMissingImports]
+from plasticos_material_profile.form_codes import (
+    EQUIPMENT_GATED_FORMS,
+    PASSTHROUGH_FORMS,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -333,9 +337,40 @@ class PlasticosGraphService(models.AbstractModel):
             "filler_pct": intake.filler_pct or 0.0,
         }
 
+    @staticmethod
+    def _build_form_gate_where():
+        """Generate Cypher WHERE clause for form-equipment gate from canonical registry.
+
+        Derived from ``EQUIPMENT_GATED_FORMS`` and ``PASSTHROUGH_FORMS`` in
+        ``plasticos_material_profile.form_codes`` — the single source of truth.
+        """
+        lines = ["$form IS NULL"]
+        for form_code, condition in EQUIPMENT_GATED_FORMS.items():
+            lines.append(f"($form = '{form_code}' AND {condition} = true)")
+        passthrough_list = ", ".join(f"'{c}'" for c in PASSTHROUGH_FORMS)
+        lines.append(f"($form IN [{passthrough_list}])")
+        return "\n            OR ".join(lines)
+
+    @staticmethod
+    def _build_form_gate_case():
+        """Generate Cypher CASE expression for form-equipment scoring from canonical registry.
+
+        Returns CASE block where equipment-gated forms score 1.0 only if
+        equipment is present, passthrough forms always score 1.0, and
+        unknown forms get 0.3 penalty.
+        """
+        lines = ["WHEN $form IS NULL THEN 1.0"]
+        for form_code, condition in EQUIPMENT_GATED_FORMS.items():
+            lines.append(f"WHEN $form = '{form_code}' AND {condition} = true THEN 1.0")
+        passthrough_list = ", ".join(f"'{c}'" for c in PASSTHROUGH_FORMS)
+        lines.append(f"WHEN $form IN [{passthrough_list}] THEN 1.0")
+        lines.append("ELSE 0.3")
+        return "\n                ".join(lines)
+
     def _build_strict_query(self):
         """Build Cypher query with ALL 14 gates as hard WHERE predicates."""
-        return """
+        form_gate_where = self._build_form_gate_where()
+        return f"""
         // Stage 2 STRICT: All 14 gates as hard exclusions
         MATCH (f:Facility)-[:HAS_MATERIAL]->(m:Material)
         WHERE f.facility_id IN $facility_ids
@@ -380,17 +415,9 @@ class PlasticosGraphService(models.AbstractModel):
         AND ($moisture_pct <= 0.5 OR f.has_wash_line = true)
 
         // Gate 10: Form-Equipment compatibility (HARD)
+        // Generated from plasticos_material_profile.form_codes canonical registry
         AND (
-            $form IS NULL
-            OR ($form = 'regrind' AND f.handles_regrind = true)
-            OR ($form = 'flake' AND f.handles_flake = true)
-            OR ($form = 'rollstock' AND f.handles_rollstock = true)
-            OR ($form = 'pellets')
-            OR ($form = 'bales' AND (f.has_shredder = true OR f.has_granulator = true))
-            OR ($form IN ['film', 'chopped', 'shred', 'densified', 'parts',
-                          'sheet', 'powder', 'logs', 'purge', 'loose',
-                          'floorsweep', 'drums', 'buckets', 'bottles',
-                          'pallets', 'other'])
+            {form_gate_where}
         )
 
         // Gate 11: PVC tolerance (HARD - based on contamination notes)
@@ -418,7 +445,8 @@ class PlasticosGraphService(models.AbstractModel):
 
     def _build_relaxed_query(self):
         """Build Cypher query with ONLY polymer as hard gate, others as soft scoring signals."""
-        return """
+        form_gate_case = self._build_form_gate_case()
+        return f"""
         // Stage 2 RELAXED: Only polymer is hard, all others are multiplicative penalties
         MATCH (f:Facility)-[:HAS_MATERIAL]->(m:Material)
         WHERE f.facility_id IN $facility_ids
@@ -494,18 +522,9 @@ class PlasticosGraphService(models.AbstractModel):
             END AS wash_mult,
 
             // Form-Equipment (x0.3 penalty)
+            // Generated from plasticos_material_profile.form_codes canonical registry
             CASE
-                WHEN $form IS NULL THEN 1.0
-                WHEN $form = 'regrind' AND f.handles_regrind = true THEN 1.0
-                WHEN $form = 'flake' AND f.handles_flake = true THEN 1.0
-                WHEN $form = 'rollstock' AND f.handles_rollstock = true THEN 1.0
-                WHEN $form = 'pellets' THEN 1.0
-                WHEN $form = 'bales' AND (f.has_shredder = true OR f.has_granulator = true) THEN 1.0
-                WHEN $form IN ['film', 'chopped', 'shred', 'densified', 'parts',
-                               'sheet', 'powder', 'logs', 'purge', 'loose',
-                               'floorsweep', 'drums', 'buckets', 'bottles',
-                               'pallets', 'other'] THEN 1.0
-                ELSE 0.3
+                {form_gate_case}
             END AS form_mult,
 
             // PVC/Filler (x0.3 penalty)

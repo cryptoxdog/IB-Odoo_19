@@ -1,6 +1,8 @@
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
+from ..form_codes import FORM_SELECTION
+
 
 class PlasticosMaterialProfile(models.Model):
     _name = "plasticos.material.profile"
@@ -88,29 +90,7 @@ class PlasticosMaterialProfile(models.Model):
     )
     # Backward-compatible computed field
     form = fields.Selection(
-        [
-            ("bales", "Bales"),
-            ("film", "Film"),
-            ("regrind", "Regrind"),
-            ("flake", "Flake"),
-            ("rollstock", "Rollstock"),
-            ("pellets", "Pellets"),
-            ("purge", "Purge"),
-            ("chopped", "Chopped"),
-            ("shred", "Shred"),
-            ("densified", "Densified"),
-            ("parts", "Parts"),
-            ("sheet", "Sheet"),
-            ("powder", "Powder"),
-            ("logs", "Logs"),
-            ("floorsweep", "Floorsweep"),
-            ("drums", "Drums"),
-            ("buckets", "Buckets"),
-            ("bottles", "Bottles"),
-            ("loose", "Loose"),
-            ("pallets", "Pallets"),
-            ("other", "Other"),
-        ],
+        FORM_SELECTION,
         string="Form Code",
         compute="_compute_form_code",
         store=True,
