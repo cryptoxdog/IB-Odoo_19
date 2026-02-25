@@ -15,8 +15,13 @@ from odoo import api, models
 
 _logger = logging.getLogger(__name__)
 
-# Rate limit: OpenStreetMap Nominatim requires 1 request per second
-_NOMINATIM_DELAY_SECONDS = 1.1
+# ─────────────────────────────────────────────────────────
+# Geocoding tuning constants
+# ─────────────────────────────────────────────────────────
+_NOMINATIM_DELAY = 1.1  # seconds between successful requests
+_FAILURE_DELAY = 5.0  # seconds to wait after a failure
+_MAX_CONSECUTIVE_FAIL = 3  # abort batch after this many consecutive failures
+_BATCH_SIZE = 50  # partners per cron run (reduced from 100 to limit worker hold time)
 
 
 class ResPartnerGeo(models.Model):
@@ -40,41 +45,54 @@ class ResPartnerGeo(models.Model):
 
         Runs nightly. Processes in batches with rate limiting
         to respect Nominatim's 1 req/sec limit.
+
+        Hardened for rate-limiting (HTTP 429):
+        - Aborts after MAX_CONSECUTIVE_FAIL failures in a row
+        - Commits after each success so progress survives worker timeouts
+        - Uses longer delay after failures to back off from rate limits
         """
-        BATCH_SIZE = 100
         domain = [
             ("partner_latitude", "in", [0.0, False]),
             "|",
             ("street", "!=", False),
             ("city", "!=", False),
         ]
-        partners = self.search(domain, limit=BATCH_SIZE)
+        partners = self.search(domain, limit=_BATCH_SIZE)
         if not partners:
             _logger.info("Geo backfill: no partners need geocoding.")
             return
 
         success = 0
         failed = 0
+        consecutive_failures = 0
+
         for partner in partners:
             try:
                 partner.geo_localize()
                 if partner.partner_latitude:
                     success += 1
-                # Rate limit: wait between requests
-                time.sleep(_NOMINATIM_DELAY_SECONDS)
+                    consecutive_failures = 0
+                    self.env.cr.commit()  # pylint: disable=invalid-commit
+                time.sleep(_NOMINATIM_DELAY)
             except Exception:
                 failed += 1
+                consecutive_failures += 1
                 _logger.warning(
                     "Geo backfill: failed for partner %s (%s).",
                     partner.id,
                     partner.name,
                     exc_info=True,
                 )
-                # Still rate limit on failure to avoid hammering API
-                time.sleep(_NOMINATIM_DELAY_SECONDS)
+                if consecutive_failures >= _MAX_CONSECUTIVE_FAIL:
+                    _logger.error(
+                        "Geo backfill: %d consecutive failures — " "aborting (likely rate-limited or banned).",
+                        consecutive_failures,
+                    )
+                    break
+                time.sleep(_FAILURE_DELAY)
 
         _logger.info(
-            "Geo backfill complete: %d/%d partners geocoded, %d failed.",
+            "Geo backfill complete: %d/%d geocoded, %d failed.",
             success,
             len(partners),
             failed,
