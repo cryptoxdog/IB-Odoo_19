@@ -106,7 +106,7 @@ class PlasticosLoadAutomation(models.Model):
                     )
 
                 _logger.info(
-                    "Logistics automation: SLA breach [%s] for load %s " "(state=%s, hours=%.1f, limit=%d)",
+                    "Logistics automation: SLA breach [%s] for load %s (state=%s, hours=%.1f, limit=%d)",
                     new_level,
                     load.name,
                     load.state,

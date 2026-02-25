@@ -71,9 +71,7 @@ def analyze_image(
                     "content": [
                         {
                             "type": "text",
-                            "text": (
-                                "Analyze this image of recycled plastic material. " "Return structured JSON only."
-                            ),
+                            "text": ("Analyze this image of recycled plastic material. Return structured JSON only."),
                         },
                         {
                             "type": "image_url",

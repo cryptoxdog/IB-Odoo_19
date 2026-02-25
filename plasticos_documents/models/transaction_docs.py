@@ -177,15 +177,15 @@ class PlasticosTransactionDocs(models.Model):
                 tx.x_doc_reminder_count += 1
                 tx.x_last_doc_reminder_date = today
                 tx.message_post(
-                    body="Automated reminder: transaction %s has missing "
-                    "documents (overdue by %d business days)." % (tx.name, bd),
+                    body=f"Automated reminder: transaction {tx.name} has missing "
+                    f"documents (overdue by {bd} business days).",
                     message_type="notification",
                 )
 
                 if log_model is not None:
                     log_model.create(
                         {
-                            "name": "Doc reminder for %s" % tx.name,
+                            "name": f"Doc reminder for {tx.name}",
                             "model_name": "plasticos.transaction",
                             "res_id": tx.id,
                             "action_type": "doc_reminder",
@@ -197,15 +197,15 @@ class PlasticosTransactionDocs(models.Model):
                 tx.activity_schedule(
                     "mail.mail_activity_data_todo",
                     user_id=self.env.user.id,
-                    summary="ESCALATION: Missing documents on %s" % tx.name,
-                    note="Transaction %s has missing documents for %d "
-                    "business days. Manual intervention required." % (tx.name, bd),
+                    summary=f"ESCALATION: Missing documents on {tx.name}",
+                    note=f"Transaction {tx.name} has missing documents for {bd} "
+                    "business days. Manual intervention required.",
                 )
 
                 if log_model is not None:
                     log_model.create(
                         {
-                            "name": "Doc escalation for %s" % tx.name,
+                            "name": f"Doc escalation for {tx.name}",
                             "model_name": "plasticos.transaction",
                             "res_id": tx.id,
                             "action_type": "doc_escalation",
@@ -213,7 +213,7 @@ class PlasticosTransactionDocs(models.Model):
                     )
 
             _logger.info(
-                "Documents extension: TX %s status=%s (bd=%d, missing: " "supplier=%s, carrier=%s, buyer=%s)",
+                "Documents extension: TX %s status=%s (bd=%d, missing: supplier=%s, carrier=%s, buyer=%s)",
                 tx.name,
                 new_status,
                 bd,

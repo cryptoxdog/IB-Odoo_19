@@ -41,16 +41,16 @@ class PlasticosIntake(models.Model):
         string="Facility",
         tracking=True,
         index=True,
-        domain="['|'," " ('id', '=', partner_id)," " ('parent_id', '=', partner_id)]",
-        help="The facility (child location) or the company itself " "when it is also the processing site.",
+        domain="['|', ('id', '=', partner_id), ('parent_id', '=', partner_id)]",
+        help="The facility (child location) or the company itself when it is also the processing site.",
     )
     contact_id = fields.Many2one(
         "res.partner",
         string="Contact Person",
         tracking=True,
         index=True,
-        domain="['|'," " ('parent_id', '=', facility_id)," " ('parent_id', '=', partner_id)]",
-        help="The person at the facility you are dealing with. " "Auto-selected from preferred contact memory.",
+        domain="['|', ('parent_id', '=', facility_id), ('parent_id', '=', partner_id)]",
+        help="The person at the facility you are dealing with. Auto-selected from preferred contact memory.",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -63,7 +63,7 @@ class PlasticosIntake(models.Model):
         tracking=True,
         index=True,
         domain="[('share', '=', False)]",
-        help="Sales rep assigned to follow up on this intake. " "Dropdown shows all internal users (non-portal).",
+        help="Sales rep assigned to follow up on this intake. Dropdown shows all internal users (non-portal).",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -111,9 +111,8 @@ class PlasticosIntake(models.Model):
         string="Material Profile",
         index=True,
         ondelete="set null",
-        domain="['|'," " ('partner_id', '=', facility_id)," " ('partner_id', '=', partner_id)]",
-        help="Link to the canonical material profile. When set, snapshot "
-        "fields below auto-populate from the profile.",
+        domain="['|', ('partner_id', '=', facility_id), ('partner_id', '=', partner_id)]",
+        help="Link to the canonical material profile. When set, snapshot fields below auto-populate from the profile.",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -617,7 +616,7 @@ class PlasticosIntake(models.Model):
 
             if not rec.partner_id:
                 raise UserError(
-                    "Cannot match without a company. " "Please set a company or ensure pending_company_name is filled."
+                    "Cannot match without a company. Please set a company or ensure pending_company_name is filled."
                 )
 
             # Clear any existing matches

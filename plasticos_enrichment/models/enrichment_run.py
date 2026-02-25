@@ -163,7 +163,7 @@ class EnrichmentRun(models.Model):
         self.ensure_one()
         if self.state not in ("validated", "review"):
             raise UserError(
-                "Run must be validated or manually approved " "from review.",
+                "Run must be validated or manually approved from review.",
             )
 
         svc = self.env["plasticos.enrichment.service"]
@@ -245,7 +245,7 @@ class EnrichmentRun(models.Model):
                     if merge_vals:
                         existing.write(merge_vals)
                         existing.message_post(
-                            body=(f'Enrichment {self.name} merged ' f'fields: ' f'{", ".join(merge_vals.keys())}'),
+                            body=(f"Enrichment {self.name} merged fields: {', '.join(merge_vals.keys())}"),
                             subtype_xmlid="mail.mt_note",
                         )
                         updated += 1
@@ -308,7 +308,7 @@ class EnrichmentRun(models.Model):
             }
         )
         self.message_post(
-            body=(f"Enrichment injected: {created} profiles created, " f"{updated} updated, {written} fields written."),
+            body=(f"Enrichment injected: {created} profiles created, {updated} updated, {written} fields written."),
         )
 
     def _record_provenance(
@@ -394,9 +394,7 @@ class EnrichmentRun(models.Model):
 
         if inference_count:
             self.message_post(
-                body=(
-                    f"Inference engine augmented {inference_count} " f"material profile(s) for {self.partner_id.name}."
-                ),
+                body=(f"Inference engine augmented {inference_count} material profile(s) for {self.partner_id.name}."),
                 subtype_xmlid="mail.mt_note",
             )
 

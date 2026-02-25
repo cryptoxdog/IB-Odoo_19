@@ -229,7 +229,7 @@ class PlasticosFacilityProfile(models.Model):
     def _check_partner_is_facility(self):
         for rec in self:
             if not rec.partner_id.parent_id:
-                raise ValidationError("Capability profile can only be attached to " "facility-level partners.")
+                raise ValidationError("Capability profile can only be attached to facility-level partners.")
 
     @api.constrains("density_min", "density_max")
     def _check_density_range(self):

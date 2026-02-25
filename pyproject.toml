@@ -87,6 +87,8 @@ exclude = [
     ".*/migrations/.*",  # Odoo migration scripts (not regular modules)
     "^scripts/",         # Utility scripts
     "^plasticos_dev_tools/",  # Dev tools (relaxed checking)
+    "^docs/",            # Harvested/experimental code, not production
+    "^Files To Harvest/",  # Legacy/harvested code, not production
 ]
 
 # Odoo-specific: Be lenient on untyped defs (Odoo models rarely have full types)
@@ -119,6 +121,10 @@ module = [
     "plasticos_buyer_match_engine.*",
 ]
 ignore_errors = true  # Complex Odoo recordset patterns, gradual typing
+
+[[tool.mypy.overrides]]
+module = ["plasticos_graph_integration.*"]
+ignore_errors = true  # Uses requests; types-requests in CI
 
 # =============================================================================
 # ODOO-SPECIFIC PATTERNS TO GREP FOR (not catchable by ruff/mypy, use grep/CI script)

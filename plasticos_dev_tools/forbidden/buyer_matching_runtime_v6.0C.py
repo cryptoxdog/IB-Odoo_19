@@ -85,7 +85,7 @@ class BuyerMatchingRuntime(models.Model):
 
         score = trust * 0.30 + geo * 0.25 + cap * 0.25 + rec * 0.10 + compat * 0.10
 
-        reason = f"Trust {trust:.1f}, Geo {geo:.1f}, Capability {cap:.1f}, " f"Recency {rec:.1f}, Material {compat:.1f}"
+        reason = f"Trust {trust:.1f}, Geo {geo:.1f}, Capability {cap:.1f}, Recency {rec:.1f}, Material {compat:.1f}"
 
         return round(score, 2), reason
 

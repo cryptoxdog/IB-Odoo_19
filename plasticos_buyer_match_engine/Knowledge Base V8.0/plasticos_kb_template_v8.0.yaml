@@ -1074,7 +1074,7 @@ quality_indicators:
     thresholds:
       excellent: { value: [0, 0.5],    unit: "%" }
       good:      { value: [0.5, 3.0],  unit: "%" }
-      acceptable:{ value: [3.0, 8.0],  unit: "%" }
+      acceptable: { value: [3.0, 8.0], unit: "%" }
       poor:      { value: [8.0, 100],  unit: "%" }
     significance: "Determines application suitability and quality tier"
     impact_on_price_pct: null
@@ -1089,7 +1089,7 @@ quality_indicators:
     thresholds:
       excellent: "Natural/clear, consistent color"
       good:      "Single consistent color"
-      acceptable:"Mixed colors or moderate discoloration"
+      acceptable: "Mixed colors or moderate discoloration"
       poor:      "Heavily mixed or degraded color"
     significance: "Indicates thermal degradation and source quality"
     impact_on_price_pct: null
@@ -1104,7 +1104,7 @@ quality_indicators:
     thresholds:
       excellent: { value: [0, 1.0],    unit: "%" }
       good:      { value: [1.0, 2.0],  unit: "%" }
-      acceptable:{ value: [2.0, 3.0],  unit: "%" }
+      acceptable: { value: [2.0, 3.0], unit: "%" }
       poor:      { value: [3.0, 100],  unit: "%" }
     significance: "Indicates filler content and contamination level"
     impact_on_price_pct: null

@@ -1,6 +1,6 @@
 import logging
 
-from odoo import _, models
+from odoo import _, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
@@ -8,6 +8,16 @@ _logger = logging.getLogger(__name__)
 
 class PlasticosIntake(models.Model):
     _inherit = "plasticos.intake"
+
+    match_mode = fields.Selection(
+        [
+            ("strict", "Strict (all gates hard)"),
+            ("relaxed", "Relaxed (polymer only hard)"),
+        ],
+        string="Match Mode",
+        default="strict",
+        help="Strict: all 12 gates are hard exclusions. Relaxed: only polymer is hard, others are soft scoring signals.",
+    )
 
     def action_match_to_buyers(self):
         """Run buyer matching v2.0: facility.profile + Neo4j graph scoring.
@@ -23,7 +33,7 @@ class PlasticosIntake(models.Model):
             if not record.material_profile_id:
                 raise UserError(
                     _(
-                        "Intake '%s' has no material profile. " "Link a material profile before matching.",
+                        "Intake '%s' has no material profile. Link a material profile before matching.",
                         record.name,
                     )
                 )

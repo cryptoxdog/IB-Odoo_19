@@ -105,7 +105,7 @@ class DocumentNative(models.Model):
         "plasticos.document",
         string="Plasticos Document",
         readonly=True,
-        help="Link to the legacy plasticos.document record for backward " "compatibility.",
+        help="Link to the legacy plasticos.document record for backward compatibility.",
     )
 
     # ── Actions ──────────────────────────────────────────────

@@ -245,14 +245,14 @@ class BuyerMatchingRAG(models.Model):
 
             if not chunks:
                 rec.message_post(
-                    body="<b>⚠️ RAG Enrichment:</b> No relevant KB chunks " "found. Run <i>Build KB Chunks</i> first.",
+                    body="<b>⚠️ RAG Enrichment:</b> No relevant KB chunks found. Run <i>Build KB Chunks</i> first.",
                     subtype_xmlid="mail.mt_note",
                 )
                 continue
 
             # ---- Step 3: Build RAG-augmented prompt ----
             context_block = "\n\n".join(
-                f"[KB:{c['source_key']} / {c['section']}] " f"(relevance {c['score']:.0%})\n{c['chunk_text']}"
+                f"[KB:{c['source_key']} / {c['section']}] (relevance {c['score']:.0%})\n{c['chunk_text']}"
                 for c in chunks
             )
 
@@ -402,7 +402,7 @@ class KBConfigRAGExtension(models.Model):
                     total_created += 1
 
             rec.message_post(
-                body=f"<b>📦 RAG Chunks Built:</b> {seq} chunks " f"created from config <code>{rec.key}</code>",
+                body=f"<b>📦 RAG Chunks Built:</b> {seq} chunks created from config <code>{rec.key}</code>",
                 subtype_xmlid="mail.mt_note",
             )
 
@@ -459,7 +459,7 @@ class KBConfigRAGExtension(models.Model):
 
         if isinstance(value, str):
             return f"{key}: {value}"
-        elif isinstance(value, (int, float, bool)):
+        elif isinstance(value, int | float | bool):
             return f"{key}: {value}"
         elif isinstance(value, list):
             parts = [f"{key}:"]

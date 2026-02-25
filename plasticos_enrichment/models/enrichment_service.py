@@ -205,7 +205,7 @@ class EnrichmentService(models.AbstractModel):
                     kb_dir,
                 )
                 raise UserError(
-                    f"Inference KB not found at {kb_dir}. " "Ensure plasticos_enrichment/knowledge_base/ exists.",
+                    f"Inference KB not found at {kb_dir}. Ensure plasticos_enrichment/knowledge_base/ exists.",
                 )
             _inference_engine = InferenceEngine(kb_dir)
             _logger.info(
@@ -470,7 +470,7 @@ class EnrichmentService(models.AbstractModel):
 
         if not endpoint:
             raise UserError(
-                "Extraction API endpoint not configured. " "Set system parameter: " "plasticos.enrichment.api_endpoint"
+                "Extraction API endpoint not configured. Set system parameter: plasticos.enrichment.api_endpoint"
             )
 
         system_prompt = (

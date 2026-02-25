@@ -473,10 +473,10 @@ class PlasticosWebLead(models.Model):
                 self.write({"ai_vision_results": vision_results})
                 for i, vr in enumerate(vision_results):
                     if vr.get("error"):
-                        log_lines.append(f"  Image {i+1}: ERROR — {vr['error']}")
+                        log_lines.append(f"  Image {i + 1}: ERROR — {vr['error']}")
                     else:
                         log_lines.append(
-                            f"  Image {i+1}: form={vr.get('observed_form')}, "
+                            f"  Image {i + 1}: form={vr.get('observed_form')}, "
                             f"color={vr.get('observed_color')}, "
                             f"confidence={vr.get('confidence', 0):.2f}"
                         )
@@ -915,7 +915,7 @@ class PlasticosWebLead(models.Model):
                 if not content:
                     continue
 
-                fname = f"web_lead_{self.lead_id}_img_{i+1}"
+                fname = f"web_lead_{self.lead_id}_img_{i + 1}"
                 content_type = resp.headers.get("Content-Type", "image/jpeg")
                 ext = ".jpg"
                 if "png" in content_type:

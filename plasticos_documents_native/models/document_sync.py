@@ -76,7 +76,7 @@ class DocumentSyncService(models.AbstractModel):
             tag = PlasticosTag.search([("code", "=", "OTHER")], limit=1)
         if not tag:
             _logger.warning(
-                "No plasticos.document.tag found for code '%s'; " "skipping sync for document %s",
+                "No plasticos.document.tag found for code '%s'; skipping sync for document %s",
                 tag_code,
                 native_doc.id,
             )

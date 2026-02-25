@@ -192,7 +192,7 @@ class PlasticosMatchResult(models.Model):
         for rec in self:
             if rec.state != "pending":
                 raise UserError(
-                    f"Only pending match results can be accepted. " f"'{rec.display_name}' is in state '{rec.state}'."
+                    f"Only pending match results can be accepted. '{rec.display_name}' is in state '{rec.state}'."
                 )
             rec.write(
                 {
@@ -211,7 +211,7 @@ class PlasticosMatchResult(models.Model):
         for rec in self:
             if rec.state != "pending":
                 raise UserError(
-                    f"Only pending match results can be rejected. " f"'{rec.display_name}' is in state '{rec.state}'."
+                    f"Only pending match results can be rejected. '{rec.display_name}' is in state '{rec.state}'."
                 )
             rec.write(
                 {

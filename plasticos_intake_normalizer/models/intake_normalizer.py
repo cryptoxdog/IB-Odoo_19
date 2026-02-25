@@ -84,8 +84,8 @@ class PlasticosIntakeNormalizer(models.Model):
             )
             self._log_normalization("error", errors)
             raise UserError(
-                "Normalization failed with %d error(s):\n\n%s"
-                % (len(errors), "\n".join(f"• {e['field']}: {e['message']}" for e in errors))
+                f"Normalization failed with {len(errors)} error(s):\n\n"
+                + "\n".join(f"• {e['field']}: {e['message']}" for e in errors)
             )
 
         packet = self._assemble_packet()

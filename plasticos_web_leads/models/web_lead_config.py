@@ -26,7 +26,7 @@ class PlasticosWebLeadConfig(models.Model):
     # ═══════════════════════════════════════════════════════════
 
     api_key = fields.Char(
-        help="Bearer token for authenticating inbound requests. " "Generate via the button below.",
+        help="Bearer token for authenticating inbound requests. Generate via the button below.",
     )
     is_active = fields.Boolean(
         default=True,

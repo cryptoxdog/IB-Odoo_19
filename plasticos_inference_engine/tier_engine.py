@@ -89,6 +89,6 @@ def classify_tier(
         source=InferenceSource.YAML_TIER,
         source_id=tier_key,
         source_file=f"{polymer_key.lower()}_compounding_recycling_v7.0r.yaml",
-        reasoning=(f"Source '{source}' + contamination {contam or 'unknown'}% → {tier.value}. " f"{definition}"),
+        reasoning=(f"Source '{source}' + contamination {contam or 'unknown'}% → {tier.value}. {definition}"),
     )
     return tier, result

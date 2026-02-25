@@ -225,7 +225,7 @@ class PartnerBulkUpdateWizard(models.TransientModel):
                 updated += 1
             else:
                 raise UserError(
-                    _("The x_private field is not available. " "Please install the plasticos_security_base module.")
+                    _("The x_private field is not available. Please install the plasticos_security_base module.")
                 )
 
         return self._return_notification(_("%d partner(s) marked as %s") % (updated, status))

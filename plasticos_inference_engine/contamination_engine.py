@@ -58,7 +58,7 @@ def match_contamination(
                 source=InferenceSource.YAML_CONTAMINATION,
                 source_id=prof_id,
                 source_file=src_file,
-                reasoning=f"Contamination profile '{prof_id}' matched " f"(score {best_score:.2f})",
+                reasoning=f"Contamination profile '{prof_id}' matched (score {best_score:.2f})",
             )
         )
 
@@ -107,7 +107,7 @@ def match_contamination(
                     source=InferenceSource.YAML_CONTAMINATION,
                     source_id=prof_id,
                     source_file=src_file,
-                    reasoning=f"Contamination level '{contam_level}' (tier {quality_tier}) " f"from '{prof_id}'",
+                    reasoning=f"Contamination level '{contam_level}' (tier {quality_tier}) from '{prof_id}'",
                 )
             )
 

@@ -623,7 +623,7 @@ class PlasticosGraphService(models.AbstractModel):
                 exc_info=True,
             )
             raise UserError(
-                "Neo4j service is unavailable. Please try again later or " "contact your administrator."
+                "Neo4j service is unavailable. Please try again later or contact your administrator."
             ) from exc
 
         except Neo4jError as exc:
@@ -634,7 +634,7 @@ class PlasticosGraphService(models.AbstractModel):
                 metadata,
                 exc_info=True,
             )
-            raise UserError("Neo4j query failed:\n%s" % (getattr(exc, "message", str(exc)))) from exc
+            raise UserError("Neo4j query failed:\n{}".format(getattr(exc, "message", str(exc)))) from exc
 
         except Exception as exc:
             metrics.increment(f"{op_name}.unexpected_error")
@@ -642,7 +642,7 @@ class PlasticosGraphService(models.AbstractModel):
                 "Unexpected error while executing Neo4j query | metadata=%s",
                 metadata,
             )
-            raise UserError("Unexpected error while communicating with Neo4j. " "Check Odoo logs for details.") from exc
+            raise UserError("Unexpected error while communicating with Neo4j. Check Odoo logs for details.") from exc
 
     def _get_driver(self):
         """Return pool or None when Neo4j is optional (hooks/sync); no UserError."""

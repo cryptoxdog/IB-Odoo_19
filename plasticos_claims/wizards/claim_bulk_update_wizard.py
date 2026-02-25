@@ -171,7 +171,7 @@ class ClaimBulkUpdateWizard(models.TransientModel):
                 escalate_to=self.assignee_id if self.assignee_id else None,
             )
             claim.message_post(
-                body=_("Escalated via bulk action<br/>" "Reason: %(reason)s<br/>" "Updated by: %(user)s")
+                body=_("Escalated via bulk action<br/>Reason: %(reason)s<br/>Updated by: %(user)s")
                 % {
                     "reason": self.escalation_reason,
                     "user": self.env.user.name,

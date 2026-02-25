@@ -19,7 +19,7 @@ class EnrichmentExtraction(models.Model):
     )
 
     material_json = fields.Json(
-        help="Extracted material identity: polymer, form, source_type, " "quality params, volumes",
+        help="Extracted material identity: polymer, form, source_type, quality params, volumes",
     )
     metadata_json = fields.Json(
         help="Governance metadata: flags, reasoning traces",

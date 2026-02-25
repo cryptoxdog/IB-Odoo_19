@@ -11,7 +11,7 @@ class ProductProduct(models.Model):
     x_min_stock_threshold = fields.Float(
         string="Min Stock Threshold",
         default=0.0,
-        help="Per-product minimum stock level override. " "Falls back to the global default if zero.",
+        help="Per-product minimum stock level override. Falls back to the global default if zero.",
     )
 
     @api.model

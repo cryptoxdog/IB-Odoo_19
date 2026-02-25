@@ -84,5 +84,5 @@ class ResPartner(models.Model):
         if "parent_id" in vals and not vals.get("parent_id"):
             for rec in self:
                 if rec.facility_profile_ids:
-                    raise ValidationError("Cannot convert facility to parent while " "capability profile exists.")
+                    raise ValidationError("Cannot convert facility to parent while capability profile exists.")
         return super().write(vals)

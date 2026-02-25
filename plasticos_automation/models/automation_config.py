@@ -82,7 +82,7 @@ class PlasticosAutomationConfig(models.Model):
         config = self.search([("active", "=", True)], limit=1)
         if not config:
             raise ValidationError(
-                "Automation configuration not defined. " "Please configure PlasticOS Automation settings."
+                "Automation configuration not defined. Please configure PlasticOS Automation settings."
             )
         return config
 
