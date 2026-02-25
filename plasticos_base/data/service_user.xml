@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo noupdate="1">
-    <record id="user_system_cron" model="res.users">
-        <field name="name">System Cron</field>
-        <field name="login">system_cron</field>
-        <field name="password">!</field>
-        <field name="active">True</field>
-        <field name="share">False</field>
-        <field name="company_id" ref="base.main_company"/>
-        <field name="company_ids" eval="[(6, 0, [ref('base.main_company')])]"/>
-        <!-- groups_id removed for Odoo 19 compatibility -->
-    </record>
+<odoo>
+    <data noupdate="1">
 
-    <!-- Grant internal-user privilege via res.groups.users M2M -->
-    <record id="base.group_user" model="res.groups">
-        <field name="users" eval="[(4, ref('plasticos_base.user_system_cron'))]"/>
-    </record>
+        <record id="user_system_cron" model="res.users">
+            <field name="name">System Cron</field>
+            <field name="login">system_cron</field>
+            <field name="password">!</field>
+            <field name="active">True</field>
+            <field name="share">False</field>
+            <field name="company_id" ref="base.main_company"/>
+            <field name="company_ids" eval="[(6, 0, [ref('base.main_company')])]"/>
+            <!-- No groups_id or privilege fields - Odoo 19 uses privilege model -->
+            <!-- Group assignment handled via Settings > Users > Access Rights or Python migration -->
+        </record>
+
+    </data>
 </odoo>
