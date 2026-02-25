@@ -6,6 +6,7 @@
     "author": "PlastOS",
     "website": "https://github.com/cryptoxdog/Odoo_19",
     "depends": [
+        "plasticos_base",
         "base",
         "mail",
         "contacts",

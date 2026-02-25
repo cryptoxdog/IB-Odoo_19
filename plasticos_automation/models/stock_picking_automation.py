@@ -36,57 +36,76 @@ class StockPickingAutomation(models.Model):
         Targets outgoing pickings with a trucker assigned but no receipt
         confirmation. Escalates to manager after 3 follow-ups.
         """
-        pickings = self.search(
-            [
-                ("picking_type_code", "=", "outgoing"),
-                ("x_trucker_id", "!=", False),
-                ("x_receipt_confirmation", "=", False),
-                ("state", "not in", ("done", "cancel")),
-            ]
-        )
+        self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_automation.cron_trucker_followup"])
+        locked = self.env.cr.fetchone()[0]
+        if not locked:
+            _logger.info("Skipping trucker follow-up cron: lock is already held.")
+            return
 
-        log_model = self.env.get("plasticos.automation.log")
-
-        for picking in pickings:
-            picking.x_trucker_followup_count += 1
-            trucker_name = picking.x_trucker_id.name or "Unknown"
-
-            # Post chatter notification
-            picking.message_post(
-                body=f"Automated follow-up #{picking.x_trucker_followup_count}: trucker {trucker_name} has not confirmed receipt for {picking.name}.",
-                message_type="notification",
+        try:
+            now = fields.Datetime.now()
+            pickings = self.search(
+                [
+                    ("picking_type_code", "=", "outgoing"),
+                    ("x_trucker_id", "!=", False),
+                    ("x_receipt_confirmation", "=", False),
+                    ("state", "not in", ("done", "cancel")),
+                    "|",
+                    ("x_trucker_notified_on", "=", False),
+                    ("x_trucker_notified_on", "<", fields.Datetime.subtract(now, days=1)),
+                ],
+                order="x_trucker_notified_on ASC, id ASC",
+                limit=200,
             )
 
-            # Send mail template if available
-            template = self.env.ref(
-                "plasticos_automation.email_template_trucker_followup",
-                raise_if_not_found=False,
-            )
-            if template:
-                template.send_mail(picking.id, force_send=False)
+            log_model = self.env.get("plasticos.automation.log")
 
-            # Log to automation log
-            if log_model is not None:
-                log_model.create(
-                    {
-                        "name": f"Trucker follow-up #{picking.x_trucker_followup_count} for {picking.name}",
-                        "model_name": "stock.picking",
-                        "res_id": picking.id,
-                        "action_type": "logistics_followup",
-                    }
+            for picking in pickings:
+                picking.x_trucker_followup_count += 1
+                picking.x_trucker_notified_on = now
+                trucker_name = picking.x_trucker_id.name or "Unknown"
+
+                picking.message_post(
+                    body=(
+                        f"Automated follow-up #{picking.x_trucker_followup_count}: "
+                        f"trucker {trucker_name} has not confirmed receipt for {picking.name}."
+                    ),
+                    message_type="notification",
                 )
 
-            # Escalate after 3 follow-ups
-            if picking.x_trucker_followup_count >= 3:
-                picking.activity_schedule(
-                    "mail.mail_activity_data_todo",
-                    user_id=picking.user_id.id or self.env.user.id,
-                    summary=f"ESCALATION: Trucker receipt unconfirmed on {picking.name}",
-                    note=f"Follow-up #{picking.x_trucker_followup_count} sent. Trucker {trucker_name} has not confirmed receipt. Manual intervention required.",
+                template = self.env.ref(
+                    "plasticos_automation.email_template_trucker_followup",
+                    raise_if_not_found=False,
                 )
+                if template:
+                    template.send_mail(picking.id, force_send=False)
 
-            _logger.info(
-                "Logistics automation: trucker follow-up #%d for %s",
-                picking.x_trucker_followup_count,
-                picking.name,
-            )
+                if log_model is not None:
+                    log_model.create(
+                        {
+                            "name": f"Trucker follow-up #{picking.x_trucker_followup_count} for {picking.name}",
+                            "model_name": "stock.picking",
+                            "res_id": picking.id,
+                            "action_type": "logistics_followup",
+                        }
+                    )
+
+                if picking.x_trucker_followup_count >= 3:
+                    picking.activity_schedule(
+                        "mail.mail_activity_data_todo",
+                        user_id=picking.user_id.id or self.env.user.id,
+                        summary=f"ESCALATION: Trucker receipt unconfirmed on {picking.name}",
+                        note=(
+                            f"Follow-up #{picking.x_trucker_followup_count} sent. "
+                            f"Trucker {trucker_name} has not confirmed receipt. "
+                            "Manual intervention required."
+                        ),
+                    )
+
+                _logger.info(
+                    "Logistics automation: trucker follow-up #%d for %s",
+                    picking.x_trucker_followup_count,
+                    picking.name,
+                )
+        finally:
+            self.env.cr.execute("SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_automation.cron_trucker_followup"])

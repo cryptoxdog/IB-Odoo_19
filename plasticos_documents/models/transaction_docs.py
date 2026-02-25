@@ -113,111 +113,108 @@ class PlasticosTransactionDocs(models.Model):
 
     @api.model
     def cron_check_missing_docs(self):
-        """Check all active transactions for missing documents.
+        """Check all active transactions for missing documents."""
+        self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_documents.cron_check_missing_docs"])
+        locked = self.env.cr.fetchone()[0]
+        if not locked:
+            _logger.info("Skipping missing-docs cron: lock is already held.")
+            return
 
-        Determines overdue/escalated status based on business days
-        since transaction creation. Posts reminders and escalation
-        activities as needed. Logs all actions to plasticos.automation.log.
-        """
-        transactions = self.search(
-            [
-                ("state", "=", "active"),
-            ]
-        )
-
-        log_model = self.env["plasticos.automation.log"] if "plasticos.automation.log" in self.env else None
-        matrix_model = self.env["plasticos.document.validation.matrix"]
-        today = date.today()
-
-        for tx in transactions:
-            # Recompute missing flags
-            tx._compute_missing_doc_flags()
-
-            has_missing = tx.x_missing_supplier_docs or tx.x_missing_carrier_docs or tx.x_missing_buyer_docs
-
-            if not has_missing:
-                if tx.x_missing_doc_status != "complete":
-                    tx.x_missing_doc_status = "complete"
-                continue
-
-            # Determine age in business days from create_date
-            start = tx.create_date.date() if tx.create_date else today
-            bd = self._count_business_days(start, today)
-
-            # Use the most aggressive thresholds from the matrix rules
-            # Default: overdue after 2 BD, escalate after 5 BD
-            overdue_threshold = 2
-            escalation_threshold = 5
-
-            rules = self.env["plasticos.document.rule"].search(
-                [
-                    ("res_model", "=", "plasticos.transaction"),
-                    ("active", "=", True),
-                ]
+        try:
+            transactions = self.search(
+                [("state", "=", "active")],
+                order="create_date ASC, id ASC",
+                limit=300,
             )
-            for rule in rules:
-                if hasattr(rule, "x_overdue_business_days") and rule.x_overdue_business_days:
-                    overdue_threshold = min(overdue_threshold, rule.x_overdue_business_days)
-                if hasattr(rule, "x_escalation_business_days") and rule.x_escalation_business_days:
-                    escalation_threshold = min(escalation_threshold, rule.x_escalation_business_days)
+            log_model = self.env["plasticos.automation.log"] if "plasticos.automation.log" in self.env else None
+            today = date.today()
 
-            # Determine status
-            if bd >= escalation_threshold:
-                new_status = "escalated"
-            elif bd >= overdue_threshold:
-                new_status = "overdue"
-            else:
-                new_status = "pending"
+            for tx in transactions:
+                tx._compute_missing_doc_flags()
+                has_missing = tx.x_missing_supplier_docs or tx.x_missing_carrier_docs or tx.x_missing_buyer_docs
+                if not has_missing:
+                    if tx.x_missing_doc_status != "complete":
+                        tx.x_missing_doc_status = "complete"
+                    continue
 
-            if tx.x_missing_doc_status != new_status:
-                tx.x_missing_doc_status = new_status
+                start_date = tx.create_date.date() if tx.create_date else today
+                bd = self._count_business_days(start_date, today)
 
-            # Send reminder for overdue transactions
-            if new_status == "overdue":
-                tx.x_doc_reminder_count += 1
-                tx.x_last_doc_reminder_date = today
-                tx.message_post(
-                    body=f"Automated reminder: transaction {tx.name} has missing "
-                    f"documents (overdue by {bd} business days).",
-                    message_type="notification",
+                overdue_threshold = 2
+                escalation_threshold = 5
+                rules = self.env["plasticos.document.rule"].search(
+                    [("res_model", "=", "plasticos.transaction"), ("active", "=", True)],
+                    order="id ASC",
                 )
+                for rule in rules:
+                    if hasattr(rule, "x_overdue_business_days") and rule.x_overdue_business_days:
+                        overdue_threshold = min(overdue_threshold, rule.x_overdue_business_days)
+                    if hasattr(rule, "x_escalation_business_days") and rule.x_escalation_business_days:
+                        escalation_threshold = min(escalation_threshold, rule.x_escalation_business_days)
 
-                if log_model is not None:
-                    log_model.create(
-                        {
-                            "name": f"Doc reminder for {tx.name}",
-                            "model_name": "plasticos.transaction",
-                            "res_id": tx.id,
-                            "action_type": "doc_reminder",
-                        }
+                if bd >= escalation_threshold:
+                    new_status = "escalated"
+                elif bd >= overdue_threshold:
+                    new_status = "overdue"
+                else:
+                    new_status = "pending"
+
+                if tx.x_missing_doc_status != new_status:
+                    tx.x_missing_doc_status = new_status
+
+                if new_status == "overdue":
+                    if tx.x_last_doc_reminder_date and tx.x_last_doc_reminder_date >= today:
+                        continue
+                    tx.x_doc_reminder_count += 1
+                    tx.x_last_doc_reminder_date = today
+                    tx.message_post(
+                        body=f"Automated reminder: transaction {tx.name} has missing documents (overdue by {bd} business days).",
+                        message_type="notification",
                     )
+                    if log_model is not None:
+                        log_model.create(
+                            {
+                                "name": f"Doc reminder for {tx.name}",
+                                "model_name": "plasticos.transaction",
+                                "res_id": tx.id,
+                                "action_type": "doc_reminder",
+                            }
+                        )
+                elif new_status == "escalated":
+                    has_today_activity = self.env["mail.activity"].search_count(
+                        [
+                            ("res_model", "=", "plasticos.transaction"),
+                            ("res_id", "=", tx.id),
+                            ("summary", "=", f"ESCALATION: Missing documents on {tx.name}"),
+                            ("date_deadline", "=", today),
+                        ]
+                    )
+                    if has_today_activity:
+                        continue
+                    tx.activity_schedule(
+                        "mail.mail_activity_data_todo",
+                        user_id=self.env.user.id,
+                        summary=f"ESCALATION: Missing documents on {tx.name}",
+                        note=f"Transaction {tx.name} has missing documents for {bd} business days. Manual intervention required.",
+                    )
+                    if log_model is not None:
+                        log_model.create(
+                            {
+                                "name": f"Doc escalation for {tx.name}",
+                                "model_name": "plasticos.transaction",
+                                "res_id": tx.id,
+                                "action_type": "doc_escalation",
+                            }
+                        )
 
-            # Escalate
-            elif new_status == "escalated":
-                tx.activity_schedule(
-                    "mail.mail_activity_data_todo",
-                    user_id=self.env.user.id,
-                    summary=f"ESCALATION: Missing documents on {tx.name}",
-                    note=f"Transaction {tx.name} has missing documents for {bd} "
-                    "business days. Manual intervention required.",
+                _logger.info(
+                    "Documents extension: TX %s status=%s (bd=%d, missing: supplier=%s, carrier=%s, buyer=%s)",
+                    tx.name,
+                    new_status,
+                    bd,
+                    tx.x_missing_supplier_docs,
+                    tx.x_missing_carrier_docs,
+                    tx.x_missing_buyer_docs,
                 )
-
-                if log_model is not None:
-                    log_model.create(
-                        {
-                            "name": f"Doc escalation for {tx.name}",
-                            "model_name": "plasticos.transaction",
-                            "res_id": tx.id,
-                            "action_type": "doc_escalation",
-                        }
-                    )
-
-            _logger.info(
-                "Documents extension: TX %s status=%s (bd=%d, missing: supplier=%s, carrier=%s, buyer=%s)",
-                tx.name,
-                new_status,
-                bd,
-                tx.x_missing_supplier_docs,
-                tx.x_missing_carrier_docs,
-                tx.x_missing_buyer_docs,
-            )
+        finally:
+            self.env.cr.execute("SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_documents.cron_check_missing_docs"])

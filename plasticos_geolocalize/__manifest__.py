@@ -4,6 +4,7 @@
     "summary": "Auto-geocode partners on create/write + nightly backfill cron",
     "author": "PlasticOS",
     "depends": [
+        "plasticos_base",
         "base",
         "base_geolocalize",
         "plasticos_intake",

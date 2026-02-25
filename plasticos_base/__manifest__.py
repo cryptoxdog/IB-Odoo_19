@@ -11,6 +11,7 @@
         "sale_management",
     ],
     "data": [
+        "data/service_user.xml",
         "data/partner_tags.xml",
         "data/material_taxonomy.xml",
         "data/sales_reps.xml",

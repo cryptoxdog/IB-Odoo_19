@@ -162,14 +162,23 @@ class PlasticosMatchExclusion(models.Model):
 
         Called daily by scheduled action.
         """
-        expired = self.search(
-            [
-                ("exclusion_type", "=", "temporary"),
-                ("expiry_date", "<", fields.Date.today()),
-                ("active", "=", True),
-            ]
-        )
-        if expired:
-            expired.write({"active": False})
-            return f"Expired {len(expired)} temporary exclusions."
-        return "No exclusions to expire."
+        self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_buyer_match_engine.ir_cron_expire_exclusions"])
+        if not self.env.cr.fetchone()[0]:
+            return "Skipped: lock held"
+
+        try:
+            expired = self.search(
+                [
+                    ("exclusion_type", "=", "temporary"),
+                    ("expiry_date", "<", fields.Date.today()),
+                    ("active", "=", True),
+                ],
+                order="expiry_date ASC, id ASC",
+                limit=500,
+            )
+            if expired:
+                expired.write({"active": False})
+                return f"Expired {len(expired)} temporary exclusions."
+            return "No exclusions to expire."
+        finally:
+            self.env.cr.execute("SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_buyer_match_engine.ir_cron_expire_exclusions"])

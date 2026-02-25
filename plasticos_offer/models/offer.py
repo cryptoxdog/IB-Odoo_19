@@ -259,17 +259,27 @@ class PlasticosOffer(models.Model):
 
         Runs daily to transition non-terminal offers to 'expired' state.
         """
-        today = fields.Date.today()
-        offers_to_expire = self.search(
-            [
-                ("valid_until", "<", today),
-                ("state", "in", ("draft", "sent", "responded")),
-            ]
-        )
-        if offers_to_expire:
-            offers_to_expire.write({"state": "expired"})
-            _logger.info(
-                "Cron: expired %d offers past valid_until: %s",
-                len(offers_to_expire),
-                offers_to_expire.mapped("display_name"),
+        self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_offer.ir_cron_expire_offers"])
+        locked = self.env.cr.fetchone()[0]
+        if not locked:
+            return
+
+        try:
+            today = fields.Date.today()
+            offers_to_expire = self.search(
+                [
+                    ("valid_until", "<", today),
+                    ("state", "in", ("draft", "sent", "responded")),
+                ],
+                order="valid_until ASC, id ASC",
+                limit=500,
             )
+            if offers_to_expire:
+                offers_to_expire.write({"state": "expired"})
+                _logger.info(
+                    "Cron: expired %d offers past valid_until: %s",
+                    len(offers_to_expire),
+                    offers_to_expire.mapped("display_name"),
+                )
+        finally:
+            self.env.cr.execute("SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_offer.ir_cron_expire_offers"])

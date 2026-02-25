@@ -55,6 +55,14 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
+      - id: cron-invariants
+        name: Cron invariant check
+        entry: python3 tools/cron_invariant_check.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+
       # Index generation disabled - run manually: python3 scripts/export_odoo_index.py
       # - id: export-odoo-index
       #   name: Export Odoo repo index

@@ -4,7 +4,7 @@
     "summary": "Load management and dispatch",
     "author": "PlasticOS",
     "license": "LGPL-3",
-    "depends": ["sale_management", "stock", "mail"],
+    "depends": ["plasticos_base", "sale_management", "stock", "mail"],
     "data": [
         "security/ir.model.access.csv",
         "data/incoterms.xml",

@@ -128,78 +128,87 @@ class PlasticosIntakeNormalizer(models.Model):
         Called by ir.cron. Processes up to config.batch_limit records
         per run. Errors are stored per-record, not raised.
         """
-        config = self.env["plasticos.normalizer.config"].sudo().get_config()
-        limit = config.batch_limit or 200
+        self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_intake_normalizer.cron_batch_normalize_intakes"])
+        locked = self.env.cr.fetchone()[0]
+        if not locked:
+            _logger.info("Skipping batch normalize cron: lock is already held.")
+            return
 
-        pending = self.search(
-            [("normalized", "=", False), ("match_status", "=", "pending")],
-            limit=limit,
-            order="create_date ASC",
-        )
+        try:
+            config = self.env["plasticos.normalizer.config"].sudo().get_config()  # cron-sudo-justification: shared singleton config read for system batch
+            limit = config.batch_limit or 200
 
-        _logger.info("Batch normalize: %d intakes to process.", len(pending))
+            pending = self.search(
+                [("normalized", "=", False), ("match_status", "=", "pending")],
+                limit=limit,
+                order="create_date ASC, id ASC",
+            )
 
-        success_count = 0
-        error_count = 0
+            _logger.info("Batch normalize: %d intakes to process.", len(pending))
 
-        for rec in pending:
-            try:
-                errors, warnings = rec._validate_for_normalization(config)
+            success_count = 0
+            error_count = 0
 
-                if errors:
+            for rec in pending:
+                try:
+                    errors, warnings = rec._validate_for_normalization(config)
+
+                    if errors:
+                        rec.write(
+                            {
+                                "normalization_errors": errors,
+                                "normalization_warnings": warnings,
+                                "normalization_ts": fields.Datetime.now(),
+                                "match_status": "error",
+                                "normalized": False,
+                            }
+                        )
+                        rec._log_normalization("error", errors)
+                        error_count += 1
+                        continue
+
+                    packet = rec._assemble_packet()
+                    packet_id = f"PKT-{uuid.uuid4().hex[:12].upper()}"
+
                     rec.write(
                         {
-                            "normalization_errors": errors,
-                            "normalization_warnings": warnings,
+                            "normalized": True,
+                            "match_status": "normalized",
+                            "normalization_errors": None,
+                            "normalization_warnings": warnings or None,
+                            "normalization_ts": fields.Datetime.now(),
+                            "last_packet_id": packet_id,
+                            "last_packet_version": PACKET_SCHEMA_VERSION,
+                            "last_packet_payload": packet,
+                            "last_packet_ts": fields.Datetime.now(),
+                        }
+                    )
+                    rec._log_normalization("normalized", None)
+                    success_count += 1
+
+                except Exception as exc:
+                    _logger.exception(
+                        "Unexpected error normalizing intake %s",
+                        rec.name,
+                    )
+                    rec.write(
+                        {
+                            "normalization_errors": [{"field": "_system", "message": str(exc)}],
                             "normalization_ts": fields.Datetime.now(),
                             "match_status": "error",
                             "normalized": False,
                         }
                     )
-                    rec._log_normalization("error", errors)
                     error_count += 1
-                    continue
 
-                packet = rec._assemble_packet()
-                packet_id = f"PKT-{uuid.uuid4().hex[:12].upper()}"
-
-                rec.write(
-                    {
-                        "normalized": True,
-                        "match_status": "normalized",
-                        "normalization_errors": None,
-                        "normalization_warnings": warnings or None,
-                        "normalization_ts": fields.Datetime.now(),
-                        "last_packet_id": packet_id,
-                        "last_packet_version": PACKET_SCHEMA_VERSION,
-                        "last_packet_payload": packet,
-                        "last_packet_ts": fields.Datetime.now(),
-                    }
-                )
-                rec._log_normalization("normalized", None)
-                success_count += 1
-
-            except Exception as exc:
-                _logger.exception(
-                    "Unexpected error normalizing intake %s",
-                    rec.name,
-                )
-                rec.write(
-                    {
-                        "normalization_errors": [{"field": "_system", "message": str(exc)}],
-                        "normalization_ts": fields.Datetime.now(),
-                        "match_status": "error",
-                        "normalized": False,
-                    }
-                )
-                error_count += 1
-
-        _logger.info(
-            "Batch normalize complete: %d success, %d errors out of %d.",
-            success_count,
-            error_count,
-            len(pending),
-        )
+            _logger.info(
+                "Batch normalize complete: %d success, %d errors out of %d.",
+                success_count,
+                error_count,
+                len(pending),
+            )
+        finally:
+            self.env.cr.execute("SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_intake_normalizer.cron_batch_normalize_intakes"])
 
     # ═════════════════════════════════════════════════════
     # VALIDATION ENGINE
@@ -573,3 +582,4 @@ class PlasticosIntakeNormalizer(models.Model):
                 self.name,
                 exc_info=True,
             )
+

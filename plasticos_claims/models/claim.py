@@ -291,24 +291,46 @@ class PlasticosClaim(models.Model):
     @api.model
     def _cron_check_sla(self):
         """Auto-escalate claims past SLA and create daily reminders."""
-        now = fields.Datetime.now()
+        self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_claims.cron_claim_sla_check"])
+        locked = self.env.cr.fetchone()[0]
+        if not locked:
+            return
 
-        # Auto-escalate pending claims past SLA
-        pending = self.search([("state", "=", "pending")])
-        for claim in pending:
-            deadline = claim.opened_at + timedelta(hours=claim.sla_hours)
-            if now > deadline:
-                claim.action_escalate()
+        try:
+            now = fields.Datetime.now()
 
-        # Daily reminders for open claims
-        open_claims = self.search([("state", "in", ("pending", "in_progress", "escalated"))])
-        for claim in open_claims:
-            if claim.last_reminder_at:
-                last = claim.last_reminder_at
-                if (now - last).days < 1:
+            # Auto-escalate pending claims past SLA
+            pending = self.search([("state", "=", "pending")], order="opened_at ASC, id ASC", limit=300)
+            for claim in pending:
+                deadline = claim.opened_at + timedelta(hours=claim.sla_hours)
+                if now > deadline:
+                    claim.action_escalate()
+
+            # Daily reminders for open claims
+            open_claims = self.search(
+                [("state", "in", ("pending", "in_progress", "escalated"))],
+                order="last_reminder_at ASC, opened_at ASC, id ASC",
+                limit=300,
+            )
+            for claim in open_claims:
+                if claim.last_reminder_at:
+                    last = claim.last_reminder_at
+                    if (now - last).days < 1:
+                        continue
+                existing_activity = self.env["mail.activity"].search_count(
+                    [
+                        ("res_model", "=", "plasticos.claim"),
+                        ("res_id", "=", claim.id),
+                        ("summary", "=", f"Open Claim Reminder: {claim.name}"),
+                        ("date_deadline", "=", fields.Date.today()),
+                    ]
+                )
+                if existing_activity:
                     continue
-            claim._create_reminder_activity()
-            claim.last_reminder_at = now
+                claim._create_reminder_activity()
+                claim.last_reminder_at = now
+        finally:
+            self.env.cr.execute("SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_claims.cron_claim_sla_check"])
 
     def _create_escalation_activity(self):
         """Create activity for quality manager on escalation."""

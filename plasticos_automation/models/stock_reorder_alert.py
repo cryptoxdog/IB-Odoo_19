@@ -8,39 +8,47 @@ _logger = logging.getLogger(__name__)
 class ProductProduct(models.Model):
     _inherit = "product.product"
 
-    x_min_stock_threshold = fields.Float(
-        string="Min Stock Threshold",
-        default=0.0,
-        help="Per-product minimum stock level override. Falls back to the global default if zero.",
-    )
+    x_min_stock_threshold = fields.Float(string="Min Stock Threshold", default=0.0)
 
     @api.model
     def cron_stock_reorder_alert(self):
-        """Alert for products whose available stock falls below threshold.
+        self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_automation.cron_stock_reorder_alert"])
+        if not self.env.cr.fetchone()[0]:
+            _logger.info("Skipping stock reorder cron: lock is already held.")
+            return
 
-        Per-product threshold takes precedence over the global default.
-        Products with both thresholds at zero are skipped.
-        """
-        config = self.env["plasticos.automation.config"].get_config()
-        global_threshold = config.stock_threshold_default
+        try:
+            config = self.env["plasticos.automation.config"].get_config()
+            global_threshold = config.stock_threshold_default
+            today = fields.Date.today()
+            log_model = self.env["plasticos.automation.log"]
 
-        products = self.search(
-            [
-                ("type", "=", "product"),
-            ]
-        )
+            products = self.search(
+                [("type", "=", "product")],
+                order="id ASC",
+                limit=500,
+            )
 
-        for product in products:
-            threshold = product.x_min_stock_threshold or global_threshold
-            if threshold <= 0:
-                continue
+            for product in products:
+                threshold = product.x_min_stock_threshold or global_threshold
+                if threshold <= 0 or product.qty_available >= threshold:
+                    continue
 
-            if product.qty_available < threshold:
+                already_logged = log_model.search_count(
+                    [
+                        ("model_name", "=", "product.product"),
+                        ("res_id", "=", product.id),
+                        ("action_type", "=", "stock_alert"),
+                        ("create_date", ">=", fields.Datetime.to_datetime(f"{today} 00:00:00")),
+                    ]
+                )
+                if already_logged:
+                    continue
+
                 product.message_post(
                     body=f"Automated alert: stock level {product.qty_available:.2f} is below threshold {threshold:.2f}.",
                 )
-
-                self.env["plasticos.automation.log"].create(
+                log_model.create(
                     {
                         "name": f"Stock alert {product.display_name}",
                         "model_name": "product.product",
@@ -48,9 +56,5 @@ class ProductProduct(models.Model):
                         "action_type": "stock_alert",
                     }
                 )
-                _logger.info(
-                    "Automation: stock alert for %s (qty=%.2f, threshold=%.2f)",
-                    product.display_name,
-                    product.qty_available,
-                    threshold,
-                )
+        finally:
+            self.env.cr.execute("SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_automation.cron_stock_reorder_alert"])
