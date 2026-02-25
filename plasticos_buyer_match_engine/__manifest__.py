@@ -21,8 +21,8 @@
     "depends": [
         "plasticos_intake",
         "plasticos_material_profile",
-        "plasticos_matching",
         "plasticos_facility_profile",
+        "plasticos_matching",
         "plasticos_transaction",
     ],
     "data": [

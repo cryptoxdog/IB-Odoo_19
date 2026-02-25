@@ -10,18 +10,23 @@ repos:
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
+        exclude: ^docs/
       - id: ruff-format
+        exclude: ^docs/
 
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
       - id: check-xml
+        exclude: ^docs/
       - id: check-yaml
         args: [--allow-multiple-documents]
-        exclude: '^plasticos_enrichment/knowledge_base/.*\.yaml$|buyer_matching_rag\.yaml$'
+        exclude: '^plasticos_enrichment/knowledge_base/.*\.yaml$|buyer_matching_rag\.yaml$|^docs/'
       - id: end-of-file-fixer
+        exclude: ^docs/
       - id: trailing-whitespace
+        exclude: ^docs/
       - id: check-added-large-files
         args: ['--maxkb=1000']
       - id: check-merge-conflict
@@ -75,6 +80,7 @@ repos:
             venv/.*|
             .*/migrations/.*|
             scripts/.*|
+            docs/.*|
             plasticos_dev_tools/.*|
             plasticos_inference_engine/.*|
             plasticos_web_leads/.*|

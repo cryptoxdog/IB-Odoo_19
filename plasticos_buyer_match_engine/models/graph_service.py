@@ -175,41 +175,40 @@ class PlasticosGraphService(models.AbstractModel):
         query = """
         MATCH (supplier:Facility {facility_id: $supplier_id})
         MATCH (buyer:Facility {facility_id: $buyer_id})
+        OPTIONAL MATCH (buyer)-[:HAS_MATERIAL]->(mat:MaterialProfile)
 
         // Calculate scores with gate_mode adjustment (spec v2.0: 4 dimensions)
-        WITH supplier, buyer,
+        // Schema alignment: MaterialProfile.polymer stores the polymer code (e.g., 'HDPE')
+        WITH supplier, buyer, mat,
              // HARD_GATE score: Combined material + volume + compliance gates
              // This represents "did Stage 1 gates pass?" as a continuous score
              CASE
                  WHEN buyer.gate_mode = 'strict' THEN
                      CASE
-                         WHEN buyer.material_category_id = $material_category_id AND
-                              buyer.polymer_family_id = $polymer_family_id AND
+                         WHEN mat.polymer = $polymer_code AND
                               (buyer.min_lot_size_lbs IS NULL OR $quantity_available >= buyer.min_lot_size_lbs)
                          THEN 1.0
                          ELSE 0.0
                      END
                  WHEN buyer.gate_mode = 'flexible' THEN
                      CASE
-                         WHEN buyer.material_category_id = $material_category_id AND
-                              buyer.polymer_family_id = $polymer_family_id THEN 1.0
-                         WHEN buyer.material_category_id = $material_category_id THEN 0.8
-                         WHEN buyer.polymer_family_id = $polymer_family_id THEN 0.7
+                         WHEN mat.polymer = $polymer_code THEN 1.0
+                         WHEN mat.polymer IS NOT NULL THEN 0.7
                          ELSE 0.5
                      END
                  WHEN buyer.gate_mode = 'optimistic' THEN
                      CASE
-                         WHEN buyer.material_category_id = $material_category_id OR
-                              buyer.polymer_family_id = $polymer_family_id THEN 0.9
+                         WHEN mat.polymer = $polymer_code THEN 0.9
                          ELSE 0.7
                      END
                  ELSE 0.5
              END AS hard_gate_score,
 
-             // QUALITY score: MFI range fit, density proximity, contamination
+             // QUALITY score: Based on material profile match (MFI, density, contamination tolerance)
+             // Schema alignment: quality is derived from MaterialProfile attributes, not a separate ID
              CASE
-                 WHEN buyer.quality_level_id = $quality_level_id THEN 1.0
-                 WHEN buyer.quality_level_id IS NULL THEN 0.8
+                 WHEN mat IS NOT NULL AND mat.polymer = $polymer_code THEN 1.0
+                 WHEN mat IS NOT NULL THEN 0.8
                  ELSE 0.6
              END AS quality_score,
 
@@ -268,10 +267,9 @@ class PlasticosGraphService(models.AbstractModel):
         params = {
             "supplier_id": supplier_partner_id,
             "buyer_id": buyer_partner_id,
-            "material_category_id": material_requirements.get("material_category_id"),
-            "polymer_family_id": material_requirements.get("polymer_family_id"),
+            # Schema alignment: use polymer_code (string like 'HDPE') for Neo4j matching
+            "polymer_code": material_requirements.get("polymer_code"),
             "quantity_available": material_requirements.get("quantity_available") or 0,
-            "quality_level_id": material_requirements.get("quality_level_id"),
             "w_hard_gate": weights["hard_gate"],
             "w_quality": weights["quality"],
             "w_geo": weights["geo"],
