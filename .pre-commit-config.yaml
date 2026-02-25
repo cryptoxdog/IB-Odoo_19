@@ -49,21 +49,23 @@ repos:
         always_run: true
         stages: [pre-commit]
 
-      - id: export-odoo-index
-        name: Export Odoo repo index
-        entry: python3 scripts/export_odoo_index.py
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
+      # Index generation disabled - run manually: python3 scripts/export_odoo_index.py
+      # - id: export-odoo-index
+      #   name: Export Odoo repo index
+      #   entry: python3 scripts/export_odoo_index.py
+      #   language: system
+      #   pass_filenames: false
+      #   always_run: true
+      #   stages: [pre-push]
 
-      - id: generate-subsystem-readmes
-        name: Generate subsystem READMEs
-        entry: python3 scripts/generate_subsystem_readmes.py
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
+      # README generation disabled - run manually: python3 scripts/generate_subsystem_readmes.py
+      # - id: generate-subsystem-readmes
+      #   name: Generate subsystem READMEs
+      #   entry: python3 scripts/generate_subsystem_readmes.py
+      #   language: system
+      #   pass_filenames: false
+      #   always_run: true
+      #   stages: [pre-push]
 
   # Python type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
