@@ -106,7 +106,8 @@ class BuyerMatcher(models.Model):
             return []
 
         # Collect facility_ids for Stage 2
-        facility_ids = [b["profile"].id for b in passed_buyers]
+        # Neo4j stores facility_id = partner.id, so pass partner IDs not profile IDs
+        facility_ids = [b["profile"].partner_id.id for b in passed_buyers]
 
         # Step 4: Call graph service for Stage 2 scoring
         graph_svc = self.env["plasticos.graph.service"]
@@ -118,7 +119,10 @@ class BuyerMatcher(models.Model):
                 # Map results back to our format
                 scored_buyers = []
                 for row in scored_results:
-                    buyer_data = next((b for b in passed_buyers if b["profile"].id == row.get("facility_id")), None)
+                    buyer_data = next(
+                        (b for b in passed_buyers if b["profile"].partner_id.id == row.get("facility_id")),
+                        None,
+                    )
                     if buyer_data:
                         scored_buyers.append(
                             {

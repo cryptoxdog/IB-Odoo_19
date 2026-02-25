@@ -8,3 +8,8 @@ class PlasticosDocumentTag(models.Model):
     name = fields.Char(required=True)
     code = fields.Char(required=True, index=True)
     active = fields.Boolean(default=True)
+
+    _unique_code = models.Constraint(
+        "UNIQUE(code)",
+        "Document tag code must be unique.",
+    )

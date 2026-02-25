@@ -21,8 +21,10 @@ class PlasticosComplianceService(models.AbstractModel):
                     ("override", "=", True),
                 ]
             )
+            # Filter out expired documents so they no longer satisfy compliance
+            valid_docs = docs.filtered(lambda d: not d.x_is_expired)
 
-            if not docs:
+            if not valid_docs:
                 missing.append(rule.tag_id.code)
 
         return missing

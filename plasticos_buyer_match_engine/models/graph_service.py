@@ -356,7 +356,7 @@ class PlasticosGraphService(models.AbstractModel):
             f.process_type IS NULL
             OR (f.process_type = 'injection' AND $mfi >= 10)
             OR (f.process_type = 'extrusion' AND $mfi <= 20)
-            OR (f.process_type = 'blow_mold' AND $mfi BETWEEN 0.5 AND 10)
+            OR (f.process_type = 'blow_mold' AND $mfi >= 0.5 AND $mfi <= 10)
             OR (f.process_type = 'film_blown' AND $mfi <= 5)
             OR (f.process_type = 'film_cast' AND $mfi <= 5)
             OR (f.process_type = 'thermoform' AND $mfi >= 1 AND $mfi <= 12)
@@ -554,20 +554,30 @@ class PlasticosGraphService(models.AbstractModel):
 
         for row in rows:
             try:
-                # Resolve buyer_partner_id from facility partner
-                buyer_facility_id = row.get("facility_id")
+                # facility_id from Cypher = res.partner.id (set in sync)
+                partner_id = row.get("facility_id")
                 buyer_partner_id = None
-                if buyer_facility_id:
-                    profile = self.env["plasticos.facility.profile"].browse(buyer_facility_id)
-                    if profile.exists():
-                        buyer_partner_id = profile.partner_id.parent_id.id or profile.partner_id.id
+                buyer_facility_id = None
+                facility_profile_id = None
+                if partner_id:
+                    partner = self.env["res.partner"].browse(partner_id)
+                    if partner.exists():
+                        # buyer_partner_id = company (parent) or partner itself
+                        buyer_partner_id = partner.parent_id.id or partner.id
+                        buyer_facility_id = partner.id
+                    # Look up first matching profile for this partner
+                    profile = self.env["plasticos.facility.profile"].search(
+                        [("partner_id", "=", partner_id), ("active", "=", True)], limit=1
+                    )
+                    if profile:
+                        facility_profile_id = profile.id
 
                 MatchResult.create(
                     {
                         "intake_id": intake.id,
                         "buyer_partner_id": buyer_partner_id,
                         "buyer_facility_id": buyer_facility_id,
-                        "facility_profile_id": row.get("profile_id"),
+                        "facility_profile_id": facility_profile_id,
                         "score": row.get("total_score", 0.0),
                         "score_breakdown": row.get("score_breakdown"),
                         "run_id": run_id,
@@ -855,7 +865,9 @@ class PlasticosGraphService(models.AbstractModel):
             // Lot size constraints
             fac.min_lot_size_lbs  = f.min_lot_size_lbs,
             fac.max_lot_size_lbs  = f.max_lot_size_lbs,
-            // Location
+            // Location (lat/lon as scalar props for scoring queries)
+            fac.lat               = f.lat,
+            fac.lon               = f.lon,
             fac.city              = f.city,
             fac.state             = f.state,
             fac.country           = f.country,
@@ -893,7 +905,9 @@ class PlasticosGraphService(models.AbstractModel):
             // Lot size constraints
             fac.min_lot_size_lbs  = f.min_lot_size_lbs,
             fac.max_lot_size_lbs  = f.max_lot_size_lbs,
-            // Location
+            // Location (lat/lon as scalar props for scoring queries)
+            fac.lat               = f.lat,
+            fac.lon               = f.lon,
             fac.city              = f.city,
             fac.state             = f.state,
             fac.country           = f.country,
@@ -976,7 +990,7 @@ class PlasticosGraphService(models.AbstractModel):
             [
                 ("supplier_id", "!=", False),
                 ("buyer_id", "!=", False),
-                ("state", "not in", ["cancel", "draft"]),
+                ("state", "not in", ["cancelled", "draft"]),
             ]
         )
 
