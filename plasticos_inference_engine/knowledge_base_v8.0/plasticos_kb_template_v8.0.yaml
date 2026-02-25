@@ -1,0 +1,1546 @@
+# ============================================================================
+# plasticos Knowledge Base Template v8.0
+# Schema: plasticos_kb_v8.0
+# ============================================================================
+# INSTRUCTIONS:
+#   - Every top-level section is REQUIRED (even if empty list []).
+#   - All keys use snake_case.
+#   - All numeric values use {value: [min, max], unit: "..."} pattern.
+#   - All IDs are UPPER_SNAKE_CASE and globally unique across all KB files.
+#   - Cross-references use the exact ID string from the target section.
+#   - Confidence scores are decimals 0.00–1.00.
+# ============================================================================
+
+
+# ── 1. METADATA ─────────────────────────────────────────────────────────────
+# Purpose: Polymer identity, version control, data quality, provenance
+metadata:
+  polymer_family: "Polyolefins"                    # e.g. Polyolefins, Styrenics, Engineering
+  polymer_type: "PP"                               # short code: PP, HDPE, LDPE, HIPS, ABS, PET, etc.
+  full_name: "Polypropylene"
+  resin_id_code: 5                                 # SPI code (1-7)
+  cas_number: "9003-07-0"                          # CAS registry (optional for some polymers)
+  structure: "Linear backbone with methyl side groups"
+  version: "8.0"
+  schema_version: "8.0.0"                          # pins to this template spec
+  last_updated: "2026-02-22"
+  data_quality: "verified"                         # verified | provisional | estimated
+  source_tier: "tier1"                             # tier1 (ASTM+mfr) | tier2 (research) | tier3 (inferred)
+  data_sources:
+    - "ASTM D4101"
+    - "Comprehensive PP recycling research"
+    - "Automotive/packaging industry standards"
+  note: "Highest volume commodity plastic after PE - 80M+ tonnes/year globally"
+
+
+# ── 2. MATERIAL GRADES ─────────────────────────────────────────────────────
+# Purpose: Every virgin + recycled grade with full property specs, applications, PCR limits
+material_grades:
+
+  - grade_id: "PP_HOMOPOLYMER_INJECTION"           # UPPER_SNAKE — globally unique
+    grade_name: "PP Homopolymer - Injection Molding"
+    description: "High crystallinity PP for rigid applications requiring stiffness and heat resistance"
+    type: "virgin"                                 # virgin | post_consumer | post_industrial
+    polymer_structure: "isotactic homopolymer"
+
+    # --- Melt Flow ---
+    melt_flow_rate:
+      value: [2, 30]                               # always [min, max]
+      typical: 12                                  # optional midpoint
+      unit: "g/10min"
+      test_conditions: "230°C/2.16kg"
+      test_method: "ASTM D1238"
+      note: "MFI for PP always 230°C/2.16kg — do not convert"
+
+    # --- Density ---
+    density:
+      value: [0.900, 0.910]
+      unit: "g/cm³"
+      test_method: "ASTM D792"
+
+    # --- Mechanical Properties ---
+    mechanical_properties:
+      tensile_strength:     { value: [30, 38],     unit: "MPa",  test_method: "ASTM D638" }
+      flexural_modulus:     { value: [1400, 1800], unit: "MPa",  test_method: "ASTM D790" }
+      impact_strength:      { value: [20, 80],     unit: "J/m",  test_method: "ASTM D256" }
+      hdt:                  { value: [95, 105],    unit: "°C",   test_method: "ASTM D648" }
+      elongation_at_break:  { value: null,         unit: "%",    test_method: "ASTM D638" }  # null = not applicable
+
+    # --- Crystallinity (polymer-specific, optional) ---
+    crystallinity:
+      crystallinity_pct:    { value: [65, 75],  unit: "%" }
+      isotacticity_pct:     { value: [95, 99],  unit: "%" }
+
+    # --- Thermal Properties ---
+    thermal_properties:
+      melting_point:        { value: [160, 166], unit: "°C" }
+      processing_temp:      { value: [190, 260], unit: "°C" }
+      mold_temp:            { value: [20, 80],   unit: "°C" }
+      degradation_onset:    { value: 280,        unit: "°C" }
+
+    # --- Optical Properties (polymer-specific, optional — e.g. LDPE film) ---
+    optical_properties: null   # or: { haze_pct: {value: [2,8], unit: "%"}, gloss_pct: ... }
+
+    # --- Electrical Properties (polymer-specific, optional — e.g. LDPE wire/cable) ---
+    electrical_properties: null
+
+    # --- Processing Parameters (grade-specific) ---
+    processing_parameters:
+      barrel_temp:          { value: [190, 260],  unit: "°C" }
+      nozzle_temp:          { value: [200, 260],  unit: "°C" }
+      mold_temp:            { value: [20, 80],    unit: "°C" }
+      # blow_up_ratio, draw_down_ratio, cycle_time, etc. — add when relevant
+
+    # --- Contamination Profile (for recycled grades only, null for virgin) ---
+    contamination_profile: null
+    # For recycled grades, use:
+    # contamination_profile:
+    #   foreign_polymers_pct: { value: [0.1, 0.5], unit: "%" }
+    #   dirt_organics_pct:    { value: [0.2, 1.0], unit: "%" }
+    #   moisture:             { value: [500, 2000], unit: "ppm" }
+    #   odor: "minimal"                         # none | minimal | moderate | strong
+    #   quality_variation:
+    #     consistency: "moderate"
+    #     color_variation: "low"
+    #     property_variation_pct: { value: [10, 25], unit: "%" }
+
+    # --- Applications ---
+    applications:
+      primary:
+        - product: "Bottle caps and closures"
+          scrap_source: "Packaging manufacturing PIR, post-consumer sorted"
+          quality_tier_required: [1, 2]
+        - product: "Automotive battery cases"
+          scrap_source: "Automotive manufacturing, end-of-life vehicles"
+          quality_tier_required: [2, 3]
+        - product: "Industrial containers and pallets"
+          scrap_source: "Industrial use, manufacturing PIR"
+          quality_tier_required: [2, 3]
+      secondary:
+        - product: "Rigid packaging"
+          scrap_source: "Packaging manufacturing, post-consumer"
+          quality_tier_required: [2, 3]
+
+    # --- PCR Compatibility ---
+    pcr_compatibility:
+      max_pcr_pct: 100
+      typical_pcr_pct: [25, 75]
+      limitations: null                            # or string description
+      note: "PP highly recyclable — up to 100% PCR in non-critical applications"
+
+    # --- Recycling Challenges (grade-specific, optional) ---
+    recycling_challenges: null
+    # For impact copolymer:
+    # recycling_challenges:
+    #   rubber_degradation: "Rubber phase degrades during thermal cycling"
+    #   density_separation: "Low density overlaps with PE — separation difficult"
+    #   chemical_recycling_preferred: true
+
+    # --- Certifications (grade-specific, optional) ---
+    certifications: null
+    # For medical grade:
+    # certifications:
+    #   - "USP Class VI"
+    #   - "ISO 10993 biocompatibility"
+    #   - "FDA 21 CFR 177.1520"
+
+    # --- Regulatory Requirements (grade-specific, optional) ---
+    regulatory_requirements: null
+    # For wire/cable:
+    # regulatory_requirements:
+    #   - "UL 44 thermoset-insulated wires and cables"
+    #   - "UL 1581 electrical wires and cables"
+    #   - "NEC National Electrical Code"
+
+    # --- Market Data (grade-level, optional) ---
+    market_data:
+      availability: "abundant"                     # abundant | moderate | limited | scarce
+      demand: "high"                               # high | moderate | low
+      typical_discount_vs_virgin_pct: null         # for recycled grades: [30, 50]
+      processing_cost:                             # optional
+        value: null
+        unit: "USD/ton"
+
+
+# ── 3. PRODUCT-SCRAP MAPPING ───────────────────────────────────────────────
+# Purpose: Product → scrap grade → contamination → buyer routing → reverse reasoning
+product_scrap_mapping:
+
+  # Group by industry sector
+  automotive:
+    - product: "Automotive bumpers and fascia"
+      scrap_grade_ref: "PP_IMPACT_COPOLYMER"       # references grade_id
+      scrap_quality_tier: [2, 3]
+      typical_contamination:
+        total_pct: { value: [2.0, 5.0], unit: "%" }
+        contaminants:
+          - name: "paint/coating"
+            pct: { value: [1, 3], unit: "%" }
+          - name: "TPO/TPE"
+            pct: { value: 2, unit: "%" }
+          - name: "adhesives"
+            pct: { value: 0.5, unit: "%" }
+      suitable_buyer_refs:                         # references buyer_id from buyers.yaml
+        - "PP_AUTOMOTIVE_TIER2"
+        - "PP_INDUSTRIAL_CONTAINERS"
+      reverse_reasoning: "IF buyer needs automotive bumpers THEN source automotive PP ICP tier 2-3"
+      note: null
+
+    - product: "Automotive interior trim and panels"
+      scrap_grade_ref: "PP_HOMOPOLYMER_INJECTION"
+      scrap_quality_tier: [1, 2]
+      typical_contamination:
+        total_pct: { value: [0.5, 2.0], unit: "%" }
+        contaminants:
+          - name: "adhesives"
+            pct: { value: 0.5, unit: "%" }
+          - name: "foam backing"
+            pct: { value: 1, unit: "%" }
+      suitable_buyer_refs:
+        - "PP_AUTOMOTIVE_TIER1"
+        - "PP_AUTOMOTIVE_TIER2"
+      reverse_reasoning: null
+      note: null
+
+    - product: "Automotive battery cases"
+      scrap_grade_ref: "PP_HOMOPOLYMER_INJECTION"
+      scrap_quality_tier: [2, 3]
+      typical_contamination:
+        total_pct: { value: [1.0, 3.0], unit: "%" }
+        contaminants:
+          - name: "acid residue"
+            pct: { value: 1, unit: "%" }
+          - name: "metals"
+            pct: { value: 100, unit: "ppm" }
+      suitable_buyer_refs:
+        - "PP_AUTOMOTIVE_TIER2"
+        - "PP_INDUSTRIAL_CONTAINERS"
+      reverse_reasoning: null
+      note: "Requires washing to remove acid residue"
+
+  packaging:
+    - product: "Food containers (rigid PP)"
+      scrap_grade_ref: "PP_RANDOM_COPOLYMER"
+      scrap_quality_tier: [2, 3]
+      typical_contamination:
+        total_pct: { value: [1.0, 4.0], unit: "%" }
+        contaminants:
+          - name: "food residue"
+            pct: { value: [1, 3], unit: "%" }
+          - name: "labels"
+            pct: { value: 0.5, unit: "%" }
+          - name: "printing inks"
+            pct: { value: 0.5, unit: "%" }
+      suitable_buyer_refs:
+        - "PP_PACKAGING_NONFOOD"
+        - "PP_INDUSTRIAL_CONTAINERS"
+      reverse_reasoning: "IF buyer needs food containers THEN source PP copolymer tier 2-3 non-food only"
+      note: "Food contact scrap → non-food applications only"
+
+    - product: "Bottle caps and closures"
+      scrap_grade_ref: "PP_HOMOPOLYMER_INJECTION"
+      scrap_quality_tier: [1, 2]
+      typical_contamination:
+        total_pct: { value: [0.5, 2.0], unit: "%" }
+        contaminants:
+          - name: "minimal"
+            pct: { value: 0, unit: "%" }
+      suitable_buyer_refs:
+        - "PP_PACKAGING_NONFOOD"
+        - "PP_INJECTION_MOLDERS"
+      reverse_reasoning: null
+      note: "Clean manufacturing source"
+
+    - product: "Flexible packaging (PP film)"
+      scrap_grade_ref: "PP_RANDOM_COPOLYMER_FILM"
+      scrap_quality_tier: [2, 3]
+      typical_contamination:
+        total_pct: { value: [2.0, 5.0], unit: "%" }
+        contaminants:
+          - name: "food residue"
+            pct: { value: [1, 3], unit: "%" }
+          - name: "printing inks"
+            pct: { value: [1, 2], unit: "%" }
+          - name: "adhesives"
+            pct: { value: 1, unit: "%" }
+      suitable_buyer_refs:
+        - "PP_FILM_NONFOOD"
+        - "PP_INDUSTRIAL_FILM"
+      reverse_reasoning: null
+      note: null
+
+    - product: "Woven bags / raffia / big bags"
+      scrap_grade_ref: "PP_HOMOPOLYMER_RAFFIA"
+      scrap_quality_tier: [2, 3]
+      typical_contamination:
+        total_pct: { value: [3.0, 8.0], unit: "%" }
+        contaminants:
+          - name: "dirt/dust"
+            pct: { value: [2, 5], unit: "%" }
+          - name: "organic matter"
+            pct: { value: [1, 3], unit: "%" }
+      suitable_buyer_refs:
+        - "PP_RAFFIA_MANUFACTURERS"
+        - "PP_INDUSTRIAL_CONTAINERS"
+      reverse_reasoning: null
+      note: null
+
+  medical:
+    - product: "Medical syringes and devices"
+      scrap_grade_ref: "PP_MEDICAL_GRADE"
+      scrap_quality_tier: [1]
+      typical_contamination:
+        total_pct: { value: [0.1, 0.5], unit: "%" }
+        contaminants:
+          - name: "minimal"
+            pct: { value: 0, unit: "%" }
+      suitable_buyer_refs:
+        - "PP_MEDICAL_DEVICE_MANUFACTURERS"
+        - "PP_PHARMACEUTICAL_PACKAGING"
+      reverse_reasoning: "IF buyer needs medical devices THEN source medical PP PIR tier 1 only"
+      note: "Medical PIR only — post-consumer medical waste NOT recyclable"
+
+    - product: "Pharmaceutical packaging"
+      scrap_grade_ref: "PP_RANDOM_COPOLYMER_PHARMA"
+      scrap_quality_tier: [1]
+      typical_contamination:
+        total_pct: { value: [0.1, 0.5], unit: "%" }
+        contaminants: []
+      suitable_buyer_refs:
+        - "PP_PHARMACEUTICAL_PACKAGING"
+        - "PP_MEDICAL_DEVICE_MANUFACTURERS"
+      reverse_reasoning: null
+      note: null
+
+  textile:
+    - product: "Non-woven fabrics (hygiene, medical)"
+      scrap_grade_ref: "PP_HOMOPOLYMER_FIBER"
+      scrap_quality_tier: [3, 4]
+      typical_contamination:
+        total_pct: { value: [5.0, 15.0], unit: "%" }
+        contaminants:
+          - name: "organic matter"
+            pct: { value: [3, 10], unit: "%" }
+          - name: "mixed fibers"
+            pct: { value: [2, 5], unit: "%" }
+      suitable_buyer_refs:
+        - "PP_TEXTILE_RECYCLERS"
+        - "PP_DOWNCYCLED_APPLICATIONS"
+      reverse_reasoning: null
+      note: "High contamination — limited recycling value"
+
+    - product: "Carpets and rugs (PP backing)"
+      scrap_grade_ref: "PP_HOMOPOLYMER_INJECTION"
+      scrap_quality_tier: [3, 4]
+      typical_contamination:
+        total_pct: { value: [8.0, 20.0], unit: "%" }
+        contaminants:
+          - name: "mixed fibers"
+            pct: { value: [5, 15], unit: "%" }
+          - name: "dirt"
+            pct: { value: [3, 5], unit: "%" }
+      suitable_buyer_refs:
+        - "PP_CHEMICAL_RECYCLING"
+        - "PP_DOWNCYCLED_APPLICATIONS"
+      reverse_reasoning: null
+      note: null
+
+  industrial:
+    - product: "Industrial containers and pallets"
+      scrap_grade_ref: "PP_HOMOPOLYMER_INJECTION"
+      scrap_quality_tier: [2, 3]
+      typical_contamination:
+        total_pct: { value: [2.0, 5.0], unit: "%" }
+        contaminants:
+          - name: "dirt/dust"
+            pct: { value: [1, 3], unit: "%" }
+          - name: "oils"
+            pct: { value: 1, unit: "%" }
+      suitable_buyer_refs:
+        - "PP_INDUSTRIAL_CONTAINERS"
+        - "PP_PALLET_MANUFACTURERS"
+      reverse_reasoning: null
+      note: null
+
+    - product: "Pipes and fittings"
+      scrap_grade_ref: "PP_RANDOM_COPOLYMER_PIPE"
+      scrap_quality_tier: [1, 2]
+      typical_contamination:
+        total_pct: { value: [0.5, 2.0], unit: "%" }
+        contaminants: []
+      suitable_buyer_refs:
+        - "PP_PIPE_MANUFACTURERS"
+        - "PP_INDUSTRIAL_CONTAINERS"
+      reverse_reasoning: null
+      note: null
+
+  manufacturing_scrap:
+    - product: "Injection molding PIR (runners, sprues)"
+      scrap_grade_ref: "ANY_PP_GRADE"
+      scrap_quality_tier: [1]
+      typical_contamination:
+        total_pct: { value: [0.1, 0.5], unit: "%" }
+        contaminants:
+          - name: "minimal"
+            pct: { value: 0, unit: "%" }
+      suitable_buyer_refs:
+        - "ALL_PP_BUYERS"
+      reverse_reasoning: "IF buyer needs high-quality PP THEN source injection PIR tier 1"
+      note: "Injection PIR is highest quality PP scrap — premium value"
+
+
+# ── 4. SOURCE QUALITY TIERS ────────────────────────────────────────────────
+# Purpose: Tier 1–4 definitions with explicit numeric thresholds per contaminant type
+source_quality_tiers:
+
+  tier1_premium:
+    definition: "Manufacturing PIR, single-source, minimal contamination, known grade"
+    contamination_max:          { value: 0.5,  unit: "%" }
+    cross_polymer_max:          { value: 0.5,  unit: "%" }     # PE in PP, PP in HDPE, etc.
+    moisture_max:               { value: 0.1,  unit: "%" }     # or ppm with unit: "ppm"
+    ash_max:                    { value: 1.0,  unit: "%" }
+    dirt_max:                   { value: 0.1,  unit: "%" }
+    pvc_contamination_max:      { value: null, unit: "ppm" }   # polymer-specific; null if N/A
+    pet_contamination_max:      { value: null, unit: "ppm" }
+    metal_contamination_max:    { value: null, unit: "ppm" }
+    property_retention_min_pct: 95
+    sorting_purity_min_pct:     99
+    processing_history:         "Single cycle or virgin manufacturing scrap"
+    mfr_increase_max_pct:       20                              # MFI/MI increase vs virgin
+    examples:
+      - "Injection molding PIR (runners, sprues)"
+      - "Medical device manufacturing PIR"
+      - "Automotive component manufacturing scrap"
+      - "Packaging manufacturing PIR (caps, containers)"
+    suitable_applications:
+      - "Medical devices"
+      - "Food contact (indirect)"
+      - "Automotive visible components"
+      - "Premium packaging"
+    value_premium_pct: [25, 40]                                 # vs market baseline
+
+  tier2_standard:
+    definition: "Post-industrial or sorted post-consumer, moderate contamination"
+    contamination_max:          { value: 3.0,  unit: "%" }
+    cross_polymer_max:          { value: 3.0,  unit: "%" }
+    moisture_max:               { value: 0.2,  unit: "%" }
+    ash_max:                    { value: 2.0,  unit: "%" }
+    dirt_max:                   { value: 0.5,  unit: "%" }
+    pvc_contamination_max:      { value: null, unit: "ppm" }
+    pet_contamination_max:      { value: null, unit: "ppm" }
+    metal_contamination_max:    { value: null, unit: "ppm" }
+    property_retention_min_pct: 80
+    sorting_purity_min_pct:     85
+    processing_history:         "1–3 recycling cycles"
+    mfr_increase_max_pct:       50
+    examples:
+      - "Sorted post-consumer packaging (washed)"
+      - "Automotive components (sorted)"
+      - "Industrial containers (used)"
+      - "Post-consumer bottle caps (sorted)"
+    suitable_applications:
+      - "Automotive interior (non-visible)"
+      - "Packaging (non-food)"
+      - "Industrial containers"
+      - "Consumer goods"
+    value_premium_pct: [0, 0]
+
+  tier3_utility:
+    definition: "Mixed post-consumer, higher contamination, multiple cycles"
+    contamination_max:          { value: 8.0,  unit: "%" }
+    cross_polymer_max:          { value: 8.0,  unit: "%" }
+    moisture_max:               { value: 0.5,  unit: "%" }
+    ash_max:                    { value: 3.0,  unit: "%" }
+    dirt_max:                   { value: 0.8,  unit: "%" }
+    pvc_contamination_max:      { value: null, unit: "ppm" }
+    pet_contamination_max:      { value: null, unit: "ppm" }
+    metal_contamination_max:    { value: null, unit: "ppm" }
+    property_retention_min_pct: 60
+    sorting_purity_min_pct:     70
+    processing_history:         "3–6 recycling cycles or unknown"
+    mfr_increase_max_pct:       100
+    examples:
+      - "Mixed post-consumer PP (unsorted)"
+      - "Contaminated packaging waste"
+      - "General waste stream PP"
+      - "Woven bags (used, contaminated)"
+    suitable_applications:
+      - "Industrial applications (non-critical)"
+      - "Construction materials"
+      - "Low-value consumer goods"
+      - "Downcycled products"
+    value_discount_pct: [45, 60]
+
+  tier4_marginal:
+    definition: "Heavily contaminated, degraded, multiple unknown cycles"
+    contamination_min:          { value: 8.0,  unit: "%" }
+    property_retention_max_pct: 60
+    processing_history:         "6+ cycles or severely degraded"
+    mfr_min:                    { value: 150,  unit: "g/10min" }  # polymer-specific threshold
+    examples:
+      - "Heavily contaminated textile waste"
+      - "Degraded carpet backing"
+      - "Mixed polymer waste streams"
+    suitable_applications:
+      - "Chemical recycling feedstock"
+      - "Pyrolysis feedstock"
+      - "Very limited mechanical recycling"
+    value_discount_pct: [70, 85]
+
+
+# ── 5. RECYCLING RULES ─────────────────────────────────────────────────────
+# Purpose: Multi-cycle degradation, contamination tolerance, processing constraints
+recycling_rules:
+
+  - rule_id: "PP_MFR_DEGRADATION_CYCLES"
+    material_type: "PP"
+    rule: "PP MFR increases exponentially with recycling cycles — limits reuse"
+    reasoning: >
+      Virgin PP MFI 10 g/10min. After 1 cycle: 11.67–17.
+      After 6 cycles: 75.4–654. After 20 cycles: 300–500.
+      High MFR (>150) limits applications to fiber/film only.
+    confidence: 0.92
+    source: "Comprehensive PP recycling research"
+    data:
+      mfr_progression:
+        virgin:   { value: 10,         unit: "g/10min" }
+        cycle_1:  { value: [11.67, 17], unit: "g/10min" }
+        cycle_6:  { value: [75.4, 654], unit: "g/10min" }
+        cycle_20: { value: [300, 500],  unit: "g/10min" }
+      application_limits:
+        - mfr_range: [0, 5]
+          applications: ["raffia", "sheet"]
+          max_cycles: [8, 12]
+        - mfr_range: [15, 30]
+          applications: ["injection", "thin-wall"]
+          max_cycles: [4, 8]
+        - mfr_range: [60, 150]
+          applications: ["fiber", "film"]
+          max_cycles: [2, 4]
+        - mfr_range: [150, 9999]
+          applications: ["limited applications"]
+          max_cycles: [1, 2]
+
+  - rule_id: "PP_PE_CONTAMINATION_TOLERANCE"
+    material_type: "PP"
+    rule: "PE contamination tolerance varies dramatically by application"
+    reasoning: >
+      Food contact: <0.5% PE. Medical: <1% PE. Automotive: <5% PE.
+      Electronics: <3% PE. Industrial: <8% PE. Textile: <15% PE.
+      Higher contamination reduces value 20–50%.
+    confidence: 0.90
+    source: "ASTM D4101, recycling research"
+    data:
+      contamination_limits_by_application:
+        - application: "food_contact"
+          max_pct: { value: 0.5, unit: "%" }
+        - application: "medical"
+          max_pct: { value: 1.0, unit: "%" }
+        - application: "automotive"
+          max_pct: { value: 5.0, unit: "%" }
+        - application: "electronics"
+          max_pct: { value: 3.0, unit: "%" }
+        - application: "industrial"
+          max_pct: { value: 8.0, unit: "%" }
+        - application: "textile"
+          max_pct: { value: 15.0, unit: "%" }
+
+  - rule_id: "PP_INJECTION_PIR_PREMIUM"
+    material_type: "PP"
+    rule: "Injection molding PIR is highest quality PP scrap — Tier 1"
+    reasoning: >
+      Injection PIR (runners, sprues): clean, single grade, known MFI,
+      minimal contamination (<0.5%), 95%+ property retention.
+      Premium value 25–40% above market.
+    confidence: 0.95
+    source: "Industry best practices"
+    data:
+      pir_characteristics:
+        contamination_pct:       { value: [0.1, 0.5], unit: "%" }
+        quality_tier:            1
+        property_retention_pct:  { value: [95, 100],  unit: "%" }
+        value_premium_pct:       { value: [25, 40],   unit: "%" }
+
+  - rule_id: "PP_FOOD_CONTACT_RESTRICTION"
+    material_type: "PP"
+    rule: "Post-consumer food contact PP cannot be reused for direct food contact"
+    reasoning: >
+      FDA regulations restrict PCR from food contact applications.
+      Route to indirect food contact (0–10% PCR) or non-food (25–100% PCR).
+    confidence: 0.98
+    source: "FDA 21 CFR 177.1520"
+    data:
+      pcr_limits:
+        direct_food_contact_pct:   0
+        indirect_food_contact_pct: { value: [0, 10],   unit: "%" }
+        non_food_pct:              { value: [25, 100],  unit: "%" }
+
+  - rule_id: "PP_HOMOPOLYMER_VS_COPOLYMER_SEPARATION"
+    material_type: "PP"
+    rule: "PP homopolymer and copolymer require separation for optimal recycling"
+    reasoning: >
+      Homopolymer density 0.900–0.910, Tm 160–166°C vs
+      Copolymer density 0.895–0.905, Tm 145–158°C.
+      Mixed grades reduce property consistency.
+      Density separation achieves 90–95% purity.
+    confidence: 0.85
+    source: "Recycling technology research"
+    data:
+      separation_efficiency_pct: { value: [90, 95], unit: "%" }
+
+  - rule_id: "PP_STABILIZER_REQUIREMENT"
+    material_type: "PP"
+    rule: "Antioxidant stabilizers critical for multi-cycle PP recycling"
+    reasoning: >
+      Stabilizer addition maintains MW through multiple cycles, prevents chain scission.
+      Without stabilizers: 60–70% MW reduction after 6 cycles.
+      With stabilizers: 20–30% MW reduction.
+    confidence: 0.88
+    source: "Polymer degradation research"
+    data:
+      mw_reduction_without_stabilizer_pct: { value: [60, 70], unit: "%" }
+      mw_reduction_with_stabilizer_pct:    { value: [20, 30], unit: "%" }
+
+
+# ── 6. CONTAMINATION PROFILES ──────────────────────────────────────────────
+# Purpose: Source → per-contaminant breakdown (STANDARDIZED across all polymers)
+contamination_profiles:
+
+  - profile_id: "PP_INJECTION_PIR"
+    material_type: "PP"
+    source_description: "Injection molding PIR (runners, sprues)"
+    contamination_level: "minimal"                  # minimal | low | low-medium | medium | high
+    quality_tier: 1
+    contaminants:
+      - name: "colorants"
+        typical_pct: { value: 0.1, unit: "%" }
+        max_pct:     { value: 0.5, unit: "%" }
+    sorting_purity_pct: 99
+    collection_efficiency_pct: null                 # for PCR streams
+    processing_cost: null                           # { value: 260, unit: "USD/ton" }
+    processing_requirements:
+      washing: false
+      drying: false
+      metal_detection: false
+    suitable_applications:
+      - "All PP injection molding applications"
+      - "Medical devices (if medical-grade PIR)"
+      - "Food contact (indirect)"
+    economic_viability: "excellent"                  # excellent | good | moderate | poor
+
+  - profile_id: "PP_AUTOMOTIVE_BUMPERS"
+    material_type: "PP"
+    source_description: "Automotive bumpers (end-of-life vehicles)"
+    contamination_level: "medium"
+    quality_tier: 3
+    contaminants:
+      - name: "paint/coating"
+        typical_pct: { value: [1, 3], unit: "%" }
+      - name: "TPO/TPE"
+        typical_pct: { value: 2, unit: "%" }
+      - name: "adhesives"
+        typical_pct: { value: 0.5, unit: "%" }
+      - name: "dirt/grime"
+        typical_pct: { value: [1, 2], unit: "%" }
+    sorting_purity_pct: 75
+    collection_efficiency_pct: null
+    processing_cost: null
+    processing_requirements:
+      washing: true
+      drying: true
+      metal_detection: false
+    suitable_applications:
+      - "Automotive components (non-visible)"
+      - "Industrial applications"
+      - "Construction materials"
+    economic_viability: "good"
+
+  - profile_id: "PP_FOOD_CONTAINERS_POST_CONSUMER"
+    material_type: "PP"
+    source_description: "Post-consumer food containers (sorted, washed)"
+    contamination_level: "low-medium"
+    quality_tier: 2
+    contaminants:
+      - name: "food residue"
+        typical_pct: { value: [1, 3], unit: "%" }
+        note: "before washing"
+      - name: "labels"
+        typical_pct: { value: 0.5, unit: "%" }
+      - name: "printing inks"
+        typical_pct: { value: 0.5, unit: "%" }
+      - name: "PE contamination"
+        typical_pct: { value: [1, 2], unit: "%" }
+    sorting_purity_pct: 85
+    collection_efficiency_pct: null
+    processing_cost: null
+    processing_requirements:
+      washing: true
+      drying: true
+      metal_detection: false
+    suitable_applications:
+      - "Packaging (non-food)"
+      - "Industrial containers"
+      - "Consumer goods"
+    economic_viability: "good"
+
+  - profile_id: "PP_WOVEN_BAGS_INDUSTRIAL"
+    material_type: "PP"
+    source_description: "Woven bags (industrial use, agriculture)"
+    contamination_level: "high"
+    quality_tier: 3
+    contaminants:
+      - name: "dirt/dust"
+        typical_pct: { value: [2, 5], unit: "%" }
+      - name: "organic matter"
+        typical_pct: { value: [1, 3], unit: "%" }
+      - name: "printing inks"
+        typical_pct: { value: [1, 2], unit: "%" }
+    sorting_purity_pct: 70
+    collection_efficiency_pct: null
+    processing_cost: null
+    processing_requirements:
+      washing: true
+      drying: true
+      metal_detection: false
+    suitable_applications:
+      - "Raffia/weave recycling"
+      - "Industrial applications (non-critical)"
+      - "Construction materials"
+    economic_viability: "moderate"
+
+
+# ── 7. BUYER PROFILES ──────────────────────────────────────────────────────
+# Purpose: Buyer type → requirements, specs, certifications, decision criteria, red flags
+# NOTE: In production, extract to separate buyers.yaml and reference by buyer_id
+buyer_profiles:
+
+  - buyer_id: "PP_AUTOMOTIVE_TIER2"
+    buyer_type: "Automotive tier 2 supplier"
+    industry_segment: "Automotive"
+    typical_companies: []                           # optional: ["Flex-N-Gate", "Magna"]
+
+    material_requirements:
+      polymer_types:
+        - "PP_HOMOPOLYMER_INJECTION"
+        - "PP_IMPACT_COPOLYMER"
+      purity_min_pct: 85
+      max_pcr_pct: 50
+      preferred_source: "Automotive manufacturing PIR, sorted automotive scrap"
+      quality_tier_required: [2, 3]
+      cross_polymer_max:    { value: 5.0, unit: "%" }    # PE contamination for PP buyer
+      color_preference: ["black", "gray", "automotive colors"]
+      form_preference: "pellets"
+
+    quality_specifications:
+      melt_flow_rate:       { value: [5, 35],  unit: "g/10min" }
+      tensile_strength_min: { value: 25,       unit: "MPa" }
+      impact_strength_min:  { value: 100,      unit: "J/m" }
+      contamination_max:    { value: 5.0,      unit: "%" }
+      moisture_max:         { value: null,      unit: "ppm" }
+      odor:                 null                     # none | minimal | any
+      density:              { value: null,      unit: "g/cm³" }
+
+    certifications_required: []
+    certifications_preferred:
+      - "IATF 16949"
+      - "ISO 9001"
+
+    applications:
+      - "Automotive bumpers and fascia"
+      - "Interior trim panels"
+      - "Non-visible components"
+
+    volume_range:           { value: [100, 1000], unit: "tons/month" }
+    price_sensitivity: "moderate"                    # very_high | high | moderate | low
+    quality_priority: "high"                         # very_high | high | medium | low | very_low
+
+    decision_criteria:                               # weighted scoring — from LDPE's richer format
+      - criterion: "Impact strength"
+        weight: 0.30
+      - criterion: "Contamination level"
+        weight: 0.25
+      - criterion: "Price"
+        weight: 0.20
+      - criterion: "MFI consistency"
+        weight: 0.15
+      - criterion: "Volume availability"
+        weight: 0.10
+
+    red_flags:                                       # from LDPE's richer format
+      - "Impact strength < 100 J/m"
+      - "PE contamination > 5%"
+      - "Mixed/inconsistent color for visible parts"
+
+    matching_priority: null                          # for HIPS-style source ranking
+    # matching_priority:
+    #   pir_single_cycle: "highest"
+    #   weee_source: "high"
+    #   appliance_pcr: "medium"
+
+    sources: []                                      # provenance references
+
+  - buyer_id: "PP_PACKAGING_NONFOOD"
+    buyer_type: "Packaging manufacturer (non-food)"
+    industry_segment: "Packaging"
+    typical_companies: []
+
+    material_requirements:
+      polymer_types:
+        - "PP_HOMOPOLYMER_INJECTION"
+        - "PP_RANDOM_COPOLYMER"
+      purity_min_pct: 80
+      max_pcr_pct: 100
+      preferred_source: "Packaging manufacturing PIR, post-consumer sorted"
+      quality_tier_required: [2, 3]
+      cross_polymer_max:    { value: 3.0, unit: "%" }
+      color_preference: ["any"]
+      form_preference: "pellets"
+
+    quality_specifications:
+      melt_flow_rate:       { value: [2, 30],  unit: "g/10min" }
+      tensile_strength_min: { value: null,     unit: "MPa" }
+      impact_strength_min:  { value: null,     unit: "J/m" }
+      contamination_max:    { value: 3.0,      unit: "%" }
+      moisture_max:         { value: null,      unit: "ppm" }
+      odor:                 null
+      density:              { value: null,      unit: "g/cm³" }
+
+    certifications_required: []
+    certifications_preferred: []
+
+    applications:
+      - "Rigid containers (non-food)"
+      - "Bottle caps and closures"
+      - "Industrial packaging"
+
+    volume_range:           { value: [200, 2000], unit: "tons/month" }
+    price_sensitivity: "high"
+    quality_priority: "medium"
+    decision_criteria:
+      - criterion: "Price"
+        weight: 0.35
+      - criterion: "Volume consistency"
+        weight: 0.25
+      - criterion: "MFI consistency"
+        weight: 0.20
+      - criterion: "Contamination level"
+        weight: 0.15
+      - criterion: "Moisture"
+        weight: 0.05
+
+    red_flags:
+      - "Contamination > 5%"
+      - "Inconsistent MFI (>3 g/10min variance)"
+    matching_priority: null
+    sources: []
+
+  - buyer_id: "PP_MEDICAL_DEVICE_MANUFACTURERS"
+    buyer_type: "Medical device manufacturer"
+    industry_segment: "Medical"
+    typical_companies: []
+
+    material_requirements:
+      polymer_types:
+        - "PP_MEDICAL_GRADE"
+      purity_min_pct: 99
+      max_pcr_pct: 15
+      preferred_source: "Medical device manufacturing PIR only"
+      quality_tier_required: [1]
+      cross_polymer_max:    { value: 1.0, unit: "%" }
+      color_preference: ["natural", "clear"]
+      form_preference: "pellets"
+
+    quality_specifications:
+      melt_flow_rate:       { value: null,  unit: "g/10min" }
+      tensile_strength_min: { value: null,  unit: "MPa" }
+      impact_strength_min:  { value: null,  unit: "J/m" }
+      contamination_max:    { value: 0.5,   unit: "%" }
+      moisture_max:         { value: null,   unit: "ppm" }
+      odor:                 "none"
+      density:              { value: null,   unit: "g/cm³" }
+
+    certifications_required:
+      - "USP Class VI"
+      - "ISO 10993 biocompatibility"
+      - "FDA 21 CFR 177.1520"
+    certifications_preferred: []
+
+    applications:
+      - "Medical syringes and devices"
+      - "Pharmaceutical packaging"
+
+    volume_range:           { value: [10, 100], unit: "tons/month" }
+    price_sensitivity: "low"
+    quality_priority: "very_high"
+    decision_criteria:
+      - criterion: "Certifications compliance"
+        weight: 0.40
+      - criterion: "Contamination level"
+        weight: 0.30
+      - criterion: "Odor (none)"
+        weight: 0.15
+      - criterion: "Traceability"
+        weight: 0.10
+      - criterion: "Price"
+        weight: 0.05
+    red_flags:
+      - "Any PCR content without FDA approval"
+      - "Contamination > 0.5%"
+      - "Odor detected"
+      - "Missing certification documentation"
+    matching_priority: null
+    sources: []
+
+  - buyer_id: "PP_INDUSTRIAL_CONTAINERS"
+    buyer_type: "Industrial container manufacturer"
+    industry_segment: "Industrial"
+    typical_companies: []
+
+    material_requirements:
+      polymer_types:
+        - "PP_HOMOPOLYMER_INJECTION"
+        - "PP_RANDOM_COPOLYMER"
+      purity_min_pct: 75
+      max_pcr_pct: 100
+      preferred_source: "any"
+      quality_tier_required: [3, 4]
+      cross_polymer_max:    { value: 8.0, unit: "%" }
+      color_preference: ["any"]
+      form_preference: "pellets or regrind"
+
+    quality_specifications:
+      melt_flow_rate:       { value: null,  unit: "g/10min" }
+      tensile_strength_min: { value: null,  unit: "MPa" }
+      impact_strength_min:  { value: null,  unit: "J/m" }
+      contamination_max:    { value: 8.0,   unit: "%" }
+      moisture_max:         { value: null,   unit: "ppm" }
+      odor:                 null
+      density:              { value: null,   unit: "g/cm³" }
+
+    certifications_required: []
+    certifications_preferred: []
+
+    applications:
+      - "Industrial containers and pallets"
+      - "Crates and bins"
+      - "Non-critical applications"
+
+    volume_range:           { value: [300, 3000], unit: "tons/month" }
+    price_sensitivity: "very_high"
+    quality_priority: "low"
+    decision_criteria:
+      - criterion: "Price"
+        weight: 0.50
+      - criterion: "Volume availability"
+        weight: 0.30
+      - criterion: "Contamination level"
+        weight: 0.15
+      - criterion: "Logistics"
+        weight: 0.05
+    red_flags:
+      - "Contamination > 10%"
+      - "Hazardous contamination"
+    matching_priority: null
+    sources: []
+
+  - buyer_id: "PP_RAFFIA_MANUFACTURERS"
+    buyer_type: "Raffia/woven bag manufacturer"
+    industry_segment: "Packaging/Industrial"
+    typical_companies: []
+
+    material_requirements:
+      polymer_types:
+        - "PP_HOMOPOLYMER_RAFFIA"
+      purity_min_pct: 70
+      max_pcr_pct: 100
+      preferred_source: "Woven bag scrap, manufacturing PIR"
+      quality_tier_required: [2, 3]
+      cross_polymer_max:    { value: 5.0, unit: "%" }
+      color_preference: ["any"]
+      form_preference: "pellets"
+
+    quality_specifications:
+      melt_flow_rate:       { value: [2, 5], unit: "g/10min" }
+      tensile_strength_min: { value: null,   unit: "MPa" }
+      impact_strength_min:  { value: null,   unit: "J/m" }
+      contamination_max:    { value: 8.0,    unit: "%" }
+      moisture_max:         { value: null,    unit: "ppm" }
+      odor:                 null
+      density:              { value: null,    unit: "g/cm³" }
+
+    certifications_required: []
+    certifications_preferred: []
+
+    applications:
+      - "Woven bags (raffia, big bags)"
+      - "Strapping and banding"
+
+    volume_range:           { value: [200, 2000], unit: "tons/month" }
+    price_sensitivity: "high"
+    quality_priority: "medium"
+    decision_criteria:
+      - criterion: "MFI (low: 2-5 g/10min)"
+        weight: 0.35
+      - criterion: "Price"
+        weight: 0.30
+      - criterion: "Volume consistency"
+        weight: 0.20
+      - criterion: "Contamination level"
+        weight: 0.15
+    red_flags:
+      - "MFI > 8 g/10min"
+      - "Contamination > 10%"
+    matching_priority: null
+    sources: []
+
+  - buyer_id: "PP_PIPE_MANUFACTURERS"
+    buyer_type: "Pipe manufacturer"
+    industry_segment: "Construction/Industrial"
+    typical_companies: []
+
+    material_requirements:
+      polymer_types:
+        - "PP_RANDOM_COPOLYMER_PIPE"
+      purity_min_pct: 90
+      max_pcr_pct: 30
+      preferred_source: "Pipe manufacturing PIR, sorted pipe scrap"
+      quality_tier_required: [1, 2]
+      cross_polymer_max:    { value: 2.0, unit: "%" }
+      color_preference: ["natural", "consistent"]
+      form_preference: "pellets"
+
+    quality_specifications:
+      melt_flow_rate:       { value: [0.5, 7], unit: "g/10min" }
+      tensile_strength_min: { value: null,     unit: "MPa" }
+      impact_strength_min:  { value: null,     unit: "J/m" }
+      contamination_max:    { value: 2.0,      unit: "%" }
+      moisture_max:         { value: null,      unit: "ppm" }
+      odor:                 null
+      density:              { value: null,      unit: "g/cm³" }
+
+    certifications_required:
+      - "Pressure pipe standards (if applicable)"
+    certifications_preferred: []
+
+    applications:
+      - "Pipes and fittings (PP-R)"
+      - "Industrial piping"
+
+    volume_range:           { value: [100, 1000], unit: "tons/month" }
+    price_sensitivity: "moderate"
+    quality_priority: "high"
+    decision_criteria:
+      - criterion: "MFI consistency"
+        weight: 0.30
+      - criterion: "Contamination level"
+        weight: 0.25
+      - criterion: "Certifications"
+        weight: 0.20
+      - criterion: "Price"
+        weight: 0.15
+      - criterion: "Volume availability"
+        weight: 0.10
+    red_flags:
+      - "MFI > 10 g/10min"
+      - "PE contamination > 2%"
+      - "Missing pipe certifications"
+    matching_priority: null
+    sources: []
+
+
+# ── 8. QUALITY INDICATORS ──────────────────────────────────────────────────
+# Purpose: Test methods, threshold bands (excellent→poor), significance, price impact
+quality_indicators:
+
+  - indicator_id: "PP_MFI_CONSISTENCY"
+    indicator_name: "MFI Consistency"
+    test_method: "ASTM D1238 (230°C/2.16kg)"
+    material_types: ["PP"]
+    thresholds:
+      low:       { value: [0.5, 5],    unit: "g/10min" }
+      medium:    { value: [15, 30],    unit: "g/10min" }
+      high:      { value: [60, 150],   unit: "g/10min" }
+      very_high: { value: [150, 500],  unit: "g/10min" }
+    significance: "Critical for application matching and recycling cycle assessment"
+    impact_on_price_pct: null                         # or numeric, as in LDPE
+    impact_on_quality_points: null                    # or numeric
+    verification_method: null
+    note: "PP MFI always 230°C/2.16kg — do not convert to 190°C"
+
+  - indicator_id: "PP_PE_CONTAMINATION"
+    indicator_name: "PE Contamination"
+    test_method: "FTIR or DSC"
+    material_types: ["PP"]
+    thresholds:
+      excellent: { value: [0, 0.5],    unit: "%" }
+      good:      { value: [0.5, 3.0],  unit: "%" }
+      acceptable: { value: [3.0, 8.0], unit: "%" }
+      poor:      { value: [8.0, 100],  unit: "%" }
+    significance: "Determines application suitability and quality tier"
+    impact_on_price_pct: null
+    impact_on_quality_points: null
+    verification_method: "Density separation, FTIR spectroscopy"
+    note: null
+
+  - indicator_id: "PP_COLOR_CONSISTENCY"
+    indicator_name: "Color Consistency"
+    test_method: "Visual inspection"
+    material_types: ["PP"]
+    thresholds:
+      excellent: "Natural/clear, consistent color"
+      good:      "Single consistent color"
+      acceptable: "Mixed colors or moderate discoloration"
+      poor:      "Heavily mixed or degraded color"
+    significance: "Indicates thermal degradation and source quality"
+    impact_on_price_pct: null
+    impact_on_quality_points: null
+    verification_method: "Visual inspection, color measurement"
+    note: null
+
+  - indicator_id: "PP_ASH_CONTENT"
+    indicator_name: "Ash Content"
+    test_method: "ASTM D2584"
+    material_types: ["PP"]
+    thresholds:
+      excellent: { value: [0, 1.0],    unit: "%" }
+      good:      { value: [1.0, 2.0],  unit: "%" }
+      acceptable: { value: [2.0, 3.0], unit: "%" }
+      poor:      { value: [3.0, 100],  unit: "%" }
+    significance: "Indicates filler content and contamination level"
+    impact_on_price_pct: null
+    impact_on_quality_points: null
+    verification_method: "ASTM D2584 muffle furnace"
+    note: null
+
+  # ── LDPE-style quality indicators with price/quality impact ──
+  # Uncomment and populate for polymers that track these:
+  # - indicator_id: "PP_SINGLE_SOURCE"
+  #   indicator_name: "Single-Source Material"
+  #   category: "source"
+  #   measurement: "Material from single manufacturer/facility"
+  #   impact_on_price_pct: 12
+  #   impact_on_quality_points: 1.2
+  #   applicable_grades: ["All grades"]
+  #   verification_method: "Supplier documentation, traceability records"
+
+
+# ── 9. INFERENCE RULES (STRUCTURED PREDICATES) ─────────────────────────────
+# Purpose: Machine-evaluable forward/backward/matching/property/quality/pricing rules
+inference_rules:
+
+  # --- Forward: product → buyer ---
+  - rule_id: "PP_PRODUCT_TO_BUYER_FORWARD"
+    inference_type: "buyer_matching"
+    rule_type: "forward"
+    conditions:
+      - field: "product_category"
+        operator: "in"
+        value: ["bottle_caps", "closures"]
+    conclusions:
+      - field: "grade_ref"
+        value: "PP_HOMOPOLYMER_INJECTION"
+      - field: "quality_tier"
+        value: [1, 2]
+      - field: "matched_buyer_refs"
+        value: ["PP_PACKAGING_NONFOOD", "PP_INJECTION_MOLDERS"]
+    confidence: 0.90
+    reasoning: "Forward reasoning from product to suitable buyers based on grade and quality tier"
+
+  # --- Backward: buyer → source ---
+  - rule_id: "PP_BUYER_TO_SOURCE_BACKWARD"
+    inference_type: "source_matching"
+    rule_type: "backward"
+    conditions:
+      - field: "buyer_ref"
+        operator: "eq"
+        value: "PP_MEDICAL_DEVICE_MANUFACTURERS"
+    conclusions:
+      - field: "grade_ref"
+        value: "PP_MEDICAL_GRADE"
+      - field: "quality_tier"
+        value: [1]
+      - field: "source_constraint"
+        value: "medical_pir_only"
+    confidence: 0.98
+    reasoning: "Backward reasoning from buyer requirements to acceptable sources"
+
+  # --- PIR premium matching ---
+  - rule_id: "PP_INJECTION_PIR_PREMIUM_MATCHING"
+    inference_type: "buyer_matching"
+    rule_type: "forward"
+    conditions:
+      - field: "source_type"
+        operator: "eq"
+        value: "injection_pir"
+      - field: "contamination_total_pct"
+        operator: "lt"
+        value: 0.5
+    conclusions:
+      - field: "quality_tier"
+        value: 1
+      - field: "matched_buyer_refs"
+        value: "ALL_PP_BUYERS"
+    confidence: 0.95
+    reasoning: "Injection PIR is premium quality — suitable for all PP applications"
+
+  # --- MFI → application matching ---
+  - rule_id: "PP_MFI_APPLICATION_MATCHING"
+    inference_type: "application_matching"
+    rule_type: "forward"
+    conditions:
+      - field: "melt_flow_rate"
+        operator: "lt"
+        value: 5
+        unit: "g/10min"
+    conclusions:
+      - field: "suitable_applications"
+        value: ["raffia", "sheet_extrusion"]
+    confidence: 0.92
+    reasoning: "Low MFI PP suited for high-MW applications (raffia, sheet)"
+
+  - rule_id: "PP_MFI_INJECTION_MATCHING"
+    inference_type: "application_matching"
+    rule_type: "forward"
+    conditions:
+      - field: "melt_flow_rate"
+        operator: "between"
+        value: [15, 30]
+        unit: "g/10min"
+    conclusions:
+      - field: "suitable_applications"
+        value: ["injection_molding", "thin_wall"]
+    confidence: 0.92
+    reasoning: "Medium MFI PP suited for injection molding and thin-wall"
+
+  - rule_id: "PP_MFI_FIBER_MATCHING"
+    inference_type: "application_matching"
+    rule_type: "forward"
+    conditions:
+      - field: "melt_flow_rate"
+        operator: "between"
+        value: [60, 150]
+        unit: "g/10min"
+    conclusions:
+      - field: "suitable_applications"
+        value: ["fiber", "film"]
+    confidence: 0.92
+    reasoning: "High MFI PP suited for fiber and film"
+
+  - rule_id: "PP_MFI_LIMITED_MATCHING"
+    inference_type: "application_matching"
+    rule_type: "forward"
+    conditions:
+      - field: "melt_flow_rate"
+        operator: "gt"
+        value: 150
+        unit: "g/10min"
+    conclusions:
+      - field: "suitable_applications"
+        value: ["limited_applications"]
+    confidence: 0.92
+    reasoning: "Very high MFI PP — severely degraded, limited applications"
+
+  # --- Food contact exclusion ---
+  - rule_id: "PP_FOOD_CONTACT_EXCLUSION"
+    inference_type: "application_matching"
+    rule_type: "forward"
+    conditions:
+      - field: "source_type"
+        operator: "eq"
+        value: "post_consumer_food_contact"
+    conclusions:
+      - field: "excluded_applications"
+        value: ["direct_food_contact"]
+      - field: "route_to"
+        value: ["indirect_food_contact", "non_food"]
+    confidence: 0.98
+    reasoning: "FDA restrictions on PCR food contact"
+
+  # --- PE contamination routing ---
+  - rule_id: "PP_PE_CONTAMINATION_ROUTING"
+    inference_type: "buyer_matching"
+    rule_type: "forward"
+    conditions:
+      - field: "pe_contamination_pct"
+        operator: "lt"
+        value: 0.5
+    conclusions:
+      - field: "matched_buyer_refs"
+        value: ["PP_MEDICAL_DEVICE_MANUFACTURERS", "PP_PACKAGING_FOOD"]
+    confidence: 0.88
+    reasoning: "Very low PE contamination enables food/medical buyers"
+
+  - rule_id: "PP_PE_CONTAMINATION_ROUTING_MED"
+    inference_type: "buyer_matching"
+    rule_type: "forward"
+    conditions:
+      - field: "pe_contamination_pct"
+        operator: "between"
+        value: [0.5, 3.0]
+    conclusions:
+      - field: "matched_buyer_refs"
+        value: ["PP_AUTOMOTIVE_TIER2", "PP_PACKAGING_NONFOOD"]
+    confidence: 0.88
+    reasoning: "Moderate PE contamination → automotive/packaging non-food"
+
+  - rule_id: "PP_PE_CONTAMINATION_ROUTING_HIGH"
+    inference_type: "buyer_matching"
+    rule_type: "forward"
+    conditions:
+      - field: "pe_contamination_pct"
+        operator: "between"
+        value: [3.0, 8.0]
+    conclusions:
+      - field: "matched_buyer_refs"
+        value: ["PP_INDUSTRIAL_CONTAINERS"]
+    confidence: 0.88
+    reasoning: "High PE contamination → industrial only"
+
+  - rule_id: "PP_PE_CONTAMINATION_ROUTING_REJECT"
+    inference_type: "buyer_matching"
+    rule_type: "forward"
+    conditions:
+      - field: "pe_contamination_pct"
+        operator: "gt"
+        value: 8.0
+    conclusions:
+      - field: "matched_buyer_refs"
+        value: ["PP_TEXTILE_RECYCLERS", "PP_DOWNCYCLED_APPLICATIONS"]
+    confidence: 0.88
+    reasoning: "Very high PE contamination → textile/downcycled only"
+
+  # --- Processing separation ---
+  - rule_id: "PP_HOMO_COPOLYMER_SEPARATION"
+    inference_type: "processing_requirement"
+    rule_type: "forward"
+    conditions:
+      - field: "grade_mix"
+        operator: "contains"
+        value: ["homopolymer", "copolymer"]
+    conclusions:
+      - field: "processing_requirement"
+        value: "density_separation_recommended"
+    confidence: 0.85
+    reasoning: "Separation improves property consistency and value"
+
+  # ── LDPE-style property inference (when data is missing) ──
+  # - rule_id: "PP_INFER_MFI_FROM_SOURCE"
+  #   inference_type: "property"
+  #   rule_type: "forward"
+  #   conditions:
+  #     - field: "source_description"
+  #       operator: "contains"
+  #       value: "injection PIR"
+  #     - field: "melt_flow_rate"
+  #       operator: "is_null"
+  #       value: true
+  #   conclusions:
+  #     - field: "melt_flow_rate"
+  #       value: [5, 30]
+  #       unit: "g/10min"
+  #       inferred: true
+  #   confidence: 0.72
+  #   reasoning: "Injection PIR MFI typically 5-30 g/10min"
+
+  # ── LDPE-style buyer matching inference ──
+  # - rule_id: "PP_BUYER_MATCH_INFERENCE"
+  #   inference_type: "buyer_matching"
+  #   rule_type: "forward"
+  #   premise: "MI <5, low contamination, pelletized"
+  #   conclusions:
+  #     - field: "best_match_buyer_ref"
+  #       value: "PP_RAFFIA_MANUFACTURERS"
+  #   confidence: 0.83
+  #   reasoning: "Low MFI + clean pellets = raffia manufacturer"
+  #   examples:
+  #     - input: "MFI 3.5, contamination 0.4%, pellets"
+  #       output: "Match PP_RAFFIA_MANUFACTURERS, confidence 83%"
+
+  # ── LDPE-style pricing inference ──
+  # - rule_id: "PP_PRICING_INFERENCE"
+  #   inference_type: "pricing"
+  #   premise: "Quality indicators: single-source, low contamination, pelletized"
+  #   conclusions:
+  #     - field: "price_estimate"
+  #       value: "Virgin baseline × 0.70–0.85 + quality premiums"
+  #   confidence: 0.75
+  #   reasoning: "High-quality recycled PP with positive indicators"
+
+
+# ── 10. STANDARDS ───────────────────────────────────────────────────────────
+# Purpose: Referenced ASTM, ISO, FDA, UL standards with scope, relevance, test params
+standards:
+
+  - standard_id: "ASTM_D4101"
+    title: "Classification System for Polypropylene Materials"
+    scope: "Defines PP types, grades, and property requirements"
+    relevance: "Primary classification standard for PP materials"
+    key_parameters: []                               # optional: from HIPS format
+    test_conditions: null
+    note: null
+
+  - standard_id: "ASTM_D1238"
+    title: "Melt Flow Rates of Thermoplastics"
+    scope: "Standard test method for MFR/MI by extrusion plastometer"
+    relevance: "Critical for PP processability and quality assessment"
+    key_parameters:
+      - "Test conditions: 230°C/2.16kg for PP"
+      - "Precision requirements"
+      - "Sample preparation"
+    test_conditions: "230°C/2.16kg for PP; 190°C/2.16kg for PE; 200°C/5kg for HIPS"
+    note: "PP MFI always 230°C/2.16kg — do not convert"
+
+  - standard_id: "ASTM_D792"
+    title: "Density and Specific Gravity of Plastics by Displacement"
+    scope: "Defines methods for measuring density"
+    relevance: "Density classification and quality control"
+    key_parameters:
+      - "Displacement method (water)"
+      - "Temperature control (23°C)"
+    test_conditions: null
+    note: null
+
+  - standard_id: "ASTM_D638"
+    title: "Tensile Properties of Plastics"
+    scope: "Tensile strength, modulus, and elongation"
+    relevance: "Mechanical property characterization"
+    key_parameters:
+      - "Standard specimen geometry (Type I, IV, V)"
+      - "Test speed 50 mm/min typical"
+    test_conditions: null
+    note: null
+
+  - standard_id: "ASTM_D256"
+    title: "Impact Resistance of Plastics (Izod)"
+    scope: "Izod impact testing"
+    relevance: "Critical for impact-modified polymers (HIPS, PP ICP)"
+    key_parameters: []
+    test_conditions: null
+    note: null
+
+  - standard_id: "ASTM_D2584"
+    title: "Ash Content of Plastics"
+    scope: "Determines inorganic residue (fillers, contaminants)"
+    relevance: "Contamination and filler content verification"
+    key_parameters: []
+    test_conditions: null
+    note: null
+
+  - standard_id: "USP_CLASS_VI"
+    title: "Biological Reactivity Tests, In Vivo"
+    scope: "Biocompatibility testing for medical devices"
+    relevance: "Required for PP in medical device applications"
+    key_parameters: []
+    test_conditions: null
+    note: null
+
+  - standard_id: "FDA_21CFR_177_1520"
+    title: "Olefin Polymers"
+    scope: "FDA regulations for food contact plastics"
+    relevance: "Required for PP/PE in food packaging applications"
+    key_parameters: []
+    test_conditions: null
+    note: null
+
+  # Add polymer-specific standards:
+  # UL 44, UL 1581, NEC (LDPE wire/cable)
+  # ASTM D3350 PE4710/PE100 (HDPE pipe)
+  # NSF 61 (HDPE potable water)
+  # ISO 4427 (HDPE pressure pipe)
+  # ASTM D4549 (HIPS/PS classification)
+  # UL 94 (flammability — HIPS electronics)
+  # ASTM D1693 (ESCR — HDPE)
+
+
+# ── 11. PROCESSING GUIDANCE ────────────────────────────────────────────────
+# Purpose: Drying, temperature control, PCR/virgin mixing, contamination removal, stabilization
+processing_guidance:
+
+  drying:
+    required: false                                  # true for HIPS, PET; false for PP, PE
+    temperature:      { value: null, unit: "°C" }    # e.g. [70, 80] for HIPS
+    duration:         { value: null, unit: "hours" }  # e.g. [2, 4]
+    moisture_target:  { value: null, unit: "ppm" }    # e.g. 500
+    note: "PP not hygroscopic — drying optional unless moisture contamination present"
+
+  temperature_control:
+    critical: true
+    processing_temp:    { value: [190, 260], unit: "°C" }
+    optimal_range:      { value: [220, 240], unit: "°C" }
+    degradation_onset:  { value: 280,        unit: "°C" }
+    warning: null                                     # e.g. "Yellowing indicates thermal degradation"
+
+  mixing_pcr_virgin:
+    recommended_method: "Dry blend or masterbatch"
+    homogenization: null                              # "Critical for property consistency" (HIPS)
+    max_pcr_pct_by_application:
+      medical_devices:        15
+      food_contact_indirect:  10
+      automotive_interior:    50
+      packaging_nonfood:      100
+      industrial_containers:  100
+      # Add polymer-specific: electronics_premium, pressure_pipe, wire_cable, etc.
+
+  contamination_removal:
+    washing: "Required for post-consumer sources"
+    sorting: "Critical — separate PP homopolymer from copolymer, separate from PE"
+    density_separation: "Effective for PP/PE separation (0.900–0.910 vs 0.910–0.940)"
+    metal_detection: null                             # "Required for electronics applications"
+    # LDPE-specific:
+    # hot_wash_temp: { value: [60, 80], unit: "°C" }
+    # screening: "Required for particulate removal"
+    # air_classification: null
+
+  stabilization:
+    antioxidants: "Highly recommended for multi-cycle recycling"
+    benefit: "Reduces MW degradation from 60–70% to 20–30% after 6 cycles"
+    compatibilizer: null                              # HDPE: "MAPE 2-5% for PP contamination >3%"
+
+  # HIPS-specific:
+  rubber_phase_preservation: null
+  # rubber_phase_preservation:
+  #   avoid_excessive_shear: "High shear can damage rubber phase morphology"
+  #   avoid_multiple_reprocessing: "Each cycle degrades rubber phase"
+  #   monitor_impact_strength: "Primary indicator of rubber phase integrity"
+
+
+# ── 12. MARKET INTELLIGENCE ────────────────────────────────────────────────
+# Purpose: Supply/demand, regulatory, technology trends, pricing context
+# NOTE: This section was only in LDPE v7.0 — now REQUIRED for all polymers
+market_intelligence:
+
+  supply_demand:
+    current_state: "Stable supply, growing demand for quality recycled material"
+    trends:
+      - "Recycled PP prices tightening vs virgin"
+      - "Quality premiums increasing for clean, sorted material"
+      - "Automotive OEMs increasing recycled content mandates"
+    supply_chain_maturity: null                       # HIPS: { weee: "high", appliances: "medium-high" }
+
+  regulatory:
+    current:
+      - "FDA 21 CFR 177.1520 — food contact limits recycled content"
+      - "EU packaging & packaging waste regulation"
+    pending:
+      - "Extended producer responsibility (EPR) for packaging"
+      - "Minimum recycled content mandates (California, EU)"
+      - "Circular economy regulations"
+
+  technology:
+    emerging:
+      - description: "Advanced sorting (AI-powered NIR, robotics)"
+        impact: "Improves quality of recycled streams"
+      - description: "Chemical recycling (pyrolysis, gasification)"
+        impact: "Handles contaminated feedstock"
+      - description: "Deodorization technologies"
+        impact: "Enables food contact applications for recycled material"
+
+  pricing:
+    note: "Dynamic — maintained separately or via API"
+    # baseline_virgin_usd_per_lb: [0.55, 0.75]
+    # recycled_discount_range_pct: [20, 50]
+
+  sources:
+    - "Industry research and market data"
+    # - "BusinessAnalytiq LDPE Price Index October 2025"
+    # - "Plastics News Recycled LDPE Pricing March 2025"

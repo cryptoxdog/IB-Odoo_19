@@ -20,9 +20,5 @@ class PlasticosPackagingType(models.Model):
     active = fields.Boolean(default=True)
 
     _sql_constraints = [
-        (
-            "unique_code",
-            "unique(code)",
-            "Packaging type code must be unique.",
-        ),
+        ("unique_code", "unique(code)", "Packaging type code must be unique."),
     ]

@@ -1,0 +1,250 @@
+# plasticos KB v8.0 — PPO
+# Converter v1.1.0 | Generated: 2026-02-23T16:46:45Z
+
+_metadata:
+  version: '8.0'
+  converter_version: 1.1.0
+  source_version: 7.0r
+  source_format: polymer_focused_v7.0r
+  generated: '2026-02-23T16:46:45Z'
+  data_quality: verified
+  source_tier: tier_3
+  schema_compliant: true
+  source_last_updated: '2025-11-05'
+polymer_identity:
+  polymer_family: Engineering Thermoplastics
+  polymer_type: PPO
+  full_name: Polyphenylene Oxide (Modified PPE)
+  resin_id_code: null
+  structure: Amorphous thermoplastic
+  note: High-temp applications - automotive, electronics, appliances
+material_grades:
+- grade_id: PPO_GF20
+  grade_name: PPO + 20% Glass Fiber
+  description: High-strength for automotive
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 30.0
+      - 30.0
+      typical: 30.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 10.0
+      - 30.0
+      typical: 20.0
+      unit: '%'
+  applications:
+    primary:
+    - product: Automotive under-hood components
+      scrap_source: Automotive manufacturing
+      quality_tier_required:
+      - 2
+      - 3
+- grade_id: PPO_UNFILLED
+  grade_name: PPO Unfilled (PPO/PS blend)
+  description: General-purpose high-temp applications
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 15.0
+      - 50.0
+      typical: 32.5
+      unit: '%'
+  applications:
+    primary:
+    - product: Electronics housings
+      scrap_source: Electronics manufacturing, post-consumer
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Appliance components
+      scrap_source: Appliance manufacturing, post-consumer
+      quality_tier_required:
+      - 2
+      - 3
+product_scrap_mapping:
+  automotive_products:
+  - product: Automotive under-hood components
+    scrap_grade: ppo_gf20
+    scrap_quality_tier:
+    - 2
+    - 3
+    typical_contamination_pct:
+    - 1.0
+    - 3.0
+    suitable_buyers:
+    - automotive_tier2
+    reverse_reasoning: IF buyer_needs_high_temp_automotive THEN source_ppo_gf20_tier2_tier3
+  electronics_products:
+  - product: Electronics housings (high-temp)
+    scrap_grade: ppo_unfilled
+    scrap_quality_tier:
+    - 2
+    - 3
+    typical_contamination_pct:
+    - 1.0
+    - 3.0
+    suitable_buyers:
+    - electronics_manufacturers
+  appliance_products:
+  - product: Appliance housings and components
+    scrap_grade: ppo_unfilled
+    scrap_quality_tier:
+    - 2
+    - 3
+    typical_contamination_pct:
+    - 2.0
+    - 5.0
+    suitable_buyers:
+    - appliance_manufacturers
+  manufacturing_scrap:
+  - product: Injection molding PIR
+    scrap_grade: any_ppo
+    scrap_quality_tier:
+    - 1
+    typical_contamination_pct:
+    - 0.1
+    - 0.5
+    suitable_buyers:
+    - all_ppo_buyers
+source_quality_tiers:
+  tier_1_premium:
+    tier_id: tier_1_premium
+    suitable_applications:
+    - Automotive under-hood
+    - High-temp electronics
+    definition: Manufacturing PIR, high-temp properties maintained
+    contamination_max_pct: 0.5
+    property_retention_min_pct: 95
+    value_premium_pct:
+    - 25
+    - 40
+  tier_2_standard:
+    tier_id: tier_2_standard
+    suitable_applications:
+    - General automotive
+    - Appliances
+    definition: Post-industrial, moderate contamination
+    contamination_max_pct: 3.0
+    property_retention_min_pct: 80
+  tier_3_utility:
+    tier_id: tier_3_utility
+    suitable_applications:
+    - Low-value applications
+    definition: Mixed post-consumer
+    contamination_max_pct: 8.0
+    property_retention_min_pct: 65
+    value_discount_pct:
+    - 40
+    - 55
+buyer_profiles:
+- buyer_type: Automotive tier 2 supplier
+  material_requirements:
+    polymer_types:
+    - PPO_GF20
+    purity_min:
+      value:
+      - 85.0
+      - 85.0
+      typical: 85.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 30.0
+      - 30.0
+      typical: 30.0
+      unit: '%'
+    quality_tier_required:
+    - 2
+    - 3
+  buyer_id: PPO_AUTOMOTIVE_TIER2
+  industry_segment: Automotive
+  applications:
+  - Automotive under-hood components
+  volume_range_tons_month:
+  - 50
+  - 500
+- buyer_type: Appliance manufacturer
+  material_requirements:
+    polymer_types:
+    - PPO_unfilled
+    purity_min:
+      value:
+      - 80.0
+      - 80.0
+      typical: 80.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    quality_tier_required:
+    - 2
+    - 3
+  buyer_id: PPO_APPLIANCE_MANUFACTURERS
+  industry_segment: Consumer Goods
+  applications:
+  - Appliance housings and components
+  volume_range_tons_month:
+  - 100
+  - 1000
+recycling_rules:
+- rule_id: PPO_HIGH_TEMP_CRITICAL
+  material_type: PPO
+  rule: High-temp resistance critical - contamination >3% affects HDT
+  confidence: 0.92
+- rule_id: PPO_INJECTION_PIR_PREMIUM
+  material_type: PPO
+  rule: Injection PIR maintains high-temp properties - Tier 1
+  confidence: 0.95
+contamination_profiles:
+- profile_id: PPO_AUTOMOTIVE_UNDERHOOD
+  material_type: PPO
+  source: Automotive under-hood components
+  contamination_level: low-medium
+  quality_tier: 2
+  typical_contaminants:
+  - oils <1%
+  - dirt <2%
+  suitable_applications:
+  - Automotive
+  - Industrial
+quality_indicators:
+- indicator_id: PPO_HDT
+  test_method: ISO 75
+  significance: Critical for high-temp applications
+inference_rules:
+- rule_id: PPO_PRODUCT_TO_BUYER_FORWARD
+  inference_type: buyer_matching
+  logic: IF product=automotive_underhood THEN grade=ppo_gf20 AND match_buyers=[automotive_tier2]
+  confidence: 0.9
+standards:
+- standard_id: ISO_75
+  title: Heat Deflection Temperature
+  relevance: Critical for PPO high-temp applications
+processing_guidance:
+  drying:
+    required: false
+    note: PPO not hygroscopic - drying optional
+  temperature_control:
+    processing_temp:
+      value:
+      - 260.0
+      - 300.0
+      typical: 280.0
+      unit: °C
+  mixing_pcr_virgin:
+    max_pcr_pct_by_application:
+      automotive_underhood: 30
+      electronics: 50
+      appliances: 50

@@ -1,5 +1,16 @@
 # Odoo 19 ReBoot - Python project configuration
 
+[tool.pytest.ini_options]
+# Do not collect or run tests from these directories
+norecursedirs = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "*.egg-info",
+    "docs",
+]
+
 [tool.ruff]
 target-version = "py312"
 line-length = 120

@@ -26,9 +26,5 @@ class PlasticosEquipmentType(models.Model):
 
     # ── Constraints ──────────────────────────────────────────
     _sql_constraints = [
-        (
-            "unique_code",
-            "unique(code)",
-            "Equipment type code must be unique.",
-        ),
+        ("unique_code", "unique(code)", "Equipment type code must be unique."),
     ]

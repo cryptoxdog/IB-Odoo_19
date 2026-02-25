@@ -36,9 +36,5 @@ class PlasticosPartnerType(models.Model):
     )
 
     _sql_constraints = [
-        (
-            "unique_code",
-            "unique(code)",
-            "Partner type code must be unique.",
-        ),
+        ("unique_code", "unique(code)", "Partner type code must be unique."),
     ]

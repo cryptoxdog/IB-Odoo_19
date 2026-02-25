@@ -160,11 +160,7 @@ class PlasticosMatchResult(models.Model):
             "unique(intake_id, buyer_partner_id, run_id)",
             "Duplicate match result for the same intake + buyer + run.",
         ),
-        (
-            "check_score_range",
-            "check(score >= 0 AND score <= 100)",
-            "Score must be between 0 and 100.",
-        ),
+        ("check_score_range", "check(score >= 0 AND score <= 100)", "Score must be between 0 and 100."),
         (
             "check_confidence_range",
             "check(confidence >= 0 AND confidence <= 100)",

@@ -19,9 +19,5 @@ class PlasticosProcessType(models.Model):
     sequence = fields.Integer(default=10)
 
     _sql_constraints = [
-        (
-            "unique_code",
-            "unique(code)",
-            "Process type code must be unique.",
-        ),
+        ("unique_code", "unique(code)", "Process type code must be unique."),
     ]

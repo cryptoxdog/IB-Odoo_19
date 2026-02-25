@@ -191,12 +191,15 @@ def extract_params_dicts(file_path: Path) -> list[tuple[int, set[str]]]:
 
 
 def find_files_with_cypher() -> list[Path]:
-    """Find all Python files that likely contain Cypher queries."""
+    """Find all Python files that likely contain Cypher queries.
+    Omits files under docs/."""
     files = []
     for module_dir in REPO_ROOT.glob("plasticos_*"):
         if not module_dir.is_dir():
             continue
         for py_file in module_dir.rglob("*.py"):
+            if "docs" in py_file.parts:
+                continue
             content = py_file.read_text()
             if any(kw in content for kw in ["MATCH", "MERGE", "neo4j", "cypher"]):
                 files.append(py_file)
@@ -204,14 +207,17 @@ def find_files_with_cypher() -> list[Path]:
 
 
 def find_graph_service_files() -> list[Path]:
-    """Find all graph_service.py or similar Neo4j integration files."""
+    """Find all graph_service.py or similar Neo4j integration files.
+    Omits files under docs/."""
     patterns = ["graph_service.py", "neo4j_*.py", "*_graph.py"]
     files = []
     for module_dir in REPO_ROOT.glob("plasticos_*"):
         if not module_dir.is_dir():
             continue
         for pattern in patterns:
-            files.extend(module_dir.rglob(pattern))
+            for p in module_dir.rglob(pattern):
+                if "docs" not in p.parts:
+                    files.append(p)
     return files
 
 

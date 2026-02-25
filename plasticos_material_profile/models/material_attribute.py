@@ -32,9 +32,5 @@ class PlasticosMaterialAttribute(models.Model):
     )
 
     _sql_constraints = [
-        (
-            "unique_code",
-            "unique(code)",
-            "Attribute code must be unique.",
-        ),
+        ("unique_code", "unique(code)", "Attribute code must be unique."),
     ]

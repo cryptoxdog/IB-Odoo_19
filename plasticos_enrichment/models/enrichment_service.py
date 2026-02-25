@@ -197,20 +197,33 @@ class EnrichmentService(models.AbstractModel):
         """Return singleton inference engine (loaded once per worker)."""
         global _inference_engine
         if _inference_engine is None:
-            # KB lives in plasticos_enrichment/knowledge_base/
-            kb_dir = Path(__file__).parent.parent / "knowledge_base"
-            if not kb_dir.exists():
+            # Primary KB location: plasticos_inference_engine/knowledge_base_v8.0/
+            # This contains the full v8.0 KB set (22 polymers)
+            primary_kb_dir = Path(__file__).parent.parent.parent / "plasticos_inference_engine" / "knowledge_base_v8.0"
+            # Fallback: plasticos_enrichment/knowledge_base/ (legacy location)
+            fallback_kb_dir = Path(__file__).parent.parent / "knowledge_base"
+
+            if primary_kb_dir.exists():
+                kb_dir = primary_kb_dir
+            elif fallback_kb_dir.exists():
+                kb_dir = fallback_kb_dir
                 _logger.warning(
-                    "Knowledge base directory not found: %s",
-                    kb_dir,
+                    "Using fallback KB location: %s (primary not found: %s)",
+                    fallback_kb_dir,
+                    primary_kb_dir,
                 )
+            else:
                 raise UserError(
-                    f"Inference KB not found at {kb_dir}. Ensure plasticos_enrichment/knowledge_base/ exists.",
+                    f"Inference KB not found. Checked:\n" f"  - {primary_kb_dir}\n" f"  - {fallback_kb_dir}"
                 )
+
             _inference_engine = InferenceEngine(kb_dir)
             _logger.info(
-                "Inference engine loaded from %s",
+                "Inference engine loaded from %s (polymers: %s)",
                 kb_dir,
+                ", ".join(_inference_engine.kb.polymers[:5]) + "..."
+                if len(_inference_engine.kb.polymers) > 5
+                else ", ".join(_inference_engine.kb.polymers),
             )
         return _inference_engine
 

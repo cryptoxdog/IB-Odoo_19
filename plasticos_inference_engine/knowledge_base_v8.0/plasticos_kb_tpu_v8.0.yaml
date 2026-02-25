@@ -1,0 +1,808 @@
+# plasticos KB v8.0 — TPU
+# Converter v1.1.0 | Generated: 2026-02-23T16:46:45Z
+
+_metadata:
+  version: '8.0'
+  converter_version: 1.1.0
+  source_version: 7.0r
+  source_format: polymer_focused_v7.0r
+  generated: '2026-02-23T16:46:45Z'
+  data_quality: verified
+  source_tier: tier_2
+  schema_compliant: true
+  source_last_updated: '2025-11-05'
+polymer_identity:
+  polymer_family: Thermoplastic Elastomers
+  polymer_type: TPU
+  full_name: Thermoplastic Polyurethane
+  resin_id_code: null
+  structure: Polyurethane with thermoplastic properties
+  note: Premium elastomer - footwear, automotive, medical, industrial
+material_grades:
+- grade_id: POLYESTER_TPU
+  grade_name: Polyester-based TPU
+  description: Most common TPU - excellent mechanical properties
+  type: virgin
+  mechanical_properties:
+    hardness_shore_a:
+    - 60
+    - 98
+    tensile_strength:
+      value:
+      - 30.0
+      - 70.0
+      typical: 50.0
+      unit: MPa
+    elongation_at_break:
+      value:
+      - 400.0
+      - 700.0
+      typical: 550.0
+      unit: '%'
+    abrasion_resistance: excellent
+  thermal_properties:
+    service_temp:
+      value:
+      - -40.0
+      - 90.0
+      typical: 25.0
+      unit: °C
+    processing_temp:
+      value:
+      - 180.0
+      - 220.0
+      typical: 200.0
+      unit: °C
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 15.0
+      - 50.0
+      typical: 32.5
+      unit: '%'
+  applications:
+    primary:
+    - product: Athletic shoe soles and midsoles
+      scrap_source: Footwear manufacturing, post-consumer footwear
+      quality_tier_required:
+      - 2
+      - 3
+      note: 40% of TPU market
+    - product: Automotive interior trim
+      scrap_source: Automotive manufacturing, end-of-life vehicles
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Industrial hoses and belting
+      scrap_source: Industrial manufacturing, post-consumer
+      quality_tier_required:
+      - 2
+      - 3
+- grade_id: POLYETHER_TPU
+  grade_name: Polyether-based TPU
+  description: Better hydrolysis resistance, lower temperature flexibility
+  type: virgin
+  mechanical_properties:
+    hardness_shore_a:
+    - 70
+    - 95
+    hydrolysis_resistance: excellent
+    low_temp_flexibility: excellent
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 15.0
+      - 50.0
+      typical: 32.5
+      unit: '%'
+  applications:
+    primary:
+    - product: Athletic shoe components
+      scrap_source: Footwear manufacturing, post-consumer
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Sports equipment
+      scrap_source: Manufacturing PIR, post-consumer
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Industrial hoses (chemical resistant)
+      scrap_source: Industrial manufacturing, post-consumer
+      quality_tier_required:
+      - 2
+      - 3
+- grade_id: AROMATIC_TPU
+  grade_name: Aromatic TPU (MDI-based)
+  description: Workhorse grade - good strength and toughness
+  type: virgin
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 15.0
+      - 50.0
+      typical: 32.5
+      unit: '%'
+  applications:
+    primary:
+    - product: Automotive interior (non-visible)
+      scrap_source: Automotive manufacturing
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Phone cases
+      scrap_source: Consumer electronics manufacturing, post-consumer
+      quality_tier_required:
+      - 2
+      - 3
+  note: Yellows with UV exposure - not for outdoor applications
+- grade_id: ALIPHATIC_TPU
+  grade_name: Aliphatic TPU
+  description: UV-stable, non-yellowing - premium grade
+  type: virgin
+  mechanical_properties:
+    uv_stability: excellent
+    clarity: excellent
+    color_stability: excellent
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 40.0
+      - 40.0
+      typical: 40.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 10.0
+      - 40.0
+      typical: 25.0
+      unit: '%'
+    note: Lower PCR tolerance due to clarity/color requirements
+  applications:
+    primary:
+    - product: Shoe uppers (visible)
+      scrap_source: Footwear manufacturing, post-consumer
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Outdoor applications
+      scrap_source: Manufacturing PIR, post-consumer
+      quality_tier_required:
+      - 2
+      - 3
+    - product: Glass lamination
+      scrap_source: Manufacturing PIR
+      quality_tier_required:
+      - 1
+      - 2
+- grade_id: MEDICAL_GRADE_TPU
+  grade_name: Medical-grade TPU (USP Class VI)
+  description: Biocompatible TPU for medical devices
+  type: virgin
+  pcr_compatibility:
+    max_pcr:
+      value:
+      - 15.0
+      - 15.0
+      typical: 15.0
+      unit: '%'
+    typical_pcr:
+      value:
+      - 0.0
+      - 15.0
+      typical: 7.5
+      unit: '%'
+    note: Medical PIR only - strict regulations
+  applications:
+    primary:
+    - product: Medical tubing and catheters
+      scrap_source: Medical device manufacturing PIR only
+      quality_tier_required:
+      - 1
+      note: Post-consumer medical waste not recyclable
+product_scrap_mapping:
+  footwear_products:
+  - product: Athletic shoe soles and midsoles
+    scrap_grade: polyester_tpu or polyether_tpu
+    scrap_quality_tier:
+    - 2
+    - 3
+    typical_contamination_pct:
+    - 2.0
+    - 8.0
+    typical_contaminants:
+    - dirt 2-5%
+    - adhesives 1-2%
+    - EVA foam <2%
+    suitable_buyers:
+    - footwear_manufacturers
+    - consumer_goods
+    reverse_reasoning: IF buyer_needs_footwear_soles THEN source_polyester_tpu_tier2_tier3
+    note: Largest TPU application - 40% of market
+  - product: Shoe uppers and components
+    scrap_grade: aliphatic_tpu
+    scrap_quality_tier:
+    - 2
+    - 3
+    typical_contamination_pct:
+    - 1.0
+    - 5.0
+    suitable_buyers:
+    - footwear_manufacturers
+    - consumer_goods
+  automotive_products:
+  - product: Automotive interior trim (soft-touch)
+    scrap_grade: aromatic_tpu or polyester_tpu
+    scrap_quality_tier:
+    - 2
+    - 3
+    typical_contamination_pct:
+    - 1.0
+    - 3.0
+    typical_contaminants:
+    - adhesives <1%
+    - coatings <2%
+    suitable_buyers:
+    - automotive_tier2
+    - industrial_applications
+    reverse_reasoning: IF buyer_needs_automotive_interior THEN source_aromatic_tpu_tier2_tier3
+  - product: Automotive cable jacketing
+    scrap_grade: flame_retardant_tpu
+    scrap_quality_tier:
+    - 2
+    - 3
+    typical_contamination_pct:
+    - 1.0
+    - 3.0
+    suitable_buyers:
+    - automotive_tier2
+    - cable_manufacturers
+  medical_products:
+  - product: Medical tubing and catheters
+    scrap_grade: medical_grade_tpu
+    scrap_quality_tier:
+    - 1
+    typical_contamination_pct:
+    - 0.1
+    - 0.5
+    typical_contaminants:
+    - minimal - medical PIR only
+    suitable_buyers:
+    - medical_device_manufacturers
+    reverse_reasoning: IF buyer_needs_medical_devices THEN source_medical_tpu_pir_tier1_only
+    note: Medical PIR only - post-consumer medical waste not recyclable
+  consumer_products:
+  - product: Phone cases and electronics accessories
+    scrap_grade: aliphatic_tpu or aromatic_tpu
+    scrap_quality_tier:
+    - 2
+    - 3
+    typical_contamination_pct:
+    - 1.0
+    - 3.0
+    suitable_buyers:
+    - consumer_electronics
+    - consumer_goods
+  - product: Sports equipment (grips, pads)
+    scrap_grade: polyether_tpu
+    scrap_quality_tier:
+    - 2
+    - 3
+    typical_contamination_pct:
+    - 2.0
+    - 5.0
+    suitable_buyers:
+    - sports_equipment_manufacturers
+    - consumer_goods
+  industrial_products:
+  - product: Industrial hoses and tubing
+    scrap_grade: polyester_tpu or polyether_tpu
+    scrap_quality_tier:
+    - 2
+    - 3
+    typical_contamination_pct:
+    - 2.0
+    - 5.0
+    typical_contaminants:
+    - oils 1-3%
+    - chemicals <2%
+    suitable_buyers:
+    - industrial_hose_manufacturers
+    - industrial_applications
+  - product: Conveyor belts and industrial belting
+    scrap_grade: polyester_tpu
+    scrap_quality_tier:
+    - 2
+    - 3
+    typical_contamination_pct:
+    - 3.0
+    - 8.0
+    suitable_buyers:
+    - industrial_applications
+  manufacturing_scrap:
+  - product: Injection molding PIR (runners, sprues)
+    scrap_grade: any_tpu_grade
+    scrap_quality_tier:
+    - 1
+    typical_contamination_pct:
+    - 0.1
+    - 0.5
+    typical_contaminants:
+    - minimal - clean manufacturing
+    suitable_buyers:
+    - all_tpu_buyers
+    reverse_reasoning: IF buyer_needs_high_quality_tpu THEN source_injection_pir_tier1
+    note: Injection PIR is highest quality TPU scrap
+source_quality_tiers:
+  tier_1_premium:
+    tier_id: tier_1_premium
+    suitable_applications:
+    - Medical devices
+    - Premium footwear
+    - Automotive visible components
+    definition: Manufacturing PIR, single-source, minimal contamination, known type
+    contamination_max_pct: 0.5
+    other_polymer_max_pct: 1.0
+    property_retention_min_pct: 95
+    sorting_purity_min_pct: 99
+    processing_history: Single cycle or virgin manufacturing scrap
+    examples:
+    - Injection molding PIR
+    - Medical device manufacturing PIR
+    - Footwear manufacturing PIR
+    value_premium_pct:
+    - 25
+    - 40
+  tier_2_standard:
+    tier_id: tier_2_standard
+    suitable_applications:
+    - Footwear (mid-tier)
+    - Automotive interior
+    - Consumer goods
+    definition: Post-industrial or sorted post-consumer, moderate contamination
+    contamination_max_pct: 3.0
+    other_polymer_max_pct: 3.0
+    property_retention_min_pct: 80
+    sorting_purity_min_pct: 85
+    processing_history: 1-3 recycling cycles
+    examples:
+    - Sorted footwear components
+    - Automotive manufacturing scrap
+    - Consumer electronics (sorted)
+    value_premium_pct:
+    - 0
+    - 0
+  tier_3_utility:
+    tier_id: tier_3_utility
+    suitable_applications:
+    - Low-value footwear
+    - Industrial applications (non-critical)
+    definition: Mixed post-consumer, higher contamination
+    contamination_max_pct: 8.0
+    other_polymer_max_pct: 5.0
+    property_retention_min_pct: 65
+    sorting_purity_min_pct: 70
+    processing_history: 3-6 recycling cycles or unknown
+    examples:
+    - Mixed post-consumer footwear
+    - General waste stream TPU
+    value_discount_pct:
+    - 40
+    - 55
+  tier_4_marginal:
+    tier_id: tier_4_marginal
+    suitable_applications:
+    - Chemical recycling feedstock
+    - Very limited mechanical recycling
+    definition: Heavily contaminated, degraded
+    contamination_min_pct: 8.0
+    property_retention_max_pct: 65
+    processing_history: '>6 cycles or severely degraded'
+    examples:
+    - Heavily contaminated footwear waste
+    - Mixed polymer waste streams
+    value_discount_pct:
+    - 70
+    - 85
+buyer_profiles:
+- buyer_type: Footwear manufacturer
+  material_requirements:
+    polymer_types:
+    - polyester_tpu
+    - polyether_tpu
+    - aliphatic_tpu
+    purity_min:
+      value:
+      - 85.0
+      - 85.0
+      typical: 85.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    preferred_source: Footwear manufacturing PIR, sorted post-consumer footwear
+    quality_tier_required:
+    - 2
+    - 3
+    color_preference: any
+    form_preference: pellets
+  buyer_id: TPU_FOOTWEAR_MANUFACTURERS
+  industry_segment: Consumer Goods
+  applications:
+  - Athletic shoe soles and midsoles
+  - Shoe uppers and components
+  volume_range_tons_month:
+  - 200
+  - 2000
+  note: Largest TPU buyer segment - 40% of market
+- buyer_type: Automotive tier 2 supplier
+  material_requirements:
+    polymer_types:
+    - aromatic_tpu
+    - polyester_tpu
+    purity_min:
+      value:
+      - 85.0
+      - 85.0
+      typical: 85.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    preferred_source: Automotive manufacturing PIR, sorted automotive scrap
+    quality_tier_required:
+    - 2
+    - 3
+    color_preference: black or gray
+    form_preference: pellets
+  buyer_id: TPU_AUTOMOTIVE_TIER2
+  industry_segment: Automotive
+  applications:
+  - Automotive interior trim (soft-touch)
+  - Automotive cable jacketing
+  volume_range_tons_month:
+  - 50
+  - 500
+- buyer_type: Medical device manufacturer
+  material_requirements:
+    polymer_types:
+    - medical_grade_tpu
+    purity_min:
+      value:
+      - 99.0
+      - 99.0
+      typical: 99.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 15.0
+      - 15.0
+      typical: 15.0
+      unit: '%'
+    preferred_source: Medical device manufacturing PIR only
+    quality_tier_required:
+    - 1
+    color_preference: natural or clear
+    form_preference: pellets
+  buyer_id: TPU_MEDICAL_DEVICE_MANUFACTURERS
+  industry_segment: Medical
+  certifications_required:
+  - USP Class VI
+  - ISO 10993 biocompatibility
+  applications:
+  - Medical tubing and catheters
+  volume_range_tons_month:
+  - 10
+  - 100
+- buyer_type: Consumer electronics manufacturer
+  material_requirements:
+    polymer_types:
+    - aliphatic_tpu
+    - aromatic_tpu
+    purity_min:
+      value:
+      - 85.0
+      - 85.0
+      typical: 85.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 40.0
+      - 40.0
+      typical: 40.0
+      unit: '%'
+    preferred_source: Electronics manufacturing PIR, sorted post-consumer
+    quality_tier_required:
+    - 2
+    - 3
+    color_preference: clear or colored
+    form_preference: pellets
+  buyer_id: TPU_CONSUMER_ELECTRONICS
+  industry_segment: Consumer Goods
+  applications:
+  - Phone cases and electronics accessories
+  volume_range_tons_month:
+  - 50
+  - 500
+- buyer_type: Industrial hose manufacturer
+  material_requirements:
+    polymer_types:
+    - polyester_tpu
+    - polyether_tpu
+    purity_min:
+      value:
+      - 85.0
+      - 85.0
+      typical: 85.0
+      unit: '%'
+    max_pcr:
+      value:
+      - 50.0
+      - 50.0
+      typical: 50.0
+      unit: '%'
+    preferred_source: Industrial manufacturing PIR, sorted industrial scrap
+    quality_tier_required:
+    - 2
+    - 3
+    color_preference: any
+    form_preference: pellets
+  buyer_id: TPU_INDUSTRIAL_HOSE_MANUFACTURERS
+  industry_segment: Industrial
+  applications:
+  - Industrial hoses and tubing
+  - Conveyor belts and industrial belting
+  volume_range_tons_month:
+  - 50
+  - 500
+recycling_rules:
+- rule_id: TPU_TYPE_SEPARATION
+  material_type: TPU
+  rule: Polyester and polyether TPU should be separated for optimal recycling
+  reasoning: Polyester and polyether TPU have different hydrolysis resistance and processing requirements. Mixed types reduce
+    property consistency.
+  confidence: 0.85
+  separation_recommended: true
+- rule_id: TPU_INJECTION_PIR_PREMIUM
+  material_type: TPU
+  rule: Injection molding PIR is highest quality TPU scrap - Tier 1
+  reasoning: 'Injection PIR: clean, single type, minimal contamination (<0.5%), 95%+ property retention. Premium value 25-40%
+    above market.'
+  confidence: 0.95
+  pir_characteristics:
+    contamination_pct:
+    - 0.1
+    - 0.5
+    quality_tier: 1
+    property_retention_pct:
+    - 95
+    - 100
+    value_premium_pct:
+    - 25
+    - 40
+- rule_id: TPU_MEDICAL_PIR_ONLY
+  material_type: TPU
+  rule: Medical TPU requires PIR only - post-consumer medical waste not recyclable
+  reasoning: Medical regulations prohibit post-consumer medical waste recycling. Only manufacturing PIR acceptable.
+  confidence: 0.98
+  restriction: medical_pir_only
+- rule_id: TPU_FOOTWEAR_DOMINANT_SOURCE
+  material_type: TPU
+  rule: Footwear is largest TPU scrap source (40% of market)
+  reasoning: Athletic footwear uses TPU for soles, midsoles, uppers. Large post-consumer and PIR volumes available.
+  confidence: 0.92
+  market_share_pct: 40
+- rule_id: TPU_RECYCLING_CYCLES
+  material_type: TPU
+  rule: TPU retains ~80% properties after 3 recycling cycles
+  reasoning: 'After 3 cycles: tensile strength -15-20%, elongation -20-25%. Property retention 75-85%. Blend with virgin for
+    optimal properties.'
+  confidence: 0.88
+  property_retention_pct:
+  - 75
+  - 85
+  cycles: 3
+- rule_id: TPU_AROMATIC_UV_DEGRADATION
+  material_type: TPU
+  rule: Aromatic TPU yellows with UV exposure - not for outdoor applications
+  reasoning: Aromatic TPU (MDI-based) degrades and yellows with UV. Use aliphatic TPU for outdoor applications.
+  confidence: 0.92
+contamination_profiles:
+- profile_id: TPU_INJECTION_PIR
+  material_type: TPU
+  source: Injection molding PIR
+  contamination_level: minimal
+  quality_tier: 1
+  typical_contaminants:
+  - Minimal - clean manufacturing
+  sorting_purity:
+    value:
+    - 99.0
+    - 99.0
+    typical: 99.0
+    unit: '%'
+  suitable_applications:
+  - All TPU applications
+  - Medical devices (if medical-grade PIR)
+- profile_id: TPU_FOOTWEAR_MANUFACTURING
+  material_type: TPU
+  source: Footwear manufacturing PIR
+  contamination_level: low
+  quality_tier: 1
+  typical_contaminants:
+  - 'Adhesives: <0.5%'
+  - 'EVA foam: <1%'
+  sorting_purity:
+    value:
+    - 95.0
+    - 95.0
+    typical: 95.0
+    unit: '%'
+  suitable_applications:
+  - Footwear (all tiers)
+  - Consumer goods
+- profile_id: TPU_POST_CONSUMER_FOOTWEAR
+  material_type: TPU
+  source: Post-consumer footwear
+  contamination_level: medium
+  quality_tier: 2
+  typical_contaminants:
+  - 'Dirt: 2-5%'
+  - 'Adhesives: 1-2%'
+  - 'EVA foam: <2%'
+  sorting_purity:
+    value:
+    - 85.0
+    - 85.0
+    typical: 85.0
+    unit: '%'
+  processing_requirements:
+    washing: required
+    sorting: recommended
+  suitable_applications:
+  - Footwear (mid-tier)
+  - Consumer goods
+  - Industrial applications
+quality_indicators:
+- indicator_id: TPU_HARDNESS
+  test_method: ASTM D2240 (Shore A)
+  material_types:
+  - TPU
+  thresholds:
+    soft:
+      value:
+      - 60.0
+      - 80.0
+      typical: 70.0
+      unit: ''
+    medium:
+      value:
+      - 80.0
+      - 90.0
+      typical: 85.0
+      unit: ''
+    hard:
+      value:
+      - 90.0
+      - 98.0
+      typical: 94.0
+      unit: ''
+  significance: Determines application suitability
+- indicator_id: TPU_TYPE_IDENTIFICATION
+  test_method: FTIR or DSC
+  material_types:
+  - TPU
+  significance: Identifies polyester vs polyether TPU
+- indicator_id: TPU_ABRASION_RESISTANCE
+  test_method: ASTM D1044
+  material_types:
+  - TPU
+  significance: Critical for footwear and industrial applications
+inference_rules:
+- rule_id: TPU_PRODUCT_TO_BUYER_FORWARD
+  inference_type: buyer_matching
+  logic: IF product=footwear_soles THEN grade=polyester_tpu AND quality_tier=[2,3] AND match_buyers=[footwear_manufacturers]
+  reasoning: Forward reasoning from product to suitable buyers
+  confidence: 0.9
+- rule_id: TPU_BUYER_TO_SOURCE_BACKWARD
+  inference_type: source_matching
+  logic: IF buyer=medical_device_manufacturers THEN require_grade=medical_tpu AND require_tier=1 AND require_source=medical_pir_only
+  reasoning: Backward reasoning from buyer requirements to acceptable sources
+  confidence: 0.98
+- rule_id: TPU_INJECTION_PIR_PREMIUM_MATCHING
+  inference_type: buyer_matching
+  logic: IF source=injection_pir AND contamination<0.5% THEN tier=1 AND match_all_buyers
+  reasoning: Injection PIR is premium quality
+  confidence: 0.95
+- rule_id: TPU_FOOTWEAR_DOMINANT_ROUTING
+  inference_type: buyer_matching
+  logic: IF source=footwear_manufacturing OR footwear_post_consumer THEN primary_match=footwear_manufacturers
+  reasoning: Footwear is largest TPU market - 40% of demand
+  confidence: 0.92
+standards:
+- standard_id: ASTM_D2240
+  title: Rubber Property - Durometer Hardness
+  scope: Hardness measurement (Shore A, Shore D)
+  relevance: Primary quality indicator for TPU
+- standard_id: ASTM_D1044
+  title: Resistance of Transparent Plastics to Surface Abrasion
+  scope: Abrasion resistance measurement
+  relevance: Critical for footwear and industrial TPU
+- standard_id: USP_CLASS_VI
+  title: Biological Reactivity Tests, In Vivo
+  scope: Biocompatibility testing for medical devices
+  relevance: Required for TPU in medical device applications
+processing_guidance:
+  drying:
+    required: true
+    note: TPU is hygroscopic - drying recommended before processing
+    moisture_threshold:
+      value:
+      - 0.05
+      - 0.05
+      typical: 0.05
+      unit: '%'
+    drying_temp:
+      value:
+      - 80.0
+      - 100.0
+      typical: 90.0
+      unit: °C
+    drying_time_hours:
+    - 2
+    - 4
+  temperature_control:
+    polyester_tpu_processing_temp:
+      value:
+      - 180.0
+      - 220.0
+      typical: 200.0
+      unit: °C
+    polyether_tpu_processing_temp:
+      value:
+      - 180.0
+      - 220.0
+      typical: 200.0
+      unit: °C
+    degradation_onset:
+      value:
+      - 230.0
+      - 230.0
+      typical: 230.0
+      unit: °C
+  mixing_pcr_virgin:
+    recommended_method: Dry blend or masterbatch
+    max_pcr_pct_by_application:
+      medical_devices: 15
+      premium_footwear: 30
+      mid_tier_footwear: 50
+      automotive_interior: 50
+      consumer_goods: 50
+      industrial_applications: 60
+  contamination_removal:
+    washing: Required for post-consumer footwear sources
+    sorting: Recommended - separate polyester from polyether TPU

@@ -12,9 +12,5 @@ class PlasticosCommissionRule(models.Model):
 
     # ── Constraints ──────────────────────────────────────────
     _sql_constraints = [
-        (
-            "unique_sales_rep",
-            "unique(sales_rep_id)",
-            "Each sales rep may only have one active commission rule.",
-        ),
+        ("unique_sales_rep", "unique(sales_rep_id)", "Each sales rep may only have one active commission rule."),
     ]

@@ -280,11 +280,7 @@ class PlasticosWebLead(models.Model):
     # ═══════════════════════════════════════════════════════════
 
     _sql_constraints = [
-        (
-            "unique_lead_id",
-            "unique(lead_id)",
-            "A web lead with this ID already exists (idempotency guard).",
-        ),
+        ("unique_lead_id", "unique(lead_id)", "A web lead with this ID already exists (idempotency guard)."),
     ]
 
     # ═══════════════════════════════════════════════════════════
