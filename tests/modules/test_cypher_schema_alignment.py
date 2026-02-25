@@ -374,7 +374,7 @@ class TestNodePropertyConsistency:
                     if missing:
                         rel_path = file_path.relative_to(REPO_ROOT)
                         issues.append(
-                            f"{rel_path}: {alias}.{{{', '.join(sorted(missing))}}} " f"referenced but not in MERGE/SET"
+                            f"{rel_path}: {alias}.{{{', '.join(sorted(missing))}}} referenced but not in MERGE/SET"
                         )
 
         # This is informational - may have false positives

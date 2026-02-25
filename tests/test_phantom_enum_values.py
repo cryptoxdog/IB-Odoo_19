@@ -1145,7 +1145,7 @@ class TestRegistrySanity:
     def test_application_class_options(self):
         expected = {"food", "medical", "automotive", "packaging", "agricultural", "construction"}
         actual = SELECTION_BY_FIELD.get("application_class", set())
-        assert expected == actual, f"application_class mismatch.\n" f"  Expected: {expected}\n" f"  Actual:   {actual}"
+        assert expected == actual, f"application_class mismatch.\n  Expected: {expected}\n  Actual:   {actual}"
 
     def test_process_type_options(self):
         expected = {
@@ -1215,7 +1215,7 @@ class TestPhantomEnumValues:
             if usage.context != "comparison":
                 continue
             if _is_phantom(usage.value):
-                phantoms.append(f"  {usage.file}:{usage.line} — " f"'{usage.value}' (comparison)")
+                phantoms.append(f"  {usage.file}:{usage.line} — '{usage.value}' (comparison)")
 
         if phantoms:
             pytest.fail(
@@ -1233,7 +1233,7 @@ class TestPhantomEnumValues:
                 continue
             if _is_phantom(usage.value):
                 field_name = usage.context[7:-1]
-                phantoms.append(f"  {usage.file}:{usage.line} — " f"('{field_name}', op, '{usage.value}')")
+                phantoms.append(f"  {usage.file}:{usage.line} — ('{field_name}', op, '{usage.value}')")
 
         if phantoms:
             pytest.fail(
@@ -1315,7 +1315,7 @@ class TestSelectionFieldConsistency:
             union = set().union(*all_sets)
             for mod, opts in module_opts.items():
                 if opts != union and not union.issuperset(opts):
-                    violations.append(f"  Field '{field_name}' in {mod}: " f"{sorted(opts)} vs union {sorted(union)}")
+                    violations.append(f"  Field '{field_name}' in {mod}: {sorted(opts)} vs union {sorted(union)}")
 
         # This is a warning, not a hard fail — extension modules
         # legitimately add options via selection_add
@@ -1323,7 +1323,7 @@ class TestSelectionFieldConsistency:
             import warnings
 
             warnings.warn(
-                "Selection fields defined in multiple modules " "with different option sets:\n" + "\n".join(violations),
+                "Selection fields defined in multiple modules with different option sets:\n" + "\n".join(violations),
                 stacklevel=1,
             )
 
@@ -1446,7 +1446,7 @@ class TestXmlSelectionAlignment:
         for code in short_codes:
             # Allow rPET (recycled PET) as special case
             if code != code.upper() and code not in ("rPET",):
-                pytest.fail(f"Polymer code '{code}' should be uppercase " f"(got mixed/lower case)")
+                pytest.fail(f"Polymer code '{code}' should be uppercase (got mixed/lower case)")
 
 
 # ═════════════════════════════════════════════════════════════════════════

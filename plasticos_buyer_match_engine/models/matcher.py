@@ -484,14 +484,14 @@ class BuyerMatcher(models.Model):
 
         # Canonical MFI ranges per process type
         ranges = {
-            "injection": (10.0, None),       # MFI >= 10
-            "extrusion": (None, 20.0),       # MFI <= 20
-            "blow_mold": (0.5, 10.0),        # 0.5 <= MFI <= 10
-            "film_blown": (None, 5.0),       # MFI <= 5
-            "film_cast": (None, 5.0),        # MFI <= 5
-            "thermoform": (1.0, 12.0),       # 1 <= MFI <= 12
-            "rotomold": (2.0, 10.0),         # 2 <= MFI <= 10
-            "compounding": (None, None),     # any MFI
+            "injection": (10.0, None),  # MFI >= 10
+            "extrusion": (None, 20.0),  # MFI <= 20
+            "blow_mold": (0.5, 10.0),  # 0.5 <= MFI <= 10
+            "film_blown": (None, 5.0),  # MFI <= 5
+            "film_cast": (None, 5.0),  # MFI <= 5
+            "thermoform": (1.0, 12.0),  # 1 <= MFI <= 12
+            "rotomold": (2.0, 10.0),  # 2 <= MFI <= 10
+            "compounding": (None, None),  # any MFI
         }
 
         bounds = ranges.get(process_type)
