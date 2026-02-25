@@ -47,7 +47,7 @@ class IrAttachment(models.Model):
                 )
                 return 0
 
-            missing = self.browse(missing_ids).sudo()  # cron-sudo-justification: purge requires unlink rights across orphaned attachments
+            missing = self.browse(missing_ids).sudo()  # cron-sudo-justification: purge requires unlink rights across orphaned attachments  # fmt: skip
             count = len(missing)
             missing.unlink()
             _logger.warning(

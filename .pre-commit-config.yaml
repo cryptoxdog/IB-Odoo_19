@@ -91,6 +91,7 @@ repos:
         exclude: |
           (?x)^(
             tests-odoo/.*|
+            tests/.*|
             addons/.*|
             \.venv/.*|
             venv/.*|
@@ -101,6 +102,6 @@ repos:
             plasticos_inference_engine/.*|
             plasticos_web_leads/.*|
             plasticos_enrichment/.*|
-            plasticos_buyer_match_engine/.*
+            plasticos_buyer_match_engine/.*|
             tools/.*
           )$

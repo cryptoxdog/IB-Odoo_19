@@ -137,7 +137,7 @@ class PlasticosIntakeNormalizer(models.Model):
             return
 
         try:
-            config = self.env["plasticos.normalizer.config"].sudo().get_config()  # cron-sudo-justification: shared singleton config read for system batch
+            config = self.env["plasticos.normalizer.config"].sudo().get_config()  # cron-sudo-justification: shared singleton config read for system batch  # fmt: skip
             limit = config.batch_limit or 200
 
             pending = self.search(

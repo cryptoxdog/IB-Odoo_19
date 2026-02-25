@@ -9,6 +9,14 @@ _logger = logging.getLogger(__name__)
 class PlasticosTransactionDocs(models.Model):
     _inherit = "plasticos.transaction"
 
+    # ── Document Link (R2 fix: enables real-time flag updates) ─────
+    x_document_ids = fields.One2many(
+        "plasticos.document",
+        "x_transaction_id",
+        string="Documents",
+        help="Documents linked to this transaction.",
+    )
+
     # ── Missing Document Status Tracking ───────────────────────────
     x_missing_doc_status = fields.Selection(
         [
@@ -51,7 +59,7 @@ class PlasticosTransactionDocs(models.Model):
 
     # ── Computed Missing Doc Flags ─────────────────────────────────
 
-    @api.depends("load_id", "sale_order_id")
+    @api.depends("load_id", "sale_order_id", "x_document_ids", "x_document_ids.tag_id", "x_document_ids.active")
     def _compute_missing_doc_flags(self):
         """Compute missing document flags using the existing compliance service.
 
