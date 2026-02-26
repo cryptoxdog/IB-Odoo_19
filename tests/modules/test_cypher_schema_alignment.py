@@ -298,7 +298,7 @@ class TestCypherParamAlignment:
             orphan_params = all_cypher_params - all_python_params
 
             # Filter out common Neo4j built-ins
-            builtins = {"facilities", "materials", "edges", "facility_ids", "nodes"}
+            builtins = {"facilities", "materials", "edges", "facility_ids", "nodes", "items"}
             orphan_params -= builtins
 
             if orphan_params:
