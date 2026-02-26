@@ -138,16 +138,17 @@ class PlasticosFacilityProfile(models.Model):
 
     # ── Process Type ──────────────────────────────────────────
     process_type = fields.Selection(
+        # Canonical codes from plasticos_facility_profile.process_codes import PROCESS_SELECTION
         [
-            ("injection", "Injection Molding"),
             ("blow_mold", "Blow Molding"),
+            ("compounding", "Compounding"),
             ("extrusion", "Extrusion"),
             ("film_blown", "Film Blown"),
             ("film_cast", "Film Cast"),
-            ("thermoform", "Thermoforming"),
-            ("rotomold", "Rotational Molding"),
-            ("compounding", "Compounding"),
+            ("injection", "Injection Molding"),
             ("other", "Other"),
+            ("rotomold", "Rotational Molding"),
+            ("thermoform", "Thermoforming"),
         ],
         help="Primary processing type at this facility.",
     )
@@ -222,6 +223,17 @@ class PlasticosFacilityProfile(models.Model):
         "Required for materials with filler_pct > 0.",
     )
 
+    # ── Embedding Readiness (Data Sparsity Control) ────────
+    embedding_ready = fields.Boolean(
+        string="Embedding Ready",
+        compute="_compute_embedding_ready",
+        store=True,
+        index=True,
+        help="True when facility has minimum structural connections "
+        "for graph embedding: at least 1 accepted polymer, "
+        "1 process type, and a state/market location.",
+    )
+
     # ═════════════════════════════════════════════════════════
     # Constraints
     # ═════════════════════════════════════════════════════════
@@ -282,6 +294,21 @@ class PlasticosFacilityProfile(models.Model):
     def _compute_form_preference(self):
         for rec in self:
             rec.form_preference = rec.form_preference_id.code if rec.form_preference_id else False
+
+    @api.depends("accepted_polymer_ids", "process_type", "partner_id.state_id")
+    def _compute_embedding_ready(self):
+        """Compute embedding readiness based on minimum structural data.
+
+        A facility profile is considered embedding-ready when it has:
+        - At least one accepted polymer
+        - A process type set
+        - A state/market location on the parent partner
+        """
+        for rec in self:
+            has_polymers = bool(rec.accepted_polymer_ids)
+            has_process = bool(rec.process_type)
+            has_market = bool(rec.partner_id.state_id)
+            rec.embedding_ready = has_polymers and has_process and has_market
 
     # ═════════════════════════════════════════════════════════
     # CRUD

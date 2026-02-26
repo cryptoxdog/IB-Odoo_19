@@ -254,7 +254,8 @@ class PlasticosGraphService(models.AbstractModel):
              END AS distance_miles
 
         // Transaction history for HISTORY score
-        OPTIONAL MATCH (supplier)-[tx:TRANSACTED_WITH]->(buyer)
+        // Schema: SOLD_TO edges link MaterialProfile→Facility (ontology v2.0)
+        OPTIONAL MATCH (supplier)-[:HAS_MATERIAL]->(sm:MaterialProfile)-[tx:SOLD_TO]->(buyer)
 
         WITH hard_gate_score, quality_score, geo_score, distance_miles,
              CASE WHEN tx IS NOT NULL THEN 1.0 ELSE 0.0 END AS history_score,
@@ -753,6 +754,15 @@ class PlasticosGraphService(models.AbstractModel):
         constraints = [
             "CREATE CONSTRAINT facility_id IF NOT EXISTS FOR (f:Facility) REQUIRE f.facility_id IS UNIQUE",
             "CREATE CONSTRAINT material_id IF NOT EXISTS FOR (m:MaterialProfile) REQUIRE m.material_id IS UNIQUE",
+            # Taxonomy node uniqueness constraints
+            "CREATE CONSTRAINT polymer_code IF NOT EXISTS FOR (p:Polymer) REQUIRE p.code IS UNIQUE",
+            "CREATE CONSTRAINT form_code IF NOT EXISTS FOR (f:MaterialForm) REQUIRE f.code IS UNIQUE",
+            "CREATE CONSTRAINT process_code IF NOT EXISTS FOR (p:ProcessType) REQUIRE p.code IS UNIQUE",
+            "CREATE CONSTRAINT color_code IF NOT EXISTS FOR (c:MaterialColor) REQUIRE c.code IS UNIQUE",
+            "CREATE CONSTRAINT filler_code IF NOT EXISTS FOR (f:FillerType) REQUIRE f.code IS UNIQUE",
+            "CREATE CONSTRAINT source_code IF NOT EXISTS FOR (s:SourceType) REQUIRE s.code IS UNIQUE",
+            "CREATE CONSTRAINT equipment_code IF NOT EXISTS FOR (e:EquipmentType) REQUIRE e.code IS UNIQUE",
+            "CREATE CONSTRAINT market_code IF NOT EXISTS FOR (m:Market) REQUIRE m.code IS UNIQUE",
         ]
         for cypher in constraints:
             try:
@@ -1004,18 +1014,604 @@ class PlasticosGraphService(models.AbstractModel):
             self._create_sync_log("material", "failed", None, str(exc))
 
     def sync_all(self, trigger="manual"):
+        """Full graph topology sync: schema, nodes, taxonomy, edges, exclusions."""
         self.initialize_schema()
+        # Phase 1: Core entity nodes
         self.sync_facility_nodes(trigger=trigger)
         self.sync_material_nodes(trigger=trigger)
+        # Phase 2: Taxonomy nodes (must precede edge creation)
+        self.sync_taxonomy_nodes(trigger=trigger)
+        # Phase 3: Facility capability edges
+        self.sync_facility_edges(trigger=trigger)
+        # Phase 4: Material classification edges
+        self.sync_material_edges(trigger=trigger)
+        # Phase 5: Transaction history edges
         self.sync_transaction_edges(trigger=trigger)
+        # Phase 6: Exclusion negative-signal edges
+        self.sync_exclusion_edges(trigger=trigger)
         self._create_sync_log("full", "success", {"trigger": trigger}, None)
 
-    def sync_transaction_edges(self, trigger="manual"):
-        """Sync TRANSACTED_WITH edges from plasticos.transaction records.
+    # ═════════════════════════════════════════════════════════
+    # Nightly Cron Entry Point
+    # ═════════════════════════════════════════════════════════
+    def _cron_nightly_graph_sync(self):
+        """Nightly cron: full graph topology sync.
 
-        Creates edges between supplier and buyer facilities with:
+        Acquires advisory lock to prevent concurrent runs.
+        """
+        self.env.cr.execute(  # cron-sudo-justification: system-level graph sync
+            "SELECT pg_try_advisory_lock(hashtext(%s))",
+            ["plasticos_buyer_match_engine.cron_nightly_graph_sync"],
+        )
+        if not self.env.cr.fetchone()[0]:
+            _logger.info("Nightly graph sync skipped: advisory lock held.")
+            return "Skipped: lock held"
+        try:
+            self.sudo().sync_all(trigger="nightly_cron")  # cron-sudo-justification: system cron needs full access
+            return "Nightly graph sync completed."
+        finally:
+            self.env.cr.execute(
+                "SELECT pg_advisory_unlock(hashtext(%s))",
+                ["plasticos_buyer_match_engine.cron_nightly_graph_sync"],
+            )
+
+    # ═════════════════════════════════════════════════════════
+    # Phase 2: Taxonomy Node Sync
+    # ═════════════════════════════════════════════════════════
+    def sync_taxonomy_nodes(self, trigger="manual"):
+        """Upsert all taxonomy master data as first-class Neo4j nodes.
+
+        Taxonomy nodes: Polymer, MaterialForm, ProcessType, MaterialColor,
+        FillerType, SourceType, EquipmentType, Market (state/region).
+        """
+        total = 0
+        total += self._sync_polymer_nodes()
+        total += self._sync_material_form_nodes()
+        total += self._sync_process_type_nodes()
+        total += self._sync_material_color_nodes()
+        total += self._sync_filler_type_nodes()
+        total += self._sync_source_type_nodes()
+        total += self._sync_equipment_type_nodes()
+        total += self._sync_market_nodes()
+        self._create_sync_log("taxonomy", "success", {"records_processed": total, "trigger": trigger}, None)
+
+    def _sync_polymer_nodes(self) -> int:
+        """Upsert Polymer taxonomy nodes from plasticos.polymer."""
+        if "plasticos.polymer" not in self.env:
+            return 0
+        records = self.env["plasticos.polymer"].search(["&", ("active", "=", True), ("code", "!=", False)])
+        if not records:
+            return 0
+        payloads = [
+            {
+                "code": r.code,
+                "name": r.name or r.code,
+                "full_name": r.full_name or "",
+                "category": r.category or "commodity",
+                "resin_id_code": r.resin_id_code or "",
+            }
+            for r in records
+        ]
+        query = """
+        UNWIND $nodes AS n
+        MERGE (p:Polymer {code: n.code})
+        SET p.name = n.name,
+            p.full_name = n.full_name,
+            p.category = n.category,
+            p.resin_id_code = n.resin_id_code,
+            p.updated_at_utc = datetime()
+        RETURN count(p) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"nodes": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("Polymer taxonomy sync failed: %s", exc)
+            return 0
+
+    def _sync_material_form_nodes(self) -> int:
+        """Upsert MaterialForm taxonomy nodes from plasticos.material.form."""
+        if "plasticos.material.form" not in self.env:
+            return 0
+        records = self.env["plasticos.material.form"].search(["&", ("active", "=", True), ("code", "!=", False)])
+        if not records:
+            return 0
+        payloads = [{"code": r.code, "name": r.name or r.code} for r in records]
+        query = """
+        UNWIND $nodes AS n
+        MERGE (f:MaterialForm {code: n.code})
+        SET f.name = n.name, f.updated_at_utc = datetime()
+        RETURN count(f) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"nodes": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("MaterialForm taxonomy sync failed: %s", exc)
+            return 0
+
+    def _sync_process_type_nodes(self) -> int:
+        """Upsert ProcessType taxonomy nodes from plasticos.process.type."""
+        if "plasticos.process.type" not in self.env:
+            return 0
+        records = self.env["plasticos.process.type"].search(["&", ("active", "=", True), ("code", "!=", False)])
+        if not records:
+            return 0
+        payloads = [{"code": r.code, "name": r.name or r.code} for r in records]
+        query = """
+        UNWIND $nodes AS n
+        MERGE (p:ProcessType {code: n.code})
+        SET p.name = n.name, p.updated_at_utc = datetime()
+        RETURN count(p) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"nodes": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("ProcessType taxonomy sync failed: %s", exc)
+            return 0
+
+    def _sync_material_color_nodes(self) -> int:
+        """Upsert MaterialColor taxonomy nodes from plasticos.material.color."""
+        if "plasticos.material.color" not in self.env:
+            return 0
+        records = self.env["plasticos.material.color"].search(["&", ("active", "=", True), ("code", "!=", False)])
+        if not records:
+            return 0
+        payloads = [{"code": r.code, "name": r.name or r.code, "hex_code": r.hex_code or ""} for r in records]
+        query = """
+        UNWIND $nodes AS n
+        MERGE (c:MaterialColor {code: n.code})
+        SET c.name = n.name, c.hex_code = n.hex_code, c.updated_at_utc = datetime()
+        RETURN count(c) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"nodes": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("MaterialColor taxonomy sync failed: %s", exc)
+            return 0
+
+    def _sync_filler_type_nodes(self) -> int:
+        """Upsert FillerType taxonomy nodes from plasticos.filler.type."""
+        if "plasticos.filler.type" not in self.env:
+            return 0
+        records = self.env["plasticos.filler.type"].search(["&", ("active", "=", True), ("code", "!=", False)])
+        if not records:
+            return 0
+        payloads = [{"code": r.code, "name": r.name or r.code} for r in records]
+        query = """
+        UNWIND $nodes AS n
+        MERGE (f:FillerType {code: n.code})
+        SET f.name = n.name, f.updated_at_utc = datetime()
+        RETURN count(f) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"nodes": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("FillerType taxonomy sync failed: %s", exc)
+            return 0
+
+    def _sync_source_type_nodes(self) -> int:
+        """Upsert SourceType taxonomy nodes from plasticos.source.type."""
+        if "plasticos.source.type" not in self.env:
+            return 0
+        records = self.env["plasticos.source.type"].search(["&", ("active", "=", True), ("code", "!=", False)])
+        if not records:
+            return 0
+        payloads = [{"code": r.code, "name": r.name or r.code} for r in records]
+        query = """
+        UNWIND $nodes AS n
+        MERGE (s:SourceType {code: n.code})
+        SET s.name = n.name, s.updated_at_utc = datetime()
+        RETURN count(s) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"nodes": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("SourceType taxonomy sync failed: %s", exc)
+            return 0
+
+    def _sync_equipment_type_nodes(self) -> int:
+        """Upsert EquipmentType taxonomy nodes from plasticos.equipment.type."""
+        if "plasticos.equipment.type" not in self.env:
+            return 0
+        records = self.env["plasticos.equipment.type"].search(["&", ("active", "=", True), ("code", "!=", False)])
+        if not records:
+            return 0
+        payloads = [{"code": r.code, "name": r.name or r.code, "category": r.category or "equipment"} for r in records]
+        query = """
+        UNWIND $nodes AS n
+        MERGE (e:EquipmentType {code: n.code})
+        SET e.name = n.name, e.category = n.category, e.updated_at_utc = datetime()
+        RETURN count(e) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"nodes": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("EquipmentType taxonomy sync failed: %s", exc)
+            return 0
+
+    def _sync_market_nodes(self) -> int:
+        """Upsert Market nodes from res.country.state (US states as markets).
+
+        Market nodes represent geographic trading regions. For US-based
+        plastics recycling, each US state is a market node.
+        """
+        State = self.env["res.country.state"]
+        us_country = self.env.ref("base.us", raise_if_not_found=False)
+        if not us_country:
+            return 0
+        states = State.search([("country_id", "=", us_country.id)])
+        if not states:
+            return 0
+        country_code = us_country.code
+        payloads = [{"code": s.code, "name": s.name, "country": country_code} for s in states]
+        query = """
+        UNWIND $nodes AS n
+        MERGE (m:Market {code: n.code})
+        SET m.name = n.name, m.country = n.country, m.updated_at_utc = datetime()
+        RETURN count(m) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"nodes": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("Market taxonomy sync failed: %s", exc)
+            return 0
+
+    # ═════════════════════════════════════════════════════════
+    # Phase 3: Facility Capability Edges
+    # ═════════════════════════════════════════════════════════
+    def sync_facility_edges(self, trigger="manual"):
+        """Materialize facility capability edges.
+
+        Edges: ACCEPTS_POLYMER, ACCEPTS_FORM, OPERATES_PROCESS,
+        HAS_EQUIPMENT, LOCATED_IN_MARKET.
+        """
+        total = 0
+        total += self._sync_accepts_polymer_edges()
+        total += self._sync_accepts_form_edges()
+        total += self._sync_operates_process_edges()
+        total += self._sync_has_equipment_edges()
+        total += self._sync_located_in_market_edges()
+        self._create_sync_log("facility_edges", "success", {"records_processed": total, "trigger": trigger}, None)
+
+    def _sync_accepts_polymer_edges(self) -> int:
+        """Create ACCEPTS_POLYMER edges: Facility -> Polymer.
+
+        Based on facility_profile.accepted_polymer_ids Many2many.
+        """
+        partners = self.env["res.partner"].search([("facility_profile_ids", "!=", False)])
+        payloads = []
+        for partner in partners:
+            for fp in partner.facility_profile_ids.filtered(lambda p: p.active):
+                for poly in fp.accepted_polymer_ids:
+                    if poly.code:
+                        payloads.append({"facility_id": partner.id, "polymer_code": poly.code})
+        if not payloads:
+            return 0
+        query = """
+        UNWIND $edges AS e
+        MATCH (fac:Facility {facility_id: e.facility_id})
+        MATCH (p:Polymer {code: e.polymer_code})
+        MERGE (fac)-[r:ACCEPTS_POLYMER]->(p)
+        SET r.updated_at_utc = datetime()
+        RETURN count(r) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"edges": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("ACCEPTS_POLYMER edge sync failed: %s", exc)
+            return 0
+
+    def _sync_accepts_form_edges(self) -> int:
+        """Create ACCEPTS_FORM edges: Facility -> MaterialForm.
+
+        Based on facility_profile.form_preference_id Many2one.
+        """
+        partners = self.env["res.partner"].search([("facility_profile_ids", "!=", False)])
+        payloads = []
+        for partner in partners:
+            for fp in partner.facility_profile_ids.filtered(lambda p: p.active):
+                if fp.form_preference_id and fp.form_preference_id.code:
+                    payloads.append({"facility_id": partner.id, "form_code": fp.form_preference_id.code})
+        if not payloads:
+            return 0
+        query = """
+        UNWIND $edges AS e
+        MATCH (fac:Facility {facility_id: e.facility_id})
+        MATCH (f:MaterialForm {code: e.form_code})
+        MERGE (fac)-[r:ACCEPTS_FORM]->(f)
+        SET r.updated_at_utc = datetime()
+        RETURN count(r) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"edges": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("ACCEPTS_FORM edge sync failed: %s", exc)
+            return 0
+
+    def _sync_operates_process_edges(self) -> int:
+        """Create OPERATES_PROCESS edges: Facility -> ProcessType.
+
+        Based on facility_profile.process_type Selection field.
+        """
+        partners = self.env["res.partner"].search([("facility_profile_ids", "!=", False)])
+        payloads = []
+        for partner in partners:
+            for fp in partner.facility_profile_ids.filtered(lambda p: p.active):
+                if fp.process_type:
+                    payloads.append({"facility_id": partner.id, "process_code": fp.process_type})
+        if not payloads:
+            return 0
+        query = """
+        UNWIND $edges AS e
+        MATCH (fac:Facility {facility_id: e.facility_id})
+        MATCH (p:ProcessType {code: e.process_code})
+        MERGE (fac)-[r:OPERATES_PROCESS]->(p)
+        SET r.updated_at_utc = datetime()
+        RETURN count(r) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"edges": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("OPERATES_PROCESS edge sync failed: %s", exc)
+            return 0
+
+    def _sync_has_equipment_edges(self) -> int:
+        """Create HAS_EQUIPMENT edges: Facility -> EquipmentType.
+
+        Based on facility_profile.equipment_type_ids Many2many.
+        """
+        partners = self.env["res.partner"].search([("facility_profile_ids", "!=", False)])
+        payloads = []
+        for partner in partners:
+            for fp in partner.facility_profile_ids.filtered(lambda p: p.active):
+                for eq in fp.equipment_type_ids:
+                    if eq.code:
+                        payloads.append({"facility_id": partner.id, "equipment_code": eq.code})
+        if not payloads:
+            return 0
+        query = """
+        UNWIND $edges AS e
+        MATCH (fac:Facility {facility_id: e.facility_id})
+        MATCH (eq:EquipmentType {code: e.equipment_code})
+        MERGE (fac)-[r:HAS_EQUIPMENT]->(eq)
+        SET r.updated_at_utc = datetime()
+        RETURN count(r) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"edges": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("HAS_EQUIPMENT edge sync failed: %s", exc)
+            return 0
+
+    def _sync_located_in_market_edges(self) -> int:
+        """Create LOCATED_IN_MARKET edges: Facility -> Market.
+
+        Based on partner.state_id (US state as market region).
+        """
+        partners = self.env["res.partner"].search([("facility_profile_ids", "!=", False), ("state_id", "!=", False)])
+        payloads = []
+        for partner in partners:
+            if partner.state_id and partner.state_id.code:
+                payloads.append({"facility_id": partner.id, "market_code": partner.state_id.code})
+        if not payloads:
+            return 0
+        query = """
+        UNWIND $edges AS e
+        MATCH (fac:Facility {facility_id: e.facility_id})
+        MATCH (m:Market {code: e.market_code})
+        MERGE (fac)-[r:LOCATED_IN_MARKET]->(m)
+        SET r.updated_at_utc = datetime()
+        RETURN count(r) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"edges": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("LOCATED_IN_MARKET edge sync failed: %s", exc)
+            return 0
+
+    # ═════════════════════════════════════════════════════════
+    # Phase 4: Material Classification Edges
+    # ═════════════════════════════════════════════════════════
+    def sync_material_edges(self, trigger="manual"):
+        """Materialize material classification edges.
+
+        Edges: IS_POLYMER, HAS_FORM, HAS_COLOR, HAS_SOURCE_TYPE.
+        """
+        total = 0
+        total += self._sync_is_polymer_edges()
+        total += self._sync_has_form_edges()
+        total += self._sync_has_color_edges()
+        total += self._sync_has_source_type_edges()
+        self._create_sync_log("material_edges", "success", {"records_processed": total, "trigger": trigger}, None)
+
+    def _sync_is_polymer_edges(self) -> int:
+        """Create IS_POLYMER edges: MaterialProfile -> Polymer."""
+        materials = self.env["plasticos.material.profile"].search([("active", "=", True), ("polymer_id", "!=", False)])
+        payloads = [
+            {"material_id": mp.id, "polymer_code": mp.polymer_id.code} for mp in materials if mp.polymer_id.code
+        ]
+        if not payloads:
+            return 0
+        query = """
+        UNWIND $edges AS e
+        MATCH (mat:MaterialProfile {material_id: e.material_id})
+        MATCH (p:Polymer {code: e.polymer_code})
+        MERGE (mat)-[r:IS_POLYMER]->(p)
+        SET r.updated_at_utc = datetime()
+        RETURN count(r) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"edges": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("IS_POLYMER edge sync failed: %s", exc)
+            return 0
+
+    def _sync_has_form_edges(self) -> int:
+        """Create HAS_FORM edges: MaterialProfile -> MaterialForm."""
+        materials = self.env["plasticos.material.profile"].search([("active", "=", True), ("form_id", "!=", False)])
+        payloads = [{"material_id": mp.id, "form_code": mp.form_id.code} for mp in materials if mp.form_id.code]
+        if not payloads:
+            return 0
+        query = """
+        UNWIND $edges AS e
+        MATCH (mat:MaterialProfile {material_id: e.material_id})
+        MATCH (f:MaterialForm {code: e.form_code})
+        MERGE (mat)-[r:HAS_FORM]->(f)
+        SET r.updated_at_utc = datetime()
+        RETURN count(r) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"edges": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("HAS_FORM edge sync failed: %s", exc)
+            return 0
+
+    def _sync_has_color_edges(self) -> int:
+        """Create HAS_COLOR edges: MaterialProfile -> MaterialColor."""
+        materials = self.env["plasticos.material.profile"].search([("active", "=", True), ("color_id", "!=", False)])
+        payloads = [{"material_id": mp.id, "color_code": mp.color_id.code} for mp in materials if mp.color_id.code]
+        if not payloads:
+            return 0
+        query = """
+        UNWIND $edges AS e
+        MATCH (mat:MaterialProfile {material_id: e.material_id})
+        MATCH (c:MaterialColor {code: e.color_code})
+        MERGE (mat)-[r:HAS_COLOR]->(c)
+        SET r.updated_at_utc = datetime()
+        RETURN count(r) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"edges": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("HAS_COLOR edge sync failed: %s", exc)
+            return 0
+
+    def _sync_has_source_type_edges(self) -> int:
+        """Create HAS_SOURCE_TYPE edges: MaterialProfile -> SourceType."""
+        materials = self.env["plasticos.material.profile"].search(
+            [("active", "=", True), ("source_type_id", "!=", False)]
+        )
+        payloads = [
+            {"material_id": mp.id, "source_code": mp.source_type_id.code} for mp in materials if mp.source_type_id.code
+        ]
+        if not payloads:
+            return 0
+        query = """
+        UNWIND $edges AS e
+        MATCH (mat:MaterialProfile {material_id: e.material_id})
+        MATCH (s:SourceType {code: e.source_code})
+        MERGE (mat)-[r:HAS_SOURCE_TYPE]->(s)
+        SET r.updated_at_utc = datetime()
+        RETURN count(r) AS cnt
+        """
+        try:
+            rows = self._execute_cypher(query, {"edges": payloads})
+            return rows[0].get("cnt", 0) if rows else len(payloads)
+        except Exception as exc:
+            _logger.warning("HAS_SOURCE_TYPE edge sync failed: %s", exc)
+            return 0
+
+    # ═════════════════════════════════════════════════════════
+    # Phase 6: Exclusion Negative-Signal Edges
+    # ═════════════════════════════════════════════════════════
+    def sync_exclusion_edges(self, trigger="manual"):
+        """Sync EXCLUDED_FROM edges from plasticos.match.exclusion.
+
+        Creates (:Facility)-[:EXCLUDED_FROM]->(:Facility) edges.
+        Removes expired/inactive exclusions from the graph.
+        """
+        if "plasticos.match.exclusion" not in self.env:
+            self._create_sync_log("exclusion", "success", {"records_processed": 0}, None)
+            return
+
+        Exclusion = self.env["plasticos.match.exclusion"]
+        today = fields.Date.today()
+
+        # Active exclusions: permanent OR temporary with future expiry
+        active_exclusions = Exclusion.search(
+            [
+                ("active", "=", True),
+                "|",
+                ("exclusion_type", "=", "permanent"),
+                "&",
+                ("exclusion_type", "=", "temporary"),
+                ("expiry_date", ">=", today),
+            ],
+            order="id ASC",
+        )
+
+        # Build active edge payloads
+        payloads = [
+            {
+                "supplier_id": exc.supplier_partner_id.id,
+                "buyer_id": exc.buyer_partner_id.id,
+                "exclusion_type": exc.exclusion_type,
+                "reason": exc.reason or "",
+                "expiry_date": exc.expiry_date.isoformat() if exc.expiry_date else None,
+            }
+            for exc in active_exclusions
+        ]
+
+        total = 0
+        if payloads:
+            upsert_query = """
+            UNWIND $edges AS e
+            MATCH (supplier:Facility {facility_id: e.supplier_id})
+            MATCH (buyer:Facility {facility_id: e.buyer_id})
+            MERGE (supplier)-[r:EXCLUDED_FROM]->(buyer)
+            SET r.exclusion_type = e.exclusion_type,
+                r.reason = e.reason,
+                r.expiry_date = e.expiry_date,
+                r.updated_at_utc = datetime()
+            RETURN count(r) AS cnt
+            """
+            try:
+                rows = self._execute_cypher(upsert_query, {"edges": payloads})
+                total = rows[0].get("cnt", 0) if rows else len(payloads)
+            except Exception as exc:
+                _logger.warning("EXCLUDED_FROM edge upsert failed: %s", exc)
+
+        # Cleanup: remove EXCLUDED_FROM edges for expired/inactive exclusions
+        cleanup_query = """
+        MATCH (s:Facility)-[r:EXCLUDED_FROM]->(b:Facility)
+        WHERE r.expiry_date IS NOT NULL AND date(r.expiry_date) < date()
+        DELETE r
+        RETURN count(r) AS removed
+        """
+        try:
+            rows = self._execute_cypher(cleanup_query)
+            removed = rows[0].get("removed", 0) if rows else 0
+            if removed:
+                _logger.info("Removed %d expired EXCLUDED_FROM edges.", removed)
+        except Exception as exc:
+            _logger.warning("EXCLUDED_FROM cleanup failed: %s", exc)
+
+        self._create_sync_log("exclusion", "success", {"records_processed": total, "trigger": trigger}, None)
+
+    def sync_transaction_edges(self, trigger="manual"):
+        """Sync SOLD_TO edges from plasticos.transaction records.
+
+        Ontology v2.0: SOLD_TO links MaterialProfile -> Facility (buyer).
+        Creates edges between supplier materials and buyer facilities with:
         - tx_count: Number of transactions between the pair
+        - total_volume_lbs: Cumulative volume across transactions
         - last_tx_date: Date of most recent transaction
+        - avg_price_per_lb: Average price per pound (if available)
         """
 
         # Check if plasticos.transaction model exists
@@ -1037,14 +1633,23 @@ class PlasticosGraphService(models.AbstractModel):
             self._create_sync_log("transaction", "success", {"records_processed": 0}, None)
             return
 
-        # Build aggregated edge payloads: {(supplier_id, buyer_id): {count, last_date}}
-        edge_data = {}
+        # Build aggregated edge payloads: {(supplier_id, buyer_id): {count, last_date, volume}}
+        edge_data: dict[tuple[int, int], dict] = {}
         for tx in transactions:
             key = (tx.supplier_id.id, tx.buyer_id.id)
             tx_date = tx.create_date.date() if tx.create_date else None
+            qty = getattr(tx, "quantity_lbs", 0) or 0
+            price = getattr(tx, "price_per_lb", 0) or 0
             if key not in edge_data:
-                edge_data[key] = {"tx_count": 0, "last_tx_date": None}
+                edge_data[key] = {
+                    "tx_count": 0,
+                    "last_tx_date": None,
+                    "total_volume_lbs": 0,
+                    "total_price_value": 0.0,
+                }
             edge_data[key]["tx_count"] += 1
+            edge_data[key]["total_volume_lbs"] += qty
+            edge_data[key]["total_price_value"] += price * qty if price and qty else 0
             if tx_date and (edge_data[key]["last_tx_date"] is None or tx_date > edge_data[key]["last_tx_date"]):
                 edge_data[key]["last_tx_date"] = tx_date
 
@@ -1054,6 +1659,10 @@ class PlasticosGraphService(models.AbstractModel):
                 "supplier_id": supplier_id,
                 "buyer_id": buyer_id,
                 "tx_count": data["tx_count"],
+                "total_volume_lbs": data["total_volume_lbs"],
+                "avg_price_per_lb": (
+                    round(data["total_price_value"] / data["total_volume_lbs"], 4) if data["total_volume_lbs"] else None
+                ),
                 "last_tx_date": data["last_tx_date"].isoformat() if data["last_tx_date"] else None,
             }
             for (supplier_id, buyer_id), data in edge_data.items()
@@ -1063,20 +1672,30 @@ class PlasticosGraphService(models.AbstractModel):
             self._create_sync_log("transaction", "success", {"records_processed": 0}, None)
             return
 
+        # Schema: SOLD_TO links MaterialProfile -> Facility (ontology v2.0)
+        # Fallback: when no MaterialProfile exists, link Facility -> Facility
         query = """
         UNWIND $edges AS e
         MATCH (supplier:Facility {facility_id: e.supplier_id})
         MATCH (buyer:Facility {facility_id: e.buyer_id})
-        MERGE (supplier)-[tx:TRANSACTED_WITH]->(buyer)
-        ON CREATE SET
-            tx.tx_count = e.tx_count,
-            tx.last_tx_date = e.last_tx_date,
-            tx.created_at_utc = datetime()
-        ON MATCH SET
-            tx.tx_count = e.tx_count,
-            tx.last_tx_date = e.last_tx_date,
-            tx.updated_at_utc = datetime()
-        RETURN count(tx) AS n
+        OPTIONAL MATCH (supplier)-[:HAS_MATERIAL]->(mat:MaterialProfile)
+        WITH supplier, buyer, e, collect(mat)[0] AS first_mat
+        FOREACH (_ IN CASE WHEN first_mat IS NOT NULL THEN [1] ELSE [] END |
+            MERGE (first_mat)-[tx:SOLD_TO]->(buyer)
+            ON CREATE SET
+                tx.tx_count = e.tx_count,
+                tx.total_volume_lbs = e.total_volume_lbs,
+                tx.avg_price_per_lb = e.avg_price_per_lb,
+                tx.last_tx_date = e.last_tx_date,
+                tx.created_at_utc = datetime()
+            ON MATCH SET
+                tx.tx_count = e.tx_count,
+                tx.total_volume_lbs = e.total_volume_lbs,
+                tx.avg_price_per_lb = e.avg_price_per_lb,
+                tx.last_tx_date = e.last_tx_date,
+                tx.updated_at_utc = datetime()
+        )
+        RETURN count(supplier) AS n
         """
         try:
             rows = self._execute_cypher(query, {"edges": payloads})

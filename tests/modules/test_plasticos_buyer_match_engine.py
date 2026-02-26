@@ -95,7 +95,7 @@ FORBIDDEN_PATTERNS = [
 
 # Neo4j ontology — node labels present in graph_service.py Cypher
 EXPECTED_NODE_LABELS = ["Facility", "MaterialProfile"]
-EXPECTED_RELATIONSHIPS = ["HAS_MATERIAL", "TRANSACTED_WITH"]
+EXPECTED_RELATIONSHIPS = ["HAS_MATERIAL", "SOLD_TO"]
 
 # Sync method names verified in graph_service.py (SHA: 10537180)
 EXPECTED_SYNC_METHODS = [
@@ -169,14 +169,14 @@ class TestModuleManifest:
         assert self.manifest["name"] == EXPECTED_NAME, f"Expected name '{EXPECTED_NAME}', got '{self.manifest['name']}'"
 
     def test_version(self):
-        assert (
-            self.manifest["version"] == EXPECTED_VERSION
-        ), f"Expected version '{EXPECTED_VERSION}', got '{self.manifest['version']}'"
+        assert self.manifest["version"] == EXPECTED_VERSION, (
+            f"Expected version '{EXPECTED_VERSION}', got '{self.manifest['version']}'"
+        )
 
     def test_version_starts_with_19(self):
-        assert self.manifest["version"].startswith(
-            "19."
-        ), f"Version must start with '19.' for Odoo 19, got '{self.manifest['version']}'"
+        assert self.manifest["version"].startswith("19."), (
+            f"Version must start with '19.' for Odoo 19, got '{self.manifest['version']}'"
+        )
 
     def test_installable(self):
         assert self.manifest.get("installable") is True
@@ -186,9 +186,9 @@ class TestModuleManifest:
 
     def test_depends_exact(self):
         declared = self.manifest.get("depends", [])
-        assert (
-            declared == EXPECTED_DEPENDS
-        ), f"Dependency mismatch.\n  Expected: {EXPECTED_DEPENDS}\n  Got:      {declared}"
+        assert declared == EXPECTED_DEPENDS, (
+            f"Dependency mismatch.\n  Expected: {EXPECTED_DEPENDS}\n  Got:      {declared}"
+        )
 
     def test_external_dependencies_python(self):
         ext = self.manifest.get("external_dependencies", {})
@@ -378,20 +378,20 @@ class TestNeo4jOntologyAlignment:
         assert self.src is not None, "models/graph_service.py not found"
 
     def test_facility_node_label(self):
-        assert (
-            ":Facility" in self.src or "(f:Facility" in self.src or "MERGE (fac:Facility" in self.src
-        ), "Facility node label not found in Cypher queries"
+        assert ":Facility" in self.src or "(f:Facility" in self.src or "MERGE (fac:Facility" in self.src, (
+            "Facility node label not found in Cypher queries"
+        )
 
     def test_material_profile_node_label(self):
-        assert (
-            ":MaterialProfile" in self.src or "(mat:MaterialProfile" in self.src
-        ), "MaterialProfile node label not found in Cypher queries"
+        assert ":MaterialProfile" in self.src or "(mat:MaterialProfile" in self.src, (
+            "MaterialProfile node label not found in Cypher queries"
+        )
 
     def test_has_material_relationship(self):
         assert "HAS_MATERIAL" in self.src, "HAS_MATERIAL relationship not found in graph_service.py"
 
-    def test_transacted_with_relationship(self):
-        assert "TRANSACTED_WITH" in self.src, "TRANSACTED_WITH relationship not found in graph_service.py"
+    def test_sold_to_relationship(self):
+        assert "SOLD_TO" in self.src, "SOLD_TO relationship not found in graph_service.py"
 
     @pytest.mark.parametrize("method", EXPECTED_SYNC_METHODS)
     def test_sync_method_exists(self, method):
@@ -411,7 +411,7 @@ class TestNeo4jOntologyAlignment:
 
     def test_transaction_edge_uses_merge(self):
         """Transaction edge sync must use MERGE for idempotency."""
-        assert "MERGE (supplier)-[tx:TRANSACTED_WITH]->(buyer)" in self.src
+        assert "MERGE (first_mat)-[tx:SOLD_TO]->(buyer)" in self.src
 
     def test_facility_has_stable_node_id(self):
         """Facility nodes must key on facility_id (stable ID, not random UUID)."""

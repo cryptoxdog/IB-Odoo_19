@@ -119,9 +119,9 @@ class TestFormEnumAlignment:
     def test_graph_service_imports_from_registry(self):
         """graph_service.py MUST import from form_codes, not hard-code literals."""
         source = GRAPH_SERVICE_PY.read_text()
-        assert (
-            "from plasticos_material_profile.form_codes import" in source
-        ), "graph_service.py does not import from form_codes registry."
+        assert "plasticos_material_profile.form_codes import" in source, (
+            "graph_service.py does not import from form_codes registry."
+        )
 
     def test_graph_service_no_hardcoded_form_literals(self):
         """graph_service.py MUST NOT contain hard-coded form code strings in Cypher.
@@ -147,23 +147,23 @@ class TestFormEnumAlignment:
                     # Allow the f-string reference but not hard-coded string
                     # Hard-coded would be: '$form = 'bales'
                     hard_coded_pattern = rf"\$form\s*=\s*'{re.escape(code)}'"
-                    assert not re.search(
-                        hard_coded_pattern, body
-                    ), f"Hard-coded form literal '{code}' found in {method_name}. Use canonical registry instead."
+                    assert not re.search(hard_coded_pattern, body), (
+                        f"Hard-coded form literal '{code}' found in {method_name}. Use canonical registry instead."
+                    )
 
     def test_facility_profile_uses_many2one(self):
         """facility_profile.py MUST use form_preference_id (Many2one), not Selection."""
         source = FACILITY_PROFILE_PY.read_text()
-        assert (
-            "form_preference_id = fields.Many2one" in source
-        ), "facility_profile.py does not use Many2one for form_preference_id."
+        assert "form_preference_id = fields.Many2one" in source, (
+            "facility_profile.py does not use Many2one for form_preference_id."
+        )
 
     def test_material_profile_imports_form_selection(self):
         """material_profile.py MUST import FORM_SELECTION from form_codes."""
         source = MATERIAL_PROFILE_PY.read_text()
-        assert (
-            "from" in source and "FORM_SELECTION" in source
-        ), "material_profile.py does not import FORM_SELECTION from form_codes."
+        assert "from" in source and "FORM_SELECTION" in source, (
+            "material_profile.py does not import FORM_SELECTION from form_codes."
+        )
 
     def test_graph_gate_covers_all_form_codes(self):
         """The generated Cypher form gate MUST cover every canonical form code.
@@ -191,9 +191,9 @@ class TestFormEnumAlignment:
 
         # Verify every code appears in the generated WHERE clause
         for code in all_codes:
-            assert (
-                f"'{code}'" in where_cypher
-            ), f"Form code '{code}' is NOT covered in the generated Cypher WHERE clause."
+            assert f"'{code}'" in where_cypher, (
+                f"Form code '{code}' is NOT covered in the generated Cypher WHERE clause."
+            )
 
         # Simulate _build_form_gate_case
         case_lines = ["WHEN $form IS NULL THEN 1.0"]
@@ -206,9 +206,9 @@ class TestFormEnumAlignment:
 
         # Verify every code appears in the generated CASE expression
         for code in all_codes:
-            assert (
-                f"'{code}'" in case_cypher
-            ), f"Form code '{code}' is NOT covered in the generated Cypher CASE expression."
+            assert f"'{code}'" in case_cypher, (
+                f"Form code '{code}' is NOT covered in the generated Cypher CASE expression."
+            )
 
     def test_no_pellet_singular_drift(self):
         """Regression: 'pellet' (singular) MUST NOT appear; canonical is 'pellets'."""
