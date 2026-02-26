@@ -1029,6 +1029,8 @@ class PlasticosGraphService(models.AbstractModel):
         self.sync_transaction_edges(trigger=trigger)
         # Phase 6: Exclusion negative-signal edges
         self.sync_exclusion_edges(trigger=trigger)
+        # Phase 7: Derived behavioral edges (revealed preferences, similarity)
+        self.sync_derived_edges(trigger=trigger)
         self._create_sync_log("full", "success", {"trigger": trigger}, None)
 
     # ═════════════════════════════════════════════════════════
@@ -1703,6 +1705,471 @@ class PlasticosGraphService(models.AbstractModel):
             self._create_sync_log("transaction", "success", {"records_processed": n, "trigger": trigger}, None)
         except Exception as exc:
             self._create_sync_log("transaction", "failed", None, str(exc))
+
+    # ═════════════════════════════════════════════════════════
+    # Phase 7: Derived Behavioral Edges
+    # ═════════════════════════════════════════════════════════
+    def sync_derived_edges(self, trigger="manual"):
+        """Sync all derived behavioral edges.
+
+        Derived edges encode revealed preferences, co-occurrence patterns,
+        offer history, polymer-process compatibility, and facility similarity.
+        Must run AFTER base nodes, taxonomy, and transaction edges.
+        """
+        self.sync_bought_polymer_edges(trigger=trigger)
+        self.sync_bought_form_edges(trigger=trigger)
+        self.sync_co_purchased_edges(trigger=trigger)
+        self.sync_offer_edges(trigger=trigger)
+        self.sync_compatible_with_edges(trigger=trigger)
+        self.sync_profile_similarity_edges(trigger=trigger)
+
+    def sync_bought_polymer_edges(self, trigger="manual"):
+        """Aggregate transactions by buyer facility + polymer.
+
+        Creates (:Facility)-[:BOUGHT_POLYMER {txn_count, total_lbs, last_date}]->(:Polymer)
+        Revealed preference signal: what buyers actually purchased.
+        """
+        if "plasticos.transaction" not in self.env:
+            return
+
+        Transaction = self.env["plasticos.transaction"]
+        txns = Transaction.search(
+            [
+                ("buyer_facility_id", "!=", False),
+                ("state", "in", ["delivered", "invoiced", "closed"]),
+            ]
+        )
+        if not txns:
+            self._create_sync_log("bought_polymer", "success", {"records_processed": 0}, None)
+            return
+
+        # Aggregate: (buyer_facility_id, polymer_code) -> {count, volume, timestamp}
+        agg: dict[tuple[int, str], dict] = {}
+        for tx in txns:
+            polymer_code = None
+            if tx.supplier_material_id and tx.supplier_material_id.polymer_id:
+                polymer_code = tx.supplier_material_id.polymer_id.code
+            if not polymer_code:
+                continue
+            fac_id = tx.buyer_facility_id.id
+            key = (fac_id, polymer_code)
+            if key not in agg:
+                agg[key] = {"count": 0, "volume": 0.0, "timestamp": None}
+            agg[key]["count"] += 1
+            qty = float(tx.quantity or 0)
+            agg[key]["volume"] += qty
+            tx_date = tx.create_date.date() if tx.create_date else None
+            if tx_date and (agg[key]["timestamp"] is None or tx_date > agg[key]["timestamp"]):
+                agg[key]["timestamp"] = tx_date
+
+        payloads = [
+            {
+                "facility_id": fac_id,
+                "polymer_code": pcode,
+                "txn_count": data["count"],
+                "total_lbs": data["volume"],
+                "last_date": data["timestamp"].isoformat() if data["timestamp"] else None,
+            }
+            for (fac_id, pcode), data in agg.items()
+        ]
+        if not payloads:
+            self._create_sync_log("bought_polymer", "success", {"records_processed": 0}, None)
+            return
+
+        query = """
+        UNWIND $items AS item
+        MATCH (f:Facility {facility_id: item.facility_id})
+        MERGE (p:Polymer {code: item.polymer_code})
+        MERGE (f)-[r:BOUGHT_POLYMER]->(p)
+        SET r.txn_count = item.txn_count,
+            r.total_lbs = item.total_lbs,
+            r.last_date = item.last_date,
+            r.updated_at_utc = datetime()
+        RETURN count(r) AS n
+        """
+        try:
+            rows = self._execute_cypher(query, {"items": payloads})
+            n = (rows[0].get("n", 0) if rows else 0) or len(payloads)
+            self._create_sync_log("bought_polymer", "success", {"records_processed": n, "trigger": trigger}, None)
+        except Exception as exc:
+            self._create_sync_log("bought_polymer", "failed", None, str(exc))
+
+    def sync_bought_form_edges(self, trigger="manual"):
+        """Aggregate transactions by buyer facility + material form.
+
+        Creates (:Facility)-[:BOUGHT_FORM {txn_count}]->(:MaterialForm)
+        Form handling behavior signal from actual transactions.
+        """
+        if "plasticos.transaction" not in self.env:
+            return
+
+        Transaction = self.env["plasticos.transaction"]
+        txns = Transaction.search(
+            [
+                ("buyer_facility_id", "!=", False),
+                ("state", "in", ["delivered", "invoiced", "closed"]),
+            ]
+        )
+        if not txns:
+            self._create_sync_log("bought_form", "success", {"records_processed": 0}, None)
+            return
+
+        agg: dict[tuple[int, str], int] = {}
+        for tx in txns:
+            form_code = None
+            if tx.supplier_material_id and tx.supplier_material_id.form_id:
+                form_code = tx.supplier_material_id.form_id.code
+            if not form_code:
+                continue
+            fac_id = tx.buyer_facility_id.id
+            key = (fac_id, form_code)
+            agg[key] = agg.get(key, 0) + 1
+
+        payloads = [
+            {"facility_id": fac_id, "form_code": fcode, "txn_count": cnt} for (fac_id, fcode), cnt in agg.items()
+        ]
+        if not payloads:
+            self._create_sync_log("bought_form", "success", {"records_processed": 0}, None)
+            return
+
+        query = """
+        UNWIND $items AS item
+        MATCH (f:Facility {facility_id: item.facility_id})
+        MERGE (mf:MaterialForm {code: item.form_code})
+        MERGE (f)-[r:BOUGHT_FORM]->(mf)
+        SET r.txn_count = item.txn_count,
+            r.updated_at_utc = datetime()
+        RETURN count(r) AS n
+        """
+        try:
+            rows = self._execute_cypher(query, {"items": payloads})
+            n = (rows[0].get("n", 0) if rows else 0) or len(payloads)
+            self._create_sync_log("bought_form", "success", {"records_processed": n, "trigger": trigger}, None)
+        except Exception as exc:
+            self._create_sync_log("bought_form", "failed", None, str(exc))
+
+    def sync_co_purchased_edges(self, trigger="manual"):
+        """Build polymer co-purchase edges from buyer transaction patterns.
+
+        If Buyer X buys both HDPE and PP, create:
+        (:Polymer)-[:CO_PURCHASED_WITH {buyer_count, jaccard}]->(:Polymer)
+        Encodes polymer substitutability from actual purchasing behavior.
+        """
+        if "plasticos.transaction" not in self.env:
+            return
+
+        Transaction = self.env["plasticos.transaction"]
+        txns = Transaction.search(
+            [
+                ("buyer_facility_id", "!=", False),
+                ("state", "in", ["delivered", "invoiced", "closed"]),
+            ]
+        )
+        if not txns:
+            self._create_sync_log("co_purchased", "success", {"records_processed": 0}, None)
+            return
+
+        # Step 1: Build buyer -> set of polymers purchased
+        buyer_polymers: dict[int, set[str]] = {}
+        for tx in txns:
+            polymer_code = None
+            if tx.supplier_material_id and tx.supplier_material_id.polymer_id:
+                polymer_code = tx.supplier_material_id.polymer_id.code
+            if not polymer_code:
+                continue
+            fac_id = tx.buyer_facility_id.id
+            buyer_polymers.setdefault(fac_id, set()).add(polymer_code)
+
+        # Step 2: Count co-occurrence pairs + compute Jaccard
+        pair_buyers: dict[tuple[str, str], int] = {}
+        polymer_buyers: dict[str, int] = {}
+        for _buyer_id, polys in buyer_polymers.items():
+            for p in polys:
+                polymer_buyers[p] = polymer_buyers.get(p, 0) + 1
+            for a in polys:
+                for b in polys:
+                    if a < b:  # alphabetical order, no self-pairs
+                        pair_buyers[(a, b)] = pair_buyers.get((a, b), 0) + 1
+
+        payloads = []
+        for (a, b), co_count in pair_buyers.items():
+            if co_count < 2:  # noise filter: at least 2 buyers
+                continue
+            union = polymer_buyers.get(a, 0) + polymer_buyers.get(b, 0) - co_count
+            jaccard = co_count / union if union > 0 else 0.0
+            payloads.append(
+                {
+                    "poly_a": a,
+                    "poly_b": b,
+                    "buyer_count": co_count,
+                    "jaccard": round(jaccard, 4),
+                }
+            )
+
+        if not payloads:
+            self._create_sync_log("co_purchased", "success", {"records_processed": 0}, None)
+            return
+
+        query = """
+        UNWIND $items AS item
+        MERGE (a:Polymer {code: item.poly_a})
+        MERGE (b:Polymer {code: item.poly_b})
+        MERGE (a)-[r:CO_PURCHASED_WITH]->(b)
+        SET r.buyer_count = item.buyer_count,
+            r.jaccard = item.jaccard,
+            r.updated_at_utc = datetime()
+        WITH a, b, item
+        MERGE (b)-[r2:CO_PURCHASED_WITH]->(a)
+        SET r2.buyer_count = item.buyer_count,
+            r2.jaccard = item.jaccard,
+            r2.updated_at_utc = datetime()
+        RETURN count(a) AS n
+        """
+        try:
+            rows = self._execute_cypher(query, {"items": payloads})
+            n = (rows[0].get("n", 0) if rows else 0) or len(payloads)
+            self._create_sync_log("co_purchased", "success", {"records_processed": n, "trigger": trigger}, None)
+        except Exception as exc:
+            self._create_sync_log("co_purchased", "failed", None, str(exc))
+
+    def sync_offer_edges(self, trigger="manual"):
+        """Build edges from plasticos.offer lifecycle data.
+
+        ACCEPTED_OFFER_FROM: positive negotiation signal with avg price.
+        REJECTED_BY: negative signal with top rejection reason.
+        Offer supplier_id/buyer_id are res.partner; we resolve to facility IDs.
+        """
+        if "plasticos.offer" not in self.env:
+            return
+
+        FacProfile = self.env["plasticos.facility.profile"]
+        Offer = self.env["plasticos.offer"]
+
+        # Build partner -> facility_id cache
+        all_profiles = FacProfile.search([("partner_id", "!=", False)])
+        partner_to_fac: dict[int, int] = {fp.partner_id.id: fp.id for fp in all_profiles}
+
+        # --- Accepted offers ---
+        accepted = Offer.search([("state", "=", "accepted")])
+        acc_agg: dict[tuple[int, int], dict] = {}
+        for offer in accepted:
+            s_fac = partner_to_fac.get(offer.supplier_id.id) if offer.supplier_id else None
+            b_fac = partner_to_fac.get(offer.buyer_id.id) if offer.buyer_id else None
+            if not s_fac or not b_fac:
+                continue
+            key = (s_fac, b_fac)
+            if key not in acc_agg:
+                acc_agg[key] = {"count": 0, "total_price": 0.0, "total_lbs": 0.0}
+            acc_agg[key]["count"] += 1
+            price = float(offer.price_per_lb or 0)
+            qty = float(offer.quantity_lbs or 0)
+            acc_agg[key]["total_price"] += price * qty
+            acc_agg[key]["total_lbs"] += qty
+
+        acc_payloads = [
+            {
+                "supplier_id": s_fac,
+                "buyer_id": b_fac,
+                "offer_count": data["count"],
+                "avg_price_per_lb": (
+                    round(data["total_price"] / data["total_lbs"], 4) if data["total_lbs"] > 0 else None
+                ),
+                "total_lbs": data["total_lbs"],
+            }
+            for (s_fac, b_fac), data in acc_agg.items()
+        ]
+
+        if acc_payloads:
+            query = """
+            UNWIND $items AS item
+            MATCH (s:Facility {facility_id: item.supplier_id})
+            MATCH (b:Facility {facility_id: item.buyer_id})
+            MERGE (b)-[r:ACCEPTED_OFFER_FROM]->(s)
+            SET r.offer_count = item.offer_count,
+                r.avg_price_per_lb = item.avg_price_per_lb,
+                r.total_lbs = item.total_lbs,
+                r.updated_at_utc = datetime()
+            RETURN count(r) AS n
+            """
+            try:
+                self._execute_cypher(query, {"items": acc_payloads})
+            except Exception as exc:
+                _logger.warning("Accepted offer edge sync failed: %s", exc)
+
+        # --- Rejected offers ---
+        rejected = Offer.search([("state", "=", "rejected")])
+        rej_agg: dict[tuple[int, int], dict] = {}
+        for offer in rejected:
+            s_fac = partner_to_fac.get(offer.supplier_id.id) if offer.supplier_id else None
+            b_fac = partner_to_fac.get(offer.buyer_id.id) if offer.buyer_id else None
+            if not s_fac or not b_fac:
+                continue
+            key = (s_fac, b_fac)
+            if key not in rej_agg:
+                rej_agg[key] = {"count": 0, "reasons": []}
+            rej_agg[key]["count"] += 1
+            reason = offer.rejection_reason
+            if reason:
+                rej_agg[key]["reasons"].append(reason)
+
+        rej_payloads = []
+        for (s_fac, b_fac), data in rej_agg.items():
+            # Top reason by frequency
+            reason_counts: dict[str, int] = {}
+            for r in data["reasons"]:
+                reason_counts[r] = reason_counts.get(r, 0) + 1
+            top_reason = max(reason_counts, key=reason_counts.get) if reason_counts else None
+            rej_payloads.append(
+                {
+                    "supplier_id": s_fac,
+                    "buyer_id": b_fac,
+                    "rejection_count": data["count"],
+                    "top_reason": top_reason,
+                }
+            )
+
+        if rej_payloads:
+            query = """
+            UNWIND $items AS item
+            MATCH (s:Facility {facility_id: item.supplier_id})
+            MATCH (b:Facility {facility_id: item.buyer_id})
+            MERGE (s)-[r:REJECTED_BY]->(b)
+            SET r.rejection_count = item.rejection_count,
+                r.top_reason = item.top_reason,
+                r.updated_at_utc = datetime()
+            RETURN count(r) AS n
+            """
+            try:
+                self._execute_cypher(query, {"items": rej_payloads})
+            except Exception as exc:
+                _logger.warning("Rejected offer edge sync failed: %s", exc)
+
+        total = len(acc_payloads) + len(rej_payloads)
+        self._create_sync_log("offer_edges", "success", {"records_processed": total, "trigger": trigger}, None)
+
+    def sync_compatible_with_edges(self, trigger="manual"):
+        """Materialize polymer-process compatibility as graph edges.
+
+        Uses MFI_RANGES from the canonical process_codes registry.
+        Creates (:Polymer)-[:COMPATIBLE_WITH {min_mfi, max_mfi}]->(:ProcessType)
+        for every polymer-process pair. Actual MFI filtering happens at match
+        time; this edge encodes that the compatibility relationship exists.
+        """
+        from odoo.addons.plasticos_facility_profile.process_codes import MFI_RANGES
+
+        payloads = [
+            {
+                "process_code": proc,
+                "min_mfi": bounds[0],
+                "max_mfi": bounds[1],
+            }
+            for proc, bounds in MFI_RANGES.items()
+        ]
+        if not payloads:
+            return
+
+        query = """
+        UNWIND $items AS w
+        MERGE (pt:ProcessType {code: w.process_code})
+        SET pt.compatible_min_mfi = w.min_mfi,
+            pt.compatible_max_mfi = w.max_mfi
+        WITH pt, w
+        MATCH (p:Polymer)
+        MERGE (p)-[r:COMPATIBLE_WITH]->(pt)
+        SET r.min_mfi = w.min_mfi,
+            r.max_mfi = w.max_mfi,
+            r.updated_at_utc = datetime()
+        RETURN count(r) AS n
+        """
+        try:
+            rows = self._execute_cypher(query, {"items": payloads})
+            n = (rows[0].get("n", 0) if rows else 0) or len(payloads)
+            self._create_sync_log("compatible_with", "success", {"records_processed": n, "trigger": trigger}, None)
+        except Exception as exc:
+            self._create_sync_log("compatible_with", "failed", None, str(exc))
+
+    def sync_profile_similarity_edges(self, trigger="manual", threshold=0.85):
+        """Compute cosine similarity between facility boolean capability profiles.
+
+        Creates (:Facility)-[:SIMILAR_PROFILE_SHAPE {cosine_sim}]->(:Facility)
+        for pairs above threshold. Cold-start fallback for sparse profiles.
+        Runs in Python (small N); for large scale, move to GDS nodeSimilarity.
+        """
+        import math
+
+        profiles = self.env["plasticos.facility.profile"].search([])
+        if len(profiles) < 2:
+            self._create_sync_log("profile_similarity", "success", {"records_processed": 0}, None)
+            return
+
+        # Boolean feature vector per facility
+        bool_fields = [
+            "has_shredder",
+            "has_granulator",
+            "has_wash_line",
+            "has_extruder",
+            "has_sorting_line",
+            "handles_regrind",
+            "handles_flake",
+            "handles_rollstock",
+            "can_remove_metal",
+            "can_filter_fr",
+            "can_reduce_moisture",
+            "food_grade_certified",
+            "medical_grade_capable",
+            "accepts_filled_materials",
+        ]
+
+        vectors: dict[int, list[float]] = {}
+        for fp in profiles:
+            vec = [1.0 if getattr(fp, field, None) else 0.0 for field in bool_fields]
+            vectors[fp.id] = vec
+
+        def _cosine(a: list[float], b: list[float]) -> float:
+            dot = sum(x * y for x, y in zip(a, b))
+            mag_a = math.sqrt(sum(x * x for x in a))
+            mag_b = math.sqrt(sum(x * x for x in b))
+            if mag_a == 0 or mag_b == 0:
+                return 0.0
+            return dot / (mag_a * mag_b)
+
+        fac_ids = list(vectors.keys())
+        payloads = []
+        for i in range(len(fac_ids)):
+            for j in range(i + 1, len(fac_ids)):
+                sim = _cosine(vectors[fac_ids[i]], vectors[fac_ids[j]])
+                if sim >= threshold:
+                    payloads.append(
+                        {
+                            "fac_a": fac_ids[i],
+                            "fac_b": fac_ids[j],
+                            "cosine_sim": round(sim, 4),
+                        }
+                    )
+
+        if not payloads:
+            self._create_sync_log("profile_similarity", "success", {"records_processed": 0}, None)
+            return
+
+        query = """
+        UNWIND $items AS item
+        MATCH (a:Facility {facility_id: item.fac_a})
+        MATCH (b:Facility {facility_id: item.fac_b})
+        MERGE (a)-[r:SIMILAR_PROFILE_SHAPE]->(b)
+        SET r.cosine_sim = item.cosine_sim,
+            r.updated_at_utc = datetime()
+        WITH a, b, item
+        MERGE (b)-[r2:SIMILAR_PROFILE_SHAPE]->(a)
+        SET r2.cosine_sim = item.cosine_sim,
+            r2.updated_at_utc = datetime()
+        RETURN count(a) AS n
+        """
+        try:
+            rows = self._execute_cypher(query, {"items": payloads})
+            n = (rows[0].get("n", 0) if rows else 0) or len(payloads)
+            self._create_sync_log("profile_similarity", "success", {"records_processed": n, "trigger": trigger}, None)
+        except Exception as exc:
+            self._create_sync_log("profile_similarity", "failed", None, str(exc))
 
     def _create_sync_log(self, sync_type, status, stats=None, error_message=None):
         Log = self.env["plasticos.graph.sync.log"].sudo()

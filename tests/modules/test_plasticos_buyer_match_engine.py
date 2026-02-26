@@ -43,6 +43,7 @@ EXPECTED_DEPENDS = [
     "plasticos_facility_profile",  # Must come before plasticos_matching (layer 6 < 7)
     "plasticos_matching",
     "plasticos_transaction",
+    "plasticos_offer",
 ]
 EXPECTED_EXTERNAL_PYTHON = ["neo4j"]
 
@@ -57,6 +58,7 @@ LAYER_ORDER = [
     "plasticos_facility_profile",
     "plasticos_matching",
     "plasticos_transaction",
+    "plasticos_offer",
     "plasticos_buyer_match_engine",
 ]
 

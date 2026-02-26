@@ -24,6 +24,7 @@
         "plasticos_facility_profile",
         "plasticos_matching",
         "plasticos_transaction",
+        "plasticos_offer",
     ],
     "data": [
         "security/ir.model.access.csv",
