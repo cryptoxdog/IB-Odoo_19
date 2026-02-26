@@ -19,6 +19,7 @@ SCHEMA ALIGNMENT (2026-02-25):
 import logging
 
 from odoo import _, api, models
+from odoo.addons.plasticos_facility_profile.process_codes import check_mfi_compatibility
 from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -185,7 +186,7 @@ class BuyerMatcher(models.Model):
         Extract material requirements from supplier intake or profile.
 
         SCHEMA ALIGNMENT (2026-02-25):
-        - intake.polymer_id (not polymer_family_id)
+        - intake.polymer_id (canonical Many2one)
         - intake.form_id (not form_factor_ids)
         - intake.color_id (not color_family_ids)
         - intake.quantity_per_load_lbs (not quantity_available)
@@ -299,7 +300,7 @@ class BuyerMatcher(models.Model):
         All gates are hard exclusions. Null-safe: missing dimension = pass.
 
         SCHEMA ALIGNMENT (2026-02-25):
-        - buyer_profile.accepted_polymer_ids (Many2many, not polymer_family_id)
+        - buyer_profile.accepted_polymer_ids (Many2many to plasticos.polymer)
         - buyer_profile.form_preference_id (Many2one to material.form; empty = any)
         - buyer_profile.accepted_color_ids (Many2many, not color_family_ids)
         - buyer_profile.min_lot_size_lbs (not min_order_quantity)
@@ -386,10 +387,9 @@ class BuyerMatcher(models.Model):
         # Gate 9: Process Type (MFI compatibility)
         material_mfi = material_req.get("mfi")
         if material_mfi is not None and buyer_profile.process_type:
-            if not self._check_mfi_process_compatibility(
-                material_req.get("polymer_code"),
-                material_mfi,
+            if not check_mfi_compatibility(
                 buyer_profile.process_type,
+                material_mfi,
             ):
                 gates_failed.append("process_type")
 
@@ -477,36 +477,5 @@ class BuyerMatcher(models.Model):
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         return R * c
 
-    @staticmethod
-    def _check_mfi_process_compatibility(polymer_code, mfi, process_type):
-        """Return True when the MFI value is compatible with *process_type*.
-
-        Ranges are industry-standard heuristics aligned with the Cypher
-        scoring logic in graph_service.py.  A ``None`` / unknown process
-        type is treated as compatible (null-safe).
-        """
-        if not process_type or not mfi:
-            return True  # null-safe: missing data = pass
-
-        # Canonical MFI ranges per process type
-        ranges = {
-            "injection": (10.0, None),  # MFI >= 10
-            "extrusion": (None, 20.0),  # MFI <= 20
-            "blow_mold": (0.5, 10.0),  # 0.5 <= MFI <= 10
-            "film_blown": (None, 5.0),  # MFI <= 5
-            "film_cast": (None, 5.0),  # MFI <= 5
-            "thermoform": (1.0, 12.0),  # 1 <= MFI <= 12
-            "rotomold": (2.0, 10.0),  # 2 <= MFI <= 10
-            "compounding": (None, None),  # any MFI
-        }
-
-        bounds = ranges.get(process_type)
-        if bounds is None:
-            return True  # unknown process type = pass
-
-        lo, hi = bounds
-        if lo is not None and mfi < lo:
-            return False
-        if hi is not None and mfi > hi:
-            return False
-        return True
+    # _check_mfi_process_compatibility removed: use check_mfi_compatibility
+    # from plasticos_facility_profile.process_codes (canonical registry).

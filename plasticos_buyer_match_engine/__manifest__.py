@@ -27,6 +27,7 @@
     ],
     "data": [
         "security/ir.model.access.csv",
+        "data/ir_cron_graph_sync.xml",
         "views/intake_button_views.xml",
         "views/match_exclusion_views.xml",
     ],

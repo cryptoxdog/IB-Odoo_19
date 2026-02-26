@@ -298,7 +298,7 @@ class TestCypherParamAlignment:
             orphan_params = all_cypher_params - all_python_params
 
             # Filter out common Neo4j built-ins
-            builtins = {"facilities", "materials", "edges", "facility_ids"}
+            builtins = {"facilities", "materials", "edges", "facility_ids", "nodes"}
             orphan_params -= builtins
 
             if orphan_params:
@@ -353,7 +353,7 @@ class TestNodePropertyConsistency:
                 "buyer": "Facility",
                 "mat": "MaterialProfile",
                 "m": "MaterialProfile",
-                "tx": "TRANSACTED_WITH",
+                "tx": "SOLD_TO",
             }
 
             for alias, props_read in read_props.items():
