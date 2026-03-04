@@ -93,8 +93,9 @@ class PlasticosDocument(models.Model):
 
     def write(self, vals):
         result = super().write(vals)
-        # Recompute if tag or active status changed (affects missing doc flags)
-        if "tag_id" in vals or "active" in vals or "x_transaction_id" in vals:
+        # Recompute if any compliance-affecting field changed
+        compliance_fields = {"tag_id", "active", "x_transaction_id", "verified", "override"}
+        if compliance_fields.intersection(vals.keys()):
             self._trigger_transaction_recompute(self)
         return result
 
@@ -102,9 +103,11 @@ class PlasticosDocument(models.Model):
         # Capture transactions before delete
         transactions = self._get_related_transactions(self)
         result = super().unlink()
-        # Trigger recompute after delete
+        # Trigger recompute after delete (both flags AND compliance)
         if transactions:
             transactions._compute_missing_doc_flags()
+            if hasattr(transactions, "_compute_compliance"):
+                transactions._compute_compliance()
         return result
 
     def _trigger_transaction_recompute(self, records):

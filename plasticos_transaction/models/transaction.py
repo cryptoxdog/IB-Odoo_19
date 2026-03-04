@@ -466,7 +466,14 @@ class PlasticosTransaction(models.Model):
                 continue
             rec.commission_amount = service.compute_commission(rec)
 
-    @api.depends("create_date", "document_ids", "document_ids.verified", "document_ids.active", "document_ids.tag_id")
+    @api.depends(
+        "create_date",
+        "document_ids",
+        "document_ids.verified",
+        "document_ids.override",
+        "document_ids.active",
+        "document_ids.tag_id",
+    )
     def _compute_compliance(self):
         """Compute compliance status based on required documents.
 
