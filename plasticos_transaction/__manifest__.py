@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Transaction Spine",
-    "version": "19.0.2.0.0",
+    "version": "19.0.2.1.0",
     "summary": "Core transaction lifecycle management with integrated commission engine",
     "author": "PlasticOS",
     "license": "LGPL-3",
@@ -29,6 +29,7 @@
         "views/transaction_bulk_update_wizard_views.xml",
         "views/transaction_bulk_assign_wizard_views.xml",
         "views/transaction_import_wizard_views.xml",
+        "views/transaction_ux.xml",
     ],
     "installable": True,
     "application": False,

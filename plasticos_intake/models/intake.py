@@ -365,12 +365,25 @@ class PlasticosIntake(models.Model):
         compute="_compute_match_count",
         store=True,
     )
+    best_match_score = fields.Float(
+        string="Best Match Score",
+        compute="_compute_best_match_score",
+        store=True,
+        help="Highest match score among all buyer matches for this intake.",
+    )
 
     @api.depends("match_line_ids", "match_line_ids.selected")
     def _compute_match_count(self):
         for rec in self:
             rec.match_count = len(rec.match_line_ids)
             rec.selected_count = len(rec.match_line_ids.filtered("selected"))
+
+    @api.depends("match_line_ids.match_score")
+    def _compute_best_match_score(self):
+        """Highest match score across all buyer match lines."""
+        for rec in self:
+            scores = rec.match_line_ids.mapped("match_score")
+            rec.best_match_score = max(scores) if scores else 0.0
 
     # ═════════════════════════════════════════════════════════
     # Computed
@@ -659,6 +672,32 @@ class PlasticosIntake(models.Model):
             "view_mode": "form",
             "res_id": self.facility_id.id,
         }
+
+    def action_view_matches(self):
+        """Navigate to the buyer match lines for this intake."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Matches — {self.name}",
+            "res_model": "plasticos.intake.match",
+            "view_mode": "list,form",
+            "domain": [("intake_id", "=", self.id)],
+            "context": {"default_intake_id": self.id},
+        }
+
+    def action_view_best_match(self):
+        """Navigate to the best-scoring buyer match line."""
+        self.ensure_one()
+        best = self.match_line_ids.sorted("match_score", reverse=True)[:1]
+        if best:
+            return {
+                "type": "ir.actions.act_window",
+                "name": f"Best Match — {self.name}",
+                "res_model": "plasticos.intake.match",
+                "view_mode": "form",
+                "res_id": best.id,
+            }
+        return self.action_view_matches()
 
     # ═════════════════════════════════════════════════════════
     # Actions

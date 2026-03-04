@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         TRANSACTION FORM UX — Smart Buttons, Margin Banners, Logistics Tab
+         Inherits: plasticos_transaction.view_transaction_form
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="transaction_form_ux" model="ir.ui.view">
+        <field name="name">plasticos.transaction.form.ux</field>
+        <field name="model">plasticos.transaction</field>
+        <field name="inherit_id" ref="plasticos_transaction.view_transaction_form"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- ═══ Smart Button Box (form doesn't have one yet) ═══ -->
+            <xpath expr="//sheet/div[@class='oe_title']" position="before">
+                <div class="oe_button_box" name="button_box">
+
+                    <!-- Supplier jump -->
+                    <button name="action_view_supplier"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-building"
+                            invisible="not supplier_id">
+                        <span class="o_stat_text">Supplier</span>
+                    </button>
+
+                    <!-- Buyer jump -->
+                    <button name="action_view_buyer"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-users"
+                            invisible="not buyer_id">
+                        <span class="o_stat_text">Buyer</span>
+                    </button>
+
+                    <!-- Load (logistics) -->
+                    <button name="action_view_load"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-truck"
+                            invisible="not load_id">
+                        <span class="o_stat_text">Load</span>
+                    </button>
+
+                    <!-- Margin indicator (non-clickable stat) -->
+                    <button class="oe_stat_button" disabled="1"
+                            icon="fa-line-chart"
+                            invisible="state == 'draft'">
+                        <div class="o_stat_info">
+                            <span class="o_stat_value">
+                                <field name="gross_margin" nolabel="1"
+                                       widget="monetary"/>
+                            </span>
+                            <span class="o_stat_text">Margin</span>
+                        </div>
+                    </button>
+
+                </div>
+            </xpath>
+
+            <!-- ═══ Margin KPI Banners (above main groups) ═══ -->
+            <xpath expr="//sheet/group[1]" position="before">
+
+                <!-- Positive margin banner -->
+                <div class="alert alert-success d-flex justify-content-between align-items-center"
+                     role="alert"
+                     invisible="gross_margin &lt;= 0 or state == 'draft'">
+                    <span>
+                        <i class="fa fa-line-chart" title="Margin"/>
+                        <strong> Gross Margin: </strong>
+                        <field name="gross_margin" nolabel="1" widget="monetary"/>
+                    </span>
+                    <span>
+                        <strong>Net: </strong>
+                        <field name="net_margin" nolabel="1" widget="monetary"/>
+                    </span>
+                </div>
+
+                <!-- Negative margin warning -->
+                <div class="alert alert-danger d-flex align-items-center"
+                     role="alert"
+                     invisible="gross_margin &gt;= 0 or state == 'draft'">
+                    <i class="fa fa-exclamation-triangle fa-lg me-2" title="Warning"/>
+                    <div>
+                        <strong>Negative Margin: </strong>
+                        <field name="gross_margin" nolabel="1" widget="monetary"/>
+                        — Review costs before closing this transaction.
+                    </div>
+                </div>
+
+            </xpath>
+
+            <!-- ═══ Add Supplier / Buyer / Carrier to Orders group ═══ -->
+            <xpath expr="//group[@string='Orders']/field[@name='load_id']" position="after">
+                <field name="supplier_id"/>
+                <field name="buyer_id"/>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         TRANSACTION LIST UX — Supplier/Buyer columns, Sensitive Defaults
+         Inherits: plasticos_transaction.view_transaction_tree
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="transaction_list_ux" model="ir.ui.view">
+        <field name="name">plasticos.transaction.tree.ux</field>
+        <field name="model">plasticos.transaction</field>
+        <field name="inherit_id" ref="plasticos_transaction.view_transaction_tree"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- Add supplier/buyer columns after name (critical context) -->
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="supplier_id" optional="show"/>
+                <field name="buyer_id" optional="show"/>
+            </xpath>
+
+            <!-- Add load reference after sale order -->
+            <xpath expr="//field[@name='sale_order_id']" position="after">
+                <field name="load_id" string="Load" optional="show"/>
+            </xpath>
+
+            <!-- Revenue columns → optional hide (sensitive data) -->
+            <xpath expr="//field[@name='revenue_total']" position="attributes">
+                <attribute name="optional">hide</attribute>
+            </xpath>
+
+            <!-- Add negative margin row decoration -->
+            <xpath expr="//list" position="attributes">
+                <attribute name="decoration-danger">gross_margin &lt; 0</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         TRANSACTION SEARCH UX — Quality filters, groupings
+         Inherits: plasticos_transaction.view_transaction_search
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="transaction_search_ux" model="ir.ui.view">
+        <field name="name">plasticos.transaction.search.ux</field>
+        <field name="model">plasticos.transaction</field>
+        <field name="inherit_id" ref="plasticos_transaction.view_transaction_search"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- Add supplier/buyer to search fields -->
+            <xpath expr="//field[@name='buyer_id']" position="after">
+                <field name="load_id"/>
+            </xpath>
+
+            <!-- Add useful quick filters -->
+            <xpath expr="//filter[@name='filter_non_compliant']" position="after">
+                <filter name="filter_negative_margin" string="Negative Margin"
+                        domain="[('gross_margin', '&lt;', 0)]"/>
+            </xpath>
+
+            <!-- Add carrier grouping -->
+            <xpath expr="//group[@name='group_by']" position="inside">
+                <filter name="group_supplier" string="Supplier"
+                        context="{'group_by': 'supplier_id'}"/>
+                <filter name="group_buyer" string="Buyer"
+                        context="{'group_by': 'buyer_id'}"/>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

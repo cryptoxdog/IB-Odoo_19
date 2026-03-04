@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         WEB LEAD FORM UX — HOT/COLD Banners, Smart Buttons, Error Alert
+         Inherits: plasticos_web_leads.view_web_lead_form
+
+         NOTE: xpath targets assume standard Odoo form layout:
+               <sheet> → <div class="oe_title"> / <div name="button_box">
+               Verify xpath targets match your actual view_web_lead_form
+               structure and adjust if needed.
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="web_lead_form_ux" model="ir.ui.view">
+        <field name="name">plasticos.web.lead.form.ux</field>
+        <field name="model">plasticos.web.lead</field>
+        <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_form"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- ═══ Temperature / Status Banners (top of sheet) ═══ -->
+            <xpath expr="//sheet" position="inside">
+                <!-- This block is prepended; we use position="before" on
+                     the first child element for correct placement -->
+            </xpath>
+
+            <xpath expr="//sheet/div[1]" position="before">
+
+                <!-- HOT Lead Banner -->
+                <div class="alert alert-success border-success border-2"
+                     role="alert"
+                     invisible="decision != 'hot'">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="fa fa-fire text-danger fa-lg" title="Hot"/>
+                            <strong class="fs-5"> HOT LEAD</strong>
+                        </span>
+                        <span class="badge bg-success fs-6"
+                              invisible="not intake_id">
+                            <i class="fa fa-check" title="Created"/> Intake Created
+                        </span>
+                        <span class="badge bg-warning text-dark fs-6"
+                              invisible="intake_id">
+                            <i class="fa fa-hourglass-half" title="Pending"/> Awaiting Intake
+                        </span>
+                    </div>
+                </div>
+
+                <!-- COLD Lead Banner -->
+                <div class="alert alert-secondary"
+                     role="alert"
+                     invisible="decision != 'cold'">
+                    <i class="fa fa-snowflake-o" title="Cold"/>
+                    <strong> COLD LEAD</strong>
+                    <span class="ms-1">— AI classified this lead as low priority. Use "Force HOT" to override.</span>
+                </div>
+
+                <!-- PENDING Banner -->
+                <div class="alert alert-info"
+                     role="alert"
+                     invisible="decision not in ('pending', False)">
+                    <i class="fa fa-hourglass-half" title="Pending"/>
+                    <strong> PENDING</strong>
+                    <span class="ms-1">— This lead has not been triaged yet.</span>
+                </div>
+
+                <!-- Error Banner (more prominent than just the tab) -->
+                <div class="alert alert-danger border-danger border-2"
+                     role="alert"
+                     invisible="state != 'error'">
+                    <i class="fa fa-exclamation-circle fa-lg" title="Error"/>
+                    <strong> Processing Error: </strong>
+                    <field name="error_message" nolabel="1" readonly="1"/>
+                </div>
+
+            </xpath>
+
+            <!-- ═══ Smart Button Box ═══ -->
+            <!-- If the form already has a button_box, use position="inside".
+                 If not, create one before the title div. -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+
+                <!-- Intake link -->
+                <button name="action_view_intake"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-flask"
+                        invisible="not intake_id">
+                    <span class="o_stat_text">Intake</span>
+                </button>
+
+                <!-- Partner link -->
+                <button name="action_view_partner"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-building"
+                        invisible="not partner_id">
+                    <span class="o_stat_text">Company</span>
+                </button>
+
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         WEB LEAD LIST UX — Decision Badge Decorations
+         Inherits: plasticos_web_leads.view_web_lead_tree
+
+         NOTE: Verify the actual list view XML ID in your web_lead_views.xml.
+               Common alternatives: view_web_lead_list, view_plasticos_web_lead_tree
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="web_lead_list_ux" model="ir.ui.view">
+        <field name="name">plasticos.web.lead.tree.ux</field>
+        <field name="model">plasticos.web.lead</field>
+        <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_tree"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- Add HOT/COLD row decorations -->
+            <xpath expr="//list" position="attributes">
+                <attribute name="decoration-success">decision == 'hot'</attribute>
+                <attribute name="decoration-muted">decision == 'cold'</attribute>
+                <attribute name="decoration-danger">state == 'error'</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

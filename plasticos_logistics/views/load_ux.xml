@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         LOAD FORM UX — Status Banners, Additional Smart Buttons, BOL Indicators
+         Inherits: plasticos_logistics.view_load_form
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="load_form_ux" model="ir.ui.view">
+        <field name="name">plasticos.load.form.ux</field>
+        <field name="model">plasticos.load</field>
+        <field name="inherit_id" ref="plasticos_logistics.view_load_form"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- ═══ Additional Smart Buttons ═══ -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+
+                <!-- Transaction link -->
+                <button name="action_view_transaction"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-exchange"
+                        invisible="not transaction_id">
+                    <span class="o_stat_text">Transaction</span>
+                </button>
+
+                <!-- Cycle Time stat (non-clickable) -->
+                <button class="oe_stat_button" disabled="1"
+                        icon="fa-clock-o"
+                        invisible="not cycle_time_hours">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="cycle_time_hours" nolabel="1"/>h
+                        </span>
+                        <span class="o_stat_text">Cycle Time</span>
+                    </div>
+                </button>
+
+            </xpath>
+
+            <!-- ═══ Status Banners (above title) ═══ -->
+            <xpath expr="//sheet/div[@class='oe_title']" position="before">
+
+                <!-- SLA Breach Alert -->
+                <div class="alert alert-danger border-danger border-3 d-flex align-items-center"
+                     role="alert"
+                     invisible="not sla_breached">
+                    <i class="fa fa-exclamation-triangle fa-lg me-2" title="Warning"/>
+                    <strong>SLA BREACHED</strong>
+                    <span class="ms-2">— This load has exceeded the delivery window. Escalate immediately.</span>
+                </div>
+
+                <!-- In-Transit Progress -->
+                <div class="alert alert-warning d-flex align-items-center"
+                     role="alert"
+                     invisible="state not in ('dispatched', 'picked_up')">
+                    <i class="fa fa-truck fa-flip-horizontal fa-lg me-2" title="In Transit"/>
+                    <strong>In Transit</strong>
+                    <span class="ms-2" invisible="not pickup_datetime">
+                        — Picked up <field name="pickup_datetime" nolabel="1" widget="date"/>
+                    </span>
+                    <span class="ms-2" invisible="not delivery_datetime">
+                        → Expected <field name="delivery_datetime" nolabel="1" widget="date"/>
+                    </span>
+                </div>
+
+                <!-- Delivered Success -->
+                <div class="alert alert-success d-flex align-items-center"
+                     role="alert"
+                     invisible="state not in ('delivered', 'closed')">
+                    <i class="fa fa-check-circle fa-lg me-2" title="Delivered"/>
+                    <strong>Delivered</strong>
+                    <span class="ms-2" invisible="not delivered_at">
+                        <field name="delivered_at" nolabel="1" widget="date"/>
+                    </span>
+                    <span class="ms-2" invisible="not cycle_time_hours">
+                        — <field name="cycle_time_hours" nolabel="1"/>h cycle
+                    </span>
+                </div>
+
+            </xpath>
+
+            <!-- ═══ BOL Completion Indicator (enhance Status tab) ═══ -->
+            <xpath expr="//page[@name='status']//group[@string='Documents']"
+                   position="replace">
+                <group string="Documents">
+                    <field name="bol_pickup_attached"/>
+                    <field name="bol_delivery_attached"/>
+                    <div colspan="2" class="mt-2">
+                        <span class="badge bg-success fs-6"
+                              invisible="not bol_pickup_attached or not bol_delivery_attached">
+                            <i class="fa fa-check-circle" title="Complete"/>
+                            All BOLs Attached
+                        </span>
+                        <span class="badge bg-warning text-dark fs-6"
+                              invisible="bol_pickup_attached and bol_delivery_attached">
+                            <i class="fa fa-exclamation-triangle" title="Missing"/>
+                            Missing BOL(s) —
+                            <span invisible="bol_pickup_attached"> Pickup</span>
+                            <span invisible="bol_delivery_attached"> Delivery</span>
+                        </span>
+                    </div>
+                </group>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         LOAD LIST UX — BOL Status, SO Reference, Cycle Time
+         Inherits: plasticos_logistics.view_load_tree
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="load_list_ux" model="ir.ui.view">
+        <field name="name">plasticos.load.tree.ux</field>
+        <field name="model">plasticos.load</field>
+        <field name="inherit_id" ref="plasticos_logistics.view_load_tree"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- Add SO reference after delivery partner -->
+            <xpath expr="//field[@name='delivery_partner_id']" position="after">
+                <field name="sale_order_id" string="SO" optional="show"/>
+            </xpath>
+
+            <!-- Add BOL status + cycle time after sla_breached -->
+            <xpath expr="//field[@name='sla_breached']" position="after">
+                <field name="bol_pickup_attached" string="BOL-P"
+                       optional="show" widget="boolean"/>
+                <field name="bol_delivery_attached" string="BOL-D"
+                       optional="show" widget="boolean"/>
+                <field name="cycle_time_hours" string="Cycle (h)"
+                       optional="hide"/>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         LOAD KANBAN UX — BOL indicator on cards
+         Inherits: plasticos_logistics.view_load_kanban
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="load_kanban_ux" model="ir.ui.view">
+        <field name="name">plasticos.load.kanban.ux</field>
+        <field name="model">plasticos.load</field>
+        <field name="inherit_id" ref="plasticos_logistics.view_load_kanban"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- Register BOL fields in kanban -->
+            <xpath expr="//kanban/field[@name='sla_breached']" position="after">
+                <field name="bol_pickup_attached"/>
+                <field name="bol_delivery_attached"/>
+            </xpath>
+
+            <!-- Add BOL status to bottom-right of card -->
+            <xpath expr="//div[hasclass('oe_kanban_bottom_right')]" position="inside">
+                <span t-if="!record.bol_pickup_attached.raw_value || !record.bol_delivery_attached.raw_value"
+                      class="badge bg-warning text-dark ms-1" title="Missing BOL(s)">
+                    <i class="fa fa-file-text-o" title="Missing BOL"/>!
+                </span>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

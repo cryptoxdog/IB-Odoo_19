@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Material Profile",
-    "version": "19.0.5.0.0",
+    "version": "19.0.5.1.0",
     "summary": "Canonical material master registries: polymer, form, color, source, process",
     "license": "LGPL-3",
     "author": "PlasticOS",
@@ -29,6 +29,7 @@
         "views/source_type_views.xml",
         "views/process_type_views.xml",
         "views/material_profile_views.xml",
+        "views/material_profile_ux.xml",
     ],
     "installable": True,
     "application": False,

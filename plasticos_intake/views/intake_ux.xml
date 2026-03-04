@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         INTAKE FORM UX — Banners, Enhanced Smart Buttons, Progress Bars
+         Inherits: plasticos_intake.view_plasticos_intake_form
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="intake_form_ux" model="ir.ui.view">
+        <field name="name">plasticos.intake.form.ux</field>
+        <field name="model">plasticos.intake</field>
+        <field name="inherit_id" ref="plasticos_intake.view_plasticos_intake_form"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- ═══ Additional Smart Buttons ═══ -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+
+                <!-- Match Count (numeric drilldown) -->
+                <button name="action_view_matches"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-handshake-o"
+                        invisible="match_count == 0">
+                    <field name="match_count"
+                           string="Matches"
+                           widget="statinfo"/>
+                </button>
+
+                <!-- Best Match Score (trophy) -->
+                <button name="action_view_best_match"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-trophy"
+                        invisible="best_match_score == 0">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="best_match_score" nolabel="1"/>%
+                        </span>
+                        <span class="o_stat_text">Best Match</span>
+                    </div>
+                </button>
+
+            </xpath>
+
+            <!-- ═══ Volume KPI Banner (above notebook) ═══ -->
+            <xpath expr="//notebook" position="before">
+                <div class="alert alert-info d-flex justify-content-between align-items-center"
+                     role="alert"
+                     invisible="not quantity_per_load_lbs">
+                    <span>
+                        <i class="fa fa-balance-scale" title="Volume"/>
+                        <strong> Est. Monthly Volume: </strong>
+                        <field name="quantity_per_load_lbs" nolabel="1"/> lbs/load
+                        × <field name="loads_per_month" nolabel="1"/> loads/mo
+                    </span>
+                    <span class="badge bg-primary fs-6"
+                          invisible="match_count == 0">
+                        <i class="fa fa-handshake-o" title="Matches"/>
+                        <field name="match_count" nolabel="1"/> buyer matches
+                    </span>
+                </div>
+            </xpath>
+
+            <!-- ═══ Best-Match Trophy Banner inside Buyer Matches tab ═══ -->
+            <xpath expr="//page[@string='Buyer Matches']//group" position="before">
+                <div class="alert alert-success d-flex align-items-center"
+                     role="alert"
+                     invisible="best_match_score == 0">
+                    <i class="fa fa-trophy text-warning fa-lg me-2" title="Best Match"/>
+                    <div class="flex-grow-1">
+                        <strong>Best Match Score</strong>
+                    </div>
+                    <div style="width: 200px;">
+                        <field name="best_match_score" nolabel="1"
+                               widget="progressbar"/>
+                    </div>
+                </div>
+            </xpath>
+
+            <!-- ═══ Match Score → progressbar widget in match lines ═══ -->
+            <xpath expr="//field[@name='match_line_ids']//list/field[@name='match_score']"
+                   position="attributes">
+                <attribute name="widget">progressbar</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         INTAKE LIST UX — Best Match Column, Optional Tweaks
+         Inherits: plasticos_intake.view_plasticos_intake_tree
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="intake_list_ux" model="ir.ui.view">
+        <field name="name">plasticos.intake.tree.ux</field>
+        <field name="model">plasticos.intake</field>
+        <field name="inherit_id" ref="plasticos_intake.view_plasticos_intake_tree"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- Add best_match_score after match_count -->
+            <xpath expr="//field[@name='match_count']" position="after">
+                <field name="best_match_score" string="Best %"
+                       widget="progressbar" optional="show"/>
+            </xpath>
+
+            <!-- Promote lead_source to optional show (was hide) -->
+            <xpath expr="//field[@name='lead_source']" position="attributes">
+                <attribute name="optional">show</attribute>
+            </xpath>
+
+            <!-- Promote contact to optional show (was hide) -->
+            <xpath expr="//field[@name='contact_id']" position="attributes">
+                <attribute name="optional">show</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         INTAKE KANBAN UX — Trophy Badge, Score Badge
+         Inherits: plasticos_intake.view_plasticos_intake_kanban
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="intake_kanban_ux" model="ir.ui.view">
+        <field name="name">plasticos.intake.kanban.ux</field>
+        <field name="model">plasticos.intake</field>
+        <field name="inherit_id" ref="plasticos_intake.view_plasticos_intake_kanban"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- Register best_match_score field in kanban -->
+            <xpath expr="//kanban/field[@name='match_count']" position="after">
+                <field name="best_match_score"/>
+            </xpath>
+
+            <!-- Enhance match badges with best score trophy -->
+            <xpath expr="//div[hasclass('o_kanban_record_body')]" position="inside">
+                <div t-if="record.match_count.raw_value" class="mt-1">
+                    <span class="badge bg-success">
+                        <i class="fa fa-handshake-o" title="Matches"/>
+                        <field name="match_count"/> matches
+                    </span>
+                    <span t-if="record.best_match_score.raw_value" class="badge bg-warning text-dark ms-1">
+                        <i class="fa fa-trophy" title="Best Score"/>
+                        <field name="best_match_score"/>%
+                    </span>
+                </div>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

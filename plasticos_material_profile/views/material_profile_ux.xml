@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         MATERIAL PROFILE FORM UX — Quality Banners, Progressbar Widgets
+         Inherits: plasticos_material_profile.view_material_profile_form
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="material_profile_form_ux" model="ir.ui.view">
+        <field name="name">plasticos.material.profile.form.ux</field>
+        <field name="model">plasticos.material.profile</field>
+        <field name="inherit_id" ref="plasticos_material_profile.view_material_profile_form"/>
+        <field name="priority">15</field>
+        <field name="arch" type="xml">
+
+            <!-- ═══ Quality Warning Banners (above notebook) ═══ -->
+            <xpath expr="//notebook" position="before">
+
+                <!-- High contamination warning (>5%) -->
+                <div class="alert alert-warning d-flex align-items-center"
+                     role="alert"
+                     invisible="contamination_percent &lt;= 5">
+                    <i class="fa fa-exclamation-triangle fa-lg me-2 text-warning" title="Warning"/>
+                    <div>
+                        <strong>High Contamination: </strong>
+                        <field name="contamination_percent" nolabel="1"/>%
+                        <span class="ms-1">— This may limit buyer matching and reduce pricing.</span>
+                    </div>
+                </div>
+
+                <!-- Flame retardant hazard (restricted material) -->
+                <div class="alert alert-danger border-danger border-2 d-flex align-items-center"
+                     role="alert"
+                     invisible="not has_fr">
+                    <i class="fa fa-fire-extinguisher fa-lg me-2" title="Flame Retardant"/>
+                    <div>
+                        <strong>Contains Flame Retardant</strong>
+                        <span class="ms-1">— Restricted material. Limited buyer pool. Requires special handling.</span>
+                    </div>
+                </div>
+
+                <!-- Metal contamination warning -->
+                <div class="alert alert-warning d-flex align-items-center"
+                     role="alert"
+                     invisible="not has_metal">
+                    <i class="fa fa-magnet fa-lg me-2" title="Metal Detected"/>
+                    <div>
+                        <strong>Metal Contamination Detected</strong>
+                        <span class="ms-1">— Buyer may require metal detection certification.</span>
+                    </div>
+                </div>
+
+            </xpath>
+
+            <!-- ═══ Progressbar widgets for percentage fields ═══ -->
+            <!-- NOTE: These xpaths target fields inside the Quality tab.
+                 Adjust the xpath if your form uses a different page name
+                 or field placement. Common patterns:
+                   //page[@string='Quality']//field[@name='contamination_percent']
+                   //field[@name='contamination_percent']
+            -->
+
+            <xpath expr="//field[@name='contamination_percent']" position="attributes">
+                <attribute name="widget">progressbar</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='moisture_percent']" position="attributes">
+                <attribute name="widget">progressbar</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         MATERIAL PROFILE LIST UX — Quality Flag Columns
+         Inherits: plasticos_material_profile.view_material_profile_tree
+
+         NOTE: Verify the actual list view XML ID. Common alternatives:
+               view_material_profile_list, view_plasticos_material_profile_tree
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="material_profile_list_ux" model="ir.ui.view">
+        <field name="name">plasticos.material.profile.tree.ux</field>
+        <field name="model">plasticos.material.profile</field>
+        <field name="inherit_id" ref="plasticos_material_profile.view_material_profile_tree"/>
+        <field name="priority">15</field>
+        <field name="arch" type="xml">
+
+            <!-- Add quality flag columns -->
+            <xpath expr="//field[@name='contamination_percent']" position="after">
+                <field name="has_fr" string="FR" optional="show" widget="boolean"/>
+                <field name="has_metal" string="Metal" optional="show" widget="boolean"/>
+            </xpath>
+
+            <!-- Row decorations for restricted materials -->
+            <xpath expr="//list" position="attributes">
+                <attribute name="decoration-danger">has_fr</attribute>
+                <attribute name="decoration-warning">contamination_percent &gt; 5</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Logistics Engine",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.1.0",
     "summary": "Load management and dispatch",
     "author": "PlasticOS",
     "license": "LGPL-3",
@@ -12,6 +12,7 @@
         "views/load_views.xml",
         "views/sale_order_button.xml",
         "views/load_bulk_update_wizard_views.xml",
+        "views/load_ux.xml",
         "report/load_reports.xml",
         "report/report_bol_pickup.xml",
         "report/report_bol_delivery.xml",
