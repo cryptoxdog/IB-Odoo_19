@@ -12,7 +12,7 @@ class PlasticosTransactionDocs(models.Model):
     # ── Document Link (R2 fix: enables real-time flag updates) ─────
     x_document_ids = fields.One2many(
         "plasticos.document",
-        "x_transaction_id",
+        "transaction_id",
         string="Documents",
         help="Documents linked to this transaction.",
     )
@@ -151,10 +151,10 @@ class PlasticosTransactionDocs(models.Model):
                     order="id ASC",
                 )
                 for rule in rules:
-                    if hasattr(rule, "x_overdue_business_days") and rule.x_overdue_business_days:
-                        overdue_threshold = min(overdue_threshold, rule.x_overdue_business_days)
-                    if hasattr(rule, "x_escalation_business_days") and rule.x_escalation_business_days:
-                        escalation_threshold = min(escalation_threshold, rule.x_escalation_business_days)
+                    if hasattr(rule, "overdue_business_days") and rule.overdue_business_days:
+                        overdue_threshold = min(overdue_threshold, rule.overdue_business_days)
+                    if hasattr(rule, "escalation_business_days") and rule.escalation_business_days:
+                        escalation_threshold = min(escalation_threshold, rule.escalation_business_days)
 
                 if bd >= escalation_threshold:
                     new_status = "escalated"
@@ -287,10 +287,10 @@ class PlasticosTransactionDocs(models.Model):
             overdue_bd = 2  # Default: 48h = 2 business days
             escalation_bd = 7  # Default: 7 business days
             if scale_rule:
-                if scale_rule.x_overdue_business_days:
-                    overdue_bd = scale_rule.x_overdue_business_days
-                if scale_rule.x_escalation_business_days:
-                    escalation_bd = scale_rule.x_escalation_business_days
+                if scale_rule.overdue_business_days:
+                    overdue_bd = scale_rule.overdue_business_days
+                if scale_rule.escalation_business_days:
+                    escalation_bd = scale_rule.escalation_business_days
 
             # Get logistics manager group for escalation
             logistics_group = self.env.ref("plasticos_logistics.group_logistics_manager", raise_if_not_found=False)
@@ -303,7 +303,7 @@ class PlasticosTransactionDocs(models.Model):
                 # Check if scale ticket already exists
                 has_scale_ticket = self.env["plasticos.document"].search_count(
                     [
-                        ("x_transaction_id", "=", tx.id),
+                        ("transaction_id", "=", tx.id),
                         ("tag_id", "=", scale_ticket_tag.id),
                         ("active", "=", True),
                     ]

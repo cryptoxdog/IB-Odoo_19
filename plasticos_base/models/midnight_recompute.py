@@ -1,14 +1,14 @@
 """Midnight recompute service for time-based stored computed fields.
 
 Problem: Odoo's @api.depends can't depend on "time" — only field changes.
-Fields like x_is_expired, days_open, is_overdue depend on "today" or "now"
+Fields like is_expired, days_open, is_overdue depend on "today" or "now"
 but won't auto-update at midnight.
 
 Solution: This cron runs at 00:05 daily and recomputes all time-sensitive
 stored fields so they're accurate for the new day.
 
 Fields handled:
-- plasticos.document.x_is_expired
+- plasticos.document.is_expired
 - plasticos.claim.days_open
 - plasticos.claim.is_overdue
 """
@@ -50,11 +50,11 @@ class PlasticosMidnightRecompute(models.AbstractModel):
             )
 
     def _recompute_document_expiry(self):
-        """Recompute x_is_expired for documents with expiry dates.
+        """Recompute is_expired for documents with expiry dates.
 
         Only touches documents where expiry status may have changed:
-        - x_expiry_date <= today AND x_is_expired = False (newly expired)
-        - x_expiry_date > today AND x_is_expired = True (incorrectly marked)
+        - expiry_date <= today AND is_expired = False (newly expired)
+        - expiry_date > today AND is_expired = True (incorrectly marked)
         """
         Document = self.env.get("plasticos.document")
         if not Document:
@@ -66,8 +66,8 @@ class PlasticosMidnightRecompute(models.AbstractModel):
         # Find documents that should now be expired but aren't marked
         newly_expired = Document.search(
             [
-                ("x_expiry_date", "<=", today),
-                ("x_is_expired", "=", False),
+                ("expiry_date", "<=", today),
+                ("is_expired", "=", False),
                 ("active", "=", True),
             ],
             order="id ASC",
@@ -76,13 +76,13 @@ class PlasticosMidnightRecompute(models.AbstractModel):
         if newly_expired:
             # Trigger recompute by calling the compute method
             newly_expired._compute_is_expired()
-            _logger.info("Recomputed x_is_expired for %d newly expired documents.", len(newly_expired))
+            _logger.info("Recomputed is_expired for %d newly expired documents.", len(newly_expired))
 
         # Find documents incorrectly marked as expired (edge case: expiry date extended)
         incorrectly_expired = Document.search(
             [
-                ("x_expiry_date", ">", today),
-                ("x_is_expired", "=", True),
+                ("expiry_date", ">", today),
+                ("is_expired", "=", True),
                 ("active", "=", True),
             ],
             order="id ASC",
@@ -90,7 +90,7 @@ class PlasticosMidnightRecompute(models.AbstractModel):
         )
         if incorrectly_expired:
             incorrectly_expired._compute_is_expired()
-            _logger.info("Corrected x_is_expired for %d documents.", len(incorrectly_expired))
+            _logger.info("Corrected is_expired for %d documents.", len(incorrectly_expired))
 
     def _recompute_claim_time_fields(self):
         """Recompute days_open and is_overdue for active claims.

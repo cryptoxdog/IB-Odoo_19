@@ -17,10 +17,10 @@
             <field name="res_model">plasticos.transaction</field>
             <field name="required_for_invoice">False</field>
             <field name="required_for_close">True</field>
-            <field name="x_doc_category">carrier</field>
-            <field name="x_overdue_business_days">2</field>
-            <field name="x_escalation_business_days">7</field>
-            <field name="x_required_for_dispatch">False</field>
+            <field name="doc_category">carrier</field>
+            <field name="overdue_business_days">2</field>
+            <field name="escalation_business_days">7</field>
+            <field name="required_for_dispatch">False</field>
         </record>
 
         <!-- ══════════════════════════════════════════════════════════

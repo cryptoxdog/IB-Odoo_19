@@ -14,7 +14,7 @@ class PlasticosDocumentRule(models.Model):
     active = fields.Boolean(default=True)
 
     # ── Extended Rule Conditions ───────────────────────────────────
-    x_doc_category = fields.Selection(
+    doc_category = fields.Selection(
         [
             ("supplier", "Supplier Document"),
             ("carrier", "Carrier Document"),
@@ -24,17 +24,17 @@ class PlasticosDocumentRule(models.Model):
         string="Document Category",
         help="Category of document this rule applies to.",
     )
-    x_overdue_business_days = fields.Integer(
+    overdue_business_days = fields.Integer(
         string="Overdue After (Business Days)",
         default=1,
         help="Number of business days after which a missing document is considered overdue.",
     )
-    x_escalation_business_days = fields.Integer(
+    escalation_business_days = fields.Integer(
         string="Escalate After (Business Days)",
         default=5,
         help="Number of business days after which a missing document triggers escalation.",
     )
-    x_required_for_dispatch = fields.Boolean(
+    required_for_dispatch = fields.Boolean(
         string="Required for Dispatch",
         default=False,
         help="Whether this document is required before load dispatch.",

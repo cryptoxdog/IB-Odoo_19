@@ -28,11 +28,11 @@ class PlasticosDocument(models.Model):
     active = fields.Boolean(default=True)
 
     # ── Expiry Tracking ────────────────────────────────────────────
-    x_expiry_date = fields.Date(
+    expiry_date = fields.Date(
         string="Expiry Date",
         help="Date after which this document is no longer valid.",
     )
-    x_is_expired = fields.Boolean(
+    is_expired = fields.Boolean(
         string="Expired",
         compute="_compute_is_expired",
         store=True,
@@ -40,24 +40,24 @@ class PlasticosDocument(models.Model):
     )
 
     # ── Versioning ─────────────────────────────────────────────────
-    x_version = fields.Integer(
+    version = fields.Integer(
         string="Version",
         default=1,
         help="Document version number. Incremented on re-upload.",
     )
-    x_superseded_by = fields.Many2one(
+    superseded_by = fields.Many2one(
         "plasticos.document",
         string="Superseded By",
         help="Reference to the newer version of this document.",
     )
-    x_is_current = fields.Boolean(
+    is_current = fields.Boolean(
         string="Current Version",
         default=True,
         help="Whether this is the current (latest) version of the document.",
     )
 
     # ── Transaction Link ───────────────────────────────────────────
-    x_transaction_id = fields.Many2one(
+    transaction_id = fields.Many2one(
         "plasticos.transaction",
         string="Transaction",
         index=True,
@@ -65,7 +65,7 @@ class PlasticosDocument(models.Model):
     )
 
     # ── Document Category ──────────────────────────────────────────
-    x_doc_category = fields.Selection(
+    doc_category = fields.Selection(
         [
             ("supplier", "Supplier Document"),
             ("carrier", "Carrier Document"),
@@ -76,14 +76,14 @@ class PlasticosDocument(models.Model):
         help="Classification of the document by party responsible.",
     )
 
-    @api.depends("x_expiry_date")
+    @api.depends("expiry_date")
     def _compute_is_expired(self):
         today = fields.Date.today()
         for rec in self:
-            if rec.x_expiry_date:
-                rec.x_is_expired = rec.x_expiry_date < today
+            if rec.expiry_date:
+                rec.is_expired = rec.expiry_date < today
             else:
-                rec.x_is_expired = False
+                rec.is_expired = False
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -94,7 +94,7 @@ class PlasticosDocument(models.Model):
     def write(self, vals):
         result = super().write(vals)
         # Recompute if any compliance-affecting field changed
-        compliance_fields = {"tag_id", "active", "x_transaction_id", "verified", "override"}
+        compliance_fields = {"tag_id", "active", "transaction_id", "verified", "override"}
         if compliance_fields.intersection(vals.keys()):
             self._trigger_transaction_recompute(self)
         return result
@@ -126,15 +126,15 @@ class PlasticosDocument(models.Model):
     def _get_related_transactions(self, records):
         """Find all transactions related to the given document records.
 
-        Handles both direct link (x_transaction_id) and polymorphic link (res_model/res_id).
+        Handles both direct link (transaction_id) and polymorphic link (res_model/res_id).
         """
         tx_model = self.env["plasticos.transaction"]
         tx_ids = set()
 
         for record in records:
             # Direct link
-            if record.x_transaction_id:
-                tx_ids.add(record.x_transaction_id.id)
+            if record.transaction_id:
+                tx_ids.add(record.transaction_id.id)
 
             # Polymorphic link: document on transaction directly
             if record.res_model == "plasticos.transaction":
@@ -178,12 +178,12 @@ class PlasticosDocument(models.Model):
     def action_supersede(self, new_doc_id):
         """Mark this document as superseded by a newer version."""
         for rec in self:
-            rec.x_is_current = False
-            rec.x_superseded_by = new_doc_id
+            rec.is_current = False
+            rec.superseded_by = new_doc_id
             _logger.info(
                 "Document %s (v%d) superseded by document %s",
                 rec.name,
-                rec.x_version,
+                rec.version,
                 new_doc_id,
             )
 
@@ -192,7 +192,7 @@ class PlasticosDocument(models.Model):
         """Batch compliance audit: flag verified documents that have expired.
 
         Called by the scheduled action ``cron_document_compliance_check``.
-        Resets ``verified`` on any document whose ``x_is_expired`` is True
+        Resets ``verified`` on any document whose ``is_expired`` is True
         so that the compliance service no longer considers them valid.
         """
         self.env.cr.execute(
@@ -207,7 +207,7 @@ class PlasticosDocument(models.Model):
             expired = self.search(
                 [
                     ("verified", "=", True),
-                    ("x_is_expired", "=", True),
+                    ("is_expired", "=", True),
                     ("active", "=", True),
                 ],
                 order="write_date ASC, id ASC",

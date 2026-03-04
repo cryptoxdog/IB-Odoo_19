@@ -195,7 +195,7 @@ class TestScaleTicketCron(TransactionCase):
             {
                 "name": "Scale Ticket Test",
                 "tag_id": self.scale_tag.id,
-                "x_transaction_id": tx.id,
+                "transaction_id": tx.id,
             }
         )
 
