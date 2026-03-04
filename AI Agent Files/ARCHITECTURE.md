@@ -49,6 +49,38 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 └─────────────────────────────────────────────────┘
 ```
 
+## Module Index (25 Odoo Modules)
+
+| # | Module | Layer | Summary |
+|---|--------|-------|---------|
+| 1 | `plasticos_base` | 1 | Core seed data: partner tags, sales reps, material taxonomy |
+| 2 | `plasticos_security_base` | 1 | RBAC roles, record rules, private-partner flag |
+| 3 | `plasticos_material_profile` | 1 | Canonical material master: polymer, form, color, source, process |
+| 4 | `plasticos_product` | 1 | Scrap plastic product catalog with polymer-synced products |
+| 5 | `plasticos_facility_profile` | 2 | Facility capability profiles: equipment, tolerances, BCP |
+| 6 | `plasticos_intake` | 2 | Material intake with contact intelligence |
+| 7 | `plasticos_intake_normalizer` | 2 | Schema-driven intake normalization for L9 packets |
+| 8 | `plasticos_matching` | 2 | Match result storage for intake-to-buyer matching |
+| 9 | `plasticos_buyer_match_engine` | 2 | 10-gate filtering + Neo4j graph scoring |
+| 10 | `plasticos_geolocalize` | 2 | Auto-geocode partners + nightly backfill cron |
+| 11 | `plasticos_accounting` | 3 | Chart of accounts, payment terms, incoterms seed |
+| 12 | `plasticos_offer` | 3 | Offer lifecycle: match → negotiation → deal |
+| 13 | `plasticos_order_lines` | 3 | Extend PO/SO lines with full material specifications |
+| 14 | `plasticos_automation` | 3 | Workflow automation: approvals, reminders, SLA monitoring |
+| 15 | `plasticos_transaction` | 5 | Transaction spine + commission engine |
+| 16 | `plasticos_logistics` | 5 | Load management, BOL generation, dispatch |
+| 17 | `plasticos_documents` | 4 | Document validation matrices, compliance tracking |
+| 18 | `plasticos_documents_native` | 4 | Bridge to Odoo Enterprise Documents with AI auto-sort |
+| 19 | `plasticos_claims` | 5 | QC cases, claims, chargebacks, compliance workflows |
+| 20 | `plasticos_web_leads` | 2 | AI-powered web lead triage: Cognito → LLM → HOT/COLD |
+| 21 | `plasticos_enrichment` | 2 | AI-powered web intelligence extraction for buyer profiles |
+| 22 | `plasticos_enrichment_bridge` | 2 | Bridge to external Enrichment API for CRM leads |
+| 23 | `plasticos_inference_engine` | 2 | Deterministic polymer inference from YAML knowledge base |
+| 24 | `plasticos_partner_import` | 3 | Partner import wizard with validation |
+| 25 | `plasticos_dev_tools` | — | Dev-only: audit scripts, integrity checks, validators |
+
+**Note:** 4 additional directories (`plasticos_graph_*`) exist but are non-Odoo Python packages (no `__manifest__.py`).
+
 ## Module Dependency Graph (Extracted from Manifests)
 
 ### Layer 1: Material Foundation
@@ -589,9 +621,281 @@ services:
 - Load fulfillment time
 - Document compliance rate
 
+## Odoo 19 Stabilization Fixes (2026-02-25)
+
+Applied as part of the PlasticOS Odoo 19 Fix & Hardening GMP. These changes ensure clean install/upgrade, passing buyer-match tests, and ACL-safe cron execution.
+
+### A. plasticos_base — Service User & Security XML
+
+**Status**: Already compliant; no code changes.
+
+- **service_user.xml**: Defines `user_system_cron` with only valid Odoo 19 `res.users` fields: `name`, `login`, `password`, `active`, `share`, `company_id`, `company_ids`. No `groups_id` or privilege assignment in XML.
+- **sales_reps.xml**: Defines sales rep users with same valid fields; no `groups_id` or `users` on `res.groups`. Group assignment is done via Settings > Users > Access Rights or via the post_init_hook (see C).
+
+**Invariants**: No deprecated `groups_id` on `res.users`; no `users` on `res.groups` in XML.
+
+### B. Tests — plasticos_buyer_match_engine
+
+**Files**: `plasticos_buyer_match_engine/tests/test_matcher.py`
+
+**Fixes applied**:
+
+1. **Get-or-create for master data** (avoids `UniqueViolation` on module load):
+   - Polymer (hdpe, pp), material form (bales), material color (natural), source type (pcr, pir) are searched first; `create()` is called only if no record exists. Prevents duplicate key errors when demo data or other modules already created these records.
+
+2. **Required `form_id` on material profile creates** (avoids `NotNullViolation`):
+   - `plasticos.material.profile` has `form_id` required in DB. All test methods that create a material profile now include `form_id: self.form_bales.id`.
+   - Affected tests:
+     - `test_action_match_to_buyers_with_material_profile`
+     - `test_action_match_to_buyers_uses_match_mode_strict`
+     - `test_action_match_to_buyers_uses_match_mode_relaxed`
+     - `test_action_match_to_buyers_returns_action_window`
+
+**Pattern for new tests**: When creating `plasticos.material.profile`, always set `form_id` (and optionally `color_id`, `source_type_id`) from setUp’s get-or-create master data.
+
+### C. Crons — ACL-Safe Execution
+
+**Problem**: Crons run as `user_system_cron`, which had no group memberships. Access to `plasticos.enrichment.source`, `plasticos.document.rule`, and `plasticos.claim` requires Enrichment/Documents/Claims groups, causing ACL errors when crons executed.
+
+**Solution**: Keep all `ir.cron` records referencing `plasticos_base.user_system_cron` (repo invariant CRON304). Grant the required groups to that user via a **post-install hook** instead of changing cron `user_id` to `base.user_admin`.
+
+**Files**:
+
+- **plasticos_base/hooks.py** (new): Defines `post_init_hook(env)`.
+  - Resolves `plasticos_base.user_system_cron`.
+  - Adds manager groups if the corresponding modules are installed:
+    - `plasticos_enrichment.group_enrichment_manager` (enrichment crons)
+    - `plasticos_documents.group_documents_manager` (document crons)
+    - `plasticos_claims.group_claims_manager` (claims SLA cron)
+  - Uses `(4, gid)` to append groups without removing existing ones.
+- **plasticos_base/__manifest__.py**: `"post_init_hook": "post_init_hook"`, version bump to 19.0.1.0.1.
+- **plasticos_base/__init__.py**: Exports `post_init_hook` for the manifest.
+
+**Crons unchanged** (still use `user_system_cron`):
+
+- `plasticos_enrichment/data/cron.xml` — enrichment daily, inference standalone
+- `plasticos_documents/data/cron_missing_docs.xml`, `cron.xml` — missing docs, compliance audit
+- `plasticos_claims/data/claim_cron.xml` — SLA check
+
+**Security**: No ACLs relaxed; cron user is explicitly granted the same manager groups that would be needed for manual execution. Aligns with `SECURITY_MODEL.md`.
+
+### D. Cross-Addon Import Pattern (2026-02-25)
+
+**Problem**: Top-level imports like `from odoo.addons.plasticos_material_profile.form_codes import FORM_SELECTION` cause `ModuleNotFoundError` at module load time due to Odoo's module initialization order.
+
+**Solution**: Defer cross-addon imports using lazy-loading functions.
+
+**Files Fixed**:
+
+| File | Original Import | Fix |
+|------|-----------------|-----|
+| `plasticos_facility_profile/models/facility_profile.py` | `from plasticos_material_profile.form_codes import FORM_SELECTION` | `_get_form_selection()` callable for Selection field |
+| `plasticos_buyer_match_engine/models/graph_service.py` | `from odoo.addons.plasticos_material_profile.form_codes import EQUIPMENT_GATED_FORMS, PASSTHROUGH_FORMS` | `_get_form_codes()` lazy loader |
+| `plasticos_enrichment/models/enrichment_service.py` | `from odoo.addons.plasticos_inference_engine import InferenceEngine, InferenceRequest` | `_get_inference_classes()` lazy loader |
+| `plasticos_inference_engine/pipeline_v2.py` | `from plasticos_inference_engine import ...` | `from . import ...` (relative import) |
+
+**Pattern**:
+```python
+# WRONG — fails at module load time
+from odoo.addons.plasticos_other_module.some_file import SomeClass
+
+# CORRECT — deferred until runtime
+def _get_some_class():
+    """Lazy load to avoid import error at module load time."""
+    from odoo.addons.plasticos_other_module.some_file import SomeClass
+    return SomeClass
+
+# Usage in method:
+def some_method(self):
+    SomeClass = _get_some_class()
+    return SomeClass(...)
+```
+
+**Invariant**: No top-level cross-addon imports in model files. All `from odoo.addons.plasticos_*` imports must be inside functions.
+
+### E. Dockerfile PYTHONPATH (2026-02-25)
+
+**Problem**: Cross-module imports failed in Docker because `/mnt/extra-addons` was not in Python's module search path.
+
+**Fix**: Added to `Dockerfile`:
+```dockerfile
+ENV PYTHONPATH="/mnt/extra-addons:${PYTHONPATH}"
+```
+
+This ensures all PlasticOS modules at `/mnt/extra-addons` are importable as Python packages.
+
+### F. SQL Constraints Migration (2026-02-25)
+
+**Problem**: Odoo 19 deprecated `_sql_constraints` tuple syntax.
+
+**Fix**: Converted all 20 model files from:
+```python
+_sql_constraints = [
+    ('name_uniq', 'unique(name)', 'Name must be unique'),
+]
+```
+
+To:
+```python
+_constraints = [
+    models.Constraint(
+        'unique(name)',
+        'Name must be unique',
+    ),
+]
+```
+
+**Files affected**: `plasticos_web_leads`, `plasticos_transaction`, `plasticos_offer`, `plasticos_material_profile`, `plasticos_matching`, `plasticos_facility_profile`, `plasticos_claims`, `plasticos_logistics`, `plasticos_documents`, `plasticos_automation`.
+
+**Verification**: `grep -r "_sql_constraints" plasticos_*` returns zero matches.
+
+### G. Geo Cron Hardening (2026-02-25)
+
+**Problem**: Nominatim geocoding API returns HTTP 429 (rate limit), causing cron spam on fresh DBs.
+
+**Fixes**:
+1. `plasticos_geolocalize/data/cron_geo_backfill.xml`: Set `active=False` by default
+2. `cron_geo_backfill()` method: Added early-abort after 3 consecutive failures, exponential backoff (5s delay), per-success commits
+
+### H. Attachment Orphan Cleanup (2026-02-25)
+
+**Problem**: After DB rebuild/restore, `ir.attachment` rows reference missing filestore blobs, causing `FileNotFoundError` in enrichment cron.
+
+**Fix**: Added `plasticos_base/models/ir_attachment.py`:
+- `_cron_cleanup_missing_filestore_orphans()`: Daily cron that removes orphan attachment rows
+- Cron: `PlasticOS: Cleanup Missing Filestore Attachments`
+
+### I. XML View Fixes (2026-02-25)
+
+**Problem**: Invalid `.strftime()` calls in domain expressions.
+
+**Fix**: Removed `.strftime('%Y-%m-%d')` from `context_today()` calls in:
+- `plasticos_buyer_match_engine/views/match_exclusion_views.xml`
+- `plasticos_logistics/views/load_views.xml`
+- `plasticos_offer/views/offer_views.xml`
+
+`context_today()` already returns a date object; `.strftime()` is invalid in Odoo domain expressions.
+
 ---
 
-**Architecture Version**: 2.0.0
-**Last Updated**: 2026-02-24
-**Verified Against**: cryptoxdog/IB-Odoo_19 @ staging branch
+## Odoo 19 Bug Patterns & CI Enforcement
+
+Extracted from `reports/BUG_FIXES_SUMMARY.md`. These patterns are enforced by `scripts/check_odoo_patterns.sh` and pre-commit hooks.
+
+### Odoo 19 Breaking Changes
+
+| Pattern | Status | Enforcement |
+|---------|--------|-------------|
+| `_sql_constraints` deprecated | ✅ Fixed | CI check #1 |
+| `@api.depends("id")` disallowed | ✅ Fixed | CI check #2 |
+| `@api.one/@api.multi` removed | ✅ Clean | CI check #3 |
+| `category_id` on `res.groups` removed | ✅ Fixed | CI check #4 |
+| `groups_id` on `res.users` removed | ✅ Fixed | Manual audit |
+| `users` field on `res.groups` removed | ✅ Fixed | Manual audit |
+| `numbercall` on `ir.cron` deprecated | ✅ Clean | CI check #5 |
+
+### Field Type & Reference Patterns
+
+| Pattern | Example | Fix |
+|---------|---------|-----|
+| String writes to Many2one | `"polymer": "hdpe"` | Use `"polymer_id": record.id` |
+| Wrong relational field in domain | `transaction_id.user_id` on `plasticos.load` | Use correct field path |
+| Duplicate field labels | `polymer` and `polymer_id` both "Polymer" | Add "Code" suffix to computed |
+| View field name mismatch | `packaging_type` vs `packaging_type_id` | Align view with model |
+
+### XML Data File Patterns
+
+| Pattern | Example | Fix |
+|---------|---------|-----|
+| Missing `<data>` wrapper | Bare records | Add `<data noupdate="1">` |
+| Unescaped `&` in XML | `PC & PMMA` | Use `&amp;` |
+| Nested quotes in `eval` | `eval="[ref("id")]"` | Use single quotes: `ref('id')` |
+| Missing module prefix in `ref()` | `ref('attr_clean')` | Add module: `ref('plasticos_material_profile.attr_clean')` |
+| Cron `model_id` missing prefix | `ref="model_plasticos_load"` | Add module: `ref="plasticos_logistics.model_plasticos_load"` |
+
+### Code Quality Patterns
+
+| Pattern | Example | Fix |
+|---------|---------|-----|
+| Empty inherit files | `class SaleOrder(models.Model): _inherit = "sale.order"` with no fields | Delete file |
+| Namespace drift | `PlastosMaterialProfile` | Fix to `PlasticosMaterialProfile` |
+| Empty `__init__.py` in modules | Models won't load | Add proper imports |
+
+### CI Checks Summary (12 Total)
+
+| # | Check | Pattern |
+|---|-------|---------|
+| 1 | `_sql_constraints` | Deprecated in Odoo 17+ |
+| 2 | `@api.depends("id")` | Disallowed in Odoo 19 |
+| 3 | `@api.one/@api.multi` | Removed in Odoo 13+ |
+| 4 | `category_id` on `res.groups` | Removed in Odoo 19 |
+| 5 | `numbercall` on ir.cron | Deprecated |
+| 6 | Unescaped `&` in XML | Parse errors |
+| 7 | Empty `__init__.py` | Models won't load |
+| 8 | Namespace drift | `PlastoS` vs `PlasticoS` |
+| 9 | Empty inherit files | Dead code |
+| 10 | Cron `model_id` refs | Missing module prefix |
+| 11 | XML `eval` quotes | Nested double quotes |
+| 12 | String writes to Many2one | `"polymer": val` instead of `"polymer_id": rec.id` |
+
+### Pre-Commit Hooks
+
+| Hook | What it catches |
+|------|-----------------|
+| `ruff` | Python syntax, unused imports, undefined names |
+| `ruff-format` | Python formatting |
+| `check-xml` | XML syntax errors |
+| `check-yaml` | YAML syntax errors |
+| `trailing-whitespace` | Trailing whitespace |
+| `end-of-file-fixer` | Missing newline at EOF |
+| `check-merge-conflict` | Leftover merge markers |
+
+### Bugs Requiring Runtime Validation
+
+These cannot be caught by static analysis — require `odoo -i module --test-enable`:
+
+| Bug Type | Why Static Tools Miss It |
+|----------|--------------------------|
+| Invalid field references in domains | Requires model schema knowledge |
+| Field name mismatches (view ↔ model) | Views aren't type-checked against models |
+| External ID references to non-existent records | Requires database state |
+| Enterprise module dependencies | Requires installed module list |
+
+---
+
+## Bulk Action Wizards
+
+Created 2026-02-21 to 2026-02-22 for common administrative operations.
+
+### Available Wizards
+
+| Module | Wizard | Purpose |
+|--------|--------|---------|
+| `plasticos_claims` | `claim_bulk_update_wizard` | Bulk status change, assignment, escalation |
+| `plasticos_logistics` | `load_bulk_update_wizard` | Bulk status updates for loads |
+| `plasticos_offer` | `offer_bulk_action_wizard` | Bulk send/accept/reject/cancel |
+| `plasticos_web_leads` | `lead_bulk_action_wizard` | Bulk force-hot, retry triage, mark skipped |
+| `plasticos_partner_import` | `partner_bulk_update_wizard` | Bulk update partners (salesperson, categories, privacy) |
+| `plasticos_transaction` | `transaction_bulk_assign_wizard` | Bulk assign suppliers/buyers |
+| `plasticos_transaction` | `transaction_import_wizard` | Import from cieTrade CSV |
+
+### Wizard File Structure
+
+Each wizard follows this pattern:
 ```
+module/
+├── wizards/
+│   ├── __init__.py
+│   └── wizard_name.py          # TransientModel
+├── views/
+│   └── wizard_name_views.xml   # Form view + action binding
+├── security/
+│   └── ir.model.access.csv     # ACL for wizard model
+└── __manifest__.py             # Include view in data list
+```
+
+---
+
+**Architecture Version**: 2.3.0
+**Last Updated**: 2026-03-04
+**Verified Against**: cryptoxdog/IB-Odoo_19 @ staging branch

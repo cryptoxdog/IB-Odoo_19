@@ -48,7 +48,10 @@ class ProductProduct(models.Model):
                     continue
 
                 product.message_post(
-                    body=f"Automated alert: stock level {product.qty_available:.2f} is below threshold {threshold:.2f}.",
+                    body=(
+                        f"Automated alert: stock level {product.qty_available:.2f} "
+                        f"is below threshold {threshold:.2f}."
+                    ),
                 )
                 log_model.create(
                     {

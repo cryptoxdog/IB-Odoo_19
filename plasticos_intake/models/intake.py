@@ -26,6 +26,12 @@ class PlasticosIntake(models.Model):
         domain="[('is_company', '=', True)]",
         help="The parent company. Optional for web lead intakes pending review.",
     )
+    partner_entity_status = fields.Selection(
+        related="partner_id.entity_status",
+        string="Entity Status",
+        readonly=True,
+        help="Operational status of the company (Active/Inactive/Blocked).",
+    )
     pending_company_name = fields.Char(
         string="Pending Company",
         help="Company name from web lead, before partner is created. "
@@ -51,6 +57,19 @@ class PlasticosIntake(models.Model):
         index=True,
         domain="['|', ('parent_id', '=', facility_id), ('parent_id', '=', partner_id)]",
         help="The person at the facility you are dealing with. Auto-selected from preferred contact memory.",
+    )
+
+    # ═════════════════════════════════════════════════════════
+    # Lead Source Tracking
+    # ═════════════════════════════════════════════════════════
+
+    lead_source_id = fields.Many2one(
+        "plasticos.lead.source",
+        string="Lead Source",
+        tracking=True,
+        index=True,
+        ondelete="restrict",
+        help="How this lead/intake was acquired. Auto-syncs to partner when set.",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -161,10 +180,13 @@ class PlasticosIntake(models.Model):
     )
 
     # ── Packaging ────────────────────────────────────────────
-    packaging_type_id = fields.Many2one(
+    packaging_type_ids = fields.Many2many(
         "plasticos.packaging.type",
+        "plasticos_intake_packaging_rel",
+        "intake_id",
+        "packaging_type_id",
         string="Packaging",
-        help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales). Optional.",
+        help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales). Multi-select.",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -463,6 +485,21 @@ class PlasticosIntake(models.Model):
                     }
                 )
 
+    @api.onchange("lead_source_id")
+    def _onchange_lead_source_id(self):
+        """Auto-sync lead source to partner when set on intake.
+
+        If partner doesn't have a lead source yet, copy from intake.
+        This tracks how leads/loads came in for reporting.
+        """
+        if self.lead_source_id and self.partner_id:
+            if not self.partner_id.lead_source_id:
+                self.partner_id.sudo().write(
+                    {
+                        "lead_source_id": self.lead_source_id.id,
+                    }
+                )
+
     # ═════════════════════════════════════════════════════════
     # Onchange — pre-fill from material profile
     # ═════════════════════════════════════════════════════════
@@ -478,7 +515,9 @@ class PlasticosIntake(models.Model):
         self.color_id = mp.color_id.id if mp.color_id else self.color_id
         self.source_type_id = mp.source_type_id.id if mp.source_type_id else self.source_type_id
         self.origin_form_id = mp.origin_form_id.id if mp.origin_form_id else self.origin_form_id
-        self.packaging_type_id = mp.packaging_type_id.id if mp.packaging_type_id else self.packaging_type_id
+        # Copy packaging types from profile (Many2many)
+        if mp.packaging_type_id:
+            self.packaging_type_ids = [(4, mp.packaging_type_id.id)]
         self.mfi_value = mp.melt_flow_index or self.mfi_value
         self.density_value = mp.density or self.density_value
         self.contamination_pct = mp.contamination_percent or self.contamination_pct
@@ -506,6 +545,11 @@ class PlasticosIntake(models.Model):
             self.is_metalized = True
         else:
             self.is_metalized = False
+        # Flame retardant
+        if "flame_retardant" in attr_codes:
+            self.has_fr = True
+        else:
+            self.has_fr = False
 
     @api.onchange("has_metal")
     def _onchange_has_metal(self):
@@ -535,6 +579,18 @@ class PlasticosIntake(models.Model):
         else:
             if metalized and metalized in self.material_attribute_ids:
                 self.material_attribute_ids = [(3, metalized.id)]
+
+    @api.onchange("has_fr")
+    def _onchange_has_fr(self):
+        """Sync attributes when has_fr boolean changes."""
+        Attribute = self.env["plasticos.material.attribute"]
+        flame_retardant = Attribute.search([("code", "=", "flame_retardant")], limit=1)
+        if self.has_fr:
+            if flame_retardant and flame_retardant not in self.material_attribute_ids:
+                self.material_attribute_ids = [(4, flame_retardant.id)]
+        else:
+            if flame_retardant and flame_retardant in self.material_attribute_ids:
+                self.material_attribute_ids = [(3, flame_retardant.id)]
 
     # ═════════════════════════════════════════════════════════
     # Validation
@@ -602,48 +658,67 @@ class PlasticosIntake(models.Model):
     def action_match_to_buyers(self):
         """Run buyer matching engine on this intake.
 
+        This base implementation is a stub. Install `plasticos_buyer_match_engine`
+        for full 10-gate filtering + Neo4j graph scoring.
+
         For web lead intakes without a partner, creates the partner first.
-        Then calls matching engine, creates match lines sorted by score,
-        transitions status to 'matched'.
+        Auto-creates material profile if not set.
         """
-        for rec in self:
-            if rec.status != "draft":
-                raise UserError("Only draft intakes can be matched.")
+        raise UserError(
+            "Buyer matching requires the 'PlasticOS Buyer Match Engine' module.\n\n"
+            "Install it from Apps → PlasticOS Buyer Match Engine to enable "
+            "10-gate filtering and Neo4j graph scoring."
+        )
 
-            # Create partner from pending_company_name if not yet created
-            if not rec.partner_id and rec.pending_company_name:
-                rec._create_partner_from_pending()
+    def _create_material_profile_from_intake(self):
+        """Auto-create material profile from intake fields.
 
-            if not rec.partner_id:
-                raise UserError(
-                    "Cannot match without a company. Please set a company or ensure pending_company_name is filled."
-                )
+        Called by action_match_to_buyers when material_profile_id is not set.
+        Creates a new profile linked to the partner/facility with intake's
+        material specifications.
+        """
+        self.ensure_one()
+        MaterialProfile = self.env["plasticos.material.profile"]
 
-            # Clear any existing matches
-            rec.match_line_ids.unlink()
+        # Determine the partner to link the profile to (facility or company)
+        profile_partner = self.facility_id or self.partner_id
+        if not profile_partner:
+            return
 
-            # TODO: Call buyer matching engine here
-            # Engine should return list of dicts:
-            # [
-            #   {"buyer_id": 123, "match_score": 95.0, "match_reason": "Exact polymer match"},
-            #   {"buyer_id": 456, "match_score": 87.5, "match_reason": "Similar form"},
-            # ]
-            # For now, placeholder - no matches until engine integrated
-            matches = []
+        # Build profile name from polymer + form
+        name_parts = []
+        if self.polymer_id:
+            name_parts.append(self.polymer_id.name)
+        if self.form_id:
+            name_parts.append(self.form_id.name)
+        profile_name = " - ".join(name_parts) if name_parts else f"Profile from {self.name}"
 
-            # Create match lines from engine results
-            for match in matches:
-                self.env["plasticos.intake.match"].create(
-                    {
-                        "intake_id": rec.id,
-                        "buyer_id": match.get("buyer_id"),
-                        "match_score": match.get("match_score", 0),
-                        "match_reason": match.get("match_reason", ""),
-                        "typical_price": match.get("typical_price", 0),
-                    }
-                )
+        # Create the material profile
+        profile_vals = {
+            "name": profile_name,
+            "partner_id": profile_partner.id,
+            "polymer_id": self.polymer_id.id if self.polymer_id else False,
+            "form_id": self.form_id.id if self.form_id else False,
+            "color_id": self.color_id.id if self.color_id else False,
+            "source_type_id": self.source_type_id.id if self.source_type_id else False,
+            "origin_form_id": getattr(self, "origin_form_id", False) and self.origin_form_id.id,
+            "melt_flow_index": self.mfi_value or 0,
+            "density": self.density_value or 0,
+            "contamination_percent": self.contamination_pct or 0,
+            "has_metal": self.has_metal,
+            "is_metalized": self.is_metalized,
+        }
 
-            rec.status = "matched"
+        # Copy material attributes
+        if self.material_attribute_ids:
+            profile_vals["material_attribute_ids"] = [(6, 0, self.material_attribute_ids.ids)]
+
+        profile = MaterialProfile.create(profile_vals)
+        self.write({"material_profile_id": profile.id})
+        self.message_post(
+            body=f"Auto-created material profile: {profile.name} (ID: {profile.id})",
+            message_type="notification",
+        )
 
     def _create_partner_from_pending(self):
         """Create partner from pending_company_name (web lead flow).
@@ -678,9 +753,17 @@ class PlasticosIntake(models.Model):
             "name": name,
             "is_company": True,
             "supplier_rank": 1,
-            "lead_source": "web_lead",
             "comment": f"Created from web lead intake {self.name}",
         }
+
+        # Copy lead source from intake, or default to web_lead
+        if self.lead_source_id:
+            partner_vals["lead_source_id"] = self.lead_source_id.id
+        else:
+            # Try to find web_lead source
+            web_lead_source = self.env["plasticos.lead.source"].search([("code", "=", "web_lead")], limit=1)
+            if web_lead_source:
+                partner_vals["lead_source_id"] = web_lead_source.id
 
         # Pull contact info from intake's contact if available
         if self.contact_id:
@@ -710,17 +793,16 @@ class PlasticosIntake(models.Model):
     def action_send_offers(self):
         """Send offers to selected buyers.
 
-        Opens offer creation wizard/form for selected match lines.
+        This base implementation is a stub. The `plasticos_offer` module
+        should override this to create actual offers.
         """
         self.ensure_one()
         selected = self.match_line_ids.filtered("selected")
         if not selected:
             raise UserError("Please select at least one buyer to send offers to.")
 
-        # TODO: When offer module exists, create offers here
-        # For now, placeholder message
         raise UserError(
-            f"Offer module not yet installed. "
-            f"Would send offers to {len(selected)} buyer(s): "
-            f"{', '.join(selected.mapped('buyer_name'))}"
+            "Offer creation is coming soon.\n\n"
+            f"Selected {len(selected)} buyer(s): {', '.join(selected.mapped('buyer_name'))}\n\n"
+            "This feature will be available in a future update."
         )

@@ -28,7 +28,7 @@ class IrAttachment(models.Model):
                 return 0
 
             filestore_root = os.path.join(data_dir, "filestore", self.env.cr.dbname)
-            candidates = self.sudo().search(  # cron-sudo-justification: attachment cleanup must bypass attachment ACLs for orphan purge
+            candidates = self.sudo().search(  # cron-sudo-justification: bypass ACLs for orphan purge
                 [("type", "=", "binary"), ("store_fname", "!=", False)],
                 order="id ASC",
                 limit=2000,
@@ -47,7 +47,7 @@ class IrAttachment(models.Model):
                 )
                 return 0
 
-            missing = self.browse(missing_ids).sudo()  # cron-sudo-justification: purge requires unlink rights across orphaned attachments  # fmt: skip
+            missing = self.browse(missing_ids).sudo()  # cron-sudo-justification: unlink orphans
             count = len(missing)
             missing.unlink()
             _logger.warning(

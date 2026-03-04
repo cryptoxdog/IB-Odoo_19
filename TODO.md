@@ -39,3 +39,9 @@
 - [ ] Market price data integration
 - [ ] Offer acceptance workflow
 - [ ] Automated follow-up reminders
+- [ ] **Link product.template to material_profile** (patch 011)
+  - Add `material_profile_id` M2O field to `product.template`
+  - Add related fields: `material_polymer`, `material_form`, `material_resin_grade`
+  - Enables filtering products by material type in sales workflows
+  - Requires adding `product` to `plasticos_material_profile` depends
+  - Patch file: `docs/03-01-2026/011-link-product-to-material-profile.patch`

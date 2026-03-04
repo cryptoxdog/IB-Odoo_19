@@ -16,7 +16,8 @@ class PlasticosIntake(models.Model):
         ],
         string="Match Mode",
         default="strict",
-        help="Strict: all 12 gates are hard exclusions. Relaxed: only polymer is hard, others are soft scoring signals.",
+        help="Strict: all 12 gates are hard exclusions. "
+        "Relaxed: only polymer is hard, others are soft scoring signals.",
     )
 
     def action_match_to_buyers(self):

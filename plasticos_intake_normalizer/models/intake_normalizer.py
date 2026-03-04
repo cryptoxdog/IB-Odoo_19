@@ -137,7 +137,7 @@ class PlasticosIntakeNormalizer(models.Model):
             return
 
         try:
-            config = self.env["plasticos.normalizer.config"].sudo().get_config()  # cron-sudo-justification: shared singleton config read for system batch  # fmt: skip
+            config = self.env["plasticos.normalizer.config"].sudo().get_config()  # cron-sudo-justification: config read
             limit = config.batch_limit or 200
 
             pending = self.search(
@@ -229,31 +229,31 @@ class PlasticosIntakeNormalizer(models.Model):
         warnings = []
 
         # ── Required fields ──────────────────────────────
-        if not self.polymer:
+        if not self.polymer_id:
             errors.append(
                 {
-                    "field": "polymer",
+                    "field": "polymer_id",
                     "message": "Polymer is required.",
                     "code": "INT-003",
                 }
             )
         elif config.require_polymer_in_canonical:
-            polymer_upper = (self.polymer or "").strip().upper()
+            polymer_code = (self.polymer_id.code or "").strip().upper()
             canonical_polymers = self._get_canonical_polymers()
-            if polymer_upper not in canonical_polymers:
+            if polymer_code not in canonical_polymers:
                 errors.append(
                     {
-                        "field": "polymer",
-                        "message": f"Polymer '{self.polymer}' is not in the canonical "
+                        "field": "polymer_id",
+                        "message": f"Polymer '{self.polymer_id.name}' is not in the canonical "
                         f"polymer list. Accepted: {sorted(canonical_polymers)}",
                         "code": "INT-003",
                     }
                 )
 
-        if not self.form:
+        if not self.form_id:
             errors.append(
                 {
-                    "field": "form",
+                    "field": "form_id",
                     "message": "Form is required.",
                     "code": "INT-007",
                 }
@@ -311,10 +311,10 @@ class PlasticosIntakeNormalizer(models.Model):
                 )
 
         # ── Warnings (non-blocking) ─────────────────────
-        if not self.color:
+        if not self.color_id:
             warnings.append(
                 {
-                    "field": "color",
+                    "field": "color_id",
                     "message": "Color not specified — matching may be less precise.",
                     "code": "WARN-001",
                 }
@@ -338,10 +338,10 @@ class PlasticosIntakeNormalizer(models.Model):
                 }
             )
 
-        if not self.source_type:
+        if not self.source_type_id:
             warnings.append(
                 {
-                    "field": "source_type",
+                    "field": "source_type_id",
                     "message": "Source type not specified — defaults to 'unknown'.",
                     "code": "WARN-004",
                 }
@@ -350,15 +350,15 @@ class PlasticosIntakeNormalizer(models.Model):
         # ── Material profile cross-check ─────────────────
         if hasattr(self, "material_profile_id") and self.material_profile_id:
             mp = self.material_profile_id
-            if hasattr(mp, "polymer_id") and mp.polymer_id:
+            if hasattr(mp, "polymer_id") and mp.polymer_id and self.polymer_id:
                 mp_polymer = (mp.polymer_id.code or "").strip().upper()
-                intake_polymer = (self.polymer or "").strip().upper()
+                intake_polymer = (self.polymer_id.code or "").strip().upper()
                 if mp_polymer and intake_polymer and mp_polymer != intake_polymer:
                     warnings.append(
                         {
-                            "field": "polymer",
-                            "message": f"Intake polymer '{self.polymer}' differs from "
-                            f"material profile polymer '{mp.polymer_id.code}'. "
+                            "field": "polymer_id",
+                            "message": f"Intake polymer '{self.polymer_id.name}' differs from "
+                            f"material profile polymer '{mp.polymer_id.name}'. "
                             f"Verify alignment.",
                             "code": "WARN-005",
                         }

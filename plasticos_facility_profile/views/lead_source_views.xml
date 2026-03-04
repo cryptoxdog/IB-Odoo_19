@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Lead Source Tree View -->
+    <record id="plasticos_lead_source_tree" model="ir.ui.view">
+        <field name="name">plasticos.lead.source.tree</field>
+        <field name="model">plasticos.lead.source</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="description" optional="hide"/>
+                <field name="active" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Lead Source Form View -->
+    <record id="plasticos_lead_source_form" model="ir.ui.view">
+        <field name="name">plasticos.lead.source.form</field>
+        <field name="model">plasticos.lead.source</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="e.g., Web Lead"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="sequence"/>
+                        </group>
+                        <group>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="description"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Lead Source Action -->
+    <record id="action_plasticos_lead_source" model="ir.actions.act_window">
+        <field name="name">Lead Sources</field>
+        <field name="res_model">plasticos.lead.source</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new lead source
+            </p>
+            <p>
+                Lead sources track how partners and intakes were acquired.
+                Common sources include Web Lead, Referral, Trade Show, etc.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Item - under Configuration -->
+    <menuitem
+        id="menu_plasticos_lead_source"
+        name="Lead Sources"
+        parent="contacts.res_partner_menu_config"
+        action="action_plasticos_lead_source"
+        sequence="30"/>
+
+</odoo>

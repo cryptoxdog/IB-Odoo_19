@@ -5,6 +5,26 @@ from odoo.exceptions import ValidationError
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
+    # Override company_type to be stored (Odoo core has it as computed/non-stored)
+    # This allows searching by company_type in domains
+    company_type = fields.Selection(
+        selection=[("company", "Company"), ("person", "Individual")],
+        string="Company Type",
+        store=True,
+        compute="_compute_company_type",
+        inverse="_inverse_company_type",
+        help="Company type - stored override to enable search domains.",
+    )
+
+    @api.depends("is_company")
+    def _compute_company_type(self):
+        for partner in self:
+            partner.company_type = "company" if partner.is_company else "person"
+
+    def _inverse_company_type(self):
+        for partner in self:
+            partner.is_company = partner.company_type == "company"
+
     facility_profile_ids = fields.One2many("plasticos.facility.profile", "partner_id", string="Facility Capabilities")
 
     partner_type_id = fields.Many2one(
@@ -64,20 +84,29 @@ class ResPartner(models.Model):
         "Used to auto-fill contact on subsequent intakes.",
     )
 
-    lead_source = fields.Selection(
-        selection=[
-            ("web_lead", "Web Lead"),
-            ("magazine", "Magazine"),
-            ("referral", "Referral"),
-            ("trade_show", "Trade Show"),
-            ("cold_call", "Cold Call"),
-            ("existing_customer", "Existing Customer"),
-            ("other", "Other"),
-        ],
+    lead_source_id = fields.Many2one(
+        "plasticos.lead.source",
         string="Lead Source",
         tracking=True,
+        index=True,
+        ondelete="restrict",
         help="How this counterparty was originally acquired. "
-        "Set automatically when partner is created from a web lead.",
+        "Set automatically when partner is created from a web lead or intake.",
+    )
+
+    entity_status = fields.Selection(
+        selection=[
+            ("active", "Active"),
+            ("inactive", "Inactive"),
+            ("blocked", "Blocked"),
+        ],
+        string="Entity Status",
+        default="active",
+        tracking=True,
+        help="Operational status of this entity. "
+        "Active = normal operations. "
+        "Inactive = temporarily paused. "
+        "Blocked = suspended from transactions.",
     )
 
     def write(self, vals):

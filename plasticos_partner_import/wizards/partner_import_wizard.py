@@ -263,7 +263,7 @@ class PartnerImportWizard(models.TransientModel):
         return self._return_wizard()
 
     def action_repair_import(self):
-        """Fix facilities missing x_facility_role and migrate old external IDs (plasticos_import → plasticos_partner_import)."""
+        """Fix facilities missing x_facility_role and migrate old external IDs."""
         self.ensure_one()
         validation = self.env["plasticos.partner.import.validation"]
         report = validation.repair_import_data(dry_run=False)

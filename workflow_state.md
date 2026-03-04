@@ -44,6 +44,7 @@ Odoo 19 PlasticOS suite: intake, transaction, logistics, documents, commission, 
 
 ## Recent Changes
 
+- 2026-02-25: PlasticOS Odoo 19 Fix & Hardening GMP — Get-or-create for test master data (UniqueViolation fix); required form_id on plasticos.material.profile in test_matcher.py (4 tests); plasticos_base post_init_hook to assign enrichment/documents/claims manager groups to user_system_cron (ACL-safe crons without changing cron user_id). Updated AI Agent Files/ARCHITECTURE.md with fixes section.
 - 2026-02-25: Scoped Deep Audit Pass 2 (PR #22) — Fixed form code enum drift (bale/bales), 16 unhandled form codes, missing module dependency, and ruff format issues. All enforcement checks green.
 - 2026-02-25: Persisted rebuild-safe runtime hardening — set `plasticos_geolocalize` cron default inactive (`cron_geo_backfill.xml` active=False) to prevent recurring Nominatim block noise on fresh staging DBs. Added `plasticos_base` attachment maintenance model + cron (`ir.attachment._cron_cleanup_missing_filestore_orphans`) to automatically remove orphan rows pointing to missing filestore blobs after rebuilds/restores.
 - 2026-02-25: Odoo 19 compatibility hardening — Converted all remaining `_sql_constraints` declarations to `models.Constraint` across 20 model files (`plasticos_web_leads`, `plasticos_transaction`, `plasticos_offer`, `plasticos_material_profile`, `plasticos_matching`, `plasticos_facility_profile`, `plasticos_claims`, `plasticos_logistics`, `plasticos_documents`, `plasticos_automation`). Confirmed zero `_sql_constraints` left in repo. Also fixed the blocking search-view parse issue earlier in `plasticos_buyer_match_engine/views/match_exclusion_views.xml` and migrated `match_exclusion.py` constraint.
@@ -94,21 +95,28 @@ Odoo 19 PlasticOS suite: intake, transaction, logistics, documents, commission, 
 
 ## Open Questions
 
-- Which property_* fields to implement first? (payment_term_id, account_receivable_id, account_payable_id)
+*None currently*
+
+### Resolved Questions
+
+- **Which property_* fields to implement first?** — ✅ RESOLVED 2026-03-04
+  - `property_payment_term_id`: Already implemented in `partner_import_service.py` (Net 30 default)
+  - `property_account_receivable_id` / `property_account_payable_id`: **Not needed** — single-company deployment uses company-level defaults from standard Chart of Accounts. Per-partner AR/AP customization is not a business requirement.
 
 ---
 
 ## Next Steps
 
-1. Deploy latest `staging` to Odoo.sh and validate registry startup on the target DB.
-2. Confirm `PlasticOS: Cleanup Missing Filestore Attachments` cron is active after rebuild and runs successfully.
-3. Re-run cron `Buyer CRM Enrichment + Inference — Daily` and verify no `FileNotFoundError` from `ir_attachment._file_read`.
+1. Deploy latest `staging` to Odoo.sh; validate registry startup and that plasticos_base post_init_hook runs (system_cron gets groups).
+2. Run plasticos_buyer_match_engine tests to confirm form_id and get-or-create fixes (no NotNullViolation/UniqueViolation).
+3. Confirm enrichment/documents/claims crons run without ACL errors after hook assigns groups.
 4. Keep `PlasticOS: Nightly Geo Backfill` disabled until a compliant geocoding provider/UA policy is in place.
 
 ---
 
 ## Recent Sessions (7-day window)
 
+- ✅ 2026-02-25: PlasticOS Odoo 19 GMP — Test form_id + get-or-create; cron ACL via post_init_hook; ARCHITECTURE.md updated with fixes.
 - ✅ 2026-02-25: Scoped Deep Audit Pass 2 (PR #22) — Fixed form code enum drift (bale/bales), 16 unhandled form codes, missing module dependency, and ruff format issues. All enforcement checks green.
 - ✅ 2026-02-25: GMP constraints migration — converted remaining 20 `_sql_constraints` blocks to `models.Constraint`; ran targeted integrity checks; confirmed no `_sql_constraints` left.
 - ✅ 2026-02-23: Bug Fixes BUG-073 to BUG-079 — Many2one field fixes, deal_type field, Cypher typo fix, CI check #21, disabled seed-dependent tests for Odoo.sh. Build passing.

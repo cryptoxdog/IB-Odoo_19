@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Lead Sources - Master Registry -->
+        <!-- Matches the user's existing lead source configuration -->
+
+        <record id="lead_source_magazine" model="plasticos.lead.source">
+            <field name="name">Magazine</field>
+            <field name="code">magazine</field>
+            <field name="sequence">10</field>
+            <field name="description">Lead from magazine advertisement or publication.</field>
+        </record>
+
+        <record id="lead_source_web_lead" model="plasticos.lead.source">
+            <field name="name">Web Lead</field>
+            <field name="code">web_lead</field>
+            <field name="sequence">20</field>
+            <field name="description">Lead from website contact form or web inquiry.</field>
+        </record>
+
+        <record id="lead_source_google" model="plasticos.lead.source">
+            <field name="name">Google</field>
+            <field name="code">google</field>
+            <field name="sequence">30</field>
+            <field name="description">Lead from Google search or Google Ads.</field>
+        </record>
+
+        <record id="lead_source_directory" model="plasticos.lead.source">
+            <field name="name">Directory</field>
+            <field name="code">directory</field>
+            <field name="sequence">40</field>
+            <field name="description">Lead from industry directory listing.</field>
+        </record>
+
+        <record id="lead_source_web_database" model="plasticos.lead.source">
+            <field name="name">Web Database</field>
+            <field name="code">web_database</field>
+            <field name="sequence">50</field>
+            <field name="description">Lead from purchased web database or lead list.</field>
+        </record>
+
+        <record id="lead_source_attendee_list" model="plasticos.lead.source">
+            <field name="name">Attendee List</field>
+            <field name="code">attendee_list</field>
+            <field name="sequence">60</field>
+            <field name="description">Lead from trade show or conference attendee list.</field>
+        </record>
+
+        <record id="lead_source_referral" model="plasticos.lead.source">
+            <field name="name">Referral</field>
+            <field name="code">referral</field>
+            <field name="sequence">70</field>
+            <field name="description">Lead from customer or partner referral.</field>
+        </record>
+
+        <record id="lead_source_agent_research" model="plasticos.lead.source">
+            <field name="name">Agent Research</field>
+            <field name="code">agent_research</field>
+            <field name="sequence">80</field>
+            <field name="description">Lead from sales agent research or prospecting.</field>
+        </record>
+
+        <!-- Additional common sources -->
+
+        <record id="lead_source_trade_show" model="plasticos.lead.source">
+            <field name="name">Trade Show</field>
+            <field name="code">trade_show</field>
+            <field name="sequence">90</field>
+            <field name="description">Lead from trade show booth or event.</field>
+        </record>
+
+        <record id="lead_source_cold_call" model="plasticos.lead.source">
+            <field name="name">Cold Call</field>
+            <field name="code">cold_call</field>
+            <field name="sequence">100</field>
+            <field name="description">Lead from outbound cold calling.</field>
+        </record>
+
+        <record id="lead_source_existing_customer" model="plasticos.lead.source">
+            <field name="name">Existing Customer</field>
+            <field name="code">existing_customer</field>
+            <field name="sequence">110</field>
+            <field name="description">New opportunity from existing customer relationship.</field>
+        </record>
+
+        <record id="lead_source_other" model="plasticos.lead.source">
+            <field name="name">Other</field>
+            <field name="code">other</field>
+            <field name="sequence">999</field>
+            <field name="description">Other lead source not listed.</field>
+        </record>
+
+    </data>
+</odoo>

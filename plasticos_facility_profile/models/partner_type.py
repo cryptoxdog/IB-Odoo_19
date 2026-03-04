@@ -32,7 +32,8 @@ class PlasticosPartnerType(models.Model):
             ("optimistic", "Optimistic"),
         ],
         default="flexible",
-        help="Matching mode: strict=exact match required, flexible=partial match acceptable, optimistic=any match gets high score.",
+        help="Matching mode: strict=exact match required, flexible=partial match acceptable, "
+        "optimistic=any match gets high score.",
     )
 
     _unique_code = models.Constraint(

@@ -183,7 +183,10 @@ class PlasticosTransactionDocs(models.Model):
                     tx.x_doc_reminder_count += 1
                     tx.x_last_doc_reminder_date = today
                     tx.message_post(
-                        body=f"Automated reminder: transaction {tx.name} has missing documents (overdue by {bd} business days).",
+                        body=(
+                            f"Automated reminder: transaction {tx.name} has missing documents "
+                            f"(overdue by {bd} business days)."
+                        ),
                         message_type="notification",
                     )
                 elif new_status == "escalated":
@@ -201,7 +204,10 @@ class PlasticosTransactionDocs(models.Model):
                         "mail.mail_activity_data_todo",
                         user_id=self.env.user.id,
                         summary=f"ESCALATION: Missing documents on {tx.name}",
-                        note=f"Transaction {tx.name} has missing documents for {bd} business days. Manual intervention required.",
+                        note=(
+                            f"Transaction {tx.name} has missing documents for {bd} business days. "
+                            "Manual intervention required."
+                        ),
                     )
 
                 _logger.info(
