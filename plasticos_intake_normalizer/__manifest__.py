@@ -16,6 +16,7 @@
         "views/normalizer_config_views.xml",
         "views/intake_normalizer_views.xml",
     ],
+    "post_init_hook": "post_init_hook",
     "installable": True,
     "auto_install": False,
     "license": "LGPL-3",

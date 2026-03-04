@@ -18,6 +18,7 @@
         "report/report_bol_delivery.xml",
         "report/report_delivery_order.xml",
     ],
+    "post_init_hook": "post_init_hook",
     "installable": True,
     "application": False,
 }

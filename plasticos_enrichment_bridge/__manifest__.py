@@ -16,7 +16,7 @@
     "author": "Igor Beylin",
     "website": "https://github.com/cryptoxdog/enrichment-api",
     "license": "LGPL-3",
-    "depends": ["base", "crm", "contacts"],
+    "depends": ["plasticos_base", "crm", "contacts"],
     "data": [
         "security/ir.model.access.csv",
         "data/ir_config_parameter.xml",
@@ -26,6 +26,7 @@
         "views/res_config_settings_views.xml",
         "wizard/enrichment_wizard_views.xml",
     ],
+    "post_init_hook": "post_init_hook",
     "installable": True,
     "application": False,
     "auto_install": False,

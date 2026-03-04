@@ -38,6 +38,7 @@
         "views/offer_bridge_views.xml",
         "views/match_result_bridge_views.xml",
     ],
+    "post_init_hook": "post_init_hook",
     "installable": True,
     "application": False,
 }

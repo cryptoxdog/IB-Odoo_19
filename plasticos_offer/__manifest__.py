@@ -20,6 +20,7 @@
         "views/offer_ux.xml",
         "views/intake_offers_bridge_views.xml",
     ],
+    "post_init_hook": "post_init_hook",
     "installable": True,
     "application": False,
 }

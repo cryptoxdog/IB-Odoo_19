@@ -19,6 +19,7 @@
     """,
     "author": "Plasticos Dev",
     "depends": [
+        "plasticos_base",
         "plasticos_intake",
         "plasticos_material_profile",
         "plasticos_facility_profile",
@@ -35,6 +36,7 @@
     "external_dependencies": {
         "python": ["neo4j"],
     },
+    "post_init_hook": "post_init_hook",
     "installable": True,
     "application": False,
     "license": "LGPL-3",
