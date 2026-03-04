@@ -1,5 +1,5 @@
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 
 class PlasticosTransaction(models.Model):
@@ -302,6 +302,15 @@ class PlasticosTransaction(models.Model):
         "Transaction reference must be unique.",
     )
 
+    @api.constrains("commission_override_pct")
+    def _check_override_pct_range(self):
+        """Validate commission override is a fraction 0.0–1.0."""
+        for rec in self:
+            if rec.commission_override_pct and not (0.0 <= rec.commission_override_pct <= 1.0):
+                raise ValidationError(
+                    "Commission override percentage must be between 0.0 and 1.0 (e.g., 0.15 for 15%)."
+                )
+
     # ── Computed Methods (harvested) ──────────────────────────
     @api.depends(
         "supplier_id",
@@ -463,18 +472,46 @@ class PlasticosTransaction(models.Model):
 
         Depends on document_ids (from transaction_docs_bridge) to auto-recompute
         when documents are added, removed, verified, or deactivated.
+
+        When compliance changes from 'missing' to 'compliant', auto-posts any
+        draft invoices/bills linked to this transaction.
         """
         service = self.env.get("plasticos.compliance.service")
         if not service:
-            # Compliance module not installed
             for rec in self:
                 rec.compliance_status = "compliant"
             return
+
         for rec in self:
+            old_status = rec.compliance_status
             if service.is_compliant("plasticos.transaction", rec.id):
                 rec.compliance_status = "compliant"
+                # Auto-post draft invoices when compliance achieved
+                if old_status == "missing":
+                    rec._auto_post_pending_invoices()
             else:
                 rec.compliance_status = "missing"
+
+    def _auto_post_pending_invoices(self):
+        """Auto-post draft invoices/bills when transaction becomes compliant.
+
+        Posts: customer_invoice_id, vendor_bill_ids, freight_bill_ids.
+        Only posts moves in 'draft' state to avoid double-posting.
+        """
+        self.ensure_one()
+        moves_to_post = self.env["account.move"]
+
+        if self.customer_invoice_id and self.customer_invoice_id.state == "draft":
+            moves_to_post |= self.customer_invoice_id
+
+        for bill in self.vendor_bill_ids.filtered(lambda m: m.state == "draft"):
+            moves_to_post |= bill
+
+        for bill in self.freight_bill_ids.filtered(lambda m: m.state == "draft"):
+            moves_to_post |= bill
+
+        if moves_to_post:
+            moves_to_post.action_post()
 
     @api.model_create_multi
     def create(self, vals_list):

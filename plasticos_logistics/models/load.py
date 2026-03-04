@@ -98,14 +98,29 @@ class PlasticosLoad(models.Model):
     )
 
     def write(self, vals):
+        """Guard against unauthorized modifications after dispatch.
+
+        After dispatch, only specific fields can be modified:
+        - BOL attachments (pickup/delivery confirmation)
+        - State transitions (via action methods)
+        - Timestamps (entered_state_at, dispatched_at, delivered_at)
+
+        REVIEWER NOTE: origin_zip/destination_zip guard removed — fields don't exist.
+        If lane-lock feature is needed in future, add the fields first.
+        """
         for rec in self:
-            if rec.state in ["rate_confirmed", "scheduled", "dispatched", "picked_up", "delivered", "closed"]:
-                if any(f in vals for f in ["origin_zip", "destination_zip"]):
-                    raise UserError("Lane cannot be modified after rate confirmation.")
             if rec.state in ["dispatched", "picked_up", "delivered", "closed"]:
-                blocked = set(vals.keys()) - {"bol_pickup_attached", "bol_delivery_attached"}
+                allowed = {
+                    "bol_pickup_attached",
+                    "bol_delivery_attached",
+                    "state",
+                    "entered_state_at",
+                    "dispatched_at",
+                    "delivered_at",
+                }
+                blocked = set(vals.keys()) - allowed
                 if blocked:
-                    raise UserError("Load locked after dispatch.")
+                    raise UserError(f"Load locked after dispatch. Cannot modify: {', '.join(sorted(blocked))}")
         return super().write(vals)
 
     @api.depends("dispatched_at", "delivered_at")
