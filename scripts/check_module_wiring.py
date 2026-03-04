@@ -276,7 +276,10 @@ def build_model_registry(workspace: Path) -> dict[str, str]:
         models = find_model_definitions(module_dir)
 
         for model_name in models:
-            registry[model_name] = module_name
+            # Don't override core Odoo models - custom modules may extend them
+            # via _inherit + _name but the base model is still from core
+            if model_name not in registry:
+                registry[model_name] = module_name
 
     return registry
 
