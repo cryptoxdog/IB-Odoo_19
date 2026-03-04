@@ -8,7 +8,7 @@ class PlasticosTransactionDocsBridge(models.Model):
 
     document_ids = fields.One2many(
         "plasticos.document",
-        "transaction_id",
+        "x_transaction_id",
         string="Documents",
     )
     document_count = fields.Integer(
@@ -29,6 +29,6 @@ class PlasticosTransactionDocsBridge(models.Model):
             "name": f"Documents — {self.name}",
             "res_model": "plasticos.document",
             "view_mode": "list,form",
-            "domain": [("transaction_id", "=", self.id)],
-            "context": {"default_transaction_id": self.id},
+            "domain": [("x_transaction_id", "=", self.id)],
+            "context": {"default_x_transaction_id": self.id},
         }
