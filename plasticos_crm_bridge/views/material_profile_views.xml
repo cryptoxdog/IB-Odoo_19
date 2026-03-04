@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Material Profile Form — CRM Bridge Smart Buttons + Stats Tab
+         Inherits: plasticos_material_profile.view_material_profile_form
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="material_profile_crm_bridge_form" model="ir.ui.view">
+        <field name="name">plasticos.material.profile.crm.bridge.form</field>
+        <field name="model">plasticos.material.profile</field>
+        <field name="inherit_id"
+               ref="plasticos_material_profile.view_material_profile_form"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- ═══ Smart Buttons ═══ -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+
+                <!-- Match Results -->
+                <button name="action_view_match_results"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-handshake-o"
+                        invisible="match_count == 0">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="match_count" nolabel="1"/>
+                        </span>
+                        <span class="o_stat_text">Matches</span>
+                    </div>
+                </button>
+
+                <!-- Best Match Score (visual indicator) -->
+                <button name="action_view_match_results"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-trophy"
+                        invisible="best_match_score == 0">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="best_match_score" nolabel="1"
+                                   widget="float" digits="[5,1]"/>%
+                        </span>
+                        <span class="o_stat_text">Best Match</span>
+                    </div>
+                </button>
+
+                <!-- Transactions -->
+                <button name="action_view_transactions"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-exchange"
+                        invisible="transaction_count == 0">
+                    <field name="transaction_count"
+                           string="Transactions"
+                           widget="statinfo"/>
+                </button>
+
+            </xpath>
+
+            <!-- ═══ Pipeline and Logistics Tab ═══ -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Pipeline &amp; Logistics"
+                      name="pipeline_logistics_tab">
+
+                    <!-- Last Shipped Banner -->
+                    <div class="alert alert-success" role="alert"
+                         invisible="not last_pickup_date">
+                        <i class="fa fa-truck" title="Last Load"/> <strong>Last Load Shipped:</strong>
+                        <field name="last_pickup_date" nolabel="1" widget="date"/>
+                    </div>
+
+                    <div class="alert alert-warning" role="alert"
+                         invisible="last_pickup_date or transaction_count == 0">
+                        <i class="fa fa-exclamation-triangle" title="Warning"/>
+                        Transactions exist but no loads have been picked up yet.
+                    </div>
+
+                    <!-- Matching Stats -->
+                    <group string="Matching">
+                        <group>
+                            <field name="match_count"/>
+                            <field name="best_match_score"
+                                   widget="progressbar"/>
+                        </group>
+                        <group>
+                            <field name="pending_match_count"/>
+                        </group>
+                    </group>
+
+                    <!-- Transaction Stats -->
+                    <group string="Transaction History">
+                        <group>
+                            <field name="transaction_count"/>
+                            <field name="total_revenue" widget="monetary"/>
+                        </group>
+                        <group>
+                            <field name="last_pickup_date"
+                                   string="Last Load Shipped"/>
+                        </group>
+                    </group>
+
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Material Profile List — Add pipeline columns
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="material_profile_crm_bridge_list" model="ir.ui.view">
+        <field name="name">plasticos.material.profile.crm.bridge.list</field>
+        <field name="model">plasticos.material.profile</field>
+        <field name="inherit_id"
+               ref="plasticos_material_profile.view_material_profile_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='contamination_percent']" position="after">
+                <field name="match_count" string="Matches" optional="show"/>
+                <field name="best_match_score" string="Best Match %"
+                       optional="show"/>
+                <field name="transaction_count" string="Txns" optional="show"/>
+                <field name="total_revenue" string="Revenue" optional="hide"
+                       sum="Total Revenue"/>
+                <field name="last_pickup_date" string="Last Shipped"
+                       optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Partner Form — Add pipeline stats to Material Profiles tab
+         Extends the existing plasticos_material_profile partner extension
+         to show pipeline columns inline on the embedded list.
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="partner_form_material_bridge_stats" model="ir.ui.view">
+        <field name="name">res.partner.form.material.bridge.stats</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id"
+               ref="plasticos_material_profile.view_partner_form_material_tab"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <!-- Add pipeline columns to the embedded material profiles list -->
+            <xpath expr="//field[@name='material_profile_ids']//list/field[@name='contamination_percent']"
+                   position="after">
+                <field name="match_count" string="Matches"/>
+                <field name="best_match_score" string="Best %"/>
+                <field name="transaction_count" string="Txns"/>
+                <field name="last_pickup_date" string="Last Shipped"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

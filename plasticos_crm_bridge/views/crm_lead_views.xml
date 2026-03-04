@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         CRM Lead Form — PlastOS Pipeline Smart Buttons + Tab
+         Inherits: crm.crm_lead_view_form (Odoo core)
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="crm_lead_plastos_bridge_form" model="ir.ui.view">
+        <field name="name">crm.lead.plastos.bridge.form</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+
+            <!-- ═══ Smart Buttons ═══ -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+
+                <!-- Web Leads -->
+                <button name="action_view_web_leads"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-globe"
+                        invisible="web_lead_count == 0">
+                    <field name="web_lead_count"
+                           string="Web Leads"
+                           widget="statinfo"/>
+                </button>
+
+                <!-- Material Profiles -->
+                <button name="action_view_material_profiles"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-cubes"
+                        invisible="material_profile_count == 0">
+                    <field name="material_profile_count"
+                           string="Profiles"
+                           widget="statinfo"/>
+                </button>
+
+                <!-- Total Matches (across all profiles) -->
+                <button name="action_view_match_results"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-handshake-o"
+                        invisible="total_match_count == 0">
+                    <field name="total_match_count"
+                           string="Matches"
+                           widget="statinfo"/>
+                </button>
+
+                <!-- Total Transactions -->
+                <button name="action_view_transactions"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-exchange"
+                        invisible="total_transaction_count == 0">
+                    <field name="total_transaction_count"
+                           string="Transactions"
+                           widget="statinfo"/>
+                </button>
+
+            </xpath>
+
+            <!-- ═══ PlastOS Pipeline Tab ═══ -->
+            <xpath expr="//notebook" position="inside">
+                <page string="PlastOS Pipeline" name="plastos_pipeline_tab">
+
+                    <!-- KPI Banner -->
+                    <div class="alert alert-info" role="alert"
+                         invisible="total_transaction_count == 0">
+                        <div class="d-flex justify-content-between">
+                            <span>
+                                <strong>Revenue:</strong>
+                                <field name="partner_total_revenue"
+                                       widget="monetary"
+                                       nolabel="1"/>
+                            </span>
+                            <span>
+                                <strong>Last Load Shipped:</strong>
+                                <field name="partner_last_pickup" nolabel="1"
+                                       widget="date"/>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Web Lead Origins -->
+                    <group string="Web Lead Origins"
+                           invisible="web_lead_count == 0">
+                        <field name="web_lead_ids" nolabel="1" readonly="1">
+                            <list>
+                                <field name="lead_id"/>
+                                <field name="company_name"/>
+                                <field name="decision" widget="badge"
+                                       decoration-success="decision == 'hot'"
+                                       decoration-muted="decision == 'cold'"/>
+                                <field name="state" widget="badge"
+                                       decoration-info="state == 'received'"
+                                       decoration-success="state == 'intake_created'"
+                                       decoration-muted="state == 'skipped'"
+                                       decoration-danger="state == 'error'"/>
+                                <field name="material_description"/>
+                                <field name="estimated_lbs_per_load"/>
+                                <field name="create_date"/>
+                            </list>
+                        </field>
+                    </group>
+
+                    <!-- Pipeline Summary -->
+                    <group string="Pipeline Summary">
+                        <group>
+                            <field name="material_profile_count"
+                                   string="Material Profiles"/>
+                            <field name="total_match_count"
+                                   string="Total Matches"/>
+                        </group>
+                        <group>
+                            <field name="total_transaction_count"
+                                   string="Transactions"/>
+                            <field name="partner_total_revenue"
+                                   string="Total Revenue"
+                                   widget="monetary"/>
+                            <field name="partner_last_pickup"
+                                   string="Last Load Shipped"/>
+                        </group>
+                    </group>
+
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         CRM Lead List — Add PlastOS columns
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="crm_lead_plastos_bridge_list" model="ir.ui.view">
+        <field name="name">crm.lead.plastos.bridge.list</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_tree_view_leads"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <field name="total_match_count" string="Matches" optional="hide"/>
+                <field name="total_transaction_count" string="Txns" optional="hide"/>
+                <field name="partner_last_pickup" string="Last Shipped" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Web Lead Form — Inject crm_lead_id field
+         Inherits: plasticos_web_leads.view_web_lead_form
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="web_lead_crm_bridge_form" model="ir.ui.view">
+        <field name="name">plasticos.web.lead.crm.bridge.form</field>
+        <field name="model">plasticos.web.lead</field>
+        <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_form"/>
+        <field name="arch" type="xml">
+            <!-- Add CRM Lead link next to existing partner_id + intake_id -->
+            <xpath expr="//group[@string='Links']" position="inside">
+                <field name="crm_lead_id"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Web Lead List — Add crm_lead_id column
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <record id="web_lead_crm_bridge_list" model="ir.ui.view">
+        <field name="name">plasticos.web.lead.crm.bridge.list</field>
+        <field name="model">plasticos.web.lead</field>
+        <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='intake_id']" position="after">
+                <field name="crm_lead_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
