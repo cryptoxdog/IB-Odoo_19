@@ -64,12 +64,21 @@ class PlasticosIntake(models.Model):
     # ═════════════════════════════════════════════════════════
 
     lead_source_id = fields.Many2one(
-        "plasticos.lead.source",
+        "utm.source",
         string="Lead Source",
         tracking=True,
         index=True,
         ondelete="restrict",
         help="How this lead/intake was acquired. Auto-syncs to partner when set.",
+    )
+
+    # ── CRM Lead Link (Phase 5) ────────────────────────────────
+    crm_lead_id = fields.Many2one(
+        "crm.lead",
+        string="CRM Lead",
+        index=True,
+        ondelete="set null",
+        help="Link to the CRM lead that created this intake (via Convert to Intake).",
     )
     source_lead_id = fields.Integer(
         string="Source Web Lead ID",
@@ -327,12 +336,19 @@ class PlasticosIntake(models.Model):
         [
             ("draft", "Draft"),
             ("matched", "Matched"),
+            ("offer_sent", "Offer Sent"),
+            ("processing", "Processing"),
+            ("won", "Closed — Won"),
+            ("lost", "Closed — Lost"),
+            ("expired", "Expired"),
         ],
         default="draft",
         tracking=True,
         index=True,
         string="Status",
-        help="Draft = editing. Matched = buyer matches found.",
+        help="Draft = editing. Matched = buyer matches found. "
+        "Offer Sent = offers dispatched. Won = PO created. "
+        "Lost = deal lost. Expired = no activity timeout.",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -697,6 +713,51 @@ class PlasticosIntake(models.Model):
         return self.action_view_matches()
 
     # ═════════════════════════════════════════════════════════
+    # Status Transition Actions (Phase 4)
+    # ═════════════════════════════════════════════════════════
+
+    def _assert_status(self, *allowed):
+        """Guard: raise if current status not in allowed list."""
+        self.ensure_one()
+        if self.status not in allowed:
+            raise UserError(
+                f"Cannot perform this action from status '{self.status}'. " f"Allowed: {', '.join(allowed)}"
+            )
+
+    def action_send_offer(self):
+        """Transition matched intake to offer_sent status."""
+        for rec in self:
+            rec._assert_status("matched")
+            rec.status = "offer_sent"
+            rec.message_post(body="Offer sent to selected buyer(s).")
+
+    def action_mark_processing(self):
+        """Move intake to processing (PO in progress, logistics pending)."""
+        for rec in self:
+            rec._assert_status("offer_sent")
+            rec.status = "processing"
+            rec.message_post(body="Intake moved to processing.")
+
+    def action_mark_won(self):
+        """Close intake as won — PO has been created."""
+        for rec in self:
+            rec._assert_status("offer_sent", "processing")
+            rec.status = "won"
+            rec.message_post(body="Deal closed — PO created.")
+
+    def action_mark_lost(self):
+        """Close intake as lost."""
+        for rec in self:
+            rec.status = "lost"
+            rec.message_post(body="Deal marked as lost.")
+
+    def action_mark_expired(self):
+        """Close intake as expired — no activity timeout."""
+        for rec in self:
+            rec.status = "expired"
+            rec.message_post(body="Intake expired — no activity.")
+
+    # ═════════════════════════════════════════════════════════
     # Actions
     # ═════════════════════════════════════════════════════════
 
@@ -805,7 +866,7 @@ class PlasticosIntake(models.Model):
         if self.lead_source_id:
             partner_vals["lead_source_id"] = self.lead_source_id.id
         else:
-            web_lead_source = self.env["plasticos.lead.source"].get_by_code("web_lead")
+            web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
             if web_lead_source:
                 partner_vals["lead_source_id"] = web_lead_source.id
 
@@ -829,10 +890,13 @@ class PlasticosIntake(models.Model):
         )
 
     def action_reset_to_draft(self):
-        """Reset this intake back to draft for editing."""
+        """Reset intake back to draft for editing."""
         for rec in self:
+            if rec.status == "won":
+                raise UserError("Cannot reset a Won intake. Create a new one instead.")
             rec.match_line_ids.unlink()
             rec.status = "draft"
+            rec.message_post(body="Reset to draft for editing.")
 
     def action_send_offers(self):
         """Send offers to selected buyers.
@@ -850,3 +914,64 @@ class PlasticosIntake(models.Model):
             f"Selected {len(selected)} buyer(s): {', '.join(selected.mapped('buyer_name'))}\n\n"
             "This feature will be available in a future update."
         )
+
+    def action_make_po(self):
+        """Create transaction from intake and close as Won.
+
+        This is the one-click PO creation flow:
+        1. Validates intake is in offer_sent or processing state
+        2. Creates plasticos.transaction from intake data
+        3. Moves intake to 'won' status
+        4. Opens the new transaction form
+
+        Requires plasticos_transaction module to be installed.
+        """
+        self.ensure_one()
+        self._assert_status("offer_sent", "processing", "matched")
+
+        if not self.partner_id:
+            raise UserError("Cannot create PO without a supplier partner.")
+
+        Transaction = self.env.get("plasticos.transaction")
+        if Transaction is None:
+            raise UserError(
+                "Transaction module not installed.\n\n" "Install 'PlasticOS Transactions' to enable PO creation."
+            )
+
+        # Build transaction values from intake
+        tx_vals = {
+            "intake_id": self.id,
+            "supplier_id": self.partner_id.id,
+            "supplier_facility_id": self.facility_id.id if self.facility_id else False,
+            "polymer_id": self.polymer_id.id if self.polymer_id else False,
+            "form_id": self.form_id.id if self.form_id else False,
+            "quantity_lbs": self.quantity_per_load_lbs,
+        }
+
+        # Link to material profile if available
+        if self.material_profile_id:
+            tx_vals["supplier_profile_id"] = self.material_profile_id.id
+
+        # Link to best buyer match if selected
+        selected_match = self.match_line_ids.filtered("selected").sorted("match_score", reverse=True)[:1]
+        if selected_match:
+            tx_vals["buyer_name"] = selected_match.buyer_name
+
+        tx = Transaction.create(tx_vals)
+
+        # Move intake to Won
+        self.status = "won"
+        self.message_post(
+            body=f"PO created → Transaction "
+            f'<a href="#" data-oe-model="plasticos.transaction" '
+            f'data-oe-id="{tx.id}">{tx.name or tx.id}</a>'
+        )
+
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Transaction — {self.name}",
+            "res_model": "plasticos.transaction",
+            "res_id": tx.id,
+            "view_mode": "form",
+            "target": "current",
+        }

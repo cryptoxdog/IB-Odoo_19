@@ -6,7 +6,9 @@
     "depends": [
         "base",
         "contacts",
+        "crm",
         "mail",
+        "plasticos_crm_bridge",
         "plasticos_material_profile",
         "plasticos_facility_profile",
     ],

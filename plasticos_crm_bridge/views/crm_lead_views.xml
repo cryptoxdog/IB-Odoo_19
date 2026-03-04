@@ -13,6 +13,18 @@
         <field name="priority">30</field>
         <field name="arch" type="xml">
 
+            <!-- ═══ Convert to Intake Action Button ═══ -->
+            <xpath expr="//div[hasclass('oe_title')]" position="after">
+                <div class="mb-3">
+                    <button name="action_convert_to_intake"
+                            type="object"
+                            string="⚡ Convert to Intake"
+                            class="btn-primary"
+                            title="Create a PlastOS intake from this CRM lead"
+                            invisible="type == 'opportunity'"/>
+                </div>
+            </xpath>
+
             <!-- ═══ Smart Buttons ═══ -->
             <xpath expr="//div[@name='button_box']" position="inside">
 
@@ -57,6 +69,17 @@
                         invisible="total_transaction_count == 0">
                     <field name="total_transaction_count"
                            string="Transactions"
+                           widget="statinfo"/>
+                </button>
+
+                <!-- Intakes -->
+                <button name="action_view_intakes"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-clipboard"
+                        invisible="intake_count == 0">
+                    <field name="intake_count"
+                           string="Intakes"
                            widget="statinfo"/>
                 </button>
 

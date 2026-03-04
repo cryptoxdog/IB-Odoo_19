@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!--
+            CRM Pipeline Stages for PlastOS
+            Mapped from VanillaSoft Lead Status values.
+            Loaded by plasticos_crm_bridge.
+        -->
+
+        <record id="stage_new" model="crm.stage">
+            <field name="name">New</field>
+            <field name="sequence">1</field>
+        </record>
+
+        <record id="stage_qualified_hot" model="crm.stage">
+            <field name="name">Qualified — HOT</field>
+            <field name="sequence">10</field>
+        </record>
+
+        <record id="stage_qualified_warm" model="crm.stage">
+            <field name="name">Qualified — WARM</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <record id="stage_resistant" model="crm.stage">
+            <field name="name">Resistant</field>
+            <field name="sequence">30</field>
+        </record>
+
+        <record id="stage_active_supplier" model="crm.stage">
+            <field name="name">Active Supplier</field>
+            <field name="is_won">True</field>
+            <field name="sequence">100</field>
+        </record>
+
+        <record id="stage_dead_lead" model="crm.stage">
+            <field name="name">Dead Lead</field>
+            <field name="sequence">999</field>
+        </record>
+
+    </data>
+</odoo>

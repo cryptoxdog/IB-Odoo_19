@@ -108,37 +108,38 @@ class MaterialProfileCRMBridge(models.Model):
             else:
                 rec.last_pickup_date = False
 
+    # ── Navigation Actions (for smart buttons + views) ──────
+    # FIXED: These were previously defined OUTSIDE the class as
+    # standalone functions (dead code). Now properly indented as methods.
 
-# In material_profile.py — add these action methods
+    def action_view_match_results(self):
+        """Navigate to match results for this material profile."""
+        self.ensure_one()
+        intakes = self.env["plasticos.intake"].search(
+            [
+                ("partner_id", "=", self.partner_id.id),
+                ("polymer_id", "=", self.polymer_id.id),
+            ]
+        )
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Matches — {self.polymer_id.name} @ {self.partner_id.name}",
+            "res_model": "plasticos.match.result",
+            "view_mode": "list,form",
+            "domain": [("intake_id", "in", intakes.ids)],
+        }
 
-
-def action_view_match_results(self):
-    self.ensure_one()
-    intakes = self.env["plasticos.intake"].search(
-        [
-            ("partner_id", "=", self.partner_id.id),
-            ("polymer_id", "=", self.polymer_id.id),
-        ]
-    )
-    return {
-        "type": "ir.actions.act_window",
-        "name": f"Matches — {self.polymer_id.name} @ {self.partner_id.name}",
-        "res_model": "plasticos.match.result",
-        "view_mode": "list,form",
-        "domain": [("intake_id", "in", intakes.ids)],
-    }
-
-
-def action_view_transactions(self):
-    self.ensure_one()
-    return {
-        "type": "ir.actions.act_window",
-        "name": f"Transactions — {self.polymer_id.name}",
-        "res_model": "plasticos.transaction",
-        "view_mode": "list,form",
-        "domain": [
-            "|",
-            ("supplier_profile_id", "=", self.id),
-            ("buyer_profile_id", "=", self.id),
-        ],
-    }
+    def action_view_transactions(self):
+        """Navigate to transactions for this material profile."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Transactions — {self.polymer_id.name}",
+            "res_model": "plasticos.transaction",
+            "view_mode": "list,form",
+            "domain": [
+                "|",
+                ("supplier_profile_id", "=", self.id),
+                ("buyer_profile_id", "=", self.id),
+            ],
+        }

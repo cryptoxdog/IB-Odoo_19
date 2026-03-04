@@ -89,8 +89,9 @@ class ResPartner(models.Model):
         "Used to auto-fill contact on subsequent intakes.",
     )
 
+    # ── PHASE 2: Migrated from plasticos.lead.source → utm.source ──
     lead_source_id = fields.Many2one(
-        "plasticos.lead.source",
+        "utm.source",
         string="Lead Source",
         tracking=True,
         index=True,

@@ -1,7 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-  <data noupdate="1">
-    <record id="utm_source_web_lead" model="utm.source">
-      <field name="name">web_lead</field>
-    </record>
-  </data>
+    <data noupdate="1">
+        <!--
+            UTM Source Master Data for PlastOS
+            Replaces custom plasticos.lead.source model.
+            17 canonical categories from VanillaSoft analysis (6,043 contacts).
+            Used by CRM leads, web leads, partner import, and intake tracking.
+        -->
+
+        <record id="utm_source_web_lead" model="utm.source">
+            <field name="name">Web Lead Form</field>
+        </record>
+
+        <record id="utm_source_internal" model="utm.source">
+            <field name="name">Internal Research</field>
+        </record>
+
+        <record id="utm_source_siccode" model="utm.source">
+            <field name="name">SICCODE</field>
+        </record>
+
+        <record id="utm_source_pnews" model="utm.source">
+            <field name="name">Plastics News</field>
+        </record>
+
+        <record id="utm_source_referral" model="utm.source">
+            <field name="name">Referral</field>
+        </record>
+
+        <record id="utm_source_google" model="utm.source">
+            <field name="name">Google Search</field>
+        </record>
+
+        <record id="utm_source_linkedin" model="utm.source">
+            <field name="name">LinkedIn</field>
+        </record>
+
+        <record id="utm_source_manta" model="utm.source">
+            <field name="name">Manta Directory</field>
+        </record>
+
+        <record id="utm_source_thomasnet" model="utm.source">
+            <field name="name">ThomasNet</field>
+        </record>
+
+        <record id="utm_source_enf" model="utm.source">
+            <field name="name">ENF / Industry Database</field>
+        </record>
+
+        <record id="utm_source_data_provider" model="utm.source">
+            <field name="name">Data Provider</field>
+        </record>
+
+        <record id="utm_source_recycle_net" model="utm.source">
+            <field name="name">Recycle.net</field>
+        </record>
+
+        <record id="utm_source_trade_show" model="utm.source">
+            <field name="name">Trade Show</field>
+        </record>
+
+        <record id="utm_source_state_list" model="utm.source">
+            <field name="name">State Facility List</field>
+        </record>
+
+        <record id="utm_source_association" model="utm.source">
+            <field name="name">Industry Association</field>
+        </record>
+
+        <record id="utm_source_web_research" model="utm.source">
+            <field name="name">Web Research</field>
+        </record>
+
+        <record id="utm_source_other" model="utm.source">
+            <field name="name">Other</field>
+        </record>
+
+    </data>
 </odoo>

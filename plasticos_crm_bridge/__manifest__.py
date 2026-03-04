@@ -1,16 +1,20 @@
 {
     "name": "PlastOS CRM Bridge",
-    "version": "19.0.1.0.0",
+    "version": "19.0.2.0.0",
     "depends": [
         "crm",
+        "utm",
         "plasticos_web_leads",
         "plasticos_matching",
         "plasticos_material_profile",
         "plasticos_transaction",
         "plasticos_logistics",
         "plasticos_enrichment_bridge",
+        "plasticos_intake",
     ],
     "data": [
+        "data/crm_stage_data.xml",
+        "data/partner_category_data.xml",
         "data/lead_source_data.xml",
         "views/crm_lead_views.xml",
         "views/material_profile_views.xml",

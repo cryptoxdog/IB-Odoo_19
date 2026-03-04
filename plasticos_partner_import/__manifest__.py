@@ -1,14 +1,17 @@
 {
     "name": "Plasticos Partner Import",
-    "version": "19.0.1.2.0",
-    "summary": "Deterministic partner import with wizard UI (Odoo 19)",
+    "version": "19.0.2.0.0",
+    "summary": "Deterministic partner + CRM lead import with wizard UI (Odoo 19)",
     "author": "Scrap Management Inc",
     "license": "LGPL-3",
     "depends": [
         "base",
         "contacts",
         "account",
+        "crm",
+        "utm",
         "plasticos_facility_profile",
+        "plasticos_crm_bridge",
     ],
     "data": [
         "security/ir.model.access.csv",

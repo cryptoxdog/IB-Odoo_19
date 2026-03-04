@@ -150,7 +150,7 @@ class PlasticosWebLead(models.Model):
         help="Origin system identifier.",
     )
     lead_source_id = fields.Many2one(
-        "plasticos.lead.source",
+        "utm.source",
         string="Lead Source",
         index=True,
         tracking=True,
@@ -313,7 +313,7 @@ class PlasticosWebLead(models.Model):
         image_urls = self._extract_image_urls(raw_payload)
 
         # Look up web_lead source
-        web_lead_source = self.env["plasticos.lead.source"].get_by_code("web_lead")
+        web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
 
         vals = {
             "lead_id": str(lead_id),
@@ -383,7 +383,7 @@ class PlasticosWebLead(models.Model):
         material_desc = raw.get("DescribeYourMaterial", "") or raw.get("WhatTypeOfPlastic", "")
 
         # Look up web_lead source
-        web_lead_source = self.env["plasticos.lead.source"].get_by_code("web_lead")
+        web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
 
         vals = {
             "lead_id": lead_id,
@@ -662,7 +662,7 @@ class PlasticosWebLead(models.Model):
             source_type_rec = SourceType.search([("code", "=ilike", "post_consumer")], limit=1)
 
         # Look up web_lead source for intake
-        web_lead_source = self.env["plasticos.lead.source"].get_by_code("web_lead")
+        web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
 
         intake_vals = {
             "pending_company_name": self.company_name or "Unknown",
@@ -799,7 +799,7 @@ class PlasticosWebLead(models.Model):
             source_type_rec = SourceType.search([("code", "=ilike", "post_consumer")], limit=1)
 
         # Look up web_lead source for intake
-        web_lead_source = self.env["plasticos.lead.source"].get_by_code("web_lead")
+        web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
 
         intake_vals = {
             "pending_company_name": self.company_name or "Unknown",
