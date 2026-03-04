@@ -69,6 +69,17 @@ class PlasticosTransactionDocs(models.Model):
         matrix_model = self.env["plasticos.document.validation.matrix"]
         compliance = self.env["plasticos.compliance.service"]
 
+        # Pre-fetch category → tag mappings once (avoids N+1 queries)
+        supplier_tags = set(
+            matrix_model.search([("doc_category", "=", "supplier"), ("active", "=", True)]).mapped("tag_id.code")
+        )
+        carrier_tags = set(
+            matrix_model.search([("doc_category", "=", "carrier"), ("active", "=", True)]).mapped("tag_id.code")
+        )
+        buyer_tags = set(
+            matrix_model.search([("doc_category", "=", "buyer"), ("active", "=", True)]).mapped("tag_id.code")
+        )
+
         for tx in self:
             missing_codes = compliance.get_missing_documents(
                 "plasticos.transaction",
@@ -76,31 +87,9 @@ class PlasticosTransactionDocs(models.Model):
             )
             missing_set = set(missing_codes) if missing_codes else set()
 
-            # Look up which tags belong to which category
-            supplier_tags = matrix_model.search(
-                [
-                    ("doc_category", "=", "supplier"),
-                    ("active", "=", True),
-                ]
-            ).mapped("tag_id.code")
-
-            carrier_tags = matrix_model.search(
-                [
-                    ("doc_category", "=", "carrier"),
-                    ("active", "=", True),
-                ]
-            ).mapped("tag_id.code")
-
-            buyer_tags = matrix_model.search(
-                [
-                    ("doc_category", "=", "buyer"),
-                    ("active", "=", True),
-                ]
-            ).mapped("tag_id.code")
-
-            tx.x_missing_supplier_docs = bool(missing_set & set(supplier_tags))
-            tx.x_missing_carrier_docs = bool(missing_set & set(carrier_tags))
-            tx.x_missing_buyer_docs = bool(missing_set & set(buyer_tags))
+            tx.x_missing_supplier_docs = bool(missing_set & supplier_tags)
+            tx.x_missing_carrier_docs = bool(missing_set & carrier_tags)
+            tx.x_missing_buyer_docs = bool(missing_set & buyer_tags)
 
     # ── Business Day Calculation ───────────────────────────────────
 

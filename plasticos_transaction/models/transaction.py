@@ -265,6 +265,11 @@ class PlasticosTransaction(models.Model):
     commission_amount = fields.Float(compute="_compute_commission", store=True)
     commission_locked = fields.Boolean(default=False, copy=False)
     commission_locked_amount = fields.Float(copy=False)
+    commission_override_pct = fields.Float(
+        string="Commission Override %",
+        help="Admin override: fraction 0.0–1.0. Leave 0 to use rule. Only managers can edit.",
+        groups="plasticos_transaction.group_plasticos_manager",
+    )
 
     compliance_status = fields.Selection(
         [("compliant", "Compliant"), ("missing", "Missing Docs")],
@@ -436,7 +441,14 @@ class PlasticosTransaction(models.Model):
             rec.freight_chargebacks = 0.0
             rec.lightweight_penalties = 0.0
 
-    @api.depends("gross_margin", "commission_rule_id", "state", "commission_locked", "commission_locked_amount")
+    @api.depends(
+        "gross_margin",
+        "commission_rule_id",
+        "commission_override_pct",
+        "state",
+        "commission_locked",
+        "commission_locked_amount",
+    )
     def _compute_commission(self):
         service = self.env["plasticos.commission.service"]
         for rec in self:
@@ -445,8 +457,13 @@ class PlasticosTransaction(models.Model):
                 continue
             rec.commission_amount = service.compute_commission(rec)
 
-    @api.depends("create_date")
+    @api.depends("create_date", "document_ids", "document_ids.verified", "document_ids.active", "document_ids.tag_id")
     def _compute_compliance(self):
+        """Compute compliance status based on required documents.
+
+        Depends on document_ids (from transaction_docs_bridge) to auto-recompute
+        when documents are added, removed, verified, or deactivated.
+        """
         service = self.env.get("plasticos.compliance.service")
         if not service:
             # Compliance module not installed

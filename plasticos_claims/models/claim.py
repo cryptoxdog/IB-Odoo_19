@@ -246,6 +246,13 @@ class PlasticosClaim(models.Model):
                 rec._create_escalation_activity()
 
     def action_resolve(self):
+        """Resolve the claim.
+
+        NOTE: We do NOT manually call _update_transaction_recoveries() here.
+        The transaction's _compute_chargebacks_penalties() method (in transaction_claims.py)
+        has @api.depends on claim_ids.state and claim_ids.recovery_amount, so it
+        auto-recomputes when we write state='resolved'. Manual update would be redundant.
+        """
         for rec in self:
             if not rec.resolution_note:
                 raise ValidationError("Please provide a resolution note before resolving.")
@@ -255,7 +262,6 @@ class PlasticosClaim(models.Model):
                     "resolved_at": fields.Datetime.now(),
                 }
             )
-            rec._update_transaction_recoveries()
 
     def action_archive(self):
         for rec in self:
@@ -375,6 +381,30 @@ class PlasticosClaim(models.Model):
         finally:
             self.env.cr.execute("SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_claims.cron_claim_sla_check"])
 
+    def _send_claim_notification(self):
+        """Send email notification for auto-created claim.
+
+        Uses the claim notification template if available.
+        Falls back to activity creation if template not found.
+        """
+        self.ensure_one()
+        template = self.env.ref(
+            "plasticos_claims.email_template_claim_created",
+            raise_if_not_found=False,
+        )
+        if template:
+            template.send_mail(self.id, force_send=False)
+        else:
+            # Fallback: create activity for sales rep
+            tx = self.transaction_id
+            if tx and tx.user_id:
+                self.activity_schedule(
+                    "mail.mail_activity_data_todo",
+                    summary="New Claim Created",
+                    note=f"Claim {self.name} auto-created from document upload.",
+                    user_id=tx.user_id.id,
+                )
+
     def _create_escalation_activity(self):
         """Create activity for quality manager on escalation."""
         self.ensure_one()
@@ -397,28 +427,4 @@ class PlasticosClaim(models.Model):
             user_id=user.id,
             summary=f"Open Claim Reminder: {self.name}",
             note=f"Claim {self.name} is still open and requires attention.",
-        )
-
-    def _update_transaction_recoveries(self):
-        """Update transaction chargeback/penalty fields when claim resolved."""
-        self.ensure_one()
-        if not self.transaction_id:
-            return
-
-        tx = self.transaction_id
-        resolved_claims = self.search(
-            [
-                ("transaction_id", "=", tx.id),
-                ("state", "=", "resolved"),
-            ]
-        )
-
-        chargebacks = sum(c.recovery_amount for c in resolved_claims if c.case_type == "freight_chargeback")
-        penalties = sum(c.recovery_amount for c in resolved_claims if c.case_type == "lightweight_penalty")
-
-        tx.write(
-            {
-                "freight_chargebacks": chargebacks,
-                "lightweight_penalties": penalties,
-            }
         )

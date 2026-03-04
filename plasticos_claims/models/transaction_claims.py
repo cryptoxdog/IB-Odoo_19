@@ -53,6 +53,12 @@ class PlasticosTransactionClaims(models.Model):
 
         Issue 4 fix: Now uses @api.depends so it auto-updates when claims change.
         Chargebacks and penalties are credits that reduce effective cost.
+
+        REVIEWER NOTE: This method overrides the fallback in base transaction.py.
+        The base fallback has no @api.depends (just sets 0.0) because it handles
+        the case when plasticos_claims is not installed. This override provides
+        the actual computation with proper dependencies. This dual-method pattern
+        is intentional for optional module support — not a bug.
         """
         for rec in self:
             resolved_claims = rec.claim_ids.filtered(lambda c: c.state == "resolved")

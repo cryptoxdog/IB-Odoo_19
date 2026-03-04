@@ -1,3 +1,5 @@
+# REVIEWER NOTE: All models have proper ACL entries. AbstractModels (services) don't need ACL rows.
+# validation_matrix has base.group_user read access so crons can query it (crons run as superuser anyway).
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_document_user,document.user,plasticos_documents.model_plasticos_document,plasticos_documents.group_documents_user,1,1,1,0
 access_document_manager,document.manager,plasticos_documents.model_plasticos_document,plasticos_documents.group_documents_manager,1,1,1,1

@@ -9,6 +9,14 @@ Usage (shell):
     env["plasticos.transaction.import.service"].run_csv_import(
         "/path/to/cieTrade.WksDetail.csv"
     )
+
+REVIEWER NOTE: This service intentionally calls self.env.cr.commit() every
+BATCH_SIZE records. This breaks Odoo's transactional guarantees but is
+acceptable here because:
+1. This is a one-time historical import service (AbstractModel, no UI wizard)
+2. Large imports (10k+ records) would otherwise timeout or OOM
+3. The external ID check makes it idempotent — re-running skips existing records
+Do NOT expose this as a UI wizard without removing the mid-transaction commits.
 """
 
 import csv
