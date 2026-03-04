@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Extend Material Profile form view with CRM bridge stats -->
+    <record id="material_profile_plasticos_bridge_form" model="ir.ui.view">
+        <field name="name">plasticos.material.profile.bridge.form</field>
+        <field name="model">plasticos.material.profile</field>
+        <field name="inherit_id" ref="plasticos_material_profile.view_material_profile_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Match Statistics" name="match_stats_group">
+                    <group>
+                        <field name="match_count" readonly="1"/>
+                        <field name="best_match_score" readonly="1"/>
+                        <field name="pending_match_count" readonly="1"/>
+                    </group>
+                </group>
+                <group string="Transaction Statistics" name="tx_stats_group">
+                    <group>
+                        <field name="transaction_count" readonly="1"/>
+                        <field name="total_revenue" readonly="1"/>
+                        <field name="last_pickup_date" readonly="1"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
