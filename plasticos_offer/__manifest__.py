@@ -18,6 +18,7 @@
         "views/offer_views.xml",
         "views/offer_bulk_action_wizard_views.xml",
         "views/offer_ux.xml",
+        "views/intake_offers_bridge_views.xml",
     ],
     "installable": True,
     "application": False,

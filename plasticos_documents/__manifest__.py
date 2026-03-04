@@ -10,6 +10,7 @@
         "mail",
         "plasticos_base",
         "plasticos_transaction",
+        "plasticos_logistics",
     ],
     "data": [
         "security/security.xml",
@@ -23,6 +24,8 @@
         "data/cron.xml",
         "data/document_tags_data.xml",
         "data/cron_missing_docs.xml",
+        "views/transaction_docs_bridge_views.xml",
+        "views/load_docs_bridge_views.xml",
     ],
     "installable": True,
     "application": False,

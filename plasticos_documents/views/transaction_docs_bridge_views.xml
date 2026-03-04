@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_transaction_form_docs_bridge" model="ir.ui.view">
+        <field name="name">plasticos.transaction.form.docs.bridge</field>
+        <field name="model">plasticos.transaction</field>
+        <field name="inherit_id" ref="plasticos_transaction.view_transaction_form"/>
+        <field name="priority">35</field>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_documents" type="object"
+                        class="oe_stat_button" icon="fa-file-text-o"
+                        invisible="document_count == 0">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="document_count" nolabel="1"/>
+                        </span>
+                        <span class="o_stat_text">Documents</span>
+                    </div>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>

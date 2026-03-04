@@ -31,6 +31,7 @@
         "views/web_lead_config_views.xml",
         "views/lead_bulk_action_wizard_views.xml",
         "views/web_lead_ux.xml",
+        "views/web_lead_bridge_views.xml",
     ],
     "installable": True,
     "auto_install": False,

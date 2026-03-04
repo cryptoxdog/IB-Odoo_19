@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_tx_bridge" model="ir.ui.view">
+        <field name="name">res.partner.form.tx.bridge</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_plasticos_transactions" type="object"
+                        class="oe_stat_button" icon="fa-exchange"
+                        invisible="plasticos_transaction_count == 0">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="plasticos_transaction_count" nolabel="1"/>
+                        </span>
+                        <span class="o_stat_text">Transactions</span>
+                    </div>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>

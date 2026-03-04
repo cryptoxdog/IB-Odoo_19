@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_transaction_form_bridge" model="ir.ui.view">
+        <field name="name">plasticos.transaction.form.bridge</field>
+        <field name="model">plasticos.transaction</field>
+        <field name="inherit_id" ref="plasticos_transaction.view_transaction_form"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_intake" type="object"
+                        class="oe_stat_button" icon="fa-inbox"
+                        invisible="not intake_id">
+                    <span class="o_stat_text">Intake</span>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>

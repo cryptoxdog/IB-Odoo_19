@@ -9,3 +9,8 @@ from . import transaction_line
 from . import account_move_inherit
 from . import load_inherit
 from . import purchase_inherit
+from . import transaction_bridge
+from . import intake_bridge
+from . import partner_bridge
+from . import offer_bridge
+from . import match_result_bridge
