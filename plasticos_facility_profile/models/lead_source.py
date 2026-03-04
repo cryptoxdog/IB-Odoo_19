@@ -1,30 +1,7 @@
-"""Lead Source enum for tracking how partners/intakes were acquired.
+from odoo import api, fields, models
 
-This module provides a Selection field definition (not a database model)
-for lead sources. Values are derived from VanillaSoft import data.
-"""
-
-LEAD_SOURCE_SELECTION = [
-    ("internal", "Internal Research (Igor/Team)"),
-    ("siccode", "SICCODE.com Database"),
-    ("pnews", "Plastics News"),
-    ("referral", "Referral"),
-    ("google", "Google Search"),
-    ("linkedin", "LinkedIn"),
-    ("manta", "Manta Directory"),
-    ("thomasnet", "ThomasNet"),
-    ("enf", "ENF/Industry Database"),
-    ("recycle_net", "Recycle.net"),
-    ("trade_show", "Trade Show/Conference"),
-    ("state_list", "State Licensed Facility List"),
-    ("web_research", "Web Research"),
-    ("data_provider", "Data Provider (List Giant, DataAxle)"),
-    ("association", "Industry Association (R2, RIPA, Vinyl Institute)"),
-    ("web_lead", "Web Lead Form"),
-    ("other", "Other"),
-]
-
-# Mapping from raw VanillaSoft values to canonical enum codes
+# Mapping from raw VanillaSoft values to canonical codes
+# Used by partner import wizard to normalize lead sources
 LEAD_SOURCE_MAPPING = {
     # Internal team research
     "Igor/Fiver": "internal",
@@ -64,11 +41,12 @@ LEAD_SOURCE_MAPPING = {
     # Manta
     "Manta": "manta",
     "Manta (Surplus)": "manta",
-    # ThomasNet and web directories
+    # ThomasNet
     "www.thomasnet.com": "thomasnet",
     # ENF and databases
     "ENF Database": "enf",
     "IndustrySelect Database": "enf",
+    # Data providers
     "DataAxle": "data_provider",
     "Data Axle": "data_provider",
     "List Giant": "data_provider",
@@ -129,15 +107,48 @@ LEAD_SOURCE_MAPPING = {
 }
 
 
-def normalize_lead_source(raw_value: str) -> str:
-    """Convert a raw lead source string to canonical enum code.
+class PlasticosLeadSource(models.Model):
+    """Master registry of lead sources for tracking how partners/intakes were acquired."""
 
-    Args:
-        raw_value: Raw lead source from import (e.g., "Igor/Fiver")
+    _name = "plasticos.lead.source"
+    _description = "Lead Source"
+    _order = "sequence, name"
 
-    Returns:
-        Canonical enum code (e.g., "internal"), or "other" if not mapped
-    """
-    if not raw_value:
-        return ""
-    return LEAD_SOURCE_MAPPING.get(raw_value.strip(), "other")
+    name = fields.Char(string="Lead Source", required=True, index=True)
+    code = fields.Char(
+        string="Code",
+        required=True,
+        index=True,
+        help="Internal code for programmatic reference (e.g., 'web_lead', 'internal').",
+    )
+    sequence = fields.Integer(default=10)
+    active = fields.Boolean(default=True)
+    description = fields.Text(
+        string="Description",
+        help="Optional description of this lead source.",
+    )
+
+    _unique_code = models.Constraint(
+        "unique(code)",
+        "Lead source code must be unique.",
+    )
+
+    @api.model
+    def get_by_code(self, code):
+        """Get lead source record by code, or None if not found."""
+        return self.search([("code", "=", code)], limit=1)
+
+    @api.model
+    def normalize_raw_source(self, raw_value):
+        """Convert raw lead source string to canonical code.
+
+        Args:
+            raw_value: Raw lead source from import (e.g., "Igor/Fiver")
+
+        Returns:
+            Lead source record, or False if not mapped
+        """
+        if not raw_value:
+            return False
+        code = LEAD_SOURCE_MAPPING.get(raw_value.strip(), "other")
+        return self.get_by_code(code)

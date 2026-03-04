@@ -84,21 +84,15 @@ class ResPartner(models.Model):
         "Used to auto-fill contact on subsequent intakes.",
     )
 
-    lead_source = fields.Selection(
-        selection="_get_lead_source_selection",
+    lead_source_id = fields.Many2one(
+        "plasticos.lead.source",
         string="Lead Source",
         tracking=True,
         index=True,
+        ondelete="restrict",
         help="How this counterparty was originally acquired. "
         "Set automatically when partner is created from a web lead or intake.",
     )
-
-    @api.model
-    def _get_lead_source_selection(self):
-        """Return lead source selection from enum definition."""
-        from odoo.addons.plasticos_facility_profile import lead_source_enum
-
-        return lead_source_enum.LEAD_SOURCE_SELECTION
 
     entity_status = fields.Selection(
         selection=[

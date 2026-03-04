@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!--
+            Lead Source Master Data
+            Derived from VanillaSoft CSV analysis (6,043 contacts)
+            17 canonical categories covering all import sources
+        -->
+
+        <record id="lead_source_internal" model="plasticos.lead.source">
+            <field name="name">Internal Research (Igor/Team)</field>
+            <field name="code">internal</field>
+            <field name="sequence">10</field>
+            <field name="description">Research by Igor, Fiverr contractors, or internal team. Includes Outlook imports, iCloud contacts, and manual prospecting.</field>
+        </record>
+
+        <record id="lead_source_siccode" model="plasticos.lead.source">
+            <field name="name">SICCODE.com Database</field>
+            <field name="code">siccode</field>
+            <field name="sequence">20</field>
+            <field name="description">Leads from SICCODE.com industry database, including TOP 100 Growers list.</field>
+        </record>
+
+        <record id="lead_source_pnews" model="plasticos.lead.source">
+            <field name="name">Plastics News</field>
+            <field name="code">pnews</field>
+            <field name="sequence">30</field>
+            <field name="description">Plastics News rankings, recycler lists, and compounder directories.</field>
+        </record>
+
+        <record id="lead_source_referral" model="plasticos.lead.source">
+            <field name="name">Referral</field>
+            <field name="code">referral</field>
+            <field name="sequence">40</field>
+            <field name="description">Word-of-mouth referrals from existing partners or industry contacts.</field>
+        </record>
+
+        <record id="lead_source_google" model="plasticos.lead.source">
+            <field name="name">Google Search</field>
+            <field name="code">google</field>
+            <field name="sequence">50</field>
+            <field name="description">Leads found via Google search or Google Maps.</field>
+        </record>
+
+        <record id="lead_source_linkedin" model="plasticos.lead.source">
+            <field name="name">LinkedIn</field>
+            <field name="code">linkedin</field>
+            <field name="sequence">60</field>
+            <field name="description">LinkedIn prospecting, AI-assisted outreach, or Seamless.AI integration.</field>
+        </record>
+
+        <record id="lead_source_manta" model="plasticos.lead.source">
+            <field name="name">Manta Directory</field>
+            <field name="code">manta</field>
+            <field name="sequence">70</field>
+            <field name="description">Manta.com business directory listings.</field>
+        </record>
+
+        <record id="lead_source_thomasnet" model="plasticos.lead.source">
+            <field name="name">ThomasNet</field>
+            <field name="code">thomasnet</field>
+            <field name="sequence">80</field>
+            <field name="description">ThomasNet industrial supplier directory.</field>
+        </record>
+
+        <record id="lead_source_enf" model="plasticos.lead.source">
+            <field name="name">ENF/Industry Database</field>
+            <field name="code">enf</field>
+            <field name="sequence">90</field>
+            <field name="description">ENF Database, IndustrySelect, or similar B2B databases.</field>
+        </record>
+
+        <record id="lead_source_recycle_net" model="plasticos.lead.source">
+            <field name="name">Recycle.net</field>
+            <field name="code">recycle_net</field>
+            <field name="sequence">100</field>
+            <field name="description">Recycle.net, plasticfilmrecycling.org, or recycling center directories.</field>
+        </record>
+
+        <record id="lead_source_trade_show" model="plasticos.lead.source">
+            <field name="name">Trade Show/Conference</field>
+            <field name="code">trade_show</field>
+            <field name="sequence">110</field>
+            <field name="description">Trade show attendee lists (SERC, Ohio conference, etc.).</field>
+        </record>
+
+        <record id="lead_source_state_list" model="plasticos.lead.source">
+            <field name="name">State Licensed Facility List</field>
+            <field name="code">state_list</field>
+            <field name="sequence">120</field>
+            <field name="description">State DEP/DEQ licensed solid waste facility lists (GA, OH, WI, etc.).</field>
+        </record>
+
+        <record id="lead_source_web_research" model="plasticos.lead.source">
+            <field name="name">Web Research</field>
+            <field name="code">web_research</field>
+            <field name="sequence">130</field>
+            <field name="description">General web research, Yellow Pages, DexKnows, GeoSource, etc.</field>
+        </record>
+
+        <record id="lead_source_data_provider" model="plasticos.lead.source">
+            <field name="name">Data Provider (List Giant, DataAxle)</field>
+            <field name="code">data_provider</field>
+            <field name="sequence">140</field>
+            <field name="description">Purchased lead lists from List Giant, DataAxle, or similar providers.</field>
+        </record>
+
+        <record id="lead_source_association" model="plasticos.lead.source">
+            <field name="name">Industry Association</field>
+            <field name="code">association</field>
+            <field name="sequence">150</field>
+            <field name="description">R2, RIPA Association, Vinyl Institute, or other industry associations.</field>
+        </record>
+
+        <record id="lead_source_web_lead" model="plasticos.lead.source">
+            <field name="name">Web Lead Form</field>
+            <field name="code">web_lead</field>
+            <field name="sequence">160</field>
+            <field name="description">Inbound leads from website contact forms or landing pages.</field>
+        </record>
+
+        <record id="lead_source_other" model="plasticos.lead.source">
+            <field name="name">Other</field>
+            <field name="code">other</field>
+            <field name="sequence">999</field>
+            <field name="description">Miscellaneous sources not fitting other categories.</field>
+        </record>
+
+    </data>
+</odoo>

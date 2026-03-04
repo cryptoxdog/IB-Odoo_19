@@ -15,7 +15,9 @@
     "data": [
         "security/ir.model.access.csv",
         "data/equipment_type_data.xml",
+        "data/lead_source_data.xml",
         "data/partner_type_data.xml",
+        "views/lead_source_views.xml",
         "views/partner_type_views.xml",
         "views/facility_profile_views.xml",
     ],
