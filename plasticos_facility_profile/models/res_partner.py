@@ -27,6 +27,11 @@ class ResPartner(models.Model):
 
     facility_profile_ids = fields.One2many("plasticos.facility.profile", "partner_id", string="Facility Capabilities")
 
+    facility_profile_count = fields.Integer(
+        string="Capabilities",
+        compute="_compute_facility_profile_count",
+    )
+
     partner_type_id = fields.Many2one(
         "plasticos.partner.type",
         string="Partner Type",
@@ -108,6 +113,23 @@ class ResPartner(models.Model):
         "Inactive = temporarily paused. "
         "Blocked = suspended from transactions.",
     )
+
+    def _compute_facility_profile_count(self):
+        """Count facility profiles linked to this partner."""
+        for rec in self:
+            rec.facility_profile_count = len(rec.facility_profile_ids)
+
+    def action_view_facility_profiles(self):
+        """Navigate to facility profiles for this partner."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Capabilities — {self.name}",
+            "res_model": "plasticos.facility.profile",
+            "view_mode": "list,form",
+            "domain": [("partner_id", "=", self.id)],
+            "context": {"default_partner_id": self.id},
+        }
 
     def write(self, vals):
         if "parent_id" in vals and not vals.get("parent_id"):

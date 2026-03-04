@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         CLAIM FORM UX — Banners, Smart Buttons, Recovery Rate
+         Inherits: plasticos_claims.view_claim_form
+         ═══════════════════════════════════════════════════════════ -->
+
+    <record id="claim_form_ux" model="ir.ui.view">
+        <field name="name">plasticos.claim.form.ux</field>
+        <field name="model">plasticos.claim</field>
+        <field name="inherit_id" ref="plasticos_claims.view_claim_form"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- ═══ Smart Button Box (form has none) ═══ -->
+            <xpath expr="//sheet/div[@class='oe_title']" position="before">
+                <div class="oe_button_box" name="button_box">
+
+                    <!-- Transaction jump -->
+                    <button name="action_view_transaction"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-exchange"
+                            invisible="not transaction_id">
+                        <span class="o_stat_text">Transaction</span>
+                    </button>
+
+                    <!-- Load jump -->
+                    <button name="action_view_load"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-truck"
+                            invisible="not load_id">
+                        <span class="o_stat_text">Load</span>
+                    </button>
+
+                    <!-- Days Open stat -->
+                    <button class="oe_stat_button" disabled="1"
+                            icon="fa-clock-o"
+                            invisible="state in ('resolved', 'archived')">
+                        <div class="o_stat_info">
+                            <span class="o_stat_value">
+                                <field name="days_open" nolabel="1"/>d
+                            </span>
+                            <span class="o_stat_text">Days Open</span>
+                        </div>
+                    </button>
+
+                    <!-- Recovery Rate stat -->
+                    <button class="oe_stat_button" disabled="1"
+                            icon="fa-money"
+                            invisible="claimed_amount == 0">
+                        <div class="o_stat_info">
+                            <span class="o_stat_value">
+                                <field name="recovery_rate" nolabel="1"/>%
+                            </span>
+                            <span class="o_stat_text">Recovered</span>
+                        </div>
+                    </button>
+
+                </div>
+            </xpath>
+
+            <!-- ═══ Status Banners (between header and sheet) ═══ -->
+            <xpath expr="//sheet/div[@class='oe_title']" position="before">
+
+                <!-- ESCALATED alert -->
+                <div class="alert alert-danger border-danger border-3 d-flex align-items-center"
+                     role="alert"
+                     invisible="state != 'escalated'">
+                    <i class="fa fa-exclamation-triangle fa-lg me-2" title="Escalated"/>
+                    <div class="flex-grow-1">
+                        <strong class="fs-5">⚠ ESCALATED</strong>
+                        <span class="ms-2" invisible="not escalation_reason">
+                            — <field name="escalation_reason" nolabel="1" readonly="1"/>
+                        </span>
+                        <span class="ms-2" invisible="not escalated_to_id">
+                            → Assigned to <field name="escalated_to_id" nolabel="1" readonly="1"/>
+                        </span>
+                    </div>
+                    <span class="badge bg-danger fs-6">
+                        Level <field name="escalation_level" nolabel="1"/>
+                    </span>
+                </div>
+
+                <!-- SLA OVERDUE alert -->
+                <div class="alert alert-warning d-flex align-items-center"
+                     role="alert"
+                     invisible="not is_overdue or state in ('resolved', 'archived', 'escalated')">
+                    <i class="fa fa-clock-o fa-lg me-2" title="Overdue"/>
+                    <div>
+                        <strong>SLA Overdue</strong>
+                        <span class="ms-1">— This claim has exceeded the
+                            <field name="sla_hours" nolabel="1"/>-hour SLA window.
+                            Open <field name="days_open" nolabel="1"/> days.
+                        </span>
+                    </div>
+                </div>
+
+                <!-- RESOLVED success -->
+                <div class="alert alert-success d-flex align-items-center"
+                     role="alert"
+                     invisible="state != 'resolved'">
+                    <i class="fa fa-check-circle fa-lg me-2" title="Resolved"/>
+                    <div class="flex-grow-1">
+                        <strong>Resolved</strong>
+                        <span class="ms-1" invisible="not resolution_type">
+                            via <field name="resolution_type" nolabel="1" readonly="1"/>
+                        </span>
+                        <span class="ms-1" invisible="not resolved_at">
+                            on <field name="resolved_at" nolabel="1" widget="date" readonly="1"/>
+                        </span>
+                    </div>
+                    <span class="badge bg-success fs-6"
+                          invisible="recovery_amount == 0">
+                        Recovered: $<field name="recovery_amount" nolabel="1"/>
+                    </span>
+                </div>
+
+            </xpath>
+
+            <!-- ═══ Financial group → add recovery_rate + monetary widgets ═══ -->
+            <xpath expr="//group[@string='Financial']" position="replace">
+                <group string="Financial">
+                    <field name="claimed_amount" widget="monetary"/>
+                    <field name="recovery_amount" widget="monetary"/>
+                    <field name="recovery_rate" widget="progressbar"/>
+                </group>
+            </xpath>
+
+            <!-- ═══ SLA group → add is_overdue, days_open ═══ -->
+            <xpath expr="//group[@string='SLA Tracking']" position="replace">
+                <group string="SLA Tracking">
+                    <field name="sla_hours"/>
+                    <field name="opened_at"/>
+                    <field name="days_open"/>
+                    <field name="is_overdue" widget="boolean"
+                           decoration-danger="is_overdue"/>
+                    <field name="escalated_at"
+                           invisible="state not in ('escalated', 'resolved', 'archived')"/>
+                    <field name="resolved_at"
+                           invisible="state not in ('resolved', 'archived')"/>
+                </group>
+            </xpath>
+
+            <!-- ═══ Classification → severity badge widget ═══ -->
+            <xpath expr="//group[@string='Classification']/field[@name='severity']"
+                   position="attributes">
+                <attribute name="widget">radio</attribute>
+                <attribute name="options">{'horizontal': true}</attribute>
+            </xpath>
+
+            <!-- ═══ Add Investigation tab (currently missing from form) ═══ -->
+            <xpath expr="//page[@string='Resolution']" position="after">
+                <page string="Investigation"
+                      invisible="state not in ('in_progress', 'escalated', 'resolved', 'archived')">
+                    <group>
+                        <group string="Root Cause Analysis">
+                            <field name="root_cause"
+                                   placeholder="What caused this issue?"/>
+                            <field name="corrective_action"
+                                   placeholder="What steps prevent recurrence?"/>
+                        </group>
+                        <group string="Investigation">
+                            <field name="investigation_notes"
+                                   placeholder="Investigation findings and evidence..."/>
+                            <field name="resolution_type"
+                                   invisible="state not in ('resolved', 'archived')"/>
+                        </group>
+                    </group>
+                    <group string="Evidence">
+                        <field name="photo_ids" widget="many2many_binary"
+                               string="Claim Photos"/>
+                    </group>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         CLAIM LIST UX — Promote columns, add decorations
+         Inherits: plasticos_claims.view_claim_list
+         ═══════════════════════════════════════════════════════════ -->
+
+    <record id="claim_list_ux" model="ir.ui.view">
+        <field name="name">plasticos.claim.list.ux</field>
+        <field name="model">plasticos.claim</field>
+        <field name="inherit_id" ref="plasticos_claims.view_claim_list"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- Add overdue/SLA decorations -->
+            <xpath expr="//list" position="attributes">
+                <attribute name="decoration-warning">is_overdue and state not in ('resolved', 'archived')</attribute>
+            </xpath>
+
+            <!-- Severity → badge widget -->
+            <xpath expr="//field[@name='severity']" position="attributes">
+                <attribute name="widget">badge</attribute>
+                <attribute name="decoration-danger">severity == 'high'</attribute>
+                <attribute name="decoration-warning">severity == 'medium'</attribute>
+                <attribute name="decoration-muted">severity == 'low'</attribute>
+            </xpath>
+
+            <!-- Promote claimed/recovery to show + add monetary -->
+            <xpath expr="//field[@name='claimed_amount']" position="attributes">
+                <attribute name="optional">show</attribute>
+                <attribute name="widget">monetary</attribute>
+            </xpath>
+            <xpath expr="//field[@name='recovery_amount']" position="attributes">
+                <attribute name="optional">show</attribute>
+                <attribute name="widget">monetary</attribute>
+            </xpath>
+
+            <!-- Add overdue flag + days_open columns -->
+            <xpath expr="//field[@name='opened_at']" position="after">
+                <field name="days_open" string="Days" optional="show"/>
+                <field name="is_overdue" string="Overdue" widget="boolean"
+                       optional="show"/>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         CLAIM SEARCH UX — Add SLA/time filters
+         Inherits: plasticos_claims.view_claim_search
+         ═══════════════════════════════════════════════════════════ -->
+
+    <record id="claim_search_ux" model="ir.ui.view">
+        <field name="name">plasticos.claim.search.ux</field>
+        <field name="model">plasticos.claim</field>
+        <field name="inherit_id" ref="plasticos_claims.view_claim_search"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <xpath expr="//filter[@name='my_claims']" position="after">
+                <separator/>
+                <filter name="filter_overdue" string="⏰ SLA Overdue"
+                        domain="[('is_overdue', '=', True)]"/>
+                <filter name="filter_unassigned" string="Unassigned"
+                        domain="[('assignee_id', '=', False)]"/>
+                <separator/>
+                <filter name="filter_this_week" string="This Week"
+                        domain="[('opened_at', '&gt;=', (context_today() - relativedelta(days=context_today().weekday())).strftime('%%Y-%%m-%%d'))]"/>
+                <filter name="filter_this_month" string="This Month"
+                        domain="[('opened_at', '&gt;=', context_today().strftime('%%Y-%%m-01'))]"/>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

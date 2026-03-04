@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         FACILITY PROFILE FORM UX — Title Block, Banners, Toggle Widgets
+         Inherits: plasticos_facility_profile.view_facility_profile_form
+         ═══════════════════════════════════════════════════════════ -->
+
+    <record id="facility_profile_form_ux" model="ir.ui.view">
+        <field name="name">plasticos.facility.profile.form.ux</field>
+        <field name="model">plasticos.facility.profile</field>
+        <field name="inherit_id" ref="plasticos_facility_profile.view_facility_profile_form"/>
+        <field name="priority">15</field>
+        <field name="arch" type="xml">
+
+            <!-- ═══ Add Title Block (form has none) ═══ -->
+            <xpath expr="//sheet/notebook" position="before">
+
+                <div class="oe_button_box" name="button_box">
+                    <!-- Partner/Facility jump -->
+                    <button name="action_view_partner"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-building"
+                            invisible="not partner_id">
+                        <span class="o_stat_text">Partner</span>
+                    </button>
+                </div>
+
+                <div class="oe_title">
+                    <h1>
+                        <field name="partner_id" readonly="1" options="{'no_open': True}"/>
+                    </h1>
+                    <h3 class="text-muted">
+                        <field name="process_type" readonly="1"/>
+                        <span invisible="not feedstock_type">
+                            — <field name="feedstock_type" readonly="1"/>
+                        </span>
+                    </h3>
+                </div>
+
+                <!-- Capacity summary banner -->
+                <div class="alert alert-info d-flex justify-content-between align-items-center"
+                     role="alert"
+                     invisible="not capacity_lbs_month">
+                    <span>
+                        <i class="fa fa-industry" title="Capacity"/>
+                        <strong> Capacity: </strong>
+                        <field name="capacity_lbs_month" nolabel="1"/> lbs/month
+                    </span>
+                    <span invisible="not max_monthly_throughput_lbs">
+                        <strong>Max Throughput: </strong>
+                        <field name="max_monthly_throughput_lbs" nolabel="1"/> lbs/month
+                    </span>
+                    <span invisible="not avg_truckload_lbs">
+                        <strong>Avg Load: </strong>
+                        <field name="avg_truckload_lbs" nolabel="1"/> lbs
+                    </span>
+                </div>
+
+            </xpath>
+
+            <!-- ═══ Equipment booleans → boolean_toggle for visual scanning ═══ -->
+            <xpath expr="//field[@name='has_horizontal_baler']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='has_downstroke_baler']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='has_shredder']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='has_granulator']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='has_wash_line']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='has_extruder']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='has_sorting_line']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+
+            <!-- Material handling → boolean_toggle -->
+            <xpath expr="//field[@name='handles_bales']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='handles_regrind']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='handles_pellet']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='handles_flake']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='handles_rollstock']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+
+            <!-- Quality/Cert booleans → boolean_toggle -->
+            <xpath expr="//field[@name='can_remove_metal']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='can_reduce_moisture']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='can_filter_fr']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='can_screen_fines']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='iso_certified']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='food_grade_certified']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='medical_grade_capable']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+            <xpath expr="//field[@name='accepts_filled_materials']" position="attributes">
+                <attribute name="widget">boolean_toggle</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         FACILITY PROFILE SEARCH VIEW (doesn't exist!)
+         ═══════════════════════════════════════════════════════════ -->
+
+    <record id="view_facility_profile_search" model="ir.ui.view">
+        <field name="name">plasticos.facility.profile.search</field>
+        <field name="model">plasticos.facility.profile</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="partner_id"/>
+                <field name="process_type"/>
+                <field name="feedstock_type"/>
+                <field name="accepted_polymer_ids"/>
+                <filter name="filter_has_wash" string="Has Wash Line"
+                        domain="[('has_wash_line', '=', True)]"/>
+                <filter name="filter_has_extruder" string="Has Extruder"
+                        domain="[('has_extruder', '=', True)]"/>
+                <filter name="filter_iso" string="ISO Certified"
+                        domain="[('iso_certified', '=', True)]"/>
+                <filter name="filter_food_grade" string="Food Grade"
+                        domain="[('food_grade_certified', '=', True)]"/>
+                <separator/>
+                <filter name="filter_spot" string="Accepts Spot"
+                        domain="[('accepts_spot', '=', True)]"/>
+                <filter name="filter_contract" string="Prefers Contract"
+                        domain="[('prefers_contract', '=', True)]"/>
+                <separator/>
+                <group name="group_by">
+                    <filter name="group_process" string="Process Type"
+                            context="{'group_by': 'process_type'}"/>
+                    <filter name="group_feedstock" string="Feedstock"
+                            context="{'group_by': 'feedstock_type'}"/>
+                    <filter name="group_partner" string="Partner"
+                            context="{'group_by': 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         FACILITY PROFILE LIST UX — Add partner_id column
+         Inherits: plasticos_facility_profile.view_facility_profile_list
+         ═══════════════════════════════════════════════════════════ -->
+
+    <record id="facility_profile_list_ux" model="ir.ui.view">
+        <field name="name">plasticos.facility.profile.list.ux</field>
+        <field name="model">plasticos.facility.profile</field>
+        <field name="inherit_id" ref="plasticos_facility_profile.view_facility_profile_list"/>
+        <field name="priority">15</field>
+        <field name="arch" type="xml">
+
+            <!-- Add partner name as first column -->
+            <xpath expr="//field[@name='max_monthly_throughput_lbs']" position="before">
+                <field name="partner_id" string="Facility"/>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

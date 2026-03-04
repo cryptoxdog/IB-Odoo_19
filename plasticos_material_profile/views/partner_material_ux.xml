@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         PARTNER FORM — Material Profiles Tab
+         Shows all material profiles for this company/facility.
+         Visible for any company (supplier or buyer can both
+         have material specifications on file).
+         ═══════════════════════════════════════════════════════════ -->
+
+    <record id="view_partner_form_material_tab" model="ir.ui.view">
+        <field name="name">res.partner.form.material.profiles.tab</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+
+            <xpath expr="//sheet/notebook" position="inside">
+
+                <page string="Material Profiles"
+                      invisible="not is_company"
+                      name="material_profiles_tab">
+
+                    <!-- Summary banner (zero-state guidance) -->
+                    <div class="alert alert-light text-muted"
+                         invisible="material_profile_count > 0">
+                        <i class="fa fa-info-circle" title="Info"/>
+                        No material profiles yet. Click "Add a line" to define what
+                        materials this company supplies or accepts.
+                    </div>
+
+                    <field name="material_profile_ids"
+                           context="{'default_partner_id': active_id,
+                                     'form_view_ref': 'plasticos_material_profile.view_material_profile_form'}">
+                        <list editable="bottom">
+                            <field name="polymer_id"/>
+                            <field name="form_id"/>
+                            <field name="color_id" optional="show"/>
+                            <field name="source_type_id" optional="show"/>
+                            <field name="contamination_percent" string="Contam %"
+                                   optional="show"/>
+                            <field name="has_fr" string="FR" widget="boolean"
+                                   optional="show"/>
+                            <field name="has_metal" string="Metal" widget="boolean"
+                                   optional="show"/>
+                            <!-- Profile form opens on row click or expand -->
+                            <button name="action_open_profile_form"
+                                    type="object"
+                                    icon="fa-external-link"
+                                    title="Open Full Profile"
+                                    class="btn-link p-0"/>
+                        </list>
+                    </field>
+
+                </page>
+
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

@@ -122,6 +122,12 @@ class PlasticosClaim(models.Model):
         string="Recovery Amount",
         help="Actual amount recovered (chargeback, penalty credit, etc.).",
     )
+    recovery_rate = fields.Float(
+        string="Recovery Rate (%)",
+        compute="_compute_recovery_rate",
+        store=True,
+        help="Percentage of claimed amount recovered.",
+    )
 
     # ── Notes ────────────────────────────────────────────────
     notes = fields.Text(
@@ -286,6 +292,43 @@ class PlasticosClaim(models.Model):
                 rec.is_overdue = now > deadline
             else:
                 rec.is_overdue = False
+
+    @api.depends("claimed_amount", "recovery_amount")
+    def _compute_recovery_rate(self):
+        """Percentage of claimed amount recovered."""
+        for rec in self:
+            if rec.claimed_amount > 0:
+                rec.recovery_rate = min((rec.recovery_amount / rec.claimed_amount) * 100, 100)
+            else:
+                rec.recovery_rate = 0.0
+
+    # ── Navigation Actions (for smart buttons) ───────────────
+
+    def action_view_transaction(self):
+        """Navigate to the linked transaction."""
+        self.ensure_one()
+        if not self.transaction_id:
+            return
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Transaction — {self.transaction_id.name}",
+            "res_model": "plasticos.transaction",
+            "view_mode": "form",
+            "res_id": self.transaction_id.id,
+        }
+
+    def action_view_load(self):
+        """Navigate to the linked load."""
+        self.ensure_one()
+        if not self.load_id:
+            return
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Load — {self.load_id.name}",
+            "res_model": "plasticos.load",
+            "view_mode": "form",
+            "res_id": self.load_id.id,
+        }
 
     # ── SLA Cron ─────────────────────────────────────────────
     @api.model

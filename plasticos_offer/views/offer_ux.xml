@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         OFFER FORM UX — Smart Buttons, Expiry/Counter Banners,
+         Total Value, Response Tab Visibility
+         Inherits: plasticos_offer.view_offer_form
+         ═══════════════════════════════════════════════════════════ -->
+
+    <record id="offer_form_ux" model="ir.ui.view">
+        <field name="name">plasticos.offer.form.ux</field>
+        <field name="model">plasticos.offer</field>
+        <field name="inherit_id" ref="plasticos_offer.view_offer_form"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- ═══ Smart Button Box (form has none) ═══ -->
+            <xpath expr="//sheet/group[1]" position="before">
+                <div class="oe_button_box" name="button_box">
+
+                    <!-- Intake jump -->
+                    <button name="action_view_intake"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-flask"
+                            invisible="not intake_id">
+                        <span class="o_stat_text">Intake</span>
+                    </button>
+
+                    <!-- Supplier jump -->
+                    <button name="action_view_supplier"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-building"
+                            invisible="not supplier_id">
+                        <span class="o_stat_text">Supplier</span>
+                    </button>
+
+                    <!-- Buyer jump -->
+                    <button name="action_view_buyer"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-users"
+                            invisible="not buyer_id">
+                        <span class="o_stat_text">Buyer</span>
+                    </button>
+
+                    <!-- Total Value stat -->
+                    <button class="oe_stat_button" disabled="1"
+                            icon="fa-dollar"
+                            invisible="total_value == 0">
+                        <div class="o_stat_info">
+                            <span class="o_stat_value">
+                                <field name="total_value" nolabel="1"
+                                       widget="monetary"/>
+                            </span>
+                            <span class="o_stat_text">Deal Value</span>
+                        </div>
+                    </button>
+
+                </div>
+            </xpath>
+
+            <!-- ═══ Status Banners (above Origin group) ═══ -->
+            <xpath expr="//sheet/group[1]" position="before">
+
+                <!-- Expiring Soon warning (≤7 days) -->
+                <div class="alert alert-warning d-flex align-items-center"
+                     role="alert"
+                     invisible="days_until_expiry &gt; 7 or days_until_expiry &lt; 0 or state not in ('draft', 'sent', 'responded')">
+                    <i class="fa fa-hourglass-half fa-lg me-2" title="Expiring"/>
+                    <div>
+                        <strong>Expiring Soon: </strong>
+                        <field name="days_until_expiry" nolabel="1"/> days remaining
+                        (valid until <field name="valid_until" nolabel="1" widget="date"/>)
+                    </div>
+                </div>
+
+                <!-- Expired alert -->
+                <div class="alert alert-danger d-flex align-items-center"
+                     role="alert"
+                     invisible="days_until_expiry &gt;= 0 or state not in ('draft', 'sent', 'responded')">
+                    <i class="fa fa-ban fa-lg me-2" title="Expired"/>
+                    <strong>EXPIRED</strong>
+                    <span class="ms-1">— This offer expired on
+                        <field name="valid_until" nolabel="1" widget="date"/>.
+                        Cancel or extend the validity.
+                    </span>
+                </div>
+
+                <!-- Counter-offer received -->
+                <div class="alert alert-info d-flex justify-content-between align-items-center"
+                     role="alert"
+                     invisible="not counter_price_per_lb or state not in ('responded', 'sent')">
+                    <span>
+                        <i class="fa fa-commenting fa-lg me-1" title="Counter-Offer"/>
+                        <strong>Counter-Offer Received: </strong>
+                        $<field name="counter_price_per_lb" nolabel="1"/>/lb
+                    </span>
+                    <span>
+                        <strong>Original: </strong>
+                        $<field name="price_per_lb" nolabel="1"/>/lb
+                    </span>
+                </div>
+
+                <!-- Accepted success -->
+                <div class="alert alert-success d-flex justify-content-between align-items-center"
+                     role="alert"
+                     invisible="state != 'accepted'">
+                    <span>
+                        <i class="fa fa-check-circle fa-lg me-1" title="Accepted"/>
+                        <strong>ACCEPTED</strong>
+                        <span class="ms-1" invisible="not accepted_date">
+                            on <field name="accepted_date" nolabel="1" widget="date" readonly="1"/>
+                        </span>
+                    </span>
+                    <span class="badge bg-success fs-6">
+                        <field name="total_value" nolabel="1" widget="monetary"/>
+                    </span>
+                </div>
+
+            </xpath>
+
+            <!-- ═══ Total Value below quantity in Commercial Terms ═══ -->
+            <xpath expr="//page[@string='Commercial Terms']//field[@name='loads']"
+                   position="after">
+                <field name="total_value" widget="monetary" readonly="1"/>
+            </xpath>
+
+            <!-- ═══ Response tab → only visible after sent ═══ -->
+            <xpath expr="//page[@string='Response']" position="attributes">
+                <attribute name="invisible">state == 'draft'</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         OFFER LIST UX — Total Value, Expiry Decorations
+         Inherits: plasticos_offer.view_offer_list
+         ═══════════════════════════════════════════════════════════ -->
+
+    <record id="offer_list_ux" model="ir.ui.view">
+        <field name="name">plasticos.offer.list.ux</field>
+        <field name="model">plasticos.offer</field>
+        <field name="inherit_id" ref="plasticos_offer.view_offer_list"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <!-- Add total_value after quantity -->
+            <xpath expr="//field[@name='quantity_lbs']" position="after">
+                <field name="total_value" string="Total" widget="monetary"
+                       optional="show" sum="Grand Total"/>
+            </xpath>
+
+            <!-- Add expiry urgency decoration -->
+            <xpath expr="//field[@name='valid_until']" position="attributes">
+                <attribute name="decoration-danger">days_until_expiry &lt; 0</attribute>
+                <attribute name="decoration-warning">days_until_expiry &gt;= 0 and days_until_expiry &lt;= 7</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         OFFER SEARCH UX — My Offers, Expired filter
+         Inherits: plasticos_offer.view_offer_search
+         ═══════════════════════════════════════════════════════════ -->
+
+    <record id="offer_search_ux" model="ir.ui.view">
+        <field name="name">plasticos.offer.search.ux</field>
+        <field name="model">plasticos.offer</field>
+        <field name="inherit_id" ref="plasticos_offer.view_offer_search"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+
+            <xpath expr="//filter[@name='filter_expiring_soon']" position="after">
+                <filter name="filter_expired" string="Expired"
+                        domain="[('state', '=', 'expired')]"/>
+                <filter name="filter_cancelled" string="Cancelled"
+                        domain="[('state', '=', 'cancelled')]"/>
+                <separator/>
+                <filter name="filter_my_offers" string="My Offers"
+                        domain="[('create_uid', '=', uid)]"/>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

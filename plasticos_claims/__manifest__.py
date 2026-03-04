@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Claims",
-    "version": "19.0.1.0.1",
+    "version": "19.0.1.1.0",
     "summary": "QC cases, claims, chargebacks, and compliance workflows",
     "license": "LGPL-3",
     "author": "PlasticOS",
@@ -23,6 +23,7 @@
         "views/claim_views.xml",
         "views/claim_menus.xml",
         "views/claim_bulk_update_wizard_views.xml",
+        "views/claim_ux.xml",
     ],
     "installable": True,
     "auto_install": False,

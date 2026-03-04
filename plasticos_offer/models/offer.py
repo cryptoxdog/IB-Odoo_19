@@ -98,6 +98,17 @@ class PlasticosOffer(models.Model):
     loads = fields.Integer(
         help="Number of truckloads.",
     )
+    total_value = fields.Float(
+        string="Total Value",
+        compute="_compute_total_value",
+        store=True,
+        help="Total deal value: price_per_lb × quantity_lbs.",
+    )
+    days_until_expiry = fields.Integer(
+        string="Days Until Expiry",
+        compute="_compute_days_until_expiry",
+        help="Days remaining before this offer expires. Negative = already expired.",
+    )
     delivery_terms = fields.Selection(
         [
             ("fob_origin", "FOB Origin"),
@@ -197,6 +208,65 @@ class PlasticosOffer(models.Model):
             intake = rec.intake_id.name or "?"
             buyer = rec.buyer_id.name or "?"
             rec.display_name = f"Offer: {intake} → {buyer} [{rec.state or 'draft'}]"
+
+    @api.depends("price_per_lb", "quantity_lbs")
+    def _compute_total_value(self):
+        """Total deal value = price × quantity."""
+        for rec in self:
+            rec.total_value = (rec.price_per_lb or 0) * (rec.quantity_lbs or 0)
+
+    @api.depends("valid_until")
+    def _compute_days_until_expiry(self):
+        """Days remaining before expiry. Negative = expired."""
+        today = fields.Date.context_today(self)
+        for rec in self:
+            if rec.valid_until:
+                rec.days_until_expiry = (rec.valid_until - today).days
+            else:
+                rec.days_until_expiry = 999
+
+    # ═════════════════════════════════════════════════════════
+    # Navigation Actions (for smart buttons)
+    # ═════════════════════════════════════════════════════════
+
+    def action_view_intake(self):
+        """Navigate to the linked intake."""
+        self.ensure_one()
+        if not self.intake_id:
+            return
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Intake — {self.intake_id.name}",
+            "res_model": "plasticos.intake",
+            "view_mode": "form",
+            "res_id": self.intake_id.id,
+        }
+
+    def action_view_supplier(self):
+        """Navigate to the supplier partner."""
+        self.ensure_one()
+        if not self.supplier_id:
+            return
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.supplier_id.name,
+            "res_model": "res.partner",
+            "view_mode": "form",
+            "res_id": self.supplier_id.id,
+        }
+
+    def action_view_buyer(self):
+        """Navigate to the buyer partner."""
+        self.ensure_one()
+        if not self.buyer_id:
+            return
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.buyer_id.name,
+            "res_model": "res.partner",
+            "view_mode": "form",
+            "res_id": self.buyer_id.id,
+        }
 
     # ═════════════════════════════════════════════════════════
     # State Transitions

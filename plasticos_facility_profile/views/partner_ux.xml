@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         PARTNER FORM UX — PlasticOS Stat Buttons, Entity Banner,
+         Fix Facility Capabilities Tab Visibility
+         Inherits the EXISTING partner extension from
+         plasticos_facility_profile.view_partner_form_profile_tab
+         ═══════════════════════════════════════════════════════════ -->
+
+    <record id="partner_form_plasticos_ux" model="ir.ui.view">
+        <field name="name">res.partner.form.plasticos.ux</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="priority">25</field>
+        <field name="arch" type="xml">
+
+            <!-- ═══ PlasticOS Stat Buttons ═══ -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+
+                <!-- Facility Profiles count -->
+                <button name="action_view_facility_profiles"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-industry"
+                        invisible="facility_profile_count == 0">
+                    <field name="facility_profile_count"
+                           string="Capabilities"
+                           widget="statinfo"/>
+                </button>
+
+                <!-- Material Profiles count -->
+                <button name="action_view_material_profiles"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-cubes"
+                        invisible="material_profile_count == 0">
+                    <field name="material_profile_count"
+                           string="Materials"
+                           widget="statinfo"/>
+                </button>
+
+            </xpath>
+
+            <!-- ═══ Entity Health Banner ═══ -->
+            <xpath expr="//sheet" position="inside">
+                <!-- Position as first element via before on first child -->
+            </xpath>
+            <xpath expr="//sheet/div[1]" position="before">
+
+                <!-- BLOCKED entity alert -->
+                <div class="alert alert-danger border-danger border-3 d-flex align-items-center"
+                     role="alert"
+                     invisible="entity_status != 'blocked'">
+                    <i class="fa fa-ban fa-lg me-2" title="Blocked"/>
+                    <strong class="fs-5">⛔ BLOCKED</strong>
+                    <span class="ms-2">— This entity is suspended from all PlasticOS transactions.</span>
+                </div>
+
+                <!-- INACTIVE entity warning -->
+                <div class="alert alert-warning d-flex align-items-center"
+                     role="alert"
+                     invisible="entity_status != 'inactive'">
+                    <i class="fa fa-pause-circle fa-lg me-2" title="Inactive"/>
+                    <strong>INACTIVE</strong>
+                    <span class="ms-2">— Operations paused. No new intakes or loads will be routed here.</span>
+                </div>
+
+            </xpath>
+
+            <!-- ═══ Fix Facility Capabilities tab visibility ═══
+                 Current: invisible="not parent_id" (only children)
+                 Fixed:   invisible="not is_company"  (all companies/facilities)
+                 This allows standalone companies (who ARE also the facility)
+                 to manage their capabilities directly.
+            -->
+            <xpath expr="//page[@string='Facility Capabilities']" position="attributes">
+                <attribute name="invisible">not is_company</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>
