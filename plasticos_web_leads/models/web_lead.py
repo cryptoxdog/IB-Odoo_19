@@ -150,23 +150,18 @@ class PlasticosWebLead(models.Model):
         help="Origin system identifier.",
     )
     lead_source = fields.Selection(
-        selection="_get_lead_source_selection",
+        [
+            ("web_lead", "Web Lead (Marketing)"),
+            ("sales_manual", "Sales Manual Entry"),
+            ("linkedin_ai", "LinkedIn AI Prospecting"),
+        ],
         string="Lead Source",
         default="web_lead",
         index=True,
         tracking=True,
-        help="How this lead was acquired. Critical for marketing vs. sales attribution.",
+        help="How this web lead record was created. "
+        "Different from partner's lead_source_id which tracks original acquisition.",
     )
-
-    @api.model
-    def _get_lead_source_selection(self):
-        """Return lead source selection from enum definition."""
-        try:
-            from odoo.addons.plasticos_facility_profile import lead_source_enum
-
-            return lead_source_enum.LEAD_SOURCE_SELECTION
-        except ImportError:
-            return [("web_lead", "Web Lead"), ("other", "Other")]
 
     # ═══════════════════════════════════════════════════════════
     # Raw Data (immutable after creation)
