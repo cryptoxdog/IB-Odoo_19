@@ -1,26 +1,14 @@
-from odoo import api, fields, models
+from odoo import models
 
 
 class PlasticosTransactionClaimsBridge(models.Model):
-    """Adds claim_ids reverse + smart-button nav to transaction."""
+    """Smart-button navigation to claims from transaction.
+
+    Note: claim_ids, claim_count, has_quality_claim, and compute methods
+    are defined in transaction_claims.py. This file only adds navigation.
+    """
 
     _inherit = "plasticos.transaction"
-
-    claim_ids = fields.One2many(
-        "plasticos.claim",
-        "transaction_id",
-        string="Claims",
-        help="QC cases, chargebacks, and penalty claims.",
-    )
-    claim_count = fields.Integer(
-        compute="_compute_claim_count",
-        string="Claim Count",
-    )
-
-    @api.depends("claim_ids")
-    def _compute_claim_count(self):
-        for rec in self:
-            rec.claim_count = len(rec.claim_ids)
 
     def action_view_claims(self):
         """Open claims linked to this transaction."""
