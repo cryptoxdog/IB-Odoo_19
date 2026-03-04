@@ -259,7 +259,7 @@ class EnrichmentService(models.AbstractModel):
             density_value=profile_vals.get("density"),
             contamination_pct=profile_vals.get("contamination_percent"),
             has_metal=profile_vals.get("has_metal"),
-            has_fr=profile_vals.get("contains_fr"),
+            has_fr=profile_vals.get("has_fr"),
             monthly_volume_lbs=profile_vals.get("monthly_volume_lbs"),
         )
 
@@ -327,7 +327,7 @@ class EnrichmentService(models.AbstractModel):
             "density": profile.density,
             "contamination_percent": profile.contamination_percent,
             "has_metal": profile.has_metal,
-            "contains_fr": profile.contains_fr,
+            "has_fr": profile.has_fr,
             "monthly_volume_lbs": profile.monthly_volume_lbs,
         }
 
@@ -513,7 +513,7 @@ class EnrichmentService(models.AbstractModel):
             "- moisture_percent: numeric or null\n"
             "- contamination_percent: numeric or null\n"
             "- contains_metal: true/false/null\n"
-            "- contains_fr: true/false/null (flame retardant)\n"
+            "- has_fr: true/false/null (flame retardant)\n"
             "- avg_lot_size_lbs: numeric or null\n"
             "- min_lot_size_lbs: numeric or null\n"
             "- max_lot_size_lbs: numeric or null\n"
@@ -677,7 +677,7 @@ class EnrichmentService(models.AbstractModel):
             ("previously_washed", "previously_washed"),
             ("previously_pelletized", "previously_pelletized"),
             ("has_metal", "contains_metal"),
-            ("contains_fr", "contains_fr"),
+            ("has_fr", "has_fr"),
             ("food_grade", "food_grade"),
             ("medical_grade", "medical_grade"),
         ]:

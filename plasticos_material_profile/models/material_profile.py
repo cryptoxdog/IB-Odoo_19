@@ -221,7 +221,12 @@ class PlasticosMaterialProfile(models.Model):
         string="Metalized Film",
         help="Film with metallic coating (e.g., chip bags). Synced with 'Metalized' attribute.",
     )
-    contains_fr = fields.Boolean(string="Contains FR")
+    has_fr = fields.Boolean(
+        string="Contains Flame Retardant",
+        default=False,
+        tracking=True,
+        help="Material contains flame retardant compounds. " "Restricted material with limited buyer pool.",
+    )
 
     # ── Volume ───────────────────────────────────────────────
     avg_lot_size_lbs = fields.Float(index=True)
@@ -566,7 +571,7 @@ class PlasticosMaterialProfile(models.Model):
                     "contamination": rec.contamination_percent,
                     "has_metal": rec.has_metal,
                     "is_metalized": rec.is_metalized,
-                    "fr": rec.contains_fr,
+                    "fr": rec.has_fr,
                 },
                 "volume": {
                     "avg_lot": rec.avg_lot_size_lbs,

@@ -116,7 +116,7 @@
                   <field name="contamination_percent"/>
                   <field name="has_metal"/>
                   <field name="is_metalized"/>
-                  <field name="contains_fr"/>
+                  <field name="has_fr"/>
                 </group>
               </group>
               <group>

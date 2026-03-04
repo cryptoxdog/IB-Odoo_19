@@ -65,7 +65,7 @@ class PlasticosMaterialProfileIntake(models.Model):
                 "default_moisture_pct": self.moisture_percent,
                 "default_contamination_pct": self.contamination_percent,
                 "default_has_metal": self.has_metal,
-                "default_has_fr": self.contains_fr,
+                "default_has_fr": self.has_fr,
                 "default_material_profile_id": self.id,
             },
         }
