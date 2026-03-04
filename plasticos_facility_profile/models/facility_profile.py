@@ -393,3 +393,18 @@ class PlasticosFacilityProfile(models.Model):
             }
             # Stub only — L9 adapter will consume this.
             _ = packet
+
+    # ═════════════════════════════════════════════════════════
+    # Action Methods (for UX smart buttons)
+    # ═════════════════════════════════════════════════════════
+
+    def action_view_partner(self):
+        """Open the linked partner (facility) form."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "res.partner",
+            "res_id": self.partner_id.id,
+            "view_mode": "form",
+            "target": "current",
+        }

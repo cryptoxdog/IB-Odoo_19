@@ -24,6 +24,7 @@
         "data/cron.xml",
         "data/document_tags_data.xml",
         "data/cron_missing_docs.xml",
+        "data/scale_ticket_rule.xml",
         "views/transaction_docs_bridge_views.xml",
         "views/load_docs_bridge_views.xml",
     ],

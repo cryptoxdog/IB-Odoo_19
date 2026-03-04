@@ -212,3 +212,184 @@ class PlasticosTransactionDocs(models.Model):
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_documents.cron_check_missing_docs"]
             )
+
+    # ══════════════════════════════════════════════════════════════
+    # Cron: Scale Ticket Request & Escalation
+    # ══════════════════════════════════════════════════════════════
+
+    # Tracking fields for scale ticket reminders (avoid duplicates)
+    x_scale_ticket_reminder_sent = fields.Boolean(
+        string="Scale Ticket Reminder Sent",
+        default=False,
+        help="True if 48h reminder has been sent for missing scale ticket.",
+    )
+    x_scale_ticket_escalated = fields.Boolean(
+        string="Scale Ticket Escalated",
+        default=False,
+        help="True if 7-day escalation has been triggered for missing scale ticket.",
+    )
+
+    @api.model
+    def cron_check_scale_tickets(self):
+        """Check delivered/closed/invoiced transactions for missing scale tickets.
+
+        Business rules:
+        - 48 hours (2 BD) after delivery → send reminder to carrier
+        - 7 days (7 BD) from pickup → escalate to logistics manager
+
+        Uses x_overdue_business_days and x_escalation_business_days from
+        the scale ticket document rule (not hardcoded).
+        """
+        # Advisory lock to prevent concurrent execution
+        self.env.cr.execute(
+            "SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_documents.cron_check_scale_tickets"]
+        )
+        locked = self.env.cr.fetchone()[0]
+        if not locked:
+            _logger.info("Skipping scale-ticket cron: lock is already held.")
+            return
+
+        try:
+            today = date.today()
+
+            # Find transactions in relevant states with a load
+            transactions = self.search(
+                [
+                    ("state", "in", ["delivered", "closed", "invoiced"]),
+                    ("load_id", "!=", False),
+                ],
+                order="create_date ASC, id ASC",
+                limit=300,
+            )
+
+            if not transactions:
+                _logger.info("Scale ticket cron: no transactions to check.")
+                return
+
+            # Get scale ticket tag
+            scale_ticket_tag = self.env["plasticos.document.tag"].search(
+                [("code", "=", "SCALE")], order="id ASC", limit=1
+            )
+            if not scale_ticket_tag:
+                _logger.warning("Scale ticket cron: SCALE tag not found. Skipping.")
+                return
+
+            # Get thresholds from document rule (not hardcoded)
+            scale_rule = self.env["plasticos.document.rule"].search(
+                [
+                    ("tag_id", "=", scale_ticket_tag.id),
+                    ("res_model", "=", "plasticos.transaction"),
+                    ("active", "=", True),
+                ],
+                order="id ASC",
+                limit=1,
+            )
+            overdue_bd = 2  # Default: 48h = 2 business days
+            escalation_bd = 7  # Default: 7 business days
+            if scale_rule:
+                if scale_rule.x_overdue_business_days:
+                    overdue_bd = scale_rule.x_overdue_business_days
+                if scale_rule.x_escalation_business_days:
+                    escalation_bd = scale_rule.x_escalation_business_days
+
+            # Get logistics manager group for escalation
+            logistics_group = self.env.ref("plasticos_logistics.group_logistics_manager", raise_if_not_found=False)
+
+            for tx in transactions:
+                load = tx.load_id
+                if not load:
+                    continue
+
+                # Check if scale ticket already exists
+                has_scale_ticket = self.env["plasticos.document"].search_count(
+                    [
+                        ("x_transaction_id", "=", tx.id),
+                        ("tag_id", "=", scale_ticket_tag.id),
+                        ("active", "=", True),
+                    ]
+                )
+                if has_scale_ticket:
+                    continue  # Scale ticket exists, skip
+
+                # Calculate business days since delivery and pickup
+                delivery_date = load.delivered_at.date() if load.delivered_at else None
+                pickup_date = load.dispatched_at.date() if load.dispatched_at else None
+
+                bd_since_delivery = self._count_business_days(delivery_date, today) if delivery_date else 0
+                bd_since_pickup = self._count_business_days(pickup_date, today) if pickup_date else 0
+
+                # Escalation: 7 BD from pickup
+                if bd_since_pickup >= escalation_bd and not tx.x_scale_ticket_escalated:
+                    # Find logistics manager to assign activity
+                    manager_user = self._get_logistics_manager(logistics_group)
+                    if manager_user:
+                        # Create escalation activity
+                        tx.activity_schedule(
+                            "mail.mail_activity_data_todo",
+                            user_id=manager_user.id,
+                            summary=f"ESCALATION: Missing scale ticket on {tx.name}",
+                            note=(
+                                f"Transaction {tx.name} is missing a scale ticket.\n"
+                                f"Pickup was {bd_since_pickup} business days ago.\n"
+                                f"Carrier: {load.carrier_id.name if load.carrier_id else 'Unknown'}\n"
+                                "Please follow up with the carrier immediately."
+                            ),
+                        )
+                        _logger.info(
+                            "Scale ticket ESCALATION: TX %s, %d BD since pickup, assigned to %s",
+                            tx.name,
+                            bd_since_pickup,
+                            manager_user.name,
+                        )
+                    else:
+                        # No manager found, post message instead
+                        tx.message_post(
+                            body=(
+                                f"<b>ESCALATION:</b> Missing scale ticket for {tx.name}. "
+                                f"Pickup was {bd_since_pickup} business days ago. "
+                                "No logistics manager found for assignment."
+                            ),
+                            message_type="notification",
+                            subtype_xmlid="mail.mt_note",
+                        )
+                        _logger.warning("Scale ticket ESCALATION: TX %s, no logistics manager found", tx.name)
+                    tx.x_scale_ticket_escalated = True
+
+                # Reminder: 2 BD after delivery (only if not yet escalated)
+                elif bd_since_delivery >= overdue_bd and not tx.x_scale_ticket_reminder_sent:
+                    # Send reminder message
+                    carrier_name = load.carrier_id.name if load.carrier_id else "Carrier"
+                    tx.message_post(
+                        body=(
+                            f"<b>Automated Request:</b> Scale ticket needed for {tx.name}.\n"
+                            f"Delivery was {bd_since_delivery} business days ago.\n"
+                            f"Please request scale ticket from {carrier_name}."
+                        ),
+                        message_type="notification",
+                        subtype_xmlid="mail.mt_note",
+                    )
+                    tx.x_scale_ticket_reminder_sent = True
+                    _logger.info("Scale ticket REMINDER: TX %s, %d BD since delivery", tx.name, bd_since_delivery)
+
+        finally:
+            self.env.cr.execute(
+                "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_documents.cron_check_scale_tickets"]
+            )
+
+    def _get_logistics_manager(self, group):
+        """Find a logistics manager user for escalation assignment.
+
+        Returns the first active user in the logistics manager group,
+        or falls back to the current user if no manager found.
+        """
+        if not group:
+            return self.env.user
+
+        managers = self.env["res.users"].search(
+            [
+                ("groups_id", "in", group.id),
+                ("active", "=", True),
+            ],
+            limit=1,
+        )
+        return managers[0] if managers else self.env.user

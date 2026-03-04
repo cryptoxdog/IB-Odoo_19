@@ -73,16 +73,13 @@
 
     <!-- ═══════════════════════════════════════════════════════════════════
          MATERIAL PROFILE LIST UX — Quality Flag Columns
-         Inherits: plasticos_material_profile.view_material_profile_tree
-
-         NOTE: Verify the actual list view XML ID. Common alternatives:
-               view_material_profile_list, view_plasticos_material_profile_tree
+         Inherits: plasticos_material_profile.view_material_profile_list
          ═══════════════════════════════════════════════════════════════════ -->
 
     <record id="material_profile_list_ux" model="ir.ui.view">
-        <field name="name">plasticos.material.profile.tree.ux</field>
+        <field name="name">plasticos.material.profile.list.ux</field>
         <field name="model">plasticos.material.profile</field>
-        <field name="inherit_id" ref="plasticos_material_profile.view_material_profile_tree"/>
+        <field name="inherit_id" ref="plasticos_material_profile.view_material_profile_list"/>
         <field name="priority">15</field>
         <field name="arch" type="xml">
 

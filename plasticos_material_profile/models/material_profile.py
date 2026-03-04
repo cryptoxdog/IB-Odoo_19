@@ -593,3 +593,18 @@ class PlasticosMaterialProfile(models.Model):
             }
             # Stub only — L9 adapter will consume this.
             _ = packet
+
+    # ═════════════════════════════════════════════════════════
+    # Action Methods (for UX smart buttons)
+    # ═════════════════════════════════════════════════════════
+
+    def action_open_profile_form(self):
+        """Open this material profile in a full form view."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "plasticos.material.profile",
+            "res_id": self.id,
+            "view_mode": "form",
+            "target": "current",
+        }

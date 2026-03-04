@@ -155,6 +155,122 @@ class PlasticosTransaction(models.Model):
         store=True,
     )
 
+    # ══════════════════════════════════════════════════════════════
+    # Weight Reconciliation System
+    # Priority: scale_weight > buyer_weight > supplier_weight
+    # ══════════════════════════════════════════════════════════════
+
+    # ── Weight Sources (manual entry) ─────────────────────────────
+    supplier_weight = fields.Float(
+        string="Supplier Weight (lbs)",
+        help="Weight from supplier PO/packing list.",
+        tracking=True,
+    )
+    buyer_weight = fields.Float(
+        string="Buyer Weight (lbs)",
+        help="Weight from buyer receiving report.",
+        tracking=True,
+    )
+    scale_weight = fields.Float(
+        string="Scale Weight (lbs)",
+        help="Weight from 3rd party scale ticket (preferred).",
+        tracking=True,
+    )
+    gross_weight = fields.Float(
+        string="Gross Weight (lbs)",
+        help="Selected gross weight before tare deduction.",
+        compute="_compute_final_weight",
+        store=True,
+    )
+
+    # ── Computed Final Weight ─────────────────────────────────────
+    final_weight = fields.Float(
+        string="Final Net Weight (lbs)",
+        compute="_compute_final_weight",
+        store=True,
+        help="Net weight after tare deduction. Used for billing and deductions.",
+    )
+    weight_source = fields.Selection(
+        [
+            ("scale", "Scale Ticket"),
+            ("buyer", "Buyer Report"),
+            ("supplier", "Supplier Weight"),
+            ("none", "No Weight"),
+        ],
+        string="Weight Source",
+        compute="_compute_final_weight",
+        store=True,
+        help="Which weight source was used for final weight.",
+    )
+
+    # ── Tare System ───────────────────────────────────────────────
+    unit_count = fields.Integer(
+        string="Unit Count",
+        default=0,
+        help="Number of packaging units (bales, gaylords, pallets, etc.).",
+    )
+    unit_type = fields.Selection(
+        [
+            ("bale", "Bale"),
+            ("gaylord", "Gaylord"),
+            ("pallet", "Pallet"),
+            ("box", "Box"),
+            ("super_sack", "Super Sack"),
+        ],
+        string="Unit Type",
+        help="Type of packaging unit for tare calculation.",
+    )
+    tare_per_unit = fields.Float(
+        string="Tare per Unit (lbs)",
+        compute="_compute_tare_per_unit",
+        store=True,
+        readonly=False,
+        help="Tare weight per unit. Auto-set by unit type, but editable.",
+    )
+    total_tare = fields.Float(
+        string="Total Tare (lbs)",
+        compute="_compute_total_tare",
+        store=True,
+        help="Total tare weight = unit_count × tare_per_unit.",
+    )
+
+    # ── Weight Discrepancy ────────────────────────────────────────
+    weight_discrepancy_pct = fields.Float(
+        string="Weight Discrepancy %",
+        compute="_compute_weight_discrepancy",
+        store=True,
+        help="Percentage difference between supplier and buyer weights.",
+    )
+    weight_discrepancy_flagged = fields.Boolean(
+        string="Discrepancy Flagged",
+        compute="_compute_weight_discrepancy",
+        store=True,
+        help="True if discrepancy exceeds 5%.",
+    )
+
+    # ── Light Weight Deduction ────────────────────────────────────
+    minimum_net_weight = fields.Float(
+        string="Minimum Net Weight (lbs)",
+        help="Stated minimum net weight from PO. Used for light weight deduction.",
+    )
+    light_weight_deduction_rate = fields.Float(
+        string="Deduction Rate ($/lb)",
+        default=0.01,
+        help="Deduction rate per pound below minimum. Default: $0.01/lb.",
+    )
+    light_weight_deduction = fields.Float(
+        string="Light Weight Deduction ($)",
+        compute="_compute_light_weight_deduction",
+        store=True,
+        help="Penalty for loading below minimum weight.",
+    )
+    dead_freight_chargeback = fields.Boolean(
+        string="Dead Freight Chargeback",
+        compute="_compute_light_weight_deduction",
+        store=True,
+        help="True if deduction exceeds purchase price (supplier charged for dead freight).",
+    )
+
     # ── Quality Control ────────────────────────────────────────
     # NOTE: has_quality_claim is now a simple stored field.
     # The compute logic was moved to plasticos_claims module
@@ -385,6 +501,109 @@ class PlasticosTransaction(models.Model):
                 rec.weight_variance_percent = abs(rec.actual_weight - rec.expected_weight) / rec.expected_weight * 100
             else:
                 rec.weight_variance_percent = 0.0
+
+    # ══════════════════════════════════════════════════════════════
+    # Weight Reconciliation Computed Methods
+    # ══════════════════════════════════════════════════════════════
+
+    @api.depends("unit_type")
+    def _compute_tare_per_unit(self):
+        """Set default tare weight based on unit type.
+
+        Defaults:
+        - bale: 0 lbs (no tare)
+        - gaylord: 40 lbs
+        - pallet: 40 lbs
+        - box: 0 lbs
+        - super_sack: 0 lbs
+        """
+        tare_defaults = {
+            "bale": 0.0,
+            "gaylord": 40.0,
+            "pallet": 40.0,
+            "box": 0.0,
+            "super_sack": 0.0,
+        }
+        for rec in self:
+            if rec.unit_type:
+                rec.tare_per_unit = tare_defaults.get(rec.unit_type, 0.0)
+            else:
+                rec.tare_per_unit = 0.0
+
+    @api.depends("unit_count", "tare_per_unit")
+    def _compute_total_tare(self):
+        """Calculate total tare = unit_count × tare_per_unit."""
+        for rec in self:
+            rec.total_tare = (rec.unit_count or 0) * (rec.tare_per_unit or 0.0)
+
+    @api.depends("scale_weight", "buyer_weight", "supplier_weight", "total_tare")
+    def _compute_final_weight(self):
+        """Compute final net weight using priority: scale > buyer > supplier.
+
+        gross_weight = selected source weight
+        final_weight = gross_weight - total_tare (never negative)
+        """
+        for rec in self:
+            # Priority selection
+            if rec.scale_weight and rec.scale_weight > 0:
+                gross = rec.scale_weight
+                source = "scale"
+            elif rec.buyer_weight and rec.buyer_weight > 0:
+                gross = rec.buyer_weight
+                source = "buyer"
+            elif rec.supplier_weight and rec.supplier_weight > 0:
+                gross = rec.supplier_weight
+                source = "supplier"
+            else:
+                gross = 0.0
+                source = "none"
+
+            rec.gross_weight = gross
+            rec.weight_source = source
+            # Net weight = gross - tare, never negative
+            rec.final_weight = max(gross - (rec.total_tare or 0.0), 0.0)
+
+    @api.depends("supplier_weight", "buyer_weight")
+    def _compute_weight_discrepancy(self):
+        """Flag discrepancy if supplier vs buyer weight differs by >5%.
+
+        Only computes when both weights are present and positive.
+        Protects against divide-by-zero.
+        """
+        for rec in self:
+            sw = rec.supplier_weight or 0.0
+            bw = rec.buyer_weight or 0.0
+
+            if sw > 0 and bw > 0:
+                max_weight = max(sw, bw)
+                discrepancy = abs(sw - bw) / max_weight
+                rec.weight_discrepancy_pct = discrepancy * 100  # Store as percentage
+                rec.weight_discrepancy_flagged = discrepancy > 0.05
+            else:
+                rec.weight_discrepancy_pct = 0.0
+                rec.weight_discrepancy_flagged = False
+
+    @api.depends("final_weight", "minimum_net_weight", "light_weight_deduction_rate", "purchase_cost_total")
+    def _compute_light_weight_deduction(self):
+        """Calculate light weight penalty if final_weight < minimum_net_weight.
+
+        Deduction = (minimum - actual) × rate
+        If deduction > purchase_cost_total → dead_freight_chargeback = True
+        """
+        for rec in self:
+            min_weight = rec.minimum_net_weight or 0.0
+            actual = rec.final_weight or 0.0
+            rate = rec.light_weight_deduction_rate or 0.01
+            purchase_cost = rec.purchase_cost_total or 0.0
+
+            if min_weight > 0 and actual < min_weight:
+                shortfall = min_weight - actual
+                deduction = shortfall * rate
+                rec.light_weight_deduction = deduction
+                rec.dead_freight_chargeback = deduction > purchase_cost if purchase_cost > 0 else False
+            else:
+                rec.light_weight_deduction = 0.0
+                rec.dead_freight_chargeback = False
 
     # NOTE: _compute_has_quality_claim moved to plasticos_claims module
     # which extends plasticos.transaction with claim_ids field
@@ -649,3 +868,46 @@ class PlasticosTransaction(models.Model):
                     "state": "closed",
                 }
             )
+
+    # ═════════════════════════════════════════════════════════
+    # Action Methods (for UX smart buttons)
+    # ═════════════════════════════════════════════════════════
+
+    def action_view_supplier(self):
+        """Open the supplier partner form."""
+        self.ensure_one()
+        if not self.supplier_id:
+            return False
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "res.partner",
+            "res_id": self.supplier_id.id,
+            "view_mode": "form",
+            "target": "current",
+        }
+
+    def action_view_buyer(self):
+        """Open the buyer partner form."""
+        self.ensure_one()
+        if not self.buyer_id:
+            return False
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "res.partner",
+            "res_id": self.buyer_id.id,
+            "view_mode": "form",
+            "target": "current",
+        }
+
+    def action_view_load(self):
+        """Open the linked load form."""
+        self.ensure_one()
+        if not self.load_id:
+            return False
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "plasticos.load",
+            "res_id": self.load_id.id,
+            "view_mode": "form",
+            "target": "current",
+        }

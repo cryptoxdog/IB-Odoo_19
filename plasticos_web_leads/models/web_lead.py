@@ -1001,3 +1001,33 @@ class PlasticosWebLead(models.Model):
                 }
             )
             rec._process_hot_lead_triage(merged, config)
+
+    # ═════════════════════════════════════════════════════════
+    # Action Methods (for UX smart buttons)
+    # ═════════════════════════════════════════════════════════
+
+    def action_view_intake(self):
+        """Open the linked intake form."""
+        self.ensure_one()
+        if not self.intake_id:
+            return False
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "plasticos.intake",
+            "res_id": self.intake_id.id,
+            "view_mode": "form",
+            "target": "current",
+        }
+
+    def action_view_partner(self):
+        """Open the linked partner form."""
+        self.ensure_one()
+        if not self.partner_id:
+            return False
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "res.partner",
+            "res_id": self.partner_id.id,
+            "view_mode": "form",
+            "target": "current",
+        }

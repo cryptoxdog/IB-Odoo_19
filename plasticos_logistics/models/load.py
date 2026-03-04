@@ -43,6 +43,15 @@ class PlasticosLoad(models.Model):
     delivered_at = fields.Datetime()
     cycle_time_hours = fields.Float(compute="_compute_cycle_time", store=True, index=True)
 
+    # ── Reverse Link to Transaction (for UX) ──────────────────────────
+    transaction_id = fields.Many2one(
+        "plasticos.transaction",
+        string="Transaction",
+        compute="_compute_transaction_id",
+        store=False,
+        help="Transaction linked to this load (reverse lookup).",
+    )
+
     # ── Pickup Location Fields ──────────────────────────────────────
     pickup_partner_id = fields.Many2one("res.partner", string="Pickup Location", help="Shipper/pickup location for BOL")
     pickup_contact_name = fields.Char(string="Pickup Contact")
@@ -131,6 +140,12 @@ class PlasticosLoad(models.Model):
                 rec.cycle_time_hours = delta
             else:
                 rec.cycle_time_hours = 0
+
+    def _compute_transaction_id(self):
+        """Reverse lookup: find transaction that references this load."""
+        for rec in self:
+            tx = self.env["plasticos.transaction"].search([("load_id", "=", rec.id)], limit=1)
+            rec.transaction_id = tx.id if tx else False
 
     def action_confirm_ready(self, user_name):
         for rec in self:
@@ -265,4 +280,22 @@ class PlasticosLoad(models.Model):
             "view_mode": "form",
             "target": "new",
             "context": ctx,
+        }
+
+    # ═════════════════════════════════════════════════════════
+    # Action Methods (for UX smart buttons)
+    # ═════════════════════════════════════════════════════════
+
+    def action_view_transaction(self):
+        """Open the linked transaction form."""
+        self.ensure_one()
+        tx = self.env["plasticos.transaction"].search([("load_id", "=", self.id)], limit=1)
+        if not tx:
+            return False
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "plasticos.transaction",
+            "res_id": tx.id,
+            "view_mode": "form",
+            "target": "current",
         }

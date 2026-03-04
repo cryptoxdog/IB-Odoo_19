@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- ══════════════════════════════════════════════════════════
+             Scale Ticket Document Rule
+
+             Business rules:
+             - Required for carrier category
+             - Overdue after 2 business days (48h after delivery)
+             - Escalate after 7 business days (from pickup)
+             ══════════════════════════════════════════════════════════ -->
+
+        <record id="rule_scale_ticket_carrier" model="plasticos.document.rule">
+            <field name="name">Scale Ticket (Carrier)</field>
+            <field name="tag_id" ref="plasticos_documents.tag_scale_ticket"/>
+            <field name="res_model">plasticos.transaction</field>
+            <field name="required_for_invoice">False</field>
+            <field name="required_for_close">True</field>
+            <field name="x_doc_category">carrier</field>
+            <field name="x_overdue_business_days">2</field>
+            <field name="x_escalation_business_days">7</field>
+            <field name="x_required_for_dispatch">False</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════
+             Validation Matrix Entry for Scale Ticket
+
+             Ensures scale ticket is tracked as a carrier document
+             in the compliance dashboard.
+             ══════════════════════════════════════════════════════════ -->
+
+        <record id="matrix_scale_ticket_carrier" model="plasticos.document.validation.matrix">
+            <field name="name">Scale Ticket - Carrier</field>
+            <field name="sequence">20</field>
+            <field name="doc_category">carrier</field>
+            <field name="tag_id" ref="plasticos_documents.tag_scale_ticket"/>
+            <field name="required_for_close">True</field>
+            <field name="required_for_invoice">False</field>
+            <field name="required_for_dispatch">False</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════
+             Cron Job: Scale Ticket Request and Escalation
+
+             Runs every 6 hours to check for missing scale tickets
+             on delivered transactions.
+             ══════════════════════════════════════════════════════════ -->
+
+        <record id="cron_check_scale_tickets" model="ir.cron">
+            <field name="name">PlasticOS: Scale Ticket Request &amp; Escalation</field>
+            <field name="model_id" ref="plasticos_transaction.model_plasticos_transaction"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_check_scale_tickets()</field>
+            <field name="interval_number">6</field>
+            <field name="interval_type">hours</field>
+            <field name="active">True</field>
+            <field name="user_id" ref="plasticos_base.user_system_cron"/>
+        </record>
+
+    </data>
+</odoo>
