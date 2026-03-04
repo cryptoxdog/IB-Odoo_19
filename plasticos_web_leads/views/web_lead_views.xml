@@ -15,7 +15,7 @@
                 <field name="decision" widget="badge"
                        decoration-success="decision == 'hot'"
                        decoration-muted="decision == 'cold'"/>
-                <field name="lead_source"/>
+                <field name="lead_source_id"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'received'"
                        decoration-success="state == 'intake_created'"
@@ -73,7 +73,7 @@
                         <group string="Classification">
                             <field name="decision"/>
                             <field name="source"/>
-                            <field name="lead_source"/>
+                            <field name="lead_source_id"/>
                         </group>
                         <group string="Links">
                             <field name="partner_id"/>
@@ -162,7 +162,7 @@
                 <field name="contact_name"/>
                 <field name="decision"/>
                 <field name="state"/>
-                <field name="lead_source"/>
+                <field name="lead_source_id"/>
                 <field name="estimated_lbs_per_load"/>
                 <field name="intake_id"/>
                 <progressbar field="state"
@@ -194,7 +194,7 @@
                             <div class="o_kanban_record_bottom">
                                 <div class="oe_kanban_bottom_left">
                                     <span class="badge bg-secondary">
-                                        <field name="lead_source"/>
+                                        <field name="lead_source_id"/>
                                     </span>
                                 </div>
                                 <div class="oe_kanban_bottom_right">
@@ -223,7 +223,7 @@
                 <field name="company_name"/>
                 <field name="decision"/>
                 <field name="state"/>
-                <field name="lead_source"/>
+                <field name="lead_source_id"/>
                 <separator/>
                 <filter name="hot" string="HOT Leads"
                         domain="[('decision','=','hot')]"/>
@@ -232,19 +232,12 @@
                 <filter name="errors" string="Errors"
                         domain="[('state','=','error')]"/>
                 <separator/>
-                <filter name="web_leads" string="Web Leads"
-                        domain="[('lead_source','=','web_lead')]"/>
-                <filter name="sales_manual" string="Sales Manual"
-                        domain="[('lead_source','=','sales_manual')]"/>
-                <filter name="linkedin_ai" string="LinkedIn AI"
-                        domain="[('lead_source','=','linkedin_ai')]"/>
-                <separator/>
                 <filter name="group_decision" string="Group by Decision"
                         context="{'group_by': 'decision'}"/>
                 <filter name="group_state" string="Group by State"
                         context="{'group_by': 'state'}"/>
                 <filter name="group_lead_source" string="Group by Lead Source"
-                        context="{'group_by': 'lead_source'}"/>
+                        context="{'group_by': 'lead_source_id'}"/>
             </search>
         </field>
     </record>

@@ -15,6 +15,7 @@
     "depends": [
         "base",
         "mail",
+        "plasticos_facility_profile",
         "plasticos_intake",
         "plasticos_material_profile",
         "purchase",

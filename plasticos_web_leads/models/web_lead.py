@@ -149,18 +149,12 @@ class PlasticosWebLead(models.Model):
         default="cognito_form",
         help="Origin system identifier.",
     )
-    lead_source = fields.Selection(
-        [
-            ("web_lead", "Web Lead (Marketing)"),
-            ("sales_manual", "Sales Manual Entry"),
-            ("linkedin_ai", "LinkedIn AI Prospecting"),
-        ],
+    lead_source_id = fields.Many2one(
+        "plasticos.lead.source",
         string="Lead Source",
-        default="web_lead",
         index=True,
         tracking=True,
-        help="How this web lead record was created. "
-        "Different from partner's lead_source_id which tracks original acquisition.",
+        help="How this lead was originally acquired (SICCODE, referral, web form, etc.).",
     )
 
     # ═══════════════════════════════════════════════════════════
@@ -318,10 +312,13 @@ class PlasticosWebLead(models.Model):
 
         image_urls = self._extract_image_urls(raw_payload)
 
+        # Look up web_lead source
+        web_lead_source = self.env["plasticos.lead.source"].get_by_code("web_lead")
+
         vals = {
             "lead_id": str(lead_id),
             "source": "cognito_form",
-            "lead_source": "web_lead",
+            "lead_source_id": web_lead_source.id if web_lead_source else False,
             "decision": "cold",
             "raw_payload": raw_payload,
             "company_name": company or "Unknown",
@@ -385,10 +382,13 @@ class PlasticosWebLead(models.Model):
         contaminants = raw.get("AreThereAnyContaminants", "")
         material_desc = raw.get("DescribeYourMaterial", "") or raw.get("WhatTypeOfPlastic", "")
 
+        # Look up web_lead source
+        web_lead_source = self.env["plasticos.lead.source"].get_by_code("web_lead")
+
         vals = {
             "lead_id": lead_id,
             "source": payload.get("source", "cognito_form"),
-            "lead_source": "web_lead",
+            "lead_source_id": web_lead_source.id if web_lead_source else False,
             "decision": "hot" if decision_raw == "hot" else "cold",
             "decision_reasons": payload.get("decision_reasons"),
             "raw_payload": raw,
@@ -661,13 +661,16 @@ class PlasticosWebLead(models.Model):
         if not source_type_rec:
             source_type_rec = SourceType.search([("code", "=ilike", "post_consumer")], limit=1)
 
+        # Look up web_lead source for intake
+        web_lead_source = self.env["plasticos.lead.source"].get_by_code("web_lead")
+
         intake_vals = {
             "pending_company_name": self.company_name or "Unknown",
             "source_lead_id": self.id,
             "polymer_id": polymer_rec.id if polymer_rec else False,
             "form_id": form_rec.id if form_rec else False,
             "source_type_id": source_type_rec.id if source_type_rec else False,
-            "lead_source": "web_lead",
+            "lead_source_id": web_lead_source.id if web_lead_source else False,
             "quantity_per_load_lbs": qty_per_load,
             "loads_per_month": loads_per_month,
             "deal_type": deal_type,
@@ -795,11 +798,14 @@ class PlasticosWebLead(models.Model):
         if not source_type_rec:
             source_type_rec = SourceType.search([("code", "=ilike", "post_consumer")], limit=1)
 
+        # Look up web_lead source for intake
+        web_lead_source = self.env["plasticos.lead.source"].get_by_code("web_lead")
+
         intake_vals = {
             "pending_company_name": self.company_name or "Unknown",
             "source_lead_id": self.id,
             "source_type_id": source_type_rec.id if source_type_rec else False,
-            "lead_source": "web_lead",
+            "lead_source_id": web_lead_source.id if web_lead_source else False,
             "quantity_per_load_lbs": max(qty_per_load, 1),
             "loads_per_month": max(loads_per_month, 0),
             "deal_type": deal_type,
