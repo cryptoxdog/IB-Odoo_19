@@ -63,23 +63,20 @@ class PlasticosIntake(models.Model):
     # Lead Source Tracking
     # ═════════════════════════════════════════════════════════
 
-    lead_source = fields.Selection(
-        selection="_get_lead_source_selection",
+    lead_source_id = fields.Many2one(
+        "plasticos.lead.source",
         string="Lead Source",
         tracking=True,
         index=True,
+        ondelete="restrict",
         help="How this lead/intake was acquired. Auto-syncs to partner when set.",
     )
-
-    @api.model
-    def _get_lead_source_selection(self):
-        """Return lead source selection from enum definition."""
-        try:
-            from odoo.addons.plasticos_facility_profile import lead_source_enum
-
-            return lead_source_enum.LEAD_SOURCE_SELECTION
-        except ImportError:
-            return [("other", "Other")]
+    source_lead_id = fields.Integer(
+        string="Source Web Lead ID",
+        index=True,
+        help="ID of the web lead that created this intake, if any. "
+        "Stored as integer to avoid circular dependency with plasticos_web_leads.",
+    )
 
     # ═════════════════════════════════════════════════════════
     # Assignment (for web lead routing)
@@ -507,18 +504,18 @@ class PlasticosIntake(models.Model):
                     }
                 )
 
-    @api.onchange("lead_source")
-    def _onchange_lead_source(self):
+    @api.onchange("lead_source_id")
+    def _onchange_lead_source_id(self):
         """Auto-sync lead source to partner when set on intake.
 
         If partner doesn't have a lead source yet, copy from intake.
         This tracks how leads/loads came in for reporting.
         """
-        if self.lead_source and self.partner_id:
-            if not self.partner_id.lead_source:
+        if self.lead_source_id and self.partner_id:
+            if not self.partner_id.lead_source_id:
                 self.partner_id.sudo().write(
                     {
-                        "lead_source": self.lead_source,
+                        "lead_source_id": self.lead_source_id.id,
                     }
                 )
 
@@ -805,10 +802,12 @@ class PlasticosIntake(models.Model):
         }
 
         # Copy lead source from intake, or default to web_lead
-        if self.lead_source:
-            partner_vals["lead_source"] = self.lead_source
+        if self.lead_source_id:
+            partner_vals["lead_source_id"] = self.lead_source_id.id
         else:
-            partner_vals["lead_source"] = "web_lead"
+            web_lead_source = self.env["plasticos.lead.source"].get_by_code("web_lead")
+            if web_lead_source:
+                partner_vals["lead_source_id"] = web_lead_source.id
 
         # Pull contact info from intake's contact if available
         if self.contact_id:

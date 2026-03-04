@@ -65,66 +65,61 @@ class CrmLeadPlastOS(models.Model):
             pickups = [d for d in pickups if d]
             rec.partner_last_pickup = max(pickups) if pickups else False
 
+    # ── Navigation Actions (for smart buttons) ───────────────
 
-# In crm_lead.py — add these action methods
+    def action_view_web_leads(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Web Leads — {self.partner_name or self.name}",
+            "res_model": "plasticos.web.lead",
+            "view_mode": "list,form",
+            "domain": [("crm_lead_id", "=", self.id)],
+        }
 
+    def action_view_material_profiles(self):
+        self.ensure_one()
+        facilities = self.partner_id.child_ids if self.partner_id else self.env["res.partner"]
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Material Profiles — {self.partner_id.name or ''}",
+            "res_model": "plasticos.material.profile",
+            "view_mode": "list,form",
+            "domain": [("partner_id", "in", facilities.ids)],
+        }
 
-def action_view_web_leads(self):
-    self.ensure_one()
-    return {
-        "type": "ir.actions.act_window",
-        "name": f"Web Leads — {self.partner_name or self.name}",
-        "res_model": "plasticos.web.lead",
-        "view_mode": "list,form",
-        "domain": [("crm_lead_id", "=", self.id)],
-    }
+    def action_view_match_results(self):
+        self.ensure_one()
+        facilities = self.partner_id.child_ids if self.partner_id else self.env["res.partner"]
+        intakes = self.env["plasticos.intake"].search(
+            [
+                ("partner_id", "in", facilities.ids),
+            ]
+        )
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Match Results — {self.partner_id.name or ''}",
+            "res_model": "plasticos.match.result",
+            "view_mode": "list,form",
+            "domain": [("intake_id", "in", intakes.ids)],
+        }
 
-
-def action_view_material_profiles(self):
-    self.ensure_one()
-    facilities = self.partner_id.child_ids if self.partner_id else self.env["res.partner"]
-    return {
-        "type": "ir.actions.act_window",
-        "name": f"Material Profiles — {self.partner_id.name or ''}",
-        "res_model": "plasticos.material.profile",
-        "view_mode": "list,form",
-        "domain": [("partner_id", "in", facilities.ids)],
-    }
-
-
-def action_view_match_results(self):
-    self.ensure_one()
-    facilities = self.partner_id.child_ids if self.partner_id else self.env["res.partner"]
-    intakes = self.env["plasticos.intake"].search(
-        [
-            ("partner_id", "in", facilities.ids),
-        ]
-    )
-    return {
-        "type": "ir.actions.act_window",
-        "name": f"Match Results — {self.partner_id.name or ''}",
-        "res_model": "plasticos.match.result",
-        "view_mode": "list,form",
-        "domain": [("intake_id", "in", intakes.ids)],
-    }
-
-
-def action_view_transactions(self):
-    self.ensure_one()
-    facilities = self.partner_id.child_ids if self.partner_id else self.env["res.partner"]
-    profiles = self.env["plasticos.material.profile"].search(
-        [
-            ("partner_id", "in", facilities.ids),
-        ]
-    )
-    return {
-        "type": "ir.actions.act_window",
-        "name": f"Transactions — {self.partner_id.name or ''}",
-        "res_model": "plasticos.transaction",
-        "view_mode": "list,form",
-        "domain": [
-            "|",
-            ("supplier_profile_id", "in", profiles.ids),
-            ("buyer_profile_id", "in", profiles.ids),
-        ],
-    }
+    def action_view_transactions(self):
+        self.ensure_one()
+        facilities = self.partner_id.child_ids if self.partner_id else self.env["res.partner"]
+        profiles = self.env["plasticos.material.profile"].search(
+            [
+                ("partner_id", "in", facilities.ids),
+            ]
+        )
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Transactions — {self.partner_id.name or ''}",
+            "res_model": "plasticos.transaction",
+            "view_mode": "list,form",
+            "domain": [
+                "|",
+                ("supplier_profile_id", "in", profiles.ids),
+                ("buyer_profile_id", "in", profiles.ids),
+            ],
+        }

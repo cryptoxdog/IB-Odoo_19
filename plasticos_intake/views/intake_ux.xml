@@ -105,8 +105,8 @@
                        widget="progressbar" optional="show"/>
             </xpath>
 
-            <!-- Promote lead_source to optional show (was hide) -->
-            <xpath expr="//field[@name='lead_source']" position="attributes">
+            <!-- Promote lead_source_id to optional show (was hide) -->
+            <xpath expr="//field[@name='lead_source_id']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
 
