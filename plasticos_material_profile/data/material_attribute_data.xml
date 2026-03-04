@@ -119,5 +119,13 @@
       <field name="description">Material has oil or chemical residue. Safety concern - excludes food/medical applications.</field>
       <field name="sequence">170</field>
     </record>
+    <record id="attr_flame_retardant" model="plasticos.material.attribute">
+      <field name="name">Flame Retardant</field>
+      <field name="code">flame_retardant</field>
+      <field name="description">Contains flame retardant additives. Critical for buyer matching - some processors cannot handle FR materials.</field>
+      <field name="boolean_field">has_fr</field>
+      <field name="boolean_value" eval="True"/>
+      <field name="sequence">180</field>
+    </record>
   </data>
 </odoo>

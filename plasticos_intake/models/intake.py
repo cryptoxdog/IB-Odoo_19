@@ -63,14 +63,23 @@ class PlasticosIntake(models.Model):
     # Lead Source Tracking
     # ═════════════════════════════════════════════════════════
 
-    lead_source_id = fields.Many2one(
-        "plasticos.lead.source",
+    lead_source = fields.Selection(
+        selection="_get_lead_source_selection",
         string="Lead Source",
         tracking=True,
         index=True,
-        ondelete="restrict",
         help="How this lead/intake was acquired. Auto-syncs to partner when set.",
     )
+
+    @api.model
+    def _get_lead_source_selection(self):
+        """Return lead source selection from enum definition."""
+        try:
+            from odoo.addons.plasticos_facility_profile import lead_source_enum
+
+            return lead_source_enum.LEAD_SOURCE_SELECTION
+        except ImportError:
+            return [("other", "Other")]
 
     # ═════════════════════════════════════════════════════════
     # Assignment (for web lead routing)
@@ -485,18 +494,18 @@ class PlasticosIntake(models.Model):
                     }
                 )
 
-    @api.onchange("lead_source_id")
-    def _onchange_lead_source_id(self):
+    @api.onchange("lead_source")
+    def _onchange_lead_source(self):
         """Auto-sync lead source to partner when set on intake.
 
         If partner doesn't have a lead source yet, copy from intake.
         This tracks how leads/loads came in for reporting.
         """
-        if self.lead_source_id and self.partner_id:
-            if not self.partner_id.lead_source_id:
+        if self.lead_source and self.partner_id:
+            if not self.partner_id.lead_source:
                 self.partner_id.sudo().write(
                     {
-                        "lead_source_id": self.lead_source_id.id,
+                        "lead_source": self.lead_source,
                     }
                 )
 
@@ -757,13 +766,10 @@ class PlasticosIntake(models.Model):
         }
 
         # Copy lead source from intake, or default to web_lead
-        if self.lead_source_id:
-            partner_vals["lead_source_id"] = self.lead_source_id.id
+        if self.lead_source:
+            partner_vals["lead_source"] = self.lead_source
         else:
-            # Try to find web_lead source
-            web_lead_source = self.env["plasticos.lead.source"].search([("code", "=", "web_lead")], limit=1)
-            if web_lead_source:
-                partner_vals["lead_source_id"] = web_lead_source.id
+            partner_vals["lead_source"] = "web_lead"
 
         # Pull contact info from intake's contact if available
         if self.contact_id:

@@ -1,13 +1,15 @@
 {
     "name": "PlasticOS Claims",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.0.1",
     "summary": "QC cases, claims, chargebacks, and compliance workflows",
     "license": "LGPL-3",
     "author": "PlasticOS",
     "category": "Operations/Quality",
+    "post_init_hook": "post_init_hook",
     "depends": [
         "base",
         "mail",
+        "plasticos_base",
         "plasticos_transaction",
         "plasticos_documents",
         "plasticos_logistics",

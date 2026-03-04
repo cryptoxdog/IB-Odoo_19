@@ -150,20 +150,23 @@ class PlasticosWebLead(models.Model):
         help="Origin system identifier.",
     )
     lead_source = fields.Selection(
-        [
-            ("web_lead", "Web Lead (Marketing)"),
-            ("sales_manual", "Sales Manual Entry"),
-            ("linkedin_ai", "LinkedIn AI Prospecting"),
-            ("referral", "Referral"),
-            ("trade_show", "Trade Show"),
-            ("other", "Other"),
-        ],
+        selection="_get_lead_source_selection",
         string="Lead Source",
         default="web_lead",
         index=True,
         tracking=True,
         help="How this lead was acquired. Critical for marketing vs. sales attribution.",
     )
+
+    @api.model
+    def _get_lead_source_selection(self):
+        """Return lead source selection from enum definition."""
+        try:
+            from odoo.addons.plasticos_facility_profile import lead_source_enum
+
+            return lead_source_enum.LEAD_SOURCE_SELECTION
+        except ImportError:
+            return [("web_lead", "Web Lead"), ("other", "Other")]
 
     # ═══════════════════════════════════════════════════════════
     # Raw Data (immutable after creation)
@@ -669,6 +672,7 @@ class PlasticosWebLead(models.Model):
             "polymer_id": polymer_rec.id if polymer_rec else False,
             "form_id": form_rec.id if form_rec else False,
             "source_type_id": source_type_rec.id if source_type_rec else False,
+            "lead_source": "web_lead",
             "quantity_per_load_lbs": qty_per_load,
             "loads_per_month": loads_per_month,
             "deal_type": deal_type,
@@ -800,6 +804,7 @@ class PlasticosWebLead(models.Model):
             "pending_company_name": self.company_name or "Unknown",
             "source_lead_id": self.id,
             "source_type_id": source_type_rec.id if source_type_rec else False,
+            "lead_source": "web_lead",
             "quantity_per_load_lbs": max(qty_per_load, 1),
             "loads_per_month": max(loads_per_month, 0),
             "deal_type": deal_type,

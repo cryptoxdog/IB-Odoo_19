@@ -57,6 +57,8 @@ plasticos_graph_intelligence/
 plasticos_graph_intelligence/**
 plasticos_graph_3d_embedding/
 plasticos_graph_3d_embedding/**
+plasticos_inference_engine/
+plasticos_inference_engine/**
 
 # ═══════════════════════════════════════════════════════════
 # Module test folders (not ready for CI)

@@ -1,10 +1,11 @@
 {
     "name": "PlastOS Buyer CRM Enrichment Engine",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.0.1",
     "summary": "AI-powered web intelligence extraction for buyer material profiles",
     "category": "CRM",
     "author": "PlastOS",
     "website": "https://github.com/cryptoxdog/Odoo_19",
+    "post_init_hook": "post_init_hook",
     "depends": [
         "plasticos_base",
         "base",

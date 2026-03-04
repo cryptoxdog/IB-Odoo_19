@@ -35,6 +35,7 @@ class ResPartnerGeo(models.Model):
                 limit=_BATCH_SIZE,
             )
             if not partners:
+                _logger.info("Geo backfill: no partners need geocoding.")
                 return
 
             success = 0
@@ -55,6 +56,10 @@ class ResPartnerGeo(models.Model):
                         "Geo backfill: failed for partner %s (%s).", partner.id, partner.name, exc_info=True
                     )
                     if consecutive_failures >= _MAX_CONSECUTIVE_FAIL:
+                        _logger.error(
+                            "Geo backfill: %d consecutive failures — " "aborting (likely rate-limited or banned).",
+                            consecutive_failures,
+                        )
                         break
                     time.sleep(_FAILURE_DELAY)
             _logger.info("Geo backfill complete: %d/%d geocoded, %d failed.", success, len(partners), failed)

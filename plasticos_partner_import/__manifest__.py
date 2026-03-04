@@ -9,7 +9,6 @@
         "contacts",
         "account",
         "plasticos_facility_profile",
-        "plasticos_intake",
     ],
     "data": [
         "security/ir.model.access.csv",

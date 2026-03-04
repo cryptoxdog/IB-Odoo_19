@@ -62,6 +62,12 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
+      - id: lead-source-pattern
+        name: Lead source enum pattern check (ADR-001)
+        entry: python3 scripts/check_lead_source_pattern.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
 
       # Index generation disabled - run manually: python3 scripts/export_odoo_index.py
       # - id: export-odoo-index
