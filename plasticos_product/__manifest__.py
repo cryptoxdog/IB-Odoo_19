@@ -26,7 +26,7 @@ Features:
         "data/product_data.xml",
         "views/polymer_views.xml",
     ],
-    "post_init_hook": "_post_init_create_polymer_products",
+    "post_init_hook": "post_init_hook",
     "installable": True,
     "auto_install": False,
     "application": False,
