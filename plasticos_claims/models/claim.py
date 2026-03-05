@@ -202,6 +202,8 @@ class PlasticosClaim(models.Model):
     is_overdue = fields.Boolean(
         string="Overdue",
         compute="_compute_is_overdue",
+        store=True,
+        help="True if claim is past SLA deadline. Recomputed by cron.",
     )
 
     # ── Constraints ──────────────────────────────────────────
@@ -348,6 +350,14 @@ class PlasticosClaim(models.Model):
         try:
             now = fields.Datetime.now()
 
+            # Recompute is_overdue for all open claims (stored computed field)
+            open_for_recompute = self.search(
+                [("state", "not in", ("resolved", "archived"))],
+                order="opened_at ASC, id ASC",
+                limit=500,
+            )
+            open_for_recompute._compute_is_overdue()
+
             # Auto-escalate pending claims past SLA
             pending = self.search([("state", "=", "pending")], order="opened_at ASC, id ASC", limit=300)
             for claim in pending:
@@ -409,8 +419,8 @@ class PlasticosClaim(models.Model):
         """Create activity for quality manager on escalation."""
         self.ensure_one()
         quality_manager_group = self.env.ref("plasticos_claims.group_claims_manager", raise_if_not_found=False)
-        if quality_manager_group and quality_manager_group.users:
-            manager = quality_manager_group.users[0]
+        if quality_manager_group and quality_manager_group.user_ids:
+            manager = quality_manager_group.user_ids[0]
             self.activity_schedule(
                 "mail.mail_activity_data_todo",
                 user_id=manager.id,

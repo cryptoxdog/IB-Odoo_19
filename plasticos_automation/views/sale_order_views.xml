@@ -8,11 +8,11 @@
             <xpath expr="//sheet" position="inside">
                 <group string="Logistics Automation" name="logistics_automation">
                     <group>
-                        <field name="x_delivery_term"/>
+                        <field name="delivery_term"/>
                     </group>
                     <group>
-                        <field name="x_appt_requested"/>
-                        <field name="x_appt_requested_on" readonly="1"/>
+                        <field name="appt_requested"/>
+                        <field name="appt_requested_on" readonly="1"/>
                     </group>
                 </group>
             </xpath>

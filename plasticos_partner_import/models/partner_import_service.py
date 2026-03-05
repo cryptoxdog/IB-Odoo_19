@@ -328,13 +328,13 @@ class PlasticosPartnerImportService(models.AbstractModel):
         # Determine partner type based on facility type
         if facility_type in INVOICE_TYPES:
             partner_type = "invoice"
-            x_facility_role = False
+            facility_role = False
         elif facility_type == "Location":
             partner_type = "contact"  # Will be company with parent
-            x_facility_role = "other"
+            facility_role = "other"
         else:
             partner_type = "contact"
-            x_facility_role = "other"
+            facility_role = "other"
 
         # Build external ID
         external_id = self._make_external_id("fac", f"{partner_name}_{alias or facility_type}_{row_num}")
@@ -348,7 +348,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
                 "is_company": True,
                 "type": "contact",
                 "parent_id": parent.id,
-                "x_facility_role": x_facility_role,
+                "facility_role": facility_role,
                 "street": row.get("address", "").strip() or False,
                 "street2": row.get("adderess2", "").strip() or False,  # Note: typo in CSV
                 "city": row.get("city", "").strip() or False,
@@ -526,7 +526,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
                 "company_type": "company",
                 "is_company": True,
                 "parent_id": parent.id,
-                "x_facility_role": r.get("x_facility_role", "other"),
+                "facility_role": r.get("facility_role", "other"),
             }
 
             self._upsert("res.partner", r["external_id"], vals)

@@ -8,13 +8,13 @@
             <xpath expr="//sheet" position="inside">
                 <group string="Logistics Automation" name="logistics_automation">
                     <group>
-                        <field name="x_ready_for_pickup"/>
-                        <field name="x_ready_confirmed_on"/>
-                        <field name="x_buyer_id"/>
+                        <field name="ready_for_pickup"/>
+                        <field name="ready_confirmed_on"/>
+                        <field name="buyer_id"/>
                     </group>
                     <group>
-                        <field name="x_followup_count" readonly="1"/>
-                        <field name="x_last_followup_on" readonly="1"/>
+                        <field name="followup_count" readonly="1"/>
+                        <field name="last_followup_on" readonly="1"/>
                     </group>
                 </group>
             </xpath>

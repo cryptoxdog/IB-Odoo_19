@@ -837,7 +837,7 @@ class PlasticosGraphService(models.AbstractModel):
                     "state": partner.state_id.code if partner.state_id else None,
                     "country": partner.country_id.code if partner.country_id else None,
                     # Partner-level role (broker, processor, etc.)
-                    "facility_role": partner.x_facility_role or None,
+                    "facility_role": partner.facility_role or None,
                     # Contamination handling capabilities
                     "can_remove_metal": any(getattr(fp, "can_remove_metal", False) for fp in profiles),
                     "can_filter_fr": any(getattr(fp, "can_filter_fr", False) for fp in profiles),

@@ -381,7 +381,7 @@ class PlasticosTransactionDocs(models.Model):
 
         managers = self.env["res.users"].search(
             [
-                ("groups_id", "in", group.id),
+                ("group_ids", "in", group.id),
                 ("active", "=", True),
             ],
             limit=1,

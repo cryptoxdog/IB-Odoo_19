@@ -8,12 +8,12 @@
             <xpath expr="//sheet" position="inside">
                 <group string="Trucker Tracking" name="trucker_tracking">
                     <group>
-                        <field name="x_trucker_id"/>
-                        <field name="x_receipt_confirmation"/>
+                        <field name="trucker_id"/>
+                        <field name="receipt_confirmation"/>
                     </group>
                     <group>
-                        <field name="x_trucker_notified_on" readonly="1"/>
-                        <field name="x_trucker_followup_count" readonly="1"/>
+                        <field name="trucker_notified_on" readonly="1"/>
+                        <field name="trucker_followup_count" readonly="1"/>
                     </group>
                 </group>
             </xpath>

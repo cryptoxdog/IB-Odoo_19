@@ -349,7 +349,7 @@ class PlasticosFacilityProfile(models.Model):
         for rec in self:
             packet = {
                 "partner_id": rec.partner_id.id,
-                "facility_role": rec.partner_id.x_facility_role,
+                "facility_role": rec.partner_id.facility_role,
                 "equipment": {
                     "horizontal_baler": rec.has_horizontal_baler,
                     "wash_line": rec.has_wash_line,

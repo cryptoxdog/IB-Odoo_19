@@ -101,10 +101,10 @@ def export_index(env):
             {
                 "name": group.name,
                 "id": group.id,
-                "users_count": len(group.users),
+                "users_count": len(group.user_ids),
             }
         )
-        print("  %s (%d users)" % (group.name, len(group.users)))
+        print("  %s (%d users)" % (group.name, len(group.user_ids)))
     print("  Total: %d groups" % len(index["groups"]))
 
     # ── Custom Fields (x_ prefix) ─────────────────────────────

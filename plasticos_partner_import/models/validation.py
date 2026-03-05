@@ -34,7 +34,7 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         """
         Validate Plasticos partner hierarchy:
         - Corporates: company_type=company, parent_id=False
-        - Facilities: company_type=company, parent_id set, x_facility_role set
+        - Facilities: company_type=company, parent_id set, facility_role set
         - Contacts: company_type=person, parent_id set, is_company=False
         """
         partners = self.env["res.partner"].search(
@@ -54,8 +54,8 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
 
             # Facility validation: company with parent must have facility role
             if p.company_type == "company" and p.parent_id:
-                if not p.x_facility_role:
-                    errors.append(f"Facility '{p.name}' (id={p.id}) missing x_facility_role")
+                if not p.facility_role:
+                    errors.append(f"Facility '{p.name}' (id={p.id}) missing facility_role")
                 continue
 
             # Contact validation: person must have parent and not be company
@@ -101,7 +101,7 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
             if Partner.browse(d.res_id).exists()
         ]
 
-        # 2. Facility companies (company + parent) missing x_facility_role
+        # 2. Facility companies (company + parent) missing facility_role
         facilities = Partner.search(
             [
                 ("company_type", "=", "company"),
@@ -109,7 +109,7 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
             ]
         )
         facilities_missing_role = [
-            {"id": p.id, "name": p.name, "parent": p.parent_id.name} for p in facilities if not p.x_facility_role
+            {"id": p.id, "name": p.name, "parent": p.parent_id.name} for p in facilities if not p.facility_role
         ]
 
         # 3. Contacts (person) with no parent
@@ -135,7 +135,7 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         if old_external_ids:
             summary_parts.append(f"{len(old_external_ids)} partner(s) with old external ID (plasticos_import)")
         if facilities_missing_role:
-            summary_parts.append(f"{len(facilities_missing_role)} facility(ies) missing x_facility_role")
+            summary_parts.append(f"{len(facilities_missing_role)} facility(ies) missing facility_role")
         if contacts_missing_parent:
             summary_parts.append(f"{len(contacts_missing_parent)} contact(s) with no parent")
         if duplicate_external_ids:
@@ -155,7 +155,7 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
     def repair_import_data(self, dry_run=True):
         """
         Fix common post-import issues:
-        - Set x_facility_role = 'other' for facility companies that lack it.
+        - Set facility_role = 'other' for facility companies that lack it.
         - Migrate ir.model.data from module plasticos_import to plasticos_partner_import
           only when no duplicate (same name) exists in plasticos_partner_import.
 
@@ -170,17 +170,17 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         errors = []
 
         if not dry_run:
-            # Fix facilities missing x_facility_role
+            # Fix facilities missing facility_role
             facilities = Partner.search(
                 [
                     ("company_type", "=", "company"),
                     ("parent_id", "!=", False),
-                    ("x_facility_role", "=", False),
+                    ("facility_role", "=", False),
                 ]
             )
             for p in facilities:
                 try:
-                    p.x_facility_role = "other"
+                    p.facility_role = "other"
                     facilities_fixed += 1
                 except Exception as e:
                     errors.append(f"Facility id={p.id} ({p.name}): {e}")
