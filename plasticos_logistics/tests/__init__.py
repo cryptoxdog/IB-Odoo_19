@@ -11,3 +11,8 @@ from . import test_module_install
 from . import test_rate_memory
 from . import test_sale_order_inherit
 from . import test_transaction_inherit
+
+from . import test_onchange_logistics_load
+from . import test_statemachine_load
+from . import test_wizard_load_bulk_update
+from . import test_cron_escalation_deep

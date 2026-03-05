@@ -13,3 +13,4 @@ from . import test_module_install
 from . import test_scale_ticket_cron
 from . import test_transaction_docs
 from . import test_transaction_docs_bridge
+from . import test_cron_compliance_audit_deep

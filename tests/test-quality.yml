@@ -1,0 +1,158 @@
+# .github/workflows/test-quality.yml
+name: Test Quality Gate
+
+on: [push, pull_request]
+
+jobs:
+  # Fast checks that run on every push (no Odoo required)
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install linters
+        run: |
+          pip install ruff pytest
+
+      - name: Ruff lint
+        run: |
+          ruff check . --exclude docs/
+
+      - name: Ruff format check
+        run: |
+          ruff format --check . --exclude docs/
+
+      - name: Odoo 19 pattern check
+        run: |
+          chmod +x ./scripts/check_odoo_patterns.sh
+          ./scripts/check_odoo_patterns.sh
+
+      - name: Circular dependency check
+        run: |
+          python3 ci/check_circular_deps.py
+
+      - name: Odoo 19 hook pattern check
+        run: |
+          python3 ci/check_odoo19_hooks.py
+
+      - name: Odoo 19 XML pattern check
+        run: |
+          python3 ci/check_odoo19_xml.py
+
+      - name: Module dependency wiring check
+        run: |
+          python3 scripts/check_module_wiring.py
+
+      - name: Orphan model reference check
+        run: |
+          python3 ci/check_orphan_model_refs.py
+
+      - name: XPath stability check
+        run: |
+          python3 ci/check_xpath_stability.py
+
+      - name: Repo dependency integrity test
+        run: |
+          python3 -m pytest tests/test_repo_dependency_integrity.py -v
+
+  # Coverage and mutation tests (heavier, can be skipped for docs-only changes)
+  test-coverage:
+    runs-on: ubuntu-latest
+    needs: static-checks
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install pytest pytest-cov coverage mutmut
+
+      - name: Run Tests with Coverage
+        run: |
+          pytest \
+            --cov=plasticos_intake \
+            --cov=plasticos_offer \
+            --cov=plasticos_transaction \
+            --cov=plasticos_logistics \
+            --cov=plasticos_automation \
+            --cov=plasticos_crm_bridge \
+            --cov=plasticos_documents \
+            --cov=plasticos_documents_native \
+            --cov=plasticos_facility_profile \
+            --cov=plasticos_partner_import \
+            --cov=plasticos_security_base \
+            --cov=plasticos_base \
+            --cov=plasticos_buyer_match_engine \
+            --cov=plasticos_claims \
+            --cov=plasticos_commission \
+            --cov=plasticos_enrichment \
+            --cov=plasticos_enrichment_bridge \
+            --cov=plasticos_geolocalize \
+            --cov=plasticos_intake_normalizer \
+            --cov=plasticos_matching \
+            --cov=plasticos_material_profile \
+            --cov=plasticos_order_lines \
+            --cov=plasticos_product \
+            --cov=plasticos_web_leads \
+            --cov-report=xml \
+            --cov-report=term \
+            tests/ \
+            plasticos_automation/tests/ \
+            plasticos_base/tests/ \
+            plasticos_buyer_match_engine/tests/ \
+            plasticos_claims/tests/ \
+            plasticos_commission/tests/ \
+            plasticos_crm_bridge/tests/ \
+            plasticos_documents/tests/ \
+            plasticos_documents_native/tests/ \
+            plasticos_enrichment/tests/ \
+            plasticos_enrichment_bridge/tests/ \
+            plasticos_facility_profile/tests/ \
+            plasticos_geolocalize/tests/ \
+            plasticos_intake/tests/ \
+            plasticos_intake_normalizer/tests/ \
+            plasticos_matching/tests/ \
+            plasticos_material_profile/tests/ \
+            plasticos_order_lines/tests/ \
+            plasticos_partner_import/tests/ \
+            plasticos_product/tests/ \
+            plasticos_security_base/tests/ \
+            plasticos_web_leads/tests/
+
+      - name: Check Coverage Threshold
+        run: |
+          coverage report --fail-under=80
+
+      - name: Identify Weak Tests
+        run: |
+          python3 ci/weak_test_fixer.py
+
+      - name: Run Mutation Tests
+        run: |
+          mutmut run --paths-to-mutate=plasticos_intake/models/
+          mutmut junitxml > mutation-results.xml
+
+      - name: Check Mutation Score
+        run: |
+          score=$(mutmut result-ids --status=killed | wc -l)
+          total=$(mutmut result-ids | wc -l)
+          percentage=$((100 * score / total))
+
+          if [ $percentage -lt 85 ]; then
+            echo "❌ Mutation score $percentage% < 85%"
+            exit 1
+          fi
+
+      - name: Upload Results
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml

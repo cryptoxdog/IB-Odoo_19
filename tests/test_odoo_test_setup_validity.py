@@ -111,7 +111,7 @@ def check_facility_partner_setup(file: Path, tree: ast.AST) -> list[SetupViolati
                         file=file,
                         line=line_num,
                         issue=f"Partner '{var_name}' used in material.profile.create() but missing parent_id",
-                        suggestion="Add parent_id to make it a facility-level partner (required by _check_partner_is_facility)",
+                        suggestion="Add parent_id (required by _check_partner_is_facility)",
                     )
                 )
 

@@ -9,3 +9,5 @@ from . import test_injection
 from . import test_module_install
 from . import test_normalization
 from . import test_res_partner
+
+from . import test_cron_enrichment

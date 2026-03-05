@@ -41,3 +41,9 @@ from . import test_transaction_lifecycle
 from . import test_transaction_line
 from . import test_transaction_states
 from . import test_weight_reconciliation
+
+from . import test_constraints_transaction
+from . import test_depends_plasticos_transaction
+from . import test_depends_transaction_computes
+from . import test_statemachine_transaction
+from . import test_wizard_transaction_import

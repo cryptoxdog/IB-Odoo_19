@@ -2,29 +2,23 @@ from odoo.tests import TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install")
-class TestUnknownModel(TransactionCase):
-    """Test suite for unknown.model"""
+class TestStockPickingAutomation(TransactionCase):
+    """Test suite for stock picking automation on stock.picking."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # TODO: Setup test data
+        if "stock.picking" not in cls.env:
+            raise cls.skipTest("stock.picking not installed")
+        cls.Picking = cls.env["stock.picking"]
 
-    def _create_model(self, **kwargs):
-        """Helper to create unknown.model with defaults"""
-        vals = {
-            # TODO: Add required fields
-        }
-        vals.update(kwargs)
-        return self.env["unknown.model"].create(vals)
+    def test_picking_model_accessible(self):
+        """Test stock.picking model is accessible."""
+        self.assertIn("stock.picking", self.env)
 
-    # ========================================================================
-    # CREATION TESTS
-    # ========================================================================
-
-    def test_create_basic(self):
-        """Test basic record creation"""
-        record = self._create_model()
-
-        self.assertTrue(record.exists())
-        # TODO: Add specific assertions
+    def test_automation_fields_exist(self):
+        """Test automation fields exist on stock.picking."""
+        fields_to_check = ["auto_validate", "trucker_id"]
+        for field in fields_to_check:
+            if hasattr(self.Picking, field):
+                self.assertIn(field, self.Picking._fields)

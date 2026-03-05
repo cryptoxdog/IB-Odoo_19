@@ -11,3 +11,5 @@ from . import test_sale_approval
 from . import test_sale_order_automation
 from . import test_stock_picking_automation
 from . import test_stock_reorder_alert
+
+from . import test_cron_plasticos_automation

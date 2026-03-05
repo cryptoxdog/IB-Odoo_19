@@ -9,3 +9,6 @@ from . import test_match_exclusion
 from . import test_matcher
 from . import test_material_profile_graph_hooks
 from . import test_module_install
+
+from . import test_statemachine_match_result
+from . import test_cron_expire_exclusions_deep

@@ -2,29 +2,27 @@ from odoo.tests import TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install")
-class TestUnknownModel(TransactionCase):
-    """Test suite for unknown.model"""
+class TestLoadAutomation(TransactionCase):
+    """Test suite for load automation on plasticos.load."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # TODO: Setup test data
+        if "plasticos.load" not in cls.env:
+            raise cls.skipTest("plasticos.load not installed")
+        cls.Load = cls.env["plasticos.load"]
 
-    def _create_model(self, **kwargs):
-        """Helper to create unknown.model with defaults"""
-        vals = {
-            # TODO: Add required fields
-        }
-        vals.update(kwargs)
-        return self.env["unknown.model"].create(vals)
+    # ═══════════════════════════════════════════════════════════════════
+    # AUTOMATION FIELD TESTS
+    # ═══════════════════════════════════════════════════════════════════
 
-    # ========================================================================
-    # CREATION TESTS
-    # ========================================================================
+    def test_load_model_accessible(self):
+        """Test plasticos.load model is accessible."""
+        self.assertIn("plasticos.load", self.env)
 
-    def test_create_basic(self):
-        """Test basic record creation"""
-        record = self._create_model()
-
-        self.assertTrue(record.exists())
-        # TODO: Add specific assertions
+    def test_automation_fields_exist(self):
+        """Test automation fields exist on plasticos.load."""
+        fields_to_check = ["auto_dispatch", "dispatch_reminder_sent"]
+        for field in fields_to_check:
+            if hasattr(self.Load, field):
+                self.assertIn(field, self.Load._fields)

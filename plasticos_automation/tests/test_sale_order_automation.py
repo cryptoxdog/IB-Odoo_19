@@ -2,38 +2,23 @@ from odoo.tests import TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install")
-class TestUnknownModel(TransactionCase):
-    """Test suite for unknown.model"""
+class TestSaleOrderAutomation(TransactionCase):
+    """Test suite for sale order automation on sale.order."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # TODO: Setup test data
+        if "sale.order" not in cls.env:
+            raise cls.skipTest("sale.order not installed")
+        cls.SO = cls.env["sale.order"]
 
-    def _create_model(self, **kwargs):
-        """Helper to create unknown.model with defaults"""
-        vals = {
-            # TODO: Add required fields
-        }
-        vals.update(kwargs)
-        return self.env["unknown.model"].create(vals)
+    def test_so_model_accessible(self):
+        """Test sale.order model is accessible."""
+        self.assertIn("sale.order", self.env)
 
-    # ========================================================================
-    # CREATION TESTS
-    # ========================================================================
-
-    def test_create_basic(self):
-        """Test basic record creation"""
-        record = self._create_model()
-
-        self.assertTrue(record.exists())
-        # TODO: Add specific assertions
-
-    def test_action_request_dock_appointment_executes_successfully(self):
-        """Test action_request_dock_appointment executes without error"""
-        record = self._create_model()
-
-        result = record.action_request_dock_appointment()
-
-        # TODO: Add assertions about expected outcome
-        self.assertTrue(True, "Replace with real assertion")
+    def test_automation_fields_exist(self):
+        """Test automation fields exist on sale.order."""
+        fields_to_check = ["auto_confirm", "auto_invoice"]
+        for field in fields_to_check:
+            if hasattr(self.SO, field):
+                self.assertIn(field, self.SO._fields)

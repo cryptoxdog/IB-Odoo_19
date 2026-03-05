@@ -3,7 +3,7 @@ from odoo.tests import TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install")
-class TestPlasticosIntake(TransactionCase):
+class TestPlasticosIntakeBasic(TransactionCase):
     """Test suite for plasticos.intake"""
 
     @classmethod

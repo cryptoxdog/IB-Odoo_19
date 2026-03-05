@@ -5,3 +5,4 @@ from . import test_crm_lead
 from . import test_crm_lead_vanillasoft
 from . import test_material_profile
 from . import test_web_lead
+from . import test_action_crm_lead

@@ -2,7 +2,7 @@ from odoo.tests import TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install")
-class TestPlasticosCommissionService(TransactionCase):
+class TestPlasticosCommissionServiceBridge(TransactionCase):
     """Test suite for plasticos.commission.service"""
 
     @classmethod

@@ -13,3 +13,8 @@ from . import test_material_profile_intake
 from . import test_module_install
 from . import test_plasticos_intake
 from . import test_res_partner_intake
+
+from . import test_depends_intake_computes
+from . import test_depends_plasticos_intake
+from . import test_onchange_intake
+from . import test_onchange_plasticos_intake_all

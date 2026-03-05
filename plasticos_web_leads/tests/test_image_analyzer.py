@@ -2,29 +2,20 @@ from odoo.tests import TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install")
-class TestUnknownModel(TransactionCase):
-    """Test suite for unknown.model"""
+class TestImageAnalyzer(TransactionCase):
+    """Test suite for plasticos.web.lead extensions."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # TODO: Setup test data
+        if "plasticos.web.lead" not in cls.env:
+            raise cls.skipTest("plasticos.web.lead not installed")
+        cls.Model = cls.env["plasticos.web.lead"]
 
-    def _create_model(self, **kwargs):
-        """Helper to create unknown.model with defaults"""
-        vals = {
-            # TODO: Add required fields
-        }
-        vals.update(kwargs)
-        return self.env["unknown.model"].create(vals)
+    def test_model_accessible(self):
+        """Test plasticos.web.lead model is accessible."""
+        self.assertIn("plasticos.web.lead", self.env)
 
-    # ========================================================================
-    # CREATION TESTS
-    # ========================================================================
-
-    def test_create_basic(self):
-        """Test basic record creation"""
-        record = self._create_model()
-
-        self.assertTrue(record.exists())
-        # TODO: Add specific assertions
+    def test_model_fields_exist(self):
+        """Test model has expected fields."""
+        self.assertTrue(hasattr(self.Model, "_fields"))

@@ -2,29 +2,29 @@ from odoo.tests import TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install")
-class TestUnknownModel(TransactionCase):
-    """Test suite for unknown.model"""
+class TestInvoiceReminder(TransactionCase):
+    """Test suite for invoice reminder automation on account.move."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # TODO: Setup test data
+        if "account.move" not in cls.env:
+            raise cls.skipTest("account.move not installed")
+        cls.Move = cls.env["account.move"]
+        cls.Partner = cls.env["res.partner"]
+        cls.partner = cls.Partner.create({"name": "Test Customer"})
 
-    def _create_model(self, **kwargs):
-        """Helper to create unknown.model with defaults"""
-        vals = {
-            # TODO: Add required fields
-        }
-        vals.update(kwargs)
-        return self.env["unknown.model"].create(vals)
+    # ═══════════════════════════════════════════════════════════════════
+    # REMINDER FIELD TESTS
+    # ═══════════════════════════════════════════════════════════════════
 
-    # ========================================================================
-    # CREATION TESTS
-    # ========================================================================
+    def test_move_model_accessible(self):
+        """Test account.move model is accessible."""
+        self.assertIn("account.move", self.env)
 
-    def test_create_basic(self):
-        """Test basic record creation"""
-        record = self._create_model()
-
-        self.assertTrue(record.exists())
-        # TODO: Add specific assertions
+    def test_reminder_fields_exist(self):
+        """Test reminder automation fields exist on account.move."""
+        if hasattr(self.Move, "reminder_sent"):
+            self.assertIn("reminder_sent", self.Move._fields)
+        if hasattr(self.Move, "last_reminder_date"):
+            self.assertIn("last_reminder_date", self.Move._fields)

@@ -3,7 +3,7 @@ from odoo.tests import TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install")
-class TestPlasticosCommissionRule(TransactionCase):
+class TestPlasticosCommissionRuleBridge(TransactionCase):
     """Test suite for plasticos.commission.rule"""
 
     @classmethod

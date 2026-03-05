@@ -129,7 +129,7 @@ class TestDocumentLifecycle(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestComplianceService(TransactionCase):
+class TestComplianceServiceLifecycle(TransactionCase):
     """Test compliance service with document rules."""
 
     @classmethod

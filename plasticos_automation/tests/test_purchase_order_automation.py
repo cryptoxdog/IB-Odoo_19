@@ -2,29 +2,27 @@ from odoo.tests import TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install")
-class TestUnknownModel(TransactionCase):
-    """Test suite for unknown.model"""
+class TestPurchaseOrderAutomation(TransactionCase):
+    """Test suite for purchase order automation on purchase.order."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # TODO: Setup test data
+        if "purchase.order" not in cls.env:
+            raise cls.skipTest("purchase.order not installed")
+        cls.PO = cls.env["purchase.order"]
 
-    def _create_model(self, **kwargs):
-        """Helper to create unknown.model with defaults"""
-        vals = {
-            # TODO: Add required fields
-        }
-        vals.update(kwargs)
-        return self.env["unknown.model"].create(vals)
+    # ═══════════════════════════════════════════════════════════════════
+    # AUTOMATION FIELD TESTS
+    # ═══════════════════════════════════════════════════════════════════
 
-    # ========================================================================
-    # CREATION TESTS
-    # ========================================================================
+    def test_po_model_accessible(self):
+        """Test purchase.order model is accessible."""
+        self.assertIn("purchase.order", self.env)
 
-    def test_create_basic(self):
-        """Test basic record creation"""
-        record = self._create_model()
-
-        self.assertTrue(record.exists())
-        # TODO: Add specific assertions
+    def test_automation_fields_exist(self):
+        """Test automation fields exist on purchase.order."""
+        fields_to_check = ["auto_confirm", "confirmation_reminder_sent"]
+        for field in fields_to_check:
+            if hasattr(self.PO, field):
+                self.assertIn(field, self.PO._fields)

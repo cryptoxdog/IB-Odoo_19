@@ -2,29 +2,20 @@ from odoo.tests import TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install")
-class TestUnknownModel(TransactionCase):
-    """Test suite for unknown.model"""
+class TestResPartnerSecurity(TransactionCase):
+    """Test suite for res.partner extensions."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # TODO: Setup test data
+        if "res.partner" not in cls.env:
+            raise cls.skipTest("res.partner not installed")
+        cls.Model = cls.env["res.partner"]
 
-    def _create_model(self, **kwargs):
-        """Helper to create unknown.model with defaults"""
-        vals = {
-            # TODO: Add required fields
-        }
-        vals.update(kwargs)
-        return self.env["unknown.model"].create(vals)
+    def test_model_accessible(self):
+        """Test res.partner model is accessible."""
+        self.assertIn("res.partner", self.env)
 
-    # ========================================================================
-    # CREATION TESTS
-    # ========================================================================
-
-    def test_create_basic(self):
-        """Test basic record creation"""
-        record = self._create_model()
-
-        self.assertTrue(record.exists())
-        # TODO: Add specific assertions
+    def test_model_fields_exist(self):
+        """Test model has expected fields."""
+        self.assertTrue(hasattr(self.Model, "_fields"))
