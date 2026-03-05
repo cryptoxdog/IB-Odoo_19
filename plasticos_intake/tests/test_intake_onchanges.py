@@ -131,7 +131,7 @@ class TestIntakeOnchanges(TransactionCase):
 
         profile = self.env["plasticos.material.profile"].create(
             {
-                "partner_id": self.partner.id,
+                "partner_id": self.facility.id,  # Use facility (has parent_id)
                 "polymer_id": polymer.id,
             }
         )

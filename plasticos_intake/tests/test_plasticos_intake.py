@@ -316,7 +316,7 @@ class TestPlasticosIntake(TransactionCase):
             {
                 "name": "Test User",
                 "login": "testuser",
-                "groups_id": [(6, 0, [self.env.ref("plasticos_intake.group_intake_user").id])],
+                "group_ids": [(6, 0, [self.env.ref("plasticos_intake.group_intake_user").id])],
             }
         )
 
@@ -340,7 +340,7 @@ class TestPlasticosIntake(TransactionCase):
             {
                 "name": "Test User",
                 "login": "testuser2",
-                "groups_id": [(6, 0, [self.env.ref("plasticos_intake.group_intake_user").id])],
+                "group_ids": [(6, 0, [self.env.ref("plasticos_intake.group_intake_user").id])],
             }
         )
 

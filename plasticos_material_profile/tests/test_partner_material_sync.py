@@ -14,11 +14,22 @@ class TestPartnerMaterialSync(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.partner = cls.env["res.partner"].create(
+        # Create parent company first
+        cls.parent_company = cls.env["res.partner"].create(
             {
-                "name": "Test Supplier",
+                "name": "Test Parent Company",
                 "is_company": True,
                 "supplier_rank": 1,
+            }
+        )
+        # Create facility-level partner (child of parent company)
+        # Required by _check_partner_is_facility constraint
+        cls.partner = cls.env["res.partner"].create(
+            {
+                "name": "Test Supplier Facility",
+                "is_company": True,
+                "supplier_rank": 1,
+                "parent_id": cls.parent_company.id,
             }
         )
         cls.polymer = cls.env["plasticos.polymer"].create(

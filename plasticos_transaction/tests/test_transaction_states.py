@@ -38,7 +38,7 @@ class TestTransactionStates(TransactionCase):
             {
                 "name": "TX Test Manager",
                 "login": "tx_test_manager",
-                "groups_id": [
+                "group_ids": [
                     (4, cls.env.ref("base.group_user").id),
                     (4, cls.manager_group.id),
                 ],
@@ -50,7 +50,7 @@ class TestTransactionStates(TransactionCase):
             {
                 "name": "TX Test User",
                 "login": "tx_test_user",
-                "groups_id": [(4, cls.env.ref("base.group_user").id)],
+                "group_ids": [(4, cls.env.ref("base.group_user").id)],
             }
         )
 
