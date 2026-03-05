@@ -169,6 +169,7 @@ PROCESS_TYPE_TO_PROFILE = {
 
 # Map normalized form code (from FORM_NORMALIZE) to plasticos.material.form code
 FORM_CODE_TO_MASTER = {
+    "BAG": "OTHER",  # Bags are not a distinct form in seed data, map to OTHER
     "BALE": "BALES",
     "BALES": "BALES",
     "PELL": "PELLETS",

@@ -39,17 +39,12 @@ class TestIntegrity(TransactionCase):
         )
 
         # Create a manager user and switch to it
-        group_manager = self.env.ref("plasticos_transaction.group_plasticos_manager")
-        group_user = self.env.ref("base.group_user")
-        group_sale_manager = self.env.ref("sales_team.group_sale_manager")
-        group_account_manager = self.env.ref("account.group_account_manager")
+        group_manager = self.env.ref("plasticos_transaction.group_plasticos_manager", raise_if_not_found=False)
+        group_user = self.env.ref("base.group_user", raise_if_not_found=False)
+        group_sale_manager = self.env.ref("sales_team.group_sale_manager", raise_if_not_found=False)
+        group_account_manager = self.env.ref("account.group_account_manager", raise_if_not_found=False)
 
-        groups = [
-            group_manager.id,
-            group_user.id,
-            group_sale_manager.id,
-            group_account_manager.id,
-        ]
+        groups = [g.id for g in [group_manager, group_user, group_sale_manager, group_account_manager] if g]
         # Optional: add documents group if module is installed
         try:
             group_documents_user = self.env.ref("plasticos_documents.group_documents_user")

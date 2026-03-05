@@ -8,6 +8,14 @@ from odoo.tests import TransactionCase
 class TestIntakeProperties(TransactionCase):
     """Property-based tests for intake model"""
 
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # Create or get a test partner for property tests
+        cls.test_partner = cls.env.ref("base.res_partner_1", raise_if_not_found=False)
+        if not cls.test_partner:
+            cls.test_partner = cls.env["res.partner"].create({"name": "Property Test Partner", "is_company": True})
+
     @given(
         quantity=st.integers(min_value=1, max_value=1000000),
         material_type=st.sampled_from(["PET", "HDPE", "PP", "LDPE", "PS"]),
@@ -16,7 +24,7 @@ class TestIntakeProperties(TransactionCase):
         """Test intake creation with randomly generated valid inputs"""
         intake = self.env["plasticos.intake"].create(
             {
-                "partner_id": self.env.ref("base.res_partner_1").id,
+                "partner_id": self.test_partner.id,
                 "material_type": material_type,
                 "quantity_per_load_lbs": quantity,
             }
@@ -34,7 +42,7 @@ class TestIntakeProperties(TransactionCase):
         intakes = self.env["plasticos.intake"].create(
             [
                 {
-                    "partner_id": self.env.ref("base.res_partner_1").id,
+                    "partner_id": self.test_partner.id,
                     "material_type": "PET",
                     "quantity_per_load_lbs": qty,
                 }

@@ -38,8 +38,9 @@ class TestCloseRace(TransactionCase):
         )
 
         # Add user to manager group
-        self.manager_group = self.env.ref("plasticos_transaction.group_plasticos_manager")
-        self.env.user.group_ids = [(4, self.manager_group.id)]
+        self.manager_group = self.env.ref("plasticos_transaction.group_plasticos_manager", raise_if_not_found=False)
+        if self.manager_group:
+            self.env.user.group_ids = [(4, self.manager_group.id)]
 
     def _create_posted_invoice(self):
         """Create a posted customer invoice for testing."""

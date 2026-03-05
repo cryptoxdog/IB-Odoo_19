@@ -29,6 +29,7 @@ Core Capabilities:
 import datetime
 
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 
 # ------------------------------------------------------------
@@ -105,7 +106,9 @@ class OfferHandler(models.Model):
     # --------------------------------------------------------
     def send_offer(self):
         for record in self:
-            email_template = self.env.ref("plasticos_automation.email_template_offer")
+            email_template = self.env.ref("plasticos_automation.email_template_offer", raise_if_not_found=False)
+            if not email_template:
+                raise UserError("Email template 'plasticos_automation.email_template_offer' not found.")
             email_template.send_mail(record.id, force_send=True)
             record.offer_status = "sent"
             record._log_offer_action("Offer sent via email.")

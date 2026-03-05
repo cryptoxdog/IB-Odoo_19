@@ -94,6 +94,12 @@ class TestBuyerMatcher(TransactionCase):
             )
 
         # ══════════════════════════════════════════════════════════
+        # Get country reference (base.us should always exist)
+        # ══════════════════════════════════════════════════════════
+        us_country = self.env.ref("base.us", raise_if_not_found=False)
+        us_country_id = us_country.id if us_country else False
+
+        # ══════════════════════════════════════════════════════════
         # Create test supplier (company + facility)
         # ══════════════════════════════════════════════════════════
 
@@ -104,7 +110,7 @@ class TestBuyerMatcher(TransactionCase):
                 "supplier_rank": 1,
                 "street": "123 Supplier St",
                 "city": "Charlotte",
-                "country_id": self.env.ref("base.us").id,
+                "country_id": us_country_id,
             }
         )
 
@@ -115,7 +121,7 @@ class TestBuyerMatcher(TransactionCase):
                 "parent_id": self.supplier_company.id,
                 "street": "123 Supplier St",
                 "city": "Charlotte",
-                "country_id": self.env.ref("base.us").id,
+                "country_id": us_country_id,
             }
         )
 
@@ -145,7 +151,7 @@ class TestBuyerMatcher(TransactionCase):
                 "customer_rank": 1,
                 "street": "456 Buyer Ave",
                 "city": "Charlotte",
-                "country_id": self.env.ref("base.us").id,
+                "country_id": us_country_id,
             }
         )
 

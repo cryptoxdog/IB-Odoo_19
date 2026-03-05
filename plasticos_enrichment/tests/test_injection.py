@@ -84,9 +84,17 @@ class TestInjection(TransactionCase):
 
     def test_merge_not_overwrite(self):
         """Injection does not overwrite existing field values."""
-        # Get the polymer and form records
-        pp_polymer = self.env["plasticos.polymer"].search([("code", "=", "PP")], limit=1)
+        # Get the polymer and form records (ensure they exist from seed data)
+        pp_polymer = self.env["plasticos.polymer"].search([("code", "=", "pp")], limit=1)
+        if not pp_polymer:
+            pp_polymer = self.env["plasticos.polymer"].create(
+                {"name": "PP", "code": "pp", "description": "Polypropylene"}
+            )
         pellets_form = self.env["plasticos.material.form"].search([("code", "=", "PELLETS")], limit=1)
+        if not pellets_form:
+            pellets_form = self.env["plasticos.material.form"].create(
+                {"name": "Pellets", "code": "PELLETS", "description": "Test pellets form"}
+            )
         self.env["plasticos.material.profile"].create(
             {
                 "partner_id": self.partner.id,

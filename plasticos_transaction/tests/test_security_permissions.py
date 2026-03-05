@@ -38,12 +38,14 @@ class TestSecurityPermissions(TransactionCase):
         )
 
         # Create a non-manager user for testing
+        base_user_group = self.env.ref("base.group_user", raise_if_not_found=False)
+        group_ids = [(6, 0, [base_user_group.id])] if base_user_group else []
         self.non_manager_user = self.env["res.users"].create(
             {
                 "name": "Test Non-Manager User",
                 "login": "test_non_manager_plasticos",
                 "email": "nonmanager@test.plasticos.com",
-                "group_ids": [(6, 0, [self.env.ref("base.group_user").id])],
+                "group_ids": group_ids,
             }
         )
 

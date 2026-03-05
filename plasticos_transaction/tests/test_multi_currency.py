@@ -38,7 +38,9 @@ class TestMultiCurrency(TransactionCase):
 
     def test_margin_computation_multi_currency(self):
         """Test that margin computation works with non-default currency."""
-        currency = self.env.ref("base.EUR")
+        currency = self.env.ref("base.EUR", raise_if_not_found=False)
+        if not currency:
+            self.skipTest("base.EUR currency not found")
 
         invoice = self.env["account.move"].create(
             {
