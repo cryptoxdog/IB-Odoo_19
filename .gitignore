@@ -45,6 +45,7 @@ export_odoo_index.py
 installation logs.md
 run-odoo-tests.sh
 workflow_state.md
+plasticos_partner_import/3. VanillaSoft - All Contacts (ALL).csv
 
 # ═══════════════════════════════════════════════════════════
 # Local / Working (not for staging)
@@ -61,6 +62,8 @@ plasticos_graph_3d_embedding/
 plasticos_graph_3d_embedding/**
 plasticos_inference_engine/
 plasticos_inference_engine/**
+plasticos_enrichment_bridge/
+
 
 # ═══════════════════════════════════════════════════════════
 # Module test folders (not ready for CI)

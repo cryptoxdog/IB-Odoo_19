@@ -2,3 +2,4 @@
 # Negation so they are NOT Cursor-ignored.
 !.cursor/
 !.cursor-commands/
+plasticos_enrichment_bridge/
