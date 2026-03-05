@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Base",
-    "version": "19.0.1.0.1",
+    "version": "19.0.1.0.2",
     "summary": "Core seed data: partner tags, sales reps, material taxonomy tags",
     "license": "LGPL-3",
     "author": "PlasticOS",
