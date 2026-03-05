@@ -1,0 +1,53 @@
+{
+  "description": "Critical components that must strictly exist in the codebase. Prevents accidental deletion during refactors.",
+  "files": [
+    "plasticos_commission/models/commission_rule.py",
+    "plasticos_commission/models/commission_service.py",
+    "plasticos_transaction/models/load_inherit.py",
+    "plasticos_logistics/models/sale_order_inherit.py",
+    "plasticos_intake/models/intake.py",
+    "plasticos_documents/models/document.py"
+  ],
+  "symbols": [
+    {
+      "file": "plasticos_commission/models/commission_rule.py",
+      "class": "PlasticosCommissionRule",
+      "type": "model"
+    },
+    {
+      "file": "plasticos_commission/models/commission_service.py",
+      "class": "PlasticosCommissionService",
+      "type": "abstract"
+    },
+    {
+      "file": "plasticos_transaction/models/load_inherit.py",
+      "class": "PlasticosLoad",
+      "type": "inherit"
+    },
+    {
+      "file": "plasticos_logistics/models/sale_order_inherit.py",
+      "class": "SaleOrder",
+      "type": "inherit"
+    },
+    {
+      "file": "plasticos_intake/models/intake.py",
+      "class": "PlasticosIntake",
+      "methods": [
+        "action_mark_normalized",
+        "action_run_buyer_match",
+        "action_replay_last_packet",
+        "action_make_po",
+        "action_send_offers"
+      ]
+    },
+    {
+      "file": "plasticos_documents/models/document.py",
+      "class": "PlasticosDocument",
+      "methods": [
+        "create",
+        "write",
+        "unlink"
+      ]
+    }
+  ]
+}
