@@ -120,6 +120,7 @@ Odoo 19 PlasticOS suite: intake, transaction, logistics, documents, commission, 
 
 - ✅ 2026-03-04: Merged PR #29 — Cleaned up remaining x_ prefixed fields and added migration scripts.
 - ✅ 2026-03-04: Merged PR #28 — Document transaction field migration (x_ prefix removal).
+- ✅ 2026-03-05: Updated CI — Added test coverage for cleaned modules and enforced no x_ prefixes in check_odoo_patterns.sh.
 - ✅ 2026-02-25: PlasticOS Odoo 19 GMP — Test form_id + get-or-create; cron ACL via post_init_hook; ARCHITECTURE.md updated with fixes.
 - ✅ 2026-02-25: Scoped Deep Audit Pass 2 (PR #22) — Fixed form code enum drift (bale/bales), 16 unhandled form codes, missing module dependency, and ruff format issues. All enforcement checks green.
 - ✅ 2026-02-25: GMP constraints migration — converted remaining 20 `_sql_constraints` blocks to `models.Constraint`; ran targeted integrity checks; confirmed no `_sql_constraints` left.

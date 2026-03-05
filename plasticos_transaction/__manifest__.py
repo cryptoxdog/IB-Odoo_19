@@ -18,6 +18,7 @@
         "plasticos_product",
         "plasticos_offer",
         "plasticos_matching",
+        "plasticos_commission",
     ],
     "data": [
         "security/security_hardening.xml",
