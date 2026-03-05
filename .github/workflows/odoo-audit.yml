@@ -65,6 +65,41 @@ jobs:
             echo "✅ No HIGH severity regressions (found: $HIGH_COUNT, baseline: $BASELINE_HIGH)"
           fi
 
+      - name: Run Extended Audits (Business Logic, Performance, Security)
+        id: extended
+        run: |
+          python3 scripts/audit/run_all_audits.py . || true
+
+          # Count extended audit issues
+          if [ -f extended_audit_report.json ]; then
+            EXT_HIGH=$(jq '[.[] | select(.severity=="HIGH")] | length' extended_audit_report.json)
+            EXT_CRITICAL=$(jq '[.[] | select(.severity=="CRITICAL")] | length' extended_audit_report.json)
+            echo "ext_high=$EXT_HIGH" >> $GITHUB_OUTPUT
+            echo "ext_critical=$EXT_CRITICAL" >> $GITHUB_OUTPUT
+
+            echo "### Extended Audit Results" >> $GITHUB_STEP_SUMMARY
+            echo "- HIGH: $EXT_HIGH" >> $GITHUB_STEP_SUMMARY
+            echo "- CRITICAL: $EXT_CRITICAL" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check Extended Audit Regressions
+        run: |
+          if [ -f extended_audit_report.json ]; then
+            EXT_HIGH=${{ steps.extended.outputs.ext_high }}
+
+            # Baseline: 40 HIGH issues (established 2026-03-05)
+            # These are existing patterns that need gradual cleanup
+            BASELINE_EXT_HIGH=40
+
+            if [ "$EXT_HIGH" -gt "$BASELINE_EXT_HIGH" ]; then
+              echo "❌ REGRESSION: Extended audit found $EXT_HIGH HIGH issues (baseline: $BASELINE_EXT_HIGH)"
+              jq -r '.[] | select(.severity=="HIGH") | "- \(.type): \(.file):\(.line // "N/A")"' extended_audit_report.json | head -20
+              exit 1
+            else
+              echo "✅ No extended audit regressions (found: $EXT_HIGH, baseline: $BASELINE_EXT_HIGH)"
+            fi
+          fi
+
       - name: Upload Audit Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -72,6 +107,7 @@ jobs:
           name: odoo-audit-report
           path: |
             odoo_audit_report.json
+            extended_audit_report.json
             AUDIT_REPORT.md
 
       - name: Comment on PR (if regression)
