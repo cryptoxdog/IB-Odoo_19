@@ -21,6 +21,13 @@ _logger = logging.getLogger(__name__)
 
 
 class PlasticosMidnightRecompute(models.AbstractModel):
+    """Midnight cron service for time-based field recomputation.
+
+    NOTE: AbstractModel = no database table, no ACL needed.
+    This is a service class, not a data model. Audit tools may flag
+    "MISSING_ACL" but this is a false positive for AbstractModel classes.
+    """
+
     _name = "plasticos.midnight.recompute"
     _description = "Midnight Recompute Service"
 

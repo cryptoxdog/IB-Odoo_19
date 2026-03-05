@@ -1,0 +1,93 @@
+name: Odoo Code Audit
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Comprehensive Audit
+        id: audit
+        run: |
+          python3 scripts/audit/odoo_audit.py . || true
+
+          # Count issues by severity
+          HIGH_COUNT=$(jq '[.[] | select(.severity=="HIGH")] | length' odoo_audit_report.json)
+          CRITICAL_COUNT=$(jq '[.[] | select(.severity=="CRITICAL")] | length' odoo_audit_report.json)
+
+          echo "high_count=$HIGH_COUNT" >> $GITHUB_OUTPUT
+          echo "critical_count=$CRITICAL_COUNT" >> $GITHUB_OUTPUT
+
+          echo "### Audit Results" >> $GITHUB_STEP_SUMMARY
+          echo "- HIGH: $HIGH_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- CRITICAL: $CRITICAL_COUNT (known false positives for inherited fields)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check for HIGH severity regressions
+        run: |
+          HIGH_COUNT=${{ steps.audit.outputs.high_count }}
+
+          # Baseline: 0 HIGH issues (after fixes applied 2026-03-05)
+          BASELINE_HIGH=0
+
+          if [ "$HIGH_COUNT" -gt "$BASELINE_HIGH" ]; then
+            echo "❌ REGRESSION: Found $HIGH_COUNT HIGH issues (baseline: $BASELINE_HIGH)"
+            echo ""
+            echo "New HIGH issues:"
+            jq -r '.[] | select(.severity=="HIGH") | "- \(.type): \(.message)\n  File: \(.file):\(.line // "N/A")"' odoo_audit_report.json
+            exit 1
+          else
+            echo "✅ No HIGH severity regressions (found: $HIGH_COUNT, baseline: $BASELINE_HIGH)"
+          fi
+
+      - name: Upload Audit Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: odoo-audit-report
+          path: |
+            odoo_audit_report.json
+            AUDIT_REPORT.md
+
+      - name: Comment on PR (if regression)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('odoo_audit_report.json'));
+            const high = report.filter(e => e.severity === 'HIGH');
+
+            const comment = `## ❌ Audit Regression Detected
+
+            This PR introduces **${high.length} HIGH severity issues**.
+
+            ### Issues Found:
+            ${high.slice(0, 10).map(e =>
+              `- **${e.type}** in \`${e.model || 'N/A'}\`\n  ${e.message}\n  📁 \`${e.file}:${e.line || 'N/A'}\``
+            ).join('\n\n')}
+
+            ${high.length > 10 ? `\n... and ${high.length - 10} more issues` : ''}
+
+            ### How to Fix:
+            1. Run locally: \`python3 scripts/audit/odoo_audit.py .\`
+            2. Review \`AUDIT_REPORT.md\` for details
+            3. See \`scripts/audit/odoo_audit.py\` docstring for known false positive patterns
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

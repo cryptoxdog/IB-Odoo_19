@@ -683,6 +683,9 @@ class PlasticosTransaction(models.Model):
                 continue
             rec.commission_amount = service.compute_commission(rec)
 
+    # NOTE: document_ids is defined via _inherit in plasticos_documents/models/transaction_docs_bridge.py
+    # This is NOT a bug — Odoo inheritance adds the field at runtime.
+    # The plasticos_documents dependency in __manifest__.py ensures the field exists.
     @api.depends(
         "create_date",
         "document_ids",

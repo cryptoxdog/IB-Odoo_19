@@ -18,6 +18,7 @@
         "plasticos_product",
         "plasticos_offer",
         "plasticos_matching",
+        "plasticos_documents",
     ],
     "data": [
         "security/security_hardening.xml",
@@ -25,7 +26,9 @@
         "security/commission_acl.xml",
         "data/sequence.xml",
         "data/audit_cron.xml",
+        "data/cron_missing_docs.xml",
         "views/transaction_views.xml",
+        "views/transaction_docs_views.xml",
         "views/commission_views.xml",
         "views/transaction_bulk_update_wizard_views.xml",
         "views/transaction_bulk_assign_wizard_views.xml",
