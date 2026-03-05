@@ -7,7 +7,6 @@ Tests cover:
 - Constraint validation (quantity, loads_per_month)
 - Computed fields (has_residue, match_count, best_match_score, company_display)
 - Reset to draft behavior
-- action_make_po guard
 """
 
 from odoo.exceptions import UserError, ValidationError
@@ -22,7 +21,6 @@ class TestIntakeWorkflow(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
 
-        # ── Master data ─────────────────────────────────────────
         cls.polymer_hdpe = cls.env["plasticos.polymer"].create(
             {
                 "name": "HDPE",
@@ -43,8 +41,6 @@ class TestIntakeWorkflow(TransactionCase):
                 "code": "natural_test_intake",
             }
         )
-
-        # ── Partners ────────────────────────────────────────────
         cls.supplier = cls.env["res.partner"].create(
             {
                 "name": "Test Intake Supplier Co",
@@ -59,8 +55,6 @@ class TestIntakeWorkflow(TransactionCase):
                 "customer_rank": 1,
             }
         )
-
-        # ── Intake ──────────────────────────────────────────────
         cls.intake = cls.env["plasticos.intake"].create(
             {
                 "partner_id": cls.supplier.id,
@@ -72,9 +66,7 @@ class TestIntakeWorkflow(TransactionCase):
             }
         )
 
-    # ══════════════════════════════════════════════════════════════
-    # Creation & Computed Name
-    # ══════════════════════════════════════════════════════════════
+    # ── Creation & Computed Name ────────────────────────────────
 
     def test_intake_created_in_draft(self):
         """New intakes default to draft status."""
@@ -102,7 +94,7 @@ class TestIntakeWorkflow(TransactionCase):
         self.assertEqual(self.intake.company_display, "Test Intake Supplier Co")
 
     def test_company_display_pending(self):
-        """company_display shows pending name with ⏳ when no partner."""
+        """company_display shows pending name with indicator when no partner."""
         pending = self.env["plasticos.intake"].create(
             {
                 "pending_company_name": "Pending Corp",
@@ -111,9 +103,7 @@ class TestIntakeWorkflow(TransactionCase):
         )
         self.assertIn("Pending Corp", pending.company_display)
 
-    # ══════════════════════════════════════════════════════════════
-    # Status Workflow — Happy Path
-    # ══════════════════════════════════════════════════════════════
+    # ── Status Workflow — Happy Path ────────────────────────────
 
     def test_draft_to_offer_sent_blocked(self):
         """Cannot jump from draft to offer_sent (must be matched first)."""
@@ -156,9 +146,7 @@ class TestIntakeWorkflow(TransactionCase):
         self.intake.action_mark_expired()
         self.assertEqual(self.intake.status, "expired")
 
-    # ══════════════════════════════════════════════════════════════
-    # Status Guards — Blocked Transitions
-    # ══════════════════════════════════════════════════════════════
+    # ── Status Guards — Blocked Transitions ─────────────────────
 
     def test_send_offer_from_draft_blocked(self):
         """action_send_offer requires matched status."""
@@ -178,13 +166,10 @@ class TestIntakeWorkflow(TransactionCase):
         with self.assertRaises(UserError):
             self.intake.action_mark_won()
 
-    # ══════════════════════════════════════════════════════════════
-    # Reset to Draft
-    # ══════════════════════════════════════════════════════════════
+    # ── Reset to Draft ──────────────────────────────────────────
 
     def test_reset_to_draft_clears_matches(self):
         """Reset to draft clears match lines and resets status."""
-        # Create a match line
         self.env["plasticos.intake.match"].create(
             {
                 "intake_id": self.intake.id,
@@ -203,9 +188,7 @@ class TestIntakeWorkflow(TransactionCase):
         with self.assertRaises(UserError):
             self.intake.action_reset_to_draft()
 
-    # ══════════════════════════════════════════════════════════════
-    # Constraints
-    # ══════════════════════════════════════════════════════════════
+    # ── Constraints ─────────────────────────────────────────────
 
     def test_zero_quantity_raises(self):
         """quantity_per_load_lbs must be positive."""
@@ -230,9 +213,7 @@ class TestIntakeWorkflow(TransactionCase):
                 }
             )
 
-    # ══════════════════════════════════════════════════════════════
-    # Computed Fields
-    # ══════════════════════════════════════════════════════════════
+    # ── Computed Fields ─────────────────────────────────────────
 
     def test_has_residue_true_when_contamination(self):
         """has_residue auto-computed from contamination_pct > 0."""
@@ -284,7 +265,7 @@ class TestIntakeWorkflow(TransactionCase):
 
     def test_selected_count(self):
         """selected_count only counts selected match lines."""
-        m1 = self.env["plasticos.intake.match"].create(
+        self.env["plasticos.intake.match"].create(
             {
                 "intake_id": self.intake.id,
                 "buyer_id": self.buyer.id,

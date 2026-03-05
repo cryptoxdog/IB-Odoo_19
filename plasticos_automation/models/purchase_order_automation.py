@@ -8,11 +8,11 @@ _logger = logging.getLogger(__name__)
 class PurchaseOrderAutomation(models.Model):
     _inherit = "purchase.order"
 
-    x_ready_for_pickup = fields.Boolean(string="Ready for Pickup", default=False)
-    x_ready_confirmed_on = fields.Datetime(string="Ready Confirmed On")
-    x_followup_count = fields.Integer(string="Supplier Follow-up Count", default=0)
-    x_last_followup_on = fields.Datetime(string="Last Follow-up On")
-    x_buyer_id = fields.Many2one("res.partner", string="Buyer (SO Customer)")
+    ready_for_pickup = fields.Boolean(string="Ready for Pickup", default=False)
+    ready_confirmed_on = fields.Datetime(string="Ready Confirmed On")
+    followup_count = fields.Integer(string="Supplier Follow-up Count", default=0)
+    last_followup_on = fields.Datetime(string="Last Follow-up On")
+    buyer_id = fields.Many2one("res.partner", string="Buyer (SO Customer)")
 
     @api.model
     def cron_supplier_followup(self):
@@ -28,22 +28,22 @@ class PurchaseOrderAutomation(models.Model):
             orders = self.search(
                 [
                     ("state", "=", "purchase"),
-                    ("x_ready_for_pickup", "=", False),
+                    ("ready_for_pickup", "=", False),
                     "|",
-                    ("x_last_followup_on", "=", False),
-                    ("x_last_followup_on", "<", fields.Datetime.subtract(now, days=1)),
+                    ("last_followup_on", "=", False),
+                    ("last_followup_on", "<", fields.Datetime.subtract(now, days=1)),
                 ],
-                order="x_last_followup_on ASC, id ASC",
+                order="last_followup_on ASC, id ASC",
                 limit=200,
             )
             log_model = self.env.get("plasticos.automation.log")
 
             for order in orders:
-                order.x_followup_count += 1
-                order.x_last_followup_on = now
+                order.followup_count += 1
+                order.last_followup_on = now
                 order.message_post(
                     body=(
-                        f"Automated follow-up #{order.x_followup_count}: supplier has not "
+                        f"Automated follow-up #{order.followup_count}: supplier has not "
                         f"confirmed readiness for pickup on PO {order.name}."
                     ),
                     message_type="notification",
@@ -56,19 +56,19 @@ class PurchaseOrderAutomation(models.Model):
                 if log_model is not None:
                     log_model.create(
                         {
-                            "name": f"Supplier follow-up #{order.x_followup_count} for {order.name}",
+                            "name": f"Supplier follow-up #{order.followup_count} for {order.name}",
                             "model_name": "purchase.order",
                             "res_id": order.id,
                             "action_type": "logistics_followup",
                         }
                     )
-                if order.x_followup_count >= 3:
+                if order.followup_count >= 3:
                     order.activity_schedule(
                         "mail.mail_activity_data_todo",
                         user_id=order.user_id.id or self.env.user.id,
                         summary=f"ESCALATION: Supplier readiness unconfirmed on {order.name}",
                         note=(
-                            f"Follow-up #{order.x_followup_count} sent. Supplier "
+                            f"Follow-up #{order.followup_count} sent. Supplier "
                             f"{order.partner_id.name or 'Unknown'} has not confirmed readiness."
                         ),
                     )

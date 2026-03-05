@@ -5,10 +5,9 @@ Tests cover:
 - Status workflow (pending → in_progress → escalated → resolved → archived)
 - Guard: resolution requires resolution_note
 - Escalation tracking (level, timestamp, assignee)
-- Reopen from resolved/archived back to in_progress
+- Reopen from resolved/archived
 - SLA computed fields (days_open, is_overdue)
 - Financial computed fields (recovery_rate)
-- Constraint: unique name, resolution_note required for resolved
 """
 
 from datetime import datetime, timedelta
@@ -24,7 +23,6 @@ class TestClaimWorkflow(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-
         cls.supplier = cls.env["res.partner"].create(
             {
                 "name": "Claim Supplier",
@@ -32,15 +30,12 @@ class TestClaimWorkflow(TransactionCase):
                 "supplier_rank": 1,
             }
         )
-
-        # Need a transaction for the claim
         cls.tx = cls.env["plasticos.transaction"].create(
             {
                 "name": "TX-CLAIM-001",
                 "supplier_id": cls.supplier.id,
             }
         )
-
         cls.claim = cls.env["plasticos.claim"].create(
             {
                 "transaction_id": cls.tx.id,
@@ -50,9 +45,7 @@ class TestClaimWorkflow(TransactionCase):
             }
         )
 
-    # ══════════════════════════════════════════════════════════════
-    # Creation
-    # ══════════════════════════════════════════════════════════════
+    # ── Creation ────────────────────────────────────────────────
 
     def test_claim_auto_sequence(self):
         """Claim name auto-generated from sequence."""
@@ -66,9 +59,7 @@ class TestClaimWorkflow(TransactionCase):
         """Default SLA is 24 hours."""
         self.assertEqual(self.claim.sla_hours, 24)
 
-    # ══════════════════════════════════════════════════════════════
-    # Status Transitions — Happy Path
-    # ══════════════════════════════════════════════════════════════
+    # ── Status Transitions — Happy Path ─────────────────────────
 
     def test_pending_to_in_progress(self):
         """pending → in_progress via action_start."""
@@ -122,18 +113,15 @@ class TestClaimWorkflow(TransactionCase):
         self.assertEqual(self.claim.state, "archived")
 
     def test_archive_only_from_resolved(self):
-        """action_archive only works from resolved state."""
+        """action_archive only works from resolved (conditional, not raise)."""
         self.claim.state = "in_progress"
         self.claim.action_archive()
-        # Should not change state (no guard, just conditional)
         self.assertEqual(self.claim.state, "in_progress")
 
-    # ══════════════════════════════════════════════════════════════
-    # Reopen
-    # ══════════════════════════════════════════════════════════════
+    # ── Reopen ──────────────────────────────────────────────────
 
     def test_reopen_from_resolved(self):
-        """Reopen resolved claim goes to in_progress."""
+        """Reopen resolved claim goes to in_progress, clears resolved_at."""
         self.claim.state = "in_progress"
         self.claim.resolution_note = "Resolved too early"
         self.claim.action_resolve()
@@ -150,12 +138,10 @@ class TestClaimWorkflow(TransactionCase):
         self.claim.action_reopen()
         self.assertEqual(self.claim.state, "in_progress")
 
-    # ══════════════════════════════════════════════════════════════
-    # Financial Computed Fields
-    # ══════════════════════════════════════════════════════════════
+    # ── Financial Computed Fields ───────────────────────────────
 
     def test_recovery_rate_computed(self):
-        """recovery_rate = (recovery / claimed) × 100, capped at 100."""
+        """recovery_rate = (recovery / claimed) x 100."""
         self.claim.claimed_amount = 5000
         self.claim.recovery_amount = 2500
         self.claim.invalidate_recordset()

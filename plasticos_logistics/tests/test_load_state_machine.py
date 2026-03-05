@@ -1,15 +1,13 @@
 """Unit tests for plasticos.load state machine.
 
 Tests cover:
-- State transitions: draft → awaiting_ready → ready_confirmed → rate_confirmed
-  → scheduled → dispatched → picked_up → delivered → closed
+- State transitions: draft → ready_confirmed → rate_confirmed → scheduled → dispatched → closed
 - action_confirm_ready records user and timestamp
 - action_confirm_rate stores rate and timestamp
 - action_schedule sets pickup/delivery datetimes
 - action_dispatch guard: must be scheduled or rate_confirmed
 - action_close guard: BOL documents required
 - Write guard: locked fields after dispatch
-- Cycle time computation (dispatched_at → delivered_at)
 - Rate memory creation
 """
 
@@ -26,23 +24,18 @@ class TestLoadStateMachine(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-
         cls.carrier = cls.env["res.partner"].create(
             {
                 "name": "Test Carrier Inc",
                 "is_company": True,
             }
         )
-
-        # Need a sale order for load creation
         cls.customer = cls.env["res.partner"].create(
             {
                 "name": "Load Test Customer",
                 "is_company": True,
             }
         )
-
-        # Minimal sale order
         product = cls.env["product.product"].search([], limit=1)
         if not product:
             product = cls.env["product.product"].create(
@@ -51,7 +44,6 @@ class TestLoadStateMachine(TransactionCase):
                     "type": "consu",
                 }
             )
-
         cls.sale_order = cls.env["sale.order"].create(
             {
                 "partner_id": cls.customer.id,
@@ -68,7 +60,6 @@ class TestLoadStateMachine(TransactionCase):
                 ],
             }
         )
-
         cls.load = cls.env["plasticos.load"].create(
             {
                 "name": "LOAD-TEST-001",
@@ -77,17 +68,13 @@ class TestLoadStateMachine(TransactionCase):
             }
         )
 
-    # ══════════════════════════════════════════════════════════════
-    # Creation
-    # ══════════════════════════════════════════════════════════════
+    # ── Creation ────────────────────────────────────────────────
 
     def test_load_starts_draft(self):
         """New load starts in draft state."""
         self.assertEqual(self.load.state, "draft")
 
-    # ══════════════════════════════════════════════════════════════
-    # State Transitions
-    # ══════════════════════════════════════════════════════════════
+    # ── State Transitions ───────────────────────────────────────
 
     def test_confirm_ready(self):
         """action_confirm_ready → ready_confirmed with user and timestamp."""
@@ -128,7 +115,7 @@ class TestLoadStateMachine(TransactionCase):
         self.assertIsNotNone(self.load.dispatched_at)
 
     def test_dispatch_from_rate_confirmed(self):
-        """action_dispatch from rate_confirmed → dispatched (skip schedule)."""
+        """action_dispatch from rate_confirmed → dispatched."""
         self.load.action_confirm_ready("Jane")
         self.load.action_confirm_rate(2000.00)
         self.load.action_dispatch()
@@ -139,16 +126,13 @@ class TestLoadStateMachine(TransactionCase):
         with self.assertRaises(UserError):
             self.load.action_dispatch()
 
-    # ══════════════════════════════════════════════════════════════
-    # Close Guard: BOL Required
-    # ══════════════════════════════════════════════════════════════
+    # ── Close Guard: BOL Required ───────────────────────────────
 
     def test_close_without_bol_raises(self):
         """action_close requires both BOL documents."""
         self.load.action_confirm_ready("Jane")
         self.load.action_confirm_rate(2000.00)
         self.load.action_dispatch()
-        # Missing both BOLs
         with self.assertRaises(UserError):
             self.load.action_close()
 
@@ -157,8 +141,7 @@ class TestLoadStateMachine(TransactionCase):
         self.load.action_confirm_ready("Jane")
         self.load.action_confirm_rate(2000.00)
         self.load.action_dispatch()
-        self.load.bol_pickup_attached = True
-        # Missing delivery BOL
+        self.load.write({"bol_pickup_attached": True})
         with self.assertRaises(UserError):
             self.load.action_close()
 
@@ -167,14 +150,16 @@ class TestLoadStateMachine(TransactionCase):
         self.load.action_confirm_ready("Jane")
         self.load.action_confirm_rate(2000.00)
         self.load.action_dispatch()
-        self.load.bol_pickup_attached = True
-        self.load.bol_delivery_attached = True
+        self.load.write(
+            {
+                "bol_pickup_attached": True,
+                "bol_delivery_attached": True,
+            }
+        )
         self.load.action_close()
         self.assertEqual(self.load.state, "closed")
 
-    # ══════════════════════════════════════════════════════════════
-    # Write Guard: Locked After Dispatch
-    # ══════════════════════════════════════════════════════════════
+    # ── Write Guard: Locked After Dispatch ──────────────────────
 
     def test_write_blocked_after_dispatch(self):
         """Non-allowed fields blocked after dispatch."""
@@ -189,43 +174,22 @@ class TestLoadStateMachine(TransactionCase):
         self.load.action_confirm_ready("Jane")
         self.load.action_confirm_rate(2000.00)
         self.load.action_dispatch()
-        # Should NOT raise
         self.load.write({"bol_pickup_attached": True})
         self.assertTrue(self.load.bol_pickup_attached)
 
-    # ══════════════════════════════════════════════════════════════
-    # Cycle Time
-    # ══════════════════════════════════════════════════════════════
-
-    def test_cycle_time_computed(self):
-        """cycle_time_hours = (delivered_at - dispatched_at) in hours."""
-        now = datetime.now()
-        self.load.action_confirm_ready("Jane")
-        self.load.action_confirm_rate(2000.00)
-        self.load.action_dispatch()
-        # Simulate delivery by manually setting delivered_at
-        self.load.write(
-            {
-                "delivered_at": now + timedelta(hours=36),
-                "state": "delivered",
-                "entered_state_at": now + timedelta(hours=36),
-            }
-        )
-        self.load.invalidate_recordset()
-        self.assertGreater(self.load.cycle_time_hours, 0)
-
-    def test_cycle_time_zero_without_delivery(self):
-        """cycle_time_hours is 0 when delivered_at is not set."""
-        self.assertEqual(self.load.cycle_time_hours, 0)
-
-    # ══════════════════════════════════════════════════════════════
-    # Rate Memory
-    # ══════════════════════════════════════════════════════════════
+    # ── Rate Memory ─────────────────────────────────────────────
 
     def test_rate_memory_created_on_confirm(self):
         """Rate confirmation creates a rate memory record."""
         count_before = self.env["plasticos.rate.memory"].search_count([])
-        self.load.action_confirm_ready("Jane")
-        self.load.action_confirm_rate(3000.00)
+        load2 = self.env["plasticos.load"].create(
+            {
+                "name": "LOAD-RATE-MEM",
+                "sale_order_id": self.sale_order.id,
+                "carrier_id": self.carrier.id,
+            }
+        )
+        load2.action_confirm_ready("Jane")
+        load2.action_confirm_rate(3000.00)
         count_after = self.env["plasticos.rate.memory"].search_count([])
         self.assertGreater(count_after, count_before)

@@ -9,21 +9,21 @@ class StockPickingAutomation(models.Model):
     _inherit = "stock.picking"
 
     # ── Trucker / Dispatch Tracking ─────────────────────────────────
-    x_trucker_id = fields.Many2one(
+    trucker_id = fields.Many2one(
         "res.partner",
         string="Trucker",
         help="The trucker (carrier or freight broker) responsible for this delivery.",
     )
-    x_receipt_confirmation = fields.Boolean(
+    receipt_confirmation = fields.Boolean(
         string="Trucker Receipt Confirmed",
         default=False,
         help="Set when trucker confirms receipt of dispatch packet.",
     )
-    x_trucker_notified_on = fields.Datetime(
+    trucker_notified_on = fields.Datetime(
         string="Trucker Notified On",
         help="Timestamp when trucker was first notified.",
     )
-    x_trucker_followup_count = fields.Integer(
+    trucker_followup_count = fields.Integer(
         string="Trucker Follow-ups",
         default=0,
         help="Number of follow-up attempts made to trucker.",
@@ -47,27 +47,27 @@ class StockPickingAutomation(models.Model):
             pickings = self.search(
                 [
                     ("picking_type_code", "=", "outgoing"),
-                    ("x_trucker_id", "!=", False),
-                    ("x_receipt_confirmation", "=", False),
+                    ("trucker_id", "!=", False),
+                    ("receipt_confirmation", "=", False),
                     ("state", "not in", ("done", "cancel")),
                     "|",
-                    ("x_trucker_notified_on", "=", False),
-                    ("x_trucker_notified_on", "<", fields.Datetime.subtract(now, days=1)),
+                    ("trucker_notified_on", "=", False),
+                    ("trucker_notified_on", "<", fields.Datetime.subtract(now, days=1)),
                 ],
-                order="x_trucker_notified_on ASC, id ASC",
+                order="trucker_notified_on ASC, id ASC",
                 limit=200,
             )
 
             log_model = self.env.get("plasticos.automation.log")
 
             for picking in pickings:
-                picking.x_trucker_followup_count += 1
-                picking.x_trucker_notified_on = now
-                trucker_name = picking.x_trucker_id.name or "Unknown"
+                picking.trucker_followup_count += 1
+                picking.trucker_notified_on = now
+                trucker_name = picking.trucker_id.name or "Unknown"
 
                 picking.message_post(
                     body=(
-                        f"Automated follow-up #{picking.x_trucker_followup_count}: "
+                        f"Automated follow-up #{picking.trucker_followup_count}: "
                         f"trucker {trucker_name} has not confirmed receipt for {picking.name}."
                     ),
                     message_type="notification",
@@ -83,20 +83,20 @@ class StockPickingAutomation(models.Model):
                 if log_model is not None:
                     log_model.create(
                         {
-                            "name": f"Trucker follow-up #{picking.x_trucker_followup_count} for {picking.name}",
+                            "name": f"Trucker follow-up #{picking.trucker_followup_count} for {picking.name}",
                             "model_name": "stock.picking",
                             "res_id": picking.id,
                             "action_type": "logistics_followup",
                         }
                     )
 
-                if picking.x_trucker_followup_count >= 3:
+                if picking.trucker_followup_count >= 3:
                     picking.activity_schedule(
                         "mail.mail_activity_data_todo",
                         user_id=picking.user_id.id or self.env.user.id,
                         summary=f"ESCALATION: Trucker receipt unconfirmed on {picking.name}",
                         note=(
-                            f"Follow-up #{picking.x_trucker_followup_count} sent. "
+                            f"Follow-up #{picking.trucker_followup_count} sent. "
                             f"Trucker {trucker_name} has not confirmed receipt. "
                             "Manual intervention required."
                         ),
@@ -104,7 +104,7 @@ class StockPickingAutomation(models.Model):
 
                 _logger.info(
                     "Logistics automation: trucker follow-up #%d for %s",
-                    picking.x_trucker_followup_count,
+                    picking.trucker_followup_count,
                     picking.name,
                 )
         finally:

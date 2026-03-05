@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Automation Layer",
-    "version": "19.0.2.0.0",
+    "version": "19.0.2.1.0",
     "summary": "Deterministic workflow automation: approvals, reminders, logistics follow-ups, SLA monitoring",
     "author": "PlasticOS",
     "license": "LGPL-3",

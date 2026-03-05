@@ -16,7 +16,7 @@
 <p>This is an automated follow-up regarding Purchase Order <strong>{{ object.name }}</strong>.</p>
 <p>We have not yet received confirmation that the load is ready for pickup.
 Please confirm readiness at your earliest convenience.</p>
-<p>Follow-up attempt: #{{ object.x_followup_count }}</p>
+<p>Follow-up attempt: #{{ object.followup_count }}</p>
 <p>Thank you,<br/>PlasticOS Logistics</p>
             ]]></field>
             <field name="email_from">{{ (object.company_id.email or user.email) }}</field>
@@ -30,15 +30,15 @@ Please confirm readiness at your earliest convenience.</p>
             <field name="model_id" ref="stock.model_stock_picking"/>
             <field name="subject">Follow-up: Receipt Confirmation Required — {{ object.name }}</field>
             <field name="body_html"><![CDATA[
-<p>Dear {{ object.x_trucker_id.name or 'Carrier' }},</p>
+<p>Dear {{ object.trucker_id.name or 'Carrier' }},</p>
 <p>This is an automated follow-up regarding Delivery Order <strong>{{ object.name }}</strong>.</p>
 <p>We have not yet received confirmation of receipt of the dispatch packet.
 Please confirm receipt at your earliest convenience.</p>
-<p>Follow-up attempt: #{{ object.x_trucker_followup_count }}</p>
+<p>Follow-up attempt: #{{ object.trucker_followup_count }}</p>
 <p>Thank you,<br/>PlasticOS Logistics</p>
             ]]></field>
             <field name="email_from">{{ (object.company_id.email or user.email) }}</field>
-            <field name="email_to">{{ object.x_trucker_id.email }}</field>
+            <field name="email_to">{{ object.trucker_id.email }}</field>
             <field name="auto_delete" eval="True"/>
         </record>
 

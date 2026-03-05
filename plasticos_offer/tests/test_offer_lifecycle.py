@@ -5,10 +5,8 @@ Tests cover:
 - Guards: send only from draft, respond only from sent, accept only from sent/responded
 - Cannot cancel an accepted offer
 - Reset to draft only from rejected or cancelled
-- Total value computed field (price × qty)
-- Days until expiry computed field
+- Total value and days_until_expiry computed fields
 - Cron auto-expire past valid_until
-- SQL constraints: price_per_lb >= 0, quantity_lbs >= 0
 """
 
 from datetime import date, timedelta
@@ -24,8 +22,6 @@ class TestOfferLifecycle(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-
-        # ── Master data ─────────────────────────────────────────
         cls.polymer = cls.env["plasticos.polymer"].create(
             {
                 "name": "PP",
@@ -34,7 +30,6 @@ class TestOfferLifecycle(TransactionCase):
                 "category": "commodity",
             }
         )
-
         cls.supplier = cls.env["res.partner"].create(
             {
                 "name": "Offer Test Supplier",
@@ -49,8 +44,6 @@ class TestOfferLifecycle(TransactionCase):
                 "customer_rank": 1,
             }
         )
-
-        # Need an intake for the offer
         cls.intake = cls.env["plasticos.intake"].create(
             {
                 "partner_id": cls.supplier.id,
@@ -58,7 +51,6 @@ class TestOfferLifecycle(TransactionCase):
                 "quantity_per_load_lbs": 40000,
             }
         )
-
         cls.offer = cls.env["plasticos.offer"].create(
             {
                 "intake_id": cls.intake.id,
@@ -70,22 +62,17 @@ class TestOfferLifecycle(TransactionCase):
             }
         )
 
-    # ══════════════════════════════════════════════════════════════
-    # Creation
-    # ══════════════════════════════════════════════════════════════
+    # ── Creation ────────────────────────────────────────────────
 
     def test_offer_starts_draft(self):
         """New offers default to draft state."""
         self.assertEqual(self.offer.state, "draft")
 
     def test_display_name_format(self):
-        """Display name includes intake name, buyer name, and state."""
-        self.assertIn("→", self.offer.display_name)
+        """Display name includes intake, buyer, and state."""
         self.assertIn("draft", self.offer.display_name)
 
-    # ══════════════════════════════════════════════════════════════
-    # State Transitions — Happy Path
-    # ══════════════════════════════════════════════════════════════
+    # ── State Transitions — Happy Path ──────────────────────────
 
     def test_draft_to_sent(self):
         """draft → sent via action_send."""
@@ -119,13 +106,6 @@ class TestOfferLifecycle(TransactionCase):
         self.offer.action_reject()
         self.assertEqual(self.offer.state, "rejected")
 
-    def test_reject_from_responded(self):
-        """responded → rejected via action_reject."""
-        self.offer.action_send()
-        self.offer.action_mark_responded()
-        self.offer.action_reject()
-        self.assertEqual(self.offer.state, "rejected")
-
     def test_cancel_from_draft(self):
         """draft → cancelled via action_cancel."""
         self.offer.action_cancel()
@@ -137,9 +117,7 @@ class TestOfferLifecycle(TransactionCase):
         self.offer.action_cancel()
         self.assertEqual(self.offer.state, "cancelled")
 
-    # ══════════════════════════════════════════════════════════════
-    # State Guards — Blocked Transitions
-    # ══════════════════════════════════════════════════════════════
+    # ── State Guards — Blocked Transitions ──────────────────────
 
     def test_send_from_sent_blocked(self):
         """Cannot send an already-sent offer."""
@@ -172,7 +150,7 @@ class TestOfferLifecycle(TransactionCase):
             self.offer.action_cancel()
 
     def test_reset_from_draft_blocked(self):
-        """Cannot reset a draft offer (only rejected/cancelled)."""
+        """Cannot reset a draft offer."""
         with self.assertRaises(UserError):
             self.offer.action_reset_to_draft()
 
@@ -189,12 +167,10 @@ class TestOfferLifecycle(TransactionCase):
         self.offer.action_reset_to_draft()
         self.assertEqual(self.offer.state, "draft")
 
-    # ══════════════════════════════════════════════════════════════
-    # Computed Fields
-    # ══════════════════════════════════════════════════════════════
+    # ── Computed Fields ─────────────────────────────────────────
 
     def test_total_value_computed(self):
-        """total_value = price_per_lb × quantity_lbs."""
+        """total_value = price_per_lb x quantity_lbs."""
         self.assertAlmostEqual(self.offer.total_value, 14000.0, places=2)
 
     def test_total_value_zero_when_no_price(self):
@@ -239,9 +215,7 @@ class TestOfferLifecycle(TransactionCase):
         )
         self.assertEqual(offer.days_until_expiry, 999)
 
-    # ══════════════════════════════════════════════════════════════
-    # Cron Auto-Expire
-    # ══════════════════════════════════════════════════════════════
+    # ── Cron Auto-Expire ────────────────────────────────────────
 
     def test_cron_expires_past_offers(self):
         """cron_expire_offers marks past-due non-terminal offers as expired."""

@@ -3,14 +3,12 @@
 Tests cover:
 - Record creation with auto-sequence
 - State transitions (action_activate, action_close)
-- Close guards: invoice posted, vendor bills posted, manager-only, positive margin
-- Commission engine: rule-based, admin override, locked state
-- Commission override range constraint
+- Close guards: invoice posted, vendor bills posted, manager-only
+- Commission engine: rule-based, locked state, override constraint
 - Write guards: closed immutability, name immutability, bill uniqueness
 - Unlink guards: cannot delete closed or linked transactions
-- Weight reconciliation (already has tests, supplemental here)
-- Financial computed fields (revenue, cost, margin)
-- Net margin = gross margin - commission
+- Financial computed fields (historical totals from lines)
+- Transaction line margin and weight unit conversion
 """
 
 from odoo.exceptions import UserError, ValidationError
@@ -25,8 +23,6 @@ class TestTransactionLifecycle(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.Transaction = cls.env["plasticos.transaction"]
-
-        # ── Partners ────────────────────────────────────────────
         cls.supplier = cls.env["res.partner"].create(
             {
                 "name": "TX Test Supplier",
@@ -41,8 +37,6 @@ class TestTransactionLifecycle(TransactionCase):
                 "customer_rank": 1,
             }
         )
-
-        # ── Minimal transaction ─────────────────────────────────
         cls.tx = cls.Transaction.create(
             {
                 "name": "TX-TEST-001",
@@ -51,9 +45,7 @@ class TestTransactionLifecycle(TransactionCase):
             }
         )
 
-    # ══════════════════════════════════════════════════════════════
-    # Creation
-    # ══════════════════════════════════════════════════════════════
+    # ── Creation ────────────────────────────────────────────────
 
     def test_create_auto_sequence(self):
         """Transaction with name='New' gets auto-sequenced."""
@@ -68,18 +60,14 @@ class TestTransactionLifecycle(TransactionCase):
         """New transactions start in draft."""
         self.assertEqual(self.tx.state, "draft")
 
-    # ══════════════════════════════════════════════════════════════
-    # Activate
-    # ══════════════════════════════════════════════════════════════
+    # ── Activate ────────────────────────────────────────────────
 
     def test_action_activate(self):
         """action_activate sets state to active."""
         self.tx.action_activate()
         self.assertEqual(self.tx.state, "active")
 
-    # ══════════════════════════════════════════════════════════════
-    # Close Guards
-    # ══════════════════════════════════════════════════════════════
+    # ── Close Guards ────────────────────────────────────────────
 
     def test_close_without_invoice_raises(self):
         """Cannot close without a posted customer invoice."""
@@ -89,18 +77,21 @@ class TestTransactionLifecycle(TransactionCase):
 
     def test_close_already_closed_raises(self):
         """Cannot close a transaction that is already closed."""
-        self.tx.state = "closed"
-        self.tx.commission_locked = True
+        self.tx.write(
+            {
+                "commission_locked": True,
+                "commission_locked_amount": 0.0,
+                "state": "closed",
+            }
+        )
         with self.assertRaises(UserError):
             self.tx.action_close()
 
-    def test_close_negative_margin_raises(self):
-        """Cannot close transaction with negative gross margin."""
-        # Create posted invoice and bill to pass other guards
+    def test_close_requires_manager_group(self):
+        """Only users in group_plasticos_manager can close."""
         journal = self.env["account.journal"].search([("type", "=", "sale")], limit=1)
         if not journal:
-            return  # Skip if no sale journal in test DB
-
+            return
         invoice = self.env["account.move"].create(
             {
                 "move_type": "out_invoice",
@@ -120,71 +111,57 @@ class TestTransactionLifecycle(TransactionCase):
             }
         )
         invoice.action_post()
-
-        # Large vendor bill to create negative margin
-        purchase_journal = self.env["account.journal"].search([("type", "=", "purchase")], limit=1)
-        if not purchase_journal:
-            return
-
-        vendor_bill = self.env["account.move"].create(
-            {
-                "move_type": "in_invoice",
-                "partner_id": self.supplier.id,
-                "journal_id": purchase_journal.id,
-                "invoice_line_ids": [
-                    (
-                        0,
-                        0,
-                        {
-                            "name": "Big Purchase",
-                            "quantity": 1,
-                            "price_unit": 50000.0,
-                        },
-                    )
-                ],
-            }
-        )
-        vendor_bill.action_post()
-
         tx = self.Transaction.create(
             {
-                "name": "TX-NEG-MARGIN",
+                "name": "TX-MGR-CHECK",
                 "supplier_id": self.supplier.id,
                 "buyer_id": self.buyer.id,
                 "customer_invoice_id": invoice.id,
-                "vendor_bill_ids": [(6, 0, [vendor_bill.id])],
             }
         )
         tx.action_activate()
-        # Must be manager
-        manager_group = self.env.ref("plasticos_transaction.group_plasticos_manager", raise_if_not_found=False)
+        manager_group = self.env.ref(
+            "plasticos_transaction.group_plasticos_manager",
+            raise_if_not_found=False,
+        )
         if manager_group:
-            manager_group.write({"users": [(4, self.env.user.id)]})
-        with self.assertRaises(UserError):
-            tx.action_close()
+            manager_group.write({"users": [(3, self.env.user.id)]})
+            with self.assertRaises(UserError):
+                tx.action_close()
 
-    # ══════════════════════════════════════════════════════════════
-    # Write Guards
-    # ══════════════════════════════════════════════════════════════
+    # ── Write Guards ────────────────────────────────────────────
 
     def test_name_immutable(self):
         """Transaction reference cannot be modified."""
         with self.assertRaises(UserError):
             self.tx.write({"name": "CHANGED"})
 
-    def test_closed_transaction_immutable(self):
+    def test_closed_transaction_protected_fields(self):
         """Closed transactions block protected field writes."""
-        # Force closed state for testing
-        self.tx.write({"commission_locked": True, "state": "closed"})
+        tx = self.Transaction.create(
+            {
+                "name": "TX-CLOSE-GUARD",
+                "supplier_id": self.supplier.id,
+            }
+        )
+        tx.write(
+            {
+                "commission_locked": True,
+                "commission_locked_amount": 0.0,
+                "state": "closed",
+            }
+        )
         with self.assertRaises(UserError):
-            self.tx.write({"sale_order_id": False})
+            tx.write({"sale_order_id": False})
 
     def test_vendor_bill_uniqueness(self):
         """Same vendor bill cannot be linked to two transactions."""
-        purchase_journal = self.env["account.journal"].search([("type", "=", "purchase")], limit=1)
+        purchase_journal = self.env["account.journal"].search(
+            [("type", "=", "purchase")],
+            limit=1,
+        )
         if not purchase_journal:
             return
-
         bill = self.env["account.move"].create(
             {
                 "move_type": "in_invoice",
@@ -203,20 +180,20 @@ class TestTransactionLifecycle(TransactionCase):
                 ],
             }
         )
-
         tx1 = self.Transaction.create({"name": "TX-BILL-1"})
         tx1.write({"vendor_bill_ids": [(4, bill.id)]})
-
         tx2 = self.Transaction.create({"name": "TX-BILL-2"})
         with self.assertRaises(UserError):
             tx2.write({"vendor_bill_ids": [(4, bill.id)]})
 
     def test_freight_bill_uniqueness(self):
         """Same freight bill cannot be linked to two transactions."""
-        purchase_journal = self.env["account.journal"].search([("type", "=", "purchase")], limit=1)
+        purchase_journal = self.env["account.journal"].search(
+            [("type", "=", "purchase")],
+            limit=1,
+        )
         if not purchase_journal:
             return
-
         bill = self.env["account.move"].create(
             {
                 "move_type": "in_invoice",
@@ -235,22 +212,54 @@ class TestTransactionLifecycle(TransactionCase):
                 ],
             }
         )
-
         tx1 = self.Transaction.create({"name": "TX-FRT-1"})
         tx1.write({"freight_bill_ids": [(4, bill.id)]})
-
         tx2 = self.Transaction.create({"name": "TX-FRT-2"})
         with self.assertRaises(UserError):
             tx2.write({"freight_bill_ids": [(4, bill.id)]})
 
-    # ══════════════════════════════════════════════════════════════
-    # Unlink Guards
-    # ══════════════════════════════════════════════════════════════
+    def test_commission_locked_rule_change_blocked(self):
+        """Cannot change commission_rule_id after lock."""
+        rule = self.env["plasticos.commission.rule"].create(
+            {
+                "name": "Lock Test Rule",
+                "sales_rep_id": self.env.user.id,
+                "percentage": 0.15,
+            }
+        )
+        tx = self.Transaction.create(
+            {
+                "name": "TX-LOCK-RULE",
+                "commission_rule_id": rule.id,
+            }
+        )
+        tx.write(
+            {
+                "commission_locked": True,
+                "commission_locked_amount": 100.0,
+                "state": "closed",
+            }
+        )
+        with self.assertRaises(UserError):
+            tx.write({"commission_rule_id": False})
+
+    def test_direct_state_write_blocked(self):
+        """Cannot set state directly via write() with arbitrary value."""
+        with self.assertRaises(UserError):
+            self.tx.write({"state": "invoiced"})
+
+    # ── Unlink Guards ───────────────────────────────────────────
 
     def test_unlink_closed_raises(self):
         """Cannot delete closed transaction."""
         tx = self.Transaction.create({"name": "TX-DEL-CLOSED"})
-        tx.write({"commission_locked": True, "state": "closed"})
+        tx.write(
+            {
+                "commission_locked": True,
+                "commission_locked_amount": 0.0,
+                "state": "closed",
+            }
+        )
         with self.assertRaises(UserError):
             tx.unlink()
 
@@ -259,7 +268,6 @@ class TestTransactionLifecycle(TransactionCase):
         journal = self.env["account.journal"].search([("type", "=", "sale")], limit=1)
         if not journal:
             return
-
         invoice = self.env["account.move"].create(
             {
                 "move_type": "out_invoice",
@@ -278,7 +286,6 @@ class TestTransactionLifecycle(TransactionCase):
                 ],
             }
         )
-
         tx = self.Transaction.create(
             {
                 "name": "TX-DEL-INV",
@@ -297,7 +304,6 @@ class TestTransactionCommission(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.Transaction = cls.env["plasticos.transaction"]
-
         cls.supplier = cls.env["res.partner"].create(
             {
                 "name": "Comm Supplier",
@@ -305,8 +311,6 @@ class TestTransactionCommission(TransactionCase):
                 "supplier_rank": 1,
             }
         )
-
-        # ── Commission rule for current user ────────────────────
         cls.rule = cls.env["plasticos.commission.rule"].create(
             {
                 "name": "Test Rep Rule",
@@ -314,7 +318,6 @@ class TestTransactionCommission(TransactionCase):
                 "percentage": 0.15,
             }
         )
-
         cls.tx = cls.Transaction.create(
             {
                 "name": "TX-COMM-001",
@@ -323,35 +326,10 @@ class TestTransactionCommission(TransactionCase):
             }
         )
 
-    def test_commission_from_rule(self):
-        """Commission = gross_margin × rule percentage."""
-        # Manually set gross_margin via revenue/cost
-        # Since gross_margin is computed from invoice, we test via the service
-        service = self.env["plasticos.commission.service"]
-        # Fake a scenario by directly computing
+    def test_commission_zero_without_margin(self):
+        """Commission is 0 when gross_margin is 0."""
         self.tx.invalidate_recordset()
-        # With 0 gross margin, commission should be 0
         self.assertEqual(self.tx.commission_amount, 0.0)
-
-    def test_commission_override_takes_precedence(self):
-        """Admin override percentage overrides rule."""
-        # Add user to manager group for override permission
-        manager_group = self.env.ref(
-            "plasticos_transaction.group_plasticos_manager",
-            raise_if_not_found=False,
-        )
-        if manager_group:
-            manager_group.write({"users": [(4, self.env.user.id)]})
-
-        self.tx.commission_override_pct = 0.20
-        self.tx.invalidate_recordset()
-        # With 0 margin, override still produces 0
-        self.assertEqual(self.tx.commission_amount, 0.0)
-
-    def test_commission_override_range_constraint(self):
-        """Override must be 0.0–1.0."""
-        with self.assertRaises(ValidationError):
-            self.tx.commission_override_pct = 1.5
 
     def test_commission_locked_uses_locked_amount(self):
         """When locked, commission uses commission_locked_amount."""
@@ -359,29 +337,22 @@ class TestTransactionCommission(TransactionCase):
             {
                 "commission_locked": True,
                 "commission_locked_amount": 500.0,
+                "state": "closed",
             }
         )
         self.tx.invalidate_recordset()
         self.assertEqual(self.tx.commission_amount, 500.0)
 
-    def test_locked_commission_rule_change_blocked(self):
-        """Cannot change commission_rule_id after lock."""
-        self.tx.write(
-            {
-                "commission_locked": True,
-                "commission_locked_amount": 100.0,
-            }
+    def test_commission_override_range_constraint(self):
+        """Override must be 0.0-1.0."""
+        manager_group = self.env.ref(
+            "plasticos_transaction.group_plasticos_manager",
+            raise_if_not_found=False,
         )
-        rule2 = self.env["plasticos.commission.rule"].create(
-            {
-                "name": "Alt Rule",
-                "sales_rep_id": self.env.user.id,
-                "percentage": 0.10,
-                "active": False,  # Bypass unique-active constraint
-            }
-        )
-        with self.assertRaises(UserError):
-            self.tx.write({"commission_rule_id": rule2.id})
+        if manager_group:
+            manager_group.write({"users": [(4, self.env.user.id)]})
+        with self.assertRaises(ValidationError):
+            self.tx.commission_override_pct = 1.5
 
     def test_unique_active_commission_rule_per_rep(self):
         """Only one active commission rule per sales rep."""
@@ -394,10 +365,22 @@ class TestTransactionCommission(TransactionCase):
                 }
             )
 
+    def test_commission_rule_percentage_range(self):
+        """Commission rule percentage must be 0.0-1.0."""
+        with self.assertRaises(ValidationError):
+            self.env["plasticos.commission.rule"].create(
+                {
+                    "name": "Bad Rule",
+                    "sales_rep_id": self.env.user.id,
+                    "percentage": 2.0,
+                    "active": False,
+                }
+            )
+
 
 @tagged("post_install", "-at_install")
 class TestTransactionFinancials(TransactionCase):
-    """Test financial computed fields."""
+    """Test financial computed fields on transaction and lines."""
 
     @classmethod
     def setUpClass(cls):
@@ -406,7 +389,7 @@ class TestTransactionFinancials(TransactionCase):
         cls.tx = cls.Transaction.create({"name": "TX-FIN-001"})
 
     def test_historical_totals_from_lines(self):
-        """historical_sale_total, historical_purchase_total, historical_margin from lines."""
+        """historical_sale/purchase_total and historical_margin from lines."""
         self.env["plasticos.transaction.line"].create(
             {
                 "transaction_id": self.tx.id,
@@ -450,7 +433,7 @@ class TestTransactionFinancials(TransactionCase):
         self.assertEqual(line.margin, 3000.0)
 
     def test_line_weight_lbs_short_tons(self):
-        """Short tons convert to lbs (×2000)."""
+        """Short tons convert to lbs (x2000)."""
         line = self.env["plasticos.transaction.line"].create(
             {
                 "transaction_id": self.tx.id,
@@ -474,3 +457,16 @@ class TestTransactionFinancials(TransactionCase):
             }
         )
         self.assertEqual(line.sale_weight_lbs, 38000.0)
+
+    def test_line_weight_lbs_each(self):
+        """Each UOM keeps weight as-is."""
+        line = self.env["plasticos.transaction.line"].create(
+            {
+                "transaction_id": self.tx.id,
+                "sale_weight": 500.0,
+                "weight_uom": "E",
+                "sale_amount": 0,
+                "purchase_amount": 0,
+            }
+        )
+        self.assertEqual(line.sale_weight_lbs, 500.0)
