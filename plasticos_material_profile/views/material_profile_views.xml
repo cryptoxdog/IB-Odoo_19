@@ -187,7 +187,7 @@
         <!-- Intakes button added by plasticos_intake module -->
       </xpath>
 
-      <xpath expr="//sheet/notebook" position="inside">
+      <xpath expr="//sheet/notebook[1]" position="inside">
 
         <page string="Material Profiles"
               invisible="not is_facility">

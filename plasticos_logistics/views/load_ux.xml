@@ -40,7 +40,7 @@
             </xpath>
 
             <!-- ═══ Status Banners (above title) ═══ -->
-            <xpath expr="//sheet/div[@class='oe_title']" position="before">
+            <xpath expr="//sheet/div[@class='oe_title'][1]" position="before">
 
                 <!-- SLA Breach Alert -->
                 <div class="alert alert-danger border-danger border-3 d-flex align-items-center"
@@ -119,13 +119,13 @@
         <field name="priority">20</field>
         <field name="arch" type="xml">
 
-            <!-- Add SO reference after delivery partner -->
-            <xpath expr="//field[@name='delivery_partner_id']" position="after">
+            <!-- Add SO reference after delivery partner (scoped to list view) -->
+            <xpath expr="//list/field[@name='delivery_partner_id']" position="after">
                 <field name="sale_order_id" string="SO" optional="show"/>
             </xpath>
 
-            <!-- Add BOL status + cycle time after sla_breached -->
-            <xpath expr="//field[@name='sla_breached']" position="after">
+            <!-- Add BOL status + cycle time after sla_breached (scoped to list view) -->
+            <xpath expr="//list/field[@name='sla_breached']" position="after">
                 <field name="bol_pickup_attached" string="BOL-P"
                        optional="show" widget="boolean"/>
                 <field name="bol_delivery_attached" string="BOL-D"

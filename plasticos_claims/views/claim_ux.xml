@@ -13,8 +13,10 @@
         <field name="priority">20</field>
         <field name="arch" type="xml">
 
-            <!-- ═══ Smart Button Box (form has none) ═══ -->
-            <xpath expr="//sheet/div[@class='oe_title']" position="before">
+            <!-- ═══ Smart Button Box + Status Banners (consolidated, single xpath) ═══ -->
+            <xpath expr="//sheet/div[@class='oe_title'][1]" position="before">
+
+                <!-- Button Box -->
                 <div class="oe_button_box" name="button_box">
 
                     <!-- Transaction jump -->
@@ -60,10 +62,8 @@
                     </button>
 
                 </div>
-            </xpath>
 
-            <!-- ═══ Status Banners (between header and sheet) ═══ -->
-            <xpath expr="//sheet/div[@class='oe_title']" position="before">
+                <!-- Status Banners -->
 
                 <!-- ESCALATED alert -->
                 <div class="alert alert-danger border-danger border-3 d-flex align-items-center"
@@ -196,26 +196,26 @@
                 <attribute name="decoration-warning">is_overdue and state not in ('resolved', 'archived')</attribute>
             </xpath>
 
-            <!-- Severity → badge widget -->
-            <xpath expr="//field[@name='severity']" position="attributes">
+            <!-- Severity → badge widget (scoped to list view) -->
+            <xpath expr="//list/field[@name='severity']" position="attributes">
                 <attribute name="widget">badge</attribute>
                 <attribute name="decoration-danger">severity == 'high'</attribute>
                 <attribute name="decoration-warning">severity == 'medium'</attribute>
                 <attribute name="decoration-muted">severity == 'low'</attribute>
             </xpath>
 
-            <!-- Promote claimed/recovery to show + add monetary -->
-            <xpath expr="//field[@name='claimed_amount']" position="attributes">
+            <!-- Promote claimed/recovery to show + add monetary (scoped to list view) -->
+            <xpath expr="//list/field[@name='claimed_amount']" position="attributes">
                 <attribute name="optional">show</attribute>
                 <attribute name="widget">monetary</attribute>
             </xpath>
-            <xpath expr="//field[@name='recovery_amount']" position="attributes">
+            <xpath expr="//list/field[@name='recovery_amount']" position="attributes">
                 <attribute name="optional">show</attribute>
                 <attribute name="widget">monetary</attribute>
             </xpath>
 
-            <!-- Add overdue flag + days_open columns -->
-            <xpath expr="//field[@name='opened_at']" position="after">
+            <!-- Add overdue flag + days_open columns (scoped to list view) -->
+            <xpath expr="//list/field[@name='opened_at']" position="after">
                 <field name="days_open" string="Days" optional="show"/>
                 <field name="is_overdue" string="Overdue" widget="boolean"
                        optional="show"/>

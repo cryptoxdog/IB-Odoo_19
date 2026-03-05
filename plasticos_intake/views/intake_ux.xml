@@ -44,7 +44,7 @@
             </xpath>
 
             <!-- ═══ Volume KPI Banner (above notebook) ═══ -->
-            <xpath expr="//notebook" position="before">
+            <xpath expr="//notebook[1]" position="before">
                 <div class="alert alert-info d-flex justify-content-between align-items-center"
                      role="alert"
                      invisible="not quantity_per_load_lbs">
@@ -99,19 +99,19 @@
         <field name="priority">20</field>
         <field name="arch" type="xml">
 
-            <!-- Add best_match_score after match_count -->
-            <xpath expr="//field[@name='match_count']" position="after">
+            <!-- Add best_match_score after match_count (scoped to list view) -->
+            <xpath expr="//list/field[@name='match_count']" position="after">
                 <field name="best_match_score" string="Best %"
                        widget="progressbar" optional="show"/>
             </xpath>
 
-            <!-- Promote lead_source_id to optional show (was hide) -->
-            <xpath expr="//field[@name='lead_source_id']" position="attributes">
+            <!-- Promote lead_source_id to optional show (scoped to list view) -->
+            <xpath expr="//list/field[@name='lead_source_id']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
 
-            <!-- Promote contact to optional show (was hide) -->
-            <xpath expr="//field[@name='contact_id']" position="attributes">
+            <!-- Promote contact to optional show (scoped to list view) -->
+            <xpath expr="//list/field[@name='contact_id']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
 

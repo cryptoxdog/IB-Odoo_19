@@ -60,7 +60,7 @@
             </xpath>
 
             <!-- ═══ Pipeline and Logistics Tab ═══ -->
-            <xpath expr="//notebook" position="inside">
+            <xpath expr="//notebook[1]" position="inside">
                 <page string="Pipeline &amp; Logistics"
                       name="pipeline_logistics_tab">
 
@@ -117,7 +117,8 @@
         <field name="inherit_id"
                ref="plasticos_material_profile.view_material_profile_list"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='contamination_percent']" position="after">
+            <!-- Scoped to list view to avoid matching form notebook fields -->
+            <xpath expr="//list/field[@name='contamination_percent']" position="after">
                 <field name="match_count" string="Matches" optional="show"/>
                 <field name="best_match_score" string="Best Match %"
                        optional="show"/>

@@ -161,7 +161,7 @@
         <field name="lead_source_id" invisible="not is_company"/>
       </xpath>
 
-      <xpath expr="//sheet/notebook" position="inside">
+      <xpath expr="//sheet/notebook[1]" position="inside">
 
         <page string="Facility Capabilities" name="facility_capabilities"
               invisible="not parent_id">

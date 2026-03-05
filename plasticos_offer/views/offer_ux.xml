@@ -147,14 +147,14 @@
         <field name="priority">20</field>
         <field name="arch" type="xml">
 
-            <!-- Add total_value after quantity -->
-            <xpath expr="//field[@name='quantity_lbs']" position="after">
+            <!-- Add total_value after quantity (scoped to list view) -->
+            <xpath expr="//list/field[@name='quantity_lbs']" position="after">
                 <field name="total_value" string="Total" widget="monetary"
                        optional="show" sum="Grand Total"/>
             </xpath>
 
-            <!-- Add expiry urgency decoration -->
-            <xpath expr="//field[@name='valid_until']" position="attributes">
+            <!-- Add expiry urgency decoration (scoped to list view) -->
+            <xpath expr="//list/field[@name='valid_until']" position="attributes">
                 <attribute name="decoration-danger">days_until_expiry &lt; 0</attribute>
                 <attribute name="decoration-warning">days_until_expiry &gt;= 0 and days_until_expiry &lt;= 7</attribute>
             </xpath>

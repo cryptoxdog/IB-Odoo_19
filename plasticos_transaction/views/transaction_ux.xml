@@ -14,7 +14,7 @@
         <field name="arch" type="xml">
 
             <!-- ═══ Smart Button Box (form doesn't have one yet) ═══ -->
-            <xpath expr="//sheet/div[@class='oe_title']" position="before">
+            <xpath expr="//sheet/div[@class='oe_title'][1]" position="before">
                 <div class="oe_button_box" name="button_box">
 
                     <!-- Supplier jump -->
@@ -104,14 +104,14 @@
         <field name="priority">20</field>
         <field name="arch" type="xml">
 
-            <!-- Add supplier/buyer columns after name (critical context) -->
-            <xpath expr="//field[@name='name']" position="after">
+            <!-- Add supplier/buyer columns after name (scoped to list view) -->
+            <xpath expr="//list/field[@name='name']" position="after">
                 <field name="supplier_id" optional="show"/>
                 <field name="buyer_id" optional="show"/>
             </xpath>
 
-            <!-- Revenue columns → optional hide (sensitive data) -->
-            <xpath expr="//field[@name='revenue_total']" position="attributes">
+            <!-- Revenue columns → optional hide (scoped to list view) -->
+            <xpath expr="//list/field[@name='revenue_total']" position="attributes">
                 <attribute name="optional">hide</attribute>
             </xpath>
 
