@@ -364,8 +364,8 @@
                         </page>
 
                         <!-- Tab 3: Buyer Matches (visible after matching) -->
-                        <page string="Buyer Matches" invisible="status == 'draft'">
-                            <group>
+                        <page string="Buyer Matches" name="buyer_matches" invisible="status == 'draft'">
+                            <group name="match_summary">
                                 <group>
                                     <field name="match_count" string="Total Matches"/>
                                     <field name="selected_count" string="Selected for Offer"/>

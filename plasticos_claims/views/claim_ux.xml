@@ -121,7 +121,7 @@
             </xpath>
 
             <!-- ═══ Financial group → add recovery_rate + monetary widgets ═══ -->
-            <xpath expr="//group[@string='Financial']" position="replace">
+            <xpath expr="//group[@name='financial']" position="replace">
                 <group string="Financial">
                     <field name="claimed_amount" widget="monetary"/>
                     <field name="recovery_amount" widget="monetary"/>
@@ -130,7 +130,7 @@
             </xpath>
 
             <!-- ═══ SLA group → add is_overdue, days_open ═══ -->
-            <xpath expr="//group[@string='SLA Tracking']" position="replace">
+            <xpath expr="//group[@name='sla_tracking']" position="replace">
                 <group string="SLA Tracking">
                     <field name="sla_hours"/>
                     <field name="opened_at"/>
@@ -145,14 +145,14 @@
             </xpath>
 
             <!-- ═══ Classification → severity badge widget ═══ -->
-            <xpath expr="//group[@string='Classification']/field[@name='severity']"
+            <xpath expr="//group[@name='classification']/field[@name='severity']"
                    position="attributes">
                 <attribute name="widget">radio</attribute>
                 <attribute name="options">{'horizontal': true}</attribute>
             </xpath>
 
             <!-- ═══ Add Investigation tab (currently missing from form) ═══ -->
-            <xpath expr="//page[@string='Resolution']" position="after">
+            <xpath expr="//page[@name='resolution']" position="after">
                 <page string="Investigation"
                       invisible="state not in ('in_progress', 'escalated', 'resolved', 'archived')">
                     <group>

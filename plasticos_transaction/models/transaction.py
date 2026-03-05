@@ -707,12 +707,10 @@ class PlasticosTransaction(models.Model):
             return
 
         for rec in self:
-            old_status = rec.compliance_status
             if service.is_compliant("plasticos.transaction", rec.id):
                 rec.compliance_status = "compliant"
-                # Auto-post draft invoices when compliance achieved
-                if old_status == "missing":
-                    rec._auto_post_pending_invoices()
+                # Auto-post removed from compute method to avoid side effects.
+                # Invoices must be posted manually or via a dedicated action.
             else:
                 rec.compliance_status = "missing"
 
@@ -793,6 +791,9 @@ class PlasticosTransaction(models.Model):
                             )
                             if other:
                                 raise UserError("Vendor bill already linked to another transaction.")
+                    elif cmd[0] in (3, 5):
+                        # Unlink/Delete commands also protected on closed transactions
+                        pass  # Handled by the general closed check above
             if "freight_bill_ids" in vals:
                 for cmd in vals["freight_bill_ids"]:
                     if cmd[0] == 4:
@@ -816,6 +817,8 @@ class PlasticosTransaction(models.Model):
                             )
                             if other:
                                 raise UserError("Freight bill already linked to another transaction.")
+                    elif cmd[0] in (3, 5):
+                        pass
         return super().write(vals)
 
     def unlink(self):
@@ -827,7 +830,25 @@ class PlasticosTransaction(models.Model):
         return super().unlink()
 
     def action_activate(self):
-        self.state = "active"
+        for rec in self:
+            if rec.state != "draft":
+                raise UserError("Only draft transactions can be activated.")
+            rec.state = "active"
+
+    def action_mark_supplier_ready(self):
+        self.write({"state": "supplier_ready"})
+
+    def action_mark_in_progress(self):
+        self.write({"state": "in_progress"})
+
+    def action_mark_in_transit(self):
+        self.write({"state": "in_transit"})
+
+    def action_mark_delivered(self):
+        self.write({"state": "delivered"})
+
+    def action_mark_invoiced(self):
+        self.write({"state": "invoiced"})
 
     def action_close(self):
         service_docs = self.env.get("plasticos.compliance.service")

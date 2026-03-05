@@ -130,7 +130,7 @@
                     </div>
 
                     <group>
-                        <group string="Orders">
+                        <group string="Orders" name="orders">
                             <field name="user_id"/>
                             <field name="sale_order_id"/>
                             <field name="purchase_order_ids" widget="many2many_tags"/>

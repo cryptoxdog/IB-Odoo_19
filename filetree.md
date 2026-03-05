@@ -321,29 +321,6 @@
 │       ├── enrichment_run_views.xml
 │       ├── enrichment_source_views.xml
 │       └── res_partner_enrichment.xml
-├── plasticos_enrichment_bridge
-│   ├── __init__.py
-│   ├── __manifest__.py
-│   ├── hooks.py
-│   ├── data
-│   │   ├── ir_config_parameter.xml
-│   │   └── ir_cron.xml
-│   ├── models
-│   │   ├── __init__.py
-│   │   ├── crm_lead.py
-│   │   ├── enrichment_mixin.py
-│   │   ├── enrichment_run.py
-│   │   └── res_config_settings.py
-│   ├── security
-│   │   └── ir.model.access.csv
-│   ├── views
-│   │   ├── crm_lead_views.xml
-│   │   ├── enrichment_run_views.xml
-│   │   └── res_config_settings_views.xml
-│   └── wizard
-│       ├── __init__.py
-│       ├── enrichment_wizard.py
-│       └── enrichment_wizard_views.xml
 ├── plasticos_facility_profile
 │   ├── README.md
 │   ├── README.rst

@@ -50,12 +50,12 @@
                     </div>
 
                     <group>
-                        <group string="Classification">
+                        <group string="Classification" name="classification">
                             <field name="case_type"/>
                             <field name="severity"/>
                             <field name="assignee_id"/>
                         </group>
-                        <group string="Links">
+                        <group string="Links" name="links">
                             <field name="transaction_id"/>
                             <field name="load_id"/>
                             <field name="source_document_id"/>
@@ -63,11 +63,11 @@
                     </group>
 
                     <group>
-                        <group string="Financial">
+                        <group string="Financial" name="financial">
                             <field name="claimed_amount"/>
                             <field name="recovery_amount"/>
                         </group>
-                        <group string="SLA Tracking">
+                        <group string="SLA Tracking" name="sla_tracking">
                             <field name="sla_hours"/>
                             <field name="opened_at"/>
                             <field name="escalated_at" invisible="not escalated_at"/>
@@ -79,7 +79,7 @@
                         <page string="Notes">
                             <field name="notes" placeholder="Internal notes and discussion..."/>
                         </page>
-                        <page string="Resolution" invisible="state not in ('resolved', 'archived')">
+                        <page string="Resolution" name="resolution" invisible="state not in ('resolved', 'archived')">
                             <field name="resolution_note" placeholder="Required: Explain how this claim was resolved..."/>
                         </page>
                     </notebook>

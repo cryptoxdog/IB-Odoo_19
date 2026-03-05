@@ -63,7 +63,7 @@
             </xpath>
 
             <!-- ═══ Best-Match Trophy Banner inside Buyer Matches tab ═══ -->
-            <xpath expr="//page[@string='Buyer Matches']//group" position="before">
+            <xpath expr="//page[@name='buyer_matches']//group[@name='match_summary']" position="before">
                 <div class="alert alert-success d-flex align-items-center"
                      role="alert"
                      invisible="best_match_score == 0">

@@ -46,7 +46,7 @@
             <xpath expr="//sheet" position="inside">
                 <!-- Position as first element via before on first child -->
             </xpath>
-            <xpath expr="//sheet/div[1]" position="before">
+            <xpath expr="//div[@name='button_box']" position="before">
 
                 <!-- BLOCKED entity alert -->
                 <div class="alert alert-danger border-danger border-3 d-flex align-items-center"
@@ -74,7 +74,7 @@
                  This allows standalone companies (who ARE also the facility)
                  to manage their capabilities directly.
             -->
-            <xpath expr="//page[@string='Facility Capabilities']" position="attributes">
+            <xpath expr="//page[@name='facility_capabilities']" position="attributes">
                 <attribute name="invisible">not is_company</attribute>
             </xpath>
 

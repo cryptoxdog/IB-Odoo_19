@@ -163,7 +163,7 @@
 
       <xpath expr="//sheet/notebook" position="inside">
 
-        <page string="Facility Capabilities"
+        <page string="Facility Capabilities" name="facility_capabilities"
               invisible="not parent_id">
 
           <group>

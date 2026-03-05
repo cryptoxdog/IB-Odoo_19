@@ -45,3 +45,11 @@
   - Enables filtering products by material type in sales workflows
   - Requires adding `product` to `plasticos_material_profile` depends
   - Patch file: `docs/03-01-2026/011-link-product-to-material-profile.patch`
+
+---
+
+## Remaining Low/Medium Priority Items
+
+- [ ] **Financials Calculation:** Kept `amount_total` (accrual basis) for gross margin but added a dependency on `state` to ensure updates.
+- [ ] **Dual Supplier Profiles:** Left as-is to avoid breaking downstream views, but `supplier_profile_id` should be treated as the source of truth.
+- [ ] **Freight Bill Auto-Link:** Requires a more complex heuristic (matching carrier partner to active transactions) which was out of scope for this immediate fix. Manual linking is still available.

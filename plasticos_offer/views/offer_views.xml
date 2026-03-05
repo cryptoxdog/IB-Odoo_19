@@ -214,7 +214,7 @@
                 </header>
                 <sheet>
                     <group>
-                        <group string="Origin">
+                        <group string="Origin" name="origin">
                             <field name="match_result_id"/>
                             <field name="intake_id"/>
                         </group>
@@ -225,7 +225,7 @@
                     </group>
 
                     <notebook>
-                        <page string="Commercial Terms">
+                        <page string="Commercial Terms" name="commercial_terms">
                             <group>
                                 <group string="Pricing">
                                     <field name="price_per_lb"/>
@@ -244,7 +244,7 @@
                             </group>
                         </page>
 
-                        <page string="Response">
+                        <page string="Response" name="response">
                             <group>
                                 <group>
                                     <field name="response_notes"/>

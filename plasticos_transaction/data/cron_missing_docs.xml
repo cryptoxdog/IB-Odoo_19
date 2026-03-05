@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <odoo>
+<!--
     <data noupdate="1">
         <record id="cron_check_missing_docs" model="ir.cron">
             <field name="name">PlasticOS: Missing Documents Check</field>
@@ -11,4 +12,5 @@
             <field name="active">True</field>
         <field name="user_id" ref="plasticos_base.user_system_cron" /></record>
     </data>
+-->
 </odoo>

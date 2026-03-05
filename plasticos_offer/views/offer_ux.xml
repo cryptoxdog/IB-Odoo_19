@@ -15,7 +15,7 @@
         <field name="arch" type="xml">
 
             <!-- ═══ Smart Button Box (form has none) ═══ -->
-            <xpath expr="//sheet/group[1]" position="before">
+            <xpath expr="//group[@name='origin']" position="before">
                 <div class="oe_button_box" name="button_box">
 
                     <!-- Intake jump -->
@@ -62,7 +62,7 @@
             </xpath>
 
             <!-- ═══ Status Banners (above Origin group) ═══ -->
-            <xpath expr="//sheet/group[1]" position="before">
+            <xpath expr="//group[@name='origin']" position="before">
 
                 <!-- Expiring Soon warning (≤7 days) -->
                 <div class="alert alert-warning d-flex align-items-center"
@@ -122,13 +122,13 @@
             </xpath>
 
             <!-- ═══ Total Value below quantity in Commercial Terms ═══ -->
-            <xpath expr="//page[@string='Commercial Terms']//field[@name='loads']"
+            <xpath expr="//page[@name='commercial_terms']//field[@name='loads']"
                    position="after">
                 <field name="total_value" widget="monetary" readonly="1"/>
             </xpath>
 
             <!-- ═══ Response tab → only visible after sent ═══ -->
-            <xpath expr="//page[@string='Response']" position="attributes">
+            <xpath expr="//page[@name='response']" position="attributes">
                 <attribute name="invisible">state == 'draft'</attribute>
             </xpath>
 

@@ -75,7 +75,7 @@
                             <field name="source"/>
                             <field name="lead_source_id"/>
                         </group>
-                        <group string="Links">
+                        <group string="Links" name="links">
                             <field name="partner_id"/>
                             <field name="intake_id"/>
                         </group>

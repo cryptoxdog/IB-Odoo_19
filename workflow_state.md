@@ -44,6 +44,7 @@ Odoo 19 PlasticOS suite: intake, transaction, logistics, documents, commission, 
 
 ## Recent Changes
 
+- 2026-03-04: Merged PR #29 (refactor: rename remaining x_ prefixed fields to clean names and add migration scripts). Cleaned up `plasticos_automation`, `plasticos_crm_bridge`, `plasticos_documents_native`, `plasticos_facility_profile`, `plasticos_partner_import`, and `plasticos_security_base`. Added pre-migration scripts for all renamed fields. Updated `scripts/check_odoo_patterns.sh` to enforce no `x_` prefixes.
 - 2026-03-04: Merged PR #28 (fix(documents): add pre-migrate for transaction x_ column renames). Added pre-migration script to rename 8 `x_` columns in `plasticos_transaction` and clean up stale metadata. Updated tests to use clean field names.
 - 2026-02-25: PlasticOS Odoo 19 Fix & Hardening GMP — Get-or-create for test master data (UniqueViolation fix); required form_id on plasticos.material.profile in test_matcher.py (4 tests); plasticos_base post_init_hook to assign enrichment/documents/claims manager groups to user_system_cron (ACL-safe crons without changing cron user_id). Updated AI Agent Files/ARCHITECTURE.md with fixes section.
 - 2026-02-25: Scoped Deep Audit Pass 2 (PR #22) — Fixed form code enum drift (bale/bales), 16 unhandled form codes, missing module dependency, and ruff format issues. All enforcement checks green.
@@ -117,6 +118,7 @@ Odoo 19 PlasticOS suite: intake, transaction, logistics, documents, commission, 
 
 ## Recent Sessions (7-day window)
 
+- ✅ 2026-03-04: Merged PR #29 — Cleaned up remaining x_ prefixed fields and added migration scripts.
 - ✅ 2026-03-04: Merged PR #28 — Document transaction field migration (x_ prefix removal).
 - ✅ 2026-02-25: PlasticOS Odoo 19 GMP — Test form_id + get-or-create; cron ACL via post_init_hook; ARCHITECTURE.md updated with fixes.
 - ✅ 2026-02-25: Scoped Deep Audit Pass 2 (PR #22) — Fixed form code enum drift (bale/bales), 16 unhandled form codes, missing module dependency, and ruff format issues. All enforcement checks green.

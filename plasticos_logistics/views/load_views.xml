@@ -277,7 +277,7 @@
                                 </group>
                             </group>
                             <group>
-                                <group string="Documents">
+                                <group string="Documents" name="documents">
                                     <field name="bol_pickup_attached"/>
                                     <field name="bol_delivery_attached"/>
                                 </group>

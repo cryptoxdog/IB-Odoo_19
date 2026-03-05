@@ -13,7 +13,7 @@
         <field name="arch" type="xml">
 
             <!-- Add load_id to Orders group -->
-            <xpath expr="//group[@string='Orders']/field[@name='purchase_order_ids']" position="after">
+            <xpath expr="//group[@name='orders']/field[@name='purchase_order_ids']" position="after">
                 <field name="load_id"/>
             </xpath>
 

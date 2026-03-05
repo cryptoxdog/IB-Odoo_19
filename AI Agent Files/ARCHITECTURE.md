@@ -74,7 +74,6 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 | 19 | `plasticos_claims` | 5 | QC cases, claims, chargebacks, compliance workflows |
 | 20 | `plasticos_web_leads` | 2 | AI-powered web lead triage: Cognito → LLM → HOT/COLD |
 | 21 | `plasticos_enrichment` | 2 | AI-powered web intelligence extraction for buyer profiles |
-| 22 | `plasticos_enrichment_bridge` | 2 | Bridge to external Enrichment API for CRM leads |
 | 23 | `plasticos_inference_engine` | 2 | Deterministic polymer inference from YAML knowledge base |
 | 24 | `plasticos_partner_import` | 3 | Partner import wizard with validation |
 | 25 | `plasticos_dev_tools` | — | Dev-only: audit scripts, integrity checks, validators |

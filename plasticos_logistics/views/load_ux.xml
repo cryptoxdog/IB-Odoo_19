@@ -82,7 +82,7 @@
             </xpath>
 
             <!-- ═══ BOL Completion Indicator (enhance Status tab) ═══ -->
-            <xpath expr="//page[@name='status']//group[@string='Documents']"
+            <xpath expr="//page[@name='status']//group[@name='documents']"
                    position="replace">
                 <group string="Documents">
                     <field name="bol_pickup_attached"/>

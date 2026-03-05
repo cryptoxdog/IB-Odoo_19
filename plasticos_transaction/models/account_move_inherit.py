@@ -65,9 +65,18 @@ class AccountMove(models.Model):
                     so.transaction_id.customer_invoice_id = rec.id
 
             if rec.move_type == "in_invoice" and rec.invoice_origin:
+                # Try linking via Sale Order (if origin is SO name)
                 so = self.env["sale.order"].search([("name", "=", rec.invoice_origin)], limit=1)
                 if so and so.transaction_id:
                     so.transaction_id.vendor_bill_ids = [(4, rec.id)]
+                else:
+                    # Try linking via Purchase Order (if origin is PO name)
+                    po = self.env["purchase.order"].search([("name", "=", rec.invoice_origin)], limit=1)
+                    if po:
+                        # Find transaction containing this PO
+                        tx = self.env["plasticos.transaction"].search([("purchase_order_ids", "in", po.id)], limit=1)
+                        if tx:
+                            tx.vendor_bill_ids = [(4, rec.id)]
 
         return res
 

@@ -2,6 +2,7 @@ import logging
 import uuid
 
 from odoo import api, fields, models
+from odoo.addons.plasticos_logistics.services.state_machine import VALID_TRANSITIONS
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -137,6 +138,9 @@ class PlasticosLoad(models.Model):
                     "entered_state_at",
                     "dispatched_at",
                     "delivered_at",
+                    "sla_breached",
+                    "escalation_level",
+                    "awaiting_ready_flag",
                 }
                 blocked = set(vals.keys()) - allowed
                 if blocked:
@@ -190,8 +194,23 @@ class PlasticosLoad(models.Model):
     def action_dispatch(self):
         for rec in self:
             if rec.state not in ["scheduled", "rate_confirmed"]:
-                raise UserError("Load must be scheduled and rate confirmed.")
+                # Allow dispatch from rate_confirmed if scheduling skipped (hot shot)
+                # But typically should be scheduled.
+                # If VALID_TRANSITIONS allows rate_confirmed->dispatched, we respect it.
+                # But code here was hardcoding logic.
+                pass
+
+            # Enforce state machine via _transition
             rec._transition("dispatched")
+
+    def action_mark_exception(self):
+        for rec in self:
+            rec._transition("exception")
+
+    def action_reset_from_exception(self):
+        for rec in self:
+            if rec.state == "exception":
+                rec._transition("draft")
 
     def action_close(self):
         for rec in self:
@@ -201,6 +220,32 @@ class PlasticosLoad(models.Model):
 
     def _transition(self, new_state):
         for rec in self:
+            if (
+                new_state not in VALID_TRANSITIONS.get(rec.state, [])
+                and new_state != "exception"
+                and rec.state != "exception"
+            ):
+                # Exception is a special state reachable from anywhere (conceptually)
+                # or we should add it to VALID_TRANSITIONS.
+                # For now, let's strictly enforce VALID_TRANSITIONS if defined.
+                # But we need to handle the 'exception' case if it's not in the dict.
+                # The report says "VALID_TRANSITIONS has no entry for it".
+                # So we allow exception transitions explicitly here or update the dict.
+                # Let's assume we want to enforce what's in the dict + exception logic.
+                pass
+
+            # Strict enforcement based on report recommendation
+            allowed = VALID_TRANSITIONS.get(rec.state, [])
+            # Allow transition to exception from any active state
+            if new_state == "exception":
+                allowed = allowed + ["exception"]
+            # Allow reset from exception to draft
+            if rec.state == "exception" and new_state == "draft":
+                allowed = ["draft"]
+
+            if new_state not in allowed:
+                raise UserError(f"Invalid state transition from {rec.state} to {new_state}.")
+
             correlation_id = new_correlation_id()
             old = rec.state
             vals = {"state": new_state, "entered_state_at": fields.Datetime.now()}

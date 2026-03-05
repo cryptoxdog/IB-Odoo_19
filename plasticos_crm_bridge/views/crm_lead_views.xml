@@ -183,7 +183,7 @@
         <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_form"/>
         <field name="arch" type="xml">
             <!-- Add CRM Lead link next to existing partner_id + intake_id -->
-            <xpath expr="//group[@string='Links']" position="inside">
+            <xpath expr="//group[@name='links']" position="inside">
                 <field name="crm_lead_id"/>
             </xpath>
         </field>
