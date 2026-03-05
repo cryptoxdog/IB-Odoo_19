@@ -69,6 +69,13 @@ repos:
         pass_filenames: false
         stages: [pre-commit, pre-push]
 
+      - id: orphan-model-refs
+        name: Orphan model reference check
+        entry: python3 ci/check_orphan_model_refs.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+
       # Index generation disabled - run manually: python3 scripts/export_odoo_index.py
       # - id: export-odoo-index
       #   name: Export Odoo repo index
