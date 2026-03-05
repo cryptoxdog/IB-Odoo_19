@@ -153,6 +153,7 @@
                            statusbar_visible="pending,accepted"/>
                 </header>
                 <sheet>
+                    <div class="oe_button_box" name="button_box"/>
                     <group>
                         <group string="Supply Side">
                             <field name="intake_id"/>
