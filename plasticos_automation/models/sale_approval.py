@@ -9,13 +9,13 @@ _logger = logging.getLogger(__name__)
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
-    x_requires_approval = fields.Boolean(string="Requires Approval", default=False)
-    x_approved = fields.Boolean(string="Approved", default=False)
+    requires_approval = fields.Boolean(string="Requires Approval", default=False)
+    approved = fields.Boolean(string="Approved", default=False)
 
     def action_confirm(self):
         config = self.env["plasticos.automation.config"].get_config()
         for order in self:
-            if order.amount_total > config.sale_approval_threshold and not order.x_approved:
+            if order.amount_total > config.sale_approval_threshold and not order.approved:
                 raise UserError(
                     "Approval required before confirmation. "
                     f"Order total {order.amount_total:.2f} exceeds threshold {config.sale_approval_threshold:.2f}."
@@ -38,7 +38,7 @@ class SaleOrder(models.Model):
                 [
                     ("amount_total", ">", threshold),
                     ("state", "=", "draft"),
-                    ("x_requires_approval", "=", False),
+                    ("requires_approval", "=", False),
                 ],
                 order="id ASC",
                 limit=500,
@@ -46,7 +46,7 @@ class SaleOrder(models.Model):
 
             log_model = self.env.get("plasticos.automation.log")
             for order in orders:
-                order.x_requires_approval = True
+                order.requires_approval = True
                 if log_model:
                     log_model.create(
                         {

@@ -42,10 +42,16 @@ def post_init_hook(env):
         groups_to_add.append(claims_group.id)
 
     if groups_to_add:
-        # Odoo 19: Add user to each group via group.users (not user.groups_id)
+        # Odoo 19: Use direct SQL for user-group assignment during module loading
         for gid in groups_to_add:
-            group = env["res.groups"].browse(gid)
-            group.sudo().write({"users": [(4, cron_user.id)]})
+            env.cr.execute(
+                """
+                INSERT INTO res_groups_users_rel (gid, uid)
+                VALUES (%s, %s)
+                ON CONFLICT DO NOTHING
+                """,
+                (gid, cron_user.id),
+            )
         _logger.info(
             "Added system_cron user to %d groups: %s",
             len(groups_to_add),

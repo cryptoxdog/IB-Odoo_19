@@ -9,7 +9,7 @@ _logger = logging.getLogger(__name__)
 class AccountMove(models.Model):
     _inherit = "account.move"
 
-    x_last_reminder_date = fields.Date(string="Last Reminder Date")
+    last_reminder_date = fields.Date(string="Last Reminder Date")
 
     @api.model
     def cron_invoice_reminder(self):
@@ -29,8 +29,8 @@ class AccountMove(models.Model):
                     ("payment_state", "!=", "paid"),
                     ("invoice_date_due", "<=", cutoff),
                     "|",
-                    ("x_last_reminder_date", "=", False),
-                    ("x_last_reminder_date", "<", today),
+                    ("last_reminder_date", "=", False),
+                    ("last_reminder_date", "<", today),
                 ],
                 order="invoice_date_due ASC, id ASC",
                 limit=200,
@@ -40,7 +40,7 @@ class AccountMove(models.Model):
                 inv.message_post(
                     body=f"Automated reminder: invoice is overdue by more than {config.invoice_overdue_days} days.",
                 )
-                inv.x_last_reminder_date = today
+                inv.last_reminder_date = today
                 self.env["plasticos.automation.log"].create(
                     {
                         "name": f"Invoice reminder {inv.name}",

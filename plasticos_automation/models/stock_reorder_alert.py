@@ -8,7 +8,7 @@ _logger = logging.getLogger(__name__)
 class ProductProduct(models.Model):
     _inherit = "product.product"
 
-    x_min_stock_threshold = fields.Float(string="Min Stock Threshold", default=0.0)
+    min_stock_threshold = fields.Float(string="Min Stock Threshold", default=0.0)
 
     @api.model
     def cron_stock_reorder_alert(self):
@@ -32,7 +32,7 @@ class ProductProduct(models.Model):
             )
 
             for product in products:
-                threshold = product.x_min_stock_threshold or global_threshold
+                threshold = product.min_stock_threshold or global_threshold
                 if threshold <= 0 or product.qty_available >= threshold:
                     continue
 

@@ -347,6 +347,18 @@ else
     echo -e "${GREEN}OK${NC}"
 fi
 
+# 23. Studio/legacy x_ prefixed fields (must use clean module names)
+echo -n "Checking x_ prefixed fields... "
+MATCHES=$(echo "$PY_FILES" | xargs grep -E '^\s+x_\w+\s*=\s*fields\.' 2>/dev/null || true)
+if [ -n "$MATCHES" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$MATCHES"
+    echo -e "${YELLOW}Fix: Rename x_ fields to clean module names (e.g., x_trucker_id → trucker_id)${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
 echo ""
 if [ $ERRORS -gt 0 ]; then
     echo -e "${RED}❌ Found $ERRORS Odoo pattern issue(s)${NC}"

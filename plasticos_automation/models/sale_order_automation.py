@@ -9,7 +9,7 @@ class SaleOrderAutomation(models.Model):
     _inherit = "sale.order"
 
     # ── Delivery Term Management ───────────────────────────────────
-    x_delivery_term = fields.Selection(
+    delivery_term = fields.Selection(
         [
             ("fcfs", "FCFS (First Come, First Served)"),
             ("appointment", "Appointment Required"),
@@ -18,12 +18,12 @@ class SaleOrderAutomation(models.Model):
         default="fcfs",
         help="Delivery method: FCFS or appointment-based.",
     )
-    x_appt_requested = fields.Boolean(
+    appt_requested = fields.Boolean(
         string="Dock Appointment Requested",
         default=False,
         help="Flag indicating dock appointment has been requested.",
     )
-    x_appt_requested_on = fields.Datetime(
+    appt_requested_on = fields.Datetime(
         string="Dock Appointment Requested On",
         help="Timestamp when dock appointment was requested.",
     )
@@ -31,8 +31,8 @@ class SaleOrderAutomation(models.Model):
     def action_request_dock_appointment(self):
         """Mark the order as having a dock appointment requested."""
         for rec in self:
-            rec.x_appt_requested = True
-            rec.x_appt_requested_on = fields.Datetime.now()
+            rec.appt_requested = True
+            rec.appt_requested_on = fields.Datetime.now()
             rec.message_post(
                 body=f"Dock appointment requested for SO {rec.name}.",
                 message_type="notification",

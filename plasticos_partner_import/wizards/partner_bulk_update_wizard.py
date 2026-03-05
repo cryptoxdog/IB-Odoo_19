@@ -46,7 +46,7 @@ class PartnerBulkUpdateWizard(models.TransientModel):
     )
 
     # Private flag
-    x_private = fields.Boolean(
+    is_private = fields.Boolean(
         string="Private Partner",
         help="Mark partners as private (restricted visibility).",
     )
@@ -201,13 +201,13 @@ class PartnerBulkUpdateWizard(models.TransientModel):
     def _action_set_private(self):
         """Set private flag on selected partners."""
         updated = 0
-        status = "Private" if self.x_private else "Public"
+        status = "Private" if self.is_private else "Public"
 
         for partner in self.partner_ids:
             # Check if field exists (from plasticos_security_base)
-            if hasattr(partner, "x_private"):
-                old_status = "Private" if partner.x_private else "Public"
-                partner.x_private = self.x_private
+            if hasattr(partner, "is_private"):
+                old_status = "Private" if partner.is_private else "Public"
+                partner.is_private = self.is_private
                 partner.message_post(
                     body=_(
                         "Privacy changed from <b>%(old)s</b> to <b>%(new)s</b><br/>"
@@ -225,7 +225,7 @@ class PartnerBulkUpdateWizard(models.TransientModel):
                 updated += 1
             else:
                 raise UserError(
-                    _("The x_private field is not available. Please install the plasticos_security_base module.")
+                    _("The is_private field is not available. Please install the plasticos_security_base module.")
                 )
 
         return self._return_notification(_("%d partner(s) marked as %s") % (updated, status))

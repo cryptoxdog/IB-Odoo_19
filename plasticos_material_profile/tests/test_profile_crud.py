@@ -1,0 +1,169 @@
+"""
+Test material profile CRUD operations.
+
+- create profile with polymer+form+partner
+- unique triple constraint
+"""
+
+from psycopg2 import IntegrityError
+
+from odoo.tests import TransactionCase, tagged
+
+
+@tagged("post_install", "-at_install")
+class TestProfileCRUD(TransactionCase):
+    """Test plasticos.material.profile CRUD operations."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.partner = cls.env["res.partner"].create(
+            {
+                "name": "Test Supplier",
+                "is_company": True,
+                "supplier_rank": 1,
+            }
+        )
+        cls.polymer = cls.env["plasticos.polymer"].create(
+            {
+                "name": "High Density Polyethylene",
+                "code": "HDPE",
+            }
+        )
+        cls.form = cls.env["plasticos.material.form"].create(
+            {
+                "name": "Pellet",
+                "code": "PELLET",
+            }
+        )
+        cls.color = cls.env["plasticos.material.color"].create(
+            {
+                "name": "Natural",
+                "code": "NAT",
+            }
+        )
+
+    def _create_profile(self, **kwargs):
+        """Helper to create a material profile."""
+        vals = {
+            "partner_id": self.partner.id,
+            "polymer_id": self.polymer.id,
+            "form_id": self.form.id,
+        }
+        vals.update(kwargs)
+        return self.env["plasticos.material.profile"].create(vals)
+
+    # ═══════════════════════════════════════════════════════════
+    # Create Tests
+    # ═══════════════════════════════════════════════════════════
+
+    def test_create_basic_profile(self):
+        """Basic profile can be created with polymer+form+partner."""
+        profile = self._create_profile()
+        self.assertTrue(profile.id)
+        self.assertEqual(profile.partner_id, self.partner)
+        self.assertEqual(profile.polymer_id, self.polymer)
+        self.assertEqual(profile.form_id, self.form)
+
+    def test_create_profile_with_color(self):
+        """Profile can be created with color."""
+        profile = self._create_profile(color_id=self.color.id)
+        self.assertEqual(profile.color_id, self.color)
+
+    def test_create_profile_with_quality_metrics(self):
+        """Profile can be created with quality metrics."""
+        profile = self._create_profile(
+            mfi_min=5.0,
+            mfi_max=10.0,
+            density_min=0.94,
+            density_max=0.96,
+        )
+        self.assertEqual(profile.mfi_min, 5.0)
+        self.assertEqual(profile.mfi_max, 10.0)
+
+    # ═══════════════════════════════════════════════════════════
+    # Unique Triple Constraint Tests
+    # ═══════════════════════════════════════════════════════════
+
+    def test_unique_partner_polymer_form_constraint(self):
+        """Profile must be unique per partner+polymer+form combination."""
+        self._create_profile()
+
+        # Try to create duplicate
+        with self.assertRaises(IntegrityError):
+            self.env.cr.execute(
+                """
+                INSERT INTO plasticos_material_profile
+                (partner_id, polymer_id, form_id)
+                VALUES (%s, %s, %s)
+            """,
+                (self.partner.id, self.polymer.id, self.form.id),
+            )
+
+    def test_different_partner_same_polymer_form_allowed(self):
+        """Different partner with same polymer+form should be allowed."""
+        self._create_profile()
+
+        partner2 = self.env["res.partner"].create(
+            {
+                "name": "Test Supplier 2",
+                "is_company": True,
+            }
+        )
+
+        profile2 = self._create_profile(partner_id=partner2.id)
+        self.assertTrue(profile2.id)
+
+    def test_same_partner_different_polymer_allowed(self):
+        """Same partner with different polymer should be allowed."""
+        self._create_profile()
+
+        polymer2 = self.env["plasticos.polymer"].create(
+            {
+                "name": "Polypropylene",
+                "code": "PP",
+            }
+        )
+
+        profile2 = self._create_profile(polymer_id=polymer2.id)
+        self.assertTrue(profile2.id)
+
+    def test_same_partner_different_form_allowed(self):
+        """Same partner with different form should be allowed."""
+        self._create_profile()
+
+        form2 = self.env["plasticos.material.form"].create(
+            {
+                "name": "Flake",
+                "code": "FLAKE",
+            }
+        )
+
+        profile2 = self._create_profile(form_id=form2.id)
+        self.assertTrue(profile2.id)
+
+    # ═══════════════════════════════════════════════════════════
+    # Search Tests
+    # ═══════════════════════════════════════════════════════════
+
+    def test_search_by_partner(self):
+        """Profiles can be searched by partner."""
+        profile = self._create_profile()
+
+        found = self.env["plasticos.material.profile"].search(
+            [
+                ("partner_id", "=", self.partner.id),
+            ]
+        )
+        self.assertIn(profile, found)
+
+    def test_search_by_polymer(self):
+        """Profiles can be searched by polymer."""
+        profile = self._create_profile()
+
+        found = self.env["plasticos.material.profile"].search(
+            [
+                ("polymer_id", "=", self.polymer.id),
+            ]
+        )
+        self.assertIn(profile, found)

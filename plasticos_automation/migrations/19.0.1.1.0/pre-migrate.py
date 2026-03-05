@@ -1,4 +1,4 @@
-"""Pre-migration: Rename x_ prefixed columns on stock_picking and purchase_order tables.
+"""Pre-migration: Rename x_ prefixed columns on automation tables.
 
 Renames legacy Studio-style fields to clean module fields in plasticos_automation.
 """
@@ -55,6 +55,56 @@ def migrate(cr, version):
             ("x_followup_count", "followup_count"),
             ("x_last_followup_on", "last_followup_on"),
             ("x_buyer_id", "buyer_id"),
+        ],
+    )
+
+    # Sale Order (Approval & Delivery automation)
+    _rename_columns(
+        cr,
+        "sale_order",
+        [
+            ("x_requires_approval", "requires_approval"),
+            ("x_approved", "approved"),
+            ("x_delivery_term", "delivery_term"),
+            ("x_appt_requested", "appt_requested"),
+            ("x_appt_requested_on", "appt_requested_on"),
+        ],
+    )
+
+    # Res Partner (Contract renewal)
+    _rename_columns(
+        cr,
+        "res_partner",
+        [
+            ("x_contract_end_date", "contract_end_date"),
+        ],
+    )
+
+    # Account Move (Invoice reminder)
+    _rename_columns(
+        cr,
+        "account_move",
+        [
+            ("x_last_reminder_date", "last_reminder_date"),
+        ],
+    )
+
+    # Plasticos Load (SLA automation)
+    _rename_columns(
+        cr,
+        "plasticos_load",
+        [
+            ("x_awaiting_ready_flag", "awaiting_ready_flag"),
+            ("x_escalation_level", "escalation_level"),
+        ],
+    )
+
+    # Product Product (Stock alert)
+    _rename_columns(
+        cr,
+        "product_product",
+        [
+            ("x_min_stock_threshold", "min_stock_threshold"),
         ],
     )
 

@@ -2,14 +2,14 @@
 <odoo noupdate="1">
 
     <!-- 1. Private Partner Rule
-         If x_private is True, only the creator and Admins can see it.
+         If is_private is True, only the creator and Admins can see it.
          Non-private partners remain visible to everyone. -->
     <record id="rule_partner_private" model="ir.rule">
         <field name="name">Plasticos: Private Partner - Owner Only</field>
         <field name="model_id" ref="base.model_res_partner"/>
         <field name="domain_force">[
             '|',
-            ('x_private', '=', False),
+            ('is_private', '=', False),
             ('create_uid', '=', user.id)
         ]</field>
         <field name="groups" eval="[

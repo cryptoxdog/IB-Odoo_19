@@ -20,8 +20,15 @@ def post_init_hook(env):
 
     documents_group = env.ref("plasticos_documents.group_documents_manager", raise_if_not_found=False)
     if documents_group:
-        # Odoo 19: Add user to group via group.users (not user.groups_id)
-        documents_group.sudo().write({"users": [(4, cron_user.id)]})
+        # Odoo 19: Use direct SQL for user-group assignment during module loading
+        env.cr.execute(
+            """
+            INSERT INTO res_groups_users_rel (gid, uid)
+            VALUES (%s, %s)
+            ON CONFLICT DO NOTHING
+            """,
+            (documents_group.id, cron_user.id),
+        )
         _logger.info(
             "Added system_cron user to group_documents_manager (id=%d)",
             documents_group.id,

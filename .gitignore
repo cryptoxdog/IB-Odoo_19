@@ -49,7 +49,7 @@ workflow_state.md
 # ═══════════════════════════════════════════════════════════
 # Local / Working (not for staging)
 # ═══════════════════════════════════════════════════════════
-scripts/
+# scripts/
 Transactions.Test.csv.numbers
 plasticos_graph_engine/
 plasticos_graph_engine/**

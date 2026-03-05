@@ -20,8 +20,15 @@ def post_init_hook(env):
 
     enrichment_group = env.ref("plasticos_enrichment.group_enrichment_manager", raise_if_not_found=False)
     if enrichment_group:
-        # Odoo 19: Add user to group via group.users (not user.groups_id)
-        enrichment_group.sudo().write({"users": [(4, cron_user.id)]})
+        # Odoo 19: Use direct SQL for user-group assignment during module loading
+        env.cr.execute(
+            """
+            INSERT INTO res_groups_users_rel (gid, uid)
+            VALUES (%s, %s)
+            ON CONFLICT DO NOTHING
+            """,
+            (enrichment_group.id, cron_user.id),
+        )
         _logger.info(
             "Added system_cron user to group_enrichment_manager (id=%d)",
             enrichment_group.id,

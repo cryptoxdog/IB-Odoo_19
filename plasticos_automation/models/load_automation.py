@@ -16,8 +16,8 @@ _SLA_HOURS = {
 class PlasticosLoadAutomation(models.Model):
     _inherit = "plasticos.load"
 
-    x_awaiting_ready_flag = fields.Boolean(compute="_compute_awaiting_ready_flag", store=True)
-    x_escalation_level = fields.Selection(
+    awaiting_ready_flag = fields.Boolean(compute="_compute_awaiting_ready_flag", store=True)
+    escalation_level = fields.Selection(
         [("none", "None"), ("warning", "Warning"), ("critical", "Critical")],
         default="none",
     )
@@ -25,7 +25,7 @@ class PlasticosLoadAutomation(models.Model):
     @api.depends("state")
     def _compute_awaiting_ready_flag(self):
         for rec in self:
-            rec.x_awaiting_ready_flag = rec.state == "awaiting_ready"
+            rec.awaiting_ready_flag = rec.state == "awaiting_ready"
 
     @api.model
     def cron_load_sla_check(self):
@@ -52,16 +52,16 @@ class PlasticosLoadAutomation(models.Model):
 
                 delta_hours = (now - load.entered_state_at).total_seconds() / 3600
                 if delta_hours <= limit_hours:
-                    if load.x_escalation_level != "none":
-                        load.x_escalation_level = "none"
+                    if load.escalation_level != "none":
+                        load.escalation_level = "none"
                     continue
 
                 if not load.sla_breached:
                     load.sla_breached = True
 
                 new_level = "critical" if delta_hours > limit_hours * 2 else "warning"
-                if load.x_escalation_level != new_level:
-                    load.x_escalation_level = new_level
+                if load.escalation_level != new_level:
+                    load.escalation_level = new_level
                     load.message_post(
                         body=(
                             f"SLA breach [{new_level.upper()}]: load stuck in '{load.state}' "

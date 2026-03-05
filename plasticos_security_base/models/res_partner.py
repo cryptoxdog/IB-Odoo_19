@@ -15,7 +15,7 @@ class ResPartnerPrivate(models.Model):
 
     _inherit = "res.partner"
 
-    x_private = fields.Boolean(
+    is_private = fields.Boolean(
         string="Private Contact",
         default=False,
         help=("When enabled, this contact is only visible to the user who created it and to System Administrators."),

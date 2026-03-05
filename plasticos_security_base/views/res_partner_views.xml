@@ -8,7 +8,7 @@
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='category_id']" position="before">
-                <field name="x_private"
+                <field name="is_private"
                        groups="base.group_system"
                        widget="boolean_toggle"
                        help="When enabled, only you and System Administrators can see this contact."/>

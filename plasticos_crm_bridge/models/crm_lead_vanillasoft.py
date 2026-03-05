@@ -6,7 +6,7 @@ class CrmLeadVanillaSoft(models.Model):
 
     _inherit = "crm.lead"
 
-    x_vanillasoft_id = fields.Char(
+    vanillasoft_id = fields.Char(
         string="VanillaSoft Contact ID",
         index=True,
         copy=False,

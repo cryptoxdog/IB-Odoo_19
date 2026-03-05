@@ -9,7 +9,7 @@ _logger = logging.getLogger(__name__)
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
-    x_contract_end_date = fields.Date(string="Contract End Date")
+    contract_end_date = fields.Date(string="Contract End Date")
 
     @api.model
     def cron_contract_renewal_alert(self):
@@ -28,11 +28,11 @@ class ResPartner(models.Model):
 
             partners = self.search(
                 [
-                    ("x_contract_end_date", "!=", False),
-                    ("x_contract_end_date", "<=", threshold_date),
-                    ("x_contract_end_date", ">=", today),
+                    ("contract_end_date", "!=", False),
+                    ("contract_end_date", "<=", threshold_date),
+                    ("contract_end_date", ">=", today),
                 ],
-                order="x_contract_end_date ASC, id ASC",
+                order="contract_end_date ASC, id ASC",
                 limit=200,
             )
 
@@ -50,7 +50,7 @@ class ResPartner(models.Model):
 
                 partner.message_post(
                     body=(
-                        f"Automated alert: contract expires on {partner.x_contract_end_date} "
+                        f"Automated alert: contract expires on {partner.contract_end_date} "
                         f"(within {config.contract_alert_days_before} days)."
                     ),
                 )

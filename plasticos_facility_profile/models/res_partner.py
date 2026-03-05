@@ -39,15 +39,15 @@ class ResPartner(models.Model):
     )
 
     # ═══════════════════════════════════════════════════════════════════════
-    # IMPORTANT: x_facility_role vs company_type
+    # IMPORTANT: facility_role vs company_type
     # ───────────────────────────────────────────────────────────────────────
     # company_type (Odoo core) = "person" or "company" (legal entity type)
-    # x_facility_role (below) = BUSINESS ROLE (broker, processor, mrf, etc.)
+    # facility_role (below) = BUSINESS ROLE (broker, processor, mrf, etc.)
     #
     # This field is synced to Neo4j as "facility_role" and used in Cypher
     # to exclude brokers from equipment gates (they resell, not process).
     # ═══════════════════════════════════════════════════════════════════════
-    x_facility_role = fields.Selection(
+    facility_role = fields.Selection(
         selection=[
             ("processor", "Processor"),
             ("broker", "Broker"),
@@ -59,8 +59,8 @@ class ResPartner(models.Model):
             ("carrier", "Carrier"),
             ("other", "Other"),
         ],
-        compute="_compute_x_facility_role",
-        inverse="_inverse_x_facility_role",
+        compute="_compute_facility_role",
+        inverse="_inverse_facility_role",
         store=True,
         help="Business role of this facility. Computed from partner_type_id. "
         "NOT the same as company_type (person/company). "
@@ -68,20 +68,20 @@ class ResPartner(models.Model):
     )
 
     @api.depends("partner_type_id", "partner_type_id.code")
-    def _compute_x_facility_role(self):
+    def _compute_facility_role(self):
         for rec in self:
-            rec.x_facility_role = rec.partner_type_id.code if rec.partner_type_id else False
+            rec.facility_role = rec.partner_type_id.code if rec.partner_type_id else False
 
-    def _inverse_x_facility_role(self):
+    def _inverse_facility_role(self):
         PartnerType = self.env["plasticos.partner.type"]
         for rec in self:
-            if rec.x_facility_role:
-                partner_type = PartnerType.search([("code", "=", rec.x_facility_role)], limit=1)
+            if rec.facility_role:
+                partner_type = PartnerType.search([("code", "=", rec.facility_role)], limit=1)
                 rec.partner_type_id = partner_type.id if partner_type else False
             else:
                 rec.partner_type_id = False
 
-    x_preferred_contact_id = fields.Many2one(
+    preferred_contact_id = fields.Many2one(
         "res.partner",
         string="Preferred Contact",
         help="Last-selected contact for this company/facility. "

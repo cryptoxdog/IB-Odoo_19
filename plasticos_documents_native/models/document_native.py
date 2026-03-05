@@ -23,28 +23,28 @@ class DocumentNative(models.Model):
     _inherit = "documents.document"
 
     # ── Plastics Domain Links ────────────────────────────────
-    x_polymer_id = fields.Many2one(
+    polymer_id = fields.Many2one(
         "plasticos.polymer",
         string="Polymer Type",
         index=True,
         tracking=True,
         help="Primary polymer type referenced in this document.",
     )
-    x_load_id = fields.Many2one(
+    load_id = fields.Many2one(
         "plasticos.load",
         string="Load",
         index=True,
         tracking=True,
         help="Load this document is associated with (BOL, scale ticket).",
     )
-    x_transaction_id = fields.Many2one(
+    transaction_id = fields.Many2one(
         "plasticos.transaction",
         string="Transaction",
         index=True,
         tracking=True,
         help="Transaction this document belongs to.",
     )
-    x_intake_id = fields.Many2one(
+    intake_id = fields.Many2one(
         "plasticos.intake",
         string="Intake",
         index=True,
@@ -53,7 +53,7 @@ class DocumentNative(models.Model):
     )
 
     # ── Classification ───────────────────────────────────────
-    x_doc_type = fields.Selection(
+    doc_type = fields.Selection(
         [
             ("bol", "Bill of Lading"),
             ("invoice", "Invoice / Vendor Bill"),
@@ -75,33 +75,33 @@ class DocumentNative(models.Model):
     )
 
     # ── Verification Workflow ────────────────────────────────
-    x_verified = fields.Boolean(
+    verified = fields.Boolean(
         string="Verified",
         default=False,
         tracking=True,
     )
-    x_verified_by = fields.Many2one(
+    verified_by = fields.Many2one(
         "res.users",
         string="Verified By",
         readonly=True,
     )
-    x_verified_at = fields.Datetime(
+    verified_at = fields.Datetime(
         string="Verified At",
         readonly=True,
     )
 
     # ── Override (manager-only) ──────────────────────────────
-    x_override = fields.Boolean(
+    override = fields.Boolean(
         string="Override",
         default=False,
         tracking=True,
     )
-    x_override_reason = fields.Text(
+    override_reason = fields.Text(
         string="Override Reason",
     )
 
     # ── Sync Reference ───────────────────────────────────────
-    x_plasticos_doc_id = fields.Many2one(
+    plasticos_doc_id = fields.Many2one(
         "plasticos.document",
         string="Plasticos Document",
         readonly=True,
@@ -114,9 +114,9 @@ class DocumentNative(models.Model):
         for rec in self:
             rec.write(
                 {
-                    "x_verified": True,
-                    "x_verified_by": self.env.user.id,
-                    "x_verified_at": fields.Datetime.now(),
+                    "verified": True,
+                    "verified_by": self.env.user.id,
+                    "verified_at": fields.Datetime.now(),
                 }
             )
         _logger.info(
@@ -131,7 +131,7 @@ class DocumentNative(models.Model):
             from odoo.exceptions import UserError
 
             raise UserError("Only administrators can override documents.")
-        self.write({"x_override": True})
+        self.write({"override": True})
         _logger.info(
             "Document %s overridden by %s",
             self.id,
@@ -149,7 +149,7 @@ class DocumentNative(models.Model):
         """
         if not document.partner_id:
             return
-        if document.x_transaction_id or document.x_load_id:
+        if document.transaction_id or document.load_id:
             return
 
         tx = self.env["plasticos.transaction"].search(
@@ -161,9 +161,9 @@ class DocumentNative(models.Model):
             limit=1,
         )
         if tx:
-            vals = {"x_transaction_id": tx.id}
+            vals = {"transaction_id": tx.id}
             if tx.load_id:
-                vals["x_load_id"] = tx.load_id.id
+                vals["load_id"] = tx.load_id.id
             document.write(vals)
             _logger.info(
                 "Auto-linked document %s to transaction %s (partner %s)",
