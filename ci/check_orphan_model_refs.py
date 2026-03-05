@@ -248,8 +248,56 @@ def extract_model_refs_from_xml(xml_file: Path) -> list[tuple[str, int, str]]:
     return refs
 
 
+def extract_model_refs_from_csv(csv_file: Path) -> list[tuple[str, int, str]]:
+    """Extract model references from ir.model.access.csv file.
+
+    Returns list of (model_name, line_number, context) tuples.
+    """
+    refs = []
+
+    try:
+        with open(csv_file, encoding="utf-8") as f:
+            lines = f.readlines()
+
+        header_found = False
+        for i, line in enumerate(lines, 1):
+            line = line.strip()
+
+            # Skip empty lines and comments
+            if not line or line.startswith("#"):
+                continue
+
+            # Skip header row (contains "model_id:id")
+            if "model_id:id" in line:
+                header_found = True
+                continue
+
+            if not header_found:
+                continue
+
+            # CSV format: id,name,model_id:id,group_id:id,...
+            # model_id:id value is typically "module.model_some_model" or "model_some_model"
+            parts = line.split(",")
+            if len(parts) >= 3:
+                model_ref = parts[2].strip()
+
+                # Handle format: module.model_some_model
+                if "." in model_ref:
+                    model_ref = model_ref.split(".")[-1]
+
+                # Convert model_plasticos_some_model -> plasticos.some.model
+                if model_ref.startswith("model_"):
+                    model_name = model_ref[6:].replace("_", ".")
+                    refs.append((model_name, i, "ir.model.access.csv"))
+
+    except Exception:
+        pass
+
+    return refs
+
+
 def check_orphan_references(root_dir: Path) -> list[dict]:
-    """Check for XML files referencing non-existent models."""
+    """Check for XML and CSV files referencing non-existent models."""
     issues = []
 
     # Get all defined models
@@ -279,6 +327,27 @@ def check_orphan_references(root_dir: Path) -> list[dict]:
                             "suggestions": suggestions[:3],
                         }
                     )
+
+    # Check ir.model.access.csv files for orphan model references
+    for csv_file in root_dir.glob("**/security/ir.model.access.csv"):
+        if ".venv" in str(csv_file) or "venv" in str(csv_file):
+            continue
+
+        refs = extract_model_refs_from_csv(csv_file)
+
+        for model_name, line_num, context in refs:
+            if model_name not in defined_models:
+                suggestions = [m for m in defined_models if model_name.split(".")[-1] in m]
+
+                issues.append(
+                    {
+                        "file": str(csv_file.relative_to(root_dir)),
+                        "line": line_num,
+                        "model": model_name,
+                        "context": context,
+                        "suggestions": suggestions[:3],
+                    }
+                )
 
     return issues
 
