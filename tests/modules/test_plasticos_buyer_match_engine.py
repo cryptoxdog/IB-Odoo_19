@@ -38,6 +38,7 @@ EXPECTED_NAME = "PlasticOS Buyer Match Engine"
 EXPECTED_VERSION = "19.0.2.0.0"
 EXPECTED_CATEGORY = "Plasticos/Matching"
 EXPECTED_DEPENDS = [
+    "plasticos_base",
     "plasticos_intake",
     "plasticos_material_profile",
     "plasticos_facility_profile",  # Must come before plasticos_matching (layer 6 < 7)
@@ -53,6 +54,7 @@ LAYER_ORDER = [
     "mail",
     "contacts",
     "account",
+    "plasticos_base",
     "plasticos_intake",
     "plasticos_material_profile",
     "plasticos_facility_profile",

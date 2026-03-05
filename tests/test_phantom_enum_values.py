@@ -616,6 +616,34 @@ GLOBAL_ALLOWLIST = frozenset(
         "{}",
         "[]",
         "()",
+        # ─────────────────────────────────────────────────────────────────────
+        # ODOO CRM LEAD TYPE VALUES (core crm.lead.type selection)
+        # ─────────────────────────────────────────────────────────────────────
+        "lead",
+        "opportunity",
+        # ─────────────────────────────────────────────────────────────────────
+        # API KEY SENTINEL VALUES (used to check if config is set)
+        # ─────────────────────────────────────────────────────────────────────
+        "CHANGEME",
+        # ─────────────────────────────────────────────────────────────────────
+        # DATA PROVIDER IDENTIFIERS (migration/sync source identifiers)
+        # ─────────────────────────────────────────────────────────────────────
+        "data_provider",
+        "enf",
+        "google",
+        "association",
+        "manta",
+        "pnews",
+        "recycle_net",
+        "state_list",
+        "trade_show",
+        "web_lead",
+        "web_research",
+        # ─────────────────────────────────────────────────────────────────────
+        # LEGACY CRM IMPORT STATUS VALUES (external system status codes)
+        # ─────────────────────────────────────────────────────────────────────
+        "1-Currently Working With",
+        "4-Dead Lead",
     }
 )
 
