@@ -33,24 +33,30 @@ class TestTransactionStates(TransactionCase):
         super().setUpClass()
 
         # ── Manager user (can close transactions) ──────────────
-        cls.manager_group = cls.env.ref("plasticos_transaction.group_plasticos_manager")
+        cls.manager_group = cls.env.ref("plasticos_transaction.group_plasticos_manager", raise_if_not_found=False)
+        base_group = cls.env.ref("base.group_user", raise_if_not_found=False)
+
+        manager_groups = []
+        if base_group:
+            manager_groups.append((4, base_group.id))
+        if cls.manager_group:
+            manager_groups.append((4, cls.manager_group.id))
+
         cls.manager_user = cls.env["res.users"].create(
             {
                 "name": "TX Test Manager",
                 "login": "tx_test_manager",
-                "group_ids": [
-                    (4, cls.env.ref("base.group_user").id),
-                    (4, cls.manager_group.id),
-                ],
+                "group_ids": manager_groups,
             }
         )
 
         # ── Regular user (cannot close) ────────────────────────
+        regular_groups = [(4, base_group.id)] if base_group else []
         cls.regular_user = cls.env["res.users"].create(
             {
                 "name": "TX Test User",
                 "login": "tx_test_user",
-                "group_ids": [(4, cls.env.ref("base.group_user").id)],
+                "group_ids": regular_groups,
             }
         )
 

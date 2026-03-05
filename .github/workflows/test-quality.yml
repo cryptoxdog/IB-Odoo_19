@@ -56,6 +56,14 @@ jobs:
         run: |
           python3 ci/check_xpath_stability.py
 
+      - name: Model inheritance pattern check
+        run: |
+          python3 ci/check_model_inheritance.py
+
+      - name: ORM integrity check
+        run: |
+          python3 ci/check_orm_integrity.py
+
       - name: Repo dependency integrity test
         run: |
           python3 -m pytest tests/test_repo_dependency_integrity.py -v

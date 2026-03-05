@@ -46,11 +46,9 @@ class TestIntegrity(TransactionCase):
 
         groups = [g.id for g in [group_manager, group_user, group_sale_manager, group_account_manager] if g]
         # Optional: add documents group if module is installed
-        try:
-            group_documents_user = self.env.ref("plasticos_documents.group_documents_user")
+        group_documents_user = self.env.ref("plasticos_documents.group_documents_user", raise_if_not_found=False)
+        if group_documents_user:
             groups.append(group_documents_user.id)
-        except ValueError:
-            pass  # Module not installed
 
         self.manager_user = self.env["res.users"].create(
             {

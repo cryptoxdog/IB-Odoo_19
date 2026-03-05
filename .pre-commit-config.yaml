@@ -111,6 +111,20 @@ repos:
         pass_filenames: false
         stages: [pre-commit, pre-push]
 
+      - id: model-inheritance
+        name: Model inheritance pattern check
+        entry: python3 ci/check_model_inheritance.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+
+      - id: orm-integrity
+        name: ORM integrity check
+        entry: python3 ci/check_orm_integrity.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+
       # Index generation disabled - run manually: python3 scripts/export_odoo_index.py
       # - id: export-odoo-index
       #   name: Export Odoo repo index

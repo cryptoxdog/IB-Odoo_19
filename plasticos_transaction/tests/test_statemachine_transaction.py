@@ -18,8 +18,9 @@ class TestTransactionStateMachine(TransactionCase):
         super().setUpClass()
         cls.Tx = cls.env["plasticos.transaction"]
         cls.partner = cls.env["res.partner"].create({"name": "SM Partner", "is_company": True})
-        cls.manager_group = cls.env.ref("plasticos_transaction.group_plasticos_manager")
-        cls.env.user.groups_id |= cls.manager_group
+        cls.manager_group = cls.env.ref("plasticos_transaction.group_plasticos_manager", raise_if_not_found=False)
+        if cls.manager_group:
+            cls.env.user.groups_id |= cls.manager_group
 
     def _tx(self, **kw):
         vals = {"partner_id": self.partner.id, "supplier_id": self.partner.id, "buyer_id": self.partner.id}
@@ -62,6 +63,8 @@ class TestTransactionStateMachine(TransactionCase):
     def test_close_requires_manager_group(self):
         tx = self._tx()
         tx.action_activate()
+        base_group = self.env.ref("base.group_user", raise_if_not_found=False)
+        group_ids = [(6, 0, [base_group.id])] if base_group else []
         user_basic = (
             self.env["res.users"]
             .with_context(no_reset_password=True)
@@ -69,7 +72,7 @@ class TestTransactionStateMachine(TransactionCase):
                 {
                     "name": "Basic",
                     "login": "basic_sm",
-                    "groups_id": [(6, 0, [self.env.ref("base.group_user").id])],
+                    "groups_id": group_ids,
                 }
             )
         )
