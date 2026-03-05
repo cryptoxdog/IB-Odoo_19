@@ -26,6 +26,8 @@ import re
 import sys
 from pathlib import Path
 
+from _git_utils import get_git_tracked_files
+
 
 def extract_model_names_from_python(root_dir: Path) -> set[str]:
     """Extract all _name declarations from Python model files."""
@@ -182,11 +184,17 @@ def extract_model_names_from_python(root_dir: Path) -> set[str]:
     # Also match _inherit = "model.name" (extends existing model)
     inherit_pattern = re.compile(r'_inherit\s*=\s*["\']([a-z][a-z0-9_.]+)["\']')
 
-    # Search in models/, wizards/, and wizard/ directories
-    search_patterns = ["models/*.py", "wizards/*.py", "wizard/*.py"]
+    # Search in models/, wizards/, and wizard/ directories (git-tracked only)
+    search_patterns = ["*/models/*.py", "*/wizards/*.py", "*/wizard/*.py"]
 
     for pattern in search_patterns:
-        for py_file in root_dir.rglob(pattern):
+        py_files = get_git_tracked_files(pattern)
+        if not py_files:
+            # Fallback if not in git repo
+            py_files = list(root_dir.glob(pattern))
+
+        for py_file in py_files:
+            py_file = root_dir / py_file if not py_file.is_absolute() else py_file
             if ".venv" in str(py_file) or "venv" in str(py_file):
                 continue
             try:
@@ -303,11 +311,16 @@ def check_orphan_references(root_dir: Path) -> list[dict]:
     # Get all defined models
     defined_models = extract_model_names_from_python(root_dir)
 
-    # Check all XML files in data/ and views/ directories
-    xml_patterns = ["**/data/*.xml", "**/views/*.xml", "**/security/*.xml"]
+    # Check all XML files in data/ and views/ directories (git-tracked only)
+    xml_patterns = ["*/data/*.xml", "*/views/*.xml", "*/security/*.xml"]
 
     for pattern in xml_patterns:
-        for xml_file in root_dir.glob(pattern):
+        xml_files = get_git_tracked_files(pattern)
+        if not xml_files:
+            xml_files = list(root_dir.glob(pattern))
+
+        for xml_file in xml_files:
+            xml_file = root_dir / xml_file if not xml_file.is_absolute() else xml_file
             if ".venv" in str(xml_file) or "venv" in str(xml_file):
                 continue
 
@@ -328,8 +341,13 @@ def check_orphan_references(root_dir: Path) -> list[dict]:
                         }
                     )
 
-    # Check ir.model.access.csv files for orphan model references
-    for csv_file in root_dir.glob("**/security/ir.model.access.csv"):
+    # Check ir.model.access.csv files for orphan model references (git-tracked only)
+    csv_files = get_git_tracked_files("*/security/ir.model.access.csv")
+    if not csv_files:
+        csv_files = list(root_dir.glob("*/security/ir.model.access.csv"))
+
+    for csv_file in csv_files:
+        csv_file = root_dir / csv_file if not csv_file.is_absolute() else csv_file
         if ".venv" in str(csv_file) or "venv" in str(csv_file):
             continue
 

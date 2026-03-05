@@ -21,9 +21,43 @@ Exit codes:
 
 import ast
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
+
+
+def get_git_tracked_files(pattern: str = "") -> list[Path]:
+    """Get git-tracked files matching pattern."""
+    try:
+        cmd = ["git", "ls-files"]
+        if pattern:
+            cmd.append(pattern)
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        return [Path(f) for f in result.stdout.strip().split("\n") if f]
+    except subprocess.CalledProcessError:
+        return []
+
+
+def get_git_tracked_dirs(pattern: str = "plasticos_*") -> list[Path]:
+    """Get git-tracked directories matching pattern."""
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", f"{pattern}/*"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        dirs = set()
+        for f in result.stdout.strip().split("\n"):
+            if f and "/" in f:
+                parts = f.split("/")
+                if parts[0].startswith(pattern.replace("*", "")):
+                    dirs.add(Path(parts[0]))
+        return sorted(dirs)
+    except subprocess.CalledProcessError:
+        return []
+
 
 # ANSI colors
 RED = "\033[0;31m"
@@ -267,8 +301,14 @@ def build_model_registry(workspace: Path) -> dict[str, str]:
         for model in models:
             registry[model] = module
 
-    # Scan custom modules
-    for module_dir in workspace.glob("plasticos_*"):
+    # Scan custom modules (git-tracked only)
+    module_dirs = get_git_tracked_dirs("plasticos_*")
+    if not module_dirs:
+        # Fallback if not in git repo
+        module_dirs = [d for d in workspace.glob("plasticos_*") if d.is_dir()]
+
+    for module_dir in module_dirs:
+        module_dir = workspace / module_dir if not module_dir.is_absolute() else module_dir
         if not module_dir.is_dir():
             continue
 
@@ -533,9 +573,14 @@ def main() -> int:
     print(f"  Found {len(model_registry)} models across all modules")
     print()
 
-    # Load all manifests for transitive dependency resolution
+    # Load all manifests for transitive dependency resolution (git-tracked only)
     all_manifests: dict[str, dict] = {}
-    for module_dir in workspace.glob("plasticos_*"):
+    module_dirs = get_git_tracked_dirs("plasticos_*")
+    if not module_dirs:
+        module_dirs = [d for d in workspace.glob("plasticos_*") if d.is_dir()]
+
+    for module_dir in module_dirs:
+        module_dir = workspace / module_dir if not module_dir.is_absolute() else module_dir
         if module_dir.is_dir():
             manifest = parse_manifest(module_dir)
             if manifest:
@@ -546,7 +591,7 @@ def main() -> int:
         if core_module not in all_manifests:
             all_manifests[core_module] = {"depends": ["base"] if core_module != "base" else []}
 
-    # Find modules to check
+    # Find modules to check (git-tracked only)
     if target_module:
         module_path = workspace / target_module
         if not module_path.exists():
@@ -554,7 +599,12 @@ def main() -> int:
             return 1
         modules_to_check = [module_path]
     else:
-        modules_to_check = sorted([d for d in workspace.glob("plasticos_*") if d.is_dir()])
+        module_dirs = get_git_tracked_dirs("plasticos_*")
+        if module_dirs:
+            modules_to_check = sorted([workspace / d for d in module_dirs])
+        else:
+            # Fallback if not in git repo
+            modules_to_check = sorted([d for d in workspace.glob("plasticos_*") if d.is_dir()])
 
     # Check each module
     all_errors: list[dict] = []

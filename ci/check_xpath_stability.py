@@ -24,6 +24,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import NamedTuple
 
+from _git_utils import get_git_tracked_files
+
 
 class Finding(NamedTuple):
     file: str
@@ -226,8 +228,14 @@ def scan_directory(path: Path) -> list[Finding]:
     """Scan directory for XML files and analyze them."""
     all_findings = []
 
-    # Find all XML files in plasticos_* modules
-    for xml_file in path.rglob("plasticos_*/views/*.xml"):
+    # Find all git-tracked XML files in plasticos_* modules
+    xml_files = get_git_tracked_files("plasticos_*/views/*.xml")
+    if not xml_files:
+        # Fallback if not in git repo
+        xml_files = list(path.rglob("plasticos_*/views/*.xml"))
+
+    for xml_file in xml_files:
+        xml_file = path / xml_file if not xml_file.is_absolute() else xml_file
         findings = analyze_xml_file(xml_file)
         all_findings.extend(findings)
 

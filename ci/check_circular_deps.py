@@ -26,6 +26,8 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+from _git_utils import get_git_tracked_files
+
 
 def parse_manifest(manifest_path: Path) -> dict | None:
     """Parse __manifest__.py and return dict."""
@@ -40,7 +42,14 @@ def parse_manifest(manifest_path: Path) -> dict | None:
 def get_module_dependencies(root_dir: Path) -> dict[str, set[str]]:
     """Build dependency graph: module_name -> set of dependencies."""
     deps = {}
-    for manifest in root_dir.glob("*/__manifest__.py"):
+    # Only check git-tracked manifests
+    manifest_files = get_git_tracked_files("*/__manifest__.py")
+    if not manifest_files:
+        # Fallback if not in git repo
+        manifest_files = list(root_dir.glob("*/__manifest__.py"))
+
+    for manifest in manifest_files:
+        manifest = root_dir / manifest if not manifest.is_absolute() else manifest
         module_name = manifest.parent.name
         data = parse_manifest(manifest)
         if data and "depends" in data:
@@ -64,7 +73,13 @@ def get_module_fields(root_dir: Path) -> dict[str, dict[tuple[str, str], str]]:
     """Map module_name -> {(model_name, field_name): file_path} for fields defined in that module."""
     module_fields: dict[str, dict[tuple[str, str], str]] = defaultdict(dict)
 
-    for py_file in root_dir.glob("*/models/*.py"):
+    # Only check git-tracked Python files
+    py_files = get_git_tracked_files("*/models/*.py")
+    if not py_files:
+        py_files = list(root_dir.glob("*/models/*.py"))
+
+    for py_file in py_files:
+        py_file = root_dir / py_file if not py_file.is_absolute() else py_file
         if "__pycache__" in str(py_file):
             continue
         module_name = py_file.parent.parent.name
@@ -108,7 +123,13 @@ def check_cross_module_depends(
     """Find @api.depends referencing fields from non-dependency modules."""
     errors = []
 
-    for py_file in root_dir.glob("*/models/*.py"):
+    # Only check git-tracked Python files
+    py_files = get_git_tracked_files("*/models/*.py")
+    if not py_files:
+        py_files = list(root_dir.glob("*/models/*.py"))
+
+    for py_file in py_files:
+        py_file = root_dir / py_file if not py_file.is_absolute() else py_file
         if "__pycache__" in str(py_file):
             continue
         module_name = py_file.parent.parent.name
