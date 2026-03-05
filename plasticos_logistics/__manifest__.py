@@ -7,7 +7,6 @@
     "depends": ["plasticos_base", "plasticos_transaction", "sale_management", "stock", "mail"],
     "data": [
         "security/ir.model.access.csv",
-        "data/sequence.xml",
         "data/incoterms.xml",
         "data/cron.xml",
         "views/load_views.xml",

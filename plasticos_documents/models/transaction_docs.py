@@ -10,6 +10,7 @@ class PlasticosTransactionDocs(models.Model):
     _inherit = "plasticos.transaction"
 
     # NOTE: document_ids One2many is defined in transaction_docs_bridge.py
+
     # ── Missing Document Status Tracking ───────────────────────────
     missing_doc_status = fields.Selection(
         [

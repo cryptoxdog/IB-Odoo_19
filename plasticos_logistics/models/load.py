@@ -2,7 +2,6 @@ import logging
 import uuid
 
 from odoo import api, fields, models
-from odoo.addons.plasticos_logistics.services.state_machine import VALID_TRANSITIONS
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -22,26 +21,7 @@ class PlasticosLoad(models.Model):
     _description = "Plasticos Logistics Load"
     _inherit = ["mail.thread"]
 
-    name = fields.Char(
-        string="Load Reference",
-        required=True,
-        copy=False,
-        readonly=True,
-        default="/",
-        index=True,
-    )
-    bol_pickup_number = fields.Char(
-        string="BOL Pickup #",
-        compute="_compute_bol_numbers",
-        store=True,
-        help="Bill of Lading number for pickup: BOL-{id}-PU",
-    )
-    bol_delivery_number = fields.Char(
-        string="BOL Delivery #",
-        compute="_compute_bol_numbers",
-        store=True,
-        help="Bill of Lading number for delivery: BOL-{id}-DEL",
-    )
+    name = fields.Char(required=True)
     sale_order_id = fields.Many2one("sale.order", required=True)
     carrier_id = fields.Many2one("res.partner", string="Carrier")
     rate_amount = fields.Float(string="Rate Amount")
@@ -126,48 +106,15 @@ class PlasticosLoad(models.Model):
         tracking=True,
     )
 
-    def _compute_bol_numbers(self):
-        """Generate BOL numbers from load database ID: BOL-{id}-PU / BOL-{id}-DEL.
-
-        Note: No @api.depends needed - stored compute fields are computed once on create.
-        The 'id' field cannot be used in @api.depends (Odoo 19 restriction).
-        """
-        for rec in self:
-            if rec.id:
-                rec.bol_pickup_number = f"BOL-{rec.id}-PU"
-                rec.bol_delivery_number = f"BOL-{rec.id}-DEL"
-            else:
-                rec.bol_pickup_number = False
-                rec.bol_delivery_number = False
-
     @api.model_create_multi
     def create(self, vals_list):
-        """Create load with auto-sequence and link to transaction via sale_order_id."""
-        for vals in vals_list:
-            if vals.get("name", "/") == "/":
-                sequence = self.env["ir.sequence"].next_by_code("plasticos.load")
-                if not sequence:
-                    raise UserError(
-                        "Unable to generate load reference number. "
-                        "Please ensure the sequence 'plasticos.load' is configured."
-                    )
-                vals["name"] = sequence
-
+        """Create load and auto-link to transaction via sale_order_id."""
         records = super().create(vals_list)
-
-        # Batch query: find all transactions for sale orders in one query
-        sale_order_ids = [rec.sale_order_id.id for rec in records if rec.sale_order_id]
-        if sale_order_ids:
-            transactions = self.env["plasticos.transaction"].search(
-                [
-                    ("sale_order_id", "in", sale_order_ids),
-                    ("load_id", "=", False),
-                ]
-            )
-            tx_by_so = {tx.sale_order_id.id: tx for tx in transactions}
-            for rec in records:
-                if rec.sale_order_id and rec.sale_order_id.id in tx_by_so:
-                    tx_by_so[rec.sale_order_id.id].load_id = rec.id
+        for rec in records:
+            if rec.sale_order_id:
+                tx = self.env["plasticos.transaction"].search([("sale_order_id", "=", rec.sale_order_id.id)], limit=1)
+                if tx and not tx.load_id:
+                    tx.load_id = rec.id
         return records
 
     def write(self, vals):
@@ -190,9 +137,6 @@ class PlasticosLoad(models.Model):
                     "entered_state_at",
                     "dispatched_at",
                     "delivered_at",
-                    "sla_breached",
-                    "escalation_level",
-                    "awaiting_ready_flag",
                 }
                 blocked = set(vals.keys()) - allowed
                 if blocked:
@@ -201,10 +145,10 @@ class PlasticosLoad(models.Model):
         res = super().write(vals)
 
         if "state" in vals and vals["state"] == "closed":
-            # Batch query: find all transactions for these loads in one query
-            transactions = self.env["plasticos.transaction"].search([("load_id", "in", self.ids)])
-            for tx in transactions:
-                tx.message_post(body="Logistics closed.")
+            for rec in self:
+                tx = self.env["plasticos.transaction"].search([("load_id", "=", rec.id)], limit=1)
+                if tx:
+                    tx.message_post(body="Logistics closed.")
 
         return res
 
@@ -219,11 +163,9 @@ class PlasticosLoad(models.Model):
 
     def _compute_transaction_id(self):
         """Reverse lookup: find transaction that references this load."""
-        # Batch query: find all transactions for these loads in one query
-        transactions = self.env["plasticos.transaction"].search([("load_id", "in", self.ids)])
-        tx_by_load = {tx.load_id.id: tx.id for tx in transactions}
         for rec in self:
-            rec.transaction_id = tx_by_load.get(rec.id, False)
+            tx = self.env["plasticos.transaction"].search([("load_id", "=", rec.id)], limit=1)
+            rec.transaction_id = tx.id if tx else False
 
     def action_confirm_ready(self, user_name):
         for rec in self:
@@ -248,23 +190,8 @@ class PlasticosLoad(models.Model):
     def action_dispatch(self):
         for rec in self:
             if rec.state not in ["scheduled", "rate_confirmed"]:
-                # Allow dispatch from rate_confirmed if scheduling skipped (hot shot)
-                # But typically should be scheduled.
-                # If VALID_TRANSITIONS allows rate_confirmed->dispatched, we respect it.
-                # But code here was hardcoding logic.
-                pass
-
-            # Enforce state machine via _transition
+                raise UserError("Load must be scheduled and rate confirmed.")
             rec._transition("dispatched")
-
-    def action_mark_exception(self):
-        for rec in self:
-            rec._transition("exception")
-
-    def action_reset_from_exception(self):
-        for rec in self:
-            if rec.state == "exception":
-                rec._transition("draft")
 
     def action_close(self):
         for rec in self:
@@ -274,32 +201,6 @@ class PlasticosLoad(models.Model):
 
     def _transition(self, new_state):
         for rec in self:
-            if (
-                new_state not in VALID_TRANSITIONS.get(rec.state, [])
-                and new_state != "exception"
-                and rec.state != "exception"
-            ):
-                # Exception is a special state reachable from anywhere (conceptually)
-                # or we should add it to VALID_TRANSITIONS.
-                # For now, let's strictly enforce VALID_TRANSITIONS if defined.
-                # But we need to handle the 'exception' case if it's not in the dict.
-                # The report says "VALID_TRANSITIONS has no entry for it".
-                # So we allow exception transitions explicitly here or update the dict.
-                # Let's assume we want to enforce what's in the dict + exception logic.
-                pass
-
-            # Strict enforcement based on report recommendation
-            allowed = VALID_TRANSITIONS.get(rec.state, [])
-            # Allow transition to exception from any active state
-            if new_state == "exception":
-                allowed = allowed + ["exception"]
-            # Allow reset from exception to draft
-            if rec.state == "exception" and new_state == "draft":
-                allowed = ["draft"]
-
-            if new_state not in allowed:
-                raise UserError(f"Invalid state transition from {rec.state} to {new_state}.")
-
             correlation_id = new_correlation_id()
             old = rec.state
             vals = {"state": new_state, "entered_state_at": fields.Datetime.now()}

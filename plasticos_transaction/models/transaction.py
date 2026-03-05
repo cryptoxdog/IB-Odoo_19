@@ -469,41 +469,26 @@ class PlasticosTransaction(models.Model):
 
     @api.depends("sale_order_id", "sale_order_id.partner_id", "purchase_order_ids", "purchase_order_ids.partner_id")
     def _compute_profiles(self):
-        # Batch query: collect all partner IDs first
-        buyer_partner_ids = [
-            rec.sale_order_id.partner_id.id for rec in self if rec.sale_order_id and rec.sale_order_id.partner_id
-        ]
-        supplier_partner_ids = [
-            rec.purchase_order_ids[0].partner_id.id
-            for rec in self
-            if rec.purchase_order_ids and rec.purchase_order_ids[0].partner_id
-        ]
-
-        # Batch fetch facilities and materials
-        facilities = (
-            self.env["plasticos.facility.profile"].search([("partner_id", "in", buyer_partner_ids)])
-            if buyer_partner_ids
-            else self.env["plasticos.facility.profile"]
-        )
-        facility_by_partner = {f.partner_id.id: f for f in facilities}
-
-        materials = (
-            self.env["plasticos.material.profile"].search([("partner_id", "in", supplier_partner_ids)])
-            if supplier_partner_ids
-            else self.env["plasticos.material.profile"]
-        )
-        material_by_partner = {m.partner_id.id: m for m in materials}
-
         for rec in self:
             # Buyer facility from sale order partner
             if rec.sale_order_id and rec.sale_order_id.partner_id:
-                rec.buyer_facility_id = facility_by_partner.get(rec.sale_order_id.partner_id.id, False)
+                facility = self.env["plasticos.facility.profile"].search(
+                    [("partner_id", "=", rec.sale_order_id.partner_id.id)], limit=1
+                )
+                rec.buyer_facility_id = facility
             else:
                 rec.buyer_facility_id = False
 
             # Supplier material from first purchase order partner
-            if rec.purchase_order_ids and rec.purchase_order_ids[0].partner_id:
-                rec.supplier_material_id = material_by_partner.get(rec.purchase_order_ids[0].partner_id.id, False)
+            if rec.purchase_order_ids:
+                first_po = rec.purchase_order_ids[0]
+                if first_po.partner_id:
+                    material = self.env["plasticos.material.profile"].search(
+                        [("partner_id", "=", first_po.partner_id.id)], limit=1
+                    )
+                    rec.supplier_material_id = material
+                else:
+                    rec.supplier_material_id = False
             else:
                 rec.supplier_material_id = False
 
@@ -698,14 +683,13 @@ class PlasticosTransaction(models.Model):
                 continue
             rec.commission_amount = service.compute_commission(rec)
 
-    # NOTE: document_ids dependencies are added via _inherit in
-    # plasticos_documents/models/transaction_docs_bridge.py which overrides this method
-    # to add @api.depends for document_ids fields.
+    @api.depends("create_date")
     def _compute_compliance(self):
         """Compute compliance status based on required documents.
 
-        Depends on document_ids (from transaction_docs_bridge) to auto-recompute
-        when documents are added, removed, verified, or deactivated.
+        NOTE: document_ids dependencies moved to plasticos_documents bridge
+        (transaction_docs_bridge.py) to avoid circular dependency. The bridge
+        module extends this compute with document-aware triggers.
 
         When compliance changes from 'missing' to 'compliant', auto-posts any
         draft invoices/bills linked to this transaction.
@@ -717,10 +701,12 @@ class PlasticosTransaction(models.Model):
             return
 
         for rec in self:
+            old_status = rec.compliance_status
             if service.is_compliant("plasticos.transaction", rec.id):
                 rec.compliance_status = "compliant"
-                # Auto-post removed from compute method to avoid side effects.
-                # Invoices must be posted manually or via a dedicated action.
+                # Auto-post draft invoices when compliance achieved
+                if old_status == "missing":
+                    rec._auto_post_pending_invoices()
             else:
                 rec.compliance_status = "missing"
 
@@ -801,9 +787,6 @@ class PlasticosTransaction(models.Model):
                             )
                             if other:
                                 raise UserError("Vendor bill already linked to another transaction.")
-                    elif cmd[0] in (3, 5):
-                        # Unlink/Delete commands also protected on closed transactions
-                        pass  # Handled by the general closed check above
             if "freight_bill_ids" in vals:
                 for cmd in vals["freight_bill_ids"]:
                     if cmd[0] == 4:
@@ -827,8 +810,6 @@ class PlasticosTransaction(models.Model):
                             )
                             if other:
                                 raise UserError("Freight bill already linked to another transaction.")
-                    elif cmd[0] in (3, 5):
-                        pass
         return super().write(vals)
 
     def unlink(self):
@@ -840,25 +821,7 @@ class PlasticosTransaction(models.Model):
         return super().unlink()
 
     def action_activate(self):
-        for rec in self:
-            if rec.state != "draft":
-                raise UserError("Only draft transactions can be activated.")
-            rec.state = "active"
-
-    def action_mark_supplier_ready(self):
-        self.write({"state": "supplier_ready"})
-
-    def action_mark_in_progress(self):
-        self.write({"state": "in_progress"})
-
-    def action_mark_in_transit(self):
-        self.write({"state": "in_transit"})
-
-    def action_mark_delivered(self):
-        self.write({"state": "delivered"})
-
-    def action_mark_invoiced(self):
-        self.write({"state": "invoiced"})
+        self.state = "active"
 
     def action_close(self):
         service_docs = self.env.get("plasticos.compliance.service")

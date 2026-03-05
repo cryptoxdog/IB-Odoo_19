@@ -14,7 +14,7 @@
         <field name="arch" type="xml">
 
             <!-- ═══ Quality Warning Banners (above notebook) ═══ -->
-            <xpath expr="//notebook[1]" position="before">
+            <xpath expr="//notebook" position="before">
 
                 <!-- High contamination warning (>5%) -->
                 <div class="alert alert-warning d-flex align-items-center"
@@ -60,12 +60,11 @@
                    //field[@name='contamination_percent']
             -->
 
-            <!-- Scoped to notebook to avoid matching list view fields -->
-            <xpath expr="//notebook//field[@name='contamination_percent']" position="attributes">
+            <xpath expr="//field[@name='contamination_percent']" position="attributes">
                 <attribute name="widget">progressbar</attribute>
             </xpath>
 
-            <xpath expr="//notebook//field[@name='moisture_percent']" position="attributes">
+            <xpath expr="//field[@name='moisture_percent']" position="attributes">
                 <attribute name="widget">progressbar</attribute>
             </xpath>
 
@@ -84,8 +83,8 @@
         <field name="priority">15</field>
         <field name="arch" type="xml">
 
-            <!-- Add quality flag columns (scoped to list view) -->
-            <xpath expr="//list/field[@name='contamination_percent']" position="after">
+            <!-- Add quality flag columns -->
+            <xpath expr="//field[@name='contamination_percent']" position="after">
                 <field name="has_fr" string="FR" optional="show" widget="boolean"/>
                 <field name="has_metal" string="Metal" optional="show" widget="boolean"/>
             </xpath>
