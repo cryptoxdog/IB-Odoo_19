@@ -76,6 +76,13 @@ repos:
         pass_filenames: false
         stages: [pre-commit, pre-push]
 
+      - id: xpath-stability
+        name: XPath anchor stability check
+        entry: python3 ci/check_xpath_stability.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+
       # Index generation disabled - run manually: python3 scripts/export_odoo_index.py
       # - id: export-odoo-index
       #   name: Export Odoo repo index

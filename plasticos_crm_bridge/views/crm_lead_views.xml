@@ -86,7 +86,7 @@
             </xpath>
 
             <!-- ═══ PlastOS Pipeline Tab ═══ -->
-            <xpath expr="//notebook" position="inside">
+            <xpath expr="//notebook[1]" position="inside">
                 <page string="PlastOS Pipeline" name="plastos_pipeline_tab">
 
                     <!-- KPI Banner -->
@@ -198,7 +198,7 @@
         <field name="model">plasticos.web.lead</field>
         <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_list"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='intake_id']" position="after">
+            <xpath expr="//list/field[@name='intake_id']" position="after">
                 <field name="crm_lead_id" optional="show"/>
             </xpath>
         </field>

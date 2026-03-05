@@ -59,7 +59,7 @@
         <field name="arch" type="xml">
 
             <!-- Add load reference after sale order -->
-            <xpath expr="//field[@name='sale_order_id']" position="after">
+            <xpath expr="//list/field[@name='sale_order_id']" position="after">
                 <field name="load_id" string="Load" optional="show"/>
             </xpath>
 

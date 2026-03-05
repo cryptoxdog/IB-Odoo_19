@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -26,6 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -35,11 +39,78 @@ jobs:
       - name: Check Orphan Model References in XML
         run: python3 ci/check_orphan_model_refs.py .
 
-  # Job 3: Full audit (runs in parallel)
+  # Job 3: XPath Anchor Stability (BLOCKING - prevents silent UI corruption)
+  xpath-stability:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check XPath Anchor Stability
+        id: xpath
+        run: |
+          python3 ci/check_xpath_stability.py . || true
+
+          # Count issues by severity
+          if [ -f xpath_stability_report.json ]; then
+            XPATH_HIGH=$(jq '[.[] | select(.severity=="HIGH")] | length' xpath_stability_report.json)
+            XPATH_CRITICAL=$(jq '[.[] | select(.severity=="CRITICAL")] | length' xpath_stability_report.json)
+            XPATH_MEDIUM=$(jq '[.[] | select(.severity=="MEDIUM")] | length' xpath_stability_report.json)
+
+            echo "xpath_high=$XPATH_HIGH" >> $GITHUB_OUTPUT
+            echo "xpath_critical=$XPATH_CRITICAL" >> $GITHUB_OUTPUT
+            echo "xpath_medium=$XPATH_MEDIUM" >> $GITHUB_OUTPUT
+
+            echo "### XPath Stability Results" >> $GITHUB_STEP_SUMMARY
+            echo "- CRITICAL: $XPATH_CRITICAL" >> $GITHUB_STEP_SUMMARY
+            echo "- HIGH: $XPATH_HIGH" >> $GITHUB_STEP_SUMMARY
+            echo "- MEDIUM: $XPATH_MEDIUM" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check for XPath Stability Regressions
+        run: |
+          if [ -f xpath_stability_report.json ]; then
+            XPATH_HIGH=${{ steps.xpath.outputs.xpath_high }}
+            XPATH_CRITICAL=${{ steps.xpath.outputs.xpath_critical }}
+
+            # Baseline: 0 CRITICAL, 0 HIGH (after fixes applied 2026-03-05)
+            # All 52 XPath stability issues fixed in commit 23729dc7
+            BASELINE_CRITICAL=0
+            BASELINE_HIGH=0
+
+            if [ "$XPATH_CRITICAL" -gt "$BASELINE_CRITICAL" ] || [ "$XPATH_HIGH" -gt "$BASELINE_HIGH" ]; then
+              echo "❌ REGRESSION: XPath stability issues detected"
+              echo "   CRITICAL: $XPATH_CRITICAL (baseline: $BASELINE_CRITICAL)"
+              echo "   HIGH: $XPATH_HIGH (baseline: $BASELINE_HIGH)"
+              echo ""
+              echo "Issues found:"
+              jq -r '.[] | select(.severity=="CRITICAL" or .severity=="HIGH") | "- [\(.severity)] \(.issue_type): \(.xpath)\n  File: \(.file)\n  Fix: \(.fix_suggestion)"' xpath_stability_report.json
+              exit 1
+            else
+              echo "✅ No XPath stability regressions"
+            fi
+          fi
+
+      - name: Upload XPath Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xpath-stability-report
+          path: xpath_stability_report.json
+
+  # Job 4: Full audit (runs in parallel)
   audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5

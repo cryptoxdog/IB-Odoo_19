@@ -15,7 +15,30 @@
         <field name="priority">25</field>
         <field name="arch" type="xml">
 
-            <!-- ═══ PlasticOS Stat Buttons ═══ -->
+            <!-- ═══ Entity Health Banners + PlasticOS Stat Buttons (single xpath) ═══ -->
+            <xpath expr="//div[@name='button_box']" position="before">
+
+                <!-- BLOCKED entity alert -->
+                <div class="alert alert-danger border-danger border-3 d-flex align-items-center"
+                     role="alert"
+                     invisible="entity_status != 'blocked'">
+                    <i class="fa fa-ban fa-lg me-2" title="Blocked"/>
+                    <strong class="fs-5">⛔ BLOCKED</strong>
+                    <span class="ms-2">— This entity is suspended from all PlasticOS transactions.</span>
+                </div>
+
+                <!-- INACTIVE entity warning -->
+                <div class="alert alert-warning d-flex align-items-center"
+                     role="alert"
+                     invisible="entity_status != 'inactive'">
+                    <i class="fa fa-pause-circle fa-lg me-2" title="Inactive"/>
+                    <strong>INACTIVE</strong>
+                    <span class="ms-2">— Operations paused. No new intakes or loads will be routed here.</span>
+                </div>
+
+            </xpath>
+
+            <!-- Stat buttons inside button_box (separate xpath, different position) -->
             <xpath expr="//div[@name='button_box']" position="inside">
 
                 <!-- Facility Profiles count -->
@@ -39,29 +62,6 @@
                            string="Materials"
                            widget="statinfo"/>
                 </button>
-
-            </xpath>
-
-            <!-- ═══ Entity Health Banner ═══ -->
-            <xpath expr="//div[@name='button_box']" position="before">
-
-                <!-- BLOCKED entity alert -->
-                <div class="alert alert-danger border-danger border-3 d-flex align-items-center"
-                     role="alert"
-                     invisible="entity_status != 'blocked'">
-                    <i class="fa fa-ban fa-lg me-2" title="Blocked"/>
-                    <strong class="fs-5">⛔ BLOCKED</strong>
-                    <span class="ms-2">— This entity is suspended from all PlasticOS transactions.</span>
-                </div>
-
-                <!-- INACTIVE entity warning -->
-                <div class="alert alert-warning d-flex align-items-center"
-                     role="alert"
-                     invisible="entity_status != 'inactive'">
-                    <i class="fa fa-pause-circle fa-lg me-2" title="Inactive"/>
-                    <strong>INACTIVE</strong>
-                    <span class="ms-2">— Operations paused. No new intakes or loads will be routed here.</span>
-                </div>
 
             </xpath>
 

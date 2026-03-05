@@ -21,7 +21,7 @@
             </xpath>
 
             <!-- Add normalization audit page in notebook -->
-            <xpath expr="//notebook" position="inside">
+            <xpath expr="//notebook[1]" position="inside">
                 <page string="Normalization" name="normalization_page">
                     <group>
                         <group string="Status">

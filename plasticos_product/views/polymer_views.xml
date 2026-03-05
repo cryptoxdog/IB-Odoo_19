@@ -10,7 +10,7 @@
     <field name="model">plasticos.polymer</field>
     <field name="inherit_id" ref="plasticos_material_profile.plasticos_polymer_view_list"/>
     <field name="arch" type="xml">
-      <xpath expr="//field[@name='category']" position="after">
+      <xpath expr="//list/field[@name='category']" position="after">
         <field name="product_id" string="Product" optional="show"/>
       </xpath>
     </field>
