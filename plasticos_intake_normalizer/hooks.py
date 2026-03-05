@@ -58,9 +58,11 @@ def post_init_hook(env):
             continue
         missing = groups - user.groups_id
         if missing:
-            user.sudo().write({"groups_id": [(4, g.id) for g in missing]})
+            # Odoo 19: Add user to each group via group.users (not user.groups_id)
+            for g in missing:
+                g.sudo().write({"users": [(4, user.id)]})
             _logger.info(
-                "post_init_hook [%s]: granted groups %s to cron user %s " "(cron: %s).",
+                "post_init_hook [%s]: granted groups %s to cron user %s (cron: %s).",
                 _module,
                 missing.mapped("full_name"),
                 user.login,

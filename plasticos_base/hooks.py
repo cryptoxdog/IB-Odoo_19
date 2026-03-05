@@ -42,10 +42,12 @@ def post_init_hook(env):
         groups_to_add.append(claims_group.id)
 
     if groups_to_add:
-        # Use (4, id) to add without removing existing groups
-        cron_user.sudo().write({"groups_id": [(4, gid) for gid in groups_to_add]})
+        # Odoo 19: Add user to each group via group.users (not user.groups_id)
+        for gid in groups_to_add:
+            group = env["res.groups"].browse(gid)
+            group.sudo().write({"users": [(4, cron_user.id)]})
         _logger.info(
-            "Added %d groups to system_cron user: %s",
+            "Added system_cron user to %d groups: %s",
             len(groups_to_add),
             groups_to_add,
         )

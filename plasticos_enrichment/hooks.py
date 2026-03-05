@@ -20,9 +20,10 @@ def post_init_hook(env):
 
     enrichment_group = env.ref("plasticos_enrichment.group_enrichment_manager", raise_if_not_found=False)
     if enrichment_group:
-        cron_user.sudo().write({"groups_id": [(4, enrichment_group.id)]})
+        # Odoo 19: Add user to group via group.users (not user.groups_id)
+        enrichment_group.sudo().write({"users": [(4, cron_user.id)]})
         _logger.info(
-            "Added group_enrichment_manager (id=%d) to system_cron user",
+            "Added system_cron user to group_enrichment_manager (id=%d)",
             enrichment_group.id,
         )
     else:

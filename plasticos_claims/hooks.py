@@ -20,9 +20,10 @@ def post_init_hook(env):
 
     claims_group = env.ref("plasticos_claims.group_claims_manager", raise_if_not_found=False)
     if claims_group:
-        cron_user.sudo().write({"groups_id": [(4, claims_group.id)]})
+        # Odoo 19: Add user to group via group.users (not user.groups_id)
+        claims_group.sudo().write({"users": [(4, cron_user.id)]})
         _logger.info(
-            "Added group_claims_manager (id=%d) to system_cron user",
+            "Added system_cron user to group_claims_manager (id=%d)",
             claims_group.id,
         )
     else:
