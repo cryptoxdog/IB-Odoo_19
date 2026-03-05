@@ -134,7 +134,6 @@
                             <field name="user_id"/>
                             <field name="sale_order_id"/>
                             <field name="purchase_order_ids" widget="many2many_tags"/>
-                            <field name="load_id"/>
                         </group>
                         <group string="Revenue">
                             <field name="revenue_total"/>

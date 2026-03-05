@@ -10,9 +10,9 @@
         "plasticos_base",
     ],
     "data": [
+        "security/ir.model.access.csv",
         "data/normalizer_config_data.xml",
         "data/cron_batch_normalize.xml",
-        "security/ir.model.access.csv",
         "views/normalizer_config_views.xml",
         "views/intake_normalizer_views.xml",
     ],

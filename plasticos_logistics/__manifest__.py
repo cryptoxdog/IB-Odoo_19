@@ -13,6 +13,7 @@
         "views/sale_order_button.xml",
         "views/load_bulk_update_wizard_views.xml",
         "views/load_ux.xml",
+        "views/transaction_load_views.xml",
         "report/load_reports.xml",
         "report/report_bol_pickup.xml",
         "report/report_bol_delivery.xml",

@@ -106,6 +106,17 @@ class PlasticosLoad(models.Model):
         tracking=True,
     )
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Create load and auto-link to transaction via sale_order_id."""
+        records = super().create(vals_list)
+        for rec in records:
+            if rec.sale_order_id:
+                tx = self.env["plasticos.transaction"].search([("sale_order_id", "=", rec.sale_order_id.id)], limit=1)
+                if tx and not tx.load_id:
+                    tx.load_id = rec.id
+        return records
+
     def write(self, vals):
         """Guard against unauthorized modifications after dispatch.
 
@@ -130,7 +141,16 @@ class PlasticosLoad(models.Model):
                 blocked = set(vals.keys()) - allowed
                 if blocked:
                     raise UserError(f"Load locked after dispatch. Cannot modify: {', '.join(sorted(blocked))}")
-        return super().write(vals)
+
+        res = super().write(vals)
+
+        if "state" in vals and vals["state"] == "closed":
+            for rec in self:
+                tx = self.env["plasticos.transaction"].search([("load_id", "=", rec.id)], limit=1)
+                if tx:
+                    tx.message_post(body="Logistics closed.")
+
+        return res
 
     @api.depends("dispatched_at", "delivered_at")
     def _compute_cycle_time(self):

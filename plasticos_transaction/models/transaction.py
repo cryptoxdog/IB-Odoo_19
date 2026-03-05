@@ -21,8 +21,6 @@ class PlasticosTransaction(models.Model):
     sale_order_id = fields.Many2one("sale.order")
     purchase_order_ids = fields.Many2many("purchase.order")
 
-    load_id = fields.Many2one("plasticos.load")
-
     # ── Partner References (harvested from linda_logistics_v6) ──
     supplier_id = fields.Many2one(
         "res.partner",
@@ -848,7 +846,8 @@ class PlasticosTransaction(models.Model):
             if any(bill.state != "posted" for bill in rec.vendor_bill_ids):
                 raise UserError("Vendor bills must be posted.")
 
-            if rec.load_id and rec.load_id.state != "closed":
+            load = getattr(rec, "load_id", False)
+            if load and load.state != "closed":
                 raise UserError("Logistics must be closed.")
 
             if service_docs and not service_docs.is_compliant("plasticos.transaction", rec.id):
@@ -895,19 +894,6 @@ class PlasticosTransaction(models.Model):
             "type": "ir.actions.act_window",
             "res_model": "res.partner",
             "res_id": self.buyer_id.id,
-            "view_mode": "form",
-            "target": "current",
-        }
-
-    def action_view_load(self):
-        """Open the linked load form."""
-        self.ensure_one()
-        if not self.load_id:
-            return False
-        return {
-            "type": "ir.actions.act_window",
-            "res_model": "plasticos.load",
-            "res_id": self.load_id.id,
             "view_mode": "form",
             "target": "current",
         }

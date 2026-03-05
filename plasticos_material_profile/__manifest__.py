@@ -6,6 +6,7 @@
     "author": "PlasticOS",
     "category": "Operations",
     "depends": [
+        "plasticos_base",
         "base",
         "contacts",
         "mail",

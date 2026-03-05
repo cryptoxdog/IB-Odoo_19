@@ -1,0 +1,89 @@
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         TRANSACTION FORM — Add load_id field (injected by logistics)
+         Inherits: plasticos_transaction.view_transaction_form
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_transaction_form_load" model="ir.ui.view">
+        <field name="name">plasticos.transaction.form.load</field>
+        <field name="model">plasticos.transaction</field>
+        <field name="inherit_id" ref="plasticos_transaction.view_transaction_form"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+
+            <!-- Add load_id to Orders group -->
+            <xpath expr="//group[@string='Orders']/field[@name='purchase_order_ids']" position="after">
+                <field name="load_id"/>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         TRANSACTION FORM UX — Add Load smart button
+         Inherits: plasticos_transaction.view_transaction_form
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_transaction_form_load_button" model="ir.ui.view">
+        <field name="name">plasticos.transaction.form.load.button</field>
+        <field name="model">plasticos.transaction</field>
+        <field name="inherit_id" ref="plasticos_transaction.view_transaction_form"/>
+        <field name="priority">35</field>
+        <field name="arch" type="xml">
+
+            <!-- Add Load smart button to button_box -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_load"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-truck"
+                        invisible="not load_id">
+                    <span class="o_stat_text">Load</span>
+                </button>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         TRANSACTION LIST — Add load_id column
+         Inherits: plasticos_transaction.view_transaction_tree
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_transaction_tree_load" model="ir.ui.view">
+        <field name="name">plasticos.transaction.tree.load</field>
+        <field name="model">plasticos.transaction</field>
+        <field name="inherit_id" ref="plasticos_transaction.view_transaction_tree"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+
+            <!-- Add load reference after sale order -->
+            <xpath expr="//field[@name='sale_order_id']" position="after">
+                <field name="load_id" string="Load" optional="show"/>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         TRANSACTION SEARCH — Add load_id filter
+         Inherits: plasticos_transaction.view_transaction_search
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_transaction_search_load" model="ir.ui.view">
+        <field name="name">plasticos.transaction.search.load</field>
+        <field name="model">plasticos.transaction</field>
+        <field name="inherit_id" ref="plasticos_transaction.view_transaction_search"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+
+            <!-- Add load_id to search fields -->
+            <xpath expr="//field[@name='buyer_id']" position="after">
+                <field name="load_id"/>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>
