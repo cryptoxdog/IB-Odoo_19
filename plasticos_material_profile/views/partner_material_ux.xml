@@ -23,6 +23,7 @@
 
                     <!-- Summary banner (zero-state guidance) -->
                     <div class="alert alert-light text-muted"
+                         role="status"
                          invisible="material_profile_count > 0">
                         <i class="fa fa-info-circle" title="Info"/>
                         No material profiles yet. Click "Add a line" to define what
