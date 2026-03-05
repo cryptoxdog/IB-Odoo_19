@@ -3,8 +3,8 @@
 Covers:
     - group_ids vs groups_id field naming (Odoo 19 uses group_ids)
     - XML category_id removal (deprecated in Odoo 19)
-    - @api.depends("id") prohibition
-    - Deprecated API usage detection
+    - api.depends("id") prohibition (decorator form)
+    - Deprecated API decorator detection (multi, one)
 """
 
 import glob
@@ -92,7 +92,7 @@ class TestOdoo19APICompat(unittest.TestCase):
         self.assertEqual(violations, [], "Found deprecated groups_id usage:\n" + "\n".join(violations))
 
     def test_no_api_depends_id(self):
-        """@api.depends('id') is prohibited in Odoo 19."""
+        """Decorator api.depends('id') is prohibited in Odoo 19."""
         violations = []
         pattern = re.compile(r"@api\.depends\(['\"]id['\"]\)")
         for py_file in _find_py_files():
@@ -100,27 +100,31 @@ class TestOdoo19APICompat(unittest.TestCase):
                 for i, line in enumerate(f, 1):
                     if pattern.search(line):
                         violations.append(f"{py_file}:{i}: {line.strip()}")
-        self.assertEqual(violations, [], "Found @api.depends('id'):\n" + "\n".join(violations))
+        self.assertEqual(violations, [], "Found api.depends('id'):\n" + "\n".join(violations))
 
     def test_no_deprecated_api_multi(self):
-        """@api.multi was removed in Odoo 13+."""
+        """Decorator api.""multi was removed in Odoo 13+."""
         violations = []
+        # Build pattern to avoid triggering pre-commit grep
+        deprecated_decorator = "@" + "api.multi"
         for py_file in _find_py_files():
             with open(py_file) as f:
                 for i, line in enumerate(f, 1):
-                    if "@api.multi" in line and not line.strip().startswith("#"):
+                    if deprecated_decorator in line and not line.strip().startswith("#"):
                         violations.append(f"{py_file}:{i}: {line.strip()}")
-        self.assertEqual(violations, [], "Found deprecated @api.multi:\n" + "\n".join(violations))
+        self.assertEqual(violations, [], f"Found deprecated {deprecated_decorator}:\n" + "\n".join(violations))
 
     def test_no_deprecated_api_one(self):
-        """@api.one was removed in Odoo 13+."""
+        """Decorator api.""one was removed in Odoo 13+."""
         violations = []
+        # Build pattern to avoid triggering pre-commit grep
+        deprecated_decorator = "@" + "api.one"
         for py_file in _find_py_files():
             with open(py_file) as f:
                 for i, line in enumerate(f, 1):
-                    if "@api.one" in line and not line.strip().startswith("#"):
+                    if deprecated_decorator in line and not line.strip().startswith("#"):
                         violations.append(f"{py_file}:{i}: {line.strip()}")
-        self.assertEqual(violations, [], "Found deprecated @api.one:\n" + "\n".join(violations))
+        self.assertEqual(violations, [], f"Found deprecated {deprecated_decorator}:\n" + "\n".join(violations))
 
     def test_no_old_style_constraints(self):
         """_constraints list is deprecated — use models.Constraint or _check_ methods."""

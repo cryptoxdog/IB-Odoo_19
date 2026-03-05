@@ -47,3 +47,5 @@ from . import test_depends_plasticos_transaction
 from . import test_depends_transaction_computes
 from . import test_statemachine_transaction
 from . import test_wizard_transaction_import
+from . import test_wizard_transaction_bulk_assign
+from . import test_wizard_transaction_bulk_update
