@@ -32,7 +32,7 @@
 
                 <!-- Private Flag -->
                 <group string="Privacy Setting" invisible="action_type != 'set_private'">
-                    <field name="x_private"/>
+                    <field name="is_private"/>
                     <div class="alert alert-info" role="alert">
                         <strong>Note:</strong> Private partners are only visible to their assigned salesperson
                         and users with elevated permissions.
