@@ -166,8 +166,8 @@
        Uses view reference to avoid duplication
        ═══════════════════════════════════════════════════════════════════ -->
 
-  <record id="view_partner_form_material_tab" model="ir.ui.view">
-    <field name="name">res.partner.form.material.tab</field>
+  <record id="view_partner_form_material_tab_base" model="ir.ui.view">
+    <field name="name">res.partner.form.material.tab.base</field>
     <field name="model">res.partner</field>
     <field name="inherit_id" ref="base.view_partner_form"/>
     <field name="arch" type="xml">

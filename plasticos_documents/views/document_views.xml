@@ -61,8 +61,8 @@
         </field>
     </record>
 
-    <record id="view_document_form" model="ir.ui.view">
-        <field name="name">plasticos.document.form</field>
+    <record id="view_document_form_base" model="ir.ui.view">
+        <field name="name">plasticos.document.form.base</field>
         <field name="model">plasticos.document</field>
         <field name="arch" type="xml">
             <form>
