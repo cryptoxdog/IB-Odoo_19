@@ -105,10 +105,12 @@ class EnrichmentRun(models.Model):
             )
             return
 
+        # Collect extraction results for batch create
+        extraction_vals_list = []
         for source in succeeded:
             try:
                 parsed = svc.extract_from_source(source)
-                self.env["plasticos.enrichment.extraction"].create(
+                extraction_vals_list.append(
                     {
                         "run_id": self.id,
                         "source_id": source.id,
@@ -128,6 +130,10 @@ class EnrichmentRun(models.Model):
                     source.url,
                     e,
                 )
+
+        # Batch create all extractions
+        if extraction_vals_list:
+            self.env["plasticos.enrichment.extraction"].create(extraction_vals_list)
 
         # 3. Evaluate
         if not self.extraction_ids:

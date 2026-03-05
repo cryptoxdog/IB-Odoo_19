@@ -19,10 +19,13 @@ class SaleOrder(models.Model):
         """
         res = super().action_confirm()
 
-        for rec in self:
-            if not rec.transaction_id:
-                transaction = self.env["plasticos.transaction"].create({"sale_order_id": rec.id})
-                rec.transaction_id = transaction.id
-                transaction.action_activate()
+        # Batch create transactions for SOs without one
+        recs_needing_tx = self.filtered(lambda r: not r.transaction_id)
+        if recs_needing_tx:
+            vals_list = [{"sale_order_id": rec.id} for rec in recs_needing_tx]
+            transactions = self.env["plasticos.transaction"].create(vals_list)
+            for rec, tx in zip(recs_needing_tx, transactions):
+                rec.transaction_id = tx.id
+                tx.action_activate()
 
         return res

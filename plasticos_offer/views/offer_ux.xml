@@ -14,8 +14,10 @@
         <field name="priority">20</field>
         <field name="arch" type="xml">
 
-            <!-- ═══ Smart Button Box (form has none) ═══ -->
+            <!-- ═══ Smart Buttons + Status Banners (before Origin group) ═══ -->
             <xpath expr="//group[@name='origin']" position="before">
+
+                <!-- Smart Button Box -->
                 <div class="oe_button_box" name="button_box">
 
                     <!-- Intake jump -->
@@ -59,10 +61,8 @@
                     </button>
 
                 </div>
-            </xpath>
 
-            <!-- ═══ Status Banners (above Origin group) ═══ -->
-            <xpath expr="//group[@name='origin']" position="before">
+                <!-- Status Banners -->
 
                 <!-- Expiring Soon warning (≤7 days) -->
                 <div class="alert alert-warning d-flex align-items-center"

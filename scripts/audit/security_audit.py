@@ -67,7 +67,8 @@ class SecurityAudit:
         ]
 
         for py_file in self.root_dir.rglob("**/*.py"):
-            if "tests/" in str(py_file):
+            # Skip virtual environments and test files
+            if ".venv" in str(py_file) or "venv" in str(py_file) or "tests/" in str(py_file):
                 continue
 
             with open(py_file, encoding="utf-8") as f:

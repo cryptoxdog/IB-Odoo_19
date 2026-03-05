@@ -36,12 +36,14 @@ class AccountMove(models.Model):
                 limit=200,
             )
 
+            # Collect log entries for batch create
+            log_vals_list = []
             for inv in overdue:
                 inv.message_post(
                     body=f"Automated reminder: invoice is overdue by more than {config.invoice_overdue_days} days.",
                 )
                 inv.last_reminder_date = today
-                self.env["plasticos.automation.log"].create(
+                log_vals_list.append(
                     {
                         "name": f"Invoice reminder {inv.name}",
                         "model_name": "account.move",
@@ -49,6 +51,10 @@ class AccountMove(models.Model):
                         "action_type": "invoice_reminder",
                     }
                 )
+
+            # Batch create all log entries
+            if log_vals_list:
+                self.env["plasticos.automation.log"].create(log_vals_list)
         finally:
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_automation.cron_invoice_reminder"]

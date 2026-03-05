@@ -3,7 +3,7 @@
     <record id="view_intake_form_offers_bridge" model="ir.ui.view">
         <field name="name">plasticos.intake.form.offers.bridge</field>
         <field name="model">plasticos.intake</field>
-        <field name="inherit_id" ref="plasticos_intake.view_intake_form"/>
+        <field name="inherit_id" ref="plasticos_intake.view_plasticos_intake_form"/>
         <field name="priority">35</field>
         <field name="arch" type="xml">
             <xpath expr="//div[@name='button_box']" position="inside">

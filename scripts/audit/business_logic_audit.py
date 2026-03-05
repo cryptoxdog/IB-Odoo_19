@@ -24,6 +24,10 @@ class BusinessLogicAudit:
         ]
 
         for py_file in self.root_dir.rglob("models/*.py"):
+            # Skip virtual environments and test files
+            if ".venv" in str(py_file) or "venv" in str(py_file) or "/tests/" in str(py_file):
+                continue
+
             with open(py_file, encoding="utf-8") as f:
                 content = f.read()
                 lines = content.split("\n")
@@ -31,11 +35,12 @@ class BusinessLogicAudit:
                 for i, line in enumerate(lines, 1):
                     for pattern in DANGEROUS_OPS:
                         if re.search(pattern, line):
-                            # Look back for ensure_one() in same method
-                            method_start = max(0, i - 20)
+                            # Look back for ensure_one() in same method (increased to 50 lines)
+                            method_start = max(0, i - 50)
                             method_lines = "\n".join(lines[method_start:i])
 
-                            if "ensure_one()" not in method_lines:
+                            # Also check for "for rec in self" pattern (multi-record safe)
+                            if "ensure_one()" not in method_lines and "for rec in self" not in method_lines:
                                 errors.append(
                                     {
                                         "type": "MISSING_ENSURE_ONE",

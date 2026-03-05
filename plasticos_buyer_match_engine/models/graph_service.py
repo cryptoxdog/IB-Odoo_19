@@ -599,27 +599,42 @@ class PlasticosGraphService(models.AbstractModel):
         """
         MatchResult = self.env["plasticos.match.result"]
 
+        # Batch query: collect all partner IDs and fetch in one query
+        partner_ids = [row.get("facility_id") for row in rows if row.get("facility_id")]
+        partners = self.env["res.partner"].browse(partner_ids).exists()
+        partner_by_id = {p.id: p for p in partners}
+
+        # Batch fetch facility profiles for all partners
+        profiles = (
+            self.env["plasticos.facility.profile"].search(
+                [
+                    ("partner_id", "in", partner_ids),
+                    ("active", "=", True),
+                ]
+            )
+            if partner_ids
+            else self.env["plasticos.facility.profile"]
+        )
+        profile_by_partner = {p.partner_id.id: p for p in profiles}
+
+        # Prepare batch create vals
+        vals_list = []
         for row in rows:
             try:
-                # facility_id from Cypher = res.partner.id (set in sync)
                 partner_id = row.get("facility_id")
                 buyer_partner_id = None
                 buyer_facility_id = None
                 facility_profile_id = None
-                if partner_id:
-                    partner = self.env["res.partner"].browse(partner_id)
-                    if partner.exists():
-                        # buyer_partner_id = company (parent) or partner itself
-                        buyer_partner_id = partner.parent_id.id or partner.id
-                        buyer_facility_id = partner.id
-                    # Look up first matching profile for this partner
-                    profile = self.env["plasticos.facility.profile"].search(
-                        [("partner_id", "=", partner_id), ("active", "=", True)], limit=1
-                    )
+
+                if partner_id and partner_id in partner_by_id:
+                    partner = partner_by_id[partner_id]
+                    buyer_partner_id = partner.parent_id.id or partner.id
+                    buyer_facility_id = partner.id
+                    profile = profile_by_partner.get(partner_id)
                     if profile:
                         facility_profile_id = profile.id
 
-                MatchResult.create(
+                vals_list.append(
                     {
                         "intake_id": intake.id,
                         "buyer_partner_id": buyer_partner_id,
@@ -633,7 +648,14 @@ class PlasticosGraphService(models.AbstractModel):
                     }
                 )
             except Exception as e:
-                _logger.warning("Failed to persist match result: %s", e)
+                _logger.warning("Failed to prepare match result: %s", e)
+
+        # Batch create all results
+        if vals_list:
+            try:
+                MatchResult.create(vals_list)
+            except Exception as e:
+                _logger.warning("Failed to batch create match results: %s", e)
 
     def _get_pool(self):
         """Return shared Neo4jConnectionPool; raises UserError if Neo4j not configured."""

@@ -111,11 +111,19 @@ class PlasticosLoad(models.Model):
     def create(self, vals_list):
         """Create load and auto-link to transaction via sale_order_id."""
         records = super().create(vals_list)
-        for rec in records:
-            if rec.sale_order_id:
-                tx = self.env["plasticos.transaction"].search([("sale_order_id", "=", rec.sale_order_id.id)], limit=1)
-                if tx and not tx.load_id:
-                    tx.load_id = rec.id
+        # Batch query: find all transactions for sale orders in one query
+        sale_order_ids = [rec.sale_order_id.id for rec in records if rec.sale_order_id]
+        if sale_order_ids:
+            transactions = self.env["plasticos.transaction"].search(
+                [
+                    ("sale_order_id", "in", sale_order_ids),
+                    ("load_id", "=", False),
+                ]
+            )
+            tx_by_so = {tx.sale_order_id.id: tx for tx in transactions}
+            for rec in records:
+                if rec.sale_order_id and rec.sale_order_id.id in tx_by_so:
+                    tx_by_so[rec.sale_order_id.id].load_id = rec.id
         return records
 
     def write(self, vals):
@@ -149,10 +157,10 @@ class PlasticosLoad(models.Model):
         res = super().write(vals)
 
         if "state" in vals and vals["state"] == "closed":
-            for rec in self:
-                tx = self.env["plasticos.transaction"].search([("load_id", "=", rec.id)], limit=1)
-                if tx:
-                    tx.message_post(body="Logistics closed.")
+            # Batch query: find all transactions for these loads in one query
+            transactions = self.env["plasticos.transaction"].search([("load_id", "in", self.ids)])
+            for tx in transactions:
+                tx.message_post(body="Logistics closed.")
 
         return res
 
@@ -167,9 +175,11 @@ class PlasticosLoad(models.Model):
 
     def _compute_transaction_id(self):
         """Reverse lookup: find transaction that references this load."""
+        # Batch query: find all transactions for these loads in one query
+        transactions = self.env["plasticos.transaction"].search([("load_id", "in", self.ids)])
+        tx_by_load = {tx.load_id.id: tx.id for tx in transactions}
         for rec in self:
-            tx = self.env["plasticos.transaction"].search([("load_id", "=", rec.id)], limit=1)
-            rec.transaction_id = tx.id if tx else False
+            rec.transaction_id = tx_by_load.get(rec.id, False)
 
     def action_confirm_ready(self, user_name):
         for rec in self:

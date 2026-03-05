@@ -19,6 +19,10 @@ class PerformanceAudit:
         ORM_METHODS = ["search", "browse", "read", "write", "create", "unlink"]
 
         for py_file in self.root_dir.rglob("models/*.py"):
+            # Skip virtual environments
+            if ".venv" in str(py_file) or "venv" in str(py_file):
+                continue
+
             with open(py_file, encoding="utf-8") as f:
                 lines = f.readlines()
                 in_loop = False
@@ -56,6 +60,10 @@ class PerformanceAudit:
         errors = []
 
         for py_file in self.root_dir.rglob("models/*.py"):
+            # Skip virtual environments
+            if ".venv" in str(py_file) or "venv" in str(py_file):
+                continue
+
             with open(py_file, encoding="utf-8") as f:
                 for line_num, line in enumerate(f, 1):
                     if ".search(" in line and "limit=" not in line:

@@ -40,10 +40,31 @@ class AccountMove(models.Model):
         """
         service = self.env.get("plasticos.compliance.service")
 
+        # Batch query: collect all invoice_origins for SO lookup
+        out_invoice_origins = [
+            rec.invoice_origin for rec in self if rec.move_type == "out_invoice" and rec.invoice_origin
+        ]
+        in_invoice_origins = [
+            rec.invoice_origin for rec in self if rec.move_type == "in_invoice" and rec.invoice_origin
+        ]
+        all_origins = list(set(out_invoice_origins + in_invoice_origins))
+
+        # Batch fetch SOs and POs
+        so_by_name = {}
+        po_by_name = {}
+        if all_origins:
+            sale_orders = self.env["sale.order"].search([("name", "in", all_origins)])
+            so_by_name = {so.name: so for so in sale_orders}
+            # For origins not found as SOs, try POs
+            missing_origins = [o for o in in_invoice_origins if o not in so_by_name]
+            if missing_origins:
+                purchase_orders = self.env["purchase.order"].search([("name", "in", missing_origins)])
+                po_by_name = {po.name: po for po in purchase_orders}
+
         # Pre-check compliance BEFORE posting (prevents side effects on rollback)
         for rec in self:
             if rec.move_type == "out_invoice" and rec.invoice_origin:
-                so = self.env["sale.order"].search([("name", "=", rec.invoice_origin)], limit=1)
+                so = so_by_name.get(rec.invoice_origin)
                 if so and so.transaction_id:
                     if service and not service.is_compliant("plasticos.transaction", so.transaction_id.id):
                         raise UserError("Missing required documents for invoice posting.")
@@ -57,26 +78,32 @@ class AccountMove(models.Model):
         # Now safe to post
         res = super().action_post()
 
+        # Batch fetch transactions for POs (for vendor bill linking)
+        po_ids = [po.id for po in po_by_name.values()]
+        tx_by_po = {}
+        if po_ids:
+            transactions = self.env["plasticos.transaction"].search([("purchase_order_ids", "in", po_ids)])
+            for tx in transactions:
+                for po in tx.purchase_order_ids:
+                    tx_by_po[po.id] = tx
+
         # Link moves to transactions AFTER successful post
         for rec in self:
             if rec.move_type == "out_invoice" and rec.invoice_origin:
-                so = self.env["sale.order"].search([("name", "=", rec.invoice_origin)], limit=1)
+                so = so_by_name.get(rec.invoice_origin)
                 if so and so.transaction_id:
                     so.transaction_id.customer_invoice_id = rec.id
 
             if rec.move_type == "in_invoice" and rec.invoice_origin:
                 # Try linking via Sale Order (if origin is SO name)
-                so = self.env["sale.order"].search([("name", "=", rec.invoice_origin)], limit=1)
+                so = so_by_name.get(rec.invoice_origin)
                 if so and so.transaction_id:
                     so.transaction_id.vendor_bill_ids = [(4, rec.id)]
                 else:
                     # Try linking via Purchase Order (if origin is PO name)
-                    po = self.env["purchase.order"].search([("name", "=", rec.invoice_origin)], limit=1)
-                    if po:
-                        # Find transaction containing this PO
-                        tx = self.env["plasticos.transaction"].search([("purchase_order_ids", "in", po.id)], limit=1)
-                        if tx:
-                            tx.vendor_bill_ids = [(4, rec.id)]
+                    po = po_by_name.get(rec.invoice_origin)
+                    if po and po.id in tx_by_po:
+                        tx_by_po[po.id].vendor_bill_ids = [(4, rec.id)]
 
         return res
 

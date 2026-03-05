@@ -17,17 +17,32 @@ class PlasticosComplianceService(models.AbstractModel):
 
         missing = []
 
-        for rule in rules:
-            docs = self.env["plasticos.document"].search(
+        # Batch query: fetch all documents for this record with any of the rule tags
+        tag_ids = rules.mapped("tag_id").ids
+        all_docs = (
+            self.env["plasticos.document"].search(
                 [
                     ("res_model", "=", res_model),
                     ("res_id", "=", res_id),
-                    ("tag_id", "=", rule.tag_id.id),
+                    ("tag_id", "in", tag_ids),
                     "|",
                     ("verified", "=", True),
                     ("override", "=", True),
                 ]
             )
+            if tag_ids
+            else self.env["plasticos.document"]
+        )
+
+        # Group docs by tag_id
+        docs_by_tag = {}
+        for doc in all_docs:
+            if doc.tag_id.id not in docs_by_tag:
+                docs_by_tag[doc.tag_id.id] = self.env["plasticos.document"]
+            docs_by_tag[doc.tag_id.id] |= doc
+
+        for rule in rules:
+            docs = docs_by_tag.get(rule.tag_id.id, self.env["plasticos.document"])
             # Filter out expired documents so they no longer satisfy compliance
             valid_docs = docs.filtered(lambda d: not d.is_expired)
 
