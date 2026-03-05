@@ -56,7 +56,7 @@ def post_init_hook(env):
         user = cron.user_id
         if not user:
             continue
-        missing = groups - user.groups_id
+        missing = groups - user.group_ids
         if missing:
             # Odoo 19: Use direct SQL for user-group assignment during module loading
             for g in missing:
