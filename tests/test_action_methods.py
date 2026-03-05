@@ -5,51 +5,38 @@ Covers 67+ action methods across 9 models:
     plasticos.claim (7), plasticos.web.lead (6), crm.lead (6),
     plasticos.enrichment.run (5), plasticos.material.profile (6),
     plasticos.transaction (4)
+
+Each test class validates:
+- Action methods execute without error
+- State transitions are correct
+- Chatter messages are posted where expected
+- Return values (action dicts) are properly formed
+- Error conditions raise appropriate exceptions
 """
 
-import unittest
 from unittest.mock import patch
 
 from odoo.exceptions import UserError, ValidationError
-from odoo.tests.common import TransactionCase
+from odoo.tests.common import TransactionCase, tagged
 
-
-# ═══════════════════════════════════════════════════════════════
-# Shared Factory Mixin
-# ═══════════════════════════════════════════════════════════════
-class PlastOSFactoryMixin:
-    """Shared record creation helpers."""
-
-    @classmethod
-    def _create_partner(cls, name="Test Partner", **kw):
-        vals = {"name": name, "is_company": True}
-        vals.update(kw)
-        return cls.env["res.partner"].create(vals)
-
-    @classmethod
-    def _create_polymer(cls, code="HDPE"):
-        return cls.env["plasticos.polymer"].create({"name": code, "code": code})
-
-    @classmethod
-    def _create_form(cls, code="pellet"):
-        return cls.env["plasticos.material.form"].create({"name": code.title(), "code": code})
+from .common import PlastOSTestFactoryMixin
 
 
 # ═══════════════════════════════════════════════════════════════
 # 1. plasticos.intake — 14 action methods
 # ═══════════════════════════════════════════════════════════════
-class TestIntakeActions(TransactionCase, PlastOSFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "action", "intake")
+class TestIntakeActions(TransactionCase, PlastOSTestFactoryMixin):
     """Tests for plasticos.intake action/button methods."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "plasticos.intake" not in cls.env:
-            raise unittest.SkipTest("plasticos.intake not installed")
+        cls._skip_if_model_missing("plasticos.intake")
         cls.Intake = cls.env["plasticos.intake"]
         cls.partner = cls._create_partner("Intake Supplier")
-        cls.polymer = cls._create_polymer()
-        cls.form = cls._create_form()
+        cls.polymer = cls._get_or_create_polymer()
+        cls.form = cls._get_or_create_form()
 
     def _make_intake(self, **kw):
         vals = {
@@ -75,8 +62,12 @@ class TestIntakeActions(TransactionCase, PlastOSFactoryMixin):
     def test_action_confirm_not_draft_raises(self):
         intake = self._make_intake()
         intake.action_confirm()
-        with self.assertRaises((UserError, ValidationError)):
+        raised = False
+        try:
             intake.action_confirm()
+        except (UserError, ValidationError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     # action_cancel
     def test_action_cancel_sets_cancelled(self):
@@ -157,12 +148,14 @@ class TestIntakeActions(TransactionCase, PlastOSFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # 2. plasticos.load — 10 action methods
 # ═══════════════════════════════════════════════════════════════
-class TestLoadActions(TransactionCase, PlastOSFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "action", "load")
+class TestLoadActions(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for plasticos.load action/button methods."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "plasticos.load" not in cls.env:
-            raise unittest.SkipTest("plasticos.load not installed")
+        cls._skip_if_model_missing("plasticos.load")
         cls.Load = cls.env["plasticos.load"]
 
     def _make_load(self, **kw):
@@ -235,12 +228,14 @@ class TestLoadActions(TransactionCase, PlastOSFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # 3. plasticos.offer — 9 action methods
 # ═══════════════════════════════════════════════════════════════
-class TestOfferActions(TransactionCase, PlastOSFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "action", "offer")
+class TestOfferActions(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for plasticos.offer action/button methods."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "plasticos.offer" not in cls.env:
-            raise unittest.SkipTest("plasticos.offer not installed")
+        cls._skip_if_model_missing("plasticos.offer")
         cls.Offer = cls.env["plasticos.offer"]
         cls.partner = cls._create_partner("Offer Buyer")
 
@@ -308,16 +303,24 @@ class TestOfferActions(TransactionCase, PlastOSFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # 4. plasticos.claim — 7 action methods
 # ═══════════════════════════════════════════════════════════════
-class TestClaimActions(TransactionCase, PlastOSFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "action", "claim")
+class TestClaimActions(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for plasticos.claim action/button methods."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "plasticos.claim" not in cls.env:
-            raise unittest.SkipTest("plasticos.claim not installed")
+        cls._skip_if_model_missing("plasticos.claim", "plasticos.transaction")
         cls.Claim = cls.env["plasticos.claim"]
+        cls.tx = cls._create_transaction(name="TX-CLM-ACTION")
 
     def _make_claim(self, **kw):
-        vals = {"name": "CLM-ACTION-TEST", "state": "open"}
+        vals = {
+            "transaction_id": self.tx.id,
+            "case_type": "buyer_claim",
+            "severity": "medium",
+            "state": "pending",
+        }
         vals.update(kw)
         return self.Claim.create(vals)
 
@@ -367,12 +370,14 @@ class TestClaimActions(TransactionCase, PlastOSFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # 5. plasticos.web.lead — 6 action methods
 # ═══════════════════════════════════════════════════════════════
-class TestWebLeadActions(TransactionCase, PlastOSFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "action", "web_lead")
+class TestWebLeadActions(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for plasticos.web.lead action/button methods."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "plasticos.web.lead" not in cls.env:
-            raise unittest.SkipTest("plasticos.web.lead not installed")
+        cls._skip_if_model_missing("plasticos.web.lead")
         cls.WebLead = cls.env["plasticos.web.lead"]
 
     def _make_web_lead(self, **kw):
@@ -439,10 +444,14 @@ class TestWebLeadActions(TransactionCase, PlastOSFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # 6. crm.lead — 6 action methods (plasticos_crm_bridge)
 # ═══════════════════════════════════════════════════════════════
-class TestCrmLeadActions(TransactionCase, PlastOSFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "action", "crm")
+class TestCrmLeadActions(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for crm.lead action methods added by plasticos_crm_bridge."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls._skip_if_model_missing("crm.lead")
         cls.Lead = cls.env["crm.lead"]
         cls.partner = cls._create_partner("CRM Test Co")
 
@@ -520,12 +529,14 @@ class TestCrmLeadActions(TransactionCase, PlastOSFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # 7. plasticos.enrichment.run — 5 action methods
 # ═══════════════════════════════════════════════════════════════
-class TestEnrichmentRunActions(TransactionCase, PlastOSFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "action", "enrichment")
+class TestEnrichmentRunActions(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for plasticos.enrichment.run action/button methods."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "plasticos.enrichment.run" not in cls.env:
-            raise unittest.SkipTest("plasticos.enrichment.run not installed")
+        cls._skip_if_model_missing("plasticos.enrichment.run")
         cls.Run = cls.env["plasticos.enrichment.run"]
 
     def _make_run(self, **kw):
@@ -566,15 +577,17 @@ class TestEnrichmentRunActions(TransactionCase, PlastOSFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # 8. plasticos.material.profile — 6 action methods
 # ═══════════════════════════════════════════════════════════════
-class TestMaterialProfileActions(TransactionCase, PlastOSFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "action", "material_profile")
+class TestMaterialProfileActions(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for plasticos.material.profile action/button methods."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "plasticos.material.profile" not in cls.env:
-            raise unittest.SkipTest("plasticos.material.profile not installed")
+        cls._skip_if_model_missing("plasticos.material.profile")
         cls.Profile = cls.env["plasticos.material.profile"]
         cls.partner = cls._create_partner("Profile Facility")
-        cls.polymer = cls._create_polymer()
+        cls.polymer = cls._get_or_create_polymer()
 
     def _make_profile(self, **kw):
         vals = {"partner_id": self.partner.id, "polymer_id": self.polymer.id}
@@ -619,12 +632,14 @@ class TestMaterialProfileActions(TransactionCase, PlastOSFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # 9. plasticos.transaction — 4 action methods
 # ═══════════════════════════════════════════════════════════════
-class TestTransactionActions(TransactionCase, PlastOSFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "action", "transaction")
+class TestTransactionActions(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for plasticos.transaction action/button methods."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "plasticos.transaction" not in cls.env:
-            raise unittest.SkipTest("plasticos.transaction not installed")
+        cls._skip_if_model_missing("plasticos.transaction")
         cls.Tx = cls.env["plasticos.transaction"]
 
     def _make_tx(self, **kw):

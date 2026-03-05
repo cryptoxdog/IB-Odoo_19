@@ -16,15 +16,21 @@ class TestClaimBulkUpdateWizard(TransactionCase):
                 "login": "claim_handler_test",
             }
         )
+        # Create transaction for claims to reference
+        cls.tx = cls.env["plasticos.transaction"].create({"name": "TX-BULK-UPDATE"})
         cls.claim1 = cls.env["plasticos.claim"].create(
             {
-                "name": "CLM-BU-001",
+                "transaction_id": cls.tx.id,
+                "case_type": "buyer_claim",
+                "severity": "medium",
                 "state": "pending",
             }
         )
         cls.claim2 = cls.env["plasticos.claim"].create(
             {
-                "name": "CLM-BU-002",
+                "transaction_id": cls.tx.id,
+                "case_type": "buyer_claim",
+                "severity": "medium",
                 "state": "in_progress",
             }
         )

@@ -26,7 +26,7 @@ class PlasticosDispatch(models.Model):
     _name = "plasticos.dispatch"
     _description = "Plasticos Dispatch"
 
-    name = fields.Char(required=True)
+    name = fields.Char(required=True, default="New Dispatch")
     state = fields.Selection(
         [
             ("quoted", "Quoted"),

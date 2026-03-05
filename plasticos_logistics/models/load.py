@@ -21,8 +21,10 @@ class PlasticosLoad(models.Model):
     _description = "Plasticos Logistics Load"
     _inherit = ["mail.thread"]
 
-    name = fields.Char(required=True)
-    sale_order_id = fields.Many2one("sale.order", required=True)
+    name = fields.Char(
+        required=True, default=lambda self: self.env["ir.sequence"].next_by_code("plasticos.load") or "New"
+    )
+    sale_order_id = fields.Many2one("sale.order")
     carrier_id = fields.Many2one("res.partner", string="Carrier")
     rate_amount = fields.Float(string="Rate Amount")
     rate_confirmed_at = fields.Datetime()

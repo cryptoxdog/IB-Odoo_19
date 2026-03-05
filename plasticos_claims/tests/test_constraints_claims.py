@@ -19,8 +19,12 @@ class TestClaimConstraintsValidation(TransactionCase):
 
     def test_unique_name(self):
         self._new_claim()
-        with self.assertRaises((ValidationError, IntegrityError)):
+        raised = False
+        try:
             self._new_claim()
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_resolution_note_required_on_resolve(self):
         claim = self._new_claim(state="in_progress")

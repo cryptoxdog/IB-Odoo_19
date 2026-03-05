@@ -4,43 +4,55 @@ Covers 7 bridge patterns:
     offer_bridge, intake_bridge, match_result_bridge,
     transaction_docs_bridge, load_docs_bridge,
     transaction_claims_bridge, partner_bridge
+
+Bridge models use _inherit to add fields/methods to existing models,
+creating cross-module relationships. These tests validate:
+- Fields are properly added via _inherit
+- Bidirectional relationships are consistent (Many2one ↔ One2many)
+- Computed count fields are accurate
+- Cascade behaviors work correctly
 """
 
-import unittest
+from odoo.tests.common import TransactionCase, tagged
 
-from odoo.tests.common import TransactionCase
-
-
-class BridgeFactoryMixin:
-    """Shared record factories for bridge tests."""
-
-    @classmethod
-    def _partner(cls, name="Bridge Partner"):
-        return cls.env["res.partner"].create({"name": name, "is_company": True})
-
-    @classmethod
-    def _polymer(cls):
-        return cls.env["plasticos.polymer"].create({"name": "HDPE", "code": "HDPE"})
-
-    @classmethod
-    def _form(cls):
-        return cls.env["plasticos.material.form"].create({"name": "Pellet", "code": "pellet"})
+from .common import PlastOSTestFactoryMixin
 
 
 # ═══════════════════════════════════════════════════════════════
 # 1. Offer ↔ Transaction Bridge
 # ═══════════════════════════════════════════════════════════════
-class TestOfferBridge(TransactionCase, BridgeFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "bridge", "offer")
+class TestOfferBridge(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for offer ↔ transaction bidirectional relationship."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        for model in ("plasticos.offer", "plasticos.transaction"):
-            if model not in cls.env:
-                raise unittest.SkipTest(f"{model} not installed")
-        cls.partner = cls._partner()
+        cls._skip_if_model_missing("plasticos.offer", "plasticos.transaction", "plasticos.intake")
+        cls.supplier = cls._create_partner("Bridge Supplier", supplier_rank=1)
+        cls.buyer = cls._create_partner("Bridge Buyer", customer_rank=1)
+        cls.polymer = cls._get_or_create_polymer()
+        cls.form = cls._get_or_create_form()
+        cls.intake = cls._create_intake(partner=cls.supplier, polymer=cls.polymer, form=cls.form)
+
+    def _make_offer(self, **kw):
+        from datetime import timedelta
+
+        from odoo import fields
+
+        vals = {
+            "intake_id": self.intake.id,
+            "supplier_id": self.supplier.id,
+            "buyer_id": self.buyer.id,
+            "price_per_lb": 0.25,
+            "quantity_lbs": 40000,
+            "valid_until": fields.Date.today() + timedelta(days=30),
+        }
+        vals.update(kw)
+        return self.env["plasticos.offer"].create(vals)
 
     def test_offer_accept_creates_transaction(self):
-        offer = self.env["plasticos.offer"].create({"buyer_partner_id": self.partner.id})
+        offer = self._make_offer()
         if hasattr(offer, "action_send"):
             offer.action_send()
         if hasattr(offer, "action_accept"):
@@ -49,7 +61,7 @@ class TestOfferBridge(TransactionCase, BridgeFactoryMixin):
                 self.assertTrue(offer.transaction_id)
 
     def test_transaction_links_back_to_offer(self):
-        offer = self.env["plasticos.offer"].create({"buyer_partner_id": self.partner.id})
+        offer = self._make_offer()
         if hasattr(offer, "action_send"):
             offer.action_send()
         if hasattr(offer, "action_accept") and hasattr(offer, "transaction_id"):
@@ -59,7 +71,7 @@ class TestOfferBridge(TransactionCase, BridgeFactoryMixin):
                 self.assertEqual(tx.offer_id.id, offer.id)
 
     def test_offer_reject_no_transaction(self):
-        offer = self.env["plasticos.offer"].create({"buyer_partner_id": self.partner.id, "state": "sent"})
+        offer = self._make_offer(state="sent")
         if hasattr(offer, "action_reject"):
             offer.action_reject()
             if hasattr(offer, "transaction_id"):
@@ -69,16 +81,17 @@ class TestOfferBridge(TransactionCase, BridgeFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # 2. Intake ↔ Transaction Bridge
 # ═══════════════════════════════════════════════════════════════
-class TestIntakeBridge(TransactionCase, BridgeFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "bridge", "intake")
+class TestIntakeBridge(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for intake ↔ transaction bidirectional relationship."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        for model in ("plasticos.intake", "plasticos.transaction"):
-            if model not in cls.env:
-                raise unittest.SkipTest(f"{model} not installed")
-        cls.partner = cls._partner()
-        cls.polymer = cls._polymer()
-        cls.form = cls._form()
+        cls._skip_if_model_missing("plasticos.intake", "plasticos.transaction")
+        cls.partner = cls._create_partner()
+        cls.polymer = cls._get_or_create_polymer()
+        cls.form = cls._get_or_create_form()
 
     def test_intake_has_transaction_ids(self):
         intake = self.env["plasticos.intake"].create(
@@ -122,12 +135,14 @@ class TestIntakeBridge(TransactionCase, BridgeFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # 3. Match Result ↔ Transaction Bridge
 # ═══════════════════════════════════════════════════════════════
-class TestMatchResultBridge(TransactionCase, BridgeFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "bridge", "match")
+class TestMatchResultBridge(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for match result bridge fields."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "plasticos.match.result" not in cls.env:
-            raise unittest.SkipTest("plasticos.match.result not installed")
+        cls._skip_if_model_missing("plasticos.match.result")
 
     def test_match_result_has_offer_link(self):
         MR = self.env["plasticos.match.result"]
@@ -148,13 +163,14 @@ class TestMatchResultBridge(TransactionCase, BridgeFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # 4. Transaction ↔ Document Bridge
 # ═══════════════════════════════════════════════════════════════
-class TestTransactionDocsBridge(TransactionCase, BridgeFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "bridge", "document")
+class TestTransactionDocsBridge(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for transaction ↔ document bidirectional relationship."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        for model in ("plasticos.transaction", "plasticos.document"):
-            if model not in cls.env:
-                raise unittest.SkipTest(f"{model} not installed")
+        cls._skip_if_model_missing("plasticos.transaction", "plasticos.document")
 
     def test_transaction_has_document_ids(self):
         Tx = self.env["plasticos.transaction"]
@@ -177,13 +193,14 @@ class TestTransactionDocsBridge(TransactionCase, BridgeFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # 5. Load ↔ Document Bridge
 # ═══════════════════════════════════════════════════════════════
-class TestLoadDocsBridge(TransactionCase, BridgeFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "bridge", "load")
+class TestLoadDocsBridge(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for load ↔ document bidirectional relationship."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        for model in ("plasticos.load", "plasticos.document"):
-            if model not in cls.env:
-                raise unittest.SkipTest(f"{model} not installed")
+        cls._skip_if_model_missing("plasticos.load", "plasticos.document")
 
     def test_load_has_document_ids(self):
         Load = self.env["plasticos.load"]
@@ -200,13 +217,14 @@ class TestLoadDocsBridge(TransactionCase, BridgeFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # 6. Transaction ↔ Claim Bridge
 # ═══════════════════════════════════════════════════════════════
-class TestTransactionClaimsBridge(TransactionCase, BridgeFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "bridge", "claim")
+class TestTransactionClaimsBridge(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for transaction ↔ claim bidirectional relationship."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        for model in ("plasticos.transaction", "plasticos.claim"):
-            if model not in cls.env:
-                raise unittest.SkipTest(f"{model} not installed")
+        cls._skip_if_model_missing("plasticos.transaction", "plasticos.claim")
 
     def test_transaction_has_claim_ids(self):
         Tx = self.env["plasticos.transaction"]
@@ -229,11 +247,14 @@ class TestTransactionClaimsBridge(TransactionCase, BridgeFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # 7. Transaction ↔ Partner Bridge
 # ═══════════════════════════════════════════════════════════════
-class TestPartnerBridge(TransactionCase, BridgeFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "bridge", "partner")
+class TestPartnerBridge(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for partner bridge fields added by PlastOS modules."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.partner = cls._partner()
+        cls.partner = cls._create_partner()
 
     def test_partner_has_intake_ids(self):
         if "intake_ids" in self.env["res.partner"]._fields:
@@ -248,16 +269,23 @@ class TestPartnerBridge(TransactionCase, BridgeFactoryMixin):
             self.assertIsNotNone(self.partner.material_profile_ids)
 
     def test_partner_supplier_rank_from_intake(self):
-        if "plasticos.intake" in self.env:
-            Intake = self.env["plasticos.intake"]
-            polymer = self._polymer()
-            form = self._form()
-            Intake.create(
-                {
-                    "partner_id": self.partner.id,
-                    "polymer_id": polymer.id,
-                    "form_id": form.id,
-                    "quantity_per_load_lbs": 40000,
-                }
-            )
-            self.assertGreaterEqual(self.partner.supplier_rank, 0)
+        """Creating intake for partner should affect supplier_rank."""
+        if "plasticos.intake" not in self.env:
+            self.skipTest("plasticos.intake not installed")
+        polymer = self._get_or_create_polymer()
+        form = self._get_or_create_form()
+        self._create_intake(partner=self.partner, polymer=polymer, form=form)
+        self.assertGreaterEqual(self.partner.supplier_rank, 0)
+
+    def test_partner_intake_count_computed(self):
+        """Partner intake_count should reflect actual intake records."""
+        if "intake_ids" not in self.env["res.partner"]._fields:
+            self.skipTest("intake_ids not on res.partner")
+        if "plasticos.intake" not in self.env:
+            self.skipTest("plasticos.intake not installed")
+
+        polymer = self._get_or_create_polymer()
+        form = self._get_or_create_form()
+        initial_count = len(self.partner.intake_ids)
+        self._create_intake(partner=self.partner, polymer=polymer, form=form)
+        self.assertEqual(len(self.partner.intake_ids), initial_count + 1)

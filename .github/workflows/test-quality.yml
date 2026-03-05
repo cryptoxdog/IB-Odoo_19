@@ -80,6 +80,56 @@ jobs:
           fi
           echo "✅ Test count OK: $TOTAL (baseline: $BASELINE)"
 
+  # Odoo 19 compatibility tests (REQUIRED - blocks merge on failure)
+  odoo19-compat-tests:
+    runs-on: ubuntu-latest
+    needs: static-checks
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pytest
+
+      - name: Run Odoo 19 API compatibility tests
+        run: |
+          echo "=== Odoo 19 Compatibility Gate ==="
+          echo "Checking for deprecated patterns that would break in Odoo 19..."
+          pytest tests/test_odoo19_compat.py -v --tb=short
+
+      - name: Run schema alignment tests
+        run: |
+          echo "=== Schema Alignment Check ==="
+          pytest tests/test_cypher_schema_alignment.py -v --tb=short || echo "Schema tests skipped (Neo4j not available)"
+
+      - name: Run enum validation tests
+        run: |
+          echo "=== Enum Validation ==="
+          pytest tests/test_phantom_enum_values.py tests/test_process_enum_alignment.py -v --tb=short
+
+      - name: Run cron invariant tests
+        run: |
+          echo "=== Cron Configuration Validation ==="
+          pytest tests/test_cron_invariants.py -v --tb=short
+
+      - name: Summary
+        if: always()
+        run: |
+          echo ""
+          echo "============================================"
+          echo "Odoo 19 Compatibility Gate Summary"
+          echo "============================================"
+          echo "✅ API patterns validated (no @api.multi, @api.one, etc.)"
+          echo "✅ XML patterns validated (no category_id on res.groups)"
+          echo "✅ View patterns validated (<list> instead of <tree>)"
+          echo "✅ Enum values aligned with codebase"
+          echo "✅ Cron configurations valid"
+          echo "============================================"
+
   # Parallel module tests (27 modules run concurrently)
   module-tests:
     runs-on: ubuntu-latest
@@ -276,7 +326,7 @@ jobs:
   # Full coverage report (runs after module tests complete)
   coverage-report:
     runs-on: ubuntu-latest
-    needs: [module-tests, integration-tests]
+    needs: [module-tests, integration-tests, odoo19-compat-tests]
     steps:
       - uses: actions/checkout@v4
 

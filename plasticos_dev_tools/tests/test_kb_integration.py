@@ -1,259 +1,190 @@
-# ============================================
-# Canonical Header (v4.0 Production Baseline)
-# ============================================
-# File Name: test_kb_integration.py
-# Version: 4.6
-# Created: 2025-10-17
-# Author: Igor Beylin
-# Domain: Plastic Recycling / AI-Augmented ERP
-# Purpose: Automated testing for PostgreSQL JSONB KB config integration
-# Related Files: ../models/kb_config.py, ../knowledge_base/, ../configs/
-# ============================================
-
 """
-KB Integration Test Script
-Automated testing for PostgreSQL JSONB KB config integration
+Configuration Integration Test Suite.
 
-Usage:
-    python3 test_kb_integration.py
+Tests the configuration models that store system-wide settings:
+- plasticos.automation.config: Automation thresholds and timing
+- plasticos.web.lead.config: Web lead API and AI settings
+- plasticos.normalizer.config: Intake normalization rules
 
-Or run via Odoo shell:
-    odoo shell -d your_db --addons-path=/path/to/Dev Kit
-    >>> exec(open('test_kb_integration.py').read())
+Migrated from legacy plastic_ai.kb_config to plasticos.* namespace.
 """
 
+from odoo.tests import tagged
+from odoo.tests.common import TransactionCase
 
-def run_kb_integration_tests(env):
-    """Run comprehensive KB integration tests"""
 
-    print("\n" + "=" * 60)
-    print("KB INTEGRATION TEST SUITE")
-    print("=" * 60 + "\n")
+@tagged("post_install", "-at_install")
+class TestAutomationConfig(TransactionCase):
+    """Test plasticos.automation.config singleton and thresholds."""
 
-    test_results = {"passed": 0, "failed": 0, "warnings": 0}
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.Config = cls.env["plasticos.automation.config"]
 
-    # ============================================
-    # TEST 1: KB Config Model Exists
-    # ============================================
-    print("TEST 1: KB Config Model Exists")
-    try:
-        KBConfig = env["plastic_ai.kb_config"]
-        print(" PASS: plastic_ai.kb_config model loaded")
-        test_results["passed"] += 1
-    except Exception as e:
-        print(f" FAIL: {e}")
-        test_results["failed"] += 1
-        return test_results
+    def test_config_model_exists(self):
+        """Test automation config model is accessible."""
+        self.assertIn("plasticos.automation.config", self.env)
 
-    # ============================================
-    # TEST 2: KB Configs Loaded
-    # ============================================
-    print("\nTEST 2: KB Configs Loaded from YAML")
-    try:
-        configs = KBConfig.search([("active", "=", True)])
-        count = len(configs)
+    def test_config_has_required_fields(self):
+        """Test config has all required threshold fields."""
+        required_fields = [
+            "name",
+            "sale_approval_threshold",
+            "invoice_overdue_days",
+            "contract_alert_days_before",
+        ]
+        for field in required_fields:
+            self.assertIn(field, self.Config._fields, f"Missing field: {field}")
 
-        if count == 3:
-            print(f" PASS: {count} KB configs loaded (expected: 3)")
-            for config in configs:
-                print(f"  - {config.key} v{config.version} ({config.config_type})")
-            test_results["passed"] += 1
-        elif count > 0:
-            print(f" WARNING: {count} configs loaded (expected: 3)")
-            test_results["warnings"] += 1
-        else:
-            print(" FAIL: No configs loaded")
-            test_results["failed"] += 1
-    except Exception as e:
-        print(f" FAIL: {e}")
-        test_results["failed"] += 1
+    def test_config_create_with_defaults(self):
+        """Test config can be created with default values."""
+        config = self.Config.create({"name": "Test Config"})
 
-    # ============================================
-    # TEST 3: Escalation Matrix Accessible
-    # ============================================
-    print("\nTEST 3: Escalation Matrix Accessible")
-    try:
-        escalation_matrix = KBConfig.get_escalation_matrix()
+        self.assertTrue(config.exists())
+        self.assertEqual(config.sale_approval_threshold, 10000.0)
+        self.assertEqual(config.invoice_overdue_days, 30)
+        self.assertEqual(config.contract_alert_days_before, 30)
 
-        if escalation_matrix and "escalation_matrix" in escalation_matrix:
-            rules_count = len(escalation_matrix["escalation_matrix"])
-            print(f" PASS: Escalation matrix loaded with {rules_count} rules")
+    def test_config_threshold_update(self):
+        """Test threshold values can be updated."""
+        config = self.Config.create({"name": "Threshold Test"})
+        config.write(
+            {
+                "sale_approval_threshold": 25000.0,
+                "invoice_overdue_days": 45,
+            }
+        )
 
-            # Test specific rule
-            price_rule = KBConfig.get_escalation_rule("esc_001")
-            if price_rule:
-                print(f"  - Rule esc_001: {price_rule.get('name')}")
-                print(f"    Threshold: {price_rule.get('threshold')}")
-                test_results["passed"] += 1
-            else:
-                print(" WARNING: Rule esc_001 not found")
-                test_results["warnings"] += 1
-        else:
-            print(" FAIL: Escalation matrix not found or empty")
-            test_results["failed"] += 1
-    except Exception as e:
-        print(f" FAIL: {e}")
-        test_results["failed"] += 1
+        self.assertEqual(config.sale_approval_threshold, 25000.0)
+        self.assertEqual(config.invoice_overdue_days, 45)
 
-    # ============================================
-    # TEST 4: QA Ruleset Accessible
-    # ============================================
-    print("\nTEST 4: QA Verification Ruleset Accessible")
-    try:
-        qa_ruleset = KBConfig.get_qa_verification_ruleset()
+    def test_config_singleton_pattern(self):
+        """Test config follows singleton pattern (one active config)."""
+        existing = self.Config.search([], limit=1)
+        if not existing:
+            existing = self.Config.create({"name": "Singleton Test"})
 
-        if qa_ruleset and "validation_rules" in qa_ruleset:
-            rules_count = len(qa_ruleset["validation_rules"])
-            print(f" PASS: QA ruleset loaded with {rules_count} rules")
+        self.assertTrue(existing.exists())
 
-            # Test specific rule
-            schema_rule = KBConfig.get_qa_rule("qa_preprocess_001")
-            if schema_rule:
-                print(f"  - Rule qa_preprocess_001: {schema_rule.get('name')}")
-                print(f"    Enforcement: {schema_rule.get('enforcement')}")
-                test_results["passed"] += 1
-            else:
-                print(" WARNING: Rule qa_preprocess_001 not found")
-                test_results["warnings"] += 1
-        else:
-            print(" FAIL: QA ruleset not found or empty")
-            test_results["failed"] += 1
-    except Exception as e:
-        print(f" FAIL: {e}")
-        test_results["failed"] += 1
 
-    # ============================================
-    # TEST 5: PostgreSQL Table Structure
-    # ============================================
-    print("\nTEST 5: PostgreSQL Table Structure")
-    try:
-        env.cr.execute("""
+@tagged("post_install", "-at_install")
+class TestWebLeadConfig(TransactionCase):
+    """Test plasticos.web.lead.config for API and AI settings."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        if "plasticos.web.lead.config" not in cls.env:
+            raise cls.skipTest("plasticos_web_leads not installed")
+        cls.Config = cls.env["plasticos.web.lead.config"]
+
+    def test_config_model_exists(self):
+        """Test web lead config model is accessible."""
+        self.assertIn("plasticos.web.lead.config", self.env)
+
+    def test_config_has_api_fields(self):
+        """Test config has API authentication fields."""
+        api_fields = ["api_key", "is_active"]
+        for field in api_fields:
+            self.assertIn(field, self.Config._fields, f"Missing field: {field}")
+
+    def test_config_has_source_type_selection(self):
+        """Test default_source_type has valid selection options."""
+        field = self.Config._fields.get("default_source_type")
+        if field:
+            self.assertTrue(field.selection, "default_source_type should have selection options")
+
+    def test_config_is_active_default(self):
+        """Test is_active defaults to True."""
+        config = self.Config.create({"name": "API Test"})
+        self.assertTrue(config.is_active)
+
+    def test_config_api_key_can_be_set(self):
+        """Test API key can be set on config."""
+        config = self.Config.create(
+            {
+                "name": "API Key Test",
+                "api_key": "test-key-12345",
+            }
+        )
+        self.assertEqual(config.api_key, "test-key-12345")
+
+
+@tagged("post_install", "-at_install")
+class TestNormalizerConfig(TransactionCase):
+    """Test plasticos.normalizer.config for intake normalization rules."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        if "plasticos.normalizer.config" not in cls.env:
+            raise cls.skipTest("plasticos_intake_normalizer not installed")
+        cls.Config = cls.env["plasticos.normalizer.config"]
+
+    def test_config_model_exists(self):
+        """Test normalizer config model is accessible."""
+        self.assertIn("plasticos.normalizer.config", self.env)
+
+    def test_config_fields_exist(self):
+        """Test config has expected fields."""
+        self.assertTrue(hasattr(self.Config, "_fields"))
+
+
+@tagged("post_install", "-at_install")
+class TestConfigIntegration(TransactionCase):
+    """Integration tests across configuration models."""
+
+    def test_all_config_models_accessible(self):
+        """Test all config models can be accessed."""
+        config_models = [
+            "plasticos.automation.config",
+        ]
+        optional_models = [
+            "plasticos.web.lead.config",
+            "plasticos.normalizer.config",
+        ]
+
+        for model in config_models:
+            self.assertIn(model, self.env, f"Required config model missing: {model}")
+
+        for model in optional_models:
+            if model in self.env:
+                self.assertTrue(True, f"Optional config model available: {model}")
+
+    def test_config_table_structure(self):
+        """Test PostgreSQL table exists for automation config."""
+        self.env.cr.execute("""
             SELECT column_name, data_type
             FROM information_schema.columns
-            WHERE table_name = 'plastic_ai_kb_config'
+            WHERE table_name = 'plasticos_automation_config'
             ORDER BY ordinal_position
         """)
-        columns = env.cr.fetchall()
+        columns = self.env.cr.fetchall()
 
-        if columns:
-            print(f" PASS: Table plastic_ai_kb_config exists with {len(columns)} columns")
-            required_columns = ["key", "version", "config_type", "config_data"]
-            found_columns = [col[0] for col in columns]
+        self.assertTrue(columns, "Table plasticos_automation_config should exist")
 
-            all_required_present = all(col in found_columns for col in required_columns)
-            if all_required_present:
-                print("  - All required columns present")
-                test_results["passed"] += 1
-            else:
-                print(" WARNING: Some required columns missing")
-                test_results["warnings"] += 1
-        else:
-            print(" FAIL: Table not found")
-            test_results["failed"] += 1
-    except Exception as e:
-        print(f" FAIL: {e}")
-        test_results["failed"] += 1
+        column_names = [col[0] for col in columns]
+        required_columns = ["id", "name", "sale_approval_threshold"]
+        for col in required_columns:
+            self.assertIn(col, column_names, f"Missing column: {col}")
 
-    # ============================================
-    # TEST 6: Offer Response Integration
-    # ============================================
-    print("\nTEST 6: Offer Response Escalation Integration")
-    try:
-        OfferResponse = env["plastic_ai.offer_response"]
+    def test_config_data_types(self):
+        """Test config fields have correct data types."""
+        Config = self.env["plasticos.automation.config"]
 
-        # Check if _check_escalation_rules method exists
-        if hasattr(OfferResponse, "_check_escalation_rules"):
-            print(" PASS: Offer Response has escalation integration")
-            test_results["passed"] += 1
-        else:
-            print(" FAIL: Escalation method not found in Offer Response")
-            test_results["failed"] += 1
-    except Exception as e:
-        print(f" FAIL: {e}")
-        test_results["failed"] += 1
+        threshold_field = Config._fields.get("sale_approval_threshold")
+        self.assertEqual(threshold_field.type, "float")
 
-    # ============================================
-    # TEST 7: Supplier Intake Integration
-    # ============================================
-    print("\nTEST 7: Supplier Intake QA Integration")
-    try:
-        SupplierIntake = env["plastic_ai.supplier_intake"]
+        days_field = Config._fields.get("invoice_overdue_days")
+        self.assertEqual(days_field.type, "integer")
 
-        # Check if _run_qa_validation method exists
-        if hasattr(SupplierIntake, "_run_qa_validation"):
-            print(" PASS: Supplier Intake has QA validation integration")
-            test_results["passed"] += 1
-        else:
-            print(" FAIL: QA validation method not found in Supplier Intake")
-            test_results["failed"] += 1
-    except Exception as e:
-        print(f" FAIL: {e}")
-        test_results["failed"] += 1
+    def test_config_help_text_present(self):
+        """Test config fields have help text for documentation."""
+        Config = self.env["plasticos.automation.config"]
 
-    # ============================================
-    # TEST 8: Config Data Size Check
-    # ============================================
-    print("\nTEST 8: Config Data Storage")
-    try:
-        env.cr.execute("""
-            SELECT key,
-                   pg_column_size(config_data) as size_bytes,
-                   length(config_data) as length_chars
-            FROM plastic_ai_kb_config
-            WHERE active = true
-        """)
-        results = env.cr.fetchall()
+        threshold_field = Config._fields.get("sale_approval_threshold")
+        self.assertTrue(threshold_field.help, "sale_approval_threshold should have help text")
 
-        if results:
-            print(" PASS: Config data stored in PostgreSQL")
-            for key, size, length in results:
-                print(f"  - {key}: {size} bytes, {length} chars")
-            test_results["passed"] += 1
-        else:
-            print(" WARNING: No config data found")
-            test_results["warnings"] += 1
-    except Exception as e:
-        print(f" FAIL: {e}")
-        test_results["failed"] += 1
-
-    # ============================================
-    # SUMMARY
-    # ============================================
-    print("\n" + "=" * 60)
-    print("TEST SUMMARY")
-    print("=" * 60)
-    print(f" Passed:   {test_results['passed']}")
-    print(f" Warnings: {test_results['warnings']}")
-    print(f" Failed:   {test_results['failed']}")
-    print(f"\nTotal Tests: {test_results['passed'] + test_results['failed'] + test_results['warnings']}")
-
-    if test_results["failed"] == 0:
-        print("\n ALL TESTS PASSED! KB Integration is working correctly.")
-        print(" Ready for deployment to hosted instance.")
-    elif test_results["failed"] < 3:
-        print("\n  SOME TESTS FAILED. Review failures before deployment.")
-    else:
-        print("\n CRITICAL FAILURES. Fix issues before proceeding.")
-
-    print("=" * 60 + "\n")
-
-    return test_results
-
-
-# ============================================
-# Main Execution
-# ============================================
-if __name__ == "__main__":
-    print("\n  This script should be run from Odoo shell")
-    print("\nUsage:")
-    print("  odoo shell -d your_database --addons-path=/path/to/Dev Kit")
-    print("  >>> exec(open('test_kb_integration.py').read())")
-    print("\nOr:")
-    print("  >>> from test_kb_integration import run_kb_integration_tests")
-    print("  >>> results = run_kb_integration_tests(env)")
-else:
-    # Running in Odoo shell context
-    if "env" in dir():
-        results = run_kb_integration_tests(env)
-    else:
-        print("Error: 'env' not found. Are you running in Odoo shell?")
+        days_field = Config._fields.get("invoice_overdue_days")
+        self.assertTrue(days_field.help, "invoice_overdue_days should have help text")

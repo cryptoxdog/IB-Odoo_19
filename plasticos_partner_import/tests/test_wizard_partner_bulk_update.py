@@ -1,9 +1,16 @@
-"""Tests for Partner Bulk Update Wizard."""
+"""Tests for Partner Bulk Update Wizard.
+
+Tests the bulk update wizard for partners.
+Aligned with plasticos_partner_import/wizards/partner_bulk_update_wizard.py.
+
+Actions: assign_salesperson, assign_category, set_company_type, assign_payment_terms
+"""
 
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase
+from odoo.tests.common import TransactionCase, tagged
 
 
+@tagged("post_install", "-at_install")
 class TestPartnerBulkUpdateWizard(TransactionCase):
     """Test plasticos.partner.bulk.update.wizard."""
 
@@ -30,6 +37,12 @@ class TestPartnerBulkUpdateWizard(TransactionCase):
         )
         cls.tag1 = cls.env["res.partner.category"].create({"name": "Recycler"})
         cls.tag2 = cls.env["res.partner.category"].create({"name": "Supplier"})
+
+    def setUp(self):
+        super().setUp()
+        # Reset partner fields before each test
+        self.partner1.write({"user_id": False, "category_id": [(5, 0, 0)]})
+        self.partner2.write({"user_id": False, "category_id": [(5, 0, 0)], "is_company": False})
 
     # ------------------------------------------------------------------
     # Context / defaults

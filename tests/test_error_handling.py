@@ -6,6 +6,13 @@ Covers:
     - Permission denied (ACL enforcement)
     - Concurrent edits (optimistic locking)
     - Rollback scenarios (transaction failures)
+
+These tests validate that PlastOS handles errors gracefully:
+- External service failures don't crash the system
+- Invalid data is rejected with clear error messages
+- Permission checks are enforced correctly
+- Concurrent operations are handled safely
+- Failed operations roll back cleanly
 """
 
 from unittest.mock import patch
@@ -13,27 +20,18 @@ from unittest.mock import patch
 from psycopg2 import IntegrityError
 
 from odoo.exceptions import AccessError, UserError, ValidationError
-from odoo.tests.common import TransactionCase
+from odoo.tests.common import TransactionCase, tagged
 
-
-class ErrorFactoryMixin:
-    @classmethod
-    def _partner(cls, name="Error Partner"):
-        return cls.env["res.partner"].create({"name": name, "is_company": True})
-
-    @classmethod
-    def _polymer(cls):
-        return cls.env["plasticos.polymer"].create({"name": "HDPE", "code": "HDPE"})
-
-    @classmethod
-    def _form(cls):
-        return cls.env["plasticos.material.form"].create({"name": "Pellet", "code": "pellet"})
+from .common import PlastOSTestFactoryMixin
 
 
 # ═══════════════════════════════════════════════════════════════
 # API Failure Tests
 # ═══════════════════════════════════════════════════════════════
-class TestAPIFailures(TransactionCase, ErrorFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "error_handling", "api")
+class TestAPIFailures(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for graceful handling of external API failures."""
+
     def test_neo4j_unavailable_graceful(self):
         if "plasticos.graph.service" not in self.env:
             self.skipTest("Graph service not installed")
@@ -94,12 +92,19 @@ class TestAPIFailures(TransactionCase, ErrorFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # Invalid Data Tests
 # ═══════════════════════════════════════════════════════════════
-class TestInvalidData(TransactionCase, ErrorFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "error_handling", "validation")
+class TestInvalidData(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for rejection of invalid data with appropriate errors."""
+
     def test_intake_missing_required_fields(self):
         if "plasticos.intake" not in self.env:
             self.skipTest("plasticos.intake not installed")
-        with self.assertRaises((ValidationError, Exception)):
+        raised = False
+        try:
             self.env["plasticos.intake"].create({})
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_web_lead_duplicate_lead_id(self):
         if "plasticos.web.lead" not in self.env:
@@ -111,7 +116,8 @@ class TestInvalidData(TransactionCase, ErrorFactoryMixin):
                 "company_name": "Dup Co",
             }
         )
-        with self.assertRaises((ValidationError, IntegrityError)):
+        raised = False
+        try:
             self.env["plasticos.web.lead"].create(
                 {
                     "lead_id": "DUP-001",
@@ -119,6 +125,9 @@ class TestInvalidData(TransactionCase, ErrorFactoryMixin):
                     "company_name": "Dup Co 2",
                 }
             )
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_web_lead_create_from_agent_missing_lead_id(self):
         if "plasticos.web.lead" not in self.env:
@@ -129,19 +138,32 @@ class TestInvalidData(TransactionCase, ErrorFactoryMixin):
     def test_claim_invalid_state_transition(self):
         if "plasticos.claim" not in self.env:
             self.skipTest("Claims not installed")
-        claim = self.env["plasticos.claim"].create({"name": "CLM-INV", "state": "open"})
+        tx = self.env["plasticos.transaction"].create({"name": "TX-ERR-CLM"})
+        claim = self.env["plasticos.claim"].create(
+            {
+                "transaction_id": tx.id,
+                "case_type": "buyer_claim",
+                "severity": "medium",
+                "state": "pending",
+            }
+        )
         if hasattr(claim, "action_close"):
             with self.assertRaises(UserError):
                 claim.action_close()
 
     def test_offer_negative_price_rejected(self):
+        """Negative prices should be rejected."""
         if "plasticos.offer" not in self.env:
             self.skipTest("Offer not installed")
-        partner = self._partner()
+        partner = self._create_partner()
         Offer = self.env["plasticos.offer"]
         if "price_per_lb" in Offer._fields:
-            with self.assertRaises((ValidationError, Exception)):
+            raised = False
+            try:
                 Offer.create({"buyer_partner_id": partner.id, "price_per_lb": -1.0})
+            except (ValidationError, IntegrityError):
+                raised = True
+            self.assertTrue(raised, "Expected exception was not raised")
 
     def test_load_cancel_from_delivered_rejected(self):
         if "plasticos.load" not in self.env:
@@ -163,7 +185,10 @@ class TestInvalidData(TransactionCase, ErrorFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # Permission / ACL Tests
 # ═══════════════════════════════════════════════════════════════
-class TestPermissionDenied(TransactionCase, ErrorFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "error_handling", "security")
+class TestPermissionDenied(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for ACL enforcement and permission denied scenarios."""
+
     def test_non_admin_cannot_write_config(self):
         """Regular users cannot modify system config."""
         if "plasticos.web.lead.config" not in self.env:
@@ -176,19 +201,13 @@ class TestPermissionDenied(TransactionCase, ErrorFactoryMixin):
             Config.create({"name": "Unauthorized"})
 
     def test_non_admin_cannot_delete_intake(self):
+        """Regular users should not be able to delete intakes."""
         if "plasticos.intake" not in self.env:
             self.skipTest("plasticos.intake not installed")
-        partner = self._partner()
-        polymer = self._polymer()
-        form = self._form()
-        intake = self.env["plasticos.intake"].create(
-            {
-                "partner_id": partner.id,
-                "polymer_id": polymer.id,
-                "form_id": form.id,
-                "quantity_per_load_lbs": 40000,
-            }
-        )
+        partner = self._create_partner()
+        polymer = self._get_or_create_polymer()
+        form = self._get_or_create_form()
+        intake = self._create_intake(partner=partner, polymer=polymer, form=form)
         demo_user = self.env.ref("base.user_demo", raise_if_not_found=False)
         if not demo_user:
             self.skipTest("Demo user not available")
@@ -199,7 +218,10 @@ class TestPermissionDenied(TransactionCase, ErrorFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # Concurrent Edit Tests
 # ═══════════════════════════════════════════════════════════════
-class TestConcurrentEdits(TransactionCase, ErrorFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "error_handling", "concurrency")
+class TestConcurrentEdits(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for concurrent edit handling and idempotency."""
+
     def test_advisory_lock_prevents_double_cron(self):
         """Advisory lock pattern prevents concurrent cron runs."""
         if "plasticos.graph.service" not in self.env:
@@ -225,7 +247,10 @@ class TestConcurrentEdits(TransactionCase, ErrorFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # Rollback / Transaction Tests
 # ═══════════════════════════════════════════════════════════════
-class TestRollbackScenarios(TransactionCase, ErrorFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "error_handling", "rollback")
+class TestRollbackScenarios(TransactionCase, PlastOSTestFactoryMixin):
+    """Tests for atomic operations and rollback on failure."""
+
     def test_intake_creation_atomic(self):
         """Failed intake creation does not leave partial records."""
         if "plasticos.intake" not in self.env:

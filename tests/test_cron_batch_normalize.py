@@ -18,9 +18,13 @@ class TestBatchNormalizeCron(TransactionCase):
         if "plasticos.intake" not in cls.env:
             raise unittest.SkipTest("plasticos.intake not installed")
         cls.Intake = cls.env["plasticos.intake"]
-        # Create shared reference data
-        cls.polymer = cls.env["plasticos.polymer"].create({"name": "HDPE", "code": "HDPE"})
-        cls.form = cls.env["plasticos.material.form"].create({"name": "Pellet", "code": "pellet"})
+        # Create shared reference data (search first to avoid duplicates)
+        cls.polymer = cls.env["plasticos.polymer"].search([("code", "=", "HDPE")], limit=1)
+        if not cls.polymer:
+            cls.polymer = cls.env["plasticos.polymer"].create({"name": "HDPE", "code": "HDPE"})
+        cls.form = cls.env["plasticos.material.form"].search([("code", "=", "pellet")], limit=1)
+        if not cls.form:
+            cls.form = cls.env["plasticos.material.form"].create({"name": "Pellet", "code": "pellet"})
         cls.partner = cls.env["res.partner"].create({"name": "Normalizer Test"})
 
     def _create_intake(self, **kwargs):

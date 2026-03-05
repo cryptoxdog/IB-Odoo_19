@@ -42,13 +42,21 @@ class TestOfferConstraints(TransactionCase):
 
     def test_price_must_be_positive(self):
         """Price per lb must be > 0 (SQL constraint)."""
-        with self.assertRaises((ValidationError, IntegrityError)):
+        raised = False
+        try:
             self._create_offer(price_per_lb=0)
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_price_cannot_be_negative(self):
         """Price per lb cannot be negative."""
-        with self.assertRaises((ValidationError, IntegrityError)):
+        raised = False
+        try:
             self._create_offer(price_per_lb=-0.10)
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_valid_price_accepted(self):
         """Valid positive price should be accepted."""
@@ -61,13 +69,21 @@ class TestOfferConstraints(TransactionCase):
 
     def test_quantity_must_be_positive(self):
         """Quantity lbs must be > 0 (SQL constraint)."""
-        with self.assertRaises((ValidationError, IntegrityError)):
+        raised = False
+        try:
             self._create_offer(quantity_lbs=0)
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_quantity_cannot_be_negative(self):
         """Quantity lbs cannot be negative."""
-        with self.assertRaises((ValidationError, IntegrityError)):
+        raised = False
+        try:
             self._create_offer(quantity_lbs=-1000)
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_valid_quantity_accepted(self):
         """Valid positive quantity should be accepted."""

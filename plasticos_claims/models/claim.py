@@ -226,6 +226,24 @@ class PlasticosClaim(models.Model):
                 vals["name"] = self.env["ir.sequence"].next_by_code("plasticos.claim") or "New"
         return super().create(vals_list)
 
+    def write(self, vals):
+        """Guard against modifying archived claims (except state changes)."""
+        if "state" not in vals:
+            for rec in self:
+                if rec.state == "archived":
+                    raise ValidationError(f"Cannot modify archived claim '{rec.name}'. Reopen it first.")
+        return super().write(vals)
+
+    def unlink(self):
+        """Prevent deletion of resolved/archived claims."""
+        for rec in self:
+            if rec.state in ("resolved", "archived"):
+                raise ValidationError(
+                    f"Cannot delete claim '{rec.name}' in state '{rec.state}'. "
+                    "Resolved/archived claims must be preserved for audit."
+                )
+        return super().unlink()
+
     # ── Actions ──────────────────────────────────────────────
     def action_start(self):
         for rec in self:

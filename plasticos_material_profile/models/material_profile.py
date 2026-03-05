@@ -290,6 +290,17 @@ class PlasticosMaterialProfile(models.Model):
 
     # ── AI Enrichment ────────────────────────────────────────
     freeform_notes = fields.Text()
+    quality_tier = fields.Selection(
+        [
+            ("prime", "Prime"),
+            ("near_prime", "Near Prime"),
+            ("standard", "Standard"),
+            ("economy", "Economy"),
+            ("unknown", "Unknown"),
+        ],
+        string="Quality Tier",
+        help="AI-inferred quality tier based on material specifications.",
+    )
 
     # ── Navigation: Related Record Counts ──────────────────────
     # NOTE: intake_count is added by plasticos_intake module via inheritance

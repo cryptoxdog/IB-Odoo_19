@@ -1,4 +1,9 @@
 # tests/test_intake_properties.py
+"""Property-based tests for intake model.
+
+Requires hypothesis library. Skipped if not installed.
+"""
+
 from hypothesis import given
 from hypothesis import strategies as st
 
@@ -11,7 +16,6 @@ class TestIntakeProperties(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # Create or get a test partner for property tests
         cls.test_partner = cls.env.ref("base.res_partner_1", raise_if_not_found=False)
         if not cls.test_partner:
             cls.test_partner = cls.env["res.partner"].create({"name": "Property Test Partner", "is_company": True})
@@ -30,7 +34,6 @@ class TestIntakeProperties(TransactionCase):
             }
         )
 
-        # Properties that should ALWAYS hold
         self.assertTrue(intake.exists())
         self.assertGreater(intake.quantity_per_load_lbs, 0)
         self.assertIn(intake.state, ["draft", "confirmed", "approved", "cancelled"])

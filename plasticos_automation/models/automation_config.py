@@ -20,6 +20,7 @@ class PlasticosAutomationConfig(models.Model):
     sale_approval_threshold = fields.Float(
         string="Sale Approval Threshold",
         required=True,
+        default=10000.0,
         help="Orders exceeding this amount require approval before confirmation.",
     )
 
@@ -27,6 +28,7 @@ class PlasticosAutomationConfig(models.Model):
     invoice_overdue_days = fields.Integer(
         string="Invoice Overdue Days",
         required=True,
+        default=30,
         help="Number of days past due date before an overdue reminder is sent.",
     )
 
@@ -34,6 +36,7 @@ class PlasticosAutomationConfig(models.Model):
     contract_alert_days_before = fields.Integer(
         string="Contract Alert Days Before",
         required=True,
+        default=30,
         help="Number of days before contract end date to trigger a renewal alert.",
     )
 
@@ -41,6 +44,7 @@ class PlasticosAutomationConfig(models.Model):
     stock_threshold_default = fields.Float(
         string="Default Stock Threshold",
         required=True,
+        default=100.0,
         help="Default minimum stock level. Per-product overrides take precedence.",
     )
 

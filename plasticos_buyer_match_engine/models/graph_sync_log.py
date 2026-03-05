@@ -8,7 +8,7 @@ class PlasticosGraphSyncLog(models.Model):
     _description = "Graph Sync Audit Log"
     _order = "started_at desc"
 
-    name = fields.Char(string="Sync Run", required=True, index=True)
+    name = fields.Char(string="Sync Run", required=True, index=True, default="Sync Run")
     sync_type = fields.Selection(
         [
             ("facility", "Facilities"),
@@ -28,8 +28,9 @@ class PlasticosGraphSyncLog(models.Model):
         ],
         required=True,
         index=True,
+        default="full",
     )
-    record_count = fields.Integer(string="Records Processed")
+    record_count = fields.Integer(string="Records Processed", default=0)
     status = fields.Selection(
         [
             ("success", "Success"),
@@ -38,7 +39,8 @@ class PlasticosGraphSyncLog(models.Model):
         ],
         required=True,
         index=True,
+        default="success",
     )
     error_message = fields.Text(string="Error Details")
-    started_at = fields.Datetime(required=True)
+    started_at = fields.Datetime(required=True, default=fields.Datetime.now)
     finished_at = fields.Datetime()

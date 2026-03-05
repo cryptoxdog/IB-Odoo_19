@@ -1,4 +1,6 @@
-from odoo.exceptions import ValidationError
+from psycopg2 import IntegrityError
+
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 
 
@@ -9,15 +11,21 @@ class TestPlasticosClaim(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # TODO: Setup test data
+        cls.Claim = cls.env["plasticos.claim"]
+        cls.Transaction = cls.env["plasticos.transaction"]
+        # Create a transaction for claims to reference
+        cls.tx = cls.Transaction.create({"name": "TX-CLAIM-TEST"})
 
     def _create_claim(self, **kwargs):
         """Helper to create plasticos.claim with defaults"""
         vals = {
-            # TODO: Add required fields
+            "transaction_id": self.tx.id,
+            "case_type": "buyer_claim",
+            "severity": "medium",
+            "state": "pending",
         }
         vals.update(kwargs)
-        return self.env["plasticos.claim"].create(vals)
+        return self.Claim.create(vals)
 
     # ========================================================================
     # CREATION TESTS
@@ -26,114 +34,104 @@ class TestPlasticosClaim(TransactionCase):
     def test_create_basic(self):
         """Test basic record creation"""
         record = self._create_claim()
-
         self.assertTrue(record.exists())
-        # TODO: Add specific assertions
+        self.assertEqual(record.transaction_id, self.tx)
+        self.assertEqual(record.case_type, "buyer_claim")
+        self.assertEqual(record.severity, "medium")
+        self.assertEqual(record.state, "pending")
+
+    def test_create_with_all_case_types(self):
+        """Test creation with each valid case_type."""
+        case_types = ["buyer_claim", "inspection", "freight_chargeback", "lightweight_penalty", "other"]
+        for case_type in case_types:
+            record = self._create_claim(case_type=case_type)
+            self.assertEqual(record.case_type, case_type)
+
+    # ========================================================================
+    # ACTION TESTS
+    # ========================================================================
 
     def test_action_start_executes_successfully(self):
-        """Test action_start executes without error"""
-        record = self._create_claim()
-
-        result = record.action_start()
-
-        # TODO: Add assertions about expected outcome
-        self.assertTrue(True, "Replace with real assertion")
+        """Test action_start moves pending → in_progress"""
+        record = self._create_claim(state="pending")
+        record.action_start()
+        self.assertEqual(record.state, "in_progress")
 
     def test_action_escalate_executes_successfully(self):
-        """Test action_escalate executes without error"""
+        """Test action_escalate moves to escalated"""
+        record = self._create_claim(state="in_progress")
+        record.action_escalate()
+        self.assertEqual(record.state, "escalated")
+
+    def test_action_resolve_requires_note(self):
+        """Test action_resolve requires resolution_note"""
+        record = self._create_claim(state="in_progress")
+        raised = False
+        try:
+            record.action_resolve()
+        except (UserError, ValidationError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
+
+    def test_action_resolve_with_note(self):
+        """Test action_resolve with resolution_note succeeds"""
+        record = self._create_claim(state="in_progress")
+        record.resolution_note = "Issue resolved via credit"
+        record.action_resolve()
+        self.assertEqual(record.state, "resolved")
+
+    def test_action_archive_from_resolved(self):
+        """Test action_archive moves resolved → archived"""
+        record = self._create_claim(state="resolved")
+        record.resolution_note = "Archived"
+        record.action_archive()
+        self.assertEqual(record.state, "archived")
+
+    def test_action_reopen_from_resolved(self):
+        """Test action_reopen moves resolved → in_progress"""
+        record = self._create_claim(state="resolved")
+        record.action_reopen()
+        self.assertEqual(record.state, "in_progress")
+
+    def test_action_view_transaction_returns_action(self):
+        """Test action_view_transaction returns window action"""
         record = self._create_claim()
-
-        result = record.action_escalate()
-
-        # TODO: Add assertions about expected outcome
-        self.assertTrue(True, "Replace with real assertion")
-
-    def test_action_resolve_executes_successfully(self):
-        """Test action_resolve executes without error"""
-        record = self._create_claim()
-
-        result = record.action_resolve()
-
-        # TODO: Add assertions about expected outcome
-        self.assertTrue(True, "Replace with real assertion")
-
-    def test_action_archive_executes_successfully(self):
-        """Test action_archive executes without error"""
-        record = self._create_claim()
-
-        result = record.action_archive()
-
-        # TODO: Add assertions about expected outcome
-        self.assertTrue(True, "Replace with real assertion")
-
-    def test_action_reopen_executes_successfully(self):
-        """Test action_reopen executes without error"""
-        record = self._create_claim()
-
-        result = record.action_reopen()
-
-        # TODO: Add assertions about expected outcome
-        self.assertTrue(True, "Replace with real assertion")
-
-    def test_action_view_transaction_executes_successfully(self):
-        """Test action_view_transaction executes without error"""
-        record = self._create_claim()
-
         result = record.action_view_transaction()
+        self.assertEqual(result["type"], "ir.actions.act_window")
+        self.assertEqual(result["res_model"], "plasticos.transaction")
 
-        # TODO: Add assertions about expected outcome
-        self.assertTrue(True, "Replace with real assertion")
-
-    def test_action_view_load_executes_successfully(self):
-        """Test action_view_load executes without error"""
-        record = self._create_claim()
-
-        result = record.action_view_load()
-
-        # TODO: Add assertions about expected outcome
-        self.assertTrue(True, "Replace with real assertion")
-
-    def test_constraint_name_required(self):
-        """Test name is required"""
-        with self.assertRaises(ValidationError):
-            self.env["plasticos.claim"].create(
-                {
-                    # TODO: Add other required fields except name
-                }
-            )
+    # ========================================================================
+    # CONSTRAINT TESTS
+    # ========================================================================
 
     def test_constraint_transaction_id_required(self):
         """Test transaction_id is required"""
-        with self.assertRaises(ValidationError):
-            self.env["plasticos.claim"].create(
+        raised = False
+        try:
+            self.Claim.create(
                 {
-                    # TODO: Add other required fields except transaction_id
+                    "case_type": "buyer_claim",
+                    "severity": "medium",
                 }
             )
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
-    def test_constraint_case_type_required(self):
-        """Test case_type is required"""
-        with self.assertRaises(ValidationError):
-            self.env["plasticos.claim"].create(
-                {
-                    # TODO: Add other required fields except case_type
-                }
-            )
+    def test_constraint_invalid_case_type(self):
+        """Test invalid case_type raises error"""
+        raised = False
+        try:
+            self._create_claim(case_type="invalid_type")
+        except (ValidationError, ValueError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
-    def test_constraint_severity_required(self):
-        """Test severity is required"""
-        with self.assertRaises(ValidationError):
-            self.env["plasticos.claim"].create(
-                {
-                    # TODO: Add other required fields except severity
-                }
-            )
-
-    def test_constraint_state_required(self):
-        """Test state is required"""
-        with self.assertRaises(ValidationError):
-            self.env["plasticos.claim"].create(
-                {
-                    # TODO: Add other required fields except state
-                }
-            )
+    def test_constraint_invalid_severity(self):
+        """Test invalid severity raises error"""
+        raised = False
+        try:
+            self._create_claim(severity="invalid")
+        except (ValidationError, ValueError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")

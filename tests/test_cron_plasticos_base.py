@@ -106,10 +106,13 @@ class TestMidnightRecompute(TransactionCase):
         if "plasticos.claim" not in self.env:
             self.skipTest("plasticos.claim not installed")
         Claim = self.env["plasticos.claim"]
+        tx = self.env["plasticos.transaction"].create({"name": "TX-CRON-CLM"})
         claim = Claim.create(
             {
-                "name": "CLM-TEST",
-                "state": "open",
+                "transaction_id": tx.id,
+                "case_type": "buyer_claim",
+                "severity": "medium",
+                "state": "pending",
                 "create_date": date.today() - timedelta(days=5),
             }
         )
@@ -121,10 +124,13 @@ class TestMidnightRecompute(TransactionCase):
         if "plasticos.claim" not in self.env:
             self.skipTest("plasticos.claim not installed")
         Claim = self.env["plasticos.claim"]
+        tx = self.env["plasticos.transaction"].create({"name": "TX-CRON-CLM2"})
         claim = Claim.create(
             {
-                "name": "CLM-OVERDUE",
-                "state": "open",
+                "transaction_id": tx.id,
+                "case_type": "buyer_claim",
+                "severity": "medium",
+                "state": "pending",
             }
         )
         self.svc._recompute_claim_time_fields()

@@ -27,6 +27,9 @@ class PlasticosPolymer(models.Model):
         default="commodity",
         index=True,
     )
+    description = fields.Text(
+        help="Additional description or notes about this polymer type.",
+    )
     active = fields.Boolean(default=True)
     sequence = fields.Integer(default=10)
 

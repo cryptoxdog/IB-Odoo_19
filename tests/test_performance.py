@@ -1,43 +1,34 @@
 """Performance and load tests for PlastOS critical paths.
 
 Covers:
-    - Bulk import (1000+ records)
+    - Bulk import (100+ records)
     - Graph sync large batches
     - Cron execution time
     - Complex domain search performance
+
+Performance thresholds are set conservatively to avoid flaky tests
+while still catching major regressions. Actual production performance
+should be significantly better than these thresholds.
 """
 
 import time
-import unittest
 
-from odoo.tests.common import TransactionCase
+from odoo.tests.common import TransactionCase, tagged
 
-
-class PerfFactoryMixin:
-    @classmethod
-    def _partner(cls, name="Perf Partner"):
-        return cls.env["res.partner"].create({"name": name, "is_company": True})
-
-    @classmethod
-    def _polymer(cls):
-        return cls.env["plasticos.polymer"].create({"name": "HDPE", "code": "HDPE"})
-
-    @classmethod
-    def _form(cls):
-        return cls.env["plasticos.material.form"].create({"name": "Pellet", "code": "pellet"})
+from .common import PlastOSTestFactoryMixin
 
 
-class TestBulkImportPerformance(TransactionCase, PerfFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "performance", "bulk")
+class TestBulkImportPerformance(TransactionCase, PlastOSTestFactoryMixin):
     """Bulk import performance benchmarks."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "plasticos.intake" not in cls.env:
-            raise unittest.SkipTest("plasticos.intake not installed")
-        cls.partner = cls._partner()
-        cls.polymer = cls._polymer()
-        cls.form = cls._form()
+        cls._skip_if_model_missing("plasticos.intake")
+        cls.partner = cls._create_partner()
+        cls.polymer = cls._get_or_create_polymer()
+        cls.form = cls._get_or_create_form()
 
     def test_bulk_create_100_intakes(self):
         """Creating 100 intakes completes in < 10s."""
@@ -93,14 +84,14 @@ class TestBulkImportPerformance(TransactionCase, PerfFactoryMixin):
         self.assertLess(elapsed, 10.0)
 
 
-class TestGraphSyncPerformance(TransactionCase):
+@tagged("post_install", "-at_install", "plasticos", "performance", "graph")
+class TestGraphSyncPerformance(TransactionCase, PlastOSTestFactoryMixin):
     """Neo4j graph sync benchmarks."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "plasticos.graph.service" not in cls.env:
-            raise unittest.SkipTest("plasticos.graph.service not installed")
+        cls._skip_if_model_missing("plasticos.graph.service")
         cls.GraphSvc = cls.env["plasticos.graph.service"]
 
     def test_build_facility_payloads_under_5s(self):

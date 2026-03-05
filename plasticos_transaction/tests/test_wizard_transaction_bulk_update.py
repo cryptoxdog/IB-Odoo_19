@@ -1,9 +1,17 @@
-"""Tests for Transaction Bulk Update Wizard."""
+"""Tests for Transaction Bulk Update Wizard.
+
+Tests the bulk status update wizard for transactions.
+Aligned with plasticos_transaction/wizards/transaction_bulk_update_wizard.py.
+
+States: active, pending_supplier, supplier_ready, in_progress,
+        in_transit, delivered, invoiced, cancelled, closed
+"""
 
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase
+from odoo.tests.common import TransactionCase, tagged
 
 
+@tagged("post_install", "-at_install")
 class TestTransactionBulkUpdateWizard(TransactionCase):
     """Test plasticos.tx.bulk.wizard."""
 
@@ -12,16 +20,20 @@ class TestTransactionBulkUpdateWizard(TransactionCase):
         super().setUpClass()
         cls.tx1 = cls.env["plasticos.transaction"].create(
             {
-                "name": "TX-BU-001",
                 "state": "active",
             }
         )
         cls.tx2 = cls.env["plasticos.transaction"].create(
             {
-                "name": "TX-BU-002",
                 "state": "active",
             }
         )
+
+    def setUp(self):
+        super().setUp()
+        # Reset transaction states before each test
+        self.tx1.write({"state": "active"})
+        self.tx2.write({"state": "active"})
 
     # ------------------------------------------------------------------
     # Context loading

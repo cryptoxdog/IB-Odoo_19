@@ -6,11 +6,12 @@ class PlasticosCommissionRule(models.Model):
     _name = "plasticos.commission.rule"
     _description = "Commission Rule"
 
-    name = fields.Char(required=True)
+    name = fields.Char(required=True, default="New Commission Rule")
     sales_rep_id = fields.Many2one("res.users", string="Sales Rep", required=True)
     percentage = fields.Float(
         string="Commission Rate",
         required=True,
+        default=0.05,
         digits=(5, 4),
         help="Commission as decimal fraction (e.g., 0.05 = 5%)",
     )

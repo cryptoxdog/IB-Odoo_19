@@ -13,7 +13,9 @@ class TestMaterialProfileConstraintsConsolidated(TransactionCase):
         cls.Profile = cls.env["plasticos.material.profile"]
         cls.partner = cls.env["res.partner"].create({"name": "Facility"})
 
-        cls.polymer = cls.env["plasticos.polymer"].create({"name": "HDPE", "code": "HDPE"})
+        cls.polymer = cls.env["plasticos.polymer"].search([("code", "=", "HDPE")], limit=1)
+        if not cls.polymer:
+            cls.polymer = cls.env["plasticos.polymer"].create({"name": "HDPE", "code": "HDPE"})
         cls.form = cls.env["plasticos.material.form"].create({"name": "Pellet", "code": "PEL"})
 
     def test_unique_polymer_form_partner(self):
@@ -24,7 +26,8 @@ class TestMaterialProfileConstraintsConsolidated(TransactionCase):
                 "form_id": self.form.id,
             }
         )
-        with self.assertRaises((ValidationError, IntegrityError)):
+        raised = False
+        try:
             self.Profile.create(
                 {
                     "partner_id": self.partner.id,
@@ -32,6 +35,9 @@ class TestMaterialProfileConstraintsConsolidated(TransactionCase):
                     "form_id": self.form.id,
                 }
             )
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_density_bounds(self):
         prof = self.Profile.create(

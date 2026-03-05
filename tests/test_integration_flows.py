@@ -6,42 +6,31 @@ Covers 5 critical paths:
     3. Transaction → Load → Delivery
     4. Claim → Investigation → Resolution
     5. Partner → Enrichment → Profile
+
+These tests validate cross-module interactions and data flow integrity.
+Unlike golden flows (which are blocking regressions), integration flows
+test the mechanics of module integration.
 """
 
-import unittest
+from odoo.tests.common import TransactionCase, tagged
 
-from odoo.tests.common import TransactionCase
-
-
-class IntegrationFactoryMixin:
-    @classmethod
-    def _partner(cls, name="Integration Partner", **kw):
-        vals = {"name": name, "is_company": True, "supplier_rank": 1}
-        vals.update(kw)
-        return cls.env["res.partner"].create(vals)
-
-    @classmethod
-    def _polymer(cls, code="HDPE"):
-        return cls.env["plasticos.polymer"].create({"name": code, "code": code})
-
-    @classmethod
-    def _form(cls, code="pellet"):
-        return cls.env["plasticos.material.form"].create({"name": code.title(), "code": code})
+from .common import PlastOSTestFactoryMixin
 
 
 # ═══════════════════════════════════════════════════════════════
 # Flow 1: Lead → Intake → Transaction
 # ═══════════════════════════════════════════════════════════════
-class TestLeadToIntakeToTransaction(TransactionCase, IntegrationFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "integration")
+class TestLeadToIntakeToTransaction(TransactionCase, PlastOSTestFactoryMixin):
+    """Integration tests for CRM lead to transaction flow."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        for m in ("plasticos.intake", "plasticos.transaction", "crm.lead"):
-            if m not in cls.env:
-                raise unittest.SkipTest(f"{m} not installed")
-        cls.partner = cls._partner("Lead Flow Co")
-        cls.polymer = cls._polymer()
-        cls.form = cls._form()
+        cls._skip_if_model_missing("plasticos.intake", "plasticos.transaction", "crm.lead")
+        cls.partner = cls._create_partner("Lead Flow Co", supplier_rank=1)
+        cls.polymer = cls._get_or_create_polymer()
+        cls.form = cls._get_or_create_form()
 
     def test_full_lead_to_transaction_flow(self):
         """CRM lead → intake → confirmed → transaction created."""
@@ -79,17 +68,18 @@ class TestLeadToIntakeToTransaction(TransactionCase, IntegrationFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # Flow 2: Intake → Match → Offer
 # ═══════════════════════════════════════════════════════════════
-class TestIntakeToMatchToOffer(TransactionCase, IntegrationFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "integration", "matching")
+class TestIntakeToMatchToOffer(TransactionCase, PlastOSTestFactoryMixin):
+    """Integration tests for intake to offer via matching flow."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        for m in ("plasticos.intake", "plasticos.match.result", "plasticos.offer"):
-            if m not in cls.env:
-                raise unittest.SkipTest(f"{m} not installed")
-        cls.supplier = cls._partner("Match Supplier")
-        cls.buyer = cls._partner("Match Buyer", customer_rank=1)
-        cls.polymer = cls._polymer()
-        cls.form = cls._form()
+        cls._skip_if_model_missing("plasticos.intake", "plasticos.match.result", "plasticos.offer")
+        cls.supplier = cls._create_partner("Match Supplier", supplier_rank=1)
+        cls.buyer = cls._create_partner("Match Buyer", customer_rank=1)
+        cls.polymer = cls._get_or_create_polymer()
+        cls.form = cls._get_or_create_form()
 
     def test_intake_to_match_to_offer(self):
         intake = self.env["plasticos.intake"].create(
@@ -127,13 +117,14 @@ class TestIntakeToMatchToOffer(TransactionCase, IntegrationFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # Flow 3: Transaction → Load → Delivery
 # ═══════════════════════════════════════════════════════════════
-class TestTransactionToLoadToDelivery(TransactionCase, IntegrationFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "integration", "logistics")
+class TestTransactionToLoadToDelivery(TransactionCase, PlastOSTestFactoryMixin):
+    """Integration tests for transaction to delivery flow."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        for m in ("plasticos.transaction", "plasticos.load"):
-            if m not in cls.env:
-                raise unittest.SkipTest(f"{m} not installed")
+        cls._skip_if_model_missing("plasticos.transaction", "plasticos.load")
 
     def test_transaction_to_load_lifecycle(self):
         tx = self.env["plasticos.transaction"].create({})
@@ -164,31 +155,46 @@ class TestTransactionToLoadToDelivery(TransactionCase, IntegrationFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # Flow 4: Claim → Investigation → Resolution
 # ═══════════════════════════════════════════════════════════════
-class TestClaimLifecycle(TransactionCase, IntegrationFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "integration", "claims")
+class TestClaimLifecycle(TransactionCase, PlastOSTestFactoryMixin):
+    """Integration tests for claim lifecycle flow."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "plasticos.claim" not in cls.env:
-            raise unittest.SkipTest("plasticos.claim not installed")
+        cls._skip_if_model_missing("plasticos.claim", "plasticos.transaction")
         cls.Claim = cls.env["plasticos.claim"]
+        cls.tx = cls._create_transaction(name="TX-CLM-INTEG")
+
+    def _make_claim(self, **kw):
+        vals = {
+            "transaction_id": self.tx.id,
+            "case_type": "buyer_claim",
+            "severity": "medium",
+            "state": "pending",
+        }
+        vals.update(kw)
+        return self.Claim.create(vals)
 
     def test_full_claim_lifecycle(self):
-        claim = self.Claim.create({"name": "CLM-E2E", "state": "open"})
-        if hasattr(claim, "action_investigate"):
-            claim.action_investigate()
-            self.assertEqual(claim.state, "investigating")
+        claim = self._make_claim()
+        if hasattr(claim, "action_start"):
+            claim.action_start()
+            self.assertEqual(claim.state, "in_progress")
         if hasattr(claim, "action_resolve"):
+            claim.resolution_note = "Resolved"
             claim.action_resolve()
             self.assertEqual(claim.state, "resolved")
-        if hasattr(claim, "action_close"):
-            claim.action_close()
-            self.assertEqual(claim.state, "closed")
+        if hasattr(claim, "action_archive"):
+            claim.action_archive()
+            self.assertEqual(claim.state, "archived")
 
     def test_claim_reopen_then_resolve(self):
-        claim = self.Claim.create({"name": "CLM-REOPEN", "state": "open"})
-        if hasattr(claim, "action_investigate"):
-            claim.action_investigate()
+        claim = self._make_claim()
+        if hasattr(claim, "action_start"):
+            claim.action_start()
         if hasattr(claim, "action_resolve"):
+            claim.resolution_note = "Resolved"
             claim.action_resolve()
         if hasattr(claim, "action_reopen"):
             claim.action_reopen()
@@ -198,13 +204,15 @@ class TestClaimLifecycle(TransactionCase, IntegrationFactoryMixin):
 # ═══════════════════════════════════════════════════════════════
 # Flow 5: Partner → Enrichment → Profile
 # ═══════════════════════════════════════════════════════════════
-class TestPartnerEnrichmentToProfile(TransactionCase, IntegrationFactoryMixin):
+@tagged("post_install", "-at_install", "plasticos", "integration", "enrichment")
+class TestPartnerEnrichmentToProfile(TransactionCase, PlastOSTestFactoryMixin):
+    """Integration tests for partner enrichment to profile flow."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "plasticos.enrichment.run" not in cls.env:
-            raise unittest.SkipTest("plasticos.enrichment.run not installed")
-        cls.partner = cls._partner("Enrich Co")
+        cls._skip_if_model_missing("plasticos.enrichment.run")
+        cls.partner = cls._create_partner("Enrich Co")
 
     def test_enrichment_creates_profile_data(self):
         if "plasticos.enrichment.source" in self.env:
@@ -217,14 +225,11 @@ class TestPartnerEnrichmentToProfile(TransactionCase, IntegrationFactoryMixin):
             self.assertTrue(src.exists())
 
     def test_material_profile_linked_to_partner(self):
-        if "plasticos.material.profile" in self.env:
-            polymer = self._polymer("PP")
-            profile = self.env["plasticos.material.profile"].create(
-                {
-                    "partner_id": self.partner.id,
-                    "polymer_id": polymer.id,
-                }
-            )
-            self.assertEqual(profile.partner_id.id, self.partner.id)
-            if hasattr(self.partner, "material_profile_ids"):
-                self.assertIn(profile.id, self.partner.material_profile_ids.ids)
+        """Material profile should link to partner bidirectionally."""
+        if "plasticos.material.profile" not in self.env:
+            self.skipTest("plasticos.material.profile not installed")
+        polymer = self._get_or_create_polymer("PP")
+        profile = self._create_material_profile(partner=self.partner, polymer=polymer)
+        self.assertEqual(profile.partner_id.id, self.partner.id)
+        if hasattr(self.partner, "material_profile_ids"):
+            self.assertIn(profile.id, self.partner.material_profile_ids.ids)

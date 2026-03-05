@@ -321,6 +321,7 @@ class PlasticosIntake(models.Model):
     quantity_per_load_lbs = fields.Integer(
         string="Qty per Load (lbs)",
         required=True,
+        default=40000,
     )
     loads_per_month = fields.Integer(string="Loads / Month")
     deal_type = fields.Selection(

@@ -100,14 +100,26 @@ class TestMatchResultStateMachine(TransactionCase):
 
     # ── SQL constraints ──────────────────────────────────────
     def test_score_range_constraint(self):
-        with self.assertRaises((ValidationError, UserError, IntegrityError)):
+        raised = False
+        try:
             self._result(score=101.0)
+        except (ValidationError, UserError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_confidence_range_constraint(self):
-        with self.assertRaises((ValidationError, UserError, IntegrityError)):
+        raised = False
+        try:
             self._result(confidence=-1.0)
+        except (ValidationError, UserError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_unique_match_per_run(self):
         self._result(run_id="UNIQ-1")
-        with self.assertRaises((ValidationError, UserError, IntegrityError)):
+        raised = False
+        try:
             self._result(run_id="UNIQ-1")
+        except (ValidationError, UserError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")

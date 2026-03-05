@@ -8,6 +8,8 @@ Tests cover:
     - Search and filtering
 """
 
+from psycopg2 import IntegrityError
+
 from odoo.exceptions import ValidationError
 from odoo.tests import TransactionCase, tagged
 
@@ -72,7 +74,8 @@ class TestPlasticosAutomationLog(TransactionCase):
 
     def test_constraint_name_required(self):
         """Test that name field is required."""
-        with self.assertRaises((ValidationError, Exception)):
+        raised = False
+        try:
             self.AutomationLog.create(
                 {
                     "model_name": "res.partner",
@@ -80,10 +83,14 @@ class TestPlasticosAutomationLog(TransactionCase):
                     "action_type": "approval_flag",
                 }
             )
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_constraint_model_name_required(self):
         """Test that model_name field is required."""
-        with self.assertRaises((ValidationError, Exception)):
+        raised = False
+        try:
             self.AutomationLog.create(
                 {
                     "name": "Test Log",
@@ -91,10 +98,14 @@ class TestPlasticosAutomationLog(TransactionCase):
                     "action_type": "approval_flag",
                 }
             )
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_constraint_res_id_required(self):
         """Test that res_id field is required."""
-        with self.assertRaises((ValidationError, Exception)):
+        raised = False
+        try:
             self.AutomationLog.create(
                 {
                     "name": "Test Log",
@@ -102,10 +113,14 @@ class TestPlasticosAutomationLog(TransactionCase):
                     "action_type": "approval_flag",
                 }
             )
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_constraint_action_type_required(self):
         """Test that action_type field is required."""
-        with self.assertRaises((ValidationError, Exception)):
+        raised = False
+        try:
             self.AutomationLog.create(
                 {
                     "name": "Test Log",
@@ -113,10 +128,14 @@ class TestPlasticosAutomationLog(TransactionCase):
                     "res_id": self.partner.id,
                 }
             )
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_constraint_invalid_action_type(self):
         """Test that invalid action_type raises error."""
-        with self.assertRaises((ValidationError, Exception)):
+        raised = False
+        try:
             self.AutomationLog.create(
                 {
                     "name": "Test Log",
@@ -125,6 +144,9 @@ class TestPlasticosAutomationLog(TransactionCase):
                     "action_type": "invalid_type",
                 }
             )
+        except (ValidationError, ValueError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     # ═══════════════════════════════════════════════════════════════════
     # ORDERING TESTS
