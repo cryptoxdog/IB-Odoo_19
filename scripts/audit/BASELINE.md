@@ -37,8 +37,31 @@ These are **not bugs**. They occur because:
 
 | Issue | Root Cause | Fix Applied |
 |-------|------------|-------------|
-| INVALID_DEPENDS: document_ids | Field defined via `_inherit` in `plasticos_documents` | Audit now tracks inherited fields |
+| INVALID_DEPENDS: document_ids | Field defined via `_inherit` in `plasticos_documents` | Moved @api.depends to bridge module |
 | MISSING_ACL: 10 service models | AbstractModel classes don't need ACL | Audit now skips AbstractModel |
+
+### Architectural Pattern: Cross-Module Field Dependencies
+
+When a computed field in module A depends on fields added by module B via `_inherit`:
+
+**WRONG** (causes circular dependency or load error):
+```python
+# In module A (base)
+@api.depends("field_from_module_b")  # ERROR: field doesn't exist yet
+def _compute_foo(self):
+    ...
+```
+
+**CORRECT** (override in bridge module):
+```python
+# In module B (bridge)
+@api.depends("field_from_module_b")
+def _compute_foo(self):
+    return super()._compute_foo()
+```
+
+Example: `plasticos_documents/models/transaction_docs_bridge.py` overrides
+`_compute_compliance` to add `document_ids` dependencies.
 
 ## How to Update Baseline
 

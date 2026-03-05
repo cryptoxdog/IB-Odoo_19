@@ -21,6 +21,17 @@ class PlasticosTransactionDocsBridge(models.Model):
         for rec in self:
             rec.document_count = len(rec.document_ids)
 
+    @api.depends(
+        "document_ids",
+        "document_ids.verified",
+        "document_ids.override",
+        "document_ids.active",
+        "document_ids.tag_id",
+    )
+    def _compute_compliance(self):
+        """Override to add document_ids dependencies for auto-recompute."""
+        return super()._compute_compliance()
+
     def action_view_documents(self):
         """Open documents linked to this transaction."""
         self.ensure_one()

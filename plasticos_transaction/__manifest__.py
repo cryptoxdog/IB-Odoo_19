@@ -18,7 +18,6 @@
         "plasticos_product",
         "plasticos_offer",
         "plasticos_matching",
-        "plasticos_documents",
     ],
     "data": [
         "security/security_hardening.xml",
