@@ -92,11 +92,13 @@ warn_unused_configs = true
 ignore_missing_imports = true
 exclude = [
     "^tests-odoo/",
+    "^tests/",           # Repo-level test utilities (not Odoo module tests)
     "^addons/",
     "^\\.venv/",
     "^venv/",
     ".*/migrations/.*",  # Odoo migration scripts (not regular modules)
     "^scripts/",         # Utility scripts
+    "^tools/",           # Repo-level tool scripts
     "^plasticos_dev_tools/",  # Dev tools (relaxed checking)
     "^docs/",            # Harvested/experimental code, not production
     "^Files To Harvest/",  # Legacy/harvested code, not production

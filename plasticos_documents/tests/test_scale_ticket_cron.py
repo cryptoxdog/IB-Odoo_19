@@ -77,14 +77,14 @@ class TestScaleTicketCron(TransactionCase):
         tx = self._create_transaction_with_load(load)
 
         # Verify initial state
-        self.assertFalse(tx.x_scale_ticket_reminder_sent)
+        self.assertFalse(tx.scale_ticket_reminder_sent)
 
         # Run cron
         self.Transaction.cron_check_scale_tickets()
 
         # Refresh and check
         tx.invalidate_recordset()
-        self.assertTrue(tx.x_scale_ticket_reminder_sent)
+        self.assertTrue(tx.scale_ticket_reminder_sent)
 
     def test_reminder_not_sent_before_2_business_days(self):
         """Reminder is NOT sent when delivery was <2 business days ago."""
@@ -96,7 +96,7 @@ class TestScaleTicketCron(TransactionCase):
 
         # Refresh and check
         tx.invalidate_recordset()
-        self.assertFalse(tx.x_scale_ticket_reminder_sent)
+        self.assertFalse(tx.scale_ticket_reminder_sent)
 
     def test_reminder_not_duplicated(self):
         """Reminder is only sent once, not on every cron run."""
@@ -129,14 +129,14 @@ class TestScaleTicketCron(TransactionCase):
         tx = self._create_transaction_with_load(load)
 
         # Verify initial state
-        self.assertFalse(tx.x_scale_ticket_escalated)
+        self.assertFalse(tx.scale_ticket_escalated)
 
         # Run cron
         self.Transaction.cron_check_scale_tickets()
 
         # Refresh and check
         tx.invalidate_recordset()
-        self.assertTrue(tx.x_scale_ticket_escalated)
+        self.assertTrue(tx.scale_ticket_escalated)
 
     def test_escalation_not_triggered_before_7_business_days(self):
         """Escalation is NOT triggered when pickup was <7 business days ago."""
@@ -148,7 +148,7 @@ class TestScaleTicketCron(TransactionCase):
 
         # Refresh and check
         tx.invalidate_recordset()
-        self.assertFalse(tx.x_scale_ticket_escalated)
+        self.assertFalse(tx.scale_ticket_escalated)
 
     def test_escalation_not_duplicated(self):
         """Escalation is only triggered once, not on every cron run."""
@@ -204,8 +204,8 @@ class TestScaleTicketCron(TransactionCase):
 
         # Refresh and check - should NOT have triggered anything
         tx.invalidate_recordset()
-        self.assertFalse(tx.x_scale_ticket_reminder_sent)
-        self.assertFalse(tx.x_scale_ticket_escalated)
+        self.assertFalse(tx.scale_ticket_reminder_sent)
+        self.assertFalse(tx.scale_ticket_escalated)
 
     # ══════════════════════════════════════════════════════════════
     # State Filter Tests
@@ -229,8 +229,8 @@ class TestScaleTicketCron(TransactionCase):
 
         # Refresh and check - should NOT have triggered anything
         tx.invalidate_recordset()
-        self.assertFalse(tx.x_scale_ticket_reminder_sent)
-        self.assertFalse(tx.x_scale_ticket_escalated)
+        self.assertFalse(tx.scale_ticket_reminder_sent)
+        self.assertFalse(tx.scale_ticket_escalated)
 
     def test_invoiced_state_included(self):
         """Transactions in 'invoiced' state are also checked."""
@@ -242,7 +242,7 @@ class TestScaleTicketCron(TransactionCase):
 
         # Refresh and check
         tx.invalidate_recordset()
-        self.assertTrue(tx.x_scale_ticket_escalated)
+        self.assertTrue(tx.scale_ticket_escalated)
 
 
 @tagged("post_install", "-at_install")
