@@ -9,16 +9,9 @@ _logger = logging.getLogger(__name__)
 class PlasticosTransactionDocs(models.Model):
     _inherit = "plasticos.transaction"
 
-    # ── Document Link (R2 fix: enables real-time flag updates) ─────
-    x_document_ids = fields.One2many(
-        "plasticos.document",
-        "transaction_id",
-        string="Documents",
-        help="Documents linked to this transaction.",
-    )
-
+    # NOTE: document_ids One2many is defined in transaction_docs_bridge.py
     # ── Missing Document Status Tracking ───────────────────────────
-    x_missing_doc_status = fields.Selection(
+    missing_doc_status = fields.Selection(
         [
             ("complete", "Complete"),
             ("pending", "Pending"),
@@ -29,37 +22,37 @@ class PlasticosTransactionDocs(models.Model):
         default="pending",
         help="Overall status of required documents for this transaction.",
     )
-    x_missing_supplier_docs = fields.Boolean(
+    missing_supplier_docs = fields.Boolean(
         string="Missing Supplier Docs",
         compute="_compute_missing_doc_flags",
         store=True,
         help="True if any required supplier documents are missing.",
     )
-    x_missing_carrier_docs = fields.Boolean(
+    missing_carrier_docs = fields.Boolean(
         string="Missing Carrier Docs",
         compute="_compute_missing_doc_flags",
         store=True,
         help="True if any required carrier documents are missing.",
     )
-    x_missing_buyer_docs = fields.Boolean(
+    missing_buyer_docs = fields.Boolean(
         string="Missing Buyer Docs",
         compute="_compute_missing_doc_flags",
         store=True,
         help="True if any required buyer documents are missing.",
     )
-    x_doc_reminder_count = fields.Integer(
+    doc_reminder_count = fields.Integer(
         string="Reminder Count",
         default=0,
         help="Number of document reminders sent for this transaction.",
     )
-    x_last_doc_reminder_date = fields.Date(
+    last_doc_reminder_date = fields.Date(
         string="Last Reminder Date",
         help="Date when the last document reminder was sent.",
     )
 
     # ── Computed Missing Doc Flags ─────────────────────────────────
 
-    @api.depends("load_id", "sale_order_id", "x_document_ids", "x_document_ids.tag_id", "x_document_ids.active")
+    @api.depends("load_id", "sale_order_id", "document_ids", "document_ids.tag_id", "document_ids.active")
     def _compute_missing_doc_flags(self):
         """Compute missing document flags using the existing compliance service.
 
@@ -87,9 +80,9 @@ class PlasticosTransactionDocs(models.Model):
             )
             missing_set = set(missing_codes) if missing_codes else set()
 
-            tx.x_missing_supplier_docs = bool(missing_set & supplier_tags)
-            tx.x_missing_carrier_docs = bool(missing_set & carrier_tags)
-            tx.x_missing_buyer_docs = bool(missing_set & buyer_tags)
+            tx.missing_supplier_docs = bool(missing_set & supplier_tags)
+            tx.missing_carrier_docs = bool(missing_set & carrier_tags)
+            tx.missing_buyer_docs = bool(missing_set & buyer_tags)
 
     # ── Business Day Calculation ───────────────────────────────────
 
@@ -130,11 +123,11 @@ class PlasticosTransactionDocs(models.Model):
             for tx in transactions:
                 # Recompute missing flags
                 tx._compute_missing_doc_flags()
-                has_missing = tx.x_missing_supplier_docs or tx.x_missing_carrier_docs or tx.x_missing_buyer_docs
+                has_missing = tx.missing_supplier_docs or tx.missing_carrier_docs or tx.missing_buyer_docs
 
                 if not has_missing:
-                    if tx.x_missing_doc_status != "complete":
-                        tx.x_missing_doc_status = "complete"
+                    if tx.missing_doc_status != "complete":
+                        tx.missing_doc_status = "complete"
                     continue
 
                 # Determine age in business days from create_date
@@ -163,14 +156,14 @@ class PlasticosTransactionDocs(models.Model):
                 else:
                     new_status = "pending"
 
-                if tx.x_missing_doc_status != new_status:
-                    tx.x_missing_doc_status = new_status
+                if tx.missing_doc_status != new_status:
+                    tx.missing_doc_status = new_status
 
                 if new_status == "overdue":
-                    if tx.x_last_doc_reminder_date and tx.x_last_doc_reminder_date >= today:
+                    if tx.last_doc_reminder_date and tx.last_doc_reminder_date >= today:
                         continue
-                    tx.x_doc_reminder_count += 1
-                    tx.x_last_doc_reminder_date = today
+                    tx.doc_reminder_count += 1
+                    tx.last_doc_reminder_date = today
                     tx.message_post(
                         body=(
                             f"Automated reminder: transaction {tx.name} has missing documents "
@@ -204,9 +197,9 @@ class PlasticosTransactionDocs(models.Model):
                     tx.name,
                     new_status,
                     bd,
-                    tx.x_missing_supplier_docs,
-                    tx.x_missing_carrier_docs,
-                    tx.x_missing_buyer_docs,
+                    tx.missing_supplier_docs,
+                    tx.missing_carrier_docs,
+                    tx.missing_buyer_docs,
                 )
         finally:
             self.env.cr.execute(
@@ -218,12 +211,12 @@ class PlasticosTransactionDocs(models.Model):
     # ══════════════════════════════════════════════════════════════
 
     # Tracking fields for scale ticket reminders (avoid duplicates)
-    x_scale_ticket_reminder_sent = fields.Boolean(
+    scale_ticket_reminder_sent = fields.Boolean(
         string="Scale Ticket Reminder Sent",
         default=False,
         help="True if 48h reminder has been sent for missing scale ticket.",
     )
-    x_scale_ticket_escalated = fields.Boolean(
+    scale_ticket_escalated = fields.Boolean(
         string="Scale Ticket Escalated",
         default=False,
         help="True if 7-day escalation has been triggered for missing scale ticket.",
@@ -319,7 +312,7 @@ class PlasticosTransactionDocs(models.Model):
                 bd_since_pickup = self._count_business_days(pickup_date, today) if pickup_date else 0
 
                 # Escalation: 7 BD from pickup
-                if bd_since_pickup >= escalation_bd and not tx.x_scale_ticket_escalated:
+                if bd_since_pickup >= escalation_bd and not tx.scale_ticket_escalated:
                     # Find logistics manager to assign activity
                     manager_user = self._get_logistics_manager(logistics_group)
                     if manager_user:
@@ -353,10 +346,10 @@ class PlasticosTransactionDocs(models.Model):
                             subtype_xmlid="mail.mt_note",
                         )
                         _logger.warning("Scale ticket ESCALATION: TX %s, no logistics manager found", tx.name)
-                    tx.x_scale_ticket_escalated = True
+                    tx.scale_ticket_escalated = True
 
                 # Reminder: 2 BD after delivery (only if not yet escalated)
-                elif bd_since_delivery >= overdue_bd and not tx.x_scale_ticket_reminder_sent:
+                elif bd_since_delivery >= overdue_bd and not tx.scale_ticket_reminder_sent:
                     # Send reminder message
                     carrier_name = load.carrier_id.name if load.carrier_id else "Carrier"
                     tx.message_post(
@@ -368,7 +361,7 @@ class PlasticosTransactionDocs(models.Model):
                         message_type="notification",
                         subtype_xmlid="mail.mt_note",
                     )
-                    tx.x_scale_ticket_reminder_sent = True
+                    tx.scale_ticket_reminder_sent = True
                     _logger.info("Scale ticket REMINDER: TX %s, %d BD since delivery", tx.name, bd_since_delivery)
 
         finally:

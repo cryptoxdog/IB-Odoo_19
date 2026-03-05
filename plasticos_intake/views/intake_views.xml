@@ -85,7 +85,7 @@
                 <field name="polymer_id"/>
                 <field name="form_id"/>
                 <field name="source_type_id" optional="show"/>
-                <field name="lead_source" optional="hide"/>
+                <field name="lead_source_id" optional="hide"/>
                 <field name="quantity_per_load_lbs" sum="Total Lbs/Load"/>
                 <field name="loads_per_month" optional="show" sum="Total Loads/Mo"/>
                 <field name="match_count" optional="show" sum="Total Matches"/>

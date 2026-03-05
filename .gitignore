@@ -65,8 +65,9 @@ plasticos_inference_engine/**
 # ═══════════════════════════════════════════════════════════
 # Module test folders (not ready for CI)
 # ═══════════════════════════════════════════════════════════
-plasticos_transaction/tests/
-plasticos_intake/tests/
-plasticos_logistics/tests/
-plasticos_documents/tests/
-plasticos_commission/tests/
+# NOTE: Test folders now tracked in git (2026-03-05)
+# plasticos_transaction/tests/
+# plasticos_intake/tests/
+# plasticos_logistics/tests/
+# plasticos_documents/tests/
+# plasticos_commission/tests/
