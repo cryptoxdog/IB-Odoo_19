@@ -1,9 +1,9 @@
 """
 Test material profile computed fields.
 
-- display_name
-- full_description
+- polymer/form/color computed Selection fields
 - partner counts (po_line_count, so_line_count)
+- company_id related field
 """
 
 from odoo.tests import TransactionCase, tagged
@@ -41,14 +41,14 @@ class TestProfileComputes(TransactionCase):
         )
         cls.form = cls.env["plasticos.material.form"].create(
             {
-                "name": "Pellet",
-                "code": "PELLET",
+                "name": "Pellets",
+                "code": "PELLETS",
             }
         )
         cls.color = cls.env["plasticos.material.color"].create(
             {
                 "name": "Natural",
-                "code": "NAT",
+                "code": "NATURAL",
             }
         )
 
@@ -63,42 +63,28 @@ class TestProfileComputes(TransactionCase):
         return self.env["plasticos.material.profile"].create(vals)
 
     # ═══════════════════════════════════════════════════════════
-    # Display Name Tests
+    # Computed Selection Field Tests
     # ═══════════════════════════════════════════════════════════
 
-    def test_display_name_includes_polymer(self):
-        """Display name should include polymer code."""
+    def test_polymer_code_computed(self):
+        """Polymer Selection field should be computed from polymer_id.code."""
         profile = self._create_profile()
-        self.assertIn("HDPE", profile.display_name)
+        self.assertEqual(profile.polymer, "HDPE")
 
-    def test_display_name_includes_form(self):
-        """Display name should include form code."""
+    def test_form_code_computed(self):
+        """Form Selection field should be computed from form_id.code."""
         profile = self._create_profile()
-        self.assertIn("PELLET", profile.display_name)
+        self.assertEqual(profile.form, "PELLETS")
 
-    def test_display_name_includes_color(self):
-        """Display name should include color if set."""
+    def test_color_code_computed(self):
+        """Color Selection field should be computed from color_id.code."""
         profile = self._create_profile(color_id=self.color.id)
-        self.assertIn("NAT", profile.display_name)
+        self.assertEqual(profile.color, "NATURAL")
 
-    def test_display_name_includes_partner(self):
-        """Display name should include partner name."""
+    def test_color_code_false_when_no_color(self):
+        """Color Selection field should be False when no color_id."""
         profile = self._create_profile()
-        self.assertIn(self.partner.name, profile.display_name)
-
-    # ═══════════════════════════════════════════════════════════
-    # Full Description Tests
-    # ═══════════════════════════════════════════════════════════
-
-    def test_full_description_computed(self):
-        """Full description should be computed from components."""
-        profile = self._create_profile(color_id=self.color.id)
-
-        if hasattr(profile, "full_description"):
-            desc = profile.full_description
-            self.assertIn("HDPE", desc)
-            self.assertIn("Pellet", desc)
-            self.assertIn("Natural", desc)
+        self.assertFalse(profile.color)
 
     # ═══════════════════════════════════════════════════════════
     # Partner Count Tests
@@ -118,28 +104,46 @@ class TestProfileComputes(TransactionCase):
     # Company ID Tests
     # ═══════════════════════════════════════════════════════════
 
-    def test_company_id_computed_from_partner(self):
-        """Company ID should be computed from partner."""
+    def test_company_id_computed_from_partner_parent(self):
+        """Company ID should be computed from partner's parent_id."""
         profile = self._create_profile()
-
-        if hasattr(profile, "company_id"):
-            # Company should match partner's company or current company
-            self.assertTrue(profile.company_id)
+        # company_id is related to partner_id.parent_id
+        self.assertEqual(profile.company_id, self.parent_company)
 
     # ═══════════════════════════════════════════════════════════
-    # Related Field Tests
+    # Quality Metrics Tests
     # ═══════════════════════════════════════════════════════════
 
-    def test_polymer_name_related(self):
-        """Polymer name should be accessible via related field."""
+    def test_melt_flow_index_stored(self):
+        """Melt flow index should be stored correctly."""
+        profile = self._create_profile(melt_flow_index=12.5)
+        self.assertEqual(profile.melt_flow_index, 12.5)
+
+    def test_density_stored(self):
+        """Density should be stored correctly."""
+        profile = self._create_profile(density=0.945)
+        self.assertEqual(profile.density, 0.945)
+
+    def test_contamination_percent_stored(self):
+        """Contamination percent should be stored correctly."""
+        profile = self._create_profile(contamination_percent=2.5)
+        self.assertEqual(profile.contamination_percent, 2.5)
+
+    # ═══════════════════════════════════════════════════════════
+    # Boolean Flag Tests
+    # ═══════════════════════════════════════════════════════════
+
+    def test_has_metal_default_false(self):
+        """has_metal should default to False."""
         profile = self._create_profile()
+        self.assertFalse(profile.has_metal)
 
-        if hasattr(profile, "polymer_name"):
-            self.assertEqual(profile.polymer_name, "High Density Polyethylene")
-
-    def test_form_name_related(self):
-        """Form name should be accessible via related field."""
+    def test_is_metalized_default_false(self):
+        """is_metalized should default to False."""
         profile = self._create_profile()
+        self.assertFalse(profile.is_metalized)
 
-        if hasattr(profile, "form_name"):
-            self.assertEqual(profile.form_name, "Pellet")
+    def test_has_fr_default_false(self):
+        """has_fr should default to False."""
+        profile = self._create_profile()
+        self.assertFalse(profile.has_fr)

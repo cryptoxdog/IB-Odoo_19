@@ -12,39 +12,39 @@ fail until every downstream consumer is updated.
 """
 
 # ── Canonical form codes (must match material_form_data.xml) ─────────
-# Sorted alphabetically for deterministic comparison.
+# Sorted alphabetically for deterministic comparison. UPPERCASE convention.
 FORM_CODES: tuple[str, ...] = (
-    "bales",
-    "bottles",
-    "buckets",
-    "chopped",
-    "densified",
-    "drums",
-    "film",
-    "flake",
-    "floorsweep",
-    "logs",
-    "loose",
-    "other",
-    "pallets",
-    "parts",
-    "pellets",
-    "powder",
-    "purge",
-    "regrind",
-    "rollstock",
-    "sheet",
-    "shred",
+    "BALES",
+    "BOTTLES",
+    "BUCKETS",
+    "CHOPPED",
+    "DENSIFIED",
+    "DRUMS",
+    "FILM",
+    "FLAKE",
+    "FLOORSWEEP",
+    "LOGS",
+    "LOOSE",
+    "OTHER",
+    "PALLETS",
+    "PARTS",
+    "PELLETS",
+    "POWDER",
+    "PURGE",
+    "REGRIND",
+    "ROLLSTOCK",
+    "SHEET",
+    "SHRED",
 )
 
 # ── Equipment-gated forms ────────────────────────────────────────────
 # Forms that require specific facility equipment to process.
 # Key = form code, Value = Cypher property that must be ``true``.
 EQUIPMENT_GATED_FORMS: dict[str, str] = {
-    "regrind": "f.handles_regrind",
-    "flake": "f.handles_flake",
-    "rollstock": "f.handles_rollstock",
-    "bales": "(f.has_shredder = true OR f.has_granulator = true)",
+    "REGRIND": "f.handles_regrind",
+    "FLAKE": "f.handles_flake",
+    "ROLLSTOCK": "f.handles_rollstock",
+    "BALES": "(f.has_shredder = true OR f.has_granulator = true)",
 }
 
 # Forms that pass through without equipment checks.

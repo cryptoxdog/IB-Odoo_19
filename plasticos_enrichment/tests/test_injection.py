@@ -9,7 +9,7 @@ class TestInjection(TransactionCase):
         super().setUp()
         # Ensure canonical forms exist (in case data load order differs in full suite)
         Form = self.env["plasticos.material.form"]
-        for code, name in (("bales", "Bales"), ("other", "Other")):
+        for code, name in (("BALES", "Bales"), ("OTHER", "Other")):
             if not Form.search([("code", "=", code)], limit=1):
                 Form.create({"name": name, "code": code, "description": f"Test {name} form."})
         # Create a parent company (required for facility-level partners)
@@ -71,12 +71,12 @@ class TestInjection(TransactionCase):
         profile = self.env["plasticos.material.profile"].search(
             [
                 ("partner_id", "=", self.partner.id),
-                ("polymer_id.code", "=", "hdpe"),
+                ("polymer_id.code", "=", "HDPE"),
             ]
         )
         self.assertTrue(profile)
-        self.assertEqual(profile.form, "bales")
-        self.assertEqual(profile.source_type, "post_industrial")
+        self.assertEqual(profile.form, "BALES")
+        self.assertEqual(profile.source_type, "POST_INDUSTRIAL")
         self.assertEqual(profile.monthly_volume_lbs, 100000.0)
         self.assertTrue(profile.food_grade)
         self.assertEqual(run.state, "injected")
@@ -85,8 +85,8 @@ class TestInjection(TransactionCase):
     def test_merge_not_overwrite(self):
         """Injection does not overwrite existing field values."""
         # Get the polymer and form records
-        pp_polymer = self.env["plasticos.polymer"].search([("code", "=", "pp")], limit=1)
-        pellets_form = self.env["plasticos.material.form"].search([("code", "=", "pellets")], limit=1)
+        pp_polymer = self.env["plasticos.polymer"].search([("code", "=", "PP")], limit=1)
+        pellets_form = self.env["plasticos.material.form"].search([("code", "=", "PELLETS")], limit=1)
         self.env["plasticos.material.profile"].create(
             {
                 "partner_id": self.partner.id,
@@ -129,7 +129,7 @@ class TestInjection(TransactionCase):
         profile = self.env["plasticos.material.profile"].search(
             [
                 ("partner_id", "=", self.partner.id),
-                ("polymer_id.code", "=", "pp"),
+                ("polymer_id.code", "=", "PP"),
             ]
         )
         # Existing values NOT overwritten

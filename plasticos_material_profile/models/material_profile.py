@@ -36,38 +36,38 @@ class PlasticosMaterialProfile(models.Model):
     polymer = fields.Selection(
         [
             # Commodity
-            ("pp", "PP"),
-            ("pp_pe", "PP/PE"),
-            ("hdpe", "HDPE"),
-            ("hdpe_hmw", "HDPE HMW"),
-            ("ldpe", "LDPE"),
-            ("lldpe", "LLDPE"),
-            ("plastic_pallets", "Plastic Pallets"),
-            ("gaylord_boxes", "Gaylord Boxes"),
-            ("pet", "PET"),
-            ("abs", "ABS"),
-            ("hips", "HIPS"),
-            ("ps", "PS"),
-            ("eps", "EPS"),
-            ("pvc", "PVC"),
-            ("mixed", "Mixed"),
+            ("PP", "PP"),
+            ("PP_PE", "PP/PE"),
+            ("HDPE", "HDPE"),
+            ("HDPE_HMW", "HDPE HMW"),
+            ("LDPE", "LDPE"),
+            ("LLDPE", "LLDPE"),
+            ("PLASTIC_PALLETS", "Plastic Pallets"),
+            ("GAYLORD_BOXES", "Gaylord Boxes"),
+            ("PET", "PET"),
+            ("ABS", "ABS"),
+            ("HIPS", "HIPS"),
+            ("PS", "PS"),
+            ("EPS", "EPS"),
+            ("PVC", "PVC"),
+            ("MIXED", "Mixed"),
             # Engineering
-            ("pmma", "PMMA"),
-            ("pc", "PC"),
-            ("pc_pmma", "PC-PMMA"),
-            ("nylon", "Nylon"),
-            ("pbt", "PBT"),
-            ("pom", "POM"),
-            ("ppo", "PPO"),
+            ("PMMA", "PMMA"),
+            ("PC", "PC"),
+            ("PC_PMMA", "PC-PMMA"),
+            ("NYLON", "Nylon"),
+            ("PBT", "PBT"),
+            ("POM", "POM"),
+            ("PPO", "PPO"),
             # Specialty
-            ("tpe", "TPE"),
-            ("tpo", "TPO"),
-            ("bopp", "BOPP"),
-            ("eva", "EVA"),
-            ("mrp", "MRP"),
-            ("ewaste", "E-Waste"),
-            ("occ", "OCC"),
-            ("metal", "Metal"),
+            ("TPE", "TPE"),
+            ("TPO", "TPO"),
+            ("BOPP", "BOPP"),
+            ("EVA", "EVA"),
+            ("MRP", "MRP"),
+            ("EWASTE", "E-Waste"),
+            ("OCC", "OCC"),
+            ("METAL", "Metal"),
         ],
         string="Polymer Code",
         compute="_compute_polymer_code",
@@ -110,18 +110,18 @@ class PlasticosMaterialProfile(models.Model):
     # Backward-compatible computed field
     color = fields.Selection(
         [
-            ("clear", "Clear"),
-            ("natural", "Natural"),
-            ("white", "White"),
-            ("black", "Black"),
-            ("mixed", "Mixed"),
-            ("blue", "Blue"),
-            ("blue_white", "Blue/White"),
-            ("red", "Red"),
-            ("green", "Green"),
-            ("yellow", "Yellow"),
-            ("orange", "Orange"),
-            ("gray", "Gray"),
+            ("CLEAR", "Clear"),
+            ("NATURAL", "Natural"),
+            ("WHITE", "White"),
+            ("BLACK", "Black"),
+            ("MIXED", "Mixed"),
+            ("BLUE", "Blue"),
+            ("BLUE_WHITE", "Blue/White"),
+            ("RED", "Red"),
+            ("GREEN", "Green"),
+            ("YELLOW", "Yellow"),
+            ("ORANGE", "Orange"),
+            ("GRAY", "Gray"),
         ],
         string="Color Code",
         compute="_compute_color_code",
@@ -149,14 +149,14 @@ class PlasticosMaterialProfile(models.Model):
     # Backward-compatible computed field
     source_type = fields.Selection(
         [
-            ("post_consumer", "Post-Consumer"),
-            ("post_industrial", "Post-Industrial"),
-            ("post_commercial", "Post-Commercial"),
-            ("agricultural", "Agricultural"),
-            ("prime", "Prime / Virgin"),
-            ("wide_spec", "Wide Spec"),
-            ("off_spec", "Off Spec"),
-            ("ocean_recovered", "Ocean Recovered"),
+            ("POST_CONSUMER", "Post-Consumer"),
+            ("POST_INDUSTRIAL", "Post-Industrial"),
+            ("POST_COMMERCIAL", "Post-Commercial"),
+            ("AGRICULTURAL", "Agricultural"),
+            ("PRIME", "Prime / Virgin"),
+            ("WIDE_SPEC", "Wide Spec"),
+            ("OFF_SPEC", "Off Spec"),
+            ("OCEAN_RECOVERED", "Ocean Recovered"),
         ],
         string="Source Type Code",
         compute="_compute_source_type_code",
@@ -208,8 +208,31 @@ class PlasticosMaterialProfile(models.Model):
     )
 
     # ── Quality ──────────────────────────────────────────────
-    melt_flow_index = fields.Float(index=True)
-    density = fields.Float()
+    melt_flow_index = fields.Float(
+        string="MFI",
+        index=True,
+        help="Melt Flow Index - single value or typical value.",
+    )
+    mfi_min = fields.Float(
+        string="MFI Min",
+        help="Minimum acceptable Melt Flow Index.",
+    )
+    mfi_max = fields.Float(
+        string="MFI Max",
+        help="Maximum acceptable Melt Flow Index.",
+    )
+    density = fields.Float(
+        string="Density",
+        help="Density in g/cm³ - single value or typical value.",
+    )
+    density_min = fields.Float(
+        string="Density Min",
+        help="Minimum acceptable density in g/cm³.",
+    )
+    density_max = fields.Float(
+        string="Density Max",
+        help="Maximum acceptable density in g/cm³.",
+    )
     moisture_percent = fields.Float()
     contamination_percent = fields.Float(index=True)
     # Boolean flags linked to material_attribute_ids
@@ -301,23 +324,31 @@ class PlasticosMaterialProfile(models.Model):
 
     @api.depends("polymer_id", "polymer_id.code")
     def _compute_polymer_code(self):
+        valid_codes = {k for k, _ in self._fields["polymer"].selection}
         for rec in self:
-            rec.polymer = rec.polymer_id.code if rec.polymer_id else False
+            code = rec.polymer_id.code if rec.polymer_id else False
+            rec.polymer = code if code in valid_codes else False
 
     @api.depends("form_id", "form_id.code")
     def _compute_form_code(self):
+        valid_codes = {k for k, _ in self._fields["form"].selection}
         for rec in self:
-            rec.form = rec.form_id.code if rec.form_id else False
+            code = rec.form_id.code if rec.form_id else False
+            rec.form = code if code in valid_codes else False
 
     @api.depends("color_id", "color_id.code")
     def _compute_color_code(self):
+        valid_codes = {k for k, _ in self._fields["color"].selection}
         for rec in self:
-            rec.color = rec.color_id.code if rec.color_id else False
+            code = rec.color_id.code if rec.color_id else False
+            rec.color = code if code in valid_codes else False
 
     @api.depends("source_type_id", "source_type_id.code")
     def _compute_source_type_code(self):
+        valid_codes = {k for k, _ in self._fields["source_type"].selection}
         for rec in self:
-            rec.source_type = rec.source_type_id.code if rec.source_type_id else False
+            code = rec.source_type_id.code if rec.source_type_id else False
+            rec.source_type = code if code in valid_codes else False
 
     def _compute_po_line_count(self):
         """Count PO lines linked to this profile.

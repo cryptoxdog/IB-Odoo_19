@@ -34,7 +34,7 @@
         </header>
       </xpath>
       <!-- Add Linked Product group at end of sheet -->
-      <xpath expr="//form/sheet/group[last()]" position="after">
+      <xpath expr="//form/sheet" position="inside">
         <group string="Linked Product">
           <field name="product_id" readonly="1"/>
         </group>

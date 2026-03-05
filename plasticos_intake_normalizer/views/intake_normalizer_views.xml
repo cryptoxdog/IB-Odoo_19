@@ -9,6 +9,7 @@
         <field name="name">plasticos.intake.form.normalizer</field>
         <field name="model">plasticos.intake</field>
         <field name="inherit_id" ref="plasticos_intake.view_plasticos_intake_form"/>
+        <field name="priority">17</field>
         <field name="arch" type="xml">
 
             <!-- Add Normalize button in header -->
@@ -21,7 +22,7 @@
             </xpath>
 
             <!-- Add normalization audit page in notebook -->
-            <xpath expr="//notebook[1]" position="inside">
+            <xpath expr="//notebook" position="inside">
                 <page string="Normalization" name="normalization_page">
                     <group>
                         <group string="Status">

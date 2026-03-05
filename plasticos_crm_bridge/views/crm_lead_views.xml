@@ -86,7 +86,7 @@
             </xpath>
 
             <!-- ═══ PlastOS Pipeline Tab ═══ -->
-            <xpath expr="//notebook[1]" position="inside">
+            <xpath expr="//notebook" position="inside">
                 <page string="PlastOS Pipeline" name="plastos_pipeline_tab">
 
                     <!-- KPI Banner -->

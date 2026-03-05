@@ -14,7 +14,7 @@
         <field name="arch" type="xml">
 
             <!-- ═══ Add Title Block (form has none) ═══ -->
-            <xpath expr="//sheet/notebook[1]" position="before">
+            <xpath expr="//sheet/notebook" position="before">
 
                 <div class="oe_button_box" name="button_box">
                     <!-- Partner/Facility jump -->

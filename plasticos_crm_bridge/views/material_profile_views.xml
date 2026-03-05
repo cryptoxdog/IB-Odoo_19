@@ -60,7 +60,7 @@
             </xpath>
 
             <!-- ═══ Pipeline and Logistics Tab ═══ -->
-            <xpath expr="//notebook[1]" position="inside">
+            <xpath expr="//notebook" position="inside">
                 <page string="Pipeline &amp; Logistics"
                       name="pipeline_logistics_tab">
 

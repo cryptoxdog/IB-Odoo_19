@@ -1173,7 +1173,7 @@ class TestRegistrySanity:
         (material_form_data.xml) and in form_codes.py, so we check
         ALL_CANONICAL (union of Selection keys + XML codes + XML names).
         """
-        for key in ["bales", "flake", "pellets"]:
+        for key in ["BALES", "FLAKE", "PELLETS"]:
             assert key in ALL_CANONICAL, f"Expected form code '{key}' not found in canonical registry"
 
     def test_application_class_options(self):

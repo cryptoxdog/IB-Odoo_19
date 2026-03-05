@@ -3,49 +3,49 @@
   <data noupdate="1">
     <record id="source_post_consumer" model="plasticos.source.type">
       <field name="name">Post-Consumer</field>
-      <field name="code">post_consumer</field>
+      <field name="code">POST_CONSUMER</field>
       <field name="description">Material collected after consumer use (curbside, MRF, etc.).</field>
       <field name="sequence">10</field>
     </record>
     <record id="source_post_industrial" model="plasticos.source.type">
       <field name="name">Post-Industrial</field>
-      <field name="code">post_industrial</field>
+      <field name="code">POST_INDUSTRIAL</field>
       <field name="description">Scrap generated during manufacturing processes, never reached consumer.</field>
       <field name="sequence">20</field>
     </record>
     <record id="source_post_commercial" model="plasticos.source.type">
       <field name="name">Post-Commercial</field>
-      <field name="code">post_commercial</field>
+      <field name="code">POST_COMMERCIAL</field>
       <field name="description">Material from commercial/retail sources (pallets, packaging, etc.).</field>
       <field name="sequence">30</field>
     </record>
     <record id="source_agricultural" model="plasticos.source.type">
       <field name="name">Agricultural</field>
-      <field name="code">agricultural</field>
+      <field name="code">AGRICULTURAL</field>
       <field name="description">Plastic from agricultural applications (silage film, irrigation, etc.).</field>
       <field name="sequence">40</field>
     </record>
     <record id="source_prime" model="plasticos.source.type">
       <field name="name">Prime / Virgin</field>
-      <field name="code">prime</field>
+      <field name="code">PRIME</field>
       <field name="description">First-quality virgin resin, never processed.</field>
       <field name="sequence">50</field>
     </record>
     <record id="source_wide_spec" model="plasticos.source.type">
       <field name="name">Wide Spec</field>
-      <field name="code">wide_spec</field>
+      <field name="code">WIDE_SPEC</field>
       <field name="description">Off-grade virgin resin with wider specification tolerances.</field>
       <field name="sequence">60</field>
     </record>
     <record id="source_off_spec" model="plasticos.source.type">
       <field name="name">Off Spec</field>
-      <field name="code">off_spec</field>
+      <field name="code">OFF_SPEC</field>
       <field name="description">Material that doesn't meet original specifications.</field>
       <field name="sequence">70</field>
     </record>
     <record id="source_ocean_recovered" model="plasticos.source.type">
       <field name="name">Ocean Recovered</field>
-      <field name="code">ocean_recovered</field>
+      <field name="code">OCEAN_RECOVERED</field>
       <field name="description">Plastic recovered from ocean or waterway cleanup efforts.</field>
       <field name="sequence">80</field>
     </record>

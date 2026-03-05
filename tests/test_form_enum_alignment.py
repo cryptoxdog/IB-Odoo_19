@@ -211,13 +211,13 @@ class TestFormEnumAlignment:
             ), f"Form code '{code}' is NOT covered in the generated Cypher CASE expression."
 
     def test_no_pellet_singular_drift(self):
-        """Regression: 'pellet' (singular) MUST NOT appear; canonical is 'pellets'."""
+        """Regression: 'PELLET' (singular) MUST NOT appear; canonical is 'PELLETS'."""
         registry_codes = _get_form_codes_from_registry()
-        assert "pellet" not in registry_codes, "'pellet' (singular) found in FORM_CODES. Canonical code is 'pellets'."
-        assert "pellets" in registry_codes, "'pellets' not found in FORM_CODES."
+        assert "PELLET" not in registry_codes, "'PELLET' (singular) found in FORM_CODES. Canonical code is 'PELLETS'."
+        assert "PELLETS" in registry_codes, "'PELLETS' not found in FORM_CODES."
 
     def test_no_bale_singular_drift(self):
-        """Regression: 'bale' (singular) MUST NOT appear; canonical is 'bales'."""
+        """Regression: 'BALE' (singular) MUST NOT appear; canonical is 'BALES'."""
         registry_codes = _get_form_codes_from_registry()
-        assert "bale" not in registry_codes, "'bale' (singular) found in FORM_CODES. Canonical code is 'bales'."
-        assert "bales" in registry_codes, "'bales' not found in FORM_CODES."
+        assert "BALE" not in registry_codes, "'BALE' (singular) found in FORM_CODES. Canonical code is 'BALES'."
+        assert "BALES" in registry_codes, "'BALES' not found in FORM_CODES."

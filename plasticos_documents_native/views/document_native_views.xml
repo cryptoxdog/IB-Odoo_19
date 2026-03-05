@@ -15,31 +15,31 @@
             <xpath expr="//sheet" position="inside">
                 <group string="Plasticos Classification">
                     <group>
-                        <field name="x_doc_type"/>
-                        <field name="x_polymer_id"/>
+                        <field name="doc_type"/>
+                        <field name="polymer_id"/>
                     </group>
                     <group>
-                        <field name="x_transaction_id"/>
-                        <field name="x_load_id"/>
-                        <field name="x_intake_id"/>
+                        <field name="transaction_id"/>
+                        <field name="load_id"/>
+                        <field name="intake_id"/>
                     </group>
                 </group>
                 <group string="Verification">
                     <group>
-                        <field name="x_verified"/>
-                        <field name="x_verified_by"
-                               invisible="not x_verified"/>
-                        <field name="x_verified_at"
-                               invisible="not x_verified"/>
+                        <field name="verified"/>
+                        <field name="verified_by"
+                               invisible="not verified"/>
+                        <field name="verified_at"
+                               invisible="not verified"/>
                     </group>
                     <group>
-                        <field name="x_override"/>
-                        <field name="x_override_reason"
-                               invisible="not x_override"/>
+                        <field name="override"/>
+                        <field name="override_reason"
+                               invisible="not override"/>
                     </group>
                 </group>
-                <group string="Legacy Sync" invisible="not x_plasticos_doc_id">
-                    <field name="x_plasticos_doc_id" readonly="1"/>
+                <group string="Legacy Sync" invisible="not plasticos_doc_id">
+                    <field name="plasticos_doc_id" readonly="1"/>
                 </group>
             </xpath>
         </field>
@@ -56,10 +56,10 @@
         <field name="inherit_id" ref="documents.document_view_list"/>
         <field name="arch" type="xml">
             <xpath expr="//list" position="inside">
-                <field name="x_doc_type" optional="show"/>
-                <field name="x_polymer_id" optional="show"/>
-                <field name="x_transaction_id" optional="hide"/>
-                <field name="x_verified" optional="show"/>
+                <field name="doc_type" optional="show"/>
+                <field name="polymer_id" optional="show"/>
+                <field name="transaction_id" optional="hide"/>
+                <field name="verified" optional="show"/>
             </xpath>
         </field>
     </record>
@@ -78,34 +78,34 @@
                 <separator/>
                 <filter name="filter_bol"
                         string="BOLs"
-                        domain="[('x_doc_type', '=', 'bol')]"/>
+                        domain="[('doc_type', '=', 'bol')]"/>
                 <filter name="filter_invoice"
                         string="Invoices"
-                        domain="[('x_doc_type', '=', 'invoice')]"/>
+                        domain="[('doc_type', '=', 'invoice')]"/>
                 <filter name="filter_scale_ticket"
                         string="Scale Tickets"
-                        domain="[('x_doc_type', '=', 'scale_ticket')]"/>
+                        domain="[('doc_type', '=', 'scale_ticket')]"/>
                 <filter name="filter_contract"
                         string="Contracts"
-                        domain="[('x_doc_type', '=', 'contract')]"/>
+                        domain="[('doc_type', '=', 'contract')]"/>
                 <separator/>
                 <filter name="filter_verified"
                         string="Verified"
-                        domain="[('x_verified', '=', True)]"/>
+                        domain="[('verified', '=', True)]"/>
                 <filter name="filter_unverified"
                         string="Not Verified"
-                        domain="[('x_verified', '=', False)]"/>
+                        domain="[('verified', '=', False)]"/>
                 <separator/>
                 <group expand="0" string="Group By">
                     <filter name="group_doc_type"
                             string="Document Type"
-                            context="{'group_by': 'x_doc_type'}"/>
+                            context="{'group_by': 'doc_type'}"/>
                     <filter name="group_polymer"
                             string="Polymer"
-                            context="{'group_by': 'x_polymer_id'}"/>
+                            context="{'group_by': 'polymer_id'}"/>
                     <filter name="group_transaction"
                             string="Transaction"
-                            context="{'group_by': 'x_transaction_id'}"/>
+                            context="{'group_by': 'transaction_id'}"/>
                 </group>
             </xpath>
         </field>

@@ -29,23 +29,23 @@ class TestBuyerMatcher(TransactionCase):
 
         # Polymer - search first, create only if not found
         Polymer = self.env["plasticos.polymer"]
-        self.polymer_hdpe = Polymer.search([("code", "=", "hdpe")], limit=1)
+        self.polymer_hdpe = Polymer.search([("code", "=", "HDPE")], limit=1)
         if not self.polymer_hdpe:
             self.polymer_hdpe = Polymer.create(
                 {
                     "name": "HDPE",
-                    "code": "hdpe",
+                    "code": "HDPE",
                     "full_name": "High-Density Polyethylene",
                     "category": "commodity",
                 }
             )
 
-        self.polymer_pp = Polymer.search([("code", "=", "pp")], limit=1)
+        self.polymer_pp = Polymer.search([("code", "=", "PP")], limit=1)
         if not self.polymer_pp:
             self.polymer_pp = Polymer.create(
                 {
                     "name": "PP",
-                    "code": "pp",
+                    "code": "PP",
                     "full_name": "Polypropylene",
                     "category": "commodity",
                 }
@@ -53,23 +53,23 @@ class TestBuyerMatcher(TransactionCase):
 
         # Material Form
         Form = self.env["plasticos.material.form"]
-        self.form_bales = Form.search([("code", "=", "bales")], limit=1)
+        self.form_bales = Form.search([("code", "=", "BALES")], limit=1)
         if not self.form_bales:
             self.form_bales = Form.create(
                 {
                     "name": "Bales",
-                    "code": "bales",
+                    "code": "BALES",
                 }
             )
 
         # Material Color
         Color = self.env["plasticos.material.color"]
-        self.color_natural = Color.search([("code", "=", "natural")], limit=1)
+        self.color_natural = Color.search([("code", "=", "NATURAL")], limit=1)
         if not self.color_natural:
             self.color_natural = Color.create(
                 {
                     "name": "Natural",
-                    "code": "natural",
+                    "code": "NATURAL",
                 }
             )
 

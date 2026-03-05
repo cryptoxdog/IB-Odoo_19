@@ -44,7 +44,7 @@
             </xpath>
 
             <!-- ═══ Volume KPI Banner (above notebook) ═══ -->
-            <xpath expr="//notebook[1]" position="before">
+            <xpath expr="//notebook" position="before">
                 <div class="alert alert-info d-flex justify-content-between align-items-center"
                      role="alert"
                      invisible="not quantity_per_load_lbs">

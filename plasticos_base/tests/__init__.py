@@ -1,0 +1,4 @@
+# plasticos_base/tests/__init__.py
+
+from . import test_ir_attachment
+from . import test_midnight_recompute

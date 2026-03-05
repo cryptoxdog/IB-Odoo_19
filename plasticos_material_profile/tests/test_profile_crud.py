@@ -42,14 +42,14 @@ class TestProfileCRUD(TransactionCase):
         )
         cls.form = cls.env["plasticos.material.form"].create(
             {
-                "name": "Pellet",
-                "code": "PELLET",
+                "name": "Pellets",
+                "code": "PELLETS",
             }
         )
         cls.color = cls.env["plasticos.material.color"].create(
             {
                 "name": "Natural",
-                "code": "NAT",
+                "code": "NATURAL",
             }
         )
 
@@ -83,13 +83,13 @@ class TestProfileCRUD(TransactionCase):
     def test_create_profile_with_quality_metrics(self):
         """Profile can be created with quality metrics."""
         profile = self._create_profile(
-            mfi_min=5.0,
-            mfi_max=10.0,
-            density_min=0.94,
-            density_max=0.96,
+            melt_flow_index=7.5,
+            density=0.95,
+            contamination_percent=0.5,
         )
-        self.assertEqual(profile.mfi_min, 5.0)
-        self.assertEqual(profile.mfi_max, 10.0)
+        self.assertEqual(profile.melt_flow_index, 7.5)
+        self.assertEqual(profile.density, 0.95)
+        self.assertEqual(profile.contamination_percent, 0.5)
 
     # ═══════════════════════════════════════════════════════════
     # Unique Triple Constraint Tests

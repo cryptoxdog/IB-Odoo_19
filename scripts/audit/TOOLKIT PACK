@@ -1,0 +1,461 @@
+**Both inject after `state` field → order undefined → nondeterministic UI.**
+
+**Severity:** CRITICAL
+
+**Mitigation detection:**
+
+- Check if module dependency chain enforces ordering
+- Check if views have different `priority` values
+- Recommend consolidation or narrower anchors
+
+---
+
+## ANALYSIS METHOD
+
+### 1. Build View Registry
+
+Collect every `ir.ui.view` definition.
+
+**Extract:**
+
+```yaml
+view_registry:
+  <xmlid>:
+    module: <module>
+    model: <model>
+    inherit_id: <parent_xmlid or null>
+    arch_root: <list|form|kanban|etc>
+    priority: <int>
+    file: <path>
+    line: <approx>
+```
+
+---
+
+### 2. Build Parent View Map
+
+For each inherited view:
+
+- Resolve full inheritance chain
+- Detect cycles
+- Build merged arch (apply all xpaths in dependency order)
+
+**Output:**
+
+```yaml
+inheritance_chains:
+  <child_xmlid>:
+    chain: [<root_view>, <parent1>, <parent2>, <child>]
+    depth: <int>
+    has_cycle: true|false
+```
+
+---
+
+### 3. Parse XPath Expressions
+
+For every:
+
+```xml
+<xpath expr="..." position="...">
+```
+
+**Determine:**
+
+- **Selector stability:** forbidden / fragile / structural / overbroad / safe
+- **Match risk:** zero / one / multiple / unknown
+- **Anchor type:** positional / container / field-based / attribute-based
+
+**Classification:**
+
+```yaml
+FORBIDDEN:    @string, text(), contains(text())
+FRAGILE:      [1], [2], [last()], //group/group
+STRUCTURAL:   //sheet/group, //notebook/page
+OVERBROAD:    //group, //div, //button (without [@name])
+SAFE:         //field[@name='x'], //page[@name='y']
+```
+
+---
+
+### 4. Cross-reference Model Fields
+
+**Extract fields from model definitions in Python:**
+
+- Parse all `*.py` files for model classes (`_name`, `_inherit`)
+- Build field index:
+
+```yaml
+model_fields:
+  <model_name>:
+    - field_a
+    - field_b
+    - ...
+```
+
+**Include inherited fields** (via `_inherit` and `_inherits`).
+
+**Verify every view field reference exists:**
+
+```xml
+<field name="partner_id"/>  → check if 'partner_id' in model_fields[view.model]
+```
+
+---
+
+### 5. Resolve External XMLIDs
+
+**Verify:**
+
+```xml
+<field name="inherit_id" ref="module.xmlid"/>
+<field name="view_id" ref="module.xmlid"/>
+ref="module.xmlid"
+```
+
+**Check:**
+
+- XMLID exists in repo
+- If not in repo, mark `REVIEW_REQUIRED` (may be Odoo core)
+
+**Build XMLID index:**
+
+```yaml
+xmlid_index:
+  <module.xmlid>:
+    type: <ir.ui.view|ir.actions.act_window|etc>
+    file: <path>
+    module: <module>
+```
+
+---
+
+## OUTPUT FORMAT
+
+```yaml
+VIEW_LAYER_AUDIT_REPORT
+
+SUMMARY:
+  modules_scanned:      <int>
+  view_files_scanned:   <int>
+  views_analyzed:       <int>
+  xpath_nodes:          <int>
+  inheritance_chains:   <int>
+  blockers:             <int>
+  high_risk:            <int>
+  medium_risk:          <int>
+  review_required:      <int>
+  overall_status:       PASS | FAIL
+
+# ─────────────────────────────────────────────────────────────────
+
+BLOCKERS:
+  # Issues that prevent module installation or server startup
+
+  - id:           <unique_id>
+    category:     INVALID_VIEW_ROOT | MISSING_XPATH_TARGET |
+                  BROKEN_INHERIT_ID | UNKNOWN_MODEL |
+                  BUTTON_METHOD_MISSING | ACTION_MODEL_MISMATCH
+    file:         <path>
+    line:         <approx>
+    view_xmlid:   <xmlid>
+    xpath_expr:   "<expr>" (if applicable)
+    issue:        "<explanation>"
+    minimal_fix:  "<concrete fix>"
+
+# ─────────────────────────────────────────────────────────────────
+
+HIGH_RISK:
+  # Likely to break UI under module interactions
+
+  - id:           <unique_id>
+    category:     FRAGILE_XPATH | OVERBROAD_SELECTOR |
+                  VIEW_COLLISION | MISSING_FIELD | INVALID_DOMAIN
+    file:         <path>
+    line:         <approx>
+    view_xmlid:   <xmlid>
+    xpath_expr:   "<expr>"
+    match_risk:   ZERO | ONE | MULTIPLE | UNKNOWN
+    reason:       "<why unstable>"
+    minimal_fix:  "<safe rewrite>"
+
+# ─────────────────────────────────────────────────────────────────
+
+MEDIUM_RISK:
+  # Layout fragility but not immediate crash
+
+  - id:           <unique_id>
+    category:     STRUCTURAL_ANCHOR | DEEP_NESTING
+    file:         <path>
+    view_xmlid:   <xmlid>
+    xpath_expr:   "<expr>"
+    issue:        "<explanation>"
+
+# ─────────────────────────────────────────────────────────────────
+
+REVIEW_REQUIRED:
+  # Cannot verify in-repo; may be Odoo core reference
+
+  - id:           <unique_id>
+    category:     EXTERNAL_XMLID | CORE_VIEW_INHERIT
+    file:         <path>
+    view_xmlid:   <xmlid>
+    reference:    <module.xmlid>
+    why_uncertain: "<explanation>"
+    how_to_verify: "<manual check or Odoo docs link>"
+
+# ─────────────────────────────────────────────────────────────────
+
+FINDINGS_BY_FILE:
+
+  FILE: <path>
+  views_found: <count>
+  issues:
+    - severity:     BLOCKER | HIGH | MEDIUM
+      category:     <category>
+      view_xmlid:   <xmlid>
+      view_model:   <model>
+      xpath_expr:   "<expr>"
+      position:     "<before|after|inside|replace|attributes>"
+      reason:       "<explanation>"
+      safe_rewrite: "<recommended xpath>"
+
+# ─────────────────────────────────────────────────────────────────
+
+FINDINGS_BY_CATEGORY:
+
+  1_FORBIDDEN_XPATH_SELECTORS:
+    count: <int>
+    items: [ ... ]
+
+  2_MISSING_XPATH_TARGETS:
+    count: <int>
+    items: [ ... ]
+
+  3_FRAGILE_POSITIONAL_ANCHORS:
+    count: <int>
+    items: [ ... ]
+
+  4_OVERBROAD_SELECTORS:
+    count: <int>
+    items: [ ... ]
+
+  5_BROKEN_INHERIT_ID:
+    count: <int>
+    items: [ ... ]
+
+  6_INVALID_VIEW_ROOTS:
+    count: <int>
+    items: [ ... ]
+
+  7_MISSING_FIELDS_IN_VIEWS:
+    count: <int>
+    items: [ ... ]
+
+  8_INVALID_DOMAINS_ATTRS:
+    count: <int>
+    items: [ ... ]
+
+  9_ACTION_VIEW_MISMATCH:
+    count: <int>
+    items: [ ... ]
+
+  10_BUTTON_METHOD_MISSING:
+    count: <int>
+    items: [ ... ]
+
+  11_DUPLICATE_XMLIDS:
+    count: <int>
+    items: [ ... ]
+
+  12_VIEW_OVERRIDE_COLLISIONS:
+    count: <int>
+    items: [ ... ]
+
+# ─────────────────────────────────────────────────────────────────
+
+TOP_20_FIX_PRIORITY:
+  # Ranked by severity and likelihood of production breakage
+
+  1.  file:       <path>
+      view_xmlid: <xmlid>
+      category:   <category>
+      issue:      "<short description>"
+      fix:        "<minimal change>"
+      why:        "<impact explanation>"
+      severity:   BLOCKER | HIGH | MEDIUM
+
+  ...
+
+# ─────────────────────────────────────────────────────────────────
+
+VIEW_INHERITANCE_MAP:
+  # Visual representation of inheritance chains
+
+  <root_view_xmlid>:
+    inheritors:
+      - <child1_xmlid> (module_a, priority=16)
+        - <grandchild1_xmlid> (module_b, priority=17)
+      - <child2_xmlid> (module_c, priority=16)
+
+  collision_detected: [ <parent_view>: <conflicting_children> ]
+
+# ─────────────────────────────────────────────────────────────────
+
+ARTIFACTS:
+  # Saved files
+  - reports/view_layer_audit.json
+  - reports/view_layer_audit.md
+  - reports/view_inheritance_graph.dot  (optional: Graphviz)
+
+  # Print artifact paths at end
+```
+
+---
+
+## XPATH STABILITY CLASSIFICATION RULES
+
+```yaml
+SAFE_ANCHORS:
+  - //field[@name='specific_field']
+  - //page[@name='page_name']
+  - //group[@name='group_name']
+  - //button[@name='action_method']
+  - //notebook[@name='notebook_name']
+
+ACCEPTABLE_WITH_CONTEXT:
+  - //group[.//field[@name='anchor_field']]
+  - //page[.//field[@name='anchor_field']]
+  - //div[@class='specific_class']
+
+FRAGILE:
+  - //group[1]
+  - //page[2]
+  - //field[last()]
+  - //sheet/group
+  - //notebook/page
+
+FORBIDDEN:
+  - //page[@string='Tab Label']
+  - //group[contains(@string, 'Section')]
+  - //div[text()='Total']
+  - //button[contains(text(), 'Save')]
+
+OVERBROAD:
+  - //group
+  - //div
+  - //button
+  - //sheet//group
+  - //notebook//page
+```
+
+---
+
+## RULES
+
+1. **Continue scanning after errors.** Do not stop at first blocker.
+2. **Only report view-layer related bugs.** No business logic, no performance.
+3. **Evidence required for every finding.** File path, line number, xpath expression.
+4. **Deterministic output only.** Same repo state → identical report.
+5. **No speculation.** If you cannot verify a parent view arch (e.g., Odoo core view), mark `REVIEW_REQUIRED`.
+6. **Priority parent views.** When checking xpath match count, use the actual parent view arch from the repo (or merged arch if multiple inheritance levels).
+
+---
+
+## EXECUTION WORKFLOW
+
+When invoked:
+
+1. **Build registries:**
+   - View registry (all `ir.ui.view` records)
+   - Model field index (all models + fields)
+   - XMLID index (all external IDs)
+
+2. **Build inheritance chains:**
+   - For each view with `inherit_id`, resolve full chain
+   - Detect cycles
+   - Build merged arch (simulate Odoo's view inheritance)
+
+3. **Parse and classify XPath expressions:**
+   - Extract every `<xpath expr="..." position="...">`
+   - Classify by stability (safe / fragile / forbidden / overbroad)
+   - Simulate XPath match against parent arch
+   - Flag zero-match, multi-match, and forbidden patterns
+
+4. **Cross-reference fields and methods:**
+   - Verify `<field name="...">` exists in model
+   - Verify `<button name="...">` method exists in model
+   - Check domain/attrs field references
+
+5. **Detect collisions:**
+   - Group views by `inherit_id`
+   - For each group: check for overlapping xpath anchors
+   - Flag when multiple children target same node without enforced ordering
+
+6. **Aggregate findings:**
+   - Categorize by severity
+   - Rank by fix priority
+   - Generate reports
+
+7. **Write artifacts:**
+   - JSON + Markdown reports
+   - Optional: Graphviz inheritance diagram
+
+8. **Print summary + paths**
+
+---
+
+## INTEGRATION WITH MASTER AUDIT
+
+This is a **deep-dive supplement** to:
+
+- **Master Audit Phase 3:** VIEW_COMPATIBILITY (view root tags)
+- **Master Audit Phase 4:** XPATH_INHERITANCE (forbidden selectors)
+- **Master Audit Phase 6:** XPATH_ANCHOR_DRIFT (fragile anchors)
+- **Master Audit Phase 7:** VIEW_OVERRIDE_COLLISION (multi-module conflicts)
+
+**When to use:**
+
+- **Master Audit Tier 2:** Fast, tier-based checks across all view phases
+- **View Layer Auditor:** Exhaustive, single-category deep dive with full inheritance chain simulation
+
+**This auditor is slower** but builds complete view inheritance trees before checking, so it can detect issues that Master Audit phases miss (e.g., multi-level inheritance xpath failures).
+
+---
+
+## EXAMPLE INVOCATION
+
+Drop this entire prompt into your Codex/IDE window, then provide:
+
+```
+Repo: cryptoxdog/IB-Odoo_19
+Branch: staging
+Run full view layer audit.
+```
+
+The agent will execute all tasks and produce the reports.
+
+---
+
+## END OF PROMPT
+'''
+
+with open('/tmp/view_layer_auditor.md', 'w') as f:
+    f.write(content)
+
+import shutil
+shutil.copy('/tmp/view_layer_auditor.md', 'output/view_layer_auditor.md')
+
+# Get stats
+line_count = content.count('\n') + 1
+char_count = len(content)
+
+print(f"✓ View Layer Auditor created")
+print(f"  Lines: {line_count}")
+print(f"  Characters: {char_count}")
+print(f"  Saved to: output/view_layer_auditor.md")
+print()
+print("Summary of all audit prompts created:")
+print("  1. plastos_master_audit_prompt.md (12 phases, tier-based)")
+print("  2. fixture_registry_auditor.md (deep fixture/registry check)")
+print("  3. view_layer_auditor.md (exhaustive view stability)")
