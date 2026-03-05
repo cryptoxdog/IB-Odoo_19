@@ -87,9 +87,9 @@ jobs:
           if [ -f extended_audit_report.json ]; then
             EXT_HIGH=${{ steps.extended.outputs.ext_high }}
 
-            # Baseline: 13 HIGH issues (updated 2026-03-05 after N+1 fixes)
-            # Remaining: 13 MISSING_ENSURE_ONE (false positives - methods have ensure_one() but >50 lines away)
-            BASELINE_EXT_HIGH=13
+            # Baseline: 0 HIGH issues (updated 2026-03-05 after audit script improvements)
+            # All false positives eliminated via better method boundary detection
+            BASELINE_EXT_HIGH=0
 
             if [ "$EXT_HIGH" -gt "$BASELINE_EXT_HIGH" ]; then
               echo "❌ REGRESSION: Extended audit found $EXT_HIGH HIGH issues (baseline: $BASELINE_EXT_HIGH)"

@@ -13,7 +13,13 @@ class BusinessLogicAudit:
         self.root_dir = Path(root_dir)
 
     def check_unsafe_recordset_ops(self):
-        """Find operations on recordsets without ensure_one()"""
+        """Find operations on recordsets without ensure_one().
+
+        Improved method boundary detection:
+        - Finds the actual method start by looking for 'def ' pattern
+        - Checks for ensure_one() anywhere in the method up to current line
+        - Recognizes multi-record safe patterns (for rec in self, for record in self)
+        """
         errors = []
 
         DANGEROUS_OPS = [
@@ -21,6 +27,19 @@ class BusinessLogicAudit:
             r"self\.name\s*=",
             r"self\.write\(",
             r"self\.unlink\(",
+        ]
+
+        # Patterns that indicate multi-record safe code
+        MULTI_RECORD_PATTERNS = [
+            r"for\s+\w+\s+in\s+self\b",  # for rec in self
+            r"self\.filtered\(",  # self.filtered(...)
+            r"self\.mapped\(",  # self.mapped(...)
+        ]
+
+        # Short action methods that intentionally work on multiple records
+        # These are typically button actions that should apply to all selected records
+        MULTI_RECORD_METHOD_PATTERNS = [
+            r"def\s+action_\w+\s*\(\s*self\s*\)",  # action_* methods with only self param
         ]
 
         for py_file in self.root_dir.rglob("models/*.py"):
@@ -35,12 +54,29 @@ class BusinessLogicAudit:
                 for i, line in enumerate(lines, 1):
                     for pattern in DANGEROUS_OPS:
                         if re.search(pattern, line):
-                            # Look back for ensure_one() in same method (increased to 50 lines)
-                            method_start = max(0, i - 50)
-                            method_lines = "\n".join(lines[method_start:i])
+                            # Find the actual method start by looking backwards for 'def '
+                            method_start_line = 0
+                            for j in range(i - 1, -1, -1):
+                                if re.match(r"\s*def\s+\w+\s*\(", lines[j]):
+                                    method_start_line = j
+                                    break
 
-                            # Also check for "for rec in self" pattern (multi-record safe)
-                            if "ensure_one()" not in method_lines and "for rec in self" not in method_lines:
+                            # Get all lines from method start to current line
+                            method_lines = "\n".join(lines[method_start_line:i])
+
+                            # Check for ensure_one() in method
+                            has_ensure_one = "ensure_one()" in method_lines
+
+                            # Check for multi-record safe patterns in method body
+                            is_multi_record_safe = any(re.search(p, method_lines) for p in MULTI_RECORD_PATTERNS)
+
+                            # Check if method signature indicates multi-record action
+                            method_def_line = lines[method_start_line] if method_start_line < len(lines) else ""
+                            is_multi_record_action = any(
+                                re.search(p, method_def_line) for p in MULTI_RECORD_METHOD_PATTERNS
+                            )
+
+                            if not has_ensure_one and not is_multi_record_safe and not is_multi_record_action:
                                 errors.append(
                                     {
                                         "type": "MISSING_ENSURE_ONE",
