@@ -31,7 +31,7 @@
                     </div>
 
                     <field name="material_profile_ids"
-                           context="{'default_partner_id': active_id,
+                           context="{'default_partner_id': id,
                                      'form_view_ref': 'plasticos_material_profile.view_material_profile_form'}">
                         <list editable="bottom">
                             <field name="polymer_id"/>
