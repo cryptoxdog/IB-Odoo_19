@@ -11,7 +11,7 @@
     <record id="partner_form_plasticos_ux" model="ir.ui.view">
         <field name="name">res.partner.form.plasticos.ux</field>
         <field name="model">res.partner</field>
-        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="inherit_id" ref="plasticos_facility_profile.view_partner_form_profile_tab"/>
         <field name="priority">25</field>
         <field name="arch" type="xml">
 
@@ -43,9 +43,6 @@
             </xpath>
 
             <!-- ═══ Entity Health Banner ═══ -->
-            <xpath expr="//sheet" position="inside">
-                <!-- Position as first element via before on first child -->
-            </xpath>
             <xpath expr="//div[@name='button_box']" position="before">
 
                 <!-- BLOCKED entity alert -->

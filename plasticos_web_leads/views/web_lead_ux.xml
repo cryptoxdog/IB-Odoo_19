@@ -19,12 +19,7 @@
         <field name="arch" type="xml">
 
             <!-- ═══ Temperature / Status Banners (top of sheet) ═══ -->
-            <xpath expr="//sheet" position="inside">
-                <!-- This block is prepended; we use position="before" on
-                     the first child element for correct placement -->
-            </xpath>
-
-            <xpath expr="//sheet/div[1]" position="before">
+            <xpath expr="//sheet/div[@class='oe_title']" position="before">
 
                 <!-- HOT Lead Banner -->
                 <div class="alert alert-success border-success border-2"
@@ -78,26 +73,26 @@
             <!-- ═══ Smart Button Box ═══ -->
             <!-- If the form already has a button_box, use position="inside".
                  If not, create one before the title div. -->
-            <xpath expr="//div[@name='button_box']" position="inside">
+            <xpath expr="//sheet/div[@class='oe_title']" position="before">
+                <div class="oe_button_box" name="button_box">
+                    <!-- Intake link -->
+                    <button name="action_view_intake"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-flask"
+                            invisible="not intake_id">
+                        <span class="o_stat_text">Intake</span>
+                    </button>
 
-                <!-- Intake link -->
-                <button name="action_view_intake"
-                        type="object"
-                        class="oe_stat_button"
-                        icon="fa-flask"
-                        invisible="not intake_id">
-                    <span class="o_stat_text">Intake</span>
-                </button>
-
-                <!-- Partner link -->
-                <button name="action_view_partner"
-                        type="object"
-                        class="oe_stat_button"
-                        icon="fa-building"
-                        invisible="not partner_id">
-                    <span class="o_stat_text">Company</span>
-                </button>
-
+                    <!-- Partner link -->
+                    <button name="action_view_partner"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-building"
+                            invisible="not partner_id">
+                        <span class="o_stat_text">Company</span>
+                    </button>
+                </div>
             </xpath>
 
         </field>
@@ -114,7 +109,7 @@
     <record id="web_lead_list_ux" model="ir.ui.view">
         <field name="name">plasticos.web.lead.tree.ux</field>
         <field name="model">plasticos.web.lead</field>
-        <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_tree"/>
+        <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_list"/>
         <field name="priority">20</field>
         <field name="arch" type="xml">
 

@@ -942,10 +942,10 @@ class PlasticosIntake(models.Model):
         tx_vals = {
             "intake_id": self.id,
             "supplier_id": self.partner_id.id,
-            "supplier_facility_id": self.facility_id.id if self.facility_id else False,
-            "polymer_id": self.polymer_id.id if self.polymer_id else False,
-            "form_id": self.form_id.id if self.form_id else False,
-            "quantity_lbs": self.quantity_per_load_lbs,
+            "quantity": self.quantity_per_load_lbs,
+            # "supplier_facility_id": self.facility_id.id if self.facility_id else False,
+            # "polymer_id": self.polymer_id.id if self.polymer_id else False,
+            # "form_id": self.form_id.id if self.form_id else False,
         }
 
         # Link to material profile if available
@@ -955,7 +955,11 @@ class PlasticosIntake(models.Model):
         # Link to best buyer match if selected
         selected_match = self.match_line_ids.filtered("selected").sorted("match_score", reverse=True)[:1]
         if selected_match:
-            tx_vals["buyer_name"] = selected_match.buyer_name
+            # tx_vals["buyer_name"] = selected_match.buyer_name
+            # Try to find buyer partner
+            buyer = self.env["res.partner"].search([("name", "=", selected_match.buyer_name)], limit=1)
+            if buyer:
+                tx_vals["buyer_id"] = buyer.id
 
         tx = Transaction.create(tx_vals)
 

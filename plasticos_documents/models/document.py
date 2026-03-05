@@ -63,6 +63,13 @@ class PlasticosDocument(models.Model):
         index=True,
         help="Link this document to a specific transaction.",
     )
+    load_id = fields.Many2one(
+        "plasticos.load",
+        string="Load",
+        index=True,
+        ondelete="set null",
+        help="Load this document is attached to (BOL, weight ticket, etc.).",
+    )
 
     # ── Document Category ──────────────────────────────────────────
     doc_category = fields.Selection(

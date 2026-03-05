@@ -52,7 +52,7 @@
             </xpath>
 
             <!-- ═══ Margin KPI Banners (above main groups) ═══ -->
-            <xpath expr="//sheet/group[1]" position="before">
+            <xpath expr="//sheet/group[.//group[@name='orders']]" position="before">
 
                 <!-- Positive margin banner -->
                 <div class="alert alert-success d-flex justify-content-between align-items-center"
@@ -84,7 +84,7 @@
             </xpath>
 
             <!-- ═══ Add Supplier / Buyer / Carrier to Orders group ═══ -->
-            <xpath expr="//group[@string='Orders']/field[@name='purchase_order_ids']" position="after">
+            <xpath expr="//group[@name='orders']/field[@name='purchase_order_ids']" position="after">
                 <field name="supplier_id"/>
                 <field name="buyer_id"/>
             </xpath>
