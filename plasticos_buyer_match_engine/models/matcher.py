@@ -404,6 +404,7 @@ class BuyerMatcher(models.Model):
                 gates_failed.append("medical_grade")
 
         # Gate 12: Geo (Python fallback)
+        # sudo: ir.config_parameter requires elevated access
         ICP = self.env["ir.config_parameter"].sudo()
         max_distance = float(ICP.get_param("plasticos_graph.match_geo_radius_miles", "0"))
         if max_distance > 0:

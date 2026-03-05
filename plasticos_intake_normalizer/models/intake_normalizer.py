@@ -69,6 +69,7 @@ class PlasticosIntakeNormalizer(models.Model):
     def action_normalize(self):
         """Validate and normalize a single intake (button action)."""
         self.ensure_one()
+        # sudo: config may not be readable by all users
         config = self.env["plasticos.normalizer.config"].sudo().get_config()
         errors, warnings = self._validate_for_normalization(config)
 
@@ -572,6 +573,7 @@ class PlasticosIntakeNormalizer(models.Model):
             detail = json.dumps(errors, indent=2)
 
         try:
+            # sudo: create audit log regardless of user permissions
             AutoLog.sudo().create(
                 {
                     "model_name": "plasticos.intake",

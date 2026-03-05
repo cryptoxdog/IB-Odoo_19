@@ -18,7 +18,20 @@ class PlasticosOffer(models.Model):
     _description = "Material Offer"
     _inherit = ["mail.thread", "mail.activity.mixin"]
     _order = "create_date desc"
-    _rec_name = "display_name"
+    _rec_name = "name"
+
+    # ═════════════════════════════════════════════════════════
+    # Identity
+    # ═════════════════════════════════════════════════════════
+
+    name = fields.Char(
+        string="Offer Reference",
+        required=True,
+        copy=False,
+        readonly=True,
+        default="/",
+        index=True,
+    )
 
     # ═════════════════════════════════════════════════════════
     # Origin
@@ -202,12 +215,37 @@ class PlasticosOffer(models.Model):
     # Computed
     # ═════════════════════════════════════════════════════════
 
-    @api.depends("intake_id", "buyer_id", "state")
+    @api.depends("name", "intake_id", "buyer_id", "state")
     def _compute_display_name(self):
         for rec in self:
-            intake = rec.intake_id.name or "?"
-            buyer = rec.buyer_id.name or "?"
-            rec.display_name = f"Offer: {intake} → {buyer} [{rec.state or 'draft'}]"
+            # Display name without year: OFR-26-04001 → OFR-04001
+            if rec.name and rec.name != "/":
+                parts = rec.name.split("-")
+                if len(parts) == 3:
+                    short_name = f"{parts[0]}-{parts[2]}"
+                else:
+                    short_name = rec.name
+                intake = rec.intake_id.display_name or "?"
+                buyer = rec.buyer_id.name or "?"
+                rec.display_name = f"{short_name}: {intake} → {buyer} [{rec.state or 'draft'}]"
+            else:
+                intake = rec.intake_id.display_name or "?"
+                buyer = rec.buyer_id.name or "?"
+                rec.display_name = f"Offer: {intake} → {buyer} [{rec.state or 'draft'}]"
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Create offer with auto-generated sequence number."""
+        for vals in vals_list:
+            if vals.get("name", "/") == "/":
+                sequence = self.env["ir.sequence"].next_by_code("plasticos.offer")
+                if not sequence:
+                    raise UserError(
+                        "Unable to generate offer reference number. "
+                        "Please ensure the sequence 'plasticos.offer' is configured."
+                    )
+                vals["name"] = sequence
+        return super().create(vals_list)
 
     @api.depends("price_per_lb", "quantity_lbs")
     def _compute_total_value(self):

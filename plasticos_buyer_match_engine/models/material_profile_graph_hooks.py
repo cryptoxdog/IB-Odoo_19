@@ -45,6 +45,7 @@ class MaterialProfileGraphHooks(models.Model):
         if "plasticos.graph.service" not in self.env:
             return
         try:
+            # sudo: graph sync runs in background, may be triggered by any user
             self.env["plasticos.graph.service"].sudo().sync_material_nodes(trigger="material_write")
         except Exception as exc:
             _logger.warning("Graph sync (material) skipped: %s", exc)

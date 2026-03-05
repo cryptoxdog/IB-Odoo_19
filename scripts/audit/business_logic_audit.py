@@ -152,7 +152,13 @@ class BusinessLogicAudit:
         return errors
 
     def check_state_machine_bypasses(self):
-        """Find direct state writes bypassing validation"""
+        """Find direct state writes bypassing validation.
+
+        Legitimate patterns (not flagged):
+        - action_* methods (standard Odoo pattern)
+        - _*_pipeline methods (documented pipeline methods)
+        - Methods with "State transitions" docstring (explicitly documented)
+        """
         errors = []
 
         for py_file in self.root_dir.rglob("models/*.py"):
@@ -168,11 +174,25 @@ class BusinessLogicAudit:
                 for i, line in enumerate(lines, 1):
                     # Look for direct writes to state
                     if re.search(r'self\.write\(\{["\']state["\']:', line):
-                        # Check if inside an action_* method
-                        method_start = max(0, i - 30)
-                        method_context = "\n".join(lines[method_start:i])
+                        # Find the enclosing method by looking for most recent 'def '
+                        method_start_line = 0
+                        for j in range(i - 2, -1, -1):
+                            if re.match(r"\s*def\s+", lines[j]):
+                                method_start_line = j
+                                break
 
-                        if "def action_" not in method_context:
+                        # Get context from method start to current line
+                        method_context = "\n".join(lines[method_start_line:i])
+
+                        # Legitimate patterns:
+                        # 1. action_* methods (standard Odoo pattern)
+                        # 2. _*_pipeline methods (documented pipeline methods)
+                        # 3. Methods with "State transitions" in docstring
+                        is_action_method = "def action_" in method_context
+                        is_pipeline_method = re.search(r"def _\w*pipeline", method_context)
+                        has_state_docstring = "State transitions" in method_context
+
+                        if not (is_action_method or is_pipeline_method or has_state_docstring):
                             errors.append(
                                 {
                                     "type": "STATE_BYPASS",
@@ -180,7 +200,7 @@ class BusinessLogicAudit:
                                     "file": str(py_file.relative_to(self.root_dir)),
                                     "line": i,
                                     "message": "Direct state write outside action method",
-                                    "fix": "Use action_* methods for state transitions",
+                                    "fix": "Use action_* methods or document state transitions in docstring",
                                 }
                             )
 

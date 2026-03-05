@@ -127,6 +127,7 @@ class PlasticosGraphService(models.AbstractModel):
         Uri, user, password: from System Parameters (plasticos_graph.*) with
         fallback to .env (NEO4J_URI or NEO4J_URL, NEO4J_USER, NEO4J_PASSWORD).
         """
+        # sudo: ir.config_parameter requires elevated access
         ICP = self.env["ir.config_parameter"].sudo()
         uri = (ICP.get_param("plasticos_graph.neo4j_uri") or "").strip() or _env_neo4j_uri()
         user = (ICP.get_param("plasticos_graph.neo4j_user") or "").strip() or _env_neo4j_user()
@@ -156,6 +157,7 @@ class PlasticosGraphService(models.AbstractModel):
                 - geo: Geographic proximity score
                 - history: Transaction history bonus
         """
+        # sudo: ir.config_parameter requires elevated access
         ICP = self.env["ir.config_parameter"].sudo()
         return {
             "hard_gate": float(ICP.get_param("plasticos_graph.scoring_w1_hard", "0.50")),
@@ -2201,6 +2203,7 @@ class PlasticosGraphService(models.AbstractModel):
             self._create_sync_log("profile_similarity", "failed", None, str(exc))
 
     def _create_sync_log(self, sync_type, status, stats=None, error_message=None):
+        # sudo: create audit log regardless of user permissions
         Log = self.env["plasticos.graph.sync.log"].sudo()
         name = f"Graph sync {sync_type} {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
         record_count = (stats or {}).get("records_processed", 0)

@@ -13,9 +13,19 @@ class PlasticosIntake(models.Model):
     # ═════════════════════════════════════════════════════════
 
     name = fields.Char(
-        compute="_compute_name",
-        store=True,
+        string="Intake Reference",
+        required=True,
+        copy=False,
+        readonly=True,
+        default="/",
         index=True,
+        help="Sequential reference number (e.g., INT-26-2001).",
+    )
+    display_name = fields.Char(
+        string="Display Name",
+        compute="_compute_display_name",
+        store=True,
+        help="Human-readable name: Company - Polymer.",
     )
     partner_id = fields.Many2one(
         "res.partner",
@@ -402,23 +412,33 @@ class PlasticosIntake(models.Model):
     # Computed
     # ═════════════════════════════════════════════════════════
 
-    @api.depends("partner_id", "facility_id", "polymer_id", "pending_company_name")
-    def _compute_name(self):
-        """Auto-generate display name from company/facility + polymer."""
+    @api.depends("name")
+    def _compute_display_name(self):
+        """Display name = prefix-number without year (e.g., INT-26-02001 → INT-02001)."""
         for rec in self:
-            parts = []
-            if rec.facility_id and rec.facility_id != rec.partner_id:
-                parts.append(rec.facility_id.name or "")
-            elif rec.partner_id:
-                parts.append(rec.partner_id.name or "")
-            elif rec.pending_company_name:
-                parts.append(f"[PENDING] {rec.pending_company_name}")
-            if rec.polymer_id:
-                parts.append(rec.polymer_id.name.upper())
-            if parts:
-                rec.name = " - ".join(filter(None, parts))
+            if rec.name and rec.name != "/":
+                # Remove year portion: INT-26-02001 → INT-02001
+                parts = rec.name.split("-")
+                if len(parts) == 3:
+                    rec.display_name = f"{parts[0]}-{parts[2]}"
+                else:
+                    rec.display_name = rec.name
             else:
-                rec.name = f"Intake #{rec.id or 'New'}"
+                rec.display_name = f"INT-{rec.id or 'New'}"
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Create intake with auto-generated sequence number."""
+        for vals in vals_list:
+            if vals.get("name", "/") == "/":
+                sequence = self.env["ir.sequence"].next_by_code("plasticos.intake")
+                if not sequence:
+                    raise UserError(
+                        "Unable to generate intake reference number. "
+                        "Please ensure the sequence 'plasticos.intake' is configured."
+                    )
+                vals["name"] = sequence
+        return super().create(vals_list)
 
     @api.depends("partner_id", "pending_company_name")
     def _compute_company_display(self):
@@ -529,6 +549,7 @@ class PlasticosIntake(models.Model):
         """
         if self.lead_source_id and self.partner_id:
             if not self.partner_id.lead_source_id:
+                # sudo: update partner from intake (cross-model permission)
                 self.partner_id.sudo().write(
                     {
                         "lead_source_id": self.lead_source_id.id,

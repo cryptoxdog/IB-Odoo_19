@@ -14,6 +14,7 @@
     ],
     "data": [
         "security/ir.model.access.csv",
+        "data/sequence.xml",
         "views/intake_views.xml",
         "views/material_profile_intake_views.xml",
         "views/intake_ux.xml",

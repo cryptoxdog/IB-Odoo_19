@@ -14,6 +14,7 @@
     ],
     "data": [
         "security/ir.model.access.csv",
+        "data/sequence.xml",
         "data/offer_cron.xml",
         "views/offer_views.xml",
         "views/offer_bulk_action_wizard_views.xml",

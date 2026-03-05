@@ -479,6 +479,7 @@ class EnrichmentService(models.AbstractModel):
 
     def _invoke_extraction_api(self, source):
         """Call OpenAI-compatible API for structured extraction."""
+        # sudo: ir.config_parameter requires elevated access to read system params
         ICP = self.env["ir.config_parameter"].sudo()
         endpoint = ICP.get_param("plasticos.enrichment.api_endpoint")
         api_key = ICP.get_param("plasticos.enrichment.api_key")

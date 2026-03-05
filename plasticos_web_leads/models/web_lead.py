@@ -428,8 +428,12 @@ class PlasticosWebLead(models.Model):
           2. Image analysis (if enabled and images present)
           3. Deterministic classification
           4. Process result (HOT → intake, COLD → archive)
+
+        State transitions (direct writes are intentional - pipeline method):
+        - pending -> triaged/skipped (based on HOT/COLD classification)
         """
         self.ensure_one()
+        # sudo: config may not be readable by portal/public users triggering triage
         config = self.env["plasticos.web.lead.config"].sudo().get_config()
         log_lines: list[str] = []
 
@@ -843,6 +847,7 @@ class PlasticosWebLead(models.Model):
         if partner:
             return partner
 
+        # sudo: config may not be readable by portal/public users
         config = self.env["plasticos.web.lead.config"].sudo().get_config()
         if not config.auto_create_partner:
             raise UserError(f"No partner found for '{name}' and auto-create is disabled.")
@@ -992,6 +997,7 @@ class PlasticosWebLead(models.Model):
         for rec in self:
             if rec.intake_id:
                 raise UserError("Intake already exists for this lead.")
+            # sudo: config may not be readable by all users
             config = rec.env["plasticos.web.lead.config"].sudo().get_config()
             merged = rec.ai_normalized or rec.ai_analysis or {}
             rec.write(

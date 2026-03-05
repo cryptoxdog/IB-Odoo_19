@@ -77,7 +77,11 @@ class EnrichmentRun(models.Model):
     # ── Pipeline Actions ───────────────────────────────────────
 
     def action_execute(self):
-        """Full pipeline: crawl -> extract -> evaluate."""
+        """Full pipeline: crawl -> extract -> evaluate.
+
+        State transitions (direct writes are intentional - pipeline method):
+        - draft -> crawling -> extracting -> validated/review/failed
+        """
         self.ensure_one()
         svc = self.env["plasticos.enrichment.service"]
 

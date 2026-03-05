@@ -22,7 +22,26 @@ class PlasticosLoad(models.Model):
     _description = "Plasticos Logistics Load"
     _inherit = ["mail.thread"]
 
-    name = fields.Char(required=True)
+    name = fields.Char(
+        string="Load Reference",
+        required=True,
+        copy=False,
+        readonly=True,
+        default="/",
+        index=True,
+    )
+    bol_pickup_number = fields.Char(
+        string="BOL Pickup #",
+        compute="_compute_bol_numbers",
+        store=True,
+        help="Bill of Lading number for pickup: BOL-{id}-PU",
+    )
+    bol_delivery_number = fields.Char(
+        string="BOL Delivery #",
+        compute="_compute_bol_numbers",
+        store=True,
+        help="Bill of Lading number for delivery: BOL-{id}-DEL",
+    )
     sale_order_id = fields.Many2one("sale.order", required=True)
     carrier_id = fields.Many2one("res.partner", string="Carrier")
     rate_amount = fields.Float(string="Rate Amount")
@@ -107,10 +126,35 @@ class PlasticosLoad(models.Model):
         tracking=True,
     )
 
+    def _compute_bol_numbers(self):
+        """Generate BOL numbers from load database ID: BOL-{id}-PU / BOL-{id}-DEL.
+
+        Note: No @api.depends needed - stored compute fields are computed once on create.
+        The 'id' field cannot be used in @api.depends (Odoo 19 restriction).
+        """
+        for rec in self:
+            if rec.id:
+                rec.bol_pickup_number = f"BOL-{rec.id}-PU"
+                rec.bol_delivery_number = f"BOL-{rec.id}-DEL"
+            else:
+                rec.bol_pickup_number = False
+                rec.bol_delivery_number = False
+
     @api.model_create_multi
     def create(self, vals_list):
-        """Create load and auto-link to transaction via sale_order_id."""
+        """Create load with auto-sequence and link to transaction via sale_order_id."""
+        for vals in vals_list:
+            if vals.get("name", "/") == "/":
+                sequence = self.env["ir.sequence"].next_by_code("plasticos.load")
+                if not sequence:
+                    raise UserError(
+                        "Unable to generate load reference number. "
+                        "Please ensure the sequence 'plasticos.load' is configured."
+                    )
+                vals["name"] = sequence
+
         records = super().create(vals_list)
+
         # Batch query: find all transactions for sale orders in one query
         sale_order_ids = [rec.sale_order_id.id for rec in records if rec.sale_order_id]
         if sale_order_ids:

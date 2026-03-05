@@ -59,6 +59,7 @@ def _trigger_facility_graph_sync(env):
     if "plasticos.graph.service" not in env:
         return
     try:
+        # sudo: graph sync runs in background, may be triggered by any user
         env["plasticos.graph.service"].sudo().sync_facility_nodes(trigger="facility_write")
     except Exception as exc:
         _logger.warning("Graph sync (facility) skipped: %s", exc)

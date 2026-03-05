@@ -1,0 +1,43 @@
+# .github/workflows/test-quality.yml
+name: Test Quality Gate
+
+on: [push, pull_request]
+
+jobs:
+  test-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run Tests with Coverage
+        run: |
+          pytest --cov=. --cov-report=xml --cov-report=term tests/
+
+      - name: Check Coverage Threshold
+        run: |
+          coverage report --fail-under=80
+
+      - name: Identify Weak Tests
+        run: |
+          python3 scripts/detect_weak_tests.py
+
+      - name: Run Mutation Tests
+        run: |
+          mutmut run --paths-to-mutate=plasticos_intake/models/
+          mutmut junitxml > mutation-results.xml
+
+      - name: Check Mutation Score
+        run: |
+          score=$(mutmut result-ids --status=killed | wc -l)
+          total=$(mutmut result-ids | wc -l)
+          percentage=$((100 * score / total))
+
+          if [ $percentage -lt 85 ]; then
+            echo "❌ Mutation score $percentage% < 85%"
+            exit 1
+          fi
+
+      - name: Upload Results
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml

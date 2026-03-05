@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="0">
+        <record id="seq_plasticos_intake" model="ir.sequence">
+            <field name="name">Plasticos Intake</field>
+            <field name="code">plasticos.intake</field>
+            <field name="prefix">INT-%(y)s-</field>
+            <field name="padding">5</field>
+            <field name="number_next">2001</field>
+            <field name="implementation">standard</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>
