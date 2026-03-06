@@ -574,28 +574,22 @@ class TestInvoiceReminderCron(TransactionCase, AutomationTestMixin):
     def setUpClass(cls):
         super().setUpClass()
         cls.Move = cls.env["account.move"]
-        # Ensure sale journal exists (required for out_invoice in Odoo 19)
-        cls._sale_journal = cls.env["account.journal"].search([("type", "=", "sale")], limit=1)
-        if not cls._sale_journal:
-            cls._sale_journal = cls.env["account.journal"].create(
+
+        # Ensure receivable account exists (required for payment term lines in Odoo 19)
+        cls._receivable_account = cls.env["account.account"].search(
+            [("account_type", "=", "asset_receivable")], limit=1
+        )
+        if not cls._receivable_account:
+            cls._receivable_account = cls.env["account.account"].create(
                 {
-                    "name": "Test Sales Journal",
-                    "type": "sale",
-                    "code": "TSALE",
+                    "name": "Test Receivable Account",
+                    "code": "110000",
+                    "account_type": "asset_receivable",
+                    "reconcile": True,
                 }
             )
-        # Ensure purchase journal exists (required for in_invoice)
-        cls._purchase_journal = cls.env["account.journal"].search([("type", "=", "purchase")], limit=1)
-        if not cls._purchase_journal:
-            cls._purchase_journal = cls.env["account.journal"].create(
-                {
-                    "name": "Test Purchase Journal",
-                    "type": "purchase",
-                    "code": "TPURCH",
-                }
-            )
+
         # Ensure income account exists (required for invoice lines in Odoo 19)
-        # Odoo 19 uses 'income' or 'income_other' as account_type
         cls._income_account = cls.env["account.account"].search(
             [("account_type", "in", ("income", "income_other"))], limit=1
         )
@@ -608,14 +602,46 @@ class TestInvoiceReminderCron(TransactionCase, AutomationTestMixin):
                 }
             )
 
+        # Ensure sale journal exists with proper default accounts
+        cls._sale_journal = cls.env["account.journal"].search([("type", "=", "sale")], limit=1)
+        if not cls._sale_journal:
+            cls._sale_journal = cls.env["account.journal"].create(
+                {
+                    "name": "Test Sales Journal",
+                    "type": "sale",
+                    "code": "TSALE",
+                    "default_account_id": cls._income_account.id,
+                }
+            )
+
+        # Ensure purchase journal exists (required for in_invoice)
+        cls._purchase_journal = cls.env["account.journal"].search([("type", "=", "purchase")], limit=1)
+        if not cls._purchase_journal:
+            cls._purchase_journal = cls.env["account.journal"].create(
+                {
+                    "name": "Test Purchase Journal",
+                    "type": "purchase",
+                    "code": "TPURCH",
+                }
+            )
+
+        # Set receivable account on partner property (company-level default)
+        cls.env.company.account_default_receivable_id = cls._receivable_account
+
     def _create_overdue_invoice(self, days_overdue=30):
         """Create a posted, unpaid, overdue out_invoice."""
         config = self._get_config()
-        partner = self.env["res.partner"].create({"name": "Overdue Customer"})
+        partner = self.env["res.partner"].create(
+            {
+                "name": "Overdue Customer",
+                "property_account_receivable_id": self._receivable_account.id,
+            }
+        )
         invoice = self.Move.create(
             {
                 "move_type": "out_invoice",
                 "partner_id": partner.id,
+                "journal_id": self._sale_journal.id,
                 "invoice_date": date.today() - timedelta(days=days_overdue + config.invoice_overdue_days),
                 "invoice_date_due": date.today() - timedelta(days=days_overdue),
                 "invoice_line_ids": [
