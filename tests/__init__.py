@@ -41,11 +41,15 @@ _PURE_PYTHON_MODULES = [
 
 
 def _try_import(module_name: str) -> bool:
-    """Try to import a module, return True if successful."""
+    """Try to import a module, return True if successful.
+
+    Catches ImportError (missing deps), NameError (undefined symbols),
+    and AttributeError (missing attributes in imported modules).
+    """
     try:
         importlib.import_module(f".{module_name}", __name__)
         return True
-    except ImportError:
+    except (ImportError, NameError, AttributeError):
         return False
 
 

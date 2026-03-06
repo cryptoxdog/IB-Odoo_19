@@ -7,9 +7,8 @@ class ResPartner(models.Model):
 
     # Override company_type to be stored (Odoo core has it as computed/non-stored)
     # This allows searching by company_type in domains
+    # NOTE: Do NOT re-specify selection= here - it's inherited from res.partner core
     company_type = fields.Selection(
-        selection=[("company", "Company"), ("person", "Individual")],
-        string="Company Type",
         store=True,
         compute="_compute_company_type",
         inverse="_inverse_company_type",

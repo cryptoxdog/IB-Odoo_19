@@ -128,7 +128,7 @@ class TestCronPerformance(TransactionCase):
         self.assertLess(elapsed, 30.0)
 
 
-class TestSearchPerformance(TransactionCase, PerfFactoryMixin):
+class TestSearchPerformance(TransactionCase, PlastOSTestFactoryMixin):
     """Complex domain search benchmarks."""
 
     @classmethod

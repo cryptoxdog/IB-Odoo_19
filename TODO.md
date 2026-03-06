@@ -33,6 +33,40 @@
 
 ---
 
+## Deferred: External API Bridge Integration
+
+### `plasticos_inference_engine/pipeline_v2.py` — Incomplete Module
+
+**Status:** Placeholder file with broken imports — DO NOT USE until API bridge is ready
+
+**What it is:**
+This file is designed to orchestrate external inference and graph engine services via API calls, replacing the current pure-Python inference modules and making the Odoo instance slimmer.
+
+**Missing dependencies (intentionally not created):**
+- `.config` (Settings)
+- `.odoo_writer` (OdooWriter)
+- `.prompt_builder` (build_system_prompt, build_user_prompt)
+- `.qa_gate` (evaluate)
+- `.schema_loader` (SchemaEnums, load_schema)
+- `.sonar_client` (SonarClient, SonarError)
+- `.telemetry` (log_result, log_run_summary)
+
+**When to instantiate:**
+When the external API bridge connection to inference and graph engines (L9/Sonar) is established. This will:
+1. Replace existing pure-Python inference modules (`engine.py`, `grade_engine.py`, `tier_engine.py`, etc.)
+2. Offload heavy AI/ML computation to external services
+3. Keep Odoo instance lightweight (thin client pattern)
+
+**Current working modules (pure Python, no external deps):**
+- `engine.py` — Main inference engine
+- `grade_engine.py` — Grade matching
+- `tier_engine.py` — Quality tier classification
+- `contamination_engine.py` — Contamination detection
+- `rule_engine.py` — Rule-based inference
+- `kb_loader.py` — Knowledge base loading
+
+---
+
 ## Future Enhancements
 
 - [ ] Buyer profile module with material preferences and typical prices
