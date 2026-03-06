@@ -18,18 +18,15 @@ class TestClaimConstraints(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.partner = cls.env["res.partner"].create(
-            {
-                "name": "Test Partner",
-                "is_company": True,
-            }
-        )
+        cls.supplier = cls.env["res.partner"].create({"name": "Constraint Test Supplier", "is_company": True})
+        cls.buyer = cls.env["res.partner"].create({"name": "Constraint Test Buyer", "is_company": True})
+        cls.tx = cls.env["plasticos.transaction"].create({"supplier_id": cls.supplier.id, "buyer_id": cls.buyer.id})
 
     def _create_claim(self, **kwargs):
         """Helper to create a claim with defaults."""
         vals = {
-            "partner_id": self.partner.id,
-            "case_type": "quality",
+            "transaction_id": self.tx.id,
+            "case_type": "buyer_claim",
             "severity": "medium",
         }
         vals.update(kwargs)
@@ -48,10 +45,10 @@ class TestClaimConstraints(TransactionCase):
         with self.assertRaises(IntegrityError):
             self.env.cr.execute(
                 """
-                INSERT INTO plasticos_claim (name, partner_id, case_type, severity, state)
+                INSERT INTO plasticos_claim (name, transaction_id, case_type, severity, state)
                 VALUES (%s, %s, %s, %s, %s)
             """,
-                (claim1_name, self.partner.id, "quality", "medium", "pending"),
+                (claim1_name, self.tx.id, "buyer_claim", "medium", "pending"),
             )
 
     def test_name_auto_generated(self):

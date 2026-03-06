@@ -22,7 +22,25 @@ class TestCronCheckSlaDeep(TransactionCase):
         super().setUpClass()
         if "plasticos.claim" not in cls.env:
             raise cls.skipTest("plasticos.claim not installed")
+        if "plasticos.transaction" not in cls.env:
+            raise cls.skipTest("plasticos.transaction not installed")
         cls.Claim = cls.env["plasticos.claim"]
+        # Create required related records for claim creation
+        cls.supplier = cls.env["res.partner"].create({"name": "Claim Test Supplier", "is_company": True})
+        cls.buyer = cls.env["res.partner"].create({"name": "Claim Test Buyer", "is_company": True})
+        cls.test_transaction = cls.env["plasticos.transaction"].create(
+            {"supplier_id": cls.supplier.id, "buyer_id": cls.buyer.id}
+        )
+        cls._claim_counter = 0
+
+    def _create_claim(self, **kwargs):
+        """Helper to create claim with all required fields."""
+        self.__class__._claim_counter += 1
+        vals = {
+            "transaction_id": self.test_transaction.id,
+        }
+        vals.update(kwargs)
+        return self.Claim.create(vals)
 
     # ═══════════════════════════════════════════════════════════════════
     # ADVISORY LOCK TESTS
@@ -71,12 +89,7 @@ class TestCronCheckSlaDeep(TransactionCase):
 
     def test_escalation_exactly_at_sla_boundary(self):
         """Claim exactly at SLA deadline should be escalated."""
-        claim = self.Claim.create(
-            {
-                "name": "CLM-BOUNDARY",
-                "state": "pending",
-            }
-        )
+        claim = self._create_claim(state="pending")
         if hasattr(claim, "opened_at") and hasattr(claim, "sla_hours"):
             claim.opened_at = fields.Datetime.now() - timedelta(hours=claim.sla_hours)
             with patch.object(claim.__class__, "action_escalate") as m_esc:
@@ -84,24 +97,14 @@ class TestCronCheckSlaDeep(TransactionCase):
 
     def test_escalation_one_second_past_sla(self):
         """Claim 1 second past SLA should be escalated."""
-        claim = self.Claim.create(
-            {
-                "name": "CLM-1SEC",
-                "state": "pending",
-            }
-        )
+        claim = self._create_claim(state="pending")
         if hasattr(claim, "opened_at") and hasattr(claim, "sla_hours"):
             claim.opened_at = fields.Datetime.now() - timedelta(hours=claim.sla_hours, seconds=1)
             self.Claim._cron_check_sla()
 
     def test_no_escalation_one_second_before_sla(self):
         """Claim 1 second before SLA should NOT be escalated."""
-        claim = self.Claim.create(
-            {
-                "name": "CLM-BEFORE",
-                "state": "pending",
-            }
-        )
+        claim = self._create_claim(state="pending")
         if hasattr(claim, "opened_at") and hasattr(claim, "sla_hours"):
             claim.opened_at = fields.Datetime.now() - timedelta(hours=claim.sla_hours - 0.001)
             original_state = claim.state
@@ -109,18 +112,8 @@ class TestCronCheckSlaDeep(TransactionCase):
 
     def test_escalation_only_pending_claims(self):
         """Only pending claims are auto-escalated, not in_progress."""
-        claim_pending = self.Claim.create(
-            {
-                "name": "CLM-PEND",
-                "state": "pending",
-            }
-        )
-        claim_progress = self.Claim.create(
-            {
-                "name": "CLM-PROG",
-                "state": "in_progress",
-            }
-        )
+        claim_pending = self._create_claim(state="pending")
+        claim_progress = self._create_claim(state="in_progress")
         if hasattr(claim_pending, "opened_at"):
             claim_pending.opened_at = fields.Datetime.now() - timedelta(days=30)
             claim_progress.opened_at = fields.Datetime.now() - timedelta(days=30)
@@ -151,24 +144,14 @@ class TestCronCheckSlaDeep(TransactionCase):
 
     def test_reminder_created_for_open_claims(self):
         """Open claims get daily reminder activities."""
-        claim = self.Claim.create(
-            {
-                "name": "CLM-REMIND",
-                "state": "in_progress",
-            }
-        )
+        claim = self._create_claim(state="in_progress")
         if hasattr(claim, "last_reminder_at"):
             claim.last_reminder_at = fields.Datetime.now() - timedelta(days=2)
             self.Claim._cron_check_sla()
 
     def test_no_duplicate_reminder_same_day(self):
         """No duplicate reminder if one exists for today."""
-        claim = self.Claim.create(
-            {
-                "name": "CLM-NODUP",
-                "state": "in_progress",
-            }
-        )
+        claim = self._create_claim(state="in_progress")
         if hasattr(claim, "last_reminder_at"):
             claim.last_reminder_at = fields.Datetime.now() - timedelta(days=2)
 
@@ -205,12 +188,7 @@ class TestCronCheckSlaDeep(TransactionCase):
 
     def test_reminder_skipped_if_recent(self):
         """No reminder if last_reminder_at < 24 hours ago."""
-        claim = self.Claim.create(
-            {
-                "name": "CLM-RECENT",
-                "state": "in_progress",
-            }
-        )
+        claim = self._create_claim(state="in_progress")
         if hasattr(claim, "last_reminder_at"):
             claim.last_reminder_at = fields.Datetime.now() - timedelta(hours=12)
             self.Claim._cron_check_sla()
@@ -227,24 +205,14 @@ class TestCronCheckSlaDeep(TransactionCase):
 
     def test_is_overdue_recomputed_for_open_claims(self):
         """is_overdue stored field is recomputed for all open claims."""
-        claim = self.Claim.create(
-            {
-                "name": "CLM-OVERDUE-RECOMP",
-                "state": "pending",
-            }
-        )
+        claim = self._create_claim(state="pending")
         if hasattr(claim, "_compute_is_overdue"):
             with patch.object(claim.__class__, "_compute_is_overdue") as m_compute:
                 self.Claim._cron_check_sla()
 
     def test_is_overdue_excludes_resolved(self):
         """Resolved claims are excluded from is_overdue recompute."""
-        claim = self.Claim.create(
-            {
-                "name": "CLM-RESOLVED",
-                "state": "resolved",
-            }
-        )
+        claim = self._create_claim(state="resolved", resolution_note="Test resolution")
         with patch.object(self.Claim.__class__, "search") as m_search:
             m_search.return_value = self.Claim
             self.Claim._cron_check_sla()
@@ -276,12 +244,7 @@ class TestCronCheckSlaDeep(TransactionCase):
 
     def test_mail_activity_creation_error_handled(self):
         """Error creating mail.activity should be logged, not raised."""
-        claim = self.Claim.create(
-            {
-                "name": "CLM-MAIL-ERR",
-                "state": "in_progress",
-            }
-        )
+        claim = self._create_claim(state="in_progress")
         if hasattr(claim, "last_reminder_at"):
             claim.last_reminder_at = fields.Datetime.now() - timedelta(days=2)
             with patch.object(self.env["mail.activity"].__class__, "create", side_effect=Exception("Mail error")):
@@ -308,12 +271,7 @@ class TestCronCheckSlaDeep(TransactionCase):
 
     def test_double_run_same_result(self):
         """Running cron twice in succession produces same state."""
-        claim = self.Claim.create(
-            {
-                "name": "CLM-IDEMP",
-                "state": "pending",
-            }
-        )
+        claim = self._create_claim(state="pending")
         self.Claim._cron_check_sla()
         state_after_first = claim.state
 
@@ -322,12 +280,7 @@ class TestCronCheckSlaDeep(TransactionCase):
 
     def test_escalated_claim_not_re_escalated(self):
         """Already escalated claims are not processed again."""
-        claim = self.Claim.create(
-            {
-                "name": "CLM-ALREADY-ESC",
-                "state": "escalated",
-            }
-        )
+        claim = self._create_claim(state="escalated")
         if hasattr(claim, "action_escalate"):
             with patch.object(claim.__class__, "action_escalate") as m_esc:
                 self.Claim._cron_check_sla()

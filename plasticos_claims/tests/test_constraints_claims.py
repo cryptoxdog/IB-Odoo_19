@@ -11,9 +11,18 @@ class TestClaimConstraintsValidation(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.Claim = cls.env["plasticos.claim"]
+        # Create required transaction for claims
+        cls.supplier = cls.env["res.partner"].create({"name": "Constraint Test Supplier", "is_company": True})
+        cls.buyer = cls.env["res.partner"].create({"name": "Constraint Test Buyer", "is_company": True})
+        cls.tx = cls.env["plasticos.transaction"].create({"supplier_id": cls.supplier.id, "buyer_id": cls.buyer.id})
+        cls._claim_counter = 0
 
     def _new_claim(self, **vals):
-        base = {"name": "CLM-001", "state": "pending"}
+        self.__class__._claim_counter += 1
+        base = {
+            "transaction_id": self.tx.id,
+            "state": "pending",
+        }
         base.update(vals)
         return self.Claim.create(base)
 

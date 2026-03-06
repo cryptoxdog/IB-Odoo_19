@@ -19,20 +19,27 @@ class TestClaimComputes(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.partner = cls.env["res.partner"].create(
+        cls.supplier = cls.env["res.partner"].create(
             {
-                "name": "Test Partner",
+                "name": "Computes Test Supplier",
                 "is_company": True,
-                "email": "partner@example.com",
+                "email": "supplier@example.com",
                 "phone": "555-1234",
             }
         )
+        cls.buyer = cls.env["res.partner"].create(
+            {
+                "name": "Computes Test Buyer",
+                "is_company": True,
+            }
+        )
+        cls.tx = cls.env["plasticos.transaction"].create({"supplier_id": cls.supplier.id, "buyer_id": cls.buyer.id})
 
     def _create_claim(self, **kwargs):
         """Helper to create a claim with defaults."""
         vals = {
-            "partner_id": self.partner.id,
-            "case_type": "quality",
+            "transaction_id": self.tx.id,
+            "case_type": "buyer_claim",
             "severity": "medium",
         }
         vals.update(kwargs)
@@ -84,13 +91,13 @@ class TestClaimComputes(TransactionCase):
 
     def test_is_overdue_false_within_sla(self):
         """is_overdue should be False within SLA period."""
-        claim = self._create_claim(sla_days=30)
+        claim = self._create_claim(sla_hours=720)  # 30 days
 
         self.assertFalse(claim.is_overdue)
 
     def test_is_overdue_true_past_sla(self):
         """is_overdue should be True past SLA period."""
-        claim = self._create_claim(sla_days=3)
+        claim = self._create_claim(sla_hours=72)  # 3 days
 
         # Set create_date to 5 days ago
         past_date = date.today() - timedelta(days=5)
@@ -108,7 +115,7 @@ class TestClaimComputes(TransactionCase):
 
     def test_is_overdue_false_when_resolved(self):
         """is_overdue should be False for resolved claims."""
-        claim = self._create_claim(sla_days=1)
+        claim = self._create_claim(sla_hours=24)  # 1 day
 
         # Set create_date to 5 days ago
         past_date = date.today() - timedelta(days=5)
@@ -134,18 +141,18 @@ class TestClaimComputes(TransactionCase):
     # ═══════════════════════════════════════════════════════════
 
     def test_recovery_rate_computed(self):
-        """recovery_rate should be computed from claim_amount and recovery_amount."""
+        """recovery_rate should be computed from claimed_amount and recovery_amount."""
         claim = self._create_claim(
-            claim_amount=1000.0,
+            claimed_amount=1000.0,
             recovery_amount=750.0,
         )
 
         self.assertAlmostEqual(claim.recovery_rate, 75.0, places=1)
 
     def test_recovery_rate_zero_when_no_claim_amount(self):
-        """recovery_rate should be 0 when claim_amount is 0."""
+        """recovery_rate should be 0 when claimed_amount is 0."""
         claim = self._create_claim(
-            claim_amount=0.0,
+            claimed_amount=0.0,
             recovery_amount=100.0,
         )
 
@@ -154,26 +161,24 @@ class TestClaimComputes(TransactionCase):
     def test_recovery_rate_100_when_full_recovery(self):
         """recovery_rate should be 100 when full recovery."""
         claim = self._create_claim(
-            claim_amount=1000.0,
+            claimed_amount=1000.0,
             recovery_amount=1000.0,
         )
 
         self.assertEqual(claim.recovery_rate, 100.0)
 
     # ═══════════════════════════════════════════════════════════
-    # Related Partner Fields Tests
+    # Related Transaction Fields Tests
     # ═══════════════════════════════════════════════════════════
 
-    def test_partner_email_related(self):
-        """Partner email should be accessible via related field."""
+    def test_transaction_related(self):
+        """Transaction should be accessible via transaction_id."""
         claim = self._create_claim()
+        self.assertEqual(claim.transaction_id, self.tx)
 
-        if hasattr(claim, "partner_email"):
-            self.assertEqual(claim.partner_email, "partner@example.com")
-
-    def test_partner_phone_related(self):
-        """Partner phone should be accessible via related field."""
+    def test_load_id_related(self):
+        """Load should be accessible via related field from transaction."""
         claim = self._create_claim()
-
-        if hasattr(claim, "partner_phone"):
-            self.assertEqual(claim.partner_phone, "555-1234")
+        # load_id is related to transaction_id.load_id
+        # It may be False if transaction has no load
+        self.assertFalse(claim.load_id)  # No load assigned to transaction
