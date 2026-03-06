@@ -7,13 +7,13 @@ Source: plasticos_matching/models/match_result.py
 
 from psycopg2 import IntegrityError
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestMatchResultStateMachine(TransactionCase):
+class TestMatchResultStateMachine(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

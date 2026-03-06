@@ -12,11 +12,12 @@ Available actions:
 - action_view_transactions: Navigate to transactions
 """
 
-from odoo.tests.common import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestCrmLeadActions(TransactionCase):
+class TestCrmLeadActions(PlasticosTestCase):
     """Test PlastOS action_* methods added to crm.lead."""
 
     @classmethod

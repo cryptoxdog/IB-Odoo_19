@@ -2,12 +2,13 @@ import uuid
 
 from psycopg2 import IntegrityError
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestPlasticosCommissionRule(TransactionCase):
+class TestPlasticosCommissionRule(PlasticosTestCase):
     """Test suite for plasticos.commission.rule"""
 
     @classmethod

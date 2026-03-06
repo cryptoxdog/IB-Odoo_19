@@ -19,17 +19,16 @@ from unittest.mock import patch
 
 from psycopg2 import IntegrityError
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import AccessError, UserError, ValidationError
-from odoo.tests.common import TransactionCase, tagged
-
-from .common import PlastOSTestFactoryMixin
+from odoo.tests.common import tagged
 
 
 # ═══════════════════════════════════════════════════════════════
 # API Failure Tests
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "error_handling", "api")
-class TestAPIFailures(TransactionCase, PlastOSTestFactoryMixin):
+class TestAPIFailures(PlasticosTestCase):
     """Tests for graceful handling of external API failures."""
 
     def test_neo4j_unavailable_graceful(self):
@@ -93,7 +92,7 @@ class TestAPIFailures(TransactionCase, PlastOSTestFactoryMixin):
 # Invalid Data Tests
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "error_handling", "validation")
-class TestInvalidData(TransactionCase, PlastOSTestFactoryMixin):
+class TestInvalidData(PlasticosTestCase):
     """Tests for rejection of invalid data with appropriate errors."""
 
     def test_intake_missing_required_fields(self):
@@ -186,7 +185,7 @@ class TestInvalidData(TransactionCase, PlastOSTestFactoryMixin):
 # Permission / ACL Tests
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "error_handling", "security")
-class TestPermissionDenied(TransactionCase, PlastOSTestFactoryMixin):
+class TestPermissionDenied(PlasticosTestCase):
     """Tests for ACL enforcement and permission denied scenarios."""
 
     def test_non_admin_cannot_write_config(self):
@@ -219,7 +218,7 @@ class TestPermissionDenied(TransactionCase, PlastOSTestFactoryMixin):
 # Concurrent Edit Tests
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "error_handling", "concurrency")
-class TestConcurrentEdits(TransactionCase, PlastOSTestFactoryMixin):
+class TestConcurrentEdits(PlasticosTestCase):
     """Tests for concurrent edit handling and idempotency."""
 
     def test_advisory_lock_prevents_double_cron(self):
@@ -248,7 +247,7 @@ class TestConcurrentEdits(TransactionCase, PlastOSTestFactoryMixin):
 # Rollback / Transaction Tests
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "error_handling", "rollback")
-class TestRollbackScenarios(TransactionCase, PlastOSTestFactoryMixin):
+class TestRollbackScenarios(PlasticosTestCase):
     """Tests for atomic operations and rollback on failure."""
 
     def test_intake_creation_atomic(self):

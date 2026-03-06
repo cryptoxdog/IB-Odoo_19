@@ -5,12 +5,13 @@ Target model:  plasticos.intake (via _inherit)
 Config:        plasticos.normalizer.config
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestIntakeNormalizer(TransactionCase):
+class TestIntakeNormalizer(PlasticosTestCase):
     """Test intake normalization: validation, packet assembly, batch cron."""
 
     @classmethod

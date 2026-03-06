@@ -8,11 +8,12 @@ Tests cover:
 - Navigation actions return correct window actions
 """
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestCrmBridge(TransactionCase):
+class TestCrmBridge(PlasticosTestCase):
     """Test CRM lead to intake conversion."""
 
     @classmethod

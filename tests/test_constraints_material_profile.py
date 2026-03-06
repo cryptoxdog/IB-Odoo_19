@@ -1,12 +1,12 @@
 from psycopg2 import IntegrityError
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestMaterialProfileConstraintsConsolidated(TransactionCase):
+class TestMaterialProfileConstraintsConsolidated(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

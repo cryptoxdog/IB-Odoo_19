@@ -1,7 +1,7 @@
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
-class TestMigrationValidation(TransactionCase):
+class TestMigrationValidation(PlasticosTestCase):
     def test_no_duplicate_invoice_links(self):
         self.env.cr.execute("""
             SELECT customer_invoice_id

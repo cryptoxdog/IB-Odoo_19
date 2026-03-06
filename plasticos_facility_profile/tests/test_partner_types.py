@@ -6,11 +6,12 @@ Tests unique code and lead source mapping.
 
 from psycopg2 import IntegrityError
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestPartnerTypes(TransactionCase):
+class TestPartnerTypes(PlasticosTestCase):
     """Test plasticos.partner.type model."""
 
     def test_create_partner_type(self):

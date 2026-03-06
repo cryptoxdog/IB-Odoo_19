@@ -4,11 +4,12 @@ Test load reports.
 Tests BOL pickup/delivery render without error.
 """
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestLoadReports(TransactionCase):
+class TestLoadReports(PlasticosTestCase):
     """Test plasticos.load report rendering."""
 
     @classmethod

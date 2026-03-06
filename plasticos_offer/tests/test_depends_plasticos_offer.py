@@ -1,9 +1,9 @@
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestOfferDepends(TransactionCase):
+class TestOfferDepends(PlasticosTestCase):
     """Offer @api.depends computations."""
 
     @classmethod

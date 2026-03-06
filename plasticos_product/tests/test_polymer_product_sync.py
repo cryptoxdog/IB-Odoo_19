@@ -8,11 +8,12 @@ Tests cover:
 - action_create_products batch action
 """
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestPolymerProductSync(TransactionCase):
+class TestPolymerProductSync(PlasticosTestCase):
     """Test polymer → product auto-sync."""
 
     @classmethod

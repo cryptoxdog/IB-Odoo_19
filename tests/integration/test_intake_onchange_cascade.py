@@ -14,11 +14,11 @@ Validates:
   - _onchange_lead_source_id syncs to partner
 """
 
-from odoo.tests import Form, TransactionCase, tagged
+from odoo.tests import Form, tagged
 
 
 @tagged("post_install", "-at_install", "intake", "onchange")
-class TestIntakePartnerCascade(TransactionCase):
+class TestIntakePartnerCascade(PlasticosTestCase):
     """partner_id → facility_id → contact_id cascade."""
 
     @classmethod
@@ -107,7 +107,7 @@ class TestIntakePartnerCascade(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "intake", "onchange")
-class TestIntakeMaterialProfilePrefill(TransactionCase):
+class TestIntakeMaterialProfilePrefill(PlasticosTestCase):
     """_onchange_material_profile prefills snapshot fields."""
 
     @classmethod
@@ -171,7 +171,7 @@ class TestIntakeMaterialProfilePrefill(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "intake", "onchange")
-class TestIntakeAttributeBooleanSync(TransactionCase):
+class TestIntakeAttributeBooleanSync(PlasticosTestCase):
     """Boolean ↔ attribute bidirectional sync."""
 
     @classmethod

@@ -7,12 +7,13 @@ Tests sync pipeline phases, sync log creation, and graceful behavior
 when Neo4j is NOT configured (all _execute_cypher calls return []).
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install", "plasticos", "integration", "graph")
-class TestGraphServiceSync(TransactionCase):
+class TestGraphServiceSync(PlasticosTestCase):
     """Test graph sync orchestration without live Neo4j."""
 
     @classmethod

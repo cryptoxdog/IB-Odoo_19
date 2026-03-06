@@ -7,12 +7,13 @@ Test claim constraints.
 
 from psycopg2 import IntegrityError
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestClaimConstraints(TransactionCase):
+class TestClaimConstraints(PlasticosTestCase):
     """Test plasticos.claim constraints."""
 
     @classmethod

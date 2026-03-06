@@ -4,12 +4,13 @@ Tests the state machine transitions and validation logic for claims.
 Aligned with plasticos_claims/models/claim.py action methods.
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import ValidationError
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestClaimActions(TransactionCase):
+class TestClaimActions(PlasticosTestCase):
     """Test action_* methods on plasticos.claim.
 
     State machine: pending → in_progress → escalated/resolved → archived

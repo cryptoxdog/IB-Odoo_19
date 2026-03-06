@@ -1,10 +1,11 @@
 from unittest.mock import patch
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestPlasticosMidnightRecompute(TransactionCase):
+class TestPlasticosMidnightRecompute(PlasticosTestCase):
     """Test suite for plasticos.midnight.recompute (AbstractModel service)."""
 
     @classmethod

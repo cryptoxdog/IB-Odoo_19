@@ -9,12 +9,13 @@ State machine: draft → sent → responded → accepted/rejected/expired/cancel
 from datetime import timedelta
 
 from odoo import fields
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestOfferActions(TransactionCase):
+class TestOfferActions(PlasticosTestCase):
     """Test action_* methods on plasticos.offer."""
 
     @classmethod

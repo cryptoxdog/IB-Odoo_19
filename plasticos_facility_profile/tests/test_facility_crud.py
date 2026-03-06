@@ -8,11 +8,12 @@ Test facility profile CRUD operations.
 
 from psycopg2 import IntegrityError
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestFacilityCRUD(TransactionCase):
+class TestFacilityCRUD(PlasticosTestCase):
     """Test plasticos.facility.profile CRUD operations."""
 
     @classmethod

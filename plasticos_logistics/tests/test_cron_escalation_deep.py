@@ -9,10 +9,10 @@ Location: plasticos_logistics/models/load.py:229
 
 from unittest.mock import patch
 
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
-class TestCronEscalationCheckDeep(TransactionCase):
+class TestCronEscalationCheckDeep(PlasticosTestCase):
     """Deep tests for _cron_escalation_check cron job."""
 
     @classmethod
@@ -130,7 +130,7 @@ class TestCronEscalationCheckDeep(TransactionCase):
                 self.Load._cron_escalation_check()
 
 
-class TestEscalationEngineUnit(TransactionCase):
+class TestEscalationEngineUnit(PlasticosTestCase):
     """Unit tests for escalation_engine.check_escalations if accessible."""
 
     @classmethod

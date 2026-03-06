@@ -1,7 +1,7 @@
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
-class TestFinancialAudit(TransactionCase):
+class TestFinancialAudit(PlasticosTestCase):
     def test_closed_transaction_integrity(self):
         tx = self.env["plasticos.transaction"].create({})
         self.assertNotEqual(tx.name, "New")

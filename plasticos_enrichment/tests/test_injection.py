@@ -1,10 +1,10 @@
 from unittest.mock import patch
 
 from odoo import fields
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
-class TestInjection(TransactionCase):
+class TestInjection(PlasticosTestCase):
     """Test the injection pipeline writes to material.profile."""
 
     def setUp(self):

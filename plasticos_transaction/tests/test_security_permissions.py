@@ -1,8 +1,8 @@
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase
 
 
-class TestSecurityPermissions(TransactionCase):
+class TestSecurityPermissions(PlasticosTestCase):
     def _get_or_create_account(self, code, name, account_type, reconcile=False):
         account = self.env["account.account"].search([("code", "=", code)], limit=1)
         if not account:

@@ -5,12 +5,12 @@ Covers:
 - quantity onchange recalculating line subtotal (standard Odoo pattern).[web:127]
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestSaleOrderLineOnchange(TransactionCase):
+class TestSaleOrderLineOnchange(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

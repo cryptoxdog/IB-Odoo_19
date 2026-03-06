@@ -1,8 +1,9 @@
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestPlasticosEnrichmentService(TransactionCase):
+class TestPlasticosEnrichmentService(PlasticosTestCase):
     """Test suite for plasticos.enrichment.service"""
 
     @classmethod

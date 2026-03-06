@@ -5,13 +5,13 @@ Covers: default field values, import mode selection, dry_run guard,
         file upload validation, action_close, action_view_partners.
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestPartnerImportWizard(TransactionCase):
+class TestPartnerImportWizard(PlasticosTestCase):
     """Test suite for the Partner Import Wizard."""
 
     @classmethod

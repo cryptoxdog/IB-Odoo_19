@@ -2,9 +2,9 @@ import uuid
 
 from psycopg2 import IntegrityError
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 def _unique_code(prefix="TEST"):
@@ -13,7 +13,7 @@ def _unique_code(prefix="TEST"):
 
 
 @tagged("post_install", "-at_install")
-class TestMaterialProfileConstraints(TransactionCase):
+class TestMaterialProfileConstraints(PlasticosTestCase):
     """Covers SQL + python @api.constrains on material registry + profile."""
 
     @classmethod

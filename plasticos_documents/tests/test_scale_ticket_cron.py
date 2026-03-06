@@ -9,11 +9,12 @@ Tests cover:
 
 from datetime import datetime, timedelta
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestScaleTicketCron(TransactionCase):
+class TestScaleTicketCron(PlasticosTestCase):
     """Integration tests for cron_check_scale_tickets()."""
 
     @classmethod
@@ -246,7 +247,7 @@ class TestScaleTicketCron(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestBusinessDayCalculation(TransactionCase):
+class TestBusinessDayCalculation(PlasticosTestCase):
     """Test the business day calculation helper."""
 
     def test_count_business_days_excludes_weekends(self):

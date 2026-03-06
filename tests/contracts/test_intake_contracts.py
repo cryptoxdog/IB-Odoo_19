@@ -12,11 +12,12 @@ Modules that inherit plasticos.intake:
 Any change to these contracted fields/methods MUST update all consumers.
 """
 
-from odoo.tests.common import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "contract")
-class TestIntakeFieldContract(TransactionCase):
+class TestIntakeFieldContract(PlasticosTestCase):
     """Fields that downstream bridge modules depend on."""
 
     @classmethod
@@ -188,7 +189,7 @@ class TestIntakeFieldContract(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "contract")
-class TestIntakeMethodContract(TransactionCase):
+class TestIntakeMethodContract(PlasticosTestCase):
     """Methods that downstream modules call or override."""
 
     @classmethod
@@ -254,7 +255,7 @@ class TestIntakeMethodContract(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "contract")
-class TestIntakeMailMixin(TransactionCase):
+class TestIntakeMailMixin(PlasticosTestCase):
     """Verify intake inherits mail.thread for chatter integration."""
 
     def test_intake_has_mail_thread(self):

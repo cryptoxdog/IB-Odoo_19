@@ -10,12 +10,13 @@ from datetime import timedelta
 from psycopg2 import IntegrityError
 
 from odoo import fields
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestRateEngine(TransactionCase):
+class TestRateEngine(PlasticosTestCase):
     """Test the rate memory model constraints and rate engine lookups."""
 
     @classmethod

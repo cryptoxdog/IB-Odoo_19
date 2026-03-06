@@ -8,11 +8,12 @@ Tests 8 computed fields:
 - match_count, selected_count, best_match_score
 """
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestIntakeComputes(TransactionCase):
+class TestIntakeComputes(PlasticosTestCase):
     """Test plasticos.intake computed fields."""
 
     @classmethod

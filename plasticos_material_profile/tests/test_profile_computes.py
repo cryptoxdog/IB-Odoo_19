@@ -8,7 +8,8 @@ Test material profile computed fields.
 
 import uuid
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 def _unique_code(prefix="TEST"):
@@ -17,7 +18,7 @@ def _unique_code(prefix="TEST"):
 
 
 @tagged("post_install", "-at_install")
-class TestProfileComputes(TransactionCase):
+class TestProfileComputes(PlasticosTestCase):
     """Test plasticos.material.profile computed fields."""
 
     @classmethod

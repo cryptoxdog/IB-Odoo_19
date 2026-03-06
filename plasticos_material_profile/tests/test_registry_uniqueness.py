@@ -16,7 +16,8 @@ import uuid
 
 from psycopg2 import IntegrityError
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 def _unique_code(prefix="TEST"):
@@ -25,7 +26,7 @@ def _unique_code(prefix="TEST"):
 
 
 @tagged("post_install", "-at_install")
-class TestRegistryUniqueness(TransactionCase):
+class TestRegistryUniqueness(PlasticosTestCase):
     """Test registry model unique constraints."""
 
     # ═══════════════════════════════════════════════════════════

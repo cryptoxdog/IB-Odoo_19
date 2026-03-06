@@ -6,12 +6,13 @@ Aligned with plasticos_partner_import/wizards/partner_bulk_update_wizard.py.
 Actions: assign_salesperson, assign_category, set_company_type, assign_payment_terms
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestPartnerBulkUpdateWizard(TransactionCase):
+class TestPartnerBulkUpdateWizard(PlasticosTestCase):
     """Test plasticos.partner.bulk.update.wizard."""
 
     @classmethod

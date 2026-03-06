@@ -1,7 +1,7 @@
 import uuid
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 def _unique_code(prefix="TEST"):
@@ -10,7 +10,7 @@ def _unique_code(prefix="TEST"):
 
 
 @tagged("post_install", "-at_install")
-class TestMaterialProfileOnchange(TransactionCase):
+class TestMaterialProfileOnchange(PlasticosTestCase):
     """Covers @api.onchange helpers on material profile."""
 
     @classmethod

@@ -13,8 +13,8 @@ Covers:
 from datetime import date, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -31,7 +31,7 @@ class AutomationTestMixin:
 # ═══════════════════════════════════════════════════════════════════
 # contract_renewal — cron_contract_renewal_alert (res.partner)
 # ═══════════════════════════════════════════════════════════════════
-class TestContractRenewalCron(TransactionCase, AutomationTestMixin):
+class TestContractRenewalCron(PlasticosTestCase, AutomationTestMixin):
     """Tests for cron_contract_renewal_alert on res.partner."""
 
     @classmethod
@@ -139,7 +139,7 @@ class TestContractRenewalCron(TransactionCase, AutomationTestMixin):
 # ═══════════════════════════════════════════════════════════════════
 # trucker_followup — cron_trucker_followup (stock.picking)
 # ═══════════════════════════════════════════════════════════════════
-class TestTruckerFollowupCron(TransactionCase, AutomationTestMixin):
+class TestTruckerFollowupCron(PlasticosTestCase, AutomationTestMixin):
     """Tests for cron_trucker_followup on stock.picking."""
 
     @classmethod
@@ -289,7 +289,7 @@ class TestTruckerFollowupCron(TransactionCase, AutomationTestMixin):
 # ═══════════════════════════════════════════════════════════════════
 # supplier_followup — cron_supplier_followup (purchase.order)
 # ═══════════════════════════════════════════════════════════════════
-class TestSupplierFollowupCron(TransactionCase, AutomationTestMixin):
+class TestSupplierFollowupCron(PlasticosTestCase, AutomationTestMixin):
     """Tests for cron_supplier_followup on purchase.order."""
 
     @classmethod
@@ -389,7 +389,7 @@ class TestSupplierFollowupCron(TransactionCase, AutomationTestMixin):
 # ═══════════════════════════════════════════════════════════════════
 # load_sla — cron_load_sla_check (plasticos.load)
 # ═══════════════════════════════════════════════════════════════════
-class TestLoadSLACron(TransactionCase, AutomationTestMixin):
+class TestLoadSLACron(PlasticosTestCase, AutomationTestMixin):
     """Tests for cron_load_sla_check on plasticos.load."""
 
     @classmethod
@@ -474,7 +474,7 @@ class TestLoadSLACron(TransactionCase, AutomationTestMixin):
 # ═══════════════════════════════════════════════════════════════════
 # stock_alert — cron_stock_reorder_alert (product.product)
 # ═══════════════════════════════════════════════════════════════════
-class TestStockAlertCron(TransactionCase, AutomationTestMixin):
+class TestStockAlertCron(PlasticosTestCase, AutomationTestMixin):
     """Tests for cron_stock_reorder_alert on product.product."""
 
     @classmethod
@@ -596,7 +596,7 @@ class TestStockAlertCron(TransactionCase, AutomationTestMixin):
 # ═══════════════════════════════════════════════════════════════════
 # invoice_reminder — cron_invoice_reminder (account.move)
 # ═══════════════════════════════════════════════════════════════════
-class TestInvoiceReminderCron(TransactionCase, AutomationTestMixin):
+class TestInvoiceReminderCron(PlasticosTestCase, AutomationTestMixin):
     """Tests for cron_invoice_reminder on account.move."""
 
     @classmethod
@@ -755,7 +755,7 @@ class TestInvoiceReminderCron(TransactionCase, AutomationTestMixin):
 # ═══════════════════════════════════════════════════════════════════
 # sale_approval — cron_flag_sale_approvals (sale.order)
 # ═══════════════════════════════════════════════════════════════════
-class TestSaleApprovalCron(TransactionCase, AutomationTestMixin):
+class TestSaleApprovalCron(PlasticosTestCase, AutomationTestMixin):
     """Tests for cron_flag_sale_approvals on sale.order."""
 
     @classmethod

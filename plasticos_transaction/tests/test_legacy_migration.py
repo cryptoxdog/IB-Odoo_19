@@ -1,10 +1,10 @@
 """Deterministic migration test suite for legacy staging → transaction."""
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase
 
 
-class TestLegacyMigration(TransactionCase):
+class TestLegacyMigration(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

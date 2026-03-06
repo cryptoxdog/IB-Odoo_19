@@ -9,12 +9,12 @@ Covers all onchange methods observed in the model:
 These tests use new() records as recommended for onchange.[web:52]
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestIntakeOnchangeAll(TransactionCase):
+class TestIntakeOnchangeAll(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

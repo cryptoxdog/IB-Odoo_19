@@ -22,12 +22,13 @@ Covers:
 
 from datetime import date, timedelta
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestOfferStates(TransactionCase):
+class TestOfferStates(PlasticosTestCase):
     """Full lifecycle and guard tests for plasticos.offer."""
 
     @classmethod

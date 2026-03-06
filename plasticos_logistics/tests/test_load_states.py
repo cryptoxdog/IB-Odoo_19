@@ -23,12 +23,13 @@ Covers:
 
 from datetime import datetime, timedelta
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestLoadStates(TransactionCase):
+class TestLoadStates(PlasticosTestCase):
     """Full lifecycle tests for plasticos.load."""
 
     @classmethod
@@ -214,7 +215,7 @@ class TestLoadStates(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestDispatchStates(TransactionCase):
+class TestDispatchStates(PlasticosTestCase):
     """Forward-only dispatch state machine tests."""
 
     def _create_dispatch(self, **kw):

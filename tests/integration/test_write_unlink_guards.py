@@ -9,12 +9,13 @@ Validates guards on:
   - plasticos.intake: reset blocked on won
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "guards", "critical")
-class TestIntakeWriteGuards(TransactionCase):
+class TestIntakeWriteGuards(PlasticosTestCase):
     """Intake status transition guards."""
 
     @classmethod
@@ -81,7 +82,7 @@ class TestIntakeWriteGuards(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "guards")
-class TestOfferWriteGuards(TransactionCase):
+class TestOfferWriteGuards(PlasticosTestCase):
     """Offer state transition guards."""
 
     @classmethod

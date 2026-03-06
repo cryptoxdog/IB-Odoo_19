@@ -1,8 +1,9 @@
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestStockPickingAutomation(TransactionCase):
+class TestStockPickingAutomation(PlasticosTestCase):
     """Test suite for stock picking automation on stock.picking."""
 
     @classmethod

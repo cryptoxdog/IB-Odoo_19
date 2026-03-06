@@ -1,7 +1,7 @@
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
-class TestSequenceRace(TransactionCase):
+class TestSequenceRace(PlasticosTestCase):
     def test_sequence_unique_under_flush(self):
         txs = []
         for _ in range(20):

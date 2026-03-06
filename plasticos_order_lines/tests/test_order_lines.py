@@ -7,11 +7,12 @@ Tests cover:
 - Empty fields produce minimal description
 """
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestSaleOrderLineMaterialDescription(TransactionCase):
+class TestSaleOrderLineMaterialDescription(PlasticosTestCase):
     """Test SO line material description computation."""
 
     @classmethod

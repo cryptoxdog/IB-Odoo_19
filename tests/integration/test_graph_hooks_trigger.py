@@ -9,11 +9,12 @@ Validates:
   - Graph sync log records are created on trigger
 """
 
-from odoo.tests.common import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "graph", "hooks")
-class TestGraphHookMethodsExist(TransactionCase):
+class TestGraphHookMethodsExist(PlasticosTestCase):
     """Verify graph hook methods are installed on target models."""
 
     def _has_model(self, model_name):
@@ -67,7 +68,7 @@ class TestGraphHookMethodsExist(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "graph", "hooks")
-class TestGraphSyncLogModel(TransactionCase):
+class TestGraphSyncLogModel(PlasticosTestCase):
     """Graph sync log captures sync events."""
 
     def test_graph_sync_log_model_exists(self):

@@ -1,9 +1,9 @@
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestTransactionClaimsBridgeDepends(TransactionCase):
+class TestTransactionClaimsBridgeDepends(PlasticosTestCase):
     """Bridge model computations between transactions and claims."""
 
     @classmethod

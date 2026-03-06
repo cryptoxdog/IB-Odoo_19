@@ -12,12 +12,13 @@ Tests cover:
 
 from datetime import date, timedelta
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestMatchExclusion(TransactionCase):
+class TestMatchExclusion(PlasticosTestCase):
     """Test match exclusion constraints and business logic."""
 
     @classmethod

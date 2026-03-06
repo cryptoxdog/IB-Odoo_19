@@ -13,16 +13,15 @@ creating cross-module relationships. These tests validate:
 - Cascade behaviors work correctly
 """
 
-from odoo.tests.common import TransactionCase, tagged
-
-from .common import PlastOSTestFactoryMixin
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 # ═══════════════════════════════════════════════════════════════
 # 1. Offer ↔ Transaction Bridge
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "bridge", "offer")
-class TestOfferBridge(TransactionCase, PlastOSTestFactoryMixin):
+class TestOfferBridge(PlasticosTestCase):
     """Tests for offer ↔ transaction bidirectional relationship."""
 
     @classmethod
@@ -31,9 +30,7 @@ class TestOfferBridge(TransactionCase, PlastOSTestFactoryMixin):
         cls._skip_if_model_missing("plasticos.offer", "plasticos.transaction", "plasticos.intake")
         cls.supplier = cls._create_partner("Bridge Supplier", supplier_rank=1)
         cls.buyer = cls._create_partner("Bridge Buyer", customer_rank=1)
-        cls.polymer = cls._get_or_create_polymer()
-        cls.form = cls._get_or_create_form()
-        cls.intake = cls._create_intake(partner=cls.supplier, polymer=cls.polymer, form=cls.form)
+        cls.intake = cls._create_intake(partner=cls.supplier, polymer=cls.default_polymer, form=cls.default_form)
 
     def _make_offer(self, **kw):
         from datetime import timedelta
@@ -82,23 +79,20 @@ class TestOfferBridge(TransactionCase, PlastOSTestFactoryMixin):
 # 2. Intake ↔ Transaction Bridge
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "bridge", "intake")
-class TestIntakeBridge(TransactionCase, PlastOSTestFactoryMixin):
+class TestIntakeBridge(PlasticosTestCase):
     """Tests for intake ↔ transaction bidirectional relationship."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls._skip_if_model_missing("plasticos.intake", "plasticos.transaction")
-        cls.partner = cls._create_partner()
-        cls.polymer = cls._get_or_create_polymer()
-        cls.form = cls._get_or_create_form()
 
     def test_intake_has_transaction_ids(self):
         intake = self.env["plasticos.intake"].create(
             {
-                "partner_id": self.partner.id,
-                "polymer_id": self.polymer.id,
-                "form_id": self.form.id,
+                "partner_id": self.default_partner.id,
+                "polymer_id": self.default_polymer.id,
+                "form_id": self.default_form.id,
                 "quantity_per_load_lbs": 40000,
             }
         )
@@ -108,9 +102,9 @@ class TestIntakeBridge(TransactionCase, PlastOSTestFactoryMixin):
     def test_transaction_links_to_intake(self):
         intake = self.env["plasticos.intake"].create(
             {
-                "partner_id": self.partner.id,
-                "polymer_id": self.polymer.id,
-                "form_id": self.form.id,
+                "partner_id": self.default_partner.id,
+                "polymer_id": self.default_polymer.id,
+                "form_id": self.default_form.id,
                 "quantity_per_load_lbs": 40000,
             }
         )
@@ -122,9 +116,9 @@ class TestIntakeBridge(TransactionCase, PlastOSTestFactoryMixin):
     def test_intake_transaction_count(self):
         intake = self.env["plasticos.intake"].create(
             {
-                "partner_id": self.partner.id,
-                "polymer_id": self.polymer.id,
-                "form_id": self.form.id,
+                "partner_id": self.default_partner.id,
+                "polymer_id": self.default_polymer.id,
+                "form_id": self.default_form.id,
                 "quantity_per_load_lbs": 40000,
             }
         )
@@ -136,7 +130,7 @@ class TestIntakeBridge(TransactionCase, PlastOSTestFactoryMixin):
 # 3. Match Result ↔ Transaction Bridge
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "bridge", "match")
-class TestMatchResultBridge(TransactionCase, PlastOSTestFactoryMixin):
+class TestMatchResultBridge(PlasticosTestCase):
     """Tests for match result bridge fields."""
 
     @classmethod
@@ -164,7 +158,7 @@ class TestMatchResultBridge(TransactionCase, PlastOSTestFactoryMixin):
 # 4. Transaction ↔ Document Bridge
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "bridge", "document")
-class TestTransactionDocsBridge(TransactionCase, PlastOSTestFactoryMixin):
+class TestTransactionDocsBridge(PlasticosTestCase):
     """Tests for transaction ↔ document bidirectional relationship."""
 
     @classmethod
@@ -194,7 +188,7 @@ class TestTransactionDocsBridge(TransactionCase, PlastOSTestFactoryMixin):
 # 5. Load ↔ Document Bridge
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "bridge", "load")
-class TestLoadDocsBridge(TransactionCase, PlastOSTestFactoryMixin):
+class TestLoadDocsBridge(PlasticosTestCase):
     """Tests for load ↔ document bidirectional relationship."""
 
     @classmethod
@@ -218,7 +212,7 @@ class TestLoadDocsBridge(TransactionCase, PlastOSTestFactoryMixin):
 # 6. Transaction ↔ Claim Bridge
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "bridge", "claim")
-class TestTransactionClaimsBridge(TransactionCase, PlastOSTestFactoryMixin):
+class TestTransactionClaimsBridge(PlasticosTestCase):
     """Tests for transaction ↔ claim bidirectional relationship."""
 
     @classmethod
@@ -248,25 +242,24 @@ class TestTransactionClaimsBridge(TransactionCase, PlastOSTestFactoryMixin):
 # 7. Transaction ↔ Partner Bridge
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "bridge", "partner")
-class TestPartnerBridge(TransactionCase, PlastOSTestFactoryMixin):
+class TestPartnerBridge(PlasticosTestCase):
     """Tests for partner bridge fields added by PlastOS modules."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.partner = cls._create_partner()
 
     def test_partner_has_intake_ids(self):
         if "intake_ids" in self.env["res.partner"]._fields:
-            self.assertIsNotNone(self.partner.intake_ids)
+            self.assertIsNotNone(self.default_partner.intake_ids)
 
     def test_partner_has_transaction_count(self):
         if "transaction_count" in self.env["res.partner"]._fields:
-            self.assertEqual(self.partner.transaction_count, 0)
+            self.assertEqual(self.default_partner.transaction_count, 0)
 
     def test_partner_has_material_profile_ids(self):
         if "material_profile_ids" in self.env["res.partner"]._fields:
-            self.assertIsNotNone(self.partner.material_profile_ids)
+            self.assertIsNotNone(self.default_partner.material_profile_ids)
 
     def test_partner_supplier_rank_from_intake(self):
         """Creating intake for partner should affect supplier_rank."""
@@ -274,8 +267,8 @@ class TestPartnerBridge(TransactionCase, PlastOSTestFactoryMixin):
             self.skipTest("plasticos.intake not installed")
         polymer = self._get_or_create_polymer()
         form = self._get_or_create_form()
-        self._create_intake(partner=self.partner, polymer=polymer, form=form)
-        self.assertGreaterEqual(self.partner.supplier_rank, 0)
+        self._create_intake(partner=self.default_partner, polymer=polymer, form=form)
+        self.assertGreaterEqual(self.default_partner.supplier_rank, 0)
 
     def test_partner_intake_count_computed(self):
         """Partner intake_count should reflect actual intake records."""
@@ -286,6 +279,6 @@ class TestPartnerBridge(TransactionCase, PlastOSTestFactoryMixin):
 
         polymer = self._get_or_create_polymer()
         form = self._get_or_create_form()
-        initial_count = len(self.partner.intake_ids)
-        self._create_intake(partner=self.partner, polymer=polymer, form=form)
-        self.assertEqual(len(self.partner.intake_ids), initial_count + 1)
+        initial_count = len(self.default_partner.intake_ids)
+        self._create_intake(partner=self.default_partner, polymer=polymer, form=form)
+        self.assertEqual(len(self.default_partner.intake_ids), initial_count + 1)

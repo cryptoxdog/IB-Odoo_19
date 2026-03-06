@@ -6,11 +6,12 @@ Tests cron marks old sent offers as expired.
 
 from datetime import date, timedelta
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestOfferExpiryCron(TransactionCase):
+class TestOfferExpiryCron(PlasticosTestCase):
     """Test plasticos.offer expiry cron job."""
 
     @classmethod

@@ -1,8 +1,9 @@
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestImageAnalyzer(TransactionCase):
+class TestImageAnalyzer(PlasticosTestCase):
     """Test suite for plasticos.web.lead extensions."""
 
     @classmethod

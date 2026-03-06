@@ -5,12 +5,13 @@ Test intake constraints.
 - loads_per_month > 0
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestIntakeConstraints(TransactionCase):
+class TestIntakeConstraints(PlasticosTestCase):
     """Test plasticos.intake constraints."""
 
     @classmethod

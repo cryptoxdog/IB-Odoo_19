@@ -10,10 +10,10 @@ Location: plasticos_buyer_match_engine/models/match_exclusion.py:160
 from datetime import date, timedelta
 from unittest.mock import patch
 
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
-class TestCronExpireExclusionsDeep(TransactionCase):
+class TestCronExpireExclusionsDeep(PlasticosTestCase):
     """Deep tests for _cron_expire_temporary_exclusions cron job."""
 
     @classmethod

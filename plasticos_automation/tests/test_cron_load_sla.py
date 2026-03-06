@@ -8,11 +8,12 @@ Cron:          cron_load_sla_check
 from datetime import timedelta
 
 from odoo import fields
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestCronLoadSla(TransactionCase):
+class TestCronLoadSla(PlasticosTestCase):
     """Test Load SLA breach detection and escalation."""
 
     @classmethod

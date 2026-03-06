@@ -2,11 +2,11 @@
 
 import base64
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase
 
 
-class TestTransactionImportWizard(TransactionCase):
+class TestTransactionImportWizard(PlasticosTestCase):
     """Test plasticos.transaction.import.wizard."""
 
     SAMPLE_CSV = (

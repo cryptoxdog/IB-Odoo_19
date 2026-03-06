@@ -9,13 +9,13 @@ Source: plasticos_offer/models/offer.py
 from datetime import timedelta
 
 from odoo import fields
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestOfferStateMachine(TransactionCase):
+class TestOfferStateMachine(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

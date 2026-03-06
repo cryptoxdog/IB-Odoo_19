@@ -1,8 +1,9 @@
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestPlasticosGraphService(TransactionCase):
+class TestPlasticosGraphService(PlasticosTestCase):
     """Test suite for plasticos.graph.service"""
 
     @classmethod

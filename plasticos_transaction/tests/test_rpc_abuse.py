@@ -1,8 +1,8 @@
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase
 
 
-class TestRPCAbuse(TransactionCase):
+class TestRPCAbuse(PlasticosTestCase):
     def test_direct_state_write_blocked(self):
         tx = self.env["plasticos.transaction"].create({})
         with self.assertRaises(UserError):

@@ -11,10 +11,10 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from odoo import fields
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
-class TestCronCheckSlaDeep(TransactionCase):
+class TestCronCheckSlaDeep(PlasticosTestCase):
     """Deep tests for _cron_check_sla cron job."""
 
     @classmethod

@@ -7,13 +7,13 @@ which form the core of the buyer matching system.
 Migrated from legacy plastic_ai.* namespace to plasticos.* namespace.
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestEnhancedBuyerMatching(TransactionCase):
+class TestEnhancedBuyerMatching(PlasticosTestCase):
     """Test enhanced buyer matching with exclusions and result lifecycle."""
 
     @classmethod

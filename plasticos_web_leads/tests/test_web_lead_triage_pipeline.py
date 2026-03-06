@@ -12,12 +12,13 @@ Tests the deterministic triage pipeline path:
 
 from unittest.mock import patch
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install", "plasticos", "integration", "web_lead")
-class TestWebLeadTriagePipeline(TransactionCase):
+class TestWebLeadTriagePipeline(PlasticosTestCase):
     """Integration tests for the AI triage pipeline."""
 
     @classmethod

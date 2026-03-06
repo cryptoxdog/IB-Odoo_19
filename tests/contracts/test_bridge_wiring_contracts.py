@@ -5,11 +5,12 @@ These tests verify that the bridges are properly installed and
 the fields they add are present on the target models.
 """
 
-from odoo.tests.common import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "contract")
-class TestIntakeBridgeWiring(TransactionCase):
+class TestIntakeBridgeWiring(PlasticosTestCase):
     """Verify all intake bridge fields are actually installed."""
 
     @classmethod
@@ -57,7 +58,7 @@ class TestIntakeBridgeWiring(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "contract")
-class TestTransactionBridgeWiring(TransactionCase):
+class TestTransactionBridgeWiring(PlasticosTestCase):
     """Verify all transaction bridge fields are installed."""
 
     @classmethod

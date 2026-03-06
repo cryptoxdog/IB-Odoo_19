@@ -19,12 +19,13 @@ Validates:
 from datetime import timedelta
 
 from odoo import fields
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "offer", "critical")
-class TestOfferStateMachine(TransactionCase):
+class TestOfferStateMachine(PlasticosTestCase):
     """Full state machine validation for plasticos.offer."""
 
     @classmethod
@@ -203,7 +204,7 @@ class TestOfferStateMachine(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "offer")
-class TestOfferComputed(TransactionCase):
+class TestOfferComputed(PlasticosTestCase):
     """Computed field accuracy."""
 
     @classmethod
@@ -303,7 +304,7 @@ class TestOfferComputed(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "offer", "cron")
-class TestOfferCronExpiry(TransactionCase):
+class TestOfferCronExpiry(PlasticosTestCase):
     """cron_expire_offers idempotency and correctness."""
 
     @classmethod

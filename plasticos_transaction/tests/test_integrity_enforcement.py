@@ -1,10 +1,11 @@
 from odoo import fields
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 
 
 @tagged("plasticos_transaction", "-at_install", "post_install")
-class TestIntegrity(TransactionCase):
+class TestIntegrity(PlasticosTestCase):
     def _get_or_create_account(self, code, name, account_type, reconcile=False):
         account = self.env["account.account"].search([("code", "=", code)], limit=1)
         if not account:

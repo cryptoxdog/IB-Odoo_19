@@ -7,11 +7,12 @@ Models:        res.partner (contract_renewal), account.move (invoice_reminder)
 from datetime import timedelta
 
 from odoo import fields
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestCronContractRenewal(TransactionCase):
+class TestCronContractRenewal(PlasticosTestCase):
     """Test contract renewal alert automation."""
 
     @classmethod

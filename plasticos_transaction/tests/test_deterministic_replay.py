@@ -1,10 +1,10 @@
 import hashlib
 
 from odoo import fields
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
-class TestDeterministicReplay(TransactionCase):
+class TestDeterministicReplay(PlasticosTestCase):
     def _get_or_create_account(self, code, name, account_type, reconcile=False):
         account = self.env["account.account"].search([("code", "=", code)], limit=1)
         if not account:

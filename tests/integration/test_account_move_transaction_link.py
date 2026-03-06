@@ -15,14 +15,15 @@ Validates:
 import logging
 from unittest.mock import patch
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 
 _logger = logging.getLogger(__name__)
 
 
 @tagged("post_install", "-at_install", "accounting", "critical")
-class TestAccountMoveTransactionLink(TransactionCase):
+class TestAccountMoveTransactionLink(PlasticosTestCase):
     """Invoice/bill ↔ transaction linking on action_post()."""
 
     @classmethod
@@ -113,7 +114,7 @@ class TestAccountMoveTransactionLink(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "accounting", "critical")
-class TestAccountMoveCancelGuard(TransactionCase):
+class TestAccountMoveCancelGuard(PlasticosTestCase):
     """button_cancel() must block when linked transaction is closed."""
 
     @classmethod
@@ -196,7 +197,7 @@ class TestAccountMoveCancelGuard(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "accounting", "critical")
-class TestAccountMoveUnlinkGuard(TransactionCase):
+class TestAccountMoveUnlinkGuard(PlasticosTestCase):
     """unlink() must block when linked transaction is closed."""
 
     @classmethod
@@ -268,7 +269,7 @@ class TestAccountMoveUnlinkGuard(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "accounting", "critical")
-class TestAccountMoveCreditNoteGuard(TransactionCase):
+class TestAccountMoveCreditNoteGuard(PlasticosTestCase):
     """Credit note post blocked when reversed move links to closed tx."""
 
     @classmethod
@@ -338,7 +339,7 @@ class TestAccountMoveCreditNoteGuard(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "accounting")
-class TestAccountMoveComplianceGate(TransactionCase):
+class TestAccountMoveComplianceGate(PlasticosTestCase):
     """action_post checks compliance before posting customer invoices."""
 
     @classmethod

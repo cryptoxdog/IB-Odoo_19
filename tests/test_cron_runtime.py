@@ -13,8 +13,8 @@ in production when the scheduler triggers them.
 
 import logging
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 _logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ CRON_REGISTRY = [
 
 
 @tagged("post_install", "-at_install")
-class TestCronMethodsExist(TransactionCase):
+class TestCronMethodsExist(PlasticosTestCase):
     """Verify every registered cron method exists on its target model."""
 
     def test_all_cron_methods_resolvable(self):
@@ -66,7 +66,7 @@ class TestCronMethodsExist(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestCronEmptyDataset(TransactionCase):
+class TestCronEmptyDataset(PlasticosTestCase):
     """Cron jobs must not crash on an empty database."""
 
     def _run_cron_safely(self, model_name, method_name, **kwargs):
@@ -116,7 +116,7 @@ class TestCronEmptyDataset(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestCronXmlIntegrity(TransactionCase):
+class TestCronXmlIntegrity(PlasticosTestCase):
     """Validate that ir.cron XML records are well-formed in the database."""
 
     def test_all_cron_records_have_model(self):

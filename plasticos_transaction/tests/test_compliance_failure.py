@@ -1,8 +1,8 @@
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase
 
 
-class TestComplianceFailure(TransactionCase):
+class TestComplianceFailure(PlasticosTestCase):
     def test_close_blocked_on_compliance_fail(self):
         tx = self.env["plasticos.transaction"].create({})
         tx.action_activate()

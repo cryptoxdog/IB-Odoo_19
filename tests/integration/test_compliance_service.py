@@ -12,11 +12,12 @@ Validates:
   - Document validation matrix model exists
 """
 
-from odoo.tests.common import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "documents", "compliance")
-class TestComplianceServiceExists(TransactionCase):
+class TestComplianceServiceExists(PlasticosTestCase):
     """Verify compliance service model and API."""
 
     @classmethod
@@ -58,7 +59,7 @@ class TestComplianceServiceExists(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "documents", "compliance")
-class TestDocumentRuleModel(TransactionCase):
+class TestDocumentRuleModel(PlasticosTestCase):
     """Document rule model wiring."""
 
     def test_document_rule_model_exists(self):
@@ -82,7 +83,7 @@ class TestDocumentRuleModel(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "documents")
-class TestDocumentValidationMatrix(TransactionCase):
+class TestDocumentValidationMatrix(PlasticosTestCase):
     """Document validation matrix model wiring."""
 
     def test_validation_matrix_model_exists(self):
@@ -102,7 +103,7 @@ class TestDocumentValidationMatrix(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "documents")
-class TestDocumentModel(TransactionCase):
+class TestDocumentModel(PlasticosTestCase):
     """Core document model wiring."""
 
     def test_document_model_exists(self):

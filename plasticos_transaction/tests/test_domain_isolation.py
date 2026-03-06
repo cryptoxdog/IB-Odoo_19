@@ -1,7 +1,7 @@
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
-class TestDomainIsolation(TransactionCase):
+class TestDomainIsolation(PlasticosTestCase):
     def test_commission_rule_does_not_expose_transaction_state(self):
         commission_model = self.env["plasticos.commission.rule"]
         methods = [m for m in dir(commission_model) if not m.startswith("_")]

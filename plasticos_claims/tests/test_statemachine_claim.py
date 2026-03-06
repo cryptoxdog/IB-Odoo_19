@@ -6,13 +6,13 @@ Reopen: resolved/archived → in_progress
 Source: plasticos_claims/models/claim.py
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestClaimStateMachine(TransactionCase):
+class TestClaimStateMachine(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

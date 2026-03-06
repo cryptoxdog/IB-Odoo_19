@@ -24,7 +24,8 @@ Tested crons (from cron XML files in repo):
   - plasticos_transaction: audit_cron, cron_missing_docs
 """
 
-from odoo.tests.common import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 def _safe_call(env, model_name, method_name):
@@ -44,7 +45,7 @@ def _safe_call(env, model_name, method_name):
 
 
 @tagged("post_install", "-at_install", "cron", "idempotency")
-class TestCronIdempotency(TransactionCase):
+class TestCronIdempotency(PlasticosTestCase):
     """Every cron method must survive double execution."""
 
     def _run_twice(self, model_name, method_name):
@@ -112,7 +113,7 @@ class TestCronIdempotency(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "cron")
-class TestCronEmptyRecordset(TransactionCase):
+class TestCronEmptyRecordset(PlasticosTestCase):
     """Cron methods must handle 0 records without crashing."""
 
     def test_expire_offers_empty_db(self):

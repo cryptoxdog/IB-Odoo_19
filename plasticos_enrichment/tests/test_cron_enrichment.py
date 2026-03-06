@@ -7,10 +7,10 @@ Covers:
 
 from unittest.mock import patch
 
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
-class TestEnrichmentCron(TransactionCase):
+class TestEnrichmentCron(PlasticosTestCase):
     """Tests for action_cron_enrich_pending on plasticos.enrichment.run."""
 
     @classmethod
@@ -88,7 +88,7 @@ class TestEnrichmentCron(TransactionCase):
                 pass
 
 
-class TestInferenceCron(TransactionCase):
+class TestInferenceCron(PlasticosTestCase):
     """Tests for action_cron_inference_only standalone cron."""
 
     @classmethod

@@ -12,13 +12,13 @@ SCHEMA ALIGNMENT (2026-02-25):
 
 import logging
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
-from odoo.tests.common import TransactionCase
 
 _logger = logging.getLogger(__name__)
 
 
-class TestBuyerMatcher(TransactionCase):
+class TestBuyerMatcher(PlasticosTestCase):
     def setUp(self):
         super().setUp()
 

@@ -3,11 +3,12 @@ Skeleton smoke tests for plasticos_security_base.
 Validates module install, model registry, and basic record CRUD.
 """
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestModuleInstall(TransactionCase):
+class TestModuleInstall(PlasticosTestCase):
     """Verify plasticos_security_base installs cleanly and registers its models."""
 
     def test_module_installed(self):

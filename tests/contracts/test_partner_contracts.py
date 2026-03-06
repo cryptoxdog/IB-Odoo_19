@@ -12,11 +12,12 @@ res.partner is inherited by 8+ PlastOS modules:
   - plasticos_buyer_match_engine (facility_profile_graph_hooks.py)
 """
 
-from odoo.tests.common import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "contract")
-class TestPartnerFieldContract(TransactionCase):
+class TestPartnerFieldContract(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

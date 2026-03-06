@@ -7,12 +7,13 @@ Validates the external agent ingestion API: payload schema, required
 fields, error handling, idempotency, and HOT/COLD routing.
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install", "plasticos", "contract", "web_lead")
-class TestWebLeadCreateFromAgent(TransactionCase):
+class TestWebLeadCreateFromAgent(PlasticosTestCase):
     """Contract tests for create_from_agent() API endpoint."""
 
     @classmethod

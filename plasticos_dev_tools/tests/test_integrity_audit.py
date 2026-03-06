@@ -3,11 +3,12 @@
 # Module: plasticos_dev_tools
 # Purpose: Odoo test wrapper for integrity audit checks
 # ============================================================
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestIntegrityAudit(TransactionCase):
+class TestIntegrityAudit(PlasticosTestCase):
     """Integrity audit tests for PlasticOS data consistency."""
 
     def test_no_orphaned_documents(self):

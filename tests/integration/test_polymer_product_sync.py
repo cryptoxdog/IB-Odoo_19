@@ -9,11 +9,12 @@ Validates:
   - Polymer-to-product sync hook exists
 """
 
-from odoo.tests.common import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "product")
-class TestProductBridgeWiring(TransactionCase):
+class TestProductBridgeWiring(PlasticosTestCase):
     """Product template PlastOS extensions."""
 
     def test_product_template_model_accessible(self):
@@ -45,7 +46,7 @@ class TestProductBridgeWiring(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "product", "polymer")
-class TestPolymerProductSync(TransactionCase):
+class TestPolymerProductSync(PlasticosTestCase):
     """Polymer create/write auto-creates or updates products."""
 
     @classmethod

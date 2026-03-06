@@ -16,12 +16,13 @@ Tests cover:
 
 from datetime import date, timedelta
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestDocumentLifecycle(TransactionCase):
+class TestDocumentLifecycle(PlasticosTestCase):
     """Test document verify, override, supersede, and expiry."""
 
     @classmethod
@@ -129,7 +130,7 @@ class TestDocumentLifecycle(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestComplianceServiceLifecycle(TransactionCase):
+class TestComplianceServiceLifecycle(PlasticosTestCase):
     """Test compliance service with document rules."""
 
     @classmethod
@@ -281,7 +282,7 @@ class TestComplianceServiceLifecycle(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestDocumentValidationMatrix(TransactionCase):
+class TestDocumentValidationMatrix(PlasticosTestCase):
     """Test document validation matrix constraints."""
 
     @classmethod
@@ -316,7 +317,7 @@ class TestDocumentValidationMatrix(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestDocumentTag(TransactionCase):
+class TestDocumentTag(PlasticosTestCase):
     """Test document tag uniqueness."""
 
     def test_unique_code_constraint(self):

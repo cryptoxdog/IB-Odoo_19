@@ -6,7 +6,8 @@ Tests custom write() partner sync loop guard.
 
 import uuid
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 def _unique_code(prefix="TEST"):
@@ -15,7 +16,7 @@ def _unique_code(prefix="TEST"):
 
 
 @tagged("post_install", "-at_install")
-class TestPartnerMaterialSync(TransactionCase):
+class TestPartnerMaterialSync(PlasticosTestCase):
     """Test partner material sync functionality."""
 
     @classmethod

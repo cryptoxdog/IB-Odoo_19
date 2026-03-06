@@ -6,11 +6,12 @@ Test commission rules and calculation.
 - calculation against transaction
 """
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestCommissionRules(TransactionCase):
+class TestCommissionRules(PlasticosTestCase):
     """Test plasticos.commission.rule and commission calculation."""
 
     @classmethod

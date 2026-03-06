@@ -1,10 +1,10 @@
 """Tests for Transaction Bulk Assign Wizard."""
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase
 
 
-class TestTransactionBulkAssignWizard(TransactionCase):
+class TestTransactionBulkAssignWizard(PlasticosTestCase):
     """Test plasticos.transaction.bulk.assign.wizard."""
 
     @classmethod

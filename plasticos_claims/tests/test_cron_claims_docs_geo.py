@@ -10,13 +10,13 @@ import unittest
 from datetime import date, timedelta
 from unittest.mock import MagicMock, patch
 
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
 # ═══════════════════════════════════════════════════════════════════
 # claim_cron — plasticos_claims
 # ═══════════════════════════════════════════════════════════════════
-class TestClaimCron(TransactionCase):
+class TestClaimCron(PlasticosTestCase):
     """Tests for claim escalation cron in plasticos_claims."""
 
     @classmethod
@@ -80,7 +80,7 @@ class TestClaimCron(TransactionCase):
 # ═══════════════════════════════════════════════════════════════════
 # missing_docs — plasticos_documents
 # ═══════════════════════════════════════════════════════════════════
-class TestMissingDocsCron(TransactionCase):
+class TestMissingDocsCron(PlasticosTestCase):
     """Tests for missing document detection cron in plasticos_documents."""
 
     @classmethod
@@ -149,7 +149,7 @@ class TestMissingDocsCron(TransactionCase):
 # ═══════════════════════════════════════════════════════════════════
 # geo_backfill — plasticos_geolocalize
 # ═══════════════════════════════════════════════════════════════════
-class TestGeoBackfillCron(TransactionCase):
+class TestGeoBackfillCron(PlasticosTestCase):
     """Tests for geo_backfill cron in plasticos_geolocalize."""
 
     @classmethod

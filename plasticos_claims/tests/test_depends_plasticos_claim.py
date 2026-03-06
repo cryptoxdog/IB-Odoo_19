@@ -1,9 +1,9 @@
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestClaimDepends(TransactionCase):
+class TestClaimDepends(PlasticosTestCase):
     """@api.depends fields on plasticos.claim."""
 
     @classmethod

@@ -11,13 +11,12 @@ Golden flows represent the critical business paths that must always work:
 4. Offer → transaction → commission (revenue recognition)
 """
 
-from odoo.tests.common import TransactionCase, tagged
-
-from .common import PlastOSTestFactoryMixin
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "plasticos", "golden", "critical")
-class TestGoldenLeadToDelivery(TransactionCase, PlastOSTestFactoryMixin):
+class TestGoldenLeadToDelivery(PlasticosTestCase):
     """Lead → Intake → Offer → Transaction → Load → Delivery.
 
     This is the primary sales cycle that must never break. It validates:
@@ -143,7 +142,7 @@ class TestGoldenLeadToDelivery(TransactionCase, PlastOSTestFactoryMixin):
 
 
 @tagged("post_install", "-at_install", "plasticos", "golden", "web_lead")
-class TestGoldenHotWebLeadToIntake(TransactionCase, PlastOSTestFactoryMixin):
+class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
     """HOT web lead → AI triage → intake without partner.
 
     This flow validates the automated lead processing pipeline:
@@ -219,7 +218,7 @@ class TestGoldenHotWebLeadToIntake(TransactionCase, PlastOSTestFactoryMixin):
 
 
 @tagged("post_install", "-at_install", "plasticos", "golden", "claims")
-class TestGoldenTransactionWithClaim(TransactionCase, PlastOSTestFactoryMixin):
+class TestGoldenTransactionWithClaim(PlasticosTestCase):
     """Transaction → claim → investigation → resolution.
 
     This flow validates the quality management process:
@@ -285,7 +284,7 @@ class TestGoldenTransactionWithClaim(TransactionCase, PlastOSTestFactoryMixin):
 
 
 @tagged("post_install", "-at_install", "plasticos", "golden", "commission")
-class TestGoldenCommissionCalculation(TransactionCase, PlastOSTestFactoryMixin):
+class TestGoldenCommissionCalculation(PlasticosTestCase):
     """Offer → transaction → commission record.
 
     This flow validates revenue recognition:

@@ -9,12 +9,13 @@ Actions: send, accept, reject, cancel
 from datetime import timedelta
 
 from odoo import fields
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestOfferBulkActionWizard(TransactionCase):
+class TestOfferBulkActionWizard(PlasticosTestCase):
     """Test plasticos.offer.bulk.action.wizard."""
 
     @classmethod

@@ -4,12 +4,13 @@ Target module: plasticos_logistics
 Target model:  plasticos.dispatch
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestDispatchStateMachine(TransactionCase):
+class TestDispatchStateMachine(PlasticosTestCase):
     """Test dispatch forward-only state machine."""
 
     @classmethod

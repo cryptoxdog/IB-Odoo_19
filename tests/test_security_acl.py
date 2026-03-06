@@ -4,12 +4,13 @@ Validates ir.model.access.csv rules, group-based CRUD, protected write()
 constraints, and unlink restrictions at ORM level.
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import AccessError, UserError
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "plasticos", "security")
-class TestTransactionACL(TransactionCase):
+class TestTransactionACL(PlasticosTestCase):
     """ACL enforcement for plasticos.transaction."""
 
     @classmethod
@@ -91,7 +92,7 @@ class TestTransactionACL(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "security")
-class TestClaimACL(TransactionCase):
+class TestClaimACL(PlasticosTestCase):
     """ACL enforcement for plasticos.claim."""
 
     @classmethod
@@ -153,7 +154,7 @@ class TestClaimACL(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "security")
-class TestBillExclusivity(TransactionCase):
+class TestBillExclusivity(PlasticosTestCase):
     """Vendor/freight bill exclusivity guards."""
 
     @classmethod

@@ -1,10 +1,10 @@
 """Tests for Claim Bulk Update Wizard."""
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase
 
 
-class TestClaimBulkUpdateWizard(TransactionCase):
+class TestClaimBulkUpdateWizard(PlasticosTestCase):
     """Test plasticos.claim.bulk.update.wizard."""
 
     @classmethod

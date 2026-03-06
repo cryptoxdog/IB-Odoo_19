@@ -4,12 +4,13 @@ Covers @api.constrains validators (positive, negative, boundary),
 SQL constraints, @api.onchange auto-population, and computed field edge cases.
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "plasticos", "constraint")
-class TestTransactionConstraintsConsolidated(TransactionCase):
+class TestTransactionConstraintsConsolidated(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -68,7 +69,7 @@ class TestTransactionConstraintsConsolidated(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "constraint")
-class TestIntakeConstraintsConsolidated(TransactionCase):
+class TestIntakeConstraintsConsolidated(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -99,7 +100,7 @@ class TestIntakeConstraintsConsolidated(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "onchange")
-class TestIntakeOnchangesConsolidated(TransactionCase):
+class TestIntakeOnchangesConsolidated(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -128,7 +129,7 @@ class TestIntakeOnchangesConsolidated(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "constraint")
-class TestClaimConstraintsConsolidated(TransactionCase):
+class TestClaimConstraintsConsolidated(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -157,7 +158,7 @@ class TestClaimConstraintsConsolidated(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "compute")
-class TestTransactionComputesConsolidated(TransactionCase):
+class TestTransactionComputesConsolidated(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

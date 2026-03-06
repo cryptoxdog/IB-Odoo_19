@@ -9,12 +9,12 @@ Tests the configuration models that store system-wide settings:
 Migrated from legacy plastic_ai.kb_config to plasticos.* namespace.
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestAutomationConfig(TransactionCase):
+class TestAutomationConfig(PlasticosTestCase):
     """Test plasticos.automation.config singleton and thresholds."""
 
     @classmethod
@@ -69,7 +69,7 @@ class TestAutomationConfig(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestWebLeadConfig(TransactionCase):
+class TestWebLeadConfig(PlasticosTestCase):
     """Test plasticos.web.lead.config for API and AI settings."""
 
     @classmethod
@@ -112,7 +112,7 @@ class TestWebLeadConfig(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestNormalizerConfig(TransactionCase):
+class TestNormalizerConfig(PlasticosTestCase):
     """Test plasticos.normalizer.config for intake normalization rules."""
 
     @classmethod
@@ -132,7 +132,7 @@ class TestNormalizerConfig(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestConfigIntegration(TransactionCase):
+class TestConfigIntegration(PlasticosTestCase):
     """Integration tests across configuration models."""
 
     def test_all_config_models_accessible(self):

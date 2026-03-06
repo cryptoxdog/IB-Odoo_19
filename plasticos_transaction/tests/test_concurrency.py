@@ -1,8 +1,8 @@
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests.common import TransactionCase
 
 
-class TestConcurrency(TransactionCase):
+class TestConcurrency(PlasticosTestCase):
     def setUp(self):
         super().setUp()
         self.env["account.journal"].create(

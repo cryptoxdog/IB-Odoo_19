@@ -13,12 +13,13 @@ Tests cover:
 - Cron batch processing
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestEnrichmentRun(TransactionCase):
+class TestEnrichmentRun(PlasticosTestCase):
     """Test enrichment run state machine and guards."""
 
     @classmethod

@@ -6,11 +6,12 @@ and are not accidentally refactored in ways that break callers.
 
 import inspect
 
-from odoo.tests.common import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "contract")
-class TestMatcherAPIContract(TransactionCase):
+class TestMatcherAPIContract(PlasticosTestCase):
     """Matcher.run_matching() is called by intake and web lead flows."""
 
     @classmethod
@@ -41,7 +42,7 @@ class TestMatcherAPIContract(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "contract")
-class TestCommissionServiceContract(TransactionCase):
+class TestCommissionServiceContract(PlasticosTestCase):
     """Commission calculation is called from transaction close flow."""
 
     @classmethod
@@ -71,7 +72,7 @@ class TestCommissionServiceContract(TransactionCase):
 
 
 @tagged("standard", "contract")
-class TestWebLeadAPIContract(TransactionCase):
+class TestWebLeadAPIContract(PlasticosTestCase):
     """Web lead API endpoint contract."""
 
     @classmethod

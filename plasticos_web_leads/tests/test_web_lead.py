@@ -10,11 +10,12 @@ Tests cover:
 - Navigation actions
 """
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestWebLead(TransactionCase):
+class TestWebLead(PlasticosTestCase):
     """Test web lead creation and state management."""
 
     @classmethod

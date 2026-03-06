@@ -8,8 +8,9 @@ import uuid
 
 from psycopg2 import IntegrityError
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 def _unique_code(prefix="TEST"):
@@ -18,7 +19,7 @@ def _unique_code(prefix="TEST"):
 
 
 @tagged("post_install", "-at_install")
-class TestMaterialProfileEnhanced(TransactionCase):
+class TestMaterialProfileEnhanced(PlasticosTestCase):
     """Test material profile creation, constraints, and computed fields."""
 
     @classmethod

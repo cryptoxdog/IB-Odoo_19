@@ -8,9 +8,10 @@ Covers:
   - Negative tests: every invalid transition should raise UserError
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.fields import Datetime
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 
 LOAD_VALID_TRANSITIONS = {
     "draft": ["awaiting_ready"],
@@ -38,7 +39,7 @@ LOAD_ALL_STATES = [
 
 
 @tagged("post_install", "-at_install", "plasticos", "state_machine")
-class TestLoadStateMachineConsolidated(TransactionCase):
+class TestLoadStateMachineConsolidated(PlasticosTestCase):
     """Exhaustive transition tests for plasticos.load."""
 
     @classmethod
@@ -231,7 +232,7 @@ class TestLoadStateMachineConsolidated(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "state_machine")
-class TestTransactionStateMachineConsolidated(TransactionCase):
+class TestTransactionStateMachineConsolidated(PlasticosTestCase):
     """State machine tests for plasticos.transaction."""
 
     @classmethod
@@ -332,7 +333,7 @@ class TestTransactionStateMachineConsolidated(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "state_machine")
-class TestClaimStateMachineConsolidated(TransactionCase):
+class TestClaimStateMachineConsolidated(PlasticosTestCase):
     """State machine tests for plasticos.claim."""
 
     @classmethod
@@ -419,7 +420,7 @@ class TestClaimStateMachineConsolidated(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "state_machine")
-class TestOfferStateMachineConsolidated(TransactionCase):
+class TestOfferStateMachineConsolidated(PlasticosTestCase):
     """State machine tests for plasticos.offer."""
 
     @classmethod

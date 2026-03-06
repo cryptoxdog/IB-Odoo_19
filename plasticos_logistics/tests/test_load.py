@@ -1,9 +1,10 @@
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestPlasticosLoad(TransactionCase):
+class TestPlasticosLoad(PlasticosTestCase):
     """Test suite for plasticos.load"""
 
     @classmethod

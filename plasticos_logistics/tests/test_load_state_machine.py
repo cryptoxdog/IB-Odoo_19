@@ -11,12 +11,13 @@ Invalid and backward transitions are blocked.
 from datetime import datetime, timedelta
 
 from odoo import fields
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install", "plasticos", "logistics", "load")
-class TestLoadStateMachine(TransactionCase):
+class TestLoadStateMachine(PlasticosTestCase):
     """Test load forward-only state machine."""
 
     @classmethod

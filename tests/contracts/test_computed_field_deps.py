@@ -5,11 +5,12 @@ serve stale data. These tests verify that the declared depends include
 all fields that should trigger recomputation.
 """
 
-from odoo.tests.common import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "contract")
-class TestIntakeComputedFieldDeps(TransactionCase):
+class TestIntakeComputedFieldDeps(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

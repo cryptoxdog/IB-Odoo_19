@@ -13,30 +13,26 @@ should be significantly better than these thresholds.
 
 import time
 
-from odoo.tests.common import TransactionCase, tagged
-
-from .common import PlastOSTestFactoryMixin
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "plasticos", "performance", "bulk")
-class TestBulkImportPerformance(TransactionCase, PlastOSTestFactoryMixin):
+class TestBulkImportPerformance(PlasticosTestCase):
     """Bulk import performance benchmarks."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls._skip_if_model_missing("plasticos.intake")
-        cls.partner = cls._create_partner()
-        cls.polymer = cls._get_or_create_polymer()
-        cls.form = cls._get_or_create_form()
 
     def test_bulk_create_100_intakes(self):
         """Creating 100 intakes completes in < 10s."""
         vals_list = [
             {
-                "partner_id": self.partner.id,
-                "polymer_id": self.polymer.id,
-                "form_id": self.form.id,
+                "partner_id": self.default_partner.id,
+                "polymer_id": self.default_polymer.id,
+                "form_id": self.default_form.id,
                 "quantity_per_load_lbs": 40000 + i,
             }
             for i in range(100)
@@ -62,9 +58,9 @@ class TestBulkImportPerformance(TransactionCase, PlastOSTestFactoryMixin):
             self.skipTest("plasticos.match.result not installed")
         intake = self.env["plasticos.intake"].create(
             {
-                "partner_id": self.partner.id,
-                "polymer_id": self.polymer.id,
-                "form_id": self.form.id,
+                "partner_id": self.default_partner.id,
+                "polymer_id": self.default_polymer.id,
+                "form_id": self.default_form.id,
                 "quantity_per_load_lbs": 40000,
             }
         )
@@ -85,7 +81,7 @@ class TestBulkImportPerformance(TransactionCase, PlastOSTestFactoryMixin):
 
 
 @tagged("post_install", "-at_install", "plasticos", "performance", "graph")
-class TestGraphSyncPerformance(TransactionCase, PlastOSTestFactoryMixin):
+class TestGraphSyncPerformance(PlasticosTestCase):
     """Neo4j graph sync benchmarks."""
 
     @classmethod
@@ -107,7 +103,7 @@ class TestGraphSyncPerformance(TransactionCase, PlastOSTestFactoryMixin):
         self.assertLess(elapsed, 5.0)
 
 
-class TestCronPerformance(TransactionCase):
+class TestCronPerformance(PlasticosTestCase):
     """Cron job execution time benchmarks."""
 
     def test_midnight_recompute_under_30s(self):
@@ -128,13 +124,13 @@ class TestCronPerformance(TransactionCase):
         self.assertLess(elapsed, 30.0)
 
 
-class TestSearchPerformance(TransactionCase, PlastOSTestFactoryMixin):
+class TestSearchPerformance(PlasticosTestCase):
     """Complex domain search benchmarks."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.partner = cls._partner()
+        cls.default_partner = cls._partner()
 
     def test_partner_search_under_1s(self):
         start = time.time()

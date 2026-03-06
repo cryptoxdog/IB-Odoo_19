@@ -12,16 +12,15 @@ Unlike golden flows (which are blocking regressions), integration flows
 test the mechanics of module integration.
 """
 
-from odoo.tests.common import TransactionCase, tagged
-
-from .common import PlastOSTestFactoryMixin
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 # ═══════════════════════════════════════════════════════════════
 # Flow 1: Lead → Intake → Transaction
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "integration")
-class TestLeadToIntakeToTransaction(TransactionCase, PlastOSTestFactoryMixin):
+class TestLeadToIntakeToTransaction(PlasticosTestCase):
     """Integration tests for CRM lead to transaction flow."""
 
     @classmethod
@@ -29,8 +28,6 @@ class TestLeadToIntakeToTransaction(TransactionCase, PlastOSTestFactoryMixin):
         super().setUpClass()
         cls._skip_if_model_missing("plasticos.intake", "plasticos.transaction", "crm.lead")
         cls.partner = cls._create_partner("Lead Flow Co", supplier_rank=1)
-        cls.polymer = cls._get_or_create_polymer()
-        cls.form = cls._get_or_create_form()
 
     def test_full_lead_to_transaction_flow(self):
         """CRM lead → intake → confirmed → transaction created."""
@@ -46,7 +43,9 @@ class TestLeadToIntakeToTransaction(TransactionCase, PlastOSTestFactoryMixin):
         self.assertTrue(intake.exists())
         self.assertEqual(intake.crm_lead_id.id, lead.id)
 
-        intake.write({"polymer_id": self.polymer.id, "form_id": self.form.id, "quantity_per_load_lbs": 40000})
+        intake.write(
+            {"polymer_id": self.default_polymer.id, "form_id": self.default_form.id, "quantity_per_load_lbs": 40000}
+        )
         if hasattr(intake, "action_confirm"):
             intake.action_confirm()
             self.assertEqual(intake.state, "confirmed")
@@ -69,7 +68,7 @@ class TestLeadToIntakeToTransaction(TransactionCase, PlastOSTestFactoryMixin):
 # Flow 2: Intake → Match → Offer
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "integration", "matching")
-class TestIntakeToMatchToOffer(TransactionCase, PlastOSTestFactoryMixin):
+class TestIntakeToMatchToOffer(PlasticosTestCase):
     """Integration tests for intake to offer via matching flow."""
 
     @classmethod
@@ -78,15 +77,13 @@ class TestIntakeToMatchToOffer(TransactionCase, PlastOSTestFactoryMixin):
         cls._skip_if_model_missing("plasticos.intake", "plasticos.match.result", "plasticos.offer")
         cls.supplier = cls._create_partner("Match Supplier", supplier_rank=1)
         cls.buyer = cls._create_partner("Match Buyer", customer_rank=1)
-        cls.polymer = cls._get_or_create_polymer()
-        cls.form = cls._get_or_create_form()
 
     def test_intake_to_match_to_offer(self):
         intake = self.env["plasticos.intake"].create(
             {
                 "partner_id": self.supplier.id,
-                "polymer_id": self.polymer.id,
-                "form_id": self.form.id,
+                "polymer_id": self.default_polymer.id,
+                "form_id": self.default_form.id,
                 "quantity_per_load_lbs": 40000,
             }
         )
@@ -118,7 +115,7 @@ class TestIntakeToMatchToOffer(TransactionCase, PlastOSTestFactoryMixin):
 # Flow 3: Transaction → Load → Delivery
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "integration", "logistics")
-class TestTransactionToLoadToDelivery(TransactionCase, PlastOSTestFactoryMixin):
+class TestTransactionToLoadToDelivery(PlasticosTestCase):
     """Integration tests for transaction to delivery flow."""
 
     @classmethod
@@ -156,7 +153,7 @@ class TestTransactionToLoadToDelivery(TransactionCase, PlastOSTestFactoryMixin):
 # Flow 4: Claim → Investigation → Resolution
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "integration", "claims")
-class TestClaimLifecycle(TransactionCase, PlastOSTestFactoryMixin):
+class TestClaimLifecycle(PlasticosTestCase):
     """Integration tests for claim lifecycle flow."""
 
     @classmethod
@@ -205,7 +202,7 @@ class TestClaimLifecycle(TransactionCase, PlastOSTestFactoryMixin):
 # Flow 5: Partner → Enrichment → Profile
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "integration", "enrichment")
-class TestPartnerEnrichmentToProfile(TransactionCase, PlastOSTestFactoryMixin):
+class TestPartnerEnrichmentToProfile(PlasticosTestCase):
     """Integration tests for partner enrichment to profile flow."""
 
     @classmethod

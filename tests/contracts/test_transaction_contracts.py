@@ -8,11 +8,12 @@ Modules that inherit plasticos.transaction:
 Any change to these contracted fields/methods MUST update all consumers.
 """
 
-from odoo.tests.common import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "contract")
-class TestTransactionFieldContract(TransactionCase):
+class TestTransactionFieldContract(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -68,7 +69,7 @@ class TestTransactionFieldContract(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "contract")
-class TestTransactionMethodContract(TransactionCase):
+class TestTransactionMethodContract(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

@@ -1,9 +1,9 @@
 import time
 
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
-class TestPerformanceScale(TransactionCase):
+class TestPerformanceScale(PlasticosTestCase):
     def test_bulk_creation_performance(self):
         start = time.time()
         for _ in range(1000):

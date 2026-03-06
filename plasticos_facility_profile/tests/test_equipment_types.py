@@ -6,11 +6,12 @@ Tests unique code constraint.
 
 from psycopg2 import IntegrityError
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestEquipmentTypes(TransactionCase):
+class TestEquipmentTypes(PlasticosTestCase):
     """Test plasticos.equipment.type model."""
 
     def test_create_equipment_type(self):

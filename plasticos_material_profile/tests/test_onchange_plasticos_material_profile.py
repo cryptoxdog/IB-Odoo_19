@@ -5,8 +5,8 @@ Focus: partner/polymer/form onchanges that build human-friendly labels.[web:125]
 
 import uuid
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 def _unique_code(prefix="TEST"):
@@ -15,7 +15,7 @@ def _unique_code(prefix="TEST"):
 
 
 @tagged("post_install", "-at_install")
-class TestMaterialProfileOnchangeAll(TransactionCase):
+class TestMaterialProfileOnchangeAll(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

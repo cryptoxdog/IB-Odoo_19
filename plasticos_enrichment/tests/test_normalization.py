@@ -1,7 +1,7 @@
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
-class TestNormalization(TransactionCase):
+class TestNormalization(PlasticosTestCase):
     """Test the deterministic normalization maps."""
 
     def setUp(self):

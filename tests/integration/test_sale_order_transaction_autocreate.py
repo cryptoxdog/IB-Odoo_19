@@ -10,11 +10,12 @@ Validates:
   - Transaction links back to sale order
 """
 
-from odoo.tests.common import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "transaction", "sale", "critical")
-class TestSaleOrderTransactionBridge(TransactionCase):
+class TestSaleOrderTransactionBridge(PlasticosTestCase):
     """sale.order → plasticos.transaction bridge wiring."""
 
     @classmethod
@@ -61,7 +62,7 @@ class TestSaleOrderTransactionBridge(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "transaction", "sale")
-class TestSaleConfirmTransactionCreation(TransactionCase):
+class TestSaleConfirmTransactionCreation(PlasticosTestCase):
     """action_confirm() auto-creates a transaction."""
 
     @classmethod

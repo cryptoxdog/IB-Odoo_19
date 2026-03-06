@@ -16,17 +16,16 @@ Each test class validates:
 
 from unittest.mock import patch
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
-from odoo.tests.common import TransactionCase, tagged
-
-from .common import PlastOSTestFactoryMixin
+from odoo.tests.common import tagged
 
 
 # ═══════════════════════════════════════════════════════════════
 # 1. plasticos.intake — 14 action methods
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "action", "intake")
-class TestIntakeActions(TransactionCase, PlastOSTestFactoryMixin):
+class TestIntakeActions(PlasticosTestCase):
     """Tests for plasticos.intake action/button methods."""
 
     @classmethod
@@ -35,14 +34,12 @@ class TestIntakeActions(TransactionCase, PlastOSTestFactoryMixin):
         cls._skip_if_model_missing("plasticos.intake")
         cls.Intake = cls.env["plasticos.intake"]
         cls.partner = cls._create_partner("Intake Supplier")
-        cls.polymer = cls._get_or_create_polymer()
-        cls.form = cls._get_or_create_form()
 
     def _make_intake(self, **kw):
         vals = {
             "partner_id": self.partner.id,
-            "polymer_id": self.polymer.id,
-            "form_id": self.form.id,
+            "polymer_id": self.default_polymer.id,
+            "form_id": self.default_form.id,
             "quantity_per_load_lbs": 40000,
         }
         vals.update(kw)
@@ -149,7 +146,7 @@ class TestIntakeActions(TransactionCase, PlastOSTestFactoryMixin):
 # 2. plasticos.load — 10 action methods
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "action", "load")
-class TestLoadActions(TransactionCase, PlastOSTestFactoryMixin):
+class TestLoadActions(PlasticosTestCase):
     """Tests for plasticos.load action/button methods."""
 
     @classmethod
@@ -229,7 +226,7 @@ class TestLoadActions(TransactionCase, PlastOSTestFactoryMixin):
 # 3. plasticos.offer — 9 action methods
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "action", "offer")
-class TestOfferActions(TransactionCase, PlastOSTestFactoryMixin):
+class TestOfferActions(PlasticosTestCase):
     """Tests for plasticos.offer action/button methods."""
 
     @classmethod
@@ -304,7 +301,7 @@ class TestOfferActions(TransactionCase, PlastOSTestFactoryMixin):
 # 4. plasticos.claim — 7 action methods
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "action", "claim")
-class TestClaimActions(TransactionCase, PlastOSTestFactoryMixin):
+class TestClaimActions(PlasticosTestCase):
     """Tests for plasticos.claim action/button methods."""
 
     @classmethod
@@ -371,7 +368,7 @@ class TestClaimActions(TransactionCase, PlastOSTestFactoryMixin):
 # 5. plasticos.web.lead — 6 action methods
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "action", "web_lead")
-class TestWebLeadActions(TransactionCase, PlastOSTestFactoryMixin):
+class TestWebLeadActions(PlasticosTestCase):
     """Tests for plasticos.web.lead action/button methods."""
 
     @classmethod
@@ -445,7 +442,7 @@ class TestWebLeadActions(TransactionCase, PlastOSTestFactoryMixin):
 # 6. crm.lead — 6 action methods (plasticos_crm_bridge)
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "action", "crm")
-class TestCrmLeadActions(TransactionCase, PlastOSTestFactoryMixin):
+class TestCrmLeadActions(PlasticosTestCase):
     """Tests for crm.lead action methods added by plasticos_crm_bridge."""
 
     @classmethod
@@ -530,7 +527,7 @@ class TestCrmLeadActions(TransactionCase, PlastOSTestFactoryMixin):
 # 7. plasticos.enrichment.run — 5 action methods
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "action", "enrichment")
-class TestEnrichmentRunActions(TransactionCase, PlastOSTestFactoryMixin):
+class TestEnrichmentRunActions(PlasticosTestCase):
     """Tests for plasticos.enrichment.run action/button methods."""
 
     @classmethod
@@ -578,7 +575,7 @@ class TestEnrichmentRunActions(TransactionCase, PlastOSTestFactoryMixin):
 # 8. plasticos.material.profile — 6 action methods
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "action", "material_profile")
-class TestMaterialProfileActions(TransactionCase, PlastOSTestFactoryMixin):
+class TestMaterialProfileActions(PlasticosTestCase):
     """Tests for plasticos.material.profile action/button methods."""
 
     @classmethod
@@ -587,10 +584,9 @@ class TestMaterialProfileActions(TransactionCase, PlastOSTestFactoryMixin):
         cls._skip_if_model_missing("plasticos.material.profile")
         cls.Profile = cls.env["plasticos.material.profile"]
         cls.partner = cls._create_partner("Profile Facility")
-        cls.polymer = cls._get_or_create_polymer()
 
     def _make_profile(self, **kw):
-        vals = {"partner_id": self.partner.id, "polymer_id": self.polymer.id}
+        vals = {"partner_id": self.partner.id, "polymer_id": self.default_polymer.id}
         vals.update(kw)
         return self.Profile.create(vals)
 
@@ -633,7 +629,7 @@ class TestMaterialProfileActions(TransactionCase, PlastOSTestFactoryMixin):
 # 9. plasticos.transaction — 4 action methods
 # ═══════════════════════════════════════════════════════════════
 @tagged("post_install", "-at_install", "plasticos", "action", "transaction")
-class TestTransactionActions(TransactionCase, PlastOSTestFactoryMixin):
+class TestTransactionActions(PlasticosTestCase):
     """Tests for plasticos.transaction action/button methods."""
 
     @classmethod

@@ -14,7 +14,8 @@ records use TransactionCase instead to avoid isolation issues.
 
 import json
 
-from odoo.tests.common import HttpCase, TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import HttpCase, tagged
 
 
 @tagged("post_install", "-at_install", "plasticos", "controller")
@@ -87,7 +88,7 @@ class TestWebLeadControllerAuth(HttpCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "controller")
-class TestWebLeadControllerConfig(TransactionCase):
+class TestWebLeadControllerConfig(PlasticosTestCase):
     """Test API configuration and endpoint enable/disable."""
 
     @classmethod

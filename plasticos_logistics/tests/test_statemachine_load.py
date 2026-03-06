@@ -7,13 +7,13 @@ Source: plasticos_logistics/models/load.py
 """
 
 from odoo import fields
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase
 
 
 @tagged("post_install", "-at_install")
-class TestLoadStateMachineTransitions(TransactionCase):
+class TestLoadStateMachineTransitions(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

@@ -5,7 +5,8 @@ domain filters, or business logic, those values become part of the
 contract. This file validates them all in one place.
 """
 
-from odoo.tests.common import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 
 def _get_selection_values(model, field_name):
@@ -21,7 +22,7 @@ def _get_selection_values(model, field_name):
 
 
 @tagged("post_install", "-at_install", "contract")
-class TestIntakeStatusValues(TransactionCase):
+class TestIntakeStatusValues(PlasticosTestCase):
     def test_intake_status_complete(self):
         values = _get_selection_values(self.env["plasticos.intake"], "status")
         self.assertIsNotNone(values)
@@ -43,7 +44,7 @@ class TestIntakeStatusValues(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "contract")
-class TestClaimStateValues(TransactionCase):
+class TestClaimStateValues(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -64,7 +65,7 @@ class TestClaimStateValues(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "contract")
-class TestLoadStateValues(TransactionCase):
+class TestLoadStateValues(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -84,7 +85,7 @@ class TestLoadStateValues(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "contract")
-class TestOfferStateValues(TransactionCase):
+class TestOfferStateValues(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

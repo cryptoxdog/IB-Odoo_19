@@ -11,12 +11,13 @@ Tests cover:
 - Transaction line margin and weight unit conversion
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestTransactionLifecycle(TransactionCase):
+class TestTransactionLifecycle(PlasticosTestCase):
     """Test transaction state machine and close guards."""
 
     @classmethod
@@ -297,7 +298,7 @@ class TestTransactionLifecycle(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestTransactionCommission(TransactionCase):
+class TestTransactionCommission(PlasticosTestCase):
     """Test commission computation and locking."""
 
     @classmethod
@@ -379,7 +380,7 @@ class TestTransactionCommission(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestTransactionFinancials(TransactionCase):
+class TestTransactionFinancials(PlasticosTestCase):
     """Test financial computed fields on transaction and lines."""
 
     @classmethod

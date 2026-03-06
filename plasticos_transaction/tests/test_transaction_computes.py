@@ -9,11 +9,12 @@ Tests all 19+ computed fields:
 - Profile refs: supplier_profile_id, buyer_profile_id
 """
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestTransactionComputes(TransactionCase):
+class TestTransactionComputes(PlasticosTestCase):
     """Test plasticos.transaction computed fields."""
 
     @classmethod

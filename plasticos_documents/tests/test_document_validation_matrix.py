@@ -7,12 +7,13 @@ Validates: CRUD, unique constraint, default values, boolean flags,
 sequence ordering, and deactivation.
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install", "plasticos", "documents")
-class TestDocumentValidationMatrix(TransactionCase):
+class TestDocumentValidationMatrix(PlasticosTestCase):
     """Test document validation matrix model."""
 
     @classmethod

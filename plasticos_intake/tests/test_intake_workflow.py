@@ -9,12 +9,13 @@ Tests cover:
 - Reset to draft behavior
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestIntakeWorkflow(TransactionCase):
+class TestIntakeWorkflow(PlasticosTestCase):
     """Test intake status transitions and computed fields."""
 
     @classmethod

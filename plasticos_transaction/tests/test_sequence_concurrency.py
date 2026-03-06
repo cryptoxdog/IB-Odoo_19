@@ -1,7 +1,7 @@
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
-class TestSequenceConcurrency(TransactionCase):
+class TestSequenceConcurrency(PlasticosTestCase):
     def test_concurrent_creates_unique_sequence(self):
         tx1 = self.env["plasticos.transaction"].create({})
         tx2 = self.env["plasticos.transaction"].create({})

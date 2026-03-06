@@ -4,11 +4,12 @@ Test compliance service.
 Tests check transaction docs vs required rules.
 """
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestComplianceService(TransactionCase):
+class TestComplianceService(PlasticosTestCase):
     """Test plasticos.compliance.service model."""
 
     @classmethod

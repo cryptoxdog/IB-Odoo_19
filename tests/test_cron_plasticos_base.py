@@ -8,13 +8,13 @@ Covers:
 from datetime import date, timedelta
 from unittest.mock import patch
 
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
 # ═══════════════════════════════════════════════════════════════════
 # midnight_recompute  (plasticos.midnight.recompute AbstractModel)
 # ═══════════════════════════════════════════════════════════════════
-class TestMidnightRecompute(TransactionCase):
+class TestMidnightRecompute(PlasticosTestCase):
     """Tests for _cron_midnight_recompute service."""
 
     @classmethod
@@ -157,7 +157,7 @@ class TestMidnightRecompute(TransactionCase):
 # ═══════════════════════════════════════════════════════════════════
 # attachment_maintenance  (ir.attachment cleanup)
 # ═══════════════════════════════════════════════════════════════════
-class TestAttachmentMaintenance(TransactionCase):
+class TestAttachmentMaintenance(PlasticosTestCase):
     """Tests for _cron_cleanup_missing_filestore_orphans."""
 
     @classmethod

@@ -11,12 +11,13 @@ Tests cover:
 
 from datetime import date, timedelta
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestOfferLifecycle(TransactionCase):
+class TestOfferLifecycle(PlasticosTestCase):
     """Test offer state transitions and computed fields."""
 
     @classmethod

@@ -6,12 +6,13 @@ Target model:  plasticos.intake
 Tests creation, sequence generation, constraints, and onchange behavior.
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install", "plasticos", "intake")
-class TestPlasticosIntake(TransactionCase):
+class TestPlasticosIntake(PlasticosTestCase):
     """Test suite for plasticos.intake model."""
 
     @classmethod

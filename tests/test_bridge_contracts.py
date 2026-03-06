@@ -32,7 +32,8 @@ STRONG (catches real bugs):
 
 import unittest
 
-from odoo.tests.common import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests.common import tagged
 
 # ═══════════════════════════════════════════════════════════════════════════
 # INTAKE MODEL CONTRACT
@@ -48,7 +49,7 @@ from odoo.tests.common import TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install", "plasticos", "contract", "intake")
-class TestIntakeModelContract(TransactionCase):
+class TestIntakeModelContract(PlasticosTestCase):
     """Contract tests for plasticos.intake — fields/methods other modules depend on."""
 
     @classmethod
@@ -235,7 +236,7 @@ class TestIntakeModelContract(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "contract", "transaction")
-class TestTransactionModelContract(TransactionCase):
+class TestTransactionModelContract(PlasticosTestCase):
     """Contract tests for plasticos.transaction."""
 
     @classmethod
@@ -334,7 +335,7 @@ class TestTransactionModelContract(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "contract", "partner")
-class TestPartnerModelContract(TransactionCase):
+class TestPartnerModelContract(PlasticosTestCase):
     """Contract tests for res.partner PlastOS extensions."""
 
     @classmethod
@@ -432,7 +433,7 @@ class TestPartnerModelContract(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "contract", "crm")
-class TestCrmLeadModelContract(TransactionCase):
+class TestCrmLeadModelContract(PlasticosTestCase):
     """Contract tests for crm.lead PlastOS extensions."""
 
     @classmethod
@@ -539,7 +540,7 @@ class TestCrmLeadModelContract(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "contract", "claim")
-class TestClaimModelContract(TransactionCase):
+class TestClaimModelContract(PlasticosTestCase):
     """Contract tests for plasticos.claim."""
 
     @classmethod
@@ -600,7 +601,7 @@ class TestClaimModelContract(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "contract", "offer")
-class TestOfferModelContract(TransactionCase):
+class TestOfferModelContract(PlasticosTestCase):
     """Contract tests for plasticos.offer."""
 
     @classmethod
@@ -668,7 +669,7 @@ class TestOfferModelContract(TransactionCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "contract", "load")
-class TestLoadModelContract(TransactionCase):
+class TestLoadModelContract(PlasticosTestCase):
     """Contract tests for plasticos.load."""
 
     @classmethod

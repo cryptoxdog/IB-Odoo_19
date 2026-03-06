@@ -12,12 +12,13 @@ Validates:
   - SQL constraints (score range, uniqueness)
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import tagged
 
 
 @tagged("post_install", "-at_install", "matching", "critical")
-class TestMatchResultStateMachine(TransactionCase):
+class TestMatchResultStateMachine(PlasticosTestCase):
     """State transitions on plasticos.match.result."""
 
     @classmethod

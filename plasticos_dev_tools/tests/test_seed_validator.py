@@ -3,11 +3,12 @@
 # Module: plasticos_dev_tools
 # Purpose: Odoo test wrapper for seed data validation
 # ============================================================
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestSeedValidator(TransactionCase):
+class TestSeedValidator(PlasticosTestCase):
     """Seed data validation tests for PlasticOS modules."""
 
     def test_document_tag_uniqueness(self):

@@ -6,12 +6,13 @@ Test transaction CRUD operations.
 - unlink protection on posted
 """
 
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestTransactionCRUD(TransactionCase):
+class TestTransactionCRUD(PlasticosTestCase):
     """Test plasticos.transaction CRUD operations."""
 
     @classmethod

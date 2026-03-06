@@ -10,10 +10,10 @@ Location: plasticos_documents/models/document.py:198
 from datetime import date, timedelta
 from unittest.mock import patch
 
-from odoo.tests.common import TransactionCase
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
 
 
-class TestCronComplianceAuditDeep(TransactionCase):
+class TestCronComplianceAuditDeep(PlasticosTestCase):
     """Deep tests for _cron_compliance_audit cron job."""
 
     @classmethod

@@ -8,11 +8,12 @@ Tests cover:
 - Dead freight chargeback logic
 """
 
-from odoo.tests import TransactionCase, tagged
+from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.tests import tagged
 
 
 @tagged("post_install", "-at_install")
-class TestWeightReconciliation(TransactionCase):
+class TestWeightReconciliation(PlasticosTestCase):
     """Test weight reconciliation computed fields."""
 
     @classmethod
@@ -286,7 +287,7 @@ class TestWeightReconciliation(TransactionCase):
 
 
 @tagged("post_install", "-at_install")
-class TestWeightReconciliationEdgeCases(TransactionCase):
+class TestWeightReconciliationEdgeCases(PlasticosTestCase):
     """Edge case tests for weight reconciliation."""
 
     @classmethod
