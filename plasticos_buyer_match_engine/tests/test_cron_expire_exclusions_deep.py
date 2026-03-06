@@ -22,15 +22,31 @@ class TestCronExpireExclusionsDeep(TransactionCase):
         if "plasticos.match.exclusion" not in cls.env:
             raise cls.skipTest("plasticos.match.exclusion not installed")
         cls.Exclusion = cls.env["plasticos.match.exclusion"]
+        # Create test partners for exclusions
+        cls.supplier = cls.env["res.partner"].create({"name": "Test Supplier for Exclusions", "is_company": True})
+        cls.buyer = cls.env["res.partner"].create({"name": "Test Buyer for Exclusions", "is_company": True})
+        cls._partner_counter = 0
 
     def _create_exclusion(self, **kwargs):
-        """Helper to create exclusion with defaults."""
+        """Helper to create exclusion with defaults.
+
+        Creates unique partner pairs to avoid unique constraint violations.
+        """
+        # Create unique partners for each exclusion to avoid constraint
+        self.__class__._partner_counter += 1
+        suffix = self.__class__._partner_counter
+        supplier = self.env["res.partner"].create({"name": f"Excl Supplier {suffix}", "is_company": True})
+        buyer = self.env["res.partner"].create({"name": f"Excl Buyer {suffix}", "is_company": True})
         vals = {
-            "name": "Test Exclusion",
+            "supplier_partner_id": supplier.id,
+            "buyer_partner_id": buyer.id,
+            "reason": "qc_dispute",
             "exclusion_type": "temporary",
             "expiry_date": date.today() + timedelta(days=30),
             "active": True,
         }
+        # Remove 'name' if passed (model doesn't have this field)
+        kwargs.pop("name", None)
         vals.update(kwargs)
         return self.Exclusion.create(vals)
 

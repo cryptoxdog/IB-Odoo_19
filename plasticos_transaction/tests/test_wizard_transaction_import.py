@@ -15,13 +15,13 @@ class TestTransactionImportWizard(TransactionCase):
         "Specifications,Condition,UnitType,Units\n"
         "TX-IMP-001,D001,G001,HDPE Natural,40000,0.25,10000.00,"
         "40000,0.20,8000.00,Natural,CONT001,SEAL001,SPO1,PPO1,"
-        "Spec A,Good,LB,1\n"
+        "Spec A,Good,B,1\n"
         "TX-IMP-001,D002,G002,HDPE Blue,20000,0.30,6000.00,"
         "20000,0.22,4400.00,Blue,CONT001,SEAL001,SPO1,PPO1,"
-        "Spec B,Fair,LB,1\n"
+        "Spec B,Fair,G,1\n"
         "TX-IMP-002,D003,G001,PP Clear,35000,0.28,9800.00,"
         "35000,0.21,7350.00,Clear,CONT002,SEAL002,SPO2,PPO2,"
-        "Spec C,Good,LB,2\n"
+        "Spec C,Good,P,2\n"
     )
 
     @classmethod
