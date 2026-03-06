@@ -147,6 +147,13 @@ class TestTruckerFollowupCron(TransactionCase, AutomationTestMixin):
         super().setUpClass()
         cls.Picking = cls.env["stock.picking"]
         cls.partner = cls.env["res.partner"].create({"name": "Test Trucker"})
+        # Product required for stock moves in Odoo 19
+        cls._test_product = cls.env["product.product"].create(
+            {
+                "name": "Test Delivery Product",
+                "type": "consu",
+            }
+        )
 
     def _create_picking(self, **kwargs):
         """Helper to create outgoing picking with trucker."""
@@ -161,6 +168,20 @@ class TestTruckerFollowupCron(TransactionCase, AutomationTestMixin):
             "location_dest_id": customer_loc.id if customer_loc else False,
             "trucker_id": self.partner.id,
             "receipt_confirmation": False,
+            "move_ids": [
+                (
+                    0,
+                    0,
+                    {
+                        "name": "Test Move",
+                        "product_id": self._test_product.id,
+                        "product_uom_qty": 1.0,
+                        "product_uom": self._test_product.uom_id.id,
+                        "location_id": stock_loc.id if stock_loc else False,
+                        "location_dest_id": customer_loc.id if customer_loc else False,
+                    },
+                )
+            ],
         }
         vals.update(kwargs)
         return self.Picking.create(vals)
@@ -255,11 +276,31 @@ class TestSupplierFollowupCron(TransactionCase, AutomationTestMixin):
         super().setUpClass()
         cls.PO = cls.env["purchase.order"]
         cls.partner = cls.env["res.partner"].create({"name": "Test Supplier"})
+        # Product required for PO lines in Odoo 19
+        cls._test_product = cls.env["product.product"].create(
+            {
+                "name": "Test Purchase Product",
+                "type": "consu",
+                "purchase_ok": True,
+            }
+        )
 
     def _create_po(self, **kwargs):
         vals = {
             "partner_id": self.partner.id,
             "ready_for_pickup": False,
+            "order_line": [
+                (
+                    0,
+                    0,
+                    {
+                        "product_id": self._test_product.id,
+                        "name": "Test PO Line",
+                        "product_qty": 1.0,
+                        "price_unit": 100.0,
+                    },
+                )
+            ],
         }
         vals.update(kwargs)
         po = self.PO.create(vals)
@@ -436,10 +477,11 @@ class TestStockAlertCron(TransactionCase, AutomationTestMixin):
 
     def test_no_alert_above_threshold(self):
         """Products with qty >= threshold get no alert."""
+        # Use type='product' (storable) because Odoo 19 doesn't allow quants for consumables
         product = self.Product.create(
             {
                 "name": "Full Stock Product",
-                "type": "consu",
+                "type": "product",
                 "min_stock_threshold": 10.0,
             }
         )
@@ -553,13 +595,16 @@ class TestInvoiceReminderCron(TransactionCase, AutomationTestMixin):
                 }
             )
         # Ensure income account exists (required for invoice lines in Odoo 19)
-        cls._income_account = cls.env["account.account"].search([("account_type", "=", "income")], limit=1)
+        # Odoo 19 uses 'income' or 'income_other' as account_type
+        cls._income_account = cls.env["account.account"].search(
+            [("account_type", "in", ("income", "income_other"))], limit=1
+        )
         if not cls._income_account:
             cls._income_account = cls.env["account.account"].create(
                 {
                     "name": "Test Income Account",
                     "code": "400000",
-                    "account_type": "income",
+                    "account_type": "income_other",
                 }
             )
 
