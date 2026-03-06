@@ -63,7 +63,11 @@ class TestCronExpireExclusionsDeep(TransactionCase):
     def test_lock_acquired_runs_expiry(self):
         """When lock acquired, expiry logic runs."""
         result = self.Exclusion._cron_expire_temporary_exclusions()
-        self.assertIn("Expired", result) or self.assertIn("No exclusions", result)
+        # Result should contain either "Expired" or "No exclusions" message
+        self.assertTrue(
+            "Expired" in result or "No exclusions" in result,
+            f"Expected 'Expired' or 'No exclusions' in result, got: {result}",
+        )
 
     def test_lock_released_on_search_error(self):
         """Advisory lock is released even when search fails."""

@@ -155,10 +155,12 @@ class TestEscalationEngineUnit(TransactionCase):
         """Engine handles case with no loads to escalate."""
         if self.check_escalations is None:
             self.skipTest("escalation_engine not importable")
-        self.check_escalations(self.env)
+        # Call as a standalone function, not as a method
+        self.__class__.check_escalations(self.env)
 
     def test_engine_handles_no_escalation_rules(self):
         """Engine handles case with no escalation rules configured."""
         if self.check_escalations is None:
             self.skipTest("escalation_engine not importable")
-        self.check_escalations(self.env)
+        # Call as a standalone function, not as a method
+        self.__class__.check_escalations(self.env)
