@@ -4,10 +4,17 @@ Target module: plasticos_material_profile
 Target model:  plasticos.material.profile
 """
 
+import uuid
+
 from psycopg2 import IntegrityError
 
 from odoo.exceptions import ValidationError
 from odoo.tests import TransactionCase, tagged
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}_{uuid.uuid4().hex[:8].upper()}"
 
 
 @tagged("post_install", "-at_install")
@@ -31,15 +38,18 @@ class TestMaterialProfileEnhanced(TransactionCase):
                 "parent_id": cls.company.id,
             }
         )
-        cls.polymer_pp = cls.Polymer.create({"name": "Polypropylene", "code": "PP_ENH"})
-        cls.polymer_hdpe = cls.Polymer.create({"name": "HDPE", "code": "HDPE_ENH"})
-        cls.form_regrind = cls.Form.create({"name": "Regrind", "code": "REGRIND_ENH"})
-        cls.form_pellet = cls.Form.create({"name": "Pellet", "code": "PELLET_ENH"})
-        cls.color_natural = cls.Color.create({"name": "Natural", "code": "NATURAL_ENH"})
+        cls._pp_code = _unique_code("PP_ENH")
+        cls.polymer_pp = cls.Polymer.create({"name": "Polypropylene", "code": cls._pp_code})
+        cls.polymer_hdpe = cls.Polymer.create({"name": "HDPE", "code": _unique_code("HDPE_ENH")})
+        cls.form_regrind = cls.Form.create({"name": "Regrind", "code": _unique_code("REGRIND_ENH")})
+        cls.form_pellet = cls.Form.create({"name": "Pellet", "code": _unique_code("PELLET_ENH")})
+        cls._natural_code = _unique_code("NATURAL_ENH")
+        cls.color_natural = cls.Color.create({"name": "Natural", "code": cls._natural_code})
+        cls._pi_code = _unique_code("POST_INDUSTRIAL_ENH")
         cls.source_pi = cls.SourceType.create(
             {
                 "name": "Post-Industrial",
-                "code": "POST_INDUSTRIAL_ENH",
+                "code": cls._pi_code,
             }
         )
 
@@ -68,7 +78,7 @@ class TestMaterialProfileEnhanced(TransactionCase):
                 "form_id": self.form_regrind.id,
             }
         )
-        self.assertEqual(profile.polymer, "PP_ENH")
+        self.assertEqual(profile.polymer, self._pp_code)
 
     def test_color_code_computed(self):
         """color selection field auto-computes from color_id.code."""
@@ -80,7 +90,7 @@ class TestMaterialProfileEnhanced(TransactionCase):
                 "color_id": self.color_natural.id,
             }
         )
-        self.assertEqual(profile.color, "NATURAL_ENH")
+        self.assertEqual(profile.color, self._natural_code)
 
     def test_source_type_code_computed(self):
         """source_type selection auto-computes from source_type_id.code."""
@@ -92,7 +102,7 @@ class TestMaterialProfileEnhanced(TransactionCase):
                 "source_type_id": self.source_pi.id,
             }
         )
-        self.assertEqual(profile.source_type, "POST_INDUSTRIAL_ENH")
+        self.assertEqual(profile.source_type, self._pi_code)
 
     # ── Constraints ──────────────────────────────────────────
 

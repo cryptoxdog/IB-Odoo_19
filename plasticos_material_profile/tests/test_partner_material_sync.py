@@ -4,7 +4,14 @@ Test partner material sync.
 Tests custom write() partner sync loop guard.
 """
 
+import uuid
+
 from odoo.tests import TransactionCase, tagged
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
 
 @tagged("post_install", "-at_install")
@@ -35,13 +42,13 @@ class TestPartnerMaterialSync(TransactionCase):
         cls.polymer = cls.env["plasticos.polymer"].create(
             {
                 "name": "High Density Polyethylene",
-                "code": "HDPE",
+                "code": _unique_code("HDPE"),
             }
         )
         cls.form = cls.env["plasticos.material.form"].create(
             {
                 "name": "Pellets",
-                "code": "PELLETS",
+                "code": _unique_code("PELLETS"),
             }
         )
 
@@ -87,7 +94,7 @@ class TestPartnerMaterialSync(TransactionCase):
         polymer2 = self.env["plasticos.polymer"].create(
             {
                 "name": "Polypropylene",
-                "code": "PP",
+                "code": _unique_code("PP"),
             }
         )
         profile2 = self._create_profile(polymer_id=polymer2.id)
@@ -126,7 +133,7 @@ class TestPartnerMaterialSync(TransactionCase):
             polymer = self.env["plasticos.polymer"].create(
                 {
                     "name": f"Polymer {i}",
-                    "code": f"TEST_P{i}",
+                    "code": _unique_code(f"TEST_P{i}"),
                 }
             )
             profiles |= self._create_profile(polymer_id=polymer.id)

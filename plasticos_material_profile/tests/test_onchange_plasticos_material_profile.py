@@ -3,8 +3,15 @@
 Focus: partner/polymer/form onchanges that build human-friendly labels.[web:125]
 """
 
+import uuid
+
 from odoo.tests import tagged
 from odoo.tests.common import TransactionCase
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
 
 @tagged("post_install", "-at_install")
@@ -14,8 +21,8 @@ class TestMaterialProfileOnchangeAll(TransactionCase):
         super().setUpClass()
         cls.Profile = cls.env["plasticos.material.profile"]
         cls.partner = cls.env["res.partner"].create({"name": "Facility B"})
-        cls.polymer = cls.env["plasticos.polymer"].create({"name": "PP", "code": "PP"})
-        cls.form = cls.env["plasticos.material.form"].create({"name": "Regrind", "code": "REGR"})
+        cls.polymer = cls.env["plasticos.polymer"].create({"name": "PP", "code": _unique_code("PP")})
+        cls.form = cls.env["plasticos.material.form"].create({"name": "Regrind", "code": _unique_code("REGR")})
 
     def test_onchange_partner_updates_partner_display(self):
         prof = self.Profile.new({"partner_id": self.partner.id})
