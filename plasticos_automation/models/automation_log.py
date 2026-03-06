@@ -28,6 +28,7 @@ class PlasticosAutomationLog(models.Model):
             ("contract_alert", "Contract Renewal Alert"),
             ("stock_alert", "Stock Reorder Alert"),
             ("logistics_followup", "Logistics Follow-up"),
+            ("logistics_escalation", "Logistics Escalation"),
         ],
         required=True,
         string="Action Type",
