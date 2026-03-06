@@ -19,7 +19,7 @@ class TestLazyPartnerSync(TransactionCase):
         super().setUp()
 
         # Create test polymer for intake
-        self.polymer = self.env["plasticos.polymer.family"].create({"name": "HDPE", "code": "HDPE"})
+        self.polymer = self.env["plasticos.polymer"].create({"name": "HDPE", "code": "hdpe"})
 
         # Create test contact
         self.contact = self.env["res.partner"].create(
