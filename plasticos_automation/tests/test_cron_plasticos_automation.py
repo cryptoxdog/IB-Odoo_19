@@ -435,12 +435,20 @@ class TestStockAlertCron(TransactionCase, AutomationTestMixin):
         self.assertTrue(messages, "Should post stock alert")
 
     def test_no_alert_above_threshold(self):
-        """Products above threshold get no alert."""
+        """Products with qty >= threshold get no alert."""
         product = self.Product.create(
             {
                 "name": "Full Stock Product",
                 "type": "consu",
-                "min_stock_threshold": 0.0,
+                "min_stock_threshold": 10.0,
+            }
+        )
+        # Set qty_available above threshold by updating quant
+        self.env["stock.quant"].create(
+            {
+                "product_id": product.id,
+                "location_id": self.env.ref("stock.stock_location_stock").id,
+                "quantity": 100.0,
             }
         )
         self.Product.cron_stock_reorder_alert()
@@ -552,6 +560,17 @@ class TestInvoiceReminderCron(TransactionCase, AutomationTestMixin):
                 "partner_id": partner.id,
                 "invoice_date": date.today() - timedelta(days=days_overdue + config.invoice_overdue_days),
                 "invoice_date_due": date.today() - timedelta(days=days_overdue),
+                "invoice_line_ids": [
+                    (
+                        0,
+                        0,
+                        {
+                            "name": "Test Invoice Line",
+                            "quantity": 1,
+                            "price_unit": 100.0,
+                        },
+                    )
+                ],
             }
         )
         invoice.action_post()
