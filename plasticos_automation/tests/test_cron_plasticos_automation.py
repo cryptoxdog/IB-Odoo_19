@@ -154,20 +154,41 @@ class TestTruckerFollowupCron(TransactionCase, AutomationTestMixin):
                 "type": "consu",
             }
         )
+        # Ensure stock location exists
+        cls._stock_location = cls.env.ref("stock.stock_location_stock", raise_if_not_found=False)
+        if not cls._stock_location:
+            cls._stock_location = cls.env["stock.location"].create({"name": "Test Stock", "usage": "internal"})
+        # Ensure customer location exists
+        cls._customer_location = cls.env.ref("stock.stock_location_customers", raise_if_not_found=False)
+        if not cls._customer_location:
+            cls._customer_location = cls.env["stock.location"].create({"name": "Test Customers", "usage": "customer"})
+        # Ensure outgoing picking type exists
+        cls._picking_type_out = cls.env.ref("stock.picking_type_out", raise_if_not_found=False)
+        if not cls._picking_type_out:
+            cls._picking_type_out = cls.env["stock.picking.type"].search([("code", "=", "outgoing")], limit=1)
+        if not cls._picking_type_out:
+            warehouse = cls.env["stock.warehouse"].search([], limit=1)
+            if not warehouse:
+                warehouse = cls.env["stock.warehouse"].create({"name": "Test Warehouse", "code": "TWH"})
+            cls._picking_type_out = cls.env["stock.picking.type"].create(
+                {
+                    "name": "Test Delivery Orders",
+                    "code": "outgoing",
+                    "sequence_code": "OUT",
+                    "warehouse_id": warehouse.id,
+                    "default_location_src_id": cls._stock_location.id,
+                    "default_location_dest_id": cls._customer_location.id,
+                }
+            )
 
     def _create_picking(self, **kwargs):
         """Helper to create outgoing picking with trucker."""
-        pick_type = self.env.ref("stock.picking_type_out", raise_if_not_found=False)
-        if not pick_type:
-            pick_type = self.env["stock.picking.type"].search([("code", "=", "outgoing")], limit=1)
-        stock_loc = self.env.ref("stock.stock_location_stock", raise_if_not_found=False)
-        customer_loc = self.env.ref("stock.stock_location_customers", raise_if_not_found=False)
         vals = {
-            "picking_type_id": pick_type.id if pick_type else False,
-            "location_id": stock_loc.id if stock_loc else False,
-            "location_dest_id": customer_loc.id if customer_loc else False,
-            "trucker_id": self.partner.id,
-            "receipt_confirmation": False,
+            "picking_type_id": self._picking_type_out.id,
+            "location_id": self._stock_location.id,
+            "location_dest_id": self._customer_location.id,
+            "trucker_id": kwargs.pop("trucker_id", self.partner.id),
+            "receipt_confirmation": kwargs.pop("receipt_confirmation", False),
             "move_ids": [
                 (
                     0,
@@ -177,8 +198,8 @@ class TestTruckerFollowupCron(TransactionCase, AutomationTestMixin):
                         "product_id": self._test_product.id,
                         "product_uom_qty": 1.0,
                         "product_uom": self._test_product.uom_id.id,
-                        "location_id": stock_loc.id if stock_loc else False,
-                        "location_dest_id": customer_loc.id if customer_loc else False,
+                        "location_id": self._stock_location.id,
+                        "location_dest_id": self._customer_location.id,
                     },
                 )
             ],
@@ -621,6 +642,8 @@ class TestInvoiceReminderCron(TransactionCase, AutomationTestMixin):
                     "default_account_id": cls._income_account.id,
                 }
             )
+        elif not cls._sale_journal.default_account_id:
+            cls._sale_journal.default_account_id = cls._income_account
 
         # Ensure purchase journal exists (required for in_invoice)
         cls._purchase_journal = cls.env["account.journal"].search([("type", "=", "purchase")], limit=1)

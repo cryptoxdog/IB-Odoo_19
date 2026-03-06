@@ -1,3 +1,7 @@
+import uuid
+
+from psycopg2 import IntegrityError
+
 from odoo.exceptions import ValidationError
 from odoo.tests import TransactionCase, tagged
 
@@ -9,15 +13,33 @@ class TestPlasticosCommissionRule(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # TODO: Setup test data
+        cls.CommissionRule = cls.env["plasticos.commission.rule"]
+        cls.test_sales_rep = cls.env["res.users"].create(
+            {
+                "name": "Test Sales Rep CR",
+                "login": f"test_sales_rep_cr_{uuid.uuid4().hex[:6]}",
+            }
+        )
+
+    def _create_sales_rep(self, suffix=""):
+        """Helper: create a unique sales rep for testing."""
+        unique = uuid.uuid4().hex[:6]
+        return self.env["res.users"].create(
+            {
+                "name": f"Test Rep {suffix}{unique}",
+                "login": f"test_rep_{suffix}{unique}",
+            }
+        )
 
     def _create_rule(self, **kwargs):
         """Helper to create plasticos.commission.rule with defaults"""
         vals = {
-            # TODO: Add required fields
+            "name": f"Test Rule {uuid.uuid4().hex[:6]}",
+            "sales_rep_id": kwargs.pop("sales_rep_id", self.test_sales_rep.id),
+            "percentage": kwargs.pop("percentage", 0.05),
         }
         vals.update(kwargs)
-        return self.env["plasticos.commission.rule"].create(vals)
+        return self.CommissionRule.create(vals)
 
     # ========================================================================
     # CREATION TESTS
@@ -26,24 +48,35 @@ class TestPlasticosCommissionRule(TransactionCase):
     def test_create_basic(self):
         """Test basic record creation"""
         record = self._create_rule()
-
         self.assertTrue(record.exists())
-        # TODO: Add specific assertions
+        self.assertTrue(record.name)
+        self.assertTrue(record.sales_rep_id)
+        self.assertGreaterEqual(record.percentage, 0.0)
 
     def test_constraint_name_required(self):
         """Test name is required"""
-        with self.assertRaises(ValidationError):
-            self.env["plasticos.commission.rule"].create(
+        raised = False
+        try:
+            self.CommissionRule.create(
                 {
-                    # TODO: Add other required fields except name
+                    "sales_rep_id": self.test_sales_rep.id,
+                    "percentage": 0.05,
                 }
             )
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_constraint_sales_rep_id_required(self):
         """Test sales_rep_id is required"""
-        with self.assertRaises(ValidationError):
-            self.env["plasticos.commission.rule"].create(
+        raised = False
+        try:
+            self.CommissionRule.create(
                 {
-                    # TODO: Add other required fields except sales_rep_id
+                    "name": "No Sales Rep Rule",
+                    "percentage": 0.05,
                 }
             )
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
