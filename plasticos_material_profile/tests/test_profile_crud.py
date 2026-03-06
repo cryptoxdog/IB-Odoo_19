@@ -5,9 +5,16 @@ Test material profile CRUD operations.
 - unique triple constraint
 """
 
+import uuid
+
 from psycopg2 import IntegrityError
 
 from odoo.tests import TransactionCase, tagged
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
 
 @tagged("post_install", "-at_install")
@@ -37,19 +44,19 @@ class TestProfileCRUD(TransactionCase):
         cls.polymer = cls.env["plasticos.polymer"].create(
             {
                 "name": "High Density Polyethylene",
-                "code": "HDPE",
+                "code": _unique_code("HDPE"),
             }
         )
         cls.form = cls.env["plasticos.material.form"].create(
             {
                 "name": "Pellets",
-                "code": "PELLETS",
+                "code": _unique_code("PELLETS"),
             }
         )
         cls.color = cls.env["plasticos.material.color"].create(
             {
                 "name": "Natural",
-                "code": "NATURAL",
+                "code": _unique_code("NATURAL"),
             }
         )
 
@@ -132,7 +139,7 @@ class TestProfileCRUD(TransactionCase):
         polymer2 = self.env["plasticos.polymer"].create(
             {
                 "name": "Polypropylene",
-                "code": "PP",
+                "code": _unique_code("PP"),
             }
         )
 
@@ -146,7 +153,7 @@ class TestProfileCRUD(TransactionCase):
         form2 = self.env["plasticos.material.form"].create(
             {
                 "name": "Flake",
-                "code": "FLAKE",
+                "code": _unique_code("FLAKE"),
             }
         )
 

@@ -12,9 +12,16 @@ Tests all 8 SQL unique constraints:
 - profile unique triple (partner+polymer+form)
 """
 
+import uuid
+
 from psycopg2 import IntegrityError
 
 from odoo.tests import TransactionCase, tagged
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
 
 @tagged("post_install", "-at_install")
@@ -27,10 +34,11 @@ class TestRegistryUniqueness(TransactionCase):
 
     def test_polymer_code_unique(self):
         """Polymer code must be unique."""
+        code = _unique_code("POLY")
         self.env["plasticos.polymer"].create(
             {
                 "name": "High Density Polyethylene",
-                "code": "HDPE",
+                "code": code,
             }
         )
 
@@ -40,7 +48,7 @@ class TestRegistryUniqueness(TransactionCase):
                 INSERT INTO plasticos_polymer (name, code)
                 VALUES (%s, %s)
             """,
-                ("Another HDPE", "HDPE"),
+                ("Another HDPE", code),
             )
 
     def test_polymer_different_codes_allowed(self):
@@ -48,13 +56,13 @@ class TestRegistryUniqueness(TransactionCase):
         p1 = self.env["plasticos.polymer"].create(
             {
                 "name": "High Density Polyethylene",
-                "code": "HDPE",
+                "code": _unique_code("POLY"),
             }
         )
         p2 = self.env["plasticos.polymer"].create(
             {
                 "name": "Low Density Polyethylene",
-                "code": "LDPE",
+                "code": _unique_code("POLY"),
             }
         )
         self.assertNotEqual(p1.id, p2.id)
@@ -65,10 +73,11 @@ class TestRegistryUniqueness(TransactionCase):
 
     def test_form_code_unique(self):
         """Material form code must be unique."""
+        code = _unique_code("FORM")
         self.env["plasticos.material.form"].create(
             {
                 "name": "Pellet",
-                "code": "PELLET",
+                "code": code,
             }
         )
 
@@ -78,7 +87,7 @@ class TestRegistryUniqueness(TransactionCase):
                 INSERT INTO plasticos_material_form (name, code)
                 VALUES (%s, %s)
             """,
-                ("Another Pellet", "PELLET"),
+                ("Another Pellet", code),
             )
 
     def test_form_different_codes_allowed(self):
@@ -86,13 +95,13 @@ class TestRegistryUniqueness(TransactionCase):
         f1 = self.env["plasticos.material.form"].create(
             {
                 "name": "Pellet",
-                "code": "PELLET",
+                "code": _unique_code("FORM"),
             }
         )
         f2 = self.env["plasticos.material.form"].create(
             {
                 "name": "Flake",
-                "code": "FLAKE",
+                "code": _unique_code("FORM"),
             }
         )
         self.assertNotEqual(f1.id, f2.id)
@@ -103,10 +112,11 @@ class TestRegistryUniqueness(TransactionCase):
 
     def test_color_code_unique(self):
         """Material color code must be unique."""
+        code = _unique_code("COLOR")
         self.env["plasticos.material.color"].create(
             {
                 "name": "Natural",
-                "code": "NAT",
+                "code": code,
             }
         )
 
@@ -116,7 +126,7 @@ class TestRegistryUniqueness(TransactionCase):
                 INSERT INTO plasticos_material_color (name, code)
                 VALUES (%s, %s)
             """,
-                ("Another Natural", "NAT"),
+                ("Another Natural", code),
             )
 
     def test_color_different_codes_allowed(self):
@@ -124,13 +134,13 @@ class TestRegistryUniqueness(TransactionCase):
         c1 = self.env["plasticos.material.color"].create(
             {
                 "name": "Natural",
-                "code": "NAT",
+                "code": _unique_code("COLOR"),
             }
         )
         c2 = self.env["plasticos.material.color"].create(
             {
                 "name": "Black",
-                "code": "BLK",
+                "code": _unique_code("COLOR"),
             }
         )
         self.assertNotEqual(c1.id, c2.id)
@@ -141,10 +151,11 @@ class TestRegistryUniqueness(TransactionCase):
 
     def test_source_type_code_unique(self):
         """Source type code must be unique."""
+        code = _unique_code("SRC")
         self.env["plasticos.source.type"].create(
             {
                 "name": "Post-Industrial",
-                "code": "PIR",
+                "code": code,
             }
         )
 
@@ -154,7 +165,7 @@ class TestRegistryUniqueness(TransactionCase):
                 INSERT INTO plasticos_source_type (name, code)
                 VALUES (%s, %s)
             """,
-                ("Another Post-Industrial", "PIR"),
+                ("Another Post-Industrial", code),
             )
 
     # ═══════════════════════════════════════════════════════════
@@ -163,10 +174,11 @@ class TestRegistryUniqueness(TransactionCase):
 
     def test_filler_type_code_unique(self):
         """Filler type code must be unique."""
+        code = _unique_code("FILL")
         self.env["plasticos.filler.type"].create(
             {
                 "name": "Glass Fiber",
-                "code": "GF",
+                "code": code,
             }
         )
 
@@ -176,7 +188,7 @@ class TestRegistryUniqueness(TransactionCase):
                 INSERT INTO plasticos_filler_type (name, code)
                 VALUES (%s, %s)
             """,
-                ("Another Glass Fiber", "GF"),
+                ("Another Glass Fiber", code),
             )
 
     # ═══════════════════════════════════════════════════════════
@@ -185,10 +197,11 @@ class TestRegistryUniqueness(TransactionCase):
 
     def test_material_attribute_code_unique(self):
         """Material attribute code must be unique."""
+        code = _unique_code("ATTR")
         self.env["plasticos.material.attribute"].create(
             {
                 "name": "UV Stabilized",
-                "code": "UV",
+                "code": code,
             }
         )
 
@@ -198,7 +211,7 @@ class TestRegistryUniqueness(TransactionCase):
                 INSERT INTO plasticos_material_attribute (name, code)
                 VALUES (%s, %s)
             """,
-                ("Another UV Stabilized", "UV"),
+                ("Another UV Stabilized", code),
             )
 
     # ═══════════════════════════════════════════════════════════
@@ -207,10 +220,11 @@ class TestRegistryUniqueness(TransactionCase):
 
     def test_packaging_type_code_unique(self):
         """Packaging type code must be unique."""
+        code = _unique_code("PKG")
         self.env["plasticos.packaging.type"].create(
             {
                 "name": "Gaylord",
-                "code": "GAYLORD",
+                "code": code,
             }
         )
 
@@ -220,5 +234,5 @@ class TestRegistryUniqueness(TransactionCase):
                 INSERT INTO plasticos_packaging_type (name, code)
                 VALUES (%s, %s)
             """,
-                ("Another Gaylord", "GAYLORD"),
+                ("Another Gaylord", code),
             )

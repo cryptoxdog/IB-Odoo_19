@@ -1,5 +1,12 @@
+import uuid
+
 from odoo.tests import tagged
 from odoo.tests.common import TransactionCase
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
 
 @tagged("post_install", "-at_install")
@@ -11,8 +18,8 @@ class TestMaterialProfileDepends(TransactionCase):
         super().setUpClass()
         cls.Profile = cls.env["plasticos.material.profile"]
         cls.partner = cls.env["res.partner"].create({"name": "Facility C"})
-        cls.polymer = cls.env["plasticos.polymer"].create({"name": "PET", "code": "PET"})
-        cls.form = cls.env["plasticos.material.form"].create({"name": "Bottle", "code": "BOT"})
+        cls.polymer = cls.env["plasticos.polymer"].create({"name": "PET", "code": _unique_code("PET")})
+        cls.form = cls.env["plasticos.material.form"].create({"name": "Bottle", "code": _unique_code("BOT")})
 
     def _profile(self, **vals):
         base = {
@@ -39,6 +46,6 @@ class TestMaterialProfileDepends(TransactionCase):
         self.partner.invalidate_recordset()
         if hasattr(self.partner, "material_profile_count"):
             self.assertGreaterEqual(self.partner.material_profile_count, 1)
-            self._profile(form_id=self.form.copy({"code": "BOT2"}).id)
+            self._profile(form_id=self.form.copy({"code": _unique_code("BOT")}).id)
             self.partner.invalidate_recordset()
             self.assertGreaterEqual(self.partner.material_profile_count, 2)

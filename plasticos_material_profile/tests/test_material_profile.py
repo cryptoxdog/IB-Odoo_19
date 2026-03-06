@@ -9,8 +9,15 @@ Tests cover:
 - create/write hooks for graph sync
 """
 
+import uuid
+
 from odoo.exceptions import ValidationError
 from odoo.tests import TransactionCase, tagged
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}_{uuid.uuid4().hex[:8].lower()}"
 
 
 @tagged("post_install", "-at_install")
@@ -32,30 +39,34 @@ class TestMaterialProfile(TransactionCase):
                 "parent_id": cls.company.id,
             }
         )
+        cls._polymer_code = _unique_code("hdpe_mp")
         cls.polymer = cls.env["plasticos.polymer"].create(
             {
                 "name": "HDPE-MP",
-                "code": "hdpe_mp_test",
+                "code": cls._polymer_code,
                 "full_name": "High-Density Polyethylene",
                 "category": "commodity",
             }
         )
+        cls._form_code = _unique_code("regrind_mp")
         cls.form = cls.env["plasticos.material.form"].create(
             {
                 "name": "Regrind MP",
-                "code": "regrind_mp_test",
+                "code": cls._form_code,
             }
         )
+        cls._color_code = _unique_code("blue_mp")
         cls.color = cls.env["plasticos.material.color"].create(
             {
                 "name": "Blue MP",
-                "code": "blue_mp_test",
+                "code": cls._color_code,
             }
         )
+        cls._source_type_code = _unique_code("post_industrial_mp")
         cls.source_type = cls.env["plasticos.source.type"].create(
             {
                 "name": "Post Industrial MP",
-                "code": "post_industrial_mp",
+                "code": cls._source_type_code,
             }
         )
 
@@ -99,19 +110,19 @@ class TestMaterialProfile(TransactionCase):
 
     def test_polymer_code_computed(self):
         """polymer (selection) computed from polymer_id.code."""
-        self.assertEqual(self.profile.polymer, "hdpe_mp_test")
+        self.assertEqual(self.profile.polymer, self._polymer_code)
 
     def test_form_code_computed(self):
         """form (selection) computed from form_id.code."""
-        self.assertEqual(self.profile.form, "regrind_mp_test")
+        self.assertEqual(self.profile.form, self._form_code)
 
     def test_color_code_computed(self):
         """color (char) computed from color_id.code."""
-        self.assertEqual(self.profile.color, "blue_mp_test")
+        self.assertEqual(self.profile.color, self._color_code)
 
     def test_source_type_code_computed(self):
         """source_type (char) computed from source_type_id.code."""
-        self.assertEqual(self.profile.source_type, "post_industrial_mp")
+        self.assertEqual(self.profile.source_type, self._source_type_code)
 
     # ── Line Counts ─────────────────────────────────────────────
 

@@ -1,8 +1,15 @@
+import uuid
+
 from psycopg2 import IntegrityError
 
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 from odoo.tests.common import TransactionCase
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
 
 @tagged("post_install", "-at_install")
@@ -15,29 +22,27 @@ class TestMaterialProfileConstraints(TransactionCase):
         cls.Profile = cls.env["plasticos.material.profile"]
         cls.partner = cls.env["res.partner"].create({"name": "Facility A"})
 
-        cls.polymer = cls.env["plasticos.polymer"].search([("code", "=", "HDPE")], limit=1)
-        if not cls.polymer:
-            cls.polymer = cls.env["plasticos.polymer"].create({"name": "HDPE", "code": "HDPE"})
-        cls.form = cls.env["plasticos.material.form"].search([("code", "=", "PEL")], limit=1)
-        if not cls.form:
-            cls.form = cls.env["plasticos.material.form"].create({"name": "Pellet", "code": "PEL"})
+        cls.polymer = cls.env["plasticos.polymer"].create({"name": "HDPE Test", "code": _unique_code("HDPE")})
+        cls.form = cls.env["plasticos.material.form"].create({"name": "Pellet Test", "code": _unique_code("PEL")})
 
     # --- Registry unique constraints ----------------------------------------
 
     def test_polymer_code_unique(self):
-        self.env["plasticos.polymer"].create({"name": "HDPE-2", "code": "HDPE-UNIQ"})
+        code = _unique_code("HDPE-UNIQ")
+        self.env["plasticos.polymer"].create({"name": "HDPE-2", "code": code})
         raised = False
         try:
-            self.env["plasticos.polymer"].create({"name": "Duplicate", "code": "HDPE-UNIQ"})
+            self.env["plasticos.polymer"].create({"name": "Duplicate", "code": code})
         except (ValidationError, IntegrityError):
             raised = True
         self.assertTrue(raised, "Expected exception was not raised")
 
     def test_form_code_unique(self):
-        self.env["plasticos.material.form"].create({"name": "Flake", "code": "FLAKE-UNIQ"})
+        code = _unique_code("FLAKE-UNIQ")
+        self.env["plasticos.material.form"].create({"name": "Flake", "code": code})
         raised = False
         try:
-            self.env["plasticos.material.form"].create({"name": "Dup", "code": "FLAKE-UNIQ"})
+            self.env["plasticos.material.form"].create({"name": "Dup", "code": code})
         except (ValidationError, IntegrityError):
             raised = True
         self.assertTrue(raised, "Expected exception was not raised")

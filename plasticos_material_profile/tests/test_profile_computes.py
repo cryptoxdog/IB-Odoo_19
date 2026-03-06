@@ -6,7 +6,14 @@ Test material profile computed fields.
 - company_id related field
 """
 
+import uuid
+
 from odoo.tests import TransactionCase, tagged
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
 
 @tagged("post_install", "-at_install")
@@ -33,22 +40,25 @@ class TestProfileComputes(TransactionCase):
                 "parent_id": cls.parent_company.id,
             }
         )
+        cls._polymer_code = _unique_code("HDPE")
         cls.polymer = cls.env["plasticos.polymer"].create(
             {
                 "name": "High Density Polyethylene",
-                "code": "HDPE",
+                "code": cls._polymer_code,
             }
         )
+        cls._form_code = _unique_code("PELLETS")
         cls.form = cls.env["plasticos.material.form"].create(
             {
                 "name": "Pellets",
-                "code": "PELLETS",
+                "code": cls._form_code,
             }
         )
+        cls._color_code = _unique_code("NATURAL")
         cls.color = cls.env["plasticos.material.color"].create(
             {
                 "name": "Natural",
-                "code": "NATURAL",
+                "code": cls._color_code,
             }
         )
 
@@ -69,17 +79,17 @@ class TestProfileComputes(TransactionCase):
     def test_polymer_code_computed(self):
         """Polymer Selection field should be computed from polymer_id.code."""
         profile = self._create_profile()
-        self.assertEqual(profile.polymer, "HDPE")
+        self.assertEqual(profile.polymer, self._polymer_code)
 
     def test_form_code_computed(self):
         """Form Selection field should be computed from form_id.code."""
         profile = self._create_profile()
-        self.assertEqual(profile.form, "PELLETS")
+        self.assertEqual(profile.form, self._form_code)
 
     def test_color_code_computed(self):
         """Color Selection field should be computed from color_id.code."""
         profile = self._create_profile(color_id=self.color.id)
-        self.assertEqual(profile.color, "NATURAL")
+        self.assertEqual(profile.color, self._color_code)
 
     def test_color_code_false_when_no_color(self):
         """Color Selection field should be False when no color_id."""
