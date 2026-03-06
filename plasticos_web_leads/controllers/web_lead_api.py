@@ -126,9 +126,9 @@ class WebLeadController(http.Controller):
             _logger.info("Web lead %s processed: state=%s", lead_id, lead.state)
             return self._json_response(200, response_data)
 
-        except Exception as exc:
+        except Exception:
             _logger.exception("Unhandled error processing web lead %s", lead_id)
-            return self._json_error(500, f"Internal error: {exc}")
+            return self._json_error(500, "Internal server error. Please try again later.")
 
     # ═══════════════════════════════════════════════════════════
     # POST /api/v1/cognito-webhook (Raw Cognito → AI Triage)
@@ -196,9 +196,9 @@ class WebLeadController(http.Controller):
             )
             return self._json_response(200, response_data)
 
-        except Exception as exc:
+        except Exception:
             _logger.exception("Unhandled error in Cognito webhook")
-            return self._json_error(500, f"Internal error: {exc}")
+            return self._json_error(500, "Internal server error. Please try again later.")
 
     # ═══════════════════════════════════════════════════════════
     # GET /api/v1/web-lead/health
@@ -212,23 +212,22 @@ class WebLeadController(http.Controller):
         csrf=False,
     )
     def health_check(self, **kwargs):
-        """Simple health check — no auth required."""
+        """Simple health check — no auth required.
+
+        Returns minimal status only (no internal config exposure).
+        """
         try:
             Config = request.env["plasticos.web.lead.config"].sudo()
             config = Config.get_config()
             return self._json_response(
                 200,
                 {
-                    "status": "ok",
-                    "endpoint_active": config.is_active,
-                    "api_key_configured": bool(config.api_key),
-                    "openai_configured": bool(config.openai_api_key),
-                    "ai_enabled": config.ai_enabled,
-                    "vision_enabled": config.vision_enabled,
+                    "status": "ok" if config.is_active else "disabled",
                 },
             )
-        except Exception as exc:
-            return self._json_error(500, f"Health check failed: {exc}")
+        except Exception:
+            _logger.exception("Health check failed")
+            return self._json_error(503, "Service unavailable")
 
     # ═══════════════════════════════════════════════════════════
     # Response Helpers

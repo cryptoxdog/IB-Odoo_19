@@ -8,6 +8,7 @@
     "data": [
         "security/ir.model.access.csv",
         "data/incoterms.xml",
+        "data/sequence.xml",
         "data/cron.xml",
         "views/load_views.xml",
         "views/sale_order_button.xml",

@@ -72,7 +72,7 @@ class TestTransactionStateMachine(TransactionCase):
                 {
                     "name": "Basic",
                     "login": "basic_sm",
-                    "groups_id": group_ids,
+                    "group_ids": group_ids,
                 }
             )
         )

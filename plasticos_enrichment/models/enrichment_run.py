@@ -74,6 +74,28 @@ class EnrichmentRun(models.Model):
             ).mapped("confidence")
             run.confidence_score = min(confs) if confs else 0.0
 
+    # ── CRUD Guards ───────────────────────────────────────────
+
+    def write(self, vals):
+        """Guard against modifying injected/failed runs (except state changes)."""
+        if "state" not in vals:
+            for rec in self:
+                if rec.state in ("injected", "failed"):
+                    raise UserError(
+                        f"Cannot modify enrichment run '{rec.name}' in state '{rec.state}'. Create a new run instead."
+                    )
+        return super().write(vals)
+
+    def unlink(self):
+        """Prevent deletion of injected runs (audit trail)."""
+        for rec in self:
+            if rec.state == "injected":
+                raise UserError(
+                    f"Cannot delete enrichment run '{rec.name}' after injection. "
+                    "Injected runs must be preserved for audit."
+                )
+        return super().unlink()
+
     # ── Pipeline Actions ───────────────────────────────────────
 
     def action_execute(self):

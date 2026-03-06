@@ -88,7 +88,8 @@
 
     <menuitem id="menu_match_exclusion" name="Exclusions" parent="plasticos_matching.menu_matching_root" action="action_match_exclusion" sequence="30" />
 
-
+    <!-- Cron wrapped in noupdate to preserve user schedule customizations -->
+    <data noupdate="1">
     <record id="ir_cron_expire_exclusions" model="ir.cron">
         <field name="name">Expire Temporary Match Exclusions</field>
         <field name="model_id" ref="model_plasticos_match_exclusion" />
@@ -98,4 +99,5 @@
         <field name="interval_type">days</field>
         <field name="active">False</field>
     <field name="user_id" ref="plasticos_base.user_system_cron" /></record>
+    </data>
 </odoo>

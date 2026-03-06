@@ -39,6 +39,22 @@ jobs:
       - name: Check Orphan Model References in XML
         run: python3 ci/check_orphan_model_refs.py .
 
+  # Job 2b: Check for duplicate model definitions (BLOCKING - prevents inheritance bugs)
+  model-inheritance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check Model Inheritance Patterns
+        run: python3 ci/check_model_inheritance.py .
+
   # Job 3: XPath Anchor Stability (BLOCKING - prevents silent UI corruption)
   xpath-stability:
     runs-on: ubuntu-latest

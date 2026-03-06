@@ -9,7 +9,9 @@ import sys
 # List of test modules - only imported if odoo is available
 _ODOO_TEST_MODULES = [
     "test_action_methods",
+    "test_bridge_contracts",
     "test_bridge_models",
+    "test_constraint_validation",
     "test_constraints_material_profile",
     "test_constraints_onchanges",
     "test_cron_batch_normalize",
@@ -55,3 +57,6 @@ for _mod in _PURE_PYTHON_MODULES:
 if "odoo" in sys.modules or _try_import("test_action_methods"):
     for _mod in _ODOO_TEST_MODULES[1:]:  # Skip first, already tried
         _try_import(_mod)
+    # Import subpackages
+    _try_import("contracts")
+    _try_import("integration")

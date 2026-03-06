@@ -170,6 +170,31 @@ class PlasticosMatchResult(models.Model):
     )
 
     # ═════════════════════════════════════════════════════════
+    # CRUD Guards
+    # ═════════════════════════════════════════════════════════
+
+    def write(self, vals):
+        """Guard against modifying accepted/rejected results (except state changes)."""
+        if "state" not in vals:
+            for rec in self:
+                if rec.state in ("accepted", "rejected", "expired"):
+                    raise UserError(
+                        f"Cannot modify match result '{rec.display_name}' in state '{rec.state}'. "
+                        "Reviewed results are immutable."
+                    )
+        return super().write(vals)
+
+    def unlink(self):
+        """Prevent deletion of reviewed match results."""
+        for rec in self:
+            if rec.state in ("accepted", "rejected"):
+                raise UserError(
+                    f"Cannot delete match result '{rec.display_name}' after review. "
+                    "Match results must be preserved for audit."
+                )
+        return super().unlink()
+
+    # ═════════════════════════════════════════════════════════
     # Computed
     # ═════════════════════════════════════════════════════════
 

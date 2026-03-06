@@ -25,6 +25,7 @@
         "security/ir.model.access.csv",
         "security/commission_acl.xml",
         "data/sequence.xml",
+        "data/res.groups.csv",
         "data/audit_cron.xml",
         "data/cron_missing_docs.xml",
         "views/transaction_views.xml",

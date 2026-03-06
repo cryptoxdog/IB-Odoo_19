@@ -247,6 +247,26 @@ class PlasticosOffer(models.Model):
                 vals["name"] = sequence
         return super().create(vals_list)
 
+    def write(self, vals):
+        """Guard against modifying closed offers (except state changes)."""
+        closed_states = ("accepted", "rejected", "expired", "cancelled")
+        if "state" not in vals:
+            for rec in self:
+                if rec.state in closed_states:
+                    raise UserError(
+                        f"Cannot modify offer '{rec.name}' in state '{rec.state}'. Closed offers are immutable."
+                    )
+        return super().write(vals)
+
+    def unlink(self):
+        """Prevent deletion of accepted/rejected offers."""
+        for rec in self:
+            if rec.state in ("accepted", "rejected"):
+                raise UserError(
+                    f"Cannot delete offer '{rec.name}' after acceptance/rejection. Offers must be preserved for audit."
+                )
+        return super().unlink()
+
     @api.depends("price_per_lb", "quantity_lbs")
     def _compute_total_value(self):
         """Total deal value = price × quantity."""

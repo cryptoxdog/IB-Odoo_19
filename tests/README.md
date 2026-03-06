@@ -1,45 +1,89 @@
 # PlastOS Test Pack — Odoo 19.0
 
 > **Comprehensive test suite for `cryptoxdog/IB-Odoo_19` (`staging` branch)**
-> **Generated:** 2026-03-05 · **Target:** Odoo 19.0
+> **Updated:** 2026-03-05 · **Target:** Odoo 19.0
+
+---
+
+## Test Architecture
+
+The test suite is organized into two categories:
+
+1. **Odoo Tests** — Require Odoo runtime, use `TransactionCase`
+2. **Pure Python Tests** — Run without Odoo, use AST/XML parsing for static analysis
+
+All tests use a shared factory mixin (`common.py`) for consistent test data creation.
 
 ---
 
 ## Test Modules
 
-| File | Category | Test Count | Models Covered |
-|------|----------|------------|----------------|
-| `test_controller_api.py` | Controller/API | 14 | `plasticos.web.lead`, `plasticos.web.lead.config` |
-| `test_security_acl.py` | Security/ACL | 16 | `plasticos.transaction`, `plasticos.claim`, `account.move` |
-| `test_constraints_onchanges.py` | Constraints & Onchanges | 28 | `plasticos.transaction`, `plasticos.intake`, `plasticos.claim` |
-| `test_integration_flows.py` | Integration Flows | 12 | Web Lead → Intake, Transaction lifecycle, Claims, Offers, Docs |
-| `test_state_machines.py` | State Machine Transitions | 42 | `plasticos.load`, `plasticos.transaction`, `plasticos.claim`, `plasticos.offer` |
-| `test_bridge_models.py` | Bridge Model Coverage | 20 | All `_inherit` bridge files across 8 modules |
-| **Total** | | **132** | |
+### Odoo Tests (require Odoo runtime)
+
+| File | Category | Tags | Models Covered |
+|------|----------|------|----------------|
+| `test_action_methods.py` | Action/Button Methods | `action` | 9 models, 67+ actions |
+| `test_bridge_models.py` | Bridge Model Coverage | `bridge` | 7 bridge patterns |
+| `test_constraints_material_profile.py` | Constraints | `constraint` | `plasticos.material.profile` |
+| `test_constraints_onchanges.py` | Constraints & Onchanges | `constraint`, `onchange` | Transaction, Intake, Claim |
+| `test_cron_batch_normalize.py` | Cron Jobs | `cron` | Intake normalizer |
+| `test_cron_plasticos_base.py` | Cron Jobs | `cron` | Midnight recompute, attachments |
+| `test_cron_runtime.py` | Cron Jobs | `cron` | Cron method validation |
+| `test_depends_transaction_claims_bridge.py` | Dependencies | `depends` | Transaction ↔ Claim |
+| `test_error_handling.py` | Error Handling | `error_handling` | API failures, validation, ACL |
+| `test_golden_flows.py` | Golden Paths | `golden`, `critical` | Full business cycles |
+| `test_integration_flows.py` | Integration Flows | `integration` | Cross-module flows |
+| `test_onchange_purchase_order_line_plasticos.py` | Onchanges | `onchange` | Purchase order lines |
+| `test_onchange_sale_order_line_plasticos.py` | Onchanges | `onchange` | Sale order lines |
+| `test_performance.py` | Performance | `performance` | Bulk ops, search, cron |
+| `test_security_acl.py` | Security/ACL | `security` | Permission enforcement |
+| `test_state_machines.py` | State Machines | `state_machine` | Load, Transaction, Claim, Offer |
+
+### Pure Python Tests (no Odoo required)
+
+| File | Category | Purpose |
+|------|----------|---------|
+| `test_cron_invariants.py` | Static Analysis | Cron configuration validation |
+| `test_cypher_schema_alignment.py` | Schema Validation | Cypher ↔ Neo4j alignment |
+| `test_odoo19_compat.py` | Compatibility | Odoo 19 API patterns |
+| `test_odoo_test_setup_validity.py` | Meta Testing | Test setup validation |
+| `test_phantom_enum_values.py` | Registry Validation | Selection fields vs XML data |
+| `test_process_enum_alignment.py` | Registry Validation | Process type alignment |
+| `test_repo_dependency_integrity.py` | Module Validation | Manifest and dependency checks |
 
 ---
 
-## Installation
+## Shared Test Utilities
 
-### Option A: Copy into existing module test directories
+### `common.py` — Factory Mixin
 
-Each file is tagged with `@tagged("post_install", "-at_install", "plasticos", "<category>")`.
-Copy files into the appropriate module's `tests/` directory and import in `tests/__init__.py`.
+All test classes inherit from `PlastOSTestFactoryMixin` which provides:
 
-### Option B: Standalone test module
+```python
+# Partner/Polymer/Form creation (with deduplication)
+cls._create_partner(name, **kw)
+cls._get_or_create_polymer(code)
+cls._get_or_create_form(code)
 
+# Model-specific factories
+cls._create_intake(partner, polymer, form, **kw)
+cls._create_transaction(name, **kw)
+cls._create_claim(transaction, **kw)
+cls._create_offer(buyer, intake, **kw)
+cls._create_load(transaction, **kw)
+cls._create_web_lead(lead_id, **kw)
+cls._create_material_profile(partner, polymer, **kw)
+
+# Skip helper
+cls._skip_if_model_missing(*models)
 ```
-plasticos_test_pack/
-├── __manifest__.py
-├── __init__.py
-└── tests/
-    ├── __init__.py
-    ├── test_controller_api.py
-    ├── test_security_acl.py
-    ├── test_constraints_onchanges.py
-    ├── test_integration_flows.py
-    ├── test_state_machines.py
-    └── test_bridge_models.py
+
+### Assertion Helpers
+
+```python
+assert_action_result(test_case, result, expected_model, expected_type)
+assert_state_transition(test_case, record, action_name, expected_state)
+assert_message_posted(test_case, record, keyword)
 ```
 
 ---
@@ -47,19 +91,25 @@ plasticos_test_pack/
 ## Running Tests
 
 ```bash
-# All test pack tests
-odoo-bin -d testdb -i plasticos_test_pack --test-tags plasticos --stop-after-init
+# All PlastOS tests
+odoo-bin -d testdb --test-tags plasticos --stop-after-init
 
 # By category
-odoo-bin -d testdb --test-tags controller --stop-after-init
-odoo-bin -d testdb --test-tags security --stop-after-init
-odoo-bin -d testdb --test-tags constraint --stop-after-init
-odoo-bin -d testdb --test-tags integration --stop-after-init
-odoo-bin -d testdb --test-tags state_machine --stop-after-init
-odoo-bin -d testdb --test-tags bridge --stop-after-init
+odoo-bin -d testdb --test-tags golden --stop-after-init      # Critical paths
+odoo-bin -d testdb --test-tags integration --stop-after-init # Cross-module
+odoo-bin -d testdb --test-tags action --stop-after-init      # Button methods
+odoo-bin -d testdb --test-tags bridge --stop-after-init      # Bridge models
+odoo-bin -d testdb --test-tags cron --stop-after-init        # Scheduled jobs
+odoo-bin -d testdb --test-tags performance --stop-after-init # Benchmarks
+odoo-bin -d testdb --test-tags error_handling --stop-after-init
 
-# Single test class
-odoo-bin -d testdb --test-tags TestLoadStateMachine --stop-after-init
+# Pure Python tests (no Odoo required)
+pytest tests/test_cypher_schema_alignment.py -v
+pytest tests/test_phantom_enum_values.py -v
+pytest tests/test_repo_dependency_integrity.py -v
+
+# Meta tests (validate test suite structure)
+pytest tests/tests_init.py -v
 ```
 
 ---
@@ -69,57 +119,63 @@ odoo-bin -d testdb --test-tags TestLoadStateMachine --stop-after-init
 | Tag | Purpose |
 |-----|---------|
 | `plasticos` | All PlastOS tests |
-| `controller` | HTTP endpoint / REST API tests |
-| `security` | ACL, group, permission tests |
-| `constraint` | `@api.constrains` + SQL constraint tests |
-| `onchange` | `@api.onchange` auto-population tests |
-| `compute` | Computed field edge-case tests |
-| `integration` | End-to-end multi-module flows |
-| `state_machine` | State transition valid/invalid tests |
+| `golden` | Critical business path tests (blocking) |
+| `critical` | Must-pass tests for CI |
+| `integration` | Cross-module flow tests |
+| `action` | Action/button method tests |
 | `bridge` | `_inherit` bridge model tests |
+| `cron` | Scheduled job tests |
+| `performance` | Performance benchmarks |
+| `error_handling` | Error scenario tests |
+| `security` | ACL and permission tests |
+| `state_machine` | State transition tests |
+| `constraint` | Constraint validation tests |
+| `onchange` | Onchange method tests |
+
+---
+
+## Golden Flows (Critical Paths)
+
+These tests represent the core business flows that must always work:
+
+| Flow | Description | Test Class |
+|------|-------------|------------|
+| Lead → Delivery | Full sales cycle | `TestGoldenLeadToDelivery` |
+| HOT Lead → Intake | Automated lead processing | `TestGoldenHotWebLeadToIntake` |
+| Transaction → Claim | Quality management | `TestGoldenTransactionWithClaim` |
+| Offer → Commission | Revenue recognition | `TestGoldenCommissionCalculation` |
 
 ---
 
 ## Coverage Map
 
-### Models with State Machines (exhaustive transition testing)
+### Models with State Machines
 
-| Model | States | Transitions Tested | Exception Handling |
-|-------|--------|-------------------|-------------------|
-| `plasticos.load` | 10 | 9 valid + 6 invalid + exception from any | ✅ |
-| `plasticos.transaction` | 10 | 7 valid + 2 invalid + write guards | ✅ |
-| `plasticos.claim` | 5 | 6 valid + reopen from 2 states | ✅ |
-| `plasticos.offer` | 7 | 7 valid + 5 invalid + reset | ✅ |
+| Model | States | Transitions Tested |
+|-------|--------|-------------------|
+| `plasticos.load` | 10 | Valid + invalid + exception handling |
+| `plasticos.transaction` | 10 | Valid + invalid + write guards |
+| `plasticos.claim` | 5 | Valid + reopen scenarios |
+| `plasticos.offer` | 7 | Valid + invalid + reset |
 
-### Constraints Tested
+### Bridge Models Tested
 
-| Model | Constraint | Type | Boundary Tests |
-|-------|-----------|------|----------------|
-| `plasticos.transaction` | `unique(name)` | SQL | ✅ |
-| `plasticos.transaction` | `commission_override_pct` 0-100 | Python | 0, 100, -5, 150 |
-| `plasticos.transaction` | Closed TX immutability | write() | Protected fields |
-| `plasticos.transaction` | Bill exclusivity | write() | Vendor + freight |
-| `plasticos.intake` | `quantity_per_load_lbs > 0` | Python | 0, -100, 25000 |
-| `plasticos.intake` | `loads_per_month >= 0` | Python | -1, 0 |
-| `plasticos.claim` | Resolution note required | Python | Empty, valid |
-| `plasticos.claim` | `unique(name)` | SQL | ✅ |
-
-### Security Tests
-
-| Group | Model | R | W | C | U |
-|-------|-------|---|---|---|---|
-| `base.group_user` | `plasticos.transaction` | ✅ | ✅ | ✅ | ❌ |
-| `base.group_user` | `plasticos.transaction.line` | ✅ | ❌ | ❌ | ❌ |
-| `group_plasticos_manager` | `plasticos.transaction.line` | ✅ | ✅ | ✅ | ✅ |
-| `base.group_system` | `plasticos.commission.rule` | ✅ | ✅ | ✅ | ✅ |
-| `group_claims_user` | `plasticos.claim` | ✅ | ✅ | ✅ | ❌ |
-| `group_claims_manager` | `plasticos.claim` | ✅ | ✅ | ✅ | ✅ |
+| Bridge | Relationship |
+|--------|--------------|
+| Offer ↔ Transaction | Many2one ↔ One2many |
+| Intake ↔ Transaction | Many2one ↔ One2many |
+| Transaction ↔ Claim | Many2one ↔ One2many |
+| Transaction ↔ Document | Many2one ↔ One2many |
+| Load ↔ Document | Many2one ↔ One2many |
+| Partner ↔ Intake | One2many + computed counts |
+| Match Result ↔ Offer | Many2one links |
 
 ---
 
 ## Prerequisites
 
-- Odoo 19.0 with all `plasticos_*` modules installed
+- Odoo 19.0 with `plasticos_*` modules installed
 - Test database with demo data loaded
-- For controller tests: `HttpCase` requires Odoo HTTP server running
-- For CRM bridge tests: `crm` module must be installed
+- For controller tests: Odoo HTTP server running
+- For CRM bridge tests: `crm` module installed
+- For pure Python tests: `pytest` installed

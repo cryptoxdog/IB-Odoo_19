@@ -7,6 +7,8 @@ from . import test_module_install
 from . import test_web_lead
 from . import test_web_lead_bridge
 from . import test_web_lead_config
+from . import test_web_lead_create_from_agent
+from . import test_web_lead_triage_pipeline
 
 from . import test_controller_api
 from . import test_wizard_lead_bulk_action

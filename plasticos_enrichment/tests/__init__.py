@@ -1,5 +1,6 @@
 # plasticos_enrichment/tests/__init__.py
 
+from . import test_enrichment_e2e
 from . import test_enrichment_extraction
 from . import test_enrichment_provenance
 from . import test_enrichment_run

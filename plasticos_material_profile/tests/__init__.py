@@ -5,6 +5,7 @@ from . import test_material_attribute
 from . import test_material_color
 from . import test_material_form
 from . import test_material_profile
+from . import test_material_profile_enhanced
 from . import test_module_install
 from . import test_packaging_type
 from . import test_partner_material_sync

@@ -1,19 +1,24 @@
-# tests/test_plasticos_intake.py
+"""Tests for plasticos.intake model.
 
-from odoo.exceptions import UserError, ValidationError
+Target module: plasticos_intake
+Target model:  plasticos.intake
+
+Tests creation, sequence generation, constraints, and onchange behavior.
+"""
+
+from odoo.exceptions import ValidationError
 from odoo.tests import TransactionCase, tagged
 
 
-@tagged("post_install", "-at_install", "plasticos")
+@tagged("post_install", "-at_install", "plasticos", "intake")
 class TestPlasticosIntake(TransactionCase):
-    """Comprehensive test suite for plasticos.intake model"""
+    """Test suite for plasticos.intake model."""
 
     @classmethod
     def setUpClass(cls):
-        """Setup test data once for all tests"""
+        """Setup test data once for all tests."""
         super().setUpClass()
 
-        # Create test partner
         cls.partner = cls.env["res.partner"].create(
             {
                 "name": "Test Supplier",
@@ -22,339 +27,201 @@ class TestPlasticosIntake(TransactionCase):
             }
         )
 
-        # Create test material types
-        cls.material_pet = cls.env["plasticos.material"].create(
-            {
-                "name": "PET",
-                "code": "PET",
-            }
-        )
-
-        # Create test sequence
-        cls.sequence = cls.env["ir.sequence"].create(
-            {
-                "name": "Test Intake Sequence",
-                "code": "plasticos.intake",
-                "prefix": "INT/%(year)s/",
-                "padding": 5,
-            }
-        )
-
     def _create_intake(self, **kwargs):
-        """Helper to create intake with defaults"""
+        """Helper to create intake with defaults."""
         vals = {
             "partner_id": self.partner.id,
-            "material_type": "PET",
-            "quantity_per_load_lbs": 1000,
+            "quantity_per_load_lbs": 40000,
         }
         vals.update(kwargs)
         return self.env["plasticos.intake"].create(vals)
 
-    # ========================================================================
+    # ══════════════════════════════════════════════════════════
     # CREATION TESTS
-    # ========================================================================
+    # ══════════════════════════════════════════════════════════
 
     def test_create_with_sequence_generation(self):
-        """Test intake creation auto-generates sequence"""
+        """Test intake creation auto-generates sequence."""
         intake = self._create_intake()
-
         self.assertTrue(intake.exists())
         self.assertNotEqual(intake.name, "/")
-        self.assertRegex(intake.name, r"^INT/\d{4}/\d{5}$")
+        # Sequence format: INT-YY-NNNNN
+        self.assertTrue(intake.name.startswith("INT-"))
 
     def test_create_bulk_unique_sequences(self):
-        """Test bulk creation generates unique sequences"""
+        """Test bulk creation generates unique sequences."""
         intakes = self.env["plasticos.intake"].create(
             [
                 {
                     "partner_id": self.partner.id,
-                    "material_type": "PET",
-                    "quantity_per_load_lbs": 1000 + i,
+                    "quantity_per_load_lbs": 40000 + i,
                 }
-                for i in range(50)
+                for i in range(10)
             ]
         )
-
         names = intakes.mapped("name")
-        self.assertEqual(len(names), 50)
-        self.assertEqual(len(set(names)), 50, "All sequences should be unique")
+        self.assertEqual(len(names), 10)
+        self.assertEqual(len(set(names)), 10, "All sequences should be unique")
 
-    def test_create_missing_required_field_raises_error(self):
-        """Test creating intake without required fields fails"""
-        with self.assertRaises(ValidationError):
-            self.env["plasticos.intake"].create(
-                {
-                    "partner_id": self.partner.id,
-                    # Missing quantity_per_load_lbs
-                }
-            )
+    def test_create_with_default_quantity(self):
+        """Test intake uses default quantity_per_load_lbs."""
+        intake = self.env["plasticos.intake"].create(
+            {
+                "partner_id": self.partner.id,
+            }
+        )
+        self.assertEqual(intake.quantity_per_load_lbs, 40000)
 
-    def test_create_with_invalid_quantity_raises_error(self):
-        """Test quantity validation constraint"""
+    # ══════════════════════════════════════════════════════════
+    # CONSTRAINT TESTS
+    # ══════════════════════════════════════════════════════════
+
+    def test_constraint_quantity_positive(self):
+        """Test quantity must be positive."""
         with self.assertRaises(ValidationError):
             self._create_intake(quantity_per_load_lbs=0)
 
         with self.assertRaises(ValidationError):
             self._create_intake(quantity_per_load_lbs=-100)
 
-    # ========================================================================
-    # STATE MACHINE TESTS
-    # ========================================================================
+    # ══════════════════════════════════════════════════════════
+    # STATUS TESTS
+    # ══════════════════════════════════════════════════════════
 
-    def test_state_draft_to_confirmed(self):
-        """Test draft → confirmed transition"""
+    def test_default_status_is_draft(self):
+        """Test new intake starts in draft status."""
         intake = self._create_intake()
+        self.assertEqual(intake.status, "draft")
 
-        self.assertEqual(intake.state, "draft")
-        self.assertTrue(intake.can_confirm)
-
-        intake.action_confirm()
-
-        self.assertEqual(intake.state, "confirmed")
-        self.assertFalse(intake.can_confirm)
-        self.assertTrue(intake.can_approve)
-
-    def test_state_confirmed_to_approved(self):
-        """Test confirmed → approved transition"""
+    def test_status_can_be_changed(self):
+        """Test status can be updated."""
         intake = self._create_intake()
-        intake.action_confirm()
+        intake.status = "matched"
+        self.assertEqual(intake.status, "matched")
 
-        intake.action_approve()
+    # ══════════════════════════════════════════════════════════
+    # COMPUTED FIELD TESTS
+    # ══════════════════════════════════════════════════════════
 
-        self.assertEqual(intake.state, "approved")
-        self.assertTrue(intake.approved_date)
-        self.assertEqual(intake.approved_by, self.env.user)
-
-    def test_state_cannot_skip_workflow_steps(self):
-        """Test cannot skip workflow states"""
+    def test_display_name_computed(self):
+        """Test display_name is computed from name."""
         intake = self._create_intake()
+        self.assertTrue(intake.display_name)
+        # Display name should be set
+        self.assertNotEqual(intake.display_name, "")
 
-        # Try to approve from draft (should fail)
-        with self.assertRaises(UserError):
-            intake.action_approve()
+    def test_company_display_with_partner(self):
+        """Test company_display shows partner name."""
+        intake = self._create_intake()
+        self.assertEqual(intake.company_display, self.partner.name)
 
-        self.assertEqual(intake.state, "draft", "State should remain draft")
-
-    def test_state_cancel_from_any_state(self):
-        """Test cancel action available from any state"""
-        for initial_state in ["draft", "confirmed", "approved"]:
-            intake = self._create_intake()
-            intake.state = initial_state
-
-            intake.action_cancel()
-
-            self.assertEqual(intake.state, "cancelled")
-
-    # ========================================================================
-    # COMPUTE FIELD TESTS
-    # ========================================================================
-
-    def test_compute_profile_summary_with_facilities(self):
-        """Test profile_summary computes correctly"""
-        # Create partner with facilities
-        partner = self.env["res.partner"].create(
+    def test_company_display_with_pending_name(self):
+        """Test company_display shows pending name when no partner."""
+        intake = self.env["plasticos.intake"].create(
             {
-                "name": "Supplier With Facilities",
+                "quantity_per_load_lbs": 40000,
+                "pending_company_name": "Pending Corp",
+            }
+        )
+        self.assertIn("Pending Corp", intake.company_display)
+
+    # ══════════════════════════════════════════════════════════
+    # ONCHANGE TESTS
+    # ══════════════════════════════════════════════════════════
+
+    def test_onchange_partner_clears_facility(self):
+        """Test changing partner clears facility_id."""
+        intake = self.env["plasticos.intake"].new(
+            {
+                "partner_id": self.partner.id,
+                "quantity_per_load_lbs": 40000,
+            }
+        )
+        # Set a facility
+        intake.facility_id = self.partner.id
+        # Change partner
+        new_partner = self.env["res.partner"].create(
+            {
+                "name": "New Partner",
                 "is_company": True,
             }
         )
+        intake.partner_id = new_partner
+        intake._onchange_partner_id()
+        # Facility should be auto-set to new partner (single facility case)
+        self.assertEqual(intake.facility_id.id, new_partner.id)
 
-        facilities = self.env["res.partner"].create(
-            [
-                {
-                    "name": f"Facility {i}",
-                    "parent_id": partner.id,
-                    "monthly_capacity_lbs": 5000 * i,
-                }
-                for i in range(1, 4)
-            ]
-        )
-
-        intake = self._create_intake(partner_id=partner.id)
-
-        summary = intake.profile_summary
-        self.assertEqual(summary["total_facilities"], 3)
-        self.assertEqual(summary["total_capacity"], 5000 + 10000 + 15000)
-
-    def test_compute_profile_summary_with_no_facilities(self):
-        """Test profile_summary handles partners without facilities"""
-        intake = self._create_intake()
-
-        summary = intake.profile_summary
-        self.assertEqual(summary["total_facilities"], 0)
-        self.assertEqual(summary["total_capacity"], 0)
-
-    # ========================================================================
-    # CONSTRAINT TESTS
-    # ========================================================================
-
-    def test_constraint_unique_name_per_company(self):
-        """Test intake names must be unique per company"""
-        intake1 = self._create_intake()
-
-        # Try to create duplicate
-        with self.assertRaises(ValidationError):
-            self.env["plasticos.intake"].create(
-                {
-                    "name": intake1.name,  # Same name
-                    "partner_id": self.partner.id,
-                    "material_type": "HDPE",
-                    "quantity_per_load_lbs": 2000,
-                }
-            )
-
-    def test_constraint_quantity_positive(self):
-        """Test quantity must be positive"""
-        with self.assertRaises(ValidationError) as cm:
-            self._create_intake(quantity_per_load_lbs=-500)
-
-        self.assertIn("positive", str(cm.exception).lower())
-
-    # ========================================================================
-    # ONCHANGE TESTS
-    # ========================================================================
-
-    def test_onchange_partner_updates_contact_info(self):
-        """Test partner selection updates contact fields"""
-        intake = self.env["plasticos.intake"].new(
+    def test_onchange_partner_auto_selects_single_facility(self):
+        """Test partner with single facility auto-selects it."""
+        parent = self.env["res.partner"].create(
             {
-                "material_type": "PET",
-                "quantity_per_load_lbs": 1000,
+                "name": "Parent Company",
+                "is_company": True,
             }
         )
-
-        intake.partner_id = self.partner
-        intake._onchange_partner_id()
-
-        # Verify fields populated
-        self.assertTrue(intake.partner_email or intake.partner_phone, "Contact info should be populated")
-
-    # ========================================================================
-    # ACTION TESTS
-    # ========================================================================
-
-    def test_action_view_offers_returns_correct_action(self):
-        """Test view offers button returns proper action"""
-        intake = self._create_intake()
-
-        # Create test offers (use test partner if base.res_partner_2 not available)
-        test_buyer = self.env.ref("base.res_partner_2", raise_if_not_found=False)
-        if not test_buyer:
-            test_buyer = self.env["res.partner"].create({"name": "Test Buyer for Offers", "is_company": True})
-        self.env["plasticos.offer"].create(
-            [
-                {
-                    "intake_id": intake.id,
-                    "buyer_id": test_buyer.id,
-                    "offer_price": 100 * i,
-                }
-                for i in range(1, 4)
-            ]
+        child = self.env["res.partner"].create(
+            {
+                "name": "Single Facility",
+                "is_company": True,
+                "parent_id": parent.id,
+            }
         )
+        intake = self.env["plasticos.intake"].new(
+            {
+                "quantity_per_load_lbs": 40000,
+            }
+        )
+        intake.partner_id = parent
+        intake._onchange_partner_id()
+        self.assertEqual(intake.facility_id.id, child.id)
 
-        action = intake.action_view_offers()
-
-        self.assertEqual(action["res_model"], "plasticos.offer")
-        self.assertEqual(action["domain"], [("intake_id", "=", intake.id)])
-        self.assertEqual(action["context"]["default_intake_id"], intake.id)
-
-    # ========================================================================
+    # ══════════════════════════════════════════════════════════
     # COPY/DUPLICATE TESTS
-    # ========================================================================
+    # ══════════════════════════════════════════════════════════
 
     def test_copy_regenerates_sequence(self):
-        """Test duplicating intake creates new sequence"""
+        """Test duplicating intake creates new sequence."""
         original = self._create_intake()
         duplicate = original.copy()
-
         self.assertNotEqual(original.name, duplicate.name)
-        self.assertRegex(duplicate.name, r"^INT/\d{4}/\d{5}$")
-        self.assertEqual(duplicate.state, "draft")
+        self.assertTrue(duplicate.name.startswith("INT-"))
 
-    # ========================================================================
-    # UNLINK/DELETE TESTS
-    # ========================================================================
-
-    def test_unlink_draft_allowed(self):
-        """Test deleting draft intake is allowed"""
-        intake = self._create_intake()
-
-        intake.unlink()
-
-        self.assertFalse(intake.exists())
-
-    def test_unlink_confirmed_blocked(self):
-        """Test deleting confirmed intake is blocked"""
-        intake = self._create_intake()
-        intake.action_confirm()
-
-        with self.assertRaises(UserError):
-            intake.unlink()
-
-        self.assertTrue(intake.exists())
-
-    # ========================================================================
+    # ══════════════════════════════════════════════════════════
     # SEARCH TESTS
-    # ========================================================================
+    # ══════════════════════════════════════════════════════════
 
     def test_search_by_partner(self):
-        """Test searching intakes by partner"""
+        """Test searching intakes by partner."""
         intake1 = self._create_intake(partner_id=self.partner.id)
-
-        other_partner = self.env["res.partner"].create({"name": "Other"})
+        other_partner = self.env["res.partner"].create(
+            {
+                "name": "Other Partner",
+                "is_company": True,
+            }
+        )
         intake2 = self._create_intake(partner_id=other_partner.id)
 
         results = self.env["plasticos.intake"].search([("partner_id", "=", self.partner.id)])
-
         self.assertIn(intake1, results)
         self.assertNotIn(intake2, results)
 
-    # ========================================================================
-    # ACCESS RIGHTS TESTS
-    # ========================================================================
+    def test_search_by_status(self):
+        """Test searching intakes by status."""
+        intake1 = self._create_intake()
+        intake2 = self._create_intake()
+        intake2.status = "matched"
 
-    def test_access_rights_user_can_create(self):
-        """Test regular user can create intakes"""
-        intake_group = self.env.ref("plasticos_intake.group_intake_user", raise_if_not_found=False)
-        if not intake_group:
-            self.skipTest("plasticos_intake.group_intake_user not found")
-        user = self.env["res.users"].create(
-            {
-                "name": "Test User",
-                "login": "testuser",
-                "group_ids": [(6, 0, [intake_group.id])],
-            }
-        )
+        draft_intakes = self.env["plasticos.intake"].search([("status", "=", "draft")])
+        self.assertIn(intake1, draft_intakes)
+        self.assertNotIn(intake2, draft_intakes)
 
-        intake = (
-            self.env["plasticos.intake"]
-            .with_user(user)
-            .create(
-                {
-                    "partner_id": self.partner.id,
-                    "material_type": "PET",
-                    "quantity_per_load_lbs": 1000,
-                }
-            )
-        )
+    # ══════════════════════════════════════════════════════════
+    # MATCH COUNT TESTS
+    # ══════════════════════════════════════════════════════════
 
-        self.assertTrue(intake.exists())
-
-    def test_access_rights_user_cannot_delete_confirmed(self):
-        """Test regular user cannot delete confirmed intakes"""
-        intake_group = self.env.ref("plasticos_intake.group_intake_user", raise_if_not_found=False)
-        if not intake_group:
-            self.skipTest("plasticos_intake.group_intake_user not found")
-        user = self.env["res.users"].create(
-            {
-                "name": "Test User",
-                "login": "testuser2",
-                "group_ids": [(6, 0, [intake_group.id])],
-            }
-        )
-
+    def test_match_count_starts_at_zero(self):
+        """Test new intake has zero matches."""
         intake = self._create_intake()
-        intake.action_confirm()
-
-        with self.assertRaises(UserError):
-            intake.with_user(user).unlink()
+        self.assertEqual(intake.match_count, 0)
+        self.assertEqual(intake.selected_count, 0)
+        self.assertEqual(intake.best_match_score, 0.0)

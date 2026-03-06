@@ -1,151 +1,153 @@
-"""
-Test rate memory model.
+"""Tests for plasticos.rate.memory — freight rate caching.
 
-Tests unique carrier+lane+date constraint.
+Target module: plasticos_logistics
+Target model:  plasticos.rate.memory
+
+Validates: unique constraint (carrier + lane + date), cached rate lookup,
+and update-overwrite behavior.
 """
+
+import uuid
+from datetime import date, timedelta
 
 from psycopg2 import IntegrityError
 
+from odoo import fields
+from odoo.exceptions import ValidationError
 from odoo.tests import TransactionCase, tagged
 
 
-@tagged("post_install", "-at_install")
+@tagged("post_install", "-at_install", "plasticos", "logistics", "rate")
 class TestRateMemory(TransactionCase):
-    """Test plasticos.rate.memory model."""
+    """Test rate memory cache model."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.RateMemory = cls.env["plasticos.rate.memory"]
         cls.carrier = cls.env["res.partner"].create(
             {
-                "name": "Test Carrier",
-                "is_company": True,
-                "supplier_rank": 1,
-            }
-        )
-        cls.origin = cls.env["res.partner"].create(
-            {
-                "name": "Origin Location",
+                "name": "Rate Test Carrier",
                 "is_company": True,
             }
         )
-        cls.destination = cls.env["res.partner"].create(
-            {
-                "name": "Destination Location",
-                "is_company": True,
-            }
-        )
+        # Use unique prefix for lane_keys to avoid conflicts with other tests
+        cls.test_prefix = str(uuid.uuid4())[:8]
 
-    def _create_rate_memory(self, **kwargs):
-        """Helper to create a rate memory record."""
+    def _create_rate(self, **kwargs):
+        """Helper: create a rate memory with defaults."""
         vals = {
             "carrier_id": self.carrier.id,
-            "origin_id": self.origin.id,
-            "destination_id": self.destination.id,
-            "rate": 500.0,
-            "effective_date": "2026-03-01",
+            "lane_key": f"{self.test_prefix}-HOUSTON-CHICAGO",
+            "rate_amount": 1750.00,
+            "rate_date": fields.Date.today(),
         }
         vals.update(kwargs)
-        return self.env["plasticos.rate.memory"].create(vals)
+        return self.RateMemory.create(vals)
 
-    # ═══════════════════════════════════════════════════════════
-    # CRUD Tests
-    # ═══════════════════════════════════════════════════════════
+    # ── CRUD ───────────────────────────────────────────────────
 
-    def test_create_rate_memory(self):
-        """Rate memory record can be created."""
-        rate = self._create_rate_memory()
+    def test_create_basic(self):
+        """Rate memory can be created with required fields."""
+        rate = self._create_rate()
         self.assertTrue(rate.id)
-        self.assertEqual(rate.rate, 500.0)
+        self.assertEqual(rate.carrier_id.id, self.carrier.id)
 
-    def test_search_rate_memory(self):
-        """Rate memory can be searched by carrier and lane."""
-        rate = self._create_rate_memory()
+    # ── Unique Constraint ──────────────────────────────────────
 
-        found = self.env["plasticos.rate.memory"].search(
-            [
-                ("carrier_id", "=", self.carrier.id),
-                ("origin_id", "=", self.origin.id),
-                ("destination_id", "=", self.destination.id),
-            ]
+    def test_duplicate_carrier_lane_date_rejected(self):
+        """Same carrier + lane_key + date raises exception."""
+        unique_lane = f"{self.test_prefix}-DALLAS-MEMPHIS-{uuid.uuid4().hex[:6]}"
+        unique_date = date(2026, 1, 15)
+        self._create_rate(
+            lane_key=unique_lane,
+            rate_date=unique_date,
         )
-        self.assertIn(rate, found)
-
-    # ═══════════════════════════════════════════════════════════
-    # Constraint Tests
-    # ═══════════════════════════════════════════════════════════
-
-    def test_unique_carrier_lane_date_constraint(self):
-        """Unique constraint on carrier+origin+destination+date."""
-        self._create_rate_memory()
-
-        # Try to create duplicate
-        with self.assertRaises(IntegrityError):
-            self.env.cr.execute(
-                """
-                INSERT INTO plasticos_rate_memory
-                (carrier_id, origin_id, destination_id, rate, effective_date)
-                VALUES (%s, %s, %s, %s, %s)
-            """,
-                (
-                    self.carrier.id,
-                    self.origin.id,
-                    self.destination.id,
-                    600.0,  # Different rate
-                    "2026-03-01",  # Same date
-                ),
+        with self.assertRaises((ValidationError, IntegrityError)):
+            self._create_rate(
+                lane_key=unique_lane,
+                rate_date=unique_date,
             )
 
-    def test_different_dates_allowed(self):
-        """Same carrier+lane with different dates should be allowed."""
-        rate1 = self._create_rate_memory(effective_date="2026-03-01")
-        rate2 = self._create_rate_memory(effective_date="2026-03-15")
+    def test_same_lane_different_date_accepted(self):
+        """Same lane but different date is valid."""
+        unique_lane = f"{self.test_prefix}-ATLANTA-MIAMI-{uuid.uuid4().hex[:6]}"
+        self._create_rate(
+            lane_key=unique_lane,
+            rate_date=date(2026, 2, 1),
+        )
+        rate2 = self._create_rate(
+            lane_key=unique_lane,
+            rate_date=date(2026, 2, 15),
+        )
+        self.assertTrue(rate2.id)
 
-        self.assertNotEqual(rate1.id, rate2.id)
-
-    def test_different_carriers_allowed(self):
-        """Same lane with different carriers should be allowed."""
+    def test_same_lane_different_carrier_accepted(self):
+        """Same lane and date but different carrier is valid."""
         carrier2 = self.env["res.partner"].create(
             {
-                "name": "Test Carrier 2",
+                "name": "Second Carrier",
                 "is_company": True,
-                "supplier_rank": 1,
             }
         )
+        unique_lane = f"{self.test_prefix}-NYC-BOSTON-{uuid.uuid4().hex[:6]}"
+        unique_date = date(2026, 3, 1)
+        self._create_rate(
+            lane_key=unique_lane,
+            rate_date=unique_date,
+        )
+        rate2 = self._create_rate(
+            carrier_id=carrier2.id,
+            lane_key=unique_lane,
+            rate_date=unique_date,
+        )
+        self.assertTrue(rate2.id)
 
-        rate1 = self._create_rate_memory()
-        rate2 = self._create_rate_memory(carrier_id=carrier2.id)
+    # ── Rate Lookup ────────────────────────────────────────────
 
-        self.assertNotEqual(rate1.id, rate2.id)
+    def test_get_recent_rate_returns_latest(self):
+        """Search returns the most recent rate within date range."""
+        unique_lane = f"{self.test_prefix}-LA-PHOENIX-{uuid.uuid4().hex[:6]}"
+        self._create_rate(
+            lane_key=unique_lane,
+            rate_date=date.today() - timedelta(days=5),
+            rate_amount=1500.00,
+        )
+        rate2 = self._create_rate(
+            lane_key=unique_lane,
+            rate_date=date.today(),
+            rate_amount=1600.00,
+        )
+        # Search for most recent rate
+        result = self.RateMemory.search(
+            [
+                ("carrier_id", "=", self.carrier.id),
+                ("lane_key", "=", unique_lane),
+            ],
+            order="rate_date desc",
+            limit=1,
+        )
+        self.assertEqual(result.id, rate2.id)
+        self.assertAlmostEqual(result.rate_amount, 1600.00, places=2)
 
-    # ═══════════════════════════════════════════════════════════
-    # Rate Memory Store Tests
-    # ═══════════════════════════════════════════════════════════
-
-    def test_store_rate_memory_from_load(self):
-        """Rate memory should be stored when load is closed."""
-        # Create a load
-        load = self.env["plasticos.load"].create(
+    def test_rate_scoped_to_carrier(self):
+        """Search only returns rates for specified carrier."""
+        other_carrier = self.env["res.partner"].create(
             {
-                "carrier_id": self.carrier.id,
-                "pickup_partner_id": self.origin.id,
-                "delivery_partner_id": self.destination.id,
-                "rate": 550.0,
+                "name": "Other Carrier Co",
+                "is_company": True,
             }
         )
-
-        # Trigger rate memory storage
-        if hasattr(load, "_store_rate_memory"):
-            load._store_rate_memory()
-
-            # Verify rate memory was created
-            rate = self.env["plasticos.rate.memory"].search(
-                [
-                    ("carrier_id", "=", self.carrier.id),
-                    ("origin_id", "=", self.origin.id),
-                    ("destination_id", "=", self.destination.id),
-                ],
-                limit=1,
-            )
-            self.assertTrue(rate)
-            self.assertEqual(rate.rate, 550.0)
+        unique_lane = f"{self.test_prefix}-SEATTLE-PORTLAND-{uuid.uuid4().hex[:6]}"
+        self._create_rate(
+            carrier_id=other_carrier.id,
+            lane_key=unique_lane,
+            rate_date=date.today(),
+        )
+        result = self.RateMemory.search(
+            [
+                ("carrier_id", "=", self.carrier.id),
+                ("lane_key", "=", unique_lane),
+            ]
+        )
+        self.assertFalse(result)

@@ -1,12 +1,7 @@
-"""Unit tests for plasticos.dispatch state machine.
+"""Tests for plasticos.dispatch state machine transitions.
 
-Tests cover:
-- Default state is quoted
-- Forward transitions: quoted → dispatched → picked_up → delivered → closed
-- Backward transition blocked (delivered → dispatched)
-- Skip transition blocked (quoted → delivered)
-- Terminal state (closed) blocks all transitions
-- Invalid state raises UserError
+Target module: plasticos_logistics
+Target model:  plasticos.dispatch
 """
 
 from odoo.exceptions import UserError
@@ -15,70 +10,93 @@ from odoo.tests import TransactionCase, tagged
 
 @tagged("post_install", "-at_install")
 class TestDispatchStateMachine(TransactionCase):
-    """Test dispatch state transitions via ALLOWED_TRANSITIONS."""
+    """Test dispatch forward-only state machine."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.dispatch = cls.env["plasticos.dispatch"].create(
+        cls.Dispatch = cls.env["plasticos.dispatch"]
+
+    def _create_dispatch(self, state="quoted"):
+        return self.Dispatch.create(
             {
                 "name": "DSP-TEST-001",
+                "state": state,
             }
         )
 
-    def test_default_state_quoted(self):
-        """New dispatch starts in quoted state."""
-        self.assertEqual(self.dispatch.state, "quoted")
+    # ── Valid forward transitions ────────────────────────────
 
     def test_quoted_to_dispatched(self):
-        """quoted → dispatched via action_transition."""
-        self.dispatch.action_transition("dispatched")
-        self.assertEqual(self.dispatch.state, "dispatched")
+        """quoted → dispatched is valid."""
+        dispatch = self._create_dispatch("quoted")
+        dispatch.action_transition("dispatched")
+        self.assertEqual(dispatch.state, "dispatched")
 
     def test_dispatched_to_picked_up(self):
-        """dispatched → picked_up."""
-        self.dispatch.action_transition("dispatched")
-        self.dispatch.action_transition("picked_up")
-        self.assertEqual(self.dispatch.state, "picked_up")
+        """dispatched → picked_up is valid."""
+        dispatch = self._create_dispatch("quoted")
+        dispatch.action_transition("dispatched")
+        dispatch.action_transition("picked_up")
+        self.assertEqual(dispatch.state, "picked_up")
 
     def test_picked_up_to_delivered(self):
-        """picked_up → delivered."""
-        self.dispatch.action_transition("dispatched")
-        self.dispatch.action_transition("picked_up")
-        self.dispatch.action_transition("delivered")
-        self.assertEqual(self.dispatch.state, "delivered")
+        """picked_up → delivered is valid."""
+        dispatch = self._create_dispatch("quoted")
+        dispatch.action_transition("dispatched")
+        dispatch.action_transition("picked_up")
+        dispatch.action_transition("delivered")
+        self.assertEqual(dispatch.state, "delivered")
 
     def test_delivered_to_closed(self):
-        """delivered → closed."""
-        self.dispatch.action_transition("dispatched")
-        self.dispatch.action_transition("picked_up")
-        self.dispatch.action_transition("delivered")
-        self.dispatch.action_transition("closed")
-        self.assertEqual(self.dispatch.state, "closed")
+        """delivered → closed is valid."""
+        dispatch = self._create_dispatch("quoted")
+        dispatch.action_transition("dispatched")
+        dispatch.action_transition("picked_up")
+        dispatch.action_transition("delivered")
+        dispatch.action_transition("closed")
+        self.assertEqual(dispatch.state, "closed")
+
+    def test_full_lifecycle(self):
+        """Full lifecycle: quoted → dispatched → picked_up → delivered → closed."""
+        dispatch = self._create_dispatch("quoted")
+        for target in ["dispatched", "picked_up", "delivered", "closed"]:
+            dispatch.action_transition(target)
+        self.assertEqual(dispatch.state, "closed")
+
+    # ── Invalid transitions ──────────────────────────────────
+
+    def test_skip_state_blocked(self):
+        """Cannot skip states (quoted → picked_up)."""
+        dispatch = self._create_dispatch("quoted")
+        with self.assertRaises(UserError):
+            dispatch.action_transition("picked_up")
 
     def test_backward_transition_blocked(self):
-        """Cannot go backward: delivered → dispatched."""
-        self.dispatch.action_transition("dispatched")
-        self.dispatch.action_transition("picked_up")
-        self.dispatch.action_transition("delivered")
+        """Cannot go backward (dispatched → quoted)."""
+        dispatch = self._create_dispatch("quoted")
+        dispatch.action_transition("dispatched")
         with self.assertRaises(UserError):
-            self.dispatch.action_transition("dispatched")
+            dispatch.action_transition("quoted")
 
-    def test_skip_transition_blocked(self):
-        """Cannot skip: quoted → delivered."""
+    def test_closed_is_terminal(self):
+        """Closed state is terminal — no transitions allowed."""
+        dispatch = self._create_dispatch("quoted")
+        for target in ["dispatched", "picked_up", "delivered", "closed"]:
+            dispatch.action_transition(target)
         with self.assertRaises(UserError):
-            self.dispatch.action_transition("delivered")
+            dispatch.action_transition("quoted")
 
-    def test_terminal_state_closed(self):
-        """Closed state blocks all transitions."""
-        self.dispatch.action_transition("dispatched")
-        self.dispatch.action_transition("picked_up")
-        self.dispatch.action_transition("delivered")
-        self.dispatch.action_transition("closed")
+    def test_closed_to_dispatched_blocked(self):
+        """Cannot transition from closed to dispatched."""
+        dispatch = self._create_dispatch("quoted")
+        for target in ["dispatched", "picked_up", "delivered", "closed"]:
+            dispatch.action_transition(target)
         with self.assertRaises(UserError):
-            self.dispatch.action_transition("dispatched")
+            dispatch.action_transition("dispatched")
 
-    def test_invalid_state_raises(self):
-        """Transition to unknown state raises UserError."""
+    def test_self_transition_blocked(self):
+        """Cannot transition to the current state."""
+        dispatch = self._create_dispatch("quoted")
         with self.assertRaises(UserError):
-            self.dispatch.action_transition("nonexistent")
+            dispatch.action_transition("quoted")

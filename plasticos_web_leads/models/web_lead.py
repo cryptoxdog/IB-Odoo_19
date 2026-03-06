@@ -277,6 +277,30 @@ class PlasticosWebLead(models.Model):
     )
 
     # ═══════════════════════════════════════════════════════════
+    # CRUD Guards
+    # ═══════════════════════════════════════════════════════════
+
+    def write(self, vals):
+        """Guard against modifying processed leads (except state changes)."""
+        if "state" not in vals:
+            for rec in self:
+                if rec.state == "intake_created":
+                    raise UserError(
+                        f"Cannot modify lead '{rec.lead_id}' after intake was created. Edit the intake record directly."
+                    )
+        return super().write(vals)
+
+    def unlink(self):
+        """Prevent deletion of processed leads."""
+        for rec in self:
+            if rec.state == "intake_created":
+                raise UserError(
+                    f"Cannot delete lead '{rec.lead_id}' after intake was created. "
+                    "The lead record is preserved for audit trail."
+                )
+        return super().unlink()
+
+    # ═══════════════════════════════════════════════════════════
     # Entry Point 1: Direct Cognito Ingestion (AI Triage)
     # ═══════════════════════════════════════════════════════════
 

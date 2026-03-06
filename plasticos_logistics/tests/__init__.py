@@ -8,6 +8,7 @@ from . import test_load_reports
 from . import test_load_state_machine
 from . import test_load_states
 from . import test_module_install
+from . import test_rate_engine
 from . import test_rate_memory
 from . import test_sale_order_inherit
 from . import test_transaction_inherit

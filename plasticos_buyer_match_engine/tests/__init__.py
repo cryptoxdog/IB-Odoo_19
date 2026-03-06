@@ -2,6 +2,7 @@
 
 from . import test_facility_profile_graph_hooks
 from . import test_graph_service
+from . import test_graph_service_sync
 from . import test_graph_sync_log
 from . import test_intake_extension
 from . import test_intake_graph_hooks
