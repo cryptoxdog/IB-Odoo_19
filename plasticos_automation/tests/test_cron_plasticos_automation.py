@@ -498,7 +498,7 @@ class TestStockAlertCron(TransactionCase, AutomationTestMixin):
             self.Product.cron_stock_reorder_alert()
 
     def test_service_products_excluded(self):
-        """Service/consumable products are excluded (type != product)."""
+        """Service products are excluded from stock alerts."""
         product = self.Product.create(
             {
                 "name": "Service Product",
