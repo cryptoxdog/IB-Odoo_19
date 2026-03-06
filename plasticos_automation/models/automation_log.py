@@ -27,6 +27,7 @@ class PlasticosAutomationLog(models.Model):
             ("invoice_reminder", "Invoice Reminder"),
             ("contract_alert", "Contract Renewal Alert"),
             ("stock_alert", "Stock Reorder Alert"),
+            ("logistics_followup", "Logistics Follow-up"),
         ],
         required=True,
         string="Action Type",
