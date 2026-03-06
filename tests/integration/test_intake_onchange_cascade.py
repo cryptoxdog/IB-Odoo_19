@@ -14,7 +14,8 @@ Validates:
   - _onchange_lead_source_id syncs to partner
 """
 
-from odoo.tests.common import Form, TransactionCase, tagged
+from odoo.tests import Form
+from odoo.tests.common import TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install", "intake", "onchange")
