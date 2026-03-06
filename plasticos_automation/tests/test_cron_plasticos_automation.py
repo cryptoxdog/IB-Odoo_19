@@ -521,6 +521,26 @@ class TestInvoiceReminderCron(TransactionCase, AutomationTestMixin):
     def setUpClass(cls):
         super().setUpClass()
         cls.Move = cls.env["account.move"]
+        # Ensure sale journal exists (required for out_invoice in Odoo 19)
+        cls._sale_journal = cls.env["account.journal"].search([("type", "=", "sale")], limit=1)
+        if not cls._sale_journal:
+            cls._sale_journal = cls.env["account.journal"].create(
+                {
+                    "name": "Test Sales Journal",
+                    "type": "sale",
+                    "code": "TSALE",
+                }
+            )
+        # Ensure purchase journal exists (required for in_invoice)
+        cls._purchase_journal = cls.env["account.journal"].search([("type", "=", "purchase")], limit=1)
+        if not cls._purchase_journal:
+            cls._purchase_journal = cls.env["account.journal"].create(
+                {
+                    "name": "Test Purchase Journal",
+                    "type": "purchase",
+                    "code": "TPURCH",
+                }
+            )
 
     def _create_overdue_invoice(self, days_overdue=30):
         """Create a posted, unpaid, overdue out_invoice."""

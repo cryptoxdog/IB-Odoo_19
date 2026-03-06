@@ -25,8 +25,9 @@ class ProductProduct(models.Model):
             today = fields.Date.today()
             log_model = self.env["plasticos.automation.log"]
 
+            # Odoo 19: storable products use type='consu', earlier versions used 'product'
             products = self.search(
-                [("type", "=", "product")],
+                [("type", "in", ("product", "consu"))],
                 order="id ASC",
                 limit=500,
             )
