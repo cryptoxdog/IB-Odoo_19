@@ -5,6 +5,7 @@
 
 exclude: |
   (?x)^(
+    odoo-enterprise/.*|
     plasticos_graph_engine/.*|
     plasticos_graph_integration/.*|
     plasticos_graph_intelligence/.*|

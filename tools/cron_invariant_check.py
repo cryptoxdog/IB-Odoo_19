@@ -241,6 +241,7 @@ def collect_files(root: Path) -> tuple[list[Path], list[Path]]:
         and "docs" not in p.parts
         and ".cursor" not in p.parts
         and "tests-odoo" not in p.parts
+        and "odoo-enterprise" not in p.parts
     ]
     xml_files = [
         p
@@ -252,6 +253,7 @@ def collect_files(root: Path) -> tuple[list[Path], list[Path]]:
         and "docs" not in p.parts
         and ".cursor" not in p.parts
         and "tests-odoo" not in p.parts
+        and "odoo-enterprise" not in p.parts
     ]
     return py_files, xml_files
 
