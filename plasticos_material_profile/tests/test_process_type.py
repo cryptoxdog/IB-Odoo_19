@@ -1,3 +1,7 @@
+import uuid
+
+from psycopg2 import IntegrityError
+
 from odoo.exceptions import ValidationError
 from odoo.tests import TransactionCase, tagged
 
@@ -9,15 +13,18 @@ class TestPlasticosProcessType(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # TODO: Setup test data
+        cls.ProcessType = cls.env["plasticos.process.type"]
 
     def _create_type(self, **kwargs):
-        """Helper to create plasticos.process.type with defaults"""
+        """Helper to create plasticos.process.type with unique defaults"""
+        unique = uuid.uuid4().hex[:6].upper()
+        code = kwargs.pop("code", f"PROC-{unique}")
         vals = {
-            # TODO: Add required fields
+            "name": f"Test Process {unique}",
+            "code": code,
         }
         vals.update(kwargs)
-        return self.env["plasticos.process.type"].create(vals)
+        return self.ProcessType.create(vals)
 
     # ========================================================================
     # CREATION TESTS
@@ -26,24 +33,34 @@ class TestPlasticosProcessType(TransactionCase):
     def test_create_basic(self):
         """Test basic record creation"""
         record = self._create_type()
-
         self.assertTrue(record.exists())
-        # TODO: Add specific assertions
+        self.assertTrue(record.name)
+        self.assertTrue(record.code)
 
     def test_constraint_name_required(self):
         """Test name is required"""
-        with self.assertRaises(ValidationError):
-            self.env["plasticos.process.type"].create(
-                {
-                    # TODO: Add other required fields except name
-                }
-            )
+        raised = False
+        try:
+            self.ProcessType.create({"code": "NO-NAME"})
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_constraint_code_required(self):
         """Test code is required"""
-        with self.assertRaises(ValidationError):
-            self.env["plasticos.process.type"].create(
-                {
-                    # TODO: Add other required fields except code
-                }
-            )
+        raised = False
+        try:
+            self.ProcessType.create({"name": "No Code Process"})
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
+
+    def test_constraint_code_unique(self):
+        """Test code must be unique"""
+        self._create_type(code="UNIQUE-PROC")
+        raised = False
+        try:
+            self._create_type(code="UNIQUE-PROC")
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
