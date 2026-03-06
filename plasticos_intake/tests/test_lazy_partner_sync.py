@@ -138,7 +138,15 @@ class TestLazyPartnerSync(TransactionCase):
         self.assertFalse(intake.partner_id)
 
     def test_action_match_to_buyers_creates_partner(self):
-        """Test action_match_to_buyers creates partner from pending_company_name."""
+        """Test action_match_to_buyers creates partner from pending_company_name.
+
+        NOTE: This test requires plasticos_buyer_match_engine module.
+        The base intake module only has a stub that raises UserError.
+        """
+        # Skip if buyer match engine not installed
+        if "plasticos.buyer.matcher" not in self.env:
+            self.skipTest("plasticos_buyer_match_engine not installed")
+
         intake = self.env["plasticos.intake"].create(
             {
                 "pending_company_name": "Match Test Company",
@@ -160,7 +168,15 @@ class TestLazyPartnerSync(TransactionCase):
         self.assertEqual(intake.partner_id.name, "Match Test Company")
 
     def test_action_match_requires_company(self):
-        """Test action_match_to_buyers fails without partner or pending name."""
+        """Test action_match_to_buyers fails without partner or pending name.
+
+        NOTE: This test requires plasticos_buyer_match_engine module.
+        The base intake module only has a stub that raises UserError.
+        """
+        # Skip if buyer match engine not installed
+        if "plasticos.buyer.matcher" not in self.env:
+            self.skipTest("plasticos_buyer_match_engine not installed")
+
         intake = self.env["plasticos.intake"].create(
             {
                 "polymer_id": self.polymer.id,

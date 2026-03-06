@@ -367,20 +367,20 @@ class EnrichmentService(models.AbstractModel):
 
         Handles mapping from POLYMER_NORMALIZE output to seed data codes.
         POLYMER_NORMALIZE produces uppercase with spaces/hyphens (e.g., "HMW HDPE", "PC-PMMA").
-        Seed data uses lowercase with underscores (e.g., "hdpe_hmw", "pc_pmma").
+        Seed data uses UPPERCASE with underscores (e.g., "HDPE_HMW", "PC_PMMA").
         """
         if not code:
             return self.env["plasticos.polymer"]
         # Map normalized codes to seed data codes
         # Handles special cases where normalize output differs from seed code
         polymer_code_map = {
-            "HMW HDPE": "hdpe_hmw",
-            "PC-PMMA": "pc_pmma",
-            "PP-PE": "pp_pe",
-            "PA": "nylon",  # PA (Polyamide) stored as "nylon" in seed data
-            "Mixed": "mixed",  # Preserve case for Mixed
+            "HMW HDPE": "HDPE_HMW",
+            "PC-PMMA": "PC_PMMA",
+            "PP-PE": "PP_PE",
+            "PA": "NYLON",  # PA (Polyamide) stored as "NYLON" in seed data
+            "Mixed": "MIXED",
         }
-        c = polymer_code_map.get(code) or (code or "").strip().lower().replace(" ", "_").replace("-", "_")
+        c = polymer_code_map.get(code) or (code or "").strip().upper().replace(" ", "_").replace("-", "_")
         return self.env["plasticos.polymer"].search([("code", "=", c)], limit=1)
 
     @api.model
@@ -390,7 +390,8 @@ class EnrichmentService(models.AbstractModel):
             return self.env["plasticos.material.form"]
         master_code = FORM_CODE_TO_MASTER.get((code or "").strip().upper())
         if not master_code:
-            master_code = (code or "").strip().lower()
+            # Seed data uses UPPERCASE codes (BALES, PELLETS, etc.)
+            master_code = (code or "").strip().upper()
         return self.env["plasticos.material.form"].search(
             [("code", "=", master_code)],
             limit=1,
@@ -401,19 +402,19 @@ class EnrichmentService(models.AbstractModel):
         """Resolve normalized source_type code to plasticos.source.type id."""
         if not code:
             return self.env["plasticos.source.type"]
-        # SOURCE_TYPE_NORMALIZE uses PC, PI, CLEAN, etc.; master uses post_consumer, post_industrial
+        # SOURCE_TYPE_NORMALIZE uses PC, PI, CLEAN, etc.; master uses POST_CONSUMER, POST_INDUSTRIAL (UPPERCASE)
         st_map = {
-            "PC": "post_consumer",
-            "PI": "post_industrial",
-            "CLEAN": "prime",
-            "CONT": "off_spec",
-            "MIXED": "wide_spec",
-            "OFF": "off_spec",
-            "REUSE": "prime",
+            "PC": "POST_CONSUMER",
+            "PI": "POST_INDUSTRIAL",
+            "CLEAN": "PRIME",
+            "CONT": "OFF_SPEC",
+            "MIXED": "WIDE_SPEC",
+            "OFF": "OFF_SPEC",
+            "REUSE": "PRIME",
             "No-Value": False,
         }
         c = (code or "").strip()
-        master_code = st_map.get(c) or c.lower().replace("-", "_")
+        master_code = st_map.get(c) or c.upper().replace("-", "_")
         if not master_code:
             return self.env["plasticos.source.type"]
         return self.env["plasticos.source.type"].search(
