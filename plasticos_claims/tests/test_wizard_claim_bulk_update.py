@@ -248,7 +248,7 @@ class TestClaimBulkUpdateWizard(TransactionCase):
 
     def test_escalate_skips_resolved_archived(self):
         """Escalate should skip resolved/archived claims."""
-        self.claim1.state = "resolved"
+        self.claim1.write({"state": "resolved", "resolution_note": "Test resolution"})
         wiz = (
             self.env["plasticos.claim.bulk.update.wizard"]
             .with_context(
