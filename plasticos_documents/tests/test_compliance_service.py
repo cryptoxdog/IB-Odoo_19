@@ -23,8 +23,11 @@ class TestComplianceService(TransactionCase):
         cls.tag = cls.env["plasticos.document.tag"].create(
             {
                 "name": "Certificate of Insurance",
-                "code": "COI",
+                "code": "COI_COMPLIANCE_TEST",
             }
+        )
+        cls.attachment = cls.env["ir.attachment"].create(
+            {"name": "test_compliance_doc.pdf", "type": "binary", "datas": "dGVzdA=="}
         )
 
     def test_check_compliance_no_rules(self):
@@ -89,13 +92,16 @@ class TestComplianceService(TransactionCase):
                 }
             )
 
-            # Create document
+            # Create document with all required fields
             self.env["plasticos.document"].create(
                 {
-                    "partner_id": self.partner.id,
+                    "name": "COI Document",
+                    "res_model": "plasticos.transaction",
+                    "res_id": tx.id,
+                    "attachment_id": self.attachment.id,
                     "tag_id": self.tag.id,
                     "transaction_id": tx.id,
-                    "verification_status": "verified",
+                    "verified": True,
                 }
             )
 

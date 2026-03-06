@@ -22,6 +22,28 @@ class TestCronComplianceAuditDeep(TransactionCase):
         if "plasticos.document" not in cls.env:
             raise cls.skipTest("plasticos.document not installed")
         cls.Doc = cls.env["plasticos.document"]
+        # Create required related records for document creation
+        cls.test_partner = cls.env["res.partner"].create({"name": "Doc Test Partner"})
+        cls.test_attachment = cls.env["ir.attachment"].create(
+            {"name": "test_doc.pdf", "type": "binary", "datas": "dGVzdA=="}
+        )
+        cls.test_tag = cls.env["plasticos.document.tag"].create(
+            {"name": "Test Tag Cron Audit", "code": "TEST_CRON_AUDIT"}
+        )
+        cls._doc_counter = 0
+
+    def _create_document(self, **kwargs):
+        """Helper to create document with all required fields."""
+        self.__class__._doc_counter += 1
+        vals = {
+            "name": kwargs.pop("name", f"Test Doc {self.__class__._doc_counter}"),
+            "res_model": "res.partner",
+            "res_id": self.test_partner.id,
+            "attachment_id": self.test_attachment.id,
+            "tag_id": self.test_tag.id,
+        }
+        vals.update(kwargs)
+        return self.Doc.create(vals)
 
     # ═══════════════════════════════════════════════════════════════════
     # ADVISORY LOCK TESTS
@@ -46,12 +68,10 @@ class TestCronComplianceAuditDeep(TransactionCase):
 
     def test_lock_released_on_write_error(self):
         """Advisory lock is released even when write fails."""
-        doc = self.Doc.create(
-            {
-                "name": "Write Error Doc",
-                "verified": True,
-                "expiry_date": date.today() - timedelta(days=1),
-            }
+        doc = self._create_document(
+            name="Write Error Doc",
+            verified=True,
+            expiry_date=date.today() - timedelta(days=1),
         )
         if hasattr(doc, "is_expired"):
             doc.is_expired = True
@@ -67,12 +87,10 @@ class TestCronComplianceAuditDeep(TransactionCase):
 
     def test_expired_verified_document_reset(self):
         """Expired document with verified=True gets verified=False."""
-        doc = self.Doc.create(
-            {
-                "name": "Expired Verified",
-                "verified": True,
-                "expiry_date": date.today() - timedelta(days=1),
-            }
+        doc = self._create_document(
+            name="Expired Verified",
+            verified=True,
+            expiry_date=date.today() - timedelta(days=1),
         )
         if hasattr(doc, "is_expired"):
             doc._compute_is_expired()
@@ -82,12 +100,10 @@ class TestCronComplianceAuditDeep(TransactionCase):
 
     def test_non_expired_verified_document_unchanged(self):
         """Non-expired document with verified=True stays verified."""
-        doc = self.Doc.create(
-            {
-                "name": "Valid Verified",
-                "verified": True,
-                "expiry_date": date.today() + timedelta(days=365),
-            }
+        doc = self._create_document(
+            name="Valid Verified",
+            verified=True,
+            expiry_date=date.today() + timedelta(days=365),
         )
         self.Doc._cron_compliance_audit()
         doc.invalidate_recordset()
@@ -95,12 +111,10 @@ class TestCronComplianceAuditDeep(TransactionCase):
 
     def test_expired_unverified_document_unchanged(self):
         """Expired document with verified=False stays unchanged."""
-        doc = self.Doc.create(
-            {
-                "name": "Expired Unverified",
-                "verified": False,
-                "expiry_date": date.today() - timedelta(days=1),
-            }
+        doc = self._create_document(
+            name="Expired Unverified",
+            verified=False,
+            expiry_date=date.today() - timedelta(days=1),
         )
         self.Doc._cron_compliance_audit()
         doc.invalidate_recordset()
@@ -108,11 +122,9 @@ class TestCronComplianceAuditDeep(TransactionCase):
 
     def test_no_expiry_date_document_unchanged(self):
         """Document without expiry_date is not affected."""
-        doc = self.Doc.create(
-            {
-                "name": "No Expiry",
-                "verified": True,
-            }
+        doc = self._create_document(
+            name="No Expiry",
+            verified=True,
         )
         self.Doc._cron_compliance_audit()
         doc.invalidate_recordset()
@@ -124,12 +136,10 @@ class TestCronComplianceAuditDeep(TransactionCase):
 
     def test_expiry_exactly_today(self):
         """Document expiring exactly today - check is_expired logic."""
-        doc = self.Doc.create(
-            {
-                "name": "Expires Today",
-                "verified": True,
-                "expiry_date": date.today(),
-            }
+        doc = self._create_document(
+            name="Expires Today",
+            verified=True,
+            expiry_date=date.today(),
         )
         if hasattr(doc, "_compute_is_expired"):
             doc._compute_is_expired()
@@ -137,12 +147,10 @@ class TestCronComplianceAuditDeep(TransactionCase):
 
     def test_expiry_yesterday(self):
         """Document expired yesterday should be reset."""
-        doc = self.Doc.create(
-            {
-                "name": "Expired Yesterday",
-                "verified": True,
-                "expiry_date": date.today() - timedelta(days=1),
-            }
+        doc = self._create_document(
+            name="Expired Yesterday",
+            verified=True,
+            expiry_date=date.today() - timedelta(days=1),
         )
         if hasattr(doc, "_compute_is_expired"):
             doc._compute_is_expired()
@@ -151,12 +159,10 @@ class TestCronComplianceAuditDeep(TransactionCase):
 
     def test_expiry_tomorrow(self):
         """Document expiring tomorrow should NOT be reset."""
-        doc = self.Doc.create(
-            {
-                "name": "Expires Tomorrow",
-                "verified": True,
-                "expiry_date": date.today() + timedelta(days=1),
-            }
+        doc = self._create_document(
+            name="Expires Tomorrow",
+            verified=True,
+            expiry_date=date.today() + timedelta(days=1),
         )
         self.Doc._cron_compliance_audit()
         doc.invalidate_recordset()
@@ -190,12 +196,10 @@ class TestCronComplianceAuditDeep(TransactionCase):
         """Multiple expired documents are updated in single write call."""
         docs = []
         for i in range(5):
-            doc = self.Doc.create(
-                {
-                    "name": f"Batch Doc {i}",
-                    "verified": True,
-                    "expiry_date": date.today() - timedelta(days=i + 1),
-                }
+            doc = self._create_document(
+                name=f"Batch Doc {i}",
+                verified=True,
+                expiry_date=date.today() - timedelta(days=i + 1),
             )
             if hasattr(doc, "_compute_is_expired"):
                 doc._compute_is_expired()
@@ -212,13 +216,11 @@ class TestCronComplianceAuditDeep(TransactionCase):
 
     def test_inactive_documents_excluded(self):
         """Archived (active=False) documents are not processed."""
-        doc = self.Doc.create(
-            {
-                "name": "Archived Doc",
-                "verified": True,
-                "expiry_date": date.today() - timedelta(days=1),
-                "active": False,
-            }
+        doc = self._create_document(
+            name="Archived Doc",
+            verified=True,
+            expiry_date=date.today() - timedelta(days=1),
+            active=False,
         )
         if hasattr(doc, "_compute_is_expired"):
             doc._compute_is_expired()
@@ -240,12 +242,10 @@ class TestCronComplianceAuditDeep(TransactionCase):
 
     def test_double_run_same_result(self):
         """Running cron twice produces same state."""
-        doc = self.Doc.create(
-            {
-                "name": "Idempotent Doc",
-                "verified": True,
-                "expiry_date": date.today() - timedelta(days=1),
-            }
+        doc = self._create_document(
+            name="Idempotent Doc",
+            verified=True,
+            expiry_date=date.today() - timedelta(days=1),
         )
         if hasattr(doc, "_compute_is_expired"):
             doc._compute_is_expired()
@@ -262,12 +262,10 @@ class TestCronComplianceAuditDeep(TransactionCase):
 
     def test_already_unverified_not_rewritten(self):
         """Documents already verified=False are not re-written."""
-        doc = self.Doc.create(
-            {
-                "name": "Already Unverified",
-                "verified": False,
-                "expiry_date": date.today() - timedelta(days=1),
-            }
+        doc = self._create_document(
+            name="Already Unverified",
+            verified=False,
+            expiry_date=date.today() - timedelta(days=1),
         )
         if hasattr(doc, "_compute_is_expired"):
             doc._compute_is_expired()
@@ -282,12 +280,10 @@ class TestCronComplianceAuditDeep(TransactionCase):
 
     def test_logs_count_of_reset_documents(self):
         """Cron logs how many documents were reset."""
-        doc = self.Doc.create(
-            {
-                "name": "Log Test Doc",
-                "verified": True,
-                "expiry_date": date.today() - timedelta(days=1),
-            }
+        doc = self._create_document(
+            name="Log Test Doc",
+            verified=True,
+            expiry_date=date.today() - timedelta(days=1),
         )
         if hasattr(doc, "_compute_is_expired"):
             doc._compute_is_expired()

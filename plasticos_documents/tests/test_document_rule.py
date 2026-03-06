@@ -9,12 +9,16 @@ class TestPlasticosDocumentRule(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # TODO: Setup test data
+        cls.tag = cls.env["plasticos.document.tag"].create({"name": "Rule Test Tag", "code": "RULE_TEST_TAG"})
+        cls._rule_counter = 0
 
     def _create_rule(self, **kwargs):
         """Helper to create plasticos.document.rule with defaults"""
+        self.__class__._rule_counter += 1
         vals = {
-            # TODO: Add required fields
+            "name": kwargs.pop("name", f"Test Rule {self.__class__._rule_counter}"),
+            "tag_id": self.tag.id,
+            "res_model": "plasticos.transaction",
         }
         vals.update(kwargs)
         return self.env["plasticos.document.rule"].create(vals)
@@ -35,7 +39,8 @@ class TestPlasticosDocumentRule(TransactionCase):
         with self.assertRaises(ValidationError):
             self.env["plasticos.document.rule"].create(
                 {
-                    # TODO: Add other required fields except name
+                    "tag_id": self.tag.id,
+                    "res_model": "plasticos.transaction",
                 }
             )
 
@@ -44,7 +49,8 @@ class TestPlasticosDocumentRule(TransactionCase):
         with self.assertRaises(ValidationError):
             self.env["plasticos.document.rule"].create(
                 {
-                    # TODO: Add other required fields except tag_id
+                    "name": "Test Rule No Tag",
+                    "res_model": "plasticos.transaction",
                 }
             )
 
@@ -53,6 +59,7 @@ class TestPlasticosDocumentRule(TransactionCase):
         with self.assertRaises(ValidationError):
             self.env["plasticos.document.rule"].create(
                 {
-                    # TODO: Add other required fields except res_model
+                    "name": "Test Rule No Model",
+                    "tag_id": self.tag.id,
                 }
             )

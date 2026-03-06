@@ -9,12 +9,14 @@ class TestPlasticosDocumentTag(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # TODO: Setup test data
+        cls._tag_counter = 0
 
     def _create_tag(self, **kwargs):
         """Helper to create plasticos.document.tag with defaults"""
+        self.__class__._tag_counter += 1
         vals = {
-            # TODO: Add required fields
+            "name": kwargs.pop("name", f"Test Tag {self.__class__._tag_counter}"),
+            "code": kwargs.pop("code", f"TEST_TAG_{self.__class__._tag_counter}"),
         }
         vals.update(kwargs)
         return self.env["plasticos.document.tag"].create(vals)
@@ -26,16 +28,15 @@ class TestPlasticosDocumentTag(TransactionCase):
     def test_create_basic(self):
         """Test basic record creation"""
         record = self._create_tag()
-
         self.assertTrue(record.exists())
-        # TODO: Add specific assertions
+        self.assertTrue(record.active)
 
     def test_constraint_name_required(self):
         """Test name is required"""
         with self.assertRaises(ValidationError):
             self.env["plasticos.document.tag"].create(
                 {
-                    # TODO: Add other required fields except name
+                    "code": "NO_NAME_TAG",
                 }
             )
 
@@ -44,6 +45,6 @@ class TestPlasticosDocumentTag(TransactionCase):
         with self.assertRaises(ValidationError):
             self.env["plasticos.document.tag"].create(
                 {
-                    # TODO: Add other required fields except code
+                    "name": "No Code Tag",
                 }
             )

@@ -9,12 +9,22 @@ class TestPlasticosDocument(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # TODO: Setup test data
+        cls.partner = cls.env["res.partner"].create({"name": "Doc Test Partner"})
+        cls.attachment = cls.env["ir.attachment"].create(
+            {"name": "test_doc.pdf", "type": "binary", "datas": "dGVzdA=="}
+        )
+        cls.tag = cls.env["plasticos.document.tag"].create({"name": "Doc Test Tag", "code": "DOC_TEST_TAG"})
+        cls._doc_counter = 0
 
     def _create_document(self, **kwargs):
         """Helper to create plasticos.document with defaults"""
+        self.__class__._doc_counter += 1
         vals = {
-            # TODO: Add required fields
+            "name": kwargs.pop("name", f"Test Doc {self.__class__._doc_counter}"),
+            "res_model": "res.partner",
+            "res_id": self.partner.id,
+            "attachment_id": self.attachment.id,
+            "tag_id": self.tag.id,
         }
         vals.update(kwargs)
         return self.env["plasticos.document"].create(vals)
@@ -26,43 +36,56 @@ class TestPlasticosDocument(TransactionCase):
     def test_create_basic(self):
         """Test basic record creation"""
         record = self._create_document()
-
         self.assertTrue(record.exists())
-        # TODO: Add specific assertions
+        self.assertEqual(record.res_model, "res.partner")
+        self.assertEqual(record.res_id, self.partner.id)
 
     def test_action_verify_executes_successfully(self):
-        """Test action_verify executes without error"""
+        """Test action_verify sets verified=True and records user/time"""
         record = self._create_document()
+        self.assertFalse(record.verified)
 
-        result = record.action_verify()
+        record.action_verify()
 
-        # TODO: Add assertions about expected outcome
-        self.assertTrue(True, "Replace with real assertion")
+        self.assertTrue(record.verified)
+        self.assertEqual(record.verified_by, self.env.user)
+        self.assertTrue(record.verified_at)
 
     def test_action_override_executes_successfully(self):
-        """Test action_override executes without error"""
+        """Test action_override sets override=True"""
         record = self._create_document()
+        self.assertFalse(record.override)
 
-        result = record.action_override()
+        # Grant manager group for override
+        manager_group = self.env.ref("plasticos_documents.group_documents_manager")
+        self.env.user.groups_id |= manager_group
 
-        # TODO: Add assertions about expected outcome
-        self.assertTrue(True, "Replace with real assertion")
+        record.action_override(reason="Test override reason")
+
+        self.assertTrue(record.override)
+        self.assertEqual(record.override_reason, "Test override reason")
 
     def test_action_supersede_executes_successfully(self):
-        """Test action_supersede executes without error"""
+        """Test action_supersede sets is_current=False and superseded_by"""
         record = self._create_document()
+        new_doc = self._create_document(name="New Version", version=2)
 
-        result = record.action_supersede()
+        self.assertTrue(record.is_current)
 
-        # TODO: Add assertions about expected outcome
-        self.assertTrue(True, "Replace with real assertion")
+        record.action_supersede(new_doc.id)
+
+        self.assertFalse(record.is_current)
+        self.assertEqual(record.superseded_by, new_doc)
 
     def test_constraint_name_required(self):
         """Test name is required"""
         with self.assertRaises(ValidationError):
             self.env["plasticos.document"].create(
                 {
-                    # TODO: Add other required fields except name
+                    "res_model": "res.partner",
+                    "res_id": self.partner.id,
+                    "attachment_id": self.attachment.id,
+                    "tag_id": self.tag.id,
                 }
             )
 
@@ -71,7 +94,10 @@ class TestPlasticosDocument(TransactionCase):
         with self.assertRaises(ValidationError):
             self.env["plasticos.document"].create(
                 {
-                    # TODO: Add other required fields except res_model
+                    "name": "Test Doc",
+                    "res_id": self.partner.id,
+                    "attachment_id": self.attachment.id,
+                    "tag_id": self.tag.id,
                 }
             )
 
@@ -80,7 +106,10 @@ class TestPlasticosDocument(TransactionCase):
         with self.assertRaises(ValidationError):
             self.env["plasticos.document"].create(
                 {
-                    # TODO: Add other required fields except res_id
+                    "name": "Test Doc",
+                    "res_model": "res.partner",
+                    "attachment_id": self.attachment.id,
+                    "tag_id": self.tag.id,
                 }
             )
 
@@ -89,7 +118,10 @@ class TestPlasticosDocument(TransactionCase):
         with self.assertRaises(ValidationError):
             self.env["plasticos.document"].create(
                 {
-                    # TODO: Add other required fields except attachment_id
+                    "name": "Test Doc",
+                    "res_model": "res.partner",
+                    "res_id": self.partner.id,
+                    "tag_id": self.tag.id,
                 }
             )
 
@@ -98,6 +130,9 @@ class TestPlasticosDocument(TransactionCase):
         with self.assertRaises(ValidationError):
             self.env["plasticos.document"].create(
                 {
-                    # TODO: Add other required fields except tag_id
+                    "name": "Test Doc",
+                    "res_model": "res.partner",
+                    "res_id": self.partner.id,
+                    "attachment_id": self.attachment.id,
                 }
             )
