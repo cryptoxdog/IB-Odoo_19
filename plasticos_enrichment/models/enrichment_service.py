@@ -173,6 +173,7 @@ FORM_CODE_TO_MASTER = {
     "BALE": "BALES",
     "BALES": "BALES",
     "PELL": "PELLETS",
+    "PELLET": "PELLETS",
     "RG": "REGRIND",
     "FLAKE": "FLAKE",
     "FILM": "ROLLSTOCK",

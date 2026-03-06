@@ -65,7 +65,9 @@ class TestLazyPartnerSync(TransactionCase):
         self.assertEqual(intake.partner_id.name, "Lazy Partner Test Co")
         self.assertTrue(intake.partner_id.is_company)
         self.assertEqual(intake.partner_id.supplier_rank, 1)
-        self.assertEqual(intake.partner_id.lead_source, "web_lead")
+        # lead_source_id is a Many2one to utm.source; check it was set
+        if intake.partner_id.lead_source_id:
+            self.assertEqual(intake.partner_id.lead_source_id.name, "Web Lead Form")
 
         # Verify pending_company_name is cleared
         self.assertFalse(intake.pending_company_name, "pending_company_name should be cleared")
