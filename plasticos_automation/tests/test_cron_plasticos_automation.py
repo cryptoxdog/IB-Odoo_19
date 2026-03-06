@@ -451,9 +451,12 @@ class TestStockAlertCron(TransactionCase, AutomationTestMixin):
                 "quantity": 100.0,
             }
         )
+        # Invalidate cache to ensure qty_available is recomputed
+        product.invalidate_recordset(["qty_available"])
+        self.assertEqual(product.qty_available, 100.0, "qty_available should be 100")
         self.Product.cron_stock_reorder_alert()
         messages = product.message_ids.filtered(lambda m: "stock level" in (m.body or "").lower())
-        self.assertFalse(messages)
+        self.assertFalse(messages, f"No alert expected; qty={product.qty_available}, threshold=10")
 
     def test_no_duplicate_alert_same_day(self):
         """Running twice on same day does not duplicate alerts."""
@@ -549,6 +552,16 @@ class TestInvoiceReminderCron(TransactionCase, AutomationTestMixin):
                     "code": "TPURCH",
                 }
             )
+        # Ensure income account exists (required for invoice lines in Odoo 19)
+        cls._income_account = cls.env["account.account"].search([("account_type", "=", "income")], limit=1)
+        if not cls._income_account:
+            cls._income_account = cls.env["account.account"].create(
+                {
+                    "name": "Test Income Account",
+                    "code": "400000",
+                    "account_type": "income",
+                }
+            )
 
     def _create_overdue_invoice(self, days_overdue=30):
         """Create a posted, unpaid, overdue out_invoice."""
@@ -568,6 +581,7 @@ class TestInvoiceReminderCron(TransactionCase, AutomationTestMixin):
                             "name": "Test Invoice Line",
                             "quantity": 1,
                             "price_unit": 100.0,
+                            "account_id": self._income_account.id,
                         },
                     )
                 ],
