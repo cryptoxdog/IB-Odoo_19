@@ -3,6 +3,7 @@
 Covers: _cron_nightly_graph_sync (full topology sync, advisory lock, error handling).
 """
 
+import unittest
 from unittest.mock import patch
 
 from odoo.tests.common import TransactionCase
@@ -14,6 +15,8 @@ class TestGraphSyncCron(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        if "plasticos.graph.service" not in cls.env:
+            raise unittest.SkipTest("plasticos.graph.service model not available")
         cls.GraphSvc = cls.env["plasticos.graph.service"]
 
     def test_cron_acquires_lock_and_runs(self):

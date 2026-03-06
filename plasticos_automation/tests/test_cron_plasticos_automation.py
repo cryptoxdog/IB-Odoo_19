@@ -425,7 +425,7 @@ class TestStockAlertCron(TransactionCase, AutomationTestMixin):
         product = self.Product.create(
             {
                 "name": "Low Stock Product",
-                "type": "product",
+                "type": "consu",
                 "min_stock_threshold": 100.0,
             }
         )
@@ -439,7 +439,7 @@ class TestStockAlertCron(TransactionCase, AutomationTestMixin):
         product = self.Product.create(
             {
                 "name": "Full Stock Product",
-                "type": "product",
+                "type": "consu",
                 "min_stock_threshold": 0.0,
             }
         )
@@ -452,7 +452,7 @@ class TestStockAlertCron(TransactionCase, AutomationTestMixin):
         product = self.Product.create(
             {
                 "name": "Dedup Stock",
-                "type": "product",
+                "type": "consu",
                 "min_stock_threshold": 100.0,
             }
         )
@@ -467,7 +467,7 @@ class TestStockAlertCron(TransactionCase, AutomationTestMixin):
         product = self.Product.create(
             {
                 "name": "Global Threshold",
-                "type": "product",
+                "type": "consu",
                 "min_stock_threshold": 0.0,
             }
         )
@@ -479,7 +479,7 @@ class TestStockAlertCron(TransactionCase, AutomationTestMixin):
         product = self.Product.create(
             {
                 "name": "Log Stock",
-                "type": "product",
+                "type": "consu",
                 "min_stock_threshold": 100.0,
             }
         )

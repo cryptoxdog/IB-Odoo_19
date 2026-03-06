@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from odoo import fields
 from odoo.tests.common import TransactionCase
 
@@ -133,7 +135,9 @@ class TestInjection(TransactionCase):
             }
         )
         run.write({"state": "validated"})
-        run.action_inject()
+        # Mock message_post to avoid mail alias domain issues in test environment
+        with patch.object(type(self.env["plasticos.material.profile"]), "message_post", return_value=True):
+            run.action_inject()
 
         profile = self.env["plasticos.material.profile"].search(
             [

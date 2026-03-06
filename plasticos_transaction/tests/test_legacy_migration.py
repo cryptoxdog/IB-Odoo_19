@@ -28,7 +28,7 @@ class TestLegacyMigration(TransactionCase):
             {
                 "name": "TEST PRODUCT",
                 "default_code": "TEST001",
-                "type": "product",
+                "type": "consu",
             }
         )
 
