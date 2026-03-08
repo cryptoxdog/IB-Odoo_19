@@ -7,7 +7,7 @@ Validates: CRUD, unique constraint, default values, boolean flags,
 sequence ordering, and deactivation.
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 

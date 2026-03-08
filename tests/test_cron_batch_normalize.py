@@ -6,7 +6,7 @@ Covers: cron_batch_normalize (batch processing, idempotency, error handling).
 import unittest
 from unittest.mock import patch
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 
 
 class TestBatchNormalizeCron(PlasticosTestCase):

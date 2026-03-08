@@ -6,7 +6,7 @@ Aligned with plasticos_partner_import/wizards/partner_bulk_update_wizard.py.
 Actions: assign_salesperson, assign_category, set_company_type, assign_payment_terms
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests.common import tagged
 

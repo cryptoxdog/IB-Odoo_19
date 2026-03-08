@@ -7,7 +7,7 @@ Requires hypothesis library. Skipped if not installed.
 from hypothesis import given
 from hypothesis import strategies as st
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 
 
 class TestIntakeProperties(PlasticosTestCase):

@@ -9,7 +9,7 @@ Tests all 19+ computed fields:
 - Profile refs: supplier_profile_id, buyer_profile_id
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests import tagged
 
 

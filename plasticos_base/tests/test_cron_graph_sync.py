@@ -6,7 +6,7 @@ Covers: _cron_nightly_graph_sync (full topology sync, advisory lock, error handl
 import unittest
 from unittest.mock import patch
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 
 
 class TestGraphSyncCron(PlasticosTestCase):

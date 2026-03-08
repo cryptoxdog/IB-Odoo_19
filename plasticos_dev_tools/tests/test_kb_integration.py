@@ -9,7 +9,7 @@ Tests the configuration models that store system-wide settings:
 Migrated from legacy plastic_ai.kb_config to plasticos.* namespace.
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests import tagged
 
 

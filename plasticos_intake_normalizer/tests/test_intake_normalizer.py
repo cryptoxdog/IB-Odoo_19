@@ -5,7 +5,7 @@ Target model:  plasticos.intake (via _inherit)
 Config:        plasticos.normalizer.config
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests import tagged
 

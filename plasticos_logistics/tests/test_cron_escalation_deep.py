@@ -9,7 +9,7 @@ Location: plasticos_logistics/models/load.py:229
 
 from unittest.mock import patch
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 
 
 class TestCronEscalationCheckDeep(PlasticosTestCase):

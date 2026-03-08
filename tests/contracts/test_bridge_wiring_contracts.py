@@ -5,7 +5,7 @@ These tests verify that the bridges are properly installed and
 the fields they add are present on the target models.
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import tagged
 
 

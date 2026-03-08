@@ -4,7 +4,7 @@ Validates ir.model.access.csv rules, group-based CRUD, protected write()
 constraints, and unlink restrictions at ORM level.
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import tagged
 

@@ -2,7 +2,7 @@
 """Migrate plasticos test files to use PlasticosTestCase base class.
 
 Replaces TransactionCase (and TransactionCase + PlastOSTestFactoryMixin) with
-PlasticosTestCase from plasticos_base.tests.common.
+PlasticosTestCase from plasticos_base.test_common.
 
 Phases:
   1. migrate: Replace imports and class bases (TransactionCase -> PlasticosTestCase)
@@ -38,7 +38,7 @@ def _replace_odoo_tests_import(m: re.Match) -> str:
     """Replace 'from odoo.tests import TransactionCase, tagged' (or similar)."""
     orig = m.group(0)
     has_tagged = "tagged" in orig
-    lines = ["from odoo.addons.plasticos_base.tests.common import PlasticosTestCase"]
+    lines = ["from odoo.addons.plasticos_base.test_common import PlasticosTestCase"]
     if has_tagged:
         lines.append("from odoo.tests import tagged")
     return "\n".join(lines) + "\n"
@@ -50,8 +50,8 @@ def _replace_odoo_tests_common_import(m: re.Match) -> str:
     parts = [p.strip() for p in re.split(r",\s*", orig) if p.strip()]
     rest = [p for p in parts if p != "TransactionCase"]
     if not rest:
-        return "from odoo.addons.plasticos_base.tests.common import PlasticosTestCase\n"
-    lines = ["from odoo.addons.plasticos_base.tests.common import PlasticosTestCase"]
+        return "from odoo.addons.plasticos_base.test_common import PlasticosTestCase\n"
+    lines = ["from odoo.addons.plasticos_base.test_common import PlasticosTestCase"]
     lines.append(f"from odoo.tests.common import {', '.join(rest)}")
     return "\n".join(lines) + "\n"
 
@@ -82,7 +82,7 @@ REMOVE_IMPORT_PATTERNS = [
 
 
 def should_skip(path: Path) -> bool:
-    """Skip HttpCase-only files and plasticos_base/tests/common.py itself."""
+    """Skip HttpCase-only files and plasticos_base/test_common.py itself."""
     if "common.py" in path.name:
         return True
     content = path.read_text(encoding="utf-8")

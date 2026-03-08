@@ -6,7 +6,7 @@ This tests the pending_company_name → action_match_to_buyers → partner creat
 
 import logging
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)

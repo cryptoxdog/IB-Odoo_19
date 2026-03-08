@@ -5,7 +5,7 @@ Covers: default field values, import mode selection, dry_run guard,
         file upload validation, action_close, action_view_partners.
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests import tagged
 

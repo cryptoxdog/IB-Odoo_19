@@ -5,7 +5,7 @@ serve stale data. These tests verify that the declared depends include
 all fields that should trigger recomputation.
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import tagged
 
 

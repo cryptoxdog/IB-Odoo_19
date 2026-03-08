@@ -8,7 +8,7 @@ Covers:
   - Negative tests: every invalid transition should raise UserError
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.fields import Datetime
 from odoo.tests.common import tagged

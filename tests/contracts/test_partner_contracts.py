@@ -12,7 +12,7 @@ res.partner is inherited by 8+ PlastOS modules:
   - plasticos_buyer_match_engine (facility_profile_graph_hooks.py)
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import tagged
 
 

@@ -5,7 +5,7 @@ Focus: partner/polymer/form onchanges that build human-friendly labels.[web:125]
 
 import uuid
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests import tagged
 
 

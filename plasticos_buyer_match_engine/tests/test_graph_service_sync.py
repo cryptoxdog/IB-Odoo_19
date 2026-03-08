@@ -7,7 +7,7 @@ Tests sync pipeline phases, sync log creation, and graceful behavior
 when Neo4j is NOT configured (all _execute_cypher calls return []).
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests import tagged
 

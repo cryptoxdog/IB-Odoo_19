@@ -5,7 +5,7 @@ domain filters, or business logic, those values become part of the
 contract. This file validates them all in one place.
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import tagged
 
 

@@ -14,7 +14,7 @@ records use TransactionCase instead to avoid isolation issues.
 
 import json
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import HttpCase, tagged
 
 
