@@ -23,7 +23,7 @@ class TestLeadBulkActionWizard(PlasticosTestCase):
     def _create_lead(self, decision="cold", state="received", **kw):
         """Helper to create a web lead."""
         vals = {
-            "lead_id": f"WL-{self.Lead.search_count([])+1:04d}",
+            "lead_id": f"WL-{self.Lead.search_count([]) + 1:04d}",
             "decision": decision,
             "state": state,
             "company_name": "Test Co",

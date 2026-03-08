@@ -94,7 +94,7 @@ class OrmIntegrityChecker(ast.NodeVisitor):
             # Get the XML ID if it's a string literal
             xml_id = ""
             if node.args and isinstance(node.args[0], ast.Constant):
-                xml_id = node.args[0].value
+                xml_id = str(node.args[0].value)
 
             self.issues.append(
                 {

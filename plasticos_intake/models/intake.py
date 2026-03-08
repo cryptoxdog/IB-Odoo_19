@@ -742,9 +742,7 @@ class PlasticosIntake(models.Model):
         """Guard: raise if current status not in allowed list."""
         self.ensure_one()
         if self.status not in allowed:
-            raise UserError(
-                f"Cannot perform this action from status '{self.status}'. " f"Allowed: {', '.join(allowed)}"
-            )
+            raise UserError(f"Cannot perform this action from status '{self.status}'. Allowed: {', '.join(allowed)}")
 
     def action_send_offer(self):
         """Transition matched intake to offer_sent status."""
@@ -957,7 +955,7 @@ class PlasticosIntake(models.Model):
         Transaction = self.env.get("plasticos.transaction")
         if Transaction is None:
             raise UserError(
-                "Transaction module not installed.\n\n" "Install 'PlasticOS Transactions' to enable PO creation."
+                "Transaction module not installed.\n\nInstall 'PlasticOS Transactions' to enable PO creation."
             )
 
         # Build transaction values from intake

@@ -383,7 +383,7 @@ def check_init_imports(module_path: Path) -> list[dict]:
                     "line": 1,
                     "context": "module __init__.py",
                     "message": (
-                        f"Module '{module_name}/__init__.py' does not import 'models'. " f"Add: from . import models"
+                        f"Module '{module_name}/__init__.py' does not import 'models'. Add: from . import models"
                     ),
                 }
             )
@@ -628,7 +628,7 @@ def main() -> int:
                 print(f"  {YELLOW}Line {error['line']}{NC}: {rel_file}")
                 print(f"    {error['message']}")
                 if error["type"] == "missing_dependency":
-                    print(f"    {CYAN}Fix: Add '{error['providing_module']}' to " f"'depends' in __manifest__.py{NC}")
+                    print(f"    {CYAN}Fix: Add '{error['providing_module']}' to 'depends' in __manifest__.py{NC}")
                 print()
         else:
             print(f"{GREEN}✓ {module_name}{NC}")

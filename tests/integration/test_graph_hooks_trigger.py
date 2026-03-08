@@ -38,7 +38,7 @@ class TestGraphHookMethodsExist(PlasticosTestCase):
         has_any = any(callable(getattr(Intake, m, None)) for m in hook_candidates)
         # If no hook found, the bridge may not be installed
         if not has_any:
-            self.skipTest("No graph hook methods on intake — " "plasticos_buyer_match_engine may not be installed")
+            self.skipTest("No graph hook methods on intake — plasticos_buyer_match_engine may not be installed")
 
     def test_facility_profile_has_graph_hooks(self):
         if not self._has_model("plasticos.facility.profile"):

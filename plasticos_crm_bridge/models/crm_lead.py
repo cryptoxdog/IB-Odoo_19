@@ -121,9 +121,9 @@ class CrmLeadPlastOS(models.Model):
             self.stage_id = won_stage
 
         self.message_post(
-            body=f"Intake created: <a href=\"#\" "
-            f"data-oe-model=\"plasticos.intake\" "
-            f"data-oe-id=\"{intake.id}\">{intake.name or 'New Intake'}</a>"
+            body=f'Intake created: <a href="#" '
+            f'data-oe-model="plasticos.intake" '
+            f'data-oe-id="{intake.id}">{intake.name or "New Intake"}</a>'
         )
 
         # 4. Open intake form

@@ -401,7 +401,7 @@ def main():
     for file_path, file_issues in sorted(by_file.items()):
         print(f"📄 {file_path}")
         for issue in file_issues:
-            print(f"   Line {issue['line']}: model=\"{issue['model']}\" ({issue['context']})")
+            print(f'   Line {issue["line"]}: model="{issue["model"]}" ({issue["context"]})')
             print(f"   ❌ Model '{issue['model']}' not found in codebase")
             if issue["suggestions"]:
                 print(f"   💡 Did you mean: {', '.join(issue['suggestions'])}?")

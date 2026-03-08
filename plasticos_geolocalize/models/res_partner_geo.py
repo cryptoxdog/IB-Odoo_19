@@ -57,7 +57,7 @@ class ResPartnerGeo(models.Model):
                     )
                     if consecutive_failures >= _MAX_CONSECUTIVE_FAIL:
                         _logger.error(
-                            "Geo backfill: %d consecutive failures — " "aborting (likely rate-limited or banned).",
+                            "Geo backfill: %d consecutive failures — aborting (likely rate-limited or banned).",
                             consecutive_failures,
                         )
                         break

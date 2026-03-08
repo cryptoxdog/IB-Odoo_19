@@ -470,9 +470,9 @@ class EnhancedFieldAudit:
             print("\n✅ No errors found! Your codebase is clean.\n")
             return
 
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("AUDIT SUMMARY")
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
         # Group by severity
         by_severity = defaultdict(list)

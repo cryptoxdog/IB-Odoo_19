@@ -23,7 +23,7 @@ class TestLoadStateMachineTransitions(PlasticosTestCase):
 
     def _load(self, **kw):
         vals = {
-            "name": f"LOAD-{self.Load.search_count([])+1:04d}",
+            "name": f"LOAD-{self.Load.search_count([]) + 1:04d}",
             "sale_order_id": self.sale.id,
             "carrier_id": self.partner.id,
         }
