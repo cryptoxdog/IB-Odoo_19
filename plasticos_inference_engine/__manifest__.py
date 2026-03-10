@@ -8,6 +8,9 @@
         "base",
     ],
     "data": [],
+    "external_dependencies": {
+        "python": ["yaml"],
+    },
     "installable": True,
     "application": False,
     "license": "LGPL-3",
