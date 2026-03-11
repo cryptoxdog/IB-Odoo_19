@@ -1,11 +1,13 @@
 """Extend res.partner with intake-related fields and actions.
 
 
-PLASTICOS_INTAKE = "plasticos.intake"
 This module adds intake navigation and creation capabilities to
 res.partner. The extension lives here (in plasticos_intake)
 rather than in plasticos_material_profile to avoid circular dependencies.
 """
+
+PLASTICOS_INTAKE = "plasticos.intake"
+
 
 from odoo import fields, models
 

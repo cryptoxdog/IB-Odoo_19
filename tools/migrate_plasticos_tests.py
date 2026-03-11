@@ -2,7 +2,6 @@
 """Migrate plasticos test files to use PlasticosTestCase base class.
 
 
-PLASTICOS_TEST_CASE = "(PlasticosTestCase)"
 Replaces TransactionCase (and TransactionCase + PlastOSTestFactoryMixin) with
 PlasticosTestCase from plasticos_base.test_common.
 
@@ -14,6 +13,9 @@ Usage:
     python tools/migrate_plasticos_tests.py [--dry-run]           # migrate only
     python tools/migrate_plasticos_tests.py --cleanup [--dry-run]  # migrate + cleanup
 """
+
+PLASTICOS_TEST_CASE = "(PlasticosTestCase)"
+
 
 from __future__ import annotations
 

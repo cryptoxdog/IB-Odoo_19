@@ -1,9 +1,11 @@
 """
 
-PLASTICOS_TRANSACTION = "plasticos.transaction"
 Transaction Import Wizard
 Import transactions from cieTrade WksDetail CSV export.
 """
+
+PLASTICOS_TRANSACTION = "plasticos.transaction"
+
 
 import base64
 import csv

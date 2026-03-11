@@ -4,10 +4,6 @@
 
 
 
-DEPLOYMENT_MD = "DEPLOYMENT.md"
-DATA_MODEL_MD = "DATA_MODEL.md"
-API_REFERENCE_MD = "API_REFERENCE.md"
-ARCHITECTURE_MD = "ARCHITECTURE.md"
 Repo-agnostic subsystem README generator.
 
 - AST-heavy parsing: Python modules (ast.parse), Odoo manifests (ast.literal_eval)
@@ -19,6 +15,12 @@ Usage:
   python scripts/generate_subsystem_readmes.py --list
   python scripts/generate_subsystem_readmes.py --validate
 """
+
+DEPLOYMENT_MD = "DEPLOYMENT.md"
+DATA_MODEL_MD = "DATA_MODEL.md"
+API_REFERENCE_MD = "API_REFERENCE.md"
+ARCHITECTURE_MD = "ARCHITECTURE.md"
+
 
 from __future__ import annotations
 

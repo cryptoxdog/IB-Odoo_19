@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
 
-MODELS_GLOB = "models/*.py"
 Business Logic Anti-Pattern Detector
 Catches common Odoo coding mistakes.
 """
+
+MODELS_GLOB = "models/*.py"
+
 
 import re
 from pathlib import Path

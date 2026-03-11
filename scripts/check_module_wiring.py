@@ -3,9 +3,6 @@
 
 
 
-MODELS_INIT = "models/__init__.py"
-INIT_FILE = "__init__.py"
-PLASTICOS_GLOB = "plasticos_*"
 Odoo Module Dependency Wiring Checker
 
 Ensures all Odoo modules are properly wired to the modules they depend on.
@@ -24,6 +21,11 @@ Exit codes:
   0 = All checks passed
   1 = Wiring errors found
 """
+
+MODELS_INIT = "models/__init__.py"
+INIT_FILE = "__init__.py"
+PLASTICOS_GLOB = "plasticos_*"
+
 
 import ast
 import re
