@@ -63,6 +63,13 @@ class PlasticosTransactionDocs(models.Model):
         Leverages plasticos.compliance.service.get_missing_documents()
         and cross-references against the validation matrix categories.
         """
+        if "plasticos.compliance.service" not in self.env:
+            for tx in self:
+                tx.missing_supplier_docs = False
+                tx.missing_carrier_docs = False
+                tx.missing_buyer_docs = False
+            return
+
         matrix_model = self.env["plasticos.document.validation.matrix"]
         compliance = self.env["plasticos.compliance.service"]
 

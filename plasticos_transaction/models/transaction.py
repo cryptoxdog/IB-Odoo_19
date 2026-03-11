@@ -697,6 +697,10 @@ class PlasticosTransaction(models.Model):
         "commission_locked_amount",
     )
     def _compute_commission(self):
+        if "plasticos.commission.service" not in self.env:
+            for rec in self:
+                rec.commission_amount = rec.commission_locked_amount or 0.0
+            return
         service = self.env["plasticos.commission.service"]
         for rec in self:
             if rec.commission_locked:
