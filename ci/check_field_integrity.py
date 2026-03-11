@@ -37,7 +37,9 @@ REQUIRED_BUTTON_BOX = {
     "plasticos_matching.view_match_result_form": "plasticos_matching/views/match_result_views.xml",
     "plasticos_intake.view_plasticos_intake_form": "plasticos_intake/views/intake_views.xml",
     "plasticos_logistics.view_load_form": "plasticos_logistics/views/load_views.xml",
-    "plasticos_material_profile.view_material_profile_form": "plasticos_material_profile/views/material_profile_views.xml",
+    "plasticos_material_profile.view_material_profile_form": (
+        "plasticos_material_profile/views/material_profile_views.xml"
+    ),
 }
 
 
