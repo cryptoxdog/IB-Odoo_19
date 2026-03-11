@@ -33,7 +33,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install bandit
-        run: pip install bandit
+        run: pip install bandit==1.9.0
       - name: Run bandit (high confidence secrets)
         run: |
           bandit -r . -ll --exclude ./.venv,./node_modules,./.git,./plasticos_inference_engine,./plasticos_buyer_match_engine,./plasticos_matching
@@ -73,7 +73,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install semgrep
-        run: pip install semgrep
+        run: pip install semgrep==1.102.0
       - name: Run semgrep custom rules
         run: |
           semgrep --config .semgrep/ --error --exclude plasticos_inference_engine --exclude plasticos_buyer_match_engine --exclude plasticos_matching .
@@ -88,7 +88,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: SonarSource/sonarqube-scan-action@v6
         with:
           args: >
             -Dsonar.qualitygate.wait=true
