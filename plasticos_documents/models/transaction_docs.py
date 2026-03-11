@@ -27,18 +27,21 @@ class PlasticosTransactionDocs(models.Model):
         string="Missing Supplier Docs",
         compute="_compute_missing_doc_flags",
         store=True,
+        compute_sudo=True,
         help="True if any required supplier documents are missing.",
     )
     missing_carrier_docs = fields.Boolean(
         string="Missing Carrier Docs",
         compute="_compute_missing_doc_flags",
         store=True,
+        compute_sudo=True,
         help="True if any required carrier documents are missing.",
     )
     missing_buyer_docs = fields.Boolean(
         string="Missing Buyer Docs",
         compute="_compute_missing_doc_flags",
         store=True,
+        compute_sudo=True,
         help="True if any required buyer documents are missing.",
     )
     doc_reminder_count = fields.Integer(

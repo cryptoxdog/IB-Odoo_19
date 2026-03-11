@@ -224,9 +224,14 @@ class PlasticosTransaction(models.Model):
         string="Unit Type",
         help="Type of packaging unit for tare calculation.",
     )
+    tare_per_unit_override = fields.Float(
+        string="Tare Override (lbs)",
+        help="Manual override for tare per unit. When set, takes precedence over computed value.",
+    )
     tare_per_unit = fields.Float(
         string="Tare per Unit (lbs)",
         compute="_compute_tare_per_unit",
+        inverse="_inverse_tare_per_unit",
         store=True,
         readonly=False,
         help="Tare weight per unit. Auto-set by unit type, but editable.",
@@ -510,9 +515,11 @@ class PlasticosTransaction(models.Model):
     # Weight Reconciliation Computed Methods
     # ══════════════════════════════════════════════════════════════
 
-    @api.depends("unit_type")
+    @api.depends("unit_type", "tare_per_unit_override")
     def _compute_tare_per_unit(self):
         """Set default tare weight based on unit type.
+
+        If tare_per_unit_override is set, use that value instead of the default.
 
         Defaults:
         - bale: 0 lbs (no tare)
@@ -529,10 +536,17 @@ class PlasticosTransaction(models.Model):
             "super_sack": 0.0,
         }
         for rec in self:
-            if rec.unit_type:
+            if rec.tare_per_unit_override:
+                rec.tare_per_unit = rec.tare_per_unit_override
+            elif rec.unit_type:
                 rec.tare_per_unit = tare_defaults.get(rec.unit_type, 0.0)
             else:
                 rec.tare_per_unit = 0.0
+
+    def _inverse_tare_per_unit(self):
+        """Store user-edited tare value in the override field."""
+        for rec in self:
+            rec.tare_per_unit_override = rec.tare_per_unit
 
     @api.depends("unit_count", "tare_per_unit")
     def _compute_total_tare(self):

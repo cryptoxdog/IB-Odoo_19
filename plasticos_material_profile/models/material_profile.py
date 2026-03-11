@@ -517,6 +517,22 @@ class PlasticosMaterialProfile(models.Model):
             if not rec.partner_id.parent_id:
                 raise ValidationError("Material profiles can only attach to facility-level partners.")
 
+    @api.constrains("density_min", "density_max")
+    def _check_density_range(self):
+        """Validate density_min <= density_max when both are set."""
+        for rec in self:
+            if rec.density_min and rec.density_max and rec.density_min > rec.density_max:
+                raise ValidationError(
+                    f"Density min ({rec.density_min}) cannot be greater than max ({rec.density_max})."
+                )
+
+    @api.constrains("mfi_min", "mfi_max")
+    def _check_mfi_range(self):
+        """Validate mfi_min <= mfi_max when both are set."""
+        for rec in self:
+            if rec.mfi_min and rec.mfi_max and rec.mfi_min > rec.mfi_max:
+                raise ValidationError(f"MFI min ({rec.mfi_min}) cannot be greater than max ({rec.mfi_max}).")
+
     # ═════════════════════════════════════════════════════════
     # CRUD
     # ═════════════════════════════════════════════════════════
