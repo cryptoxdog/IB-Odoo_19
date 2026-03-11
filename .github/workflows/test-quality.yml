@@ -3,10 +3,15 @@ name: Test Quality Gate
 
 on: [push, pull_request]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Fast checks that run on every push (no Odoo required)
   static-checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
 
@@ -20,10 +25,12 @@ jobs:
           pip install "ruff==0.15.5" pytest
 
       - name: Ruff lint
+        timeout-minutes: 2
         run: |
           ruff check . --exclude docs/
 
       - name: Ruff format check
+        timeout-minutes: 2
         run: |
           ruff format --check . --exclude docs/
 
