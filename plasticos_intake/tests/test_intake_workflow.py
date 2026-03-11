@@ -9,9 +9,16 @@ Tests cover:
 - Reset to draft behavior
 """
 
+import uuid
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests import tagged
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
 
 @tagged("post_install", "-at_install")
@@ -25,7 +32,7 @@ class TestIntakeWorkflow(PlasticosTestCase):
         cls.polymer_hdpe = cls.env["plasticos.polymer"].create(
             {
                 "name": "HDPE",
-                "code": "hdpe_test_intake",
+                "code": _unique_code("HDPE"),
                 "full_name": "High-Density Polyethylene",
                 "category": "commodity",
             }
@@ -33,13 +40,13 @@ class TestIntakeWorkflow(PlasticosTestCase):
         cls.form_bales = cls.env["plasticos.material.form"].create(
             {
                 "name": "Bales",
-                "code": "bales_test_intake",
+                "code": _unique_code("BALES"),
             }
         )
         cls.color_natural = cls.env["plasticos.material.color"].create(
             {
                 "name": "Natural",
-                "code": "natural_test_intake",
+                "code": _unique_code("NAT"),
             }
         )
         cls.supplier = cls.env["res.partner"].create(

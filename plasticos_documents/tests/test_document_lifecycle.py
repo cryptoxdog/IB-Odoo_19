@@ -14,11 +14,17 @@ Tests cover:
 - Document unlink triggers transaction compliance recompute
 """
 
+import uuid
 from datetime import date, timedelta
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests import tagged
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
 
 @tagged("post_install", "-at_install")
@@ -31,7 +37,7 @@ class TestDocumentLifecycle(PlasticosTestCase):
         cls.tag = cls.env["plasticos.document.tag"].create(
             {
                 "name": "Bill of Lading",
-                "code": "bol_test",
+                "code": _unique_code("BOL"),
             }
         )
         cls.partner = cls.env["res.partner"].create(
@@ -140,13 +146,13 @@ class TestComplianceServiceLifecycle(PlasticosTestCase):
         cls.tag_bol = cls.env["plasticos.document.tag"].create(
             {
                 "name": "BOL Compliance",
-                "code": "bol_compliance_test",
+                "code": _unique_code("BOL"),
             }
         )
         cls.tag_coa = cls.env["plasticos.document.tag"].create(
             {
                 "name": "COA Compliance",
-                "code": "coa_compliance_test",
+                "code": _unique_code("COA"),
             }
         )
         cls.supplier = cls.env["res.partner"].create(
@@ -291,7 +297,7 @@ class TestDocumentValidationMatrix(PlasticosTestCase):
         cls.tag = cls.env["plasticos.document.tag"].create(
             {
                 "name": "Matrix Tag",
-                "code": "matrix_tag_test",
+                "code": _unique_code("MATRIX"),
             }
         )
 
@@ -322,17 +328,18 @@ class TestDocumentTag(PlasticosTestCase):
 
     def test_unique_code_constraint(self):
         """Duplicate tag code raises integrity error."""
+        unique_code = _unique_code("TAG")
         self.env["plasticos.document.tag"].create(
             {
                 "name": "Tag A",
-                "code": "unique_code_test",
+                "code": unique_code,
             }
         )
         try:
             self.env["plasticos.document.tag"].create(
                 {
                     "name": "Tag B",
-                    "code": "unique_code_test",
+                    "code": unique_code,
                 }
             )
         except Exception:

@@ -8,8 +8,15 @@ Tests cover:
 - action_create_products batch action
 """
 
+import uuid
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests import tagged
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
 
 @tagged("post_install", "-at_install")
@@ -26,7 +33,7 @@ class TestPolymerProductSync(PlasticosTestCase):
         polymer = self.Polymer.create(
             {
                 "name": "ABS-Product",
-                "code": "abs_product_test",
+                "code": _unique_code("ABS"),
                 "full_name": "Acrylonitrile Butadiene Styrene",
                 "category": "commodity",
             }
@@ -40,7 +47,7 @@ class TestPolymerProductSync(PlasticosTestCase):
         polymer = self.Polymer.create(
             {
                 "name": "PET-Product",
-                "code": "pet_product_test",
+                "code": _unique_code("PET"),
                 "full_name": "Polyethylene Terephthalate",
                 "category": "commodity",
             }
@@ -52,7 +59,7 @@ class TestPolymerProductSync(PlasticosTestCase):
         polymer = self.Polymer.create(
             {
                 "name": "OLD-NAME",
-                "code": "sync_test",
+                "code": _unique_code("SYNC"),
                 "full_name": "Old Polymer",
                 "category": "commodity",
             }
@@ -65,7 +72,7 @@ class TestPolymerProductSync(PlasticosTestCase):
         polymer = self.Polymer.create(
             {
                 "name": "IDEM",
-                "code": "idem_test",
+                "code": _unique_code("IDEM"),
                 "full_name": "Idempotent Test",
                 "category": "commodity",
             }
@@ -79,7 +86,7 @@ class TestPolymerProductSync(PlasticosTestCase):
         p1 = self.Polymer.create(
             {
                 "name": "BATCH1",
-                "code": "batch1_test",
+                "code": _unique_code("BATCH"),
                 "full_name": "Batch 1",
                 "category": "commodity",
             }

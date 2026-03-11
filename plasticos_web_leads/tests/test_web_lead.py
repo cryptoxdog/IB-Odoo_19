@@ -10,8 +10,15 @@ Tests cover:
 - Navigation actions
 """
 
+import uuid
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests import tagged
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
 
 @tagged("post_install", "-at_install")
@@ -88,7 +95,7 @@ class TestWebLead(PlasticosTestCase):
         polymer = self.env["plasticos.polymer"].create(
             {
                 "name": "PP-WL",
-                "code": "pp_wl_test",
+                "code": _unique_code("PP"),
                 "full_name": "Polypropylene",
                 "category": "commodity",
             }

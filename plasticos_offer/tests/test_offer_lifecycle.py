@@ -9,11 +9,17 @@ Tests cover:
 - Cron auto-expire past valid_until
 """
 
+import uuid
 from datetime import date, timedelta
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests import tagged
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
 
 @tagged("post_install", "-at_install")
@@ -26,7 +32,7 @@ class TestOfferLifecycle(PlasticosTestCase):
         cls.polymer = cls.env["plasticos.polymer"].create(
             {
                 "name": "PP",
-                "code": "pp_test_offer",
+                "code": _unique_code("PP"),
                 "full_name": "Polypropylene",
                 "category": "commodity",
             }

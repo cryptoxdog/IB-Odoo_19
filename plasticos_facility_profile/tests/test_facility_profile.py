@@ -10,9 +10,16 @@ Tests cover:
 - Melt index range constraint
 """
 
+import uuid
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
 
 @tagged("post_install", "-at_install")
@@ -37,7 +44,7 @@ class TestFacilityProfile(PlasticosTestCase):
         cls.polymer_pp = cls.env["plasticos.polymer"].create(
             {
                 "name": "PP-FP",
-                "code": "pp_fp_test",
+                "code": _unique_code("PP"),
                 "full_name": "Polypropylene",
                 "category": "commodity",
             }
@@ -185,10 +192,11 @@ class TestFacilityProfile(PlasticosTestCase):
 
     def test_form_preference_computed(self):
         """form_preference code computed from form_preference_id."""
+        form_code = _unique_code("BALES")
         form = self.env["plasticos.material.form"].create(
             {
                 "name": "Bales FP",
-                "code": "bales_fp_test",
+                "code": form_code,
             }
         )
         profile = self.env["plasticos.facility.profile"].create(
@@ -197,7 +205,7 @@ class TestFacilityProfile(PlasticosTestCase):
                 "form_preference_id": form.id,
             }
         )
-        self.assertEqual(profile.form_preference, "bales_fp_test")
+        self.assertEqual(profile.form_preference, form_code)
 
     def test_form_preference_false_when_empty(self):
         """form_preference is False when form_preference_id not set."""

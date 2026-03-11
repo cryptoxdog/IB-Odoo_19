@@ -7,8 +7,15 @@ Tests cover:
 - Empty fields produce minimal description
 """
 
+import uuid
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests import tagged
+
+
+def _unique_code(prefix="TEST"):
+    """Generate a unique code for testing."""
+    return f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
 
 
 @tagged("post_install", "-at_install")
@@ -21,7 +28,7 @@ class TestSaleOrderLineMaterialDescription(PlasticosTestCase):
         cls.polymer = cls.env["plasticos.polymer"].create(
             {
                 "name": "HDPE-OL",
-                "code": "hdpe_ol_test",
+                "code": _unique_code("HDPE"),
                 "full_name": "High-Density Polyethylene",
                 "category": "commodity",
             }
@@ -33,19 +40,19 @@ class TestSaleOrderLineMaterialDescription(PlasticosTestCase):
         cls.color = cls.env["plasticos.material.color"].create(
             {
                 "name": "Blue OL",
-                "code": "blue_ol",
+                "code": _unique_code("BLUE"),
             }
         )
         cls.form = cls.env["plasticos.material.form"].create(
             {
                 "name": "Regrind OL",
-                "code": "regrind_ol",
+                "code": _unique_code("REGRIND"),
             }
         )
         cls.packaging = cls.env["plasticos.packaging.type"].create(
             {
                 "name": "Gaylords",
-                "code": "gaylords_ol",
+                "code": _unique_code("GAYLORD"),
             }
         )
         cls.source_type = cls.env["plasticos.source.type"].create(
