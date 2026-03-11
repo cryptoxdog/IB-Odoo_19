@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install tools
-        run: pip install ruff
+        run: pip install "ruff==0.3.0"
       - name: Ruff lint
         run: ruff check --select E,F,W --exclude plasticos_inference_engine,plasticos_buyer_match_engine,plasticos_matching .
       - name: Ruff complexity check (warn until backlog cleared)
@@ -82,6 +82,7 @@ jobs:
   sonarcloud:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
+    continue-on-error: true  # Disabled: conflicts with SonarCloud Automatic Analysis
     steps:
       - uses: actions/checkout@v4
         with:

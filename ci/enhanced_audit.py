@@ -4,6 +4,7 @@ Odoo Comprehensive Bug Audit (Production Version)
 Enhanced with core module whitelist and smarter heuristics.
 """
 
+import ast
 import json
 import re
 from collections import defaultdict
@@ -134,7 +135,7 @@ class EnhancedFieldAudit:
 
             with open(manifest, encoding="utf-8") as f:
                 try:
-                    manifest_data = eval(f.read())
+                    manifest_data = ast.literal_eval(f.read())
                     self.modules[module_name] = {
                         "path": module_dir,
                         "depends": manifest_data.get("depends", []),

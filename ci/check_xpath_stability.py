@@ -133,7 +133,7 @@ def analyze_xml_file(file_path: Path) -> list[Finding]:
     findings = []
 
     try:
-        tree = ET.parse(file_path)
+        tree = ET.parse(file_path)  # nosec B314 - parsing trusted local Odoo XML
         root = tree.getroot()
     except ET.ParseError as e:
         return [
