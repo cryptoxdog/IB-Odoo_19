@@ -1,0 +1,94 @@
+name: Odoo Quality Gates
+
+on:
+  pull_request:
+    branches: [staging, main]
+  push:
+    branches: [staging, main]
+
+jobs:
+  python-lint:
+    name: Python Lint & Complexity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install tools
+        run: pip install ruff
+      - name: Ruff lint
+        run: ruff check --select E,F,W,C901 --max-complexity 15 --exclude plasticos_inference_engine,plasticos_buyer_match_engine,plasticos_matching .
+      - name: Ruff format check
+        run: ruff format --check --exclude plasticos_inference_engine,plasticos_buyer_match_engine,plasticos_matching .
+
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install bandit
+        run: pip install bandit
+      - name: Run bandit (high confidence secrets)
+        run: |
+          bandit -r . -ll --exclude ./.venv,./node_modules,./.git,./plasticos_inference_engine,./plasticos_buyer_match_engine,./plasticos_matching
+
+  shellcheck:
+    name: Shell Script Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+      - name: Run shellcheck
+        run: |
+          find . -name "*.sh" -not -path "./.git/*" | xargs --no-run-if-empty shellcheck --severity=warning
+
+  xml-lint:
+    name: Odoo XML Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install xmllint
+        run: sudo apt-get install -y libxml2-utils
+      - name: Validate XML files
+        run: |
+          find . -name "*.xml" -not -path "./.git/*" | while read f; do
+            xmllint --noout "$f" 2>&1 || echo "INVALID XML: $f"
+          done
+          # Fail if any invalid XML found
+          find . -name "*.xml" -not -path "./.git/*" | xargs --no-run-if-empty xmllint --noout
+
+  odoo-patterns:
+    name: Odoo Code Patterns (semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install semgrep
+        run: pip install semgrep
+      - name: Run semgrep custom rules
+        run: |
+          semgrep --config .semgrep/ --error --exclude plasticos_inference_engine --exclude plasticos_buyer_match_engine --exclude plasticos_matching .
+        continue-on-error: true  # warn only until rules are tuned
+
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        with:
+          args: >
+            -Dsonar.qualitygate.wait=true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

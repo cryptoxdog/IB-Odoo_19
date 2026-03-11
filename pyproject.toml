@@ -33,6 +33,7 @@ select = [
     "I",      # isort
     "B",      # flake8-bugbear
     "UP",     # pyupgrade
+    "C901",   # mccabe complexity gate
 ]
 
 ignore = [
@@ -41,6 +42,9 @@ ignore = [
     "B008",   # function call in default arg (Odoo fields pattern)
     "B905",   # zip without strict (Python 3.10+)
 ]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
 
 [tool.ruff.lint.isort]
 known-first-party = [
