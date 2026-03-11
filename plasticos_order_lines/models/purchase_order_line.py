@@ -71,16 +71,6 @@ class PurchaseOrderLine(models.Model):
         help="Full material description: Polymer Color Form - Packaging - Source - Attributes",
     )
 
-    @api.depends(
-        "product_id",
-        "product_id.polymer_id",
-        "color_id",
-        "form_id",
-        "packaging_type_id",
-        "source_type_id",
-        "filler_type_id",
-        "material_attribute_ids",
-    )
     def _build_main_description_part(self, line):
         """Build space-separated main part: Polymer Color Filler Form."""
         parts = []
@@ -105,6 +95,16 @@ class PurchaseOrderLine(models.Model):
             extras.append(", ".join(line.material_attribute_ids.mapped("name")))
         return extras
 
+    @api.depends(
+        "product_id",
+        "product_id.polymer_id",
+        "color_id",
+        "form_id",
+        "packaging_type_id",
+        "source_type_id",
+        "filler_type_id",
+        "material_attribute_ids",
+    )
     def _compute_material_description(self):
         """
         Build full description: HDPE Blue Glass Filled Regrind - Gaylords - Post-Industrial - Clean
