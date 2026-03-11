@@ -3,8 +3,22 @@
 Provides PlasticosTestCase with pre-created master data (partner, polymer, form, etc.)
 to avoid NOT NULL and UniqueViolation failures across plasticos test modules.
 """
+from __future__ import annotations
 
-from odoo.tests import TransactionCase
+# Odoo 19 guard: importing odoo.tests outside --test-enable logs an ERROR at
+# startup and causes Odoo.sh to mark the build as failed.
+# We use odoo.tools.config to detect test mode and fall back to unittest.TestCase
+# so this module is safely importable during normal module loading.
+try:
+    import odoo.tools.config as _odoo_config
+    _test_mode = _odoo_config.get('test_enable') or _odoo_config.get('test_file')
+except Exception:
+    _test_mode = False
+
+if _test_mode:
+    from odoo.tests.common import TransactionCase
+else:
+    from unittest import TestCase as TransactionCase  # type: ignore[assignment]
 
 
 class PlastOSTestFactoryMixin:
