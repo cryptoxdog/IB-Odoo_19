@@ -491,18 +491,29 @@ class EnrichmentService(models.AbstractModel):
 
     def _invoke_extraction_api(self, source):
         """Call OpenAI-compatible API for structured extraction."""
+        import os
+
         # sudo: ir.config_parameter requires elevated access to read system params
         ICP = self.env["ir.config_parameter"].sudo()
-        endpoint = ICP.get_param("plasticos.enrichment.api_endpoint")
-        api_key = ICP.get_param("plasticos.enrichment.api_key")
+        endpoint = ICP.get_param("plasticos.enrichment.api_endpoint") or os.environ.get(
+            "PLASTICOS_ENRICHMENT_API_ENDPOINT", "https://api.openai.com/v1/chat/completions"
+        )
+        api_key = ICP.get_param("plasticos.enrichment.api_key") or os.environ.get("OPENAI_API_KEY")
         model_name = ICP.get_param(
             "plasticos.enrichment.model",
-            "gpt-4o",
+            os.environ.get("PLASTICOS_ENRICHMENT_MODEL", "gpt-4o"),
         )
 
         if not endpoint:
             raise UserError(
-                "Extraction API endpoint not configured. Set system parameter: plasticos.enrichment.api_endpoint"
+                "Extraction API endpoint not configured. Set system parameter: plasticos.enrichment.api_endpoint "
+                "or environment variable: PLASTICOS_ENRICHMENT_API_ENDPOINT"
+            )
+
+        if not api_key:
+            raise UserError(
+                "Extraction API key not configured. Set system parameter: plasticos.enrichment.api_key "
+                "or environment variable: OPENAI_API_KEY"
             )
 
         system_prompt = (

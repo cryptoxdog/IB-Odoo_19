@@ -1,3 +1,7 @@
+import uuid
+
+from psycopg2 import IntegrityError
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
@@ -10,12 +14,19 @@ class TestPlasticosCommissionRuleBridge(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # TODO: Setup test data
+        cls.test_sales_rep = cls.env["res.users"].create(
+            {
+                "name": "Test Sales Rep Bridge",
+                "login": f"test_sales_rep_bridge_{uuid.uuid4().hex[:6]}",
+            }
+        )
 
     def _create_rule(self, **kwargs):
         """Helper to create plasticos.commission.rule with defaults"""
         vals = {
-            # TODO: Add required fields
+            "name": f"Test Rule {uuid.uuid4().hex[:6]}",
+            "sales_rep_id": self.test_sales_rep.id,
+            "percentage": 0.05,
         }
         vals.update(kwargs)
         return self.env["plasticos.commission.rule"].create(vals)
@@ -29,22 +40,35 @@ class TestPlasticosCommissionRuleBridge(PlasticosTestCase):
         record = self._create_rule()
 
         self.assertTrue(record.exists())
-        # TODO: Add specific assertions
+        self.assertTrue(record.name)
+        self.assertTrue(record.sales_rep_id)
+        self.assertGreaterEqual(record.percentage, 0.0)
 
     def test_constraint_name_required(self):
-        """Test name is required"""
-        with self.assertRaises(ValidationError):
+        """Test name is required (explicitly pass False to override default)"""
+        raised = False
+        try:
             self.env["plasticos.commission.rule"].create(
                 {
-                    # TODO: Add other required fields except name
+                    "name": False,
+                    "sales_rep_id": self.test_sales_rep.id,
+                    "percentage": 0.05,
                 }
             )
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
 
     def test_constraint_sales_rep_id_required(self):
         """Test sales_rep_id is required"""
-        with self.assertRaises(ValidationError):
+        raised = False
+        try:
             self.env["plasticos.commission.rule"].create(
                 {
-                    # TODO: Add other required fields except sales_rep_id
+                    "name": "No Sales Rep Rule",
+                    "percentage": 0.05,
                 }
             )
+        except (ValidationError, IntegrityError):
+            raised = True
+        self.assertTrue(raised, "Expected exception was not raised")
