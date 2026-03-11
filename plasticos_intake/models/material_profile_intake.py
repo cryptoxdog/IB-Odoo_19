@@ -6,10 +6,10 @@ plasticos.material.profile. The extension lives here (in plasticos_intake)
 rather than in plasticos_material_profile to avoid circular dependencies.
 """
 
-
 from odoo import fields, models
 
 PLASTICOS_INTAKE = "plasticos.intake"
+
 
 class PlasticosMaterialProfileIntake(models.Model):
     """Add intake-related fields and actions to material profile."""

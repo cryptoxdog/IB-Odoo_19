@@ -204,9 +204,17 @@ class PlasticosCRMLeadImportService(models.AbstractModel):
         return country_id, state_id, stage_id, source_id, user_id, tag_ids
 
     def _build_lead_vals(
-        self, row, company, contact_name,
-        country_id, state_id, stage_id,
-        source_id, user_id, contact_id, tag_ids,
+        self,
+        row,
+        company,
+        contact_name,
+        country_id,
+        state_id,
+        stage_id,
+        source_id,
+        user_id,
+        contact_id,
+        tag_ids,
     ):
         """Build crm.lead create-vals dict from resolved row fields."""
         vals = {
@@ -254,9 +262,16 @@ class PlasticosCRMLeadImportService(models.AbstractModel):
         contact_name = " ".join(filter(None, [first, last]))
 
         vals = self._build_lead_vals(
-            row, company, contact_name,
-            country_id, state_id, stage_id,
-            source_id, user_id, contact_id, tag_ids,
+            row,
+            company,
+            contact_name,
+            country_id,
+            state_id,
+            stage_id,
+            source_id,
+            user_id,
+            contact_id,
+            tag_ids,
         )
         lead = self.env["crm.lead"].create(vals)
         return lead

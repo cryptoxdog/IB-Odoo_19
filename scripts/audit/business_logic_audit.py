@@ -10,6 +10,7 @@ from pathlib import Path
 
 MODELS_GLOB = "models/*.py"
 
+
 class BusinessLogicAudit:
     def __init__(self, root_dir="."):
         self.root_dir = Path(root_dir)

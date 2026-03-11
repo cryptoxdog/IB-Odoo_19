@@ -35,6 +35,7 @@ GREEN = "\033[0;32m"
 YELLOW = "\033[1;33m"
 CYAN = "\033[0;36m"
 
+
 def get_git_tracked_files(pattern: str = "") -> list[Path]:
     """Get git-tracked files matching pattern."""
     try:
@@ -45,6 +46,7 @@ def get_git_tracked_files(pattern: str = "") -> list[Path]:
         return [Path(f) for f in result.stdout.strip().split("\n") if f]
     except subprocess.CalledProcessError:
         return []
+
 
 def get_git_tracked_dirs(pattern: str = PLASTICOS_GLOB) -> list[Path]:
     """Get git-tracked directories matching pattern."""
@@ -64,6 +66,7 @@ def get_git_tracked_dirs(pattern: str = PLASTICOS_GLOB) -> list[Path]:
         return sorted(dirs)
     except subprocess.CalledProcessError:
         return []
+
 
 # ANSI colors
 NC = "\033[0m"  # No Color
@@ -173,6 +176,7 @@ CORE_ODOO_MODULES = {
     ],
 }
 
+
 def parse_manifest(module_path: Path) -> dict[str, Any] | None:
     """Parse __manifest__.py and return its contents."""
     manifest_path = module_path / "__manifest__.py"
@@ -186,6 +190,7 @@ def parse_manifest(module_path: Path) -> dict[str, Any] | None:
     except (SyntaxError, ValueError) as e:
         print(f"{YELLOW}Warning: Could not parse {manifest_path}: {e}{NC}")
         return None
+
 
 def find_model_definitions(module_path: Path) -> dict[str, str]:
     """
@@ -212,6 +217,7 @@ def find_model_definitions(module_path: Path) -> dict[str, str]:
             continue
 
     return models
+
 
 def find_model_references(module_path: Path) -> dict[str, list[tuple[str, int, str]]]:
     """
@@ -285,6 +291,7 @@ def find_model_references(module_path: Path) -> dict[str, list[tuple[str, int, s
 
     return references
 
+
 def build_model_registry(workspace: Path) -> dict[str, str]:
     """
     Build a registry mapping model names to their providing modules.
@@ -319,6 +326,7 @@ def build_model_registry(workspace: Path) -> dict[str, str]:
 
     return registry
 
+
 def get_transitive_dependencies(
     module_name: str,
     all_manifests: dict[str, dict],
@@ -344,6 +352,7 @@ def get_transitive_dependencies(
             deps.update(get_transitive_dependencies(dep, all_manifests, visited))
 
     return deps
+
 
 def check_init_imports(module_path: Path) -> list[dict]:
     """
@@ -475,6 +484,7 @@ def check_init_imports(module_path: Path) -> list[dict]:
 
     return errors
 
+
 def check_module_wiring(
     module_path: Path,
     model_registry: dict[str, str],
@@ -547,6 +557,7 @@ def check_module_wiring(
                 )
 
     return errors
+
 
 def main() -> int:
     """Main entry point."""
@@ -693,6 +704,7 @@ def main() -> int:
     else:
         print(f"{GREEN}✅ All module wiring checks passed{NC}")
         return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

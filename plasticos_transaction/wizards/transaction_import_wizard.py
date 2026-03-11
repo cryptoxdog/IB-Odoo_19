@@ -4,7 +4,6 @@ Transaction Import Wizard
 Import transactions from cieTrade WksDetail CSV export.
 """
 
-
 import base64
 import csv
 import io
@@ -211,9 +210,7 @@ class TransactionImportWizard(models.TransientModel):
         """Return a set of transaction references already in the database."""
         if not self.skip_existing:
             return set()
-        return set(
-            self.env[PLASTICOS_TRANSACTION].search([("name", "in", list(transactions.keys()))]).mapped("name")
-        )
+        return set(self.env[PLASTICOS_TRANSACTION].search([("name", "in", list(transactions.keys()))]).mapped("name"))
 
     def _import_single_transaction(self, ref, lines, Transaction, TransactionLine):
         """Create one transaction header and its line items; return the number of lines created."""
@@ -221,37 +218,41 @@ class TransactionImportWizard(models.TransientModel):
         total_purchase = sum(self._parse_float(l.get("PAmount", 0)) for l in lines)
         total_weight = sum(self._parse_float(l.get("SWeight", 0)) for l in lines)
 
-        tx = Transaction.create({
-            "name": ref,
-            "state": "closed",  # Historical data
-            "historical_sale_total": total_sale,
-            "historical_purchase_total": total_purchase,
-            "expected_weight": total_weight,
-            "actual_weight": total_weight,
-        })
+        tx = Transaction.create(
+            {
+                "name": ref,
+                "state": "closed",  # Historical data
+                "historical_sale_total": total_sale,
+                "historical_purchase_total": total_purchase,
+                "expected_weight": total_weight,
+                "actual_weight": total_weight,
+            }
+        )
 
         for line_data in lines:
-            TransactionLine.create({
-                "transaction_id": tx.id,
-                "detail_id": self._parse_string(line_data.get("DetailID", "")),
-                "grade_id": self._parse_string(line_data.get("GradeID", "")),
-                "description": self._parse_string(line_data.get("InvoiceDesc", "")),
-                "sale_weight": self._parse_float(line_data.get("SWeight", 0)),
-                "sale_price": self._parse_float(line_data.get("SPrice", 0)),
-                "sale_amount": self._parse_float(line_data.get("SAmount", 0)),
-                "purchase_weight": self._parse_float(line_data.get("PWeight", 0)),
-                "purchase_price": self._parse_float(line_data.get("PPrice", 0)),
-                "purchase_amount": self._parse_float(line_data.get("PAmount", 0)),
-                "color": self._parse_string(line_data.get("Color", "")),
-                "container_no": self._parse_string(line_data.get("ContainerNo", "")),
-                "seal_no": self._parse_string(line_data.get("SealNo", "")),
-                "sale_po": self._parse_string(line_data.get("SPo", "")),
-                "purchase_po": self._parse_string(line_data.get("PPo", "")),
-                "specifications": self._parse_string(line_data.get("Specifications", "")),
-                "condition": self._parse_string(line_data.get("Condition", "")),
-                "unit_type": self._parse_string(line_data.get("UnitType", "")),
-                "units": self._parse_float(line_data.get("Units", 0)),
-            })
+            TransactionLine.create(
+                {
+                    "transaction_id": tx.id,
+                    "detail_id": self._parse_string(line_data.get("DetailID", "")),
+                    "grade_id": self._parse_string(line_data.get("GradeID", "")),
+                    "description": self._parse_string(line_data.get("InvoiceDesc", "")),
+                    "sale_weight": self._parse_float(line_data.get("SWeight", 0)),
+                    "sale_price": self._parse_float(line_data.get("SPrice", 0)),
+                    "sale_amount": self._parse_float(line_data.get("SAmount", 0)),
+                    "purchase_weight": self._parse_float(line_data.get("PWeight", 0)),
+                    "purchase_price": self._parse_float(line_data.get("PPrice", 0)),
+                    "purchase_amount": self._parse_float(line_data.get("PAmount", 0)),
+                    "color": self._parse_string(line_data.get("Color", "")),
+                    "container_no": self._parse_string(line_data.get("ContainerNo", "")),
+                    "seal_no": self._parse_string(line_data.get("SealNo", "")),
+                    "sale_po": self._parse_string(line_data.get("SPo", "")),
+                    "purchase_po": self._parse_string(line_data.get("PPo", "")),
+                    "specifications": self._parse_string(line_data.get("Specifications", "")),
+                    "condition": self._parse_string(line_data.get("Condition", "")),
+                    "unit_type": self._parse_string(line_data.get("UnitType", "")),
+                    "units": self._parse_float(line_data.get("Units", 0)),
+                }
+            )
         return len(lines)
 
     def _build_import_result_message(self, created_tx, created_lines, skipped_tx, errors):

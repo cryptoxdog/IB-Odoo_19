@@ -168,13 +168,11 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         migrated = 0
         errors = []
         new_names = set(
-            IrModelData.search(
-                [("module", "=", "plasticos_partner_import"), ("model", "=", RES_PARTNER)]
-            ).mapped("name")
+            IrModelData.search([("module", "=", "plasticos_partner_import"), ("model", "=", RES_PARTNER)]).mapped(
+                "name"
+            )
         )
-        old_data = IrModelData.search(
-            [("module", "=", "plasticos_import"), ("model", "=", RES_PARTNER)]
-        )
+        old_data = IrModelData.search([("module", "=", "plasticos_import"), ("model", "=", RES_PARTNER)])
         for d in old_data:
             if d.name in new_names:
                 continue

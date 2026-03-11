@@ -207,8 +207,14 @@ def classify_lead(
     poly_lower = (polymer or "").lower().strip()
 
     cold_gates, is_plastic = _check_cold_gates(
-        poly_lower, mat_lower, src_lower, src_type_lower,
-        estimated_lbs, reject_materials, reject_sources, cold_max_lbs,
+        poly_lower,
+        mat_lower,
+        src_lower,
+        src_type_lower,
+        estimated_lbs,
+        reject_materials,
+        reject_sources,
+        cold_max_lbs,
     )
 
     if cold_gates:
@@ -219,7 +225,12 @@ def classify_lead(
         )
 
     hot_quals, is_commercial = _check_hot_qualifiers(
-        is_plastic, poly_lower, src_lower, src_type_lower, estimated_lbs, hot_min_lbs,
+        is_plastic,
+        poly_lower,
+        src_lower,
+        src_type_lower,
+        estimated_lbs,
+        hot_min_lbs,
     )
 
     if len(hot_quals) >= 3:
@@ -230,5 +241,10 @@ def classify_lead(
         )
 
     return _build_insufficient_cold_result(
-        hot_quals, is_plastic, poly_lower, is_commercial, hot_min_lbs, estimated_lbs,
+        hot_quals,
+        is_plastic,
+        poly_lower,
+        is_commercial,
+        hot_min_lbs,
+        estimated_lbs,
     )

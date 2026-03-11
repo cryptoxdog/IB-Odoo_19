@@ -313,8 +313,15 @@ class PlasticosPartnerImportService(models.AbstractModel):
         return "contact", "other"
 
     def _build_facility_vals(
-        self, facility_name, facility_type, parent,
-        partner_type, facility_role, row, state_id, country_id,
+        self,
+        facility_name,
+        facility_type,
+        parent,
+        partner_type,
+        facility_role,
+        row,
+        state_id,
+        country_id,
     ):
         """Build res.partner create-vals dict for a facility record."""
         address = {
@@ -373,8 +380,14 @@ class PlasticosPartnerImportService(models.AbstractModel):
         external_id = self._make_external_id("fac", f"{partner_name}_{alias or facility_type}_{row_num}")
 
         vals = self._build_facility_vals(
-            facility_name, facility_type, parent,
-            partner_type, facility_role, row, state_id, country_id,
+            facility_name,
+            facility_type,
+            parent,
+            partner_type,
+            facility_role,
+            row,
+            state_id,
+            country_id,
         )
         facility = self._upsert(RES_PARTNER, external_id, vals)
 

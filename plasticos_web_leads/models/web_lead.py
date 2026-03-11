@@ -561,18 +561,20 @@ class PlasticosWebLead(models.Model):
 
     def _write_classification_result(self, result, merged: dict, config, log_lines: list):
         """Persist classification result and route HOT/COLD processing (Steps 5–6)."""
-        self.write({
-            "decision": result.decision,
-            "decision_reasons": {
-                "reasons": result.reasons,
-                "cold_gates": result.cold_gates_triggered,
-                "hot_qualifiers": result.hot_qualifiers_met,
-            },
-            "ai_analysis": merged,
-            "estimated_lbs_per_load": merged.get("estimated_lbs", 0),
-            "estimated_loads_per_month": merged.get("loads_per_month", 0),
-            "frequency": merged.get("frequency", ""),
-        })
+        self.write(
+            {
+                "decision": result.decision,
+                "decision_reasons": {
+                    "reasons": result.reasons,
+                    "cold_gates": result.cold_gates_triggered,
+                    "hot_qualifiers": result.hot_qualifiers_met,
+                },
+                "ai_analysis": merged,
+                "estimated_lbs_per_load": merged.get("estimated_lbs", 0),
+                "estimated_loads_per_month": merged.get("loads_per_month", 0),
+                "frequency": merged.get("frequency", ""),
+            }
+        )
         if result.decision == "hot":
             log_lines.append("Step 5: Processing HOT lead → partner + intake...")
             self._process_hot_lead_triage(merged, config)
@@ -973,8 +975,11 @@ class PlasticosWebLead(models.Model):
 
     @staticmethod
     def _build_image_attachment_vals(
-        fname: str, content: bytes, content_type: str,
-        res_model: str, res_id: int,
+        fname: str,
+        content: bytes,
+        content_type: str,
+        res_model: str,
+        res_id: int,
     ) -> dict:
         """Build ir.attachment create-vals for a binary image."""
         return {
@@ -1010,8 +1015,11 @@ class PlasticosWebLead(models.Model):
                 if self.intake_id:
                     Attachment.create(
                         self._build_image_attachment_vals(
-                            fname, content, content_type,
-                            PLASTICOS_INTAKE, self.intake_id.id,
+                            fname,
+                            content,
+                            content_type,
+                            PLASTICOS_INTAKE,
+                            self.intake_id.id,
                         )
                     )
 
