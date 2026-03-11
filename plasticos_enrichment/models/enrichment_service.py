@@ -206,9 +206,15 @@ class EnrichmentService(models.AbstractModel):
         global _inference_engine
         if _inference_engine is None:
             InferenceEngine, _ = _get_inference_classes()
-            # Primary KB location: plasticos_inference_engine/knowledge_base_v8.0/
-            # This contains the full v8.0 KB set (22 polymers)
-            primary_kb_dir = Path(__file__).parent.parent.parent / "plasticos_inference_engine" / "knowledge_base_v8.0"
+            # Primary KB location: resolve via odoo.addons to avoid brittle
+            # relative parent-traversal that breaks if addon paths change.
+            try:
+                import importlib
+                _ie_module = importlib.import_module("odoo.addons.plasticos_inference_engine")
+                primary_kb_dir = Path(_ie_module.__file__).parent / "knowledge_base_v8.0"
+            except Exception:
+                # Fallback to legacy path traversal if import fails
+                primary_kb_dir = Path(__file__).parent.parent.parent / "plasticos_inference_engine" / "knowledge_base_v8.0"
             # Fallback: plasticos_enrichment/knowledge_base/ (legacy location)
             fallback_kb_dir = Path(__file__).parent.parent / "knowledge_base"
 
