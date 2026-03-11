@@ -84,9 +84,9 @@ class TestProcessEnumAlignment:
         assert fp_path.exists(), f"File not found: {fp_path}"
 
         source = fp_path.read_text()
-        assert "plasticos_facility_profile.process_codes import" in source, (
-            "facility_profile.py does not import from process_codes registry."
-        )
+        assert (
+            "plasticos_facility_profile.process_codes import" in source
+        ), "facility_profile.py does not import from process_codes registry."
         assert "PROCESS_SELECTION" in source, "facility_profile.py does not use PROCESS_SELECTION"
 
     def test_matcher_imports_registry(self):
@@ -95,9 +95,9 @@ class TestProcessEnumAlignment:
         assert matcher_path.exists(), f"File not found: {matcher_path}"
 
         source = matcher_path.read_text()
-        assert "plasticos_facility_profile.process_codes import" in source, (
-            "matcher.py does not import from process_codes registry."
-        )
+        assert (
+            "plasticos_facility_profile.process_codes import" in source
+        ), "matcher.py does not import from process_codes registry."
         assert "check_mfi_compatibility" in source, "matcher.py does not use check_mfi_compatibility"
 
     def test_no_hardcoded_process_literals_in_matcher(self):
@@ -109,9 +109,9 @@ class TestProcessEnumAlignment:
         for code in registry_codes:
             pattern = rf'["\']({code})["\']'
             matches = re.findall(pattern, source)
-            assert not matches, (
-                f"matcher.py contains hardcoded process literal '{code}'. Use process_codes registry instead."
-            )
+            assert (
+                not matches
+            ), f"matcher.py contains hardcoded process literal '{code}'. Use process_codes registry instead."
 
     def test_graph_service_process_alignment(self):
         """graph_service.py Cypher queries must use registry-aligned process codes."""
@@ -127,6 +127,7 @@ class TestProcessEnumAlignment:
 
         if cypher_matches:
             invalid = cypher_matches - registry_codes
-            assert not invalid, (
+            msg = (
                 f"graph_service.py Cypher uses process codes not in registry: {invalid}. Valid codes: {registry_codes}"
             )
+            assert not invalid, msg
