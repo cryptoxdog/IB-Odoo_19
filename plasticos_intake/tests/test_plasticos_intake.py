@@ -6,7 +6,7 @@ Target model:  plasticos.intake
 Tests creation, sequence generation, constraints, and onchange behavior.
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 

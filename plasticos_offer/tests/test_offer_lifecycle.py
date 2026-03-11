@@ -11,7 +11,7 @@ Tests cover:
 
 from datetime import date, timedelta
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests import tagged
 

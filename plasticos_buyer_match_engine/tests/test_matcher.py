@@ -12,7 +12,7 @@ SCHEMA ALIGNMENT (2026-02-25):
 
 import logging
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)

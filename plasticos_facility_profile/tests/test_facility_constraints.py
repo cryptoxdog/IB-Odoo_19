@@ -5,7 +5,7 @@ Test facility profile constraints.
 - melt_index_min < melt_index_max
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 

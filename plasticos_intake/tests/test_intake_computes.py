@@ -8,7 +8,7 @@ Tests 8 computed fields:
 - match_count, selected_count, best_match_score
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests import tagged
 
 

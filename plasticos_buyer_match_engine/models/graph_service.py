@@ -85,8 +85,7 @@ class PlasticosGraphService(models.AbstractModel):
             return {
                 "success": False,
                 "message": (
-                    "Neo4j URI not configured. Set plasticos_graph.neo4j_uri "
-                    "in System Parameters or NEO4J_URI env var."
+                    "Neo4j URI not configured. Set plasticos_graph.neo4j_uri in System Parameters or NEO4J_URI env var."
                 ),
                 "uri": "",
             }

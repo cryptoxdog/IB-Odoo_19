@@ -13,7 +13,7 @@ should be significantly better than these thresholds.
 
 import time
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import tagged
 
 

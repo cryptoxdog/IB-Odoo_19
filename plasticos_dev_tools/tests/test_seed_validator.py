@@ -3,7 +3,7 @@
 # Module: plasticos_dev_tools
 # Purpose: Odoo test wrapper for seed data validation
 # ============================================================
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests import tagged
 
 

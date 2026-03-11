@@ -7,7 +7,7 @@ Validates: override > rule > 0.0 priority, edge cases,
 commission_rule percentage constraint.
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 

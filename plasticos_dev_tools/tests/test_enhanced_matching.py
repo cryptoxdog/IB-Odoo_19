@@ -7,7 +7,7 @@ which form the core of the buyer matching system.
 Migrated from legacy plastic_ai.* namespace to plasticos.* namespace.
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests import tagged
 

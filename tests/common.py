@@ -1,6 +1,6 @@
 """Shared test utilities for PlastOS test suite.
 
-Factory mixins and PlasticosTestCase live in plasticos_base.tests.common.
+Factory mixins and PlasticosTestCase live in plasticos_base.test_common.
 This module keeps assertion helpers for action/state tests.
 """
 

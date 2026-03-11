@@ -3,7 +3,7 @@ Skeleton smoke tests for plasticos_buyer_match_engine.
 Validates module install, model registry, and basic record CRUD.
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests import tagged
 
 

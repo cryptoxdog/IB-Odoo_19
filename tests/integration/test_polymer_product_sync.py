@@ -9,7 +9,7 @@ Validates:
   - Polymer-to-product sync hook exists
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import tagged
 
 
@@ -94,7 +94,7 @@ class TestPolymerProductSync(PlasticosTestCase):
         # Soft assertion: warn if no product found
         if not product:
             self.skipTest(
-                "Polymer create did not auto-create product. " "This may be expected if sync is lazy/cron-based."
+                "Polymer create did not auto-create product. This may be expected if sync is lazy/cron-based."
             )
         else:
             self.assertIn("TestSync-LDPE", product.name)

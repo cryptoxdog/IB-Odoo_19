@@ -7,7 +7,7 @@ States: draft → awaiting_ready → ready_confirmed → rate_confirmed →
         scheduled → dispatched → picked_up → delivered → closed | exception
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests.common import tagged
 

@@ -6,7 +6,7 @@ Test transaction CRUD operations.
 - unlink protection on posted
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests import tagged
 

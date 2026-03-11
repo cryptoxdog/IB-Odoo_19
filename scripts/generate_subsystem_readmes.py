@@ -400,7 +400,7 @@ def main() -> int:
     if args.list:
         print("## Subsystems")
         for sid, s in subsystems.items():
-            print(f"  - {sid} (tier={s.get('tier','?')})")
+            print(f"  - {sid} (tier={s.get('tier', '?')})")
         print(f"\nCore docs found: {list(core_docs.keys())}")
         return 0
 

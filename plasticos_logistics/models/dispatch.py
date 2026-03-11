@@ -50,8 +50,7 @@ class PlasticosDispatch(models.Model):
                 if not allowed:
                     raise UserError(f"Dispatch is in terminal state '{rec.state}' and cannot be transitioned.")
                 raise UserError(
-                    f"Cannot transition from '{rec.state}' to '{new_state}'. "
-                    f"Allowed transitions: {', '.join(allowed)}."
+                    f"Cannot transition from '{rec.state}' to '{new_state}'. Allowed transitions: {', '.join(allowed)}."
                 )
 
             correlation_id = new_correlation_id()

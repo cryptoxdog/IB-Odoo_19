@@ -248,7 +248,7 @@ class PlasticosMaterialProfile(models.Model):
         string="Contains Flame Retardant",
         default=False,
         tracking=True,
-        help="Material contains flame retardant compounds. " "Restricted material with limited buyer pool.",
+        help="Material contains flame retardant compounds. Restricted material with limited buyer pool.",
     )
 
     # ── Volume ───────────────────────────────────────────────

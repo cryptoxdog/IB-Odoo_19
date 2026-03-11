@@ -32,7 +32,7 @@ class Test{self._to_camel_case(model_name)}(TransactionCase):
         super().setUpClass()
         # TODO: Setup test data
 
-    def _create_{model_name.split('.')[-1]}(self, **kwargs):
+    def _create_{model_name.split(".")[-1]}(self, **kwargs):
         """Helper to create {model_name} with defaults"""
         vals = {{
             # TODO: Add required fields
@@ -46,7 +46,7 @@ class Test{self._to_camel_case(model_name)}(TransactionCase):
 
     def test_create_basic(self):
         """Test basic record creation"""
-        record = self._create_{model_name.split('.')[-1]}()
+        record = self._create_{model_name.split(".")[-1]}()
 
         self.assertTrue(record.exists())
         # TODO: Add specific assertions
@@ -59,7 +59,7 @@ class Test{self._to_camel_case(model_name)}(TransactionCase):
                 test_content += f'''
     def test_{method}_executes_successfully(self):
         """Test {method} executes without error"""
-        record = self._create_{model_name.split('.')[-1]}()
+        record = self._create_{model_name.split(".")[-1]}()
 
         result = record.{method}()
 
@@ -72,11 +72,11 @@ class Test{self._to_camel_case(model_name)}(TransactionCase):
         for field in fields:
             if field.get("required"):
                 test_content += f'''
-    def test_constraint_{field['name']}_required(self):
-        """Test {field['name']} is required"""
+    def test_constraint_{field["name"]}_required(self):
+        """Test {field["name"]} is required"""
         with self.assertRaises(ValidationError):
             self.env['{model_name}'].create({{
-                # TODO: Add other required fields except {field['name']}
+                # TODO: Add other required fields except {field["name"]}
             }})
 
 '''

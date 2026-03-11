@@ -5,7 +5,7 @@ These tests verify that the bridges are properly installed and
 the fields they add are present on the target models.
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import tagged
 
 
@@ -29,7 +29,7 @@ class TestIntakeBridgeWiring(PlasticosTestCase):
             self.assertIn(
                 fname,
                 self.fields,
-                f"Normalizer bridge field missing: {fname}. " f"Is plasticos_intake_normalizer installed?",
+                f"Normalizer bridge field missing: {fname}. Is plasticos_intake_normalizer installed?",
             )
 
     def test_geo_fields_present(self):
@@ -53,7 +53,7 @@ class TestIntakeBridgeWiring(PlasticosTestCase):
             self.assertIn(
                 fname,
                 self.fields,
-                f"Match engine field missing: {fname}. " f"Is plasticos_buyer_match_engine installed?",
+                f"Match engine field missing: {fname}. Is plasticos_buyer_match_engine installed?",
             )
 
 
@@ -88,5 +88,5 @@ class TestTransactionBridgeWiring(PlasticosTestCase):
             self.assertIn(
                 fname,
                 self.fields,
-                f"Document bridge field missing: {fname}. " f"Is plasticos_documents installed?",
+                f"Document bridge field missing: {fname}. Is plasticos_documents installed?",
             )

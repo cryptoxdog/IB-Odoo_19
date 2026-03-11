@@ -10,5 +10,5 @@ class CrmLeadVanillaSoft(models.Model):
         string="VanillaSoft Contact ID",
         index=True,
         copy=False,
-        help="Original ContactID from VanillaSoft CRM. " "Used for deduplication during import.",
+        help="Original ContactID from VanillaSoft CRM. Used for deduplication during import.",
     )

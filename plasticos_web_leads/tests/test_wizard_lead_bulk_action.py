@@ -5,7 +5,7 @@ Covers: default_get, computed stats, force_hot, retry_triage,
         mark_skipped, validation guards.
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests import tagged
 
@@ -23,7 +23,7 @@ class TestLeadBulkActionWizard(PlasticosTestCase):
     def _create_lead(self, decision="cold", state="received", **kw):
         """Helper to create a web lead."""
         vals = {
-            "lead_id": f"WL-{self.Lead.search_count([])+1:04d}",
+            "lead_id": f"WL-{self.Lead.search_count([]) + 1:04d}",
             "decision": decision,
             "state": state,
             "company_name": "Test Co",

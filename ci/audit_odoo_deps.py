@@ -289,9 +289,9 @@ class OdooAudit:
             if severity not in by_severity:
                 continue
 
-            print(f"\n{'='*80}")
+            print(f"\n{'=' * 80}")
             print(f"{severity} ISSUES ({len(by_severity[severity])})")
-            print(f"{'='*80}\n")
+            print(f"{'=' * 80}\n")
 
             for i, error in enumerate(by_severity[severity], 1):
                 print(f"{i}. [{error['type']}] {error['message']}")

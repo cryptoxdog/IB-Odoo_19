@@ -7,7 +7,7 @@ Source: plasticos_logistics/models/load.py
 """
 
 from odoo import fields
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests import tagged
 
@@ -23,7 +23,7 @@ class TestLoadStateMachineTransitions(PlasticosTestCase):
 
     def _load(self, **kw):
         vals = {
-            "name": f"LOAD-{self.Load.search_count([])+1:04d}",
+            "name": f"LOAD-{self.Load.search_count([]) + 1:04d}",
             "sale_order_id": self.sale.id,
             "carrier_id": self.partner.id,
         }

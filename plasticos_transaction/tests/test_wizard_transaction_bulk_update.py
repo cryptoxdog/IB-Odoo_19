@@ -7,7 +7,7 @@ States: active, pending_supplier, supplier_ready, in_progress,
         in_transit, delivered, invoiced, cancelled, closed
 """
 
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests.common import tagged
 

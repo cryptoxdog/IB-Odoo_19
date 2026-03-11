@@ -51,7 +51,7 @@ def migrate(cr, version):
         return
 
     _logger.info(
-        "plasticos_documents: pre-migrate %s → 19.0.2.2.0  " "(transaction table column renames)",
+        "plasticos_documents: pre-migrate %s → 19.0.2.2.0  (transaction table column renames)",
         version,
     )
 

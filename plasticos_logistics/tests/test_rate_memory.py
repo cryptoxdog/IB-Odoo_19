@@ -13,7 +13,7 @@ from datetime import date, timedelta
 from psycopg2 import IntegrityError
 
 from odoo import fields
-from odoo.addons.plasticos_base.tests.common import PlasticosTestCase
+from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 

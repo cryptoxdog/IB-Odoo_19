@@ -99,7 +99,7 @@ def check_xml_patterns(root_dir: Path) -> list[dict]:
                         "line": i,
                         "pattern": "active_id in context",
                         "message": (
-                            "active_id is a client-side variable, not a field. " "Use 'id' instead in view context"
+                            "active_id is a client-side variable, not a field. Use 'id' instead in view context"
                         ),
                     }
                 )
