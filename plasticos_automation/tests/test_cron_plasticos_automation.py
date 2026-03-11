@@ -101,6 +101,7 @@ class TestContractRenewalCron(PlasticosTestCase, AutomationTestMixin):
             }
         )
         self.Partner.cron_contract_renewal_alert()
+        self.env.invalidate_all()
         logs = self.env["plasticos.automation.log"].search(
             [
                 ("model_name", "=", "res.partner"),
@@ -263,6 +264,7 @@ class TestTruckerFollowupCron(PlasticosTestCase, AutomationTestMixin):
         """Cron creates automation log entry for each follow-up."""
         picking = self._create_picking()
         self.Picking.cron_trucker_followup()
+        self.env.invalidate_all()
         logs = self.env["plasticos.automation.log"].search(
             [
                 ("model_name", "=", "stock.picking"),
@@ -371,6 +373,7 @@ class TestSupplierFollowupCron(PlasticosTestCase, AutomationTestMixin):
         """Creates automation log entry."""
         po = self._create_po()
         self.PO.cron_supplier_followup()
+        self.env.invalidate_all()
         logs = self.env["plasticos.automation.log"].search(
             [
                 ("model_name", "=", "purchase.order"),
@@ -449,6 +452,7 @@ class TestLoadSLACron(PlasticosTestCase, AutomationTestMixin):
         """Creates log entry on escalation change."""
         load = self._create_load("awaiting_ready", hours_ago=50)
         self.Load.cron_load_sla_check()
+        self.env.invalidate_all()
         logs = self.env["plasticos.automation.log"].search(
             [
                 ("model_name", "=", "plasticos.load"),
@@ -566,6 +570,7 @@ class TestStockAlertCron(PlasticosTestCase, AutomationTestMixin):
             }
         )
         self.Product.cron_stock_reorder_alert()
+        self.env.invalidate_all()
         logs = self.env["plasticos.automation.log"].search(
             [
                 ("model_name", "=", "product.product"),
@@ -725,6 +730,7 @@ class TestInvoiceReminderCron(PlasticosTestCase, AutomationTestMixin):
         """Batch creates log entries for all reminded invoices."""
         inv = self._create_overdue_invoice()
         self.Move.cron_invoice_reminder()
+        self.env.invalidate_all()
         logs = self.env["plasticos.automation.log"].search(
             [
                 ("model_name", "=", "account.move"),
