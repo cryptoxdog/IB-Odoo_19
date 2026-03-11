@@ -167,7 +167,8 @@ class TestModuleManifest:
         assert os.path.isfile(os.path.join(MODULE_ROOT, "__manifest__.py"))
 
     def test_name(self):
-        assert self.manifest["name"] == EXPECTED_NAME, f"Expected name '{EXPECTED_NAME}', got '{self.manifest['name']}'"
+        msg = f"Expected name '{EXPECTED_NAME}', got '{self.manifest['name']}'"
+        assert self.manifest["name"] == EXPECTED_NAME, msg
 
     def test_version(self):
         assert (

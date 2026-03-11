@@ -153,9 +153,8 @@ class TestFormEnumAlignment:
                     # Allow the f-string reference but not hard-coded string
                     # Hard-coded would be: '$form = 'bales'
                     hard_coded_pattern = rf"\$form\s*=\s*'{re.escape(code)}'"
-                    assert not re.search(
-                        hard_coded_pattern, body
-                    ), f"Hard-coded form literal '{code}' found in {method_name}. Use canonical registry instead."
+                    msg = f"Hard-coded form literal '{code}' found in {method_name}. Use canonical registry instead."
+                    assert not re.search(hard_coded_pattern, body), msg
 
     def test_facility_profile_uses_many2one(self):
         """facility_profile.py MUST use form_preference_id (Many2one), not Selection."""
