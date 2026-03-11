@@ -952,7 +952,7 @@ class PlasticosIntake(models.Model):
         if not self.partner_id:
             raise UserError("Cannot create PO without a supplier partner.")
 
-        Transaction = self.env.get("plasticos.transaction")
+        Transaction = self.env["plasticos.transaction"]
         if Transaction is None:
             raise UserError(
                 "Transaction module not installed.\n\nInstall 'PlasticOS Transactions' to enable PO creation."

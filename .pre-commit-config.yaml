@@ -120,6 +120,15 @@ repos:
         pass_filenames: false
         stages: [pre-commit, pre-push]
 
+
+      - id: fix-odoo-antipatterns
+        name: Auto-fix Odoo antipatterns (env.get, pool.get, @api.multi)
+        entry: python3 scripts/fix_odoo_antipatterns.py
+        language: system
+        types: [python]
+        pass_filenames: true
+        stages: [pre-commit]
+
       - id: orm-integrity
         name: ORM integrity check
         entry: python3 ci/check_orm_integrity.py

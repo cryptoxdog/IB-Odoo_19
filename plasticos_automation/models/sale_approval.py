@@ -44,7 +44,7 @@ class SaleOrder(models.Model):
                 limit=500,
             )
 
-            log_model = self.env.get("plasticos.automation.log")
+            log_model = self.env["plasticos.automation.log"]
             for order in orders:
                 order.requires_approval = True
                 if log_model:

@@ -58,7 +58,7 @@ class StockPickingAutomation(models.Model):
                 limit=200,
             )
 
-            log_model = self.env.get("plasticos.automation.log")
+            log_model = self.env["plasticos.automation.log"]
 
             for picking in pickings:
                 picking.trucker_followup_count += 1

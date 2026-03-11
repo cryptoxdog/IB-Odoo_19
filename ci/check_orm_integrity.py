@@ -181,9 +181,13 @@ def scan_file(filepath: str) -> list[dict]:
     # Regex-based checks
     issues.extend(check_unguarded_search_regex(filepath, content))
 
-    # Add filepath to all issues
+    # Odoo antipattern checks (env.get, pool.get, api.multi, etc.)
+    issues.extend(check_odoo_antipatterns(filepath, content))
+
+    # Add filepath to all issues (for AST-sourced issues without file key)
     for issue in issues:
-        issue["file"] = filepath
+        if "file" not in issue:
+            issue["file"] = filepath
 
     return issues
 
@@ -270,3 +274,131 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# ---------------------------------------------------------------------------
+# Extended antipattern checks (added: self.env.get, pool.get, api.multi, etc.)
+# ---------------------------------------------------------------------------
+
+ENV_GET_PATTERN = re.compile(
+    r'\bself\.env\.get\s*\(\s*["\']([^"\']+)["\']\s*\)',
+    re.MULTILINE,
+)
+POOL_GET_PATTERN = re.compile(
+    r'\bself\.pool\.get\s*\(\s*["\']([^"\']+)["\']\s*\)',
+    re.MULTILINE,
+)
+API_MULTI_PATTERN = re.compile(r'@api\.multi\b')
+FIELDS_FUNCTION_PATTERN = re.compile(r'\bfields\.function\b')
+SEARCH_NO_LIMIT_PATTERN = re.compile(
+    r'\.search\s*\(\s*\[.*?\]\s*\)',
+    re.DOTALL,
+)
+
+
+def check_odoo_antipatterns(filepath: str, content: str) -> list[dict]:
+    """Regex-based check for Odoo antipatterns not caught by AST."""
+    issues: list[dict] = []
+    is_test = "/tests/" in filepath or filepath.startswith("tests/")
+    lines = content.splitlines()
+
+    for i, line in enumerate(lines, 1):
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            continue
+
+        # 1. self.env.get("model") — silently returns None (invalid API)
+        for m in ENV_GET_PATTERN.finditer(line):
+            model = m.group(1)
+            issues.append(
+                {
+                    "type": "INVALID_ENV_GET",
+                    "file": filepath,
+                    "line": i,
+                    "col": m.start(),
+                    "message": (
+                        f'self.env.get("{model}") is not valid Odoo API — '
+                        f'silently returns None. Use self.env["{model}"]'
+                    ),
+                    "severity": "CRITICAL",
+                    "autofix": True,
+                    "fix": m.group(0).replace(".env.get(", ".env[").rstrip(")") + "]",
+                }
+            )
+
+        # 2. self.pool.get("model") — Odoo v7 API removed in v8+
+        for m in POOL_GET_PATTERN.finditer(line):
+            model = m.group(1)
+            issues.append(
+                {
+                    "type": "DEPRECATED_POOL_GET",
+                    "file": filepath,
+                    "line": i,
+                    "col": m.start(),
+                    "message": (
+                        f'self.pool.get("{model}") is Odoo v7 API removed in v8+. '
+                        f'Use self.env["{model}"]'
+                    ),
+                    "severity": "CRITICAL",
+                    "autofix": True,
+                    "fix": f'self.env["{model}"]',
+                }
+            )
+
+        # 3. @api.multi — removed in Odoo 14+
+        if API_MULTI_PATTERN.search(line):
+            issues.append(
+                {
+                    "type": "DEPRECATED_API_MULTI",
+                    "file": filepath,
+                    "line": i,
+                    "col": line.index("@api.multi"),
+                    "message": "@api.multi is removed in Odoo 14+. Remove this decorator entirely.",
+                    "severity": "HIGH",
+                    "autofix": True,
+                    "fix": "",  # Delete the line
+                }
+            )
+
+        # 4. fields.function(...) — deprecated field type
+        if FIELDS_FUNCTION_PATTERN.search(line):
+            issues.append(
+                {
+                    "type": "DEPRECATED_FIELDS_FUNCTION",
+                    "file": filepath,
+                    "line": i,
+                    "col": 0,
+                    "message": (
+                        "fields.function() is a deprecated v7 field type. "
+                        "Replace with fields.Xxx(compute='_compute_xxx')"
+                    ),
+                    "severity": "HIGH",
+                    "autofix": False,
+                }
+            )
+
+        # 5. Unbounded search without limit (skip already-limited or test helpers)
+        if ".search(" in line and "limit=" not in line and not is_test:
+            # Narrow: only flag searches that look like production record fetches
+            if re.search(r'\bself\.env\[', line) or ".search(" in line:
+                # Exclude common safe patterns
+                if not any(
+                    safe in line
+                    for safe in ["search_count(", "search_read(", "#", "sudo().search([])"]
+                ):
+                    issues.append(
+                        {
+                            "type": "UNBOUNDED_SEARCH",
+                            "file": filepath,
+                            "line": i,
+                            "col": 0,
+                            "message": (
+                                "search() without limit= can return unbounded recordsets. "
+                                "Add limit= or use search_count() if you only need the count."
+                            ),
+                            "severity": "MEDIUM",
+                            "autofix": False,
+                        }
+                    )
+
+    return issues

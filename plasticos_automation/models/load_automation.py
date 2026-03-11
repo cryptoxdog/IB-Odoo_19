@@ -41,7 +41,7 @@ class PlasticosLoadAutomation(models.Model):
                 order="entered_state_at ASC, id ASC",
                 limit=500,
             )
-            log_model = self.env.get("plasticos.automation.log")
+            log_model = self.env["plasticos.automation.log"]
 
             for load in loads:
                 if not load.entered_state_at:

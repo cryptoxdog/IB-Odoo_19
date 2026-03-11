@@ -36,7 +36,7 @@ class PurchaseOrderAutomation(models.Model):
                 order="last_followup_on ASC, id ASC",
                 limit=200,
             )
-            log_model = self.env.get("plasticos.automation.log")
+            log_model = self.env["plasticos.automation.log"]
 
             for order in orders:
                 order.followup_count += 1

@@ -38,7 +38,7 @@ class AccountMove(models.Model):
         Compliance check runs before super().action_post() to prevent side effects
         (webhooks, email notifications) from firing before potential rollback.
         """
-        service = self.env.get("plasticos.compliance.service")
+        service = self.env["plasticos.compliance.service"]
 
         # Batch query: collect all invoice_origins for SO lookup
         out_invoice_origins = [
