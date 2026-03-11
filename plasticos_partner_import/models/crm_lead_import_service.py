@@ -203,7 +203,11 @@ class PlasticosCRMLeadImportService(models.AbstractModel):
         tag_ids = self._resolve_category_tags(row.get("Company Type", ""), row.get("Buyer/Supplier", ""))
         return country_id, state_id, stage_id, source_id, user_id, tag_ids
 
-    def _build_lead_vals(self, row, company, contact_name, country_id, state_id, stage_id, source_id, user_id, contact_id, tag_ids):
+    def _build_lead_vals(
+        self, row, company, contact_name,
+        country_id, state_id, stage_id,
+        source_id, user_id, contact_id, tag_ids,
+    ):
         """Build crm.lead create-vals dict from resolved row fields."""
         vals = {
             "name": f"{company} — {contact_name}" if company else contact_name or "Unknown",
