@@ -22,7 +22,7 @@ jobs:
 
       - name: Install linters
         run: |
-          pip install ruff==0.15.5 pytest
+          pip install ruff==0.15.5 pytest==8.3.5
 
       - name: Ruff lint
         timeout-minutes: 2
@@ -98,7 +98,6 @@ jobs:
   # Odoo 19 compatibility tests (requires Odoo runtime - run on Odoo.sh, not bare CI)
   odoo19-compat-tests:
     runs-on: ubuntu-latest
-    continue-on-error: true
     needs: static-checks
     continue-on-error: true  # Odoo tests need Odoo.sh runtime
     steps:
@@ -110,7 +109,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install pytest
+        run: pip install pytest==8.3.5
 
       - name: Run Odoo 19 API compatibility tests
         run: |
@@ -150,7 +149,6 @@ jobs:
   # Parallel module tests (27 modules run concurrently)
   module-tests:
     runs-on: ubuntu-latest
-    continue-on-error: true
     needs: static-checks
     continue-on-error: true  # Odoo tests need Odoo.sh runtime
     strategy:
@@ -193,7 +191,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install pytest pytest-cov
+        run: pip install pytest==8.3.5 pytest-cov==6.0.0
 
       - name: Run ${{ matrix.module }} tests
         run: |
@@ -208,7 +206,7 @@ jobs:
 
       - name: Upload coverage
         if: always()
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           files: ./coverage-${{ matrix.module }}.xml
           flags: ${{ matrix.module }}
@@ -216,7 +214,6 @@ jobs:
   # Cross-module integration tests (central tests/ directory)
   integration-tests:
     runs-on: ubuntu-latest
-    continue-on-error: true
     needs: static-checks
     continue-on-error: true  # Odoo tests need Odoo.sh runtime
     steps:
@@ -228,7 +225,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install pytest pytest-cov
+        run: pip install pytest==8.3.5 pytest-cov==6.0.0
 
       - name: Run cross-module integration tests
         run: |
@@ -239,7 +236,7 @@ jobs:
 
       - name: Upload coverage
         if: always()
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           files: ./coverage-integration.xml
           flags: integration
@@ -258,7 +255,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install pytest
+        run: pip install pytest==8.3.5
 
       - name: Run @api.constrains tests
         run: |
@@ -299,7 +296,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install pytest
+        run: pip install pytest==8.3.5
 
       - name: Run state machine tests
         run: |
@@ -327,7 +324,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install pytest
+        run: pip install pytest==8.3.5
 
       - name: Detect changed modules
         id: changes
@@ -361,7 +358,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install pytest pytest-cov coverage
+        run: pip install pytest==8.3.5 pytest-cov==6.0.0 coverage==7.6.0
 
       - name: Run full test suite with coverage
         run: |
@@ -404,7 +401,7 @@ jobs:
           coverage report --fail-under=70
 
       - name: Upload coverage report
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
 
@@ -429,7 +426,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install pytest mutmut
+        run: pip install pytest==8.3.5 mutmut==3.2.0
 
       - name: Run Mutation Tests on intake models
         run: |

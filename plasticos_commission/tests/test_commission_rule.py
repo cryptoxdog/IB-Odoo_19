@@ -55,11 +55,12 @@ class TestPlasticosCommissionRule(PlasticosTestCase):
         self.assertGreaterEqual(record.percentage, 0.0)
 
     def test_constraint_name_required(self):
-        """Test name is required"""
+        """Test name is required (explicitly pass False to override default)"""
         raised = False
         try:
             self.CommissionRule.create(
                 {
+                    "name": False,  # Override default to test required constraint
                     "sales_rep_id": self.test_sales_rep.id,
                     "percentage": 0.05,
                 }

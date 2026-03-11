@@ -497,11 +497,12 @@ class TestStockAlertCron(PlasticosTestCase, AutomationTestMixin):
 
     def test_no_alert_above_threshold(self):
         """Products with qty >= threshold get no alert."""
-        # Use type='product' (storable) because Odoo 19 doesn't allow quants for consumables
+        # Odoo 19: type='product' removed. Use type='consu' + is_storable=True for storable products
         product = self.Product.create(
             {
                 "name": "Full Stock Product",
-                "type": "product",
+                "type": "consu",
+                "is_storable": True,
                 "min_stock_threshold": 10.0,
             }
         )
@@ -655,8 +656,8 @@ class TestInvoiceReminderCron(PlasticosTestCase, AutomationTestMixin):
                 }
             )
 
-        # Set receivable account on partner property (company-level default)
-        cls.env.company.account_default_receivable_id = cls._receivable_account
+        # Odoo 19: account_default_receivable_id doesn't exist on res.company
+        # Receivable account is set directly on partner via property_account_receivable_id
 
     def _create_overdue_invoice(self, days_overdue=30):
         """Create a posted, unpaid, overdue out_invoice."""
@@ -828,6 +829,8 @@ class TestSaleApprovalCron(PlasticosTestCase, AutomationTestMixin):
         config = self._get_config()
         so = self._create_high_value_so(config.sale_approval_threshold + 1)
         self.SO.cron_flag_sale_approvals()
+        # Invalidate cache to ensure we see newly created records
+        self.env.invalidate_all()
         logs = self.env["plasticos.automation.log"].search(
             [
                 ("model_name", "=", "sale.order"),
@@ -835,7 +838,7 @@ class TestSaleApprovalCron(PlasticosTestCase, AutomationTestMixin):
                 ("action_type", "=", "approval_flag"),
             ]
         )
-        self.assertTrue(logs)
+        self.assertTrue(logs, f"Expected automation log for SO {so.id}, threshold={config.sale_approval_threshold}")
 
     def test_advisory_lock_skip(self):
         with patch.object(self.env.cr, "execute"), patch.object(self.env.cr, "fetchone", return_value=(False,)):
