@@ -18,7 +18,7 @@ jobs:
       - name: Install tools
         run: pip install ruff
       - name: Ruff lint
-        run: ruff check --select E,F,W,C901 --max-complexity 15 --exclude plasticos_inference_engine,plasticos_buyer_match_engine,plasticos_matching .
+        run: ruff check --select E,F,W,C901 --exclude plasticos_inference_engine,plasticos_buyer_match_engine,plasticos_matching .
       - name: Ruff format check
         run: ruff format --check --exclude plasticos_inference_engine,plasticos_buyer_match_engine,plasticos_matching .
 
