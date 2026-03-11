@@ -19,6 +19,21 @@ jobs:
             bash -n "$f" || (echo "Syntax error in $f" && exit 1)
           done
 
+      - name: Enforce _name string literals (no CONSTANT pattern)
+        run: |
+          # _name must always be "model.name" — never _name = SOME_CONSTANT
+          # Exceptions: field names that happen to contain "name" (display_name, etc.)
+          FIELD_EXCLUSIONS="display_name|model_name|field_name|_unique_name|buyer_name"
+          FIELD_EXCLUSIONS="$FIELD_EXCLUSIONS|company_name|contact_name|pending_company_name"
+          FIELD_EXCLUSIONS="$FIELD_EXCLUSIONS|full_name|utm_name|pickup_contact_name|delivery_contact_name"
+          if grep -rn "_name = [A-Z][A-Z0-9_]*" plasticos_*/models/*.py 2>/dev/null \
+             | grep -v "#" \
+             | grep -vE "$FIELD_EXCLUSIONS"; then
+            echo "❌ _name must be a string literal. Use: _name = \"model.name\""
+            exit 1
+          fi
+          echo "✅ All _name assignments use string literals"
+
   # Job 1: Check for circular dependencies (BLOCKING - fails fast)
   circular-deps:
     runs-on: ubuntu-latest

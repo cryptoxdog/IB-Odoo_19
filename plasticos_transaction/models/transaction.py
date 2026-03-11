@@ -9,7 +9,7 @@ PLASTICOS_TRANSACTION = "plasticos.transaction"
 
 
 class PlasticosTransaction(models.Model):
-    _name = PLASTICOS_TRANSACTION
+    _name = "plasticos.transaction"
     _description = "Plasticos Transaction"
     _inherit = ["mail.thread"]
 

@@ -20,7 +20,7 @@ def new_correlation_id():
 
 
 class PlasticosLoad(models.Model):
-    _name = PLASTICOS_LOAD
+    _name = "plasticos.load"
     _description = "Plasticos Logistics Load"
     _inherit = ["mail.thread"]
 
