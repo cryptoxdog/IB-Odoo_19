@@ -70,8 +70,7 @@ def _check_view_xml_file(xml_file: Path) -> list[dict]:
                         "line": i,
                         "pattern": "alert without role",
                         "message": (
-                            "Elements with alert-* class must have role attribute. "
-                            'Add role="alert" or role="status"'
+                            "Elements with alert-* class must have role attribute. " 'Add role="alert" or role="status"'
                         ),
                     }
                 )
@@ -83,9 +82,7 @@ def _check_view_xml_file(xml_file: Path) -> list[dict]:
                     "file": str(xml_file),
                     "line": i,
                     "pattern": "active_id in context",
-                    "message": (
-                        "active_id is a client-side variable, not a field. Use 'id' instead in view context"
-                    ),
+                    "message": ("active_id is a client-side variable, not a field. Use 'id' instead in view context"),
                 }
             )
 

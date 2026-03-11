@@ -193,7 +193,7 @@ class TestAttachmentMaintenance(PlasticosTestCase):
             }
         )
         if att.store_fname:
-            with patch("os.path.exists", return_value=False), patch("odoo.tools.config.get", return_value="/tmp"):
+            with patch("os.path.exists", return_value=False), patch("odoo.tools.config.get", return_value="/tmp"):  # nosec B108 — mocking Odoo config, not real filesystem usage
                 result = self.Attachment._cron_cleanup_missing_filestore_orphans()
                 self.assertGreaterEqual(result, 0)
 
@@ -206,7 +206,7 @@ class TestAttachmentMaintenance(PlasticosTestCase):
                 "datas": "dGVzdA==",  # base64 "test"
             }
         )
-        with patch("os.path.exists", return_value=True), patch("odoo.tools.config.get", return_value="/tmp"):
+        with patch("os.path.exists", return_value=True), patch("odoo.tools.config.get", return_value="/tmp"):  # nosec B108 — mocking Odoo config, not real filesystem usage
             self.Attachment._cron_cleanup_missing_filestore_orphans()
             self.assertTrue(att.exists(), "Valid attachment should not be deleted")
 
@@ -215,7 +215,7 @@ class TestAttachmentMaintenance(PlasticosTestCase):
         with (
             patch.object(self.Attachment, "search") as m_search,
             patch("os.path.exists", return_value=True),
-            patch("odoo.tools.config.get", return_value="/tmp"),
+            patch("odoo.tools.config.get", return_value="/tmp"),  # nosec B108 — mocking Odoo config, not real filesystem usage
         ):
             m_search.return_value = self.Attachment
             self.Attachment._cron_cleanup_missing_filestore_orphans()

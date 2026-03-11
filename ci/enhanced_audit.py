@@ -134,7 +134,7 @@ class EnhancedFieldAudit:
 
             with open(manifest, encoding="utf-8") as f:
                 try:
-                    manifest_data = eval(f.read())
+                    manifest_data = eval(f.read())  # nosec B307 — internal CI tool, trusted Odoo manifest files
                     self.modules[module_name] = {
                         "path": module_dir,
                         "depends": manifest_data.get("depends", []),

@@ -202,7 +202,7 @@ def analyze_python_file(path: Path) -> list[Violation]:
 def analyze_xml_file(path: Path) -> list[Violation]:
     violations: list[Violation] = []
     try:
-        root = ET.parse(path).getroot()
+        root = ET.parse(path).getroot()  # nosec B314 — repo tooling parsing trusted repo XML files
     except ET.ParseError as exc:
         return [Violation(str(path), 1, "CRON301", f"XML parse error: {exc}")]
 

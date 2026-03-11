@@ -813,7 +813,7 @@ def _extract_xml_enum_values(xml_path: str):
     sources: list[EnumSource] = []
 
     try:
-        tree = ET.parse(xml_path)
+        tree = ET.parse(xml_path)  # nosec B314 — test utility parsing trusted repo XML files
     except ET.ParseError:
         return names, codes, ext_ids, sources
 
@@ -1514,7 +1514,7 @@ class TestEquipmentCodeAlignment:
         for mod in MODULES:
             for xml_path in _iter_xml_data_files(REPO_ROOT / mod):
                 try:
-                    tree = ET.parse(xml_path)
+                    tree = ET.parse(xml_path)  # nosec B314 — test utility parsing trusted repo XML files
                 except ET.ParseError:
                     continue
                 for record in tree.getroot().iter("record"):
