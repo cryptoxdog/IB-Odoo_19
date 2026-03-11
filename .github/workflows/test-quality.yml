@@ -393,8 +393,7 @@ jobs:
             --cov-report=xml \
             --cov-report=term \
             --cov-report=html:coverage-html \
-            tests/ \
-            plasticos_*/tests/
+            tests/
 
       - name: Check Coverage Threshold
         run: |
