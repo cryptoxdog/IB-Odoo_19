@@ -28,9 +28,12 @@ class TestPlasticosMidnightRecompute(PlasticosTestCase):
 
     def test_document_recompute_called_if_model_exists(self):
         """_recompute_document_expiry is called if plasticos.document exists."""
+        # Odoo AbstractModel methods are read-only on instances; patch on the class instead
+        from odoo.addons.plasticos_base.models.midnight_recompute import PlasticosMidnightRecompute
+
         with (
-            patch.object(self.MidnightService, "_recompute_document_expiry") as mock_doc,
-            patch.object(self.MidnightService, "_recompute_claim_time_fields") as mock_claim,
+            patch.object(PlasticosMidnightRecompute, "_recompute_document_expiry") as mock_doc,
+            patch.object(PlasticosMidnightRecompute, "_recompute_claim_time_fields") as mock_claim,
         ):
             self.MidnightService._cron_midnight_recompute()
             mock_doc.assert_called_once()
