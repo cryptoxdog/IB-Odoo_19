@@ -746,77 +746,62 @@ class PlasticosTransaction(models.Model):
 
     def write(self, vals):
         for rec in self:
-            if "state" in vals:
-                allow = vals.get("state") == "active" or (
-                    vals.get("state") == "closed" and vals.get("commission_locked") is True
-                )
-                if not allow:
-                    raise UserError("State can only be changed via action methods.")
-            if "name" in vals:
-                raise UserError("Transaction reference cannot be modified.")
-            if rec.state == "closed":
-                protected = {
-                    "sale_order_id",
-                    "purchase_order_ids",
-                    "customer_invoice_id",
-                    "vendor_bill_ids",
-                    "freight_bill_ids",
-                    "commission_rule_id",
-                }
-                if protected.intersection(vals.keys()):
-                    raise UserError("Closed transactions are immutable.")
-            if rec.commission_locked and "commission_rule_id" in vals:
-                raise UserError("Commission cannot be modified after lock.")
-            if rec.customer_invoice_id and "customer_invoice_id" in vals:
-                if vals["customer_invoice_id"] != rec.customer_invoice_id.id:
-                    raise UserError("Customer invoice cannot be reassigned once set.")
-            if "vendor_bill_ids" in vals:
-                for cmd in vals["vendor_bill_ids"]:
-                    if cmd[0] == 4:
-                        other = self.search(
-                            [
-                                ("vendor_bill_ids", "in", [cmd[1]]),
-                                ("id", "!=", rec.id),
-                            ],
-                            limit=1,
-                        )
-                        if other:
-                            raise UserError("Vendor bill already linked to another transaction.")
-                    elif cmd[0] == 6:
-                        for bid in cmd[2]:
-                            other = self.search(
-                                [
-                                    ("vendor_bill_ids", "in", [bid]),
-                                    ("id", "!=", rec.id),
-                                ],
-                                limit=1,
-                            )
-                            if other:
-                                raise UserError("Vendor bill already linked to another transaction.")
-            if "freight_bill_ids" in vals:
-                for cmd in vals["freight_bill_ids"]:
-                    if cmd[0] == 4:
-                        other = self.search(
-                            [
-                                ("freight_bill_ids", "in", [cmd[1]]),
-                                ("id", "!=", rec.id),
-                            ],
-                            limit=1,
-                        )
-                        if other:
-                            raise UserError("Freight bill already linked to another transaction.")
-                    elif cmd[0] == 6:
-                        for bid in cmd[2]:
-                            other = self.search(
-                                [
-                                    ("freight_bill_ids", "in", [bid]),
-                                    ("id", "!=", rec.id),
-                                ],
-                                limit=1,
-                            )
-                            if other:
-                                raise UserError("Freight bill already linked to another transaction.")
+            self._validate_state_transition(rec, vals)
+            self._validate_write_immutability(rec, vals)
+            self._validate_bill_uniqueness(rec, vals, "vendor_bill_ids", "Vendor bill")
+            self._validate_bill_uniqueness(rec, vals, "freight_bill_ids", "Freight bill")
         return super().write(vals)
+
+    def _validate_state_transition(self, rec, vals):
+        """Enforce that state changes only happen via dedicated action methods."""
+        if "state" in vals:
+            allow = vals.get("state") == "active" or (
+                vals.get("state") == "closed" and vals.get("commission_locked") is True
+            )
+            if not allow:
+                raise UserError("State can only be changed via action methods.")
+
+    def _validate_write_immutability(self, rec, vals):
+        """Guard immutable fields: name, closed-state fields, commission lock, invoice reassignment."""
+        if "name" in vals:
+            raise UserError("Transaction reference cannot be modified.")
+        if rec.state == "closed":
+            protected = {
+                "sale_order_id",
+                "purchase_order_ids",
+                "customer_invoice_id",
+                "vendor_bill_ids",
+                "freight_bill_ids",
+                "commission_rule_id",
+            }
+            if protected.intersection(vals.keys()):
+                raise UserError("Closed transactions are immutable.")
+        if rec.commission_locked and "commission_rule_id" in vals:
+            raise UserError("Commission cannot be modified after lock.")
+        if rec.customer_invoice_id and "customer_invoice_id" in vals:
+            if vals["customer_invoice_id"] != rec.customer_invoice_id.id:
+                raise UserError("Customer invoice cannot be reassigned once set.")
+
+    def _validate_bill_uniqueness(self, rec, vals, field, label):
+        """Ensure each bill in M2M commands is not already linked to another transaction."""
+        if field not in vals:
+            return
+        for cmd in vals[field]:
+            if cmd[0] == 4:
+                other = self.search(
+                    [(field, "in", [cmd[1]]), ("id", "!=", rec.id)],
+                    limit=1,
+                )
+                if other:
+                    raise UserError(f"{label} already linked to another transaction.")
+            elif cmd[0] == 6:
+                for bid in cmd[2]:
+                    other = self.search(
+                        [(field, "in", [bid]), ("id", "!=", rec.id)],
+                        limit=1,
+                    )
+                    if other:
+                        raise UserError(f"{label} already linked to another transaction.")
 
     def unlink(self):
         for rec in self:

@@ -41,8 +41,18 @@ class AccountMove(models.Model):
         (webhooks, email notifications) from firing before potential rollback.
         """
         service = self.env.get("plasticos.compliance.service")
+        so_by_name, po_by_name = self._batch_fetch_orders()
+        self._pre_check_compliance_and_refunds(service, so_by_name)
 
-        # Batch query: collect all invoice_origins for SO lookup
+        res = super().action_post()
+
+        tx_by_po = self._build_tx_by_po(po_by_name)
+        self._link_moves_after_post(so_by_name, po_by_name, tx_by_po)
+
+        return res
+
+    def _batch_fetch_orders(self):
+        """Batch-fetch sale and purchase orders referenced by invoice origins."""
         out_invoice_origins = [
             rec.invoice_origin for rec in self if rec.move_type == "out_invoice" and rec.invoice_origin
         ]
@@ -51,19 +61,20 @@ class AccountMove(models.Model):
         ]
         all_origins = list(set(out_invoice_origins + in_invoice_origins))
 
-        # Batch fetch SOs and POs
         so_by_name = {}
         po_by_name = {}
         if all_origins:
             sale_orders = self.env["sale.order"].search([("name", "in", all_origins)])
             so_by_name = {so.name: so for so in sale_orders}
-            # For origins not found as SOs, try POs
             missing_origins = [o for o in in_invoice_origins if o not in so_by_name]
             if missing_origins:
                 purchase_orders = self.env["purchase.order"].search([("name", "in", missing_origins)])
                 po_by_name = {po.name: po for po in purchase_orders}
 
-        # Pre-check compliance BEFORE posting (prevents side effects on rollback)
+        return so_by_name, po_by_name
+
+    def _pre_check_compliance_and_refunds(self, service, so_by_name):
+        """Enforce compliance and block refunds against closed transactions before posting."""
         for rec in self:
             if rec.move_type == "out_invoice" and rec.invoice_origin:
                 so = so_by_name.get(rec.invoice_origin)
@@ -71,16 +82,13 @@ class AccountMove(models.Model):
                     if service and not service.is_compliant(PLASTICOS_TRANSACTION, so.transaction_id.id):
                         raise UserError("Missing required documents for invoice posting.")
 
-            # Block credit note post when reversed move is linked to closed transaction
             if rec.move_type in ("out_refund", "in_refund") and rec.reversed_entry_id:
                 tx = self._find_linked_transactions(rec.reversed_entry_id.id)
                 if tx.filtered(lambda t: t.state == "closed"):
                     raise UserError("Cannot post credit note for closed transaction.")
 
-        # Now safe to post
-        res = super().action_post()
-
-        # Batch fetch transactions for POs (for vendor bill linking)
+    def _build_tx_by_po(self, po_by_name):
+        """Build a {po_id: transaction} map for the given PO set."""
         po_ids = [po.id for po in po_by_name.values()]
         tx_by_po = {}
         if po_ids:
@@ -88,8 +96,10 @@ class AccountMove(models.Model):
             for tx in transactions:
                 for po in tx.purchase_order_ids:
                     tx_by_po[po.id] = tx
+        return tx_by_po
 
-        # Link moves to transactions AFTER successful post
+    def _link_moves_after_post(self, so_by_name, po_by_name, tx_by_po):
+        """Link posted moves to their transactions via SO or PO origin."""
         for rec in self:
             if rec.move_type == "out_invoice" and rec.invoice_origin:
                 so = so_by_name.get(rec.invoice_origin)
@@ -97,17 +107,13 @@ class AccountMove(models.Model):
                     so.transaction_id.customer_invoice_id = rec.id
 
             if rec.move_type == "in_invoice" and rec.invoice_origin:
-                # Try linking via Sale Order (if origin is SO name)
                 so = so_by_name.get(rec.invoice_origin)
                 if so and so.transaction_id:
                     so.transaction_id.vendor_bill_ids = [(4, rec.id)]
                 else:
-                    # Try linking via Purchase Order (if origin is PO name)
                     po = po_by_name.get(rec.invoice_origin)
                     if po and po.id in tx_by_po:
                         tx_by_po[po.id].vendor_bill_ids = [(4, rec.id)]
-
-        return res
 
     def unlink(self):
         for move in self:

@@ -228,7 +228,15 @@ class PlasticosIntakeNormalizer(models.Model):
         errors = []
         warnings = []
 
-        # ── Required fields ──────────────────────────────
+        self._validate_required_fields(config, errors)
+        self._validate_range_fields(config, errors)
+        self._collect_warnings(warnings)
+        self._validate_material_profile_warning(warnings)
+
+        return errors, warnings
+
+    def _validate_required_fields(self, config, errors):
+        """Check required field presence and canonical membership."""
         if not self.polymer_id:
             errors.append(
                 {
@@ -278,7 +286,8 @@ class PlasticosIntakeNormalizer(models.Model):
                 }
             )
 
-        # ── Range validations (non-blocking if field empty) ──
+    def _validate_range_fields(self, config, errors):
+        """Check numeric field ranges against config thresholds."""
         if config.validate_density_range and self.density_value:
             density_min = config.density_min or 0.0
             density_max = config.density_max or 0.0
@@ -310,7 +319,8 @@ class PlasticosIntakeNormalizer(models.Model):
                     }
                 )
 
-        # ── Warnings (non-blocking) ─────────────────────
+    def _collect_warnings(self, warnings):
+        """Append non-blocking warnings for missing optional fields."""
         if not self.color_id:
             warnings.append(
                 {
@@ -347,7 +357,8 @@ class PlasticosIntakeNormalizer(models.Model):
                 }
             )
 
-        # ── Material profile cross-check ─────────────────
+    def _validate_material_profile_warning(self, warnings):
+        """Warn if intake polymer differs from linked material profile polymer."""
         if hasattr(self, "material_profile_id") and self.material_profile_id:
             mp = self.material_profile_id
             if hasattr(mp, "polymer_id") and mp.polymer_id and self.polymer_id:
@@ -363,8 +374,6 @@ class PlasticosIntakeNormalizer(models.Model):
                             "code": "WARN-005",
                         }
                     )
-
-        return errors, warnings
 
     # ═════════════════════════════════════════════════════
     # PACKET ASSEMBLY

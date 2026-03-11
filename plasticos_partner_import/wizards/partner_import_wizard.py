@@ -119,49 +119,14 @@ class PartnerImportWizard(models.TransientModel):
 
         import_svc = self.env["plasticos.partner.import.service"]
         module_path = self._get_module_path()
-
-        corporate_path = None
-        facility_path = None
         temp_files = []
 
         try:
-            # Determine file paths
-            if self.use_default_files:
-                if self.import_mode in ("full", "corporate_only"):
-                    corporate_path = os.path.join(module_path, DEFAULT_CORPORATE_CSV)
-                    if not os.path.exists(corporate_path):
-                        raise UserError(_("Default corporate CSV not found: %s") % corporate_path)
-
-                if self.import_mode in ("full", "facility_only"):
-                    facility_path = os.path.join(module_path, DEFAULT_FACILITY_CSV)
-                    if not os.path.exists(facility_path):
-                        raise UserError(_("Default facility CSV not found: %s") % facility_path)
-            else:
-                # Use uploaded files
-                if self.import_mode in ("full", "corporate_only"):
-                    if not self.corporate_file:
-                        raise UserError(_("Please upload a Corporate CSV file."))
-                    corporate_path = self._save_uploaded_file(self.corporate_file, self.corporate_filename)
-                    temp_files.append(corporate_path)
-
-                if self.import_mode in ("full", "facility_only"):
-                    if not self.facility_file:
-                        raise UserError(_("Please upload a Facility CSV file."))
-                    facility_path = self._save_uploaded_file(self.facility_file, self.facility_filename)
-                    temp_files.append(facility_path)
+            corporate_path, facility_path = self._resolve_file_paths(module_path, temp_files)
 
             if self.dry_run:
-                # Just validate
-                messages = []
-                if corporate_path:
-                    messages.append(f"Corporate CSV validated: {corporate_path}")
-                if facility_path:
-                    messages.append(f"Facility CSV validated: {facility_path}")
-                self.result_message = "\n".join(messages) + "\n\nDry run complete. No records created."
-                self.state = "done"
-                return self._return_wizard()
+                return self._handle_dry_run(corporate_path, facility_path)
 
-            # Run the actual import
             _logger.info(
                 "Starting partner import: mode=%s, corporate=%s, facility=%s",
                 self.import_mode,
@@ -170,36 +135,75 @@ class PartnerImportWizard(models.TransientModel):
             )
 
             result = import_svc.run_csv_import(corporate_path, facility_path)
-
-            # Format result message
-            msg_parts = ["Import completed successfully!"]
-            if result.get("corporates_created"):
-                msg_parts.append(f"Corporate partners created: {result['corporates_created']}")
-            if result.get("corporates_updated"):
-                msg_parts.append(f"Corporate partners updated: {result['corporates_updated']}")
-            if result.get("facilities_created"):
-                msg_parts.append(f"Facilities created: {result['facilities_created']}")
-            if result.get("facilities_updated"):
-                msg_parts.append(f"Facilities updated: {result['facilities_updated']}")
-            if result.get("contacts_created"):
-                msg_parts.append(f"Contacts created: {result['contacts_created']}")
-            if result.get("errors"):
-                msg_parts.append(f"\nErrors: {len(result['errors'])}")
-                for err in result["errors"][:10]:
-                    msg_parts.append(f"  - {err}")
-                if len(result["errors"]) > 10:
-                    msg_parts.append(f"  ... and {len(result['errors']) - 10} more")
-
-            self.result_message = "\n".join(msg_parts)
+            self.result_message = self._format_import_result(result)
             self.state = "done"
 
         finally:
-            # Clean up temp files
             for path in temp_files:
                 if path and os.path.exists(path):
                     os.unlink(path)
 
         return self._return_wizard()
+
+    def _resolve_file_paths(self, module_path, temp_files):
+        """Resolve corporate and facility CSV paths; append temp paths to temp_files."""
+        corporate_path = None
+        facility_path = None
+
+        if self.use_default_files:
+            if self.import_mode in ("full", "corporate_only"):
+                corporate_path = os.path.join(module_path, DEFAULT_CORPORATE_CSV)
+                if not os.path.exists(corporate_path):
+                    raise UserError(_("Default corporate CSV not found: %s") % corporate_path)
+            if self.import_mode in ("full", "facility_only"):
+                facility_path = os.path.join(module_path, DEFAULT_FACILITY_CSV)
+                if not os.path.exists(facility_path):
+                    raise UserError(_("Default facility CSV not found: %s") % facility_path)
+        else:
+            if self.import_mode in ("full", "corporate_only"):
+                if not self.corporate_file:
+                    raise UserError(_("Please upload a Corporate CSV file."))
+                corporate_path = self._save_uploaded_file(self.corporate_file, self.corporate_filename)
+                temp_files.append(corporate_path)
+            if self.import_mode in ("full", "facility_only"):
+                if not self.facility_file:
+                    raise UserError(_("Please upload a Facility CSV file."))
+                facility_path = self._save_uploaded_file(self.facility_file, self.facility_filename)
+                temp_files.append(facility_path)
+
+        return corporate_path, facility_path
+
+    def _handle_dry_run(self, corporate_path, facility_path):
+        """Validate file presence without creating records and return wizard action."""
+        messages = []
+        if corporate_path:
+            messages.append(f"Corporate CSV validated: {corporate_path}")
+        if facility_path:
+            messages.append(f"Facility CSV validated: {facility_path}")
+        self.result_message = "\n".join(messages) + "\n\nDry run complete. No records created."
+        self.state = "done"
+        return self._return_wizard()
+
+    def _format_import_result(self, result):
+        """Build a human-readable summary string from an import result dict."""
+        msg_parts = ["Import completed successfully!"]
+        if result.get("corporates_created"):
+            msg_parts.append(f"Corporate partners created: {result['corporates_created']}")
+        if result.get("corporates_updated"):
+            msg_parts.append(f"Corporate partners updated: {result['corporates_updated']}")
+        if result.get("facilities_created"):
+            msg_parts.append(f"Facilities created: {result['facilities_created']}")
+        if result.get("facilities_updated"):
+            msg_parts.append(f"Facilities updated: {result['facilities_updated']}")
+        if result.get("contacts_created"):
+            msg_parts.append(f"Contacts created: {result['contacts_created']}")
+        if result.get("errors"):
+            msg_parts.append(f"\nErrors: {len(result['errors'])}")
+            for err in result["errors"][:10]:
+                msg_parts.append(f"  - {err}")
+            if len(result["errors"]) > 10:
+                msg_parts.append(f"  ... and {len(result['errors']) - 10} more")
+        return "\n".join(msg_parts)
 
     def _return_wizard(self):
         """Return action to keep wizard open with results."""

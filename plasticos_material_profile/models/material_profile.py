@@ -558,32 +558,8 @@ class PlasticosMaterialProfile(models.Model):
                 "Install 'plasticos_order_lines' from Apps to enable this feature."
             )
 
-        # Check if product module is installed and polymer has product_id field
-        product_id = False
-        product_uom_id = False
-        if hasattr(self.polymer_id, "product_id") and self.polymer_id.product_id:
-            product_id = self.polymer_id.product_id.id
-            product_uom_id = self.polymer_id.product_id.uom_id.id if self.polymer_id.product_id.uom_id else False
-        elif hasattr(self.polymer_id, "_ensure_product"):
-            # Product module installed but no product yet - create one
-            self.polymer_id._ensure_product()
-            if self.polymer_id.product_id:
-                product_id = self.polymer_id.product_id.id
-                product_uom_id = self.polymer_id.product_id.uom_id.id if self.polymer_id.product_id.uom_id else False
-
-        line_vals = {
-            "product_id": product_id,
-            "name": f"{self.polymer_id.name} - {self.partner_id.name}",
-            "product_qty": 1,
-            "product_uom": product_uom_id,
-            "material_profile_id": self.id,
-            "color_id": self.color_id.id if self.color_id else False,
-            "form_id": self.form_id.id if self.form_id else False,
-            "packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
-            "source_type_id": self.source_type_id.id if self.source_type_id else False,
-            "filler_type_id": self.filler_type_id.id if self.filler_type_id else False,
-            "material_attribute_ids": [(6, 0, self.material_attribute_ids.ids)],
-        }
+        product_id, product_uom_id = self._resolve_polymer_product()
+        line_vals = self._build_po_line_vals(product_id, product_uom_id)
 
         return {
             "type": IR_ACT_WINDOW,
@@ -597,50 +573,86 @@ class PlasticosMaterialProfile(models.Model):
             },
         }
 
+    def _resolve_polymer_product(self):
+        """Resolve product_id and product_uom_id from the linked polymer."""
+        product_id = False
+        product_uom_id = False
+        if hasattr(self.polymer_id, "product_id") and self.polymer_id.product_id:
+            product_id = self.polymer_id.product_id.id
+            product_uom_id = self.polymer_id.product_id.uom_id.id if self.polymer_id.product_id.uom_id else False
+        elif hasattr(self.polymer_id, "_ensure_product"):
+            # Product module installed but no product yet - create one
+            self.polymer_id._ensure_product()
+            if self.polymer_id.product_id:
+                product_id = self.polymer_id.product_id.id
+                product_uom_id = self.polymer_id.product_id.uom_id.id if self.polymer_id.product_id.uom_id else False
+        return product_id, product_uom_id
+
+    def _build_po_line_vals(self, product_id, product_uom_id):
+        """Build the purchase order line vals dict for this material profile."""
+        return {
+            "product_id": product_id,
+            "name": f"{self.polymer_id.name} - {self.partner_id.name}",
+            "product_qty": 1,
+            "product_uom": product_uom_id,
+            "material_profile_id": self.id,
+            "color_id": self.color_id.id if self.color_id else False,
+            "form_id": self.form_id.id if self.form_id else False,
+            "packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
+            "source_type_id": self.source_type_id.id if self.source_type_id else False,
+            "filler_type_id": self.filler_type_id.id if self.filler_type_id else False,
+            "material_attribute_ids": [(6, 0, self.material_attribute_ids.ids)],
+        }
+
     # ═════════════════════════════════════════════════════════
     # Capability Packet (stub for L9 adapter)
     # ═════════════════════════════════════════════════════════
 
     def _emit_material_packet(self):
+        """Emit a capability packet for each record (stub for L9 adapter)."""
         for rec in self:
-            packet = {
-                "partner_id": rec.partner_id.id,
-                "polymer": rec.polymer_id.code if rec.polymer_id else None,
-                "polymer_name": rec.polymer_id.name if rec.polymer_id else None,
-                "form": rec.form_id.code if rec.form_id else None,
-                "form_name": rec.form_id.name if rec.form_id else None,
-                "color": rec.color_id.code if rec.color_id else None,
-                "color_name": rec.color_id.name if rec.color_id else None,
-                "attributes": rec.material_attribute_ids.mapped("code"),
-                "quality": {
-                    "mfi": rec.melt_flow_index,
-                    "density": rec.density,
-                    "moisture": rec.moisture_percent,
-                    "contamination": rec.contamination_percent,
-                    "has_metal": rec.has_metal,
-                    "is_metalized": rec.is_metalized,
-                    "fr": rec.has_fr,
-                },
-                "volume": {
-                    "avg_lot": rec.avg_lot_size_lbs,
-                    "monthly": rec.monthly_volume_lbs,
-                    "frequency": rec.frequency,
-                },
-                "source": {
-                    "source_type": rec.source_type_id.code if rec.source_type_id else None,
-                    "source_type_name": rec.source_type_id.name if rec.source_type_id else None,
-                    "origin_process": rec.origin_process_type,
-                    "washed": rec.previously_washed,
-                    "pelletized": rec.previously_pelletized,
-                },
-                "filler": {
-                    "type": rec.filler_type_id.code if rec.filler_type_id else None,
-                    "type_name": rec.filler_type_id.name if rec.filler_type_id else None,
-                    "pct": rec.filler_pct,
-                },
-            }
+            packet = rec._build_material_packet_for_rec()
             # Stub only — L9 adapter will consume this.
             _ = packet
+
+    def _build_material_packet_for_rec(self):
+        """Build the full material capability packet dict for this record."""
+        return {
+            "partner_id": self.partner_id.id,
+            "polymer": self.polymer_id.code if self.polymer_id else None,
+            "polymer_name": self.polymer_id.name if self.polymer_id else None,
+            "form": self.form_id.code if self.form_id else None,
+            "form_name": self.form_id.name if self.form_id else None,
+            "color": self.color_id.code if self.color_id else None,
+            "color_name": self.color_id.name if self.color_id else None,
+            "attributes": self.material_attribute_ids.mapped("code"),
+            "quality": {
+                "mfi": self.melt_flow_index,
+                "density": self.density,
+                "moisture": self.moisture_percent,
+                "contamination": self.contamination_percent,
+                "has_metal": self.has_metal,
+                "is_metalized": self.is_metalized,
+                "fr": self.has_fr,
+            },
+            "volume": {
+                "avg_lot": self.avg_lot_size_lbs,
+                "monthly": self.monthly_volume_lbs,
+                "frequency": self.frequency,
+            },
+            "source": {
+                "source_type": self.source_type_id.code if self.source_type_id else None,
+                "source_type_name": self.source_type_id.name if self.source_type_id else None,
+                "origin_process": self.origin_process_type,
+                "washed": self.previously_washed,
+                "pelletized": self.previously_pelletized,
+            },
+            "filler": {
+                "type": self.filler_type_id.code if self.filler_type_id else None,
+                "type_name": self.filler_type_id.name if self.filler_type_id else None,
+                "pct": self.filler_pct,
+            },
+        }
 
     # ═════════════════════════════════════════════════════════
     # Action Methods (for UX smart buttons)
