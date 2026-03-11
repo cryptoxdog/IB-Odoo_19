@@ -7,6 +7,18 @@ on:
     branches: [main, master, develop, staging]
 
 jobs:
+  # Job 0: Static file checks (fast, no Python runtime needed)
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bash syntax check
+        run: |
+          find . -name "*.sh" -not -path "./.git/*" | while read f; do
+            bash -n "$f" || (echo "Syntax error in $f" && exit 1)
+          done
+
   # Job 1: Check for circular dependencies (BLOCKING - fails fast)
   circular-deps:
     runs-on: ubuntu-latest

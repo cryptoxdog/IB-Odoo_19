@@ -457,3 +457,33 @@ jobs:
       - name: Identify weak tests
         run: |
           python3 ci/weak_test_fixer.py || echo "Weak test check completed"
+
+  # CI Shield: bash syntax + test attribute guard
+  ci-shield:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bash syntax check
+        run: |
+          find . -name "*.sh" -not -path "./.git/*" | while read f; do
+            bash -n "$f" || (echo "Syntax error in $f" && exit 1)
+          done
+
+      - name: Test attribute guard (warn-only)
+        run: |
+          echo "=== Checking for undefined self.*_rec attributes in tests ==="
+          # Find test files that reference self.<name>_rec but lack a cls/self assignment
+          # for that attribute. Warn-only (|| true) — catches cases like self.intake_rec
+          # when setUpClass only defines cls.intake.
+          find . -name "test_*.py" -path "*/tests/*" ! -path "./.venv/*" | while read f; do
+            REFS=$(grep -oP 'self\.[a-z_]+_rec\b' "$f" 2>/dev/null | sort -u || true)
+            if [ -z "$REFS" ]; then continue; fi
+            for ref in $REFS; do
+              attr="${ref#self.}"
+              if ! grep -qP "(cls\.$attr\s*=|self\.$attr\s*=)" "$f"; then
+                echo "WARNING: $f uses $ref but no cls.$attr or self.$attr= found"
+              fi
+            done
+          done || true
+          echo "=== Test attribute guard complete ==="
