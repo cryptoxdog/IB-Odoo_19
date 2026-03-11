@@ -215,7 +215,7 @@ def find_model_definitions(module_path: Path) -> dict[str, str]:
                 models[model_name] = str(py_file)
             # Also resolve _name = CONSTANT where CONSTANT = "model.name" (e.g. plasticos_transaction)
             constants = dict(re.findall(r'([A-Z][A-Z0-9_]+)\s*=\s*["\']([a-z][a-z0-9_.]+)["\']', content))
-            for const in re.findall(r'_name\s*=\s*([A-Z][A-Z0-9_]+)', content):
+            for const in re.findall(r"_name\s*=\s*([A-Z][A-Z0-9_]+)", content):
                 if const in constants:
                     models[constants[const]] = str(py_file)
         except Exception:
