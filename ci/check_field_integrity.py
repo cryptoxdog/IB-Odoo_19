@@ -70,6 +70,62 @@ def check_x_prefixed_fields(base_path: Path) -> list[tuple[str, int, str]]:
     return issues
 
 
+def _get_module_dependencies(manifest_path: Path) -> set[str]:
+    """Parse __manifest__.py and return the set of declared dependencies."""
+    dependencies: set[str] = set()
+    if not manifest_path.exists():
+        return dependencies
+    try:
+        content = manifest_path.read_text()
+        match = re.search(r'"depends"\s*:\s*\[(.*?)\]', content, re.DOTALL)
+        if match:
+            for dep_match in re.finditer(r'"([^"]+)"', match.group(1)):
+                dependencies.add(dep_match.group(1))
+    except Exception:
+        pass
+    return dependencies
+
+
+def _extract_depends_fields(line: str, lines: list[str], i: int) -> list[str]:
+    """Return field names referenced by an @api.depends decorator (handles multi-line)."""
+    depends_match = re.search(r"@api\.depends\s*\((.*?)\)", line, re.DOTALL)
+    if not depends_match:
+        full_depends = line
+        j = i + 1
+        while j < len(lines) and ")" not in full_depends:
+            full_depends += lines[j]
+            j += 1
+        depends_match = re.search(r"@api\.depends\s*\((.*?)\)", full_depends, re.DOTALL)
+    if not depends_match:
+        return []
+    return [m.group(1) for m in re.finditer(r'"([^"]+)"', depends_match.group(1))]
+
+
+def _check_file_for_cross_depends(
+    py_file: Path,
+    module_name: str,
+    dependencies: set[str],
+) -> list[tuple[str, int, str, str, str]]:
+    """Scan one Python file for @api.depends cross-module violations."""
+    issues = []
+    try:
+        content = py_file.read_text()
+        lines = content.split("\n")
+        for i, line in enumerate(lines):
+            if "@api.depends" not in line:
+                continue
+            for field_path in _extract_depends_fields(line, lines, i):
+                field_name = field_path.split(".")[0]
+                for _model, fields in FIELD_OWNERSHIP.items():
+                    if field_name in fields:
+                        owner_module = fields[field_name]
+                        if owner_module != module_name and owner_module not in dependencies:
+                            issues.append((str(py_file), i + 1, field_name, owner_module, module_name))
+    except Exception:
+        pass
+    return issues
+
+
 def check_cross_module_depends(base_path: Path) -> list[tuple[str, int, str, str, str]]:
     """Find @api.depends that reference fields from non-dependency modules."""
     issues = []
@@ -79,68 +135,14 @@ def check_cross_module_depends(base_path: Path) -> list[tuple[str, int, str, str
             continue
 
         module_name = module_dir.name
-
-        # Get module dependencies
-        manifest_path = module_dir / "__manifest__.py"
-        dependencies = set()
-        if manifest_path.exists():
-            try:
-                content = manifest_path.read_text()
-                # Extract depends list
-                match = re.search(r'"depends"\s*:\s*\[(.*?)\]', content, re.DOTALL)
-                if match:
-                    deps_str = match.group(1)
-                    for dep_match in re.finditer(r'"([^"]+)"', deps_str):
-                        dependencies.add(dep_match.group(1))
-            except Exception:
-                pass
+        dependencies = _get_module_dependencies(module_dir / "__manifest__.py")
 
         models_dir = module_dir / "models"
         if not models_dir.exists():
             continue
 
         for py_file in models_dir.glob("*.py"):
-            try:
-                content = py_file.read_text()
-                lines = content.split("\n")
-
-                # Find @api.depends decorators
-                for i, line in enumerate(lines):
-                    if "@api.depends" in line:
-                        # Extract field names from depends
-                        depends_match = re.search(r"@api\.depends\s*\((.*?)\)", line, re.DOTALL)
-                        if not depends_match:
-                            # Multi-line depends
-                            full_depends = line
-                            j = i + 1
-                            while j < len(lines) and ")" not in full_depends:
-                                full_depends += lines[j]
-                                j += 1
-                            depends_match = re.search(r"@api\.depends\s*\((.*?)\)", full_depends, re.DOTALL)
-
-                        if depends_match:
-                            depends_content = depends_match.group(1)
-                            # Extract field names
-                            for field_match in re.finditer(r'"([^"]+)"', depends_content):
-                                field_path = field_match.group(1)
-                                field_name = field_path.split(".")[0]
-
-                                # Check if this field is owned by another module
-                                for _model, fields in FIELD_OWNERSHIP.items():
-                                    if field_name in fields:
-                                        owner_module = fields[field_name]
-                                        if owner_module != module_name and owner_module not in dependencies:
-                                            issues.append(
-                                                (
-                                                    str(py_file),
-                                                    i + 1,
-                                                    field_name,
-                                                    owner_module,
-                                                    module_name,
-                                                )
-                                            )
-            except Exception:
-                pass
+            issues.extend(_check_file_for_cross_depends(py_file, module_name, dependencies))
 
     return issues
 

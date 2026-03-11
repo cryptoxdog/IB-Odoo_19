@@ -39,6 +39,93 @@ def get_git_tracked_files(pattern: str) -> list[Path]:
         return []
 
 
+def _check_view_xml_file(xml_file: Path) -> list[dict]:
+    """Check a single view XML file for all Odoo 19 forbidden patterns."""
+    errors = []
+    try:
+        with open(xml_file, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except Exception:
+        return errors
+
+    for i, line in enumerate(lines, 1):
+        # Pattern 1: <tree> tag (should be <list>)
+        if re.search(r"<tree\b", line) and not re.search(r"tree\.txt", line):
+            errors.append(
+                {
+                    "file": str(xml_file),
+                    "line": i,
+                    "pattern": "<tree>",
+                    "message": "Use <list> instead of <tree> (Odoo 19)",
+                }
+            )
+
+        # Pattern 2: alert-* class without role attribute
+        if re.search(r'class="[^"]*alert[^"]*"', line) and not re.search(r"role=", line):
+            context = "\n".join(lines[max(0, i - 1) : min(len(lines), i + 2)])
+            if not re.search(r"role=", context):
+                errors.append(
+                    {
+                        "file": str(xml_file),
+                        "line": i,
+                        "pattern": "alert without role",
+                        "message": (
+                            "Elements with alert-* class must have role attribute. "
+                            'Add role="alert" or role="status"'
+                        ),
+                    }
+                )
+
+        # Pattern 3: active_id in context (should be id)
+        if re.search(r"context=.*active_id", line):
+            errors.append(
+                {
+                    "file": str(xml_file),
+                    "line": i,
+                    "pattern": "active_id in context",
+                    "message": (
+                        "active_id is a client-side variable, not a field. Use 'id' instead in view context"
+                    ),
+                }
+            )
+
+        # Pattern 4: view_mode with 'tree' (should be 'list')
+        if re.search(r'name="view_mode"[^>]*>.*tree', line):
+            errors.append(
+                {
+                    "file": str(xml_file),
+                    "line": i,
+                    "pattern": "view_mode tree",
+                    "message": "Use 'list' instead of 'tree' in view_mode (Odoo 19)",
+                }
+            )
+
+    return errors
+
+
+def _check_data_xml_file(xml_file: Path) -> list[dict]:
+    """Check a single data XML file for view_mode tree usage."""
+    errors = []
+    try:
+        with open(xml_file, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except Exception:
+        return errors
+
+    for i, line in enumerate(lines, 1):
+        if re.search(r'name="view_mode"[^>]*>.*tree', line):
+            errors.append(
+                {
+                    "file": str(xml_file),
+                    "line": i,
+                    "pattern": "view_mode tree",
+                    "message": "Use 'list' instead of 'tree' in view_mode (Odoo 19)",
+                }
+            )
+
+    return errors
+
+
 def check_xml_patterns(root_dir: Path) -> list[dict]:
     """Find forbidden XML patterns in view files."""
     errors = []
@@ -51,70 +138,7 @@ def check_xml_patterns(root_dir: Path) -> list[dict]:
     for xml_file in view_files:
         if "__pycache__" in str(xml_file):
             continue
-
-        try:
-            with open(xml_file, encoding="utf-8") as f:
-                content = f.read()
-                lines = content.splitlines()
-        except Exception:
-            continue
-
-        # Pattern 1: <tree> tag (should be <list>)
-        for i, line in enumerate(lines, 1):
-            if re.search(r"<tree\b", line) and not re.search(r"tree\.txt", line):
-                errors.append(
-                    {
-                        "file": str(xml_file),
-                        "line": i,
-                        "pattern": "<tree>",
-                        "message": "Use <list> instead of <tree> (Odoo 19)",
-                    }
-                )
-
-        # Pattern 2: alert-* class without role attribute
-        for i, line in enumerate(lines, 1):
-            if re.search(r'class="[^"]*alert[^"]*"', line):
-                if not re.search(r"role=", line):
-                    # Check next few lines for role (might be on different line)
-                    context = "\n".join(lines[max(0, i - 1) : min(len(lines), i + 2)])
-                    if not re.search(r"role=", context):
-                        errors.append(
-                            {
-                                "file": str(xml_file),
-                                "line": i,
-                                "pattern": "alert without role",
-                                "message": (
-                                    "Elements with alert-* class must have role attribute. "
-                                    'Add role="alert" or role="status"'
-                                ),
-                            }
-                        )
-
-        # Pattern 3: active_id in context (should be id)
-        for i, line in enumerate(lines, 1):
-            if re.search(r"context=.*active_id", line):
-                errors.append(
-                    {
-                        "file": str(xml_file),
-                        "line": i,
-                        "pattern": "active_id in context",
-                        "message": (
-                            "active_id is a client-side variable, not a field. Use 'id' instead in view context"
-                        ),
-                    }
-                )
-
-        # Pattern 4: view_mode with 'tree' (should be 'list')
-        for i, line in enumerate(lines, 1):
-            if re.search(r'name="view_mode"[^>]*>.*tree', line):
-                errors.append(
-                    {
-                        "file": str(xml_file),
-                        "line": i,
-                        "pattern": "view_mode tree",
-                        "message": "Use 'list' instead of 'tree' in view_mode (Odoo 19)",
-                    }
-                )
+        errors.extend(_check_view_xml_file(xml_file))
 
     # Also check data XML files for view_mode
     data_files = get_git_tracked_files("*/data/*.xml")
@@ -122,23 +146,7 @@ def check_xml_patterns(root_dir: Path) -> list[dict]:
         data_files = list(root_dir.glob("*/data/*.xml"))
 
     for xml_file in data_files:
-        try:
-            with open(xml_file, encoding="utf-8") as f:
-                content = f.read()
-                lines = content.splitlines()
-        except Exception:
-            continue
-
-        for i, line in enumerate(lines, 1):
-            if re.search(r'name="view_mode"[^>]*>.*tree', line):
-                errors.append(
-                    {
-                        "file": str(xml_file),
-                        "line": i,
-                        "pattern": "view_mode tree",
-                        "message": "Use 'list' instead of 'tree' in view_mode (Odoo 19)",
-                    }
-                )
+        errors.extend(_check_data_xml_file(xml_file))
 
     return errors
 
