@@ -1,6 +1,12 @@
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
+PRODUCT_PRICE = "Product Price"
+ACCOUNT_MOVE = "account.move"
+RES_PARTNER = "res.partner"
+PLASTICOS_MATERIAL_PROFILE = "plasticos.material.profile"
+PLASTICOS_TRANSACTION = "plasticos.transaction"
+
 
 class PlasticosTransaction(models.Model):
     _name = "plasticos.transaction"
@@ -23,21 +29,21 @@ class PlasticosTransaction(models.Model):
 
     # ── Partner References (harvested from linda_logistics_v6) ──
     supplier_id = fields.Many2one(
-        "res.partner",
+        RES_PARTNER,
         string="Supplier",
         domain=[("is_company", "=", True), ("supplier_rank", ">", 0)],
         tracking=True,
         index=True,
     )
     buyer_id = fields.Many2one(
-        "res.partner",
+        RES_PARTNER,
         string="Buyer",
         domain=[("is_company", "=", True), ("customer_rank", ">", 0)],
         tracking=True,
         index=True,
     )
     carrier_id = fields.Many2one(
-        "res.partner",
+        RES_PARTNER,
         string="Carrier",
         domain=[("is_company", "=", True)],
         tracking=True,
@@ -45,14 +51,14 @@ class PlasticosTransaction(models.Model):
 
     # ── Denormalized Material Profile Links (fast lookup) ──────
     supplier_profile_id = fields.Many2one(
-        "plasticos.material.profile",
+        PLASTICOS_MATERIAL_PROFILE,
         string="Supplier Material Profile",
         compute="_compute_profile_refs",
         store=True,
         help="Denormalized link to supplier's material profile for fast lookup.",
     )
     buyer_profile_id = fields.Many2one(
-        "plasticos.material.profile",
+        PLASTICOS_MATERIAL_PROFILE,
         string="Buyer Material Profile",
         compute="_compute_profile_refs",
         store=True,
@@ -70,7 +76,7 @@ class PlasticosTransaction(models.Model):
     )
 
     supplier_material_id = fields.Many2one(
-        "plasticos.material.profile",
+        PLASTICOS_MATERIAL_PROFILE,
         string="Supplier Material Profile (PO)",
         compute="_compute_profiles",
         store=True,
@@ -95,7 +101,7 @@ class PlasticosTransaction(models.Model):
     )
     unit_price = fields.Float(
         string="Unit Price",
-        digits="Product Price",
+        digits=PRODUCT_PRICE,
         tracking=True,
     )
 
@@ -129,12 +135,12 @@ class PlasticosTransaction(models.Model):
     )
     freight_rate = fields.Float(
         string="Freight Rate",
-        digits="Product Price",
+        digits=PRODUCT_PRICE,
         tracking=True,
     )
     freight_actual = fields.Float(
         string="Actual Freight Cost",
-        digits="Product Price",
+        digits=PRODUCT_PRICE,
         tracking=True,
     )
 
@@ -278,14 +284,14 @@ class PlasticosTransaction(models.Model):
         default=False,
     )
 
-    customer_invoice_id = fields.Many2one("account.move", domain=[("move_type", "=", "out_invoice")])
+    customer_invoice_id = fields.Many2one(ACCOUNT_MOVE, domain=[("move_type", "=", "out_invoice")])
 
     vendor_bill_ids = fields.Many2many(
-        "account.move", relation="plasticos_tx_vendor_rel", domain=[("move_type", "=", "in_invoice")]
+        ACCOUNT_MOVE, relation="plasticos_tx_vendor_rel", domain=[("move_type", "=", "in_invoice")]
     )
 
     freight_bill_ids = fields.Many2many(
-        "account.move", relation="plasticos_tx_freight_rel", domain=[("move_type", "=", "in_invoice")]
+        ACCOUNT_MOVE, relation="plasticos_tx_freight_rel", domain=[("move_type", "=", "in_invoice")]
     )
 
     # ── RevOps Financial Fields ──────────────────────────────
@@ -440,7 +446,7 @@ class PlasticosTransaction(models.Model):
         Note: product.template has polymer_id (via plasticos_product) but not
         form_id. We match on polymer only; form matching requires order line fields.
         """
-        Profile = self.env["plasticos.material.profile"]
+        Profile = self.env[PLASTICOS_MATERIAL_PROFILE]
         for rec in self:
             supplier_profile = False
             buyer_profile = False
@@ -483,7 +489,7 @@ class PlasticosTransaction(models.Model):
             if rec.purchase_order_ids:
                 first_po = rec.purchase_order_ids[0]
                 if first_po.partner_id:
-                    material = self.env["plasticos.material.profile"].search(
+                    material = self.env[PLASTICOS_MATERIAL_PROFILE].search(
                         [("partner_id", "=", first_po.partner_id.id)], limit=1
                     )
                     rec.supplier_material_id = material
@@ -702,7 +708,7 @@ class PlasticosTransaction(models.Model):
 
         for rec in self:
             old_status = rec.compliance_status
-            if service.is_compliant("plasticos.transaction", rec.id):
+            if service.is_compliant(PLASTICOS_TRANSACTION, rec.id):
                 rec.compliance_status = "compliant"
                 # Auto-post draft invoices when compliance achieved
                 if old_status == "missing":
@@ -717,7 +723,7 @@ class PlasticosTransaction(models.Model):
         Only posts moves in 'draft' state to avoid double-posting.
         """
         self.ensure_one()
-        moves_to_post = self.env["account.move"]
+        moves_to_post = self.env[ACCOUNT_MOVE]
 
         if self.customer_invoice_id and self.customer_invoice_id.state == "draft":
             moves_to_post |= self.customer_invoice_id
@@ -735,82 +741,67 @@ class PlasticosTransaction(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get("name", "New") == "New":
-                vals["name"] = self.env["ir.sequence"].next_by_code("plasticos.transaction") or "New"
+                vals["name"] = self.env["ir.sequence"].next_by_code(PLASTICOS_TRANSACTION) or "New"
         return super().create(vals_list)
 
     def write(self, vals):
         for rec in self:
-            if "state" in vals:
-                allow = vals.get("state") == "active" or (
-                    vals.get("state") == "closed" and vals.get("commission_locked") is True
-                )
-                if not allow:
-                    raise UserError("State can only be changed via action methods.")
-            if "name" in vals:
-                raise UserError("Transaction reference cannot be modified.")
-            if rec.state == "closed":
-                protected = {
-                    "sale_order_id",
-                    "purchase_order_ids",
-                    "customer_invoice_id",
-                    "vendor_bill_ids",
-                    "freight_bill_ids",
-                    "commission_rule_id",
-                }
-                if protected.intersection(vals.keys()):
-                    raise UserError("Closed transactions are immutable.")
-            if rec.commission_locked and "commission_rule_id" in vals:
-                raise UserError("Commission cannot be modified after lock.")
-            if rec.customer_invoice_id and "customer_invoice_id" in vals:
-                if vals["customer_invoice_id"] != rec.customer_invoice_id.id:
-                    raise UserError("Customer invoice cannot be reassigned once set.")
-            if "vendor_bill_ids" in vals:
-                for cmd in vals["vendor_bill_ids"]:
-                    if cmd[0] == 4:
-                        other = self.search(
-                            [
-                                ("vendor_bill_ids", "in", [cmd[1]]),
-                                ("id", "!=", rec.id),
-                            ],
-                            limit=1,
-                        )
-                        if other:
-                            raise UserError("Vendor bill already linked to another transaction.")
-                    elif cmd[0] == 6:
-                        for bid in cmd[2]:
-                            other = self.search(
-                                [
-                                    ("vendor_bill_ids", "in", [bid]),
-                                    ("id", "!=", rec.id),
-                                ],
-                                limit=1,
-                            )
-                            if other:
-                                raise UserError("Vendor bill already linked to another transaction.")
-            if "freight_bill_ids" in vals:
-                for cmd in vals["freight_bill_ids"]:
-                    if cmd[0] == 4:
-                        other = self.search(
-                            [
-                                ("freight_bill_ids", "in", [cmd[1]]),
-                                ("id", "!=", rec.id),
-                            ],
-                            limit=1,
-                        )
-                        if other:
-                            raise UserError("Freight bill already linked to another transaction.")
-                    elif cmd[0] == 6:
-                        for bid in cmd[2]:
-                            other = self.search(
-                                [
-                                    ("freight_bill_ids", "in", [bid]),
-                                    ("id", "!=", rec.id),
-                                ],
-                                limit=1,
-                            )
-                            if other:
-                                raise UserError("Freight bill already linked to another transaction.")
+            self._validate_state_transition(rec, vals)
+            self._validate_write_immutability(rec, vals)
+            self._validate_bill_uniqueness(rec, vals, "vendor_bill_ids", "Vendor bill")
+            self._validate_bill_uniqueness(rec, vals, "freight_bill_ids", "Freight bill")
         return super().write(vals)
+
+    def _validate_state_transition(self, rec, vals):
+        """Enforce that state changes only happen via dedicated action methods."""
+        if "state" in vals:
+            allow = vals.get("state") == "active" or (
+                vals.get("state") == "closed" and vals.get("commission_locked") is True
+            )
+            if not allow:
+                raise UserError("State can only be changed via action methods.")
+
+    def _validate_write_immutability(self, rec, vals):
+        """Guard immutable fields: name, closed-state fields, commission lock, invoice reassignment."""
+        if "name" in vals:
+            raise UserError("Transaction reference cannot be modified.")
+        if rec.state == "closed":
+            protected = {
+                "sale_order_id",
+                "purchase_order_ids",
+                "customer_invoice_id",
+                "vendor_bill_ids",
+                "freight_bill_ids",
+                "commission_rule_id",
+            }
+            if protected.intersection(vals.keys()):
+                raise UserError("Closed transactions are immutable.")
+        if rec.commission_locked and "commission_rule_id" in vals:
+            raise UserError("Commission cannot be modified after lock.")
+        if rec.customer_invoice_id and "customer_invoice_id" in vals:
+            if vals["customer_invoice_id"] != rec.customer_invoice_id.id:
+                raise UserError("Customer invoice cannot be reassigned once set.")
+
+    def _validate_bill_uniqueness(self, rec, vals, field, label):
+        """Ensure each bill in M2M commands is not already linked to another transaction."""
+        if field not in vals:
+            return
+        for cmd in vals[field]:
+            if cmd[0] == 4:
+                other = self.search(
+                    [(field, "in", [cmd[1]]), ("id", "!=", rec.id)],
+                    limit=1,
+                )
+                if other:
+                    raise UserError(f"{label} already linked to another transaction.")
+            elif cmd[0] == 6:
+                for bid in cmd[2]:
+                    other = self.search(
+                        [(field, "in", [bid]), ("id", "!=", rec.id)],
+                        limit=1,
+                    )
+                    if other:
+                        raise UserError(f"{label} already linked to another transaction.")
 
     def unlink(self):
         for rec in self:
@@ -832,35 +823,37 @@ class PlasticosTransaction(models.Model):
                 "SELECT id FROM plasticos_transaction WHERE id = %s FOR UPDATE",
                 (rec.id,),
             )
-            if rec.state == "closed":
-                raise UserError("Transaction is already closed.")
-            if not rec.customer_invoice_id or rec.customer_invoice_id.state != "posted":
-                raise UserError("Customer invoice must be posted.")
+            self._validate_close_preconditions(rec, service_docs)
+            self._apply_close(rec, service_commission)
 
-            if any(bill.state != "posted" for bill in rec.vendor_bill_ids):
-                raise UserError("Vendor bills must be posted.")
+    def _validate_close_preconditions(self, rec, service_docs):
+        """Guard all business rules that must pass before a transaction can be closed."""
+        if rec.state == "closed":
+            raise UserError("Transaction is already closed.")
+        if not rec.customer_invoice_id or rec.customer_invoice_id.state != "posted":
+            raise UserError("Customer invoice must be posted.")
+        if any(bill.state != "posted" for bill in rec.vendor_bill_ids):
+            raise UserError("Vendor bills must be posted.")
+        load = getattr(rec, "load_id", False)
+        if load and load.state != "closed":
+            raise UserError("Logistics must be closed.")
+        if service_docs and not service_docs.is_compliant(PLASTICOS_TRANSACTION, rec.id):
+            raise UserError("Required documents missing.")
+        if not self.env.user.has_group("plasticos_transaction.group_plasticos_manager"):
+            raise UserError("Only Plasticos Managers can close transactions.")
+        if rec.gross_margin < 0:
+            raise UserError("Cannot close transaction with negative gross margin.")
 
-            load = getattr(rec, "load_id", False)
-            if load and load.state != "closed":
-                raise UserError("Logistics must be closed.")
-
-            if service_docs and not service_docs.is_compliant("plasticos.transaction", rec.id):
-                raise UserError("Required documents missing.")
-
-            if not self.env.user.has_group("plasticos_transaction.group_plasticos_manager"):
-                raise UserError("Only Plasticos Managers can close transactions.")
-
-            if rec.gross_margin < 0:
-                raise UserError("Cannot close transaction with negative gross margin.")
-
-            amount = service_commission.compute_commission(rec) if service_commission else 0.0
-            rec.write(
-                {
-                    "commission_locked_amount": amount,
-                    "commission_locked": True,
-                    "state": "closed",
-                }
-            )
+    def _apply_close(self, rec, service_commission):
+        """Compute commission and write the closed state onto the transaction record."""
+        amount = service_commission.compute_commission(rec) if service_commission else 0.0
+        rec.write(
+            {
+                "commission_locked_amount": amount,
+                "commission_locked": True,
+                "state": "closed",
+            }
+        )
 
     # ═════════════════════════════════════════════════════════
     # Action Methods (for UX smart buttons)
@@ -873,7 +866,7 @@ class PlasticosTransaction(models.Model):
             return False
         return {
             "type": "ir.actions.act_window",
-            "res_model": "res.partner",
+            "res_model": RES_PARTNER,
             "res_id": self.supplier_id.id,
             "view_mode": "form",
             "target": "current",
@@ -886,7 +879,7 @@ class PlasticosTransaction(models.Model):
             return False
         return {
             "type": "ir.actions.act_window",
-            "res_model": "res.partner",
+            "res_model": RES_PARTNER,
             "res_id": self.buyer_id.id,
             "view_mode": "form",
             "target": "current",
