@@ -127,5 +127,7 @@ class TestProcessEnumAlignment:
 
         if cypher_matches:
             invalid = cypher_matches - registry_codes
-            msg = f"graph_service.py Cypher uses process codes not in registry: {invalid}. Valid codes: {registry_codes}"
+            msg = (
+                f"graph_service.py Cypher uses process codes not in registry: {invalid}. Valid codes: {registry_codes}"
+            )
             assert not invalid, msg
