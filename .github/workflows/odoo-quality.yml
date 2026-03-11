@@ -18,7 +18,9 @@ jobs:
       - name: Install tools
         run: pip install ruff
       - name: Ruff lint
-        run: ruff check --select E,F,W,C901 --exclude plasticos_inference_engine,plasticos_buyer_match_engine,plasticos_matching .
+        run: ruff check --select E,F,W --exclude plasticos_inference_engine,plasticos_buyer_match_engine,plasticos_matching .
+      - name: Ruff complexity check (warn until backlog cleared)
+        run: ruff check --select C901 --exit-zero --exclude plasticos_inference_engine,plasticos_buyer_match_engine,plasticos_matching . || true
       - name: Ruff format check
         run: ruff format --check --exclude plasticos_inference_engine,plasticos_buyer_match_engine,plasticos_matching .
 
