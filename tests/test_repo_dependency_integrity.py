@@ -171,14 +171,14 @@ class TestModuleManifest:
         assert self.manifest["name"] == EXPECTED_NAME, msg
 
     def test_version(self):
-        assert (
-            self.manifest["version"] == EXPECTED_VERSION
-        ), f"Expected version '{EXPECTED_VERSION}', got '{self.manifest['version']}'"
+        assert self.manifest["version"] == EXPECTED_VERSION, (
+            f"Expected version '{EXPECTED_VERSION}', got '{self.manifest['version']}'"
+        )
 
     def test_version_starts_with_19(self):
-        assert self.manifest["version"].startswith(
-            "19."
-        ), f"Version must start with '19.' for Odoo 19, got '{self.manifest['version']}'"
+        assert self.manifest["version"].startswith("19."), (
+            f"Version must start with '19.' for Odoo 19, got '{self.manifest['version']}'"
+        )
 
     def test_installable(self):
         assert self.manifest.get("installable") is True
@@ -188,9 +188,9 @@ class TestModuleManifest:
 
     def test_depends_exact(self):
         declared = self.manifest.get("depends", [])
-        assert (
-            declared == EXPECTED_DEPENDS
-        ), f"Dependency mismatch.\n  Expected: {EXPECTED_DEPENDS}\n  Got:      {declared}"
+        assert declared == EXPECTED_DEPENDS, (
+            f"Dependency mismatch.\n  Expected: {EXPECTED_DEPENDS}\n  Got:      {declared}"
+        )
 
     def test_external_dependencies_python(self):
         ext = self.manifest.get("external_dependencies", {})
@@ -384,14 +384,14 @@ class TestNeo4jOntologyAlignment:
         assert self.src is not None, "models/graph_service.py not found"
 
     def test_facility_node_label(self):
-        assert (
-            ":Facility" in self.src or "(f:Facility" in self.src or "MERGE (fac:Facility" in self.src
-        ), "Facility node label not found in Cypher queries"
+        assert ":Facility" in self.src or "(f:Facility" in self.src or "MERGE (fac:Facility" in self.src, (
+            "Facility node label not found in Cypher queries"
+        )
 
     def test_material_profile_node_label(self):
-        assert (
-            ":MaterialProfile" in self.src or "(mat:MaterialProfile" in self.src
-        ), "MaterialProfile node label not found in Cypher queries"
+        assert ":MaterialProfile" in self.src or "(mat:MaterialProfile" in self.src, (
+            "MaterialProfile node label not found in Cypher queries"
+        )
 
     def test_has_material_relationship(self):
         assert "HAS_MATERIAL" in self.src, "HAS_MATERIAL relationship not found in graph_service.py"
