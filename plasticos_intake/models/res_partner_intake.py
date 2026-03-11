@@ -9,7 +9,6 @@ rather than in plasticos_material_profile to avoid circular dependencies.
 
 from odoo import fields, models
 
-
 PLASTICOS_INTAKE = "plasticos.intake"
 
 class ResPartnerIntake(models.Model):

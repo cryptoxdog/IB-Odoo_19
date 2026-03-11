@@ -14,7 +14,6 @@ from collections import defaultdict
 from odoo import _, fields, models
 from odoo.exceptions import UserError
 
-
 PLASTICOS_TRANSACTION = "plasticos.transaction"
 DEFAULT_CSV = "cieTrade.WksDetail.csv"
 
