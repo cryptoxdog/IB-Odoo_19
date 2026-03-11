@@ -1,0 +1,27 @@
+rules:
+  - id: odoo-hardcoded-model-string
+    patterns:
+      - pattern: |
+          self.env[$MODEL]
+      - metavariable-pattern:
+          metavariable: $MODEL
+          pattern-not-regex: '^[A-Z_]+$'
+    message: "Use a module-level constant instead of a hardcoded model name string"
+    languages: [python]
+    severity: WARNING
+
+  - id: odoo-commented-code
+    pattern-regex: '^\s*#\s*(self\.|env\.|model\.|fields\.|vals\[)'
+    message: "Remove commented-out Odoo code"
+    languages: [python]
+    severity: WARNING
+
+  - id: odoo-bare-except
+    pattern: |
+      try:
+        ...
+      except:
+        ...
+    message: "Use specific exception types instead of bare except"
+    languages: [python]
+    severity: ERROR

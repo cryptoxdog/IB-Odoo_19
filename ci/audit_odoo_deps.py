@@ -201,7 +201,10 @@ class OdooAudit:
                         "parent_xmlid": parent_xmlid,
                         "file": file,
                         "line": line,
-                        "message": f"Module '{child_module}' inherits from '{parent_module}' but doesn't declare it in depends",
+                        "message": (
+                            f"Module '{child_module}' inherits from"
+                            f" '{parent_module}' but doesn't declare it in depends"
+                        ),
                         "fix": f"Add '{parent_module}' to depends list in {child_module}/__manifest__.py",
                     }
                 )
