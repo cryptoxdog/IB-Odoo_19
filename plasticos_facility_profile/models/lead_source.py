@@ -3,23 +3,33 @@ from odoo import api, models
 # Mapping from raw VanillaSoft values to canonical UTM source names.
 # Used by partner import wizard to normalize lead sources.
 # Keys = raw VanillaSoft strings, Values = utm.source name to search by.
+
+
+WEB_RESEARCH = "Web Research"
+INDUSTRY_ASSOCIATION = "Industry Association"
+STATE_FACILITY_LIST = "State Facility List"
+TRADE_SHOW = "Trade Show"
+RECYCLE_NET = "Recycle.net"
+DATA_PROVIDER = "Data Provider"
+PLASTICS_NEWS = "Plastics News"
+INTERNAL_RESEARCH = "Internal Research"
 LEAD_SOURCE_MAPPING = {
     # Internal team research
-    "Igor/Fiver": "Internal Research",
-    "Igor": "Internal Research",
-    "Igor Beylin": "Internal Research",
-    "Igor HOT": "Internal Research",
-    "Igor Outook": "Internal Research",
-    "FIVERR/Google": "Internal Research",
-    "Fiverr": "Internal Research",
-    "Fivver": "Internal Research",
-    "Arthur": "Internal Research",
-    "Adam GM": "Internal Research",
-    "Manuela": "Internal Research",
-    "NC Assistant": "Internal Research",
-    "NC (MK)": "Internal Research",
-    "Outlook": "Internal Research",
-    "AB iCloud": "Internal Research",
+    "Igor/Fiver": INTERNAL_RESEARCH,
+    "Igor": INTERNAL_RESEARCH,
+    "Igor Beylin": INTERNAL_RESEARCH,
+    "Igor HOT": INTERNAL_RESEARCH,
+    "Igor Outook": INTERNAL_RESEARCH,
+    "FIVERR/Google": INTERNAL_RESEARCH,
+    "Fiverr": INTERNAL_RESEARCH,
+    "Fivver": INTERNAL_RESEARCH,
+    "Arthur": INTERNAL_RESEARCH,
+    "Adam GM": INTERNAL_RESEARCH,
+    "Manuela": INTERNAL_RESEARCH,
+    "NC Assistant": INTERNAL_RESEARCH,
+    "NC (MK)": INTERNAL_RESEARCH,
+    "Outlook": INTERNAL_RESEARCH,
+    "AB iCloud": INTERNAL_RESEARCH,
     # SICCODE
     "SICCODE.com": "SICCODE",
     "SICCODE": "SICCODE",
@@ -27,9 +37,9 @@ LEAD_SOURCE_MAPPING = {
     "SIC": "SICCODE",
     "TOP 100 Growers (SICCODE)": "SICCODE",
     # Plastics News
-    "PNEWS Rankings": "Plastics News",
-    "PNEWS Recycler": "Plastics News",
-    "PNEWS Compounders": "Plastics News",
+    "PNEWS Rankings": PLASTICS_NEWS,
+    "PNEWS Recycler": PLASTICS_NEWS,
+    "PNEWS Compounders": PLASTICS_NEWS,
     # Referral
     "Referral": "Referral",
     # Google
@@ -48,46 +58,46 @@ LEAD_SOURCE_MAPPING = {
     "ENF Database": "ENF / Industry Database",
     "IndustrySelect Database": "ENF / Industry Database",
     # Data providers
-    "DataAxle": "Data Provider",
-    "Data Axle": "Data Provider",
-    "List Giant": "Data Provider",
+    "DataAxle": DATA_PROVIDER,
+    "Data Axle": DATA_PROVIDER,
+    "List Giant": DATA_PROVIDER,
     # Recycle.net
-    "recycle.net": "Recycle.net",
-    "plasticfilmrecycling.org": "Recycle.net",
-    "www.recyclingcenters.org": "Recycle.net",
-    "www.recyclingplasticwaste.com": "Recycle.net",
+    "recycle.net": RECYCLE_NET,
+    "plasticfilmrecycling.org": RECYCLE_NET,
+    "www.recyclingcenters.org": RECYCLE_NET,
+    "www.recyclingplasticwaste.com": RECYCLE_NET,
     # Trade shows
-    "SERC 2019": "Trade Show",
-    "Attendee List - OH 2022": "Trade Show",
-    "Attendee List": "Trade Show",
+    "SERC 2019": TRADE_SHOW,
+    "Attendee List - OH 2022": TRADE_SHOW,
+    "Attendee List": TRADE_SHOW,
     # State facility lists
-    "GA Licensed SW Facilities list": "State Facility List",
-    "OH Licensed SW Facilities List": "State Facility List",
-    "WI Licensed SW Facilities List": "State Facility List",
-    "SW Facility List": "State Facility List",
-    "Solid Waste Facility List": "State Facility List",
-    "DEP/DEQ": "State Facility List",
+    "GA Licensed SW Facilities list": STATE_FACILITY_LIST,
+    "OH Licensed SW Facilities List": STATE_FACILITY_LIST,
+    "WI Licensed SW Facilities List": STATE_FACILITY_LIST,
+    "SW Facility List": STATE_FACILITY_LIST,
+    "Solid Waste Facility List": STATE_FACILITY_LIST,
+    "DEP/DEQ": STATE_FACILITY_LIST,
     # Associations
-    "R2": "Industry Association",
-    "RIPA Association": "Industry Association",
-    "Vinyl Institute": "Industry Association",
+    "R2": INDUSTRY_ASSOCIATION,
+    "RIPA Association": INDUSTRY_ASSOCIATION,
+    "Vinyl Institute": INDUSTRY_ASSOCIATION,
     # Web research
-    "Web Database": "Web Research",
-    "Web Research": "Web Research",
-    "www.dexknows.com": "Web Research",
-    "www.geosource.com": "Web Research",
-    "www.iqsdirectory.com": "Web Research",
-    "www.plasticwaste.com": "Web Research",
-    "www.in.gov": "Web Research",
-    "www.butlercountyrecycles.org": "Web Research",
-    "www.ncsod.org/directories/growers": "Web Research",
-    "epa.ohio.gov": "Web Research",
-    "Internet": "Web Research",
-    "Directory": "Web Research",
-    "MFG Directory": "Web Research",
-    "CieTrade": "Web Research",
-    "Stericycle.com": "Web Research",
-    "YP": "Web Research",
+    "Web Database": WEB_RESEARCH,
+    WEB_RESEARCH: WEB_RESEARCH,
+    "www.dexknows.com": WEB_RESEARCH,
+    "www.geosource.com": WEB_RESEARCH,
+    "www.iqsdirectory.com": WEB_RESEARCH,
+    "www.plasticwaste.com": WEB_RESEARCH,
+    "www.in.gov": WEB_RESEARCH,
+    "www.butlercountyrecycles.org": WEB_RESEARCH,
+    "www.ncsod.org/directories/growers": WEB_RESEARCH,
+    "epa.ohio.gov": WEB_RESEARCH,
+    "Internet": WEB_RESEARCH,
+    "Directory": WEB_RESEARCH,
+    "MFG Directory": WEB_RESEARCH,
+    "CieTrade": WEB_RESEARCH,
+    "Stericycle.com": WEB_RESEARCH,
+    "YP": WEB_RESEARCH,
     # Other/misc
     "Ricardo Research": "Other",
     "Ricardo": "Other",

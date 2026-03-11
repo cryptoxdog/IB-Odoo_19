@@ -1,5 +1,7 @@
 from odoo import api, fields, models
 
+PRODUCT_TEMPLATE = "product.template"
+
 
 class ProductTemplate(models.Model):
     """
@@ -15,7 +17,7 @@ class ProductTemplate(models.Model):
     - Display: "HDPE Blue Regrind - Gaylords - Post-Industrial - Clean"
     """
 
-    _inherit = "product.template"
+    _inherit = PRODUCT_TEMPLATE
 
     # ── Link to Polymer Master ────────────────────────────────────
     polymer_id = fields.Many2one(
@@ -40,7 +42,7 @@ class PlasticosPolymer(models.Model):
     _inherit = "plasticos.polymer"
 
     product_id = fields.Many2one(
-        "product.template",
+        PRODUCT_TEMPLATE,
         string="Product",
         readonly=True,
         help="Auto-created product for this polymer.",
@@ -67,7 +69,7 @@ class PlasticosPolymer(models.Model):
         self.ensure_one()
         if self.product_id:
             return
-        Product = self.env["product.template"]
+        Product = self.env[PRODUCT_TEMPLATE]
         product = Product.create(
             {
                 "name": self.name,

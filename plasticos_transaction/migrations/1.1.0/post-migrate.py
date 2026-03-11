@@ -1,7 +1,7 @@
 from odoo import SUPERUSER_ID, api
 
 
-def migrate(cr, version):
+def migrate(cr, _version):
     env = api.Environment(cr, SUPERUSER_ID, {})
     duplicates = env["plasticos.transaction"].read_group(
         [("customer_invoice_id", "!=", False)],

@@ -1,12 +1,14 @@
 from odoo import fields, models
 from odoo.exceptions import ValidationError
 
+PLASTICOS_MATERIAL_PROFILE = "plasticos.material.profile"
+
 
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
     material_profile_ids = fields.One2many(
-        "plasticos.material.profile",
+        PLASTICOS_MATERIAL_PROFILE,
         "partner_id",
         string="Material Profiles",
     )
@@ -44,7 +46,7 @@ class ResPartner(models.Model):
 
     def _compute_material_profile_count(self):
         """Count material profiles linked to this partner (facility)."""
-        Profile = self.env["plasticos.material.profile"]
+        Profile = self.env[PLASTICOS_MATERIAL_PROFILE]
         for rec in self:
             rec.material_profile_count = Profile.search_count([("partner_id", "=", rec.id)])
 
@@ -57,7 +59,7 @@ class ResPartner(models.Model):
         return {
             "type": "ir.actions.act_window",
             "name": f"Material Profiles - {self.name}",
-            "res_model": "plasticos.material.profile",
+            "res_model": PLASTICOS_MATERIAL_PROFILE,
             "view_mode": "list,form",
             "domain": [("partner_id", "=", self.id)],
             "context": {"default_partner_id": self.id},

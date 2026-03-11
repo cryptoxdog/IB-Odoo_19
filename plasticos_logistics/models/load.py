@@ -4,6 +4,9 @@ import uuid
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
+RES_PARTNER = "res.partner"
+PLASTICOS_TRANSACTION = "plasticos.transaction"
+PLASTICOS_LOAD = "plasticos.load"
 _logger = logging.getLogger(__name__)
 
 # Stub for l9_trace (enable when module available)
@@ -17,15 +20,15 @@ def new_correlation_id():
 
 
 class PlasticosLoad(models.Model):
-    _name = "plasticos.load"
+    _name = PLASTICOS_LOAD
     _description = "Plasticos Logistics Load"
     _inherit = ["mail.thread"]
 
     name = fields.Char(
-        required=True, default=lambda self: self.env["ir.sequence"].next_by_code("plasticos.load") or "New"
+        required=True, default=lambda self: self.env["ir.sequence"].next_by_code(PLASTICOS_LOAD) or "New"
     )
     sale_order_id = fields.Many2one("sale.order")
-    carrier_id = fields.Many2one("res.partner", string="Carrier")
+    carrier_id = fields.Many2one(RES_PARTNER, string="Carrier")
     rate_amount = fields.Float(string="Rate Amount")
     rate_confirmed_at = fields.Datetime()
     rate_auto_reused = fields.Boolean(default=False)
@@ -47,7 +50,7 @@ class PlasticosLoad(models.Model):
 
     # ── Reverse Link to Transaction (for UX) ──────────────────────────
     transaction_id = fields.Many2one(
-        "plasticos.transaction",
+        PLASTICOS_TRANSACTION,
         string="Transaction",
         compute="_compute_transaction_id",
         store=False,
@@ -55,7 +58,7 @@ class PlasticosLoad(models.Model):
     )
 
     # ── Pickup Location Fields ──────────────────────────────────────
-    pickup_partner_id = fields.Many2one("res.partner", string="Pickup Location", help="Shipper/pickup location for BOL")
+    pickup_partner_id = fields.Many2one(RES_PARTNER, string="Pickup Location", help="Shipper/pickup location for BOL")
     pickup_contact_name = fields.Char(string="Pickup Contact")
     pickup_contact_phone = fields.Char(string="Pickup Phone")
     pickup_contact_mobile = fields.Char(string="Pickup Mobile")
@@ -65,7 +68,7 @@ class PlasticosLoad(models.Model):
 
     # ── Delivery Location Fields ────────────────────────────────────
     delivery_partner_id = fields.Many2one(
-        "res.partner", string="Delivery Location", help="Consignee/delivery location for BOL"
+        RES_PARTNER, string="Delivery Location", help="Consignee/delivery location for BOL"
     )
     delivery_contact_name = fields.Char(string="Delivery Contact")
     delivery_contact_phone = fields.Char(string="Delivery Phone")
@@ -114,7 +117,7 @@ class PlasticosLoad(models.Model):
         records = super().create(vals_list)
         for rec in records:
             if rec.sale_order_id:
-                tx = self.env["plasticos.transaction"].search([("sale_order_id", "=", rec.sale_order_id.id)], limit=1)
+                tx = self.env[PLASTICOS_TRANSACTION].search([("sale_order_id", "=", rec.sale_order_id.id)], limit=1)
                 if tx and not tx.load_id:
                     tx.load_id = rec.id
         return records
@@ -148,7 +151,7 @@ class PlasticosLoad(models.Model):
 
         if "state" in vals and vals["state"] == "closed":
             for rec in self:
-                tx = self.env["plasticos.transaction"].search([("load_id", "=", rec.id)], limit=1)
+                tx = self.env[PLASTICOS_TRANSACTION].search([("load_id", "=", rec.id)], limit=1)
                 if tx:
                     tx.message_post(body="Logistics closed.")
 
@@ -166,7 +169,7 @@ class PlasticosLoad(models.Model):
     def _compute_transaction_id(self):
         """Reverse lookup: find transaction that references this load."""
         for rec in self:
-            tx = self.env["plasticos.transaction"].search([("load_id", "=", rec.id)], limit=1)
+            tx = self.env[PLASTICOS_TRANSACTION].search([("load_id", "=", rec.id)], limit=1)
             rec.transaction_id = tx.id if tx else False
 
     def action_confirm_ready(self, user_name):
@@ -289,7 +292,7 @@ class PlasticosLoad(models.Model):
     def _open_mail_composer(self, template):
         """Helper to open mail composer wizard with template."""
         ctx = {
-            "default_model": "plasticos.load",
+            "default_model": PLASTICOS_LOAD,
             "default_res_ids": self.ids,
             "default_template_id": template.id,
             "default_composition_mode": "comment",
@@ -311,12 +314,12 @@ class PlasticosLoad(models.Model):
     def action_view_transaction(self):
         """Open the linked transaction form."""
         self.ensure_one()
-        tx = self.env["plasticos.transaction"].search([("load_id", "=", self.id)], limit=1)
+        tx = self.env[PLASTICOS_TRANSACTION].search([("load_id", "=", self.id)], limit=1)
         if not tx:
             return False
         return {
             "type": "ir.actions.act_window",
-            "res_model": "plasticos.transaction",
+            "res_model": PLASTICOS_TRANSACTION,
             "res_id": tx.id,
             "view_mode": "form",
             "target": "current",

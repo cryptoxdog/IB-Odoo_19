@@ -1,5 +1,7 @@
 from odoo import api, fields, models
 
+PLASTICOS_TRANSACTION = "plasticos.transaction"
+
 
 class ResPartnerTxBridge(models.Model):
     """Adds PlasticOS transaction count and navigation to partner."""
@@ -7,12 +9,12 @@ class ResPartnerTxBridge(models.Model):
     _inherit = "res.partner"
 
     transaction_as_supplier_ids = fields.One2many(
-        "plasticos.transaction",
+        PLASTICOS_TRANSACTION,
         "supplier_id",
         string="Transactions (Supplier)",
     )
     transaction_as_buyer_ids = fields.One2many(
-        "plasticos.transaction",
+        PLASTICOS_TRANSACTION,
         "buyer_id",
         string="Transactions (Buyer)",
     )
@@ -32,7 +34,7 @@ class ResPartnerTxBridge(models.Model):
         return {
             "type": "ir.actions.act_window",
             "name": f"Transactions — {self.name}",
-            "res_model": "plasticos.transaction",
+            "res_model": PLASTICOS_TRANSACTION,
             "view_mode": "list,form",
             "domain": [
                 "|",

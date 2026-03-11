@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 """
+
+
+
+MODELS_INIT = "models/__init__.py"
+INIT_FILE = "__init__.py"
+PLASTICOS_GLOB = "plasticos_*"
 Odoo Module Dependency Wiring Checker
 
 Ensures all Odoo modules are properly wired to the modules they depend on.
@@ -39,7 +45,7 @@ def get_git_tracked_files(pattern: str = "") -> list[Path]:
         return []
 
 
-def get_git_tracked_dirs(pattern: str = "plasticos_*") -> list[Path]:
+def get_git_tracked_dirs(pattern: str = PLASTICOS_GLOB) -> list[Path]:
     """Get git-tracked directories matching pattern."""
     try:
         result = subprocess.run(
@@ -200,7 +206,7 @@ def find_model_definitions(module_path: Path) -> dict[str, str]:
         return models
 
     for py_file in models_dir.glob("*.py"):
-        if py_file.name == "__init__.py":
+        if py_file.name == INIT_FILE:
             continue
 
         try:
@@ -236,7 +242,6 @@ def find_model_references(module_path: Path) -> dict[str, list[tuple[str, int, s
         (r"_inherit\s*=\s*\[([^\]]+)\]", "_inherit list"),
         # _inherits = {"model": "field"}
         (r'_inherits\s*=\s*\{["\']([^"\']+)["\']', "_inherits"),
-        # self.env["model.name"]
         (r'self\.env\s*\[\s*["\']([^"\']+)["\']', "env reference"),
     ]
 
@@ -302,10 +307,10 @@ def build_model_registry(workspace: Path) -> dict[str, str]:
             registry[model] = module
 
     # Scan custom modules (git-tracked only)
-    module_dirs = get_git_tracked_dirs("plasticos_*")
+    module_dirs = get_git_tracked_dirs(PLASTICOS_GLOB)
     if not module_dirs:
         # Fallback if not in git repo
-        module_dirs = [d for d in workspace.glob("plasticos_*") if d.is_dir()]
+        module_dirs = [d for d in workspace.glob(PLASTICOS_GLOB) if d.is_dir()]
 
     for module_dir in module_dirs:
         module_dir = workspace / module_dir if not module_dir.is_absolute() else module_dir
@@ -361,8 +366,8 @@ def check_init_imports(module_path: Path) -> list[dict]:
     module_name = module_path.name
 
     models_dir = module_path / "models"
-    models_init = models_dir / "__init__.py"
-    module_init = module_path / "__init__.py"
+    models_init = models_dir / INIT_FILE
+    module_init = module_path / INIT_FILE
 
     # Check 1: Module __init__.py exists and imports models
     if module_init.exists():
@@ -414,7 +419,7 @@ def check_init_imports(module_path: Path) -> list[dict]:
                     "module": module_name,
                     "file": str(models_init),
                     "line": 1,
-                    "context": "models/__init__.py",
+                    "context": MODELS_INIT,
                     "message": (f"Module '{module_name}/models/' has Python files but no __init__.py"),
                 }
             )
@@ -433,7 +438,7 @@ def check_init_imports(module_path: Path) -> list[dict]:
         imported_modules.add(match.group(1))
 
     # Find all .py files in models/ (excluding __init__.py)
-    py_files = [f.stem for f in models_dir.glob("*.py") if f.name != "__init__.py" and not f.name.startswith("_")]
+    py_files = [f.stem for f in models_dir.glob("*.py") if f.name != INIT_FILE and not f.name.startswith("_")]
 
     # Check for missing imports
     for py_file in py_files:
@@ -444,7 +449,7 @@ def check_init_imports(module_path: Path) -> list[dict]:
                     "module": module_name,
                     "file": str(models_init),
                     "line": 1,
-                    "context": "models/__init__.py",
+                    "context": MODELS_INIT,
                     "missing_import": py_file,
                     "message": (
                         f"File '{module_name}/models/{py_file}.py' exists but is not "
@@ -470,7 +475,7 @@ def check_init_imports(module_path: Path) -> list[dict]:
                     "module": module_name,
                     "file": str(models_init),
                     "line": line_num,
-                    "context": "models/__init__.py",
+                    "context": MODELS_INIT,
                     "dangling_import": imported,
                     "message": (
                         f"models/__init__.py imports '{imported}' but "
@@ -575,9 +580,9 @@ def main() -> int:
 
     # Load all manifests for transitive dependency resolution (git-tracked only)
     all_manifests: dict[str, dict] = {}
-    module_dirs = get_git_tracked_dirs("plasticos_*")
+    module_dirs = get_git_tracked_dirs(PLASTICOS_GLOB)
     if not module_dirs:
-        module_dirs = [d for d in workspace.glob("plasticos_*") if d.is_dir()]
+        module_dirs = [d for d in workspace.glob(PLASTICOS_GLOB) if d.is_dir()]
 
     for module_dir in module_dirs:
         module_dir = workspace / module_dir if not module_dir.is_absolute() else module_dir
@@ -599,12 +604,12 @@ def main() -> int:
             return 1
         modules_to_check = [module_path]
     else:
-        module_dirs = get_git_tracked_dirs("plasticos_*")
+        module_dirs = get_git_tracked_dirs(PLASTICOS_GLOB)
         if module_dirs:
             modules_to_check = sorted([workspace / d for d in module_dirs])
         else:
             # Fallback if not in git repo
-            modules_to_check = sorted([d for d in workspace.glob("plasticos_*") if d.is_dir()])
+            modules_to_check = sorted([d for d in workspace.glob(PLASTICOS_GLOB) if d.is_dir()])
 
     # Check each module
     all_errors: list[dict] = []

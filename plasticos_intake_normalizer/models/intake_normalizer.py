@@ -26,7 +26,6 @@ class PlasticosIntakeNormalizer(models.Model):
 
     _inherit = "plasticos.intake"
 
-    # ── Fields written by normalizer (must exist for view and .write()) ────────
     normalized = fields.Boolean(
         string="Normalized",
         default=False,

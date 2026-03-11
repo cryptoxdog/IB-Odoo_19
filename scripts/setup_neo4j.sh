@@ -56,6 +56,7 @@ check_prerequisites() {
     fi
 
     log_success "Prerequisites OK"
+    return 0
 }
 
 # ==============================================================================
@@ -97,6 +98,7 @@ load_env() {
     export NEO4J_USER="${NEO4J_USER:-neo4j}"
     export NEO4J_PASSWORD
     export NEO4J_URI="${NEO4J_URI:-bolt://neo4j:7687}"
+    return 0
 }
 
 # ==============================================================================
@@ -128,6 +130,7 @@ start_neo4j() {
     log_error "Neo4j failed to start within expected time"
     log_info "Check logs with: docker compose -f docker-compose.prod.yml logs neo4j"
     exit 1
+    return 0
 }
 
 # ==============================================================================
@@ -160,6 +163,7 @@ check_neo4j_status() {
         log_warn "Neo4j container is running but not responding"
         return 1
     fi
+    return 0
 }
 
 # ==============================================================================
@@ -207,6 +211,7 @@ PYTHON
         log_error "Schema initialization failed"
         exit 1
     fi
+    return 0
 }
 
 # ==============================================================================
@@ -239,6 +244,7 @@ try:
 except Exception as e:
     print(f"Connection test failed: {e}")
 PYTHON
+    return 0
 }
 
 # ==============================================================================
@@ -260,6 +266,7 @@ show_usage() {
     echo "  $0                    # Start Neo4j and verify it's running"
     echo "  $0 --check            # Check if Neo4j is healthy"
     echo "  $0 --init-schema      # Sync Odoo data to Neo4j graph"
+    return 0
 }
 
 # ==============================================================================
@@ -305,6 +312,7 @@ main() {
             exit 1
             ;;
     esac
+    return 0
 }
 
 main "$@"

@@ -57,7 +57,7 @@ class TestWebLeadControllerAuth(HttpCase):
 
     def test_malformed_json_returns_400(self):
         """Non-JSON body returns 400."""
-        headers = {"Content-Type": "application/json", "Authorization": "Bearer test-api-key-12345"}
+        headers = {"Content-Type": "application/json", "Authorization": "Bearer test-token-not-real"}
         resp = self.url_open("/api/v1/web-lead", data=b"not json{{{", headers=headers)
         self.assertEqual(resp.status_code, 400)
 
@@ -145,5 +145,5 @@ class TestWebLeadControllerIntegration(HttpCase):
 
     def test_invalid_key_returns_401(self):
         """Wrong API key returns 401."""
-        resp = self._post_json("/api/v1/web-lead", {"lead_id": "WL1", "decision": "Hot"}, token="wrong-key")
+        resp = self._post_json("/api/v1/web-lead", {"lead_id": "WL1", "decision": "Hot"}, token="test-token-not-real")
         self.assertEqual(resp.status_code, 401)

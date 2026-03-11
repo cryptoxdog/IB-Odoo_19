@@ -3,6 +3,12 @@ from odoo.exceptions import ValidationError
 
 from ..form_codes import FORM_SELECTION
 
+PLASTICOS_MATERIAL_ATTRIBUTE = "plasticos.material.attribute"
+RES_PARTNER = "res.partner"
+SALE_ORDER_LINE = "sale.order.line"
+PURCHASE_ORDER_LINE = "purchase.order.line"
+IR_ACT_WINDOW = "ir.actions.act_window"
+
 
 class PlasticosMaterialProfile(models.Model):
     _name = "plasticos.material.profile"
@@ -11,7 +17,7 @@ class PlasticosMaterialProfile(models.Model):
     _order = "partner_id, polymer_id"
 
     partner_id = fields.Many2one(
-        "res.partner",
+        RES_PARTNER,
         required=True,
         index=True,
         domain="[('parent_id','!=',False)]",
@@ -183,7 +189,7 @@ class PlasticosMaterialProfile(models.Model):
 
     # ── Material Attributes (multi-select) ─────────────────────
     material_attribute_ids = fields.Many2many(
-        "plasticos.material.attribute",
+        PLASTICOS_MATERIAL_ATTRIBUTE,
         string="Material Attributes",
         help="Condition attributes: Clean, Metalized, With Metal, Printed, etc.",
     )
@@ -367,7 +373,7 @@ class PlasticosMaterialProfile(models.Model):
         Requires plasticos_order_lines module to be installed.
         Returns 0 if material_profile_id field doesn't exist on purchase.order.line.
         """
-        POLine = self.env["purchase.order.line"]
+        POLine = self.env[PURCHASE_ORDER_LINE]
         has_field = "material_profile_id" in POLine._fields
         for rec in self:
             rec.po_line_count = POLine.search_count([("material_profile_id", "=", rec.id)]) if has_field else 0
@@ -378,7 +384,7 @@ class PlasticosMaterialProfile(models.Model):
         Requires plasticos_order_lines module to be installed.
         Returns 0 if material_profile_id field doesn't exist on sale.order.line.
         """
-        SOLine = self.env["sale.order.line"]
+        SOLine = self.env[SALE_ORDER_LINE]
         has_field = "material_profile_id" in SOLine._fields
         for rec in self:
             rec.so_line_count = SOLine.search_count([("material_profile_id", "=", rec.id)]) if has_field else 0
@@ -395,16 +401,16 @@ class PlasticosMaterialProfile(models.Model):
         Requires plasticos_order_lines module to be installed.
         """
         self.ensure_one()
-        POLine = self.env["purchase.order.line"]
+        POLine = self.env[PURCHASE_ORDER_LINE]
         if "material_profile_id" not in POLine._fields:
             raise ValidationError(
                 "PO line tracking requires the 'PlasticOS Order Lines' module.\n\n"
                 "Install 'plasticos_order_lines' from Apps to enable this feature."
             )
         return {
-            "type": "ir.actions.act_window",
+            "type": IR_ACT_WINDOW,
             "name": f"Purchase Lines - {self.polymer_id.name}",
-            "res_model": "purchase.order.line",
+            "res_model": PURCHASE_ORDER_LINE,
             "view_mode": "list,form",
             "domain": [("material_profile_id", "=", self.id)],
         }
@@ -415,16 +421,16 @@ class PlasticosMaterialProfile(models.Model):
         Requires plasticos_order_lines module to be installed.
         """
         self.ensure_one()
-        SOLine = self.env["sale.order.line"]
+        SOLine = self.env[SALE_ORDER_LINE]
         if "material_profile_id" not in SOLine._fields:
             raise ValidationError(
                 "SO line tracking requires the 'PlasticOS Order Lines' module.\n\n"
                 "Install 'plasticos_order_lines' from Apps to enable this feature."
             )
         return {
-            "type": "ir.actions.act_window",
+            "type": IR_ACT_WINDOW,
             "name": f"Sale Lines - {self.polymer_id.name}",
-            "res_model": "sale.order.line",
+            "res_model": SALE_ORDER_LINE,
             "view_mode": "list,form",
             "domain": [("material_profile_id", "=", self.id)],
         }
@@ -435,9 +441,9 @@ class PlasticosMaterialProfile(models.Model):
         if not self.partner_id:
             return
         return {
-            "type": "ir.actions.act_window",
+            "type": IR_ACT_WINDOW,
             "name": self.partner_id.name,
-            "res_model": "res.partner",
+            "res_model": RES_PARTNER,
             "view_mode": "form",
             "res_id": self.partner_id.id,
         }
@@ -448,9 +454,9 @@ class PlasticosMaterialProfile(models.Model):
         if not self.company_id:
             return
         return {
-            "type": "ir.actions.act_window",
+            "type": IR_ACT_WINDOW,
             "name": self.company_id.name,
-            "res_model": "res.partner",
+            "res_model": RES_PARTNER,
             "view_mode": "form",
             "res_id": self.company_id.id,
         }
@@ -477,7 +483,7 @@ class PlasticosMaterialProfile(models.Model):
     @api.onchange("has_metal")
     def _onchange_has_metal(self):
         """Sync attributes when has_metal boolean changes."""
-        Attribute = self.env["plasticos.material.attribute"]
+        Attribute = self.env[PLASTICOS_MATERIAL_ATTRIBUTE]
         with_metal = Attribute.search([("code", "=", "with_metal")], limit=1)
         no_metal = Attribute.search([("code", "=", "no_metal")], limit=1)
         if self.has_metal:
@@ -496,7 +502,7 @@ class PlasticosMaterialProfile(models.Model):
     @api.onchange("is_metalized")
     def _onchange_is_metalized(self):
         """Sync attributes when is_metalized boolean changes."""
-        Attribute = self.env["plasticos.material.attribute"]
+        Attribute = self.env[PLASTICOS_MATERIAL_ATTRIBUTE]
         metalized = Attribute.search([("code", "=", "metalized")], limit=1)
         if self.is_metalized:
             if metalized and metalized not in self.material_attribute_ids:
@@ -545,7 +551,7 @@ class PlasticosMaterialProfile(models.Model):
         self.ensure_one()
 
         # Require plasticos_order_lines for material spec fields
-        POLine = self.env["purchase.order.line"]
+        POLine = self.env[PURCHASE_ORDER_LINE]
         if "material_profile_id" not in POLine._fields:
             raise ValidationError(
                 "Creating POs from material profiles requires the 'PlasticOS Order Lines' module.\n\n"
@@ -580,7 +586,7 @@ class PlasticosMaterialProfile(models.Model):
         }
 
         return {
-            "type": "ir.actions.act_window",
+            "type": IR_ACT_WINDOW,
             "name": "Create Purchase Order",
             "res_model": "purchase.order",
             "view_mode": "form",
@@ -644,7 +650,7 @@ class PlasticosMaterialProfile(models.Model):
         """Open this material profile in a full form view."""
         self.ensure_one()
         return {
-            "type": "ir.actions.act_window",
+            "type": IR_ACT_WINDOW,
             "res_model": "plasticos.material.profile",
             "res_id": self.id,
             "view_mode": "form",

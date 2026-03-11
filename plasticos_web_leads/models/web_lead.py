@@ -22,6 +22,12 @@ from odoo.exceptions import UserError
 from . import ai_normalizer, image_analyzer
 from .classification_engine import classify_lead
 
+PLASTICOS_WEB_LEAD_CONFIG = "plasticos.web.lead.config"
+OP_ILIKE = "=ilike"
+WEB_LEAD_FORM = "Web Lead Form"
+UTM_SOURCE = "utm.source"
+PLASTICOS_INTAKE = "plasticos.intake"
+RES_PARTNER = "res.partner"
 _logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════════════
@@ -150,7 +156,7 @@ class PlasticosWebLead(models.Model):
         help="Origin system identifier.",
     )
     lead_source_id = fields.Many2one(
-        "utm.source",
+        UTM_SOURCE,
         string="Lead Source",
         index=True,
         tracking=True,
@@ -255,13 +261,13 @@ class PlasticosWebLead(models.Model):
     # ═══════════════════════════════════════════════════════════
 
     partner_id = fields.Many2one(
-        "res.partner",
+        RES_PARTNER,
         string="Created/Linked Partner",
         index=True,
         ondelete="set null",
     )
     intake_id = fields.Many2one(
-        "plasticos.intake",
+        PLASTICOS_INTAKE,
         string="Created Intake",
         index=True,
         ondelete="set null",
@@ -337,7 +343,7 @@ class PlasticosWebLead(models.Model):
         image_urls = self._extract_image_urls(raw_payload)
 
         # Look up web_lead source
-        web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
+        web_lead_source = self.env[UTM_SOURCE].search([("name", "=", WEB_LEAD_FORM)], limit=1)
 
         vals = {
             "lead_id": str(lead_id),
@@ -407,7 +413,7 @@ class PlasticosWebLead(models.Model):
         material_desc = raw.get("DescribeYourMaterial", "") or raw.get("WhatTypeOfPlastic", "")
 
         # Look up web_lead source
-        web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
+        web_lead_source = self.env[UTM_SOURCE].search([("name", "=", WEB_LEAD_FORM)], limit=1)
 
         vals = {
             "lead_id": lead_id,
@@ -454,7 +460,7 @@ class PlasticosWebLead(models.Model):
           4. Process result (HOT → intake, COLD → archive)
         """
         self.ensure_one()
-        config = self.env["plasticos.web.lead.config"].sudo().get_config()
+        config = self.env[PLASTICOS_WEB_LEAD_CONFIG].sudo().get_config()
         log_lines: list[str] = []
 
         try:
@@ -673,20 +679,20 @@ class PlasticosWebLead(models.Model):
         Form = self.env["plasticos.material.form"]
         SourceType = self.env["plasticos.source.type"]
 
-        polymer_rec = Polymer.search([("code", "=ilike", polymer_code)], limit=1)
+        polymer_rec = Polymer.search([("code", OP_ILIKE, polymer_code)], limit=1)
         if not polymer_rec:
-            polymer_rec = Polymer.search([("code", "=ilike", "other")], limit=1)
+            polymer_rec = Polymer.search([("code", OP_ILIKE, "other")], limit=1)
 
-        form_rec = Form.search([("code", "=ilike", form_code)], limit=1)
+        form_rec = Form.search([("code", OP_ILIKE, form_code)], limit=1)
         if not form_rec:
-            form_rec = Form.search([("code", "=ilike", "other")], limit=1)
+            form_rec = Form.search([("code", OP_ILIKE, "other")], limit=1)
 
-        source_type_rec = SourceType.search([("code", "=ilike", source_type_code)], limit=1)
+        source_type_rec = SourceType.search([("code", OP_ILIKE, source_type_code)], limit=1)
         if not source_type_rec:
-            source_type_rec = SourceType.search([("code", "=ilike", "post_consumer")], limit=1)
+            source_type_rec = SourceType.search([("code", OP_ILIKE, "post_consumer")], limit=1)
 
         # Look up web_lead source for intake
-        web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
+        web_lead_source = self.env[UTM_SOURCE].search([("name", "=", WEB_LEAD_FORM)], limit=1)
 
         intake_vals = {
             "pending_company_name": self.company_name or "Unknown",
@@ -701,7 +707,7 @@ class PlasticosWebLead(models.Model):
             "contamination_notes": merged.get("contaminants_noted") or self.contaminant_notes or False,
         }
 
-        Intake = self.env["plasticos.intake"]
+        Intake = self.env[PLASTICOS_INTAKE]
         intake = Intake.create(intake_vals)
 
         # Link this lead to the intake for reference (Many2one on web_lead side)
@@ -751,7 +757,7 @@ class PlasticosWebLead(models.Model):
         Same new flow as triage: no partner until buyer-match.
         """
         self.ensure_one()
-        config = self.env["plasticos.web.lead.config"].get_config()
+        config = self.env[PLASTICOS_WEB_LEAD_CONFIG].get_config()
 
         try:
             intake = self._create_intake_simple(config)
@@ -810,20 +816,20 @@ class PlasticosWebLead(models.Model):
         Form = self.env["plasticos.material.form"]
         SourceType = self.env["plasticos.source.type"]
 
-        polymer_rec = Polymer.search([("code", "=ilike", polymer_code)], limit=1) if polymer_code else False
+        polymer_rec = Polymer.search([("code", OP_ILIKE, polymer_code)], limit=1) if polymer_code else False
         if polymer_code and not polymer_rec:
-            polymer_rec = Polymer.search([("code", "=ilike", "other")], limit=1)
+            polymer_rec = Polymer.search([("code", OP_ILIKE, "other")], limit=1)
 
-        form_rec = Form.search([("code", "=ilike", form_code)], limit=1) if form_code else False
+        form_rec = Form.search([("code", OP_ILIKE, form_code)], limit=1) if form_code else False
         if form_code and not form_rec:
-            form_rec = Form.search([("code", "=ilike", "other")], limit=1)
+            form_rec = Form.search([("code", OP_ILIKE, "other")], limit=1)
 
-        source_type_rec = SourceType.search([("code", "=ilike", source_type_code)], limit=1)
+        source_type_rec = SourceType.search([("code", OP_ILIKE, source_type_code)], limit=1)
         if not source_type_rec:
-            source_type_rec = SourceType.search([("code", "=ilike", "post_consumer")], limit=1)
+            source_type_rec = SourceType.search([("code", OP_ILIKE, "post_consumer")], limit=1)
 
         # Look up web_lead source for intake
-        web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
+        web_lead_source = self.env[UTM_SOURCE].search([("name", "=", WEB_LEAD_FORM)], limit=1)
 
         intake_vals = {
             "pending_company_name": self.company_name or "Unknown",
@@ -841,7 +847,7 @@ class PlasticosWebLead(models.Model):
         if form_rec:
             intake_vals["form_id"] = form_rec.id
 
-        Intake = self.env["plasticos.intake"]
+        Intake = self.env[PLASTICOS_INTAKE]
         intake = Intake.create(intake_vals)
 
         # Link this lead to the intake for reference (Many2one on web_lead side)
@@ -860,14 +866,14 @@ class PlasticosWebLead(models.Model):
         Partner creation now happens in intake.action_match_to_buyers().
         Kept for manual/utility use.
         """
-        Partner = self.env["res.partner"]
+        Partner = self.env[RES_PARTNER]
         name = self.company_name or "Unknown Web Lead"
 
-        partner = Partner.search([("name", "=ilike", name)], limit=1)
+        partner = Partner.search([("name", OP_ILIKE, name)], limit=1)
         if partner:
             return partner
 
-        config = self.env["plasticos.web.lead.config"].sudo().get_config()
+        config = self.env[PLASTICOS_WEB_LEAD_CONFIG].sudo().get_config()
         if not config.auto_create_partner:
             raise UserError(f"No partner found for '{name}' and auto-create is disabled.")
 
@@ -969,7 +975,7 @@ class PlasticosWebLead(models.Model):
                             "name": fname,
                             "type": "binary",
                             "datas": base64.b64encode(content).decode("ascii"),
-                            "res_model": "plasticos.intake",
+                            "res_model": PLASTICOS_INTAKE,
                             "res_id": self.intake_id.id,
                             "mimetype": content_type,
                         }
@@ -1016,7 +1022,7 @@ class PlasticosWebLead(models.Model):
         for rec in self:
             if rec.intake_id:
                 raise UserError("Intake already exists for this lead.")
-            config = rec.env["plasticos.web.lead.config"].sudo().get_config()
+            config = rec.env[PLASTICOS_WEB_LEAD_CONFIG].sudo().get_config()
             merged = rec.ai_normalized or rec.ai_analysis or {}
             rec.write(
                 {
@@ -1037,7 +1043,7 @@ class PlasticosWebLead(models.Model):
             return False
         return {
             "type": "ir.actions.act_window",
-            "res_model": "plasticos.intake",
+            "res_model": PLASTICOS_INTAKE,
             "res_id": self.intake_id.id,
             "view_mode": "form",
             "target": "current",
@@ -1050,7 +1056,7 @@ class PlasticosWebLead(models.Model):
             return False
         return {
             "type": "ir.actions.act_window",
-            "res_model": "res.partner",
+            "res_model": RES_PARTNER,
             "res_id": self.partner_id.id,
             "view_mode": "form",
             "target": "current",

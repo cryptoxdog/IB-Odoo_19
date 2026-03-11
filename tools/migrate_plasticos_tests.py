@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Migrate plasticos test files to use PlasticosTestCase base class.
 
+
+PLASTICOS_TEST_CASE = "(PlasticosTestCase)"
 Replaces TransactionCase (and TransactionCase + PlastOSTestFactoryMixin) with
 PlasticosTestCase from plasticos_base.test_common.
 
@@ -66,11 +68,11 @@ IMPORT_PATTERNS = [
 
 # Class base patterns: (TransactionCase) or (TransactionCase, PlastOSTestFactoryMixin) or (TransactionCase, tagged)
 CLASS_BASE_PATTERNS = [
-    (re.compile(r"\(\s*TransactionCase\s*,\s*PlastOSTestFactoryMixin\s*\)"), "(PlasticosTestCase)"),
-    (re.compile(r"\(\s*PlastOSTestFactoryMixin\s*,\s*TransactionCase\s*\)"), "(PlasticosTestCase)"),
+    (re.compile(r"\(\s*TransactionCase\s*,\s*PlastOSTestFactoryMixin\s*\)"), PLASTICOS_TEST_CASE),
+    (re.compile(r"\(\s*PlastOSTestFactoryMixin\s*,\s*TransactionCase\s*\)"), PLASTICOS_TEST_CASE),
     (re.compile(r"\(\s*TransactionCase\s*,\s*tagged\s*\)"), "(PlasticosTestCase, tagged)"),
     (re.compile(r"\(\s*tagged\s*,\s*TransactionCase\s*\)"), "(PlasticosTestCase, tagged)"),
-    (re.compile(r"\(\s*TransactionCase\s*\)"), "(PlasticosTestCase)"),
+    (re.compile(r"\(\s*TransactionCase\s*\)"), PLASTICOS_TEST_CASE),
 ]
 
 # Remove PlastOSTestFactoryMixin import if present
@@ -140,10 +142,7 @@ def migrate_file(path: Path, dry_run: bool, cleanup: bool = False) -> bool:
 
     # 1. Replace imports
     for pattern, replacement in IMPORT_PATTERNS:
-        if callable(replacement):
-            content = pattern.sub(replacement, content)
-        else:
-            content = pattern.sub(replacement, content)
+        content = pattern.sub(replacement, content)
 
     # 2. Remove PlastOSTestFactoryMixin imports
     for pat in REMOVE_IMPORT_PATTERNS:

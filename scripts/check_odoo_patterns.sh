@@ -55,7 +55,7 @@ echo -e "Checking models.Constraint()... ${GREEN}SKIPPED${NC} (valid Odoo 19 syn
 # 2. @api.depends("id") (disallowed in Odoo 19)
 echo -n "Checking @api.depends('id')... "
 MATCHES=$(echo "$PY_FILES" | xargs grep -E '@api\.depends\([^)]*["\x27]id["\x27]' 2>/dev/null || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
     echo -e "${YELLOW}Fix: Remove 'id' from @api.depends${NC}"
@@ -67,7 +67,7 @@ fi
 # 3. @api.one / @api.multi (removed in Odoo 13+)
 echo -n "Checking @api.one/@api.multi... "
 MATCHES=$(echo "$PY_FILES" | xargs grep -E '@api\.(one|multi)' 2>/dev/null || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
     echo -e "${YELLOW}Fix: Remove decorator, update method${NC}"
@@ -79,7 +79,7 @@ fi
 # 4. category_id on res.groups in XML (removed in Odoo 19)
 echo -n "Checking category_id on res.groups... "
 MATCHES=$(echo "$XML_FILES" | xargs grep -l 'model="res.groups"' 2>/dev/null | xargs grep -A5 'model="res.groups"' 2>/dev/null | grep -E 'category_id.*ref=' || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
     echo -e "${YELLOW}Fix: Remove category_id from res.groups records${NC}"
@@ -91,7 +91,7 @@ fi
 # 5. numbercall on ir.cron (deprecated)
 echo -n "Checking numbercall field... "
 MATCHES=$(echo "$XML_FILES" | xargs grep "numbercall" 2>/dev/null || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
     echo -e "${YELLOW}Fix: Remove numbercall field from cron records${NC}"
@@ -103,7 +103,7 @@ fi
 # 6. Unescaped & in XML (causes parse errors)
 echo -n "Checking unescaped & in XML... "
 MATCHES=$(echo "$XML_FILES" | xargs grep -E ' & [^a]' 2>/dev/null | grep -v '&amp;' | grep -v '&lt;' | grep -v '&gt;' | grep -v '&quot;' || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
     echo -e "${YELLOW}Fix: Replace & with \&amp;${NC}"
@@ -118,12 +118,12 @@ EMPTY_INITS=""
 for init_file in $(git ls-files '*/__init__.py' 2>/dev/null); do
     # Check if it's in a plasticos_* module directory
     if [[ "$init_file" == plasticos_*/__init__.py ]] || [[ "$init_file" == plasticos_*/models/__init__.py ]]; then
-        if [ ! -s "$init_file" ]; then
+        if [[ ! -s "$init_file" ]]; then
             EMPTY_INITS="$EMPTY_INITS $init_file"
         fi
     fi
 done
-if [ -n "$EMPTY_INITS" ]; then
+if [[ -n "$EMPTY_INITS" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$EMPTY_INITS"
     echo -e "${YELLOW}Fix: Add 'from . import models' or model imports${NC}"
@@ -135,7 +135,7 @@ fi
 # 8. Namespace drift (PlastoS vs PlasticoS) - Bug #12
 echo -n "Checking namespace drift (PlastoS vs PlasticoS)... "
 MATCHES=$(echo "$PY_FILES" | xargs grep -E 'class Plastos[A-Z]' 2>/dev/null | grep -v 'Plasticos' || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
     echo -e "${YELLOW}Fix: Rename class from Plastos* to Plasticos*${NC}"
@@ -152,16 +152,16 @@ for py_file in $(echo "$PY_FILES" | grep '_inherit\.py$'); do
     CONTENT=$(cat "$py_file" 2>/dev/null | grep -v '^#' | grep -v '^$' | grep -v 'from\|import' || true)
     LINE_COUNT=$(echo "$CONTENT" | wc -l | tr -d ' ')
     # If file has < 5 non-empty, non-import lines, it's likely empty
-    if [ "$LINE_COUNT" -lt 5 ]; then
+    if [[ "$LINE_COUNT" -lt 5 ]]; then
         # Check if it only has _inherit and nothing else meaningful
         HAS_FIELDS=$(echo "$CONTENT" | grep -E '^\s+\w+\s*=\s*fields\.' || true)
         HAS_METHODS=$(echo "$CONTENT" | grep -E '^\s+def\s+' || true)
-        if [ -z "$HAS_FIELDS" ] && [ -z "$HAS_METHODS" ]; then
+        if [[ -z "$HAS_FIELDS" ] && [ -z "$HAS_METHODS" ]]; then
             EMPTY_INHERITS="$EMPTY_INHERITS $py_file"
         fi
     fi
 done
-if [ -n "$EMPTY_INHERITS" ]; then
+if [[ -n "$EMPTY_INHERITS" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$EMPTY_INHERITS"
     echo -e "${YELLOW}Fix: Delete empty inherit files and remove from __init__.py${NC}"
@@ -176,11 +176,11 @@ MATCHES=""
 for xml_file in $(echo "$XML_FILES" | grep 'cron\.xml$'); do
     # Look for model_id refs that don't have a module prefix (no dot before model_)
     FOUND=$(grep -E 'ref="model_plasticos' "$xml_file" 2>/dev/null | grep -v '\.' || true)
-    if [ -n "$FOUND" ]; then
+    if [[ -n "$FOUND" ]]; then
         MATCHES="$MATCHES\n$xml_file:\n$FOUND"
     fi
 done
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo -e "$MATCHES"
     echo -e "${YELLOW}Fix: Add module prefix to model_id refs (e.g., ref=\"plasticos_logistics.model_plasticos_load\")${NC}"
@@ -192,7 +192,7 @@ fi
 # 11. XML eval() with nested double quotes - Bug #15
 echo -n "Checking XML eval with nested double quotes... "
 MATCHES=$(echo "$XML_FILES" | xargs grep -E 'eval="[^"]*ref\("[^"]*"\)[^"]*"' 2>/dev/null || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
     echo -e "${YELLOW}Fix: Use single quotes inside eval: ref('external_id') instead of ref(\"external_id\")${NC}"
@@ -204,7 +204,7 @@ fi
 # 12. <tree> instead of <list> in view definitions (Odoo 19)
 echo -n "Checking <tree> instead of <list> in views... "
 MATCHES=$(echo "$XML_FILES" | xargs grep -E '<tree[^>]*>' 2>/dev/null | grep -v 'tree.txt' || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
     echo -e "${YELLOW}Fix: Replace <tree> with <list> (Odoo 19 requires <list>)${NC}"
@@ -216,7 +216,7 @@ fi
 # 13. string attribute on <search> element (invalid in Odoo 19 RNG)
 echo -n "Checking string attribute on <search>... "
 MATCHES=$(echo "$XML_FILES" | xargs grep -E '<search[^>]+string=' 2>/dev/null || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
     echo -e "${YELLOW}Fix: Remove string attribute from <search> element${NC}"
@@ -230,7 +230,7 @@ echo -n "Checking string on group_by in search views... "
 MATCHES=$(echo "$XML_FILES" | xargs grep -E '<group[^>]+name="group_by"[^>]+string=' 2>/dev/null || true)
 MATCHES2=$(echo "$XML_FILES" | xargs grep -E '<group[^>]+string=[^>]+name="group_by"' 2>/dev/null || true)
 COMBINED="$MATCHES$MATCHES2"
-if [ -n "$COMBINED" ]; then
+if [[ -n "$COMBINED" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$COMBINED"
     echo -e "${YELLOW}Fix: Remove string attribute from <group name=\"group_by\"> in search views${NC}"
@@ -242,7 +242,7 @@ fi
 # 15. decoration-secondary (invalid Odoo decoration)
 echo -n "Checking invalid decoration-secondary... "
 MATCHES=$(echo "$XML_FILES" | xargs grep -E 'decoration-secondary=' 2>/dev/null || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
     echo -e "${YELLOW}Fix: Use valid decorations: decoration-info, decoration-success, decoration-warning, decoration-danger, decoration-muted${NC}"
@@ -254,7 +254,7 @@ fi
 # 16. t-esc deprecated in QWeb (Odoo 17+, use t-out)
 echo -n "Checking deprecated t-esc in QWeb... "
 MATCHES=$(echo "$XML_FILES" | xargs grep -E 't-esc=' 2>/dev/null || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES" | head -10
     COUNT=$(echo "$MATCHES" | wc -l | tr -d ' ')
@@ -282,7 +282,7 @@ fi
 # intake.polymer → intake.polymer_id, intake.form → intake.form_id, etc.
 echo -n "Checking related fields with old intake paths... "
 MATCHES=$(echo "$PY_FILES" | xargs grep -E 'related=["'"'"'][^"'"'"']*intake[^"'"'"']*\.(polymer|form|color|source_type)["'"'"']' 2>/dev/null | grep -v '_id' || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
     echo -e "${YELLOW}Fix: Update related path to use Many2one (e.g., intake_id.polymer_id.name instead of intake_id.polymer)${NC}"
@@ -294,7 +294,7 @@ fi
 # 19. Deprecated attrs= attribute in views (Odoo 17+ uses invisible/readonly/required directly)
 echo -n "Checking deprecated attrs= in views... "
 MATCHES=$(echo "$XML_FILES" | xargs grep -E '\sattrs=' 2>/dev/null || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES" | head -5
     COUNT=$(echo "$MATCHES" | wc -l | tr -d ' ')
@@ -308,7 +308,7 @@ fi
 # 20. Deprecated states= attribute on fields (Odoo 17+ uses invisible/readonly)
 echo -n "Checking deprecated states= on fields... "
 MATCHES=$(echo "$XML_FILES" | xargs grep -E '\sstates=' 2>/dev/null || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES" | head -5
     COUNT=$(echo "$MATCHES" | wc -l | tr -d ' ')
@@ -322,7 +322,7 @@ fi
 # 21. Font Awesome icons without title (Odoo 19 accessibility)
 echo -n "Checking Font Awesome icons without title... "
 MATCHES=$(echo "$XML_FILES" | xargs grep -E '<i[^>]*class="[^"]*fa[^"]*"' 2>/dev/null | grep -v 'title=' || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
     echo -e "${YELLOW}Fix: Add title=\"...\" to <i class=\"fa ...\"> for accessibility (Odoo 19)${NC}"
@@ -338,7 +338,7 @@ fi
 #           transaction_import (legacy CSV import uses Char fields for historical data)
 echo -n "Checking string writes to Many2one fields... "
 MATCHES=$(echo "$PY_FILES" | xargs grep -E '"(polymer|form|source_type)":\s*\w+' 2>/dev/null | grep -v '_id' | grep -v 'graph_service' | grep -v 'matcher.py' | grep -v 'enrichment_service' | grep -v 'material_profile.py' | grep -v 'transaction_import' || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
     echo -e "${YELLOW}Fix: Use Many2one field names (polymer_id, form_id, source_type_id) with record IDs, not string codes${NC}"
@@ -350,7 +350,7 @@ fi
 # 23. Studio/legacy x_ prefixed fields (must use clean module names)
 echo -n "Checking x_ prefixed fields... "
 MATCHES=$(echo "$PY_FILES" | xargs grep -E '^\s+x_\w+\s*=\s*fields\.' 2>/dev/null || true)
-if [ -n "$MATCHES" ]; then
+if [[ -n "$MATCHES" ]]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"
     echo -e "${YELLOW}Fix: Rename x_ fields to clean module names (e.g., x_trucker_id → trucker_id)${NC}"
@@ -360,7 +360,7 @@ else
 fi
 
 echo ""
-if [ $ERRORS -gt 0 ]; then
+if [[ $ERRORS -gt 0 ]]; then
     echo -e "${RED}❌ Found $ERRORS Odoo pattern issue(s)${NC}"
     exit 1
 else

@@ -1,9 +1,15 @@
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
+PRODUCT_PRICE = "Product Price"
+ACCOUNT_MOVE = "account.move"
+RES_PARTNER = "res.partner"
+PLASTICOS_MATERIAL_PROFILE = "plasticos.material.profile"
+PLASTICOS_TRANSACTION = "plasticos.transaction"
+
 
 class PlasticosTransaction(models.Model):
-    _name = "plasticos.transaction"
+    _name = PLASTICOS_TRANSACTION
     _description = "Plasticos Transaction"
     _inherit = ["mail.thread"]
 
@@ -23,21 +29,21 @@ class PlasticosTransaction(models.Model):
 
     # ── Partner References (harvested from linda_logistics_v6) ──
     supplier_id = fields.Many2one(
-        "res.partner",
+        RES_PARTNER,
         string="Supplier",
         domain=[("is_company", "=", True), ("supplier_rank", ">", 0)],
         tracking=True,
         index=True,
     )
     buyer_id = fields.Many2one(
-        "res.partner",
+        RES_PARTNER,
         string="Buyer",
         domain=[("is_company", "=", True), ("customer_rank", ">", 0)],
         tracking=True,
         index=True,
     )
     carrier_id = fields.Many2one(
-        "res.partner",
+        RES_PARTNER,
         string="Carrier",
         domain=[("is_company", "=", True)],
         tracking=True,
@@ -45,14 +51,14 @@ class PlasticosTransaction(models.Model):
 
     # ── Denormalized Material Profile Links (fast lookup) ──────
     supplier_profile_id = fields.Many2one(
-        "plasticos.material.profile",
+        PLASTICOS_MATERIAL_PROFILE,
         string="Supplier Material Profile",
         compute="_compute_profile_refs",
         store=True,
         help="Denormalized link to supplier's material profile for fast lookup.",
     )
     buyer_profile_id = fields.Many2one(
-        "plasticos.material.profile",
+        PLASTICOS_MATERIAL_PROFILE,
         string="Buyer Material Profile",
         compute="_compute_profile_refs",
         store=True,
@@ -70,7 +76,7 @@ class PlasticosTransaction(models.Model):
     )
 
     supplier_material_id = fields.Many2one(
-        "plasticos.material.profile",
+        PLASTICOS_MATERIAL_PROFILE,
         string="Supplier Material Profile (PO)",
         compute="_compute_profiles",
         store=True,
@@ -95,7 +101,7 @@ class PlasticosTransaction(models.Model):
     )
     unit_price = fields.Float(
         string="Unit Price",
-        digits="Product Price",
+        digits=PRODUCT_PRICE,
         tracking=True,
     )
 
@@ -129,12 +135,12 @@ class PlasticosTransaction(models.Model):
     )
     freight_rate = fields.Float(
         string="Freight Rate",
-        digits="Product Price",
+        digits=PRODUCT_PRICE,
         tracking=True,
     )
     freight_actual = fields.Float(
         string="Actual Freight Cost",
-        digits="Product Price",
+        digits=PRODUCT_PRICE,
         tracking=True,
     )
 
@@ -278,14 +284,14 @@ class PlasticosTransaction(models.Model):
         default=False,
     )
 
-    customer_invoice_id = fields.Many2one("account.move", domain=[("move_type", "=", "out_invoice")])
+    customer_invoice_id = fields.Many2one(ACCOUNT_MOVE, domain=[("move_type", "=", "out_invoice")])
 
     vendor_bill_ids = fields.Many2many(
-        "account.move", relation="plasticos_tx_vendor_rel", domain=[("move_type", "=", "in_invoice")]
+        ACCOUNT_MOVE, relation="plasticos_tx_vendor_rel", domain=[("move_type", "=", "in_invoice")]
     )
 
     freight_bill_ids = fields.Many2many(
-        "account.move", relation="plasticos_tx_freight_rel", domain=[("move_type", "=", "in_invoice")]
+        ACCOUNT_MOVE, relation="plasticos_tx_freight_rel", domain=[("move_type", "=", "in_invoice")]
     )
 
     # ── RevOps Financial Fields ──────────────────────────────
@@ -440,7 +446,7 @@ class PlasticosTransaction(models.Model):
         Note: product.template has polymer_id (via plasticos_product) but not
         form_id. We match on polymer only; form matching requires order line fields.
         """
-        Profile = self.env["plasticos.material.profile"]
+        Profile = self.env[PLASTICOS_MATERIAL_PROFILE]
         for rec in self:
             supplier_profile = False
             buyer_profile = False
@@ -483,7 +489,7 @@ class PlasticosTransaction(models.Model):
             if rec.purchase_order_ids:
                 first_po = rec.purchase_order_ids[0]
                 if first_po.partner_id:
-                    material = self.env["plasticos.material.profile"].search(
+                    material = self.env[PLASTICOS_MATERIAL_PROFILE].search(
                         [("partner_id", "=", first_po.partner_id.id)], limit=1
                     )
                     rec.supplier_material_id = material
@@ -702,7 +708,7 @@ class PlasticosTransaction(models.Model):
 
         for rec in self:
             old_status = rec.compliance_status
-            if service.is_compliant("plasticos.transaction", rec.id):
+            if service.is_compliant(PLASTICOS_TRANSACTION, rec.id):
                 rec.compliance_status = "compliant"
                 # Auto-post draft invoices when compliance achieved
                 if old_status == "missing":
@@ -717,7 +723,7 @@ class PlasticosTransaction(models.Model):
         Only posts moves in 'draft' state to avoid double-posting.
         """
         self.ensure_one()
-        moves_to_post = self.env["account.move"]
+        moves_to_post = self.env[ACCOUNT_MOVE]
 
         if self.customer_invoice_id and self.customer_invoice_id.state == "draft":
             moves_to_post |= self.customer_invoice_id
@@ -735,7 +741,7 @@ class PlasticosTransaction(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get("name", "New") == "New":
-                vals["name"] = self.env["ir.sequence"].next_by_code("plasticos.transaction") or "New"
+                vals["name"] = self.env["ir.sequence"].next_by_code(PLASTICOS_TRANSACTION) or "New"
         return super().create(vals_list)
 
     def write(self, vals):
@@ -844,7 +850,7 @@ class PlasticosTransaction(models.Model):
             if load and load.state != "closed":
                 raise UserError("Logistics must be closed.")
 
-            if service_docs and not service_docs.is_compliant("plasticos.transaction", rec.id):
+            if service_docs and not service_docs.is_compliant(PLASTICOS_TRANSACTION, rec.id):
                 raise UserError("Required documents missing.")
 
             if not self.env.user.has_group("plasticos_transaction.group_plasticos_manager"):
@@ -873,7 +879,7 @@ class PlasticosTransaction(models.Model):
             return False
         return {
             "type": "ir.actions.act_window",
-            "res_model": "res.partner",
+            "res_model": RES_PARTNER,
             "res_id": self.supplier_id.id,
             "view_mode": "form",
             "target": "current",
@@ -886,7 +892,7 @@ class PlasticosTransaction(models.Model):
             return False
         return {
             "type": "ir.actions.act_window",
-            "res_model": "res.partner",
+            "res_model": RES_PARTNER,
             "res_id": self.buyer_id.id,
             "view_mode": "form",
             "target": "current",

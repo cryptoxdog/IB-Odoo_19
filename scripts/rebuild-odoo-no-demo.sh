@@ -13,7 +13,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 # Load .env if present (no hardcoded credentials or DB names)
-if [ -f "$ROOT/.env" ]; then
+if [[ -f "$ROOT/.env" ]]; then
   set -a
   # shellcheck source=/dev/null
   . "$ROOT/.env"

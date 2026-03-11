@@ -3,6 +3,7 @@ import secrets
 
 from odoo import api, fields, models
 
+WEB_LEAD_CONFIGURATION = "Web Lead Configuration"
 _logger = logging.getLogger(__name__)
 
 
@@ -14,10 +15,10 @@ class PlasticosWebLeadConfig(models.Model):
     """
 
     _name = "plasticos.web.lead.config"
-    _description = "Web Lead Configuration"
+    _description = WEB_LEAD_CONFIGURATION
 
     name = fields.Char(
-        default="Web Lead Configuration",
+        default=WEB_LEAD_CONFIGURATION,
         readonly=True,
     )
 
@@ -136,7 +137,7 @@ class PlasticosWebLeadConfig(models.Model):
         """Return the singleton config record, creating it if needed."""
         config = self.search([], limit=1)
         if not config:
-            config = self.create({"name": "Web Lead Configuration"})
+            config = self.create({"name": WEB_LEAD_CONFIGURATION})
             _logger.info("Created default web lead configuration.")
         return config
 

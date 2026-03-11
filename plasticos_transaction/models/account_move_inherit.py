@@ -1,6 +1,8 @@
 from odoo import models
 from odoo.exceptions import UserError
 
+PLASTICOS_TRANSACTION = "plasticos.transaction"
+
 
 class AccountMove(models.Model):
     _inherit = "account.move"
@@ -15,7 +17,7 @@ class AccountMove(models.Model):
 
         Checks customer_invoice_id, vendor_bill_ids, AND freight_bill_ids.
         """
-        return self.env["plasticos.transaction"].search(
+        return self.env[PLASTICOS_TRANSACTION].search(
             [
                 "|",
                 "|",
@@ -66,7 +68,7 @@ class AccountMove(models.Model):
             if rec.move_type == "out_invoice" and rec.invoice_origin:
                 so = so_by_name.get(rec.invoice_origin)
                 if so and so.transaction_id:
-                    if service and not service.is_compliant("plasticos.transaction", so.transaction_id.id):
+                    if service and not service.is_compliant(PLASTICOS_TRANSACTION, so.transaction_id.id):
                         raise UserError("Missing required documents for invoice posting.")
 
             # Block credit note post when reversed move is linked to closed transaction
@@ -82,7 +84,7 @@ class AccountMove(models.Model):
         po_ids = [po.id for po in po_by_name.values()]
         tx_by_po = {}
         if po_ids:
-            transactions = self.env["plasticos.transaction"].search([("purchase_order_ids", "in", po_ids)])
+            transactions = self.env[PLASTICOS_TRANSACTION].search([("purchase_order_ids", "in", po_ids)])
             for tx in transactions:
                 for po in tx.purchase_order_ids:
                     tx_by_po[po.id] = tx

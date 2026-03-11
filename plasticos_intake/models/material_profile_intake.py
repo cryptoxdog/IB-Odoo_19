@@ -1,5 +1,7 @@
 """Extend material profile with intake-related fields and actions.
 
+
+PLASTICOS_INTAKE = "plasticos.intake"
 This module adds intake navigation and creation capabilities to
 plasticos.material.profile. The extension lives here (in plasticos_intake)
 rather than in plasticos_material_profile to avoid circular dependencies.
@@ -21,7 +23,7 @@ class PlasticosMaterialProfileIntake(models.Model):
 
     def _compute_intake_count(self):
         """Count intakes linked to this profile."""
-        Intake = self.env["plasticos.intake"]
+        Intake = self.env[PLASTICOS_INTAKE]
         for rec in self:
             rec.intake_count = Intake.search_count([("material_profile_id", "=", rec.id)])
 
@@ -32,7 +34,7 @@ class PlasticosMaterialProfileIntake(models.Model):
         return {
             "type": "ir.actions.act_window",
             "name": f"Intakes - {self.polymer_id.name}",
-            "res_model": "plasticos.intake",
+            "res_model": PLASTICOS_INTAKE,
             "view_mode": "list,form",
             "domain": [("material_profile_id", "=", self.id)],
             "context": {"default_material_profile_id": self.id},
@@ -44,7 +46,7 @@ class PlasticosMaterialProfileIntake(models.Model):
         return {
             "type": "ir.actions.act_window",
             "name": "Create Intake",
-            "res_model": "plasticos.intake",
+            "res_model": PLASTICOS_INTAKE,
             "view_mode": "form",
             "target": "current",
             "context": {

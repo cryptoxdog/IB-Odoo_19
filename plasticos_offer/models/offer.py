@@ -3,6 +3,8 @@ import logging
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 
+IR_ACT_WINDOW = "ir.actions.act_window"
+RES_PARTNER = "res.partner"
 _logger = logging.getLogger(__name__)
 
 
@@ -59,7 +61,7 @@ class PlasticosOffer(models.Model):
     # ═════════════════════════════════════════════════════════
 
     supplier_id = fields.Many2one(
-        "res.partner",
+        RES_PARTNER,
         string="Supplier",
         required=True,
         index=True,
@@ -67,7 +69,7 @@ class PlasticosOffer(models.Model):
         tracking=True,
     )
     buyer_id = fields.Many2one(
-        "res.partner",
+        RES_PARTNER,
         string="Buyer",
         required=True,
         index=True,
@@ -293,7 +295,7 @@ class PlasticosOffer(models.Model):
         if not self.intake_id:
             return
         return {
-            "type": "ir.actions.act_window",
+            "type": IR_ACT_WINDOW,
             "name": f"Intake — {self.intake_id.name}",
             "res_model": "plasticos.intake",
             "view_mode": "form",
@@ -306,9 +308,9 @@ class PlasticosOffer(models.Model):
         if not self.supplier_id:
             return
         return {
-            "type": "ir.actions.act_window",
+            "type": IR_ACT_WINDOW,
             "name": self.supplier_id.name,
-            "res_model": "res.partner",
+            "res_model": RES_PARTNER,
             "view_mode": "form",
             "res_id": self.supplier_id.id,
         }
@@ -319,9 +321,9 @@ class PlasticosOffer(models.Model):
         if not self.buyer_id:
             return
         return {
-            "type": "ir.actions.act_window",
+            "type": IR_ACT_WINDOW,
             "name": self.buyer_id.name,
-            "res_model": "res.partner",
+            "res_model": RES_PARTNER,
             "view_mode": "form",
             "res_id": self.buyer_id.id,
         }

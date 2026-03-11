@@ -34,7 +34,7 @@ class TestPlasticosOffer(PlasticosTestCase):
     def _create_offer(self, **kwargs):
         """Helper to create plasticos.offer with defaults"""
         vals = {
-            "intake_id": self.intake.id,
+            "intake_id": self.intake_rec.id,
             "supplier_id": self.supplier.id,
             "buyer_id": self.buyer.id,
             "price_per_lb": 0.25,
@@ -52,7 +52,7 @@ class TestPlasticosOffer(PlasticosTestCase):
         """Test basic record creation"""
         record = self._create_offer()
         self.assertTrue(record.exists())
-        self.assertEqual(record.intake_id, self.intake)
+        self.assertEqual(record.intake_id, self.intake_rec)
         self.assertEqual(record.supplier_id, self.supplier)
         self.assertEqual(record.buyer_id, self.buyer)
         self.assertEqual(record.state, "draft")
@@ -62,7 +62,7 @@ class TestPlasticosOffer(PlasticosTestCase):
         if "plasticos.match.result" in self.env:
             match = self.env["plasticos.match.result"].create(
                 {
-                    "intake_id": self.intake.id,
+                    "intake_id": self.intake_rec.id,
                     "buyer_partner_id": self.buyer.id,
                     "score": 0.85,
                 }
@@ -170,7 +170,7 @@ class TestPlasticosOffer(PlasticosTestCase):
         try:
             self.Offer.create(
                 {
-                    "intake_id": self.intake.id,
+                    "intake_id": self.intake_rec.id,
                     "buyer_id": self.buyer.id,
                     "price_per_lb": 0.25,
                 }
@@ -185,7 +185,7 @@ class TestPlasticosOffer(PlasticosTestCase):
         try:
             self.Offer.create(
                 {
-                    "intake_id": self.intake.id,
+                    "intake_id": self.intake_rec.id,
                     "supplier_id": self.supplier.id,
                     "price_per_lb": 0.25,
                 }

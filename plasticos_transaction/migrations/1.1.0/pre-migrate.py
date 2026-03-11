@@ -1,4 +1,4 @@
-def migrate(cr, version):
+def migrate(cr, _version):
     # Backfill missing sequence names
     cr.execute("""
         SELECT id FROM plasticos_transaction

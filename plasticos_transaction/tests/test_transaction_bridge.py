@@ -56,7 +56,7 @@ class TestTransactionBridge(PlasticosTestCase):
     def _create_intake(self, **kwargs):
         """Helper to create intake with defaults."""
         vals = {
-            "partner_id": self.partner.id,
+            "partner_id": self.partner_rec.id,
         }
         if self.polymer:
             vals["polymer_id"] = self.polymer.id
@@ -68,7 +68,7 @@ class TestTransactionBridge(PlasticosTestCase):
     def _create_transaction(self, **kwargs):
         """Helper to create transaction with defaults."""
         vals = {
-            "partner_id": self.partner.id,
+            "partner_id": self.partner_rec.id,
         }
         vals.update(kwargs)
         return self.Transaction.create(vals)

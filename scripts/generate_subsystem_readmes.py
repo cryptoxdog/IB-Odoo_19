@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 """
+
+
+
+
+DEPLOYMENT_MD = "DEPLOYMENT.md"
+DATA_MODEL_MD = "DATA_MODEL.md"
+API_REFERENCE_MD = "API_REFERENCE.md"
+ARCHITECTURE_MD = "ARCHITECTURE.md"
 Repo-agnostic subsystem README generator.
 
 - AST-heavy parsing: Python modules (ast.parse), Odoo manifests (ast.literal_eval)
@@ -27,12 +35,12 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 CORE_DOCS = [
-    "ARCHITECTURE.md",
-    "API_REFERENCE.md",
-    "DATA_MODEL.md",
+    ARCHITECTURE_MD,
+    API_REFERENCE_MD,
+    DATA_MODEL_MD,
     "WORKFLOW_GUIDE.md",
     "TEST_STRATEGY.md",
-    "DEPLOYMENT.md",
+    DEPLOYMENT_MD,
     "MIGRATION_GUIDE.md",
     "SECURITY_MODEL.md",
     "CHANGELOG.md",
@@ -373,10 +381,10 @@ def generate_readme(
         out = out.replace("{" + k + "}", str(v))
     if core_docs:
         out += "\n\n## Related Documentation\n\n"
-        for name in ["ARCHITECTURE.md", "API_REFERENCE.md", "DATA_MODEL.md", "DEPLOYMENT.md"]:
+        for name in [ARCHITECTURE_MD, API_REFERENCE_MD, DATA_MODEL_MD, DEPLOYMENT_MD]:
             if name in core_docs:
                 out += f"- `{name}` — {core_docs[name][:80].replace(chr(10), ' ')}...\n"
-        if not any(n in core_docs for n in ["ARCHITECTURE.md", "API_REFERENCE.md", "DATA_MODEL.md", "DEPLOYMENT.md"]):
+        if not any(n in core_docs for n in [ARCHITECTURE_MD, API_REFERENCE_MD, DATA_MODEL_MD, DEPLOYMENT_MD]):
             out += "- *(No core docs found in repo root or docs/)*\n"
     return out
 

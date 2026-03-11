@@ -5,6 +5,7 @@ import re
 from odoo import models
 from odoo.exceptions import ValidationError
 
+RES_PARTNER = "res.partner"
 _logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 100  # Commit every N records
@@ -266,7 +267,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
         if is_supplier and default_payment_term_id:
             vals["property_supplier_payment_term_id"] = default_payment_term_id
 
-        return self._upsert("res.partner", external_id, vals)
+        return self._upsert(RES_PARTNER, external_id, vals)
 
     # -------------------------------------------------------------------------
     # CSV Import: Facilities
@@ -372,7 +373,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
                 "country_id": country_id,
             }
 
-        facility = self._upsert("res.partner", external_id, vals)
+        facility = self._upsert(RES_PARTNER, external_id, vals)
 
         # Create contact if Contact/Phone/Email provided
         contact = None
@@ -390,7 +391,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
     def _find_corporate_by_name(self, name):
         """Find corporate partner by name."""
         # Try exact match first
-        partner = self.env["res.partner"].search(
+        partner = self.env[RES_PARTNER].search(
             [
                 ("name", "=", name),
                 ("parent_id", "=", False),
@@ -402,7 +403,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
             return partner
 
         # Try ilike match
-        partner = self.env["res.partner"].search(
+        partner = self.env[RES_PARTNER].search(
             [
                 ("name", "ilike", name),
                 ("parent_id", "=", False),
@@ -458,7 +459,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
             "email": email,
         }
 
-        contact = self._upsert("res.partner", external_id, vals)
+        contact = self._upsert(RES_PARTNER, external_id, vals)
         contacts_created[dedup_key] = contact.id
 
         _logger.debug("Created %s contact '%s' under %s", contact_type, name, facility.name)
@@ -497,7 +498,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
             elif r.get("is_supplier") and default_payment_term_id:
                 vals["property_supplier_payment_term_id"] = default_payment_term_id
 
-            self._upsert("res.partner", r["external_id"], vals)
+            self._upsert(RES_PARTNER, r["external_id"], vals)
             count += 1
 
             if count % BATCH_SIZE == 0:
@@ -529,7 +530,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
                 "facility_role": r.get("facility_role", "other"),
             }
 
-            self._upsert("res.partner", r["external_id"], vals)
+            self._upsert(RES_PARTNER, r["external_id"], vals)
             count += 1
 
             if count % BATCH_SIZE == 0:
@@ -564,7 +565,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
                 "type": r.get("type", "contact"),
             }
 
-            self._upsert("res.partner", r["external_id"], vals)
+            self._upsert(RES_PARTNER, r["external_id"], vals)
             count += 1
 
             if count % BATCH_SIZE == 0:

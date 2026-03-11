@@ -1,4 +1,6 @@
 """
+
+PLASTICOS_TRANSACTION = "plasticos.transaction"
 Transaction Import Wizard
 Import transactions from cieTrade WksDetail CSV export.
 """
@@ -125,7 +127,7 @@ class TransactionImportWizard(models.TransientModel):
 
         # Check for existing transactions
         existing_refs = set(
-            self.env["plasticos.transaction"].search([("name", "in", list(transactions.keys()))]).mapped("name")
+            self.env[PLASTICOS_TRANSACTION].search([("name", "in", list(transactions.keys()))]).mapped("name")
         )
 
         new_tx_count = 0
@@ -182,10 +184,10 @@ class TransactionImportWizard(models.TransientModel):
         existing_refs = set()
         if self.skip_existing:
             existing_refs = set(
-                self.env["plasticos.transaction"].search([("name", "in", list(transactions.keys()))]).mapped("name")
+                self.env[PLASTICOS_TRANSACTION].search([("name", "in", list(transactions.keys()))]).mapped("name")
             )
 
-        Transaction = self.env["plasticos.transaction"]
+        Transaction = self.env[PLASTICOS_TRANSACTION]
         TransactionLine = self.env["plasticos.transaction.line"]
 
         created_tx = 0
@@ -293,7 +295,7 @@ class TransactionImportWizard(models.TransientModel):
         return {
             "type": "ir.actions.act_window",
             "name": _("Imported Transactions"),
-            "res_model": "plasticos.transaction",
+            "res_model": PLASTICOS_TRANSACTION,
             "view_mode": "list,form",
             "domain": [("state", "=", "closed")],
             "context": {"search_default_filter_closed": 1},

@@ -1,5 +1,7 @@
 """Extend res.partner with intake-related fields and actions.
 
+
+PLASTICOS_INTAKE = "plasticos.intake"
 This module adds intake navigation and creation capabilities to
 res.partner. The extension lives here (in plasticos_intake)
 rather than in plasticos_material_profile to avoid circular dependencies.
@@ -21,7 +23,7 @@ class ResPartnerIntake(models.Model):
 
     def _compute_intake_count(self):
         """Count intakes linked to this partner."""
-        Intake = self.env["plasticos.intake"]
+        Intake = self.env[PLASTICOS_INTAKE]
         for rec in self:
             rec.intake_count = Intake.search_count(
                 [
@@ -38,7 +40,7 @@ class ResPartnerIntake(models.Model):
         return {
             "type": "ir.actions.act_window",
             "name": f"Intakes - {self.name}",
-            "res_model": "plasticos.intake",
+            "res_model": PLASTICOS_INTAKE,
             "view_mode": "list,form",
             "domain": [
                 "|",
@@ -63,7 +65,7 @@ class ResPartnerIntake(models.Model):
         return {
             "type": "ir.actions.act_window",
             "name": f"New Intake - {self.name}",
-            "res_model": "plasticos.intake",
+            "res_model": PLASTICOS_INTAKE,
             "view_mode": "form",
             "context": {
                 "default_partner_id": company_id,

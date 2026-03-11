@@ -45,8 +45,8 @@ class TestWebLeadTriagePipeline(PlasticosTestCase):
             cls.source_type = SourceType.create({"name": "Post Consumer", "code": "post_consumer"})
 
         # Config with AI disabled (deterministic-only pipeline)
-        cls.config = cls.Config.sudo().get_config()
-        cls.config.write(
+        cls.config_rec = cls.Config.sudo().get_config()
+        cls.config_rec.write(
             {
                 "ai_enabled": False,
                 "vision_enabled": False,

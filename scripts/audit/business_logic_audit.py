@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+
+MODELS_GLOB = "models/*.py"
 Business Logic Anti-Pattern Detector
 Catches common Odoo coding mistakes.
 """
@@ -42,7 +44,7 @@ class BusinessLogicAudit:
             r"def\s+action_\w+\s*\(\s*self\s*\)",  # action_* methods with only self param
         ]
 
-        for py_file in self.root_dir.rglob("models/*.py"):
+        for py_file in self.root_dir.rglob(MODELS_GLOB):
             # Skip virtual environments and test files
             if ".venv" in str(py_file) or "venv" in str(py_file) or "/tests/" in str(py_file):
                 continue
@@ -101,7 +103,7 @@ class BusinessLogicAudit:
             r"self\.env\.cr\.execute\([^)]*\+",  # execute("..." +
         ]
 
-        for py_file in self.root_dir.rglob("models/*.py"):
+        for py_file in self.root_dir.rglob(MODELS_GLOB):
             with open(py_file, encoding="utf-8") as f:
                 for line_num, line in enumerate(f, 1):
                     for pattern in SQL_PATTERNS:
@@ -124,7 +126,7 @@ class BusinessLogicAudit:
         """Find sudo() calls without justification"""
         errors = []
 
-        for py_file in self.root_dir.rglob("models/*.py"):
+        for py_file in self.root_dir.rglob(MODELS_GLOB):
             with open(py_file, encoding="utf-8") as f:
                 lines = f.readlines()
 
@@ -161,7 +163,7 @@ class BusinessLogicAudit:
         """
         errors = []
 
-        for py_file in self.root_dir.rglob("models/*.py"):
+        for py_file in self.root_dir.rglob(MODELS_GLOB):
             with open(py_file, encoding="utf-8") as f:
                 content = f.read()
                 lines = content.split("\n")

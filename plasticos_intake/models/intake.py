@@ -1,6 +1,12 @@
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
+PLASTICOS_MATERIAL_ATTRIBUTE = "plasticos.material.attribute"
+PLASTICOS_MATERIAL_PROFILE = "plasticos.material.profile"
+PLASTICOS_INTAKE_MATCH = "plasticos.intake.match"
+IR_ACT_WINDOW = "ir.actions.act_window"
+RES_PARTNER = "res.partner"
+
 
 class PlasticosIntake(models.Model):
     _name = "plasticos.intake"
@@ -28,7 +34,7 @@ class PlasticosIntake(models.Model):
         help="Human-readable name: Company - Polymer.",
     )
     partner_id = fields.Many2one(
-        "res.partner",
+        RES_PARTNER,
         string="Company",
         required=False,
         tracking=True,
@@ -53,7 +59,7 @@ class PlasticosIntake(models.Model):
         help="Shows partner name or pending company name for list views.",
     )
     facility_id = fields.Many2one(
-        "res.partner",
+        RES_PARTNER,
         string="Facility",
         tracking=True,
         index=True,
@@ -61,7 +67,7 @@ class PlasticosIntake(models.Model):
         help="The facility (child location) or the company itself when it is also the processing site.",
     )
     contact_id = fields.Many2one(
-        "res.partner",
+        RES_PARTNER,
         string="Contact Person",
         tracking=True,
         index=True,
@@ -151,7 +157,7 @@ class PlasticosIntake(models.Model):
     # ═════════════════════════════════════════════════════════
 
     material_profile_id = fields.Many2one(
-        "plasticos.material.profile",
+        PLASTICOS_MATERIAL_PROFILE,
         string="Material Profile",
         index=True,
         ondelete="set null",
@@ -219,7 +225,7 @@ class PlasticosIntake(models.Model):
     # ═════════════════════════════════════════════════════════
 
     material_attribute_ids = fields.Many2many(
-        "plasticos.material.attribute",
+        PLASTICOS_MATERIAL_ATTRIBUTE,
         string="Material Attributes",
         help="Condition attributes: Clean, Metalized, With Metal, Printed, etc.",
     )
@@ -374,7 +380,7 @@ class PlasticosIntake(models.Model):
     # ═════════════════════════════════════════════════════════
 
     match_line_ids = fields.One2many(
-        "plasticos.intake.match",
+        PLASTICOS_INTAKE_MATCH,
         "intake_id",
         string="Buyer Matches",
         help="Potential buyers matched to this intake, sorted by match score.",
@@ -472,7 +478,7 @@ class PlasticosIntake(models.Model):
             return
 
         partner = self.partner_id
-        children = self.env["res.partner"].search(
+        children = self.env[RES_PARTNER].search(
             [
                 ("parent_id", "=", partner.id),
                 ("is_company", "=", True),
@@ -515,7 +521,7 @@ class PlasticosIntake(models.Model):
                 return
 
         # Auto-select if single contact
-        contacts = self.env["res.partner"].search(
+        contacts = self.env[RES_PARTNER].search(
             [
                 ("parent_id", "=", facility.id),
                 ("is_company", "=", False),
@@ -611,7 +617,7 @@ class PlasticosIntake(models.Model):
     @api.onchange("has_metal")
     def _onchange_has_metal(self):
         """Sync attributes when has_metal boolean changes."""
-        Attribute = self.env["plasticos.material.attribute"]
+        Attribute = self.env[PLASTICOS_MATERIAL_ATTRIBUTE]
         with_metal = Attribute.search([("code", "=", "with_metal")], limit=1)
         no_metal = Attribute.search([("code", "=", "no_metal")], limit=1)
         if self.has_metal:
@@ -628,7 +634,7 @@ class PlasticosIntake(models.Model):
     @api.onchange("is_metalized")
     def _onchange_is_metalized(self):
         """Sync attributes when is_metalized boolean changes."""
-        Attribute = self.env["plasticos.material.attribute"]
+        Attribute = self.env[PLASTICOS_MATERIAL_ATTRIBUTE]
         metalized = Attribute.search([("code", "=", "metalized")], limit=1)
         if self.is_metalized:
             if metalized and metalized not in self.material_attribute_ids:
@@ -640,7 +646,7 @@ class PlasticosIntake(models.Model):
     @api.onchange("has_fr")
     def _onchange_has_fr(self):
         """Sync attributes when has_fr boolean changes."""
-        Attribute = self.env["plasticos.material.attribute"]
+        Attribute = self.env[PLASTICOS_MATERIAL_ATTRIBUTE]
         flame_retardant = Attribute.search([("code", "=", "flame_retardant")], limit=1)
         if self.has_fr:
             if flame_retardant and flame_retardant not in self.material_attribute_ids:
@@ -675,9 +681,9 @@ class PlasticosIntake(models.Model):
         if not self.material_profile_id:
             return
         return {
-            "type": "ir.actions.act_window",
+            "type": IR_ACT_WINDOW,
             "name": "Material Profile",
-            "res_model": "plasticos.material.profile",
+            "res_model": PLASTICOS_MATERIAL_PROFILE,
             "view_mode": "form",
             "res_id": self.material_profile_id.id,
         }
@@ -688,9 +694,9 @@ class PlasticosIntake(models.Model):
         if not self.partner_id:
             return
         return {
-            "type": "ir.actions.act_window",
+            "type": IR_ACT_WINDOW,
             "name": self.partner_id.name,
-            "res_model": "res.partner",
+            "res_model": RES_PARTNER,
             "view_mode": "form",
             "res_id": self.partner_id.id,
         }
@@ -701,9 +707,9 @@ class PlasticosIntake(models.Model):
         if not self.facility_id:
             return
         return {
-            "type": "ir.actions.act_window",
+            "type": IR_ACT_WINDOW,
             "name": self.facility_id.name,
-            "res_model": "res.partner",
+            "res_model": RES_PARTNER,
             "view_mode": "form",
             "res_id": self.facility_id.id,
         }
@@ -712,9 +718,9 @@ class PlasticosIntake(models.Model):
         """Navigate to the buyer match lines for this intake."""
         self.ensure_one()
         return {
-            "type": "ir.actions.act_window",
+            "type": IR_ACT_WINDOW,
             "name": f"Matches — {self.name}",
-            "res_model": "plasticos.intake.match",
+            "res_model": PLASTICOS_INTAKE_MATCH,
             "view_mode": "list,form",
             "domain": [("intake_id", "=", self.id)],
             "context": {"default_intake_id": self.id},
@@ -726,9 +732,9 @@ class PlasticosIntake(models.Model):
         best = self.match_line_ids.sorted("match_score", reverse=True)[:1]
         if best:
             return {
-                "type": "ir.actions.act_window",
+                "type": IR_ACT_WINDOW,
                 "name": f"Best Match — {self.name}",
-                "res_model": "plasticos.intake.match",
+                "res_model": PLASTICOS_INTAKE_MATCH,
                 "view_mode": "form",
                 "res_id": best.id,
             }
@@ -804,7 +810,7 @@ class PlasticosIntake(models.Model):
         material specifications.
         """
         self.ensure_one()
-        MaterialProfile = self.env["plasticos.material.profile"]
+        MaterialProfile = self.env[PLASTICOS_MATERIAL_PROFILE]
 
         # Determine the partner to link the profile to (facility or company)
         profile_partner = self.facility_id or self.partner_id
@@ -856,7 +862,7 @@ class PlasticosIntake(models.Model):
         if not self.pending_company_name:
             return
 
-        Partner = self.env["res.partner"]
+        Partner = self.env[RES_PARTNER]
         name = self.pending_company_name
 
         # Check if partner already exists (may have been created elsewhere)
@@ -963,9 +969,6 @@ class PlasticosIntake(models.Model):
             "intake_id": self.id,
             "supplier_id": self.partner_id.id,
             "quantity": self.quantity_per_load_lbs,
-            # "supplier_facility_id": self.facility_id.id if self.facility_id else False,
-            # "polymer_id": self.polymer_id.id if self.polymer_id else False,
-            # "form_id": self.form_id.id if self.form_id else False,
         }
 
         # Link to material profile if available
@@ -975,9 +978,8 @@ class PlasticosIntake(models.Model):
         # Link to best buyer match if selected
         selected_match = self.match_line_ids.filtered("selected").sorted("match_score", reverse=True)[:1]
         if selected_match:
-            # tx_vals["buyer_name"] = selected_match.buyer_name
             # Try to find buyer partner
-            buyer = self.env["res.partner"].search([("name", "=", selected_match.buyer_name)], limit=1)
+            buyer = self.env[RES_PARTNER].search([("name", "=", selected_match.buyer_name)], limit=1)
             if buyer:
                 tx_vals["buyer_id"] = buyer.id
 
@@ -992,7 +994,7 @@ class PlasticosIntake(models.Model):
         )
 
         return {
-            "type": "ir.actions.act_window",
+            "type": IR_ACT_WINDOW,
             "name": f"Transaction — {self.name}",
             "res_model": "plasticos.transaction",
             "res_id": tx.id,

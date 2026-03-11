@@ -34,7 +34,7 @@ class TestTransactionClaimsBridgeDepends(PlasticosTestCase):
         bridge = self.Bridge.create(
             {
                 "transaction_id": self.tx.id,
-                "claim_id": self.claim.id,
+                "claim_id": self.transaction_claim.id,
             }
         )
         self.assertAlmostEqual(bridge.claim_pct_of_revenue, 20.0)
@@ -43,7 +43,7 @@ class TestTransactionClaimsBridgeDepends(PlasticosTestCase):
         bridge = self.Bridge.create(
             {
                 "transaction_id": self.tx.id,
-                "claim_id": self.claim.id,
+                "claim_id": self.transaction_claim.id,
             }
         )
         self.assertLess(bridge.residual_margin, self.tx.gross_margin)

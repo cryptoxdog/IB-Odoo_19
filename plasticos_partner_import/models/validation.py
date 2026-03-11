@@ -3,6 +3,7 @@ import logging
 from odoo import models
 from odoo.exceptions import ValidationError
 
+RES_PARTNER = "res.partner"
 _logger = logging.getLogger(__name__)
 
 
@@ -37,7 +38,7 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         - Facilities: company_type=company, parent_id set, facility_role set
         - Contacts: company_type=person, parent_id set, is_company=False
         """
-        partners = self.env["res.partner"].search(
+        partners = self.env[RES_PARTNER].search(
             [
                 "|",
                 ("company_type", "=", "company"),
@@ -85,13 +86,13 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
             contacts_missing_parent, duplicate_external_ids, summary
         """
         IrModelData = self.env["ir.model.data"]
-        Partner = self.env["res.partner"]
+        Partner = self.env[RES_PARTNER]
 
         # 1. Partners with old external ID module (plasticos_import instead of plasticos_partner_import)
         old_data = IrModelData.search(
             [
                 ("module", "=", "plasticos_import"),
-                ("model", "=", "res.partner"),
+                ("model", "=", RES_PARTNER),
                 ("res_id", "!=", 0),
             ]
         )
@@ -125,7 +126,7 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         new_module_data = IrModelData.search(
             [
                 ("module", "=", "plasticos_partner_import"),
-                ("model", "=", "res.partner"),
+                ("model", "=", RES_PARTNER),
             ]
         )
         new_names = {d.name for d in new_module_data}
@@ -162,7 +163,7 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         Returns:
             dict with keys: facilities_fixed, external_ids_migrated, errors, summary
         """
-        Partner = self.env["res.partner"]
+        Partner = self.env[RES_PARTNER]
         IrModelData = self.env["ir.model.data"]
 
         facilities_fixed = 0
@@ -190,14 +191,14 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
                 IrModelData.search(
                     [
                         ("module", "=", "plasticos_partner_import"),
-                        ("model", "=", "res.partner"),
+                        ("model", "=", RES_PARTNER),
                     ]
                 ).mapped("name")
             )
             old_data = IrModelData.search(
                 [
                     ("module", "=", "plasticos_import"),
-                    ("model", "=", "res.partner"),
+                    ("model", "=", RES_PARTNER),
                 ]
             )
             for d in old_data:
