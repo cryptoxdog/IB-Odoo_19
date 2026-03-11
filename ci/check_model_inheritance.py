@@ -22,7 +22,7 @@ def extract_manifest_depends(manifest_path: Path) -> list[str]:
     """Extract depends list from __manifest__.py."""
     try:
         content = manifest_path.read_text()
-        manifest = eval(content)
+        manifest = ast.literal_eval(content)
         return manifest.get("depends", [])
     except Exception:
         return []

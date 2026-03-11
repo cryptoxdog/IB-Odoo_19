@@ -1,0 +1,361 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit Configuration for Odoo 19 ReBoot Project
+# Docs: https://docs.coderabbit.ai/getting-started/configure-coderabbit
+
+language: en-US
+tone_instructions: ''
+early_access: true
+enable_free_tier: true
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_placeholder: '@coderabbitai summary'
+  high_level_summary_in_walkthrough: false
+  auto_title_placeholder: '@coderabbitai'
+  review_status: true
+  commit_status: true
+  fail_commit_status: false
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: true
+  auto_apply_labels: false
+  suggested_reviewers: true
+  auto_assign_reviewers: false
+  poem: false
+  abort_on_close: true
+  disable_cache: false
+
+  labeling_instructions:
+    - label: odoo-module
+      instructions: Apply when the PR contains changes to Odoo module files (__manifest__.py, models/, views/, security/, data/).
+    - label: python
+      instructions: Apply when the PR contains changes to Python source code (.py files).
+    - label: xml-views
+      instructions: Apply when the PR contains changes to Odoo XML view files.
+    - label: security
+      instructions: Apply when the PR contains changes to security files (ir.model.access.csv, security.xml).
+    - label: tests
+      instructions: Apply when the PR contains changes to test files in tests/ or tests-odoo/ directories.
+    - label: automation
+      instructions: Apply when the PR contains changes to automation, cron jobs, or scheduled actions.
+    - label: documentation
+      instructions: Apply when the PR contains changes to documentation files (*.md, docs/).
+    - label: ci-cd
+      instructions: Apply when the PR contains changes to CI/CD configuration (.github/, ci/).
+    - label: inference-engine
+      instructions: Apply when the PR contains changes to the plasticos_inference_engine module.
+    - label: buyer-matching
+      instructions: Apply when the PR contains changes to the plasticos_buyer_match_engine module.
+
+  path_filters:
+    # === EXCLUDE: Build artifacts and caches ===
+    - '!.git/**'
+    - '!.venv/**'
+    - '!.mypy_cache/**'
+    - '!.pytest_cache/**'
+    - '!.ruff_cache/**'
+    - '!__pycache__/**'
+    - '!*.pyc'
+    - '!node_modules/**'
+    # === EXCLUDE: Vendor/external code ===
+    - '!odoo-enterprise/**'
+    # === EXCLUDE: Large data files ===
+    - '!*.csv'
+    - '!*.zip'
+    # === EXCLUDE: ALL tests (most require Odoo runtime) ===
+    - '!plasticos_*/tests/**'
+    - '!tests-odoo/**'
+    - '!tests/**'
+    # === INCLUDE: Standalone pytest tests (no Odoo runtime needed) ===
+    # These are pure Python tests that CodeRabbit CAN validate
+    - 'tests/test_repo_dependency_integrity.py'
+    - 'tests/test_process_enum_alignment.py'
+    - 'tests/test_cypher_schema_alignment.py'
+    - 'tests/test_phantom_enum_values.py'
+    - 'tests/test_odoo19_compat.py'
+    - 'tests/test_cron_batch_normalize.py'
+
+  path_instructions:
+    - path: 'README.md'
+      instructions: >-
+        Review as project overview documentation. Check for clarity, completeness,
+        and accuracy of setup instructions.
+
+    - path: '**/__manifest__.py'
+      instructions: >-
+        This is an Odoo module manifest file. Verify:
+        1. Module dependencies are correctly listed
+        2. Version follows Odoo versioning (19.0.x.x.x)
+        3. Data files are listed in correct order (security first, then data, then views)
+        4. License and author information is present
+        5. Category and summary are meaningful
+
+    - path: '**/models/**/*.py'
+      instructions: >-
+        Odoo model files. Review for:
+        1. Proper use of Odoo ORM (fields, constraints, compute methods)
+        2. SQL injection prevention (use ORM methods, not raw SQL)
+        3. Proper field definitions with help text and string labels
+        4. @api.depends and @api.onchange decorators used correctly
+        5. _inherit vs _name usage is appropriate
+        6. Compute methods have proper dependencies declared
+        7. Access rights considerations (sudo() usage justified)
+
+    - path: '**/views/**/*.xml'
+      instructions: >-
+        Odoo XML view files. Review for:
+        1. Proper view inheritance (xpath expressions)
+        2. Consistent naming conventions for view IDs
+        3. Proper use of groups for access control
+        4. Form/tree/kanban view best practices
+        5. Action and menu item definitions
+
+    - path: '**/security/**'
+      instructions: >-
+        Odoo security files. Verify:
+        1. ir.model.access.csv has proper CRUD permissions
+        2. Record rules are correctly scoped
+        3. Groups are properly defined and hierarchical
+        4. No overly permissive access rights
+
+    - path: '**/data/**/*.xml'
+      instructions: >-
+        Odoo data files. Check:
+        1. Data records have proper noupdate flags where needed
+        2. External IDs follow naming conventions
+        3. Sequences and automated actions are properly configured
+
+    - path: 'tests/**/*.py'
+      instructions: >-
+        Test files. Review for:
+        1. Comprehensive test coverage
+        2. Proper use of pytest fixtures
+        3. Clear test naming and documentation
+        4. Mock usage where appropriate
+        5. Edge cases and error conditions tested
+
+    - path: 'tests-odoo/**/*.py'
+      instructions: >-
+        Odoo-specific test files. Review for:
+        1. Proper use of Odoo test classes (TransactionCase, SavepointCase)
+        2. Test data setup in setUpClass
+        3. Proper cleanup and isolation
+        4. Testing of business logic and workflows
+
+    - path: 'plasticos_inference_engine/**/*.py'
+      instructions: >-
+        Inference engine module - critical business logic. Review with extra scrutiny:
+        1. Algorithm correctness and edge cases
+        2. Performance considerations for large datasets
+        3. Proper error handling and logging
+        4. Data validation and sanitization
+
+    - path: 'plasticos_buyer_match_engine/**/*.py'
+      instructions: >-
+        Buyer matching engine - core matching logic. Review for:
+        1. Matching algorithm accuracy
+        2. Scoring and ranking logic
+        3. Performance with large buyer/seller datasets
+        4. Proper handling of partial matches
+
+    - path: 'plasticos_automation/**/*.py'
+      instructions: >-
+        Automation module with cron jobs. Review for:
+        1. Cron job idempotency
+        2. Proper error handling and recovery
+        3. Performance impact of scheduled tasks
+        4. Logging for debugging automated processes
+
+    - path: '.github/**'
+      instructions: >-
+        GitHub workflows and configurations. Check:
+        1. Workflow triggers are appropriate
+        2. Secrets are properly referenced
+        3. Job dependencies are correct
+        4. Caching strategies are effective
+
+    - path: 'ci/**'
+      instructions: >-
+        CI scripts and configurations. Verify:
+        1. Scripts are idempotent and safe
+        2. Error handling is robust
+        3. Exit codes are meaningful
+        4. Documentation is adequate
+
+    - path: 'scripts/**'
+      instructions: >-
+        Utility scripts. Check for:
+        1. Proper argument handling
+        2. Error handling and logging
+        3. Documentation and usage examples
+        4. Safety checks for destructive operations
+
+    - path: 'docs/**'
+      instructions: >-
+        Project documentation. Review for:
+        1. Clarity and completeness
+        2. Up-to-date information
+        3. Proper formatting and structure
+        4. Code examples are accurate
+
+    - path: 'pyproject.toml'
+      instructions: >-
+        Python project configuration. Verify:
+        1. Dependencies are properly versioned
+        2. Tool configurations (ruff, pytest, mypy) are appropriate
+        3. Project metadata is accurate
+
+    - path: 'requirements.txt'
+      instructions: >-
+        Python dependencies. Check:
+        1. Versions are pinned appropriately
+        2. No unnecessary dependencies
+        3. Security vulnerabilities in dependencies
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    ignore_title_keywords:
+      - WIP
+      - DO NOT MERGE
+      - DRAFT
+    labels: []
+    drafts: false
+    base_branches:
+      - main
+      - master
+      - develop
+    auto_pause_after_reviewed_commits: 5
+
+  finishing_touches:
+    docstrings:
+      enabled: true
+    unit_tests:
+      enabled: true
+
+  pre_merge_checks:
+    docstrings:
+      mode: warning
+      threshold: 70
+    title:
+      mode: warning
+    description:
+      mode: warning
+    issue_assessment:
+      mode: warning
+
+  tools:
+    ast-grep:
+      essential_rules: true
+      rule_dirs: []
+      utils_dirs: []
+      packages: []
+
+    shellcheck:
+      enabled: true
+
+    ruff:
+      enabled: true
+
+    markdownlint:
+      enabled: true
+
+    github-checks:
+      enabled: true
+      timeout_ms: 90000
+
+    languagetool:
+      enabled: true
+      enabled_rules: []
+      disabled_rules:
+        - EN_QUOTES
+      enabled_categories: []
+      disabled_categories: []
+      enabled_only: false
+      level: default
+
+    biome:
+      enabled: false
+
+    hadolint:
+      enabled: true
+
+    yamllint:
+      enabled: true
+
+    gitleaks:
+      enabled: true
+
+    trufflehog:
+      enabled: true
+
+    checkov:
+      enabled: true
+
+    eslint:
+      enabled: false
+
+    flake8:
+      enabled: true
+
+    pylint:
+      enabled: true
+
+    semgrep:
+      enabled: true
+
+    actionlint:
+      enabled: true
+
+    sqlfluff:
+      enabled: true
+
+    osv_scanner:
+      enabled: true
+
+chat:
+  auto_reply: true
+  integrations:
+    jira:
+      usage: auto
+    linear:
+      usage: auto
+
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  code_guidelines:
+    enabled: true
+    file_patterns:
+      - '**/.cursor/rules/**'
+      - '**/AGENTS.md'
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  pull_requests:
+    scope: auto
+
+code_generation:
+  docstrings:
+    language: en-US
+    path_instructions:
+      - path: '**/*.py'
+        instructions: >-
+          Generate Google-style docstrings for Python functions and classes.
+          Include Args, Returns, and Raises sections where applicable.
+          For Odoo models, document field purposes and compute method logic.
+  unit_tests:
+    path_instructions:
+      - path: 'plasticos_*/**/*.py'
+        instructions: >-
+          Generate pytest-style unit tests. For Odoo models, use appropriate
+          test base classes (TransactionCase, SavepointCase). Include tests
+          for edge cases and error conditions.

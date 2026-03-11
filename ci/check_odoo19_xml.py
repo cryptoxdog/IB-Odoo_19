@@ -41,7 +41,7 @@ def get_git_tracked_files(pattern: str) -> list[Path]:
 
 def _check_view_xml_file(xml_file: Path) -> list[dict]:
     """Check a single view XML file for all Odoo 19 forbidden patterns."""
-    errors = []
+    errors: list[dict] = []
     try:
         with open(xml_file, encoding="utf-8") as f:
             lines = f.read().splitlines()
@@ -70,8 +70,7 @@ def _check_view_xml_file(xml_file: Path) -> list[dict]:
                         "line": i,
                         "pattern": "alert without role",
                         "message": (
-                            "Elements with alert-* class must have role attribute. "
-                            'Add role="alert" or role="status"'
+                            'Elements with alert-* class must have role attribute. Add role="alert" or role="status"'
                         ),
                     }
                 )
@@ -83,9 +82,7 @@ def _check_view_xml_file(xml_file: Path) -> list[dict]:
                     "file": str(xml_file),
                     "line": i,
                     "pattern": "active_id in context",
-                    "message": (
-                        "active_id is a client-side variable, not a field. Use 'id' instead in view context"
-                    ),
+                    "message": ("active_id is a client-side variable, not a field. Use 'id' instead in view context"),
                 }
             )
 
@@ -105,7 +102,7 @@ def _check_view_xml_file(xml_file: Path) -> list[dict]:
 
 def _check_data_xml_file(xml_file: Path) -> list[dict]:
     """Check a single data XML file for view_mode tree usage."""
-    errors = []
+    errors: list[dict] = []
     try:
         with open(xml_file, encoding="utf-8") as f:
             lines = f.read().splitlines()

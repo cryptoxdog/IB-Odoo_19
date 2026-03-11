@@ -65,6 +65,7 @@ load_env() {
     if [[ -f "$ENV_FILE" ]]; then
         log_info "Loading environment from .env..."
         set -a
+        # shellcheck source=/dev/null
         source "$ENV_FILE"
         set +a
     fi

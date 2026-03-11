@@ -194,7 +194,6 @@ class TestTruckerFollowupCron(PlasticosTestCase, AutomationTestMixin):
                     0,
                     0,
                     {
-                        "name": "Test Move",
                         "product_id": self._test_product.id,
                         "product_uom_qty": 1.0,
                         "product_uom": self._test_product.uom_id.id,

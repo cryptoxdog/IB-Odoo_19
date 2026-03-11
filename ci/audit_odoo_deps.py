@@ -4,6 +4,7 @@ Odoo Module Dependency & XML ID Audit
 Finds missing dependencies, broken XML ID references, and view inheritance issues.
 """
 
+import ast
 import json
 import re
 from collections import defaultdict
@@ -75,7 +76,7 @@ class OdooAudit:
 
             with open(manifest) as f:
                 try:
-                    manifest_data = eval(f.read())
+                    manifest_data = ast.literal_eval(f.read())
                     self.modules[module_name] = {
                         "path": module_dir,
                         "depends": manifest_data.get("depends", []),
@@ -202,8 +203,7 @@ class OdooAudit:
                         "file": file,
                         "line": line,
                         "message": (
-                            f"Module '{child_module}' inherits from"
-                            f" '{parent_module}' but doesn't declare it in depends"
+                            f"Module '{child_module}' inherits from '{parent_module}' but doesn't declare it in depends"
                         ),
                         "fix": f"Add '{parent_module}' to depends list in {child_module}/__manifest__.py",
                     }

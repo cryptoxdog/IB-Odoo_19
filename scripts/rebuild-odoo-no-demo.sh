@@ -46,7 +46,7 @@ if ! docker compose -p "$ODOO_COMPOSE_PROJECT" ps db --status running 2>/dev/nul
 fi
 
 echo "Waiting for PostgreSQL..."
-for i in {1..30}; do
+for _ in {1..30}; do
   if docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" 2>/dev/null; then
     break
   fi

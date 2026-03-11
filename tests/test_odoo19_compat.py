@@ -272,7 +272,7 @@ class TestOdoo19XMLCompat(unittest.TestCase):
         violations = []
         for xml_file in _find_xml_files():
             try:
-                ET.parse(xml_file)
+                ET.parse(xml_file)  # nosec B314 - parsing trusted local Odoo XML
             except ET.ParseError as e:
                 violations.append(f"{xml_file}: {e}")
         self.assertEqual(violations, [], "Malformed XML:\n" + "\n".join(violations))

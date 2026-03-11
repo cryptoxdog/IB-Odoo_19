@@ -115,7 +115,6 @@ def get_module_fields(root_dir: Path) -> dict[str, dict[tuple[str, str], str]]:
     return module_fields
 
 
-
 def _find_field_source(
     model_name: str,
     base_field: str,
@@ -125,10 +124,7 @@ def _find_field_source(
 ) -> tuple[bool, str | None]:
     """Return (found_in_dep, source_module) for a depends field."""
     module_deps = deps.get(module_name, set())
-    found_in_dep = any(
-        (model_name, base_field) in module_fields.get(dep, {})
-        for dep in module_deps
-    )
+    found_in_dep = any((model_name, base_field) in module_fields.get(dep, {}) for dep in module_deps)
     source = next(
         (mod for mod, fields in module_fields.items() if (model_name, base_field) in fields),
         None,
@@ -143,8 +139,17 @@ def _check_depends_in_file(
     module_fields: dict[str, dict[str, str]],
 ) -> list[dict]:
     """Check a single file for cross-module @api.depends violations."""
-    _MAGIC_FIELDS = {"id", "create_uid", "create_date", "write_uid", "write_date",
-                     "display_name", "__last_update", "active", "name"}
+    _MAGIC_FIELDS = {
+        "id",
+        "create_uid",
+        "create_date",
+        "write_uid",
+        "write_date",
+        "display_name",
+        "__last_update",
+        "active",
+        "name",
+    }
     py_file = root_dir / py_file if not py_file.is_absolute() else py_file
     if "__pycache__" in str(py_file):
         return []
@@ -156,7 +161,7 @@ def _check_depends_in_file(
         return []
     model_match = re.search(r'_name\s*=\s*["\'\']([^"\'\']*)["\'\']', content)
     inherit_match = re.search(r'_inherit\s*=\s*["\'\']([^"\'\']*)["\'\']', content)
-    model_name_val = (model_match or inherit_match)
+    model_name_val = model_match or inherit_match
     if not model_name_val:
         return []
     model_name = model_name_val.group(1)
@@ -172,22 +177,25 @@ def _check_depends_in_file(
                 continue
             found_in_dep, source = _find_field_source(model_name, base_field, module_name, deps, module_fields)
             if source and not found_in_dep and source != module_name:
-                errors.append({
-                    "type": "CROSS_MODULE_DEPENDS",
-                    "module": module_name,
-                    "model": model_name,
-                    "method": method_name,
-                    "field": base_field,
-                    "field_source": source,
-                    "file": str(py_file),
-                    "line": content[: match.start()].count("\n") + 1,
-                    "message": (
-                        f"@api.depends('{base_field}') in {module_name} references "
-                        f"field from {source} which is not a dependency. "
-                        f"Move the @api.depends to {source}'s bridge module."
-                    ),
-                })
+                errors.append(
+                    {
+                        "type": "CROSS_MODULE_DEPENDS",
+                        "module": module_name,
+                        "model": model_name,
+                        "method": method_name,
+                        "field": base_field,
+                        "field_source": source,
+                        "file": str(py_file),
+                        "line": content[: match.start()].count("\n") + 1,
+                        "message": (
+                            f"@api.depends('{base_field}') in {module_name} references "
+                            f"field from {source} which is not a dependency. "
+                            f"Move the @api.depends to {source}'s bridge module."
+                        ),
+                    }
+                )
     return errors
+
 
 def check_cross_module_depends(
     root_dir: Path,
@@ -202,7 +210,6 @@ def check_cross_module_depends(
     for py_file in py_files:
         errors.extend(_check_depends_in_file(py_file, root_dir, deps, module_fields))
     return errors
-
 
 
 def main():
