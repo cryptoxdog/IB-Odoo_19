@@ -4,8 +4,6 @@ Transaction Import Wizard
 Import transactions from cieTrade WksDetail CSV export.
 """
 
-PLASTICOS_TRANSACTION = "plasticos.transaction"
-
 
 import base64
 import csv
@@ -16,10 +14,13 @@ from collections import defaultdict
 from odoo import _, fields, models
 from odoo.exceptions import UserError
 
+
+PLASTICOS_TRANSACTION = "plasticos.transaction"
+DEFAULT_CSV = "cieTrade.WksDetail.csv"
+
 _logger = logging.getLogger(__name__)
 
 # Default CSV file in module
-DEFAULT_CSV = "cieTrade.WksDetail.csv"
 
 
 class TransactionImportWizard(models.TransientModel):
