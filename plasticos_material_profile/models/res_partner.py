@@ -1,4 +1,4 @@
-from odoo import fields, models
+from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
 
@@ -25,6 +25,7 @@ class ResPartner(models.Model):
         help="True if this is a facility (has parent) or a standalone company (no children)",
     )
 
+    @api.depends("parent_id", "child_ids")
     def _compute_is_facility(self):
         """
         A partner is a 'facility' if:
@@ -42,6 +43,7 @@ class ResPartner(models.Model):
                 # Has children but no parent = pure parent company (not a facility)
                 rec.is_facility = False
 
+    @api.depends()
     def _compute_material_profile_count(self):
         """Count material profiles linked to this partner (facility)."""
         Profile = self.env["plasticos.material.profile"]

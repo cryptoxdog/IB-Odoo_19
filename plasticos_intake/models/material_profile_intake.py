@@ -5,7 +5,7 @@ plasticos.material.profile. The extension lives here (in plasticos_intake)
 rather than in plasticos_material_profile to avoid circular dependencies.
 """
 
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class PlasticosMaterialProfileIntake(models.Model):
@@ -19,6 +19,7 @@ class PlasticosMaterialProfileIntake(models.Model):
         compute="_compute_intake_count",
     )
 
+    @api.depends()
     def _compute_intake_count(self):
         """Count intakes linked to this profile."""
         Intake = self.env["plasticos.intake"]

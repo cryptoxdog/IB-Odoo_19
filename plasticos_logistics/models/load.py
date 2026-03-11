@@ -166,6 +166,7 @@ class PlasticosLoad(models.Model):
             else:
                 rec.cycle_time_hours = 0
 
+    @api.depends()
     def _compute_transaction_id(self):
         """Reverse lookup: find transaction that references this load."""
         for rec in self:

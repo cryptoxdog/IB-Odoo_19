@@ -361,6 +361,7 @@ class PlasticosMaterialProfile(models.Model):
             code = rec.source_type_id.code if rec.source_type_id else False
             rec.source_type = code if code in valid_codes else False
 
+    @api.depends()
     def _compute_po_line_count(self):
         """Count PO lines linked to this profile.
 
@@ -372,6 +373,7 @@ class PlasticosMaterialProfile(models.Model):
         for rec in self:
             rec.po_line_count = POLine.search_count([("material_profile_id", "=", rec.id)]) if has_field else 0
 
+    @api.depends()
     def _compute_so_line_count(self):
         """Count SO lines linked to this profile.
 

@@ -197,7 +197,7 @@ class TestTruckerFollowupCron(PlasticosTestCase, AutomationTestMixin):
                     {
                         "product_id": self._test_product.id,
                         "product_uom_qty": 1.0,
-                        "product_uom": self._test_product.uom_id.id,
+                        "product_uom_id": self._test_product.uom_id.id,
                         "location_id": self._stock_location.id,
                         "location_dest_id": self._customer_location.id,
                     },

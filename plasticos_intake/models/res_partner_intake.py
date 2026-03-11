@@ -5,7 +5,7 @@ res.partner. The extension lives here (in plasticos_intake)
 rather than in plasticos_material_profile to avoid circular dependencies.
 """
 
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class ResPartnerIntake(models.Model):
@@ -19,6 +19,7 @@ class ResPartnerIntake(models.Model):
         compute="_compute_intake_count",
     )
 
+    @api.depends()
     def _compute_intake_count(self):
         """Count intakes linked to this partner."""
         Intake = self.env["plasticos.intake"]

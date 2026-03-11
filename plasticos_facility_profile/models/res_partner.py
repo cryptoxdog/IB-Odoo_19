@@ -114,6 +114,7 @@ class ResPartner(models.Model):
         "Blocked = suspended from transactions.",
     )
 
+    @api.depends("facility_profile_ids")
     def _compute_facility_profile_count(self):
         """Count facility profiles linked to this partner."""
         for rec in self:

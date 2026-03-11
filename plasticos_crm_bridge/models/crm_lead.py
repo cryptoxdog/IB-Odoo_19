@@ -1,4 +1,4 @@
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class CrmLeadPlastOS(models.Model):
@@ -45,14 +45,17 @@ class CrmLeadPlastOS(models.Model):
         compute="_compute_profile_summary",
     )
 
+    @api.depends("web_lead_ids")
     def _compute_web_lead_count(self):
         for rec in self:
             rec.web_lead_count = len(rec.web_lead_ids)
 
+    @api.depends("intake_ids")
     def _compute_intake_count(self):
         for rec in self:
             rec.intake_count = len(rec.intake_ids)
 
+    @api.depends("partner_id", "partner_id.child_ids")
     def _compute_profile_summary(self):
         Profile = self.env["plasticos.material.profile"]
         for rec in self:

@@ -662,6 +662,7 @@ class PlasticosTransaction(models.Model):
         for rec in self:
             rec.net_margin = rec.gross_margin - (rec.commission_amount or 0.0)
 
+    @api.depends()
     def _compute_chargebacks_penalties(self):
         """Fallback: zero chargebacks/penalties when claims module not installed.
 
