@@ -1,10 +1,14 @@
 import uuid
 
-from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
+
+# Odoo 19 may use psycopg3; handle both
+try:
+    from psycopg2 import IntegrityError
+except ImportError:
+    from psycopg import IntegrityError
 
 
 def _unique_code(prefix="TEST"):
@@ -37,22 +41,16 @@ class TestMaterialProfileConstraints(PlasticosTestCase):
     def test_polymer_code_unique(self):
         code = _unique_code("HDPE-UNIQ")
         self.env["plasticos.polymer"].create({"name": "HDPE-2", "code": code})
-        raised = False
-        try:
-            self.env["plasticos.polymer"].create({"name": "Duplicate", "code": code})
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.env["plasticos.polymer"].create({"name": "Duplicate", "code": code})
 
     def test_form_code_unique(self):
         code = _unique_code("FLAKE-UNIQ")
         self.env["plasticos.material.form"].create({"name": "Flake", "code": code})
-        raised = False
-        try:
-            self.env["plasticos.material.form"].create({"name": "Dup", "code": code})
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.env["plasticos.material.form"].create({"name": "Dup", "code": code})
 
     # --- Profile-level constraints -----------------------------------------
 
@@ -66,18 +64,15 @@ class TestMaterialProfileConstraints(PlasticosTestCase):
                 "form_id": unique_form.id,
             }
         )
-        raised = False
-        try:
-            self.Profile.create(
-                {
-                    "partner_id": self.partner.id,
-                    "polymer_id": self.polymer.id,
-                    "form_id": unique_form.id,
-                }
-            )
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.Profile.create(
+                    {
+                        "partner_id": self.partner.id,
+                        "polymer_id": self.polymer.id,
+                        "form_id": unique_form.id,
+                    }
+                )
 
     def test_density_min_less_than_max(self):
         # Use a unique form for test isolation

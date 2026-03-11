@@ -1,11 +1,15 @@
 from datetime import timedelta
 
-from psycopg2 import IntegrityError
-
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests import tagged
+
+# Odoo 19 may use psycopg3; handle both
+try:
+    from psycopg2 import IntegrityError
+except ImportError:
+    from psycopg import IntegrityError
 
 
 @tagged("post_install", "-at_install")
@@ -151,48 +155,39 @@ class TestPlasticosOffer(PlasticosTestCase):
 
     def test_constraint_intake_id_required(self):
         """Test intake_id is required"""
-        raised = False
-        try:
-            self.Offer.create(
-                {
-                    "supplier_id": self.supplier.id,
-                    "buyer_id": self.buyer.id,
-                    "price_per_lb": 0.25,
-                }
-            )
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.Offer.create(
+                    {
+                        "supplier_id": self.supplier.id,
+                        "buyer_id": self.buyer.id,
+                        "price_per_lb": 0.25,
+                    }
+                )
 
     def test_constraint_supplier_id_required(self):
         """Test supplier_id is required"""
-        raised = False
-        try:
-            self.Offer.create(
-                {
-                    "intake_id": self.intake.id,
-                    "buyer_id": self.buyer.id,
-                    "price_per_lb": 0.25,
-                }
-            )
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.Offer.create(
+                    {
+                        "intake_id": self.intake.id,
+                        "buyer_id": self.buyer.id,
+                        "price_per_lb": 0.25,
+                    }
+                )
 
     def test_constraint_buyer_id_required(self):
         """Test buyer_id is required"""
-        raised = False
-        try:
-            self.Offer.create(
-                {
-                    "intake_id": self.intake.id,
-                    "supplier_id": self.supplier.id,
-                    "price_per_lb": 0.25,
-                }
-            )
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.Offer.create(
+                    {
+                        "intake_id": self.intake.id,
+                        "supplier_id": self.supplier.id,
+                        "price_per_lb": 0.25,
+                    }
+                )
 
     def test_constraint_negative_price_raises(self):
         """Test negative price_per_lb raises error"""

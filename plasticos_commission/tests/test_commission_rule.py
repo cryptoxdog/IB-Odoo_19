@@ -60,29 +60,23 @@ class TestPlasticosCommissionRule(PlasticosTestCase):
 
     def test_constraint_name_required(self):
         """Test name is required (explicitly pass False to override default)"""
-        raised = False
-        try:
-            self.CommissionRule.create(
-                {
-                    "name": False,  # Override default to test required constraint
-                    "sales_rep_id": self.test_sales_rep.id,
-                    "percentage": 0.05,
-                }
-            )
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.CommissionRule.create(
+                    {
+                        "name": False,  # Override default to test required constraint
+                        "sales_rep_id": self.test_sales_rep.id,
+                        "percentage": 0.05,
+                    }
+                )
 
     def test_constraint_sales_rep_id_required(self):
         """Test sales_rep_id is required"""
-        raised = False
-        try:
-            self.CommissionRule.create(
-                {
-                    "name": "No Sales Rep Rule",
-                    "percentage": 0.05,
-                }
-            )
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.CommissionRule.create(
+                    {
+                        "name": "No Sales Rep Rule",
+                        "percentage": 0.05,
+                    }
+                )

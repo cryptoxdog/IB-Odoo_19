@@ -8,11 +8,15 @@ Tests cover:
     - Search and filtering
 """
 
-from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
+
+# Odoo 19 may use psycopg3; handle both
+try:
+    from psycopg2 import IntegrityError
+except ImportError:
+    from psycopg import IntegrityError
 
 
 @tagged("post_install", "-at_install")
@@ -75,63 +79,51 @@ class TestPlasticosAutomationLog(PlasticosTestCase):
 
     def test_constraint_name_required(self):
         """Test that name field is required."""
-        raised = False
-        try:
-            self.AutomationLog.create(
-                {
-                    "model_name": "res.partner",
-                    "res_id": self.partner.id,
-                    "action_type": "approval_flag",
-                }
-            )
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.AutomationLog.create(
+                    {
+                        "model_name": "res.partner",
+                        "res_id": self.partner.id,
+                        "action_type": "approval_flag",
+                    }
+                )
 
     def test_constraint_model_name_required(self):
         """Test that model_name field is required."""
-        raised = False
-        try:
-            self.AutomationLog.create(
-                {
-                    "name": "Test Log",
-                    "res_id": self.partner.id,
-                    "action_type": "approval_flag",
-                }
-            )
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.AutomationLog.create(
+                    {
+                        "name": "Test Log",
+                        "res_id": self.partner.id,
+                        "action_type": "approval_flag",
+                    }
+                )
 
     def test_constraint_res_id_required(self):
         """Test that res_id field is required."""
-        raised = False
-        try:
-            self.AutomationLog.create(
-                {
-                    "name": "Test Log",
-                    "model_name": "res.partner",
-                    "action_type": "approval_flag",
-                }
-            )
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.AutomationLog.create(
+                    {
+                        "name": "Test Log",
+                        "model_name": "res.partner",
+                        "action_type": "approval_flag",
+                    }
+                )
 
     def test_constraint_action_type_required(self):
         """Test that action_type field is required."""
-        raised = False
-        try:
-            self.AutomationLog.create(
-                {
-                    "name": "Test Log",
-                    "model_name": "res.partner",
-                    "res_id": self.partner.id,
-                }
-            )
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.AutomationLog.create(
+                    {
+                        "name": "Test Log",
+                        "model_name": "res.partner",
+                        "res_id": self.partner.id,
+                    }
+                )
 
     def test_constraint_invalid_action_type(self):
         """Test that invalid action_type raises error."""

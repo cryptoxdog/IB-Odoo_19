@@ -17,7 +17,11 @@ These tests validate that PlastOS handles errors gracefully:
 
 from unittest.mock import patch
 
-from psycopg2 import IntegrityError
+# Odoo 19 may use psycopg3; handle both
+try:
+    from psycopg2 import IntegrityError
+except ImportError:
+    from psycopg import IntegrityError
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import AccessError, UserError, ValidationError
@@ -98,12 +102,9 @@ class TestInvalidData(PlasticosTestCase):
     def test_intake_missing_required_fields(self):
         if "plasticos.intake" not in self.env:
             self.skipTest("plasticos.intake not installed")
-        raised = False
-        try:
-            self.env["plasticos.intake"].create({})
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.env["plasticos.intake"].create({})
 
     def test_web_lead_duplicate_lead_id(self):
         if "plasticos.web.lead" not in self.env:
@@ -115,18 +116,15 @@ class TestInvalidData(PlasticosTestCase):
                 "company_name": "Dup Co",
             }
         )
-        raised = False
-        try:
-            self.env["plasticos.web.lead"].create(
-                {
-                    "lead_id": "DUP-001",
-                    "decision": "cold",
-                    "company_name": "Dup Co 2",
-                }
-            )
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.env["plasticos.web.lead"].create(
+                    {
+                        "lead_id": "DUP-001",
+                        "decision": "cold",
+                        "company_name": "Dup Co 2",
+                    }
+                )
 
     def test_web_lead_create_from_agent_missing_lead_id(self):
         if "plasticos.web.lead" not in self.env:
@@ -157,12 +155,9 @@ class TestInvalidData(PlasticosTestCase):
         partner = self._create_partner()
         Offer = self.env["plasticos.offer"]
         if "price_per_lb" in Offer._fields:
-            raised = False
-            try:
-                Offer.create({"buyer_partner_id": partner.id, "price_per_lb": -1.0})
-            except (ValidationError, IntegrityError):
-                raised = True
-            self.assertTrue(raised, "Expected exception was not raised")
+            with self.assertRaises((ValidationError, IntegrityError)):
+                with self.env.cr.savepoint():
+                    Offer.create({"buyer_partner_id": partner.id, "price_per_lb": -1.0})
 
     def test_load_cancel_from_delivered_rejected(self):
         if "plasticos.load" not in self.env:

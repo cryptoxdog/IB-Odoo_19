@@ -1,8 +1,12 @@
-from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
+
+# Odoo 19 may use psycopg3; handle both
+try:
+    from psycopg2 import IntegrityError
+except ImportError:
+    from psycopg import IntegrityError
 
 
 @tagged("post_install", "-at_install")
@@ -28,12 +32,9 @@ class TestClaimConstraintsValidation(PlasticosTestCase):
 
     def test_unique_name(self):
         self._new_claim()
-        raised = False
-        try:
-            self._new_claim()
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self._new_claim()
 
     def test_resolution_note_required_on_resolve(self):
         claim = self._new_claim(state="in_progress")

@@ -1,8 +1,12 @@
-from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests import tagged
+
+# Odoo 19 may use psycopg3; handle both
+try:
+    from psycopg2 import IntegrityError
+except ImportError:
+    from psycopg import IntegrityError
 
 
 @tagged("post_install", "-at_install")
@@ -107,17 +111,14 @@ class TestPlasticosClaim(PlasticosTestCase):
 
     def test_constraint_transaction_id_required(self):
         """Test transaction_id is required"""
-        raised = False
-        try:
-            self.Claim.create(
-                {
-                    "case_type": "buyer_claim",
-                    "severity": "medium",
-                }
-            )
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.Claim.create(
+                    {
+                        "case_type": "buyer_claim",
+                        "severity": "medium",
+                    }
+                )
 
     def test_constraint_invalid_case_type(self):
         """Test invalid case_type raises error"""

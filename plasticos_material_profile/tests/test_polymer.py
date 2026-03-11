@@ -1,8 +1,12 @@
-from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
+
+# Odoo 19 may use psycopg3; handle both
+try:
+    from psycopg2 import IntegrityError
+except ImportError:
+    from psycopg import IntegrityError
 
 
 @tagged("post_install", "-at_install")
@@ -56,31 +60,22 @@ class TestPlasticosPolymer(PlasticosTestCase):
 
     def test_constraint_name_required(self):
         """Test name is required"""
-        raised = False
-        try:
-            self.Polymer.create({"code": "NONAME"})
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.Polymer.create({"code": "NONAME"})
 
     def test_constraint_code_required(self):
         """Test code is required"""
-        raised = False
-        try:
-            self.Polymer.create({"name": "No Code Polymer"})
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.Polymer.create({"name": "No Code Polymer"})
 
     def test_constraint_code_unique(self):
         """Test code must be unique"""
         self._create_polymer(code="UNIQUE-TEST")
-        raised = False
-        try:
-            self._create_polymer(code="UNIQUE-TEST")
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self._create_polymer(code="UNIQUE-TEST")
 
     # ========================================================================
     # CATEGORY TESTS

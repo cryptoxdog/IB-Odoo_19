@@ -5,11 +5,15 @@ Test offer SQL constraints.
 - quantity > 0
 """
 
-from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
+
+# Odoo 19 may use psycopg3; handle both
+try:
+    from psycopg2 import IntegrityError
+except ImportError:
+    from psycopg import IntegrityError
 
 
 @tagged("post_install", "-at_install")
@@ -43,21 +47,15 @@ class TestOfferConstraints(PlasticosTestCase):
 
     def test_price_must_be_positive(self):
         """Price per lb must be > 0 (SQL constraint)."""
-        raised = False
-        try:
-            self._create_offer(price_per_lb=0)
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self._create_offer(price_per_lb=0)
 
     def test_price_cannot_be_negative(self):
         """Price per lb cannot be negative."""
-        raised = False
-        try:
-            self._create_offer(price_per_lb=-0.10)
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self._create_offer(price_per_lb=-0.10)
 
     def test_valid_price_accepted(self):
         """Valid positive price should be accepted."""
@@ -70,21 +68,15 @@ class TestOfferConstraints(PlasticosTestCase):
 
     def test_quantity_must_be_positive(self):
         """Quantity lbs must be > 0 (SQL constraint)."""
-        raised = False
-        try:
-            self._create_offer(quantity_lbs=0)
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self._create_offer(quantity_lbs=0)
 
     def test_quantity_cannot_be_negative(self):
         """Quantity lbs cannot be negative."""
-        raised = False
-        try:
-            self._create_offer(quantity_lbs=-1000)
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self._create_offer(quantity_lbs=-1000)
 
     def test_valid_quantity_accepted(self):
         """Valid positive quantity should be accepted."""

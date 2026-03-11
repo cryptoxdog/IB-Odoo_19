@@ -1,6 +1,10 @@
 import uuid
 
-from psycopg2 import IntegrityError
+# Odoo 19 may use psycopg3; handle both
+try:
+    from psycopg2 import IntegrityError
+except ImportError:
+    from psycopg import IntegrityError
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
@@ -40,28 +44,19 @@ class TestPlasticosSourceType(PlasticosTestCase):
 
     def test_constraint_name_required(self):
         """Test name is required"""
-        raised = False
-        try:
-            self.SourceType.create({"code": "NO-NAME"})
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.SourceType.create({"code": "NO-NAME"})
 
     def test_constraint_code_required(self):
         """Test code is required"""
-        raised = False
-        try:
-            self.SourceType.create({"name": "No Code Source"})
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.SourceType.create({"name": "No Code Source"})
 
     def test_constraint_code_unique(self):
         """Test code must be unique"""
         self._create_type(code="UNIQUE-SRC")
-        raised = False
-        try:
-            self._create_type(code="UNIQUE-SRC")
-        except (ValidationError, IntegrityError):
-            raised = True
-        self.assertTrue(raised, "Expected exception was not raised")
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self._create_type(code="UNIQUE-SRC")
