@@ -823,35 +823,37 @@ class PlasticosTransaction(models.Model):
                 "SELECT id FROM plasticos_transaction WHERE id = %s FOR UPDATE",
                 (rec.id,),
             )
-            if rec.state == "closed":
-                raise UserError("Transaction is already closed.")
-            if not rec.customer_invoice_id or rec.customer_invoice_id.state != "posted":
-                raise UserError("Customer invoice must be posted.")
+            self._validate_close_preconditions(rec, service_docs)
+            self._apply_close(rec, service_commission)
 
-            if any(bill.state != "posted" for bill in rec.vendor_bill_ids):
-                raise UserError("Vendor bills must be posted.")
+    def _validate_close_preconditions(self, rec, service_docs):
+        """Guard all business rules that must pass before a transaction can be closed."""
+        if rec.state == "closed":
+            raise UserError("Transaction is already closed.")
+        if not rec.customer_invoice_id or rec.customer_invoice_id.state != "posted":
+            raise UserError("Customer invoice must be posted.")
+        if any(bill.state != "posted" for bill in rec.vendor_bill_ids):
+            raise UserError("Vendor bills must be posted.")
+        load = getattr(rec, "load_id", False)
+        if load and load.state != "closed":
+            raise UserError("Logistics must be closed.")
+        if service_docs and not service_docs.is_compliant(PLASTICOS_TRANSACTION, rec.id):
+            raise UserError("Required documents missing.")
+        if not self.env.user.has_group("plasticos_transaction.group_plasticos_manager"):
+            raise UserError("Only Plasticos Managers can close transactions.")
+        if rec.gross_margin < 0:
+            raise UserError("Cannot close transaction with negative gross margin.")
 
-            load = getattr(rec, "load_id", False)
-            if load and load.state != "closed":
-                raise UserError("Logistics must be closed.")
-
-            if service_docs and not service_docs.is_compliant(PLASTICOS_TRANSACTION, rec.id):
-                raise UserError("Required documents missing.")
-
-            if not self.env.user.has_group("plasticos_transaction.group_plasticos_manager"):
-                raise UserError("Only Plasticos Managers can close transactions.")
-
-            if rec.gross_margin < 0:
-                raise UserError("Cannot close transaction with negative gross margin.")
-
-            amount = service_commission.compute_commission(rec) if service_commission else 0.0
-            rec.write(
-                {
-                    "commission_locked_amount": amount,
-                    "commission_locked": True,
-                    "state": "closed",
-                }
-            )
+    def _apply_close(self, rec, service_commission):
+        """Compute commission and write the closed state onto the transaction record."""
+        amount = service_commission.compute_commission(rec) if service_commission else 0.0
+        rec.write(
+            {
+                "commission_locked_amount": amount,
+                "commission_locked": True,
+                "state": "closed",
+            }
+        )
 
     # ═════════════════════════════════════════════════════════
     # Action Methods (for UX smart buttons)

@@ -179,13 +179,7 @@ class TransactionImportWizard(models.TransientModel):
 
         reader = self._get_csv_reader()
         transactions = self._group_lines_by_transaction(reader)
-
-        # Check for existing transactions
-        existing_refs = set()
-        if self.skip_existing:
-            existing_refs = set(
-                self.env[PLASTICOS_TRANSACTION].search([("name", "in", list(transactions.keys()))]).mapped("name")
-            )
+        existing_refs = self._resolve_existing_refs(transactions)
 
         Transaction = self.env[PLASTICOS_TRANSACTION]
         TransactionLine = self.env["plasticos.transaction.line"]
@@ -199,76 +193,83 @@ class TransactionImportWizard(models.TransientModel):
             if ref in existing_refs:
                 skipped_tx += 1
                 continue
-
             try:
-                # Aggregate transaction-level data from lines
-                total_sale = sum(self._parse_float(l.get("SAmount", 0)) for l in lines)
-                total_purchase = sum(self._parse_float(l.get("PAmount", 0)) for l in lines)
-                total_weight = sum(self._parse_float(l.get("SWeight", 0)) for l in lines)
-
-                # Create transaction
-                tx_vals = {
-                    "name": ref,
-                    "state": "closed",  # Historical data
-                    "historical_sale_total": total_sale,
-                    "historical_purchase_total": total_purchase,
-                    "expected_weight": total_weight,
-                    "actual_weight": total_weight,
-                }
-
-                tx = Transaction.create(tx_vals)
+                n_lines = self._import_single_transaction(ref, lines, Transaction, TransactionLine)
                 created_tx += 1
-
-                # Create line items
-                for line_data in lines:
-                    line_vals = {
-                        "transaction_id": tx.id,
-                        "detail_id": self._parse_string(line_data.get("DetailID", "")),
-                        "grade_id": self._parse_string(line_data.get("GradeID", "")),
-                        "description": self._parse_string(line_data.get("InvoiceDesc", "")),
-                        "sale_weight": self._parse_float(line_data.get("SWeight", 0)),
-                        "sale_price": self._parse_float(line_data.get("SPrice", 0)),
-                        "sale_amount": self._parse_float(line_data.get("SAmount", 0)),
-                        "purchase_weight": self._parse_float(line_data.get("PWeight", 0)),
-                        "purchase_price": self._parse_float(line_data.get("PPrice", 0)),
-                        "purchase_amount": self._parse_float(line_data.get("PAmount", 0)),
-                        "color": self._parse_string(line_data.get("Color", "")),
-                        "container_no": self._parse_string(line_data.get("ContainerNo", "")),
-                        "seal_no": self._parse_string(line_data.get("SealNo", "")),
-                        "sale_po": self._parse_string(line_data.get("SPo", "")),
-                        "purchase_po": self._parse_string(line_data.get("PPo", "")),
-                        "specifications": self._parse_string(line_data.get("Specifications", "")),
-                        "condition": self._parse_string(line_data.get("Condition", "")),
-                        "unit_type": self._parse_string(line_data.get("UnitType", "")),
-                        "units": self._parse_float(line_data.get("Units", 0)),
-                    }
-                    TransactionLine.create(line_vals)
-                    created_lines += 1
-
+                created_lines += n_lines
             except Exception as e:
                 errors.append(f"{ref}: {str(e)}")
                 _logger.exception("Error importing transaction %s", ref)
 
-        # Build result message
-        result_parts = [
+        self.result_message = self._build_import_result_message(created_tx, created_lines, skipped_tx, errors)
+        self.state = "done"
+        return self._return_wizard()
+
+    def _resolve_existing_refs(self, transactions):
+        """Return a set of transaction references already in the database."""
+        if not self.skip_existing:
+            return set()
+        return set(
+            self.env[PLASTICOS_TRANSACTION].search([("name", "in", list(transactions.keys()))]).mapped("name")
+        )
+
+    def _import_single_transaction(self, ref, lines, Transaction, TransactionLine):
+        """Create one transaction header and its line items; return the number of lines created."""
+        total_sale = sum(self._parse_float(l.get("SAmount", 0)) for l in lines)
+        total_purchase = sum(self._parse_float(l.get("PAmount", 0)) for l in lines)
+        total_weight = sum(self._parse_float(l.get("SWeight", 0)) for l in lines)
+
+        tx = Transaction.create({
+            "name": ref,
+            "state": "closed",  # Historical data
+            "historical_sale_total": total_sale,
+            "historical_purchase_total": total_purchase,
+            "expected_weight": total_weight,
+            "actual_weight": total_weight,
+        })
+
+        for line_data in lines:
+            TransactionLine.create({
+                "transaction_id": tx.id,
+                "detail_id": self._parse_string(line_data.get("DetailID", "")),
+                "grade_id": self._parse_string(line_data.get("GradeID", "")),
+                "description": self._parse_string(line_data.get("InvoiceDesc", "")),
+                "sale_weight": self._parse_float(line_data.get("SWeight", 0)),
+                "sale_price": self._parse_float(line_data.get("SPrice", 0)),
+                "sale_amount": self._parse_float(line_data.get("SAmount", 0)),
+                "purchase_weight": self._parse_float(line_data.get("PWeight", 0)),
+                "purchase_price": self._parse_float(line_data.get("PPrice", 0)),
+                "purchase_amount": self._parse_float(line_data.get("PAmount", 0)),
+                "color": self._parse_string(line_data.get("Color", "")),
+                "container_no": self._parse_string(line_data.get("ContainerNo", "")),
+                "seal_no": self._parse_string(line_data.get("SealNo", "")),
+                "sale_po": self._parse_string(line_data.get("SPo", "")),
+                "purchase_po": self._parse_string(line_data.get("PPo", "")),
+                "specifications": self._parse_string(line_data.get("Specifications", "")),
+                "condition": self._parse_string(line_data.get("Condition", "")),
+                "unit_type": self._parse_string(line_data.get("UnitType", "")),
+                "units": self._parse_float(line_data.get("Units", 0)),
+            })
+        return len(lines)
+
+    def _build_import_result_message(self, created_tx, created_lines, skipped_tx, errors):
+        """Format a human-readable summary of the completed import operation."""
+        parts = [
             _("Import Complete!"),
             "",
             _("Transactions created: %d") % created_tx,
             _("Line items created: %d") % created_lines,
         ]
         if skipped_tx:
-            result_parts.append(_("Transactions skipped (existing): %d") % skipped_tx)
+            parts.append(_("Transactions skipped (existing): %d") % skipped_tx)
         if errors:
-            result_parts.append("")
-            result_parts.append(_("Errors (%d):") % len(errors))
+            parts.append("")
+            parts.append(_("Errors (%d):") % len(errors))
             for err in errors[:10]:
-                result_parts.append(f"  - {err}")
+                parts.append(f"  - {err}")
             if len(errors) > 10:
-                result_parts.append(f"  ... and {len(errors) - 10} more")
-
-        self.result_message = "\n".join(result_parts)
-        self.state = "done"
-        return self._return_wizard()
+                parts.append(f"  ... and {len(errors) - 10} more")
+        return "\n".join(parts)
 
     def _return_wizard(self):
         """Return action to keep wizard open with results."""

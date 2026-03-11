@@ -462,51 +462,11 @@ class PlasticosWebLead(models.Model):
         self.ensure_one()
         config = self.env[PLASTICOS_WEB_LEAD_CONFIG].sudo().get_config()
         log_lines: list[str] = []
+        urls = self.image_urls or []
 
         try:
-            # Step 1: AI Normalization
-            ai_data: dict[str, Any] = {}
-            if config.ai_enabled and config.openai_api_key:
-                log_lines.append("Step 1: Running AI normalization...")
-                ai_data = ai_normalizer.normalize_with_llm(
-                    raw_payload=self.raw_payload or {},
-                    api_key=config.openai_api_key,
-                    model=config.openai_model or "gpt-4.1-mini",
-                )
-                self.write({"ai_normalized": ai_data})
-                if ai_data.get("error"):
-                    log_lines.append(f"  WARNING: AI error — {ai_data['error']}")
-                else:
-                    log_lines.append(
-                        f"  OK: polymer={ai_data.get('polymer')}, "
-                        f"form={ai_data.get('form')}, "
-                        f"lbs={ai_data.get('estimated_lbs_per_load')}"
-                    )
-            else:
-                log_lines.append("Step 1: AI normalization SKIPPED (disabled or no key).")
-
-            # Step 2: Image Analysis
-            vision_results: list[dict[str, Any]] = []
-            urls = self.image_urls or []
-            if config.vision_enabled and config.openai_api_key and urls:
-                log_lines.append(f"Step 2: Analyzing {len(urls)} image(s)...")
-                vision_results = image_analyzer.analyze_multiple_images(
-                    image_urls=urls,
-                    api_key=config.openai_api_key,
-                    model=config.openai_vision_model or "gpt-4.1-mini",
-                )
-                self.write({"ai_vision_results": vision_results})
-                for i, vr in enumerate(vision_results):
-                    if vr.get("error"):
-                        log_lines.append(f"  Image {i + 1}: ERROR — {vr['error']}")
-                    else:
-                        log_lines.append(
-                            f"  Image {i + 1}: form={vr.get('observed_form')}, "
-                            f"color={vr.get('observed_color')}, "
-                            f"confidence={vr.get('confidence', 0):.2f}"
-                        )
-            else:
-                log_lines.append("Step 2: Image analysis SKIPPED.")
+            ai_data = self._run_ai_normalization_step(config, log_lines)
+            vision_results = self._run_image_analysis_step(config, urls, log_lines)
 
             # Step 3: Merge AI + Vision data
             merged = self._merge_ai_and_vision(ai_data, vision_results)
@@ -532,29 +492,7 @@ class PlasticosWebLead(models.Model):
             for reason in result.reasons:
                 log_lines.append(f"  Reason: {reason}")
 
-            # Step 5: Write classification result
-            write_vals: dict[str, Any] = {
-                "decision": result.decision,
-                "decision_reasons": {
-                    "reasons": result.reasons,
-                    "cold_gates": result.cold_gates_triggered,
-                    "hot_qualifiers": result.hot_qualifiers_met,
-                },
-                "ai_analysis": merged,
-                "estimated_lbs_per_load": merged.get("estimated_lbs", 0),
-                "estimated_loads_per_month": merged.get("loads_per_month", 0),
-                "frequency": merged.get("frequency", ""),
-            }
-            self.write(write_vals)
-
-            # Step 6: Process HOT leads
-            if result.decision == "hot":
-                log_lines.append("Step 5: Processing HOT lead → partner + intake...")
-                self._process_hot_lead_triage(merged, config)
-                log_lines.append("  Done: intake created.")
-            else:
-                log_lines.append("Step 5: COLD lead — archived.")
-                self.write({"state": "skipped"})
+            self._write_classification_result(result, merged, config, log_lines)
 
             # Step 7: Fetch and attach images
             if urls:
@@ -574,6 +512,75 @@ class PlasticosWebLead(models.Model):
 
         self.write({"triage_log": "\n".join(log_lines)})
 
+    def _run_ai_normalization_step(self, config, log_lines: list) -> dict:
+        """Run Step 1 — AI normalization; return ai_data dict (empty if skipped/disabled)."""
+        ai_data: dict[str, Any] = {}
+        if config.ai_enabled and config.openai_api_key:
+            log_lines.append("Step 1: Running AI normalization...")
+            ai_data = ai_normalizer.normalize_with_llm(
+                raw_payload=self.raw_payload or {},
+                api_key=config.openai_api_key,
+                model=config.openai_model or "gpt-4.1-mini",
+            )
+            self.write({"ai_normalized": ai_data})
+            if ai_data.get("error"):
+                log_lines.append(f"  WARNING: AI error — {ai_data['error']}")
+            else:
+                log_lines.append(
+                    f"  OK: polymer={ai_data.get('polymer')}, "
+                    f"form={ai_data.get('form')}, "
+                    f"lbs={ai_data.get('estimated_lbs_per_load')}"
+                )
+        else:
+            log_lines.append("Step 1: AI normalization SKIPPED (disabled or no key).")
+        return ai_data
+
+    def _run_image_analysis_step(self, config, urls: list, log_lines: list) -> list:
+        """Run Step 2 — image vision analysis; return list of vision result dicts."""
+        vision_results: list[dict[str, Any]] = []
+        if config.vision_enabled and config.openai_api_key and urls:
+            log_lines.append(f"Step 2: Analyzing {len(urls)} image(s)...")
+            vision_results = image_analyzer.analyze_multiple_images(
+                image_urls=urls,
+                api_key=config.openai_api_key,
+                model=config.openai_vision_model or "gpt-4.1-mini",
+            )
+            self.write({"ai_vision_results": vision_results})
+            for i, vr in enumerate(vision_results):
+                if vr.get("error"):
+                    log_lines.append(f"  Image {i + 1}: ERROR — {vr['error']}")
+                else:
+                    log_lines.append(
+                        f"  Image {i + 1}: form={vr.get('observed_form')}, "
+                        f"color={vr.get('observed_color')}, "
+                        f"confidence={vr.get('confidence', 0):.2f}"
+                    )
+        else:
+            log_lines.append("Step 2: Image analysis SKIPPED.")
+        return vision_results
+
+    def _write_classification_result(self, result, merged: dict, config, log_lines: list):
+        """Persist classification result and route HOT/COLD processing (Steps 5–6)."""
+        self.write({
+            "decision": result.decision,
+            "decision_reasons": {
+                "reasons": result.reasons,
+                "cold_gates": result.cold_gates_triggered,
+                "hot_qualifiers": result.hot_qualifiers_met,
+            },
+            "ai_analysis": merged,
+            "estimated_lbs_per_load": merged.get("estimated_lbs", 0),
+            "estimated_loads_per_month": merged.get("loads_per_month", 0),
+            "frequency": merged.get("frequency", ""),
+        })
+        if result.decision == "hot":
+            log_lines.append("Step 5: Processing HOT lead → partner + intake...")
+            self._process_hot_lead_triage(merged, config)
+            log_lines.append("  Done: intake created.")
+        else:
+            log_lines.append("Step 5: COLD lead — archived.")
+            self.write({"state": "skipped"})
+
     # ═══════════════════════════════════════════════════════════
     # Merge AI + Vision
     # ═══════════════════════════════════════════════════════════
@@ -588,44 +595,51 @@ class PlasticosWebLead(models.Model):
         Text AI is authoritative for polymer, weight, source.
         Vision is authoritative for form, color, contamination.
         """
-        merged: dict[str, Any] = {}
-
-        polymer_raw = (ai_data.get("polymer") or "").lower().strip()
-        merged["polymer"] = _POLYMER_NORMALIZE.get(polymer_raw, polymer_raw or None)
-        merged["form"] = _FORM_NORMALIZE.get((ai_data.get("form") or "").lower().strip(), None)
-        merged["color"] = (ai_data.get("color") or "").lower().strip() or None
-        merged["source_type"] = _SOURCE_NORMALIZE.get((ai_data.get("source_type") or "").lower().strip(), None)
-        merged["estimated_lbs"] = _safe_int(ai_data.get("estimated_lbs_per_load"), 0)
-        merged["loads_per_month"] = _safe_int(ai_data.get("loads_per_month"), 0)
-        merged["is_plastic"] = ai_data.get("is_plastic", True)
-        merged["is_commercial_source"] = ai_data.get("is_commercial_source", False)
-        merged["material_summary"] = ai_data.get("material_summary", "")
-        merged["contaminants_noted"] = ai_data.get("contaminants_noted")
-        merged["confidence"] = ai_data.get("confidence", 0.5)
-        merged["frequency"] = (ai_data.get("frequency") or "").lower().strip()
-
-        raw = self.raw_payload or {}
-        merged["source_description"] = raw.get("WhatIsTheSourceOfThisMaterial", "") or raw.get("Source", "") or ""
-
-        if vision_results:
-            best_vision = max(
-                [v for v in vision_results if not v.get("error")],
-                key=lambda v: v.get("confidence", 0),
-                default={},
-            )
-            if best_vision:
-                v_form = _FORM_NORMALIZE.get((best_vision.get("observed_form") or "").lower().strip())
-                if v_form and not merged["form"]:
-                    merged["form"] = v_form
-                v_color = (best_vision.get("observed_color") or "").lower().strip()
-                if v_color and not merged["color"]:
-                    merged["color"] = v_color
-                if best_vision.get("contamination_visible"):
-                    merged["contamination_visible"] = True
-                    merged["contamination_notes"] = best_vision.get("contamination_notes")
-                merged["vision_summary"] = best_vision.get("visual_summary", "")
-
+        merged = self._build_ai_merged_fields(ai_data)
+        self._apply_best_vision(merged, vision_results)
         return merged
+
+    def _build_ai_merged_fields(self, ai_data: dict[str, Any]) -> dict[str, Any]:
+        """Build the merged dict from text-based AI normalization output."""
+        polymer_raw = (ai_data.get("polymer") or "").lower().strip()
+        raw = self.raw_payload or {}
+        return {
+            "polymer": _POLYMER_NORMALIZE.get(polymer_raw, polymer_raw or None),
+            "form": _FORM_NORMALIZE.get((ai_data.get("form") or "").lower().strip(), None),
+            "color": (ai_data.get("color") or "").lower().strip() or None,
+            "source_type": _SOURCE_NORMALIZE.get((ai_data.get("source_type") or "").lower().strip(), None),
+            "estimated_lbs": _safe_int(ai_data.get("estimated_lbs_per_load"), 0),
+            "loads_per_month": _safe_int(ai_data.get("loads_per_month"), 0),
+            "is_plastic": ai_data.get("is_plastic", True),
+            "is_commercial_source": ai_data.get("is_commercial_source", False),
+            "material_summary": ai_data.get("material_summary", ""),
+            "contaminants_noted": ai_data.get("contaminants_noted"),
+            "confidence": ai_data.get("confidence", 0.5),
+            "frequency": (ai_data.get("frequency") or "").lower().strip(),
+            "source_description": raw.get("WhatIsTheSourceOfThisMaterial", "") or raw.get("Source", "") or "",
+        }
+
+    def _apply_best_vision(self, merged: dict[str, Any], vision_results: list[dict[str, Any]]) -> None:
+        """Overlay the highest-confidence vision result onto the merged dict in-place."""
+        if not vision_results:
+            return
+        best_vision = max(
+            [v for v in vision_results if not v.get("error")],
+            key=lambda v: v.get("confidence", 0),
+            default={},
+        )
+        if not best_vision:
+            return
+        v_form = _FORM_NORMALIZE.get((best_vision.get("observed_form") or "").lower().strip())
+        if v_form and not merged.get("form"):
+            merged["form"] = v_form
+        v_color = (best_vision.get("observed_color") or "").lower().strip()
+        if v_color and not merged.get("color"):
+            merged["color"] = v_color
+        if best_vision.get("contamination_visible"):
+            merged["contamination_visible"] = True
+            merged["contamination_notes"] = best_vision.get("contamination_notes")
+        merged["vision_summary"] = best_vision.get("visual_summary", "")
 
     # ═══════════════════════════════════════════════════════════
     # HOT Lead Processing (Triage Pipeline)
