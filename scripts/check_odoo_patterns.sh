@@ -156,7 +156,7 @@ for py_file in $(echo "$PY_FILES" | grep '_inherit\.py$'); do
         # Check if it only has _inherit and nothing else meaningful
         HAS_FIELDS=$(echo "$CONTENT" | grep -E '^\s+\w+\s*=\s*fields\.' || true)
         HAS_METHODS=$(echo "$CONTENT" | grep -E '^\s+def\s+' || true)
-        if [[ -z "$HAS_FIELDS" ] && [ -z "$HAS_METHODS" ]]; then
+        if [[ -z "$HAS_FIELDS" && -z "$HAS_METHODS" ]]; then
             EMPTY_INHERITS="$EMPTY_INHERITS $py_file"
         fi
     fi
