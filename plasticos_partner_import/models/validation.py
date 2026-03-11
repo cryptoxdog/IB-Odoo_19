@@ -31,6 +31,24 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         _logger.info("Reference integrity validated: %d models confirmed", len(required))
         return True
 
+    @staticmethod
+    def _collect_partner_graph_errors(partners):
+        """Collect hierarchy violation messages for all partners in the set."""
+        errors = []
+        for p in partners:
+            if p.company_type == "company" and not p.parent_id:
+                continue  # Corporate — valid
+            if p.company_type == "company" and p.parent_id:
+                if not p.facility_role:
+                    errors.append(f"Facility '{p.name}' (id={p.id}) missing facility_role")
+                continue
+            if p.company_type == "person":
+                if not p.parent_id:
+                    errors.append(f"Contact '{p.name}' (id={p.id}) missing parent_id")
+                if p.is_company:
+                    errors.append(f"Contact '{p.name}' (id={p.id}) has is_company=True")
+        return errors
+
     def validate_partner_graph(self):
         """
         Validate Plasticos partner hierarchy:
@@ -39,33 +57,10 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         - Contacts: company_type=person, parent_id set, is_company=False
         """
         partners = self.env[RES_PARTNER].search(
-            [
-                "|",
-                ("company_type", "=", "company"),
-                ("company_type", "=", "person"),
-            ]
+            ["|", ("company_type", "=", "company"), ("company_type", "=", "person")]
         )
 
-        errors = []
-        for p in partners:
-            # Corporate validation: no parent
-            if p.company_type == "company" and not p.parent_id:
-                # This is a corporate - valid
-                continue
-
-            # Facility validation: company with parent must have facility role
-            if p.company_type == "company" and p.parent_id:
-                if not p.facility_role:
-                    errors.append(f"Facility '{p.name}' (id={p.id}) missing facility_role")
-                continue
-
-            # Contact validation: person must have parent and not be company
-            if p.company_type == "person":
-                if not p.parent_id:
-                    errors.append(f"Contact '{p.name}' (id={p.id}) missing parent_id")
-                if p.is_company:
-                    errors.append(f"Contact '{p.name}' (id={p.id}) has is_company=True")
-                continue
+        errors = self._collect_partner_graph_errors(partners)
 
         if errors:
             _logger.error("Graph validation failed with %d errors", len(errors))
@@ -153,6 +148,43 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
             "summary": summary,
         }
 
+    def _fix_facility_roles(self, Partner):
+        """Set facility_role='other' on facility companies that lack it; return (count, errors)."""
+        fixed = 0
+        errors = []
+        facilities = Partner.search(
+            [("company_type", "=", "company"), ("parent_id", "!=", False), ("facility_role", "=", False)]
+        )
+        for p in facilities:
+            try:
+                p.facility_role = "other"
+                fixed += 1
+            except Exception as e:
+                errors.append(f"Facility id={p.id} ({p.name}): {e}")
+        return fixed, errors
+
+    def _migrate_external_ids(self, IrModelData):
+        """Migrate ir.model.data module from plasticos_import to plasticos_partner_import; return (count, errors)."""
+        migrated = 0
+        errors = []
+        new_names = set(
+            IrModelData.search(
+                [("module", "=", "plasticos_partner_import"), ("model", "=", RES_PARTNER)]
+            ).mapped("name")
+        )
+        old_data = IrModelData.search(
+            [("module", "=", "plasticos_import"), ("model", "=", RES_PARTNER)]
+        )
+        for d in old_data:
+            if d.name in new_names:
+                continue
+            try:
+                d.module = "plasticos_partner_import"
+                migrated += 1
+            except Exception as e:
+                errors.append(f"ir.model.data id={d.id} ({d.module}.{d.name}): {e}")
+        return migrated, errors
+
     def repair_import_data(self, dry_run=True):
         """
         Fix common post-import issues:
@@ -171,44 +203,12 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         errors = []
 
         if not dry_run:
-            # Fix facilities missing facility_role
-            facilities = Partner.search(
-                [
-                    ("company_type", "=", "company"),
-                    ("parent_id", "!=", False),
-                    ("facility_role", "=", False),
-                ]
-            )
-            for p in facilities:
-                try:
-                    p.facility_role = "other"
-                    facilities_fixed += 1
-                except Exception as e:
-                    errors.append(f"Facility id={p.id} ({p.name}): {e}")
+            facilities_fixed, fac_errors = self._fix_facility_roles(Partner)
+            errors.extend(fac_errors)
 
-            # Migrate external IDs: plasticos_import -> plasticos_partner_import where no duplicate
-            new_names = set(
-                IrModelData.search(
-                    [
-                        ("module", "=", "plasticos_partner_import"),
-                        ("model", "=", RES_PARTNER),
-                    ]
-                ).mapped("name")
-            )
-            old_data = IrModelData.search(
-                [
-                    ("module", "=", "plasticos_import"),
-                    ("model", "=", RES_PARTNER),
-                ]
-            )
-            for d in old_data:
-                if d.name in new_names:
-                    continue
-                try:
-                    d.module = "plasticos_partner_import"
-                    external_ids_migrated += 1
-                except Exception as e:
-                    errors.append(f"ir.model.data id={d.id} ({d.module}.{d.name}): {e}")
+            migrated, mig_errors = self._migrate_external_ids(IrModelData)
+            external_ids_migrated += migrated
+            errors.extend(mig_errors)
 
         summary = (
             "Dry run: no changes."

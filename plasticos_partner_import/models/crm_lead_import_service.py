@@ -181,48 +181,30 @@ class PlasticosCRMLeadImportService(models.AbstractModel):
             "errors": errors,
         }
 
-    def _import_crm_lead_row(self, row, row_num):
-        """Import a single CRM lead row.
-
-        Expected columns:
-            ContactID, Company, First Name, Last Name, Email, Direct,
-            Mobile 1, Address, Address 2, City, State, Zip, Country,
-            Lead Status, Lead Source, Company Type, Contact Owner,
-            Buyer/Supplier, Notes
-        """
-        company = (row.get("Company") or "").strip()
-        first = (row.get("First Name") or "").strip()
-        last = (row.get("Last Name") or "").strip()
-        contact_id = (row.get("ContactID") or "").strip()
-
+    def _check_skip_row(self, company, first, last, contact_id, row_num):
+        """Return True if the row should be skipped (empty or duplicate ContactID)."""
         if not company and not first and not last:
             _logger.debug("Skipping empty row %d", row_num)
-            return None
-
-        # Check for duplicate by ContactID (external ref)
+            return True
         if contact_id:
             existing = self.env["crm.lead"].search([("x_vanillasoft_id", "=", contact_id)], limit=1)
             if existing:
-                _logger.debug(
-                    "Skipping duplicate ContactID %s (lead %d)",
-                    contact_id,
-                    existing.id,
-                )
-                return None
+                _logger.debug("Skipping duplicate ContactID %s (lead %d)", contact_id, existing.id)
+                return True
+        return False
 
-        # Resolve lookups
+    def _resolve_lead_lookups(self, row):
+        """Resolve all Many2one/tag lookups for a CRM lead row."""
         country_id = self._lookup_country(row.get("Country", ""))
         state_id = self._lookup_state(row.get("State", ""), country_id)
         stage_id = self._resolve_stage(row.get("Lead Status", ""))
         source_id = self._resolve_utm_source(row.get("Lead Source", ""))
         user_id = self._lookup_user(row.get("Contact Owner", ""))
-        tag_ids = self._resolve_category_tags(
-            row.get("Company Type", ""),
-            row.get("Buyer/Supplier", ""),
-        )
+        tag_ids = self._resolve_category_tags(row.get("Company Type", ""), row.get("Buyer/Supplier", ""))
+        return country_id, state_id, stage_id, source_id, user_id, tag_ids
 
-        contact_name = " ".join(filter(None, [first, last]))
-
+    def _build_lead_vals(self, row, company, contact_name, country_id, state_id, stage_id, source_id, user_id, contact_id, tag_ids):
+        """Build crm.lead create-vals dict from resolved row fields."""
         vals = {
             "name": f"{company} — {contact_name}" if company else contact_name or "Unknown",
             "type": "lead",
@@ -243,11 +225,30 @@ class PlasticosCRMLeadImportService(models.AbstractModel):
             "description": (row.get("Notes") or "").strip() or False,
             "x_vanillasoft_id": contact_id or False,
         }
-
-        # Apply category tags (via partner, not directly on lead)
-        # Tags will be applied when lead is converted to partner
         if tag_ids:
             vals["tag_ids"] = [(6, 0, tag_ids)]
+        return vals
 
+    def _import_crm_lead_row(self, row, row_num):
+        """Import a single CRM lead row.
+
+        Expected columns:
+            ContactID, Company, First Name, Last Name, Email, Direct,
+            Mobile 1, Address, Address 2, City, State, Zip, Country,
+            Lead Status, Lead Source, Company Type, Contact Owner,
+            Buyer/Supplier, Notes
+        """
+        company = (row.get("Company") or "").strip()
+        first = (row.get("First Name") or "").strip()
+        last = (row.get("Last Name") or "").strip()
+        contact_id = (row.get("ContactID") or "").strip()
+
+        if self._check_skip_row(company, first, last, contact_id, row_num):
+            return None
+
+        country_id, state_id, stage_id, source_id, user_id, tag_ids = self._resolve_lead_lookups(row)
+        contact_name = " ".join(filter(None, [first, last]))
+
+        vals = self._build_lead_vals(row, company, contact_name, country_id, state_id, stage_id, source_id, user_id, contact_id, tag_ids)
         lead = self.env["crm.lead"].create(vals)
         return lead

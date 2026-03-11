@@ -786,12 +786,8 @@ class PlasticosWebLead(models.Model):
                 }
             )
 
-    def _create_intake_simple(self, config: Any):
-        """Create intake WITHOUT partner from pre-processed agent payload.
-
-        Looks up polymer_id, form_id, source_type_id from master registries
-        by normalized code. Falls back to 'other' record if code not found.
-        """
+    def _extract_ai_material_params(self):
+        """Extract and normalize material/qty/freq codes from ai_analysis payload."""
         ai = self.ai_analysis or {}
         ai_qty = ai.get("quantity", {})
         ai_freq = ai.get("frequency", {})
@@ -803,15 +799,16 @@ class PlasticosWebLead(models.Model):
         form_raw = (ai_material.get("form", "") or ai_material.get("material_form", "") or "").lower().strip()
         form_code = _FORM_NORMALIZE.get(form_raw, "other")
 
-        source_type_code = config.default_source_type or "post_consumer"
-
         freq_raw = (ai_freq.get("frequency") or "").lower()
         deal_type = _FREQ_TO_DEAL.get(freq_raw, "spot")
 
         qty_per_load = _safe_int(ai_qty.get("per_load_lbs"), 40000)
         loads_per_month = _safe_int(ai_qty.get("loads_per_month"), 1)
 
-        # Look up Many2one records by code (BUG-073 fix)
+        return polymer_code, form_code, deal_type, qty_per_load, loads_per_month
+
+    def _lookup_intake_material_records(self, polymer_code, form_code, source_type_code):
+        """Resolve polymer, form, source_type ORM records by code with 'other' fallback."""
         Polymer = self.env["plasticos.polymer"]
         Form = self.env["plasticos.material.form"]
         SourceType = self.env["plasticos.source.type"]
@@ -827,6 +824,20 @@ class PlasticosWebLead(models.Model):
         source_type_rec = SourceType.search([("code", OP_ILIKE, source_type_code)], limit=1)
         if not source_type_rec:
             source_type_rec = SourceType.search([("code", OP_ILIKE, "post_consumer")], limit=1)
+
+        return polymer_rec, form_rec, source_type_rec
+
+    def _create_intake_simple(self, config: Any):
+        """Create intake WITHOUT partner from pre-processed agent payload.
+
+        Looks up polymer_id, form_id, source_type_id from master registries
+        by normalized code. Falls back to 'other' record if code not found.
+        """
+        source_type_code = config.default_source_type or "post_consumer"
+        polymer_code, form_code, deal_type, qty_per_load, loads_per_month = self._extract_ai_material_params()
+        polymer_rec, form_rec, source_type_rec = self._lookup_intake_material_records(
+            polymer_code, form_code, source_type_code
+        )
 
         # Look up web_lead source for intake
         web_lead_source = self.env[UTM_SOURCE].search([("name", "=", WEB_LEAD_FORM)], limit=1)
@@ -935,6 +946,29 @@ class PlasticosWebLead(models.Model):
             ext in lower for ext in (".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".heic")
         )
 
+    @staticmethod
+    def _resolve_image_extension(content_type: str) -> str:
+        """Determine file extension from HTTP Content-Type header."""
+        if "png" in content_type:
+            return ".png"
+        if "webp" in content_type:
+            return ".webp"
+        if "gif" in content_type:
+            return ".gif"
+        return ".jpg"
+
+    @staticmethod
+    def _build_image_attachment_vals(fname: str, content: bytes, content_type: str, res_model: str, res_id: int) -> dict:
+        """Build ir.attachment create-vals for a binary image."""
+        return {
+            "name": fname,
+            "type": "binary",
+            "datas": base64.b64encode(content).decode("ascii"),
+            "res_model": res_model,
+            "res_id": res_id,
+            "mimetype": content_type,
+        }
+
     def _fetch_and_attach_images(self, urls: list[str]):
         """Download images from URLs and create ir.attachment records."""
         self.ensure_one()
@@ -948,37 +982,17 @@ class PlasticosWebLead(models.Model):
                 if not content:
                     continue
 
-                fname = f"web_lead_{self.lead_id}_img_{i + 1}"
                 content_type = resp.headers.get("Content-Type", "image/jpeg")
-                ext = ".jpg"
-                if "png" in content_type:
-                    ext = ".png"
-                elif "webp" in content_type:
-                    ext = ".webp"
-                elif "gif" in content_type:
-                    ext = ".gif"
-                fname += ext
+                ext = self._resolve_image_extension(content_type)
+                fname = f"web_lead_{self.lead_id}_img_{i + 1}{ext}"
 
-                att_vals = {
-                    "name": fname,
-                    "type": "binary",
-                    "datas": base64.b64encode(content).decode("ascii"),
-                    "res_model": "plasticos.web.lead",
-                    "res_id": self.id,
-                    "mimetype": content_type,
-                }
-                Attachment.create(att_vals)
+                Attachment.create(
+                    self._build_image_attachment_vals(fname, content, content_type, "plasticos.web.lead", self.id)
+                )
 
                 if self.intake_id:
                     Attachment.create(
-                        {
-                            "name": fname,
-                            "type": "binary",
-                            "datas": base64.b64encode(content).decode("ascii"),
-                            "res_model": PLASTICOS_INTAKE,
-                            "res_id": self.intake_id.id,
-                            "mimetype": content_type,
-                        }
+                        self._build_image_attachment_vals(fname, content, content_type, PLASTICOS_INTAKE, self.intake_id.id)
                     )
 
                 _logger.info("Attached image %s to web lead %s.", fname, self.lead_id)

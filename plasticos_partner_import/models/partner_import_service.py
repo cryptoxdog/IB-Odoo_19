@@ -303,6 +303,42 @@ class PlasticosPartnerImportService(models.AbstractModel):
         _logger.info("Loaded %d facilities, %d contacts from CSV", facility_count, contact_count)
         return facility_count, contact_count
 
+    @staticmethod
+    def _determine_facility_type_attrs(facility_type):
+        """Return (partner_type, facility_role) for the given facility_type string."""
+        if facility_type in INVOICE_TYPES:
+            return "invoice", False
+        return "contact", "other"
+
+    def _build_facility_vals(self, facility_name, facility_type, parent, partner_type, facility_role, row, state_id, country_id):
+        """Build res.partner create-vals dict for a facility record."""
+        address = {
+            "street": row.get("address", "").strip() or False,
+            "street2": row.get("adderess2", "").strip() or False,  # Note: typo in CSV
+            "city": row.get("city", "").strip() or False,
+            "state_id": state_id,
+            "zip": row.get("zip", "").strip() or False,
+            "country_id": country_id,
+        }
+        if facility_type == "Location":
+            return {
+                "name": facility_name,
+                "company_type": "company",
+                "is_company": True,
+                "type": "contact",
+                "parent_id": parent.id,
+                "facility_role": facility_role,
+                **address,
+            }
+        return {
+            "name": facility_name,
+            "company_type": "person",
+            "is_company": False,
+            "type": partner_type,
+            "parent_id": parent.id,
+            **address,
+        }
+
     def _import_facility_row(self, row, row_num, contacts_created):
         """Import single facility row with its contact."""
         partner_name = row.get("partner_id", "").strip()
@@ -326,53 +362,12 @@ class PlasticosPartnerImportService(models.AbstractModel):
         country_id = self._lookup_country(row.get("country", ""))
         state_id = self._lookup_state(row.get("state", ""), country_id)
 
-        # Determine partner type based on facility type
-        if facility_type in INVOICE_TYPES:
-            partner_type = "invoice"
-            facility_role = False
-        elif facility_type == "Location":
-            partner_type = "contact"  # Will be company with parent
-            facility_role = "other"
-        else:
-            partner_type = "contact"
-            facility_role = "other"
+        partner_type, facility_role = self._determine_facility_type_attrs(facility_type)
 
         # Build external ID
         external_id = self._make_external_id("fac", f"{partner_name}_{alias or facility_type}_{row_num}")
 
-        # For Location type, create as company child
-        # For Invoice types, create as address
-        if facility_type == "Location":
-            vals = {
-                "name": facility_name,
-                "company_type": "company",
-                "is_company": True,
-                "type": "contact",
-                "parent_id": parent.id,
-                "facility_role": facility_role,
-                "street": row.get("address", "").strip() or False,
-                "street2": row.get("adderess2", "").strip() or False,  # Note: typo in CSV
-                "city": row.get("city", "").strip() or False,
-                "state_id": state_id,
-                "zip": row.get("zip", "").strip() or False,
-                "country_id": country_id,
-            }
-        else:
-            # Invoice/Remit address
-            vals = {
-                "name": facility_name,
-                "company_type": "person",
-                "is_company": False,
-                "type": partner_type,
-                "parent_id": parent.id,
-                "street": row.get("address", "").strip() or False,
-                "street2": row.get("adderess2", "").strip() or False,
-                "city": row.get("city", "").strip() or False,
-                "state_id": state_id,
-                "zip": row.get("zip", "").strip() or False,
-                "country_id": country_id,
-            }
-
+        vals = self._build_facility_vals(facility_name, facility_type, parent, partner_type, facility_role, row, state_id, country_id)
         facility = self._upsert(RES_PARTNER, external_id, vals)
 
         # Create contact if Contact/Phone/Email provided

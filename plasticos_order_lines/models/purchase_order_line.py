@@ -81,6 +81,30 @@ class PurchaseOrderLine(models.Model):
         "filler_type_id",
         "material_attribute_ids",
     )
+    def _build_main_description_part(self, line):
+        """Build space-separated main part: Polymer Color Filler Form."""
+        parts = []
+        if line.product_id and line.product_id.polymer_id:
+            parts.append(line.product_id.polymer_id.name)
+        if line.color_id:
+            parts.append(line.color_id.name)
+        if line.filler_type_id:
+            parts.append(line.filler_type_id.name)
+        if line.form_id:
+            parts.append(line.form_id.name)
+        return " ".join(parts)
+
+    def _build_extras_parts(self, line):
+        """Build dash-separated extras list: Packaging, Source, Attributes."""
+        extras = []
+        if line.packaging_type_id:
+            extras.append(line.packaging_type_id.name)
+        if line.source_type_id:
+            extras.append(line.source_type_id.name)
+        if line.material_attribute_ids:
+            extras.append(", ".join(line.material_attribute_ids.mapped("name")))
+        return extras
+
     def _compute_material_description(self):
         """
         Build full description: HDPE Blue Glass Filled Regrind - Gaylords - Post-Industrial - Clean
@@ -90,39 +114,8 @@ class PurchaseOrderLine(models.Model):
         Extras (dash-separated): Packaging - Source - Attributes
         """
         for line in self:
-            parts = []
-
-            # Polymer from product
-            if line.product_id and line.product_id.polymer_id:
-                parts.append(line.product_id.polymer_id.name)
-
-            # Color
-            if line.color_id:
-                parts.append(line.color_id.name)
-
-            # Filler (before Form)
-            if line.filler_type_id:
-                parts.append(line.filler_type_id.name)
-
-            # Form
-            if line.form_id:
-                parts.append(line.form_id.name)
-
-            # Main part: "HDPE Blue Glass Filled Regrind"
-            main_part = " ".join(parts)
-
-            # Extras (dash-separated)
-            extras = []
-            if line.packaging_type_id:
-                extras.append(line.packaging_type_id.name)
-            if line.source_type_id:
-                extras.append(line.source_type_id.name)
-
-            # Attributes as comma-separated
-            if line.material_attribute_ids:
-                attr_names = ", ".join(line.material_attribute_ids.mapped("name"))
-                extras.append(attr_names)
-
+            main_part = self._build_main_description_part(line)
+            extras = self._build_extras_parts(line)
             if extras:
                 line.material_description = f"{main_part} - {' - '.join(extras)}"
             else:
