@@ -253,6 +253,10 @@ class PlasticosCRMLeadImportService(models.AbstractModel):
         country_id, state_id, stage_id, source_id, user_id, tag_ids = self._resolve_lead_lookups(row)
         contact_name = " ".join(filter(None, [first, last]))
 
-        vals = self._build_lead_vals(row, company, contact_name, country_id, state_id, stage_id, source_id, user_id, contact_id, tag_ids)
+        vals = self._build_lead_vals(
+            row, company, contact_name,
+            country_id, state_id, stage_id,
+            source_id, user_id, contact_id, tag_ids,
+        )
         lead = self.env["crm.lead"].create(vals)
         return lead

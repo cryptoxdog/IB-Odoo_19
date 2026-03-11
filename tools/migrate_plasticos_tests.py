@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Migrate plasticos test files to use PlasticosTestCase base class.
 
-
 Replaces TransactionCase (and TransactionCase + PlastOSTestFactoryMixin) with
 PlasticosTestCase from plasticos_base.test_common.
 
@@ -14,29 +13,26 @@ Usage:
     python tools/migrate_plasticos_tests.py --cleanup [--dry-run]  # migrate + cleanup
 """
 
-PLASTICOS_TEST_CASE = "(PlasticosTestCase)"
-
-
 from __future__ import annotations
 
 import argparse
 import re
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+PLASTICOS_TEST_CASE = "(PlasticosTestCase)"
 PLASTICOS_PATTERN = "plasticos_*/tests/test_*.py"
 PLASTICOS_BASE_PATTERN = "plasticos_base/tests/test_*.py"
 ROOT_TESTS_PATTERN = "tests/**/test_*.py"
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # Replace self.partner / cls.partner with default when removing redundant setup
 REPLACE_PARTNER = re.compile(r"\b(cls|self)\.partner\b")
 REPLACE_POLYMER = re.compile(r"\b(cls|self)\.polymer\b")
 REPLACE_FORM = re.compile(r"\b(cls|self)\.form\b")
 
-
 # Import line patterns to replace
 # PlasticosTestCase comes from plasticos_base; preserve HttpCase, tagged, etc.
-
 
 def _replace_odoo_tests_import(m: re.Match) -> str:
     """Replace 'from odoo.tests import TransactionCase, tagged' (or similar)."""
@@ -46,7 +42,6 @@ def _replace_odoo_tests_import(m: re.Match) -> str:
     if has_tagged:
         lines.append("from odoo.tests import tagged")
     return "\n".join(lines) + "\n"
-
 
 def _replace_odoo_tests_common_import(m: re.Match) -> str:
     """Replace 'from odoo.tests.common import ...' preserving HttpCase etc., dropping TransactionCase."""
@@ -58,7 +53,6 @@ def _replace_odoo_tests_common_import(m: re.Match) -> str:
     lines = ["from odoo.addons.plasticos_base.test_common import PlasticosTestCase"]
     lines.append(f"from odoo.tests.common import {', '.join(rest)}")
     return "\n".join(lines) + "\n"
-
 
 IMPORT_PATTERNS = [
     (
@@ -84,7 +78,6 @@ REMOVE_IMPORT_PATTERNS = [
     re.compile(r"from tests\.common import PlastOSTestFactoryMixin\n"),
 ]
 
-
 def should_skip(path: Path) -> bool:
     """Skip HttpCase-only files and plasticos_base/test_common.py itself."""
     if "common.py" in path.name:
@@ -94,7 +87,6 @@ def should_skip(path: Path) -> bool:
     if "HttpCase" in content and "TransactionCase" not in content:
         return True
     return False
-
 
 def cleanup_redundant_setup(content: str) -> str:
     """Remove redundant setUpClass lines that duplicate PlasticosTestCase defaults."""
@@ -113,7 +105,6 @@ def cleanup_redundant_setup(content: str) -> str:
         content = REPLACE_FORM.sub(r"\1.default_form", content)
     return content
 
-
 def _already_migrated(content: str) -> bool:
     """True if file already uses PlasticosTestCase and has no TransactionCase in code."""
     if "PlasticosTestCase" not in content:
@@ -124,7 +115,6 @@ def _already_migrated(content: str) -> bool:
     if re.search(r"from\s+odoo\.(tests|tests\.common)\s+import[^\n]*TransactionCase", content):
         return False
     return True
-
 
 def migrate_file(path: Path, dry_run: bool, cleanup: bool = False) -> bool:
     """Apply migration to a single file. Returns True if changed."""
@@ -164,7 +154,6 @@ def migrate_file(path: Path, dry_run: bool, cleanup: bool = False) -> bool:
         return True
     return False
 
-
 def collect_files() -> list[Path]:
     """Collect all plasticos test files and root tests."""
     files: list[Path] = []
@@ -178,7 +167,6 @@ def collect_files() -> list[Path]:
         if "plasticos" in str(p) or "TransactionCase" in txt or "PlasticosTestCase" in txt:
             files.append(p)
     return sorted(set(files))
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Migrate plasticos tests to PlasticosTestCase")
@@ -198,7 +186,6 @@ def main() -> None:
     for p in changed:
         rel = p.relative_to(REPO_ROOT)
         print(f"  {rel}")
-
 
 if __name__ == "__main__":
     main()

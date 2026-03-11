@@ -972,7 +972,10 @@ class PlasticosWebLead(models.Model):
         return ".jpg"
 
     @staticmethod
-    def _build_image_attachment_vals(fname: str, content: bytes, content_type: str, res_model: str, res_id: int) -> dict:
+    def _build_image_attachment_vals(
+        fname: str, content: bytes, content_type: str,
+        res_model: str, res_id: int,
+    ) -> dict:
         """Build ir.attachment create-vals for a binary image."""
         return {
             "name": fname,
@@ -1006,7 +1009,10 @@ class PlasticosWebLead(models.Model):
 
                 if self.intake_id:
                     Attachment.create(
-                        self._build_image_attachment_vals(fname, content, content_type, PLASTICOS_INTAKE, self.intake_id.id)
+                        self._build_image_attachment_vals(
+                            fname, content, content_type,
+                            PLASTICOS_INTAKE, self.intake_id.id,
+                        )
                     )
 
                 _logger.info("Attached image %s to web lead %s.", fname, self.lead_id)

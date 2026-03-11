@@ -5,12 +5,10 @@ Business Logic Anti-Pattern Detector
 Catches common Odoo coding mistakes.
 """
 
-MODELS_GLOB = "models/*.py"
-
-
 import re
 from pathlib import Path
 
+MODELS_GLOB = "models/*.py"
 
 class BusinessLogicAudit:
     def __init__(self, root_dir="."):

@@ -6,6 +6,8 @@ from odoo import models
 from odoo.exceptions import ValidationError
 
 RES_PARTNER = "res.partner"
+
+
 _logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 100  # Commit every N records
@@ -310,7 +312,10 @@ class PlasticosPartnerImportService(models.AbstractModel):
             return "invoice", False
         return "contact", "other"
 
-    def _build_facility_vals(self, facility_name, facility_type, parent, partner_type, facility_role, row, state_id, country_id):
+    def _build_facility_vals(
+        self, facility_name, facility_type, parent,
+        partner_type, facility_role, row, state_id, country_id,
+    ):
         """Build res.partner create-vals dict for a facility record."""
         address = {
             "street": row.get("address", "").strip() or False,
@@ -367,7 +372,10 @@ class PlasticosPartnerImportService(models.AbstractModel):
         # Build external ID
         external_id = self._make_external_id("fac", f"{partner_name}_{alias or facility_type}_{row_num}")
 
-        vals = self._build_facility_vals(facility_name, facility_type, parent, partner_type, facility_role, row, state_id, country_id)
+        vals = self._build_facility_vals(
+            facility_name, facility_type, parent,
+            partner_type, facility_role, row, state_id, country_id,
+        )
         facility = self._upsert(RES_PARTNER, external_id, vals)
 
         # Create contact if Contact/Phone/Email provided
