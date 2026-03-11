@@ -58,7 +58,7 @@ class StockPickingAutomation(models.Model):
                 limit=200,
             )
 
-            log_model = self.env.get("plasticos.automation.log")
+            log_model = self.env["plasticos.automation.log"]
 
             for picking in pickings:
                 picking.trucker_followup_count += 1
@@ -80,15 +80,14 @@ class StockPickingAutomation(models.Model):
                 if template:
                     template.send_mail(picking.id, force_send=False)
 
-                if log_model is not None:
-                    log_model.create(
-                        {
-                            "name": f"Trucker follow-up #{picking.trucker_followup_count} for {picking.name}",
-                            "model_name": "stock.picking",
-                            "res_id": picking.id,
-                            "action_type": "logistics_followup",
-                        }
-                    )
+                log_model.create(
+                    {
+                        "name": f"Trucker follow-up #{picking.trucker_followup_count} for {picking.name}",
+                        "model_name": "stock.picking",
+                        "res_id": picking.id,
+                        "action_type": "logistics_followup",
+                    }
+                )
 
                 if picking.trucker_followup_count >= 3:
                     picking.activity_schedule(

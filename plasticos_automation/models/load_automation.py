@@ -41,7 +41,7 @@ class PlasticosLoadAutomation(models.Model):
                 order="entered_state_at ASC, id ASC",
                 limit=500,
             )
-            log_model = self.env.get("plasticos.automation.log")
+            log_model = self.env["plasticos.automation.log"]
 
             for load in loads:
                 if not load.entered_state_at:
@@ -69,14 +69,13 @@ class PlasticosLoadAutomation(models.Model):
                         ),
                         message_type="notification",
                     )
-                    if log_model is not None:
-                        log_model.create(
-                            {
-                                "name": f"SLA breach [{new_level}] for {load.name}",
-                                "model_name": "plasticos.load",
-                                "res_id": load.id,
-                                "action_type": "logistics_escalation",
-                            }
-                        )
+                    log_model.create(
+                        {
+                            "name": f"SLA breach [{new_level}] for {load.name}",
+                            "model_name": "plasticos.load",
+                            "res_id": load.id,
+                            "action_type": "logistics_escalation",
+                        }
+                    )
         finally:
             self.env.cr.execute("SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_automation.cron_load_sla_check"])

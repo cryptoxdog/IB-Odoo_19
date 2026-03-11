@@ -20,7 +20,9 @@ class TestMaterialProfileConstraints(PlasticosTestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.Profile = cls.env["plasticos.material.profile"]
-        cls.partner = cls.env["res.partner"].create({"name": "Facility A"})
+        # Material profiles require a facility-level partner (one with a parent_id)
+        parent_partner = cls.env["res.partner"].create({"name": "Parent Company A"})
+        cls.partner = cls.env["res.partner"].create({"name": "Facility A", "parent_id": parent_partner.id})
 
         cls.polymer = cls.env["plasticos.polymer"].create({"name": "HDPE Test", "code": _unique_code("HDPE")})
         cls.form = cls.env["plasticos.material.form"].create({"name": "Pellet Test", "code": _unique_code("PEL")})

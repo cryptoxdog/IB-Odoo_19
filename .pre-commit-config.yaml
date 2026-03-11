@@ -127,6 +127,13 @@ repos:
         pass_filenames: false
         stages: [pre-commit, pre-push]
 
+      - id: env-get-antipattern
+        name: Odoo env.get() anti-pattern check
+        entry: python3 ci/check_env_get.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+
       # Index generation disabled - run manually: python3 scripts/export_odoo_index.py
       # - id: export-odoo-index
       #   name: Export Odoo repo index

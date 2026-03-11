@@ -36,7 +36,7 @@ class PurchaseOrderAutomation(models.Model):
                 order="last_followup_on ASC, id ASC",
                 limit=200,
             )
-            log_model = self.env.get("plasticos.automation.log")
+            log_model = self.env["plasticos.automation.log"]
 
             for order in orders:
                 order.followup_count += 1
@@ -53,15 +53,14 @@ class PurchaseOrderAutomation(models.Model):
                 )
                 if template:
                     template.send_mail(order.id, force_send=False)
-                if log_model is not None:
-                    log_model.create(
-                        {
-                            "name": f"Supplier follow-up #{order.followup_count} for {order.name}",
-                            "model_name": "purchase.order",
-                            "res_id": order.id,
-                            "action_type": "logistics_followup",
-                        }
-                    )
+                log_model.create(
+                    {
+                        "name": f"Supplier follow-up #{order.followup_count} for {order.name}",
+                        "model_name": "purchase.order",
+                        "res_id": order.id,
+                        "action_type": "logistics_followup",
+                    }
+                )
                 if order.followup_count >= 3:
                     order.activity_schedule(
                         "mail.mail_activity_data_todo",
