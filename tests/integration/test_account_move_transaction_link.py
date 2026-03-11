@@ -354,16 +354,16 @@ class TestAccountMoveComplianceGate(PlasticosTestCase):
 
     def test_compliance_check_blocks_invoice_when_docs_missing(self):
         """If compliance service returns False, action_post raises."""
-        ComplianceService = self.env.get("plasticos.compliance.service")
-        if ComplianceService is None:
+        if "plasticos.compliance.service" not in self.env:
             self.skipTest("plasticos_documents not installed")
+        ComplianceService = self.env["plasticos.compliance.service"]
 
         # Mock is_compliant to return False
         with patch.object(type(ComplianceService), "is_compliant", return_value=False):
-            SO = self.env.get("sale.order")
-            TX = self.env.get("plasticos.transaction")
-            if not SO or not TX:
+            if "sale.order" not in self.env or "plasticos.transaction" not in self.env:
                 self.skipTest("sale.order or transaction not available")
+            SO = self.env["sale.order"]
+            TX = self.env["plasticos.transaction"]
 
             tx = TX.create(
                 {

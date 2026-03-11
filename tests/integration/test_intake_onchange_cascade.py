@@ -119,13 +119,21 @@ class TestIntakeMaterialProfilePrefill(PlasticosTestCase):
                 "is_company": True,
             }
         )
-        Polymer = cls.env.get("plasticos.polymer")
-        FormModel = cls.env.get("plasticos.material.form")
-        cls.polymer = Polymer.create({"name": "HDPE-Test"}) if Polymer else None
-        cls.form = FormModel.create({"name": "Pellet-Test"}) if FormModel else None
+        if "plasticos.polymer" not in cls.env or "plasticos.material.form" not in cls.env:
+            cls.polymer = None
+            cls.form = None
+            cls.has_profile = False
+            return
+        Polymer = cls.env["plasticos.polymer"]
+        FormModel = cls.env["plasticos.material.form"]
+        cls.polymer = Polymer.create({"name": "HDPE-Test"})
+        cls.form = FormModel.create({"name": "Pellet-Test"})
 
-        MP = cls.env.get("plasticos.material.profile")
-        if MP and cls.polymer and cls.form:
+        if "plasticos.material.profile" not in cls.env:
+            cls.has_profile = False
+            return
+        MP = cls.env["plasticos.material.profile"]
+        if cls.polymer and cls.form:
             cls.profile = MP.create(
                 {
                     "name": "Test Profile",
@@ -177,10 +185,10 @@ class TestIntakeAttributeBooleanSync(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        Attr = cls.env.get("plasticos.material.attribute")
-        if not Attr:
+        if "plasticos.material.attribute" not in cls.env:
             cls.has_attrs = False
             return
+        Attr = cls.env["plasticos.material.attribute"]
         cls.has_attrs = True
         cls.with_metal = Attr.search([("code", "=", "with_metal")], limit=1)
         cls.no_metal = Attr.search([("code", "=", "no_metal")], limit=1)

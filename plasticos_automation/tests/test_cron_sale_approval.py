@@ -107,6 +107,7 @@ class TestSaleApproval(PlasticosTestCase):
         """Cron creates an automation log entry when flagging."""
         order = self._create_sale_order(10000.0)
         self.env["sale.order"].cron_flag_sale_approvals()
+        self.env.invalidate_all()
         logs = self.env["plasticos.automation.log"].search(
             [
                 ("model_name", "=", "sale.order"),

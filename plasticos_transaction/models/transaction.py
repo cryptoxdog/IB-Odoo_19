@@ -700,11 +700,11 @@ class PlasticosTransaction(models.Model):
         When compliance changes from 'missing' to 'compliant', auto-posts any
         draft invoices/bills linked to this transaction.
         """
-        service = self.env.get("plasticos.compliance.service")
-        if not service:
+        if "plasticos.compliance.service" not in self.env:
             for rec in self:
                 rec.compliance_status = "compliant"
             return
+        service = self.env["plasticos.compliance.service"]
 
         for rec in self:
             old_status = rec.compliance_status
@@ -815,8 +815,10 @@ class PlasticosTransaction(models.Model):
         self.state = "active"
 
     def action_close(self):
-        service_docs = self.env.get("plasticos.compliance.service")
-        service_commission = self.env.get("plasticos.commission.service")
+        service_docs = self.env["plasticos.compliance.service"] if "plasticos.compliance.service" in self.env else None
+        service_commission = (
+            self.env["plasticos.commission.service"] if "plasticos.commission.service" in self.env else None
+        )
 
         for rec in self:
             self.env.cr.execute(

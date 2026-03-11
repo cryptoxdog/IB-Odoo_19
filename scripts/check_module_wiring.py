@@ -215,10 +215,53 @@ def find_model_definitions(module_path: Path) -> dict[str, str]:
     return models
 
 
+def _is_soft_dependency(lines: list[str], line_num: int, model_name: str) -> bool:
+    """
+    Check if a model reference is a soft/optional dependency.
+
+    Soft dependency patterns:
+    1. if "model.name" not in self.env: return
+    2. if "model.name" in self.env: Model = self.env["model.name"]
+    3. Model = self.env["model.name"] if "model.name" in self.env else None
+
+    These patterns indicate the code handles the case where the model is not installed.
+    """
+    start = max(0, line_num - 6)
+    end = min(len(lines), line_num + 5)
+    context = "\n".join(lines[start:end])
+
+    if re.search(r'if\s+["\']' + re.escape(model_name) + r'["\']\s+not\s+in\s+self\.env', context):
+        return True
+
+    if re.search(r'if\s+["\']' + re.escape(model_name) + r'["\']\s+in\s+self\.env', context):
+        return True
+
+    if re.search(r'if\s+["\']' + re.escape(model_name) + r'["\']\s+in\s+self\.env\s+else', context):
+        return True
+
+    current_line = lines[line_num - 1] if line_num > 0 else ""
+
+    if f'if "{model_name}" in self.env else' in current_line:
+        return True
+    if f"if '{model_name}' in self.env else" in current_line:
+        return True
+
+    for i in range(max(0, line_num - 4), line_num - 1):
+        check_line = lines[i]
+        if f'"{model_name}" not in self.env' in check_line or f"'{model_name}' not in self.env" in check_line:
+            return True
+        if f'"{model_name}" in self.env' in check_line or f"'{model_name}' in self.env" in check_line:
+            return True
+
+    return False
+
+
 def find_model_references(module_path: Path) -> dict[str, list[tuple[str, int, str]]]:
     """
     Find all model references in a module's Python files.
     Returns dict mapping model name -> list of (file, line_number, context).
+
+    Excludes soft dependencies (references guarded by 'if model in self.env' checks).
     """
     references: dict[str, list[tuple[str, int, str]]] = {}
     models_dir = module_path / "models"
@@ -269,6 +312,9 @@ def find_model_references(module_path: Path) -> dict[str, list[tuple[str, int, s
                                     references[model_name] = []
                                 references[model_name].append((str(py_file), line_num, context))
                         else:
+                            # Skip soft dependencies (env references guarded by 'if model in self.env')
+                            if context == "env reference" and _is_soft_dependency(lines, line_num, match):
+                                continue
                             if match not in references:
                                 references[match] = []
                             references[match].append((str(py_file), line_num, context))

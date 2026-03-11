@@ -359,6 +359,23 @@ else
     echo -e "${GREEN}OK${NC}"
 fi
 
+# 24. self.env.get("model.name") anti-pattern (NOT a valid Odoo API)
+# env.get() returns None instead of the model, causing silent failures
+echo -n "Checking self.env.get() anti-pattern... "
+MATCHES=$(echo "$PY_FILES" | xargs grep -E '\.env\.get\s*\(\s*["\x27][a-z_]+\.[a-z_.]+["\x27]' 2>/dev/null || true)
+if [ -n "$MATCHES" ]; then
+    echo -e "${RED}FOUND${NC}"
+    echo "$MATCHES" | head -10
+    COUNT=$(echo "$MATCHES" | wc -l | tr -d ' ')
+    if [ "$COUNT" -gt 10 ]; then
+        echo "... ($COUNT occurrences total)"
+    fi
+    echo -e "${YELLOW}Fix: Use self.env[\"model.name\"] or \"model.name\" in self.env${NC}"
+    ERRORS=$((ERRORS + 1))
+else
+    echo -e "${GREEN}OK${NC}"
+fi
+
 echo ""
 if [ $ERRORS -gt 0 ]; then
     echo -e "${RED}❌ Found $ERRORS Odoo pattern issue(s)${NC}"

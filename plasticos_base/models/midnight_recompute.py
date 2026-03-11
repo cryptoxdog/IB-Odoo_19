@@ -63,10 +63,10 @@ class PlasticosMidnightRecompute(models.AbstractModel):
         - expiry_date <= today AND is_expired = False (newly expired)
         - expiry_date > today AND is_expired = True (incorrectly marked)
         """
-        Document = self.env.get("plasticos.document")
-        if not Document:
+        if "plasticos.document" not in self.env:
             _logger.debug("plasticos.document not installed, skipping.")
             return
+        Document = self.env["plasticos.document"]
 
         today = fields.Date.today()
 
@@ -104,10 +104,10 @@ class PlasticosMidnightRecompute(models.AbstractModel):
 
         Only touches claims that are still open (not resolved/archived).
         """
-        Claim = self.env.get("plasticos.claim")
-        if not Claim:
+        if "plasticos.claim" not in self.env:
             _logger.debug("plasticos.claim not installed, skipping.")
             return
+        Claim = self.env["plasticos.claim"]
 
         # Find all open claims
         open_claims = Claim.search(

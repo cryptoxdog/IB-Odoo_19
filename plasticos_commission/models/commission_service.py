@@ -2,15 +2,19 @@ from odoo import models
 
 
 class PlasticosCommissionService(models.AbstractModel):
-    """Commission calculation service.
+    """Commission calculation service interface.
 
     AbstractModel pattern: provides compute_commission() method that can be
     called from any model via self.env["plasticos.commission.service"].
 
+    This base class defines the interface. The actual implementation is
+    provided by plasticos_transaction which inherits and overrides
+    compute_commission() with transaction-specific logic.
+
     Commission is calculated as:
         gross_margin * commission_rate
 
-    Where commission_rate comes from:
+    Where commission_rate comes from (in plasticos_transaction):
         1. commission_override_pct (if set on transaction)
         2. commission_rule_id.percentage (if rule assigned)
         3. 0.0 (no commission)
@@ -19,27 +23,17 @@ class PlasticosCommissionService(models.AbstractModel):
     _name = "plasticos.commission.service"
     _description = "Commission Calculation Service"
 
-    def compute_commission(self, transaction):
-        """Compute commission amount for a transaction.
+    def compute_commission(self, record):
+        """Compute commission amount for a record.
 
         Args:
-            transaction: plasticos.transaction record
+            record: Record with commission-related fields (e.g., plasticos.transaction)
 
         Returns:
-            float: Commission amount (gross_margin * rate)
+            float: Commission amount
+
+        Note:
+            This base implementation returns 0.0. The plasticos_transaction module
+            overrides this with transaction-specific logic.
         """
-        if not transaction:
-            return 0.0
-
-        gross_margin = transaction.gross_margin or 0.0
-
-        # Priority 1: Manual override percentage
-        if transaction.commission_override_pct:
-            return gross_margin * transaction.commission_override_pct
-
-        # Priority 2: Commission rule
-        if transaction.commission_rule_id:
-            return gross_margin * transaction.commission_rule_id.percentage
-
-        # No commission configured
         return 0.0

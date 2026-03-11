@@ -51,10 +51,14 @@ class TestOfferStateMachine(PlasticosTestCase):
             }
         )
 
-        Polymer = cls.env.get("plasticos.polymer")
-        Form = cls.env.get("plasticos.material.form")
-        polymer = Polymer.create({"name": "PP-Offer"}) if Polymer else False
-        form = Form.create({"name": "Regrind-Offer"}) if Form else False
+        polymer = False
+        form = False
+        if "plasticos.polymer" in cls.env:
+            Polymer = cls.env["plasticos.polymer"]
+            polymer = Polymer.create({"name": "PP-Offer"})
+        if "plasticos.material.form" in cls.env:
+            Form = cls.env["plasticos.material.form"]
+            form = Form.create({"name": "Regrind-Offer"})
 
         cls.intake = cls.env["plasticos.intake"].create(
             {

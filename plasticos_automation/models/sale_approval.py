@@ -44,18 +44,17 @@ class SaleOrder(models.Model):
                 limit=500,
             )
 
-            log_model = self.env.get("plasticos.automation.log")
+            log_model = self.env["plasticos.automation.log"]
             for order in orders:
                 order.requires_approval = True
-                if log_model:
-                    log_model.create(
-                        {
-                            "name": f"Approval flag for {order.name}",
-                            "model_name": "sale.order",
-                            "res_id": order.id,
-                            "action_type": "approval_flag",
-                        }
-                    )
+                log_model.create(
+                    {
+                        "name": f"Approval flag for {order.name}",
+                        "model_name": "sale.order",
+                        "res_id": order.id,
+                        "action_type": "approval_flag",
+                    }
+                )
         finally:
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_automation.cron_sale_approval_flag"]

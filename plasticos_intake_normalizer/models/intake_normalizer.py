@@ -500,9 +500,9 @@ class PlasticosIntakeNormalizer(models.Model):
             return None
 
         # facility_profile is linked via partner
-        FP = self.env.get("plasticos.facility.profile")
-        if FP is None:
+        if "plasticos.facility.profile" not in self.env:
             return None
+        FP = self.env["plasticos.facility.profile"]
 
         profile = FP.search(
             [("partner_id", "=", target.id)],
@@ -547,9 +547,9 @@ class PlasticosIntakeNormalizer(models.Model):
         Falls back to hardcoded list if table not available.
         Returns a frozenset of uppercase codes.
         """
-        Polymer = self.env.get("plasticos.polymer")
-        if Polymer is None:
+        if "plasticos.polymer" not in self.env:
             return FALLBACK_POLYMERS
+        Polymer = self.env["plasticos.polymer"]
 
         polymers = Polymer.search([("active", "=", True)])
         if not polymers:
@@ -564,9 +564,9 @@ class PlasticosIntakeNormalizer(models.Model):
     def _log_normalization(self, action, errors):
         """Write to plasticos.automation.log if the model exists."""
         self.ensure_one()
-        AutoLog = self.env.get("plasticos.automation.log")
-        if AutoLog is None:
+        if "plasticos.automation.log" not in self.env:
             return
+        AutoLog = self.env["plasticos.automation.log"]
 
         detail = ""
         if errors:
