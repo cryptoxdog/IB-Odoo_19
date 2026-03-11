@@ -1,3 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_normalizer_config_user,plasticos.normalizer.config.user,model_plasticos_normalizer_config,base.group_user,1,0,0,0
 access_normalizer_config_manager,plasticos.normalizer.config.manager,model_plasticos_normalizer_config,base.group_system,1,1,1,1
+access_normalizer_config_all,plasticos.normalizer.config.all,model_plasticos_normalizer_config,base.group_user,1,1,1,1

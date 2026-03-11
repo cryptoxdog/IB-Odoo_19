@@ -6,3 +6,6 @@ access_rate_memory_manager,plasticos.rate.memory.manager,plasticos_logistics.mod
 access_dispatch_user,plasticos.dispatch.user,plasticos_logistics.model_plasticos_dispatch,base.group_user,1,1,1,0
 access_dispatch_manager,plasticos.dispatch.manager,plasticos_logistics.model_plasticos_dispatch,base.group_system,1,1,1,1
 access_load_bulk_wizard_user,plasticos.load.bulk.update.wizard.user,model_plasticos_load_bulk_update_wizard,base.group_user,1,1,1,1
+access_load_all,plasticos.load.all,plasticos_logistics.model_plasticos_load,base.group_user,1,1,1,1
+access_rate_memory_all,plasticos.rate.memory.all,plasticos_logistics.model_plasticos_rate_memory,base.group_user,1,1,1,1
+access_dispatch_all,plasticos.dispatch.all,plasticos_logistics.model_plasticos_dispatch,base.group_user,1,1,1,1

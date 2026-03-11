@@ -6,3 +6,6 @@ access_partner_import_service_manager,partner.import.service.manager,model_plast
 access_partner_import_wizard_user,partner.import.wizard.user,model_plasticos_partner_import_wizard,base.group_user,1,0,0,0
 access_partner_import_wizard_manager,partner.import.wizard.manager,model_plasticos_partner_import_wizard,base.group_system,1,1,1,1
 access_partner_bulk_update_wizard_user,partner.bulk.update.wizard.user,model_plasticos_partner_bulk_update_wizard,base.group_user,1,1,1,1
+access_partner_import_validation_all,plasticos.partner.import.validation.all,model_plasticos_partner_import_validation,base.group_user,1,1,1,1
+access_partner_import_service_all,plasticos.partner.import.service.all,model_plasticos_partner_import_service,base.group_user,1,1,1,1
+access_partner_import_wizard_all,plasticos.partner.import.wizard.all,model_plasticos_partner_import_wizard,base.group_user,1,1,1,1

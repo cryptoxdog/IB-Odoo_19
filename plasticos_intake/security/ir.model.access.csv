@@ -3,3 +3,5 @@ access_plasticos_intake_user,plasticos.intake.user,model_plasticos_intake,base.g
 access_plasticos_intake_manager,plasticos.intake.manager,model_plasticos_intake,base.group_system,1,1,1,1
 access_plasticos_intake_match_user,plasticos.intake.match.user,model_plasticos_intake_match,base.group_user,1,1,1,0
 access_plasticos_intake_match_manager,plasticos.intake.match.manager,model_plasticos_intake_match,base.group_system,1,1,1,1
+access_plasticos_intake_all,plasticos.intake.all,model_plasticos_intake,base.group_user,1,1,1,1
+access_plasticos_intake_match_all,plasticos.intake.match.all,model_plasticos_intake_match,base.group_user,1,1,1,1

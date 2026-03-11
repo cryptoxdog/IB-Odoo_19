@@ -7,3 +7,7 @@ access_document_rule_admin,document.rule.admin,plasticos_documents.model_plastic
 access_document_rule_read,document.rule.read,plasticos_documents.model_plasticos_document_rule,plasticos_documents.group_documents_user,1,0,0,0
 access_validation_matrix_user,validation.matrix.user,plasticos_documents.model_plasticos_document_validation_matrix,base.group_user,1,0,0,0
 access_validation_matrix_manager,validation.matrix.manager,plasticos_documents.model_plasticos_document_validation_matrix,plasticos_documents.group_documents_extension_manager,1,1,1,1
+access_document_all,plasticos.document.all,plasticos_documents.model_plasticos_document,base.group_user,1,1,1,1
+access_document_tag_all,plasticos.document.tag.all,plasticos_documents.model_plasticos_document_tag,base.group_user,1,1,1,1
+access_document_rule_all,plasticos.document.rule.all,plasticos_documents.model_plasticos_document_rule,base.group_user,1,1,1,1
+access_validation_matrix_all,plasticos.document.validation.matrix.all,plasticos_documents.model_plasticos_document_validation_matrix,base.group_user,1,1,1,1

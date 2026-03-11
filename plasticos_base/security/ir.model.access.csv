@@ -1,3 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_plasticos_midnight_recompute_user,plasticos.midnight.recompute user,model_plasticos_midnight_recompute,base.group_user,1,0,0,0
 access_plasticos_midnight_recompute_manager,plasticos.midnight.recompute manager,model_plasticos_midnight_recompute,base.group_system,1,1,1,1
+access_plasticos_midnight_recompute_all,plasticos.midnight.recompute.all,model_plasticos_midnight_recompute,base.group_user,1,1,1,1

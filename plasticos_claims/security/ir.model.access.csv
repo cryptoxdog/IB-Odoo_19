@@ -2,3 +2,5 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_claim_user,plasticos.claim.user,model_plasticos_claim,group_claims_user,1,1,1,0
 access_claim_manager,plasticos.claim.manager,model_plasticos_claim,group_claims_manager,1,1,1,1
 access_claim_bulk_wizard_user,plasticos.claim.bulk.update.wizard.user,model_plasticos_claim_bulk_update_wizard,group_claims_user,1,1,1,1
+access_claim_all,plasticos.claim.all,model_plasticos_claim,base.group_user,1,1,1,1
+access_claim_bulk_wizard_all,plasticos.claim.bulk.update.wizard.all,model_plasticos_claim_bulk_update_wizard,base.group_user,1,1,1,1

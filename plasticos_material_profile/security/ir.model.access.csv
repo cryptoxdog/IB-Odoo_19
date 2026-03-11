@@ -16,3 +16,11 @@ access_plasticos_source_type_user,access_plasticos_source_type_user,model_plasti
 access_plasticos_source_type_admin,access_plasticos_source_type_admin,model_plasticos_source_type,base.group_system,1,1,1,1
 access_plasticos_process_type_user,access_plasticos_process_type_user,model_plasticos_process_type,base.group_user,1,0,0,0
 access_plasticos_process_type_admin,access_plasticos_process_type_admin,model_plasticos_process_type,base.group_system,1,1,1,1
+access_plasticos_filler_type_all,plasticos.filler.type.all,model_plasticos_filler_type,base.group_user,1,1,1,1
+access_plasticos_material_attribute_all,plasticos.material.attribute.all,model_plasticos_material_attribute,base.group_user,1,1,1,1
+access_plasticos_packaging_type_all,plasticos.packaging.type.all,model_plasticos_packaging_type,base.group_user,1,1,1,1
+access_plasticos_polymer_all,plasticos.polymer.all,model_plasticos_polymer,base.group_user,1,1,1,1
+access_plasticos_material_form_all,plasticos.material.form.all,model_plasticos_material_form,base.group_user,1,1,1,1
+access_plasticos_material_color_all,plasticos.material.color.all,model_plasticos_material_color,base.group_user,1,1,1,1
+access_plasticos_source_type_all,plasticos.source.type.all,model_plasticos_source_type,base.group_user,1,1,1,1
+access_plasticos_process_type_all,plasticos.process.type.all,model_plasticos_process_type,base.group_user,1,1,1,1

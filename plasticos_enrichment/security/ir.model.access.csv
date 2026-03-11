@@ -11,3 +11,7 @@ access_enrichment_extraction_internal,enrichment.extraction.internal,model_plast
 access_enrichment_provenance_user,enrichment.provenance.user,model_plasticos_enrichment_provenance,plasticos_enrichment.group_enrichment_user,1,0,0,0
 access_enrichment_provenance_manager,enrichment.provenance.manager,model_plasticos_enrichment_provenance,plasticos_enrichment.group_enrichment_manager,1,1,1,1
 access_enrichment_provenance_internal,enrichment.provenance.internal,model_plasticos_enrichment_provenance,base.group_user,1,0,0,0
+access_enrichment_run_all,enrichment.run.all,model_plasticos_enrichment_run,base.group_user,1,1,1,1
+access_enrichment_source_all,enrichment.source.all,model_plasticos_enrichment_source,base.group_user,1,1,1,1
+access_enrichment_extraction_all,enrichment.extraction.all,model_plasticos_enrichment_extraction,base.group_user,1,1,1,1
+access_enrichment_provenance_all,enrichment.provenance.all,model_plasticos_enrichment_provenance,base.group_user,1,1,1,1
