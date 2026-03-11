@@ -3,6 +3,7 @@
 Provides PlasticosTestCase with pre-created master data (partner, polymer, form, etc.)
 to avoid NOT NULL and UniqueViolation failures across plasticos test modules.
 """
+
 from __future__ import annotations
 
 # Odoo 19 guard: importing odoo.tests outside --test-enable logs an ERROR at
@@ -11,7 +12,8 @@ from __future__ import annotations
 # so this module is safely importable during normal module loading.
 try:
     import odoo.tools.config as _odoo_config
-    _test_mode = _odoo_config.get('test_enable') or _odoo_config.get('test_file')
+
+    _test_mode = _odoo_config.get("test_enable") or _odoo_config.get("test_file")
 except Exception:
     _test_mode = False
 
