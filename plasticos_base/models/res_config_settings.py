@@ -29,7 +29,7 @@ class ResConfigSettings(models.TransientModel):
     )
 
     # User-facing message when features are disabled
-    plasticos_feature_gate_message = fields.Text(
+    plasticos_feature_gate_message = fields.Char(
         string="Feature Unavailable Message",
         config_parameter="plasticos.feature_gate.user_message",
         help="Message shown to users when a disabled microservice feature is invoked.",

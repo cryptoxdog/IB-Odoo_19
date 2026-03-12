@@ -24,7 +24,7 @@ class ResConfigSettings(models.TransientModel):
         config_parameter="ib.inference_engine.url",
         default="http://localhost:8002",
     )
-    ib_feature_gate_message = fields.Text(
+    ib_feature_gate_message = fields.Char(
         string="Feature Unavailable Message",
         config_parameter="ib.feature_gate.user_message",
         help="Shown to users when a disabled microservice-backed feature is invoked.",
