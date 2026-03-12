@@ -28,9 +28,11 @@ class TestFeatureGate(PlasticosTestCase):
         intake = self._create_intake(partner=self.default_partner, polymer=self.default_polymer, form=self.default_form)
         if intake is None:
             self.skipTest("plasticos.intake factory unavailable")
+            return None  # Unreachable, but satisfies static analysis
         material_profile = self._create_material_profile(partner=self.default_partner, polymer=self.default_polymer)
         if material_profile is None:
             self.skipTest("plasticos.material.profile factory unavailable")
+            return None  # Unreachable, but satisfies static analysis
         intake.write({"material_profile_id": material_profile.id})
         return intake
 
@@ -50,7 +52,9 @@ class TestFeatureGate(PlasticosTestCase):
     def test_matching_gate_allows_method_path_when_enabled(self):
         intake = self._create_gated_intake()
         self.ICP.set_param("ib.matching_engine.enabled", "True")
-        with patch("odoo.addons.plasticos_buyer_match_engine.models.intake_extension.PlasticosIntake._notify_neo4j_fallback") as notify:
+        with patch(
+            "odoo.addons.plasticos_buyer_match_engine.models.intake_extension.PlasticosIntake._notify_neo4j_fallback"
+        ) as notify:
             with patch.object(
                 self.env["plasticos.buyer.matcher"],
                 "find_matches_for_supplier",
