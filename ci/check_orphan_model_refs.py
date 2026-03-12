@@ -69,6 +69,7 @@ def extract_model_names_from_python(root_dir: Path) -> set[str]:
         "ir.attachment",
         "ir.cron",
         "ir.config_parameter",
+        "ir.model.data",
         "ir.property",
         "ir.default",
         "ir.translation",
