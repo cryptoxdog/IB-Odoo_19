@@ -9,6 +9,7 @@
         "crm",
         "mail",
         "utm",
+        "plasticos_base",
         "plasticos_material_profile",
         "plasticos_facility_profile",
     ],

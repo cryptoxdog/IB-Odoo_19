@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Matching Engine: disabled by default until microservice is deployed -->
+        <record id="icp_matching_engine_enabled" model="ir.config_parameter">
+            <field name="key">plasticos.matching_engine.enabled</field>
+            <field name="value">False</field>
+        </record>
+
+        <record id="icp_matching_engine_url" model="ir.config_parameter">
+            <field name="key">plasticos.matching_engine.url</field>
+            <field name="value">http://localhost:8001</field>
+        </record>
+
+        <!-- Inference Engine: disabled by default until microservice is deployed -->
+        <record id="icp_inference_engine_enabled" model="ir.config_parameter">
+            <field name="key">plasticos.inference_engine.enabled</field>
+            <field name="value">False</field>
+        </record>
+
+        <record id="icp_inference_engine_url" model="ir.config_parameter">
+            <field name="key">plasticos.inference_engine.url</field>
+            <field name="value">http://localhost:8002</field>
+        </record>
+
+        <!-- User-facing message when features are disabled -->
+        <record id="icp_feature_gate_message" model="ir.config_parameter">
+            <field name="key">plasticos.feature_gate.user_message</field>
+            <field name="value">This feature is being deployed and will be available shortly. Please check back in about an hour.</field>
+        </record>
+    </data>
+</odoo>

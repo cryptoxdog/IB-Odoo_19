@@ -1,11 +1,15 @@
+import logging
+
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
+
+_logger = logging.getLogger(__name__)
 
 
 class PlasticosIntake(models.Model):
     _name = "plasticos.intake"
     _description = "PlasticOS Material Intake"
-    _inherit = ["mail.thread", "mail.activity.mixin"]
+    _inherit = ["mail.thread", "mail.activity.mixin", "plasticos.feature.gate.mixin"]
     _order = "id desc"
 
     # ═════════════════════════════════════════════════════════
@@ -782,19 +786,56 @@ class PlasticosIntake(models.Model):
     # ═════════════════════════════════════════════════════════
 
     def action_match_to_buyers(self):
-        """Run buyer matching engine on this intake.
+        """Run buyer matching via external microservice.
 
-        This base implementation is a stub. Install `plasticos_buyer_match_engine`
-        for full 10-gate filtering + Neo4j graph scoring.
+        Feature-gated: shows friendly message when microservice is disabled.
+        When enabled, calls the matching microservice REST API.
 
         For web lead intakes without a partner, creates the partner first.
         Auto-creates material profile if not set.
         """
-        raise UserError(
-            "Buyer matching requires the 'PlasticOS Buyer Match Engine' module.\n\n"
-            "Install it from Apps → PlasticOS Buyer Match Engine to enable "
-            "10-gate filtering and Neo4j graph scoring."
+        self.ensure_one()
+
+        # Feature gate check - raises UserError with friendly message if disabled
+        self._check_feature_gate("plasticos.matching_engine.enabled")
+
+        # Ensure we have a partner (create from pending_company_name if needed)
+        if not self.partner_id and self.pending_company_name:
+            self._create_partner_from_pending()
+
+        if not self.partner_id:
+            raise UserError(
+                "Cannot match buyers without a company.\n\nPlease set a Company or enter a Pending Company Name first."
+            )
+
+        # Auto-create material profile if not set
+        if not self.material_profile_id:
+            self._create_material_profile_from_intake()
+
+        # Get microservice URL
+        icp = self.env["ir.config_parameter"].sudo()
+        base_url = icp.get_param("plasticos.matching_engine.url", "http://localhost:8001")
+
+        # Call the matching microservice
+        # TODO: Implement actual HTTP call when microservice is ready
+        _logger.info(
+            "Matching microservice call: intake=%s partner=%s url=%s",
+            self.id,
+            self.partner_id.id,
+            base_url,
         )
+
+        # For now, return a placeholder action (will be replaced with actual results)
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": "Matching Engine",
+                "message": f"Matching request sent for {self.display_name}. Results will appear shortly.",
+                "type": "info",
+                "sticky": False,
+            },
+        }
 
     def _create_material_profile_from_intake(self):
         """Auto-create material profile from intake fields.

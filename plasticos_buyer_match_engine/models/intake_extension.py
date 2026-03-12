@@ -1,9 +1,8 @@
 import logging
 
 from odoo import _, fields, models
+from odoo.addons.plasticos_base.models.feature_gate_mixin import feature_gated
 from odoo.exceptions import UserError
-
-from .feature_gate_mixin import feature_gated
 
 _logger = logging.getLogger(__name__)
 
@@ -22,7 +21,7 @@ class PlasticosIntake(models.Model):
         "Relaxed: only polymer is hard, others are soft scoring signals.",
     )
 
-    @feature_gated("ib.matching_engine.enabled")
+    @feature_gated("plasticos.matching_engine.enabled")
     def action_match_to_buyers(self):
         """Run buyer matching v2.0: facility.profile + Neo4j graph scoring.
 

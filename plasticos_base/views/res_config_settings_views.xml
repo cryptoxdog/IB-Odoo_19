@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_plasticos_microservices" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.plasticos.microservices</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app string="PlasticOS Microservices" name="plasticos_microservices" groups="base.group_system">
+                    <block title="Microservice Feature Gates">
+                        <setting id="plasticos_matching_engine_enabled_setting"
+                                 string="Enable Matching Engine"
+                                 help="Activate buyer/seller matching via external microservice.">
+                            <field name="plasticos_matching_engine_enabled"/>
+                            <div class="content-group" invisible="not plasticos_matching_engine_enabled">
+                                <label for="plasticos_matching_engine_url"/>
+                                <field name="plasticos_matching_engine_url" placeholder="http://matching-svc:8001"/>
+                            </div>
+                        </setting>
+
+                        <setting id="plasticos_inference_engine_enabled_setting"
+                                 string="Enable Inference Engine"
+                                 help="Activate AI-powered enrichment via external microservice.">
+                            <field name="plasticos_inference_engine_enabled"/>
+                            <div class="content-group" invisible="not plasticos_inference_engine_enabled">
+                                <label for="plasticos_inference_engine_url"/>
+                                <field name="plasticos_inference_engine_url" placeholder="http://inference-svc:8002"/>
+                            </div>
+                        </setting>
+                    </block>
+
+                    <block title="Graceful Degradation">
+                        <setting id="plasticos_feature_gate_message_setting"
+                                 string="Feature Unavailable Message"
+                                 help="Message shown when a disabled microservice feature is invoked.">
+                            <field name="plasticos_feature_gate_message"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>
