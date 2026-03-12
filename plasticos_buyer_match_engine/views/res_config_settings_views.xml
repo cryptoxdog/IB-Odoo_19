@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_plasticos_feature_gates" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.plasticos.feature.gates</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app string="IB Microservices" name="ib_microservices" groups="base.group_system">
+                    <block title="Microservice Feature Gates">
+                        <setting id="ib_matching_engine_enabled_setting" string="Enable Matching Engine"
+                                 help="Activate buyer/seller matching via the external matching engine.">
+                            <field name="ib_matching_engine_enabled"/>
+                            <div class="content-group" invisible="not ib_matching_engine_enabled">
+                                <label for="ib_matching_engine_url"/>
+                                <field name="ib_matching_engine_url" placeholder="http://matching-svc:8001"/>
+                            </div>
+                        </setting>
+
+                        <setting id="ib_inference_engine_enabled_setting" string="Enable Inference Engine"
+                                 help="Activate inference-driven valuation, scoring, and recommendations when the service is ready.">
+                            <field name="ib_inference_engine_enabled"/>
+                            <div class="content-group" invisible="not ib_inference_engine_enabled">
+                                <label for="ib_inference_engine_url"/>
+                                <field name="ib_inference_engine_url" placeholder="http://inference-svc:8002"/>
+                            </div>
+                        </setting>
+                    </block>
+
+                    <block title="Graceful Degradation">
+                        <setting id="ib_feature_gate_message_setting" string="Feature Unavailable Message"
+                                 help="Message shown when a disabled microservice-backed feature is invoked.">
+                            <field name="ib_feature_gate_message"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>

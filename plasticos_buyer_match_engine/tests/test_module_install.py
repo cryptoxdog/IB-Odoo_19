@@ -26,6 +26,7 @@ class TestModuleInstall(PlasticosTestCase):
         """All plasticos_buyer_match_engine models must be in the registry."""
         expected_models = [
             "plasticos.buyer.matcher",
+            "plasticos.feature.gate.mixin",
             "plasticos.graph.service",
             "plasticos.graph.sync.log",
             "plasticos.match.exclusion",
