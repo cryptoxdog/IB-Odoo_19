@@ -1,15 +1,11 @@
 from datetime import timedelta
 
+from psycopg.errors import IntegrityError
+
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests import tagged
-
-# Odoo 19 may use psycopg3; handle both
-try:
-    from psycopg2 import IntegrityError
-except ImportError:
-    from psycopg.errors import IntegrityError
 
 
 @tagged("post_install", "-at_install")

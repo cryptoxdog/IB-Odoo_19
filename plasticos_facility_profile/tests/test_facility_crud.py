@@ -6,7 +6,7 @@ Test facility profile CRUD operations.
 - partner sync
 """
 
-from psycopg2 import IntegrityError
+from psycopg.errors import IntegrityError
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests import tagged
