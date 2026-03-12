@@ -23,6 +23,11 @@ class TestBuyerMatcher(PlasticosTestCase):
         super().setUp()
 
         # ══════════════════════════════════════════════════════════
+        # Enable feature gate for tests
+        # ══════════════════════════════════════════════════════════
+        self.env["ir.config_parameter"].sudo().set_param("plasticos.matching_engine.enabled", "True")
+
+        # ══════════════════════════════════════════════════════════
         # Get or create test material master data
         # (Records may already exist from demo data or other modules)
         # ══════════════════════════════════════════════════════════

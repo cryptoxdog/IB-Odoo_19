@@ -35,7 +35,7 @@ class IntakeGraphHooks(models.Model):
         graph_service.calculate_match_score() for Neo4j scoring.
         """
         gate = self.env["plasticos.feature.gate.mixin"]
-        if gate._skip_feature_gate_for_cron("ib.matching_engine.enabled", "intake_normalized_auto_match"):
+        if gate._skip_feature_gate_for_cron("plasticos.matching_engine.enabled", "intake_normalized_auto_match"):
             return
 
         try:

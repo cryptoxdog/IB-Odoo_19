@@ -17,10 +17,10 @@ class TestFeatureGate(PlasticosTestCase):
 
     def setUp(self):
         super().setUp()
-        self.ICP.set_param("ib.matching_engine.enabled", "False")
-        self.ICP.set_param("ib.inference_engine.enabled", "False")
+        self.ICP.set_param("plasticos.matching_engine.enabled", "False")
+        self.ICP.set_param("plasticos.inference_engine.enabled", "False")
         self.ICP.set_param(
-            "ib.feature_gate.user_message",
+            "plasticos.feature_gate.user_message",
             "This feature is being deployed and will be available shortly. Please check back in about an hour.",
         )
 
@@ -44,14 +44,14 @@ class TestFeatureGate(PlasticosTestCase):
     def test_matching_action_uses_custom_message_when_disabled(self):
         intake = self._create_gated_intake()
         custom_msg = "System upgrade in progress. Back in about an hour."
-        self.ICP.set_param("ib.feature_gate.user_message", custom_msg)
+        self.ICP.set_param("plasticos.feature_gate.user_message", custom_msg)
         with self.assertRaises(UserError) as ctx:
             intake.action_match_to_buyers()
         self.assertIn(custom_msg, str(ctx.exception))
 
     def test_matching_gate_allows_method_path_when_enabled(self):
         intake = self._create_gated_intake()
-        self.ICP.set_param("ib.matching_engine.enabled", "True")
+        self.ICP.set_param("plasticos.matching_engine.enabled", "True")
         with patch(
             "odoo.addons.plasticos_buyer_match_engine.models.intake_extension.PlasticosIntake._notify_neo4j_fallback"
         ) as notify:
@@ -67,21 +67,25 @@ class TestFeatureGate(PlasticosTestCase):
         matcher.assert_called()
 
     def test_cron_skip_helper_returns_true_when_disabled(self):
-        skipped = self.Gate._skip_feature_gate_for_cron("ib.matching_engine.enabled", "intake_normalized_auto_match")
+        skipped = self.Gate._skip_feature_gate_for_cron(
+            "plasticos.matching_engine.enabled", "intake_normalized_auto_match"
+        )
         self.assertTrue(skipped)
 
     def test_cron_skip_helper_returns_false_when_enabled(self):
-        self.ICP.set_param("ib.matching_engine.enabled", "True")
-        skipped = self.Gate._skip_feature_gate_for_cron("ib.matching_engine.enabled", "intake_normalized_auto_match")
+        self.ICP.set_param("plasticos.matching_engine.enabled", "True")
+        skipped = self.Gate._skip_feature_gate_for_cron(
+            "plasticos.matching_engine.enabled", "intake_normalized_auto_match"
+        )
         self.assertFalse(skipped)
 
     def test_settings_fields_are_registered(self):
         settings = self.env["res.config.settings"]
         for field_name in [
-            "ib_matching_engine_enabled",
-            "ib_inference_engine_enabled",
-            "ib_matching_engine_url",
-            "ib_inference_engine_url",
-            "ib_feature_gate_message",
+            "plasticos_matching_engine_enabled",
+            "plasticos_inference_engine_enabled",
+            "plasticos_matching_engine_url",
+            "plasticos_inference_engine_url",
+            "plasticos_feature_gate_message",
         ]:
             self.assertIn(field_name, settings._fields)

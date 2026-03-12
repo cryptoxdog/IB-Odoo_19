@@ -30,11 +30,9 @@
     ],
     "data": [
         "security/ir.model.access.csv",
-        "data/feature_flags.xml",
         "data/ir_cron_graph_sync.xml",
         "views/intake_button_views.xml",
         "views/match_exclusion_views.xml",
-        "views/res_config_settings_views.xml",
     ],
     "external_dependencies": {
         "python": ["neo4j"],
