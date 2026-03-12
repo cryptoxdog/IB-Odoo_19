@@ -26,7 +26,7 @@
         <!-- User-facing message when features are disabled -->
         <record id="icp_feature_gate_message" model="ir.config_parameter">
             <field name="key">plasticos.feature_gate.user_message</field>
-            <field name="value">This feature is being deployed and will be available shortly. Please check back in about an hour.</field>
+            <field name="value">This isn't ready - come back in 5 minutes!</field>
         </record>
     </data>
 </odoo>

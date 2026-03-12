@@ -21,7 +21,7 @@ class TestFeatureGate(PlasticosTestCase):
         self.ICP.set_param("plasticos.inference_engine.enabled", "False")
         self.ICP.set_param(
             "plasticos.feature_gate.user_message",
-            "This feature is being deployed and will be available shortly. Please check back in about an hour.",
+            "This isn't ready - come back in 5 minutes!",
         )
 
     def _create_gated_intake(self):

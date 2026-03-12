@@ -9,7 +9,7 @@ from odoo.tests import tagged
 try:
     from psycopg2 import IntegrityError
 except ImportError:
-    from psycopg import IntegrityError
+    from psycopg.errors import IntegrityError
 
 
 @tagged("post_install", "-at_install")

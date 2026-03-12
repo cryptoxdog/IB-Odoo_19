@@ -41,7 +41,7 @@ class FeatureGateMixin(models.AbstractModel):
         icp = self.env["ir.config_parameter"].sudo()
         return icp.get_param(
             "plasticos.feature_gate.user_message",
-            _("This feature is being deployed and will be available shortly. Please check back in about an hour."),
+            _("This isn't ready - come back in 5 minutes!"),
         )
 
     def _is_feature_enabled(self, param_key):

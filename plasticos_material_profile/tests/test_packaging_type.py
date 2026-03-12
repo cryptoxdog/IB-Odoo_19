@@ -4,7 +4,7 @@ import uuid
 try:
     from psycopg2 import IntegrityError
 except ImportError:
-    from psycopg import IntegrityError
+    from psycopg.errors import IntegrityError
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
