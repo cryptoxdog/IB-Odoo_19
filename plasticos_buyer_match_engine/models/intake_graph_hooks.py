@@ -34,6 +34,10 @@ class IntakeGraphHooks(models.Model):
         Uses plasticos.buyer.matcher which internally calls
         graph_service.calculate_match_score() for Neo4j scoring.
         """
+        gate = self.env["plasticos.feature.gate.mixin"]
+        if gate._skip_feature_gate_for_cron("ib.matching_engine.enabled", "intake_normalized_auto_match"):
+            return
+
         try:
             matcher = self.env["plasticos.buyer.matcher"]
             matches = matcher.find_matches_for_supplier(

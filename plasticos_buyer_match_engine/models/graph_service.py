@@ -1078,6 +1078,7 @@ class PlasticosGraphService(models.AbstractModel):
         if not self.env.cr.fetchone()[0]:
             _logger.info("Nightly graph sync skipped: advisory lock held.")
             return "Skipped: lock held"
+
         try:
             self.sudo().sync_all(trigger="nightly_cron")  # cron-sudo-justification: system cron needs full access
             return "Nightly graph sync completed."

@@ -1,3 +1,4 @@
+from . import feature_gate_mixin
 from . import matcher
 from . import graph_sync_log
 from . import graph_service
@@ -6,3 +7,4 @@ from . import material_profile_graph_hooks
 from . import intake_graph_hooks
 from . import intake_extension
 from . import match_exclusion
+from . import res_config_settings

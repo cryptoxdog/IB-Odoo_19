@@ -11,6 +11,7 @@
                         string="Match to Buyers"
                         type="object"
                         class="btn-primary"
+                        help="Requires the matching engine to be enabled in Settings > General Settings > IB Microservices."
                         invisible="not material_profile_id"/>
             </xpath>
         </field>
