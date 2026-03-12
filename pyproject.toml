@@ -77,6 +77,18 @@ check-typed-exception = true
 # Buyer match engine - _check_gates_strict is complex by nature (26 branches)
 # TODO: Refactor into smaller gate-checking functions
 "plasticos_buyer_match_engine/models/matcher.py" = ["C901"]
+# Enrichment module - complex validation and injection logic
+"plasticos_enrichment/models/enrichment_run.py" = ["C901"]
+"plasticos_enrichment/models/enrichment_service.py" = ["C901"]
+# Intake normalizer - complex validation matrix
+"plasticos_intake_normalizer/models/intake_normalizer.py" = ["C901"]
+# Transaction module - complex state machine and compliance checks
+"plasticos_transaction/models/account_move_inherit.py" = ["C901"]
+"plasticos_transaction/models/transaction.py" = ["C901"]
+# Web leads - complex classification logic
+"plasticos_web_leads/models/classification_engine.py" = ["C901"]
+# Partner import wizard - complex import logic
+"plasticos_partner_import/wizards/partner_import_wizard.py" = ["C901"]
 # Wizards - allow single-letter loop vars for Odoo recordsets
 "**/wizards/*.py" = ["E741"]
 # Import services - may have unused vars during development
