@@ -63,12 +63,12 @@ class TestFeatureGate(PlasticosTestCase):
         matcher.assert_called()
 
     def test_cron_skip_helper_returns_true_when_disabled(self):
-        skipped = self.Gate._skip_feature_gate_for_cron("ib.matching_engine.enabled", "nightly_graph_sync")
+        skipped = self.Gate._skip_feature_gate_for_cron("ib.matching_engine.enabled", "intake_normalized_auto_match")
         self.assertTrue(skipped)
 
     def test_cron_skip_helper_returns_false_when_enabled(self):
         self.ICP.set_param("ib.matching_engine.enabled", "True")
-        skipped = self.Gate._skip_feature_gate_for_cron("ib.matching_engine.enabled", "nightly_graph_sync")
+        skipped = self.Gate._skip_feature_gate_for_cron("ib.matching_engine.enabled", "intake_normalized_auto_match")
         self.assertFalse(skipped)
 
     def test_settings_fields_are_registered(self):

@@ -1079,10 +1079,6 @@ class PlasticosGraphService(models.AbstractModel):
             _logger.info("Nightly graph sync skipped: advisory lock held.")
             return "Skipped: lock held"
 
-        gate = self.env["plasticos.feature.gate.mixin"]
-        if gate._skip_feature_gate_for_cron("ib.matching_engine.enabled", "nightly_graph_sync"):
-            return "Skipped: matching engine disabled"
-
         try:
             self.sudo().sync_all(trigger="nightly_cron")  # cron-sudo-justification: system cron needs full access
             return "Nightly graph sync completed."
