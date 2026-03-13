@@ -3,6 +3,12 @@ from datetime import timedelta
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
+
+try:
+    from psycopg.errors import IntegrityError
+except ImportError:
+    from psycopg2 import IntegrityError
+
 from odoo.tests import tagged
 
 
@@ -149,7 +155,7 @@ class TestPlasticosOffer(PlasticosTestCase):
 
     def test_constraint_intake_id_required(self):
         """Test intake_id is required"""
-        with self.assertRaises(ValidationError):
+        with self.assertRaises((ValidationError, IntegrityError)):
             with self.env.cr.savepoint():
                 self.Offer.create(
                     {
@@ -161,7 +167,7 @@ class TestPlasticosOffer(PlasticosTestCase):
 
     def test_constraint_supplier_id_required(self):
         """Test supplier_id is required"""
-        with self.assertRaises(ValidationError):
+        with self.assertRaises((ValidationError, IntegrityError)):
             with self.env.cr.savepoint():
                 self.Offer.create(
                     {
@@ -173,7 +179,7 @@ class TestPlasticosOffer(PlasticosTestCase):
 
     def test_constraint_buyer_id_required(self):
         """Test buyer_id is required"""
-        with self.assertRaises(ValidationError):
+        with self.assertRaises((ValidationError, IntegrityError)):
             with self.env.cr.savepoint():
                 self.Offer.create(
                     {

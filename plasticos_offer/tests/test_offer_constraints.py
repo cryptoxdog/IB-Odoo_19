@@ -7,6 +7,12 @@ Test offer SQL constraints.
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
+
+try:
+    from psycopg.errors import IntegrityError
+except ImportError:
+    from psycopg2 import IntegrityError
+
 from odoo.tests import tagged
 
 
@@ -41,13 +47,13 @@ class TestOfferConstraints(PlasticosTestCase):
 
     def test_price_must_be_positive(self):
         """Price per lb must be > 0 (SQL constraint)."""
-        with self.assertRaises(ValidationError):
+        with self.assertRaises((ValidationError, IntegrityError)):
             with self.env.cr.savepoint():
                 self._create_offer(price_per_lb=0)
 
     def test_price_cannot_be_negative(self):
         """Price per lb cannot be negative."""
-        with self.assertRaises(ValidationError):
+        with self.assertRaises((ValidationError, IntegrityError)):
             with self.env.cr.savepoint():
                 self._create_offer(price_per_lb=-0.10)
 
@@ -62,13 +68,13 @@ class TestOfferConstraints(PlasticosTestCase):
 
     def test_quantity_must_be_positive(self):
         """Quantity lbs must be > 0 (SQL constraint)."""
-        with self.assertRaises(ValidationError):
+        with self.assertRaises((ValidationError, IntegrityError)):
             with self.env.cr.savepoint():
                 self._create_offer(quantity_lbs=0)
 
     def test_quantity_cannot_be_negative(self):
         """Quantity lbs cannot be negative."""
-        with self.assertRaises(ValidationError):
+        with self.assertRaises((ValidationError, IntegrityError)):
             with self.env.cr.savepoint():
                 self._create_offer(quantity_lbs=-1000)
 

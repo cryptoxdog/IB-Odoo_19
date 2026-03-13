@@ -2,6 +2,12 @@ import uuid
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
+
+try:
+    from psycopg.errors import IntegrityError
+except ImportError:
+    from psycopg2 import IntegrityError
+
 from odoo.tests import tagged
 
 
@@ -38,19 +44,19 @@ class TestPlasticosMaterialAttribute(PlasticosTestCase):
 
     def test_constraint_name_required(self):
         """Test name is required"""
-        with self.assertRaises(ValidationError):
+        with self.assertRaises((ValidationError, IntegrityError)):
             with self.env.cr.savepoint():
                 self.MaterialAttribute.create({"code": "NO-NAME"})
 
     def test_constraint_code_required(self):
         """Test code is required"""
-        with self.assertRaises(ValidationError):
+        with self.assertRaises((ValidationError, IntegrityError)):
             with self.env.cr.savepoint():
                 self.MaterialAttribute.create({"name": "No Code Attribute"})
 
     def test_constraint_code_unique(self):
         """Test code must be unique"""
         self._create_attribute(code="UNIQUE-ATTR")
-        with self.assertRaises(ValidationError):
+        with self.assertRaises((ValidationError, IntegrityError)):
             with self.env.cr.savepoint():
                 self._create_attribute(code="UNIQUE-ATTR")
