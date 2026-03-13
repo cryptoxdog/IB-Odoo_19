@@ -37,16 +37,19 @@ class PlasticosMaterialAttribute(models.Model):
         "Attribute code must be unique.",
     )
 
-    @api.constrains("code")
-    def _check_code_unique(self):
-        for record in self:
-            if record.code:
-                duplicate = self.search(
-                    [
-                        ("code", "=", record.code),
-                        ("id", "!=", record.id),
-                    ],
-                    limit=1,
-                )
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            code = vals.get("code")
+            if code and self.search([("code", "=", code)], limit=1):
+                raise ValidationError(f"Attribute code '{code}' already exists.")
+        return super().create(vals_list)
+
+    def write(self, vals):
+        code = vals.get("code")
+        if code:
+            for record in self:
+                duplicate = self.search([("code", "=", code), ("id", "!=", record.id)], limit=1)
                 if duplicate:
-                    raise ValidationError(f"Attribute code '{record.code}' already exists.")
+                    raise ValidationError(f"Attribute code '{code}' already exists.")
+        return super().write(vals)

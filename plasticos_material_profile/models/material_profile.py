@@ -329,24 +329,24 @@ class PlasticosMaterialProfile(models.Model):
         "A facility may only have one profile per polymer + form combination.",
     )
 
-    @api.constrains("partner_id", "polymer_id", "form_id")
-    def _check_unique_partner_polymer_form(self):
-        for record in self:
-            if record.partner_id and record.polymer_id and record.form_id:
-                duplicate = self.search(
-                    [
-                        ("partner_id", "=", record.partner_id.id),
-                        ("polymer_id", "=", record.polymer_id.id),
-                        ("form_id", "=", record.form_id.id),
-                        ("id", "!=", record.id),
-                    ],
-                    limit=1,
+    def _check_unique_triple_before_save(self, partner_id, polymer_id, form_id, exclude_id=None):
+        """Check for duplicate partner+polymer+form before SQL insert."""
+        if partner_id and polymer_id and form_id:
+            domain = [
+                ("partner_id", "=", partner_id),
+                ("polymer_id", "=", polymer_id),
+                ("form_id", "=", form_id),
+            ]
+            if exclude_id:
+                domain.append(("id", "!=", exclude_id))
+            if self.search(domain, limit=1):
+                partner = self.env["res.partner"].browse(partner_id)
+                polymer = self.env["plasticos.polymer"].browse(polymer_id)
+                form = self.env["plasticos.material.form"].browse(form_id)
+                raise ValidationError(
+                    f"A material profile already exists for {partner.name} "
+                    f"with polymer '{polymer.name}' and form '{form.name}'."
                 )
-                if duplicate:
-                    raise ValidationError(
-                        f"A material profile already exists for {record.partner_id.name} "
-                        f"with polymer '{record.polymer_id.name}' and form '{record.form_id.name}'."
-                    )
 
     # ═════════════════════════════════════════════════════════
     # Computed
@@ -558,12 +558,24 @@ class PlasticosMaterialProfile(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        for vals in vals_list:
+            self._check_unique_triple_before_save(
+                vals.get("partner_id"),
+                vals.get("polymer_id"),
+                vals.get("form_id"),
+            )
         records = super().create(vals_list)
         for record in records:
             record._emit_material_packet()
         return records
 
     def write(self, vals):
+        for record in self:
+            partner_id = vals.get("partner_id", record.partner_id.id)
+            polymer_id = vals.get("polymer_id", record.polymer_id.id)
+            form_id = vals.get("form_id", record.form_id.id)
+            if "partner_id" in vals or "polymer_id" in vals or "form_id" in vals:
+                self._check_unique_triple_before_save(partner_id, polymer_id, form_id, exclude_id=record.id)
         res = super().write(vals)
         for rec in self:
             rec._emit_material_packet()
