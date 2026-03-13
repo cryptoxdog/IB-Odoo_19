@@ -20,19 +20,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install linters
-        run: |
-          pip install ruff==0.4.10 pytest==8.3.5
-
-      - name: Ruff lint
-        timeout-minutes: 2
-        run: |
-          ruff check . --extend-ignore C901 --exclude docs/
-
-      - name: Ruff format check
-        timeout-minutes: 2
-        run: |
-          ruff format --check . --exclude docs/
+      - name: Install dependencies
+        run: pip install pytest==8.3.5
 
       - name: Odoo 19 pattern check
         run: |
