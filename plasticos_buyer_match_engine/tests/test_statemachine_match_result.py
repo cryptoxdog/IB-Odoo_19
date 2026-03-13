@@ -5,7 +5,6 @@ States: pending → accepted | rejected | expired
 Source: plasticos_matching/models/match_result.py
 """
 
-
 from psycopg2 import IntegrityError
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
