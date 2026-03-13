@@ -4,21 +4,16 @@
             <field name="name">Igor Beylin</field>
             <field name="login">ib@scrapmanagement.com</field>
             <field name="password">asd123</field>
-            <field name="groups_id" eval="[
-                (4, ref('base.group_system')),
-                (4, ref('base.group_no_one')),
-                (4, ref('plasticos_security_base.group_system_admin')),
-            ]"/>
+            <field name="company_id" ref="base.main_company"/>
+            <field name="company_ids" eval="[(6, 0, [ref('base.main_company')])]"/>
         </record>
 
         <record id="user_arthur" model="res.users">
             <field name="name">Arthur Buyanovskiy</field>
             <field name="login">ab@scrapmanagement.com</field>
             <field name="password">asd123</field>
-            <field name="groups_id" eval="[
-                (4, ref('base.group_user')),
-                (4, ref('plasticos_security_base.group_sales_rep')),
-            ]"/>
+            <field name="company_id" ref="base.main_company"/>
+            <field name="company_ids" eval="[(6, 0, [ref('base.main_company')])]"/>
         </record>
     </data>
 </odoo>
