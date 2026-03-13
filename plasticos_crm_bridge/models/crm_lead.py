@@ -215,19 +215,20 @@ class CrmLeadPlastOS(models.Model):
         }
 
     def action_view_match_results(self):
+        """Navigate to match results for this lead's partner.
+
+        NOTE: plasticos_matching is disabled (external microservice).
+        Returns notification instead of window action.
+        """
         self.ensure_one()
-        facilities = self.partner_id.child_ids if self.partner_id else self.env["res.partner"]
-        intakes = self.env["plasticos.intake"].search(
-            [
-                ("partner_id", "in", facilities.ids),
-            ]
-        )
         return {
-            "type": "ir.actions.act_window",
-            "name": f"Match Results — {self.partner_id.name or ''}",
-            "res_model": "plasticos.match.result",
-            "view_mode": "list,form",
-            "domain": [("intake_id", "in", intakes.ids)],
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": "Feature Disabled",
+                "message": "Matching is handled by external microservice.",
+                "type": "warning",
+            },
         }
 
     def action_view_transactions(self):

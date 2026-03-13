@@ -104,15 +104,15 @@ class TestCrmLeadActions(PlasticosTestCase):
         self.assertEqual(result["type"], "ir.actions.act_window")
         self.assertEqual(result["res_model"], "plasticos.material.profile")
 
-    def test_action_view_match_results_returns_window_action(self):
-        """action_view_match_results should return ir.actions.act_window."""
+    def test_action_view_match_results_returns_notification(self):
+        """action_view_match_results returns notification (matching is external microservice)."""
         if not hasattr(self.lead, "action_view_match_results"):
             self.skipTest("action_view_match_results not available")
 
         result = self.lead.action_view_match_results()
         self.assertIsInstance(result, dict)
-        self.assertEqual(result["type"], "ir.actions.act_window")
-        self.assertEqual(result["res_model"], "plasticos.match.result")
+        self.assertEqual(result["type"], "ir.actions.client")
+        self.assertEqual(result["tag"], "display_notification")
 
     def test_action_view_transactions_returns_window_action(self):
         """action_view_transactions should return ir.actions.act_window."""
