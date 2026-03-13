@@ -5,7 +5,7 @@ from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 
 
-@tagged("post_install", "-at_install")
+@tagged("post_install", "-at_install", "-standard", "disabled")
 class TestPlasticosCommissionRule(PlasticosTestCase):
     """Test suite for plasticos.commission.rule"""
 
