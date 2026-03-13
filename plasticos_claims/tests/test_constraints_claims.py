@@ -1,8 +1,3 @@
-try:
-    from psycopg.errors import IntegrityError
-except ImportError:
-    from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
@@ -31,7 +26,7 @@ class TestClaimConstraintsValidation(PlasticosTestCase):
 
     def test_unique_name(self):
         self._new_claim()
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(ValidationError):
             with self.env.cr.savepoint():
                 self._new_claim()
 

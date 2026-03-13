@@ -1,8 +1,3 @@
-try:
-    from psycopg.errors import IntegrityError
-except ImportError:
-    from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests import tagged
@@ -110,7 +105,7 @@ class TestPlasticosClaim(PlasticosTestCase):
 
     def test_constraint_transaction_id_required(self):
         """Test transaction_id is required"""
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(ValidationError):
             with self.env.cr.savepoint():
                 self.Claim.create(
                     {

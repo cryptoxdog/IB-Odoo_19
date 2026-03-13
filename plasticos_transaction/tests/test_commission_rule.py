@@ -1,10 +1,5 @@
 import uuid
 
-try:
-    from psycopg.errors import IntegrityError
-except ImportError:
-    from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
@@ -49,7 +44,7 @@ class TestPlasticosCommissionRuleBridge(PlasticosTestCase):
 
     def test_constraint_name_required(self):
         """Test name is required (explicitly pass False to override default)"""
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(ValidationError):
             with self.env.cr.savepoint():
                 self.env["plasticos.commission.rule"].create(
                     {
@@ -61,7 +56,7 @@ class TestPlasticosCommissionRuleBridge(PlasticosTestCase):
 
     def test_constraint_sales_rep_id_required(self):
         """Test sales_rep_id is required"""
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(ValidationError):
             with self.env.cr.savepoint():
                 self.env["plasticos.commission.rule"].create(
                     {

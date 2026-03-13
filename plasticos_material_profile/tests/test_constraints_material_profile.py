@@ -1,10 +1,5 @@
 import uuid
 
-try:
-    from psycopg.errors import IntegrityError
-except ImportError:
-    from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
@@ -40,14 +35,14 @@ class TestMaterialProfileConstraints(PlasticosTestCase):
     def test_polymer_code_unique(self):
         code = _unique_code("HDPE-UNIQ")
         self.env["plasticos.polymer"].create({"name": "HDPE-2", "code": code})
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(ValidationError):
             with self.env.cr.savepoint():
                 self.env["plasticos.polymer"].create({"name": "Duplicate", "code": code})
 
     def test_form_code_unique(self):
         code = _unique_code("FLAKE-UNIQ")
         self.env["plasticos.material.form"].create({"name": "Flake", "code": code})
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(ValidationError):
             with self.env.cr.savepoint():
                 self.env["plasticos.material.form"].create({"name": "Dup", "code": code})
 
@@ -63,7 +58,7 @@ class TestMaterialProfileConstraints(PlasticosTestCase):
                 "form_id": unique_form.id,
             }
         )
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(ValidationError):
             with self.env.cr.savepoint():
                 self.Profile.create(
                     {

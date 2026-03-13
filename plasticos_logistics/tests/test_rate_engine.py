@@ -7,11 +7,6 @@ Service:       services/rate_engine.py
 
 from datetime import timedelta
 
-try:
-    from psycopg.errors import IntegrityError
-except ImportError:
-    from psycopg2 import IntegrityError
-
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
@@ -54,7 +49,7 @@ class TestRateEngine(PlasticosTestCase):
         """Duplicate carrier + lane + date should raise IntegrityError."""
         today = fields.Date.today()
         self._create_rate_memory(effective_date=today)
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(ValidationError):
             self._create_rate_memory(
                 rate=1300.0,
                 effective_date=today,

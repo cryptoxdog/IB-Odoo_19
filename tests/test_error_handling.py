@@ -17,11 +17,6 @@ These tests validate that PlastOS handles errors gracefully:
 
 from unittest.mock import patch
 
-try:
-    from psycopg.errors import IntegrityError
-except ImportError:
-    from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests.common import tagged
@@ -101,7 +96,7 @@ class TestInvalidData(PlasticosTestCase):
     def test_intake_missing_required_fields(self):
         if "plasticos.intake" not in self.env:
             self.skipTest("plasticos.intake not installed")
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(ValidationError):
             with self.env.cr.savepoint():
                 self.env["plasticos.intake"].create({})
 
@@ -115,7 +110,7 @@ class TestInvalidData(PlasticosTestCase):
                 "company_name": "Dup Co",
             }
         )
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(ValidationError):
             with self.env.cr.savepoint():
                 self.env["plasticos.web.lead"].create(
                     {
@@ -154,7 +149,7 @@ class TestInvalidData(PlasticosTestCase):
         partner = self._create_partner()
         Offer = self.env["plasticos.offer"]
         if "price_per_lb" in Offer._fields:
-            with self.assertRaises((ValidationError, IntegrityError)):
+            with self.assertRaises(ValidationError):
                 with self.env.cr.savepoint():
                     Offer.create({"buyer_partner_id": partner.id, "price_per_lb": -1.0})
 

@@ -6,11 +6,6 @@ Target model:  plasticos.material.profile
 
 import uuid
 
-try:
-    from psycopg.errors import IntegrityError
-except ImportError:
-    from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
@@ -130,7 +125,7 @@ class TestMaterialProfileEnhanced(PlasticosTestCase):
                 "form_id": self.form_regrind.id,
             }
         )
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(ValidationError):
             self.Profile.create(
                 {
                     "partner_id": self.facility.id,

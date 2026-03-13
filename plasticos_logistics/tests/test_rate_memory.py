@@ -10,11 +10,6 @@ and update-overwrite behavior.
 import uuid
 from datetime import date, timedelta
 
-try:
-    from psycopg.errors import IntegrityError
-except ImportError:
-    from psycopg2 import IntegrityError
-
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
@@ -67,7 +62,7 @@ class TestRateMemory(PlasticosTestCase):
             lane_key=unique_lane,
             rate_date=unique_date,
         )
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(ValidationError):
             self._create_rate(
                 lane_key=unique_lane,
                 rate_date=unique_date,
