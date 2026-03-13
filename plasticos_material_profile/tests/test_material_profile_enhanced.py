@@ -39,14 +39,14 @@ class TestMaterialProfileEnhanced(PlasticosTestCase):
                 "parent_id": cls.company.id,
             }
         )
-        cls._pp_code = _unique_code("PP_ENH")
+        cls._pp_code = "PP"
         cls.polymer_pp = cls.Polymer.create({"name": "Polypropylene", "code": cls._pp_code})
-        cls.polymer_hdpe = cls.Polymer.create({"name": "HDPE", "code": _unique_code("HDPE_ENH")})
-        cls.form_regrind = cls.Form.create({"name": "Regrind", "code": _unique_code("REGRIND_ENH")})
-        cls.form_pellet = cls.Form.create({"name": "Pellet", "code": _unique_code("PELLET_ENH")})
-        cls._natural_code = _unique_code("NATURAL_ENH")
+        cls.polymer_hdpe = cls.Polymer.create({"name": "HDPE", "code": "HDPE"})
+        cls.form_regrind = cls.Form.create({"name": "Regrind", "code": "REGRIND"})
+        cls.form_pellet = cls.Form.create({"name": "Pellet", "code": "PELLETS"})
+        cls._natural_code = "NATURAL"
         cls.color_natural = cls.Color.create({"name": "Natural", "code": cls._natural_code})
-        cls._pi_code = _unique_code("POST_INDUSTRIAL_ENH")
+        cls._pi_code = "POST_INDUSTRIAL"
         cls.source_pi = cls.SourceType.create(
             {
                 "name": "Post-Industrial",

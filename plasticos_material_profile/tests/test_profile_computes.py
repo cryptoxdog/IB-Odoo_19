@@ -41,21 +41,21 @@ class TestProfileComputes(PlasticosTestCase):
                 "parent_id": cls.parent_company.id,
             }
         )
-        cls._polymer_code = _unique_code("HDPE")
+        cls._polymer_code = "HDPE"
         cls.polymer = cls.env["plasticos.polymer"].create(
             {
                 "name": "High Density Polyethylene",
                 "code": cls._polymer_code,
             }
         )
-        cls._form_code = _unique_code("PELLETS")
+        cls._form_code = "PELLETS"
         cls.form = cls.env["plasticos.material.form"].create(
             {
                 "name": "Pellets",
                 "code": cls._form_code,
             }
         )
-        cls._color_code = _unique_code("NATURAL")
+        cls._color_code = "NATURAL"
         cls.color = cls.env["plasticos.material.color"].create(
             {
                 "name": "Natural",

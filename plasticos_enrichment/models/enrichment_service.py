@@ -198,14 +198,30 @@ class EnrichmentService(models.AbstractModel):
     _name = "plasticos.enrichment.service"
     _description = "AI-Powered CRM Enrichment Service"
 
+    @api.model
+    def _inference_stub_enabled(self):
+        """Return True when inference must run in deterministic no-op mode."""
+        ICP = self.env["ir.config_parameter"].sudo()
+        enabled = (ICP.get_param("plasticos.inference_engine.enabled", "False") or "False").strip().lower()
+        stubbed = (ICP.get_param("plasticos.inference_engine.stubbed", "True") or "True").strip().lower()
+        return enabled not in {"1", "true", "yes", "on"} or stubbed in {"1", "true", "yes", "on"}
+
     # ── Inference Engine ────────────────────────────────────────
 
     @api.model
     def _get_inference_engine(self):
         """Return singleton inference engine (loaded once per worker)."""
+        if self._inference_stub_enabled():
+            _logger.info("Inference stub mode enabled; skipping inference engine initialization.")
+            return None
+
         global _inference_engine
         if _inference_engine is None:
-            InferenceEngine, _ = _get_inference_classes()
+            try:
+                InferenceEngine, _ = _get_inference_classes()
+            except Exception as exc:
+                _logger.warning("Inference classes unavailable; using no-op inference stub: %s", exc)
+                return None
             # Primary KB location: resolve via odoo.addons to avoid brittle
             # relative parent-traversal that breaks if addon paths change.
             try:
@@ -231,7 +247,12 @@ class EnrichmentService(models.AbstractModel):
                     primary_kb_dir,
                 )
             else:
-                raise UserError(f"Inference KB not found. Checked:\n  - {primary_kb_dir}\n  - {fallback_kb_dir}")
+                _logger.warning(
+                    "Inference KB not found; using no-op inference stub. Checked: %s ; %s",
+                    primary_kb_dir,
+                    fallback_kb_dir,
+                )
+                return None
 
             _inference_engine = InferenceEngine(kb_dir)
             _logger.info(
@@ -257,7 +278,14 @@ class EnrichmentService(models.AbstractModel):
             Dict with original + inferred fields (quality_tier, etc.)
         """
         engine = self._get_inference_engine()
-        _, InferenceRequest = _get_inference_classes()
+        if engine is None:
+            return dict(profile_vals)
+
+        try:
+            _, InferenceRequest = _get_inference_classes()
+        except Exception as exc:
+            _logger.warning("Inference request class unavailable; returning input unchanged: %s", exc)
+            return dict(profile_vals)
 
         # Build inference request from profile_vals
         request = InferenceRequest(

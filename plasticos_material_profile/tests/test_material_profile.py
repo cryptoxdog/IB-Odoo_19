@@ -11,8 +11,10 @@ Tests cover:
 
 import uuid
 
+from psycopg.errors import IntegrityError
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests import tagged
 
 
@@ -40,7 +42,7 @@ class TestMaterialProfile(PlasticosTestCase):
                 "parent_id": cls.company.id,
             }
         )
-        cls._polymer_code = _unique_code("hdpe_mp")
+        cls._polymer_code = "HDPE"
         cls.polymer = cls.env["plasticos.polymer"].create(
             {
                 "name": "HDPE-MP",
@@ -49,21 +51,21 @@ class TestMaterialProfile(PlasticosTestCase):
                 "category": "commodity",
             }
         )
-        cls._form_code = _unique_code("regrind_mp")
+        cls._form_code = "REGRIND"
         cls.form = cls.env["plasticos.material.form"].create(
             {
                 "name": "Regrind MP",
                 "code": cls._form_code,
             }
         )
-        cls._color_code = _unique_code("blue_mp")
+        cls._color_code = "BLUE"
         cls.color = cls.env["plasticos.material.color"].create(
             {
                 "name": "Blue MP",
                 "code": cls._color_code,
             }
         )
-        cls._source_type_code = _unique_code("post_industrial_mp")
+        cls._source_type_code = "POST_INDUSTRIAL"
         cls.source_type = cls.env["plasticos.source.type"].create(
             {
                 "name": "Post Industrial MP",
@@ -85,16 +87,17 @@ class TestMaterialProfile(PlasticosTestCase):
 
     def test_unique_partner_polymer_form(self):
         """Duplicate partner + polymer + form raises."""
-        try:
-            self.env["plasticos.material.profile"].create(
-                {
-                    "partner_id": self.facility.id,
-                    "polymer_id": self.polymer.id,
-                    "form_id": self.form.id,
-                }
-            )
-        except Exception:
-            pass  # Expected behavior
+        with self.assertRaises((ValidationError, UserError, IntegrityError)):
+            # Odoo may wrap SQL UNIQUE violation as ValidationError/UserError
+            # depending on ORM path and module load order.
+            with self.env.cr.savepoint():
+                self.env["plasticos.material.profile"].create(
+                    {
+                        "partner_id": self.facility.id,
+                        "polymer_id": self.polymer.id,
+                        "form_id": self.form.id,
+                    }
+                )
 
     def test_partner_must_be_facility(self):
         """Partner must have parent_id."""

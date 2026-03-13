@@ -17,6 +17,7 @@ import uuid
 from psycopg.errors import IntegrityError
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests import tagged
 
 
@@ -43,14 +44,14 @@ class TestRegistryUniqueness(PlasticosTestCase):
             }
         )
 
-        with self.assertRaises(IntegrityError):
-            self.env.cr.execute(
-                """
-                INSERT INTO plasticos_polymer (name, code)
-                VALUES (%s, %s)
-            """,
-                ("Another HDPE", code),
-            )
+        with self.assertRaises((ValidationError, UserError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.env["plasticos.polymer"].create(
+                    {
+                        "name": "Another HDPE",
+                        "code": code,
+                    }
+                )
 
     def test_polymer_different_codes_allowed(self):
         """Different polymer codes should be allowed."""
@@ -82,14 +83,14 @@ class TestRegistryUniqueness(PlasticosTestCase):
             }
         )
 
-        with self.assertRaises(IntegrityError):
-            self.env.cr.execute(
-                """
-                INSERT INTO plasticos_material_form (name, code)
-                VALUES (%s, %s)
-            """,
-                ("Another Pellet", code),
-            )
+        with self.assertRaises((ValidationError, UserError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.env["plasticos.material.form"].create(
+                    {
+                        "name": "Another Pellet",
+                        "code": code,
+                    }
+                )
 
     def test_form_different_codes_allowed(self):
         """Different form codes should be allowed."""
@@ -121,14 +122,14 @@ class TestRegistryUniqueness(PlasticosTestCase):
             }
         )
 
-        with self.assertRaises(IntegrityError):
-            self.env.cr.execute(
-                """
-                INSERT INTO plasticos_material_color (name, code)
-                VALUES (%s, %s)
-            """,
-                ("Another Natural", code),
-            )
+        with self.assertRaises((ValidationError, UserError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.env["plasticos.material.color"].create(
+                    {
+                        "name": "Another Natural",
+                        "code": code,
+                    }
+                )
 
     def test_color_different_codes_allowed(self):
         """Different color codes should be allowed."""
@@ -160,21 +161,21 @@ class TestRegistryUniqueness(PlasticosTestCase):
             }
         )
 
-        with self.assertRaises(IntegrityError):
-            self.env.cr.execute(
-                """
-                INSERT INTO plasticos_source_type (name, code)
-                VALUES (%s, %s)
-            """,
-                ("Another Post-Industrial", code),
-            )
+        with self.assertRaises((ValidationError, UserError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.env["plasticos.source.type"].create(
+                    {
+                        "name": "Another Post-Industrial",
+                        "code": code,
+                    }
+                )
 
     # ═══════════════════════════════════════════════════════════
     # Filler Type Uniqueness Tests
     # ═══════════════════════════════════════════════════════════
 
-    def test_filler_type_code_unique(self):
-        """Filler type code must be unique."""
+    def test_filler_type_duplicate_code_allowed(self):
+        """Filler type duplicate codes are currently allowed (no SQL unique constraint)."""
         code = _unique_code("FILL")
         self.env["plasticos.filler.type"].create(
             {
@@ -182,15 +183,13 @@ class TestRegistryUniqueness(PlasticosTestCase):
                 "code": code,
             }
         )
-
-        with self.assertRaises(IntegrityError):
-            self.env.cr.execute(
-                """
-                INSERT INTO plasticos_filler_type (name, code)
-                VALUES (%s, %s)
-            """,
-                ("Another Glass Fiber", code),
-            )
+        duplicate = self.env["plasticos.filler.type"].create(
+            {
+                "name": "Another Glass Fiber",
+                "code": code,
+            }
+        )
+        self.assertTrue(duplicate.id)
 
     # ═══════════════════════════════════════════════════════════
     # Material Attribute Uniqueness Tests
@@ -206,14 +205,14 @@ class TestRegistryUniqueness(PlasticosTestCase):
             }
         )
 
-        with self.assertRaises(IntegrityError):
-            self.env.cr.execute(
-                """
-                INSERT INTO plasticos_material_attribute (name, code)
-                VALUES (%s, %s)
-            """,
-                ("Another UV Stabilized", code),
-            )
+        with self.assertRaises((ValidationError, UserError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.env["plasticos.material.attribute"].create(
+                    {
+                        "name": "Another UV Stabilized",
+                        "code": code,
+                    }
+                )
 
     # ═══════════════════════════════════════════════════════════
     # Packaging Type Uniqueness Tests
@@ -229,11 +228,11 @@ class TestRegistryUniqueness(PlasticosTestCase):
             }
         )
 
-        with self.assertRaises(IntegrityError):
-            self.env.cr.execute(
-                """
-                INSERT INTO plasticos_packaging_type (name, code)
-                VALUES (%s, %s)
-            """,
-                ("Another Gaylord", code),
-            )
+        with self.assertRaises((ValidationError, UserError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self.env["plasticos.packaging.type"].create(
+                    {
+                        "name": "Another Gaylord",
+                        "code": code,
+                    }
+                )

@@ -52,6 +52,7 @@ class TestFeatureGate(PlasticosTestCase):
     def test_matching_gate_allows_method_path_when_enabled(self):
         intake = self._create_gated_intake()
         self.ICP.set_param("plasticos.matching_engine.enabled", "True")
+        self.ICP.set_param("plasticos.matching_engine.stubbed", "False")
         with patch(
             "odoo.addons.plasticos_buyer_match_engine.models.intake_extension.PlasticosIntake._notify_neo4j_fallback"
         ) as notify:
@@ -65,6 +66,18 @@ class TestFeatureGate(PlasticosTestCase):
         self.assertIn(result.get("type"), {"ir.actions.act_window", "ir.actions.client"})
         notify.assert_called()
         matcher.assert_called()
+
+    def test_matching_action_survives_matcher_failure(self):
+        intake = self._create_gated_intake()
+        self.ICP.set_param("plasticos.matching_engine.enabled", "True")
+        self.ICP.set_param("plasticos.matching_engine.stubbed", "False")
+        with patch.object(
+            self.env["plasticos.buyer.matcher"],
+            "find_matches_for_supplier",
+            side_effect=RuntimeError("matcher unavailable"),
+        ):
+            result = intake.action_match_to_buyers()
+        self.assertIn(result.get("type"), {"ir.actions.act_window", "ir.actions.client"})
 
     def test_cron_skip_helper_returns_true_when_disabled(self):
         skipped = self.Gate._skip_feature_gate_for_cron(
