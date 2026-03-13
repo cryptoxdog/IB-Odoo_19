@@ -1,3 +1,8 @@
+try:
+    from psycopg.errors import IntegrityError
+except ImportError:
+    from psycopg2 import IntegrityError
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
@@ -53,23 +58,22 @@ class TestPlasticosPolymer(PlasticosTestCase):
     # ========================================================================
 
     def test_constraint_name_required(self):
-        """Test name is required"""
-        with self.assertRaises(ValidationError):
+        """Test name is required (NOT NULL constraint)."""
+        with self.assertRaises((ValidationError, IntegrityError)):
             with self.env.cr.savepoint():
                 self.Polymer.create({"code": "NONAME"})
 
     def test_constraint_code_required(self):
-        """Test code is required"""
-        with self.assertRaises(ValidationError):
+        """Test code is required (NOT NULL constraint)."""
+        with self.assertRaises((ValidationError, IntegrityError)):
             with self.env.cr.savepoint():
                 self.Polymer.create({"name": "No Code Polymer"})
 
     def test_constraint_code_unique(self):
-        """Test code must be unique"""
+        """Test code must be unique - ValidationError from create() pre-check."""
         self._create_polymer(code="UNIQUE-TEST")
         with self.assertRaises(ValidationError):
-            with self.env.cr.savepoint():
-                self._create_polymer(code="UNIQUE-TEST")
+            self._create_polymer(code="UNIQUE-TEST")
 
     # ========================================================================
     # CATEGORY TESTS

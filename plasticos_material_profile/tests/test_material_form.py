@@ -1,5 +1,10 @@
 import uuid
 
+try:
+    from psycopg.errors import IntegrityError
+except ImportError:
+    from psycopg2 import IntegrityError
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
@@ -37,20 +42,19 @@ class TestPlasticosMaterialForm(PlasticosTestCase):
         self.assertTrue(record.code)
 
     def test_constraint_name_required(self):
-        """Test name is required"""
-        with self.assertRaises(ValidationError):
+        """Test name is required (NOT NULL constraint)."""
+        with self.assertRaises((ValidationError, IntegrityError)):
             with self.env.cr.savepoint():
                 self.MaterialForm.create({"code": "NO-NAME"})
 
     def test_constraint_code_required(self):
-        """Test code is required"""
-        with self.assertRaises(ValidationError):
+        """Test code is required (NOT NULL constraint)."""
+        with self.assertRaises((ValidationError, IntegrityError)):
             with self.env.cr.savepoint():
                 self.MaterialForm.create({"name": "No Code Form"})
 
     def test_constraint_code_unique(self):
-        """Test code must be unique"""
+        """Test code must be unique - ValidationError from create() pre-check."""
         self._create_form(code="UNIQUE-FORM")
         with self.assertRaises(ValidationError):
-            with self.env.cr.savepoint():
-                self._create_form(code="UNIQUE-FORM")
+            self._create_form(code="UNIQUE-FORM")
