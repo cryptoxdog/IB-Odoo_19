@@ -329,6 +329,25 @@ class PlasticosMaterialProfile(models.Model):
         "A facility may only have one profile per polymer + form combination.",
     )
 
+    @api.constrains("partner_id", "polymer_id", "form_id")
+    def _check_unique_partner_polymer_form(self):
+        for record in self:
+            if record.partner_id and record.polymer_id and record.form_id:
+                duplicate = self.search(
+                    [
+                        ("partner_id", "=", record.partner_id.id),
+                        ("polymer_id", "=", record.polymer_id.id),
+                        ("form_id", "=", record.form_id.id),
+                        ("id", "!=", record.id),
+                    ],
+                    limit=1,
+                )
+                if duplicate:
+                    raise ValidationError(
+                        f"A material profile already exists for {record.partner_id.name} "
+                        f"with polymer '{record.polymer_id.name}' and form '{record.form_id.name}'."
+                    )
+
     # ═════════════════════════════════════════════════════════
     # Computed
     # ═════════════════════════════════════════════════════════

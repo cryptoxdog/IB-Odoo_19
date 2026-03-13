@@ -1,6 +1,7 @@
 import uuid
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 
 
@@ -37,19 +38,19 @@ class TestPlasticosProcessType(PlasticosTestCase):
 
     def test_constraint_name_required(self):
         """Test name is required"""
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValidationError):
             with self.env.cr.savepoint():
                 self.ProcessType.create({"code": "NO-NAME"})
 
     def test_constraint_code_required(self):
         """Test code is required"""
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValidationError):
             with self.env.cr.savepoint():
                 self.ProcessType.create({"name": "No Code Process"})
 
     def test_constraint_code_unique(self):
         """Test code must be unique"""
         self._create_type(code="UNIQUE-PROC")
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValidationError):
             with self.env.cr.savepoint():
                 self._create_type(code="UNIQUE-PROC")

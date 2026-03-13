@@ -1,4 +1,5 @@
-from odoo import fields, models
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class PlasticosMaterialColor(models.Model):
@@ -22,3 +23,17 @@ class PlasticosMaterialColor(models.Model):
         "unique(code)",
         "Material color code must be unique.",
     )
+
+    @api.constrains("code")
+    def _check_code_unique(self):
+        for record in self:
+            if record.code:
+                duplicate = self.search(
+                    [
+                        ("code", "=", record.code),
+                        ("id", "!=", record.id),
+                    ],
+                    limit=1,
+                )
+                if duplicate:
+                    raise ValidationError(f"Material color code '{record.code}' already exists.")

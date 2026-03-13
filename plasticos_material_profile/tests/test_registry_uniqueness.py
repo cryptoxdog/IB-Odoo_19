@@ -1,7 +1,7 @@
 """
 Test registry uniqueness constraints.
 
-Tests all 8 SQL unique constraints:
+Tests all 8 SQL unique constraints (now enforced via @api.constrains):
 - polymer.code
 - form.code
 - color.code
@@ -14,13 +14,8 @@ Tests all 8 SQL unique constraints:
 
 import uuid
 
-try:
-    from psycopg.errors import IntegrityError
-except ImportError:
-    from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 
 
@@ -47,14 +42,13 @@ class TestRegistryUniqueness(PlasticosTestCase):
             }
         )
 
-        with self.assertRaises((ValidationError, UserError, IntegrityError)):
-            with self.env.cr.savepoint():
-                self.env["plasticos.polymer"].create(
-                    {
-                        "name": "Another HDPE",
-                        "code": code,
-                    }
-                )
+        with self.assertRaises(ValidationError):
+            self.env["plasticos.polymer"].create(
+                {
+                    "name": "Another HDPE",
+                    "code": code,
+                }
+            )
 
     def test_polymer_different_codes_allowed(self):
         """Different polymer codes should be allowed."""
@@ -86,14 +80,13 @@ class TestRegistryUniqueness(PlasticosTestCase):
             }
         )
 
-        with self.assertRaises((ValidationError, UserError, IntegrityError)):
-            with self.env.cr.savepoint():
-                self.env["plasticos.material.form"].create(
-                    {
-                        "name": "Another Pellet",
-                        "code": code,
-                    }
-                )
+        with self.assertRaises(ValidationError):
+            self.env["plasticos.material.form"].create(
+                {
+                    "name": "Another Pellet",
+                    "code": code,
+                }
+            )
 
     def test_form_different_codes_allowed(self):
         """Different form codes should be allowed."""
@@ -125,14 +118,13 @@ class TestRegistryUniqueness(PlasticosTestCase):
             }
         )
 
-        with self.assertRaises((ValidationError, UserError, IntegrityError)):
-            with self.env.cr.savepoint():
-                self.env["plasticos.material.color"].create(
-                    {
-                        "name": "Another Natural",
-                        "code": code,
-                    }
-                )
+        with self.assertRaises(ValidationError):
+            self.env["plasticos.material.color"].create(
+                {
+                    "name": "Another Natural",
+                    "code": code,
+                }
+            )
 
     def test_color_different_codes_allowed(self):
         """Different color codes should be allowed."""
@@ -164,21 +156,20 @@ class TestRegistryUniqueness(PlasticosTestCase):
             }
         )
 
-        with self.assertRaises((ValidationError, UserError, IntegrityError)):
-            with self.env.cr.savepoint():
-                self.env["plasticos.source.type"].create(
-                    {
-                        "name": "Another Post-Industrial",
-                        "code": code,
-                    }
-                )
+        with self.assertRaises(ValidationError):
+            self.env["plasticos.source.type"].create(
+                {
+                    "name": "Another Post-Industrial",
+                    "code": code,
+                }
+            )
 
     # ═══════════════════════════════════════════════════════════
     # Filler Type Uniqueness Tests
     # ═══════════════════════════════════════════════════════════
 
-    def test_filler_type_duplicate_code_allowed(self):
-        """Filler type duplicate codes are currently allowed (no SQL unique constraint)."""
+    def test_filler_type_code_unique(self):
+        """Filler type code must be unique."""
         code = _unique_code("FILL")
         self.env["plasticos.filler.type"].create(
             {
@@ -186,13 +177,14 @@ class TestRegistryUniqueness(PlasticosTestCase):
                 "code": code,
             }
         )
-        duplicate = self.env["plasticos.filler.type"].create(
-            {
-                "name": "Another Glass Fiber",
-                "code": code,
-            }
-        )
-        self.assertTrue(duplicate.id)
+
+        with self.assertRaises(ValidationError):
+            self.env["plasticos.filler.type"].create(
+                {
+                    "name": "Another Glass Fiber",
+                    "code": code,
+                }
+            )
 
     # ═══════════════════════════════════════════════════════════
     # Material Attribute Uniqueness Tests
@@ -208,14 +200,13 @@ class TestRegistryUniqueness(PlasticosTestCase):
             }
         )
 
-        with self.assertRaises((ValidationError, UserError, IntegrityError)):
-            with self.env.cr.savepoint():
-                self.env["plasticos.material.attribute"].create(
-                    {
-                        "name": "Another UV Stabilized",
-                        "code": code,
-                    }
-                )
+        with self.assertRaises(ValidationError):
+            self.env["plasticos.material.attribute"].create(
+                {
+                    "name": "Another UV Stabilized",
+                    "code": code,
+                }
+            )
 
     # ═══════════════════════════════════════════════════════════
     # Packaging Type Uniqueness Tests
@@ -231,11 +222,10 @@ class TestRegistryUniqueness(PlasticosTestCase):
             }
         )
 
-        with self.assertRaises((ValidationError, UserError, IntegrityError)):
-            with self.env.cr.savepoint():
-                self.env["plasticos.packaging.type"].create(
-                    {
-                        "name": "Another Gaylord",
-                        "code": code,
-                    }
-                )
+        with self.assertRaises(ValidationError):
+            self.env["plasticos.packaging.type"].create(
+                {
+                    "name": "Another Gaylord",
+                    "code": code,
+                }
+            )

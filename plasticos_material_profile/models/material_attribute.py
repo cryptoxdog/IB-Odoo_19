@@ -1,4 +1,5 @@
-from odoo import fields, models
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class PlasticosMaterialAttribute(models.Model):
@@ -35,3 +36,17 @@ class PlasticosMaterialAttribute(models.Model):
         "unique(code)",
         "Attribute code must be unique.",
     )
+
+    @api.constrains("code")
+    def _check_code_unique(self):
+        for record in self:
+            if record.code:
+                duplicate = self.search(
+                    [
+                        ("code", "=", record.code),
+                        ("id", "!=", record.id),
+                    ],
+                    limit=1,
+                )
+                if duplicate:
+                    raise ValidationError(f"Attribute code '{record.code}' already exists.")
