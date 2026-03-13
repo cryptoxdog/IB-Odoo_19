@@ -11,6 +11,7 @@ Results are written to plasticos.match.result.
 import logging
 
 from odoo import models
+from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -44,5 +45,7 @@ class IntakeGraphHooks(models.Model):
                 supplier_partner_id=intake.partner_id.id, intake_id=intake.id, max_results=20
             )
             _logger.info("Auto-match for normalized intake %s: found %d matches", intake.id, len(matches))
+        except (UserError, ValidationError):
+            raise
         except Exception as exc:
             _logger.warning("Buyer match for intake %s skipped: %s", intake.id, exc)
