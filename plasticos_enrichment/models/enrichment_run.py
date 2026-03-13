@@ -133,6 +133,7 @@ class EnrichmentRun(models.Model):
 
         # Collect extraction results for batch create
         extraction_vals_list = []
+        extraction_errors = []
         for source in succeeded:
             try:
                 parsed = svc.extract_from_source(source)
@@ -151,6 +152,7 @@ class EnrichmentRun(models.Model):
                     }
                 )
             except Exception as e:
+                extraction_errors.append(f"{source.url}: {e}")
                 _logger.error(
                     "Extraction failed for source %s: %s",
                     source.url,
@@ -163,10 +165,13 @@ class EnrichmentRun(models.Model):
 
         # 3. Evaluate
         if not self.extraction_ids:
+            issues = ["All extractions failed."]
+            if extraction_errors:
+                issues.extend(extraction_errors)
             self.write(
                 {
                     "state": "failed",
-                    "validation_issues": ["All extractions failed."],
+                    "validation_issues": issues,
                 }
             )
             return
@@ -177,12 +182,23 @@ class EnrichmentRun(models.Model):
 
         injectable = all(ext.is_injectable for ext in self.extraction_ids)
         if injectable and not all_flags:
-            self.write({"state": "validated"})
+            if extraction_errors:
+                self.write(
+                    {
+                        "state": "review",
+                        "validation_issues": extraction_errors,
+                    }
+                )
+            else:
+                self.write({"state": "validated"})
         else:
+            issues = all_flags or ["Low confidence or governance failure."]
+            if extraction_errors:
+                issues = list(issues) + extraction_errors
             self.write(
                 {
                     "state": "review",
-                    "validation_issues": (all_flags or ["Low confidence or governance failure."]),
+                    "validation_issues": issues,
                 }
             )
 
@@ -445,16 +461,20 @@ class EnrichmentRun(models.Model):
 
         stale_cutoff = fields.Datetime.subtract(fields.Datetime.now(), days=30)
         try:
-            sources = self.env["plasticos.enrichment.source"].search(
-                [
-                    ("crawl_status", "in", ("pending", "success")),
-                    "|",
-                    ("last_crawled_at", "=", False),
-                    ("last_crawled_at", "<", stale_cutoff),
-                ],
-                order="last_crawled_at ASC, id ASC",
-                limit=50,
-            )
+            try:
+                sources = self.env["plasticos.enrichment.source"].search(
+                    [
+                        ("crawl_status", "in", ("pending", "success")),
+                        "|",
+                        ("last_crawled_at", "=", False),
+                        ("last_crawled_at", "<", stale_cutoff),
+                    ],
+                    order="last_crawled_at ASC, id ASC",
+                    limit=50,
+                )
+            except Exception as search_exc:
+                _logger.error("Enrichment cron source search failed: %s", search_exc)
+                return
 
             for pid in sorted(set(sources.mapped("partner_id").ids)):
                 partner_sources = sources.filtered(lambda src, partner_id=pid: src.partner_id.id == partner_id)
@@ -471,6 +491,9 @@ class EnrichmentRun(models.Model):
                 except Exception as exc:
                     run.write({"state": "failed", "validation_issues": [str(exc)]})
                     _logger.error("Enrichment cron failed for partner %s: %s", pid, exc)
+        except Exception as exc:
+            _logger.error("Enrichment cron crashed unexpectedly but was contained: %s", exc)
+            return
         finally:
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_enrichment.cron_enrichment_daily"]
@@ -490,11 +513,15 @@ class EnrichmentRun(models.Model):
         svc = self.env["plasticos.enrichment.service"]
         mat_prof = self.env["plasticos.material.profile"]
         try:
-            profiles = mat_prof.search(
-                [("quality_tier", "=", False), ("polymer_id", "!=", False)],
-                order="write_date ASC, id ASC",
-                limit=100,
-            )
+            try:
+                profiles = mat_prof.search(
+                    [("quality_tier", "=", False), ("polymer_id", "!=", False)],
+                    order="write_date ASC, id ASC",
+                    limit=100,
+                )
+            except Exception as search_exc:
+                _logger.error("Inference cron profile search failed: %s", search_exc)
+                return 0
             count = 0
             for profile in profiles:
                 try:
@@ -505,6 +532,9 @@ class EnrichmentRun(models.Model):
                     _logger.warning("Inference cron failed for profile %s: %s", profile.id, exc)
             _logger.info("Inference cron completed: %d profiles augmented", count)
             return count
+        except Exception as exc:
+            _logger.error("Inference cron crashed unexpectedly but was contained: %s", exc)
+            return 0
         finally:
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_enrichment.cron_inference_standalone"]

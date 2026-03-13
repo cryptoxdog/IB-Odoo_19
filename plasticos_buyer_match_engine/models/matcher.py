@@ -30,6 +30,14 @@ class BuyerMatcher(models.Model):
     _description = "Buyer Matching Orchestrator"
 
     @api.model
+    def _matching_stub_enabled(self):
+        """Return True when buyer matching must run as deterministic empty-result stub."""
+        ICP = self.env["ir.config_parameter"].sudo()
+        enabled = (ICP.get_param("plasticos.matching_engine.enabled", "False") or "False").strip().lower()
+        stubbed = (ICP.get_param("plasticos.matching_engine.stubbed", "True") or "True").strip().lower()
+        return enabled not in {"1", "true", "yes", "on"} or stubbed in {"1", "true", "yes", "on"}
+
+    @api.model
     def find_matches_for_supplier(self, supplier_partner_id, intake_id=None, max_results=20, mode="strict"):
         """
         Find buyer matches for a supplier based on material requirements.
@@ -55,6 +63,14 @@ class BuyerMatcher(models.Model):
                 ...
             ]
         """
+        if self._matching_stub_enabled():
+            _logger.warning(
+                "Buyer matcher stub enabled; returning no candidates for supplier %s (intake=%s).",
+                supplier_partner_id,
+                intake_id,
+            )
+            return []
+
         # Validate supplier exists and has intake data
         supplier = self.env["res.partner"].browse(supplier_partner_id)
         if not supplier.exists():

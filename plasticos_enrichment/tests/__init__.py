@@ -12,3 +12,4 @@ from . import test_normalization
 from . import test_res_partner
 
 from . import test_cron_enrichment
+from . import test_inference_stub
