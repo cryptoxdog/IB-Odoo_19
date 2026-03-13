@@ -196,8 +196,6 @@ class BuyerMatcher(models.Model):
                         "facility_profile_id": buyer_data["profile"].id,
                     }
                 )
-            except (UserError, ValidationError):
-                raise
             except Exception as e:
                 _logger.error("Error scoring buyer %s: %s", buyer_data["profile"].partner_id.name, str(e))
         return scored_buyers
