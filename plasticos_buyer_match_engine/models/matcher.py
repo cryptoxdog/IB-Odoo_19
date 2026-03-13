@@ -20,14 +20,23 @@ import logging
 
 from odoo import _, api, models
 from odoo.addons.plasticos_facility_profile.process_codes import check_mfi_compatibility
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
 
 class BuyerMatcher(models.Model):
     _name = "plasticos.buyer.matcher"
+    _inherit = "plasticos.feature.gate.mixin"
     _description = "Buyer Matching Orchestrator"
+
+    @api.model
+    def _matching_stub_enabled(self):
+        """Return True when buyer matching must run as deterministic empty-result stub."""
+        return (
+            not self._is_feature_enabled("plasticos.matching_engine.enabled")
+            or self._is_feature_stubbed("plasticos.matching_engine.stubbed")
+        )
 
     @api.model
     def find_matches_for_supplier(self, supplier_partner_id, intake_id=None, max_results=20, mode="strict"):
@@ -55,6 +64,14 @@ class BuyerMatcher(models.Model):
                 ...
             ]
         """
+        if self._matching_stub_enabled():
+            _logger.warning(
+                "Buyer matcher stub enabled; returning no candidates for supplier %s (intake=%s).",
+                supplier_partner_id,
+                intake_id,
+            )
+            return []
+
         # Validate supplier exists and has intake data
         supplier = self.env["res.partner"].browse(supplier_partner_id)
         if not supplier.exists():
@@ -136,6 +153,8 @@ class BuyerMatcher(models.Model):
                                 "facility_profile_id": buyer_data["profile"].id,
                             }
                         )
+            except (UserError, ValidationError):
+                raise
             except Exception as e:
                 _logger.error("Error in graph service match_buyers: %s", str(e))
                 scored_buyers = self._fallback_scoring(passed_buyers, supplier_partner_id, material_req, graph_svc)

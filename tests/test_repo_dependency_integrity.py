@@ -65,6 +65,20 @@ LAYER_ORDER = [
     "plasticos_buyer_match_engine",
 ]
 
+# Valid Odoo core/community addons that may not exist in this repo checkout.
+# Keep explicit to preserve phantom dependency detection for unknown names.
+KNOWN_ODOO_ADDONS = {
+    "account",
+    "base",
+    "base_setup",
+    "contacts",
+    "mail",
+    "product",
+    "purchase",
+    "sale_management",
+    "web",
+}
+
 # Model files registered in models/__init__.py (SHA: f64c5c9a)
 EXPECTED_MODEL_IMPORTS = [
     "matcher",
@@ -662,11 +676,20 @@ class TestDependencyIntegrity:
 
     def test_no_phantom_dependencies(self):
         """All dependencies must be known PlasticOS or core Odoo modules."""
-        known_core = {"base", "base_setup", "mail", "contacts", "account", "web"}
         known_plasticos = {m for m in LAYER_ORDER if m.startswith("plasticos_")}
-        allowed = known_core | known_plasticos
+        allowed = KNOWN_ODOO_ADDONS | known_plasticos
         for dep in self.depends:
             assert dep in allowed, f"Unknown dependency '{dep}' — verify it exists in the repo"
+
+    def test_base_setup_is_treated_as_known_odoo_addon(self):
+        """base_setup is a valid Odoo addon even when not present in this repo."""
+        assert "base_setup" in KNOWN_ODOO_ADDONS
+
+    def test_fake_dependency_still_rejected(self):
+        """Guardrail: phantom addons must not be accepted by allowlist."""
+        known_plasticos = {m for m in LAYER_ORDER if m.startswith("plasticos_")}
+        allowed = KNOWN_ODOO_ADDONS | known_plasticos
+        assert "made_up_addon" not in allowed
 
     def test_plasticos_matching_dependency(self):
         """Must depend on plasticos_matching (provides plasticos.match.result)."""

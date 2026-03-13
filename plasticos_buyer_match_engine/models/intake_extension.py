@@ -2,7 +2,7 @@ import logging
 
 from odoo import _, fields, models
 from odoo.addons.plasticos_base.models.feature_gate_mixin import feature_gated
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -43,12 +43,22 @@ class PlasticosIntake(models.Model):
 
             # Use new v2.0 matcher model with mode support
             matcher = self.env["plasticos.buyer.matcher"]
-            matches = matcher.find_matches_for_supplier(
-                supplier_partner_id=record.partner_id.id,
-                intake_id=record.id,
-                max_results=20,
-                mode=record.match_mode or "strict",
-            )
+            try:
+                matches = matcher.find_matches_for_supplier(
+                    supplier_partner_id=record.partner_id.id,
+                    intake_id=record.id,
+                    max_results=20,
+                    mode=record.match_mode or "strict",
+                )
+            except (UserError, ValidationError):
+                raise
+            except Exception as exc:
+                _logger.warning("Buyer matcher unavailable for intake %s: %s", record.id, exc)
+                matches = []
+                self._notify_neo4j_fallback(
+                    record,
+                    _("Buyer matching is currently stubbed/unavailable."),
+                )
 
             _logger.info("Buyer match v2.0 for intake %s: found %d matches", record.name, len(matches))
 

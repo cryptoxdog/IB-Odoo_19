@@ -13,6 +13,8 @@ Tests cover:
 - Cron batch processing
 """
 
+from unittest.mock import patch
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
 from odoo.tests import tagged
@@ -144,3 +146,26 @@ class TestEnrichmentRun(PlasticosTestCase):
         )
         run.invalidate_recordset()
         self.assertAlmostEqual(run.confidence_score, 0.90, places=2)
+
+    def test_execute_persists_extraction_error_details(self):
+        """Extraction API failures are persisted as failed run validation issues."""
+        run = self._create_run()
+        source = self.env["plasticos.enrichment.source"].create(
+            {
+                "partner_id": self.partner.id,
+                "url": "https://example.com/extract-fail",
+                "crawl_status": "success",
+                "raw_content": "test payload",
+            }
+        )
+        run.write({"source_ids": [(6, 0, [source.id])]})
+
+        with patch.object(
+            self.env["plasticos.enrichment.service"].__class__,
+            "extract_from_source",
+            side_effect=Exception("API outage"),
+        ):
+            run.action_execute()
+
+        self.assertEqual(run.state, "failed")
+        self.assertIn("API outage", str(run.validation_issues or []))
