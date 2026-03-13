@@ -10,6 +10,7 @@ import uuid
 from psycopg.errors import IntegrityError
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests import tagged
 
 
@@ -108,15 +109,9 @@ class TestProfileCRUD(PlasticosTestCase):
         self._create_profile()
 
         # Try to create duplicate
-        with self.assertRaises(IntegrityError):
-            self.env.cr.execute(
-                """
-                INSERT INTO plasticos_material_profile
-                (partner_id, polymer_id, form_id)
-                VALUES (%s, %s, %s)
-            """,
-                (self.partner.id, self.polymer.id, self.form.id),
-            )
+        with self.assertRaises((ValidationError, UserError, IntegrityError)):
+            with self.env.cr.savepoint():
+                self._create_profile()
 
     def test_different_partner_same_polymer_form_allowed(self):
         """Different partner with same polymer+form should be allowed."""

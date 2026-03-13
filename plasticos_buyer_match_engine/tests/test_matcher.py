@@ -26,6 +26,7 @@ class TestBuyerMatcher(PlasticosTestCase):
         # Enable feature gate for tests
         # ══════════════════════════════════════════════════════════
         self.env["ir.config_parameter"].sudo().set_param("plasticos.matching_engine.enabled", "True")
+        self.env["ir.config_parameter"].sudo().set_param("plasticos.matching_engine.stubbed", "False")
 
         # ══════════════════════════════════════════════════════════
         # Get or create test material master data
@@ -271,6 +272,13 @@ class TestBuyerMatcher(PlasticosTestCase):
         matcher = self.env["plasticos.buyer.matcher"]
         with self.assertRaises(ValidationError):
             matcher.find_matches_for_supplier(supplier_partner_id=99999)
+
+    def test_stub_mode_returns_empty_without_raising(self):
+        """When stub mode is enabled, matcher returns deterministic empty list."""
+        self.env["ir.config_parameter"].sudo().set_param("plasticos.matching_engine.stubbed", "True")
+        matcher = self.env["plasticos.buyer.matcher"]
+        matches = matcher.find_matches_for_supplier(supplier_partner_id=99999)
+        self.assertEqual(matches, [])
 
     def test_max_results_parameter(self):
         """Test that max_results parameter is respected."""

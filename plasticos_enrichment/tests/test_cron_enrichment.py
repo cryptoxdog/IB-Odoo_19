@@ -58,6 +58,10 @@ class TestEnrichmentCron(PlasticosTestCase):
         with patch.object(type(self.Run), "action_execute", side_effect=Exception("API error")):
             self.Run.action_cron_enrich_pending()  # Should not raise
 
+        failed_run = self.Run.search([("partner_id", "=", self.partner.id)], order="id desc", limit=1)
+        self.assertEqual(failed_run.state, "failed")
+        self.assertIn("API error", str(failed_run.validation_issues or []))
+
     def test_inference_runs_after_injection(self):
         """When run_inference=True, inference runs after injection."""
         # Verified by code inspection — action_run_inference called if state == injected
@@ -82,10 +86,17 @@ class TestEnrichmentCron(PlasticosTestCase):
         with patch.object(
             self.env["plasticos.enrichment.source"].__class__, "search", side_effect=Exception("DB error")
         ):
-            try:
-                self.Run.action_cron_enrich_pending()
-            except Exception:
-                pass
+            self.Run.action_cron_enrich_pending()
+
+    def test_cron_search_exception_is_contained(self):
+        """Unexpected search exceptions are logged and cron returns normally."""
+        with patch.object(
+            self.env["plasticos.enrichment.source"].__class__,
+            "search",
+            side_effect=RuntimeError("search unavailable"),
+        ):
+            result = self.Run.action_cron_enrich_pending()
+            self.assertIsNone(result)
 
 
 class TestInferenceCron(PlasticosTestCase):
@@ -124,3 +135,13 @@ class TestInferenceCron(PlasticosTestCase):
         """Returns integer count of augmented profiles."""
         result = self.Run.action_cron_inference_only()
         self.assertIsInstance(result, int)
+
+    def test_inference_search_exception_returns_zero(self):
+        """Profile search failure is contained and returns 0."""
+        with patch.object(
+            self.env["plasticos.material.profile"].__class__,
+            "search",
+            side_effect=RuntimeError("profile search unavailable"),
+        ):
+            result = self.Run.action_cron_inference_only()
+            self.assertEqual(result, 0)
