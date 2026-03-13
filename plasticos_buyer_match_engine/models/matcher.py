@@ -33,9 +33,8 @@ class BuyerMatcher(models.Model):
     @api.model
     def _matching_stub_enabled(self):
         """Return True when buyer matching must run as deterministic empty-result stub."""
-        return (
-            not self._is_feature_enabled("plasticos.matching_engine.enabled")
-            or self._is_feature_stubbed("plasticos.matching_engine.stubbed")
+        return not self._is_feature_enabled("plasticos.matching_engine.enabled") or self._is_feature_stubbed(
+            "plasticos.matching_engine.stubbed"
         )
 
     @api.model
