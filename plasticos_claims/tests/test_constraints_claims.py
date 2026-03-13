@@ -1,11 +1,5 @@
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
-
-try:
-    from psycopg.errors import IntegrityError
-except ImportError:
-    from psycopg2 import IntegrityError
-
 from odoo.tests import tagged
 
 
@@ -31,10 +25,10 @@ class TestClaimConstraintsValidation(PlasticosTestCase):
         return self.Claim.create(base)
 
     def test_unique_name(self):
+        """Duplicate claim name raises ValidationError from create() pre-check."""
         self._new_claim()
-        with self.assertRaises((ValidationError, IntegrityError)):
-            with self.env.cr.savepoint():
-                self._new_claim()
+        with self.assertRaises(ValidationError):
+            self._new_claim()
 
     def test_resolution_note_required_on_resolve(self):
         claim = self._new_claim(state="in_progress")

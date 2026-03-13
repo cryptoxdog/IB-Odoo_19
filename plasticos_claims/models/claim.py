@@ -224,10 +224,19 @@ class PlasticosClaim(models.Model):
         for vals in vals_list:
             if vals.get("name", "New") == "New":
                 vals["name"] = self.env["ir.sequence"].next_by_code("plasticos.claim") or "New"
+            name = vals.get("name")
+            if name and name != "New" and self.search([("name", "=", name)], limit=1):
+                raise ValidationError(f"Claim reference '{name}' already exists.")
         return super().create(vals_list)
 
     def write(self, vals):
         """Guard against modifying archived claims (except state changes)."""
+        name = vals.get("name")
+        if name:
+            for record in self:
+                duplicate = self.search([("name", "=", name), ("id", "!=", record.id)], limit=1)
+                if duplicate:
+                    raise ValidationError(f"Claim reference '{name}' already exists.")
         if "state" not in vals:
             for rec in self:
                 if rec.state == "archived":

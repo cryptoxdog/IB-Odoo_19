@@ -7,13 +7,8 @@ Test material profile CRUD operations.
 
 import uuid
 
-try:
-    from psycopg.errors import IntegrityError
-except ImportError:
-    from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 
 
@@ -111,10 +106,9 @@ class TestProfileCRUD(PlasticosTestCase):
         """Profile must be unique per partner+polymer+form combination."""
         self._create_profile()
 
-        # Try to create duplicate
-        with self.assertRaises((ValidationError, UserError, IntegrityError)):
-            with self.env.cr.savepoint():
-                self._create_profile()
+        # Try to create duplicate - ValidationError raised by create() pre-check
+        with self.assertRaises(ValidationError):
+            self._create_profile()
 
     def test_different_partner_same_polymer_form_allowed(self):
         """Different partner with same polymer+form should be allowed."""

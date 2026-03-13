@@ -44,13 +44,19 @@ EXCLUDED_DIRS = {
     "plasticos_enrichment_bridge",
 }
 
+# Repo-root level folders to exclude (not module-level tests/)
+EXCLUDED_ROOT_DIRS = {"tests", "tests-odoo"}
+
 
 def find_python_files():
     """Find all Python model files."""
     for path in WORKSPACE.rglob("*.py"):
+        # Exclude directories anywhere in path
         if any(excl in path.parts for excl in EXCLUDED_DIRS):
             continue
-        if "/tests/" in str(path) or path.name.startswith("test_"):
+        # Exclude repo-root level folders only (not module tests/)
+        rel_path = path.relative_to(WORKSPACE)
+        if rel_path.parts and rel_path.parts[0] in EXCLUDED_ROOT_DIRS:
             continue
         yield path
 

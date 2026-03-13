@@ -761,9 +761,18 @@ class PlasticosTransaction(models.Model):
         for vals in vals_list:
             if vals.get("name", "New") == "New":
                 vals["name"] = self.env["ir.sequence"].next_by_code(PLASTICOS_TRANSACTION) or "New"
+            name = vals.get("name")
+            if name and name != "New" and self.search([("name", "=", name)], limit=1):
+                raise ValidationError(f"Transaction reference '{name}' already exists.")
         return super().create(vals_list)
 
     def write(self, vals):
+        name = vals.get("name")
+        if name:
+            for record in self:
+                duplicate = self.search([("name", "=", name), ("id", "!=", record.id)], limit=1)
+                if duplicate:
+                    raise ValidationError(f"Transaction reference '{name}' already exists.")
         for rec in self:
             self._validate_state_transition(rec, vals)
             self._validate_write_immutability(rec, vals)

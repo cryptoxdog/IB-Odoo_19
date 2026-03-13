@@ -53,20 +53,39 @@ class PlasticosDocumentValidationMatrix(models.Model):
     )
     active = fields.Boolean(default=True)
 
-    @api.constrains("doc_category", "tag_id")
-    def _check_unique_category_tag(self):
-        """Prevent duplicate category+tag combinations."""
-        for rec in self:
-            existing = self.search(
-                [
-                    ("doc_category", "=", rec.doc_category),
-                    ("tag_id", "=", rec.tag_id.id),
-                    ("id", "!=", rec.id),
-                    ("active", "=", True),
-                ]
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            self._check_unique_category_tag_before_save(
+                vals.get("doc_category"),
+                vals.get("tag_id"),
+                vals.get("active", True),
             )
-            if existing:
+        return super().create(vals_list)
+
+    def write(self, vals):
+        for record in self:
+            doc_category = vals.get("doc_category", record.doc_category)
+            tag_id = vals.get("tag_id", record.tag_id.id)
+            active = vals.get("active", record.active)
+            if "doc_category" in vals or "tag_id" in vals or "active" in vals:
+                self._check_unique_category_tag_before_save(doc_category, tag_id, active, exclude_id=record.id)
+        return super().write(vals)
+
+    def _check_unique_category_tag_before_save(self, doc_category, tag_id, active, exclude_id=None):
+        """Check for duplicate category+tag combinations before SQL insert."""
+        if not active:
+            return
+        if doc_category and tag_id:
+            domain = [
+                ("doc_category", "=", doc_category),
+                ("tag_id", "=", tag_id),
+                ("active", "=", True),
+            ]
+            if exclude_id:
+                domain.append(("id", "!=", exclude_id))
+            if self.search(domain, limit=1):
+                tag = self.env["plasticos.document.tag"].browse(tag_id)
                 raise ValidationError(
-                    "A validation matrix entry for category '%s' with tag '%s' "
-                    "already exists." % (rec.doc_category, rec.tag_id.name)
+                    f"A validation matrix entry for category '{doc_category}' with tag '{tag.name}' already exists."
                 )

@@ -11,13 +11,8 @@ Tests cover:
 
 import uuid
 
-try:
-    from psycopg.errors import IntegrityError
-except ImportError:
-    from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 
 
@@ -89,18 +84,15 @@ class TestMaterialProfile(PlasticosTestCase):
     # ── Constraints ─────────────────────────────────────────────
 
     def test_unique_partner_polymer_form(self):
-        """Duplicate partner + polymer + form raises."""
-        with self.assertRaises((ValidationError, UserError, IntegrityError)):
-            # Odoo may wrap SQL UNIQUE violation as ValidationError/UserError
-            # depending on ORM path and module load order.
-            with self.env.cr.savepoint():
-                self.env["plasticos.material.profile"].create(
-                    {
-                        "partner_id": self.facility.id,
-                        "polymer_id": self.polymer.id,
-                        "form_id": self.form.id,
-                    }
-                )
+        """Duplicate partner + polymer + form raises ValidationError from create() pre-check."""
+        with self.assertRaises(ValidationError):
+            self.env["plasticos.material.profile"].create(
+                {
+                    "partner_id": self.facility.id,
+                    "polymer_id": self.polymer.id,
+                    "form_id": self.form.id,
+                }
+            )
 
     def test_partner_must_be_facility(self):
         """Partner must have parent_id."""

@@ -316,12 +316,24 @@ class PlasticosFacilityProfile(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        for vals in vals_list:
+            partner_id = vals.get("partner_id")
+            if partner_id and self.search([("partner_id", "=", partner_id)], limit=1):
+                partner = self.env["res.partner"].browse(partner_id)
+                raise ValidationError(f"A capability profile for facility '{partner.name}' already exists.")
         records = super().create(vals_list)
         for record in records:
             record._emit_capability_packet()
         return records
 
     def write(self, vals):
+        partner_id = vals.get("partner_id")
+        if partner_id:
+            for record in self:
+                duplicate = self.search([("partner_id", "=", partner_id), ("id", "!=", record.id)], limit=1)
+                if duplicate:
+                    partner = self.env["res.partner"].browse(partner_id)
+                    raise ValidationError(f"A capability profile for facility '{partner.name}' already exists.")
         res = super().write(vals)
         for rec in self:
             rec._emit_capability_packet()
