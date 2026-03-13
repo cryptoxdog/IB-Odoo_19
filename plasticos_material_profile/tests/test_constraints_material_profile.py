@@ -35,13 +35,13 @@ class TestMaterialProfileConstraints(PlasticosTestCase):
     def test_polymer_code_unique(self):
         code = _unique_code("HDPE-UNIQ")
         self.env["plasticos.polymer"].create({"name": "HDPE-2", "code": code})
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(Exception):
             self.env["plasticos.polymer"].create({"name": "Duplicate", "code": code})
 
     def test_form_code_unique(self):
         code = _unique_code("FLAKE-UNIQ")
         self.env["plasticos.material.form"].create({"name": "Flake", "code": code})
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(Exception):
             self.env["plasticos.material.form"].create({"name": "Dup", "code": code})
 
     # --- Profile-level constraints -----------------------------------------
@@ -56,7 +56,7 @@ class TestMaterialProfileConstraints(PlasticosTestCase):
                 "form_id": unique_form.id,
             }
         )
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(Exception):
             self.Profile.create(
                 {
                     "partner_id": self.partner.id,

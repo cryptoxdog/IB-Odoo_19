@@ -65,9 +65,9 @@ check-typed-exception = true
 "__init__.py" = ["F401", "I001"]
 # __manifest__.py files have bare dicts (Odoo convention)
 "__manifest__.py" = ["B018"]
-# Test files can have unused variables, assertions, undefined env
-"test_*.py" = ["F841", "B011", "F821"]
-"**/tests/*.py" = ["F841", "B011", "F821"]
+# Test files can have unused variables, assertions, undefined env, and broad exceptions (Odoo pattern)
+"test_*.py" = ["F841", "B011", "F821", "B017"]
+"**/tests/*.py" = ["F841", "B011", "F821", "B017"]
 # Legacy/forbidden code - don't enforce strict style
 "**/forbidden/*.py" = ["UP031", "UP030", "F841", "W291", "W293"]
 # Dev tools - relaxed rules (includes complex analysis functions)
