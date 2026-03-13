@@ -1,10 +1,5 @@
 import uuid
 
-try:
-    from psycopg.errors import IntegrityError
-except ImportError:
-    from psycopg2 import IntegrityError
-
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
 from odoo.tests import tagged
@@ -49,23 +44,22 @@ class TestPlasticosCommissionRuleBridge(PlasticosTestCase):
 
     def test_constraint_name_required(self):
         """Test name is required (explicitly pass False to override default)"""
-        with self.assertRaises((ValidationError, IntegrityError)):
-            with self.env.cr.savepoint():
-                self.env["plasticos.commission.rule"].create(
-                    {
-                        "name": False,
-                        "sales_rep_id": self.test_sales_rep.id,
-                        "percentage": 0.05,
-                    }
-                )
+        with self.assertRaises(ValidationError):
+            self.env["plasticos.commission.rule"].create(
+                {
+                    "name": False,
+                    "sales_rep_id": self.test_sales_rep.id,
+                    "percentage": 0.05,
+                }
+            )
 
     def test_constraint_sales_rep_id_required(self):
         """Test sales_rep_id is required"""
-        with self.assertRaises((ValidationError, IntegrityError)):
-            with self.env.cr.savepoint():
-                self.env["plasticos.commission.rule"].create(
-                    {
-                        "name": "No Sales Rep Rule",
-                        "percentage": 0.05,
-                    }
-                )
+        with self.assertRaises(ValidationError):
+            self.env["plasticos.commission.rule"].create(
+                {
+                    "name": "No Sales Rep Rule",
+                    "sales_rep_id": False,  # Explicitly pass False to test constraint
+                    "percentage": 0.05,
+                }
+            )

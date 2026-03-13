@@ -32,6 +32,20 @@ class PlasticosCommissionRule(models.Model):
         for rec in self:
             rec.percentage = (rec.display_percentage or 0.0) / 100
 
+    @api.constrains("name")
+    def _check_name_required(self):
+        """Ensure name is not empty or falsy."""
+        for rec in self:
+            if not rec.name:
+                raise ValidationError("Commission rule name is required.")
+
+    @api.constrains("sales_rep_id")
+    def _check_sales_rep_required(self):
+        """Ensure sales_rep_id is set."""
+        for rec in self:
+            if not rec.sales_rep_id:
+                raise ValidationError("Sales representative is required.")
+
     @api.constrains("percentage")
     def _check_percentage_range(self):
         """Validate commission rate is a valid fraction 0.0–1.0."""
