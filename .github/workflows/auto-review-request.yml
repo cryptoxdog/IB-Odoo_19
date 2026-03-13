@@ -1,0 +1,23 @@
+name: Auto Request Review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+    branches: [staging, main]
+
+jobs:
+  request-review:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Request review from owner
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              reviewers: ['cryptoxdog']
+            });
+            console.log('Review requested from cryptoxdog');
