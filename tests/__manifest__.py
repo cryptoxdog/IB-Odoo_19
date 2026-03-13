@@ -22,7 +22,7 @@
         "plasticos_automation",
     ],
     "data": [],
-    "installable": True,
+    "installable": False,  # Tests run via pytest, not as installed Odoo module
     "application": False,
     "auto_install": False,
     "license": "LGPL-3",
