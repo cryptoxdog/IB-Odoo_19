@@ -38,6 +38,7 @@ EXPECTED_NAME = "PlasticOS Buyer Match Engine"
 EXPECTED_VERSION = "19.0.2.0.0"
 EXPECTED_CATEGORY = "Plasticos/Matching"
 EXPECTED_DEPENDS = [
+    "base_setup",
     "plasticos_base",
     "plasticos_intake",
     "plasticos_material_profile",
@@ -661,7 +662,7 @@ class TestDependencyIntegrity:
 
     def test_no_phantom_dependencies(self):
         """All dependencies must be known PlasticOS or core Odoo modules."""
-        known_core = {"base", "mail", "contacts", "account", "web"}
+        known_core = {"base", "base_setup", "mail", "contacts", "account", "web"}
         known_plasticos = {m for m in LAYER_ORDER if m.startswith("plasticos_")}
         allowed = known_core | known_plasticos
         for dep in self.depends:
