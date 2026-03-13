@@ -7,7 +7,10 @@ Service:       services/rate_engine.py
 
 from datetime import timedelta
 
-from psycopg.errors import IntegrityError
+try:
+    from psycopg.errors import IntegrityError
+except ImportError:
+    from psycopg2 import IntegrityError
 
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase

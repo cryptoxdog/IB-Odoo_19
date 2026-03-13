@@ -2,7 +2,7 @@ import uuid
 
 try:
     from psycopg.errors import IntegrityError
-except ModuleNotFoundError:  # psycopg v3 not installed
+except ImportError:
     from psycopg2 import IntegrityError
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase

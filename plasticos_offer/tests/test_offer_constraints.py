@@ -5,7 +5,10 @@ Test offer SQL constraints.
 - quantity > 0
 """
 
-from psycopg.errors import IntegrityError
+try:
+    from psycopg.errors import IntegrityError
+except ImportError:
+    from psycopg2 import IntegrityError
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
