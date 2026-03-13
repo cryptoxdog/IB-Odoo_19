@@ -6,28 +6,6 @@ to avoid NOT NULL and UniqueViolation failures across plasticos test modules.
 
 from __future__ import annotations
 
-import contextlib
-
-
-@contextlib.contextmanager
-def assert_raises_any(*exceptions):
-    """Context manager that asserts any of the given exceptions is raised.
-
-    Odoo 19's assertRaises doesn't accept a tuple of exceptions, so we use this
-    helper for tests that need to catch either ValidationError or IntegrityError.
-
-    Usage:
-        with assert_raises_any(ValidationError, IntegrityError):
-            some_operation_that_should_fail()
-    """
-    try:
-        yield
-    except exceptions:
-        pass
-    else:
-        raise AssertionError(f"Expected one of {exceptions} to be raised")
-
-
 # Odoo 19 guard: importing odoo.tests outside --test-enable logs an ERROR at
 # startup and causes Odoo.sh to mark the build as failed.
 # We use odoo.tools.config to detect test mode and fall back to unittest.TestCase
