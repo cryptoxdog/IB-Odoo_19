@@ -2,9 +2,9 @@ name: Odoo Code Audit
 
 on:
   push:
-    branches: [main, master, develop, staging]
+    branches: [staging, main]
   pull_request:
-    branches: [main, master, develop, staging]
+    branches: [staging, main]
 
 
 concurrency:
