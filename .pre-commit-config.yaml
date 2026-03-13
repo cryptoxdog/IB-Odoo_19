@@ -134,6 +134,20 @@ repos:
         pass_filenames: false
         stages: [pre-commit, pre-push]
 
+      - id: constraint-patterns
+        name: Constraint pattern check
+        entry: python3 ci/check_constraint_patterns.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+
+      - id: disabled-actions
+        name: Disabled action reference check
+        entry: python3 ci/check_disabled_actions.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+
       # Index generation disabled - run manually: python3 scripts/export_odoo_index.py
       # - id: export-odoo-index
       #   name: Export Odoo repo index
