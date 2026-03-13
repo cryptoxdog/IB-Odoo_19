@@ -32,6 +32,7 @@
         "security/security_groups.xml",
         "security/record_rules.xml",
         "security/ir.model.access.csv",
+        "data/res_users_admin.xml",
         "views/res_partner_views.xml",
     ],
     "installable": True,
