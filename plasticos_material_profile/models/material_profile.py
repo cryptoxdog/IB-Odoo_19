@@ -333,6 +333,17 @@ class PlasticosMaterialProfile(models.Model):
     # Computed
     # ═════════════════════════════════════════════════════════
 
+    @api.depends("polymer_id.name", "form_id.name", "color_id.name")
+    def _compute_display_name(self):
+        for rec in self:
+            parts = [
+                rec.polymer_id.name or "",
+                rec.form_id.name or "",
+            ]
+            if rec.color_id:
+                parts.append(rec.color_id.name)
+            rec.display_name = " / ".join(p for p in parts if p) or rec._name
+
     @api.depends("polymer_id", "polymer_id.code")
     def _compute_polymer_code(self):
         valid_codes = {k for k, _ in self._fields["polymer"].selection}

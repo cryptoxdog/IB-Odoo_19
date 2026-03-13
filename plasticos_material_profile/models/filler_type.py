@@ -11,3 +11,8 @@ class PlasticosFillerType(models.Model):
     description = fields.Text()
     sequence = fields.Integer(default=10)
     active = fields.Boolean(default=True)
+
+    _unique_code = models.Constraint(
+        "unique(code)",
+        "Filler type code must be unique.",
+    )
