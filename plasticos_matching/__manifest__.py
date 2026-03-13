@@ -15,6 +15,6 @@
         "security/ir.model.access.csv",
         "views/match_result_views.xml",
     ],
-    "installable": True,
+    "installable": False,  # Microservice - will be external API
     "application": False,
 }

@@ -48,37 +48,13 @@ class MaterialProfileCRMBridge(models.Model):
 
         A match is 'for this profile' when the intake's supplier and
         polymer match this material profile's partner + polymer.
+
+        NOTE: plasticos_matching is disabled (external microservice).
         """
-        MatchResult = self.env["plasticos.match.result"]
-        Intake = self.env["plasticos.intake"]
         for rec in self:
-            if not rec.partner_id or not rec.polymer_id:
-                rec.match_count = 0
-                rec.best_match_score = 0.0
-                rec.pending_match_count = 0
-                continue
-
-            # Find intakes for this facility + polymer
-            intakes = Intake.search(
-                [
-                    ("partner_id", "=", rec.partner_id.id),
-                    ("polymer_id", "=", rec.polymer_id.id),
-                ]
-            )
-            if not intakes:
-                rec.match_count = 0
-                rec.best_match_score = 0.0
-                rec.pending_match_count = 0
-                continue
-
-            matches = MatchResult.search(
-                [
-                    ("intake_id", "in", intakes.ids),
-                ]
-            )
-            rec.match_count = len(matches)
-            rec.best_match_score = max(matches.mapped("score"), default=0.0)
-            rec.pending_match_count = len(matches.filtered(lambda m: m.state == "pending"))
+            rec.match_count = 0
+            rec.best_match_score = 0.0
+            rec.pending_match_count = 0
 
     @api.depends("partner_id", "polymer_id")
     def _compute_tx_stats(self):
@@ -113,20 +89,20 @@ class MaterialProfileCRMBridge(models.Model):
     # standalone functions (dead code). Now properly indented as methods.
 
     def action_view_match_results(self):
-        """Navigate to match results for this material profile."""
+        """Navigate to match results for this material profile.
+
+        NOTE: plasticos_matching is disabled (external microservice).
+        Returns notification instead of window action.
+        """
         self.ensure_one()
-        intakes = self.env["plasticos.intake"].search(
-            [
-                ("partner_id", "=", self.partner_id.id),
-                ("polymer_id", "=", self.polymer_id.id),
-            ]
-        )
         return {
-            "type": "ir.actions.act_window",
-            "name": f"Matches — {self.polymer_id.name} @ {self.partner_id.name}",
-            "res_model": "plasticos.match.result",
-            "view_mode": "list,form",
-            "domain": [("intake_id", "in", intakes.ids)],
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": "Feature Disabled",
+                "message": "Matching is handled by external microservice.",
+                "type": "warning",
+            },
         }
 
     def action_view_transactions(self):

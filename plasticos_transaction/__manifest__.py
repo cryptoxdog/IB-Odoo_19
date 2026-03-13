@@ -17,7 +17,7 @@
         "plasticos_intake",
         "plasticos_product",
         "plasticos_offer",
-        "plasticos_matching",
+        # "plasticos_matching",  # Disabled - external microservice
         "plasticos_commission",
     ],
     "data": [
@@ -38,7 +38,7 @@
         "views/intake_bridge_views.xml",
         "views/partner_bridge_views.xml",
         "views/offer_bridge_views.xml",
-        "views/match_result_bridge_views.xml",
+        # "views/match_result_bridge_views.xml",  # Disabled - plasticos_matching is external
     ],
     "post_init_hook": "post_init_hook",
     "installable": True,

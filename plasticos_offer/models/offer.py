@@ -37,13 +37,14 @@ class PlasticosOffer(models.Model):
     # Origin
     # ═════════════════════════════════════════════════════════
 
-    match_result_id = fields.Many2one(
-        "plasticos.match.result",
-        string="Match Result",
-        index=True,
-        ondelete="set null",
-        help="The match result that originated this offer, if any.",
-    )
+    # match_result_id disabled - plasticos_matching is external microservice
+    # match_result_id = fields.Many2one(
+    #     "plasticos.match.result",
+    #     string="Match Result",
+    #     index=True,
+    #     ondelete="set null",
+    #     help="The match result that originated this offer, if any.",
+    # )
     intake_id = fields.Many2one(
         "plasticos.intake",
         string="Intake",

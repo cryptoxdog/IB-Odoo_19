@@ -23,7 +23,7 @@
         "views/enrichment_source_views.xml",
         "views/res_partner_enrichment.xml",
     ],
-    "installable": True,
+    "installable": False,  # Microservice - will be external API
     "application": False,
     "license": "LGPL-3",
 }

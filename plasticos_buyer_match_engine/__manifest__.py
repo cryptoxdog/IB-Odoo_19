@@ -38,7 +38,7 @@
         "python": ["neo4j"],
     },
     "post_init_hook": "post_init_hook",
-    "installable": True,
+    "installable": False,  # Microservice - will be external API
     "application": False,
     "license": "LGPL-3",
 }

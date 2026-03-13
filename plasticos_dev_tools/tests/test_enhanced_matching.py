@@ -12,7 +12,7 @@ from odoo.exceptions import UserError, ValidationError
 from odoo.tests import tagged
 
 
-@tagged("post_install", "-at_install")
+@tagged("post_install", "-at_install", "-standard", "disabled")  # Disabled - plasticos_matching external
 class TestEnhancedBuyerMatching(PlasticosTestCase):
     """Test enhanced buyer matching with exclusions and result lifecycle."""
 

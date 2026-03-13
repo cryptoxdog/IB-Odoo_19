@@ -21,7 +21,7 @@
         "plasticos_intake",
         "plasticos_material_profile",
         "plasticos_facility_profile",
-        "plasticos_matching",
+        # "plasticos_matching",  # Disabled - external microservice
         "plasticos_offer",
         "plasticos_logistics",
         "plasticos_documents",

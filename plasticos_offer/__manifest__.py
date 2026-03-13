@@ -10,7 +10,7 @@
         "base",
         "mail",
         "plasticos_intake",
-        "plasticos_matching",
+        # "plasticos_matching",  # Disabled - external microservice
     ],
     "data": [
         "security/ir.model.access.csv",

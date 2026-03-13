@@ -2,7 +2,7 @@ from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests import tagged
 
 
-@tagged("post_install", "-at_install")
+@tagged("post_install", "-at_install", "-standard", "disabled")  # Disabled - plasticos_matching external
 class TestMatchResultBridge(PlasticosTestCase):
     """Test suite for plasticos.match.result extensions."""
 

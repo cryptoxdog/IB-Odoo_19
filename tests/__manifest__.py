@@ -15,10 +15,10 @@
         "plasticos_documents",
         "plasticos_web_leads",
         "plasticos_crm_bridge",
-        "plasticos_buyer_match_engine",
+        # "plasticos_buyer_match_engine",  # Disabled - external microservice
         "plasticos_material_profile",
         "plasticos_facility_profile",
-        "plasticos_enrichment",
+        # "plasticos_enrichment",  # Disabled - external microservice
         "plasticos_automation",
     ],
     "data": [],

@@ -216,7 +216,7 @@
                     <div class="oe_button_box" name="button_box"/>
                     <group>
                         <group string="Origin" name="origin">
-                            <field name="match_result_id"/>
+                            <!-- match_result_id disabled - external microservice -->
                             <field name="intake_id"/>
                         </group>
                         <group string="Parties">
