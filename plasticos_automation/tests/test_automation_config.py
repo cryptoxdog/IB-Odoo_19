@@ -4,7 +4,8 @@ Target module: plasticos_automation
 Target model:  plasticos.automation.config
 """
 
-from psycopg.errors import IntegrityError
+
+from psycopg2 import IntegrityError
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
@@ -47,7 +48,7 @@ class TestAutomationConfig(PlasticosTestCase):
 
     def test_singleton_constraint_prevents_two_active(self):
         """Only one active configuration record is allowed."""
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(IntegrityError), self.env.cr.savepoint():
             self.Config.create(
                 {
                     "name": "Duplicate Config",

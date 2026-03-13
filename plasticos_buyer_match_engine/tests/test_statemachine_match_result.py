@@ -5,10 +5,11 @@ States: pending → accepted | rejected | expired
 Source: plasticos_matching/models/match_result.py
 """
 
-from psycopg.errors import IntegrityError
+
+from psycopg2 import IntegrityError
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import UserError
 from odoo.tests import tagged
 
 
@@ -100,17 +101,17 @@ class TestMatchResultStateMachine(PlasticosTestCase):
 
     # ── SQL constraints ──────────────────────────────────────
     def test_score_range_constraint(self):
-        with self.assertRaises((ValidationError, UserError, IntegrityError)):
+        with self.assertRaises(IntegrityError):
             with self.env.cr.savepoint():
                 self._result(score=101.0)
 
     def test_confidence_range_constraint(self):
-        with self.assertRaises((ValidationError, UserError, IntegrityError)):
+        with self.assertRaises(IntegrityError):
             with self.env.cr.savepoint():
                 self._result(confidence=-1.0)
 
     def test_unique_match_per_run(self):
         self._result(run_id="UNIQ-1")
-        with self.assertRaises((ValidationError, UserError, IntegrityError)):
+        with self.assertRaises(IntegrityError):
             with self.env.cr.savepoint():
                 self._result(run_id="UNIQ-1")

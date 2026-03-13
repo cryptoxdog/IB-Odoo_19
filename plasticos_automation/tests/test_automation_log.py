@@ -8,7 +8,8 @@ Tests cover:
     - Search and filtering
 """
 
-from psycopg.errors import IntegrityError
+
+from psycopg2 import IntegrityError
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError
@@ -75,7 +76,7 @@ class TestPlasticosAutomationLog(PlasticosTestCase):
 
     def test_constraint_name_required(self):
         """Test that name field is required."""
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(IntegrityError):
             with self.env.cr.savepoint():
                 self.AutomationLog.create(
                     {
@@ -87,7 +88,7 @@ class TestPlasticosAutomationLog(PlasticosTestCase):
 
     def test_constraint_model_name_required(self):
         """Test that model_name field is required."""
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(IntegrityError):
             with self.env.cr.savepoint():
                 self.AutomationLog.create(
                     {
@@ -99,7 +100,7 @@ class TestPlasticosAutomationLog(PlasticosTestCase):
 
     def test_constraint_res_id_required(self):
         """Test that res_id field is required."""
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(IntegrityError):
             with self.env.cr.savepoint():
                 self.AutomationLog.create(
                     {
@@ -111,7 +112,7 @@ class TestPlasticosAutomationLog(PlasticosTestCase):
 
     def test_constraint_action_type_required(self):
         """Test that action_type field is required."""
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(IntegrityError):
             with self.env.cr.savepoint():
                 self.AutomationLog.create(
                     {

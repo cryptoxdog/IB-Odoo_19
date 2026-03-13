@@ -4,10 +4,10 @@ Target module: plasticos_documents
 Target model:  plasticos.document.rule
 """
 
-from psycopg.errors import IntegrityError
+
+from psycopg2 import IntegrityError
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 
 
@@ -49,7 +49,7 @@ class TestDocumentRules(PlasticosTestCase):
                 "client_id": self.partner.id,
             }
         )
-        with self.assertRaises((ValidationError, IntegrityError)):
+        with self.assertRaises(IntegrityError), self.env.cr.savepoint():
             self.Rule.create(
                 {
                     "name": "BOL for TX - Client A (dup)",

@@ -12,8 +12,10 @@ Validates:
   - SQL constraints (score range, uniqueness)
 """
 
+from psycopg2 import IntegrityError
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import UserError
 from odoo.tests.common import tagged
 
 
@@ -146,25 +148,25 @@ class TestMatchResultStateMachine(PlasticosTestCase):
     def test_score_range_constraint_lower(self):
         """Score < 0 violates SQL constraint."""
         self._skip_check()
-        with self.assertRaises((UserError, ValidationError)):
+        with self.assertRaises(IntegrityError), self.env.cr.savepoint():
             self._make_match(score=-1.0)
 
     def test_score_range_constraint_upper(self):
         """Score > 100 violates SQL constraint."""
         self._skip_check()
-        with self.assertRaises((UserError, ValidationError)):
+        with self.assertRaises(IntegrityError), self.env.cr.savepoint():
             self._make_match(score=101.0)
 
     def test_confidence_range_constraint(self):
         self._skip_check()
-        with self.assertRaises((UserError, ValidationError)):
+        with self.assertRaises(IntegrityError), self.env.cr.savepoint():
             self._make_match(confidence=-5.0)
 
     def test_uniqueness_constraint(self):
         """Same intake + buyer + run_id should fail."""
         self._skip_check()
         self._make_match(run_id="dup-run")
-        with self.assertRaises((UserError, ValidationError)):
+        with self.assertRaises(IntegrityError), self.env.cr.savepoint():
             self._make_match(run_id="dup-run")
 
     # ── Display name ─────────────────────────────────────────

@@ -5,7 +5,7 @@ Test transaction SQL and Python constraints.
 - commission_override_pct range (0.0-1.0)
 """
 
-from psycopg.errors import IntegrityError
+from psycopg2 import IntegrityError
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import ValidationError

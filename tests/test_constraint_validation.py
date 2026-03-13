@@ -121,7 +121,7 @@ class TestConstraintValidation(PlasticosTestCase):
         if "plasticos.match.exclusion" not in self.env:
             return
         Exclusion = self.env["plasticos.match.exclusion"]
-        with self.assertRaises((ValidationError, Exception)):
+        with self.assertRaises(ValidationError):
             Exclusion.create(
                 {
                     "supplier_partner_id": self.partner_a.id,

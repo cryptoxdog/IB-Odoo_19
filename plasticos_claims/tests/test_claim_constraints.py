@@ -5,7 +5,7 @@ Test claim constraints.
 - resolution_note required on resolve
 """
 
-from psycopg.errors import IntegrityError
+from psycopg2 import IntegrityError
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import UserError
