@@ -2,7 +2,7 @@ import logging
 
 from odoo import _, fields, models
 from odoo.addons.plasticos_base.models.feature_gate_mixin import feature_gated
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -50,6 +50,8 @@ class PlasticosIntake(models.Model):
                     max_results=20,
                     mode=record.match_mode or "strict",
                 )
+            except (UserError, ValidationError):
+                raise
             except Exception as exc:
                 _logger.warning("Buyer matcher unavailable for intake %s: %s", record.id, exc)
                 matches = []

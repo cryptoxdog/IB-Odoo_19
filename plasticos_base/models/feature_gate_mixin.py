@@ -50,6 +50,12 @@ class FeatureGateMixin(models.AbstractModel):
         enabled = (icp.get_param(param_key, "False") or "False").strip().lower()
         return enabled in TRUTHY_PARAM_VALUES
 
+    def _is_feature_stubbed(self, param_key):
+        """Check if a feature flag is set to stubbed/enabled (truthy)."""
+        icp = self.env["ir.config_parameter"].sudo()
+        stubbed = (icp.get_param(param_key, "True") or "True").strip().lower()
+        return stubbed in TRUTHY_PARAM_VALUES
+
     def _check_feature_gate(self, param_key):
         """Raise UserError if the feature flag is not enabled.
 
