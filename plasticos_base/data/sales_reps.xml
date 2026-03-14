@@ -11,7 +11,7 @@
     <record id="user_sales_rep_ib" model="res.users">
       <field name="name">Igor Beylin</field>
       <field name="login">ib@scrapmanagement.com</field>
-      <field name="password">asd123</field>
+      <field name="password">asd12345</field>
       <field name="email">ib@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_ib"/>
       <field name="company_id" ref="base.main_company"/>
@@ -28,7 +28,7 @@
     <record id="user_sales_rep_ab" model="res.users">
       <field name="name">Arthur Buyanovskiy</field>
       <field name="login">ab@scrapmanagement.com</field>
-      <field name="password">asd123</field>
+      <field name="password">asd12345</field>
       <field name="email">ab@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_ab"/>
       <field name="company_id" ref="base.main_company"/>
@@ -45,7 +45,6 @@
     <record id="user_sales_rep_lm" model="res.users">
       <field name="name">Lindsey Malyavko</field>
       <field name="login">lm@scrapmanagement.com</field>
-      <field name="password">asd123</field>
       <field name="email">lm@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_lm"/>
       <field name="company_id" ref="base.main_company"/>
@@ -62,7 +61,6 @@
     <record id="user_sales_rep_rp" model="res.users">
       <field name="name">Ricardo Pereira</field>
       <field name="login">rp@scrapmanagement.com</field>
-      <field name="password">asd123</field>
       <field name="email">rp@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_rp"/>
       <field name="company_id" ref="base.main_company"/>
@@ -79,7 +77,6 @@
     <record id="user_sales_rep_aa" model="res.users">
       <field name="name">Arthur Akopyan</field>
       <field name="login">aa@scrapmanagement.com</field>
-      <field name="password">asd123</field>
       <field name="email">aa@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_aa"/>
       <field name="company_id" ref="base.main_company"/>
@@ -96,7 +93,6 @@
     <record id="user_sales_rep_tw" model="res.users">
       <field name="name">Tiffany White</field>
       <field name="login">tw@scrapmanagement.com</field>
-      <field name="password">asd123</field>
       <field name="email">tw@scrapmanagement.com</field>
       <field name="partner_id" ref="partner_sales_rep_tw"/>
       <field name="company_id" ref="base.main_company"/>

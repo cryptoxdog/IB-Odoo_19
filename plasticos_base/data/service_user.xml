@@ -5,7 +5,7 @@
         <record id="user_system_cron" model="res.users">
             <field name="name">System Cron</field>
             <field name="login">system_cron</field>
-            <field name="password">!</field>
+            <field name="password">!service_nologin!</field>
             <field name="active">True</field>
             <field name="share">False</field>
             <field name="company_id" ref="base.main_company"/>

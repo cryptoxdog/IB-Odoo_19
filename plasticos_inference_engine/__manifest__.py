@@ -9,7 +9,7 @@
     ],
     "data": [],
     "external_dependencies": {
-        "python": ["yaml"],
+        "python": ["PyYAML"],
     },
     "installable": True,
     "application": False,
