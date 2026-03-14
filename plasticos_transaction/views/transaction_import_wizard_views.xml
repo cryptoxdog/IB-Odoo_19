@@ -92,8 +92,8 @@
     <!-- Menu Item under Transactions -->
     <menuitem id="menu_transaction_import_wizard"
               name="Import Transactions (CSV)"
-              parent="plasticos_intake.plasticos_root_menu"
+              parent="menu_transaction_root"
               action="action_transaction_import_wizard"
-              sequence="95"/>
+              sequence="10"/>
 
 </odoo>

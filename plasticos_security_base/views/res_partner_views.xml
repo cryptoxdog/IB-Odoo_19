@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Add x_private checkbox to the partner form view -->
+    <!-- Private Contact toggle: visible to system_admin and operations_manager only -->
     <record id="view_partner_form_private" model="ir.ui.view">
         <field name="name">res.partner.form.private</field>
         <field name="model">res.partner</field>
@@ -9,9 +9,24 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='category_id']" position="before">
                 <field name="is_private"
-                       groups="base.group_system"
+                       groups="plasticos_security_base.group_system_admin,plasticos_security_base.group_operations_manager"
                        widget="boolean_toggle"
                        help="When enabled, only you and System Administrators can see this contact."/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Hide Tax ID, Website from partner form -->
+    <record id="view_partner_form_hide_fields" model="ir.ui.view">
+        <field name="name">res.partner.form.hide.fields</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='vat']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='website']" position="attributes">
+                <attribute name="invisible">1</attribute>
             </xpath>
         </field>
     </record>

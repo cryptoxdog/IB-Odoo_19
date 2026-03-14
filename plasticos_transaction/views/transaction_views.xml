@@ -228,4 +228,16 @@
             </p>
         </field>
     </record>
+
+    <!-- Menu under PlasticOS root -->
+    <menuitem id="menu_transaction_root"
+              name="Transactions"
+              parent="plasticos_intake.plasticos_root_menu"
+              sequence="30"/>
+    <menuitem id="menu_transactions_all"
+              name="All Transactions"
+              parent="menu_transaction_root"
+              action="action_transaction"
+              sequence="1"/>
+
 </odoo>

@@ -13,6 +13,7 @@
     ],
     "data": [
         "security/ir.model.access.csv",
+        "data/company.xml",
         "data/service_user.xml",
         "data/partner_tags.xml",
         "data/material_taxonomy.xml",
