@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════════
+         Company logo (one-time seed)
+         ══════════════════════════════════════════════════════════ -->
+    <data noupdate="1">
+        <record id="base.main_company" model="res.company">
+            <field name="logo" type="base64"
+                   file="plasticos_website/static/src/img/logo.png"/>
+        </record>
+    </data>
+
+    <!-- ══════════════════════════════════════════════════════════
+         Website record: name + social URLs
+         ══════════════════════════════════════════════════════════ -->
+    <data noupdate="1">
+        <record id="website.default_website" model="website">
+            <field name="name">Scrap Management Inc</field>
+            <field name="social_facebook">https://www.facebook.com/ScrapManagement</field>
+            <field name="social_twitter">https://twitter.com/ScrapMgmt</field>
+            <field name="social_linkedin">https://www.linkedin.com/company/scrap-management-inc</field>
+            <field name="social_instagram">https://www.instagram.com/scrapmanagement</field>
+        </record>
+    </data>
+
+    <!-- ══════════════════════════════════════════════════════════
+         Hide unused header menus (re-applied on upgrade)
+         ══════════════════════════════════════════════════════════ -->
+    <data noupdate="0">
+        <delete model="website.menu"
+                search="[('url', 'in', ['/shop', '/event', '/forum',
+                          '/blog', '/helpdesk', '/slides', '/appointment',
+                          '/jobs']),
+                         ('website_id', '=', 1)]"/>
+    </data>
+
+</odoo>
