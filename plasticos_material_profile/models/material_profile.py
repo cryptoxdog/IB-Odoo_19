@@ -181,6 +181,23 @@ class PlasticosMaterialProfile(models.Model):
     previously_washed = fields.Boolean()
     previously_pelletized = fields.Boolean()
 
+    # ── Material Condition Flags ──────────────────────────────────────────
+    # These are synced from intake and used by the matching engine.
+    # Defined here so ir.model.fields, ir.ui.view arches, and matcher
+    # logic all resolve correctly against plasticos.material.profile.
+    has_metal = fields.Boolean(
+        string="Has Metal",
+        help="Material contains metal contamination.",
+    )
+    is_metalized = fields.Boolean(
+        string="Metalized Film",
+        help="Film with metallic coating (e.g., chip bags, foil-laminated film).",
+    )
+    has_fr = fields.Boolean(
+        string="Flame Retardant",
+        help="Material contains flame retardant additives.",
+    )
+
     # ── Material Attributes (multi-select) ─────────────────────
     material_attribute_ids = fields.Many2many(
         "plasticos.material.attribute",
@@ -612,6 +629,11 @@ class PlasticosMaterialProfile(models.Model):
                     "type": rec.filler_type_id.code if rec.filler_type_id else None,
                     "type_name": rec.filler_type_id.name if rec.filler_type_id else None,
                     "pct": rec.filler_pct,
+                },
+                "condition": {
+                    "has_metal": rec.has_metal,
+                    "is_metalized": rec.is_metalized,
+                    "has_fr": rec.has_fr,
                 },
             }
             # Stub only — L9 adapter will consume this.
