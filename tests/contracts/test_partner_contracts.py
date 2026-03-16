@@ -72,8 +72,8 @@ class TestPartnerFieldContract(PlasticosTestCase):
 
     # ── Preferred contact memory (intake onchange depends on this) ──
     def test_preferred_contact_id_exists(self):
-        """Intake auto-selects contact via x_preferred_contact_id."""
-        self.assertIn("x_preferred_contact_id", self.fields)
+        """Intake auto-selects contact via preferred_contact_id."""
+        self.assertIn("preferred_contact_id", self.fields)
 
     # ── Lead source (intake sync) ──
     def test_lead_source_id_exists(self):

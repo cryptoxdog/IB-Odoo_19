@@ -486,7 +486,7 @@ class PlasticosIntake(models.Model):
     def _onchange_facility_id(self):
         """Auto-select contact from preferred memory or single contact.
 
-        Checks x_preferred_contact_id on the facility first. If not set,
+        Checks preferred_contact_id on the facility first. If not set,
         auto-selects when there is exactly one contact. Clears contact
         when facility changes.
         """
@@ -497,14 +497,14 @@ class PlasticosIntake(models.Model):
         facility = self.facility_id
 
         # Check preferred contact memory
-        preferred = facility.x_preferred_contact_id
+        preferred = facility.preferred_contact_id
         if preferred and preferred.parent_id.id == facility.id:
             self.contact_id = preferred.id
             return
 
         # Also check parent-level preferred if facility == partner
         if facility.id == self.partner_id.id:
-            preferred = facility.x_preferred_contact_id
+            preferred = facility.preferred_contact_id
             if preferred:
                 self.contact_id = preferred.id
                 return
@@ -529,10 +529,10 @@ class PlasticosIntake(models.Model):
         """
         if self.contact_id and self.facility_id:
             # Write preferred contact memory (sudo to bypass ACL)
-            if self.facility_id.x_preferred_contact_id != self.contact_id:
+            if self.facility_id.preferred_contact_id != self.contact_id:
                 self.facility_id.sudo().write(
                     {
-                        "x_preferred_contact_id": self.contact_id.id,
+                        "preferred_contact_id": self.contact_id.id,
                     }
                 )
 
