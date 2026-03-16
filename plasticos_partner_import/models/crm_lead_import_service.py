@@ -201,7 +201,7 @@ class PlasticosCRMLeadImportService(models.AbstractModel):
 
         # Check for duplicate by ContactID (external ref)
         if contact_id:
-            existing = self.env["crm.lead"].search([("x_vanillasoft_id", "=", contact_id)], limit=1)
+            existing = self.env["crm.lead"].search([("vanillasoft_id", "=", contact_id)], limit=1)
             if existing:
                 _logger.debug(
                     "Skipping duplicate ContactID %s (lead %d)",
@@ -241,7 +241,7 @@ class PlasticosCRMLeadImportService(models.AbstractModel):
             "source_id": source_id,
             "user_id": user_id,
             "description": (row.get("Notes") or "").strip() or False,
-            "x_vanillasoft_id": contact_id or False,
+            "vanillasoft_id": contact_id or False,
         }
 
         # Apply category tags (via partner, not directly on lead)

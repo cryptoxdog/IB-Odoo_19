@@ -241,7 +241,7 @@ class PlasticosTransactionDocs(models.Model):
         - 48 hours (2 BD) after delivery → send reminder to carrier
         - 7 days (7 BD) from pickup → escalate to logistics manager
 
-        Uses x_overdue_business_days and x_escalation_business_days from
+        Uses overdue_business_days and escalation_business_days from
         the scale ticket document rule (not hardcoded).
         """
         # Advisory lock to prevent concurrent execution

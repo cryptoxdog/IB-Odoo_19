@@ -26,7 +26,7 @@ class DocumentSyncService(models.AbstractModel):
     _description = "Native ↔ Legacy Document Sync Service"
 
     # ── Tag Mapping ──────────────────────────────────────────
-    # Maps x_doc_type selection values to plasticos.document.tag codes.
+    # Maps doc_type selection values to plasticos.document.tag codes.
     # Aligned with plasticos_documents/data/document_tags_data.xml
     DOC_TYPE_TAG_MAP = {
         "bol": "BOL",
@@ -66,11 +66,11 @@ class DocumentSyncService(models.AbstractModel):
             return PlasticosDoc
 
         # Already linked?
-        if native_doc.x_plasticos_doc_id:
+        if native_doc.plasticos_doc_id:
             return self._update_legacy(native_doc)
 
         # Resolve the tag
-        tag_code = self.DOC_TYPE_TAG_MAP.get(native_doc.x_doc_type, "OTHER")
+        tag_code = self.DOC_TYPE_TAG_MAP.get(native_doc.doc_type, "OTHER")
         tag = PlasticosTag.search([("code", "=", tag_code)], limit=1)
         if not tag:
             tag = PlasticosTag.search([("code", "=", "OTHER")], limit=1)
@@ -91,15 +91,15 @@ class DocumentSyncService(models.AbstractModel):
             "res_id": res_id,
             "attachment_id": native_doc.attachment_id.id,
             "tag_id": tag.id,
-            "verified": native_doc.x_verified,
-            "verified_by": native_doc.x_verified_by.id if native_doc.x_verified_by else False,
-            "verified_at": native_doc.x_verified_at,
-            "override": native_doc.x_override,
-            "override_reason": native_doc.x_override_reason,
+            "verified": native_doc.verified,
+            "verified_by": native_doc.verified_by.id if native_doc.verified_by else False,
+            "verified_at": native_doc.verified_at,
+            "override": native_doc.override,
+            "override_reason": native_doc.override_reason,
         }
 
         legacy_doc = PlasticosDoc.create(vals)
-        native_doc.write({"x_plasticos_doc_id": legacy_doc.id})
+        native_doc.write({"plasticos_doc_id": legacy_doc.id})
 
         _logger.info(
             "Synced native document %s → legacy plasticos.document %s",
@@ -112,17 +112,17 @@ class DocumentSyncService(models.AbstractModel):
     def _update_legacy(self, native_doc):
         """Push verification/override state changes to the linked legacy
         record."""
-        legacy = native_doc.x_plasticos_doc_id
+        legacy = native_doc.plasticos_doc_id
         if not legacy:
             return self.env["plasticos.document"]
 
         legacy.write(
             {
-                "verified": native_doc.x_verified,
-                "verified_by": native_doc.x_verified_by.id if native_doc.x_verified_by else False,
-                "verified_at": native_doc.x_verified_at,
-                "override": native_doc.x_override,
-                "override_reason": native_doc.x_override_reason,
+                "verified": native_doc.verified,
+                "verified_by": native_doc.verified_by.id if native_doc.verified_by else False,
+                "verified_at": native_doc.verified_at,
+                "override": native_doc.override,
+                "override_reason": native_doc.override_reason,
             }
         )
         return legacy
@@ -134,12 +134,12 @@ class DocumentSyncService(models.AbstractModel):
 
         Priority: transaction > load > intake > partner.
         """
-        if native_doc.x_transaction_id:
-            return "plasticos.transaction", native_doc.x_transaction_id.id
-        if native_doc.x_load_id:
-            return "plasticos.load", native_doc.x_load_id.id
-        if native_doc.x_intake_id:
-            return "plasticos.intake", native_doc.x_intake_id.id
+        if native_doc.transaction_id:
+            return "plasticos.transaction", native_doc.transaction_id.id
+        if native_doc.load_id:
+            return "plasticos.load", native_doc.load_id.id
+        if native_doc.intake_id:
+            return "plasticos.intake", native_doc.intake_id.id
         if native_doc.partner_id:
             return "res.partner", native_doc.partner_id.id
         return "documents.document", native_doc.id
@@ -155,8 +155,8 @@ class DocumentSyncService(models.AbstractModel):
         NativeDoc = self.env["documents.document"]
         unlinked = NativeDoc.search(
             [
-                ("x_plasticos_doc_id", "=", False),
-                ("x_doc_type", "!=", False),
+                ("plasticos_doc_id", "=", False),
+                ("doc_type", "!=", False),
                 ("attachment_id", "!=", False),
             ]
         )

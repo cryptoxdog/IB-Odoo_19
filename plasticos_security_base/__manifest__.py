@@ -6,7 +6,7 @@
     "description": """
         Defines the foundational security layer:
         - Three business roles: Sales Rep, Logistics, Accounting
-        - Private-partner flag (x_private) on res.partner with ir.rule enforcement
+        - Private-partner flag (is_private) on res.partner with ir.rule enforcement
         - Record rules for row-level isolation on transactions, orders, invoices, and loads
         - Category group for the Plasticos application
     """,
