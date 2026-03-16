@@ -84,3 +84,4 @@ extended_audit_report.json
 # ═══════════════════════════════════════════════════════════
 z-logs*.md
 config/odoo.conf
+_code_analysis/
