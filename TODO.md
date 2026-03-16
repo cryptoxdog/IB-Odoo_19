@@ -87,3 +87,6 @@ When the external API bridge connection to inference and graph engines (L9/Sonar
 - [ ] **Financials Calculation:** Kept `amount_total` (accrual basis) for gross margin but added a dependency on `state` to ensure updates.
 - [ ] **Dual Supplier Profiles:** Left as-is to avoid breaking downstream views, but `supplier_profile_id` should be treated as the source of truth.
 - [ ] **Freight Bill Auto-Link:** Requires a more complex heuristic (matching carrier partner to active transactions) which was out of scope for this immediate fix. Manual linking is still available.
+===
+
+make new transaction file from sm
