@@ -317,7 +317,15 @@ class PlasticosWebLead(models.Model):
           6. Deterministic classification
           7. HOT → partner + intake + attachments
         """
-        lead_id = raw_payload.get("EntryId") or raw_payload.get("entry_id") or f"CG-{uuid.uuid4().hex[:12]}"
+        _entry = raw_payload.get("Entry") or {}
+        _raw_id = (
+            raw_payload.get("Id")
+            or str(_entry.get("Number") or "")
+            or raw_payload.get("EntryId")
+            or raw_payload.get("entry_id")
+            or uuid.uuid4().hex[:12]
+        )
+        lead_id = f"CG-{_raw_id}" if not str(_raw_id).startswith("CG-") else str(_raw_id)
 
         existing = self.search([("lead_id", "=", str(lead_id))], limit=1)
         if existing:
@@ -325,13 +333,28 @@ class PlasticosWebLead(models.Model):
             return existing
 
         company = (raw_payload.get("YourBusinessCompanyName", "") or raw_payload.get("CompanyName", "") or "").strip()
-        contact = (raw_payload.get("YourName", "") or raw_payload.get("Name", "") or "").strip()
+        # Cognito sends Name as a dict: {"First": ..., "Last": ..., "FirstAndLast": ...}
+        # Guard against calling .strip() on a non-string value.
+        _name_val = raw_payload.get("Name")
+        if isinstance(_name_val, dict):
+            contact = (
+                (_name_val.get("FirstAndLast") or "").strip()
+                or f"{(_name_val.get('First') or '').strip()} {(_name_val.get('Last') or '').strip()}".strip()
+                or ""
+            )
+        elif isinstance(_name_val, str):
+            contact = _name_val.strip()
+        else:
+            contact = (raw_payload.get("YourName") or "").strip()
         email = (raw_payload.get("Email", "") or raw_payload.get("EmailAddress", "") or "").strip()
         phone = (raw_payload.get("Phone", "") or raw_payload.get("PhoneNumber", "") or "").strip()
         material_desc = (
-            raw_payload.get("DescribeYourMaterial", "") or raw_payload.get("WhatTypeOfPlastic", "") or ""
+            raw_payload.get("WhatIsIt", "")
+            or raw_payload.get("DescribeYourMaterial", "")
+            or raw_payload.get("WhatTypeOfPlastic", "")
+            or ""
         ).strip()
-        quantity_text = (raw_payload.get("WhatIsTheQuantity", "") or "").strip()
+        quantity_text = (raw_payload.get("WeightPerLoad", "") or raw_payload.get("WhatIsTheQuantity", "") or "").strip()
         contaminants = (raw_payload.get("AreThereAnyContaminants", "") or "").strip()
 
         image_urls = self._extract_image_urls(raw_payload)
@@ -911,9 +934,15 @@ class PlasticosWebLead(models.Model):
                 for item in val:
                     if isinstance(item, str) and self._looks_like_image_url(item):
                         urls.append(item)
-                    elif isinstance(item, dict) and item.get("url"):
-                        url = item["url"]
-                        if self._looks_like_image_url(url):
+                    # Cognito uses "File" key (not "url"). URLs are tokenized with no file extension.
+                    elif isinstance(item, dict):
+                        url = item.get("File") or item.get("url") or item.get("Url") or ""
+                        if (
+                            url
+                            and isinstance(url, str)
+                            and url.startswith("http")
+                            and (self._looks_like_image_url(url) or "cognitoforms.com" in url)
+                        ):
                             urls.append(url)
             elif isinstance(val, dict) and val.get("url"):
                 url = val["url"]
