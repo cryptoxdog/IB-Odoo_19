@@ -21,15 +21,15 @@
                         <div class="col-lg-4 mb-3">
                             <h5>Contact Us</h5>
                             <p class="mb-1">
-                                <i class="fa fa-phone me-2"/>
+                                <i class="fa fa-phone me-2" title="Phone"/>
                                 <a href="tel:+17046985186">+1 704-698-5186</a>
                             </p>
                             <p class="mb-1">
-                                <i class="fa fa-envelope me-2"/>
+                                <i class="fa fa-envelope me-2" title="Email"/>
                                 <a href="mailto:info@scrapmanagement.com">info@scrapmanagement.com</a>
                             </p>
                             <p class="mb-0">
-                                <i class="fa fa-globe me-2"/>
+                                <i class="fa fa-globe me-2" title="Website"/>
                                 <a href="https://scrapmanagement.com" target="_blank">scrapmanagement.com</a>
                             </p>
                         </div>
@@ -40,19 +40,19 @@
                             <div class="d-flex gap-3 fs-4">
                                 <a t-att-href="website.social_facebook" t-if="website.social_facebook"
                                    target="_blank" aria-label="Facebook">
-                                    <i class="fa fa-facebook"/>
+                                    <i class="fa fa-facebook" title="Facebook"/>
                                 </a>
                                 <a t-att-href="website.social_twitter" t-if="website.social_twitter"
                                    target="_blank" aria-label="X / Twitter">
-                                    <i class="fa fa-twitter"/>
+                                    <i class="fa fa-twitter" title="Twitter"/>
                                 </a>
                                 <a t-att-href="website.social_linkedin" t-if="website.social_linkedin"
                                    target="_blank" aria-label="LinkedIn">
-                                    <i class="fa fa-linkedin"/>
+                                    <i class="fa fa-linkedin" title="LinkedIn"/>
                                 </a>
                                 <a t-att-href="website.social_instagram" t-if="website.social_instagram"
                                    target="_blank" aria-label="Instagram">
-                                    <i class="fa fa-instagram"/>
+                                    <i class="fa fa-instagram" title="Instagram"/>
                                 </a>
                             </div>
                         </div>
@@ -61,7 +61,7 @@
 
                     <hr class="mt-2 mb-2"/>
                     <div class="text-center small text-muted">
-                        © <t t-esc="datetime.date.today().year"/> Scrap Management Inc — All rights reserved
+                        © <t t-out="datetime.date.today().year"/> Scrap Management Inc — All rights reserved
                     </div>
                 </div>
             </div>
