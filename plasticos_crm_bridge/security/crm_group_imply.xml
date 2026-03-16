@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+
+    <!--
+        Grant CRM visibility to all Plasticos business groups.
+        The CRM app menu requires sales_team.group_sale_salesman.
+        This file lives in plasticos_crm_bridge (not plasticos_security_base)
+        because it depends on both crm and sales_team being loaded first.
+    -->
+
+    <record id="plasticos_security_base.group_sales_rep" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+    </record>
+
+    <record id="plasticos_security_base.group_logistics" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+    </record>
+
+    <record id="plasticos_security_base.group_accounting" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+    </record>
+
+    <record id="plasticos_security_base.group_qc_manager" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+    </record>
+
+    <record id="plasticos_security_base.group_operations_manager" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+    </record>
+
+</odoo>

@@ -1,1 +1,7 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_crm_lead_sales,crm.lead.sales,crm.model_crm_lead,plasticos_security_base.group_sales_rep,1,1,1,1
+access_crm_lead_logistics,crm.lead.logistics,crm.model_crm_lead,plasticos_security_base.group_logistics,1,1,1,1
+access_crm_lead_accounting,crm.lead.accounting,crm.model_crm_lead,plasticos_security_base.group_accounting,1,1,1,1
+access_crm_stage_sales,crm.stage.sales,crm.model_crm_stage,plasticos_security_base.group_sales_rep,1,0,0,0
+access_crm_stage_logistics,crm.stage.logistics,crm.model_crm_stage,plasticos_security_base.group_logistics,1,0,0,0
+access_crm_stage_accounting,crm.stage.accounting,crm.model_crm_stage,plasticos_security_base.group_accounting,1,0,0,0

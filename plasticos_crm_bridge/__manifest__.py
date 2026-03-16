@@ -6,6 +6,7 @@
     "depends": [
         "crm",
         "utm",
+        "plasticos_security_base",
         "plasticos_web_leads",
         # "plasticos_matching",  # Disabled - external microservice
         "plasticos_material_profile",
@@ -14,6 +15,7 @@
         "plasticos_intake",
     ],
     "data": [
+        "security/crm_group_imply.xml",
         "security/ir.model.access.csv",
         "data/crm_stage_data.xml",
         "data/partner_category_data.xml",
