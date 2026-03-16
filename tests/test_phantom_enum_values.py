@@ -405,9 +405,6 @@ GLOBAL_ALLOWLIST = frozenset(
         # ─────────────────────────────────────────────────────────────────────
         "density",
         "moisture",
-        "has_metal",
-        "is_metalized",
-        "fr",
         "avg_lot",
         "frequency",
         "type_name",

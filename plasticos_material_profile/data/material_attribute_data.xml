@@ -3,12 +3,7 @@
   <data noupdate="1">
     <!--
     Material Attributes (multi-select condition modifiers)
-
-    Boolean field mappings:
-    - With Metal -> has_metal=True
-    - No Metal -> has_metal=False
-    - Metalized -> is_metalized=True (film coating, different from metal contamination)
-    - Contaminated -> is_contaminated=True
+    Source of truth for material flags — no separate boolean fields.
     -->
     <record id="attr_clean" model="plasticos.material.attribute">
       <field name="name">Clean</field>
@@ -50,24 +45,18 @@
       <field name="name">Metalized</field>
       <field name="code">metalized</field>
       <field name="description">Film with metallic coating (e.g., chip bags, candy wrappers).</field>
-      <field name="boolean_field">is_metalized</field>
-      <field name="boolean_value" eval="True"/>
       <field name="sequence">70</field>
     </record>
     <record id="attr_with_metal" model="plasticos.material.attribute">
       <field name="name">With Metal</field>
       <field name="code">with_metal</field>
       <field name="description">Contains metal contamination (e.g., rebar, staples, metal inserts).</field>
-      <field name="boolean_field">has_metal</field>
-      <field name="boolean_value" eval="True"/>
       <field name="sequence">80</field>
     </record>
     <record id="attr_no_metal" model="plasticos.material.attribute">
       <field name="name">No Metal</field>
       <field name="code">no_metal</field>
       <field name="description">Verified free of metal contamination.</field>
-      <field name="boolean_field">has_metal</field>
-      <field name="boolean_value" eval="False"/>
       <field name="sequence">90</field>
     </record>
     <record id="attr_printed" model="plasticos.material.attribute">
@@ -123,8 +112,6 @@
       <field name="name">Flame Retardant</field>
       <field name="code">flame_retardant</field>
       <field name="description">Contains flame retardant additives. Critical for buyer matching - some processors cannot handle FR materials.</field>
-      <field name="boolean_field">has_fr</field>
-      <field name="boolean_value" eval="True"/>
       <field name="sequence">180</field>
     </record>
   </data>

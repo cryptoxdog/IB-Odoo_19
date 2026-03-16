@@ -1,16 +1,12 @@
 """Test 13 — Intake Onchange Cascade Tests.
 
 Source: plasticos_intake/models/intake.py
-Risk: HIGH — UX. 9 @api.onchange methods cascade data silently.
+Risk: HIGH — UX. Onchange methods cascade data silently.
 
 Validates:
   - _onchange_partner_id auto-selects single facility or flagship
   - _onchange_facility_id auto-selects preferred contact
   - _onchange_material_profile prefills snapshot fields
-  - _onchange_material_attributes syncs boolean flags
-  - _onchange_has_metal syncs attribute IDs bidirectionally
-  - _onchange_is_metalized syncs attribute IDs
-  - _onchange_has_fr syncs attribute IDs
   - _onchange_lead_source_id syncs to partner
 """
 
@@ -176,42 +172,3 @@ class TestIntakeMaterialProfilePrefill(PlasticosTestCase):
         form.material_profile_id = self.profile
         self.assertAlmostEqual(form.mfi_value, 12.5, places=1)
         self.assertAlmostEqual(form.density_value, 0.95, places=2)
-
-
-@tagged("post_install", "-at_install", "intake", "onchange")
-class TestIntakeAttributeBooleanSync(PlasticosTestCase):
-    """Boolean ↔ attribute bidirectional sync."""
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        if "plasticos.material.attribute" not in cls.env:
-            cls.has_attrs = False
-            return
-        Attr = cls.env["plasticos.material.attribute"]
-        cls.has_attrs = True
-        cls.with_metal = Attr.search([("code", "=", "with_metal")], limit=1)
-        cls.no_metal = Attr.search([("code", "=", "no_metal")], limit=1)
-        cls.metalized = Attr.search([("code", "=", "metalized")], limit=1)
-
-    def test_has_metal_true_adds_with_metal_attr(self):
-        if not self.has_attrs or not self.with_metal:
-            self.skipTest("Material attributes not seeded")
-        form = Form(self.env["plasticos.intake"])
-        form.quantity_per_load_lbs = 40000
-        form.has_metal = True
-        # After onchange, with_metal attribute should be present
-        attr_ids = form.material_attribute_ids._get_ids()
-        self.assertIn(self.with_metal.id, attr_ids)
-
-    def test_has_metal_false_adds_no_metal_attr(self):
-        if not self.has_attrs or not self.no_metal:
-            self.skipTest("Material attributes not seeded")
-        form = Form(self.env["plasticos.intake"])
-        form.quantity_per_load_lbs = 40000
-        form.has_metal = False
-        # Trigger the onchange explicitly
-        attr_ids = form.material_attribute_ids._get_ids()
-        # no_metal should be present (or with_metal removed)
-        if self.no_metal:
-            self.assertIn(self.no_metal.id, attr_ids)

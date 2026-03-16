@@ -24,14 +24,6 @@ class PlasticosMaterialAttribute(models.Model):
     sequence = fields.Integer(default=10)
     active = fields.Boolean(default=True)
 
-    # Link to boolean field behavior
-    boolean_field = fields.Char(
-        help="Name of the boolean field this attribute maps to (e.g., 'has_metal').",
-    )
-    boolean_value = fields.Boolean(
-        help="Value to set when this attribute is selected.",
-    )
-
     _unique_code = models.Constraint(
         "unique(code)",
         "Attribute code must be unique.",

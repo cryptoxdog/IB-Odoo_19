@@ -242,15 +242,6 @@ class PlasticosIntake(models.Model):
         string="Contamination (%)",
         help="Total contamination as a percentage.",
     )
-    has_metal = fields.Boolean(
-        string="Has Metal",
-        help="Contains metal contamination. Synced with 'With Metal'/'No Metal' attributes.",
-    )
-    is_metalized = fields.Boolean(
-        string="Metalized Film",
-        help="Film with metallic coating (e.g., chip bags). Synced with 'Metalized' attribute.",
-    )
-    has_fr = fields.Boolean(string="Flame Retardant")
     # has_residue computed from contamination_pct - hidden from UI, used for buyer matching
     has_residue = fields.Boolean(
         string="Residue Present",
@@ -582,76 +573,8 @@ class PlasticosIntake(models.Model):
         self.mfi_value = mp.melt_flow_index or self.mfi_value
         self.density_value = mp.density or self.density_value
         self.contamination_pct = mp.contamination_percent or self.contamination_pct
-        # Copy attributes from profile
         if mp.material_attribute_ids:
             self.material_attribute_ids = [(6, 0, mp.material_attribute_ids.ids)]
-            self.has_metal = mp.has_metal
-            self.is_metalized = mp.is_metalized
-
-    # ═════════════════════════════════════════════════════════
-    # Attribute ↔ Boolean Sync
-    # ═════════════════════════════════════════════════════════
-
-    @api.onchange("material_attribute_ids")
-    def _onchange_material_attributes(self):
-        """Sync boolean fields when attributes change."""
-        attr_codes = set(self.material_attribute_ids.mapped("code"))
-        # Metal contamination: With Metal vs No Metal
-        if "with_metal" in attr_codes:
-            self.has_metal = True
-        elif "no_metal" in attr_codes:
-            self.has_metal = False
-        # Metalized film coating
-        if "metalized" in attr_codes:
-            self.is_metalized = True
-        else:
-            self.is_metalized = False
-        # Flame retardant
-        if "flame_retardant" in attr_codes:
-            self.has_fr = True
-        else:
-            self.has_fr = False
-
-    @api.onchange("has_metal")
-    def _onchange_has_metal(self):
-        """Sync attributes when has_metal boolean changes."""
-        Attribute = self.env["plasticos.material.attribute"]
-        with_metal = Attribute.search([("code", "=", "with_metal")], limit=1)
-        no_metal = Attribute.search([("code", "=", "no_metal")], limit=1)
-        if self.has_metal:
-            if with_metal and with_metal not in self.material_attribute_ids:
-                self.material_attribute_ids = [(4, with_metal.id)]
-            if no_metal and no_metal in self.material_attribute_ids:
-                self.material_attribute_ids = [(3, no_metal.id)]
-        else:
-            if no_metal and no_metal not in self.material_attribute_ids:
-                self.material_attribute_ids = [(4, no_metal.id)]
-            if with_metal and with_metal in self.material_attribute_ids:
-                self.material_attribute_ids = [(3, with_metal.id)]
-
-    @api.onchange("is_metalized")
-    def _onchange_is_metalized(self):
-        """Sync attributes when is_metalized boolean changes."""
-        Attribute = self.env["plasticos.material.attribute"]
-        metalized = Attribute.search([("code", "=", "metalized")], limit=1)
-        if self.is_metalized:
-            if metalized and metalized not in self.material_attribute_ids:
-                self.material_attribute_ids = [(4, metalized.id)]
-        else:
-            if metalized and metalized in self.material_attribute_ids:
-                self.material_attribute_ids = [(3, metalized.id)]
-
-    @api.onchange("has_fr")
-    def _onchange_has_fr(self):
-        """Sync attributes when has_fr boolean changes."""
-        Attribute = self.env["plasticos.material.attribute"]
-        flame_retardant = Attribute.search([("code", "=", "flame_retardant")], limit=1)
-        if self.has_fr:
-            if flame_retardant and flame_retardant not in self.material_attribute_ids:
-                self.material_attribute_ids = [(4, flame_retardant.id)]
-        else:
-            if flame_retardant and flame_retardant in self.material_attribute_ids:
-                self.material_attribute_ids = [(3, flame_retardant.id)]
 
     # ═════════════════════════════════════════════════════════
     # Validation
@@ -852,38 +775,30 @@ class PlasticosIntake(models.Model):
         if not profile_partner:
             return
 
-        # Build profile name from polymer + form
-        name_parts = []
-        if self.polymer_id:
-            name_parts.append(self.polymer_id.name)
-        if self.form_id:
-            name_parts.append(self.form_id.name)
-        profile_name = " - ".join(name_parts) if name_parts else f"Profile from {self.name}"
-
-        # Create the material profile
         profile_vals = {
-            "name": profile_name,
             "partner_id": profile_partner.id,
             "polymer_id": self.polymer_id.id if self.polymer_id else False,
             "form_id": self.form_id.id if self.form_id else False,
             "color_id": self.color_id.id if self.color_id else False,
             "source_type_id": self.source_type_id.id if self.source_type_id else False,
-            "origin_form_id": getattr(self, "origin_form_id", False) and self.origin_form_id.id,
+            "origin_form_id": self.origin_form_id.id if self.origin_form_id else False,
             "melt_flow_index": self.mfi_value or 0,
             "density": self.density_value or 0,
+            "moisture_percent": self.moisture_pct or 0,
             "contamination_percent": self.contamination_pct or 0,
-            "has_metal": self.has_metal,
-            "is_metalized": self.is_metalized,
         }
 
-        # Copy material attributes
         if self.material_attribute_ids:
             profile_vals["material_attribute_ids"] = [(6, 0, self.material_attribute_ids.ids)]
 
         profile = MaterialProfile.create(profile_vals)
         self.write({"material_profile_id": profile.id})
         self.message_post(
-            body=f"Auto-created material profile: {profile.name} (ID: {profile.id})",
+            body=(
+                f"Auto-created material profile: "
+                f"{profile.polymer_id.name or 'Unknown'} — "
+                f"{profile.partner_id.name} (ID: {profile.id})"
+            ),
             message_type="notification",
         )
 

@@ -235,21 +235,6 @@ class PlasticosMaterialProfile(models.Model):
     )
     moisture_percent = fields.Float()
     contamination_percent = fields.Float(index=True)
-    # Boolean flags linked to material_attribute_ids
-    has_metal = fields.Boolean(
-        string="Has Metal",
-        help="Contains metal contamination. Synced with 'With Metal'/'No Metal' attributes.",
-    )
-    is_metalized = fields.Boolean(
-        string="Metalized Film",
-        help="Film with metallic coating (e.g., chip bags). Synced with 'Metalized' attribute.",
-    )
-    has_fr = fields.Boolean(
-        string="Contains Flame Retardant",
-        default=False,
-        tracking=True,
-        help="Material contains flame retardant compounds. Restricted material with limited buyer pool.",
-    )
 
     # ── Volume ───────────────────────────────────────────────
     avg_lot_size_lbs = fields.Float(index=True)
@@ -477,56 +462,6 @@ class PlasticosMaterialProfile(models.Model):
         }
 
     # ═════════════════════════════════════════════════════════
-    # Attribute ↔ Boolean Sync
-    # ═════════════════════════════════════════════════════════
-
-    @api.onchange("material_attribute_ids")
-    def _onchange_material_attributes(self):
-        """Sync boolean fields when attributes change."""
-        attr_codes = set(self.material_attribute_ids.mapped("code"))
-        # Metal contamination: With Metal vs No Metal
-        if "with_metal" in attr_codes:
-            self.has_metal = True
-        elif "no_metal" in attr_codes:
-            self.has_metal = False
-        # Metalized film coating
-        if "metalized" in attr_codes:
-            self.is_metalized = True
-        else:
-            self.is_metalized = False
-
-    @api.onchange("has_metal")
-    def _onchange_has_metal(self):
-        """Sync attributes when has_metal boolean changes."""
-        Attribute = self.env["plasticos.material.attribute"]
-        with_metal = Attribute.search([("code", "=", "with_metal")], limit=1)
-        no_metal = Attribute.search([("code", "=", "no_metal")], limit=1)
-        if self.has_metal:
-            # Add With Metal, remove No Metal
-            if with_metal and with_metal not in self.material_attribute_ids:
-                self.material_attribute_ids = [(4, with_metal.id)]
-            if no_metal and no_metal in self.material_attribute_ids:
-                self.material_attribute_ids = [(3, no_metal.id)]
-        else:
-            # Add No Metal, remove With Metal
-            if no_metal and no_metal not in self.material_attribute_ids:
-                self.material_attribute_ids = [(4, no_metal.id)]
-            if with_metal and with_metal in self.material_attribute_ids:
-                self.material_attribute_ids = [(3, with_metal.id)]
-
-    @api.onchange("is_metalized")
-    def _onchange_is_metalized(self):
-        """Sync attributes when is_metalized boolean changes."""
-        Attribute = self.env["plasticos.material.attribute"]
-        metalized = Attribute.search([("code", "=", "metalized")], limit=1)
-        if self.is_metalized:
-            if metalized and metalized not in self.material_attribute_ids:
-                self.material_attribute_ids = [(4, metalized.id)]
-        else:
-            if metalized and metalized in self.material_attribute_ids:
-                self.material_attribute_ids = [(3, metalized.id)]
-
-    # ═════════════════════════════════════════════════════════
     # Validation
     # ═════════════════════════════════════════════════════════
 
@@ -660,9 +595,6 @@ class PlasticosMaterialProfile(models.Model):
                     "density": rec.density,
                     "moisture": rec.moisture_percent,
                     "contamination": rec.contamination_percent,
-                    "has_metal": rec.has_metal,
-                    "is_metalized": rec.is_metalized,
-                    "fr": rec.has_fr,
                 },
                 "volume": {
                     "avg_lot": rec.avg_lot_size_lbs,

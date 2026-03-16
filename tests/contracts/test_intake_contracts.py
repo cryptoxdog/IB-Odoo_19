@@ -69,13 +69,9 @@ class TestIntakeFieldContract(PlasticosTestCase):
         self.assertIn("material_attribute_ids", self.fields)
         self.assertEqual(self.fields["material_attribute_ids"].type, "many2many")
 
-    # ── Quality booleans (used by buyer_match_engine gate filters) ──
     def test_quality_boolean_fields(self):
-        """Buyer match engine 10-gate filter depends on these booleans."""
+        """has_residue is computed from contamination_pct."""
         required_booleans = [
-            "has_metal",
-            "is_metalized",
-            "has_fr",
             "has_residue",
         ]
         for fname in required_booleans:

@@ -40,10 +40,6 @@
                             <field name="source_type_id" optional="show"/>
                             <field name="contamination_percent" string="Contam %"
                                    optional="show"/>
-                            <field name="has_fr" string="FR" widget="boolean"
-                                   optional="show"/>
-                            <field name="has_metal" string="Metal" widget="boolean"
-                                   optional="show"/>
                             <!-- Profile form opens on row click or expand -->
                             <button name="action_open_profile_form"
                                     type="object"

@@ -28,28 +28,6 @@
                     </div>
                 </div>
 
-                <!-- Flame retardant hazard (restricted material) -->
-                <div class="alert alert-danger border-danger border-2 d-flex align-items-center"
-                     role="alert"
-                     invisible="not has_fr">
-                    <i class="fa fa-fire-extinguisher fa-lg me-2" title="Flame Retardant"/>
-                    <div>
-                        <strong>Contains Flame Retardant</strong>
-                        <span class="ms-1">— Restricted material. Limited buyer pool. Requires special handling.</span>
-                    </div>
-                </div>
-
-                <!-- Metal contamination warning -->
-                <div class="alert alert-warning d-flex align-items-center"
-                     role="alert"
-                     invisible="not has_metal">
-                    <i class="fa fa-magnet fa-lg me-2" title="Metal Detected"/>
-                    <div>
-                        <strong>Metal Contamination Detected</strong>
-                        <span class="ms-1">— Buyer may require metal detection certification.</span>
-                    </div>
-                </div>
-
             </xpath>
 
             <!-- ═══ Progressbar widgets for percentage fields ═══ -->
@@ -83,15 +61,8 @@
         <field name="priority">15</field>
         <field name="arch" type="xml">
 
-            <!-- Add quality flag columns -->
-            <xpath expr="//field[@name='contamination_percent']" position="after">
-                <field name="has_fr" string="FR" optional="show" widget="boolean"/>
-                <field name="has_metal" string="Metal" optional="show" widget="boolean"/>
-            </xpath>
-
-            <!-- Row decorations for restricted materials -->
+            <!-- Row decorations for high contamination -->
             <xpath expr="//list" position="attributes">
-                <attribute name="decoration-danger">has_fr</attribute>
                 <attribute name="decoration-warning">contamination_percent &gt; 5</attribute>
             </xpath>
 
