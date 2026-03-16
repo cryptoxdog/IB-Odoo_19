@@ -15,7 +15,7 @@ from odoo.exceptions import UserError
 _logger = logging.getLogger(__name__)
 
 # Default CSV file in module
-DEFAULT_CSV = "cieTrade.WksDetail.csv"
+DEFAULT_CSV = "cieTrade.WksDetail.Test.csv"
 
 
 class TransactionImportWizard(models.TransientModel):
@@ -80,7 +80,7 @@ class TransactionImportWizard(models.TransientModel):
 
         if self.use_default_file:
             module_path = self._get_module_path()
-            csv_path = os.path.join(module_path, DEFAULT_CSV)
+            csv_path = os.path.join(module_path, os.pardir, DEFAULT_CSV)
             if not os.path.exists(csv_path):
                 raise UserError(_("Default CSV file not found: %s") % csv_path)
             with open(csv_path, encoding="utf-8-sig") as f:

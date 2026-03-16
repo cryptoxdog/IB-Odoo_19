@@ -83,3 +83,4 @@ extended_audit_report.json
 # Scratch / log files
 # ═══════════════════════════════════════════════════════════
 z-logs*.md
+config/odoo.conf
