@@ -40,13 +40,15 @@
 
     <!-- ============================================
          SECURITY GROUPS (Odoo 19 format)
-         Groups link to privileges via privilege_id
+         All human-facing groups imply base.group_user
+         to ensure app menu and IR model visibility.
          ============================================ -->
 
     <!-- Sales Rep -->
     <record id="group_sales_rep" model="res.groups">
         <field name="name">Sales Rep</field>
         <field name="privilege_id" ref="privilege_sales"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
         <field name="comment">
             Owns relationships and deals.  Row-level isolation ensures
             Sales Reps only see their own partners, transactions, orders,
@@ -58,6 +60,7 @@
     <record id="group_logistics" model="res.groups">
         <field name="name">Logistics</field>
         <field name="privilege_id" ref="privilege_logistics"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
         <field name="comment">
             Manages freight, loads, dispatching, and rate memory.
             Broad read access on operational data.  Read-only on
@@ -69,6 +72,7 @@
     <record id="group_accounting" model="res.groups">
         <field name="name">Accounting</field>
         <field name="privilege_id" ref="privilege_accounting"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
         <field name="comment">
             Owns commission rules and financial documents.
             Read-only on most operational data.
@@ -87,6 +91,7 @@
     <record id="group_qc_manager" model="res.groups">
         <field name="name">QC Manager</field>
         <field name="privilege_id" ref="privilege_quality"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
         <field name="comment">Quality control claim management and resolution authority</field>
     </record>
 
@@ -110,7 +115,11 @@
     <record id="group_system_admin" model="res.groups">
         <field name="name">PlasticOS System Admin</field>
         <field name="privilege_id" ref="privilege_administration"/>
-        <field name="implied_ids" eval="[(4, ref('group_operations_manager'))]"/>
+        <field name="implied_ids" eval="[
+            (4, ref('group_operations_manager')),
+            (4, ref('base.group_erp_manager')),
+            (4, ref('base.group_system')),
+        ]"/>
         <field name="comment">Complete system administration including configuration and advanced settings</field>
     </record>
 
