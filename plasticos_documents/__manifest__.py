@@ -29,5 +29,5 @@
         "views/load_docs_bridge_views.xml",
     ],
     "installable": True,
-    "application": False,
+    "application": True,
 }
