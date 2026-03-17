@@ -13,7 +13,6 @@ default_install_order:
   - plasticos_accounting
   - plasticos_base
   - plasticos_material_profile
-  - plasticos_inference_engine
   - plasticos_logistics
   - plasticos_facility_profile
   - plasticos_intake
@@ -21,15 +20,12 @@ default_install_order:
   - plasticos_order_lines
   - plasticos_transaction
   - plasticos_documents
-  - plasticos_matching
   - plasticos_offer
   - plasticos_claims
   - plasticos_automation
   - plasticos_intake_normalizer
-  - plasticos_buyer_match_engine
   - plasticos_partner_import
   - plasticos_geolocalize
-  - plasticos_enrichment
   - plasticos_security_base
 
 # Web leads module (tested separately after core modules pass):
@@ -38,5 +34,10 @@ web_leads_module:
 
 # Not installable or Enterprise-only (do not add to install list):
 excluded_modules:
-  - plasticos_dev_tools       # installable: False
-  - plasticos_documents_native # installable: False; Enterprise documents
+  - plasticos_dev_tools         # installable: False
+  - plasticos_documents_native  # installable: False; Enterprise documents
+  - plasticos_inference_engine  # installable: False; external microservice
+  - plasticos_matching          # installable: False; external microservice
+  - plasticos_buyer_match_engine # installable: False; external microservice
+  - plasticos_enrichment        # installable: False; external microservice
+  - plasticos_enrichment_bridge # installable: False; external microservice
