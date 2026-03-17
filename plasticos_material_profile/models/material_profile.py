@@ -485,8 +485,10 @@ class PlasticosMaterialProfile(models.Model):
     @api.constrains("partner_id")
     def _check_partner_is_facility(self):
         for rec in self:
-            if not rec.partner_id.parent_id:
-                raise ValidationError("Material profiles can only attach to facility-level partners.")
+            if not rec.partner_id.is_facility:
+                raise ValidationError(
+                    "Material profiles can only attach to facility-level partners (locations or standalone companies)."
+                )
 
     @api.constrains("density_min", "density_max")
     def _check_density_range(self):

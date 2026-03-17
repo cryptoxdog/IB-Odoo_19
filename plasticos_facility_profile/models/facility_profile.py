@@ -1,5 +1,6 @@
 from odoo import api, fields, models  # pyright: ignore[reportMissingImports]
 from odoo.exceptions import ValidationError  # pyright: ignore[reportMissingImports]
+from plasticos_facility_profile.process_codes import PROCESS_SELECTION
 
 
 def _get_form_selection(self):
@@ -138,18 +139,7 @@ class PlasticosFacilityProfile(models.Model):
 
     # ── Process Type ──────────────────────────────────────────
     process_type = fields.Selection(
-        # Canonical codes from plasticos_facility_profile.process_codes import PROCESS_SELECTION
-        [
-            ("blow_mold", "Blow Molding"),
-            ("compounding", "Compounding"),
-            ("extrusion", "Extrusion"),
-            ("film_blown", "Film Blown"),
-            ("film_cast", "Film Cast"),
-            ("injection", "Injection Molding"),
-            ("other", "Other"),
-            ("rotomold", "Rotational Molding"),
-            ("thermoform", "Thermoforming"),
-        ],
+        PROCESS_SELECTION,
         help="Primary processing type at this facility.",
     )
 
@@ -250,8 +240,10 @@ class PlasticosFacilityProfile(models.Model):
     @api.constrains("partner_id")
     def _check_partner_is_facility(self):
         for rec in self:
-            if not rec.partner_id.parent_id:
-                raise ValidationError("Capability profile can only be attached to facility-level partners.")
+            if not rec.partner_id.is_facility:
+                raise ValidationError(
+                    "Capability profile can only be attached to facility-level partners (locations or standalone companies)."
+                )
 
     @api.constrains("density_min", "density_max")
     def _check_density_range(self):
@@ -322,8 +314,6 @@ class PlasticosFacilityProfile(models.Model):
                 partner = self.env["res.partner"].browse(partner_id)
                 raise ValidationError(f"A capability profile for facility '{partner.name}' already exists.")
         records = super().create(vals_list)
-        for record in records:
-            record._emit_capability_packet()
         return records
 
     def write(self, vals):
@@ -335,8 +325,6 @@ class PlasticosFacilityProfile(models.Model):
                     partner = self.env["res.partner"].browse(partner_id)
                     raise ValidationError(f"A capability profile for facility '{partner.name}' already exists.")
         res = super().write(vals)
-        for rec in self:
-            rec._emit_capability_packet()
         return res
 
     def unlink(self):
@@ -352,59 +340,6 @@ class PlasticosFacilityProfile(models.Model):
             ):
                 raise ValidationError("Cannot delete capability profile linked to active transaction.")
         return super().unlink()
-
-    # ═════════════════════════════════════════════════════════
-    # Capability Packet (stub for L9 adapter)
-    # ═════════════════════════════════════════════════════════
-
-    def _emit_capability_packet(self):
-        for rec in self:
-            packet = {
-                "partner_id": rec.partner_id.id,
-                "facility_role": rec.partner_id.facility_role,
-                "equipment": {
-                    "horizontal_baler": rec.has_horizontal_baler,
-                    "wash_line": rec.has_wash_line,
-                    "shredder": rec.has_shredder,
-                    "granulator": rec.has_granulator,
-                    "extruder": rec.has_extruder,
-                    "sorting_line": rec.has_sorting_line,
-                },
-                "throughput": rec.max_monthly_throughput_lbs,
-                "handling": {
-                    "bales": rec.handles_bales,
-                    "regrind": rec.handles_regrind,
-                    "pellet": rec.handles_pellet,
-                    "flake": rec.handles_flake,
-                },
-                "certifications": {
-                    "iso": rec.iso_certified,
-                    "food": rec.food_grade_certified,
-                    "medical": rec.medical_grade_capable,
-                },
-                "lot_size_range": {
-                    "min": rec.min_lot_size_lbs,
-                    "max": rec.max_lot_size_lbs,
-                },
-                "spot": rec.accepts_spot,
-                "contract": rec.prefers_contract,
-                # BCP extension fields
-                "accepted_polymers": list(rec.accepted_polymer_ids.mapped("code")),
-                "form_preference": rec.form_preference,
-                "process_type": rec.process_type,
-                "feedstock_type": rec.feedstock_type,
-                "tolerances": {
-                    "density": {"min": rec.density_min, "max": rec.density_max},
-                    "mfi": {"min": rec.melt_index_min, "max": rec.melt_index_max},
-                    "contamination_pct": rec.contamination_tolerance_pct,
-                    "moisture_pct": rec.moisture_tolerance_pct,
-                },
-                "capacity_lbs_month": rec.capacity_lbs_month,
-                "pcr_range": {"min": rec.pcr_pct_min, "max": rec.pcr_pct_max},
-                "application_class": rec.application_class,
-            }
-            # Stub only — L9 adapter will consume this.
-            _ = packet
 
     # ═════════════════════════════════════════════════════════
     # Action Methods (for UX smart buttons)

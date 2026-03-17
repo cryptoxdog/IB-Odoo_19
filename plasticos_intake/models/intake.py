@@ -671,13 +671,6 @@ class PlasticosIntake(models.Model):
         if self.status not in allowed:
             raise UserError(f"Cannot perform this action from status '{self.status}'. Allowed: {', '.join(allowed)}")
 
-    def action_send_offer(self):
-        """Transition matched intake to offer_sent status."""
-        for rec in self:
-            rec._assert_status("matched")
-            rec.status = "offer_sent"
-            rec.message_post(body="Offer sent to selected buyer(s).")
-
     def action_mark_processing(self):
         """Move intake to processing (PO in progress, logistics pending)."""
         for rec in self:
