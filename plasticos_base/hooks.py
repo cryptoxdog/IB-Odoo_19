@@ -19,6 +19,22 @@ def post_init_hook(env):
     """
     _logger.info("plasticos_base post_init_hook: Configuring system_cron user groups")
 
+    # Grant group_system to both admin users (idempotent on every rebuild)
+    for admin_login in ("ib@scrapmanagement.com", "ab@scrapmanagement.com"):
+        admin_user = env["res.users"].search([("login", "=", admin_login)], limit=1)
+        if admin_user:
+            admin_group = env.ref("base.group_system", raise_if_not_found=False)
+            if admin_group:
+                env.cr.execute(
+                    """
+                    INSERT INTO res_groups_users_rel (gid, uid)
+                    VALUES (%s, %s)
+                    ON CONFLICT DO NOTHING
+                    """,
+                    (admin_group.id, admin_user.id),
+                )
+                _logger.info("Granted group_system to %s", admin_login)
+
     cron_user = env.ref("plasticos_base.user_system_cron", raise_if_not_found=False)
     if not cron_user:
         _logger.warning("user_system_cron not found, skipping group assignment")

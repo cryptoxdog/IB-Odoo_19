@@ -34,11 +34,8 @@
         "views/intake_button_views.xml",
         "views/match_exclusion_views.xml",
     ],
-    "external_dependencies": {
-        "python": ["neo4j"],
-    },
     "post_init_hook": "post_init_hook",
-    "installable": False,  # Microservice - will be external API
+    "installable": True,
     "application": False,
     "license": "LGPL-3",
 }
