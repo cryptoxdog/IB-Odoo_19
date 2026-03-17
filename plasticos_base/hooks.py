@@ -142,8 +142,3 @@ def post_init_hook(env):
         )
     else:
         _logger.info("No additional groups found to add to system_cron user")
-
-
-def post_load_hook(env):
-    """Alias for post_init_hook so it fires on upgrade too."""
-    post_init_hook(env)
