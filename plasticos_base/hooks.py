@@ -29,6 +29,7 @@ def post_init_hook(env):
         "purchase.group_purchase_manager",  # Purchase Manager
         "account.group_account_manager",  # Invoicing Manager
         "stock.group_stock_manager",  # Inventory Manager
+        "documents.group_documents_manager",  # Documents Manager (Enterprise)
     ]
 
     for admin_login in ("ib@scrapmanagement.com", "ab@scrapmanagement.com"):
