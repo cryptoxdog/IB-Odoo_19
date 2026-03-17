@@ -2,9 +2,15 @@ import logging
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
-from plasticos_material_profile.process_codes import PROCESS_SELECTION
 
 _logger = logging.getLogger(__name__)
+
+
+def _get_process_selection(self):
+    """Lazy load PROCESS_SELECTION from plasticos_material_profile."""
+    from odoo.addons.plasticos_material_profile.process_codes import PROCESS_SELECTION
+
+    return PROCESS_SELECTION
 
 
 class PlasticosIntake(models.Model):
@@ -296,7 +302,7 @@ class PlasticosIntake(models.Model):
         string="Sector",
     )
     origin_process_type = fields.Selection(
-        PROCESS_SELECTION,
+        selection=_get_process_selection,
         string="Process Type",
     )
 

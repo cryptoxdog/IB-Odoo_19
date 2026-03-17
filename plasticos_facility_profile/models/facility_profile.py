@@ -1,6 +1,5 @@
 from odoo import api, fields, models  # pyright: ignore[reportMissingImports]
 from odoo.exceptions import ValidationError  # pyright: ignore[reportMissingImports]
-from plasticos_material_profile.process_codes import PROCESS_SELECTION
 
 
 def _get_form_selection(self):
@@ -11,6 +10,16 @@ def _get_form_selection(self):
     from odoo.addons.plasticos_material_profile.form_codes import FORM_SELECTION
 
     return FORM_SELECTION
+
+
+def _get_process_selection(self):
+    """Lazy load PROCESS_SELECTION from plasticos_material_profile.
+
+    Used as selection callable to avoid circular import at module load time.
+    """
+    from odoo.addons.plasticos_material_profile.process_codes import PROCESS_SELECTION
+
+    return PROCESS_SELECTION
 
 
 class PlasticosFacilityProfile(models.Model):
@@ -139,7 +148,7 @@ class PlasticosFacilityProfile(models.Model):
 
     # ── Process Type ──────────────────────────────────────────
     process_type = fields.Selection(
-        PROCESS_SELECTION,
+        selection=_get_process_selection,
         help="Primary processing type at this facility.",
     )
 
