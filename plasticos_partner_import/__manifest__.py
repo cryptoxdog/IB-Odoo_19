@@ -19,5 +19,6 @@
         "views/partner_bulk_update_wizard_views.xml",
     ],
     "installable": True,
+    "auto_install": ["plasticos_base"],
     "application": False,
 }

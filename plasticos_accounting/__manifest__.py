@@ -13,5 +13,6 @@
         "data/accounts.xml",
     ],
     "installable": True,
+    "auto_install": ["plasticos_base"],
     "application": False,
 }

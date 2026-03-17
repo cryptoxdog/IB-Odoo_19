@@ -11,7 +11,7 @@
     "external_dependencies": {
         "python": ["PyYAML"],
     },
-    "installable": True,
+    "installable": False,
     "application": False,
     "license": "LGPL-3",
 }

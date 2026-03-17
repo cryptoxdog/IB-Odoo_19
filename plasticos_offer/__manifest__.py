@@ -19,9 +19,9 @@
         "views/offer_views.xml",
         "views/offer_bulk_action_wizard_views.xml",
         "views/offer_ux.xml",
-        "views/intake_offers_bridge_views.xml",
     ],
     "post_init_hook": "post_init_hook",
     "installable": True,
+    "auto_install": ["plasticos_base"],
     "application": False,
 }

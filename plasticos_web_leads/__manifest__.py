@@ -35,6 +35,6 @@
         "views/web_lead_bridge_views.xml",
     ],
     "installable": True,
-    "auto_install": False,
+    "auto_install": ["plasticos_base"],
     "application": False,
 }
