@@ -245,7 +245,7 @@
                         invisible="status not in ('matched', 'offer_sent')"
                     />
                     <field name="status" widget="statusbar"
-                           statusbar_visible="draft,matched,offer_sent,won"/>
+                           statusbar_visible="draft,matched,offer_sent,processing,won,lost"/>
                 </header>
                 <sheet>
                     <!-- ═══ Smart Buttons (Jump To) ═══ -->

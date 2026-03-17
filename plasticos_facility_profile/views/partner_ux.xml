@@ -65,14 +65,13 @@
 
             </xpath>
 
-            <!-- ═══ Fix Facility Capabilities tab visibility ═══
-                 Current: invisible="not parent_id" (only children)
-                 Fixed:   invisible="not is_company"  (all companies/facilities)
-                 This allows standalone companies (who ARE also the facility)
-                 to manage their capabilities directly.
+            <!-- ═══ Fix Facility Profile tab visibility ═══
+                 Uses is_facility_location computed field:
+                 True for child partners and standalone companies (no children).
+                 False for parent companies with children and person contacts.
             -->
-            <xpath expr="//page[@name='facility_capabilities']" position="attributes">
-                <attribute name="invisible">not is_company</attribute>
+            <xpath expr="//page[@name='facility_profile']" position="attributes">
+                <attribute name="invisible">not is_facility_location</attribute>
             </xpath>
 
         </field>

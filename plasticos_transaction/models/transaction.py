@@ -914,3 +914,15 @@ class PlasticosTransaction(models.Model):
             "view_mode": "form",
             "target": "current",
         }
+
+    def action_view_lines(self):
+        """Open transaction lines filtered to this transaction."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Lines — {self.name}",
+            "res_model": "plasticos.transaction.line",
+            "view_mode": "list,form",
+            "domain": [("transaction_id", "=", self.id)],
+            "context": {"default_transaction_id": self.id},
+        }
