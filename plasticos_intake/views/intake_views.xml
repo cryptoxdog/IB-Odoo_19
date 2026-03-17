@@ -271,6 +271,11 @@
                                 invisible="not facility_id or facility_id == partner_id">
                             <span class="o_stat_text">Facility</span>
                         </button>
+                        <button name="action_view_offers" type="object"
+                                class="oe_stat_button" icon="fa-tag"
+                                invisible="status not in ('offer_sent', 'processing', 'won')">
+                            <field name="offer_count" widget="statinfo" string="Offers"/>
+                        </button>
                     </div>
 
                     <!-- Identity + Contact Header -->

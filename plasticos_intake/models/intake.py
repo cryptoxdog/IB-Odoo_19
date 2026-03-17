@@ -387,6 +387,11 @@ class PlasticosIntake(models.Model):
         store=True,
         help="Highest match score among all buyer matches for this intake.",
     )
+    offer_count = fields.Integer(
+        string="Offers",
+        compute="_compute_offer_count",
+        help="Number of offers created from this intake.",
+    )
 
     @api.depends("match_line_ids", "match_line_ids.selected")
     def _compute_match_count(self):
@@ -400,6 +405,15 @@ class PlasticosIntake(models.Model):
         for rec in self:
             scores = rec.match_line_ids.mapped("match_score")
             rec.best_match_score = max(scores) if scores else 0.0
+
+    def _compute_offer_count(self):
+        """Count offers linked to this intake. Works with or without plasticos_offer."""
+        if "plasticos.offer" not in self.env:
+            for rec in self:
+                rec.offer_count = 0
+            return
+        for rec in self:
+            rec.offer_count = self.env["plasticos.offer"].search_count([("intake_id", "=", rec.id)])
 
     # ═════════════════════════════════════════════════════════
     # Computed
@@ -630,6 +644,20 @@ class PlasticosIntake(models.Model):
             "res_model": "res.partner",
             "view_mode": "form",
             "res_id": self.facility_id.id,
+        }
+
+    def action_view_offers(self):
+        """Navigate to offers created from this intake."""
+        self.ensure_one()
+        if "plasticos.offer" not in self.env:
+            return
+        return {
+            "type": "ir.actions.act_window",
+            "name": f"Offers — {self.name}",
+            "res_model": "plasticos.offer",
+            "view_mode": "list,form",
+            "domain": [("intake_id", "=", self.id)],
+            "context": {"default_intake_id": self.id},
         }
 
     def action_view_matches(self):

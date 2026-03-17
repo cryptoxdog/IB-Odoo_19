@@ -2,4 +2,11 @@
 # Negation so they are NOT Cursor-ignored.
 !.cursor/
 !.cursor-commands/
-plasticos_enrichment_bridge/
+plasticos_graph_3d_embedding/
+plasticos_graph_engine/
+plasticos_graph_integration/
+plasticos_graph_intelligence/
+plasticos_inference_engine/
+plasticos_enrichment/
+plasticos_buyer_match_engine/
+plasticos_website/
