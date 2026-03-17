@@ -8,7 +8,7 @@
         "data/website_data.xml",
         "views/website_templates.xml",
     ],
-    "installable": True,
+    "installable": False,
     "auto_install": False,
     "application": False,
 }
