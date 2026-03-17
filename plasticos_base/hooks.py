@@ -107,38 +107,38 @@ def post_init_hook(env):
         _logger.warning("user_system_cron not found, skipping group assignment")
         return
 
-    groups_to_add = []
+    # Groups needed for cron jobs to access models
+    cron_groups = [
+        # Core Odoo groups for model access
+        "base.group_user",  # Internal User
+        "sales_team.group_sale_manager",  # Sales Manager (for sale.order)
+        "purchase.group_purchase_manager",  # Purchase Manager (for purchase.order)
+        "stock.group_stock_manager",  # Inventory Manager (for stock.picking)
+        "account.group_account_manager",  # Invoicing Manager (for account.move)
+        # Plasticos custom groups
+        "plasticos_enrichment.group_enrichment_manager",
+        "plasticos_documents.group_documents_manager",
+        "plasticos_claims.group_claims_manager",
+        "plasticos_automation.group_plasticos_automation_manager",
+        "plasticos_automation.group_logistics_automation_manager",
+        "plasticos_transaction.group_plasticos_manager",
+    ]
 
-    # Enrichment manager group (if module installed)
-    enrichment_group = env.ref("plasticos_enrichment.group_enrichment_manager", raise_if_not_found=False)
-    if enrichment_group:
-        groups_to_add.append(enrichment_group.id)
+    groups_added = 0
+    for group_xmlid in cron_groups:
+        try:
+            group = env.ref(group_xmlid, raise_if_not_found=False)
+            if group:
+                env.cr.execute(
+                    """
+                    INSERT INTO res_groups_users_rel (gid, uid)
+                    VALUES (%s, %s)
+                    ON CONFLICT DO NOTHING
+                    """,
+                    (group.id, cron_user.id),
+                )
+                groups_added += 1
+        except Exception as e:
+            _logger.warning("Could not grant %s to system_cron: %s", group_xmlid, e)
 
-    # Documents manager group (if module installed)
-    documents_group = env.ref("plasticos_documents.group_documents_manager", raise_if_not_found=False)
-    if documents_group:
-        groups_to_add.append(documents_group.id)
-
-    # Claims manager group (if module installed)
-    claims_group = env.ref("plasticos_claims.group_claims_manager", raise_if_not_found=False)
-    if claims_group:
-        groups_to_add.append(claims_group.id)
-
-    if groups_to_add:
-        # Odoo 19: Use direct SQL for user-group assignment during module loading
-        for gid in groups_to_add:
-            env.cr.execute(
-                """
-                INSERT INTO res_groups_users_rel (gid, uid)
-                VALUES (%s, %s)
-                ON CONFLICT DO NOTHING
-                """,
-                (gid, cron_user.id),
-            )
-        _logger.info(
-            "Added system_cron user to %d groups: %s",
-            len(groups_to_add),
-            groups_to_add,
-        )
-    else:
-        _logger.info("No additional groups found to add to system_cron user")
+    _logger.info("Added system_cron user to %d groups", groups_added)
