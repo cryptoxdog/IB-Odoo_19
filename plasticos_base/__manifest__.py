@@ -4,7 +4,7 @@
     "summary": "Core seed data, feature gates, and microservice integration",
     "license": "LGPL-3",
     "author": "PlasticOS",
-    "category": "Hidden",
+    "category": "PlasticOS",
     "depends": [
         "base",
         "base_setup",
@@ -25,5 +25,5 @@
     ],
     "post_init_hook": "post_init_hook",
     "installable": True,
-    "application": False,
+    "application": True,
 }

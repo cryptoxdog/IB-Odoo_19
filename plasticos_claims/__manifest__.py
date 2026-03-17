@@ -27,5 +27,5 @@
         "views/transaction_claims_bridge_views.xml",
     ],
     "installable": True,
-    "application": False,
+    "application": True,
 }
