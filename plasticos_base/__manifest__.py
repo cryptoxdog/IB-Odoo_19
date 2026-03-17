@@ -24,6 +24,7 @@
         "views/res_config_settings_views.xml",
     ],
     "post_init_hook": "post_init_hook",
+    "post_load": "post_load_hook",
     "installable": True,
     "application": True,
 }

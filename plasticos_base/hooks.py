@@ -35,16 +35,19 @@ def post_init_hook(env):
         admin_user = env["res.users"].search([("login", "=", admin_login)], limit=1)
         if admin_user:
             for group_xmlid in admin_groups:
-                group = env.ref(group_xmlid, raise_if_not_found=False)
-                if group:
-                    env.cr.execute(
-                        """
-                        INSERT INTO res_groups_users_rel (gid, uid)
-                        VALUES (%s, %s)
-                        ON CONFLICT DO NOTHING
-                        """,
-                        (group.id, admin_user.id),
-                    )
+                try:
+                    group = env.ref(group_xmlid, raise_if_not_found=False)
+                    if group:
+                        env.cr.execute(
+                            """
+                            INSERT INTO res_groups_users_rel (gid, uid)
+                            VALUES (%s, %s)
+                            ON CONFLICT DO NOTHING
+                            """,
+                            (group.id, admin_user.id),
+                        )
+                except Exception as e:
+                    _logger.warning("Could not grant %s: %s", group_xmlid, e)
             _logger.info("Granted admin groups to %s", admin_login)
 
     cron_user = env.ref("plasticos_base.user_system_cron", raise_if_not_found=False)
@@ -87,3 +90,8 @@ def post_init_hook(env):
         )
     else:
         _logger.info("No additional groups found to add to system_cron user")
+
+
+def post_load_hook(env):
+    """Alias for post_init_hook so it fires on upgrade too."""
+    post_init_hook(env)
