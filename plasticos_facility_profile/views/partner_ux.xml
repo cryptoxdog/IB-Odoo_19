@@ -71,7 +71,7 @@
                  False for parent companies with children and person contacts.
             -->
             <xpath expr="//page[@name='facility_profile']" position="attributes">
-                <attribute name="invisible">not is_facility_location</attribute>
+                <attribute name="invisible">not is_facility</attribute>
             </xpath>
 
         </field>
