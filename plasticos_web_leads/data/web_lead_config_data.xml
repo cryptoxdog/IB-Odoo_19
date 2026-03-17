@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data noupdate="1">
+    <data noupdate="0">
 
         <!-- Singleton config — API keys must be generated manually -->
         <record id="web_lead_config_default" model="plasticos.web.lead.config">

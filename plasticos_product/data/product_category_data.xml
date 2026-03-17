@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-  <data noupdate="1">
+  <data noupdate="0">
     <!-- Root category for scrap plastics (standalone root - no parent dependency) -->
     <record id="product_category_scrap" model="product.category">
       <field name="name">Scrap Plastics</field>

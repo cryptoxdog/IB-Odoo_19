@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-  <data noupdate="1">
+  <data noupdate="0">
     <!--
     Products are now auto-created from plasticos.polymer records.
     This file is kept for backward compatibility but new products

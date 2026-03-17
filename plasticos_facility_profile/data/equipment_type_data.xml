@@ -1,4 +1,4 @@
-<odoo noupdate="1">
+<odoo noupdate="0">
 
   <!-- ── Equipment Category ──────────────────────────────── -->
   <record id="equip_horizontal_baler" model="plasticos.equipment.type">

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-  <data noupdate="1">
+  <data noupdate="0">
     <record id="source_post_consumer" model="plasticos.source.type">
       <field name="name">Post-Consumer</field>
       <field name="code">POST_CONSUMER</field>

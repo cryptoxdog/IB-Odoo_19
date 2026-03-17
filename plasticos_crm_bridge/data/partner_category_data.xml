@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data noupdate="1">
+    <data noupdate="0">
         <!--
             Business Classification Tags for PlastOS
             Applied to res.partner via category_id (Many2many tags).

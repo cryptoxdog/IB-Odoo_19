@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data noupdate="1">
+    <data noupdate="0">
     <record id="seq_claim" model="ir.sequence">
         <field name="name">Claim Sequence</field>
         <field name="code">plasticos.claim</field>

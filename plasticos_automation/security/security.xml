@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <data noupdate="1">
+    <data noupdate="0">
         <!-- Odoo 19: Category → Privilege → Group -->
         <record id="module_category_automation" model="ir.module.category">
             <field name="name">Automation</field>

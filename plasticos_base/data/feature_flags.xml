@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data noupdate="1">
+    <data noupdate="0">
         <!-- Matching Engine: disabled by default until microservice is deployed -->
         <record id="icp_matching_engine_enabled" model="ir.config_parameter">
             <field name="key">plasticos.matching_engine.enabled</field>
