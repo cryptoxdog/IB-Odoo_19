@@ -36,6 +36,5 @@ Computed full description: "HDPE Blue Regrind - Gaylords - Post-Industrial"
         "views/sale_order_views.xml",
     ],
     "installable": True,
-    "auto_install": ["plasticos_base"],
     "application": False,
 }

@@ -23,6 +23,5 @@
         "views/partner_ux.xml",
     ],
     "installable": True,
-    "auto_install": ["plasticos_base"],
     "application": False,
 }

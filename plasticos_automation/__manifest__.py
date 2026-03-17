@@ -40,6 +40,5 @@
     ],
     "post_init_hook": "post_init_hook",
     "installable": True,
-    "auto_install": ["plasticos_base"],
     "application": False,
 }
