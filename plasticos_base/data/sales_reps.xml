@@ -1,41 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <data noupdate="0">
-    <record id="partner_sales_rep_ib" model="res.partner">
-      <field name="name">Igor Beylin</field>
-      <field name="email">ib@scrapmanagement.com</field>
-      <field name="phone">(704) 251-8889</field>
-      <field name="company_type">person</field>
-    </record>
-
-    <record id="user_sales_rep_ib" model="res.users">
-      <field name="name">Igor Beylin</field>
-      <field name="login">ib@scrapmanagement.com</field>
-      <field name="password">asd12345</field>
-      <field name="email">ib@scrapmanagement.com</field>
-      <field name="partner_id" ref="partner_sales_rep_ib"/>
-      <field name="company_id" ref="base.main_company"/>
-      <field name="company_ids" eval="[(6, 0, [ref('base.main_company')])]"/>
-      <field name="groups_id" eval="[(4, ref('base.group_system')), (4, ref('base.group_erp_manager'))]"/>
-    </record>
-
-    <record id="partner_sales_rep_ab" model="res.partner">
-      <field name="name">Arthur Buyanovskiy</field>
-      <field name="email">ab@scrapmanagement.com</field>
-      <field name="phone">(615) 280-8682</field>
-      <field name="company_type">person</field>
-    </record>
-
-    <record id="user_sales_rep_ab" model="res.users">
-      <field name="name">Arthur Buyanovskiy</field>
-      <field name="login">ab@scrapmanagement.com</field>
-      <field name="password">asd12345</field>
-      <field name="email">ab@scrapmanagement.com</field>
-      <field name="partner_id" ref="partner_sales_rep_ab"/>
-      <field name="company_id" ref="base.main_company"/>
-      <field name="company_ids" eval="[(6, 0, [ref('base.main_company')])]"/>
-      <field name="groups_id" eval="[(4, ref('base.group_system')), (4, ref('base.group_erp_manager'))]"/>
-    </record>
+    <!-- Admin users (ib@, ab@) are in admin_users.xml -->
 
     <record id="partner_sales_rep_lm" model="res.partner">
       <field name="name">Lindsey Malyavko</field>
