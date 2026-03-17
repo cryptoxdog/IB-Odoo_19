@@ -16,5 +16,6 @@
         "views/match_result_views.xml",
     ],
     "installable": True,
+    "auto_install": True,
     "application": False,
 }
