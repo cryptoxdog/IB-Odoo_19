@@ -2,7 +2,7 @@ import logging
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
-from plasticos_facility_profile.process_codes import PROCESS_SELECTION
+from plasticos_material_profile.process_codes import PROCESS_SELECTION
 
 _logger = logging.getLogger(__name__)
 

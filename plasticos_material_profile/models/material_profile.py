@@ -2,6 +2,7 @@ from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
 from ..form_codes import FORM_SELECTION
+from ..process_codes import PROCESS_SELECTION
 
 
 class PlasticosMaterialProfile(models.Model):
@@ -165,19 +166,7 @@ class PlasticosMaterialProfile(models.Model):
     )
 
     origin_process_type = fields.Selection(
-        [
-            ("blow_mold", "Blow Molding"),
-            ("compounding", "Compounding"),
-            ("extrusion", "Extrusion"),
-            ("film_blown", "Film Blown"),
-            ("film_cast", "Film Cast"),
-            ("injection", "Injection Molding"),
-            ("other", "Other"),
-            ("rotomold", "Rotational Molding"),
-            ("thermoform", "Thermoforming"),
-        ],
-        # Canonical source: plasticos_facility_profile.process_codes.PROCESS_SELECTION
-        # Cannot import here — circular dependency (facility_profile depends on material_profile).
+        PROCESS_SELECTION,
     )
 
     previously_washed = fields.Boolean()

@@ -2086,7 +2086,7 @@ class PlasticosGraphService(models.AbstractModel):
         for every polymer-process pair. Actual MFI filtering happens at match
         time; this edge encodes that the compatibility relationship exists.
         """
-        from odoo.addons.plasticos_facility_profile.process_codes import MFI_RANGES
+        from odoo.addons.plasticos_material_profile.process_codes import MFI_RANGES
 
         payloads = [
             {

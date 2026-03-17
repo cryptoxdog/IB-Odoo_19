@@ -1,6 +1,7 @@
 """Canonical process-type code registry — single source of truth.
 
 Every layer that references process types MUST import from here:
+  - material_profile.py ``origin_process_type`` Selection
   - facility_profile.py ``process_type`` Selection
   - matcher.py Gate 9 MFI compatibility check
   - graph_service.py Cypher process-type scoring

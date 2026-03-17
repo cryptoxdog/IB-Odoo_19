@@ -1,6 +1,6 @@
 from odoo import api, fields, models  # pyright: ignore[reportMissingImports]
 from odoo.exceptions import ValidationError  # pyright: ignore[reportMissingImports]
-from plasticos_facility_profile.process_codes import PROCESS_SELECTION
+from plasticos_material_profile.process_codes import PROCESS_SELECTION
 
 
 def _get_form_selection(self):

@@ -19,7 +19,7 @@ SCHEMA ALIGNMENT (2026-02-25):
 import logging
 
 from odoo import _, api, models
-from odoo.addons.plasticos_facility_profile.process_codes import check_mfi_compatibility
+from odoo.addons.plasticos_material_profile.process_codes import check_mfi_compatibility
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)

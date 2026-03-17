@@ -1,10 +1,11 @@
 """Drift-prevention tests for process_type enum alignment.
 
 Ensures all layers referencing process types stay in sync:
-  1. facility_profile.py     (Odoo Selection field)
-  2. process_codes.py        (canonical Python registry)
-  3. matcher.py              (Gate 9 MFI compatibility)
-  4. graph_service.py        (Cypher process-type scoring)
+  1. plasticos_material_profile/process_codes.py  (canonical Python registry)
+  2. facility_profile.py     (Odoo Selection field)
+  3. material_profile.py     (Odoo Selection field)
+  4. matcher.py              (Gate 9 MFI compatibility)
+  5. graph_service.py        (Cypher process-type scoring)
 
 Pattern follows test_form_enum_alignment.py from PR #23.
 """
@@ -20,7 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 def _get_process_codes_from_registry() -> set[str]:
     """Extract PROCESS_CODES from the canonical registry."""
-    registry_path = REPO_ROOT / "plasticos_facility_profile" / "process_codes.py"
+    registry_path = REPO_ROOT / "plasticos_material_profile" / "process_codes.py"
     assert registry_path.exists(), f"Registry not found: {registry_path}"
 
     source = registry_path.read_text()
@@ -43,7 +44,7 @@ def _get_process_codes_from_registry() -> set[str]:
 
 def _get_mfi_ranges_from_registry() -> set[str]:
     """Extract MFI_RANGES keys from the canonical registry."""
-    registry_path = REPO_ROOT / "plasticos_facility_profile" / "process_codes.py"
+    registry_path = REPO_ROOT / "plasticos_material_profile" / "process_codes.py"
     source = registry_path.read_text()
     tree = ast.parse(source)
 
@@ -84,8 +85,8 @@ class TestProcessEnumAlignment:
         assert fp_path.exists(), f"File not found: {fp_path}"
 
         source = fp_path.read_text()
-        assert "plasticos_facility_profile.process_codes import" in source, (
-            "facility_profile.py does not import from process_codes registry."
+        assert "process_codes import" in source and "PROCESS_SELECTION" in source, (
+            "facility_profile.py does not import PROCESS_SELECTION from process_codes registry."
         )
         assert "PROCESS_SELECTION" in source, "facility_profile.py does not use PROCESS_SELECTION"
 
@@ -95,8 +96,8 @@ class TestProcessEnumAlignment:
         assert matcher_path.exists(), f"File not found: {matcher_path}"
 
         source = matcher_path.read_text()
-        assert "plasticos_facility_profile.process_codes import" in source, (
-            "matcher.py does not import from process_codes registry."
+        assert "process_codes import" in source and "check_mfi_compatibility" in source, (
+            "matcher.py does not import check_mfi_compatibility from process_codes registry."
         )
         assert "check_mfi_compatibility" in source, "matcher.py does not use check_mfi_compatibility"
 
