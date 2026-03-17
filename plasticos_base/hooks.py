@@ -19,21 +19,33 @@ def post_init_hook(env):
     """
     _logger.info("plasticos_base post_init_hook: Configuring system_cron user groups")
 
-    # Grant group_system to both admin users (idempotent on every rebuild)
+    # Grant full admin groups to both admin users (idempotent on every rebuild)
+    admin_groups = [
+        "base.group_system",  # Settings / Technical Features
+        "base.group_erp_manager",  # Access Rights
+        "base.group_user",  # Internal User
+        "base.group_partner_manager",  # Contact Creation
+        "sales_team.group_sale_manager",  # Sales Manager
+        "purchase.group_purchase_manager",  # Purchase Manager
+        "account.group_account_manager",  # Invoicing Manager
+        "stock.group_stock_manager",  # Inventory Manager
+    ]
+
     for admin_login in ("ib@scrapmanagement.com", "ab@scrapmanagement.com"):
         admin_user = env["res.users"].search([("login", "=", admin_login)], limit=1)
         if admin_user:
-            admin_group = env.ref("base.group_system", raise_if_not_found=False)
-            if admin_group:
-                env.cr.execute(
-                    """
-                    INSERT INTO res_groups_users_rel (gid, uid)
-                    VALUES (%s, %s)
-                    ON CONFLICT DO NOTHING
-                    """,
-                    (admin_group.id, admin_user.id),
-                )
-                _logger.info("Granted group_system to %s", admin_login)
+            for group_xmlid in admin_groups:
+                group = env.ref(group_xmlid, raise_if_not_found=False)
+                if group:
+                    env.cr.execute(
+                        """
+                        INSERT INTO res_groups_users_rel (gid, uid)
+                        VALUES (%s, %s)
+                        ON CONFLICT DO NOTHING
+                        """,
+                        (group.id, admin_user.id),
+                    )
+            _logger.info("Granted admin groups to %s", admin_login)
 
     cron_user = env.ref("plasticos_base.user_system_cron", raise_if_not_found=False)
     if not cron_user:
