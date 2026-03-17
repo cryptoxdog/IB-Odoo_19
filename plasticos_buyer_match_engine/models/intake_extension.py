@@ -62,6 +62,29 @@ class PlasticosIntake(models.Model):
 
             _logger.info("Buyer match v2.0 for intake %s: found %d matches", record.name, len(matches))
 
+            # Persist match results to intake.match lines
+            record.match_line_ids.unlink()
+            for m in matches:
+                if not m.get("buyer_id"):
+                    continue
+                self.env["plasticos.intake.match"].create(
+                    {
+                        "intake_id": record.id,
+                        "buyer_id": m.get("buyer_id"),
+                        "match_score": (m.get("total_score") or 0.0) * 100,
+                        "match_reason": ", ".join(m.get("gates_failed") or []) or "All gates passed",
+                        "typical_price": m.get("typical_price", 0.0),
+                    }
+                )
+
+            if matches:
+                record.status = "matched"
+                record.message_post(
+                    body=f"Matched {len(matches)} buyer(s) via v2.0 engine.",
+                    message_type="notification",
+                    subtype_xmlid="mail.mt_note",
+                )
+
             # Check if Neo4j was used for scoring (via graph_service.calculate_match_score)
             if "plasticos.graph.service" in self.env:
                 cfg = self.env["plasticos.graph.service"]._get_config()

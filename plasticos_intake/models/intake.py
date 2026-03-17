@@ -875,21 +875,67 @@ class PlasticosIntake(models.Model):
             rec.message_post(body="Reset to draft for editing.")
 
     def action_send_offers(self):
-        """Send offers to selected buyers.
+        """Create plasticos.offer records for each selected match line.
 
-        This base implementation is a stub. The `plasticos_offer` module
-        should override this to create actual offers.
+        Requires plasticos_offer module. Advances intake status to offer_sent.
         """
         self.ensure_one()
+        self._assert_status("matched")
         selected = self.match_line_ids.filtered("selected")
         if not selected:
             raise UserError("Please select at least one buyer to send offers to.")
 
-        raise UserError(
-            "Offer creation is coming soon.\n\n"
-            f"Selected {len(selected)} buyer(s): {', '.join(selected.mapped('buyer_name'))}\n\n"
-            "This feature will be available in a future update."
+        if not self.partner_id:
+            raise UserError("Cannot send offers without a supplier. Set the Company on this intake first.")
+
+        offer_model = "plasticos.offer"
+        if offer_model not in self.env:
+            raise UserError("Offer module not installed.\n\nInstall 'PlasticOS Offers' to enable offer creation.")
+
+        Offer = self.env[offer_model]
+        offers_created = Offer
+        for match in selected:
+            if not match.buyer_id:
+                _logger.warning(
+                    "Skipping match line %s — no buyer_id set (buyer_name=%s)",
+                    match.id,
+                    match.buyer_name,
+                )
+                continue
+            offer = Offer.create(
+                {
+                    "intake_id": self.id,
+                    "supplier_id": self.partner_id.id,
+                    "buyer_id": match.buyer_id.id,
+                    "price_per_lb": match.typical_price or 0.0,
+                    "quantity_lbs": float(self.quantity_per_load_lbs or 0),
+                }
+            )
+            offers_created |= offer
+
+        if not offers_created:
+            raise UserError(
+                "No offers were created. Ensure selected buyer match lines have a Buyer set.\n\n"
+                "Use the bulk assign wizard to assign buyers to unresolved match lines."
+            )
+
+        self.status = "offer_sent"
+        self.message_post(
+            body=(
+                f"Offers sent to {len(offers_created)} buyer(s): {', '.join(offers_created.mapped('buyer_id.name'))}"
+            ),
+            message_type="notification",
+            subtype_xmlid="mail.mt_note",
         )
+
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Offers Created",
+            "res_model": offer_model,
+            "view_mode": "list,form",
+            "domain": [("intake_id", "=", self.id)],
+            "target": "current",
+        }
 
     def action_make_po(self):
         """Create transaction from intake and close as Won.

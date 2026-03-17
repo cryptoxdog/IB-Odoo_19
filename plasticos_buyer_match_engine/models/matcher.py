@@ -146,6 +146,7 @@ class BuyerMatcher(models.Model):
                                 "buyer_id": buyer_data["profile"].partner_id.id,
                                 "buyer_name": buyer_data["profile"].partner_id.name,
                                 "total_score": row.get("total_score", 0.0),
+                                "typical_price": 0.0,  # populated when Cypher pulls avg_price_per_lb from SOLD_TO edge
                                 "gates_passed": buyer_data["gates_passed"],
                                 "gates_failed": buyer_data["gates_failed"],
                                 "match_details": row,
@@ -189,6 +190,7 @@ class BuyerMatcher(models.Model):
                         "buyer_id": buyer_data["profile"].partner_id.id,
                         "buyer_name": buyer_data["profile"].partner_id.name,
                         "total_score": score_result.get("total_score", 0.0),
+                        "typical_price": 0.0,  # no price data available in fallback scoring path
                         "gates_passed": buyer_data["gates_passed"],
                         "gates_failed": buyer_data["gates_failed"],
                         "match_details": score_result,
