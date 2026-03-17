@@ -166,16 +166,18 @@ class PlasticosMaterialProfile(models.Model):
 
     origin_process_type = fields.Selection(
         [
-            ("injection", "Injection Molding"),
-            ("extrusion", "Extrusion"),
             ("blow_mold", "Blow Molding"),
-            ("thermoform", "Thermoforming"),
-            ("rotomold", "Rotational Molding"),
+            ("compounding", "Compounding"),
+            ("extrusion", "Extrusion"),
             ("film_blown", "Film Blown"),
             ("film_cast", "Film Cast"),
-            ("compounding", "Compounding"),
+            ("injection", "Injection Molding"),
             ("other", "Other"),
+            ("rotomold", "Rotational Molding"),
+            ("thermoform", "Thermoforming"),
         ],
+        # Canonical source: plasticos_facility_profile.process_codes.PROCESS_SELECTION
+        # Cannot import here — circular dependency (facility_profile depends on material_profile).
     )
 
     previously_washed = fields.Boolean()

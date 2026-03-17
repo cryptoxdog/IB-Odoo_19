@@ -2,6 +2,7 @@ import logging
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
+from plasticos_facility_profile.process_codes import PROCESS_SELECTION
 
 _logger = logging.getLogger(__name__)
 
@@ -295,17 +296,7 @@ class PlasticosIntake(models.Model):
         string="Sector",
     )
     origin_process_type = fields.Selection(
-        [
-            ("blow_mold", "Blow Molding"),
-            ("compounding", "Compounding"),
-            ("extrusion", "Extrusion"),
-            ("film_blown", "Film Blown"),
-            ("film_cast", "Film Cast"),
-            ("injection", "Injection Molding"),
-            ("other", "Other"),
-            ("rotomold", "Rotational Molding"),
-            ("thermoform", "Thermoforming"),
-        ],
+        PROCESS_SELECTION,
         string="Process Type",
     )
 
