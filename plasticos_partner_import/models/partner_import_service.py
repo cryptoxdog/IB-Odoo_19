@@ -104,11 +104,10 @@ class PlasticosPartnerImportService(models.AbstractModel):
         tag_ids = []
         role_lower = role_str.lower()
 
-        # Map CSV roles to XML IDs
+        # Map CSV roles to XML IDs (Expense excluded - not imported)
         role_tag_mapping = {
             "supplier": "plasticos_base.tag_supplier",
             "customer": "plasticos_base.tag_buyer",  # Customer = Buyer
-            "expense": "plasticos_base.tag_expense",
             "broker": "plasticos_base.tag_broker",
             "carrier": "plasticos_base.tag_carrier",
             "processor": "plasticos_base.tag_processor",
@@ -379,6 +378,9 @@ class PlasticosPartnerImportService(models.AbstractModel):
         # Build external ID
         external_id = self._make_external_id("fac", f"{partner_name}_{alias or facility_type}_{row_num}")
 
+        # Inherit tags from parent
+        parent_tag_ids = parent.category_id.ids if parent.category_id else []
+
         # For Location type, create as company child
         # For Invoice types, create as address
         if facility_type == "Location":
@@ -411,6 +413,10 @@ class PlasticosPartnerImportService(models.AbstractModel):
                 "zip": row.get("zip", "").strip() or False,
                 "country_id": country_id,
             }
+
+        # Inherit category tags from parent corporate
+        if parent_tag_ids:
+            vals["category_id"] = [(6, 0, parent_tag_ids)]
 
         facility = self._upsert("res.partner", external_id, vals)
 

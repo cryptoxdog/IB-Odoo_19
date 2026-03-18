@@ -20,6 +20,7 @@
         "views/material_profile_intake_views.xml",
         "views/intake_ux.xml",
     ],
+    "uninstall_hook": "uninstall_hook",
     "installable": True,
     "auto_install": True,
     "application": False,

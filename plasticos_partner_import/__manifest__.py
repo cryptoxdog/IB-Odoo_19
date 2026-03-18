@@ -10,6 +10,7 @@
         "account",
         "crm",
         "utm",
+        "plasticos_base",
         "plasticos_facility_profile",
         "plasticos_crm_bridge",
         "plasticos_intake",
