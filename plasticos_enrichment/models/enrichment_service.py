@@ -570,7 +570,6 @@ class EnrichmentService(models.AbstractModel):
             "- min_lot_size_lbs: numeric or null\n"
             "- max_lot_size_lbs: numeric or null\n"
             "- monthly_volume_lbs: numeric or null\n"
-            "- avg_truckloads_per_month: numeric or null\n"
             "- food_grade: true/false/null\n"
             "- medical_grade: true/false/null\n\n"
             "For each field extraction also provide:\n"
@@ -748,7 +747,6 @@ class EnrichmentService(models.AbstractModel):
             "min_lot_size_lbs",
             "max_lot_size_lbs",
             "monthly_volume_lbs",
-            "avg_truckloads_per_month",
         ]
         for ff in float_fields:
             val = raw_mat.get(ff)

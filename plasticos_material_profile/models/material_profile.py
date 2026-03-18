@@ -275,7 +275,12 @@ class PlasticosMaterialProfile(models.Model):
         help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales). Optional.",
     )
 
-    avg_truckloads_per_month = fields.Float(string="Loads Per Month")
+    loads_per_month = fields.Float(
+        string="Loads Per Month",
+        compute="_compute_loads_per_month",
+        store=True,
+        help="Computed: Monthly Volume / Avg Lot Size",
+    )
 
     # ── Compliance ───────────────────────────────────────────
     food_grade = fields.Boolean()
@@ -373,6 +378,14 @@ class PlasticosMaterialProfile(models.Model):
         for rec in self:
             code = rec.source_type_id.code if rec.source_type_id else False
             rec.source_type = code if code in valid_codes else False
+
+    @api.depends("monthly_volume_lbs", "avg_lot_size_lbs")
+    def _compute_loads_per_month(self):
+        for rec in self:
+            if rec.avg_lot_size_lbs:
+                rec.loads_per_month = rec.monthly_volume_lbs / rec.avg_lot_size_lbs
+            else:
+                rec.loads_per_month = 0.0
 
     @api.depends()
     def _compute_po_line_count(self):

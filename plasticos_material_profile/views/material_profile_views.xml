@@ -112,7 +112,7 @@
                 </group>
                 <group string="Packaging">
                   <field name="packaging_type_id"/>
-                  <field name="avg_truckloads_per_month"/>
+                  <field name="loads_per_month"/>
                   <field name="filler_type_id"/>
                   <field name="filler_pct" invisible="not filler_type_id"/>
                 </group>
