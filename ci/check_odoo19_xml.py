@@ -10,6 +10,7 @@ Patterns checked:
 2. alert-* classes without role attribute (accessibility warning/error)
 3. active_id in context (doesn't exist on model, use id)
 4. view_mode with 'tree' instead of 'list'
+5. <group> inside <search> views (Invalid view definition)
 
 Usage:
     python3 ci/check_odoo19_xml.py [root_dir]
@@ -44,7 +45,8 @@ def _check_view_xml_file(xml_file: Path) -> list[dict]:
     errors: list[dict] = []
     try:
         with open(xml_file, encoding="utf-8") as f:
-            lines = f.read().splitlines()
+            content = f.read()
+            lines = content.splitlines()
     except Exception:
         return errors
 
@@ -96,6 +98,29 @@ def _check_view_xml_file(xml_file: Path) -> list[dict]:
                     "message": "Use 'list' instead of 'tree' in view_mode (Odoo 19)",
                 }
             )
+
+    # Pattern 5: <group> inside <search> views (must check full content)
+    # Odoo 19 does not allow <group> elements inside <search> views
+    search_blocks = re.finditer(r"<search[^>]*>(.*?)</search>", content, re.DOTALL)
+    for match in search_blocks:
+        search_content = match.group(1)
+        if re.search(r"<group\b", search_content):
+            # Find line number of the <group> within the search block
+            search_start = content[: match.start()].count("\n") + 1
+            group_match = re.search(r"<group\b", search_content)
+            if group_match:
+                group_line = search_start + search_content[: group_match.start()].count("\n")
+                errors.append(
+                    {
+                        "file": str(xml_file),
+                        "line": group_line,
+                        "pattern": "<group> in <search>",
+                        "message": (
+                            "Odoo 19 does not allow <group> inside <search> views. "
+                            "Use <separator/> followed by <filter> elements instead"
+                        ),
+                    }
+                )
 
     return errors
 

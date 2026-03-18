@@ -34,18 +34,16 @@
                         domain="[('delivery_datetime', '&gt;=', context_today()),
                                  ('delivery_datetime', '&lt;', context_today() + relativedelta(days=1))]"/>
                 <separator/>
-                <group name="group_by">
-                    <filter name="group_state" string="Status"
-                            context="{'group_by': 'state'}"/>
-                    <filter name="group_carrier" string="Carrier"
-                            context="{'group_by': 'carrier_id'}"/>
-                    <filter name="group_pickup" string="Pickup Location"
-                            context="{'group_by': 'pickup_partner_id'}"/>
-                    <filter name="group_delivery" string="Delivery Location"
-                            context="{'group_by': 'delivery_partner_id'}"/>
-                    <filter name="group_pickup_date" string="Pickup Date"
-                            context="{'group_by': 'pickup_datetime:day'}"/>
-                </group>
+                <filter name="group_state" string="Status"
+                        context="{'group_by': 'state'}"/>
+                <filter name="group_carrier" string="Carrier"
+                        context="{'group_by': 'carrier_id'}"/>
+                <filter name="group_pickup" string="Pickup Location"
+                        context="{'group_by': 'pickup_partner_id'}"/>
+                <filter name="group_delivery" string="Delivery Location"
+                        context="{'group_by': 'delivery_partner_id'}"/>
+                <filter name="group_pickup_date" string="Pickup Date"
+                        context="{'group_by': 'pickup_datetime:day'}"/>
             </search>
         </field>
     </record>

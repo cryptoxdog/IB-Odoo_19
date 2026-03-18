@@ -30,18 +30,16 @@
                         domain="[('valid_until', '&lt;=', context_today() + relativedelta(days=7)),
                                  ('state', 'in', ('draft', 'sent', 'responded'))]"/>
                 <separator/>
-                <group name="group_by">
-                    <filter name="group_state" string="Status"
-                            context="{'group_by': 'state'}"/>
-                    <filter name="group_supplier" string="Supplier"
-                            context="{'group_by': 'supplier_id'}"/>
-                    <filter name="group_buyer" string="Buyer"
-                            context="{'group_by': 'buyer_id'}"/>
-                    <filter name="group_polymer" string="Polymer"
-                            context="{'group_by': 'polymer'}"/>
-                    <filter name="group_intake" string="Intake"
-                            context="{'group_by': 'intake_id'}"/>
-                </group>
+                <filter name="group_state" string="Status"
+                        context="{'group_by': 'state'}"/>
+                <filter name="group_supplier" string="Supplier"
+                        context="{'group_by': 'supplier_id'}"/>
+                <filter name="group_buyer" string="Buyer"
+                        context="{'group_by': 'buyer_id'}"/>
+                <filter name="group_polymer" string="Polymer"
+                        context="{'group_by': 'polymer'}"/>
+                <filter name="group_intake" string="Intake"
+                        context="{'group_by': 'intake_id'}"/>
             </search>
         </field>
     </record>

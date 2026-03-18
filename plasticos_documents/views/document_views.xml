@@ -25,14 +25,12 @@
                 <filter name="filter_archived" string="Archived"
                         domain="[('active', '=', False)]"/>
                 <separator/>
-                <group name="group_by">
-                    <filter name="group_tag" string="Tag"
-                            context="{'group_by': 'tag_id'}"/>
-                    <filter name="group_model" string="Related Model"
-                            context="{'group_by': 'res_model'}"/>
-                    <filter name="group_verified_by" string="Verified By"
-                            context="{'group_by': 'verified_by'}"/>
-                </group>
+                <filter name="group_tag" string="Tag"
+                        context="{'group_by': 'tag_id'}"/>
+                <filter name="group_model" string="Related Model"
+                        context="{'group_by': 'res_model'}"/>
+                <filter name="group_verified_by" string="Verified By"
+                        context="{'group_by': 'verified_by'}"/>
             </search>
         </field>
     </record>

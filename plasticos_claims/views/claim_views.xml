@@ -156,13 +156,12 @@
                 <filter string="Penalties" name="penalties" domain="[('case_type', '=', 'lightweight_penalty')]"/>
                 <separator/>
                 <filter string="My Claims" name="my_claims" domain="[('assignee_id', '=', uid)]"/>
-                <group name="group_by">
-                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
-                    <filter string="Type" name="group_type" context="{'group_by': 'case_type'}"/>
-                    <filter string="Severity" name="group_severity" context="{'group_by': 'severity'}"/>
-                    <filter string="Assignee" name="group_assignee" context="{'group_by': 'assignee_id'}"/>
-                    <filter string="Transaction" name="group_tx" context="{'group_by': 'transaction_id'}"/>
-                </group>
+                <separator/>
+                <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                <filter string="Type" name="group_type" context="{'group_by': 'case_type'}"/>
+                <filter string="Severity" name="group_severity" context="{'group_by': 'severity'}"/>
+                <filter string="Assignee" name="group_assignee" context="{'group_by': 'assignee_id'}"/>
+                <filter string="Transaction" name="group_tx" context="{'group_by': 'transaction_id'}"/>
             </search>
         </field>
     </record>

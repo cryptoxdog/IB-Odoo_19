@@ -27,20 +27,18 @@
                 <filter name="filter_high_confidence" string="High Confidence"
                         domain="[('confidence', '&gt;=', 0.8)]"/>
                 <separator/>
-                <group name="group_by">
-                    <filter name="group_state" string="Status"
-                            context="{'group_by': 'state'}"/>
-                    <filter name="group_supplier" string="Supplier"
-                            context="{'group_by': 'intake_partner_id'}"/>
-                    <filter name="group_buyer" string="Buyer"
-                            context="{'group_by': 'buyer_partner_id'}"/>
-                    <filter name="group_polymer" string="Polymer"
-                            context="{'group_by': 'intake_polymer'}"/>
-                    <filter name="group_intake" string="Intake"
-                            context="{'group_by': 'intake_id'}"/>
-                    <filter name="group_date" string="Match Date"
-                            context="{'group_by': 'create_date:day'}"/>
-                </group>
+                <filter name="group_state" string="Status"
+                        context="{'group_by': 'state'}"/>
+                <filter name="group_supplier" string="Supplier"
+                        context="{'group_by': 'intake_partner_id'}"/>
+                <filter name="group_buyer" string="Buyer"
+                        context="{'group_by': 'buyer_partner_id'}"/>
+                <filter name="group_polymer" string="Polymer"
+                        context="{'group_by': 'intake_polymer'}"/>
+                <filter name="group_intake" string="Intake"
+                        context="{'group_by': 'intake_id'}"/>
+                <filter name="group_date" string="Match Date"
+                        context="{'group_by': 'create_date:day'}"/>
             </search>
         </field>
     </record>

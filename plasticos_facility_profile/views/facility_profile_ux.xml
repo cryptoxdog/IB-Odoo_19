@@ -156,14 +156,12 @@
                 <filter name="filter_contract" string="Prefers Contract"
                         domain="[('prefers_contract', '=', True)]"/>
                 <separator/>
-                <group name="group_by">
-                    <filter name="group_process" string="Process Type"
-                            context="{'group_by': 'process_type'}"/>
-                    <filter name="group_feedstock" string="Feedstock"
-                            context="{'group_by': 'feedstock_type'}"/>
-                    <filter name="group_partner" string="Partner"
-                            context="{'group_by': 'partner_id'}"/>
-                </group>
+                <filter name="group_process" string="Process Type"
+                        context="{'group_by': 'process_type'}"/>
+                <filter name="group_feedstock" string="Feedstock"
+                        context="{'group_by': 'feedstock_type'}"/>
+                <filter name="group_partner" string="Partner"
+                        context="{'group_by': 'partner_id'}"/>
             </search>
         </field>
     </record>
