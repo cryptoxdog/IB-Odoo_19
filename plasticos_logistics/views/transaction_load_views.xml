@@ -34,13 +34,14 @@
         <field name="priority">35</field>
         <field name="arch" type="xml">
 
-            <!-- Add Load smart button to button_box (hidden until supplier AND buyer are set) -->
+            <!-- Add Load smart button to button_box (disabled until supplier AND buyer are set) -->
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_view_load"
                         type="object"
                         class="oe_stat_button"
                         icon="fa-truck"
-                        invisible="not load_id or not supplier_id or not buyer_id">
+                        invisible="not load_id"
+                        readonly="not supplier_id or not buyer_id">
                     <span class="o_stat_text">Load</span>
                 </button>
             </xpath>
