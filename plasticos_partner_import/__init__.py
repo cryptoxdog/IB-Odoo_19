@@ -2,6 +2,103 @@ from . import models
 from . import wizards
 
 
+def pre_init_hook(cr):
+    """Clean up dependent records before partner XML ID cleanup.
+
+    During module update, Odoo's _process_end() tries to delete partners
+    whose XML IDs were removed. This fails if sale_order or other tables
+    still reference those partners. This hook cleans up those references first.
+    """
+    import logging
+
+    _logger = logging.getLogger(__name__)
+    _logger.info("pre_init_hook: Cleaning up dependent records before partner import...")
+
+    # Delete sale orders (they reference partners via partner_id, partner_invoice_id, partner_shipping_id)
+    cr.execute("SELECT COUNT(*) FROM sale_order")
+    so_count = cr.fetchone()[0]
+    if so_count:
+        cr.execute("DELETE FROM sale_order_line")
+        cr.execute("DELETE FROM sale_order")
+        _logger.info("Deleted %d sale orders and their lines", so_count)
+
+    # Delete purchase orders (they reference partners via partner_id)
+    cr.execute("SELECT COUNT(*) FROM purchase_order")
+    po_count = cr.fetchone()[0]
+    if po_count:
+        cr.execute("DELETE FROM purchase_order_line")
+        cr.execute("DELETE FROM purchase_order")
+        _logger.info("Deleted %d purchase orders and their lines", po_count)
+
+    # Delete stock pickings (they reference partners)
+    cr.execute("""
+        SELECT COUNT(*) FROM information_schema.tables
+        WHERE table_name = 'stock_picking'
+    """)
+    if cr.fetchone()[0]:
+        cr.execute("SELECT COUNT(*) FROM stock_picking")
+        pick_count = cr.fetchone()[0]
+        if pick_count:
+            cr.execute("DELETE FROM stock_move_line")
+            cr.execute("DELETE FROM stock_move")
+            cr.execute("DELETE FROM stock_picking")
+            _logger.info("Deleted %d stock pickings", pick_count)
+
+    # Delete account moves (invoices/bills reference partners)
+    cr.execute("""
+        SELECT COUNT(*) FROM information_schema.tables
+        WHERE table_name = 'account_move'
+    """)
+    if cr.fetchone()[0]:
+        cr.execute("SELECT COUNT(*) FROM account_move WHERE state = 'draft'")
+        draft_count = cr.fetchone()[0]
+        if draft_count:
+            cr.execute(
+                "DELETE FROM account_move_line WHERE move_id IN (SELECT id FROM account_move WHERE state = 'draft')"
+            )
+            cr.execute("DELETE FROM account_move WHERE state = 'draft'")
+            _logger.info("Deleted %d draft account moves", draft_count)
+
+    # Delete plasticos transactions (they reference partners)
+    cr.execute("""
+        SELECT COUNT(*) FROM information_schema.tables
+        WHERE table_name = 'plasticos_transaction'
+    """)
+    if cr.fetchone()[0]:
+        cr.execute("SELECT COUNT(*) FROM plasticos_transaction")
+        tx_count = cr.fetchone()[0]
+        if tx_count:
+            cr.execute("DELETE FROM plasticos_transaction_line")
+            cr.execute("DELETE FROM plasticos_transaction")
+            _logger.info("Deleted %d plasticos transactions", tx_count)
+
+    # Delete plasticos intakes (they reference partners)
+    cr.execute("""
+        SELECT COUNT(*) FROM information_schema.tables
+        WHERE table_name = 'plasticos_intake'
+    """)
+    if cr.fetchone()[0]:
+        cr.execute("SELECT COUNT(*) FROM plasticos_intake")
+        intake_count = cr.fetchone()[0]
+        if intake_count:
+            cr.execute("DELETE FROM plasticos_intake")
+            _logger.info("Deleted %d plasticos intakes", intake_count)
+
+    # Delete plasticos loads (they reference partners)
+    cr.execute("""
+        SELECT COUNT(*) FROM information_schema.tables
+        WHERE table_name = 'plasticos_load'
+    """)
+    if cr.fetchone()[0]:
+        cr.execute("SELECT COUNT(*) FROM plasticos_load")
+        load_count = cr.fetchone()[0]
+        if load_count:
+            cr.execute("DELETE FROM plasticos_load")
+            _logger.info("Deleted %d plasticos loads", load_count)
+
+    _logger.info("pre_init_hook: Cleanup complete")
+
+
 def post_init_hook(env):
     """Auto-import partners from CSV on first module install."""
     import logging

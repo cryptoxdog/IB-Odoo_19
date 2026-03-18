@@ -21,6 +21,7 @@
         "views/partner_bulk_update_wizard_views.xml",
         "views/crm_lead_import_wizard_views.xml",
     ],
+    "pre_init_hook": "pre_init_hook",
     "post_init_hook": "post_init_hook",
     "installable": True,
     "auto_install": True,
