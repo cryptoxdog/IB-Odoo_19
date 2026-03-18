@@ -489,10 +489,17 @@ class PlasticosMaterialProfile(models.Model):
 
     @api.constrains("partner_id")
     def _check_partner_is_facility(self):
+        """Warn (not block) if partner is not marked as facility.
+
+        This allows import/enrichment flows to create profiles before
+        is_facility is set, while still flagging the issue for review.
+        """
         for rec in self:
-            if not rec.partner_id.is_facility:
-                raise ValidationError(
-                    "Material profiles can only attach to facility-level partners (locations or standalone companies)."
+            if rec.partner_id and not rec.partner_id.is_facility:
+                rec.message_post(
+                    body="Warning: Partner is not marked as a facility. "
+                    "Material profiles should attach to facility-level partners.",
+                    message_type="notification",
                 )
 
     @api.constrains("density_min", "density_max")

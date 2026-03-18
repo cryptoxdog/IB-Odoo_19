@@ -92,13 +92,8 @@
 
             <!-- ═══ HIDE TABS ═══ -->
 
-            <!-- Hide Contacts tab (empty, not used) -->
+            <!-- Hide Contacts tab (empty, not used in PlasticOS workflow) -->
             <xpath expr="//page[@name='contact_addresses']" position="attributes">
-                <attribute name="invisible">1</attribute>
-            </xpath>
-
-            <!-- Hide child_ids field (Contacts tab content) -->
-            <xpath expr="//field[@name='child_ids']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
 

@@ -90,6 +90,39 @@ class PlasticosPartnerImportService(models.AbstractModel):
         is_customer = "customer" in role_lower
         return is_supplier, is_customer
 
+    def _lookup_category_tags(self, role_str):
+        """
+        Map role string to partner category tag IDs.
+
+        CSV roles: Supplier, Customer, Expense (comma-separated)
+        Maps to res.partner.category tags defined in plasticos_base/data/partner_tags.xml
+        """
+        if not role_str:
+            return []
+
+        tag_ids = []
+        role_lower = role_str.lower()
+
+        # Map CSV roles to XML IDs
+        role_tag_mapping = {
+            "supplier": "plasticos_base.tag_supplier",
+            "customer": "plasticos_base.tag_buyer",  # Customer = Buyer
+            "expense": "plasticos_base.tag_expense",
+            "broker": "plasticos_base.tag_broker",
+            "carrier": "plasticos_base.tag_carrier",
+            "processor": "plasticos_base.tag_processor",
+        }
+
+        for role_key, xml_id in role_tag_mapping.items():
+            if role_key in role_lower:
+                tag = self.env.ref(xml_id, raise_if_not_found=False)
+                if tag:
+                    tag_ids.append(tag.id)
+                else:
+                    _logger.warning("Tag not found: %s", xml_id)
+
+        return tag_ids
+
     def _make_external_id(self, prefix, name):
         """Generate external ID from name."""
         # Sanitize: lowercase, replace non-alphanum with underscore
@@ -238,7 +271,9 @@ class PlasticosPartnerImportService(models.AbstractModel):
         country_id = self._lookup_country(row.get("country", ""))
         state_id = self._lookup_state(row.get("state_id", ""), country_id)
         user_id = self._lookup_user(row.get("user_id", ""))
-        is_supplier, is_customer = self._parse_role(row.get("role", ""))
+        role_str = row.get("role", "")
+        is_supplier, is_customer = self._parse_role(role_str)
+        category_tag_ids = self._lookup_category_tags(role_str)
 
         # Get default payment term
         default_payment_term_id = self._get_default_payment_term()
@@ -259,6 +294,10 @@ class PlasticosPartnerImportService(models.AbstractModel):
             "supplier_rank": 1 if is_supplier else 0,
             "customer_rank": 1 if is_customer else 0,
         }
+
+        # Assign category tags based on role (Supplier, Customer/Buyer, Expense, etc.)
+        if category_tag_ids:
+            vals["category_id"] = [(6, 0, category_tag_ids)]
 
         # Assign payment terms based on role
         if is_customer and default_payment_term_id:

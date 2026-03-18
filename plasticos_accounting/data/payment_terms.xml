@@ -90,10 +90,11 @@
     </record>
 
     <record id="plasticos_payment_term_50_down_50_cod" model="account.payment.term">
-      <field name="name">50% Down / 50% COD</field>
+      <field name="name">50% Down / 50% Net 30</field>
+      <field name="note">50% deposit, 50% due net 30 days</field>
       <field name="line_ids" eval="[
         (0, 0, {'value': 'percent', 'value_amount': 50.0, 'nb_days': 0, 'delay_type': 'days_after'}),
-        (0, 0, {'value': 'percent', 'value_amount': 50.0, 'nb_days': 0, 'delay_type': 'days_after'})
+        (0, 0, {'value': 'percent', 'value_amount': 50.0, 'nb_days': 30, 'delay_type': 'days_after'})
       ]"/>
     </record>
   </data>

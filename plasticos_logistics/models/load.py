@@ -171,9 +171,12 @@ class PlasticosLoad(models.Model):
             else:
                 rec.cycle_time_hours = 0
 
-    @api.depends()
     def _compute_transaction_id(self):
-        """Reverse lookup: find transaction that references this load."""
+        """Reverse lookup: find transaction that references this load.
+
+        Note: No @api.depends() because this is store=False and always
+        recomputes on field access. The search is lightweight (indexed FK).
+        """
         for rec in self:
             tx = self.env[PLASTICOS_TRANSACTION].search([("load_id", "=", rec.id)], limit=1)
             rec.transaction_id = tx.id if tx else False
@@ -224,6 +227,9 @@ class PlasticosLoad(models.Model):
             _logger.info("Load %s state transition: %s -> %s (correlation: %s)", rec.id, old, new_state, correlation_id)
 
     def _store_rate_memory(self):
+        if "plasticos.rate.memory" not in self.env:
+            _logger.warning("plasticos.rate.memory model not found; skipping rate memory storage.")
+            return
         self.env["plasticos.rate.memory"].create(
             {
                 "carrier_id": self.carrier_id.id,
@@ -245,9 +251,12 @@ class PlasticosLoad(models.Model):
             return
 
         try:
-            from odoo.addons.plasticos_logistics.services.escalation_engine import check_escalations
+            try:
+                from odoo.addons.plasticos_logistics.services.escalation_engine import check_escalations
 
-            check_escalations(self.env)
+                check_escalations(self.env)
+            except ImportError:
+                _logger.warning("escalation_engine not found; skipping cron.")
         finally:
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_logistics.cron_escalation_check"]
