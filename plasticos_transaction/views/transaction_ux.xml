@@ -141,12 +141,10 @@
                         domain="[('gross_margin', '&lt;', 0)]"/>
             </xpath>
 
-            <!-- Add carrier grouping -->
-            <xpath expr="//group[@name='group_by']" position="inside">
-                <filter name="group_supplier" string="Supplier"
-                        context="{'group_by': 'supplier_id'}"/>
-                <filter name="group_buyer" string="Buyer"
-                        context="{'group_by': 'buyer_id'}"/>
+            <!-- Add carrier grouping (after existing group_buyer in parent) -->
+            <xpath expr="//filter[@name='group_buyer']" position="after">
+                <filter name="group_carrier" string="Carrier"
+                        context="{'group_by': 'carrier_id'}"/>
             </xpath>
 
         </field>
