@@ -69,70 +69,65 @@
           </div>
           <notebook>
             <page string="Profile">
-              <!-- Row 1: Source/Material + Packaging -->
+              <!-- Row 1: Source + Packaging -->
               <group>
                 <group string="Source">
                   <field name="partner_id" string="Facility"/>
                   <field name="company_id" string="Company" readonly="1"/>
+                  <field name="source_type_id" string="Source Type"/>
                   <field name="polymer_id"/>
                   <field name="sub_grade" invisible="1"/>
                   <field name="form_id"/>
                   <field name="color_id"/>
-                  <field name="color_flexibility"/>
+                  <!-- color_flexibility moved to Buyer Fields tab -->
                 </group>
                 <group string="Packaging">
-                  <field name="packaging_type_id"/>
-                  <field name="loads_per_month"/>
+                  <field name="packaging_type_id" string="Packaging"/>
+                  <field name="loads_per_month" string="Loads Per Month"/>
                   <field name="filler_type_id"/>
                   <field name="filler_pct" invisible="not filler_type_id"/>
+                  <field name="origin_process_type" string="Process"/>
+                  <!-- Hidden booleans used for matching downstream -->
+                  <field name="previously_washed" invisible="1"/>
+                  <field name="previously_pelletized" invisible="1"/>
+                  <field name="material_attribute_ids" widget="many2many_tags" string="Attributes"/>
                 </group>
               </group>
 
-              <!-- Row 2: Quality + Processing (swapped) -->
+              <!-- Row 2: Volume + Specs -->
               <group>
-                <group string="Quality">
+                <group string="Volume">
+                  <field name="avg_lot_size_lbs" string="Avg Weight Lbs"/>
+                  <!-- min/max lot sizes removed per mockup -->
+                  <field name="min_lot_size_lbs" invisible="1"/>
+                  <field name="max_lot_size_lbs" invisible="1"/>
+                  <field name="monthly_volume_lbs"/>
+                  <field name="frequency" string="Load Frequency"/>
+                  <field name="origin_form_id" string="Origin Form"/>
+                </group>
+                <group string="Specs">
                   <field name="melt_flow_index"/>
                   <field name="density"/>
                   <field name="moisture_percent"/>
                   <field name="contamination_percent"/>
                 </group>
-                <group string="Processing">
-                  <field name="origin_process_type"/>
-                  <field name="previously_washed"/>
-                  <field name="previously_pelletized"/>
-                </group>
               </group>
 
-              <!-- Row 3: Volume + Origin -->
+              <!-- Row 3: Notes (full width) -->
               <group>
-                <group string="Volume">
-                  <field name="avg_lot_size_lbs"/>
-                  <field name="min_lot_size_lbs"/>
-                  <field name="max_lot_size_lbs"/>
-                  <field name="monthly_volume_lbs"/>
-                  <field name="frequency"/>
-                </group>
-                <group string="Origin">
-                  <field name="source_type_id"/>
-                  <field name="origin_form_id"/>
-                </group>
-              </group>
-
-              <!-- Row 4: Attributes (full width) -->
-              <group string="Attributes">
-                <field name="material_attribute_ids" widget="many2many_tags" nolabel="1"/>
+                <field name="freeform_notes" nolabel="1" placeholder="Freeform Notes..."/>
               </group>
             </page>
 
-            <page string="Compliance &amp; Notes">
+            <page string="Buyer Fields">
               <group>
                 <group string="Compliance">
                   <field name="food_grade"/>
                   <field name="medical_grade"/>
                   <field name="certification_notes"/>
                 </group>
-                <group string="Notes">
-                  <field name="freeform_notes"/>
+                <group string="Preferences">
+                  <field name="color_flexibility"/>
                 </group>
               </group>
             </page>
