@@ -415,6 +415,8 @@ class PlasticosTransaction(models.Model):
             ("active", "Active"),
             ("pending_supplier", "Pending Supplier"),
             ("supplier_ready", "Supplier Ready"),
+            ("do_created", "DO Created"),
+            ("dispatched", "Dispatched"),
             ("in_progress", "In Progress"),
             ("in_transit", "In Transit"),
             ("delivered", "Delivered"),
@@ -853,8 +855,16 @@ class PlasticosTransaction(models.Model):
         return super().write(vals)
 
     def _validate_state_transition(self, rec, vals):
-        """Enforce that state changes only happen via dedicated action methods."""
+        """Enforce that state changes only happen via dedicated action methods.
+
+        System processes (crons, automated workflows) can bypass this guard by
+        setting context key 'bypass_state_guard' to True. This should only be
+        used by action_* methods, never by direct write() calls.
+        """
         if "state" in vals:
+            if self.env.context.get("bypass_state_guard"):
+                return
+
             allow = vals.get("state") == "active" or (
                 vals.get("state") == "closed" and vals.get("commission_locked") is True
             )
@@ -956,6 +966,66 @@ class PlasticosTransaction(models.Model):
                 "state": "closed",
             }
         )
+
+    # ═════════════════════════════════════════════════════════
+    # State Transition Action Methods (for crons/system processes)
+    # ═════════════════════════════════════════════════════════
+
+    def action_mark_do_created(self):
+        """Mark transaction as having a delivery order created.
+
+        Called by cron or system process after DO is linked.
+        Uses bypass_state_guard context to allow state transition.
+        """
+        for rec in self:
+            if rec.state != "supplier_ready":
+                raise UserError(
+                    f"Cannot mark DO created: transaction must be in 'Supplier Ready' state (current: {rec.state})."
+                )
+            if not rec.delivery_order_id:
+                raise UserError("Cannot mark DO created: no delivery order linked.")
+            rec.with_context(bypass_state_guard=True).write({"state": "do_created"})
+
+    def action_mark_dispatched(self):
+        """Mark transaction as dispatched (load sent to carrier).
+
+        Called when the linked load transitions to dispatched state.
+        Uses bypass_state_guard context to allow state transition.
+        """
+        for rec in self:
+            if rec.state not in ("do_created", "supplier_ready"):
+                raise UserError(
+                    f"Cannot mark dispatched: transaction must be in 'DO Created' or "
+                    f"'Supplier Ready' state (current: {rec.state})."
+                )
+            load = getattr(rec, "load_id", False)
+            if load and load.state not in ("dispatched", "picked_up", "delivered", "closed"):
+                raise UserError("Cannot mark dispatched: load has not been dispatched yet.")
+            rec.with_context(bypass_state_guard=True).write({"state": "dispatched"})
+
+    def action_mark_in_transit(self):
+        """Mark transaction as in transit (carrier picked up load).
+
+        Called when the linked load transitions to picked_up state.
+        Uses bypass_state_guard context to allow state transition.
+        """
+        for rec in self:
+            if rec.state not in ("dispatched", "do_created", "in_progress"):
+                raise UserError(f"Cannot mark in transit: invalid current state (current: {rec.state}).")
+            rec.with_context(bypass_state_guard=True).write({"state": "in_transit"})
+
+    def action_mark_delivered(self):
+        """Mark transaction as delivered.
+
+        Called when the linked load transitions to delivered state.
+        Uses bypass_state_guard context to allow state transition.
+        """
+        for rec in self:
+            if rec.state != "in_transit":
+                raise UserError(
+                    f"Cannot mark delivered: transaction must be in 'In Transit' state (current: {rec.state})."
+                )
+            rec.with_context(bypass_state_guard=True).write({"state": "delivered"})
 
     # ═════════════════════════════════════════════════════════
     # Action Methods (for UX smart buttons)

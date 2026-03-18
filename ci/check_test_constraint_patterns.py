@@ -114,7 +114,6 @@ def analyze_test_file(path: Path) -> dict:
 def fix_test_file(path: Path, dry_run: bool = False) -> bool:
     """Fix constraint patterns in a test file."""
     content = path.read_text()
-    original = content
     lines = content.split("\n")
     fixed_lines = []
     changes_made = False
@@ -164,7 +163,7 @@ def fix_test_file(path: Path, dry_run: bool = False) -> bool:
         fixed_lines.insert(import_section_end + 2, "    from psycopg.errors import IntegrityError")
         fixed_lines.insert(import_section_end + 3, "except ImportError:")
         fixed_lines.insert(import_section_end + 4, "    from psycopg2 import IntegrityError")
-        print(f"  + Added IntegrityError import")
+        print("  + Added IntegrityError import")
         fixed_content = "\n".join(fixed_lines)
 
     if changes_made and not dry_run:
