@@ -77,7 +77,7 @@ class PlasticosMaterialProfile(models.Model):
         help="Auto-populated from polymer_id. Kept for backward compatibility.",
     )
 
-    sub_grade = fields.Char()
+    sub_grade = fields.Char()  # TODO: Define sub-grade logic and re-enable in view
 
     # ── Form (Many2one to master) ────────────────────────────
     form_id = fields.Many2one(
@@ -258,6 +258,7 @@ class PlasticosMaterialProfile(models.Model):
             ("monthly", "Monthly"),
             ("contract", "Contract"),
         ],
+        string="Load Frequency",
     )
 
     # ── Origin Form (what it was before processing) ──────────
@@ -274,7 +275,7 @@ class PlasticosMaterialProfile(models.Model):
         help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales). Optional.",
     )
 
-    avg_truckloads_per_month = fields.Float()
+    avg_truckloads_per_month = fields.Float(string="Loads Per Month")
 
     # ── Compliance ───────────────────────────────────────────
     food_grade = fields.Boolean()
