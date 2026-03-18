@@ -48,10 +48,6 @@
                         <strong> Capacity: </strong>
                         <field name="capacity_lbs_month" nolabel="1"/> lbs/month
                     </span>
-                    <span invisible="not max_monthly_throughput_lbs">
-                        <strong>Max Throughput: </strong>
-                        <field name="max_monthly_throughput_lbs" nolabel="1"/> lbs/month
-                    </span>
                     <span invisible="not avg_truckload_lbs">
                         <strong>Avg Load: </strong>
                         <field name="avg_truckload_lbs" nolabel="1"/> lbs
@@ -179,7 +175,7 @@
         <field name="arch" type="xml">
 
             <!-- Add partner name as first column (scoped to list view) -->
-            <xpath expr="//list/field[@name='max_monthly_throughput_lbs']" position="before">
+            <xpath expr="//list/field[@name='process_type']" position="before">
                 <field name="partner_id" string="Facility"/>
             </xpath>
 

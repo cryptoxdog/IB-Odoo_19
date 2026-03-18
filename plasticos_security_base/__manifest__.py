@@ -13,6 +13,7 @@
     "author": "Igor Beylin",
     "depends": [
         "base",
+        "base_geolocalize",
         "sale",
         "purchase",
         "account",

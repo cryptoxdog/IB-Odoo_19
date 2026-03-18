@@ -84,7 +84,6 @@ class PlasticosFacilityProfile(models.Model):
     )
 
     # ── Throughput ───────────────────────────────────────────
-    max_monthly_throughput_lbs = fields.Float(index=True)
     avg_truckload_lbs = fields.Float()
 
     # ── Material Handling ────────────────────────────────────

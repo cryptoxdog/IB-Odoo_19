@@ -203,13 +203,6 @@
             <form>
                 <header>
                     <button
-                        name="action_match_to_buyers"
-                        type="object"
-                        string="Match To Buyers"
-                        class="btn-primary"
-                        invisible="status != 'draft'"
-                    />
-                    <button
                         name="action_send_offers"
                         type="object"
                         string="Send Offer"

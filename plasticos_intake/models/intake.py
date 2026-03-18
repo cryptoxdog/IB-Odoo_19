@@ -76,7 +76,7 @@ class PlasticosIntake(models.Model):
         string="Contact Person",
         tracking=True,
         index=True,
-        domain="['|', ('parent_id', '=', facility_id), ('parent_id', '=', partner_id)]",
+        domain="[('is_company', '=', False), '|', ('parent_id', '=', facility_id), ('parent_id', '=', partner_id)]",
         help="The person at the facility you are dealing with. Auto-selected from preferred contact memory.",
     )
 

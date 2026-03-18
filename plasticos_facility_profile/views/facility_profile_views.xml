@@ -9,7 +9,6 @@
     <field name="model">plasticos.facility.profile</field>
     <field name="arch" type="xml">
       <list editable="bottom">
-        <field name="max_monthly_throughput_lbs" sum="Total Throughput"/>
         <field name="process_type"/>
         <field name="feedstock_type"/>
         <field name="capacity_lbs_month" sum="Total Capacity"/>
@@ -41,7 +40,6 @@
                   <field name="application_class"/>
                 </group>
                 <group string="Capacity">
-                  <field name="max_monthly_throughput_lbs"/>
                   <field name="capacity_lbs_month"/>
                   <field name="avg_truckload_lbs"/>
                 </group>
@@ -156,10 +154,13 @@
     <field name="inherit_id" ref="base.view_partner_form"/>
     <field name="arch" type="xml">
 
-      <!-- Add lead_source_id and default_delivery_term to partner form (visible for companies) -->
+      <!-- Add lead_source_id, delivery terms, salesperson, payment terms to partner form (visible for companies) -->
       <xpath expr="//field[@name='category_id']" position="after">
         <field name="lead_source_id" invisible="not is_company"/>
         <field name="default_delivery_term" invisible="not is_company"/>
+        <field name="user_id" string="Salesperson" invisible="not is_company"/>
+        <field name="property_payment_term_id" string="Payment Terms" invisible="not is_company"/>
+        <field name="property_supplier_payment_term_id" string="Supplier Payment Terms" invisible="not is_company or not supplier_rank"/>
       </xpath>
 
       <xpath expr="//sheet/notebook" position="inside">
@@ -175,7 +176,6 @@
           <field name="facility_profile_ids"
                  context="{'form_view_ref': 'plasticos_facility_profile.view_facility_profile_form'}">
             <list editable="bottom">
-              <field name="max_monthly_throughput_lbs" sum="Total Throughput"/>
               <field name="process_type"/>
               <field name="feedstock_type"/>
               <field name="capacity_lbs_month" sum="Total Capacity"/>

@@ -67,25 +67,15 @@
         <field name="arch" type="xml">
 
             <!-- ═══ PROMOTED FIELDS: Add key fields above notebook ═══ -->
+            <!-- Salesperson and Payment Terms moved to upper right (plasticos_facility_profile) -->
             <xpath expr="//sheet/notebook" position="before">
 
-                <!-- Sales &amp; Payment Info (for companies) -->
-                <group invisible="not is_company" class="mt-3">
-                    <group string="Sales">
-                        <field name="user_id" string="Salesperson"/>
-                    </group>
-                    <group string="Payment">
-                        <field name="property_payment_term_id" string="Payment Terms"/>
-                        <field name="property_supplier_payment_term_id" string="Supplier Payment Terms"
-                               invisible="not supplier_rank"/>
-                    </group>
-                </group>
-
                 <!-- Internal Notes - prominent, always visible for companies -->
-                <group invisible="not is_company" class="mt-2">
-                    <field name="comment" string="Internal Notes"
+                <group string="Notes" invisible="not is_company" class="mt-3">
+                    <field name="comment"
                            placeholder="Add notes about this contact..."
-                           nolabel="1" colspan="2"/>
+                           nolabel="1" colspan="2"
+                           widget="html"/>
                 </group>
 
             </xpath>
@@ -102,9 +92,20 @@
                 <attribute name="invisible">1</attribute>
             </xpath>
 
+            <!-- Hide Partner Assignment tab (from sale module) -->
+            <xpath expr="//page[@name='partner_assignment']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- ═══ HIDE REDUNDANT FIELDS IN TABS ═══ -->
+
+            <!-- Hide Salesperson in Sales &amp; Purchase tab (already in upper section) -->
+            <xpath expr="//page[@name='sales_purchases']//field[@name='user_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
             <!-- ═══ TAB SEQUENCING ═══ -->
-            <!-- Material Profile = 10 (set in plasticos_material_profile) -->
-            <!-- Facility Profile = 20 (set in plasticos_facility_profile) -->
+            <!-- Order: Material Profile (10) → Facility Profile (20) → Sales &amp; Purchase (30) → Invoicing (40) -->
 
             <!-- Sales &amp; Purchase = 30 -->
             <xpath expr="//page[@name='sales_purchases']" position="attributes">
@@ -121,28 +122,17 @@
     </record>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
-         GEOLOCATION TAB
-         Replaces "Partner Assignment" with cleaner Geolocation tab (far right)
+         GEOLOCATION TAB - HIDDEN
+         Hide geolocation tab from base_geolocalize module
          ═══════════════════════════════════════════════════════════════════════ -->
-    <record id="view_partner_form_geolocation_tab" model="ir.ui.view">
-        <field name="name">res.partner.form.geolocation.tab</field>
+    <record id="view_partner_form_hide_geolocation" model="ir.ui.view">
+        <field name="name">res.partner.form.hide.geolocation</field>
         <field name="model">res.partner</field>
-        <field name="inherit_id" ref="base.view_partner_form"/>
-        <field name="priority">110</field>
+        <field name="inherit_id" ref="base_geolocalize.view_partner_form_geo"/>
+        <field name="priority">200</field>
         <field name="arch" type="xml">
-            <xpath expr="//sheet/notebook" position="inside">
-                <page string="Geolocation" name="geolocation_tab" sequence="99"
-                      invisible="not is_company">
-                    <group>
-                        <group string="Coordinates">
-                            <field name="partner_latitude" string="Latitude" readonly="1"/>
-                            <field name="partner_longitude" string="Longitude" readonly="1"/>
-                        </group>
-                        <group string="Status">
-                            <field name="date_localization" string="Last Geocoded" readonly="1"/>
-                        </group>
-                    </group>
-                </page>
+            <xpath expr="//page[@string='Geolocation']" position="attributes">
+                <attribute name="invisible">1</attribute>
             </xpath>
         </field>
     </record>

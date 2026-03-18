@@ -10,6 +10,25 @@ class PlasticosMaterialProfile(models.Model):
     _description = "Material Identity Profile"
     _inherit = ["mail.thread"]
     _order = "partner_id, polymer_id"
+    _rec_name = "display_name"
+
+    display_name = fields.Char(
+        string="Name",
+        compute="_compute_display_name",
+        store=True,
+    )
+
+    @api.depends("polymer_id", "form_id")
+    def _compute_display_name(self):
+        for rec in self:
+            polymer = rec.polymer_id.name if rec.polymer_id else ""
+            form = rec.form_id.name if rec.form_id else ""
+            if polymer and form:
+                rec.display_name = f"{polymer} {form}"
+            elif polymer:
+                rec.display_name = polymer
+            else:
+                rec.display_name = f"Profile #{rec.id}"
 
     partner_id = fields.Many2one(
         "res.partner",
