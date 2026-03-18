@@ -16,7 +16,7 @@
         </field>
     </record>
 
-    <!-- Hide unused fields from partner form: Tax ID, Website, Partner Level -->
+    <!-- Hide unused fields from partner form: Tax ID, Website -->
     <record id="view_partner_form_hide_fields" model="ir.ui.view">
         <field name="name">res.partner.form.hide.fields</field>
         <field name="model">res.partner</field>
@@ -34,7 +34,9 @@
         </field>
     </record>
 
-    <!-- Partner form tab ordering and visibility -->
+    <!-- Partner form tab ordering: only target tabs that exist in base Odoo 19 view.
+         Plasticos-specific tabs (material_profiles_tab, facility_profile) are sequenced
+         by their own modules. partner_assign was removed in Odoo 19. -->
     <record id="view_partner_form_tab_order" model="ir.ui.view">
         <field name="name">res.partner.form.tab.order</field>
         <field name="model">res.partner</field>
@@ -42,26 +44,17 @@
         <field name="priority">100</field>
         <field name="arch" type="xml">
 
-            <!-- Hide child_ids field (Contacts tab content) -->
+            <!-- Hide Contacts tab content -->
             <xpath expr="//field[@name='child_ids']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
 
-            <!-- Tab order: Material Profiles, Facility Profile, Notes, Sales, Partner Assignment, Accounting -->
-            <xpath expr="//page[@name='material_profiles_tab']" position="attributes">
-                <attribute name="sequence">10</attribute>
-            </xpath>
-            <xpath expr="//page[@name='facility_profile']" position="attributes">
-                <attribute name="sequence">20</attribute>
-            </xpath>
+            <!-- Only sequence tabs confirmed present in base.view_partner_form (Odoo 19) -->
             <xpath expr="//page[@name='internal_notes']" position="attributes">
                 <attribute name="sequence">30</attribute>
             </xpath>
             <xpath expr="//page[@name='sales_purchases']" position="attributes">
                 <attribute name="sequence">40</attribute>
-            </xpath>
-            <xpath expr="//page[@name='partner_assign']" position="attributes">
-                <attribute name="sequence">50</attribute>
             </xpath>
             <xpath expr="//page[@name='accounting']" position="attributes">
                 <attribute name="sequence">60</attribute>
