@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <record id="view_grade_template_tree" model="ir.ui.view">
+    <field name="name">plasticos.grade.template.tree</field>
+    <field name="model">plasticos.grade.template</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="sequence" widget="handle"/>
+        <field name="name"/>
+        <field name="code"/>
+        <field name="polymer_id"/>
+        <field name="form_id"/>
+        <field name="color_id"/>
+        <field name="quality_tier"/>
+        <field name="usage_count"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_grade_template_form" model="ir.ui.view">
+    <field name="name">plasticos.grade.template.form</field>
+    <field name="model">plasticos.grade.template</field>
+    <field name="arch" type="xml">
+      <form>
+        <sheet>
+          <div class="oe_title">
+            <h1><field name="name" placeholder="e.g., LDPE Film - Grade A"/></h1>
+          </div>
+          <group>
+            <group string="Material Identity">
+              <field name="code"/>
+              <field name="polymer_id"/>
+              <field name="form_id"/>
+              <field name="color_id"/>
+              <field name="quality_tier"/>
+            </group>
+            <group string="Packaging &amp; Source">
+              <field name="packaging_type_id"/>
+              <field name="source_type_id"/>
+              <field name="sequence"/>
+              <field name="usage_count"/>
+            </group>
+          </group>
+          <group string="Condition Flags">
+            <group>
+              <field name="is_clean"/>
+              <field name="no_metal"/>
+            </group>
+            <group>
+              <field name="has_metal"/>
+              <field name="no_liners"/>
+            </group>
+          </group>
+          <group string="Notes">
+            <field name="condition_notes"/>
+            <field name="description"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="view_grade_template_search" model="ir.ui.view">
+    <field name="name">plasticos.grade.template.search</field>
+    <field name="model">plasticos.grade.template</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="name"/>
+        <field name="code"/>
+        <field name="polymer_id"/>
+        <separator/>
+        <filter name="grade_a" string="Grade A" domain="[('quality_tier', '=', 'grade_a')]"/>
+        <filter name="prime" string="Prime" domain="[('quality_tier', '=', 'prime')]"/>
+        <group expand="0" string="Group By">
+          <filter name="group_polymer" string="Polymer" context="{'group_by': 'polymer_id'}"/>
+          <filter name="group_form" string="Form" context="{'group_by': 'form_id'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+
+  <record id="action_grade_template" model="ir.actions.act_window">
+    <field name="name">Material Grade Templates</field>
+    <field name="res_model">plasticos.grade.template</field>
+    <field name="view_mode">list,form</field>
+  </record>
+
+</odoo>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <record id="view_facility_template_tree" model="ir.ui.view">
+    <field name="name">plasticos.facility.template.tree</field>
+    <field name="model">plasticos.facility.template</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="sequence" widget="handle"/>
+        <field name="name"/>
+        <field name="code"/>
+        <field name="feedstock_type"/>
+        <field name="application_class"/>
+        <field name="handles_bales"/>
+        <field name="handles_regrind"/>
+        <field name="handles_pellet"/>
+        <field name="usage_count"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_facility_template_form" model="ir.ui.view">
+    <field name="name">plasticos.facility.template.form</field>
+    <field name="model">plasticos.facility.template</field>
+    <field name="arch" type="xml">
+      <form>
+        <sheet>
+          <div class="oe_title">
+            <h1><field name="name" placeholder="e.g., Recycler - Full Line"/></h1>
+          </div>
+          <group>
+            <group string="Identity">
+              <field name="code"/>
+              <field name="sequence"/>
+              <field name="usage_count"/>
+            </group>
+            <group string="Feedstock &amp; Application">
+              <field name="feedstock_type"/>
+              <field name="application_class"/>
+              <field name="form_preference_id"/>
+            </group>
+          </group>
+          <group string="Equipment">
+            <field name="equipment_type_ids" widget="many2many_tags"/>
+          </group>
+          <group>
+            <group string="Material Handling">
+              <field name="handles_bales"/>
+              <field name="handles_regrind"/>
+              <field name="handles_pellet"/>
+              <field name="handles_flake"/>
+              <field name="handles_rollstock"/>
+            </group>
+            <group string="Quality Processing">
+              <field name="can_remove_metal"/>
+              <field name="can_reduce_moisture"/>
+              <field name="can_filter_fr"/>
+              <field name="can_screen_fines"/>
+            </group>
+          </group>
+          <group>
+            <group string="Certification">
+              <field name="iso_certified"/>
+              <field name="food_grade_certified"/>
+              <field name="medical_grade_capable"/>
+            </group>
+            <group string="Operational">
+              <field name="accepts_spot"/>
+              <field name="prefers_contract"/>
+              <field name="accepts_filled_materials"/>
+            </group>
+          </group>
+          <group string="Notes">
+            <field name="description"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="view_facility_template_search" model="ir.ui.view">
+    <field name="name">plasticos.facility.template.search</field>
+    <field name="model">plasticos.facility.template</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="name"/>
+        <field name="code"/>
+        <separator/>
+        <filter name="post_industrial" string="Post Industrial" domain="[('feedstock_type', '=', 'post_industrial')]"/>
+        <filter name="post_consumer" string="Post Consumer" domain="[('feedstock_type', '=', 'post_consumer')]"/>
+        <group expand="0" string="Group By">
+          <filter name="group_feedstock" string="Feedstock Type" context="{'group_by': 'feedstock_type'}"/>
+          <filter name="group_application" string="Application" context="{'group_by': 'application_class'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+
+  <record id="action_facility_template" model="ir.actions.act_window">
+    <field name="name">Facility Templates</field>
+    <field name="res_model">plasticos.facility.template</field>
+    <field name="view_mode">list,form</field>
+  </record>
+
+</odoo>

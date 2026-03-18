@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+    <!-- Common Facility Profile Templates -->
+
+    <!-- #1: Full-Service Recycler (wash, grind, pelletize) -->
+    <record id="template_recycler" model="plasticos.facility.template">
+      <field name="name">Recycler</field>
+      <field name="code">RECYCLER</field>
+      <field name="equipment_type_ids" eval="[(6, 0, [
+      ])]"/>
+      <field name="handles_bales">True</field>
+      <field name="handles_regrind">True</field>
+      <field name="handles_pellet">True</field>
+      <field name="handles_flake">True</field>
+      <field name="accepts_spot">True</field>
+      <field name="description">Full-service recycler with wash line, grinding, and pelletizing capabilities.</field>
+      <field name="sequence">10</field>
+    </record>
+
+    <!-- #2: Grinder Only (toll grinding) -->
+    <record id="template_grinder" model="plasticos.facility.template">
+      <field name="name">Grinder</field>
+      <field name="code">GRINDER</field>
+      <field name="equipment_type_ids" eval="[(6, 0, [
+        ref('equip_granulator'),
+      ])]"/>
+      <field name="handles_bales">True</field>
+      <field name="handles_regrind">True</field>
+      <field name="feedstock_type">post_industrial</field>
+      <field name="accepts_spot">True</field>
+      <field name="description">Toll grinding operation - converts bales/parts to regrind.</field>
+      <field name="sequence">20</field>
+    </record>
+
+    <!-- #3: MRF / Sorter -->
+    <record id="template_mrf_sorter" model="plasticos.facility.template">
+      <field name="name">MRF</field>
+      <field name="code">MRF</field>
+      <field name="equipment_type_ids" eval="[(6, 0, [
+        ref('equip_sorting_line'),
+        ref('equip_horizontal_baler'),
+      ])]"/>
+      <field name="handles_bales">True</field>
+      <field name="feedstock_type">post_consumer</field>
+      <field name="accepts_spot">True</field>
+      <field name="description">Material Recovery Facility - sorts and bales post-consumer material.</field>
+      <field name="sequence">30</field>
+    </record>
+
+    <!-- #4: Compounder -->
+    <record id="template_compounder" model="plasticos.facility.template">
+      <field name="name">Compounder</field>
+      <field name="code">COMPOUNDER</field>
+      <field name="equipment_type_ids" eval="[(6, 0, [
+        ref('equip_extruder'),
+        ref('equip_compounder'),
+        ref('equip_pelletizer'),
+      ])]"/>
+      <field name="handles_regrind">True</field>
+      <field name="handles_pellet">True</field>
+      <field name="prefers_contract">True</field>
+      <field name="description">Compounding operation - blends additives, colorants, fillers into pellets.</field>
+      <field name="sequence">40</field>
+    </record>
+
+    <!-- #5: Film Processor -->
+    <record id="template_film_processor" model="plasticos.facility.template">
+      <field name="name">Film Processor</field>
+      <field name="code">FILM_PROCESSOR</field>
+      <field name="equipment_type_ids" eval="[(6, 0, [
+        ref('equip_extruder'),
+        ref('equip_pelletizer'),
+      ])]"/>
+      <field name="handles_bales">True</field>
+      <field name="handles_rollstock">True</field>
+      <field name="handles_pellet">True</field>
+      <field name="can_reduce_moisture">True</field>
+      <field name="feedstock_type">post_industrial</field>
+      <field name="form_preference_id" ref="plasticos_material_profile.form_film"/>
+      <field name="accepts_spot">True</field>
+      <field name="description">Specializes in film recycling - wash, dry, pelletize.</field>
+      <field name="sequence">50</field>
+    </record>
+
+    <!-- #6: Injection Molder (buyer) -->
+    <record id="template_injection_molder" model="plasticos.facility.template">
+      <field name="name">Injection Molder</field>
+      <field name="code">INJECTION_MOLDER</field>
+      <field name="handles_regrind">True</field>
+      <field name="handles_pellet">True</field>
+      <field name="feedstock_type">post_industrial</field>
+      <field name="application_class">packaging</field>
+      <field name="form_preference_id" ref="plasticos_material_profile.form_pellets"/>
+      <field name="prefers_contract">True</field>
+      <field name="description">Injection molding facility - buys regrind/pellet for molding.</field>
+      <field name="sequence">60</field>
+    </record>
+
+    <!-- #7: Blow Molder (buyer) -->
+    <record id="template_blow_molder" model="plasticos.facility.template">
+      <field name="name">Blow Molder</field>
+      <field name="code">BLOW_MOLDER</field>
+      <field name="handles_regrind">True</field>
+      <field name="handles_pellet">True</field>
+      <field name="feedstock_type">post_industrial</field>
+      <field name="application_class">packaging</field>
+      <field name="form_preference_id" ref="plasticos_material_profile.form_pellets"/>
+      <field name="prefers_contract">True</field>
+      <field name="description">Blow molding facility - buys pellet for bottles/containers.</field>
+      <field name="sequence">70</field>
+    </record>
+
+    <!-- #8: Broker -->
+    <record id="template_scrap_dealer" model="plasticos.facility.template">
+      <field name="name">Broker</field>
+      <field name="code">BROKER</field>
+      <field name="handles_bales">True</field>
+      <field name="handles_regrind">True</field>
+      <field name="handles_pellet">True</field>
+      <field name="feedstock_type">mixed</field>
+      <field name="accepts_spot">True</field>
+      <field name="description">Buys and resells scrap - minimal processing, baling only.</field>
+      <field name="sequence">80</field>
+    </record>
+
+  </data>
+</odoo>

@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+    <!-- Top 20 Material Grade Templates (covers ~75% of transaction volume) -->
+
+    <record id="grade_plastic_pallets_no_metal" model="plasticos.grade.template">
+      <field name="name">Plastic Pallets - No Metal</field>
+      <field name="code">PALLETS_NO_METAL</field>
+      <field name="polymer_id" ref="polymer_plastic_pallets"/>
+      <field name="form_id" ref="form_pallets"/>
+      <field name="packaging_type_id" ref="packaging_loose"/>
+      <field name="quality_tier">standard</field>
+      <field name="no_metal">True</field>
+      <field name="condition_notes">No metal contamination</field>
+      <field name="sequence">10</field>
+    </record>
+
+    <record id="grade_gaylord_boxes" model="plasticos.grade.template">
+      <field name="name">Gaylord Boxes</field>
+      <field name="code">GAYLORD_BOXES</field>
+      <field name="polymer_id" ref="polymer_gaylord_boxes"/>
+      <field name="packaging_type_id" ref="packaging_loose"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">20</field>
+    </record>
+
+    <record id="grade_lldpe_roto" model="plasticos.grade.template">
+      <field name="name">LLDPE Roto</field>
+      <field name="code">LLDPE_ROTO</field>
+      <field name="polymer_id" ref="polymer_lldpe"/>
+      <field name="form_id" ref="form_powder"/>
+      <field name="packaging_type_id" ref="packaging_gaylords"/>
+      <field name="quality_tier">standard</field>
+      <field name="description">Rotomolding grade LLDPE powder.</field>
+      <field name="sequence">30</field>
+    </record>
+
+    <record id="grade_ldpe_film_a" model="plasticos.grade.template">
+      <field name="name">LDPE Film - Grade A</field>
+      <field name="code">LDPE_FILM_A</field>
+      <field name="polymer_id" ref="polymer_ldpe"/>
+      <field name="form_id" ref="form_film"/>
+      <field name="packaging_type_id" ref="packaging_bales"/>
+      <field name="quality_tier">grade_a</field>
+      <field name="is_clean">True</field>
+      <field name="description">Premium quality LDPE film, clean and dry.</field>
+      <field name="sequence">40</field>
+    </record>
+
+    <record id="grade_hmw_repro" model="plasticos.grade.template">
+      <field name="name">HMW Repro</field>
+      <field name="code">HMW_REPRO</field>
+      <field name="polymer_id" ref="polymer_hdpe_hmw"/>
+      <field name="form_id" ref="form_pellets"/>
+      <field name="packaging_type_id" ref="packaging_gaylords"/>
+      <field name="quality_tier">standard</field>
+      <field name="description">Reprocessed High Molecular Weight HDPE pellets.</field>
+      <field name="sequence">50</field>
+    </record>
+
+    <record id="grade_pp_generic" model="plasticos.grade.template">
+      <field name="name">PP</field>
+      <field name="code">PP</field>
+      <field name="polymer_id" ref="polymer_pp"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">60</field>
+    </record>
+
+    <record id="grade_ldpe_film" model="plasticos.grade.template">
+      <field name="name">LDPE Film</field>
+      <field name="code">LDPE_FILM</field>
+      <field name="polymer_id" ref="polymer_ldpe"/>
+      <field name="form_id" ref="form_film"/>
+      <field name="packaging_type_id" ref="packaging_bales"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">70</field>
+    </record>
+
+    <record id="grade_hdpe_toters" model="plasticos.grade.template">
+      <field name="name">HDPE Toters - Roll Out Bins</field>
+      <field name="code">HDPE_TOTERS</field>
+      <field name="polymer_id" ref="polymer_hdpe"/>
+      <field name="form_id" ref="form_parts"/>
+      <field name="packaging_type_id" ref="packaging_loose"/>
+      <field name="quality_tier">standard</field>
+      <field name="condition_notes">Wheels/Axles Removed</field>
+      <field name="sequence">80</field>
+    </record>
+
+    <record id="grade_ldpe_mixed_color_film" model="plasticos.grade.template">
+      <field name="name">LDPE Mixed Color Film</field>
+      <field name="code">LDPE_MIXED_FILM</field>
+      <field name="polymer_id" ref="polymer_ldpe"/>
+      <field name="form_id" ref="form_film"/>
+      <field name="color_id" ref="color_mixed"/>
+      <field name="packaging_type_id" ref="packaging_bales"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">90</field>
+    </record>
+
+    <record id="grade_hdpe_generic" model="plasticos.grade.template">
+      <field name="name">HDPE</field>
+      <field name="code">HDPE</field>
+      <field name="polymer_id" ref="polymer_hdpe"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">100</field>
+    </record>
+
+    <record id="grade_hdpe_crates" model="plasticos.grade.template">
+      <field name="name">HDPE Crates</field>
+      <field name="code">HDPE_CRATES</field>
+      <field name="polymer_id" ref="polymer_hdpe"/>
+      <field name="form_id" ref="form_crates"/>
+      <field name="packaging_type_id" ref="packaging_loose"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">110</field>
+    </record>
+
+    <record id="grade_pp_regrind" model="plasticos.grade.template">
+      <field name="name">PP Regrind</field>
+      <field name="code">PP_REGRIND</field>
+      <field name="polymer_id" ref="polymer_pp"/>
+      <field name="form_id" ref="form_regrind"/>
+      <field name="packaging_type_id" ref="packaging_gaylords"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">120</field>
+    </record>
+
+    <record id="grade_hdpe_drums" model="plasticos.grade.template">
+      <field name="name">HDPE Drums</field>
+      <field name="code">HDPE_DRUMS</field>
+      <field name="polymer_id" ref="polymer_hdpe"/>
+      <field name="form_id" ref="form_drums"/>
+      <field name="packaging_type_id" ref="packaging_loose"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">130</field>
+    </record>
+
+    <record id="grade_pp_corrugated" model="plasticos.grade.template">
+      <field name="name">PP Corrugated</field>
+      <field name="code">PP_CORRUGATED</field>
+      <field name="polymer_id" ref="polymer_pp"/>
+      <field name="form_id" ref="form_corrugated"/>
+      <field name="packaging_type_id" ref="packaging_bales"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">140</field>
+    </record>
+
+    <record id="grade_pet_pellet_bottle" model="plasticos.grade.template">
+      <field name="name">PET Pellet - Bottle Grade</field>
+      <field name="code">PET_PELLET_BOTTLE</field>
+      <field name="polymer_id" ref="polymer_pet"/>
+      <field name="form_id" ref="form_pellets"/>
+      <field name="packaging_type_id" ref="packaging_gaylords"/>
+      <field name="quality_tier">grade_a</field>
+      <field name="sequence">150</field>
+    </record>
+
+    <record id="grade_pet_generic" model="plasticos.grade.template">
+      <field name="name">PET</field>
+      <field name="code">PET</field>
+      <field name="polymer_id" ref="polymer_pet"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">160</field>
+    </record>
+
+    <record id="grade_ldpe_generic" model="plasticos.grade.template">
+      <field name="name">LDPE</field>
+      <field name="code">LDPE</field>
+      <field name="polymer_id" ref="polymer_ldpe"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">170</field>
+    </record>
+
+    <record id="grade_pet_flake" model="plasticos.grade.template">
+      <field name="name">PET Flake</field>
+      <field name="code">PET_FLAKE</field>
+      <field name="polymer_id" ref="polymer_pet"/>
+      <field name="form_id" ref="form_flake"/>
+      <field name="packaging_type_id" ref="packaging_supersacks"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">180</field>
+    </record>
+
+    <record id="grade_ldpe_rolls" model="plasticos.grade.template">
+      <field name="name">LDPE Rolls</field>
+      <field name="code">LDPE_ROLLS</field>
+      <field name="polymer_id" ref="polymer_ldpe"/>
+      <field name="form_id" ref="form_rollstock"/>
+      <field name="packaging_type_id" ref="packaging_palletized"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">190</field>
+    </record>
+
+    <record id="grade_pp_supersacs_no_liners" model="plasticos.grade.template">
+      <field name="name">PP Supersacs - NO LINERS</field>
+      <field name="code">PP_SUPERSACS_NO_LINERS</field>
+      <field name="polymer_id" ref="polymer_pp"/>
+      <field name="form_id" ref="form_parts"/>
+      <field name="packaging_type_id" ref="packaging_bales"/>
+      <field name="quality_tier">standard</field>
+      <field name="no_liners">True</field>
+      <field name="condition_notes">No liner contamination</field>
+      <field name="sequence">200</field>
+    </record>
+
+    <record id="grade_pet_trays" model="plasticos.grade.template">
+      <field name="name">PET Trays</field>
+      <field name="code">PET_TRAYS</field>
+      <field name="polymer_id" ref="polymer_pet"/>
+      <field name="form_id" ref="form_parts"/>
+      <field name="packaging_type_id" ref="packaging_bales"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">210</field>
+    </record>
+
+    <record id="grade_pet_parts_pi" model="plasticos.grade.template">
+      <field name="name">PET Parts - Post Industrial</field>
+      <field name="code">PET_PARTS_PI</field>
+      <field name="polymer_id" ref="polymer_pet"/>
+      <field name="form_id" ref="form_parts"/>
+      <field name="source_type_id" ref="source_post_industrial"/>
+      <field name="packaging_type_id" ref="packaging_gaylords"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">220</field>
+    </record>
+
+    <record id="grade_pet_regrind_gaylords" model="plasticos.grade.template">
+      <field name="name">PET Regrind in Gaylords</field>
+      <field name="code">PET_REGRIND_GAYLORDS</field>
+      <field name="polymer_id" ref="polymer_pet"/>
+      <field name="form_id" ref="form_regrind"/>
+      <field name="packaging_type_id" ref="packaging_gaylords"/>
+      <field name="quality_tier">standard</field>
+      <field name="sequence">230</field>
+    </record>
+
+  </data>
+</odoo>

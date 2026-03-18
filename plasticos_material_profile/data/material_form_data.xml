@@ -136,5 +136,17 @@
       <field name="description">Plastic pallets or pallet parts.</field>
       <field name="sequence">165</field>
     </record>
+    <record id="form_crates" model="plasticos.material.form">
+      <field name="name">Crates</field>
+      <field name="code">CRATES</field>
+      <field name="description">Injection molded crates (dairy, produce, etc.).</field>
+      <field name="sequence">175</field>
+    </record>
+    <record id="form_corrugated" model="plasticos.material.form">
+      <field name="name">Corrugated</field>
+      <field name="code">CORRUGATED</field>
+      <field name="description">Corrugated plastic sheet or board material.</field>
+      <field name="sequence">185</field>
+    </record>
   </data>
 </odoo>

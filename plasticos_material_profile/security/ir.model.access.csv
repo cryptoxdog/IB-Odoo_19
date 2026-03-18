@@ -24,3 +24,5 @@ access_plasticos_material_form_all,plasticos.material.form.all,model_plasticos_m
 access_plasticos_material_color_all,plasticos.material.color.all,model_plasticos_material_color,base.group_user,1,1,1,1
 access_plasticos_source_type_all,plasticos.source.type.all,model_plasticos_source_type,base.group_user,1,1,1,1
 access_plasticos_process_type_all,plasticos.process.type.all,model_plasticos_process_type,base.group_user,1,1,1,1
+access_plasticos_grade_template_user,plasticos.grade.template.user,model_plasticos_grade_template,base.group_user,1,0,0,0
+access_plasticos_grade_template_admin,plasticos.grade.template.admin,model_plasticos_grade_template,base.group_system,1,1,1,1

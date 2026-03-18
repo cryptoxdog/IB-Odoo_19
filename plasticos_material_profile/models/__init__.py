@@ -1,4 +1,5 @@
 from . import filler_type
+from . import grade_template
 from . import material_attribute
 from . import material_color
 from . import material_form
