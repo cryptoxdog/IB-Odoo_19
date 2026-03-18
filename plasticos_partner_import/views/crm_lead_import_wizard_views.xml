@@ -75,7 +75,7 @@
     <!-- Also add to PlasticOS menu -->
     <menuitem id="menu_crm_lead_import_wizard_plasticos"
               name="Import CRM Leads"
-              parent="plasticos_intake.plasticos_root_menu"
+              parent="plasticos_base.plasticos_root_menu"
               action="action_crm_lead_import_wizard"
               sequence="91"/>
 

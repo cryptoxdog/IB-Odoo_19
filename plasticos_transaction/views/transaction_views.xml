@@ -249,7 +249,7 @@
     <!-- Menu under PlasticOS root -->
     <menuitem id="menu_transaction_root"
               name="Transactions"
-              parent="plasticos_intake.plasticos_root_menu"
+              parent="plasticos_base.plasticos_root_menu"
               sequence="30"/>
     <menuitem id="menu_transactions_all"
               name="All Transactions"

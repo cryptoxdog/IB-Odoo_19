@@ -388,14 +388,6 @@
         </field>
     </record>
 
-    <!-- ═══════════════════════════════════════════════════════
-         Root App Menu
-         ═══════════════════════════════════════════════════════ -->
-
-    <menuitem id="plasticos_root_menu"
-              name="PlasticOS"
-              sequence="5"/>
-
     <!-- Intake Action -->
     <record id="plasticos_intake_action" model="ir.actions.act_window">
         <field name="name">Material Intake</field>
@@ -417,7 +409,7 @@
     <!-- Intake Menu -->
     <menuitem id="plasticos_intake_menu"
               name="Intake"
-              parent="plasticos_root_menu"
+              parent="plasticos_base.plasticos_root_menu"
               action="plasticos_intake_action"
               sequence="1"/>
 </odoo>

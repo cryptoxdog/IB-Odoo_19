@@ -298,7 +298,7 @@
     <!-- Menu under PlasticOS root -->
     <menuitem id="menu_offer_root"
               name="Offers"
-              parent="plasticos_intake.plasticos_root_menu"
+              parent="plasticos_base.plasticos_root_menu"
               sequence="25"/>
     <menuitem id="menu_offers"
               name="All Offers"

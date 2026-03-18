@@ -267,7 +267,7 @@
     <!-- Menu under PlasticOS root -->
     <menuitem id="menu_web_lead_root"
               name="Web Leads"
-              parent="plasticos_intake.plasticos_root_menu"
+              parent="plasticos_base.plasticos_root_menu"
               sequence="10"/>
     <menuitem id="menu_web_leads_all"
               name="All Web Leads"

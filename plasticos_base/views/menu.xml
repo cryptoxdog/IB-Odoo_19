@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ═══════════════════════════════════════════════════════
+         PlasticOS Root Application Menu
+         Defined in plasticos_base so all modules can reference it
+         without circular dependencies.
+         ═══════════════════════════════════════════════════════ -->
+
+    <menuitem id="plasticos_root_menu"
+              name="PlasticOS"
+              sequence="5"/>
+
+</odoo>

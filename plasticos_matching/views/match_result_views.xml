@@ -230,7 +230,7 @@
     <!-- Menu under PlasticOS root -->
     <menuitem id="menu_matching_root"
               name="Matching"
-              parent="plasticos_intake.plasticos_root_menu"
+              parent="plasticos_base.plasticos_root_menu"
               sequence="20"/>
     <menuitem id="menu_match_results"
               name="Match Results"

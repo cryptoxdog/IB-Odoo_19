@@ -88,7 +88,7 @@
   <!-- Menu: PlasticOS → Configuration → Grade Templates -->
   <menuitem id="menu_plasticos_config"
             name="Configuration"
-            parent="plasticos_intake.plasticos_root_menu"
+            parent="plasticos_base.plasticos_root_menu"
             sequence="90"/>
 
   <menuitem id="menu_grade_templates"

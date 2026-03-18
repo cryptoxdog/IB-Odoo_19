@@ -13,6 +13,7 @@
     ],
     "data": [
         "security/ir.model.access.csv",
+        "views/menu.xml",
         "data/company.xml",
         "data/service_user.xml",
         "data/admin_users.xml",
