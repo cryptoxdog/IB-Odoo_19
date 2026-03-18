@@ -72,7 +72,7 @@
         <separator/>
         <filter name="grade_a" string="Grade A" domain="[('quality_tier', '=', 'grade_a')]"/>
         <filter name="prime" string="Prime" domain="[('quality_tier', '=', 'prime')]"/>
-        <group expand="0" string="Group By">
+        <group string="Group By">
           <filter name="group_polymer" string="Polymer" context="{'group_by': 'polymer_id'}"/>
           <filter name="group_form" string="Form" context="{'group_by': 'form_id'}"/>
         </group>

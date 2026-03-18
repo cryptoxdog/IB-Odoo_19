@@ -88,7 +88,7 @@
         <separator/>
         <filter name="post_industrial" string="Post Industrial" domain="[('feedstock_type', '=', 'post_industrial')]"/>
         <filter name="post_consumer" string="Post Consumer" domain="[('feedstock_type', '=', 'post_consumer')]"/>
-        <group expand="0" string="Group By">
+        <group string="Group By">
           <filter name="group_feedstock" string="Feedstock Type" context="{'group_by': 'feedstock_type'}"/>
           <filter name="group_application" string="Application" context="{'group_by': 'application_class'}"/>
         </group>
