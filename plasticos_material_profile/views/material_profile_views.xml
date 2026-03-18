@@ -69,39 +69,41 @@
           </div>
           <notebook>
             <page string="Profile">
-              <!-- Row 1: Source + Material -->
+              <!-- Row 1: Source/Material + Packaging -->
               <group>
                 <group string="Source">
                   <field name="partner_id" string="Facility"/>
                   <field name="company_id" string="Company" readonly="1"/>
-                  <field name="source_type_id"/>
-                  <field name="origin_form_id"/>
-                </group>
-                <group string="Material">
                   <field name="polymer_id"/>
                   <field name="sub_grade" invisible="1"/>
                   <field name="form_id"/>
                   <field name="color_id"/>
                   <field name="color_flexibility"/>
                 </group>
+                <group string="Packaging">
+                  <field name="packaging_type_id"/>
+                  <field name="loads_per_month"/>
+                  <field name="filler_type_id"/>
+                  <field name="filler_pct" invisible="not filler_type_id"/>
+                </group>
               </group>
 
-              <!-- Row 2: Processing + Quality -->
+              <!-- Row 2: Quality + Processing (swapped) -->
               <group>
-                <group string="Processing">
-                  <field name="origin_process_type"/>
-                  <field name="previously_washed"/>
-                  <field name="previously_pelletized"/>
-                </group>
                 <group string="Quality">
                   <field name="melt_flow_index"/>
                   <field name="density"/>
                   <field name="moisture_percent"/>
                   <field name="contamination_percent"/>
                 </group>
+                <group string="Processing">
+                  <field name="origin_process_type"/>
+                  <field name="previously_washed"/>
+                  <field name="previously_pelletized"/>
+                </group>
               </group>
 
-              <!-- Row 3: Volume + Packaging -->
+              <!-- Row 3: Volume + Origin -->
               <group>
                 <group string="Volume">
                   <field name="avg_lot_size_lbs"/>
@@ -110,11 +112,9 @@
                   <field name="monthly_volume_lbs"/>
                   <field name="frequency"/>
                 </group>
-                <group string="Packaging">
-                  <field name="packaging_type_id"/>
-                  <field name="loads_per_month"/>
-                  <field name="filler_type_id"/>
-                  <field name="filler_pct" invisible="not filler_type_id"/>
+                <group string="Origin">
+                  <field name="source_type_id"/>
+                  <field name="origin_form_id"/>
                 </group>
               </group>
 
