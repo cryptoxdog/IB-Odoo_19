@@ -85,4 +85,16 @@
     <field name="view_mode">list,form</field>
   </record>
 
+  <!-- Menu: PlasticOS → Configuration → Grade Templates -->
+  <menuitem id="menu_plasticos_config"
+            name="Configuration"
+            parent="plasticos_intake.plasticos_root_menu"
+            sequence="90"/>
+
+  <menuitem id="menu_grade_templates"
+            name="Grade Templates"
+            parent="menu_plasticos_config"
+            action="action_grade_template"
+            sequence="10"/>
+
 </odoo>

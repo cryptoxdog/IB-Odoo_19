@@ -12,9 +12,11 @@
         <field name="priority">30</field>
         <field name="arch" type="xml">
 
-            <!-- Add load_id to Orders group -->
+            <!-- Add load_id to Orders group (readonly until supplier AND buyer are set) -->
             <xpath expr="//group[@name='orders']/field[@name='purchase_order_ids']" position="after">
-                <field name="load_id"/>
+                <field name="load_id"
+                       readonly="not supplier_id or not buyer_id"
+                       help="Select supplier and buyer before assigning a load."/>
             </xpath>
 
         </field>
@@ -32,13 +34,13 @@
         <field name="priority">35</field>
         <field name="arch" type="xml">
 
-            <!-- Add Load smart button to button_box -->
+            <!-- Add Load smart button to button_box (hidden until supplier AND buyer are set) -->
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_view_load"
                         type="object"
                         class="oe_stat_button"
                         icon="fa-truck"
-                        invisible="not load_id">
+                        invisible="not load_id or not supplier_id or not buyer_id">
                     <span class="o_stat_text">Load</span>
                 </button>
             </xpath>
