@@ -43,6 +43,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
                 "module": external_id.split(".")[0],
                 "model": model_name,
                 "res_id": rec.id,
+                "noupdate": True,
             }
         )
 
