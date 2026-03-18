@@ -31,10 +31,6 @@
             <xpath expr="//field[@name='website']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
-            <!-- Partner Level (grade_id) - hide if present -->
-            <xpath expr="//field[@name='grade_id']" position="attributes">
-                <attribute name="invisible">1</attribute>
-            </xpath>
         </field>
     </record>
 
