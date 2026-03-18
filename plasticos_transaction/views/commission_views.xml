@@ -1,14 +1,122 @@
 <odoo>
+    <!-- ═══════════════════════════════════════════
+         COMMISSION RULE VIEWS
+         ═══════════════════════════════════════════ -->
+
+    <!-- Commission Rule Form View -->
+    <record id="view_commission_rule_form" model="ir.ui.view">
+        <field name="name">plasticos.commission.rule.form</field>
+        <field name="model">plasticos.commission.rule</field>
+        <field name="arch" type="xml">
+            <form string="Commission Rule">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="toggle_active" type="object" class="oe_stat_button" icon="fa-archive">
+                            <field name="active" widget="boolean_button" options='{"terminology": "archive"}'/>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Commission Rule Name"/></h1>
+                    </div>
+
+                    <group>
+                        <group string="Rule Configuration">
+                            <field name="sequence"/>
+                            <field name="sales_rep_id"/>
+                            <field name="calculation_type"/>
+                            <field name="display_percentage" invisible="calculation_type == 'fixed'"/>
+                            <field name="fixed_amount" invisible="calculation_type != 'fixed'"/>
+                        </group>
+                        <group string="Validity Period">
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Amount Conditions">
+                            <field name="min_amount"/>
+                            <field name="max_amount"/>
+                        </group>
+                        <group string="Applicability Filters">
+                            <field name="product_category_ids" widget="many2many_tags"/>
+                            <field name="product_ids" widget="many2many_tags"/>
+                            <field name="partner_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Tiered Rates" name="tiered_rates"
+                              invisible="calculation_type != 'tiered'">
+                            <field name="tier_ids">
+                                <list editable="bottom">
+                                    <field name="min_amount"/>
+                                    <field name="max_amount"/>
+                                    <field name="display_rate" string="Rate %"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Commission Rule List View -->
     <record id="view_commission_rule_tree" model="ir.ui.view">
-        <field name="name">commission.rule.tree</field>
+        <field name="name">plasticos.commission.rule.list</field>
         <field name="model">plasticos.commission.rule</field>
         <field name="arch" type="xml">
             <list>
+                <field name="sequence" widget="handle"/>
                 <field name="name"/>
                 <field name="sales_rep_id"/>
-                <field name="percentage"/>
-                <field name="active"/>
+                <field name="calculation_type"/>
+                <field name="display_percentage" string="Rate %"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="active" widget="boolean_toggle"/>
             </list>
         </field>
     </record>
+
+    <!-- Commission Rule Search View -->
+    <record id="view_commission_rule_search" model="ir.ui.view">
+        <field name="name">plasticos.commission.rule.search</field>
+        <field name="model">plasticos.commission.rule</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="sales_rep_id"/>
+                <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Archived" name="archived" domain="[('active', '=', False)]"/>
+                <separator/>
+                <filter string="Percentage" name="percentage" domain="[('calculation_type', '=', 'percentage')]"/>
+                <filter string="Fixed" name="fixed" domain="[('calculation_type', '=', 'fixed')]"/>
+                <filter string="Tiered" name="tiered" domain="[('calculation_type', '=', 'tiered')]"/>
+                <separator/>
+                <filter string="Sales Rep" name="group_sales_rep" context="{'group_by': 'sales_rep_id'}"/>
+                <filter string="Calculation Type" name="group_calc_type" context="{'group_by': 'calculation_type'}"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Commission Rules Action -->
+    <record id="action_commission_rules" model="ir.actions.act_window">
+        <field name="name">Commission Rules</field>
+        <field name="res_model">plasticos.commission.rule</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first commission rule
+            </p>
+            <p>
+                Commission rules define how sales rep commissions are calculated.
+                Supports percentage, fixed amount, and tiered rate calculations.
+            </p>
+        </field>
+    </record>
+
 </odoo>
