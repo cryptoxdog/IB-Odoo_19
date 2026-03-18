@@ -55,6 +55,25 @@ jobs:
       - name: Check Circular Dependencies & Cross-Module @api.depends
         run: python3 ci/check_circular_deps.py .
 
+  # Job 1b: Check for Python anti-patterns (BLOCKING - prevents Odoo-unfriendly code)
+  odoo-antipatterns:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check Odoo Anti-Patterns
+        run: |
+          python3 ci/check_odoo_antipatterns.py
+          # Currently passes with warnings (MEDIUM/LOW)
+          # Will fail on CRITICAL (runtime errors) or HIGH (likely bugs)
+
   # Job 2: Check for orphan model references (BLOCKING - fails fast)
   orphan-model-refs:
     runs-on: ubuntu-latest
