@@ -393,7 +393,7 @@ class PlasticosIntakeNormalizer(models.Model):
                 "mfi_value": self.mfi_value or None,
                 "density_value": self.density_value or None,
                 "moisture_pct": self.moisture_pct or None,
-                "contamination_total_pct": self.contamination_total_pct or None,
+                "contamination_pct": self.contamination_pct or None,
                 "has_residue": self.has_residue,
                 "attributes": self.material_attribute_ids.mapped("code"),
                 "filler_type": self.filler_type_id.code if self.filler_type_id else None,
