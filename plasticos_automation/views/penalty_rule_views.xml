@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ═══════════════════════════════════════════
+         PENALTY RULE VIEWS
+         ═══════════════════════════════════════════ -->
+
+    <!-- Penalty Rule Form View -->
+    <record id="view_penalty_rule_form" model="ir.ui.view">
+        <field name="name">plasticos.penalty.rule.form</field>
+        <field name="model">plasticos.penalty.rule</field>
+        <field name="arch" type="xml">
+            <form string="Penalty Rule">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="toggle_active" type="object" class="oe_stat_button" icon="fa-archive">
+                            <field name="active" widget="boolean_button" options='{"terminology": "archive"}'/>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Penalty Rule Name"/></h1>
+                    </div>
+
+                    <group>
+                        <group string="Rule Configuration">
+                            <field name="sequence"/>
+                            <field name="rule_type"/>
+                            <field name="calculation_method"/>
+                            <field name="penalty_rate"/>
+                        </group>
+                        <group string="Conditions">
+                            <field name="min_threshold"/>
+                            <field name="max_penalty"/>
+                            <field name="grace_period_days"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Applicability">
+                            <field name="product_category_ids" widget="many2many_tags"/>
+                            <field name="partner_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+
+                    <field name="description" placeholder="Description of when this penalty applies..."/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Penalty Rule List View -->
+    <record id="view_penalty_rule_tree" model="ir.ui.view">
+        <field name="name">plasticos.penalty.rule.list</field>
+        <field name="model">plasticos.penalty.rule</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="rule_type"/>
+                <field name="calculation_method"/>
+                <field name="penalty_rate"/>
+                <field name="min_threshold"/>
+                <field name="max_penalty"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Penalty Rule Search View -->
+    <record id="view_penalty_rule_search" model="ir.ui.view">
+        <field name="name">plasticos.penalty.rule.search</field>
+        <field name="model">plasticos.penalty.rule</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="rule_type"/>
+                <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Archived" name="archived" domain="[('active', '=', False)]"/>
+                <separator/>
+                <filter string="Weight Variance" name="weight_variance" domain="[('rule_type', '=', 'weight_variance')]"/>
+                <filter string="Late Delivery" name="late_delivery" domain="[('rule_type', '=', 'late_delivery')]"/>
+                <separator/>
+                <filter string="Rule Type" name="group_rule_type" context="{'group_by': 'rule_type'}"/>
+                <filter string="Calculation Method" name="group_calc" context="{'group_by': 'calculation_method'}"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Penalty Rules Action -->
+    <record id="action_penalty_rules" model="ir.actions.act_window">
+        <field name="name">Penalty Rules</field>
+        <field name="res_model">plasticos.penalty.rule</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first penalty rule
+            </p>
+            <p>
+                Penalty rules automatically calculate penalties based on various conditions
+                like weight variance, late delivery, etc.
+            </p>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════
+         INVOICE ADJUSTMENT VIEWS
+         ═══════════════════════════════════════════ -->
+
+    <!-- Invoice Adjustment List (embedded in invoice form) -->
+    <record id="view_invoice_adjustment_tree" model="ir.ui.view">
+        <field name="name">plasticos.invoice.adjustment.list</field>
+        <field name="model">plasticos.invoice.adjustment</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="adjustment_type"/>
+                <field name="amount"/>
+                <field name="account_id" options="{'no_create': True}"/>
+                <field name="reason"/>
+                <field name="applied" readonly="1"/>
+                <button name="action_apply_adjustment" string="Apply"
+                        type="object" icon="fa-check"
+                        invisible="applied"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════
+         ACCOUNT MOVE ENHANCEMENT VIEWS
+         ═══════════════════════════════════════════ -->
+
+    <!-- Invoice Form Enhancement - Scrap Management Tab -->
+    <record id="view_account_move_form_scrap_management" model="ir.ui.view">
+        <field name="name">account.move.form.scrap.management</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='other_info']" position="after">
+                <page string="Scrap Management" name="scrap_management"
+                      invisible="not transaction_id">
+                    <group>
+                        <group string="Transaction">
+                            <field name="transaction_id" readonly="1"/>
+                            <field name="reconciliation_status"/>
+                        </group>
+                        <group string="Penalties">
+                            <field name="has_penalty"/>
+                            <field name="penalty_amount" readonly="1"
+                                   invisible="not has_penalty"/>
+                            <field name="penalty_reason" readonly="1"
+                                   invisible="not has_penalty"/>
+                            <field name="penalty_rule_id" readonly="1"
+                                   invisible="not has_penalty"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Weight Variance">
+                            <field name="weight_variance_percent" readonly="1"/>
+                            <field name="weight_variance_approved"
+                                   invisible="weight_variance_percent == 0"/>
+                            <field name="weight_variance_approved_by" readonly="1"
+                                   invisible="not weight_variance_approved"/>
+                            <field name="weight_variance_approved_date" readonly="1"
+                                   invisible="not weight_variance_approved"/>
+                        </group>
+                        <group string="Commission">
+                            <field name="commission_amount" readonly="1"/>
+                            <field name="commission_paid"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Freight Information">
+                            <field name="freight_charged"/>
+                            <field name="freight_actual"/>
+                            <field name="freight_variance" readonly="1"
+                                   invisible="freight_variance == 0"/>
+                        </group>
+                        <group string="Reconciliation">
+                            <field name="reconciliation_notes" placeholder="Reconciliation notes..."/>
+                        </group>
+                    </group>
+                    <group string="Automatic Adjustments">
+                        <field name="adjustment_line_ids" nolabel="1"/>
+                    </group>
+                    <div class="oe_button_box" name="scrap_buttons">
+                        <button name="calculate_penalties" string="Calculate Penalties"
+                                type="object" class="btn-warning"
+                                invisible="has_penalty"/>
+                        <button name="action_approve_weight_variance" string="Approve Variance"
+                                type="object" class="btn-success"
+                                invisible="weight_variance_percent == 0 or weight_variance_approved"/>
+                        <button name="action_reconcile_freight" string="Reconcile Freight"
+                                type="object" class="btn-primary"
+                                invisible="freight_variance == 0"/>
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════
+         FILTERED INVOICE ACTIONS
+         ═══════════════════════════════════════════ -->
+
+    <!-- Invoices with Penalties -->
+    <record id="action_invoices_with_penalties" model="ir.actions.act_window">
+        <field name="name">Invoices with Penalties</field>
+        <field name="res_model">account.move</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('has_penalty', '=', True), ('move_type', 'in', ['out_invoice', 'in_invoice'])]</field>
+        <field name="context">{}</field>
+    </record>
+
+    <!-- Weight Variance Approvals -->
+    <record id="action_weight_variance_approvals" model="ir.actions.act_window">
+        <field name="name">Weight Variance Approvals</field>
+        <field name="res_model">account.move</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('weight_variance_percent', '>', 0), ('weight_variance_approved', '=', False), ('transaction_id', '!=', False)]</field>
+        <field name="context">{}</field>
+    </record>
+
+</odoo>

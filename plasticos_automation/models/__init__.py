@@ -8,3 +8,5 @@ from . import load_automation
 from . import purchase_order_automation
 from . import sale_order_automation
 from . import stock_picking_automation
+from . import penalty_rule
+from . import account_move_penalty

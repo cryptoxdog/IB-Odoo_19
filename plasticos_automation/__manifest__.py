@@ -37,6 +37,7 @@
         "views/purchase_order_views.xml",
         "views/sale_order_views.xml",
         "views/stock_picking_views.xml",
+        "views/penalty_rule_views.xml",
     ],
     "post_init_hook": "post_init_hook",
     "installable": True,

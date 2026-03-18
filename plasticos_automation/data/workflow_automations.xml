@@ -145,4 +145,128 @@ for picking in records.filtered(lambda p: p.state == 'done'):
         <field name="active" eval="True"/>
     </record>
 
+    <!-- ═══════════════════════════════════════════
+         ADDITIONAL HARVESTED AUTOMATIONS
+         From linda_logistics_v6
+         ═══════════════════════════════════════════ -->
+
+    <!-- Action: Auto Dispatch to Carrier -->
+    <record id="action_auto_dispatch_carrier" model="ir.actions.server">
+        <field name="name">Auto Dispatch to Carrier</field>
+        <field name="model_id" ref="stock.model_stock_picking"/>
+        <field name="state">code</field>
+        <field name="code">
+# Auto dispatch to carrier when DO is ready and has a carrier assigned
+for picking in records.filtered(lambda p: p.state == 'assigned' and p.carrier_id):
+    # Check if not already dispatched
+    if hasattr(picking, 'dispatch_sent') and picking.dispatch_sent:
+        continue
+
+    # Send dispatch email via template
+    template = env.ref('plasticos_automation.email_template_trucker_followup', raise_if_not_found=False)
+    if template and picking.carrier_id.email:
+        template.send_mail(picking.id, force_send=True)
+        picking.message_post(body=f"Dispatch sent to carrier {picking.carrier_id.name}")
+        </field>
+    </record>
+
+    <!-- Rule: Trigger Carrier Dispatch on DO Ready -->
+    <record id="rule_trigger_carrier_dispatch" model="base.automation">
+        <field name="name">Trigger Carrier Dispatch on DO Ready</field>
+        <field name="model_id" ref="stock.model_stock_picking"/>
+        <field name="trigger">on_write</field>
+        <field name="filter_pre_domain">[('state', '!=', 'assigned')]</field>
+        <field name="filter_domain">[('state', '=', 'assigned'), ('carrier_id', '!=', False)]</field>
+        <field name="action_server_ids" eval="[(4, ref('action_auto_dispatch_carrier'))]"/>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Action: Auto Calculate Invoice Penalties -->
+    <record id="action_auto_calculate_penalties" model="ir.actions.server">
+        <field name="name">Auto Calculate Invoice Penalties</field>
+        <field name="model_id" ref="account.model_account_move"/>
+        <field name="state">code</field>
+        <field name="code">
+# Auto calculate penalties when invoice is posted and linked to transaction
+for invoice in records.filtered(lambda i: i.move_type in ['out_invoice', 'in_invoice'] and i.transaction_id and not i.has_penalty):
+    try:
+        invoice.calculate_penalties()
+        if invoice.has_penalty:
+            invoice.message_post(body=f"Penalties calculated: ${invoice.penalty_amount:.2f} - {invoice.penalty_reason}")
+    except Exception as e:
+        invoice.message_post(body=f"Error calculating penalties: {str(e)}")
+        </field>
+    </record>
+
+    <!-- Rule: Trigger Penalty Calculation on Invoice Post -->
+    <record id="rule_trigger_penalty_calculation" model="base.automation">
+        <field name="name">Trigger Penalty Calculation on Invoice</field>
+        <field name="model_id" ref="account.model_account_move"/>
+        <field name="trigger">on_write</field>
+        <field name="filter_pre_domain">[('state', '!=', 'posted')]</field>
+        <field name="filter_domain">[('state', '=', 'posted'), ('transaction_id', '!=', False)]</field>
+        <field name="action_server_ids" eval="[(4, ref('action_auto_calculate_penalties'))]"/>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Action: Supplier Ready - Create DO -->
+    <record id="action_supplier_ready_create_do" model="ir.actions.server">
+        <field name="name">Supplier Ready - Trigger DO Creation</field>
+        <field name="model_id" ref="purchase.model_purchase_order"/>
+        <field name="state">code</field>
+        <field name="code">
+# When supplier confirms ready, trigger delivery order creation workflow
+for po in records.filtered(lambda p: p.supplier_ready and p.state == 'purchase'):
+    # Send confirmation email
+    template = env.ref('plasticos_automation.email_template_supplier_ready_confirmed', raise_if_not_found=False)
+    if template:
+        template.send_mail(po.id, force_send=True)
+
+    # Log the readiness confirmation
+    po.message_post(body='Supplier confirmed ready for pickup - delivery order workflow initiated')
+        </field>
+    </record>
+
+    <!-- Rule: Trigger DO Creation on Supplier Ready -->
+    <record id="rule_trigger_do_creation" model="base.automation">
+        <field name="name">Trigger DO Creation on Supplier Ready</field>
+        <field name="model_id" ref="purchase.model_purchase_order"/>
+        <field name="trigger">on_write</field>
+        <field name="filter_pre_domain">[('supplier_ready', '=', False)]</field>
+        <field name="filter_domain">[('supplier_ready', '=', True)]</field>
+        <field name="action_server_ids" eval="[(4, ref('action_supplier_ready_create_do'))]"/>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Action: Request Dock Appointment on SO Confirm -->
+    <record id="action_request_dock_appointment" model="ir.actions.server">
+        <field name="name">Request Dock Appointment</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="state">code</field>
+        <field name="code">
+# Request dock appointment when SO is confirmed and delivery term requires it
+for so in records.filtered(lambda s: s.state == 'sale' and hasattr(s, 'delivery_term') and s.delivery_term == 'appointment'):
+    if hasattr(so, 'appointment_requested') and so.appointment_requested:
+        continue
+
+    template = env.ref('plasticos_automation.email_template_request_dock_appointment', raise_if_not_found=False)
+    if template and so.partner_id.email:
+        template.send_mail(so.id, force_send=True)
+        if hasattr(so, 'appointment_requested'):
+            so.appointment_requested = True
+        so.message_post(body='Dock appointment request sent to buyer')
+        </field>
+    </record>
+
+    <!-- Rule: Request Dock Appointment on SO Confirm (for appointment delivery term) -->
+    <record id="rule_request_dock_appointment" model="base.automation">
+        <field name="name">Request Dock Appointment on SO Confirm</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="trigger">on_write</field>
+        <field name="filter_pre_domain">[('state', '!=', 'sale')]</field>
+        <field name="filter_domain">[('state', '=', 'sale')]</field>
+        <field name="action_server_ids" eval="[(4, ref('action_request_dock_appointment'))]"/>
+        <field name="active" eval="True"/>
+    </record>
+
 </odoo>
