@@ -68,63 +68,40 @@
             </button>
           </div>
           <notebook>
-            <page string="Identity">
+            <page string="Profile">
+              <!-- Row 1: Source + Material -->
               <group>
                 <group string="Source">
                   <field name="partner_id" string="Facility"/>
                   <field name="company_id" string="Company" readonly="1"/>
+                  <field name="source_type_id"/>
+                  <field name="origin_form_id"/>
                 </group>
                 <group string="Material">
                   <field name="polymer_id"/>
                   <field name="sub_grade" invisible="1"/>
                   <field name="form_id"/>
-                </group>
-              </group>
-              <group>
-                <group string="Appearance">
                   <field name="color_id"/>
                   <field name="color_flexibility"/>
                 </group>
               </group>
-              <group string="Attributes">
-                <field name="material_attribute_ids" widget="many2many_tags"/>
-              </group>
-            </page>
 
-            <page string="Source &amp; Process">
+              <!-- Row 2: Processing + Quality -->
               <group>
-                <group>
-                  <field name="source_type_id"/>
-                  <field name="origin_form_id"/>
+                <group string="Processing">
                   <field name="origin_process_type"/>
-                </group>
-                <group>
                   <field name="previously_washed"/>
                   <field name="previously_pelletized"/>
                 </group>
-              </group>
-            </page>
-
-            <page string="Quality">
-              <group>
-                <group string="Physical Properties">
+                <group string="Quality">
                   <field name="melt_flow_index"/>
                   <field name="density"/>
                   <field name="moisture_percent"/>
-                </group>
-                <group string="Contamination">
                   <field name="contamination_percent"/>
                 </group>
               </group>
-              <group>
-                <group string="Filler / Additives">
-                  <field name="filler_type_id"/>
-                  <field name="filler_pct" invisible="not filler_type_id"/>
-                </group>
-              </group>
-            </page>
 
-            <page string="Volume &amp; Packaging">
+              <!-- Row 3: Volume + Packaging -->
               <group>
                 <group string="Volume">
                   <field name="avg_lot_size_lbs"/>
@@ -136,7 +113,14 @@
                 <group string="Packaging">
                   <field name="packaging_type_id"/>
                   <field name="avg_truckloads_per_month"/>
+                  <field name="filler_type_id"/>
+                  <field name="filler_pct" invisible="not filler_type_id"/>
                 </group>
+              </group>
+
+              <!-- Row 4: Attributes (full width) -->
+              <group string="Attributes">
+                <field name="material_attribute_ids" widget="many2many_tags" nolabel="1"/>
               </group>
             </page>
 
