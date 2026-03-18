@@ -11,11 +11,17 @@ BATCH_SIZE = 100
 
 # VanillaSoft Lead Status → crm.stage XML ID mapping
 STAGE_MAPPING = {
-    "2a-Qualified/HOT": "plasticos_crm_bridge.stage_qualified_hot",
-    "2b-Qualified/WARM": "plasticos_crm_bridge.stage_qualified_warm",
-    "3-Qualified/Resist": "plasticos_crm_bridge.stage_resistant",
-    "1-Currently Working With": "plasticos_crm_bridge.stage_active_supplier",
-    "4-Dead Lead": "plasticos_crm_bridge.stage_dead_lead",
+    "2a=Qualified/HOT": "plasticos_crm_bridge.stage_qualified_hot",
+    "2b=Qualified/WARM": "plasticos_crm_bridge.stage_qualified_warm",
+    "2c=Qualified/COLD": "plasticos_crm_bridge.stage_qualified_warm",  # Map COLD to WARM stage
+    "2=Qualified/Open": "plasticos_crm_bridge.stage_qualified_warm",  # Map Open to WARM stage
+    "3=Qualified/Resist": "plasticos_crm_bridge.stage_resistant",
+    "1= Currently Working With": "plasticos_crm_bridge.stage_active_supplier",
+    "4=Unqualified": "plasticos_crm_bridge.stage_dead_lead",
+    "7=Do Not Call": "plasticos_crm_bridge.stage_dead_lead",
+    "8=Duplicate": "plasticos_crm_bridge.stage_dead_lead",
+    "6=Wrong #": "plasticos_crm_bridge.stage_dead_lead",
+    "New": "plasticos_crm_bridge.stage_new",
 }
 
 # VanillaSoft Company Type → res.partner.category XML ID mapping
@@ -231,11 +237,11 @@ class PlasticosCRMLeadImportService(models.AbstractModel):
             "email_from": (row.get("Email") or "").strip() or False,
             "phone": (row.get("Direct") or "").strip() or False,
             "mobile": (row.get("Mobile 1") or "").strip() or False,
-            "street": (row.get("Address") or "").strip() or False,
+            "street": (row.get("Address 1") or row.get("Address") or "").strip() or False,
             "street2": (row.get("Address 2") or "").strip() or False,
             "city": (row.get("City") or "").strip() or False,
             "state_id": state_id,
-            "zip": (row.get("Zip") or "").strip() or False,
+            "zip": (row.get("Zip Code") or row.get("Zip") or "").strip() or False,
             "country_id": country_id,
             "stage_id": stage_id,
             "source_id": source_id,

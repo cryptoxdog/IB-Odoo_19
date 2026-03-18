@@ -12,11 +12,13 @@
         "utm",
         "plasticos_facility_profile",
         "plasticos_crm_bridge",
+        "plasticos_intake",
     ],
     "data": [
         "security/ir.model.access.csv",
         "views/partner_import_wizard_views.xml",
         "views/partner_bulk_update_wizard_views.xml",
+        "views/crm_lead_import_wizard_views.xml",
     ],
     "installable": True,
     "auto_install": True,
