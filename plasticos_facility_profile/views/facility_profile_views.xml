@@ -164,7 +164,8 @@
       <xpath expr="//sheet/notebook" position="inside">
 
         <page string="Facility Profile" name="facility_profile"
-              invisible="not is_facility">
+              invisible="not is_facility"
+              sequence="20">
 
           <group>
             <field name="partner_type_id" options="{'no_create': True}"/>

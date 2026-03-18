@@ -3,7 +3,7 @@
     "version": "19.0.1.1.0",
     "summary": "QC cases, claims, chargebacks, and compliance workflows",
     "license": "LGPL-3",
-    "author": "PlasticOS",
+    "author": "Igor Beylin",
     "category": "Operations/Quality",
     "post_init_hook": "post_init_hook",
     "depends": [

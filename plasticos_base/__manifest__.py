@@ -3,7 +3,7 @@
     "version": "19.0.1.1.0",
     "summary": "Core seed data, feature gates, and microservice integration",
     "license": "LGPL-3",
-    "author": "PlasticOS",
+    "author": "Igor Beylin",
     "category": "PlasticOS",
     "depends": [
         "base",

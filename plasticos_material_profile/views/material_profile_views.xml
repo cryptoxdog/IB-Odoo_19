@@ -138,19 +138,18 @@
   </record>
 
   <!-- ═══════════════════════════════════════════════════════════════════
-       PARTNER FORM EXTENSION (Material Profiles Tab)
-       Uses view reference to avoid duplication
+       PARTNER FORM EXTENSION — Smart Buttons Only
+       NOTE: Material Profiles TAB is defined in partner_material_ux.xml
+             This view only adds the stat button to button_box
        ═══════════════════════════════════════════════════════════════════ -->
 
   <record id="view_partner_form_material_tab_base" model="ir.ui.view">
-    <field name="name">res.partner.form.material.tab.base</field>
+    <field name="name">res.partner.form.material.stat.button</field>
     <field name="model">res.partner</field>
     <field name="inherit_id" ref="base.view_partner_form"/>
     <field name="arch" type="xml">
 
-      <!-- ═══ Header: Create Intake button added by plasticos_intake module ═══ -->
-
-      <!-- ═══ Smart Buttons (Jump To) for Facilities ═══ -->
+      <!-- ═══ Smart Button: Material Profiles count ═══ -->
       <xpath expr="//div[@name='button_box']" position="inside">
         <field name="is_facility" invisible="1"/>
         <button name="action_view_material_profiles"
@@ -160,28 +159,6 @@
                 invisible="material_profile_count == 0">
           <field name="material_profile_count" string="Profiles" widget="statinfo"/>
         </button>
-        <!-- Intakes button added by plasticos_intake module -->
-      </xpath>
-
-      <xpath expr="//sheet/notebook" position="inside">
-
-        <page string="Material Profiles"
-              invisible="not is_facility">
-
-          <field name="material_profile_ids"
-                 context="{'form_view_ref': 'plasticos_material_profile.view_material_profile_form'}">
-            <list editable="bottom">
-              <field name="polymer_id"/>
-              <field name="form_id"/>
-              <field name="color_id"/>
-              <field name="source_type_id"/>
-              <field name="monthly_volume_lbs" sum="Total Monthly Volume"/>
-              <field name="contamination_percent"/>
-            </list>
-          </field>
-
-        </page>
-
       </xpath>
 
     </field>

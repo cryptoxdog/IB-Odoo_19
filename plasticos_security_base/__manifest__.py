@@ -10,7 +10,7 @@
         - Record rules for row-level isolation on transactions, orders, invoices, and loads
         - Category group for the Plasticos application
     """,
-    "author": "Plasticos Dev",
+    "author": "Igor Beylin",
     "depends": [
         "base",
         "sale",

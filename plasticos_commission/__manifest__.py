@@ -2,7 +2,7 @@
     "name": "PlasticOS Commission Engine",
     "version": "19.0.1.0.0",
     "summary": "Sales rep commission rules and calculation service",
-    "author": "PlasticOS",
+    "author": "Igor Beylin",
     "license": "LGPL-3",
     "category": "Plasticos/Sales",
     "depends": [

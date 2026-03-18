@@ -17,9 +17,10 @@
 
             <xpath expr="//sheet/notebook" position="inside">
 
-                <page string="Material Profiles"
+                <page string="Material Profile"
                       invisible="not is_company"
-                      name="material_profiles_tab">
+                      name="material_profiles_tab"
+                      sequence="10">
 
                     <!-- Summary banner (zero-state guidance) -->
                     <div class="alert alert-light text-muted"

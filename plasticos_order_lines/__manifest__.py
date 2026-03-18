@@ -20,7 +20,7 @@ Each order line captures the full material specification:
 Fields are pre-filled from material_profile_id but remain editable.
 Computed full description: "HDPE Blue Regrind - Gaylords - Post-Industrial"
     """,
-    "author": "PlasticOS",
+    "author": "Igor Beylin",
     "website": "https://plasticos.io",
     "license": "LGPL-3",
     "depends": [

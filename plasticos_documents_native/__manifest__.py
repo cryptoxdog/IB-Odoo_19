@@ -4,7 +4,7 @@
     "summary": "Bridge to Odoo Enterprise Documents with AI auto-sort, "
     "email alias, and plastics-specific field extensions",
     "category": "Document Management",
-    "author": "PlasticOS",
+    "author": "Igor Beylin",
     "license": "LGPL-3",
     # ══════════════════════════════════════════════════════════════════════════
     # ENTERPRISE DEPENDENCY: This module requires Odoo Enterprise 'documents'

@@ -3,7 +3,7 @@
     "version": "19.0.5.6.0",
     "summary": "Canonical material master registries: polymer, form, color, source, process, grade templates",
     "license": "LGPL-3",
-    "author": "PlasticOS",
+    "author": "Igor Beylin",
     "category": "Operations",
     "depends": [
         "plasticos_base",

@@ -2,7 +2,7 @@
     "name": "PlasticOS Intake",
     "version": "19.0.5.1.0",
     "summary": "Transactional Material Intake — contact intelligence, smart memory, UX normalization",
-    "author": "PlasticOS",
+    "author": "Igor Beylin",
     "depends": [
         "base",
         "contacts",

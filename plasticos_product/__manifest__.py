@@ -13,7 +13,7 @@ Features:
 - Products are thin wrappers; full material specs live on order lines
 - Links products to polymer master records
     """,
-    "author": "PlasticOS",
+    "author": "Igor Beylin",
     "website": "https://plasticos.io",
     "license": "LGPL-3",
     "depends": [

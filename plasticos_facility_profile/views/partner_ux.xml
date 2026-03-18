@@ -52,16 +52,7 @@
                            widget="statinfo"/>
                 </button>
 
-                <!-- Material Profiles count -->
-                <button name="action_view_material_profiles"
-                        type="object"
-                        class="oe_stat_button"
-                        icon="fa-cubes"
-                        invisible="material_profile_count == 0">
-                    <field name="material_profile_count"
-                           string="Materials"
-                           widget="statinfo"/>
-                </button>
+                <!-- NOTE: Material Profiles stat button is in plasticos_material_profile -->
 
             </xpath>
 

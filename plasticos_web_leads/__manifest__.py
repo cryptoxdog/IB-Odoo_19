@@ -10,7 +10,7 @@
     "version": "19.0.2.1.0",
     "summary": "AI-powered web lead triage: Cognito → LLM/Vision → HOT/COLD → Intake",
     "license": "LGPL-3",
-    "author": "PlasticOS",
+    "author": "Igor Beylin",
     "category": "Operations",
     "depends": [
         "base",

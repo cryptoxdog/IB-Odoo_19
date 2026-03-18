@@ -4,7 +4,7 @@
     "category": "Hidden",
     "summary": "Comprehensive test suite for PlastOS modules",
     "description": "Controller/API, Security/ACL, Constraint/Onchange, Integration tests.",
-    "author": "PlastOS Dev Team",
+    "author": "Igor Beylin",
     "depends": [
         "plasticos_base",
         "plasticos_transaction",

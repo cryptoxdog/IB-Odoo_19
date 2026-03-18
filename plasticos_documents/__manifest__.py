@@ -2,7 +2,7 @@
     "name": "Plasticos Documents Engine",
     "version": "19.0.2.1.0",
     "summary": "Document management, compliance, validation matrix, and transaction doc tracking",
-    "author": "PlasticOS",
+    "author": "Igor Beylin",
     "license": "LGPL-3",
     "post_init_hook": "post_init_hook",
     "depends": [

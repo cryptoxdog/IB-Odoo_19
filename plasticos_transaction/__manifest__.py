@@ -2,7 +2,7 @@
     "name": "Plasticos Transaction Spine",
     "version": "19.0.2.1.0",
     "summary": "Core transaction lifecycle management with integrated commission engine",
-    "author": "PlasticOS",
+    "author": "Igor Beylin",
     "license": "LGPL-3",
     "depends": [
         "plasticos_base",

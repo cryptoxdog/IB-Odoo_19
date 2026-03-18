@@ -2,7 +2,7 @@
     "name": "Plasticos Logistics Engine",
     "version": "19.0.1.1.0",
     "summary": "Load management and dispatch",
-    "author": "PlasticOS",
+    "author": "Igor Beylin",
     "license": "LGPL-3",
     "depends": ["plasticos_base", "plasticos_transaction", "sale_management", "stock", "mail"],
     "data": [

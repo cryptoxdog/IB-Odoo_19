@@ -3,7 +3,7 @@
     "version": "19.0.1.0.1",
     "summary": "Match result storage for intake-to-buyer matching",
     "license": "LGPL-3",
-    "author": "PlasticOS",
+    "author": "Igor Beylin",
     "category": "Hidden",
     "depends": [
         "base",

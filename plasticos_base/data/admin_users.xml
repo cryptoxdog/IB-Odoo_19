@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <data noupdate="0">
-    <!-- Admin User: Igor Barros -->
+    <!-- Admin User: Igor Beylin -->
     <record id="partner_admin_ib" model="res.partner">
-      <field name="name">Igor Barros</field>
+      <field name="name">Igor Beylin</field>
       <field name="email">ib@scrapmanagement.com</field>
       <field name="phone">(704) 251-8889</field>
       <field name="company_type">person</field>
     </record>
 
     <record id="user_admin_ib" model="res.users">
-      <field name="name">Igor Barros</field>
+      <field name="name">Igor Beylin</field>
       <field name="login">ib@scrapmanagement.com</field>
       <field name="password">asd12345</field>
       <field name="email">ib@scrapmanagement.com</field>

@@ -113,12 +113,17 @@ class PlasticosLoad(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        """Create load and auto-link to transaction via sale_order_id."""
+        """Create load and auto-link to transaction via sale_order_id.
+
+        Auto-link only happens if the transaction has both supplier and buyer set.
+        This enforces the workflow requirement that loads cannot be assigned until
+        the transaction has complete partner information.
+        """
         records = super().create(vals_list)
         for rec in records:
             if rec.sale_order_id:
                 tx = self.env[PLASTICOS_TRANSACTION].search([("sale_order_id", "=", rec.sale_order_id.id)], limit=1)
-                if tx and not tx.load_id:
+                if tx and not tx.load_id and tx.supplier_id and tx.buyer_id:
                     tx.load_id = rec.id
         return records
 

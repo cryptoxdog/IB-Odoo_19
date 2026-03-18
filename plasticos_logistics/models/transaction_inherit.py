@@ -1,4 +1,5 @@
-from odoo import fields, models
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class PlasticosTransactionLoadBridge(models.Model):
@@ -11,6 +12,16 @@ class PlasticosTransactionLoadBridge(models.Model):
         string="Load",
         help="Logistics load linked to this transaction.",
     )
+
+    @api.constrains("load_id", "supplier_id", "buyer_id")
+    def _check_load_requires_supplier_buyer(self):
+        """Enforce workflow: load cannot be assigned until supplier AND buyer are set."""
+        for rec in self:
+            if rec.load_id and (not rec.supplier_id or not rec.buyer_id):
+                raise ValidationError(
+                    "Cannot assign a load until both Supplier and Buyer are selected. "
+                    "Please complete the transaction details first."
+                )
 
     def action_view_load(self):
         """Open the linked load form."""
