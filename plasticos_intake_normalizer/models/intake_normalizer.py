@@ -106,6 +106,10 @@ class PlasticosIntakeNormalizer(models.Model):
             }
         )
         self._log_normalization("normalized", None)
+
+        # Geocode facility if not already populated
+        self._ensure_facility_geocoded()
+
         _logger.info(
             "Intake %s normalized → packet %s (v%s)",
             self.name,
@@ -117,6 +121,44 @@ class PlasticosIntakeNormalizer(models.Model):
         """Override the stub from plasticos_intake — route through normalizer."""
         for rec in self:
             rec.action_normalize()
+
+    def _ensure_facility_geocoded(self):
+        """Geocode facility/partner if coordinates not already populated.
+
+        Called during normalization to ensure geo data is available for matching.
+        Uses Odoo's native geo_localize() from base_geolocalize module.
+        Falls back silently if geocoding fails (nightly cron will retry).
+        """
+        # Check facility first, then partner
+        target = self.facility_id or self.partner_id
+        if not target:
+            return
+
+        # Skip if already geocoded
+        if target.partner_latitude and target.partner_latitude != 0.0:
+            _logger.debug("Facility %s already geocoded (lat=%s)", target.name, target.partner_latitude)
+            return
+
+        # Skip if no address to geocode
+        if not target.street and not target.city:
+            _logger.debug("Facility %s has no address to geocode", target.name)
+            return
+
+        try:
+            target.geo_localize()
+            if target.partner_latitude and target.partner_latitude != 0.0:
+                _logger.info(
+                    "Geocoded facility %s during normalization: lat=%s, lon=%s",
+                    target.name,
+                    target.partner_latitude,
+                    target.partner_longitude,
+                )
+        except Exception:
+            _logger.warning(
+                "Failed to geocode facility %s during normalization (will retry in nightly cron)",
+                target.name,
+                exc_info=True,
+            )
 
     # ═════════════════════════════════════════════════════
     # BATCH CRON
