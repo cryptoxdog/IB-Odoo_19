@@ -14,7 +14,7 @@ _logger = logging.getLogger(__name__)
 class PlasticosLoad(models.Model):
     _name = "plasticos.load"
     _description = "Plasticos Logistics Load"
-    _inherit = ["mail.thread"]
+    _inherit = ["mail.thread", "mail.activity.mixin"]
 
     name = fields.Char(
         required=True, default=lambda self: self.env["ir.sequence"].next_by_code(PLASTICOS_LOAD) or "New"
@@ -100,7 +100,14 @@ class PlasticosLoad(models.Model):
     pickup_contact_phone = fields.Char(string="Pickup Phone")
     pickup_contact_mobile = fields.Char(string="Pickup Mobile")
     pickup_reference = fields.Char(string="Pickup Reference/PO#")
-    pickup_hours = fields.Char(string="Pickup Hours", default="M-F: CALL FOR APPOINTMENT")
+    pickup_hours = fields.Char(
+        string="Pickup Hours",
+        default=lambda self: (
+            self.env["ir.config_parameter"]
+            .sudo()
+            .get_param("plasticos.load.default_pickup_hours", "M-F: 9:00 AM - 3:00 PM")
+        ),
+    )
     pickup_instructions = fields.Text(string="Pickup Instructions")
 
     # ── Delivery Location Fields ────────────────────────────────────
@@ -111,7 +118,14 @@ class PlasticosLoad(models.Model):
     delivery_contact_phone = fields.Char(string="Delivery Phone")
     delivery_contact_mobile = fields.Char(string="Delivery Mobile")
     delivery_reference = fields.Char(string="Delivery Reference/PO#")
-    delivery_hours = fields.Char(string="Delivery Hours", default="M-F: 9:00 AM - 3:00 PM")
+    delivery_hours = fields.Char(
+        string="Delivery Hours",
+        default=lambda self: (
+            self.env["ir.config_parameter"]
+            .sudo()
+            .get_param("plasticos.load.default_delivery_hours", "M-F: 9:00 AM - 3:00 PM")
+        ),
+    )
     delivery_instructions = fields.Text(string="Delivery Instructions")
 
     # ── Carrier/Transport Fields ────────────────────────────────────
@@ -382,7 +396,11 @@ class PlasticosLoad(models.Model):
 
     @api.model
     def _cron_check_dispatch_acknowledgments(self):
-        """Check for dispatches sent but not acknowledged within threshold."""
+        """Check for unacknowledged dispatches and escalate.
+
+        Creates escalation activity and resends dispatch email for loads
+        where carrier has not acknowledged within threshold.
+        """
         threshold_hours = 4
         threshold_dt = fields.Datetime.now() - timedelta(hours=threshold_hours)
 
@@ -398,11 +416,33 @@ class PlasticosLoad(models.Model):
         )
 
         for load in unacknowledged:
-            _logger.warning(
-                "Dispatch not acknowledged: %s (sent %s)",
-                load.name,
-                load.dispatch_sent,
+            has_activity = self.env["mail.activity"].search_count(
+                [
+                    ("res_model", "=", PLASTICOS_LOAD),
+                    ("res_id", "=", load.id),
+                    ("summary", "ilike", "URGENT: No carrier acknowledgment"),
+                    ("date_deadline", "=", fields.Date.today()),
+                ]
             )
+
+            if has_activity:
+                continue
+
+            tx = self.env[PLASTICOS_TRANSACTION].search([("load_id", "=", load.id)], order="id asc", limit=1)
+            user_id = tx.user_id.id if tx and tx.user_id else self.env.user.id
+
+            load.activity_schedule(
+                "mail.mail_activity_data_todo",
+                user_id=user_id,
+                summary=f"URGENT: No carrier acknowledgment for {load.name}",
+                note=f"Carrier has not acknowledged dispatch sent {load.dispatch_sent}.",
+            )
+
+            try:
+                load.action_send_dispatch_direct()
+                _logger.info("Resent dispatch for load %s", load.name)
+            except Exception as e:
+                _logger.error("Failed to resend dispatch for load %s: %s", load.name, str(e))
 
         return True
 
@@ -431,6 +471,24 @@ class PlasticosLoad(models.Model):
         self.ensure_one()
         template = self._get_email_template("email_template_dispatch_packet")
         return self._open_mail_composer(template)
+
+    def action_send_dispatch_direct(self):
+        """Send dispatch packet directly and track timestamp.
+
+        Unlike action_send_dispatch_packet which opens a composer,
+        this method sends immediately and sets dispatch_sent timestamp.
+        """
+        self.ensure_one()
+        if not self.carrier_id:
+            raise UserError(f"Load {self.name}: Carrier is required to send dispatch.")
+        if not self.carrier_id.email:
+            raise UserError(f"Carrier {self.carrier_id.name} has no email address.")
+
+        template = self._get_email_template("email_template_dispatch_packet")
+        template.send_mail(self.id, force_send=True)
+        self.dispatch_sent = fields.Datetime.now()
+        self.message_post(body="Dispatch packet sent to carrier.")
+        return True
 
     def _get_email_template(self, template_name):
         """Get email template from plasticos_automation module.

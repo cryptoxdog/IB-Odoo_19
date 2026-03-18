@@ -12,6 +12,7 @@
         "account",
         "sale_management",
         "purchase",
+        "purchase_stock",
         "stock",
         "plasticos_material_profile",
         "plasticos_facility_profile",

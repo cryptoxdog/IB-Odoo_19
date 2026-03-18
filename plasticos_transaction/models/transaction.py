@@ -414,6 +414,7 @@ class PlasticosTransaction(models.Model):
             ("draft", "Draft"),
             ("active", "Active"),
             ("pending_supplier", "Pending Supplier"),
+            ("supplier_not_ready", "Supplier Not Ready"),
             ("supplier_ready", "Supplier Ready"),
             ("do_created", "DO Created"),
             ("dispatched", "Dispatched"),
@@ -445,6 +446,19 @@ class PlasticosTransaction(models.Model):
         compute="_compute_is_supplier_confirmed",
         store=True,
         help="True when supplier has confirmed readiness. Distinct from 'supplier_ready' state.",
+    )
+    supplier_confirmation_followup_count = fields.Integer(
+        string="Followup Count",
+        default=0,
+        help="Number of follow-up emails sent for supplier confirmation.",
+    )
+    last_supplier_confirmation_followup_on = fields.Datetime(
+        string="Last Followup",
+        help="When the last follow-up was sent.",
+    )
+    supplier_not_ready_reason = fields.Text(
+        string="Not Ready Reason",
+        help="Reason provided when supplier indicated they are not ready.",
     )
 
     # ── Delivery Order (PO-to-DO Workflow) ────────────────────
@@ -1027,6 +1041,85 @@ class PlasticosTransaction(models.Model):
                 )
             rec.with_context(bypass_state_guard=True).write({"state": "delivered"})
 
+    def action_mark_supplier_not_ready(self, reason=None):
+        """Mark supplier as not ready with reason tracking.
+
+        Called when supplier explicitly indicates they cannot fulfill the order
+        on the expected timeline. Creates escalation activity.
+        """
+        for rec in self:
+            if rec.state not in ("pending_supplier", "active"):
+                raise UserError(
+                    f"Cannot mark supplier not ready: transaction must be in "
+                    f"'Pending Supplier' or 'Active' state (current: {rec.state})."
+                )
+
+            vals = {"state": "supplier_not_ready"}
+            if reason:
+                vals["supplier_not_ready_reason"] = reason
+
+            rec.with_context(bypass_state_guard=True).write(vals)
+
+            if reason:
+                rec.message_post(body=f"Supplier not ready: {reason}")
+            else:
+                rec.message_post(body="Supplier marked as not ready.")
+
+            rec._escalate_supplier_confirmation()
+
+    def action_mark_supplier_ready(self):
+        """Mark supplier as ready (can recover from supplier_not_ready state)."""
+        for rec in self:
+            if rec.state not in ("pending_supplier", "supplier_not_ready", "active"):
+                raise UserError(f"Cannot mark supplier ready: invalid current state (current: {rec.state}).")
+
+            rec.supplier_confirmation_received = fields.Datetime.now()
+            rec.with_context(bypass_state_guard=True).write({"state": "supplier_ready"})
+            rec.message_post(body="Supplier confirmed ready.")
+
+    def action_send_supplier_confirmation(self):
+        """Send supplier confirmation request email."""
+        self.ensure_one()
+        if not self.supplier_id:
+            raise UserError("Cannot send confirmation: no supplier assigned.")
+        if not self.supplier_id.email:
+            raise UserError(f"Supplier {self.supplier_id.name} has no email address.")
+
+        template = self.env.ref(
+            "plasticos_automation.email_template_supplier_confirmation",
+            raise_if_not_found=False,
+        )
+        if not template:
+            raise UserError("Supplier confirmation email template not found.")
+
+        template.send_mail(self.id, force_send=True)
+        self.supplier_confirmation_sent = fields.Datetime.now()
+        self.message_post(body="Supplier confirmation request sent.")
+        return True
+
+    def _escalate_supplier_confirmation(self):
+        """Create escalation activity for unconfirmed supplier."""
+        self.ensure_one()
+        has_activity = self.env["mail.activity"].search_count(
+            [
+                ("res_model", "=", PLASTICOS_TRANSACTION),
+                ("res_id", "=", self.id),
+                ("summary", "ilike", "ESCALATION: Supplier confirmation"),
+                ("date_deadline", "=", fields.Date.today()),
+            ]
+        )
+        if has_activity:
+            return
+
+        supplier_name = self.supplier_id.name if self.supplier_id else "N/A"
+        followup_count = self.supplier_confirmation_followup_count
+        self.activity_schedule(
+            "mail.mail_activity_data_todo",
+            user_id=self.user_id.id or self.env.user.id,
+            summary=f"ESCALATION: Supplier confirmation pending on {self.name}",
+            note=f"Supplier {supplier_name} has not confirmed after {followup_count} follow-ups.",
+        )
+
     # ═════════════════════════════════════════════════════════
     # Action Methods (for UX smart buttons)
     # ═════════════════════════════════════════════════════════
@@ -1075,7 +1168,7 @@ class PlasticosTransaction(models.Model):
 
     @api.model
     def _cron_supplier_confirmation_followup(self):
-        """Check for confirmation requests without response.
+        """Send follow-up emails for pending supplier confirmations.
 
         State flow: draft → active → pending_supplier → supplier_ready → ...
         By the time supplier_confirmation_sent is stamped, TX is typically
@@ -1095,40 +1188,85 @@ class PlasticosTransaction(models.Model):
             limit=100,
         )
 
+        template = self.env.ref(
+            "plasticos_automation.email_template_supplier_confirmation",
+            raise_if_not_found=False,
+        )
+
         for tx in pending:
-            _logger.warning(
-                "Supplier confirmation pending: %s (sent %s, state %s)",
-                tx.name,
-                tx.supplier_confirmation_sent,
-                tx.state,
-            )
+            if tx.last_supplier_confirmation_followup_on:
+                last_followup_date = tx.last_supplier_confirmation_followup_on.date()
+                if last_followup_date == fields.Date.today():
+                    continue
+
+            try:
+                if template and tx.supplier_id and tx.supplier_id.email:
+                    template.send_mail(tx.id, force_send=True)
+
+                tx.supplier_confirmation_followup_count += 1
+                tx.last_supplier_confirmation_followup_on = fields.Datetime.now()
+
+                if tx.supplier_confirmation_followup_count >= 3:
+                    tx._escalate_supplier_confirmation()
+
+                _logger.info(
+                    "Sent supplier confirmation follow-up #%d for TX %s",
+                    tx.supplier_confirmation_followup_count,
+                    tx.name,
+                )
+
+            except Exception as e:
+                _logger.error("Failed to send follow-up for TX %s: %s", tx.name, str(e))
 
         return True
 
     @api.model
     def _cron_auto_create_delivery_orders(self):
-        """Identify transactions ready for DO creation (stub - no business logic).
+        """Link existing pickings to transactions or trigger PO confirmation.
 
-        State flow: draft → active → pending_supplier → supplier_ready → ...
-        A TX ready for DO creation could be in active, pending_supplier, or
-        supplier_ready state. Search all three.
+        Native Odoo creates pickings on PO confirm via purchase_stock.
+        This cron:
+        1. Finds TXs ready for DO (supplier confirmed, no DO linked)
+        2. Checks if PO already has pickings -> link them
+        3. If PO exists but no picking -> confirm PO (triggers native creation)
+        4. Logs TXs that need manual PO creation
         """
         ready = self.search(
             [
                 ("is_supplier_confirmed", "=", True),
                 ("delivery_order_id", "=", False),
-                ("state", "in", ["active", "pending_supplier", "supplier_ready"]),
+                ("state", "in", ["supplier_ready", "active", "pending_supplier"]),
             ],
             order="supplier_confirmation_received asc",
             limit=100,
         )
 
+        linked_count = 0
         for tx in ready:
-            _logger.info(
-                "Transaction ready for DO: %s (supplier confirmed %s, state %s)",
-                tx.name,
-                tx.supplier_confirmation_received,
-                tx.state,
-            )
+            try:
+                linked = False
+                for po in tx.purchase_order_ids:
+                    if po.picking_ids:
+                        outgoing = po.picking_ids.filtered(
+                            lambda p: p.picking_type_code == "outgoing" and p.state != "cancel"
+                        )
+                        if outgoing:
+                            tx.delivery_order_id = outgoing[0].id
+                            if tx.state == "supplier_ready":
+                                tx.action_mark_do_created()
+                            _logger.info("Linked existing DO %s to TX %s", outgoing[0].name, tx.name)
+                            linked_count += 1
+                            linked = True
+                            break
+                    elif po.state == "draft":
+                        po.button_confirm()
+                        _logger.info("Confirmed PO %s for TX %s", po.name, tx.name)
 
+                if not linked and not tx.purchase_order_ids:
+                    _logger.info("TX %s ready for DO but has no PO", tx.name)
+
+            except Exception as e:
+                _logger.error("Failed to process TX %s: %s", tx.name, str(e))
+
+        _logger.info("DO linkage cron: linked %d delivery orders", linked_count)
         return True
