@@ -156,9 +156,10 @@
     <field name="inherit_id" ref="base.view_partner_form"/>
     <field name="arch" type="xml">
 
-      <!-- Add lead_source_id to partner form (visible for companies) -->
+      <!-- Add lead_source_id and default_delivery_term to partner form (visible for companies) -->
       <xpath expr="//field[@name='category_id']" position="after">
         <field name="lead_source_id" invisible="not is_company"/>
+        <field name="default_delivery_term" invisible="not is_company"/>
       </xpath>
 
       <xpath expr="//sheet/notebook" position="inside">

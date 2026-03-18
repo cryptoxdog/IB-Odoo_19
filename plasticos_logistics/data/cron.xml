@@ -17,5 +17,41 @@
         <field name="interval_number">1</field>
         <field name="interval_type">hours</field>
     <field name="user_id" ref="plasticos_base.user_system_cron" /></record>
+
+    <!-- Dispatch Acknowledgment Check -->
+    <record id="cron_dispatch_acknowledgment" model="ir.cron">
+        <field name="name">Plasticos Dispatch Acknowledgment Check</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_load"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_check_dispatch_acknowledgments()</field>
+        <field name="interval_number">4</field>
+        <field name="interval_type">hours</field>
+        <field name="user_id" ref="plasticos_base.user_system_cron"/>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Supplier Confirmation Follow-up -->
+    <record id="cron_supplier_confirmation" model="ir.cron">
+        <field name="name">Plasticos Supplier Confirmation Follow-up</field>
+        <field name="model_id" ref="plasticos_transaction.model_plasticos_transaction"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_supplier_confirmation_followup()</field>
+        <field name="interval_number">6</field>
+        <field name="interval_type">hours</field>
+        <field name="user_id" ref="plasticos_base.user_system_cron"/>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Auto-Create Delivery Orders -->
+    <record id="cron_auto_create_do" model="ir.cron">
+        <field name="name">Plasticos Auto-Create Delivery Orders</field>
+        <field name="model_id" ref="plasticos_transaction.model_plasticos_transaction"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_auto_create_delivery_orders()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="user_id" ref="plasticos_base.user_system_cron"/>
+        <field name="active" eval="True"/>
+    </record>
     </data>
 </odoo>

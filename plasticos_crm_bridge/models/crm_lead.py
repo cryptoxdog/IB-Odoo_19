@@ -4,6 +4,13 @@ from odoo import api, fields, models
 class CrmLeadPlastOS(models.Model):
     _inherit = "crm.lead"
 
+    # ── Delivery Term (captured during qualification) ──────
+    delivery_term = fields.Selection(
+        [("fcfs", "FCFS"), ("appointment", "Appointment")],
+        string="Delivery Term",
+        help="Delivery term preference captured during lead qualification. Copied to transaction on conversion.",
+    )
+
     # ── Web Lead Link ──────────────────────────────────────
     web_lead_ids = fields.One2many(
         "plasticos.web.lead",

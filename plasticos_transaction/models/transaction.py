@@ -1,5 +1,10 @@
+import logging
+from datetime import timedelta
+
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
+
+_logger = logging.getLogger(__name__)
 
 PRODUCT_PRICE = "Product Price"
 ACCOUNT_MOVE = "account.move"
@@ -130,8 +135,9 @@ class PlasticosTransaction(models.Model):
             ("appointment", "Appointment Required"),
         ],
         string="Delivery Term",
-        default="fcfs",
+        default=lambda self: self._get_default_delivery_term(),
         tracking=True,
+        help="Default chain: Supplier → Buyer → 'appointment' fallback. Editable.",
     )
     freight_rate = fields.Float(
         string="Freight Rate",
@@ -421,6 +427,39 @@ class PlasticosTransaction(models.Model):
         index=True,
     )
 
+    # ── Supplier Confirmation Tracking ────────────────────────
+    supplier_confirmation_sent = fields.Datetime(
+        string="Confirmation Sent",
+        tracking=True,
+        help="When supplier was asked to confirm readiness.",
+    )
+    supplier_confirmation_received = fields.Datetime(
+        string="Confirmation Received",
+        tracking=True,
+        help="When supplier confirmed they are ready.",
+    )
+    is_supplier_confirmed = fields.Boolean(
+        string="Supplier Confirmed",
+        compute="_compute_is_supplier_confirmed",
+        store=True,
+        help="True when supplier has confirmed readiness. Distinct from 'supplier_ready' state.",
+    )
+
+    # ── Delivery Order (PO-to-DO Workflow) ────────────────────
+    delivery_order_id = fields.Many2one(
+        "stock.picking",
+        string="Delivery Order",
+        domain=[("picking_type_code", "=", "outgoing")],
+        tracking=True,
+        help="Linked delivery order for this transaction.",
+    )
+    do_number = fields.Char(
+        string="DO Number",
+        related="delivery_order_id.name",
+        store=True,
+        help="Delivery order reference number.",
+    )
+
     # ── Constraints ──────────────────────────────────────────
     _unique_name = models.Constraint(
         "unique(name)",
@@ -435,6 +474,39 @@ class PlasticosTransaction(models.Model):
                 raise ValidationError(
                     "Commission override percentage must be between 0.0 and 1.0 (e.g., 0.15 for 15%)."
                 )
+
+    # ── Default Delivery Term Helper ─────────────────────────
+    def _get_default_delivery_term(self):
+        """Get delivery term default using priority chain.
+
+        Priority:
+        1. Supplier's default_delivery_term (if set)
+        2. Buyer's default_delivery_term (if set)
+        3. "appointment" (fallback - safer/more conservative)
+
+        Note: At record creation, supplier_id/buyer_id may not be set yet.
+        The field is editable, so user can always override.
+        """
+        supplier_id = self.env.context.get("default_supplier_id")
+        buyer_id = self.env.context.get("default_buyer_id")
+
+        if supplier_id:
+            supplier = self.env["res.partner"].browse(supplier_id)
+            if supplier.default_delivery_term:
+                return supplier.default_delivery_term
+
+        if buyer_id:
+            buyer = self.env["res.partner"].browse(buyer_id)
+            if buyer.default_delivery_term:
+                return buyer.default_delivery_term
+
+        return "appointment"
+
+    # ── Supplier Confirmation Compute ────────────────────────
+    @api.depends("supplier_confirmation_received")
+    def _compute_is_supplier_confirmed(self):
+        for record in self:
+            record.is_supplier_confirmed = bool(record.supplier_confirmation_received)
 
     # ── Computed Methods (harvested) ──────────────────────────
     @api.depends(
@@ -926,3 +998,67 @@ class PlasticosTransaction(models.Model):
             "domain": [("transaction_id", "=", self.id)],
             "context": {"default_transaction_id": self.id},
         }
+
+    # ═════════════════════════════════════════════════════════
+    # Cron Methods (Logistics Enhancement)
+    # ═════════════════════════════════════════════════════════
+
+    @api.model
+    def _cron_supplier_confirmation_followup(self):
+        """Check for confirmation requests without response.
+
+        State flow: draft → active → pending_supplier → supplier_ready → ...
+        By the time supplier_confirmation_sent is stamped, TX is typically
+        in pending_supplier, not active. Search both states.
+        """
+        threshold_hours = 24
+        threshold_dt = fields.Datetime.now() - timedelta(hours=threshold_hours)
+
+        pending = self.search(
+            [
+                ("supplier_confirmation_sent", "!=", False),
+                ("supplier_confirmation_sent", "<", threshold_dt),
+                ("supplier_confirmation_received", "=", False),
+                ("state", "in", ["active", "pending_supplier"]),
+            ],
+            order="supplier_confirmation_sent asc",
+            limit=100,
+        )
+
+        for tx in pending:
+            _logger.warning(
+                "Supplier confirmation pending: %s (sent %s, state %s)",
+                tx.name,
+                tx.supplier_confirmation_sent,
+                tx.state,
+            )
+
+        return True
+
+    @api.model
+    def _cron_auto_create_delivery_orders(self):
+        """Identify transactions ready for DO creation (stub - no business logic).
+
+        State flow: draft → active → pending_supplier → supplier_ready → ...
+        A TX ready for DO creation could be in active, pending_supplier, or
+        supplier_ready state. Search all three.
+        """
+        ready = self.search(
+            [
+                ("is_supplier_confirmed", "=", True),
+                ("delivery_order_id", "=", False),
+                ("state", "in", ["active", "pending_supplier", "supplier_ready"]),
+            ],
+            order="supplier_confirmation_received asc",
+            limit=100,
+        )
+
+        for tx in ready:
+            _logger.info(
+                "Transaction ready for DO: %s (supplier confirmed %s, state %s)",
+                tx.name,
+                tx.supplier_confirmation_received,
+                tx.state,
+            )
+
+        return True

@@ -129,6 +129,11 @@
                         </field>
                     </group>
 
+                    <!-- Delivery Preferences -->
+                    <group string="Delivery Preferences">
+                        <field name="delivery_term"/>
+                    </group>
+
                     <!-- Pipeline Summary -->
                     <group string="Pipeline Summary">
                         <group>

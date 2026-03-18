@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from odoo import api, fields, models
 from odoo.addons.plasticos_logistics.services.state_machine import VALID_TRANSITIONS, new_correlation_id
@@ -46,6 +47,51 @@ class PlasticosLoad(models.Model):
         compute="_compute_transaction_id",
         store=False,
         help="Transaction linked to this load (reverse lookup).",
+    )
+
+    # ── Delivery Term (editable with override tracking) ───────────────
+    delivery_term = fields.Selection(
+        [
+            ("fcfs", "First Come First Served"),
+            ("appointment", "Appointment Required"),
+        ],
+        string="Delivery Term",
+        default=lambda self: self._get_default_delivery_term(),
+        tracking=True,
+        help="Defaults from transaction. Editable by logistics in rare cases (requires reason).",
+    )
+    delivery_term_override_reason = fields.Text(
+        string="Override Reason",
+        help="Required when delivery_term differs from transaction. Explain why the change was necessary.",
+    )
+    delivery_term_overridden = fields.Boolean(
+        string="Delivery Term Overridden",
+        compute="_compute_delivery_term_overridden",
+        store=True,
+        help="True if delivery_term differs from linked transaction.",
+    )
+
+    # ── Dispatch Tracking ─────────────────────────────────────────────
+    dispatch_sent = fields.Datetime(
+        string="Dispatch Sent",
+        tracking=True,
+        help="When dispatch notification was sent to carrier.",
+    )
+    dispatch_acknowledged = fields.Datetime(
+        string="Dispatch Acknowledged",
+        tracking=True,
+        help="When carrier acknowledged the dispatch.",
+    )
+    dispatch_method = fields.Selection(
+        [
+            ("email", "Email"),
+            ("sms", "SMS"),
+            ("api", "API"),
+            ("email_sms", "Email + SMS"),
+        ],
+        string="Dispatch Method",
+        default="email",
+        help="Method used to send dispatch notification.",
     )
 
     # ── Pickup Location Fields ──────────────────────────────────────
@@ -142,6 +188,14 @@ class PlasticosLoad(models.Model):
                     "sla_breached",
                     "message_ids",
                     "message_follower_ids",
+                    # Dispatch tracking fields (added for logistics enhancement)
+                    "dispatch_sent",
+                    "dispatch_acknowledged",
+                    "dispatch_method",
+                    # Delivery term override (rare but allowed)
+                    "delivery_term",
+                    "delivery_term_override_reason",
+                    "delivery_term_overridden",
                 }
                 blocked = set(vals.keys()) - allowed
                 if blocked:
@@ -176,6 +230,35 @@ class PlasticosLoad(models.Model):
         tx_map = {tx.load_id.id: tx.id for tx in txs}
         for rec in self:
             rec.transaction_id = tx_map.get(rec.id, False)
+
+    def _get_default_delivery_term(self):
+        """Get delivery term from linked transaction if available."""
+        tx_id = self.env.context.get("default_transaction_id")
+        if tx_id:
+            tx = self.env[PLASTICOS_TRANSACTION].browse(tx_id)
+            if tx.delivery_term:
+                return tx.delivery_term
+        return "appointment"
+
+    @api.depends("delivery_term", "transaction_id.delivery_term")
+    def _compute_delivery_term_overridden(self):
+        """Check if delivery_term differs from transaction."""
+        for rec in self:
+            # Use reverse lookup to get transaction
+            tx = self.env[PLASTICOS_TRANSACTION].search([("load_id", "=", rec.id)], limit=1)
+            if tx and tx.delivery_term:
+                rec.delivery_term_overridden = rec.delivery_term != tx.delivery_term
+            else:
+                rec.delivery_term_overridden = False
+
+    @api.constrains("delivery_term", "delivery_term_override_reason")
+    def _check_override_reason_required(self):
+        """Require reason when delivery_term is overridden."""
+        for rec in self:
+            if rec.delivery_term_overridden and not rec.delivery_term_override_reason:
+                raise ValidationError(
+                    "Override reason is required when changing delivery term from transaction default."
+                )
 
     def action_confirm_ready(self):
         """Confirm load is ready for pickup. Captures authenticated user."""
@@ -296,6 +379,32 @@ class PlasticosLoad(models.Model):
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_logistics.cron_escalation_check"]
             )
+
+    @api.model
+    def _cron_check_dispatch_acknowledgments(self):
+        """Check for dispatches sent but not acknowledged within threshold."""
+        threshold_hours = 4
+        threshold_dt = fields.Datetime.now() - timedelta(hours=threshold_hours)
+
+        unacknowledged = self.search(
+            [
+                ("dispatch_sent", "!=", False),
+                ("dispatch_sent", "<", threshold_dt),
+                ("dispatch_acknowledged", "=", False),
+                ("state", "in", ["dispatched", "scheduled"]),
+            ],
+            order="dispatch_sent asc",
+            limit=100,
+        )
+
+        for load in unacknowledged:
+            _logger.warning(
+                "Dispatch not acknowledged: %s (sent %s)",
+                load.name,
+                load.dispatch_sent,
+            )
+
+        return True
 
     # ── Email Send Actions (Paperless) ──────────────────────────────
 

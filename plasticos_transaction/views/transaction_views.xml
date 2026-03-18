@@ -28,6 +28,13 @@
                 <filter name="filter_non_compliant" string="Non-Compliant"
                         domain="[('compliance_status', '!=', 'compliant')]"/>
                 <separator/>
+                <filter name="filter_supplier_confirmed" string="Supplier Confirmed"
+                        domain="[('is_supplier_confirmed', '=', True)]"/>
+                <filter name="filter_has_do" string="Has Delivery Order"
+                        domain="[('delivery_order_id', '!=', False)]"/>
+                <filter name="filter_no_do" string="Missing Delivery Order"
+                        domain="[('delivery_order_id', '=', False), ('is_supplier_confirmed', '=', True)]"/>
+                <separator/>
                 <filter name="group_state" string="Status"
                         context="{'group_by': 'state'}"/>
                 <filter name="group_user" string="Salesperson"
@@ -150,6 +157,18 @@
                             <field name="lightweight_penalties"/>
                             <field name="gross_margin"/>
                             <field name="net_margin"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Supplier Confirmation">
+                            <field name="supplier_confirmation_sent"/>
+                            <field name="supplier_confirmation_received"/>
+                            <field name="is_supplier_confirmed" readonly="1"/>
+                        </group>
+                        <group string="Delivery Order">
+                            <field name="delivery_order_id"/>
+                            <field name="do_number" readonly="1"/>
                         </group>
                     </group>
 
