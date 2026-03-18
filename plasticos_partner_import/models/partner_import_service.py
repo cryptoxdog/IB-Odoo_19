@@ -129,17 +129,43 @@ class PlasticosPartnerImportService(models.AbstractModel):
         safe = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
         return f"plasticos_partner_import.{prefix}_{safe}"
 
-    def _normalize_email(self, email_str):
-        """Extract first valid email from potentially messy string."""
+    def _normalize_email(self, email_str, contact_name=None):
+        """Extract best matching email from potentially messy string.
+
+        If contact_name is provided and there are multiple emails, tries to find
+        an email that matches the contact's name (e.g., "Josh Dingus" matches
+        "josh.dingus@company.com"). Falls back to first valid email if no match.
+        """
         if not email_str:
             return False
+
         # Split on common separators
         emails = re.split(r"[;,\s]+", email_str.strip())
-        for e in emails:
-            e = e.strip()
-            if "@" in e and "." in e:
-                return e
-        return False
+        valid_emails = [e.strip() for e in emails if "@" in e.strip() and "." in e.strip()]
+
+        if not valid_emails:
+            return False
+
+        # If only one email or no contact name, return first
+        if len(valid_emails) == 1 or not contact_name:
+            return valid_emails[0]
+
+        # Try to match contact name to email
+        # Extract name parts (first, last, or combined)
+        name_lower = contact_name.lower().strip()
+        name_parts = re.split(r"[\s&,]+", name_lower)
+        name_parts = [p for p in name_parts if len(p) > 2]  # Skip short words like "and", "&"
+
+        for email in valid_emails:
+            email_local = email.split("@")[0].lower()
+            # Check if any name part appears in email local part
+            for part in name_parts:
+                if part in email_local:
+                    _logger.debug("Matched email '%s' to contact '%s' via '%s'", email, contact_name, part)
+                    return email
+
+        # No match found, return first email
+        return valid_emails[0]
 
     def _normalize_phone(self, phone_str):
         """Clean phone number."""
@@ -424,7 +450,8 @@ class PlasticosPartnerImportService(models.AbstractModel):
         contact = None
         contact_name = row.get("Contact", "").strip()
         contact_phone = self._normalize_phone(row.get("Phone", ""))
-        contact_email = self._normalize_email(row.get("Email", ""))
+        # Pass contact_name to match email to the named contact when multiple emails exist
+        contact_email = self._normalize_email(row.get("Email", ""), contact_name)
 
         if contact_name and contact_name not in ("Primary", "United States"):
             contact = self._create_facility_contact(
