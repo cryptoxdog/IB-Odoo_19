@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Partner Import",
-    "version": "19.0.2.1.0",
+    "version": "19.0.2.2.0",
     "summary": "Deterministic partner + CRM lead import with wizard UI (Odoo 19)",
     "author": "Igor Beylin",
     "license": "LGPL-3",
@@ -20,6 +20,7 @@
         "views/partner_bulk_update_wizard_views.xml",
         "views/crm_lead_import_wizard_views.xml",
     ],
+    "post_init_hook": "post_init_hook",
     "installable": True,
     "auto_install": True,
     "application": False,
