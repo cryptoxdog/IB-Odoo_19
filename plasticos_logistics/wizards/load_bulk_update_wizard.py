@@ -4,7 +4,7 @@ Allows bulk status updates for multiple logistics loads from list view.
 """
 
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 
 class LoadBulkUpdateWizard(models.TransientModel):
@@ -59,65 +59,37 @@ class LoadBulkUpdateWizard(models.TransientModel):
         return res
 
     def action_update_status(self):
-        """Apply the status update to all selected loads."""
+        """Apply the status update to all selected loads using state machine."""
         self.ensure_one()
 
         if not self.load_ids:
             raise UserError(_("No loads selected."))
 
-        # Validate transitions
-        invalid = []
-        for load in self.load_ids:
-            if load.state == "closed" and self.new_state != "exception":
-                invalid.append(f"{load.name}: Cannot change status of closed load")
-            elif load.state in ("dispatched", "picked_up", "delivered") and self.new_state in (
-                "draft",
-                "awaiting_ready",
-            ):
-                invalid.append(f"{load.name}: Cannot revert dispatched load to early state")
-
-        if invalid:
-            raise UserError(_("Invalid transitions:\n%s") % "\n".join(invalid[:5]))
-
+        errors = []
         updated_count = 0
         for load in self.load_ids:
             old_state = load.state
-
-            vals = {
-                "state": self.new_state,
-                "entered_state_at": fields.Datetime.now(),
-            }
-            if self.new_state == "dispatched":
-                vals["dispatched_at"] = fields.Datetime.now()
-            elif self.new_state == "delivered":
-                vals["delivered_at"] = fields.Datetime.now()
-
-            # Use SQL to bypass write() restrictions for bulk operations
-            self.env.cr.execute(
-                """
-                UPDATE plasticos_load
-                SET state = %s, entered_state_at = %s
-                WHERE id = %s
-                """,
-                (self.new_state, fields.Datetime.now(), load.id),
-            )
-            load.invalidate_recordset(["state", "entered_state_at"])
-
-            load.message_post(
-                body=_(
-                    "Status changed from <b>%(old)s</b> to <b>%(new)s</b><br/>"
-                    "Reason: %(reason)s<br/>"
-                    "Updated by: %(user)s (Bulk Update)"
+            try:
+                load._transition(self.new_state)
+                load.message_post(
+                    body=_(
+                        "Status changed from <b>%(old)s</b> to <b>%(new)s</b><br/>"
+                        "Reason: %(reason)s<br/>Updated by: %(user)s (Bulk Update)"
+                    )
+                    % {
+                        "old": old_state,
+                        "new": self.new_state,
+                        "reason": self.reason,
+                        "user": self.env.user.name,
+                    },
+                    message_type="notification",
                 )
-                % {
-                    "old": old_state,
-                    "new": self.new_state,
-                    "reason": self.reason,
-                    "user": self.env.user.name,
-                },
-                message_type="notification",
-            )
-            updated_count += 1
+                updated_count += 1
+            except (UserError, ValidationError) as e:
+                errors.append(f"{load.name}: {e.args[0]}")
+
+        if errors:
+            raise UserError(_("Some loads could not be updated:\n%s") % "\n".join(errors[:10]))
 
         return {
             "type": "ir.actions.client",

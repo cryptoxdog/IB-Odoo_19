@@ -1,22 +1,13 @@
 import logging
-import uuid
 
 from odoo import api, fields, models
+from odoo.addons.plasticos_logistics.services.state_machine import VALID_TRANSITIONS, new_correlation_id
 from odoo.exceptions import UserError, ValidationError
 
 RES_PARTNER = "res.partner"
 PLASTICOS_TRANSACTION = "plasticos.transaction"
 PLASTICOS_LOAD = "plasticos.load"
 _logger = logging.getLogger(__name__)
-
-# Stub for l9_trace (enable when module available)
-# from odoo.addons.l9_trace.services.trace_kernel import TraceKernel
-# from odoo.addons.l9_trace.services.correlation import new_correlation_id
-
-
-def new_correlation_id():
-    """Generate correlation ID (stub for l9_trace)"""
-    return str(uuid.uuid4())
 
 
 class PlasticosLoad(models.Model):
@@ -134,9 +125,9 @@ class PlasticosLoad(models.Model):
         - BOL attachments (pickup/delivery confirmation)
         - State transitions (via action methods)
         - Timestamps (entered_state_at, dispatched_at, delivered_at)
-
-        REVIEWER NOTE: origin_zip/destination_zip guard removed — fields don't exist.
-        If lane-lock feature is needed in future, add the fields first.
+        - Computed fields (cycle_time_hours)
+        - Cron-managed fields (sla_breached)
+        - Chatter fields (message_ids, message_follower_ids)
         """
         for rec in self:
             if rec.state in ["dispatched", "picked_up", "delivered", "closed"]:
@@ -147,6 +138,10 @@ class PlasticosLoad(models.Model):
                     "entered_state_at",
                     "dispatched_at",
                     "delivered_at",
+                    "cycle_time_hours",
+                    "sla_breached",
+                    "message_ids",
+                    "message_follower_ids",
                 }
                 blocked = set(vals.keys()) - allowed
                 if blocked:
@@ -174,26 +169,39 @@ class PlasticosLoad(models.Model):
     def _compute_transaction_id(self):
         """Reverse lookup: find transaction that references this load.
 
-        Note: No @api.depends() because this is store=False and always
-        recomputes on field access. The search is lightweight (indexed FK).
+        Batched query to avoid N+1 problem on list views.
+        Note: No @api.depends() needed for store=False computed fields.
         """
+        txs = self.env[PLASTICOS_TRANSACTION].search([("load_id", "in", self.ids)])
+        tx_map = {tx.load_id.id: tx.id for tx in txs}
         for rec in self:
-            tx = self.env[PLASTICOS_TRANSACTION].search([("load_id", "=", rec.id)], limit=1)
-            rec.transaction_id = tx.id if tx else False
+            rec.transaction_id = tx_map.get(rec.id, False)
 
-    def action_confirm_ready(self, user_name):
+    def action_confirm_ready(self):
+        """Confirm load is ready for pickup. Captures authenticated user."""
         for rec in self:
-            rec.ready_confirmed_by = user_name
+            rec.ready_confirmed_by = self.env.user.name
             rec.ready_confirmed_at = fields.Datetime.now()
             rec._transition("ready_confirmed")
 
     def action_confirm_rate(self, rate):
+        """Confirm carrier rate. Only stores rate memory if lane key is valid."""
         for rec in self:
             rec.rate_amount = rate
             rec.rate_confirmed_at = fields.Datetime.now()
             rec.rate_auto_reused = False
             rec._transition("rate_confirmed")
-            rec._store_rate_memory()
+            if rec.sale_order_id and rec.carrier_id:
+                ship = rec.sale_order_id.partner_shipping_id.id
+                inv = rec.sale_order_id.partner_invoice_id.id
+                if ship and inv:
+                    rec._store_rate_memory()
+                else:
+                    _logger.warning(
+                        "Load %s: rate memory skipped — SO %s has no shipping/invoice partner.",
+                        rec.id,
+                        rec.sale_order_id.name,
+                    )
 
     def action_schedule(self, pickup_dt, delivery_dt):
         for rec in self:
@@ -202,9 +210,18 @@ class PlasticosLoad(models.Model):
             rec._transition("scheduled")
 
     def action_dispatch(self):
+        """Dispatch load to carrier. Validates required fields before dispatch."""
         for rec in self:
-            if rec.state not in ["scheduled", "rate_confirmed"]:
-                raise UserError("Load must be scheduled and rate confirmed.")
+            if rec.state != "scheduled":
+                raise UserError(f"Load {rec.name} must be in Scheduled state before dispatch.")
+            if not rec.carrier_id:
+                raise UserError(f"Load {rec.name}: Carrier is required before dispatch.")
+            if not rec.pickup_partner_id:
+                raise UserError(f"Load {rec.name}: Pickup location is required before dispatch.")
+            if not rec.delivery_partner_id:
+                raise UserError(f"Load {rec.name}: Delivery location is required before dispatch.")
+            if not rec.pickup_datetime:
+                raise UserError(f"Load {rec.name}: Pickup date/time is required before dispatch.")
             rec._transition("dispatched")
 
     def action_close(self):
@@ -214,7 +231,18 @@ class PlasticosLoad(models.Model):
             rec._transition("closed")
 
     def _transition(self, new_state):
+        """Transition load to new state with validation.
+
+        Enforces forward-only state machine defined in VALID_TRANSITIONS.
+        """
         for rec in self:
+            allowed = VALID_TRANSITIONS.get(rec.state, [])
+            if new_state not in allowed:
+                raise UserError(
+                    f"Cannot move load '{rec.name}' from '{rec.state}' to '{new_state}'. "
+                    f"Allowed: {allowed or ['none — terminal state']}."
+                )
+
             correlation_id = new_correlation_id()
             old = rec.state
             vals = {"state": new_state, "entered_state_at": fields.Datetime.now()}
@@ -223,7 +251,6 @@ class PlasticosLoad(models.Model):
             if new_state == "delivered":
                 vals["delivered_at"] = fields.Datetime.now()
             rec.write(vals)
-            # Log state transition (l9_trace integration disabled)
             _logger.info("Load %s state transition: %s -> %s (correlation: %s)", rec.id, old, new_state, correlation_id)
 
     def _store_rate_memory(self):
@@ -242,6 +269,14 @@ class PlasticosLoad(models.Model):
     def _lane_key(self):
         so = self.sale_order_id
         return f"{so.partner_shipping_id.id}-{so.partner_invoice_id.id}"
+
+    @api.constrains("pickup_datetime", "delivery_datetime")
+    def _check_datetime_order(self):
+        """Ensure delivery date/time is not before pickup date/time."""
+        for rec in self:
+            if rec.pickup_datetime and rec.delivery_datetime:
+                if rec.delivery_datetime < rec.pickup_datetime:
+                    raise ValidationError(f"Load {rec.name}: Delivery date/time cannot be before pickup date/time.")
 
     def _cron_escalation_check(self):
         self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_logistics.cron_escalation_check"])

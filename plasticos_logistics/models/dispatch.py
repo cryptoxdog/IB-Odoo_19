@@ -1,5 +1,4 @@
 import logging
-import uuid
 
 from odoo import fields, models
 from odoo.exceptions import UserError
@@ -7,26 +6,12 @@ from odoo.exceptions import UserError
 _logger = logging.getLogger(__name__)
 
 
-def new_correlation_id():
-    """Generate correlation ID (stub for l9_trace)"""
-    return str(uuid.uuid4())
-
-
-# Valid state transitions for dispatch workflow
-ALLOWED_TRANSITIONS = {
-    "quoted": ["dispatched"],
-    "dispatched": ["picked_up"],
-    "picked_up": ["delivered"],
-    "delivered": ["closed"],
-    "closed": [],  # Terminal state — no transitions allowed
-}
-
-
 class PlasticosDispatch(models.Model):
     _name = "plasticos.dispatch"
     _description = "Plasticos Dispatch"
 
     name = fields.Char(required=True, default="New Dispatch")
+    load_id = fields.Many2one("plasticos.load", string="Load", ondelete="restrict", index=True)
     state = fields.Selection(
         [
             ("quoted", "Quoted"),
@@ -44,6 +29,11 @@ class PlasticosDispatch(models.Model):
         Only allows forward transitions per ALLOWED_TRANSITIONS map.
         Prevents skipping states or going backwards.
         """
+        from odoo.addons.plasticos_logistics.services.state_machine import (
+            ALLOWED_TRANSITIONS,
+            new_correlation_id,
+        )
+
         for rec in self:
             allowed = ALLOWED_TRANSITIONS.get(rec.state, [])
             if new_state not in allowed:

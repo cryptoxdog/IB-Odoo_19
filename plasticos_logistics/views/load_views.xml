@@ -170,16 +170,20 @@
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_send_dispatch_packet" type="object" class="oe_stat_button" icon="fa-paper-plane">
+                        <button name="action_send_dispatch_packet" type="object" class="oe_stat_button" icon="fa-paper-plane"
+                                invisible="state in ('draft', 'awaiting_ready', 'ready_confirmed')">
                             <span>Send Dispatch Packet</span>
                         </button>
-                        <button name="action_send_delivery_order" type="object" class="oe_stat_button" icon="fa-envelope-o">
+                        <button name="action_send_delivery_order" type="object" class="oe_stat_button" icon="fa-envelope-o"
+                                invisible="state in ('draft', 'awaiting_ready', 'ready_confirmed')">
                             <span>Send Delivery Order</span>
                         </button>
-                        <button name="action_send_bol_pickup" type="object" class="oe_stat_button" icon="fa-envelope-o">
+                        <button name="action_send_bol_pickup" type="object" class="oe_stat_button" icon="fa-envelope-o"
+                                invisible="state in ('draft', 'awaiting_ready', 'ready_confirmed')">
                             <span>Send BOL Pickup</span>
                         </button>
-                        <button name="action_send_bol_delivery" type="object" class="oe_stat_button" icon="fa-envelope-o">
+                        <button name="action_send_bol_delivery" type="object" class="oe_stat_button" icon="fa-envelope-o"
+                                invisible="state in ('draft', 'awaiting_ready', 'ready_confirmed')">
                             <span>Send BOL Delivery</span>
                         </button>
                     </div>
@@ -280,7 +284,7 @@
                                     <field name="bol_delivery_attached"/>
                                 </group>
                                 <group string="SLA">
-                                    <field name="sla_breached"/>
+                                    <field name="sla_breached" readonly="1"/>
                                 </group>
                             </group>
                         </page>
