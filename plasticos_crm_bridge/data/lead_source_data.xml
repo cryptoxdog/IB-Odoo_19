@@ -4,8 +4,10 @@
         <!--
             UTM Source Master Data for PlastOS
             Replaces custom plasticos.lead.source model.
-            17 canonical categories from VanillaSoft analysis (6,043 contacts).
+            16 custom categories from VanillaSoft analysis (6,043 contacts).
             Used by CRM leads, web leads, partner import, and intake tracking.
+
+            NOTE: "Referral" is NOT defined here — use Odoo's native utm.utm_source_referral
         -->
 
         <record id="utm_source_web_lead" model="utm.source">
@@ -24,9 +26,7 @@
             <field name="name">Plastics News</field>
         </record>
 
-        <record id="utm_source_referral" model="utm.source">
-            <field name="name">Referral</field>
-        </record>
+        <!-- Referral: Use Odoo native utm.utm_source_referral -->
 
         <record id="utm_source_google" model="utm.source">
             <field name="name">Google Search</field>
