@@ -59,8 +59,10 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
                 continue
 
             # Contact validation: person must have parent and not be company
+            # Exception: system users (linked to res.users) are allowed without parent
             if p.company_type == "person":
-                if not p.parent_id:
+                is_system_user = bool(self.env["res.users"].search([("partner_id", "=", p.id)], limit=1))
+                if not p.parent_id and not is_system_user:
                     errors.append(f"Contact '{p.name}' (id={p.id}) missing parent_id")
                 if p.is_company:
                     errors.append(f"Contact '{p.name}' (id={p.id}) has is_company=True")
