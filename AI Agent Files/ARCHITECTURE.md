@@ -347,8 +347,7 @@ From `ONTOLOGY_NEO4J_FIELD_CROSSWALK.md`:
 **Use Case**: Web lead triage and material spec extraction
 
 **Models Used**:
-- `gpt-4o` for text normalization
-- `gpt-4o-vision-preview` for image analysis
+- `gpt-4o` for text normalization and image analysis (multimodal; recommended replacement for `gpt-4-vision-preview`)
 
 **API Configuration**:
 ```python

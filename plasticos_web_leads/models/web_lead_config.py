@@ -73,13 +73,13 @@ class PlasticosWebLeadConfig(models.Model):
     )
     openai_model = fields.Char(
         string="LLM Model",
-        default="gpt-4.1-mini",
-        help="Model for text normalization (e.g. gpt-4.1-mini).",
+        default="gpt-4o",
+        help="Model for text normalization (e.g. gpt-4o).",
     )
     openai_vision_model = fields.Char(
         string="Vision Model",
-        default="gpt-4.1-mini",
-        help="Model for image analysis (must support vision).",
+        default="gpt-4o",
+        help="Model for image analysis (gpt-4o multimodal; replaces deprecated vision-preview models).",
     )
 
     # ═══════════════════════════════════════════════════════════
@@ -159,8 +159,22 @@ class PlasticosWebLeadConfig(models.Model):
     # ═══════════════════════════════════════════════════════════
 
     def action_generate_api_key(self):
-        """Generate a cryptographically secure API key."""
-        for rec in self:
-            new_key = secrets.token_urlsafe(48)
-            rec.write({"api_key": new_key})
-            _logger.info("Web Lead API key regenerated for config %s", rec.id)
+        """Generate a cryptographically secure API key and show it in a copy-friendly dialog."""
+        self.ensure_one()
+        new_key = secrets.token_urlsafe(48)
+        self.write({"api_key": new_key})
+        _logger.info("Web Lead API key regenerated for config %s", self.id)
+        wizard = self.env["plasticos.web.lead.api.key.wizard"].create(
+            {
+                "config_id": self.id,
+                "api_key": new_key,
+            }
+        )
+        return {
+            "type": "ir.actions.act_window",
+            "name": "New API Key — copy now",
+            "res_model": "plasticos.web.lead.api.key.wizard",
+            "res_id": wizard.id,
+            "view_mode": "form",
+            "target": "new",
+        }

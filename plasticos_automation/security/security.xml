@@ -29,9 +29,8 @@
             </field>
         </record>
 
-        <!-- Make admin group imply automation manager groups -->
-        <record id="base.group_system" model="res.groups">
-            <field name="implied_ids" eval="[(4, ref('group_plasticos_automation_manager')), (4, ref('group_logistics_automation_manager'))]"/>
-        </record>
+        <!-- Do not patch base.group_system in XML: Odoo 19 / Odoo.sh can surface
+             Access denied when Apps loads or installs modules that alter Settings
+             group from declarative data. Merge is done in post_init_hook (sudo). -->
     </data>
 </odoo>

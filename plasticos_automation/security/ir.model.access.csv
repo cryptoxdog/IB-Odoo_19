@@ -3,8 +3,6 @@ access_automation_config_user,automation.config.user,model_plasticos_automation_
 access_automation_config_manager,automation.config.manager,model_plasticos_automation_config,plasticos_automation.group_plasticos_automation_manager,1,1,1,1
 access_automation_log_user,automation.log.user,model_plasticos_automation_log,base.group_user,1,0,0,0
 access_automation_log_manager,automation.log.manager,model_plasticos_automation_log,plasticos_automation.group_plasticos_automation_manager,1,1,1,1
-access_automation_config_all,automation.config.all,model_plasticos_automation_config,base.group_user,1,1,1,1
-access_automation_log_all,automation.log.all,model_plasticos_automation_log,base.group_user,1,1,1,1
 access_penalty_rule_user,penalty.rule.user,model_plasticos_penalty_rule,base.group_user,1,0,0,0
 access_penalty_rule_manager,penalty.rule.manager,model_plasticos_penalty_rule,plasticos_automation.group_plasticos_automation_manager,1,1,1,1
 access_invoice_adjustment_user,invoice.adjustment.user,model_plasticos_invoice_adjustment,base.group_user,1,0,0,0

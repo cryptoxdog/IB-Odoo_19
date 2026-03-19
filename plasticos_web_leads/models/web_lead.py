@@ -488,7 +488,7 @@ class PlasticosWebLead(models.Model):
                 ai_data = ai_normalizer.normalize_with_llm(
                     raw_payload=self.raw_payload or {},
                     api_key=config.openai_api_key,
-                    model=config.openai_model or "gpt-4.1-mini",
+                    model=config.openai_model or "gpt-4o",
                 )
                 self.write({"ai_normalized": ai_data})
                 if ai_data.get("error"):
@@ -510,7 +510,7 @@ class PlasticosWebLead(models.Model):
                 vision_results = image_analyzer.analyze_multiple_images(
                     image_urls=urls,
                     api_key=config.openai_api_key,
-                    model=config.openai_vision_model or "gpt-4.1-mini",
+                    model=config.openai_vision_model or "gpt-4o",
                 )
                 self.write({"ai_vision_results": vision_results})
                 for i, vr in enumerate(vision_results):

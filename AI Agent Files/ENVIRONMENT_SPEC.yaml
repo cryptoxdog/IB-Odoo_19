@@ -236,8 +236,7 @@ external_services:
     fallback: "Manual web lead classification"
     base_url: "https://api.openai.com/v1"
     models_used:
-      - "gpt-4o"  # Text normalization
-      - "gpt-4o-vision-preview"  # Image analysis
+      - "gpt-4o"  # LLM + vision (multimodal; replaces gpt-4-vision-preview)
     modules_dependent:
       - plasticos_web_leads
 

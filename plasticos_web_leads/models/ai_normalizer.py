@@ -143,7 +143,7 @@ def build_user_prompt(raw_payload: dict[str, Any]) -> str:
 def normalize_with_llm(
     raw_payload: dict[str, Any],
     api_key: str,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o",
     base_url: str | None = None,
 ) -> dict[str, Any]:
     """Call OpenAI-compatible API to normalize a raw form payload.

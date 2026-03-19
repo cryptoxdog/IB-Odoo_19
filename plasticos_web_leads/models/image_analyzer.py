@@ -40,7 +40,7 @@ Rules:
 def analyze_image(
     image_url: str,
     api_key: str,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o",
     base_url: str | None = None,
 ) -> dict[str, Any]:
     """Send a single image URL to the Vision API and return structured facts.
@@ -106,7 +106,7 @@ def analyze_image(
 def analyze_multiple_images(
     image_urls: list[str],
     api_key: str,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o",
     base_url: str | None = None,
     max_images: int = 5,
 ) -> list[dict[str, Any]]:

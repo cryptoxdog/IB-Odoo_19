@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_web_lead_api_key_wizard_form" model="ir.ui.view">
+        <field name="name">plasticos.web.lead.api.key.wizard.form</field>
+        <field name="model">plasticos.web.lead.api.key.wizard</field>
+        <field name="arch" type="xml">
+            <form string="New Web Lead API Key">
+                <div class="alert alert-warning" role="alert">
+                    Copy this key and store it securely. The settings screen only shows a masked value.
+                </div>
+                <group>
+                    <field name="api_key" nolabel="1" readonly="1" colspan="2"/>
+                </group>
+                <footer>
+                    <button string="Close" class="btn-primary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

@@ -10,8 +10,8 @@
             <field name="auto_create_partner" eval="True"/>
             <field name="auto_create_intake" eval="True"/>
             <!-- OpenAI settings -->
-            <field name="openai_model">gpt-4.1-mini</field>
-            <field name="openai_vision_model">gpt-4.1-mini</field>
+            <field name="openai_model">gpt-4o</field>
+            <field name="openai_vision_model">gpt-4o</field>
             <field name="ai_enabled" eval="True"/>
             <field name="vision_enabled" eval="True"/>
             <!-- Classification thresholds -->

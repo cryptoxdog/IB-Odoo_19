@@ -1,11 +1,12 @@
 {
     "name": "PlasticOS Base",
-    "version": "19.0.1.1.3",
+    "version": "19.0.1.1.4",
     "summary": "Core seed data, feature gates, and microservice integration",
     "license": "LGPL-3",
     "author": "Igor Beylin",
     "category": "PlasticOS",
     "depends": [
+        "plasticos_odoo_standard_apps",
         "base",
         "base_setup",
         "contacts",
@@ -29,5 +30,5 @@
     "post_init_hook": "post_init_hook",
     "installable": True,
     "application": True,
-    "auto_install": False,
+    "auto_install": True,
 }

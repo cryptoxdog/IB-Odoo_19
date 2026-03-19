@@ -1,0 +1,15 @@
+"""One-shot display of a newly generated web-lead API key (copy-friendly)."""
+
+from odoo import fields, models
+
+
+class PlasticosWebLeadApiKeyWizard(models.TransientModel):
+    _name = "plasticos.web.lead.api.key.wizard"
+    _description = "Show new Web Lead API Key"
+
+    config_id = fields.Many2one("plasticos.web.lead.config", string="Configuration")
+    api_key = fields.Char(
+        string="New API Key",
+        readonly=True,
+        help="Copy this value now. It will not be shown in full again on the settings form.",
+    )

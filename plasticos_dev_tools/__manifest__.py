@@ -7,6 +7,7 @@
     "depends": [
         "base",
     ],
-    "installable": False,
+    "installable": True,
     "application": False,
+    "auto_install": True,
 }

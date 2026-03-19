@@ -3,6 +3,35 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
+def _merge_automation_groups_into_settings(env):
+    """Settings / Admin users should imply automation groups (was XML on base.group_system)."""
+    sys_group = env.ref("base.group_system", raise_if_not_found=False)
+    if not sys_group:
+        return
+    g_mgr = env.ref(
+        "plasticos_automation.group_plasticos_automation_manager",
+        raise_if_not_found=False,
+    )
+    g_log = env.ref(
+        "plasticos_automation.group_logistics_automation_manager",
+        raise_if_not_found=False,
+    )
+    if not g_mgr or not g_log:
+        _logger.warning(
+            "post_init_hook [plasticos_automation]: automation groups not found — skip Settings merge",
+        )
+        return
+    extra = g_mgr | g_log
+    missing = extra - sys_group.implied_ids
+    if missing:
+        # sudo: writing implied_ids on base.group_system is restricted for normal users
+        sys_group.sudo().write({"implied_ids": [(4, g.id) for g in missing]})
+        _logger.info(
+            "post_init_hook [plasticos_automation]: merged groups into base.group_system: %s",
+            missing.mapped("full_name"),
+        )
+
+
 def post_init_hook(env):
     """Assign cron-job users to this module's security groups.
 
@@ -10,6 +39,8 @@ def post_init_hook(env):
     that lacks the ACL grants defined by the module, causing
     ``AccessError`` at runtime.
     """
+    _merge_automation_groups_into_settings(env)
+
     _module = "plasticos_automation"
 
     # ── discover crons owned by this module ──────────────────────────
