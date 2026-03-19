@@ -514,7 +514,7 @@ class PlasticosIntakeNormalizer(models.Model):
         mp = self.material_profile_id
         block = {
             "id": mp.id,
-            "name": mp.name,
+            "name": mp.display_name,
         }
 
         # polymer_id is from PR #6 (material profile unification)
