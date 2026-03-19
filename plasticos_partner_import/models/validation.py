@@ -59,10 +59,11 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
                 continue
 
             # Contact validation: person must have parent and not be company
-            # Exception: system users (linked to res.users) are allowed without parent
+            # Exception: partners linked to res.users (admin, cron, internal users) may
+            # have no parent. Use user_ids (inverse of users.partner_id) — a bare
+            # res.users search can miss rows under some registry/context combinations.
             if p.company_type == "person":
-                is_system_user = bool(self.env["res.users"].search([("partner_id", "=", p.id)], limit=1))
-                if not p.parent_id and not is_system_user:
+                if not p.parent_id and not p.user_ids:
                     errors.append(f"Contact '{p.name}' (id={p.id}) missing parent_id")
                 if p.is_company:
                     errors.append(f"Contact '{p.name}' (id={p.id}) has is_company=True")

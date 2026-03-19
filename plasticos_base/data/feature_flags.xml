@@ -23,7 +23,7 @@
             <field name="value">http://localhost:8002</field>
         </record>
 
-        <!-- User-facing message when features are disabled -->
+        <!-- User-facing message when buyer matching is disabled (buttons / UI) -->
         <record id="icp_feature_gate_message" model="ir.config_parameter">
             <field name="key">plasticos.feature_gate.user_message</field>
             <field name="value">This isn't ready - come back in 5 minutes!</field>

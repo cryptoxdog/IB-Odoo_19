@@ -66,8 +66,14 @@ def collect_model_names(root: Path) -> dict[str, str]:
 
 
 def _model_xmlid_to_technical(model_xmlid: str) -> str | None:
-    """model_plasticos_intake → plasticos.intake (ir.model.data convention)."""
+    """Resolve model_id:id column to Odoo technical name.
+
+    CSVs use either ``model_plasticos_intake`` or a module-qualified ID such as
+    ``plasticos_logistics.model_plasticos_load``; both map to ``plasticos.*``.
+    """
     raw = model_xmlid.strip()
+    if ".model_" in raw:
+        raw = "model_" + raw.split(".model_", 1)[1]
     if not raw.startswith("model_"):
         return None
     return raw[6:].replace("_", ".")
@@ -89,9 +95,11 @@ def collect_acl_models(root: Path) -> set[str]:
         if not rows:
             continue
         header = [c.strip() for c in rows[0]]
-        try:
+        if "model_id:id" in header:
             model_col = header.index("model_id:id")
-        except ValueError:
+        elif "model_id/id" in header:
+            model_col = header.index("model_id/id")
+        else:
             continue
         for row in rows[1:]:
             if len(row) <= model_col:

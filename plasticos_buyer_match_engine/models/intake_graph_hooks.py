@@ -11,6 +11,7 @@ Results are written to plasticos.match.result.
 import logging
 
 from odoo import models
+from odoo.addons.plasticos_base.models.matching_engine_icp import matching_engine_should_skip_cron
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -35,8 +36,7 @@ class IntakeGraphHooks(models.Model):
         Uses plasticos.buyer.matcher which internally calls
         graph_service.calculate_match_score() for Neo4j scoring.
         """
-        gate = self.env["plasticos.feature.gate.mixin"]
-        if gate._skip_feature_gate_for_cron("plasticos.matching_engine.enabled", "intake_normalized_auto_match"):
+        if matching_engine_should_skip_cron(self.env, "intake_normalized_auto_match"):
             return
 
         try:

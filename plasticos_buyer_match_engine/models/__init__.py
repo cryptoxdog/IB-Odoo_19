@@ -1,3 +1,4 @@
+from . import matching_stub
 from . import matcher
 from . import graph_sync_log
 from . import graph_service

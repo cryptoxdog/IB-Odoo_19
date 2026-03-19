@@ -19,23 +19,23 @@ SCHEMA ALIGNMENT (2026-02-25):
 import logging
 
 from odoo import _, api, models
+from odoo.addons.plasticos_base.models.matching_engine_icp import matching_engine_is_enabled
 from odoo.addons.plasticos_material_profile.process_codes import check_mfi_compatibility
 from odoo.exceptions import UserError, ValidationError
+
+from .matching_stub import matching_engine_is_stubbed
 
 _logger = logging.getLogger(__name__)
 
 
 class BuyerMatcher(models.Model):
     _name = "plasticos.buyer.matcher"
-    _inherit = "plasticos.feature.gate.mixin"
     _description = "Buyer Matching Orchestrator"
 
     @api.model
     def _matching_stub_enabled(self):
         """Return True when buyer matching must run as deterministic empty-result stub."""
-        return not self._is_feature_enabled("plasticos.matching_engine.enabled") or self._is_feature_stubbed(
-            "plasticos.matching_engine.stubbed"
-        )
+        return not matching_engine_is_enabled(self.env) or matching_engine_is_stubbed(self.env)
 
     @api.model
     def find_matches_for_supplier(self, supplier_partner_id, intake_id=None, max_results=20, mode="strict"):

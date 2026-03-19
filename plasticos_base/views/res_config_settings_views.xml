@@ -29,10 +29,10 @@
                         </setting>
                     </block>
 
-                    <block title="Graceful Degradation">
+                    <block title="Buyer Matching (UI)">
                         <setting id="plasticos_feature_gate_message_setting"
-                                 string="Feature Unavailable Message"
-                                 help="Message shown when a disabled microservice feature is invoked.">
+                                 string="Matching Unavailable Message"
+                                 help="Shown when buyer matching is disabled (matching engine off).">
                             <field name="plasticos_feature_gate_message"/>
                         </setting>
                     </block>

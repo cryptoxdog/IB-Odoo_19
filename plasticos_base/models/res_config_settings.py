@@ -28,9 +28,9 @@ class ResConfigSettings(models.TransientModel):
         default="http://localhost:8002",
     )
 
-    # User-facing message when features are disabled
+    # Shown when buyer matching is disabled (legacy intake button + v2 matcher)
     plasticos_feature_gate_message = fields.Char(
-        string="Feature Unavailable Message",
+        string="Matching Unavailable Message",
         config_parameter="plasticos.feature_gate.user_message",
-        help="Message shown to users when a disabled microservice feature is invoked.",
+        help="Message shown when buyer matching is disabled (matching_engine.enabled is off).",
     )

@@ -1,6 +1,7 @@
 import logging
 
 from odoo import api, fields, models
+from odoo.addons.plasticos_base.models.matching_engine_icp import matching_engine_require_enabled_for_ui
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ def _get_process_selection(self):
 class PlasticosIntake(models.Model):
     _name = "plasticos.intake"
     _description = "PlasticOS Material Intake"
-    _inherit = ["mail.thread", "mail.activity.mixin", "plasticos.feature.gate.mixin"]
+    _inherit = ["mail.thread", "mail.activity.mixin"]
     _order = "id desc"
 
     # ═════════════════════════════════════════════════════════
@@ -737,8 +738,8 @@ class PlasticosIntake(models.Model):
         """
         self.ensure_one()
 
-        # Feature gate check - raises UserError with friendly message if disabled
-        self._check_feature_gate("plasticos.matching_engine.enabled")
+        # Feature gate (no mixin on intake — use shared helper)
+        matching_engine_require_enabled_for_ui(self.env)
 
         # Ensure we have a partner (create from pending_company_name if needed)
         if not self.partner_id and self.pending_company_name:

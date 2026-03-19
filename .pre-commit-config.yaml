@@ -169,7 +169,7 @@ repos:
         pass_filenames: false
         stages: [pre-commit, pre-push]
 
-      # NOTE: ACL check is warn-only until tech debt addressed (~11 concrete models still missing CSV rows; see ci/check_acl_completeness.py)
+      # NOTE: ACL check is warn-only (exit 0 via bash); make blocking: entry: python3 ci/check_acl_completeness.py
       # To make blocking: change entry back to 'python3 ci/check_acl_completeness.py'
       - id: acl-completeness
         name: ACL completeness check

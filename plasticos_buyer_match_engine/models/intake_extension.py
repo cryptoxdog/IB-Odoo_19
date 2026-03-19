@@ -1,14 +1,14 @@
 import logging
 
 from odoo import _, fields, models
-from odoo.addons.plasticos_base.models.feature_gate_mixin import feature_gated
+from odoo.addons.plasticos_base.models.matching_engine_icp import matching_engine_require_enabled_for_ui
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
 
 class PlasticosIntakeBuyerMatch(models.Model):
-    _inherit = ["plasticos.intake", "plasticos.feature.gate.mixin"]
+    _inherit = "plasticos.intake"
 
     match_mode = fields.Selection(
         [
@@ -21,7 +21,6 @@ class PlasticosIntakeBuyerMatch(models.Model):
         "Relaxed: only polymer is hard, others are soft scoring signals.",
     )
 
-    @feature_gated("plasticos.matching_engine.enabled")
     def action_match_to_buyers(self):
         """Run buyer matching v2.0: facility.profile + Neo4j graph scoring.
 
@@ -29,6 +28,7 @@ class PlasticosIntakeBuyerMatch(models.Model):
         plasticos.match.result. If Neo4j is unavailable, only deterministic
         results are used and a notification is shown.
         """
+        matching_engine_require_enabled_for_ui(self.env)
         graph_used = False
         neo4j_unavailable_for = []
 
