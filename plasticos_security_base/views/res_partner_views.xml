@@ -92,11 +92,6 @@
                 <attribute name="invisible">1</attribute>
             </xpath>
 
-            <!-- Hide Partner Assignment tab (from sale module) -->
-            <xpath expr="//page[@name='partner_assignment']" position="attributes">
-                <attribute name="invisible">1</attribute>
-            </xpath>
-
             <!-- ═══ HIDE REDUNDANT FIELDS IN TABS ═══ -->
 
             <!-- Hide Salesperson in Sales &amp; Purchase tab (already in upper section) -->
