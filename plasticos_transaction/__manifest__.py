@@ -29,7 +29,6 @@
         "data/sequence.xml",
         "data/res.groups.csv",
         "data/audit_cron.xml",
-        "data/cron_missing_docs.xml",
         "views/transaction_views.xml",
         "views/commission_views.xml",
         "views/transaction_bulk_update_wizard_views.xml",

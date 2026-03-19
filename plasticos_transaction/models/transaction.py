@@ -1231,42 +1231,57 @@ class PlasticosTransaction(models.Model):
         3. If PO exists but no picking -> confirm PO (triggers native creation)
         4. Logs TXs that need manual PO creation
         """
-        ready = self.search(
-            [
-                ("is_supplier_confirmed", "=", True),
-                ("delivery_order_id", "=", False),
-                ("state", "in", ["supplier_ready", "active", "pending_supplier"]),
-            ],
-            order="supplier_confirmation_received asc",
-            limit=100,
+        self.env.cr.execute(
+            "SELECT pg_try_advisory_lock(hashtext(%s))",
+            ["plasticos_transaction.cron_auto_create_do"],
         )
+        locked = self.env.cr.fetchone()[0]
+        if not locked:
+            _logger.info("Skipping auto-create DO cron: lock is already held.")
+            return True
 
-        linked_count = 0
-        for tx in ready:
-            try:
-                linked = False
-                for po in tx.purchase_order_ids:
-                    if po.picking_ids:
-                        outgoing = po.picking_ids.filtered(
-                            lambda p: p.picking_type_code == "outgoing" and p.state != "cancel"
-                        )
-                        if outgoing:
-                            tx.delivery_order_id = outgoing[0].id
-                            if tx.state == "supplier_ready":
-                                tx.action_mark_do_created()
-                            _logger.info("Linked existing DO %s to TX %s", outgoing[0].name, tx.name)
-                            linked_count += 1
-                            linked = True
-                            break
-                    elif po.state == "draft":
-                        po.button_confirm()
-                        _logger.info("Confirmed PO %s for TX %s", po.name, tx.name)
+        try:
+            ready = self.search(
+                [
+                    ("is_supplier_confirmed", "=", True),
+                    ("delivery_order_id", "=", False),
+                    ("state", "in", ["supplier_ready", "active", "pending_supplier"]),
+                ],
+                order="supplier_confirmation_received asc",
+                limit=100,
+            )
 
-                if not linked and not tx.purchase_order_ids:
-                    _logger.info("TX %s ready for DO but has no PO", tx.name)
+            linked_count = 0
+            for tx in ready:
+                try:
+                    linked = False
+                    for po in tx.purchase_order_ids:
+                        if po.picking_ids:
+                            outgoing = po.picking_ids.filtered(
+                                lambda p: p.picking_type_code == "outgoing" and p.state != "cancel"
+                            )
+                            if outgoing:
+                                tx.delivery_order_id = outgoing[0].id
+                                if tx.state == "supplier_ready":
+                                    tx.action_mark_do_created()
+                                _logger.info("Linked existing DO %s to TX %s", outgoing[0].name, tx.name)
+                                linked_count += 1
+                                linked = True
+                                break
+                        elif po.state == "draft":
+                            po.button_confirm()
+                            _logger.info("Confirmed PO %s for TX %s", po.name, tx.name)
 
-            except Exception as e:
-                _logger.error("Failed to process TX %s: %s", tx.name, str(e))
+                    if not linked and not tx.purchase_order_ids:
+                        _logger.info("TX %s ready for DO but has no PO", tx.name)
 
-        _logger.info("DO linkage cron: linked %d delivery orders", linked_count)
+                except Exception as e:
+                    _logger.error("Failed to process TX %s: %s", tx.name, str(e))
+
+            _logger.info("DO linkage cron: linked %d delivery orders", linked_count)
+        finally:
+            self.env.cr.execute(
+                "SELECT pg_advisory_unlock(hashtext(%s))",
+                ["plasticos_transaction.cron_auto_create_do"],
+            )
         return True
