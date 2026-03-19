@@ -3,6 +3,10 @@
     <!-- ============================================
          WORKFLOW AUTOMATIONS - Odoo 19 Pattern
          Migrated from inline code to action_server_ids
+
+         GUARDS:
+         - Skip if context has 'skip_automations' or 'import_mode'
+         - Check for duplicate sends via message log
          ============================================ -->
 
     <!-- ═══════════════════════════════════════════
@@ -16,18 +20,23 @@
         <field name="model_id" ref="purchase.model_purchase_order"/>
         <field name="state">code</field>
         <field name="code">
-# Send supplier confirmation request when PO is confirmed
-for po in records.filtered(lambda p: p.state == 'purchase'):
-    # Set response deadline from config
-    deadline_hours = int(env['ir.config_parameter'].sudo().get_param('plasticos.supplier_response_deadline_hours', 48))
+# Skip during imports or when automations disabled
+if env.context.get('skip_automations') or env.context.get('import_mode') or env.context.get('install_mode'):
+    pass
+else:
+    # Send supplier confirmation request when PO is confirmed
+    for po in records.filtered(lambda p: p.state == 'purchase'):
+        # Duplicate guard: check if already sent
+        if po.message_ids.filtered(lambda m: 'Supplier confirmation request sent' in (m.body or '')):
+            continue
 
-    # Send email template
-    template = env.ref('plasticos_automation.email_template_po_supplier_ready', raise_if_not_found=False)
-    if template:
-        template.send_mail(po.id, force_send=False)
+        # Send email template
+        template = env.ref('plasticos_automation.email_template_po_supplier_ready', raise_if_not_found=False)
+        if template:
+            template.send_mail(po.id, force_send=False)
 
-    # Log activity
-    po.message_post(body='Supplier confirmation request sent')
+        # Log activity
+        po.message_post(body='Supplier confirmation request sent')
         </field>
     </record>
 
@@ -37,15 +46,23 @@ for po in records.filtered(lambda p: p.state == 'purchase'):
         <field name="model_id" ref="sale.model_sale_order"/>
         <field name="state">code</field>
         <field name="code">
-# Send SO confirmation to buyer when order is confirmed
-for so in records.filtered(lambda s: s.state == 'sale'):
-    # Send email template
-    template = env.ref('plasticos_automation.email_template_so_to_buyer', raise_if_not_found=False)
-    if template:
-        template.send_mail(so.id, force_send=False)
+# Skip during imports or when automations disabled
+if env.context.get('skip_automations') or env.context.get('import_mode') or env.context.get('install_mode'):
+    pass
+else:
+    # Send SO confirmation to buyer when order is confirmed
+    for so in records.filtered(lambda s: s.state == 'sale'):
+        # Duplicate guard: check if already sent
+        if so.message_ids.filtered(lambda m: 'Sales order confirmation sent to buyer' in (m.body or '')):
+            continue
 
-    # Log activity
-    so.message_post(body='Sales order confirmation sent to buyer')
+        # Send email template
+        template = env.ref('plasticos_automation.email_template_so_to_buyer', raise_if_not_found=False)
+        if template:
+            template.send_mail(so.id, force_send=False)
+
+        # Log activity
+        so.message_post(body='Sales order confirmation sent to buyer')
         </field>
     </record>
 
@@ -55,9 +72,13 @@ for so in records.filtered(lambda s: s.state == 'sale'):
         <field name="model_id" ref="plasticos_claims.model_plasticos_claim"/>
         <field name="state">code</field>
         <field name="code">
-# Auto escalate overdue QC claims
-for claim in records.filtered(lambda c: c.is_overdue and c.state in ['pending', 'in_progress'] and c.escalation_level == 0):
-    claim.action_escalate(reason='Auto-escalated due to SLA breach')
+# Skip during imports or when automations disabled
+if env.context.get('skip_automations') or env.context.get('import_mode') or env.context.get('install_mode'):
+    pass
+else:
+    # Auto escalate overdue QC claims
+    for claim in records.filtered(lambda c: c.is_overdue and c.state in ['pending', 'in_progress'] and c.escalation_level == 0):
+        claim.action_escalate(reason='Auto-escalated due to SLA breach')
         </field>
     </record>
 
@@ -67,13 +88,21 @@ for claim in records.filtered(lambda c: c.is_overdue and c.state in ['pending', 
         <field name="model_id" ref="plasticos_claims.model_plasticos_claim"/>
         <field name="state">code</field>
         <field name="code">
-# Send notification when QC claim is escalated
-for claim in records.filtered(lambda c: c.state == 'escalated'):
-    template = env.ref('plasticos_claims.email_template_qc_claim_notification', raise_if_not_found=False)
-    supplier = claim.transaction_id.supplier_id if claim.transaction_id else None
-    if template and supplier and supplier.email:
-        template.send_mail(claim.id, force_send=False)
-        claim.message_post(body=f"Quality claim notification sent to {supplier.name}")
+# Skip during imports or when automations disabled
+if env.context.get('skip_automations') or env.context.get('import_mode') or env.context.get('install_mode'):
+    pass
+else:
+    # Send notification when QC claim is escalated
+    for claim in records.filtered(lambda c: c.state == 'escalated'):
+        # Duplicate guard
+        if claim.message_ids.filtered(lambda m: 'Quality claim notification sent' in (m.body or '')):
+            continue
+
+        template = env.ref('plasticos_claims.email_template_qc_claim_notification', raise_if_not_found=False)
+        supplier = claim.transaction_id.supplier_id if claim.transaction_id else None
+        if template and supplier and supplier.email:
+            template.send_mail(claim.id, force_send=False)
+            claim.message_post(body=f"Quality claim notification sent to {supplier.name}")
         </field>
     </record>
 
@@ -83,16 +112,20 @@ for claim in records.filtered(lambda c: c.state == 'escalated'):
         <field name="model_id" ref="stock.model_stock_picking"/>
         <field name="state">code</field>
         <field name="code">
-# Update TX status when delivery is completed
-for picking in records.filtered(lambda p: p.state == 'done'):
-    # Check if picking has a linked transaction via sale order
-    if picking.sale_id:
-        tx = env['plasticos.transaction'].search([('sale_order_id', '=', picking.sale_id.id)], limit=1)
-        if tx and tx.state in ('in_progress', 'in_transit'):
-            tx.write({
-                'state': 'delivered',
-            })
-            tx.message_post(body=f"Delivery completed - DO {picking.name}")
+# Skip during imports or when automations disabled
+if env.context.get('skip_automations') or env.context.get('import_mode') or env.context.get('install_mode'):
+    pass
+else:
+    # Update TX status when delivery is completed
+    for picking in records.filtered(lambda p: p.state == 'done'):
+        # Check if picking has a linked transaction via sale order
+        if picking.sale_id:
+            tx = env['plasticos.transaction'].search([('sale_order_id', '=', picking.sale_id.id)], limit=1)
+            if tx and tx.state in ('in_progress', 'in_transit'):
+                tx.write({
+                    'state': 'delivered',
+                })
+                tx.message_post(body=f"Delivery completed - DO {picking.name}")
         </field>
     </record>
 
@@ -156,17 +189,25 @@ for picking in records.filtered(lambda p: p.state == 'done'):
         <field name="model_id" ref="stock.model_stock_picking"/>
         <field name="state">code</field>
         <field name="code">
-# Auto dispatch to carrier when DO is ready and has a carrier assigned
-for picking in records.filtered(lambda p: p.state == 'assigned' and p.carrier_id):
-    # Check if not already dispatched
-    if hasattr(picking, 'dispatch_sent') and picking.dispatch_sent:
-        continue
+# Skip during imports or when automations disabled
+if env.context.get('skip_automations') or env.context.get('import_mode') or env.context.get('install_mode'):
+    pass
+else:
+    # Auto dispatch to carrier when DO is ready and has a carrier assigned
+    for picking in records.filtered(lambda p: p.state == 'assigned' and p.carrier_id):
+        # Check if not already dispatched
+        if hasattr(picking, 'dispatch_sent') and picking.dispatch_sent:
+            continue
 
-    # Send dispatch email via template
-    template = env.ref('plasticos_automation.email_template_trucker_followup', raise_if_not_found=False)
-    if template and picking.carrier_id.email:
-        template.send_mail(picking.id, force_send=False)
-        picking.message_post(body=f"Dispatch sent to carrier {picking.carrier_id.name}")
+        # Duplicate guard
+        if picking.message_ids.filtered(lambda m: 'Dispatch sent to carrier' in (m.body or '')):
+            continue
+
+        # Send dispatch email via template
+        template = env.ref('plasticos_automation.email_template_trucker_followup', raise_if_not_found=False)
+        if template and picking.carrier_id.email:
+            template.send_mail(picking.id, force_send=False)
+            picking.message_post(body=f"Dispatch sent to carrier {picking.carrier_id.name}")
         </field>
     </record>
 
@@ -187,14 +228,18 @@ for picking in records.filtered(lambda p: p.state == 'assigned' and p.carrier_id
         <field name="model_id" ref="account.model_account_move"/>
         <field name="state">code</field>
         <field name="code">
-# Auto calculate penalties when invoice is posted and linked to transaction
-for invoice in records.filtered(lambda i: i.move_type in ['out_invoice', 'in_invoice'] and i.transaction_id and not i.has_penalty):
-    try:
-        invoice.calculate_penalties()
-        if invoice.has_penalty:
-            invoice.message_post(body=f"Penalties calculated: ${invoice.penalty_amount:.2f} - {invoice.penalty_reason}")
-    except Exception as e:
-        invoice.message_post(body=f"Error calculating penalties: {str(e)}")
+# Skip during imports or when automations disabled
+if env.context.get('skip_automations') or env.context.get('import_mode') or env.context.get('install_mode'):
+    pass
+else:
+    # Auto calculate penalties when invoice is posted and linked to transaction
+    for invoice in records.filtered(lambda i: i.move_type in ['out_invoice', 'in_invoice'] and i.transaction_id and not i.has_penalty):
+        try:
+            invoice.calculate_penalties()
+            if invoice.has_penalty:
+                invoice.message_post(body=f"Penalties calculated: ${invoice.penalty_amount:.2f} - {invoice.penalty_reason}")
+        except Exception as e:
+            invoice.message_post(body=f"Error calculating penalties: {str(e)}")
         </field>
     </record>
 
@@ -215,15 +260,23 @@ for invoice in records.filtered(lambda i: i.move_type in ['out_invoice', 'in_inv
         <field name="model_id" ref="purchase.model_purchase_order"/>
         <field name="state">code</field>
         <field name="code">
-# When supplier confirms ready, trigger delivery order creation workflow
-for po in records.filtered(lambda p: p.supplier_ready and p.state == 'purchase'):
-    # Send confirmation email
-    template = env.ref('plasticos_automation.email_template_supplier_ready_confirmed', raise_if_not_found=False)
-    if template:
-        template.send_mail(po.id, force_send=False)
+# Skip during imports or when automations disabled
+if env.context.get('skip_automations') or env.context.get('import_mode') or env.context.get('install_mode'):
+    pass
+else:
+    # When supplier confirms ready, trigger delivery order creation workflow
+    for po in records.filtered(lambda p: p.supplier_ready and p.state == 'purchase'):
+        # Duplicate guard
+        if po.message_ids.filtered(lambda m: 'Supplier confirmed ready for pickup' in (m.body or '')):
+            continue
 
-    # Log the readiness confirmation
-    po.message_post(body='Supplier confirmed ready for pickup - delivery order workflow initiated')
+        # Send confirmation email
+        template = env.ref('plasticos_automation.email_template_supplier_ready_confirmed', raise_if_not_found=False)
+        if template:
+            template.send_mail(po.id, force_send=False)
+
+        # Log the readiness confirmation
+        po.message_post(body='Supplier confirmed ready for pickup - delivery order workflow initiated')
         </field>
     </record>
 
@@ -244,17 +297,25 @@ for po in records.filtered(lambda p: p.supplier_ready and p.state == 'purchase')
         <field name="model_id" ref="sale.model_sale_order"/>
         <field name="state">code</field>
         <field name="code">
-# Request dock appointment when SO is confirmed and delivery term requires it
-for so in records.filtered(lambda s: s.state == 'sale' and hasattr(s, 'delivery_term') and s.delivery_term == 'appointment'):
-    if hasattr(so, 'appointment_requested') and so.appointment_requested:
-        continue
+# Skip during imports or when automations disabled
+if env.context.get('skip_automations') or env.context.get('import_mode') or env.context.get('install_mode'):
+    pass
+else:
+    # Request dock appointment when SO is confirmed and delivery term requires it
+    for so in records.filtered(lambda s: s.state == 'sale' and hasattr(s, 'delivery_term') and s.delivery_term == 'appointment'):
+        if hasattr(so, 'appointment_requested') and so.appointment_requested:
+            continue
 
-    template = env.ref('plasticos_automation.email_template_request_dock_appointment', raise_if_not_found=False)
-    if template and so.partner_id.email:
-        template.send_mail(so.id, force_send=False)
-        if hasattr(so, 'appointment_requested'):
-            so.appointment_requested = True
-        so.message_post(body='Dock appointment request sent to buyer')
+        # Duplicate guard
+        if so.message_ids.filtered(lambda m: 'Dock appointment request sent' in (m.body or '')):
+            continue
+
+        template = env.ref('plasticos_automation.email_template_request_dock_appointment', raise_if_not_found=False)
+        if template and so.partner_id.email:
+            template.send_mail(so.id, force_send=False)
+            if hasattr(so, 'appointment_requested'):
+                so.write({'appointment_requested': True})
+            so.message_post(body='Dock appointment request sent to buyer')
         </field>
     </record>
 
