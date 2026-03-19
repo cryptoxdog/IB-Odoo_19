@@ -5,7 +5,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
-def pre_init_hook(cr):
+def pre_init_hook(env):
     """Clean up duplicate utm.source records before Odoo's utm module loads.
 
     The utm module creates a native "Referral" record (utm.utm_source_referral).
@@ -14,7 +14,10 @@ def pre_init_hook(cr):
 
     This hook runs BEFORE utm module loads (plasticos_base doesn't depend on utm),
     so we can safely rename any conflicting records.
+
+    Note: Odoo 19 passes env to pre_init_hook, not raw cursor.
     """
+    cr = env.cr
     # Check if utm_source table exists (might not on fresh install)
     cr.execute("""
         SELECT EXISTS (
