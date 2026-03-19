@@ -1,18 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_web_lead_form_bridge" model="ir.ui.view">
-        <field name="name">plasticos.web.lead.form.bridge</field>
-        <field name="model">plasticos.web.lead</field>
-        <field name="inherit_id" ref="plasticos_web_leads.view_web_lead_form"/>
-        <field name="priority">30</field>
-        <field name="arch" type="xml">
-            <xpath expr="//div[@name='button_box']" position="inside">
-                <button name="action_view_intake" type="object"
-                        class="oe_stat_button" icon="fa-inbox"
-                        invisible="not intake_id">
-                    <span class="o_stat_text">Intake</span>
-                </button>
-            </xpath>
-        </field>
-    </record>
+    <!-- Intake smart button is already added by web_lead_ux.xml -->
 </odoo>

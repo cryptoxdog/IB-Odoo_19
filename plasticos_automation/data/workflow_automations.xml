@@ -193,13 +193,15 @@ else:
 if env.context.get('skip_automations') or env.context.get('import_mode') or env.context.get('install_mode'):
     pass
 else:
-    # Auto dispatch to carrier when DO is ready and has a carrier assigned
+    Load = env['plasticos.load']
     for picking in records.filtered(lambda p: p.state == 'assigned' and p.carrier_id):
-        # Check if not already dispatched
-        if hasattr(picking, 'dispatch_sent') and picking.dispatch_sent:
+        # Find linked load via shared sale order
+        load = Load.search([('sale_order_id', '=', picking.sale_id.id)], limit=1) if picking.sale_id else Load
+        # Check if load already dispatched
+        if load and load.dispatch_sent:
             continue
 
-        # Duplicate guard
+        # Duplicate guard via chatter
         if picking.message_ids.filtered(lambda m: 'Dispatch sent to carrier' in (m.body or '')):
             continue
 
@@ -208,6 +210,9 @@ else:
         if template and picking.carrier_id.email:
             template.send_mail(picking.id, force_send=False)
             picking.message_post(body=f"Dispatch sent to carrier {picking.carrier_id.name}")
+            # Stamp dispatch_sent on the load for tracking
+            if load:
+                load.dispatch_sent = fields.Datetime.now()
         </field>
     </record>
 

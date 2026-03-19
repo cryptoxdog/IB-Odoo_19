@@ -18,29 +18,27 @@
         <field name="priority">20</field>
         <field name="arch" type="xml">
 
-            <!-- ═══ Temperature / Status Banners + Smart Buttons (consolidated, single xpath) ═══ -->
+            <!-- ═══ Smart Buttons (into existing button_box) ═══ -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_intake"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-flask"
+                        invisible="not intake_id">
+                    <span class="o_stat_text">Intake</span>
+                </button>
+
+                <button name="action_view_partner"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-building"
+                        invisible="not partner_id">
+                    <span class="o_stat_text">Company</span>
+                </button>
+            </xpath>
+
+            <!-- ═══ Temperature / Status Banners (before title) ═══ -->
             <xpath expr="//sheet/div[hasclass('oe_title')]" position="before">
-
-                <!-- Smart Button Box -->
-                <div class="oe_button_box" name="button_box">
-                    <!-- Intake link -->
-                    <button name="action_view_intake"
-                            type="object"
-                            class="oe_stat_button"
-                            icon="fa-flask"
-                            invisible="not intake_id">
-                        <span class="o_stat_text">Intake</span>
-                    </button>
-
-                    <!-- Partner link -->
-                    <button name="action_view_partner"
-                            type="object"
-                            class="oe_stat_button"
-                            icon="fa-building"
-                            invisible="not partner_id">
-                        <span class="o_stat_text">Company</span>
-                    </button>
-                </div>
 
                 <!-- HOT Lead Banner -->
                 <div class="alert alert-success border-success border-2"
@@ -71,16 +69,7 @@
                     <span class="ms-1">— AI classified this lead as low priority. Use "Force HOT" to override.</span>
                 </div>
 
-                <!-- PENDING Banner -->
-                <div class="alert alert-info"
-                     role="alert"
-                     invisible="decision not in ('pending', False)">
-                    <i class="fa fa-hourglass-half" title="Pending"/>
-                    <strong> PENDING</strong>
-                    <span class="ms-1">— This lead has not been triaged yet.</span>
-                </div>
-
-                <!-- Error Banner (more prominent than just the tab) -->
+                <!-- Error Banner -->
                 <div class="alert alert-danger border-danger border-2"
                      role="alert"
                      invisible="state != 'error'">
@@ -88,25 +77,7 @@
                     <strong> Processing Error: </strong>
                     <field name="error_message" nolabel="1" readonly="1"/>
                 </div>
-                <div class="oe_button_box" name="button_box">
-                    <!-- Intake link -->
-                    <button name="action_view_intake"
-                            type="object"
-                            class="oe_stat_button"
-                            icon="fa-flask"
-                            invisible="not intake_id">
-                        <span class="o_stat_text">Intake</span>
-                    </button>
 
-                    <!-- Partner link -->
-                    <button name="action_view_partner"
-                            type="object"
-                            class="oe_stat_button"
-                            icon="fa-building"
-                            invisible="not partner_id">
-                        <span class="o_stat_text">Company</span>
-                    </button>
-                </div>
             </xpath>
 
         </field>
