@@ -212,7 +212,7 @@ else:
             picking.message_post(body=f"Dispatch sent to carrier {picking.carrier_id.name}")
             # Stamp dispatch_sent on the load for tracking
             if load:
-                load.dispatch_sent = fields.Datetime.now()
+                load.write({'dispatch_sent': fields.Datetime.now()})
         </field>
     </record>
 
