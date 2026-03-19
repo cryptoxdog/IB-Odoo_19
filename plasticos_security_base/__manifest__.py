@@ -1,6 +1,6 @@
 {
     "name": "Plasticos — Security Base",
-    "version": "19.0.1.2.2",
+    "version": "19.0.1.2.3",
     "category": "Plasticos/Security",
     "summary": "Core RBAC roles, record rules, and private-partner flag for the Plasticos platform.",
     "description": """
@@ -13,6 +13,7 @@
     "author": "Igor Beylin",
     "depends": [
         "base",
+        "plasticos_base",
         "base_geolocalize",
         "sale",
         "purchase",

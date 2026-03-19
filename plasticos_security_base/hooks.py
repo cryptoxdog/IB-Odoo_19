@@ -21,9 +21,13 @@ _SALES_REP_GROUPS = [
     "plasticos_security_base.group_sales_rep",
 ]
 
+# XML IDs must match plasticos_base/data/admin_users.xml (user_admin_*)
+# and plasticos_base/data/sales_reps.xml (user_sales_rep_*). Old refs
+# user_sales_rep_ib / user_sales_rep_ab never existed → superadmin grant was
+# always skipped.
 _USER_GROUPS = {
-    "plasticos_base.user_sales_rep_ib": _SUPERADMIN_GROUPS,
-    "plasticos_base.user_sales_rep_ab": _OPS_MANAGER_GROUPS,
+    "plasticos_base.user_admin_ib": _SUPERADMIN_GROUPS,
+    "plasticos_base.user_admin_ab": _OPS_MANAGER_GROUPS,
     "plasticos_base.user_sales_rep_lm": _SALES_REP_GROUPS,
     "plasticos_base.user_sales_rep_rp": _SALES_REP_GROUPS,
     "plasticos_base.user_sales_rep_aa": _SALES_REP_GROUPS,
@@ -31,17 +35,13 @@ _USER_GROUPS = {
 }
 
 
-def post_init_hook(env):
-    """Assign security groups to users via SQL.
-
-    Odoo 19 removed groups_id from res.users XML create, so group
-    membership must be written directly to the relation table.
-    """
+def grant_seed_user_groups(env):
+    """Assign security groups to PlasticOS seed users via SQL (Odoo 19-safe)."""
     for full_xml_id, group_refs in _USER_GROUPS.items():
         user = env.ref(full_xml_id, raise_if_not_found=False)
         if not user:
             _logger.warning(
-                "post_init_hook [%s]: user %s not found – skipping.",
+                "grant_seed_user_groups [%s]: user %s not found – skipping.",
                 _MODULE,
                 full_xml_id,
             )
@@ -51,7 +51,7 @@ def post_init_hook(env):
             group = env.ref(gref, raise_if_not_found=False)
             if not group:
                 _logger.warning(
-                    "post_init_hook [%s]: group %s not found – skipping.",
+                    "grant_seed_user_groups [%s]: group %s not found – skipping.",
                     _MODULE,
                     gref,
                 )
@@ -66,8 +66,17 @@ def post_init_hook(env):
             )
 
         _logger.info(
-            "post_init_hook [%s]: granted groups %s to user %s.",
+            "grant_seed_user_groups [%s]: granted groups %s to user %s.",
             _MODULE,
             group_refs,
             full_xml_id,
         )
+
+
+def post_init_hook(env):
+    """Assign security groups to users via SQL.
+
+    Odoo 19 removed groups_id from res.users XML create, so group
+    membership must be written directly to the relation table.
+    """
+    grant_seed_user_groups(env)
