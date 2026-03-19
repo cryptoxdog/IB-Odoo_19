@@ -107,6 +107,13 @@ reviews:
         6. Compute methods have proper dependencies declared
         7. Access rights considerations (sudo() usage justified)
 
+        DEBT PREVENTION — Flag as issues:
+        - Methods longer than 50 lines (HIGH debt)
+        - Compute methods missing @api.depends (CRITICAL)
+        - env.ref() without raise_if_not_found=False (CRITICAL)
+        - sudo() calls without inline justification comment (HIGH)
+        - TODO/FIXME/HACK/STUB comments without linked issue (MEDIUM)
+
     - path: '**/views/**/*.xml'
       instructions: >-
         Odoo XML view files. Review for:

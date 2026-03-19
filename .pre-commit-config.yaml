@@ -21,6 +21,7 @@ repos:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
         exclude: ^docs/
+
       - id: ruff-format
         exclude: ^docs/
 
@@ -30,15 +31,20 @@ repos:
     hooks:
       - id: check-xml
         exclude: ^docs/
+
       - id: check-yaml
         args: [--allow-multiple-documents]
         exclude: '^plasticos_enrichment/knowledge_base/.*\.yaml$|buyer_matching_rag\.yaml$|^docs/'
+
       - id: end-of-file-fixer
         exclude: ^docs/
+
       - id: trailing-whitespace
         exclude: ^docs/
+
       - id: check-added-large-files
         args: ['--maxkb=1000']
+
       - id: check-merge-conflict
 
   # Odoo-specific checks (catches what ruff/mypy can't)
@@ -49,20 +55,21 @@ repos:
         entry: ./scripts/check_odoo_patterns.sh
         language: script
         pass_filenames: false
+        stages: [pre-commit, pre-push]
 
       - id: module-wiring
         name: Module dependency wiring check
         entry: python3 scripts/check_module_wiring.py
         language: system
         pass_filenames: false
-        stages: [pre-commit]
+        stages: [pre-commit, pre-push]
 
       - id: cron-invariants
         name: Cron invariant check
         entry: python3 tools/cron_invariant_check.py
         language: system
         pass_filenames: false
-        stages: [pre-commit]
+        stages: [pre-commit, pre-push]
 
       - id: circular-deps
         name: Circular dependency check
@@ -127,13 +134,6 @@ repos:
         pass_filenames: false
         stages: [pre-commit, pre-push]
 
-      - id: env-get-antipattern
-        name: Odoo env.get() anti-pattern check
-        entry: python3 ci/check_env_get.py
-        language: system
-        pass_filenames: false
-        stages: [pre-commit, pre-push]
-
       - id: constraint-patterns
         name: Constraint pattern check
         entry: python3 ci/check_constraint_patterns.py
@@ -169,23 +169,40 @@ repos:
         pass_filenames: false
         stages: [pre-commit, pre-push]
 
-      # Index generation disabled - run manually: python3 scripts/export_odoo_index.py
-      # - id: export-odoo-index
-      #   name: Export Odoo repo index
-      #   entry: python3 scripts/export_odoo_index.py
-      #   language: system
-      #   pass_filenames: false
-      #   always_run: true
-      #   stages: [pre-push]
+      - id: acl-completeness
+        name: ACL completeness check
+        entry: python3 ci/check_acl_completeness.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
 
-      # README generation disabled - run manually: python3 scripts/generate_subsystem_readmes.py
-      # - id: generate-subsystem-readmes
-      #   name: Generate subsystem READMEs
-      #   entry: python3 scripts/generate_subsystem_readmes.py
-      #   language: system
-      #   pass_filenames: false
-      #   always_run: true
-      #   stages: [pre-push]
+      - id: pipeline-v2-guard
+        name: pipeline_v2.py import fence
+        entry: python3 ci/check_pipeline_v2_guard.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+
+      - id: dev-tools-fence
+        name: plasticos_dev_tools production fence
+        entry: python3 ci/check_dev_tools_fence.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+
+      - id: critical-manifest
+        name: Critical manifest check
+        entry: python3 ci/check_critical_manifest.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+
+      - id: enhanced-audit
+        name: Enhanced XML ID and dependency audit
+        entry: python3 ci/enhanced_audit.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
 
   # Python type checking
   - repo: https://github.com/pre-commit/mirrors-mypy

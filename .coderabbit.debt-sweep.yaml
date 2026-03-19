@@ -1,0 +1,336 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# =============================================================================
+# CodeRabbit DEBT SWEEP Configuration — Assertive Mode
+# =============================================================================
+# This is a TEMPORARY configuration for running a full codebase debt audit.
+# After the sweep is complete, revert to the standard .coderabbit.yaml
+#
+# To activate:
+#   cp .coderabbit.yaml .coderabbit.yaml.backup
+#   cp .coderabbit.debt-sweep.yaml .coderabbit.yaml
+#
+# To revert:
+#   cp .coderabbit.yaml.backup .coderabbit.yaml
+# =============================================================================
+
+language: en-US
+tone_instructions: 'Be thorough and assertive. Flag all code smells, anti-patterns, and potential issues. Do not be lenient.'
+early_access: true
+enable_free_tier: true
+
+reviews:
+  # === ASSERTIVE MODE FOR DEBT SWEEP ===
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary: true
+  high_level_summary_placeholder: '@coderabbitai summary'
+  high_level_summary_in_walkthrough: true
+  auto_title_placeholder: '@coderabbitai'
+  review_status: true
+  commit_status: true
+  fail_commit_status: true
+  collapse_walkthrough: false
+  changed_files_summary: true
+  sequence_diagrams: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: true
+  auto_apply_labels: false
+  suggested_reviewers: true
+  auto_assign_reviewers: false
+  poem: false
+  abort_on_close: true
+  disable_cache: false
+
+  labeling_instructions:
+    - label: debt-critical
+      instructions: Apply when CRITICAL severity code debt is found (security issues, data corruption risks).
+    - label: debt-high
+      instructions: Apply when HIGH severity code debt is found (missing error handling, performance issues).
+    - label: debt-medium
+      instructions: Apply when MEDIUM severity code debt is found (code smells, missing tests).
+    - label: debt-low
+      instructions: Apply when LOW severity code debt is found (style issues, minor improvements).
+    - label: odoo-antipattern
+      instructions: Apply when Odoo-specific anti-patterns are detected.
+    - label: security-concern
+      instructions: Apply when security-related issues are found.
+    - label: test-gap
+      instructions: Apply when test coverage gaps are identified.
+
+  path_filters:
+    # === EXCLUDE: Build artifacts and caches ===
+    - '!.git/**'
+    - '!.venv/**'
+    - '!.mypy_cache/**'
+    - '!.pytest_cache/**'
+    - '!.ruff_cache/**'
+    - '!__pycache__/**'
+    - '!*.pyc'
+    - '!node_modules/**'
+    # === EXCLUDE: Vendor/external code ===
+    - '!odoo-enterprise/**'
+    # === EXCLUDE: Large data files ===
+    - '!*.csv'
+    - '!*.zip'
+    # === INCLUDE: ALL tests for debt sweep (normally excluded) ===
+    # Tests are INCLUDED during debt sweep to identify test quality issues
+
+  path_instructions:
+    # === DEBT SWEEP SPECIFIC INSTRUCTIONS ===
+    - path: '**/models/**/*.py'
+      instructions: >-
+        DEBT SWEEP MODE — Odoo model files. Flag ALL of the following as debt:
+
+        CRITICAL:
+        - Raw SQL queries (SQL injection risk)
+        - env.ref() without raise_if_not_found=False
+        - sudo() without inline justification comment
+        - Missing @api.depends on compute methods
+        - Unvalidated user inputs in server actions
+
+        HIGH:
+        - Methods longer than 50 lines (god methods)
+        - Classes with more than 20 methods (god classes)
+        - Missing error handling in critical operations
+        - Hardcoded model names instead of constants
+        - _inherit misuse (should be _name for new models)
+
+        MEDIUM:
+        - Missing docstrings on public methods
+        - Magic numbers without named constants
+        - Duplicated logic across methods
+        - TODO/FIXME/HACK comments without linked issues
+
+        LOW:
+        - Inconsistent naming conventions
+        - Missing type hints
+        - Overly complex conditionals
+
+    - path: '**/views/**/*.xml'
+      instructions: >-
+        DEBT SWEEP MODE — Odoo XML view files. Flag ALL of the following:
+
+        CRITICAL:
+        - Missing groups attribute on sensitive actions
+        - Overly permissive access in views
+
+        HIGH:
+        - Inconsistent view ID naming
+        - Missing noupdate flags on data that shouldn't change
+        - Broken xpath expressions
+
+        MEDIUM:
+        - Missing help text on form fields
+        - Inconsistent button styling
+        - Missing icons on menu items
+
+        LOW:
+        - Inconsistent indentation
+        - Missing comments on complex xpath
+
+    - path: '**/security/**'
+      instructions: >-
+        DEBT SWEEP MODE — Security files. Flag ALL of the following:
+
+        CRITICAL:
+        - Overly permissive CRUD (1,1,1,1 for non-admin groups)
+        - Missing record rules for multi-company
+        - Groups without proper hierarchy
+
+        HIGH:
+        - Models without any access rules
+        - Inconsistent permission patterns across modules
+
+        MEDIUM:
+        - Missing comments explaining permission rationale
+
+    - path: '**/tests/**/*.py'
+      instructions: >-
+        DEBT SWEEP MODE — Test files. Flag ALL of the following:
+
+        HIGH:
+        - Tests without assertions
+        - Tests that only test happy path
+        - Missing edge case coverage
+        - Flaky tests (time-dependent, order-dependent)
+
+        MEDIUM:
+        - Missing docstrings explaining test purpose
+        - Overly complex test setup
+        - Duplicated test data across tests
+
+    - path: 'plasticos_*/**/*.py'
+      instructions: >-
+        DEBT SWEEP MODE — All plasticos module Python files.
+
+        In addition to model-specific checks, flag:
+
+        CRITICAL:
+        - Hardcoded credentials or API keys
+        - Unvalidated external inputs
+        - Missing transaction handling
+
+        HIGH:
+        - Circular imports
+        - Missing __all__ exports
+        - Unused imports
+
+        MEDIUM:
+        - Functions with more than 5 parameters
+        - Nested functions more than 2 levels deep
+        - Boolean parameters (use enums instead)
+
+    - path: 'ci/**'
+      instructions: >-
+        DEBT SWEEP MODE — CI scripts.
+
+        HIGH:
+        - Scripts without proper error handling
+        - Missing exit codes
+        - Hardcoded paths
+
+        MEDIUM:
+        - Missing documentation
+        - Inconsistent logging
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: false
+    ignore_title_keywords: []
+    labels: []
+    drafts: true
+    base_branches:
+      - main
+      - master
+      - develop
+      - staging
+    auto_pause_after_reviewed_commits: 100
+
+  finishing_touches:
+    docstrings:
+      enabled: true
+    unit_tests:
+      enabled: true
+
+  pre_merge_checks:
+    docstrings:
+      mode: error
+      threshold: 70
+    title:
+      mode: error
+    description:
+      mode: error
+    issue_assessment:
+      mode: error
+
+  tools:
+    ast-grep:
+      essential_rules: true
+      rule_dirs: []
+      utils_dirs: []
+      packages: []
+
+    shellcheck:
+      enabled: true
+
+    ruff:
+      enabled: true
+
+    markdownlint:
+      enabled: true
+
+    github-checks:
+      enabled: true
+      timeout_ms: 180000
+
+    languagetool:
+      enabled: true
+      enabled_rules: []
+      disabled_rules:
+        - EN_QUOTES
+      enabled_categories: []
+      disabled_categories: []
+      enabled_only: false
+      level: default
+
+    biome:
+      enabled: false
+
+    hadolint:
+      enabled: true
+
+    yamllint:
+      enabled: true
+
+    gitleaks:
+      enabled: true
+
+    trufflehog:
+      enabled: true
+
+    checkov:
+      enabled: true
+
+    eslint:
+      enabled: false
+
+    flake8:
+      enabled: true
+
+    pylint:
+      enabled: true
+
+    semgrep:
+      enabled: true
+
+    actionlint:
+      enabled: true
+
+    sqlfluff:
+      enabled: true
+
+    osv_scanner:
+      enabled: true
+
+chat:
+  auto_reply: true
+  integrations:
+    jira:
+      usage: auto
+    linear:
+      usage: auto
+
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  code_guidelines:
+    enabled: true
+    file_patterns:
+      - '**/.cursor/rules/**'
+      - '**/AGENTS.md'
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  pull_requests:
+    scope: auto
+
+code_generation:
+  docstrings:
+    language: en-US
+    path_instructions:
+      - path: '**/*.py'
+        instructions: >-
+          Generate Google-style docstrings for Python functions and classes.
+          Include Args, Returns, and Raises sections where applicable.
+          For Odoo models, document field purposes and compute method logic.
+  unit_tests:
+    path_instructions:
+      - path: 'plasticos_*/**/*.py'
+        instructions: >-
+          Generate pytest-style unit tests. For Odoo models, use appropriate
+          test base classes (TransactionCase, SavepointCase). Include tests
+          for edge cases and error conditions.
