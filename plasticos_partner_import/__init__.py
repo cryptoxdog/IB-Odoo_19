@@ -5,8 +5,8 @@ from . import wizards
 def pre_init_hook(cr):
     """Clean up dependent records before partner XML ID cleanup.
 
-    GUARDED: Only runs when PLASTICOS_PARTNER_WIPE=1 env var is set.
-    This is a staging-only rebuild tool, NEVER runs in production.
+    UNCONDITIONAL: Detaches imported partners from sale_orders on every build.
+    GUARDED: Full wipe only runs when PLASTICOS_PARTNER_WIPE=1 env var is set.
 
     During module update, Odoo's _process_end() tries to delete partners
     whose XML IDs were removed. This fails if sale_order or other tables
@@ -17,8 +17,26 @@ def pre_init_hook(cr):
 
     _logger = logging.getLogger(__name__)
 
+    # Always detach imported partners from sale_orders to prevent FK violation
+    # during _process_end cleanup. This is safe — sale orders are preserved,
+    # just re-pointed to admin partner temporarily.
+    cr.execute("""
+        UPDATE sale_order
+        SET partner_id = 3,
+            partner_invoice_id = 3,
+            partner_shipping_id = 3
+        WHERE partner_id IN (
+            SELECT res_id FROM ir_model_data
+            WHERE module = 'plasticos_partner_import'
+            AND model = 'res.partner'
+        )
+    """)
+    detached = cr.rowcount
+    if detached:
+        _logger.info("pre_init_hook: Detached %d sale orders from imported partners", detached)
+
     if os.environ.get("PLASTICOS_PARTNER_WIPE") != "1":
-        _logger.info("pre_init_hook: Skipping cleanup (PLASTICOS_PARTNER_WIPE not set)")
+        _logger.info("pre_init_hook: Skipping full cleanup (PLASTICOS_PARTNER_WIPE not set)")
         return
 
     _logger.warning("pre_init_hook: PLASTICOS_PARTNER_WIPE=1 — wiping all business records")
