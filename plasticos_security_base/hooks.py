@@ -4,14 +4,16 @@ _logger = logging.getLogger(__name__)
 
 _MODULE = "plasticos_security_base"
 
-_SUPERADMIN_GROUPS = [
+# Full platform access for both seed admins in admin_users.xml (ib@ + ab@).
+# Keep them identical: previously ib had only “superadmin” triple and ab had
+# sales_rep + operations_manager — divergency caused confusing Settings/Apps UX.
+_COFOUNDER_SEED_ADMIN_GROUPS = [
     "base.group_system",
     "base.group_no_one",
-    "plasticos_security_base.group_system_admin",
-]
-
-_OPS_MANAGER_GROUPS = [
+    "base.group_erp_manager",
     "base.group_user",
+    "base.group_partner_manager",
+    "plasticos_security_base.group_system_admin",
     "plasticos_security_base.group_sales_rep",
     "plasticos_security_base.group_operations_manager",
 ]
@@ -22,12 +24,10 @@ _SALES_REP_GROUPS = [
 ]
 
 # XML IDs must match plasticos_base/data/admin_users.xml (user_admin_*)
-# and plasticos_base/data/sales_reps.xml (user_sales_rep_*). Old refs
-# user_sales_rep_ib / user_sales_rep_ab never existed → superadmin grant was
-# always skipped.
+# and plasticos_base/data/sales_reps.xml (user_sales_rep_*).
 _USER_GROUPS = {
-    "plasticos_base.user_admin_ib": _SUPERADMIN_GROUPS,
-    "plasticos_base.user_admin_ab": _OPS_MANAGER_GROUPS,
+    "plasticos_base.user_admin_ib": _COFOUNDER_SEED_ADMIN_GROUPS,
+    "plasticos_base.user_admin_ab": _COFOUNDER_SEED_ADMIN_GROUPS,
     "plasticos_base.user_sales_rep_lm": _SALES_REP_GROUPS,
     "plasticos_base.user_sales_rep_rp": _SALES_REP_GROUPS,
     "plasticos_base.user_sales_rep_aa": _SALES_REP_GROUPS,
