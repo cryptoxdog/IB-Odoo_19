@@ -386,41 +386,9 @@ def check_regex_patterns(filepath: str, content: str) -> list[AntiPatternIssue]:
                 )
             )
 
-        # Check for direct attribute assignment outside @api.onchange
-        # Pattern: record.field = value (but NOT self.env, self._context, etc.)
-        # This is tricky because we need context (are we in @api.onchange?)
-        # For now, flag obvious cases in XML server action code blocks
-        # XML server actions should always use .write()
-        if "force_send=" in line or "send_mail(" in line:
-            # Check for direct assignment in same context (likely server action)
-            # Pattern: record.field = value where field is not a method call
-            direct_assign = re.search(
-                r"\b(\w+)\.([a-z_]+)\s*=\s*(?!.*\()",  # var.field = (not a call)
-                line,
-            )
-            if direct_assign:
-                var_name = direct_assign.group(1)
-                field_name = direct_assign.group(2)
-                # Skip known safe patterns
-                if var_name not in ("self", "env", "context", "cr", "uid") and field_name not in (
-                    "env",
-                    "context",
-                    "cr",
-                    "uid",
-                    "id",
-                    "ids",
-                ):
-                    issues.append(
-                        AntiPatternIssue(
-                            file=filepath,
-                            line=i,
-                            code="ODOO015",
-                            pattern="Direct attribute assignment",
-                            message=f"Use .write() instead of direct assignment: {var_name}.{field_name} = ...",
-                            fix=f"Use {var_name}.write({{'{field_name}': value}}) instead",
-                            severity="HIGH",
-                        )
-                    )
+        # Note: Direct attribute assignment check (ODOO015) moved to check_xml_server_actions()
+        # because in Python files, record.field = value is valid inside @api.onchange methods.
+        # The anti-pattern only applies to XML server action code blocks.
 
         # Check for deprecated decorators (removed in Odoo 13+)
         # Pattern: @api DOT one or @api DOT multi
@@ -503,6 +471,102 @@ def find_python_files() -> list[str]:
     return sorted(files)
 
 
+def find_xml_files() -> list[str]:
+    """Find all XML files to scan for server action code."""
+    files = []
+
+    for scan_dir in SCAN_DIRS:
+        path = Path(scan_dir)
+        if path.is_dir():
+            for xml_file in path.rglob("*.xml"):
+                files.append(str(xml_file))
+
+    return sorted(files)
+
+
+def check_xml_server_actions(filepath: str) -> list[AntiPatternIssue]:
+    """Check XML server action code blocks for anti-patterns.
+
+    In XML server actions (<field name="code">...</field>), direct attribute
+    assignment like `record.field = value` should ALWAYS use .write() instead.
+    Unlike Python methods, there's no @api.onchange context that makes it valid.
+    """
+    issues: list[AntiPatternIssue] = []
+
+    try:
+        with open(filepath, encoding="utf-8") as f:
+            content = f.read()
+    except (OSError, UnicodeDecodeError):
+        return issues
+
+    # Find all <field name="code"> blocks (server action Python code)
+    # These are CDATA or text content inside field elements
+    code_pattern = re.compile(
+        r'<field\s+name=["\']code["\'][^>]*>(.*?)</field>',
+        re.DOTALL | re.IGNORECASE,
+    )
+
+    for match in code_pattern.finditer(content):
+        code_block = match.group(1)
+        block_start = content[: match.start()].count("\n") + 1
+
+        # Check each line in the code block for direct assignment
+        for line_offset, line in enumerate(code_block.split("\n")):
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+
+            # Pattern: variable.field = value (not a method call result)
+            # Matches: so.appointment_requested = True
+            # Matches: record.state = 'done'
+            # Does NOT match: record.field = some_func()  (has parentheses)
+            # Does NOT match: self.env = ...  (self is excluded)
+            direct_assign = re.search(
+                r"\b([a-z_][a-z0-9_]*)\.([a-z_][a-z0-9_]*)\s*=\s*([^=].*?)$",
+                stripped,
+                re.IGNORECASE,
+            )
+            if direct_assign:
+                var_name = direct_assign.group(1)
+                field_name = direct_assign.group(2)
+                value = direct_assign.group(3).strip()
+
+                # Skip known safe patterns
+                safe_vars = {"self", "env", "context", "cr", "uid", "cls", "klass"}
+                safe_fields = {"env", "context", "cr", "uid", "id", "ids", "_context", "_cr"}
+
+                if var_name.lower() in safe_vars:
+                    continue
+                if field_name.lower() in safe_fields:
+                    continue
+
+                # Skip if value is a function call (has opening paren without closing before =)
+                # This catches: record.field = self.env['model'].search(...)
+                if "(" in value and ")" in value:
+                    # Likely a method call result, which is fine
+                    # But direct assignment like `record.state = 'done'` is not
+                    pass
+
+                # Skip compound assignments (+=, -=, etc.)
+                if re.search(r"[+\-*/|&^]=", line):
+                    continue
+
+                # This is a direct assignment in a server action - flag it
+                issues.append(
+                    AntiPatternIssue(
+                        file=filepath,
+                        line=block_start + line_offset,
+                        code="ODOO015",
+                        pattern="Direct attribute assignment in server action",
+                        message=f"Use .write() instead of direct assignment: {var_name}.{field_name} = {value}",
+                        fix=f"Use {var_name}.write({{'{field_name}': {value}}}) instead",
+                        severity="HIGH",
+                    )
+                )
+
+    return issues
+
+
 def main() -> int:
     """Run anti-pattern checks."""
     print("🔍 Checking for Python anti-patterns in Odoo code...")
@@ -510,10 +574,17 @@ def main() -> int:
     print()
 
     all_issues: list[AntiPatternIssue] = []
-    files = find_python_files()
 
-    for filepath in files:
+    # Check Python files
+    py_files = find_python_files()
+    for filepath in py_files:
         issues = scan_file(filepath)
+        all_issues.extend(issues)
+
+    # Check XML server action code blocks
+    xml_files = find_xml_files()
+    for filepath in xml_files:
+        issues = check_xml_server_actions(filepath)
         all_issues.extend(issues)
 
     # Group by severity
