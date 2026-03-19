@@ -133,7 +133,7 @@ class EnhancedFieldAudit:
             module_dir = manifest.parent
             module_name = module_dir.name
 
-            with open(manifest, encoding="utf-8") as f:
+            with open(manifest, encoding="utf-8", errors="replace") as f:
                 try:
                     manifest_data = ast.literal_eval(f.read())
                     self.modules[module_name] = {
@@ -154,7 +154,7 @@ class EnhancedFieldAudit:
                 if "__pycache__" in str(py_file):
                     continue
 
-                with open(py_file, encoding="utf-8") as f:
+                with open(py_file, encoding="utf-8", errors="replace") as f:
                     content = f.read()
 
                     # Find model name
@@ -202,7 +202,7 @@ class EnhancedFieldAudit:
                 if "__pycache__" in str(xml_file):
                     continue
 
-                with open(xml_file, encoding="utf-8") as f:
+                with open(xml_file, encoding="utf-8", errors="replace") as f:
                     for _line_num, line in enumerate(f, 1):
                         match = re.search(r'<record\s+id="([^"]+)"', line)
                         if match:
@@ -218,7 +218,7 @@ class EnhancedFieldAudit:
                 if "__pycache__" in str(xml_file):
                     continue
 
-                with open(xml_file, encoding="utf-8") as f:
+                with open(xml_file, encoding="utf-8", errors="replace") as f:
                     for line_num, line in enumerate(f, 1):
                         # Find all ref="..." attributes
                         for match in re.finditer(r'ref="([^"]+)"', line):
@@ -338,7 +338,7 @@ class EnhancedFieldAudit:
                 if "__pycache__" in str(xml_file):
                     continue
 
-                with open(xml_file, encoding="utf-8") as f:
+                with open(xml_file, encoding="utf-8", errors="replace") as f:
                     for line_num, line in enumerate(f, 1):
                         # Track current model context
                         model_match = re.search(r'<field name="model">([^<]+)</field>', line)

@@ -23,7 +23,7 @@ from pathlib import Path
 def parse_manifest(manifest_path: Path) -> dict:
     """Parse __manifest__.py and extract depends list."""
     try:
-        content = manifest_path.read_text()
+        content = manifest_path.read_text(encoding="utf-8", errors="replace")
         # Use ast.literal_eval for safe parsing
         manifest = ast.literal_eval(content)
         return {
@@ -38,7 +38,7 @@ def extract_model_definitions(py_file: Path) -> list[tuple[int, str]]:
     """Extract _name = 'model.name' definitions from a Python file."""
     definitions = []
     try:
-        content = py_file.read_text()
+        content = py_file.read_text(encoding="utf-8", errors="replace")
         # Match _name = "model.name" or _name = 'model.name'
         pattern = r'_name\s*=\s*["\']([a-z_][a-z0-9_.]+)["\']'
         for match in re.finditer(pattern, content):
@@ -56,7 +56,7 @@ def extract_model_references(py_file: Path) -> list[tuple[int, str, str]]:
     """
     references = []
     try:
-        content = py_file.read_text()
+        content = py_file.read_text(encoding="utf-8", errors="replace")
         lines = content.split("\n")
 
         patterns = [

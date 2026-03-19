@@ -74,7 +74,7 @@ class OdooAudit:
             if any(part in str(manifest) for part in ["/docs/", "/patches/", "/test_"]):
                 continue
 
-            with open(manifest) as f:
+            with open(manifest, encoding="utf-8", errors="replace") as f:
                 try:
                     manifest_data = ast.literal_eval(f.read())
                     self.modules[module_name] = {
@@ -91,7 +91,7 @@ class OdooAudit:
             module_path = module_data["path"]
 
             for xml_file in module_path.rglob("*.xml"):
-                with open(xml_file, encoding="utf-8") as f:
+                with open(xml_file, encoding="utf-8", errors="replace") as f:
                     for _line_num, line in enumerate(f, 1):
                         # Match <record id="view_name" ...>
                         match = re.search(r'<record\s+id="([^"]+)"', line)
@@ -105,7 +105,7 @@ class OdooAudit:
             module_path = module_data["path"]
 
             for xml_file in module_path.rglob("*.xml"):
-                with open(xml_file, encoding="utf-8") as f:
+                with open(xml_file, encoding="utf-8", errors="replace") as f:
                     for line_num, line in enumerate(f, 1):
                         # Match ref="module.xmlid"
                         for match in re.finditer(r'ref="([^"]+)"', line):
@@ -223,7 +223,7 @@ class OdooAudit:
             for xml_file in module_path.rglob("*.xml"):
                 rel_path = str(xml_file.relative_to(module_path))
 
-                with open(xml_file, encoding="utf-8") as f:
+                with open(xml_file, encoding="utf-8", errors="replace") as f:
                     content = f.read()
                     if "<record" in content and rel_path not in data_files:
                         errors.append(

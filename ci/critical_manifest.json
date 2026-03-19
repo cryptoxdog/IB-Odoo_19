@@ -3,10 +3,12 @@
   "files": [
     "plasticos_commission/models/commission_rule.py",
     "plasticos_commission/models/commission_service.py",
-    "plasticos_transaction/models/load_inherit.py",
+    "plasticos_logistics/models/load.py",
     "plasticos_logistics/models/sale_order_inherit.py",
     "plasticos_intake/models/intake.py",
-    "plasticos_documents/models/document.py"
+    "plasticos_documents/models/document.py",
+    "plasticos_automation/data/workflow_automations.xml",
+    "plasticos_base/__manifest__.py"
   ],
   "symbols": [
     {
@@ -20,24 +22,25 @@
       "type": "abstract"
     },
     {
-      "file": "plasticos_transaction/models/load_inherit.py",
+      "file": "plasticos_logistics/models/load.py",
       "class": "PlasticosLoad",
-      "type": "inherit"
+      "type": "model"
     },
     {
       "file": "plasticos_logistics/models/sale_order_inherit.py",
-      "class": "SaleOrder",
+      "class": "SaleOrderInherit",
       "type": "inherit"
     },
     {
       "file": "plasticos_intake/models/intake.py",
       "class": "PlasticosIntake",
       "methods": [
-        "action_mark_normalized",
-        "action_run_buyer_match",
-        "action_replay_last_packet",
+        "action_match_to_buyers",
         "action_make_po",
-        "action_send_offers"
+        "action_send_offers",
+        "action_mark_processing",
+        "action_mark_won",
+        "action_mark_lost"
       ]
     },
     {
