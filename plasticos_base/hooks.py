@@ -46,98 +46,39 @@ def pre_init_hook(env):
 
 def post_init_hook(env):
     """
-    Assign required groups to system_cron user for ACL-safe cron execution.
+    Assign required groups to admin users and system_cron user.
 
     This is the Odoo 19 recommended approach - groups are assigned via Python
     post-install hook rather than groups_id in XML (which is deprecated).
 
-    Groups needed for cron jobs:
-    - plasticos_enrichment.group_enrichment_manager (for enrichment crons)
-    - plasticos_documents.group_documents_manager (for document crons)
-    - plasticos_claims.group_claims_manager (for claims crons)
-
-    IMPORTANT: This hook defers execution if plasticos_security_base is not yet
-    installed. On fresh installs, plasticos_* groups don't exist yet. The grants
-    will be applied when plasticos_security_base installs (or on -u plasticos_base).
+    ALWAYS grants core Odoo groups (base.group_system, etc.) to admin users.
+    Plasticos-specific groups are only granted if plasticos_security_base is installed.
     """
-    # Guard: defer group grants until dependent modules are loaded
-    if not env.ref("plasticos_security_base.group_system_admin", raise_if_not_found=False):
-        _logger.warning(
-            "post_init_hook: plasticos_security_base not installed yet. "
-            "Group grants will be applied when plasticos_security_base installs."
-        )
-        return
+    _logger.info("plasticos_base post_init_hook: Configuring admin and cron user groups")
 
-    _logger.info("plasticos_base post_init_hook: Configuring system_cron user groups")
-
-    # Grant full admin groups to both admin users (idempotent on every rebuild)
-    # Uses raise_if_not_found=False so missing modules don't break the hook
-    admin_groups = [
-        # ═══════════════════════════════════════════════════════════════════
-        # ODOO CORE / ENTERPRISE GROUPS
-        # ═══════════════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════════════
+    # STEP 1: ALWAYS grant core Odoo groups to admin users (no guard)
+    # This ensures ib@ and ab@ can always access Settings
+    # ═══════════════════════════════════════════════════════════════════
+    core_admin_groups = [
         "base.group_system",  # Settings / Technical Features
         "base.group_erp_manager",  # Access Rights
         "base.group_user",  # Internal User
         "base.group_partner_manager",  # Contact Creation
-        # Sales & Purchase
         "sales_team.group_sale_manager",  # Sales Manager
         "purchase.group_purchase_manager",  # Purchase Manager
         "purchase.group_purchase_user",  # Purchase User
-        # Accounting
         "account.group_account_manager",  # Invoicing Manager
         "account.group_account_user",  # Invoicing User
-        # Inventory
         "stock.group_stock_manager",  # Inventory Manager
         "stock.group_stock_user",  # Inventory User
-        # Documents (Enterprise)
-        "documents.group_documents_manager",  # Documents Manager
-        "documents.group_documents_user",  # Documents User
-        # HR & Recruitment (Enterprise)
-        "hr.group_hr_manager",  # HR Manager
-        "hr.group_hr_user",  # HR User
-        "hr_recruitment.group_hr_recruitment_manager",  # Recruitment Manager
-        "hr_expense.group_hr_expense_manager",  # Expense Manager
-        "hr_timesheet.group_timesheet_manager",  # Timesheet Manager
-        # Helpdesk (Enterprise)
-        "helpdesk.group_helpdesk_manager",  # Helpdesk Manager
-        "helpdesk.group_helpdesk_user",  # Helpdesk User
-        # Sign (Enterprise)
-        "sign.group_sign_manager",  # Sign Manager
-        "sign.group_sign_user",  # Sign User
-        # Planning (Enterprise)
-        "planning.group_planning_manager",  # Planning Manager
-        # Manufacturing
-        "mrp.group_mrp_manager",  # MRP Manager
-        # Quality (Enterprise)
-        "quality.group_quality_manager",  # Quality Manager
-        # Maintenance
-        "maintenance.group_equipment_manager",  # Equipment Manager
-        # CRM
         "crm.group_use_lead",  # Use Leads
-        # Project
-        "project.group_project_user",  # Project User (top level)
-        # Approvals (Enterprise)
-        "approvals.group_approval_user",  # Approvals User
-        # ═══════════════════════════════════════════════════════════════════
-        # PLASTICOS CUSTOM GROUPS
-        # ═══════════════════════════════════════════════════════════════════
-        "plasticos_security_base.group_system_admin",  # Plasticos System Admin
-        "plasticos_security_base.group_operations_manager",  # Operations Manager
-        "plasticos_security_base.group_qc_manager",  # QC Manager
-        "plasticos_enrichment.group_enrichment_manager",  # Enrichment Manager
-        "plasticos_documents.group_documents_manager",  # Plasticos Documents Manager
-        "plasticos_claims.group_claims_manager",  # Claims Manager
-        "plasticos_automation.group_plasticos_automation_manager",  # Automation Manager
-        "plasticos_automation.group_logistics_automation_manager",  # Logistics Automation
-        "plasticos_transaction.group_plasticos_manager",  # Transaction Manager
-        "plasticos_transaction.group_plasticos_commission_manager",  # Commission Manager
     ]
 
     for admin_login in ("ib@scrapmanagement.com", "ab@scrapmanagement.com"):
         admin_user = env["res.users"].search([("login", "=", admin_login)], limit=1)
         if admin_user:
-            for group_xmlid in admin_groups:
+            for group_xmlid in core_admin_groups:
                 try:
                     group = env.ref(group_xmlid, raise_if_not_found=False)
                     if group:
@@ -150,9 +91,67 @@ def post_init_hook(env):
                             (group.id, admin_user.id),
                         )
                 except Exception as e:
-                    _logger.warning("Could not grant %s: %s", group_xmlid, e)
-            _logger.info("Granted admin groups to %s", admin_login)
+                    _logger.warning("Could not grant %s to %s: %s", group_xmlid, admin_login, e)
+            _logger.info("Granted core admin groups to %s", admin_login)
 
+    # ═══════════════════════════════════════════════════════════════════
+    # STEP 2: Grant extended groups (Enterprise + Plasticos) - best effort
+    # These use raise_if_not_found=False so missing modules don't break
+    # ═══════════════════════════════════════════════════════════════════
+    extended_admin_groups = [
+        # Enterprise modules (may not be installed)
+        "documents.group_documents_manager",
+        "documents.group_documents_user",
+        "hr.group_hr_manager",
+        "hr.group_hr_user",
+        "hr_recruitment.group_hr_recruitment_manager",
+        "hr_expense.group_hr_expense_manager",
+        "hr_timesheet.group_timesheet_manager",
+        "helpdesk.group_helpdesk_manager",
+        "helpdesk.group_helpdesk_user",
+        "sign.group_sign_manager",
+        "sign.group_sign_user",
+        "planning.group_planning_manager",
+        "mrp.group_mrp_manager",
+        "quality.group_quality_manager",
+        "maintenance.group_equipment_manager",
+        "project.group_project_user",
+        "approvals.group_approval_user",
+        # Plasticos custom groups (may not be installed yet)
+        "plasticos_security_base.group_system_admin",
+        "plasticos_security_base.group_operations_manager",
+        "plasticos_security_base.group_qc_manager",
+        "plasticos_enrichment.group_enrichment_manager",
+        "plasticos_documents.group_documents_manager",
+        "plasticos_claims.group_claims_manager",
+        "plasticos_automation.group_plasticos_automation_manager",
+        "plasticos_automation.group_logistics_automation_manager",
+        "plasticos_transaction.group_plasticos_manager",
+        "plasticos_transaction.group_plasticos_commission_manager",
+    ]
+
+    for admin_login in ("ib@scrapmanagement.com", "ab@scrapmanagement.com"):
+        admin_user = env["res.users"].search([("login", "=", admin_login)], limit=1)
+        if admin_user:
+            for group_xmlid in extended_admin_groups:
+                try:
+                    group = env.ref(group_xmlid, raise_if_not_found=False)
+                    if group:
+                        env.cr.execute(
+                            """
+                            INSERT INTO res_groups_users_rel (gid, uid)
+                            VALUES (%s, %s)
+                            ON CONFLICT DO NOTHING
+                            """,
+                            (group.id, admin_user.id),
+                        )
+                except Exception as e:
+                    _logger.debug("Could not grant %s to %s: %s", group_xmlid, admin_login, e)
+            _logger.info("Granted extended admin groups to %s", admin_login)
+
+    # ═══════════════════════════════════════════════════════════════════
+    # STEP 3: Configure system_cron user
+    # ═══════════════════════════════════════════════════════════════════
     cron_user = env.ref("plasticos_base.user_system_cron", raise_if_not_found=False)
     if not cron_user:
         _logger.warning("user_system_cron not found, skipping group assignment")
