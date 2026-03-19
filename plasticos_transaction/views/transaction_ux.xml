@@ -13,42 +13,40 @@
         <field name="priority">20</field>
         <field name="arch" type="xml">
 
-            <!-- ═══ Smart Button Box (form doesn't have one yet) ═══ -->
-            <xpath expr="//sheet/div[hasclass('oe_title')]" position="before">
-                <div class="oe_button_box" name="button_box">
+            <!-- ═══ Smart Buttons (into existing button_box) ═══ -->
+            <xpath expr="//div[@name='button_box']" position="inside">
 
-                    <!-- Supplier jump -->
-                    <button name="action_view_supplier"
-                            type="object"
-                            class="oe_stat_button"
-                            icon="fa-building"
-                            invisible="not supplier_id">
-                        <span class="o_stat_text">Supplier</span>
-                    </button>
+                <!-- Supplier jump -->
+                <button name="action_view_supplier"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-building"
+                        invisible="not supplier_id">
+                    <span class="o_stat_text">Supplier</span>
+                </button>
 
-                    <!-- Buyer jump -->
-                    <button name="action_view_buyer"
-                            type="object"
-                            class="oe_stat_button"
-                            icon="fa-users"
-                            invisible="not buyer_id">
-                        <span class="o_stat_text">Buyer</span>
-                    </button>
+                <!-- Buyer jump -->
+                <button name="action_view_buyer"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-users"
+                        invisible="not buyer_id">
+                    <span class="o_stat_text">Buyer</span>
+                </button>
 
-                    <!-- Margin indicator (non-clickable stat) -->
-                    <button class="oe_stat_button" disabled="1"
-                            icon="fa-line-chart"
-                            invisible="state == 'draft'">
-                        <div class="o_stat_info">
-                            <span class="o_stat_value">
-                                <field name="gross_margin" nolabel="1"
-                                       widget="monetary"/>
-                            </span>
-                            <span class="o_stat_text">Margin</span>
-                        </div>
-                    </button>
+                <!-- Margin indicator (non-clickable stat) -->
+                <button class="oe_stat_button" disabled="1"
+                        icon="fa-line-chart"
+                        invisible="state == 'draft'">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="gross_margin" nolabel="1"
+                                   widget="monetary"/>
+                        </span>
+                        <span class="o_stat_text">Margin</span>
+                    </div>
+                </button>
 
-                </div>
             </xpath>
 
             <!-- ═══ Margin KPI Banners (above main groups) ═══ -->

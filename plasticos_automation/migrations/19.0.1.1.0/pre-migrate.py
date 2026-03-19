@@ -38,7 +38,7 @@ def migrate(cr, version):
         cr,
         "stock_picking",
         [
-            ("x_trucker_id", "trucker_id"),
+            ("x_trucker_id", "carrier_id"),
             ("x_receipt_confirmation", "receipt_confirmation"),
             ("x_trucker_notified_on", "trucker_notified_on"),
             ("x_trucker_followup_count", "trucker_followup_count"),
@@ -50,7 +50,7 @@ def migrate(cr, version):
         cr,
         "purchase_order",
         [
-            ("x_ready_for_pickup", "ready_for_pickup"),
+            ("x_ready_for_pickup", "supplier_ready"),
             ("x_ready_confirmed_on", "ready_confirmed_on"),
             ("x_followup_count", "followup_count"),
             ("x_last_followup_on", "last_followup_on"),
@@ -66,8 +66,8 @@ def migrate(cr, version):
             ("x_requires_approval", "requires_approval"),
             ("x_approved", "approved"),
             ("x_delivery_term", "delivery_term"),
-            ("x_appt_requested", "appt_requested"),
-            ("x_appt_requested_on", "appt_requested_on"),
+            ("x_appt_requested", "appointment_requested"),
+            ("x_appt_requested_on", "appointment_requested_on"),
         ],
     )
 

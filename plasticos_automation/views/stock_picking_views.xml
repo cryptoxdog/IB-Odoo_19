@@ -6,9 +6,9 @@
         <field name="inherit_id" ref="stock.view_picking_form"/>
         <field name="arch" type="xml">
             <xpath expr="//sheet" position="inside">
-                <group string="Trucker Tracking" name="trucker_tracking">
+                <group string="Carrier Tracking" name="carrier_tracking">
                     <group>
-                        <field name="trucker_id"/>
+                        <field name="carrier_id"/>
                         <field name="receipt_confirmation"/>
                     </group>
                     <group>

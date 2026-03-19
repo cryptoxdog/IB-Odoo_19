@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<odoo noupdate="1">
+<odoo noupdate="0">
     <!--
     Nightly Graph Sync Cron
     Full topology sync: taxonomy nodes, facility/material edges,

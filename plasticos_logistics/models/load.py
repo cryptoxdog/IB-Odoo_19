@@ -380,6 +380,7 @@ class PlasticosLoad(models.Model):
                 if rec.delivery_datetime < rec.pickup_datetime:
                     raise ValidationError(f"Load {rec.name}: Delivery date/time cannot be before pickup date/time.")
 
+    @api.model
     def _cron_escalation_check(self):
         self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_logistics.cron_escalation_check"])
         locked = self.env.cr.fetchone()[0]

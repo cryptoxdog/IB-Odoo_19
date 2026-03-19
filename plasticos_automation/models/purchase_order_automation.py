@@ -8,7 +8,7 @@ _logger = logging.getLogger(__name__)
 class PurchaseOrderAutomation(models.Model):
     _inherit = "purchase.order"
 
-    ready_for_pickup = fields.Boolean(string="Ready for Pickup", default=False)
+    supplier_ready = fields.Boolean(string="Ready for Pickup", default=False)
     ready_confirmed_on = fields.Datetime(string="Ready Confirmed On")
     followup_count = fields.Integer(string="Supplier Follow-up Count", default=0)
     last_followup_on = fields.Datetime(string="Last Follow-up On")
@@ -28,7 +28,7 @@ class PurchaseOrderAutomation(models.Model):
             orders = self.search(
                 [
                     ("state", "=", "purchase"),
-                    ("ready_for_pickup", "=", False),
+                    ("supplier_ready", "=", False),
                     "|",
                     ("last_followup_on", "=", False),
                     ("last_followup_on", "<", fields.Datetime.subtract(now, days=1)),

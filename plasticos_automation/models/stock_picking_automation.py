@@ -8,11 +8,11 @@ _logger = logging.getLogger(__name__)
 class StockPickingAutomation(models.Model):
     _inherit = "stock.picking"
 
-    # ── Trucker / Dispatch Tracking ─────────────────────────────────
-    trucker_id = fields.Many2one(
+    # ── Carrier / Dispatch Tracking ─────────────────────────────────
+    carrier_id = fields.Many2one(
         "res.partner",
-        string="Trucker",
-        help="The trucker (carrier or freight broker) responsible for this delivery.",
+        string="Carrier",
+        help="The carrier (trucker or freight broker) responsible for this delivery.",
     )
     receipt_confirmation = fields.Boolean(
         string="Trucker Receipt Confirmed",
@@ -47,7 +47,7 @@ class StockPickingAutomation(models.Model):
             pickings = self.search(
                 [
                     ("picking_type_code", "=", "outgoing"),
-                    ("trucker_id", "!=", False),
+                    ("carrier_id", "!=", False),
                     ("receipt_confirmation", "=", False),
                     ("state", "not in", ("done", "cancel")),
                     "|",
@@ -63,7 +63,7 @@ class StockPickingAutomation(models.Model):
             for picking in pickings:
                 picking.trucker_followup_count += 1
                 picking.trucker_notified_on = now
-                trucker_name = picking.trucker_id.name or "Unknown"
+                trucker_name = picking.carrier_id.name or "Unknown"
 
                 picking.message_post(
                     body=(

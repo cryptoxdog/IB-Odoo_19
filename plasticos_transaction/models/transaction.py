@@ -1174,49 +1174,64 @@ class PlasticosTransaction(models.Model):
         By the time supplier_confirmation_sent is stamped, TX is typically
         in pending_supplier, not active. Search both states.
         """
-        threshold_hours = 24
-        threshold_dt = fields.Datetime.now() - timedelta(hours=threshold_hours)
-
-        pending = self.search(
-            [
-                ("supplier_confirmation_sent", "!=", False),
-                ("supplier_confirmation_sent", "<", threshold_dt),
-                ("supplier_confirmation_received", "=", False),
-                ("state", "in", ["active", "pending_supplier"]),
-            ],
-            order="supplier_confirmation_sent asc",
-            limit=100,
+        self.env.cr.execute(
+            "SELECT pg_try_advisory_lock(hashtext(%s))",
+            ["plasticos_transaction.cron_supplier_confirmation_followup"],
         )
+        locked = self.env.cr.fetchone()[0]
+        if not locked:
+            _logger.info("Skipping supplier confirmation followup cron: lock is already held.")
+            return True
 
-        template = self.env.ref(
-            "plasticos_automation.email_template_supplier_confirmation",
-            raise_if_not_found=False,
-        )
+        try:
+            threshold_hours = 24
+            threshold_dt = fields.Datetime.now() - timedelta(hours=threshold_hours)
 
-        for tx in pending:
-            if tx.last_supplier_confirmation_followup_on:
-                last_followup_date = tx.last_supplier_confirmation_followup_on.date()
-                if last_followup_date == fields.Date.today():
-                    continue
+            pending = self.search(
+                [
+                    ("supplier_confirmation_sent", "!=", False),
+                    ("supplier_confirmation_sent", "<", threshold_dt),
+                    ("supplier_confirmation_received", "=", False),
+                    ("state", "in", ["active", "pending_supplier"]),
+                ],
+                order="supplier_confirmation_sent asc",
+                limit=100,
+            )
 
-            try:
-                if template and tx.supplier_id and tx.supplier_id.email:
-                    template.send_mail(tx.id, force_send=True)
+            template = self.env.ref(
+                "plasticos_automation.email_template_supplier_confirmation",
+                raise_if_not_found=False,
+            )
 
-                tx.supplier_confirmation_followup_count += 1
-                tx.last_supplier_confirmation_followup_on = fields.Datetime.now()
+            for tx in pending:
+                if tx.last_supplier_confirmation_followup_on:
+                    last_followup_date = tx.last_supplier_confirmation_followup_on.date()
+                    if last_followup_date == fields.Date.today():
+                        continue
 
-                if tx.supplier_confirmation_followup_count >= 3:
-                    tx._escalate_supplier_confirmation()
+                try:
+                    if template and tx.supplier_id and tx.supplier_id.email:
+                        template.send_mail(tx.id, force_send=True)
 
-                _logger.info(
-                    "Sent supplier confirmation follow-up #%d for TX %s",
-                    tx.supplier_confirmation_followup_count,
-                    tx.name,
-                )
+                    tx.supplier_confirmation_followup_count += 1
+                    tx.last_supplier_confirmation_followup_on = fields.Datetime.now()
 
-            except Exception as e:
-                _logger.error("Failed to send follow-up for TX %s: %s", tx.name, str(e))
+                    if tx.supplier_confirmation_followup_count >= 3:
+                        tx._escalate_supplier_confirmation()
+
+                    _logger.info(
+                        "Sent supplier confirmation follow-up #%d for TX %s",
+                        tx.supplier_confirmation_followup_count,
+                        tx.name,
+                    )
+
+                except Exception as e:
+                    _logger.error("Failed to send follow-up for TX %s: %s", tx.name, str(e))
+        finally:
+            self.env.cr.execute(
+                "SELECT pg_advisory_unlock(hashtext(%s))",
+                ["plasticos_transaction.cron_supplier_confirmation_followup"],
+            )
 
         return True
 
@@ -1231,42 +1246,57 @@ class PlasticosTransaction(models.Model):
         3. If PO exists but no picking -> confirm PO (triggers native creation)
         4. Logs TXs that need manual PO creation
         """
-        ready = self.search(
-            [
-                ("is_supplier_confirmed", "=", True),
-                ("delivery_order_id", "=", False),
-                ("state", "in", ["supplier_ready", "active", "pending_supplier"]),
-            ],
-            order="supplier_confirmation_received asc",
-            limit=100,
+        self.env.cr.execute(
+            "SELECT pg_try_advisory_lock(hashtext(%s))",
+            ["plasticos_transaction.cron_auto_create_do"],
         )
+        locked = self.env.cr.fetchone()[0]
+        if not locked:
+            _logger.info("Skipping auto-create DO cron: lock is already held.")
+            return True
 
-        linked_count = 0
-        for tx in ready:
-            try:
-                linked = False
-                for po in tx.purchase_order_ids:
-                    if po.picking_ids:
-                        outgoing = po.picking_ids.filtered(
-                            lambda p: p.picking_type_code == "outgoing" and p.state != "cancel"
-                        )
-                        if outgoing:
-                            tx.delivery_order_id = outgoing[0].id
-                            if tx.state == "supplier_ready":
-                                tx.action_mark_do_created()
-                            _logger.info("Linked existing DO %s to TX %s", outgoing[0].name, tx.name)
-                            linked_count += 1
-                            linked = True
-                            break
-                    elif po.state == "draft":
-                        po.button_confirm()
-                        _logger.info("Confirmed PO %s for TX %s", po.name, tx.name)
+        try:
+            ready = self.search(
+                [
+                    ("is_supplier_confirmed", "=", True),
+                    ("delivery_order_id", "=", False),
+                    ("state", "in", ["supplier_ready", "active", "pending_supplier"]),
+                ],
+                order="supplier_confirmation_received asc",
+                limit=100,
+            )
 
-                if not linked and not tx.purchase_order_ids:
-                    _logger.info("TX %s ready for DO but has no PO", tx.name)
+            linked_count = 0
+            for tx in ready:
+                try:
+                    linked = False
+                    for po in tx.purchase_order_ids:
+                        if po.picking_ids:
+                            outgoing = po.picking_ids.filtered(
+                                lambda p: p.picking_type_code == "outgoing" and p.state != "cancel"
+                            )
+                            if outgoing:
+                                tx.delivery_order_id = outgoing[0].id
+                                if tx.state == "supplier_ready":
+                                    tx.action_mark_do_created()
+                                _logger.info("Linked existing DO %s to TX %s", outgoing[0].name, tx.name)
+                                linked_count += 1
+                                linked = True
+                                break
+                        elif po.state == "draft":
+                            po.button_confirm()
+                            _logger.info("Confirmed PO %s for TX %s", po.name, tx.name)
 
-            except Exception as e:
-                _logger.error("Failed to process TX %s: %s", tx.name, str(e))
+                    if not linked and not tx.purchase_order_ids:
+                        _logger.info("TX %s ready for DO but has no PO", tx.name)
 
-        _logger.info("DO linkage cron: linked %d delivery orders", linked_count)
+                except Exception as e:
+                    _logger.error("Failed to process TX %s: %s", tx.name, str(e))
+
+            _logger.info("DO linkage cron: linked %d delivery orders", linked_count)
+        finally:
+            self.env.cr.execute(
+                "SELECT pg_advisory_unlock(hashtext(%s))",
+                ["plasticos_transaction.cron_auto_create_do"],
+            )
         return True
