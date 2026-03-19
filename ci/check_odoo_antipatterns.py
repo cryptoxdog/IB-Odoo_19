@@ -386,6 +386,42 @@ def check_regex_patterns(filepath: str, content: str) -> list[AntiPatternIssue]:
                 )
             )
 
+        # Check for direct attribute assignment outside @api.onchange
+        # Pattern: record.field = value (but NOT self.env, self._context, etc.)
+        # This is tricky because we need context (are we in @api.onchange?)
+        # For now, flag obvious cases in XML server action code blocks
+        # XML server actions should always use .write()
+        if "force_send=" in line or "send_mail(" in line:
+            # Check for direct assignment in same context (likely server action)
+            # Pattern: record.field = value where field is not a method call
+            direct_assign = re.search(
+                r"\b(\w+)\.([a-z_]+)\s*=\s*(?!.*\()",  # var.field = (not a call)
+                line,
+            )
+            if direct_assign:
+                var_name = direct_assign.group(1)
+                field_name = direct_assign.group(2)
+                # Skip known safe patterns
+                if var_name not in ("self", "env", "context", "cr", "uid") and field_name not in (
+                    "env",
+                    "context",
+                    "cr",
+                    "uid",
+                    "id",
+                    "ids",
+                ):
+                    issues.append(
+                        AntiPatternIssue(
+                            file=filepath,
+                            line=i,
+                            code="ODOO015",
+                            pattern="Direct attribute assignment",
+                            message=f"Use .write() instead of direct assignment: {var_name}.{field_name} = ...",
+                            fix=f"Use {var_name}.write({{'{field_name}': value}}) instead",
+                            severity="HIGH",
+                        )
+                    )
+
         # Check for deprecated decorators (removed in Odoo 13+)
         # Pattern: @api DOT one or @api DOT multi
         if re.search(r"@api\.(one|multi)\b", line):

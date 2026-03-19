@@ -26,15 +26,23 @@ class PlasticosPartnerImportService(models.AbstractModel):
     # Core upsert
     # -------------------------------------------------------------------------
     def _upsert(self, model_name, external_id, values):
-        """Idempotent upsert with external ID tracking."""
-        record = self.env.ref(external_id, raise_if_not_found=False)
+        """Idempotent upsert with external ID tracking.
+
+        Uses skip_automations context to prevent email triggers during import.
+        """
+        # Use context to skip automations during import
+        env = self.env
+        if not env.context.get("skip_automations"):
+            env = env(context=dict(env.context, skip_automations=True, import_mode=True))
+
+        record = env.ref(external_id, raise_if_not_found=False)
 
         if record:
             record.write(values)
             _logger.debug("Updated %s via %s", model_name, external_id)
             return record
 
-        model = self.env[model_name]
+        model = env[model_name]
         rec = model.create(values)
 
         self.env["ir.model.data"].create(
