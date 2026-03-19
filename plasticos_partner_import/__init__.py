@@ -2,7 +2,7 @@ from . import models
 from . import wizards
 
 
-def pre_init_hook(cr):
+def pre_init_hook(env):
     """Clean up dependent records before partner XML ID cleanup.
 
     UNCONDITIONAL: Detaches imported partners from sale_orders on every build.
@@ -11,11 +11,14 @@ def pre_init_hook(cr):
     During module update, Odoo's _process_end() tries to delete partners
     whose XML IDs were removed. This fails if sale_order or other tables
     still reference those partners. This hook cleans up those references first.
+
+    Note: Odoo 19 passes env to pre_init_hook, not raw cursor.
     """
     import logging
     import os
 
     _logger = logging.getLogger(__name__)
+    cr = env.cr
 
     # Always detach imported partners from sale_orders to prevent FK violation
     # during _process_end cleanup. This is safe — sale orders are preserved,
