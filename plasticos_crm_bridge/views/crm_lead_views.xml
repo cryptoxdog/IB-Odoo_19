@@ -95,14 +95,12 @@
                         <div class="d-flex justify-content-between">
                             <span>
                                 <strong>Revenue:</strong>
-                                <field name="partner_total_revenue"
-                                       widget="monetary"
+                                $<field name="partner_total_revenue"
                                        nolabel="1"/>
                             </span>
                             <span>
                                 <strong>Last Load Shipped:</strong>
-                                <field name="partner_last_pickup" nolabel="1"
-                                       widget="date"/>
+                                <field name="partner_last_pickup" nolabel="1"/>
                             </span>
                         </div>
                     </div>
@@ -146,8 +144,7 @@
                             <field name="total_transaction_count"
                                    string="Transactions"/>
                             <field name="partner_total_revenue"
-                                   string="Total Revenue"
-                                   widget="monetary"/>
+                                   string="Total Revenue"/>
                             <field name="partner_last_pickup"
                                    string="Last Load Shipped"/>
                         </group>

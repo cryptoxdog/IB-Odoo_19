@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
     <!-- ═══════════════════════════════════════════════════════════════════
@@ -180,7 +181,7 @@
                                 </group>
                             </group>
                             <group string="Score Breakdown">
-                                <field name="score_breakdown" widget="text"/>
+                                <field name="score_breakdown" widget="json"/>
                             </group>
                             <group string="Reasoning">
                                 <field name="match_reasoning"/>

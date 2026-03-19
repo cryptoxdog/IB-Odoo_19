@@ -164,7 +164,7 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="action_dispatch" string="Dispatch" type="object" class="btn-primary" invisible="state not in ('scheduled', 'rate_confirmed')"/>
+                    <button name="action_dispatch" string="Dispatch" type="object" class="btn-primary" invisible="state != 'scheduled'"/>
                     <button name="action_close" string="Close Load" type="object" class="btn-success" invisible="state != 'delivered'"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,rate_confirmed,scheduled,dispatched,picked_up,delivered,closed"/>
                 </header>

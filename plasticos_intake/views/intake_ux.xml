@@ -135,8 +135,8 @@
                 <field name="best_match_score"/>
             </xpath>
 
-            <!-- Enhance match badges with best score trophy -->
-            <xpath expr="//div[hasclass('o_kanban_record_body')]" position="inside">
+            <!-- Replace base match badge with enhanced version including best score -->
+            <xpath expr="//div[hasclass('o_kanban_record_body')]/div[last()]" position="replace">
                 <div t-if="record.match_count.raw_value" class="mt-1">
                     <span class="badge bg-success">
                         <i class="fa fa-handshake-o" title="Matches"/>

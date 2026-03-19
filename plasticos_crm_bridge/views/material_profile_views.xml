@@ -68,7 +68,7 @@
                     <div class="alert alert-success" role="alert"
                          invisible="not last_pickup_date">
                         <i class="fa fa-truck" title="Last Load"/> <strong>Last Load Shipped:</strong>
-                        <field name="last_pickup_date" nolabel="1" widget="date"/>
+                        <field name="last_pickup_date" nolabel="1"/>
                     </div>
 
                     <div class="alert alert-warning" role="alert"
@@ -93,7 +93,7 @@
                     <group string="Transaction History">
                         <group>
                             <field name="transaction_count"/>
-                            <field name="total_revenue" widget="monetary"/>
+                            <field name="total_revenue"/>
                         </group>
                         <group>
                             <field name="last_pickup_date"

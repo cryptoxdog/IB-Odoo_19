@@ -114,6 +114,10 @@ class PlasticosClaim(models.Model):
     )
 
     # ── Financial ────────────────────────────────────────────
+    currency_id = fields.Many2one(
+        "res.currency",
+        default=lambda self: self.env.company.currency_id,
+    )
     claimed_amount = fields.Float(
         string="Claimed Amount",
         help="Amount claimed by buyer or requested recovery.",

@@ -11,6 +11,7 @@
         "mail",
         "product",
         "sale_management",
+        "sale_stock",
         "account",
         "stock",
         "purchase",

@@ -6,7 +6,7 @@
         <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//form" position="inside">
-                <app string="PlasticOS Microservices" name="plasticos_microservices" groups="base.group_system">
+                <app string="PlasticOS Microservices" name="plasticos_base" groups="base.group_system">
                     <block title="Microservice Feature Gates">
                         <setting id="plasticos_matching_engine_enabled_setting"
                                  string="Enable Matching Engine"
