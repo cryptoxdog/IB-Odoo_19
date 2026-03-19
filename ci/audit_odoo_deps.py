@@ -12,6 +12,9 @@ from pathlib import Path
 
 ODOO_CORE_MODULES = {
     "base",
+    "base_setup",
+    "base_geolocalize",
+    "base_geocoder",
     "mail",
     "sale",
     "sale_management",
@@ -66,9 +69,16 @@ class OdooAudit:
 
     def scan_modules(self):
         """Find all Odoo modules (directories with __manifest__.py)"""
+        # Folders to exclude from scanning (not our code)
+        exclude_dirs = {"odoo-enterprise", "odoo", "odoo-source", ".venv", "venv", "node_modules"}
+
         for manifest in self.root_dir.rglob("__manifest__.py"):
             module_dir = manifest.parent
             module_name = module_dir.name
+
+            # Skip excluded directories
+            if any(excluded in manifest.parts for excluded in exclude_dirs):
+                continue
 
             # Skip docs, patches, and test directories
             if any(part in str(manifest) for part in ["/docs/", "/patches/", "/test_"]):
@@ -137,6 +147,10 @@ class OdooAudit:
                 continue
 
             module, record_id = xmlid.split(".", 1)
+
+            # Skip non-module patterns (URLs, emails, Jinja2 templates)
+            if module.startswith(("http", "https", "mailto", "tel", "'", '"', "{", "%")):
+                continue
 
             # Check if the module exists (skip Odoo core modules)
             if module not in self.modules:
