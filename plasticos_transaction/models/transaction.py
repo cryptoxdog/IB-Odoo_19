@@ -1174,49 +1174,64 @@ class PlasticosTransaction(models.Model):
         By the time supplier_confirmation_sent is stamped, TX is typically
         in pending_supplier, not active. Search both states.
         """
-        threshold_hours = 24
-        threshold_dt = fields.Datetime.now() - timedelta(hours=threshold_hours)
-
-        pending = self.search(
-            [
-                ("supplier_confirmation_sent", "!=", False),
-                ("supplier_confirmation_sent", "<", threshold_dt),
-                ("supplier_confirmation_received", "=", False),
-                ("state", "in", ["active", "pending_supplier"]),
-            ],
-            order="supplier_confirmation_sent asc",
-            limit=100,
+        self.env.cr.execute(
+            "SELECT pg_try_advisory_lock(hashtext(%s))",
+            ["plasticos_transaction.cron_supplier_confirmation_followup"],
         )
+        locked = self.env.cr.fetchone()[0]
+        if not locked:
+            _logger.info("Skipping supplier confirmation followup cron: lock is already held.")
+            return True
 
-        template = self.env.ref(
-            "plasticos_automation.email_template_supplier_confirmation",
-            raise_if_not_found=False,
-        )
+        try:
+            threshold_hours = 24
+            threshold_dt = fields.Datetime.now() - timedelta(hours=threshold_hours)
 
-        for tx in pending:
-            if tx.last_supplier_confirmation_followup_on:
-                last_followup_date = tx.last_supplier_confirmation_followup_on.date()
-                if last_followup_date == fields.Date.today():
-                    continue
+            pending = self.search(
+                [
+                    ("supplier_confirmation_sent", "!=", False),
+                    ("supplier_confirmation_sent", "<", threshold_dt),
+                    ("supplier_confirmation_received", "=", False),
+                    ("state", "in", ["active", "pending_supplier"]),
+                ],
+                order="supplier_confirmation_sent asc",
+                limit=100,
+            )
 
-            try:
-                if template and tx.supplier_id and tx.supplier_id.email:
-                    template.send_mail(tx.id, force_send=True)
+            template = self.env.ref(
+                "plasticos_automation.email_template_supplier_confirmation",
+                raise_if_not_found=False,
+            )
 
-                tx.supplier_confirmation_followup_count += 1
-                tx.last_supplier_confirmation_followup_on = fields.Datetime.now()
+            for tx in pending:
+                if tx.last_supplier_confirmation_followup_on:
+                    last_followup_date = tx.last_supplier_confirmation_followup_on.date()
+                    if last_followup_date == fields.Date.today():
+                        continue
 
-                if tx.supplier_confirmation_followup_count >= 3:
-                    tx._escalate_supplier_confirmation()
+                try:
+                    if template and tx.supplier_id and tx.supplier_id.email:
+                        template.send_mail(tx.id, force_send=True)
 
-                _logger.info(
-                    "Sent supplier confirmation follow-up #%d for TX %s",
-                    tx.supplier_confirmation_followup_count,
-                    tx.name,
-                )
+                    tx.supplier_confirmation_followup_count += 1
+                    tx.last_supplier_confirmation_followup_on = fields.Datetime.now()
 
-            except Exception as e:
-                _logger.error("Failed to send follow-up for TX %s: %s", tx.name, str(e))
+                    if tx.supplier_confirmation_followup_count >= 3:
+                        tx._escalate_supplier_confirmation()
+
+                    _logger.info(
+                        "Sent supplier confirmation follow-up #%d for TX %s",
+                        tx.supplier_confirmation_followup_count,
+                        tx.name,
+                    )
+
+                except Exception as e:
+                    _logger.error("Failed to send follow-up for TX %s: %s", tx.name, str(e))
+        finally:
+            self.env.cr.execute(
+                "SELECT pg_advisory_unlock(hashtext(%s))",
+                ["plasticos_transaction.cron_supplier_confirmation_followup"],
+            )
 
         return True
 

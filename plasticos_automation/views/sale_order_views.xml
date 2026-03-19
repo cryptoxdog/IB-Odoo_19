@@ -11,8 +11,8 @@
                         <field name="delivery_term"/>
                     </group>
                     <group>
-                        <field name="appt_requested"/>
-                        <field name="appt_requested_on" readonly="1"/>
+                        <field name="appointment_requested"/>
+                        <field name="appointment_requested_on" readonly="1"/>
                     </group>
                 </group>
             </xpath>

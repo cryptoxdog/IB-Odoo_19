@@ -122,7 +122,7 @@ else:
         if picking.sale_id:
             tx = env['plasticos.transaction'].search([('sale_order_id', '=', picking.sale_id.id)], limit=1)
             if tx and tx.state in ('in_progress', 'in_transit'):
-                tx.write({
+                tx.with_context(bypass_state_guard=True).write({
                     'state': 'delivered',
                 })
                 tx.message_post(body=f"Delivery completed - DO {picking.name}")

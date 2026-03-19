@@ -1,5 +1,5 @@
 create a consolidated test_module_contracts_MODULE NAME.py for each module
-follow this structure 
+follow this structure
 Minimal High-Value Test Set
 Master registry invariant (you already have)
 All master models reject duplicate code.

@@ -18,12 +18,12 @@ class SaleOrderAutomation(models.Model):
         default="fcfs",
         help="Delivery method: FCFS or appointment-based.",
     )
-    appt_requested = fields.Boolean(
+    appointment_requested = fields.Boolean(
         string="Dock Appointment Requested",
         default=False,
         help="Flag indicating dock appointment has been requested.",
     )
-    appt_requested_on = fields.Datetime(
+    appointment_requested_on = fields.Datetime(
         string="Dock Appointment Requested On",
         help="Timestamp when dock appointment was requested.",
     )
@@ -31,8 +31,8 @@ class SaleOrderAutomation(models.Model):
     def action_request_dock_appointment(self):
         """Mark the order as having a dock appointment requested."""
         for rec in self:
-            rec.appt_requested = True
-            rec.appt_requested_on = fields.Datetime.now()
+            rec.appointment_requested = True
+            rec.appointment_requested_on = fields.Datetime.now()
             rec.message_post(
                 body=f"Dock appointment requested for SO {rec.name}.",
                 message_type="notification",

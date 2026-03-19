@@ -42,7 +42,8 @@ def post_init_hook(env):
         if not user:
             _logger.warning(
                 "post_init_hook [%s]: user %s not found – skipping.",
-                _MODULE, full_xml_id,
+                _MODULE,
+                full_xml_id,
             )
             continue
 
@@ -51,7 +52,8 @@ def post_init_hook(env):
             if not group:
                 _logger.warning(
                     "post_init_hook [%s]: group %s not found – skipping.",
-                    _MODULE, gref,
+                    _MODULE,
+                    gref,
                 )
                 continue
             env.cr.execute(
@@ -65,5 +67,7 @@ def post_init_hook(env):
 
         _logger.info(
             "post_init_hook [%s]: granted groups %s to user %s.",
-            _MODULE, group_refs, full_xml_id,
+            _MODULE,
+            group_refs,
+            full_xml_id,
         )
