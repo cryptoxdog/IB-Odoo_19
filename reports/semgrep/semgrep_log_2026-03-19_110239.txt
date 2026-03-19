@@ -1,0 +1,37 @@
+[00.08][[33mWARNING[0m]: Skipping unknown field 'pattern-not' in rule "odoo-env-ref-unguarded"
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 372 files tracked by git with 720 Code rules:
+
+  Language      Rules   Files          Origin      Rules
+ ─────────────────────────────        ───────────────────
+  <multilang>      42     372          Community     714
+  python          204     182          Custom          6
+  yaml             19      50
+  bash              1       7
+  json              3       1
+
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+✅ Scan completed successfully.
+ • Findings: 188 (188 blocking)
+ • Rules run: 269
+ • Targets scanned: 372
+ • Parsed lines: ~99.9%
+ • Scan skipped:
+   ◦ Files larger than  files 5.0 MB: 1
+   ◦ Files matching .semgrepignore patterns: 10
+ • Scan was limited to files tracked by git
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
+Ran 269 rules on 372 files: 188 findings.
+
+A new version of Semgrep is available. See https://semgrep.dev/docs/upgrading
+
+📢 Too many findings? Try Semgrep Pro for more powerful queries and less noise.
+   See https://sg.run/false-positives.

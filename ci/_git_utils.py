@@ -9,6 +9,11 @@ git-tracked files (respecting .gitignore).
 import subprocess
 from pathlib import Path
 
+# Canonical import name guard (after imports for E402 compliance)
+assert __name__ != "git_utils", (
+    "_git_utils.py must be imported as '_git_utils', not 'git_utils'. Check your pre-commit-config.yaml PYTHONPATH."
+)
+
 
 def get_git_tracked_files(pattern: str = "", root_dir: Path | None = None) -> list[Path]:
     """

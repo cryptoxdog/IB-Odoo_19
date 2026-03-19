@@ -70,6 +70,10 @@ import sys
 from pathlib import Path
 
 # Modules to scan (plasticos_* only, not odoo-enterprise or odoo-source)
+# NOTE: Removed stale entries that don't exist as active modules:
+#   - plasticos_enrichment_bridge (not active)
+#   - plasticos_graph_intelligence (not active)
+#   - ai_account (not active)
 SCAN_DIRS = [
     "plasticos_automation",
     "plasticos_base",
@@ -81,10 +85,8 @@ SCAN_DIRS = [
     "plasticos_documents",
     "plasticos_documents_native",
     "plasticos_enrichment",
-    "plasticos_enrichment_bridge",
     "plasticos_facility_profile",
     "plasticos_geolocalize",
-    "plasticos_graph_intelligence",
     "plasticos_inference_engine",
     "plasticos_intake",
     "plasticos_intake_normalizer",
@@ -98,7 +100,6 @@ SCAN_DIRS = [
     "plasticos_security_base",
     "plasticos_transaction",
     "plasticos_web_leads",
-    "ai_account",
 ]
 
 
@@ -420,6 +421,21 @@ def check_regex_patterns(filepath: str, content: str) -> list[AntiPatternIssue]:
                     message="Use 'is None' not '== None' (or 'if not record:' for recordsets)",
                     fix="Use 'is None' for None checks, 'if not record:' for empty recordsets",
                     severity="LOW",
+                )
+            )
+
+        # Check for self.env.get("model.name") — NOT a valid Odoo API
+        # self.env.get() returns None, not a model. Use self.env["model.name"] instead.
+        if re.search(r'\.env\.get\s*\(\s*["\'][a-z_]+\.[a-z_.]+["\']\s*\)', line):
+            issues.append(
+                AntiPatternIssue(
+                    file=filepath,
+                    line=i,
+                    code="ODOO016",
+                    pattern="self.env.get('model.name')",
+                    message="self.env.get() is not a valid Odoo API — returns None, not a model",
+                    fix='Use self.env["model.name"] instead of self.env.get("model.name")',
+                    severity="CRITICAL",
                 )
             )
 

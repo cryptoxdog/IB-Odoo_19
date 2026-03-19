@@ -17,9 +17,9 @@ from pathlib import Path
 WORKSPACE = Path(__file__).parent.parent
 
 # Models that are external microservices (not installed in Odoo)
+# NOTE: plasticos.match.result and plasticos.match.job removed — they are
+# defined in plasticos_matching which is an active installed module.
 EXTERNAL_MODELS = {
-    "plasticos.match.result",
-    "plasticos.match.job",
     "plasticos.enrichment.task",
     "plasticos.graph.node",
     "plasticos.graph.edge",

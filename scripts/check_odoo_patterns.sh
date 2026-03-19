@@ -361,8 +361,9 @@ fi
 
 # 24. self.env.get("model.name") anti-pattern (NOT a valid Odoo API)
 # env.get() returns None instead of the model, causing silent failures
+# NOTE: Exclude ci/ directory (CI scripts contain pattern detection code, not violations)
 echo -n "Checking self.env.get() anti-pattern... "
-MATCHES=$(echo "$PY_FILES" | xargs grep -E '\.env\.get\s*\(\s*["\x27][a-z_]+\.[a-z_.]+["\x27]' 2>/dev/null || true)
+MATCHES=$(echo "$PY_FILES" | grep -v '^ci/' | xargs grep -E '\.env\.get\s*\(\s*["\x27][a-z_]+\.[a-z_.]+["\x27]' 2>/dev/null || true)
 if [ -n "$MATCHES" ]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES" | head -10

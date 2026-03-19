@@ -1,12 +1,7 @@
 rules:
   - id: odoo-hardcoded-model-string
-    patterns:
-      - pattern: |
-          self.env[$MODEL]
-      - metavariable-pattern:
-          metavariable: $MODEL
-          pattern-not-regex: '^[A-Z_]+$'
-    message: "Use a module-level constant instead of a hardcoded model name string"
+    pattern: self.env["$MODEL"]
+    message: "Consider using a module-level constant instead of hardcoded model name string"
     languages: [python]
     severity: WARNING
 
@@ -17,11 +12,33 @@ rules:
     severity: WARNING
 
   - id: odoo-bare-except
-    pattern: |
-      try:
-        ...
-      except:
-        ...
+    patterns:
+      - pattern: |
+          try:
+            ...
+          except:
+            ...
     message: "Use specific exception types instead of bare except"
     languages: [python]
     severity: ERROR
+
+  - id: odoo-sudo-without-comment
+    pattern: .sudo()
+    message: "sudo() call should have inline comment justifying elevated privileges"
+    languages: [python]
+    severity: WARNING
+
+  - id: odoo-raw-sql
+    pattern-either:
+      - pattern: self.env.cr.execute(...)
+      - pattern: self._cr.execute(...)
+    message: "Raw SQL detected - prefer ORM methods to prevent SQL injection"
+    languages: [python]
+    severity: ERROR
+
+  - id: odoo-env-ref-unguarded
+    pattern: self.env.ref($REF)
+    pattern-not: self.env.ref($REF, raise_if_not_found=False)
+    message: "env.ref() should use raise_if_not_found=False to handle missing records gracefully"
+    languages: [python]
+    severity: WARNING

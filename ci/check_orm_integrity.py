@@ -108,14 +108,33 @@ class OrmIntegrityChecker(ast.NodeVisitor):
             )
 
     def _check_unguarded_search_access(self, node: ast.Call) -> None:
-        """Check for unguarded attribute access on search results.
-
-        Pattern: model.search(...).attr where attr is id, name, code, etc.
-        This crashes if search returns empty recordset.
-        """
-        # This is complex to detect via AST because the access happens
-        # after the call. We'll use a simpler regex-based approach instead.
-        pass
+        """Check for direct .id/.name access on search() result (crashes on empty set)."""
+        # Pattern: expr.search(...).id  — detected when the Call is inside an Attribute
+        parent = getattr(node, "_parent", None)
+        if parent is None:
+            return
+        if not isinstance(parent, ast.Attribute):
+            return
+        if parent.attr not in {"id", "name", "code", "display_name"}:
+            return
+        # Confirm the call itself is a .search(...)
+        if not isinstance(node.func, ast.Attribute):
+            return
+        if node.func.attr != "search":
+            return
+        self.issues.append(
+            {
+                "type": "UNGUARDED_SEARCH_ACCESS",
+                "line": node.lineno,
+                "col": node.col_offset,
+                "message": (
+                    f"Direct .{parent.attr} access on search() result — "
+                    "crashes on empty recordset. Use search(..., limit=1) and guard truthiness."
+                ),
+                "severity": "HIGH" if not self.is_test_file else "MEDIUM",
+                "fix": "rec = model.search([...], limit=1)\nif rec:\n    use(rec.id)",
+            }
+        )
 
 
 def check_unguarded_search_regex(filepath: str, content: str) -> list[dict]:
@@ -172,6 +191,10 @@ def scan_file(filepath: str) -> list[dict]:
     # AST-based checks
     try:
         tree = ast.parse(content)
+        # Add parent-linking for AST traversal (needed for _check_unguarded_search_access)
+        for node in ast.walk(tree):
+            for child in ast.iter_child_nodes(node):
+                child._parent = node  # type: ignore[attr-defined]
         checker = OrmIntegrityChecker(filepath)
         checker.visit(tree)
         issues.extend(checker.issues)

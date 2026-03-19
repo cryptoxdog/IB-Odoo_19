@@ -1,0 +1,203 @@
+========================================================================================================================
+SEMGREP FULL AUDIT RESULTS
+========================================================================================================================
+
+Total findings: 188
+  ERROR:   44
+  WARNING: 144
+  INFO:    0
+
+Errors during scan: 4
+
+------------------------------------------------------------------------------------------------------------------------
+
+File                                               Line   Severity   Rule                                     Message
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ci/check_automation_field_refs.py                  26     ERROR      python.lang.security.use-defused-xml.us  The Python documentation recommends using `defuse
+ci/check_automation_field_refs.py                  262    ERROR      python.lang.security.use-defused-xml-pa  The native Python `xml` library is vulnerable to
+ci/check_state_guard_bypass.py                     26     ERROR      python.lang.security.use-defused-xml.us  The Python documentation recommends using `defuse
+ci/check_state_guard_bypass.py                     114    ERROR      python.lang.security.use-defused-xml-pa  The native Python `xml` library is vulnerable to
+ci/check_xpath_stability.py                        23     ERROR      python.lang.security.use-defused-xml.us  The Python documentation recommends using `defuse
+ci/check_xpath_stability.py                        136    ERROR      python.lang.security.use-defused-xml-pa  The native Python `xml` library is vulnerable to
+plasticos_automation/models/contract_renewal.py    16     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_automation/models/contract_renewal.py    66     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_automation/models/invoice_reminder.py    16     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_automation/models/invoice_reminder.py    59     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_automation/models/load_automation.py     32     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_automation/models/load_automation.py     81     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_automation/models/purchase_order_automa  19     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_automation/models/purchase_order_automa  75     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_automation/models/sale_approval.py       27     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_automation/models/sale_approval.py       59     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_automation/models/stock_picking_automat  39     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_automation/models/stock_picking_automat  110    ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_automation/models/stock_reorder_alert.p  15     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_automation/models/stock_reorder_alert.p  65     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_base/models/ir_attachment.py             16     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_base/models/ir_attachment.py             59     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_base/models/midnight_recompute.py        40     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_base/models/midnight_recompute.py        54     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_buyer_match_engine/models/graph_service  1074   ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_buyer_match_engine/models/graph_service  1086   ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_buyer_match_engine/models/match_exclusi  165    ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_buyer_match_engine/models/match_exclusi  186    ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_enrichment/models/enrichment_run.py      457    ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_enrichment/models/enrichment_run.py      498    ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_enrichment/models/enrichment_run.py      505    ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_enrichment/models/enrichment_run.py      539    ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_logistics/models/load.py                 385    ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_logistics/models/load.py                 399    ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_offer/models/offer.py                    391    ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_offer/models/offer.py                    414    ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_transaction/models/audit_cron.py         15     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_transaction/models/audit_cron.py         45     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_transaction/models/transaction.py        948    ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_transaction/models/transaction.py        1177   ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_transaction/models/transaction.py        1231   ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_transaction/models/transaction.py        1249   ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_transaction/models/transaction.py        1298   ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+plasticos_transaction/wizards/transaction_bulk_up  83     ERROR      semgrep.odoo-raw-sql                     Raw SQL detected - prefer ORM methods to prevent
+ci/audit_cross_module_deps.py                      63     WARNING    semgrep.odoo-commented-code              Remove commented-out Odoo code
+ci/audit_cross_module_deps.py                      67     WARNING    semgrep.odoo-commented-code              Remove commented-out Odoo code
+ci/audit_cross_module_deps.py                      70     WARNING    semgrep.odoo-commented-code              Remove commented-out Odoo code
+ci/audit_cross_module_deps.py                      72     WARNING    semgrep.odoo-commented-code              Remove commented-out Odoo code
+ci/check_odoo_antipatterns.py                      298    WARNING    semgrep.odoo-commented-code              Remove commented-out Odoo code
+ci/check_odoo_antipatterns.py                      428    WARNING    semgrep.odoo-commented-code              Remove commented-out Odoo code
+plasticos_automation/models/account_move_penalty.  127    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_automation/models/contract_renewal.py    24     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_automation/models/contract_renewal.py    27     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_automation/models/invoice_reminder.py    22     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_automation/models/invoice_reminder.py    57     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_automation/models/load_automation.py     44     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_automation/models/purchase_order_automa  39     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_automation/models/sale_approval.py       16     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_automation/models/sale_approval.py       35     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_automation/models/sale_approval.py       47     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_automation/models/stock_picking_automat  61     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_automation/models/stock_reorder_alert.p  23     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_automation/models/stock_reorder_alert.p  26     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_base/models/feature_gate_mixin.py        41     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_base/models/feature_gate_mixin.py        49     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_base/models/feature_gate_mixin.py        55     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_base/models/midnight_recompute.py        69     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_base/models/midnight_recompute.py        110    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/Knowledge Base V8.0/  214    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/Knowledge Base V8.0/  215    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/Knowledge Base V8.0/  359    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  130    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  160    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  601    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  605    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  610    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  617    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  810    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  883    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1115   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1149   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1170   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1191   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1212   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1233   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1254   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1277   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1321   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1350   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1378   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1406   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1435   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1474   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1497   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1518   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1539   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1575   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1656   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1766   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1837   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1892   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1976   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  1977   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  2131   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/graph_service  2207   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/intake_extens  45     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/intake_extens  70     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/intake_extens  90     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/intake_graph_  38     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/intake_graph_  43     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/matcher.py     75     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/matcher.py     81     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/matcher.py     130    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/matcher.py     254    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/matcher.py     310    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/matcher.py     315    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/matcher.py     428    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_buyer_match_engine/models/material_prof  49     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_run.py      19     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_run.py      108    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_run.py      164    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_run.py      217    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_run.py      219    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_run.py      254    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_run.py      376    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_run.py      410    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_run.py      411    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_run.py      465    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_run.py      513    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_run.py      514    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_service.py  207    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_service.py  414    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_service.py  425    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_service.py  431    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_service.py  436    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_service.py  445    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_service.py  460    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_service.py  461    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_enrichment/models/enrichment_service.py  528    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_intake/models/intake.py                  416    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_intake/models/intake.py                  441    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_intake/models/intake.py                  481    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_intake/models/intake.py                  524    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_intake/models/intake.py                  757    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_intake/models/intake.py                  789    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_intake/models/intake.py                  833    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_intake/models/intake.py                  863    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_intake/models/intake.py                  913    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_intake/models/intake.py                  979    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_intake/models/intake.py                  1000   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_intake/models/material_profile_intake.p  25     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_intake/models/res_partner_intake.py      25     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_logistics/models/load.py                 20     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_logistics/models/load.py                 109    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_logistics/models/load.py                 127    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_logistics/models/load.py                 362    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_logistics/models/load.py                 425    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_logistics/models/transaction_inherit.py  29     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_offer/models/offer.py                    242    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/account_move_inherit  18     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/account_move_inherit  41     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/account_move_inherit  56     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/account_move_inherit  61     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/account_move_inherit  85     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/audit_cron.py         14     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/purchase_inherit.py   30     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/purchase_inherit.py   45     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/purchase_inherit.py   87     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/purchase_inherit.py   92     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/sale_inherit.py       26     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/transaction.py        510    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/transaction.py        515    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/transaction.py        574    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/transaction.py        792    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/transaction.py        814    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/transaction.py        851    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/transaction.py        942    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/transaction.py        944    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/transaction.py        1103   WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/transaction_import_s  160    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/transaction_import_s  179    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/models/transaction_import_s  289    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/services/status_cascade.py   67     WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/wizards/transaction_import_  128    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/wizards/transaction_import_  185    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/wizards/transaction_import_  188    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+plasticos_transaction/wizards/transaction_import_  189    WARNING    semgrep.odoo-hardcoded-model-string      Consider using a module-level constant instead of
+scripts/check_module_wiring.py                     282    WARNING    semgrep.odoo-commented-code              Remove commented-out Odoo code

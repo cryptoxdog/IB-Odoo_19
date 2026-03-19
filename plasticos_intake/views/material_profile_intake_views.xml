@@ -42,14 +42,16 @@
     <field name="inherit_id" ref="base.view_partner_form"/>
     <field name="arch" type="xml">
 
-      <!-- Add Create Intake button to existing header for facilities -->
-      <xpath expr="//header" position="inside">
-        <button name="action_create_intake"
-                string="Create Intake"
-                type="object"
-                class="btn-primary"
-                icon="fa-inbox"
-                invisible="not is_facility"/>
+      <!-- Add header with Create Intake button (partner form has no header by default) -->
+      <xpath expr="//sheet" position="before">
+        <header>
+          <button name="action_create_intake"
+                  string="Create Intake"
+                  type="object"
+                  class="btn-primary"
+                  icon="fa-inbox"
+                  invisible="not is_facility"/>
+        </header>
       </xpath>
 
       <!-- Add Intake stat button to button box -->

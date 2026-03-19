@@ -95,9 +95,15 @@ def check_state_guard_bypass(root_dir: Path, guarded_models: set[str]) -> list[d
     """Check server action code for state writes missing bypass_state_guard."""
     issues = []
 
-    xml_files = get_git_tracked_files("*/data/*.xml")
+    # Scan data/, security/, and views/ directories for XML files
+    xml_patterns = ["*/data/*.xml", "*/security/*.xml", "*/views/*.xml"]
+    xml_files = []
+    for pat in xml_patterns:
+        xml_files.extend(get_git_tracked_files(pat))
     if not xml_files:
-        xml_files = list(root_dir.glob("plasticos_*/data/*.xml"))
+        for pat in xml_patterns:
+            xml_files.extend(root_dir.glob(f"plasticos_{pat}"))
+    xml_files = list(set(xml_files))  # deduplicate
 
     for xml_file in xml_files:
         xml_path = root_dir / xml_file if not xml_file.is_absolute() else xml_file
