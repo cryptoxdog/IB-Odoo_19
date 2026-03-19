@@ -61,17 +61,28 @@ def post_init_hook(env):
     # This ensures ib@ and ab@ can always access Settings
     # ═══════════════════════════════════════════════════════════════════
     core_admin_groups = [
+        # Base / System
         "base.group_system",  # Settings / Technical Features
         "base.group_erp_manager",  # Access Rights
         "base.group_user",  # Internal User
         "base.group_partner_manager",  # Contact Creation
+        "base.group_no_one",  # Technical Features (for debugging)
+        # Sales
         "sales_team.group_sale_manager",  # Sales Manager
+        "sales_team.group_sale_salesman_all_leads",  # See All Leads
+        "sale.group_sale_order_dates",  # Delivery Date on SO
+        # Purchase (all levels for full PO access)
         "purchase.group_purchase_manager",  # Purchase Manager
         "purchase.group_purchase_user",  # Purchase User
+        # Accounting (required for PO line access per error message)
         "account.group_account_manager",  # Invoicing Manager
         "account.group_account_user",  # Invoicing User
+        "account.group_account_invoice",  # Billing
+        "account.group_account_readonly",  # Show Accounting Features - Readonly
+        # Inventory (required for PO line access per error message)
         "stock.group_stock_manager",  # Inventory Manager
         "stock.group_stock_user",  # Inventory User
+        # CRM
         "crm.group_use_lead",  # Use Leads
     ]
 
