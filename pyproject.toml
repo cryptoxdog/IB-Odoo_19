@@ -164,6 +164,41 @@ module = ["plasticos_graph_integration.*"]
 ignore_errors = true  # Uses requests; types-requests in CI
 
 # =============================================================================
+# BASEDPYRIGHT / PYRIGHT TYPE CHECKING
+# =============================================================================
+[tool.basedpyright]
+pythonVersion = "3.12"
+typeCheckingMode = "off"
+reportMissingImports = false
+reportMissingModuleSource = false
+reportOptionalMemberAccess = false
+reportGeneralTypeIssues = false
+exclude = [
+    "**/__pycache__",
+    ".venv",
+    "venv",
+    "addons",
+    "tests-odoo",
+    "docs",
+]
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "off"
+reportMissingImports = false
+reportMissingModuleSource = false
+reportOptionalMemberAccess = false
+reportGeneralTypeIssues = false
+exclude = [
+    "**/__pycache__",
+    ".venv",
+    "venv",
+    "addons",
+    "tests-odoo",
+    "docs",
+]
+
+# =============================================================================
 # ODOO-SPECIFIC PATTERNS TO GREP FOR (not catchable by ruff/mypy, use grep/CI script)
 # =============================================================================
 # These patterns cause Odoo 19 runtime errors but static analysis can't detect them.

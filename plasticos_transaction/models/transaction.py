@@ -872,8 +872,15 @@ class PlasticosTransaction(models.Model):
         """Enforce that state changes only happen via dedicated action methods.
 
         System processes (crons, automated workflows) can bypass this guard by
-        setting context key 'bypass_state_guard' to True. This should only be
-        used by action_* methods, never by direct write() calls.
+        setting context key 'bypass_state_guard' to True.
+
+        INTERNAL ONLY — never expose 'bypass_state_guard' in XML button context attrs.
+        This key is reserved for:
+        - action_mark_* methods in this model
+        - Cron jobs that need to update state programmatically
+        - Automated workflow rules (base.automation)
+
+        Direct write() calls from UI or external API should NEVER use this key.
         """
         if "state" in vals:
             if self.env.context.get("bypass_state_guard"):
@@ -936,7 +943,11 @@ class PlasticosTransaction(models.Model):
         return super().unlink()
 
     def action_activate(self):
-        self.state = "active"
+        """Activate a draft transaction."""
+        for rec in self:
+            if rec.state != "draft":
+                raise UserError(f"Cannot activate transaction: must be in 'Draft' state (current: {rec.state}).")
+            rec.state = "active"
 
     def action_close(self):
         service_docs = self.env["plasticos.compliance.service"] if "plasticos.compliance.service" in self.env else None
@@ -945,15 +956,34 @@ class PlasticosTransaction(models.Model):
         )
 
         for rec in self:
-            self.env.cr.execute(
-                "SELECT id FROM plasticos_transaction WHERE id = %s FOR UPDATE",
-                (rec.id,),
-            )
+            # Validate preconditions FIRST (includes auth check), before acquiring lock
             self._validate_close_preconditions(rec, service_docs)
-            self._apply_close(rec, service_commission)
+
+            # Now acquire advisory lock for the actual close operation
+            self.env.cr.execute(
+                "SELECT pg_try_advisory_lock(hashtext(%s))",
+                [f"plasticos_transaction.close_{rec.id}"],
+            )
+            locked = self.env.cr.fetchone()[0]
+            if not locked:
+                raise UserError(f"Transaction {rec.name} is already being closed by another process.")
+            try:
+                self._apply_close(rec, service_commission)
+            finally:
+                self.env.cr.execute(
+                    "SELECT pg_advisory_unlock(hashtext(%s))",
+                    [f"plasticos_transaction.close_{rec.id}"],
+                )
 
     def _validate_close_preconditions(self, rec, service_docs):
-        """Guard all business rules that must pass before a transaction can be closed."""
+        """Guard all business rules that must pass before a transaction can be closed.
+
+        This method is called BEFORE acquiring any locks, so unauthorized users
+        are rejected immediately without holding database resources.
+        """
+        # Permission check first
+        if not self.env.user.has_group("plasticos_transaction.group_plasticos_manager"):
+            raise UserError("Only Plasticos Managers can close transactions.")
         if rec.state == "closed":
             raise UserError("Transaction is already closed.")
         if not rec.customer_invoice_id or rec.customer_invoice_id.state != "posted":
@@ -965,8 +995,6 @@ class PlasticosTransaction(models.Model):
             raise UserError("Logistics must be closed.")
         if service_docs and not service_docs.is_compliant(PLASTICOS_TRANSACTION, rec.id):
             raise UserError("Required documents missing.")
-        if not self.env.user.has_group("plasticos_transaction.group_plasticos_manager"):
-            raise UserError("Only Plasticos Managers can close transactions.")
         if rec.gross_margin < 0:
             raise UserError("Cannot close transaction with negative gross margin.")
 

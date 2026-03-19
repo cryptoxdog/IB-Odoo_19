@@ -79,12 +79,9 @@ class TransactionBulkUpdateWizard(models.TransientModel):
         updated_count = 0
         for tx in self.transaction_ids:
             old_state = tx.state
-            # Use SQL to bypass write() restrictions for bulk operations
-            self.env.cr.execute(
-                "UPDATE plasticos_transaction SET state = %s WHERE id = %s",
-                (self.new_state, tx.id),
-            )
-            tx.invalidate_recordset(["state"])
+            # Use ORM with bypass_state_guard context (same pattern as action_mark_* methods)
+            # This ensures @api.depends recomputes, base.automation triggers, and tracking fire correctly
+            tx.with_context(bypass_state_guard=True).write({"state": self.new_state})
 
             # Log to chatter
             tx.message_post(

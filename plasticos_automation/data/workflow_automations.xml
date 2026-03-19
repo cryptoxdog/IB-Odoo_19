@@ -307,8 +307,9 @@ if env.context.get('skip_automations') or env.context.get('import_mode') or env.
     pass
 else:
     # Request dock appointment when SO is confirmed and delivery term requires it
-    for so in records.filtered(lambda s: s.state == 'sale' and hasattr(s, 'delivery_term') and s.delivery_term == 'appointment'):
-        if hasattr(so, 'appointment_requested') and so.appointment_requested:
+    # delivery_term and appointment_requested are defined in sale_order_automation.py
+    for so in records.filtered(lambda s: s.state == 'sale' and s.delivery_term == 'appointment'):
+        if so.appointment_requested:
             continue
 
         # Duplicate guard
@@ -318,8 +319,10 @@ else:
         template = env.ref('plasticos_automation.email_template_request_dock_appointment', raise_if_not_found=False)
         if template and so.partner_id.email:
             template.send_mail(so.id, force_send=False)
-            if hasattr(so, 'appointment_requested'):
-                so.write({'appointment_requested': True})
+            so.write({
+                'appointment_requested': True,
+                'appointment_requested_on': fields.Datetime.now(),
+            })
             so.message_post(body='Dock appointment request sent to buyer')
         </field>
     </record>
@@ -330,7 +333,7 @@ else:
         <field name="model_id" ref="sale.model_sale_order"/>
         <field name="trigger">on_write</field>
         <field name="filter_pre_domain">[('state', '!=', 'sale')]</field>
-        <field name="filter_domain">[('state', '=', 'sale')]</field>
+        <field name="filter_domain">[('state', '=', 'sale'), ('delivery_term', '=', 'appointment')]</field>
         <field name="action_server_ids" eval="[(4, ref('action_request_dock_appointment'))]"/>
         <field name="active" eval="True"/>
     </record>

@@ -24,11 +24,12 @@
         "security/ir.model.access.csv",
         "data/automation_config_data.xml",
         "data/config_parameters.xml",
+        # Email templates MUST load before workflow_automations (env.ref dependency)
+        "data/email_templates.xml",
         "data/sale_approval_cron.xml",
         "data/invoice_reminder_cron.xml",
         "data/contract_renewal_cron.xml",
         "data/stock_alert_cron.xml",
-        "data/email_templates.xml",
         "data/cron_supplier_followup.xml",
         "data/cron_trucker_followup.xml",
         "data/cron_load_sla.xml",

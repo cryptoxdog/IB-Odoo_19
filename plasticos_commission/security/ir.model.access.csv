@@ -1,6 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_commission_rule_user,plasticos.commission.rule.user,model_plasticos_commission_rule,base.group_user,1,0,0,0
 access_commission_rule_manager,plasticos.commission.rule.manager,model_plasticos_commission_rule,sales_team.group_sale_manager,1,1,1,1
-access_commission_rule_all,plasticos.commission.rule.all,model_plasticos_commission_rule,base.group_user,1,1,1,1
 access_commission_tier_user,plasticos.commission.tier.user,model_plasticos_commission_tier,base.group_user,1,0,0,0
 access_commission_tier_manager,plasticos.commission.tier.manager,model_plasticos_commission_tier,sales_team.group_sale_manager,1,1,1,1

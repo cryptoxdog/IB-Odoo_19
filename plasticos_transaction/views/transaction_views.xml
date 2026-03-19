@@ -58,8 +58,10 @@
         <field name="model">plasticos.transaction</field>
         <field name="arch" type="xml">
             <list decoration-info="state == 'draft'"
-                  decoration-success="state == 'active'"
-                  decoration-muted="state == 'closed'">
+                  decoration-success="state in ('active', 'supplier_ready', 'do_created', 'dispatched', 'in_transit', 'delivered')"
+                  decoration-warning="state in ('pending_supplier', 'supplier_not_ready')"
+                  decoration-muted="state in ('closed', 'cancelled')"
+                  decoration-danger="state == 'invoiced'">
                 <field name="name"/>
                 <field name="user_id" optional="show" widget="many2one_avatar_user"/>
                 <field name="sale_order_id" optional="show"/>
@@ -126,8 +128,8 @@
                     <button name="action_activate" type="object" string="Activate"
                             invisible="state != 'draft'" class="btn-primary"/>
                     <button name="action_close" type="object" string="Close"
-                            invisible="state != 'active'" class="btn-success"/>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,active,closed"/>
+                            invisible="state not in ('delivered', 'invoiced')" class="btn-success"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,active,pending_supplier,supplier_ready,do_created,dispatched,in_transit,delivered,invoiced,closed"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box"/>
