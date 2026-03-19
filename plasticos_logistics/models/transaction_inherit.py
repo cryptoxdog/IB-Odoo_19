@@ -11,7 +11,38 @@ class PlasticosTransactionLoadBridge(models.Model):
         "plasticos.load",
         string="Load",
         help="Logistics load linked to this transaction.",
+        index=True,
     )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Override create to update reverse link on load."""
+        records = super().create(vals_list)
+        # Update transaction_id on linked loads
+        loads_to_update = records.filtered(lambda r: r.load_id).mapped("load_id")
+        if loads_to_update:
+            loads_to_update._compute_transaction_id()
+        return records
+
+    def write(self, vals):
+        """Override write to update reverse link on load when load_id changes."""
+        old_loads = self.env["plasticos.load"]
+        if "load_id" in vals:
+            # Capture old loads before write
+            old_loads = self.filtered(lambda r: r.load_id).mapped("load_id")
+
+        res = super().write(vals)
+
+        if "load_id" in vals:
+            # Recompute transaction_id on old loads (now unlinked)
+            if old_loads:
+                old_loads._compute_transaction_id()
+            # Recompute transaction_id on new loads
+            new_loads = self.filtered(lambda r: r.load_id).mapped("load_id")
+            if new_loads:
+                new_loads._compute_transaction_id()
+
+        return res
 
     @api.constrains("load_id", "supplier_id", "buyer_id")
     def _check_load_requires_supplier_buyer(self):

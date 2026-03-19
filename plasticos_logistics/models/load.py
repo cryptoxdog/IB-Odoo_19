@@ -41,11 +41,14 @@ class PlasticosLoad(models.Model):
     cycle_time_hours = fields.Float(compute="_compute_cycle_time", store=True, index=True)
 
     # ── Reverse Link to Transaction (for UX) ──────────────────────────
+    # Note: This is the inverse of plasticos.transaction.load_id
+    # Stored to enable dependency triggers (e.g., delivery_term_overridden)
     transaction_id = fields.Many2one(
         PLASTICOS_TRANSACTION,
         string="Transaction",
         compute="_compute_transaction_id",
-        store=False,
+        store=True,
+        index=True,
         help="Transaction linked to this load (reverse lookup).",
     )
 
@@ -234,11 +237,13 @@ class PlasticosLoad(models.Model):
             else:
                 rec.cycle_time_hours = 0
 
+    @api.depends_context("force_recompute_transaction_id")
     def _compute_transaction_id(self):
         """Reverse lookup: find transaction that references this load.
 
         Batched query to avoid N+1 problem on list views.
-        Note: No @api.depends() needed for store=False computed fields.
+        Stored for searchability and dependency triggers.
+        Recomputation is triggered by transaction_inherit.py when load_id changes.
         """
         txs = self.env[PLASTICOS_TRANSACTION].search([("load_id", "in", self.ids)])
         tx_map = {tx.load_id.id: tx.id for tx in txs}
