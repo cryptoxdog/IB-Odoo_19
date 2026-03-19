@@ -7,7 +7,7 @@ from odoo.exceptions import UserError, ValidationError
 _logger = logging.getLogger(__name__)
 
 
-class PlasticosIntake(models.Model):
+class PlasticosIntakeBuyerMatch(models.Model):
     _inherit = ["plasticos.intake", "plasticos.feature.gate.mixin"]
 
     match_mode = fields.Selection(
