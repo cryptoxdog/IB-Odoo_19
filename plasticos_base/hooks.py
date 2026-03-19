@@ -48,11 +48,13 @@ def post_init_hook(env):
     """
     Assign required groups to admin users and system_cron user.
 
-    This is the Odoo 19 recommended approach - groups are assigned via Python
-    post-install hook rather than groups_id in XML (which is deprecated).
+    Uses raw SQL on ``res_groups_users_rel`` because Odoo 19 ``res.users`` no
+    longer exposes ``groups_id`` for ORM writes; ``group_ids`` in XML still
+    applies on create.
 
-    ALWAYS grants core Odoo groups (base.group_system, etc.) to admin users.
-    Plasticos-specific groups are only granted if plasticos_security_base is installed.
+    Runs on *module install* only. Upgrades also run
+    ``migrations/19.0.1.1.3/post-migrate.py`` which calls this same hook so
+    ib@/ab@ keep Settings + Apps access after every ``-u plasticos_base``.
     """
     _logger.info("plasticos_base post_init_hook: Configuring admin and cron user groups")
 

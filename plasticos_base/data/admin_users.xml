@@ -14,6 +14,8 @@
       <field name="login">ib@scrapmanagement.com</field>
       <field name="password">asd12345</field>
       <field name="email">ib@scrapmanagement.com</field>
+      <!-- Internal user (not portal) — required for Settings / Apps install -->
+      <field name="share" eval="False"/>
       <field name="partner_id" ref="partner_admin_ib"/>
       <field name="company_id" ref="base.main_company"/>
       <field name="company_ids" eval="[(6, 0, [ref('base.main_company')])]"/>
@@ -33,6 +35,7 @@
       <field name="login">ab@scrapmanagement.com</field>
       <field name="password">asd12345</field>
       <field name="email">ab@scrapmanagement.com</field>
+      <field name="share" eval="False"/>
       <field name="partner_id" ref="partner_admin_ab"/>
       <field name="company_id" ref="base.main_company"/>
       <field name="company_ids" eval="[(6, 0, [ref('base.main_company')])]"/>
