@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Base",
-    "version": "19.0.1.1.1",
+    "version": "19.0.1.1.2",
     "summary": "Core seed data, feature gates, and microservice integration",
     "license": "LGPL-3",
     "author": "Igor Beylin",
@@ -25,6 +25,7 @@
         "data/feature_flags.xml",
         "views/res_config_settings_views.xml",
     ],
+    "pre_init_hook": "pre_init_hook",
     "post_init_hook": "post_init_hook",
     "installable": True,
     "application": True,

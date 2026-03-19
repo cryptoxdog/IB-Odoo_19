@@ -1,8 +1,44 @@
-"""Post-install hooks for plasticos_base module."""
+"""Pre/Post-install hooks for plasticos_base module."""
 
 import logging
 
 _logger = logging.getLogger(__name__)
+
+
+def pre_init_hook(cr):
+    """Clean up duplicate utm.source records before Odoo's utm module loads.
+
+    The utm module creates a native "Referral" record (utm.utm_source_referral).
+    If a "Referral" record already exists from a previous migration or manual
+    creation, the unique constraint on utm_source.name will fail.
+
+    This hook runs BEFORE utm module loads (plasticos_base doesn't depend on utm),
+    so we can safely rename any conflicting records.
+    """
+    # Check if utm_source table exists (might not on fresh install)
+    cr.execute("""
+        SELECT EXISTS (
+            SELECT FROM information_schema.tables
+            WHERE table_name = 'utm_source'
+        )
+    """)
+    if not cr.fetchone()[0]:
+        _logger.info("pre_init_hook: utm_source table doesn't exist yet, skipping")
+        return
+
+    # Check for duplicate "Referral" that would conflict with Odoo's native record
+    cr.execute("SELECT id FROM utm_source WHERE name = 'Referral'")
+    existing = cr.fetchone()
+    if existing:
+        # Rename to avoid conflict — Odoo will create its own "Referral"
+        cr.execute("UPDATE utm_source SET name = 'Referral (legacy)' WHERE id = %s", (existing[0],))
+        _logger.warning(
+            "pre_init_hook: Renamed existing 'Referral' utm.source (id=%d) to 'Referral (legacy)' "
+            "to avoid conflict with Odoo's native utm.utm_source_referral",
+            existing[0],
+        )
+    else:
+        _logger.info("pre_init_hook: No duplicate 'Referral' utm.source found")
 
 
 def post_init_hook(env):
