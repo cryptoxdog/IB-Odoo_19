@@ -16,7 +16,19 @@ def post_init_hook(env):
     - plasticos_enrichment.group_enrichment_manager (for enrichment crons)
     - plasticos_documents.group_documents_manager (for document crons)
     - plasticos_claims.group_claims_manager (for claims crons)
+
+    IMPORTANT: This hook defers execution if plasticos_security_base is not yet
+    installed. On fresh installs, plasticos_* groups don't exist yet. The grants
+    will be applied when plasticos_security_base installs (or on -u plasticos_base).
     """
+    # Guard: defer group grants until dependent modules are loaded
+    if not env.ref("plasticos_security_base.group_system_admin", raise_if_not_found=False):
+        _logger.warning(
+            "post_init_hook: plasticos_security_base not installed yet. "
+            "Group grants will be applied when plasticos_security_base installs."
+        )
+        return
+
     _logger.info("plasticos_base post_init_hook: Configuring system_cron user groups")
 
     # Grant full admin groups to both admin users (idempotent on every rebuild)
