@@ -81,7 +81,7 @@
                             <field name="active"/>
                         </group>
                     </group>
-                    <group string="Verification">
+                    <group string="Verification" name="verification">
                         <group>
                             <field name="verified"/>
                             <field name="verified_by"/>

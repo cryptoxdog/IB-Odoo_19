@@ -7,7 +7,7 @@
         <field name="inherit_id" ref="view_document_form_base"/>
         <field name="priority">20</field>
         <field name="arch" type="xml">
-            <xpath expr="//group[@string='Verification']" position="before">
+            <xpath expr="//group[@name='verification']" position="before">
                 <group string="Extended Tracking" name="extended_tracking">
                     <group>
                         <field name="doc_category"/>
