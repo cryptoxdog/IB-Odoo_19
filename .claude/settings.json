@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'CMD=\"$CLAUDE_TOOL_INPUT\"; for PAT in \"_sql_constraints\" \"@api.one\" \"@api.multi\" \"numbercall\" \"eval()\" \"exec()\"; do if echo \"$CMD\" | grep -q \"$PAT\" 2>/dev/null; then echo \"{\\\"decision\\\": \\\"block\\\", \\\"reason\\\": \\\"Blocked: $PAT is a deprecated/banned Odoo 19 pattern. See AI Agent Files/INVARIANTS.md.\\\"}\" && exit 0; fi; done; echo \"{\\\"decision\\\": \\\"approve\\\"}\"'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'FILE=\"$CLAUDE_FILE_PATH\"; if [[ \"$FILE\" == *.py ]] && command -v ruff &>/dev/null; then ruff check \"$FILE\" 2>/dev/null || true; fi; if [[ \"$FILE\" == *.xml ]] && command -v xmllint &>/dev/null; then xmllint --noout \"$FILE\" 2>/dev/null || echo \"XML validation warning: $FILE\"; fi'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'if [ -f scripts/check_module_wiring.py ]; then python3 scripts/check_module_wiring.py 2>/dev/null || echo \"Module wiring issues detected — review before committing\"; fi; if [ -f ci/check_circular_deps.py ]; then python3 ci/check_circular_deps.py 2>/dev/null || echo \"Circular dependency detected\"; fi'"
+          }
+        ]
+      }
+    ]
+  }
+}
