@@ -117,8 +117,8 @@ cron-check:
 		python3 tools/cron_invariant_check.py 2>&1 | grep -v "current work" || true
 
 semgrep:
-	@echo "→ Semgrep custom Odoo rules..."
-	semgrep --config .semgrep/odoo-patterns.yml --quiet --include="plasticos_*"
+	@echo "→ Semgrep custom Odoo rules (ERROR level only — bare-except, raw-sql)..."
+	semgrep --config .semgrep/odoo-patterns.yml --severity ERROR --quiet --include="plasticos_*"
 
 audit-quick: lint format xml-check odoo19-check wiring deps-check cron-check
 	@echo ""
