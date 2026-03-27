@@ -1,12 +1,19 @@
-# Local PostgreSQL + Odoo testing (Mac)
+# Local PostgreSQL + Odoo testing (Mac) — mirrors Odoo.sh production environment.
+#
+# Addons paths (all three tiers, matching Odoo.sh):
+#   /mnt/extra-addons  → repo root         (plasticos_* custom modules)
+#   /mnt/enterprise    → ./odoo-enterprise  (Enterprise modules — parity with production)
+#   Odoo core          → baked into odoo:19 image
 #
 # Quick start:
 #   docker compose -p odoo19 up -d db          # Start PostgreSQL
 #   docker compose -p odoo19 up odoo           # Start Odoo (interactive, Ctrl+C to stop)
 #
-# Module install order: config/odoo_module_order.yaml (topological: deps before dependents).
-# Rebuild DB with default modules: scripts/rebuild-odoo-no-demo.sh
-# Run tests: scripts/run-odoo-tests.sh
+# Rebuild DB (enterprise + custom, no demo):
+#   ./scripts/rebuild-odoo-no-demo.sh
+#
+# Enterprise module list (what production has installed):
+#   config/odoo_module_order.yaml → docker_enterprise_modules
 #
 # Access:
 #   Odoo:     http://localhost:8069
