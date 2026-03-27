@@ -224,21 +224,16 @@
         <field name="transaction_ref" string="Deal #"/>
         <field name="buyer_id"/>
         <field name="supplier_id"/>
-        <filter name="docs_missing"
-                string="⚠ Docs Missing"
-                domain="[('docs_all_clear','=',False),('transaction_state','not in',['draft','cancelled'])]"/>
+        <separator/>
         <filter name="in_transit"
                 string="In Transit"
                 domain="[('load_state','in',['dispatched','picked_up'])]"/>
-        <filter name="delivered_not_closed"
-                string="Delivered — Awaiting Docs"
-                domain="[('transaction_state','in',['delivered','invoiced']),('docs_all_clear','=',False)]"/>
-        <filter name="commission_unpaid"
-                string="Commission Unpaid"
-                domain="[('commission_payout_state','=','unpaid'),('transaction_state','=','closed')]"/>
         <filter name="active_deals"
                 string="Active"
                 domain="[('transaction_state','not in',['closed','cancelled','draft'])]"/>
+        <filter name="commission_unpaid"
+                string="Commission Unpaid"
+                domain="[('commission_payout_state','=','unpaid'),('transaction_state','=','closed')]"/>
         <filter name="load_exception"
                 string="Load Exception"
                 domain="[('load_state','=','exception')]"/>
