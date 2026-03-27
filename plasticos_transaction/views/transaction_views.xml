@@ -186,14 +186,7 @@
                                 </group>
                             </group>
                         </page>
-                        <page string="Commission">
-                            <group>
-                                <field name="commission_rule_id"/>
-                                <field name="commission_amount"/>
-                                <field name="commission_locked"/>
-                                <field name="commission_locked_amount" invisible="not commission_locked"/>
-                            </group>
-                        </page>
+                        <!-- Commission tab rendered by plasticos_commission/views/transaction_commission_views.xml -->
                         <page string="Compliance">
                             <group>
                                 <field name="compliance_status"/>
