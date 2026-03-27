@@ -169,9 +169,40 @@ class ResPartner(models.Model):
         ),
     )
 
+    # ── Trade Role — supply vs demand side ────────────────────────────
+    plasticos_trade_role = fields.Selection(
+        selection=[
+            ("supplier", "Supplier"),
+            ("buyer", "Buyer"),
+            ("both", "Buyer & Supplier"),
+            ("other", "Other"),
+        ],
+        string="Trade Role",
+        index=True,
+        tracking=True,
+        help=(
+            "Supply vs demand side classification for buyer-match routing. "
+            "Set by import service and enrichment. Used by CEG matching engine."
+        ),
+    )
+
+    # ── Origin Sector ────────────────────────────────────────────────
+    plasticos_origin_sector = fields.Selection(
+        selection=[
+            ("agriculture", "Agriculture"),
+            ("distribution_logistics", "Distribution / Logistics"),
+            ("industrial", "Industrial / Manufacturing"),
+            ("municipal", "Municipal / MRF"),
+            ("commercial", "Commercial"),
+            ("other", "Other"),
+        ],
+        string="Origin Sector",
+        index=True,
+        help="Sector that generates the material. Auto-set at import for known roles.",
+    )
+
     # ── Lead Source ───────────────────────────────────────────────────
-    lead_source_id = fields.Many2one(
-        "utm.source",
+    lead_source_id = fields.Many2one(        "utm.source",
         string="Lead Source",
         tracking=True,
         index=True,
