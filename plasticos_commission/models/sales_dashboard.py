@@ -25,91 +25,121 @@ class PlasticosSalesDashboard(models.Model):
     _order = "transaction_state desc, write_date desc"
 
     # ── Identity ──────────────────────────────────────────────────────────────
-    transaction_id  = fields.Many2one(PLASTICOS_TRANSACTION, readonly=True)
+    transaction_id = fields.Many2one(PLASTICOS_TRANSACTION, readonly=True)
     transaction_ref = fields.Char(string="Deal #", readonly=True)
-    user_id         = fields.Many2one("res.users", string="Rep", readonly=True)
+    user_id = fields.Many2one("res.users", string="Rep", readonly=True)
 
     # ── Deal Basics ───────────────────────────────────────────────────────────
     supplier_id = fields.Many2one("res.partner", string="Supplier", readonly=True)
-    buyer_id    = fields.Many2one("res.partner", string="Buyer", readonly=True)
-    product_id  = fields.Many2one("product.product", string="Material", readonly=True)
-    quantity    = fields.Float(string="Quantity", readonly=True)
-    uom_id      = fields.Many2one("uom.uom", string="UOM", readonly=True)
+    buyer_id = fields.Many2one("res.partner", string="Buyer", readonly=True)
+    product_id = fields.Many2one("product.product", string="Material", readonly=True)
+    quantity = fields.Float(string="Quantity", readonly=True)
+    uom_id = fields.Many2one("uom.uom", string="UOM", readonly=True)
 
     # ── Financials ────────────────────────────────────────────────────────────
-    unit_price            = fields.Float(string="Sell $/unit",    digits="Product Price", readonly=True)
-    revenue_total         = fields.Float(string="Sell Total",     digits="Product Price", readonly=True)
-    purchase_cost_total   = fields.Float(string="Buy Total",      digits="Product Price", readonly=True)
-    freight_cost_total    = fields.Float(string="Freight",        digits="Product Price", readonly=True)
-    gross_margin          = fields.Float(string="Gross Margin",   digits="Product Price", readonly=True)
-    currency_id           = fields.Many2one("res.currency", readonly=True)
+    unit_price = fields.Float(string="Sell $/unit", digits="Product Price", readonly=True)
+    revenue_total = fields.Float(string="Sell Total", digits="Product Price", readonly=True)
+    purchase_cost_total = fields.Float(string="Buy Total", digits="Product Price", readonly=True)
+    freight_cost_total = fields.Float(string="Freight", digits="Product Price", readonly=True)
+    gross_margin = fields.Float(string="Gross Margin", digits="Product Price", readonly=True)
+    currency_id = fields.Many2one("res.currency", readonly=True)
 
     # ── Weight ────────────────────────────────────────────────────────────────
-    final_weight               = fields.Float(string="Net Weight (lbs)", readonly=True)
-    weight_source              = fields.Selection(
-        [("scale", "Scale Ticket"), ("buyer", "Buyer Report"),
-         ("supplier", "Supplier Weight"), ("none", "No Weight")],
-        string="Weight Source", readonly=True,
+    final_weight = fields.Float(string="Net Weight (lbs)", readonly=True)
+    weight_source = fields.Selection(
+        [("scale", "Scale Ticket"), ("buyer", "Buyer Report"), ("supplier", "Supplier Weight"), ("none", "No Weight")],
+        string="Weight Source",
+        readonly=True,
     )
     weight_discrepancy_flagged = fields.Boolean(string="Discrepancy", readonly=True)
-    weight_discrepancy_pct     = fields.Float(string="Discrepancy %", readonly=True)
+    weight_discrepancy_pct = fields.Float(string="Discrepancy %", readonly=True)
 
     # ── Logistics ─────────────────────────────────────────────────────────────
     transaction_state = fields.Selection(
-        [("draft", "Draft"), ("active", "Active"),
-         ("pending_supplier", "Pending Supplier"), ("supplier_not_ready", "Supplier Not Ready"),
-         ("supplier_ready", "Supplier Ready"), ("do_created", "DO Created"),
-         ("dispatched", "Dispatched"), ("in_progress", "In Progress"),
-         ("in_transit", "In Transit"), ("delivered", "Delivered"),
-         ("invoiced", "Invoiced"), ("closed", "Closed"), ("cancelled", "Cancelled")],
-        string="Deal Status", readonly=True,
+        [
+            ("draft", "Draft"),
+            ("active", "Active"),
+            ("pending_supplier", "Pending Supplier"),
+            ("supplier_not_ready", "Supplier Not Ready"),
+            ("supplier_ready", "Supplier Ready"),
+            ("do_created", "DO Created"),
+            ("dispatched", "Dispatched"),
+            ("in_progress", "In Progress"),
+            ("in_transit", "In Transit"),
+            ("delivered", "Delivered"),
+            ("invoiced", "Invoiced"),
+            ("closed", "Closed"),
+            ("cancelled", "Cancelled"),
+        ],
+        string="Deal Status",
+        readonly=True,
     )
     load_state = fields.Selection(
-        [("draft", "Draft"), ("awaiting_ready", "Awaiting Ready"),
-         ("ready_confirmed", "Ready Confirmed"), ("rate_confirmed", "Rate Confirmed"),
-         ("scheduled", "Scheduled"), ("dispatched", "Dispatched"),
-         ("picked_up", "Picked Up"), ("delivered", "Delivered"),
-         ("closed", "Closed"), ("exception", "Exception")],
-        string="Load Status", readonly=True,
+        [
+            ("draft", "Draft"),
+            ("awaiting_ready", "Awaiting Ready"),
+            ("ready_confirmed", "Ready Confirmed"),
+            ("rate_confirmed", "Rate Confirmed"),
+            ("scheduled", "Scheduled"),
+            ("dispatched", "Dispatched"),
+            ("picked_up", "Picked Up"),
+            ("delivered", "Delivered"),
+            ("closed", "Closed"),
+            ("exception", "Exception"),
+        ],
+        string="Load Status",
+        readonly=True,
     )
-    load_id           = fields.Many2one("plasticos.load", readonly=True)
-    pickup_datetime   = fields.Datetime(string="Pickup", readonly=True)
+    load_id = fields.Many2one("plasticos.load", readonly=True)
+    pickup_datetime = fields.Datetime(string="Pickup", readonly=True)
     delivery_datetime = fields.Datetime(string="Est. Delivery", readonly=True)
-    delivered_at      = fields.Datetime(string="Delivered At", readonly=True)
-    carrier_name      = fields.Char(string="Carrier", readonly=True)
-    trailer_number    = fields.Char(string="Trailer #", readonly=True)
-    delivery_term     = fields.Selection(
+    delivered_at = fields.Datetime(string="Delivered At", readonly=True)
+    carrier_name = fields.Char(string="Carrier", readonly=True)
+    trailer_number = fields.Char(string="Trailer #", readonly=True)
+    delivery_term = fields.Selection(
         [("fcfs", "FCFS"), ("appointment", "Appointment")],
-        string="Delivery Term", readonly=True,
+        string="Delivery Term",
+        readonly=True,
     )
 
     # ── Document Checklist (computed, not in SQL view) ────────────────────────
     doc_bol = fields.Selection(
         [("ok", "✓"), ("pending", "Pending Review"), ("missing", "Missing")],
-        string="BOL", compute="_compute_doc_checklist", readonly=True,
+        string="BOL",
+        compute="_compute_doc_checklist",
+        readonly=True,
     )
     doc_scale_ticket = fields.Selection(
         [("ok", "✓"), ("pending", "Pending Review"), ("missing", "Missing")],
-        string="Scale Ticket", compute="_compute_doc_checklist", readonly=True,
+        string="Scale Ticket",
+        compute="_compute_doc_checklist",
+        readonly=True,
     )
     doc_invoice = fields.Selection(
         [("ok", "✓"), ("pending", "Pending Review"), ("missing", "Missing")],
-        string="Invoice", compute="_compute_doc_checklist", readonly=True,
+        string="Invoice",
+        compute="_compute_doc_checklist",
+        readonly=True,
     )
     doc_customer_order = fields.Selection(
         [("ok", "✓"), ("pending", "Pending Review"), ("missing", "Missing")],
-        string="Customer Order", compute="_compute_doc_checklist", readonly=True,
+        string="Customer Order",
+        compute="_compute_doc_checklist",
+        readonly=True,
     )
     docs_all_clear = fields.Boolean(
-        string="Docs Clear", compute="_compute_doc_checklist", readonly=True,
+        string="Docs Clear",
+        compute="_compute_doc_checklist",
+        readonly=True,
     )
 
     # ── Commission ────────────────────────────────────────────────────────────
-    commission_amount        = fields.Float(string="Est. Commission",  digits="Product Price", readonly=True)
+    commission_amount = fields.Float(string="Est. Commission", digits="Product Price", readonly=True)
     commission_locked_amount = fields.Float(string="Final Commission", digits="Product Price", readonly=True)
-    commission_payout_state  = fields.Selection(
+    commission_payout_state = fields.Selection(
         [("unpaid", "Unpaid"), ("confirmed", "Awaiting Payment"), ("paid", "Paid")],
-        string="Pay Status", readonly=True,
+        string="Pay Status",
+        readonly=True,
     )
 
     write_date = fields.Datetime(string="Last Updated", readonly=True)
@@ -194,10 +224,16 @@ class PlasticosSalesDashboard(models.Model):
                 rec.docs_all_clear = False
             return
 
-        docs = self.env[active_model].sudo().search([
-            ("transaction_id", "in", tx_ids),
-            ("doc_type", "in", list(DOC_TYPES.keys())),
-        ])
+        docs = (
+            self.env[active_model]
+            .sudo()
+            .search(
+                [
+                    ("transaction_id", "in", tx_ids),
+                    ("doc_type", "in", list(DOC_TYPES.keys())),
+                ]
+            )
+        )
 
         lookup = {}
         for doc in docs:
@@ -276,9 +312,11 @@ class PlasticosSalesDashboard(models.Model):
             return {
                 "type": "ir.actions.client",
                 "tag": "display_notification",
-                "params": {"title": "No Load Yet",
-                           "message": "A load has not been created for this transaction yet.",
-                           "type": "warning"},
+                "params": {
+                    "title": "No Load Yet",
+                    "message": "A load has not been created for this transaction yet.",
+                    "type": "warning",
+                },
             }
         return {
             "type": "ir.actions.act_window",
@@ -292,16 +330,25 @@ class PlasticosSalesDashboard(models.Model):
     def action_view_payout(self):
         """Commission payout batch detail — shown when pay status is not Unpaid."""
         self.ensure_one()
-        payout_ids = self.env["plasticos.commission.payout"].sudo().search([
-            ("transaction_ids", "in", [self.transaction_id.id]),
-        ]).ids
+        payout_ids = (
+            self.env["plasticos.commission.payout"]
+            .sudo()
+            .search(
+                [
+                    ("transaction_ids", "in", [self.transaction_id.id]),
+                ]
+            )
+            .ids
+        )
         if not payout_ids:
             return {
                 "type": "ir.actions.client",
                 "tag": "display_notification",
-                "params": {"title": "No Payout Record",
-                           "message": "No commission payout has been created yet for this deal.",
-                           "type": "info"},
+                "params": {
+                    "title": "No Payout Record",
+                    "message": "No commission payout has been created yet for this deal.",
+                    "type": "info",
+                },
             }
         return {
             "type": "ir.actions.act_window",

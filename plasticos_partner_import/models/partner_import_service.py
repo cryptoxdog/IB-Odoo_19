@@ -99,10 +99,16 @@ VS_COMPANY_TYPE_MAP = {
     "unknown": "other",
 }
 
-_SUPPLIER_ONLY_ROLES = frozenset({
-    "recycler", "commercial_recycler", "mrf", "transfer_station",
-    "distribution_center", "grower_farm",
-})
+_SUPPLIER_ONLY_ROLES = frozenset(
+    {
+        "recycler",
+        "commercial_recycler",
+        "mrf",
+        "transfer_station",
+        "distribution_center",
+        "grower_farm",
+    }
+)
 _BUYER_ONLY_ROLES = frozenset({"manufacturer", "compounder"})
 _ROLE_ORIGIN_SECTOR_DEFAULTS = {
     "grower_farm": "agriculture",
@@ -130,13 +136,15 @@ class PlasticosPartnerImportService(models.AbstractModel):
 
         model = env[model_name]
         rec = model.create(values)
-        self.env["ir.model.data"].create({
-            "name": external_id.split(".")[-1],
-            "module": external_id.split(".")[0],
-            "model": model_name,
-            "res_id": rec.id,
-            "noupdate": True,
-        })
+        self.env["ir.model.data"].create(
+            {
+                "name": external_id.split(".")[-1],
+                "module": external_id.split(".")[0],
+                "model": model_name,
+                "res_id": rec.id,
+                "noupdate": True,
+            }
+        )
         _logger.debug("Created %s via %s (id=%d)", model_name, external_id, rec.id)
         return rec
 
@@ -190,10 +198,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
     def _apply_vanillasoft_lead_source(self, partner):
         if partner.lead_source_id:
             return
-        vs_source = self.env.ref(
-            "plasticos_facility_profile.utm_source_vanillasoft",
-            raise_if_not_found=False
-        )
+        vs_source = self.env.ref("plasticos_facility_profile.utm_source_vanillasoft", raise_if_not_found=False)
         if vs_source:
             partner.lead_source_id = vs_source.id
 
@@ -219,9 +224,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
         if not country_name:
             return False
         country = self.env["res.country"].search(
-            ["|",
-             ("name", "ilike", country_name.strip()),
-             ("code", "=", country_name.strip().upper()[:2])],
+            ["|", ("name", "ilike", country_name.strip()), ("code", "=", country_name.strip().upper()[:2])],
             limit=1,
         )
         return country.id if country else False
@@ -477,8 +480,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
         contact_email = self._normalize_email(row.get("Email", ""), contact_name)
         if contact_name and contact_name not in ("Primary", "United States"):
             contact = self._create_facility_contact(
-                facility, parent, contact_name, contact_phone,
-                contact_email, facility_type, contacts_created
+                facility, parent, contact_name, contact_phone, contact_email, facility_type, contacts_created
             )
         return facility, contact
 

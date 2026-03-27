@@ -22,6 +22,7 @@ exclude = [
     ".venv",
     "venv",
     "*.egg-info",
+    "current work - ib",
 ]
 
 [tool.ruff.lint]

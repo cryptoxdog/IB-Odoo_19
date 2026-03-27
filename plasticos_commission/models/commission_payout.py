@@ -26,42 +26,72 @@ class PlasticosCommissionPayout(models.Model):
 
     # ── Rep + Period ────────────────────────────────────────────────────────
     sales_rep_id = fields.Many2one(
-        "res.users", string="Sales Rep", required=True, tracking=True, index=True,
+        "res.users",
+        string="Sales Rep",
+        required=True,
+        tracking=True,
+        index=True,
         domain="[('share', '=', False)]",
     )
     commission_rule_id = fields.Many2one(
-        "plasticos.commission.rule", string="Commission Rule", tracking=True,
+        "plasticos.commission.rule",
+        string="Commission Rule",
+        tracking=True,
         help="Primary rule used for this period. Informational only.",
     )
     period_start = fields.Date(required=True, tracking=True)
-    period_end   = fields.Date(required=True, tracking=True)
+    period_end = fields.Date(required=True, tracking=True)
 
     # ── Amounts ─────────────────────────────────────────────────────────────
-    transaction_count   = fields.Integer(string="# Transactions", compute="_compute_totals", store=True)
-    gross_margin_total  = fields.Float(string="Total Gross Margin", compute="_compute_totals", store=True, digits="Product Price")
-    commission_due      = fields.Float(string="Commission Due", compute="_compute_totals", store=True, digits="Product Price",
-                                       help="Sum of commission_locked_amount from linked closed transactions.")
-    commission_paid     = fields.Float(string="Commission Paid", digits="Product Price", tracking=True,
-                                       help="Actual amount disbursed. Defaults to commission_due on mark_paid.")
-    commission_balance  = fields.Float(string="Balance Due", compute="_compute_balance", store=True, digits="Product Price")
-    currency_id         = fields.Many2one("res.currency", default=lambda self: self.env.company.currency_id, readonly=True)
+    transaction_count = fields.Integer(string="# Transactions", compute="_compute_totals", store=True)
+    gross_margin_total = fields.Float(
+        string="Total Gross Margin", compute="_compute_totals", store=True, digits="Product Price"
+    )
+    commission_due = fields.Float(
+        string="Commission Due",
+        compute="_compute_totals",
+        store=True,
+        digits="Product Price",
+        help="Sum of commission_locked_amount from linked closed transactions.",
+    )
+    commission_paid = fields.Float(
+        string="Commission Paid",
+        digits="Product Price",
+        tracking=True,
+        help="Actual amount disbursed. Defaults to commission_due on mark_paid.",
+    )
+    commission_balance = fields.Float(
+        string="Balance Due", compute="_compute_balance", store=True, digits="Product Price"
+    )
+    currency_id = fields.Many2one("res.currency", default=lambda self: self.env.company.currency_id, readonly=True)
 
     # ── Linked Transactions ──────────────────────────────────────────────────
     transaction_ids = fields.Many2many(
-        "plasticos.transaction", "commission_payout_tx_rel", "payout_id", "transaction_id",
+        "plasticos.transaction",
+        "commission_payout_tx_rel",
+        "payout_id",
+        "transaction_id",
         string="Transactions",
         domain="[('state', '=', 'closed'), ('commission_locked', '=', True)]",
     )
 
     # ── Payment Info ─────────────────────────────────────────────────────────
     state = fields.Selection(
-        [("draft", "Draft"), ("confirmed", "Confirmed — Awaiting Payment"),
-         ("paid", "Paid"), ("cancelled", "Cancelled")],
-        default="draft", required=True, tracking=True, index=True,
+        [
+            ("draft", "Draft"),
+            ("confirmed", "Confirmed — Awaiting Payment"),
+            ("paid", "Paid"),
+            ("cancelled", "Cancelled"),
+        ],
+        default="draft",
+        required=True,
+        tracking=True,
+        index=True,
     )
-    payment_date      = fields.Date(tracking=True)
-    payment_reference = fields.Char(string="Payment Reference", tracking=True,
-                                    help="Check number, wire reference, or payroll batch ID.")
+    payment_date = fields.Date(tracking=True)
+    payment_reference = fields.Char(
+        string="Payment Reference", tracking=True, help="Check number, wire reference, or payroll batch ID."
+    )
     notes = fields.Text()
 
     # ── Constraints ──────────────────────────────────────────────────────────
@@ -76,9 +106,9 @@ class PlasticosCommissionPayout(models.Model):
     def _compute_totals(self):
         for rec in self:
             txs = rec.transaction_ids
-            rec.transaction_count  = len(txs)
+            rec.transaction_count = len(txs)
             rec.gross_margin_total = sum(txs.mapped("gross_margin"))
-            rec.commission_due     = sum(txs.mapped("commission_locked_amount"))
+            rec.commission_due = sum(txs.mapped("commission_locked_amount"))
 
     @api.depends("commission_due", "commission_paid")
     def _compute_balance(self):
@@ -103,8 +133,10 @@ class PlasticosCommissionPayout(models.Model):
                 raise UserError("Cannot confirm a payout with no transactions linked.")
             rec.state = "confirmed"
             rec.message_post(
-                body=(f"Payout confirmed: {rec.transaction_count} transaction(s), "
-                      f"${rec.commission_due:,.2f} due to {rec.sales_rep_id.name}."),
+                body=(
+                    f"Payout confirmed: {rec.transaction_count} transaction(s), "
+                    f"${rec.commission_due:,.2f} due to {rec.sales_rep_id.name}."
+                ),
                 message_type="notification",
             )
 
@@ -118,8 +150,10 @@ class PlasticosCommissionPayout(models.Model):
             rec.commission_paid = rec.commission_due
             rec.state = "paid"
             rec.message_post(
-                body=(f"Commission paid: ${rec.commission_paid:,.2f} on {rec.payment_date} "
-                      f"(ref: {rec.payment_reference or 'N/A'})."),
+                body=(
+                    f"Commission paid: ${rec.commission_paid:,.2f} on {rec.payment_date} "
+                    f"(ref: {rec.payment_reference or 'N/A'})."
+                ),
                 message_type="notification",
             )
 
@@ -143,23 +177,25 @@ class PlasticosCommissionPayout(models.Model):
         Safe to call from cron or UI wizard.
         Returns new payout record, or False if no qualifying transactions found.
         """
-        already_paid_tx_ids = self.search(
-            [("state", "in", ["confirmed", "paid"])]
-        ).mapped("transaction_ids").ids
+        already_paid_tx_ids = self.search([("state", "in", ["confirmed", "paid"])]).mapped("transaction_ids").ids
 
-        txs = self.env["plasticos.transaction"].search([
-            ("user_id", "=", sales_rep_id),
-            ("state", "=", "closed"),
-            ("commission_locked", "=", True),
-            ("commission_locked_amount", ">", 0),
-            ("id", "not in", already_paid_tx_ids),
-        ])
+        txs = self.env["plasticos.transaction"].search(
+            [
+                ("user_id", "=", sales_rep_id),
+                ("state", "=", "closed"),
+                ("commission_locked", "=", True),
+                ("commission_locked_amount", ">", 0),
+                ("id", "not in", already_paid_tx_ids),
+            ]
+        )
         if not txs:
             return False
 
-        return self.create({
-            "sales_rep_id": sales_rep_id,
-            "period_start": period_start,
-            "period_end":   period_end,
-            "transaction_ids": [(6, 0, txs.ids)],
-        })
+        return self.create(
+            {
+                "sales_rep_id": sales_rep_id,
+                "period_start": period_start,
+                "period_end": period_end,
+                "transaction_ids": [(6, 0, txs.ids)],
+            }
+        )
