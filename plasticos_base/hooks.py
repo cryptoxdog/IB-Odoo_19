@@ -140,7 +140,7 @@ def post_init_hook(env):
         "plasticos_automation.group_plasticos_automation_manager",
         "plasticos_automation.group_logistics_automation_manager",
         "plasticos_transaction.group_plasticos_manager",
-        "plasticos_transaction.group_plasticos_commission_manager",
+        "plasticos_commission.group_plasticos_commission_manager",
     ]
 
     for admin_login in ("ib@scrapmanagement.com", "ab@scrapmanagement.com"):

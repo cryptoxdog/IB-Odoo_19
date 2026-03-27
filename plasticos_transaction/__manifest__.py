@@ -24,12 +24,10 @@
     "data": [
         "security/security_hardening.xml",
         "security/ir.model.access.csv",
-        "security/commission_acl.xml",
         "data/sequence.xml",
         "data/res.groups.csv",
         "data/audit_cron.xml",
         "views/transaction_views.xml",
-        "views/commission_views.xml",
         "views/transaction_bulk_update_wizard_views.xml",
         "views/transaction_bulk_assign_wizard_views.xml",
         "views/transaction_import_wizard_views.xml",

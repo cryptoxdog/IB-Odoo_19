@@ -16,8 +16,10 @@
         "mail",
     ],
     "data": [
+        "security/commission_group.xml",
         "security/ir.model.access.csv",
         "data/commission_payout_sequence.xml",
+        "views/commission_rule_views.xml",
         "views/commission_payout_views.xml",
         "views/sales_dashboard_views.xml",
         "views/transaction_commission_views.xml",
