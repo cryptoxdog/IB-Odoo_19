@@ -18,6 +18,7 @@
     "data": [
         "security/commission_group.xml",
         "security/ir.model.access.csv",
+        "security/record_rules.xml",
         "data/commission_payout_sequence.xml",
         "views/commission_rule_views.xml",
         "views/commission_payout_views.xml",

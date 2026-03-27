@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       Sales Dashboard Record Rules
+       Moved from plasticos_security_base to plasticos_commission because
+       these models (plasticos.sales.dashboard, plasticos.commission.payout)
+       are defined in plasticos_commission, which loads after security_base.
+       References to plasticos_security_base groups are valid here since
+       plasticos_commission depends on plasticos_security_base.
+  ══════════════════════════════════════════════════════════════════════ -->
+
+  <!-- Rep: filter to own user_id -->
+  <record id="rule_sales_dashboard_rep_own" model="ir.rule">
+    <field name="name">Sales Dashboard: Sales Reps see own deals only</field>
+    <field name="model_id" ref="plasticos_commission.model_plasticos_sales_dashboard"/>
+    <field name="domain_force">[("user_id", "=", user.id)]</field>
+    <field name="groups" eval="[(4, ref('plasticos_security_base.group_sales_rep'))]"/>
+    <field name="perm_read"   eval="True"/>
+    <field name="perm_write"  eval="False"/>
+    <field name="perm_create" eval="False"/>
+    <field name="perm_unlink" eval="False"/>
+  </record>
+
+  <!-- Manager: global read — no domain restriction -->
+  <record id="rule_sales_dashboard_manager_all" model="ir.rule">
+    <field name="name">Sales Dashboard: Managers see all deals</field>
+    <field name="model_id" ref="plasticos_commission.model_plasticos_sales_dashboard"/>
+    <field name="domain_force">[(1, "=", 1)]</field>
+    <field name="groups" eval="[(4, ref('plasticos_security_base.group_operations_manager'))]"/>
+    <field name="perm_read"   eval="True"/>
+    <field name="perm_write"  eval="False"/>
+    <field name="perm_create" eval="False"/>
+    <field name="perm_unlink" eval="False"/>
+  </record>
+
+  <!-- Accounting: global read — no domain restriction -->
+  <record id="rule_sales_dashboard_accounting_all" model="ir.rule">
+    <field name="name">Sales Dashboard: Accounting sees all deals</field>
+    <field name="model_id" ref="plasticos_commission.model_plasticos_sales_dashboard"/>
+    <field name="domain_force">[(1, "=", 1)]</field>
+    <field name="groups" eval="[(4, ref('plasticos_security_base.group_accounting_ops'))]"/>
+    <field name="perm_read"   eval="True"/>
+    <field name="perm_write"  eval="False"/>
+    <field name="perm_create" eval="False"/>
+    <field name="perm_unlink" eval="False"/>
+  </record>
+
+  <!-- Commission Payout: rep can read their own payouts only -->
+  <record id="rule_commission_payout_rep_own" model="ir.rule">
+    <field name="name">Commission Payout: Sales Reps see own payouts only</field>
+    <field name="model_id" ref="plasticos_commission.model_plasticos_commission_payout"/>
+    <field name="domain_force">[("sales_rep_id", "=", user.id)]</field>
+    <field name="groups" eval="[(4, ref('plasticos_security_base.group_sales_rep'))]"/>
+    <field name="perm_read"   eval="True"/>
+    <field name="perm_write"  eval="False"/>
+    <field name="perm_create" eval="False"/>
+    <field name="perm_unlink" eval="False"/>
+  </record>
+
+</odoo>
