@@ -8,5 +8,3 @@ access_plasticos_equipment_type_all,plasticos.equipment.type.all,model_plasticos
 access_plasticos_partner_type_all,plasticos.partner.type.all,model_plasticos_partner_type,base.group_user,1,1,1,1
 access_plasticos_facility_template_user,plasticos.facility.template.user,model_plasticos_facility_template,base.group_user,1,0,0,0
 access_plasticos_facility_template_admin,plasticos.facility.template.admin,model_plasticos_facility_template,base.group_system,1,1,1,1
-access_plasticos_process_type_user,plasticos.process.type.user,model_plasticos_process_type,base.group_user,1,0,0,0
-access_plasticos_process_type_admin,plasticos.process.type.admin,model_plasticos_process_type,base.group_system,1,1,1,1
