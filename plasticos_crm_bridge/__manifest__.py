@@ -10,6 +10,7 @@
         "plasticos_web_leads",
         # "plasticos_matching",  # Disabled - external microservice
         "plasticos_material_profile",
+        "plasticos_facility_profile",
         "plasticos_transaction",
         "plasticos_logistics",
         "plasticos_intake",
