@@ -118,10 +118,8 @@
         <filter name="confirmed" string="Confirmed" domain="[('state','=','confirmed')]"/>
         <filter name="paid"      string="Paid"      domain="[('state','=','paid')]"/>
         <separator/>
-        <group expand="0" string="Group By">
-          <filter name="group_rep"   string="Sales Rep" context="{'group_by': 'sales_rep_id'}"/>
-          <filter name="group_state" string="Status"    context="{'group_by': 'state'}"/>
-        </group>
+        <filter name="group_rep"   string="Group by Sales Rep" context="{'group_by': 'sales_rep_id'}"/>
+        <filter name="group_state" string="Group by Status"    context="{'group_by': 'state'}"/>
       </search>
     </field>
   </record>

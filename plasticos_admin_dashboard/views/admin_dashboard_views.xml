@@ -49,7 +49,7 @@
 
     <button name="action_open_negative_margin" type="object"
             class="btn-danger oe_stat_button" icon="fa-exclamation-triangle"
-            attrs="{'invisible': [('tx_negative_margin','=',0)]}">
+            invisible="tx_negative_margin == 0">
         <div class="o_stat_info">
             <span class="o_stat_value"><field name="tx_negative_margin" readonly="1"/></span>
             <span class="o_stat_text">Negative Margin</span>
@@ -58,7 +58,7 @@
 
     <button name="action_open_delivered_uninvoiced" type="object"
             class="btn-danger oe_stat_button" icon="fa-file-text-o"
-            attrs="{'invisible': [('tx_delivered_uninvoiced','=',0)]}">
+            invisible="tx_delivered_uninvoiced == 0">
         <div class="o_stat_info">
             <span class="o_stat_value"><field name="tx_delivered_uninvoiced" readonly="1"/></span>
             <span class="o_stat_text">Delivered–Uninvoiced</span>
@@ -67,7 +67,7 @@
 
     <button name="action_open_missing_docs" type="object"
             class="btn-warning oe_stat_button" icon="fa-folder-open-o"
-            attrs="{'invisible': [('tx_missing_docs','=',0)]}">
+            invisible="tx_missing_docs == 0">
         <div class="o_stat_info">
             <span class="o_stat_value"><field name="tx_missing_docs" readonly="1"/></span>
             <span class="o_stat_text">Missing Docs</span>
@@ -76,7 +76,7 @@
 
     <button name="action_open_supplier_not_ready" type="object"
             class="btn-warning oe_stat_button" icon="fa-truck"
-            attrs="{'invisible': [('tx_sup_not_ready','=',0)]}">
+            invisible="tx_sup_not_ready == 0">
         <div class="o_stat_info">
             <span class="o_stat_value"><field name="tx_sup_not_ready" readonly="1"/></span>
             <span class="o_stat_text">Supplier Not Ready</span>
@@ -85,7 +85,7 @@
 
     <button name="action_open_stalled_followup" type="object"
             class="btn-warning oe_stat_button" icon="fa-clock-o"
-            attrs="{'invisible': [('tx_stalled_followup','=',0)]}">
+            invisible="tx_stalled_followup == 0">
         <div class="o_stat_info">
             <span class="o_stat_value"><field name="tx_stalled_followup" readonly="1"/></span>
             <span class="o_stat_text">3+ Followups No Resp</span>
@@ -94,7 +94,7 @@
 
     <button name="action_open_expiring_offers" type="object"
             class="btn-warning oe_stat_button" icon="fa-hourglass-half"
-            attrs="{'invisible': [('offer_expiring_soon','=',0)]}">
+            invisible="offer_expiring_soon == 0">
         <div class="o_stat_info">
             <span class="o_stat_value"><field name="offer_expiring_soon" readonly="1"/></span>
             <span class="o_stat_text">Offers Expiring ≤3d</span>
@@ -103,7 +103,7 @@
 
     <button name="action_open_lead_errors" type="object"
             class="btn-danger oe_stat_button" icon="fa-bug"
-            attrs="{'invisible': [('lead_error_open','=',0)]}">
+            invisible="lead_error_open == 0">
         <div class="o_stat_info">
             <span class="o_stat_value"><field name="lead_error_open" readonly="1"/></span>
             <span class="o_stat_text">Lead Triage Errors</span>
@@ -112,7 +112,7 @@
 
     <button name="action_open_commission_unlocked" type="object"
             class="btn-secondary oe_stat_button" icon="fa-unlock"
-            attrs="{'invisible': [('commission_unlocked','=',0)]}">
+            invisible="commission_unlocked == 0">
         <div class="o_stat_info">
             <span class="o_stat_value"><field name="commission_unlocked" readonly="1"/></span>
             <span class="o_stat_text">Unlocked Commissions</span>
@@ -186,18 +186,9 @@
      WTD / MTD / YTD rows per rep
 ════════════════════════════════════════════════════════════ -->
 <group string="🏆 Rep Performance">
-    <field name="_rep_performance_html" readonly="1" nolabel="1"
-           widget="html" sanitize="0"
-           attrs="{'invisible': [('id','=',False)]}"/>
+    <button name="action_open_sales_dashboard" type="object"
+            string="View Rep Performance →" class="btn-link"/>
 </group>
-<!-- NOTE: _rep_performance_html is a helper HTML field on the KPI model
-     that renders the rep list as a compact table, avoiding a nested
-     One2many (which requires a relational link). Alternatively, open
-     the embedded act_window using the button below. -->
-<div class="o_field_widget o_field_many2many_tags">
-    <button name="%(action_rep_performance_list)d" type="action"
-            string="View Full Rep Performance →" class="btn-link"/>
-</div>
 
 <separator/>
 
@@ -239,7 +230,7 @@
     </group>
     <button name="action_open_ai_pending_review" type="object"
             class="btn-primary" icon="fa-eye"
-            attrs="{'invisible': [('ai_pending_review','=',0)]}">
+            invisible="ai_pending_review == 0">
         <field name="ai_pending_review" readonly="1" class="font-weight-bold"/>
         Pending Buyer Match →
     </button>
@@ -291,10 +282,9 @@
             <filter name="filter_wtd" string="WTD" domain="[('period','=','WTD')]"/>
             <filter name="filter_mtd" string="MTD" domain="[('period','=','MTD')]"/>
             <filter name="filter_ytd" string="YTD" domain="[('period','=','YTD')]"/>
-            <group expand="0" string="Group By">
-                <filter name="group_period" string="Period" context="{'group_by':'period'}"/>
-                <filter name="group_rep"    string="Rep"    context="{'group_by':'rep_name'}"/>
-            </group>
+            <separator/>
+            <filter name="group_period" string="Group by Period" context="{'group_by':'period'}"/>
+            <filter name="group_rep"    string="Group by Rep"    context="{'group_by':'rep_name'}"/>
         </search>
     </field>
 </record>
