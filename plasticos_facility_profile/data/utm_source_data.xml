@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="1">
+    <!-- VanillaSoft UTM source — applied to all VS-imported partners without a source. -->
+    <record id="utm_source_vanillasoft" model="utm.source">
+      <field name="name">VanillaSoft</field>
+    </record>
+  </data>
+</odoo>
