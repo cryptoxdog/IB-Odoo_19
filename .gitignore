@@ -32,7 +32,12 @@ Files To Harvest/
 PlasticOS/
 _Source Files/
 addons/
-docs/
+docs/*.ai
+docs/*.pdf
+docs/*.png
+docs/*.jpg
+docs/*.jpeg
+docs/adr/
 l9_trace/
 odoo-enterprise/
 telemetry/
