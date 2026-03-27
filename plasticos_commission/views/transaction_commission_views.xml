@@ -13,9 +13,9 @@
         <field name="inherit_id" ref="plasticos_transaction.view_transaction_form"/>
         <field name="priority">10</field>
         <field name="arch" type="xml">
-            <!-- Insert Commission tab before the Compliance tab -->
-            <xpath expr="//page[@string='Compliance']" position="before">
-                <page string="Commission">
+            <!-- Insert Commission tab inside the notebook (at the end) -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Commission" name="commission">
                     <group>
                         <field name="commission_rule_id"/>
                         <field name="commission_amount"/>
