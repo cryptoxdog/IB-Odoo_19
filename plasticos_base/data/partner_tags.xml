@@ -1,40 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <data noupdate="0">
+    <!--
+      PARTNER CATEGORY TAGS — PlasticOS Operational Tags
+      ====================================================
+      Schema v5.0.0: Role taxonomy has moved to company_role (Selection).
+      These tags are OPERATIONAL/administrative only.
 
-    <!-- Partner Role Tags (for categorization) -->
-    <record id="category_partner_roles" model="res.partner.category">
-      <field name="name">Partner Roles</field>
+      Deprecated role tags (Buyer, Supplier, Broker, Carrier, Processor)
+      are NO LONGER created here. They will be removed in Sprint 8.
+    -->
+
+    <record id="category_operational" model="res.partner.category">
+      <field name="name">Operational</field>
+    </record>
+    <record id="tag_needs_enrichment" model="res.partner.category">
+      <field name="parent_id" ref="category_operational"/>
+      <field name="name">Needs Enrichment</field>
+    </record>
+    <record id="tag_do_not_contact" model="res.partner.category">
+      <field name="parent_id" ref="category_operational"/>
+      <field name="name">Do Not Contact</field>
+    </record>
+    <record id="tag_key_account" model="res.partner.category">
+      <field name="parent_id" ref="category_operational"/>
+      <field name="name">Key Account</field>
+    </record>
+    <record id="tag_preferred_carrier" model="res.partner.category">
+      <field name="parent_id" ref="category_operational"/>
+      <field name="name">Preferred Carrier</field>
+    </record>
+    <record id="tag_exporter" model="res.partner.category">
+      <field name="parent_id" ref="category_operational"/>
+      <field name="name">Exporter</field>
+    </record>
+    <record id="tag_toll_processor" model="res.partner.category">
+      <field name="parent_id" ref="category_operational"/>
+      <field name="name">Toll Processor</field>
     </record>
 
-    <record id="tag_buyer" model="res.partner.category">
-      <field name="parent_id" ref="category_partner_roles"/>
-      <field name="name">Buyer</field>
+    <!-- Material Focus parent — child tags anchored here for domain filtering -->
+    <record id="category_material_focus" model="res.partner.category">
+      <field name="name">Material Focus</field>
     </record>
-
-    <record id="tag_supplier" model="res.partner.category">
-      <field name="parent_id" ref="category_partner_roles"/>
-      <field name="name">Supplier</field>
+    <record id="tag_mf_pallets" model="res.partner.category">
+      <field name="parent_id" ref="category_material_focus"/>
+      <field name="name">Pallets</field>
     </record>
-
-    <record id="tag_broker" model="res.partner.category">
-      <field name="parent_id" ref="category_partner_roles"/>
-      <field name="name">Broker</field>
+    <record id="tag_mf_hdpe_drums" model="res.partner.category">
+      <field name="parent_id" ref="category_material_focus"/>
+      <field name="name">HDPE Drums</field>
     </record>
-
-    <record id="tag_carrier" model="res.partner.category">
-      <field name="parent_id" ref="category_partner_roles"/>
-      <field name="name">Carrier</field>
+    <record id="tag_mf_ag_film" model="res.partner.category">
+      <field name="parent_id" ref="category_material_focus"/>
+      <field name="name">AG Film</field>
     </record>
-
-    <record id="tag_processor" model="res.partner.category">
-      <field name="parent_id" ref="category_partner_roles"/>
-      <field name="name">Processor</field>
+    <record id="tag_mf_ldpe_film" model="res.partner.category">
+      <field name="parent_id" ref="category_material_focus"/>
+      <field name="name">LDPE Film</field>
     </record>
-
-    <record id="tag_expense" model="res.partner.category">
-      <field name="parent_id" ref="category_partner_roles"/>
-      <field name="name">Expense</field>
+    <record id="tag_mf_baled_pet" model="res.partner.category">
+      <field name="parent_id" ref="category_material_focus"/>
+      <field name="name">Baled PET</field>
+    </record>
+    <record id="tag_mf_baled_hdpe" model="res.partner.category">
+      <field name="parent_id" ref="category_material_focus"/>
+      <field name="name">Baled HDPE</field>
+    </record>
+    <record id="tag_mf_mixed_rigid" model="res.partner.category">
+      <field name="parent_id" ref="category_material_focus"/>
+      <field name="name">Mixed Rigid</field>
+    </record>
+    <record id="tag_mf_pp_supersacks" model="res.partner.category">
+      <field name="parent_id" ref="category_material_focus"/>
+      <field name="name">PP Supersacks</field>
+    </record>
+    <record id="tag_mf_pvc_pipe" model="res.partner.category">
+      <field name="parent_id" ref="category_material_focus"/>
+      <field name="name">PVC Pipe</field>
+    </record>
+    <record id="tag_mf_stretch_wrap" model="res.partner.category">
+      <field name="parent_id" ref="category_material_focus"/>
+      <field name="name">Stretch Wrap / Pallet Film</field>
     </record>
 
   </data>

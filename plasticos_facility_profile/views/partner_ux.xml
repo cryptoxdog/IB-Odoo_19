@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- ═══════════════════════════════════════════════════════════
-         PARTNER FORM UX — PlasticOS Stat Buttons, Entity Banner,
-         Fix Facility Capabilities Tab Visibility
-         Inherits the EXISTING partner extension from
-         plasticos_facility_profile.view_partner_form_profile_tab
-         ═══════════════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════════════
+         PARTNER FORM UX — Schema v5.0.0
+         Adds: entity health banners, stat buttons, company_role badge,
+               5-axis classification block, preferred_supplier_profile,
+               Personal Intel tab, facility tab visibility gate.
+         Inherits: plasticos_facility_profile.view_partner_form_profile_tab
+         ═══════════════════════════════════════════════════════════════ -->
 
     <record id="partner_form_plasticos_ux" model="ir.ui.view">
         <field name="name">res.partner.form.plasticos.ux</field>
@@ -15,10 +16,8 @@
         <field name="priority">25</field>
         <field name="arch" type="xml">
 
-            <!-- ═══ Entity Health Banners + PlasticOS Stat Buttons (single xpath) ═══ -->
+            <!-- ── Entity Health Banners ─────────────────────────────────── -->
             <xpath expr="//div[@name='button_box']" position="before">
-
-                <!-- BLOCKED entity alert -->
                 <div class="alert alert-danger border-danger border-3 d-flex align-items-center"
                      role="alert"
                      invisible="entity_status != 'blocked'">
@@ -26,8 +25,6 @@
                     <strong class="fs-5">⛔ BLOCKED</strong>
                     <span class="ms-2">— This entity is suspended from all PlasticOS transactions.</span>
                 </div>
-
-                <!-- INACTIVE entity warning -->
                 <div class="alert alert-warning d-flex align-items-center"
                      role="alert"
                      invisible="entity_status != 'inactive'">
@@ -35,13 +32,10 @@
                     <strong>INACTIVE</strong>
                     <span class="ms-2">— Operations paused. No new intakes or loads will be routed here.</span>
                 </div>
-
             </xpath>
 
-            <!-- Stat buttons inside button_box (separate xpath, different position) -->
+            <!-- ── Stat Buttons ──────────────────────────────────────────── -->
             <xpath expr="//div[@name='button_box']" position="inside">
-
-                <!-- Facility Profiles count -->
                 <button name="action_view_facility_profiles"
                         type="object"
                         class="oe_stat_button"
@@ -51,20 +45,153 @@
                            string="Capabilities"
                            widget="statinfo"/>
                 </button>
-
-                <!-- NOTE: Material Profiles stat button is in plasticos_material_profile -->
-
             </xpath>
 
-            <!-- ═══ Fix Facility Profile tab visibility ═══
-                 Uses is_facility_location computed field:
-                 True for child partners and standalone companies (no children).
-                 False for parent companies with children and person contacts.
-            -->
+            <!-- ── Company Role badge — before entity_status ─────────────── -->
+            <xpath expr="//field[@name='entity_status']" position="before">
+                <field name="company_role"
+                       widget="badge"
+                       decoration-success="company_role in ('buyer', 'both')"
+                       decoration-info="company_role == 'supplier'"
+                       decoration-warning="company_role == 'prospect'"
+                       decoration-muted="company_role in ('internal', 'broker', 'carrier')"
+                       optional="show"/>
+            </xpath>
+
+            <!-- ── Preferred Supplier Profile — after preferred_contact ──── -->
+            <xpath expr="//field[@name='preferred_contact_id']" position="after">
+                <field name="preferred_supplier_profile_id"
+                       invisible="company_role not in ('supplier', 'both')"
+                       optional="show"/>
+            </xpath>
+
+            <!-- ── Facility Profile tab: visibility gate ─────────────────── -->
             <xpath expr="//page[@name='facility_profile']" position="attributes">
                 <attribute name="invisible">not is_facility</attribute>
             </xpath>
 
+            <!-- ── 5-Axis Classification Block (inside facility_profile tab) -->
+            <xpath expr="//page[@name='facility_profile']//group[1]" position="before">
+
+                <group string="PlasticOS Classification" col="2">
+
+                    <group string="Role">
+                        <field name="partner_type_id"
+                               options="{'no_create': True}"
+                               widget="many2one_avatar"/>
+                        <field name="company_role"
+                               readonly="1"
+                               help="Computed from Partner Type. Set Partner Type to change."/>
+                    </group>
+
+                    <group string="Trade &amp; Status">
+                        <field name="plasticos_trade_role"/>
+                        <field name="entity_status"/>
+                        <field name="lead_source_id"/>
+                    </group>
+
+                </group>
+
+                <group string="Process Types"
+                       invisible="company_role not in ['recycler','commercial_recycler','processor','compounder','manufacturer']">
+                    <field name="plasticos_process_type_ids"
+                           widget="many2many_tags"
+                           options="{'no_create': True}"
+                           help="Set via enrichment or manually. Do NOT set at import."/>
+                    <field name="plasticos_primary_process_type"
+                           readonly="1"
+                           string="Primary (CEG)"
+                           help="Single code sent to CEG InferenceRequest.process_type."/>
+                </group>
+
+                <group string="Origin &amp; Material">
+                    <field name="plasticos_origin_sector"/>
+                    <field name="plasticos_material_focus_ids"
+                           widget="many2many_tags"
+                           string="Material Focus Tags"/>
+                </group>
+
+            </xpath>
+
+            <!-- ── Personal Intel Tab ────────────────────────────────────────
+                 Visible only for person contacts (is_company = False).
+                 Positioned after facility_profile — it's the deeper, human layer.
+                 ─────────────────────────────────────────────────────────────── -->
+            <xpath expr="//page[@name='facility_profile']" position="after">
+                <page name="personal_intel"
+                      string="🧠 Personal Intel"
+                      invisible="is_company">
+
+                    <div class="alert alert-warning d-flex align-items-start gap-2 mb-3"
+                         role="note">
+                        <i class="fa fa-lightbulb-o fa-lg mt-1"/>
+                        <span>
+                            <strong>Human-layer notes — for brokers only.</strong>
+                            Record personality, communication style, rapport hooks,
+                            family context, hobbies, motivators.
+                            Separate from business <em>Notes</em>.
+                            <strong>Internal only — never shared externally.</strong>
+                        </span>
+                    </div>
+
+                    <field name="personal_intel"
+                           nolabel="1"
+                           placeholder="e.g. 'Prefers texts over email. Huge college football fan — always leads with that. Mentions his daughter a lot. Gets defensive if you push on price before rapport is built. Best time to call: Tuesday/Thursday mornings.'"/>
+
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         PARTNER LIST VIEW — company_role + entity_status columns
+         ═══════════════════════════════════════════════════════════════ -->
+    <record id="partner_list_plasticos_ux" model="ir.ui.view">
+        <field name="name">res.partner.list.plasticos.ux</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='country_id']" position="before">
+                <field name="company_role"
+                       widget="badge"
+                       decoration-success="company_role in ('buyer', 'both')"
+                       decoration-info="company_role == 'supplier'"
+                       decoration-warning="company_role == 'prospect'"
+                       optional="show"/>
+                <field name="entity_status"
+                       widget="badge"
+                       decoration-danger="entity_status == 'blocked'"
+                       decoration-warning="entity_status == 'inactive'"
+                       decoration-success="entity_status == 'active'"
+                       optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         PARTNER SEARCH VIEW — role + status quick filters
+         ═══════════════════════════════════════════════════════════════ -->
+    <record id="partner_search_plasticos_ux" model="ir.ui.view">
+        <field name="name">res.partner.search.plasticos.ux</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='supplier']" position="after">
+                <filter string="Buyers" name="role_buyer"
+                        domain="['|', ('company_role', '=', 'buyer'), ('company_role', '=', 'both')]"/>
+                <filter string="Suppliers" name="role_supplier"
+                        domain="['|', ('company_role', '=', 'supplier'), ('company_role', '=', 'both')]"/>
+                <filter string="Prospects" name="role_prospect"
+                        domain="[('company_role', '=', 'prospect')]"/>
+                <filter string="Blocked" name="status_blocked"
+                        domain="[('entity_status', '=', 'blocked')]"/>
+                <separator/>
+            </xpath>
         </field>
     </record>
 
