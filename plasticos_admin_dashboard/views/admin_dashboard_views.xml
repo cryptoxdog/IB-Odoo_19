@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Admin RevOps Command Center — Single-screen form dashboard.
+
+    Layout philosophy:
+      - ONE form view. No tabs. No nested tabs.
+      - Three named sections rendered as <group> blocks with dividers:
+          A. Urgency Rail    — alert badges that light up red/amber when nonzero
+          B. Pipeline Bands  — Intakes · Offers · Transactions in compact stat buttons
+          C. Revenue / GM    — Financial KPIs (MTD and YTD side-by-side)
+          D. Rep Performance — Embedded read-only list (WTD / MTD / YTD rows)
+          E. AI Engine       — AI stats + config health indicators
+      - Every alert/badge has a matching button that drills to the actionable list.
+      - Refresh button top-right re-runs all SQL in one click.
+-->
+<odoo>
+<data>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     FORM VIEW — Main Dashboard
+     ═══════════════════════════════════════════════════════════════════════ -->
+<record id="view_admin_kpi_form" model="ir.ui.view">
+    <field name="name">plasticos.admin.kpi.form</field>
+    <field name="model">plasticos.admin.kpi</field>
+    <field name="arch" type="xml">
+        <form string="RevOps Command Center" create="false" delete="false">
+
+            <!-- ── Header bar ─────────────────────────────────────────── -->
+            <header>
+                <button name="action_refresh" type="object" string="↺ Refresh"
+                        class="btn-secondary" icon="fa-refresh"/>
+                <button name="action_open_sales_dashboard" type="object"
+                        string="Sales Dashboard →" class="btn-secondary"/>
+                <button name="action_open_logistics_dashboard" type="object"
+                        string="Logistics Dashboard →" class="btn-secondary"/>
+                <field name="last_refresh" readonly="1"
+                       widget="datetime" class="oe_read_only text-muted"/>
+            </header>
+
+            <sheet>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION A — URGENCY RAIL
+     Red/amber badges. Every badge drills to action in one click.
+     Only show blocks that are nonzero (attrs invisible on 0).
+════════════════════════════════════════════════════════════ -->
+<group string="⚡ Urgent — Requires Action" col="7"
+       class="o_stat_button_box">
+
+    <button name="action_open_negative_margin" type="object"
+            class="btn-danger oe_stat_button" icon="fa-exclamation-triangle"
+            attrs="{'invisible': [('tx_negative_margin','=',0)]}">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="tx_negative_margin" readonly="1"/></span>
+            <span class="o_stat_text">Negative Margin</span>
+        </div>
+    </button>
+
+    <button name="action_open_delivered_uninvoiced" type="object"
+            class="btn-danger oe_stat_button" icon="fa-file-text-o"
+            attrs="{'invisible': [('tx_delivered_uninvoiced','=',0)]}">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="tx_delivered_uninvoiced" readonly="1"/></span>
+            <span class="o_stat_text">Delivered–Uninvoiced</span>
+        </div>
+    </button>
+
+    <button name="action_open_missing_docs" type="object"
+            class="btn-warning oe_stat_button" icon="fa-folder-open-o"
+            attrs="{'invisible': [('tx_missing_docs','=',0)]}">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="tx_missing_docs" readonly="1"/></span>
+            <span class="o_stat_text">Missing Docs</span>
+        </div>
+    </button>
+
+    <button name="action_open_supplier_not_ready" type="object"
+            class="btn-warning oe_stat_button" icon="fa-truck"
+            attrs="{'invisible': [('tx_sup_not_ready','=',0)]}">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="tx_sup_not_ready" readonly="1"/></span>
+            <span class="o_stat_text">Supplier Not Ready</span>
+        </div>
+    </button>
+
+    <button name="action_open_stalled_followup" type="object"
+            class="btn-warning oe_stat_button" icon="fa-clock-o"
+            attrs="{'invisible': [('tx_stalled_followup','=',0)]}">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="tx_stalled_followup" readonly="1"/></span>
+            <span class="o_stat_text">3+ Followups No Resp</span>
+        </div>
+    </button>
+
+    <button name="action_open_expiring_offers" type="object"
+            class="btn-warning oe_stat_button" icon="fa-hourglass-half"
+            attrs="{'invisible': [('offer_expiring_soon','=',0)]}">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="offer_expiring_soon" readonly="1"/></span>
+            <span class="o_stat_text">Offers Expiring ≤3d</span>
+        </div>
+    </button>
+
+    <button name="action_open_lead_errors" type="object"
+            class="btn-danger oe_stat_button" icon="fa-bug"
+            attrs="{'invisible': [('lead_error_open','=',0)]}">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="lead_error_open" readonly="1"/></span>
+            <span class="o_stat_text">Lead Triage Errors</span>
+        </div>
+    </button>
+
+    <button name="action_open_commission_unlocked" type="object"
+            class="btn-secondary oe_stat_button" icon="fa-unlock"
+            attrs="{'invisible': [('commission_unlocked','=',0)]}">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="commission_unlocked" readonly="1"/></span>
+            <span class="o_stat_text">Unlocked Commissions</span>
+        </div>
+    </button>
+
+</group>
+
+<separator/>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION B — PIPELINE BANDS
+     Intakes / Offers / Transactions live counts
+════════════════════════════════════════════════════════════ -->
+<group string="📥 Intake Pipeline" col="8">
+    <field name="intake_draft"       string="Draft"        class="o_field_integer"/>
+    <field name="intake_matched"     string="Matched"      class="o_field_integer"/>
+    <field name="intake_offer_sent"  string="Offer Sent"   class="o_field_integer"/>
+    <field name="intake_processing"  string="Processing"   class="o_field_integer"/>
+    <field name="intake_total_open"  string="Total Open"   class="o_field_integer font-weight-bold"/>
+    <field name="intake_won_mtd"     string="Won MTD"      class="o_field_integer text-success"/>
+    <field name="intake_lost_mtd"    string="Lost MTD"     class="o_field_integer text-danger"/>
+    <field name="intake_win_rate_mtd" string="Win Rate %"  widget="float" digits="[5,1]"/>
+    <field name="avg_intake_age_days" string="Avg Age d"   widget="float" digits="[5,1]"/>
+</group>
+
+<group string="📨 Offers" col="8">
+    <field name="offer_draft"         string="Draft"          class="o_field_integer"/>
+    <field name="offer_sent"          string="Sent"           class="o_field_integer font-weight-bold"/>
+    <field name="offer_responded"     string="Responded"      class="o_field_integer"/>
+    <field name="offer_accepted_mtd"  string="Accepted MTD"   class="o_field_integer text-success"/>
+    <field name="offer_rejected_mtd"  string="Rejected MTD"   class="o_field_integer text-danger"/>
+    <field name="offer_expired_mtd"   string="Expired MTD"    class="o_field_integer text-muted"/>
+    <field name="offer_accept_rate_mtd" string="Accept Rate %" widget="float" digits="[5,1]"/>
+</group>
+
+<group string="🔄 Transactions" col="7">
+    <field name="tx_open"           string="Open"           class="o_field_integer font-weight-bold"/>
+    <field name="tx_in_motion"      string="In Motion"      class="o_field_integer text-info"/>
+    <field name="tx_closed_mtd"     string="Closed MTD"     class="o_field_integer text-success"/>
+    <field name="pipeline_value_open" string="Pipeline $"   widget="monetary"/>
+</group>
+
+<separator/>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION C — REVENUE / FINANCIAL
+     MTD and YTD side by side
+════════════════════════════════════════════════════════════ -->
+<group string="💰 Revenue &amp; Margin" col="6">
+    <group string="MTD">
+        <field name="revenue_mtd"    string="Revenue"    widget="monetary"/>
+        <field name="gm_mtd"         string="Gross $"    widget="monetary"/>
+        <field name="gm_pct_mtd"     string="GM %"       widget="float" digits="[5,1]"/>
+        <field name="net_margin_mtd" string="Net Margin" widget="monetary"/>
+        <field name="commission_mtd" string="Commission" widget="monetary"/>
+    </group>
+    <group string="YTD">
+        <field name="revenue_ytd"    string="Revenue"    widget="monetary"/>
+        <field name="gm_ytd"         string="Gross $"    widget="monetary"/>
+        <field name="gm_pct_ytd"     string="GM %"       widget="float" digits="[5,1]"/>
+        <field name="net_margin_ytd" string="Net Margin" widget="monetary"/>
+        <field name="commission_ytd" string="Commission" widget="monetary"/>
+    </group>
+</group>
+
+<separator/>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION D — REP PERFORMANCE (embedded list)
+     WTD / MTD / YTD rows per rep
+════════════════════════════════════════════════════════════ -->
+<group string="🏆 Rep Performance">
+    <field name="_rep_performance_html" readonly="1" nolabel="1"
+           widget="html" sanitize="0"
+           attrs="{'invisible': [('id','=',False)]}"/>
+</group>
+<!-- NOTE: _rep_performance_html is a helper HTML field on the KPI model
+     that renders the rep list as a compact table, avoiding a nested
+     One2many (which requires a relational link). Alternatively, open
+     the embedded act_window using the button below. -->
+<div class="o_field_widget o_field_many2many_tags">
+    <button name="%(action_rep_performance_list)d" type="action"
+            string="View Full Rep Performance →" class="btn-link"/>
+</div>
+
+<separator/>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION E — WEB LEAD FUNNEL
+════════════════════════════════════════════════════════════ -->
+<group string="🌐 Web Lead Funnel" col="7">
+    <field name="lead_received_today" string="Today"/>
+    <field name="lead_received_wtd"   string="WTD"/>
+    <field name="lead_received_mtd"   string="MTD"/>
+    <field name="lead_hot_mtd"        string="HOT MTD"  class="text-success font-weight-bold"/>
+    <field name="lead_cold_mtd"       string="COLD MTD" class="text-muted"/>
+    <field name="lead_hot_rate_mtd"   string="HOT Rate %" widget="float" digits="[5,1]"/>
+</group>
+
+<separator/>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION F — AI ENGINE STATS
+════════════════════════════════════════════════════════════ -->
+<group string="🤖 AI Engine Stats">
+    <group string="Config Health">
+        <field name="ai_openai_key_set"     string="OpenAI Key Set"
+               widget="boolean_toggle" readonly="1"/>
+        <field name="ai_normalized_enabled" string="Text Normalizer"
+               widget="boolean_toggle" readonly="1"/>
+        <field name="ai_vision_enabled"     string="Vision Analyzer"
+               widget="boolean_toggle" readonly="1"/>
+    </group>
+    <group string="MTD Throughput">
+        <field name="ai_leads_normalized_mtd" string="Normalized"/>
+        <field name="ai_leads_vision_mtd"     string="Vision Analyzed"/>
+        <field name="ai_hot_auto_mtd"         string="Auto-HOT" class="text-success"/>
+        <field name="ai_cold_auto_mtd"        string="Auto-COLD" class="text-muted"/>
+        <field name="ai_hot_rate_mtd"         string="HOT Rate %" widget="float" digits="[5,1]"/>
+        <field name="ai_error_mtd"            string="Errors"    class="text-danger"/>
+        <field name="ai_manual_override_mtd"  string="Manual Overrides"/>
+        <field name="ai_intakes_auto_created" string="Auto-Intakes Created"/>
+    </group>
+    <button name="action_open_ai_pending_review" type="object"
+            class="btn-primary" icon="fa-eye"
+            attrs="{'invisible': [('ai_pending_review','=',0)]}">
+        <field name="ai_pending_review" readonly="1" class="font-weight-bold"/>
+        Pending Buyer Match →
+    </button>
+</group>
+
+            </sheet>
+        </form>
+    </field>
+</record>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     REP PERFORMANCE — standalone list (accessible from dashboard button)
+     ═══════════════════════════════════════════════════════════════════════ -->
+<record id="view_rep_performance_list" model="ir.ui.view">
+    <field name="name">plasticos.rep.performance.list</field>
+    <field name="model">plasticos.rep.performance</field>
+    <field name="arch" type="xml">
+        <list string="Rep Performance" create="false" delete="false"
+              default_order="period_sort asc, revenue_closed desc">
+            <field name="period"          optional="show" decoration-info="period=='WTD'"
+                   decoration-primary="period=='MTD'" decoration-muted="period=='YTD'"/>
+            <field name="rep_name"        string="Rep"/>
+            <field name="deals_closed"    string="Closed"     sum="Total"/>
+            <field name="revenue_closed"  string="Revenue $"  sum="Total" widget="monetary"/>
+            <field name="gm_closed"       string="GM $"       sum="Total" widget="monetary"/>
+            <field name="gm_pct"          string="GM %"       widget="float" digits="[5,1]"
+                   decoration-danger="gm_pct &lt; 5" decoration-warning="gm_pct &lt; 10"/>
+            <field name="net_margin"      string="Net $"      sum="Total" widget="monetary"
+                   decoration-danger="net_margin &lt; 0"/>
+            <field name="commission"      string="Commission" sum="Total" widget="monetary"/>
+            <field name="deals_open"      string="Open"       optional="show"/>
+            <field name="pipeline_val"    string="Pipeline $" widget="monetary" optional="show"/>
+            <field name="intakes_created" string="Intakes"    optional="show"/>
+            <field name="offers_sent"     string="Offers Out" optional="show"/>
+            <field name="offers_accepted" string="Accepted"   optional="show"/>
+            <field name="offer_acc_rate"  string="Acc Rate %"
+                   widget="float" digits="[5,1]"    optional="show"/>
+        </list>
+    </field>
+</record>
+
+<record id="view_rep_performance_search" model="ir.ui.view">
+    <field name="name">plasticos.rep.performance.search</field>
+    <field name="model">plasticos.rep.performance</field>
+    <field name="arch" type="xml">
+        <search string="Rep Performance">
+            <field name="rep_name"/>
+            <filter name="filter_wtd" string="WTD" domain="[('period','=','WTD')]"/>
+            <filter name="filter_mtd" string="MTD" domain="[('period','=','MTD')]"/>
+            <filter name="filter_ytd" string="YTD" domain="[('period','=','YTD')]"/>
+            <group expand="0" string="Group By">
+                <filter name="group_period" string="Period" context="{'group_by':'period'}"/>
+                <filter name="group_rep"    string="Rep"    context="{'group_by':'rep_name'}"/>
+            </group>
+        </search>
+    </field>
+</record>
+
+<!-- ── Actions ────────────────────────────────────────────────────────────── -->
+<record id="action_admin_kpi_form" model="ir.actions.act_window">
+    <field name="name">RevOps Command Center</field>
+    <field name="res_model">plasticos.admin.kpi</field>
+    <field name="view_mode">form</field>
+    <field name="target">current</field>
+    <field name="context">{
+        "form_view_initial_mode": "readonly"
+    }</field>
+</record>
+
+<record id="action_rep_performance_list" model="ir.actions.act_window">
+    <field name="name">Rep Performance</field>
+    <field name="res_model">plasticos.rep.performance</field>
+    <field name="view_mode">list</field>
+    <field name="context">{"search_default_filter_mtd": 1}</field>
+</record>
+
+<!-- ── Menu entries ───────────────────────────────────────────────────────── -->
+<menuitem id="menu_plasticos_admin_root"
+          name="Admin"
+          sequence="1"
+          groups="plasticos_security_base.group_plasticos_admin"/>
+
+<menuitem id="menu_plasticos_admin_dashboard"
+          name="Command Center"
+          parent="menu_plasticos_admin_root"
+          action="action_admin_kpi_form"
+          sequence="1"
+          groups="plasticos_security_base.group_plasticos_admin"/>
+
+<menuitem id="menu_plasticos_rep_performance"
+          name="Rep Performance"
+          parent="menu_plasticos_admin_root"
+          action="action_rep_performance_list"
+          sequence="2"
+          groups="plasticos_security_base.group_plasticos_admin"/>
+
+</data>
+</odoo>

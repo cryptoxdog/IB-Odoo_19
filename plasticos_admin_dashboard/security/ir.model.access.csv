@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_admin_kpi_admin,plasticos.admin.kpi admin,model_plasticos_admin_kpi,plasticos_security_base.group_plasticos_admin,1,1,1,0
+access_admin_kpi_manager,plasticos.admin.kpi manager,model_plasticos_admin_kpi,plasticos_security_base.group_plasticos_manager,1,0,0,0
+access_rep_performance_admin,plasticos.rep.performance admin,model_plasticos_rep_performance,plasticos_security_base.group_plasticos_admin,1,0,0,0
+access_rep_performance_manager,plasticos.rep.performance manager,model_plasticos_rep_performance,plasticos_security_base.group_plasticos_manager,1,0,0,0
