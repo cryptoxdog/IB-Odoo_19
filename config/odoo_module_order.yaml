@@ -8,6 +8,78 @@
 #   - plasticos_documents_native: installable=False; requires Odoo Enterprise documents
 #   - plasticos_dev_tools: installable=False (dev only)
 #
+# ─────────────────────────────────────────────────────────────────────────────
+# DOCKER TESTING ONLY — Enterprise modules that mirror production (Odoo.sh).
+#
+# Purpose: close the Docker↔Odoo.sh parity gap.
+#   Production installs these automatically via the Enterprise subscription.
+#   Without them in Docker, bugs in enterprise↔custom module interactions
+#   (e.g. currency_rate_live adding currency_provider to res.config.settings)
+#   are invisible locally and only surface on Odoo.sh.
+#
+# Source of truth: queried live from production 2026-03-27
+#   SELECT name FROM ir_module_module WHERE state='installed' ORDER BY name
+#
+# Install BEFORE default_install_order. Requires odoo-enterprise/ in addons-path
+# (already mounted as /mnt/enterprise in docker-compose.yml).
+# DO NOT add these to Odoo.sh — it manages enterprise installs independently.
+# ─────────────────────────────────────────────────────────────────────────────
+docker_enterprise_modules:
+  # Accounting & finance
+  - account_accountant           # extends accounting settings, views, and reports
+  - account_reports              # financial reporting engine
+  - account_fiscal_categories    # fiscal position categories
+  - account_followup             # payment follow-up sequences
+  - account_extract              # OCR/AI invoice extraction (IAP)
+  - account_invoice_extract      # invoice line extraction (IAP)
+  - account_invoice_extract_purchase  # PO extraction (IAP)
+  - account_online_synchronization    # bank feed sync
+  - account_bank_statement_import     # bank statement imports
+  - purchase_accountant          # purchase + accounting bridge
+  - sale_account_accountant      # sale + accounting bridge
+  - stock_accountant             # stock + accounting bridge
+
+  # Currency
+  - currency_rate_live           # CRITICAL: adds currency_provider field to res.config.settings
+
+  # CRM & Sales
+  - crm_enterprise               # CRM map view, pipeline enhancements
+  - sale_enterprise              # sale forecasting, reporting
+  - sale_pdf_quote_builder       # PDF quote templates
+  - contacts_enterprise          # contacts map view
+
+  # Inventory & Logistics
+  - stock_enterprise             # stock forecasting, putaway rules
+  - stock_barcode                # barcode scanning
+
+  # Documents (enables plasticos_documents_native)
+  - documents                    # document management core
+  - documents_account            # documents + accounting integration
+  - documents_product            # documents + product integration
+  - documents_spreadsheet        # documents + spreadsheet integration
+
+  # Analytics
+  - analytic_enterprise          # analytic distribution matrix
+
+  # Mail & collaboration
+  - mail_enterprise              # mail activity and threading enhancements
+  - attachment_indexation        # full-text indexing of attachments
+
+  # Spreadsheets & dashboards
+  - spreadsheet                  # spreadsheet core
+  - spreadsheet_account          # financial spreadsheets
+  - spreadsheet_dashboard        # dashboard framework
+  - spreadsheet_edition          # spreadsheet editing
+  - spreadsheet_sale_management  # sales dashboard
+  - digest_enterprise            # KPI digest enterprise
+
+  # Web / UI
+  - web_enterprise               # enterprise UI shell (top bar, home menu)
+  - web_cohort                   # cohort analysis view
+  - web_gantt                    # Gantt chart view
+  - web_grid                     # grid view
+  - web_map                      # map view
+
 # Default install order (no optional):
 default_install_order:
   - plasticos_accounting
