@@ -243,12 +243,10 @@
                 string="Load Exception"
                 domain="[('load_state','=','exception')]"/>
         <separator/>
-        <group expand="0" string="Group By">
-          <filter name="group_deal_status"   string="Deal Status"   context="{'group_by': 'transaction_state'}"/>
-          <filter name="group_load_status"   string="Load Status"   context="{'group_by': 'load_state'}"/>
-          <filter name="group_pay_status"    string="Pay Status"    context="{'group_by': 'commission_payout_state'}"/>
-          <filter name="group_weight_source" string="Weight Source" context="{'group_by': 'weight_source'}"/>
-        </group>
+        <filter name="group_deal_status"   string="Group by Deal Status"   context="{'group_by': 'transaction_state'}"/>
+        <filter name="group_load_status"   string="Group by Load Status"   context="{'group_by': 'load_state'}"/>
+        <filter name="group_pay_status"    string="Group by Pay Status"    context="{'group_by': 'commission_payout_state'}"/>
+        <filter name="group_weight_source" string="Group by Weight Source" context="{'group_by': 'weight_source'}"/>
       </search>
     </field>
   </record>
