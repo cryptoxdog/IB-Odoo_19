@@ -10,7 +10,6 @@
         "plasticos_transaction",
         "plasticos_logistics",
         "plasticos_security_base",
-        "plasticos_documents_native",
         "base",
         "product",
         "mail",
