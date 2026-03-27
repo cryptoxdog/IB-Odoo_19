@@ -164,7 +164,7 @@ class PlasticosSalesDashboard(models.Model):
                 t.purchase_cost_total                         AS purchase_cost_total,
                 t.freight_cost_total                          AS freight_cost_total,
                 t.gross_margin                                AS gross_margin,
-                t.currency_id                                 AS currency_id,
+                NULL::integer                                 AS currency_id,
                 COALESCE(t.final_weight, 0.0)                 AS final_weight,
                 COALESCE(t.weight_source, 'none')             AS weight_source,
                 COALESCE(t.weight_discrepancy_flagged, FALSE)  AS weight_discrepancy_flagged,
