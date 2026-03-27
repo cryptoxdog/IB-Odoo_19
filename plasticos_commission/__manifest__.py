@@ -20,6 +20,7 @@
         "data/commission_payout_sequence.xml",
         "views/commission_payout_views.xml",
         "views/sales_dashboard_views.xml",
+        "views/transaction_commission_views.xml",
     ],
     "installable": True,
     "application": False,

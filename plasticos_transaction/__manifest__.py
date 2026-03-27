@@ -20,7 +20,6 @@
         "plasticos_product",
         "plasticos_offer",
         # "plasticos_matching",  # Disabled - external microservice
-        "plasticos_commission",
     ],
     "data": [
         "security/security_hardening.xml",

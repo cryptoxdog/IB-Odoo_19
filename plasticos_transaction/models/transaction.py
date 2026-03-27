@@ -392,14 +392,15 @@ class PlasticosTransaction(models.Model):
         help="Gross margin - commission (company profit).",
     )
 
-    commission_rule_id = fields.Many2one("plasticos.commission.rule")
-    commission_amount = fields.Float(compute="_compute_commission", store=True)
-    commission_locked = fields.Boolean(default=False, copy=False)
-    commission_locked_amount = fields.Float(copy=False)
-    commission_override_pct = fields.Float(
-        string="Commission Override %",
-        help="Admin override: fraction 0.0–1.0. Leave 0 to use rule. Only managers can edit.",
-        groups="plasticos_transaction.group_plasticos_manager",
+    # Commission fields (commission_rule_id, commission_locked, commission_locked_amount,
+    # commission_override_pct) are defined by plasticos_commission via _inherit extension
+    # (transaction_commission.py) to avoid circular dependency.
+    # commission_amount is kept here as a stub so _compute_net_margin works without
+    # requiring the commission module.
+    commission_amount = fields.Float(
+        compute="_compute_commission",
+        store=True,
+        help="Computed by plasticos_commission extension. Zero when commission not installed.",
     )
 
     compliance_status = fields.Selection(
@@ -484,12 +485,7 @@ class PlasticosTransaction(models.Model):
 
     @api.constrains("commission_override_pct")
     def _check_override_pct_range(self):
-        """Validate commission override is a fraction 0.0–1.0."""
-        for rec in self:
-            if rec.commission_override_pct and not (0.0 <= rec.commission_override_pct <= 1.0):
-                raise ValidationError(
-                    "Commission override percentage must be between 0.0 and 1.0 (e.g., 0.15 for 15%)."
-                )
+        """Stub — overridden by plasticos_commission.transaction_commission."""
 
     # ── Default Delivery Term Helper ─────────────────────────
     def _get_default_delivery_term(self):
@@ -760,7 +756,7 @@ class PlasticosTransaction(models.Model):
 
     @api.depends("gross_margin", "commission_amount")
     def _compute_net_margin(self):
-        """Net margin = gross margin - commission."""
+        """Net margin = gross margin - commission. Overridden by plasticos_commission."""
         for rec in self:
             rec.net_margin = rec.gross_margin - (rec.commission_amount or 0.0)
 
@@ -776,25 +772,13 @@ class PlasticosTransaction(models.Model):
             rec.freight_chargebacks = 0.0
             rec.lightweight_penalties = 0.0
 
-    @api.depends(
-        "gross_margin",
-        "commission_rule_id",
-        "commission_override_pct",
-        "state",
-        "commission_locked",
-        "commission_locked_amount",
-    )
+    @api.depends()
     def _compute_commission(self):
-        if "plasticos.commission.service" not in self.env:
-            for rec in self:
-                rec.commission_amount = rec.commission_locked_amount or 0.0
-            return
-        service = self.env["plasticos.commission.service"]
+        """Stub — overridden by plasticos_commission.transaction_commission.
+        Falls back to zero when commission module is not installed.
+        """
         for rec in self:
-            if rec.commission_locked:
-                rec.commission_amount = rec.commission_locked_amount or 0.0
-                continue
-            rec.commission_amount = service.compute_commission(rec)
+            rec.commission_amount = 0.0
 
     @api.depends("create_date")
     def _compute_compliance(self):
@@ -893,7 +877,10 @@ class PlasticosTransaction(models.Model):
                 raise UserError("State can only be changed via action methods.")
 
     def _validate_write_immutability(self, rec, vals):
-        """Guard immutable fields: name, closed-state fields, commission lock, invoice reassignment."""
+        """Guard immutable fields: name, closed-state fields, invoice reassignment.
+        Commission-specific guards (commission_rule_id, commission_locked) are
+        enforced by plasticos_commission.transaction_commission.
+        """
         if "name" in vals:
             raise UserError("Transaction reference cannot be modified.")
         if rec.state == "closed":
@@ -903,12 +890,9 @@ class PlasticosTransaction(models.Model):
                 "customer_invoice_id",
                 "vendor_bill_ids",
                 "freight_bill_ids",
-                "commission_rule_id",
             }
             if protected.intersection(vals.keys()):
                 raise UserError("Closed transactions are immutable.")
-        if rec.commission_locked and "commission_rule_id" in vals:
-            raise UserError("Commission cannot be modified after lock.")
         if rec.customer_invoice_id and "customer_invoice_id" in vals:
             if vals["customer_invoice_id"] != rec.customer_invoice_id.id:
                 raise UserError("Customer invoice cannot be reassigned once set.")
@@ -951,15 +935,10 @@ class PlasticosTransaction(models.Model):
 
     def action_close(self):
         service_docs = self.env["plasticos.compliance.service"] if "plasticos.compliance.service" in self.env else None
-        service_commission = (
-            self.env["plasticos.commission.service"] if "plasticos.commission.service" in self.env else None
-        )
 
         for rec in self:
-            # Validate preconditions FIRST (includes auth check), before acquiring lock
             self._validate_close_preconditions(rec, service_docs)
 
-            # Now acquire advisory lock for the actual close operation
             self.env.cr.execute(
                 "SELECT pg_try_advisory_lock(hashtext(%s))",
                 [f"plasticos_transaction.close_{rec.id}"],
@@ -968,7 +947,7 @@ class PlasticosTransaction(models.Model):
             if not locked:
                 raise UserError(f"Transaction {rec.name} is already being closed by another process.")
             try:
-                self._apply_close(rec, service_commission)
+                self._apply_close(rec)
             finally:
                 self.env.cr.execute(
                     "SELECT pg_advisory_unlock(hashtext(%s))",
@@ -998,16 +977,9 @@ class PlasticosTransaction(models.Model):
         if rec.gross_margin < 0:
             raise UserError("Cannot close transaction with negative gross margin.")
 
-    def _apply_close(self, rec, service_commission):
-        """Compute commission and write the closed state onto the transaction record."""
-        amount = service_commission.compute_commission(rec) if service_commission else 0.0
-        rec.write(
-            {
-                "commission_locked_amount": amount,
-                "commission_locked": True,
-                "state": "closed",
-            }
-        )
+    def _apply_close(self, rec):
+        """Write closed state. Commission locking is applied by plasticos_commission extension."""
+        rec.with_context(bypass_state_guard=True).write({"state": "closed"})
 
     # ═════════════════════════════════════════════════════════
     # State Transition Action Methods (for crons/system processes)

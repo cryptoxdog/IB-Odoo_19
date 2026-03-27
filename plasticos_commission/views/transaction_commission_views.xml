@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         Commission tab — injected into plasticos.transaction form view.
+         Defined here (not in plasticos_transaction) to break the circular
+         dependency: transaction no longer depends on commission module.
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_transaction_form_commission" model="ir.ui.view">
+        <field name="name">plasticos.transaction.form.commission</field>
+        <field name="model">plasticos.transaction</field>
+        <field name="inherit_id" ref="plasticos_transaction.view_transaction_form"/>
+        <field name="priority">10</field>
+        <field name="arch" type="xml">
+            <!-- Insert Commission tab before the Compliance tab -->
+            <xpath expr="//page[@string='Compliance']" position="before">
+                <page string="Commission">
+                    <group>
+                        <field name="commission_rule_id"/>
+                        <field name="commission_amount"/>
+                        <field name="commission_locked"/>
+                        <field name="commission_locked_amount" invisible="not commission_locked"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

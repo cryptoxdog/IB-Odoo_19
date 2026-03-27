@@ -21,13 +21,19 @@ class PlasticosAuditCron(models.Model):
             return
 
         try:
-            violations = tx_model.search(
-                [
+            # commission_locked is defined by plasticos_commission extension;
+            # only filter on it when the field exists
+            domain = [("state", "=", "closed"), ("gross_margin", "<", 0)]
+            commission_field_exists = "commission_locked" in tx_model._fields
+            if commission_field_exists:
+                domain = [
                     ("state", "=", "closed"),
                     "|",
                     ("gross_margin", "<", 0),
                     ("commission_locked", "=", False),
-                ],
+                ]
+            violations = tx_model.search(
+                domain,
                 order="write_date ASC, id ASC",
                 limit=500,
             )
