@@ -131,6 +131,7 @@ class PlasticosSalesDashboard(models.Model):
         string="Docs Clear",
         compute="_compute_doc_checklist",
         readonly=True,
+        search="_search_docs_all_clear",
     )
 
     # ── Commission ────────────────────────────────────────────────────────────
@@ -256,6 +257,19 @@ class PlasticosSalesDashboard(models.Model):
                 if status != "ok":
                     all_clear = False
             rec.docs_all_clear = all_clear
+
+    def _search_docs_all_clear(self, operator, value):
+        """Search method for docs_all_clear — translates to compliance_status domain.
+
+        Allows Odoo 19 domain filters on this non-stored computed field.
+        Uses plasticos.transaction.compliance_status (stored) as the proxy.
+        """
+        if operator not in ("=", "!="):
+            return []
+        want_clear = (operator == "=" and value) or (operator == "!=" and not value)
+        compliance_val = "compliant" if want_clear else "missing"
+        txs = self.env["plasticos.transaction"].search([("compliance_status", "=", compliance_val)])
+        return [("transaction_id", "in", txs.ids)]
 
     # ══════════════════════════════════════════════════════════════════════════
     # Drill-Through Actions

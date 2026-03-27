@@ -186,8 +186,8 @@
      WTD / MTD / YTD rows per rep
 ════════════════════════════════════════════════════════════ -->
 <group string="🏆 Rep Performance">
-    <button name="action_open_sales_dashboard" type="object"
-            string="View Rep Performance →" class="btn-link"/>
+    <button name="action_view_rep_performance" type="object"
+            string="View Rep Performance (WTD / MTD / YTD) →" class="btn-link"/>
 </group>
 
 <separator/>

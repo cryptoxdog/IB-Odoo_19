@@ -152,6 +152,34 @@
 
                 </page>
 
+                <!-- ═══════════════════════════════════════════════════════
+                     PERSONAL INTEL TAB (CRM Lead)
+                     Surfaces partner_personal_intel (related from res.partner)
+                     as a readonly display. Visible when partner is a person.
+                     Brokers see this before every call.
+                     ═══════════════════════════════════════════════════════ -->
+                <page string="🧠 Personal Intel"
+                      name="personal_intel_tab"
+                      invisible="not partner_id or partner_id.is_company">
+
+                    <div class="alert alert-warning d-flex align-items-start gap-2 mb-3"
+                         role="alert">
+                        <i class="fa fa-lightbulb-o fa-lg mt-1"/>
+                        <span>
+                            <strong>Human-layer notes from the Contact record.</strong>
+                            Edit on the Contact to make changes.
+                            Personality, comms style, rapport hooks, motivators.
+                            <strong>Internal only.</strong>
+                        </span>
+                    </div>
+
+                    <field name="partner_personal_intel"
+                           nolabel="1"
+                           readonly="1"
+                           placeholder="No Personal Intel recorded yet. Open the Contact to add notes."/>
+
+                </page>
+
             </xpath>
 
         </field>

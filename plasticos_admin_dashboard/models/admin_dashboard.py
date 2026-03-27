@@ -598,6 +598,16 @@ class PlasticosAdminKpi(models.Model):
             "context": {"form_view_initial_mode": "readonly"},
         }
 
+    def action_view_rep_performance(self):
+        """Navigate to the standalone rep performance list (WTD/MTD/YTD)."""
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Rep Performance",
+            "res_model": "plasticos.rep.performance",
+            "view_mode": "list",
+            "context": {"search_default_filter_mtd": 1},
+        }
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # REP PERFORMANCE — SQL VIEW (one row per rep × period)

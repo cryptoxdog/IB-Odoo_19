@@ -93,6 +93,7 @@ check: lint format
 xml-check:
 	@echo "→ XML validation..."
 	@find . -name "*.xml" \
+		-path "./plasticos_*" \
 		-not -path "./.git/*" \
 		-not -path "./.venv/*" \
 		-not -path "./current work*" \
