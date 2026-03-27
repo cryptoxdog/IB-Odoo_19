@@ -3,9 +3,8 @@
 
     <!-- ═══════════════════════════════════════════════════════════════
          PARTNER FORM UX — Schema v5.0.0
-         Adds: entity health banners, stat buttons, company_role badge,
-               5-axis classification block, preferred_supplier_profile,
-               Personal Intel tab, facility tab visibility gate.
+         Adds: entity health banners, stat button, facility tab gate,
+               Personal Intel tab.
          Inherits: plasticos_facility_profile.view_partner_form_profile_tab
          ═══════════════════════════════════════════════════════════════ -->
 
@@ -34,7 +33,7 @@
                 </div>
             </xpath>
 
-            <!-- ── Stat Buttons ──────────────────────────────────────────── -->
+            <!-- ── Stat Button ───────────────────────────────────────────── -->
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_view_facility_profiles"
                         type="object"
@@ -47,75 +46,13 @@
                 </button>
             </xpath>
 
-            <!-- ── Company Role badge — before entity_status ─────────────── -->
-            <xpath expr="//field[@name='entity_status']" position="before">
-                <field name="company_role"
-                       widget="badge"
-                       decoration-success="company_role in ('buyer', 'both')"
-                       decoration-info="company_role == 'supplier'"
-                       decoration-warning="company_role == 'prospect'"
-                       decoration-muted="company_role in ('internal', 'broker', 'carrier')"
-                       optional="show"/>
-            </xpath>
-
-            <!-- ── Preferred Supplier Profile — after preferred_contact ──── -->
-            <xpath expr="//field[@name='preferred_contact_id']" position="after">
-                <field name="preferred_supplier_profile_id"
-                       invisible="company_role not in ('supplier', 'both')"
-                       optional="show"/>
-            </xpath>
-
             <!-- ── Facility Profile tab: visibility gate ─────────────────── -->
             <xpath expr="//page[@name='facility_profile']" position="attributes">
                 <attribute name="invisible">not is_facility</attribute>
             </xpath>
 
-            <!-- ── 5-Axis Classification Block (inside facility_profile tab) -->
-            <xpath expr="//page[@name='facility_profile']//group[1]" position="before">
-
-                <group string="PlasticOS Classification" col="2">
-
-                    <group string="Role">
-                        <field name="partner_type_id"
-                               options="{'no_create': True}"
-                               widget="many2one_avatar"/>
-                        <field name="company_role"
-                               readonly="1"
-                               help="Computed from Partner Type. Set Partner Type to change."/>
-                    </group>
-
-                    <group string="Trade &amp; Status">
-                        <field name="plasticos_trade_role"/>
-                        <field name="entity_status"/>
-                        <field name="lead_source_id"/>
-                    </group>
-
-                </group>
-
-                <group string="Process Types"
-                       invisible="company_role not in ['recycler','commercial_recycler','processor','compounder','manufacturer']">
-                    <field name="plasticos_process_type_ids"
-                           widget="many2many_tags"
-                           options="{'no_create': True}"
-                           help="Set via enrichment or manually. Do NOT set at import."/>
-                    <field name="plasticos_primary_process_type"
-                           readonly="1"
-                           string="Primary (CEG)"
-                           help="Single code sent to CEG InferenceRequest.process_type."/>
-                </group>
-
-                <group string="Origin &amp; Material">
-                    <field name="plasticos_origin_sector"/>
-                    <field name="plasticos_material_focus_ids"
-                           widget="many2many_tags"
-                           string="Material Focus Tags"/>
-                </group>
-
-            </xpath>
-
             <!-- ── Personal Intel Tab ────────────────────────────────────────
                  Visible only for person contacts (is_company = False).
-                 Positioned after facility_profile — it's the deeper, human layer.
                  ─────────────────────────────────────────────────────────────── -->
             <xpath expr="//page[@name='facility_profile']" position="after">
                 <page name="personal_intel"
@@ -136,7 +73,7 @@
 
                     <field name="personal_intel"
                            nolabel="1"
-                           placeholder="e.g. 'Prefers texts over email. Huge college football fan — always leads with that. Mentions his daughter a lot. Gets defensive if you push on price before rapport is built. Best time to call: Tuesday/Thursday mornings.'"/>
+                           placeholder="e.g. 'Prefers texts over email...'"/>
 
                 </page>
             </xpath>
