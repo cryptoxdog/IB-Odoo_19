@@ -114,6 +114,19 @@ class PlasticosCommissionRule(models.Model):
             rec.percentage = (rec.display_percentage or 0.0) / 100
 
     # ── Constraints ───────────────────────────────────────────
+    @api.constrains("sales_rep_id", "active")
+    def _check_unique_active_sales_rep(self):
+        """Ensure only one active commission rule per sales rep."""
+        for rec in self:
+            if not rec.active:
+                continue
+            duplicate = self.search(
+                [("sales_rep_id", "=", rec.sales_rep_id.id), ("active", "=", True), ("id", "!=", rec.id)],
+                limit=1,
+            )
+            if duplicate:
+                raise ValidationError(f"Sales rep {rec.sales_rep_id.name} already has an active commission rule.")
+
     @api.constrains("name")
     def _check_name_required(self):
         """Ensure name is not empty or falsy."""
