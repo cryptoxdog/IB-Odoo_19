@@ -36,6 +36,17 @@ class PlasticosTransactionCommission(models.Model):
         help="Admin override: fraction 0.0–1.0. Leave 0 to use rule. Only managers can edit.",
         groups="plasticos_transaction.group_plasticos_manager",
     )
+    commission_payout_state = fields.Selection(
+        selection=[
+            ("unpaid", "Unpaid"),
+            ("confirmed", "Confirmed"),
+            ("paid", "Paid"),
+        ],
+        string="Commission Payout State",
+        default="unpaid",
+        tracking=True,
+        help="Tracks whether the commission on this transaction has been paid out.",
+    )
 
     # ── Commission Compute ────────────────────────────────────────────────────
 

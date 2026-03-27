@@ -157,7 +157,7 @@ class PlasticosSalesDashboard(models.Model):
                 t.supplier_id                                 AS supplier_id,
                 t.buyer_id                                    AS buyer_id,
                 t.product_id                                  AS product_id,
-                t.product_qty                                 AS quantity,
+                t.quantity                                     AS quantity,
                 t.uom_id                                      AS uom_id,
                 t.unit_price                                  AS unit_price,
                 t.revenue_total                               AS revenue_total,
