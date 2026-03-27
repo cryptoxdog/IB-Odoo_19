@@ -653,7 +653,7 @@ class PlasticosRepPerformance(models.Model):
             closed_tx AS (
                 SELECT
                     t.user_id,
-                    u.name AS rep_name,
+                    rp.name AS rep_name,
                     t.revenue_total,
                     t.gross_margin,
                     t.net_margin,
@@ -661,6 +661,7 @@ class PlasticosRepPerformance(models.Model):
                     t.write_date
                 FROM plasticos_transaction t
                 LEFT JOIN res_users u ON u.id = t.user_id
+                LEFT JOIN res_partner rp ON rp.id = u.partner_id
                 WHERE t.state = 'closed'
             ),
             open_tx AS (
@@ -672,7 +673,7 @@ class PlasticosRepPerformance(models.Model):
             )
             SELECT
                 ROW_NUMBER() OVER () AS id,
-                u.name              AS rep_name,
+                rp.name             AS rep_name,
                 t.user_id           AS salesperson_id,
                 p.period_label      AS period,
                 p.period_sort       AS period_sort,
@@ -718,11 +719,12 @@ class PlasticosRepPerformance(models.Model):
             FROM (SELECT DISTINCT user_id FROM plasticos_transaction WHERE user_id IS NOT NULL) t
             CROSS JOIN periods p
             LEFT JOIN res_users u   ON u.id = t.user_id
+            LEFT JOIN res_partner rp ON rp.id = u.partner_id
             LEFT JOIN closed_tx ct  ON ct.user_id = t.user_id
             LEFT JOIN open_tx ot    ON ot.user_id = t.user_id
             LEFT JOIN plasticos_intake i    ON i.assigned_user_id = t.user_id
             LEFT JOIN plasticos_offer  o    ON o.supplier_id IN (
                 SELECT DISTINCT supplier_id FROM plasticos_transaction WHERE user_id = t.user_id
             )
-            GROUP BY t.user_id, u.name, p.period_label, p.period_sort
+            GROUP BY t.user_id, rp.name, p.period_label, p.period_sort
         """)
