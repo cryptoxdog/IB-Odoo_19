@@ -1,1 +1,2 @@
-from . import models
+# PlasticOS Accounting — seed data only, no models
+
