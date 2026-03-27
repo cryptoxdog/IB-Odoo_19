@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       LIST VIEW
+       Color coding:
+         green  = closed + paid
+         yellow = delivered/invoiced but docs missing  (chase docs)
+         blue   = in transit / active
+         red    = load exception
+         muted  = draft
+  ═══════════════════════════════════════════════════════════ -->
+  <record id="view_sales_dashboard_list" model="ir.ui.view">
+    <field name="name">plasticos.sales.dashboard.list</field>
+    <field name="model">plasticos.sales.dashboard</field>
+    <field name="arch" type="xml">
+      <list string="My Deals"
+            create="false" edit="false" delete="false"
+            decoration-success="transaction_state == 'closed' and commission_payout_state == 'paid'"
+            decoration-warning="transaction_state in ('delivered','invoiced') and not docs_all_clear"
+            decoration-info="transaction_state in ('dispatched','in_transit','in_progress')"
+            decoration-danger="load_state == 'exception'"
+            decoration-muted="transaction_state == 'draft'">
+
+        <field name="transaction_ref"         string="Deal #"        optional="show"/>
+        <field name="buyer_id"                string="Buyer"         optional="show"/>
+        <field name="supplier_id"             string="Supplier"      optional="show"/>
+        <field name="product_id"              string="Material"      optional="show"/>
+        <field name="purchase_cost_total"     string="Buy $"         widget="monetary" optional="show"/>
+        <field name="revenue_total"           string="Sell $"        widget="monetary" optional="show"/>
+        <field name="freight_cost_total"      string="Freight $"     widget="monetary" optional="show"/>
+        <field name="gross_margin"            string="Margin $"      widget="monetary" optional="hide"/>
+        <field name="final_weight"            string="Net Wt (lbs)"  optional="show"/>
+        <field name="weight_source"           string="Wt Source"
+               widget="badge"
+               decoration-success="weight_source == 'scale'"
+               decoration-warning="weight_source in ('buyer','supplier')"
+               decoration-danger="weight_source == 'none'"
+               optional="show"/>
+        <field name="transaction_state"       string="Deal Status"
+               widget="badge"
+               decoration-success="transaction_state == 'closed'"
+               decoration-warning="transaction_state in ('pending_supplier','supplier_not_ready')"
+               decoration-info="transaction_state in ('dispatched','in_transit','in_progress')"
+               optional="show"/>
+        <field name="load_state"              string="Load"
+               widget="badge"
+               decoration-danger="load_state == 'exception'"
+               decoration-info="load_state in ('dispatched','picked_up')"
+               decoration-success="load_state == 'delivered'"
+               optional="show"/>
+        <field name="pickup_datetime"         string="Pickup"        optional="hide"/>
+        <field name="delivery_datetime"       string="Est. Delivery" optional="hide"/>
+        <!-- Document traffic lights -->
+        <field name="doc_bol"                 string="BOL"
+               widget="badge"
+               decoration-success="doc_bol == 'ok'"
+               decoration-warning="doc_bol == 'pending'"
+               decoration-danger="doc_bol == 'missing'"
+               optional="show"/>
+        <field name="doc_scale_ticket"        string="Scale"
+               widget="badge"
+               decoration-success="doc_scale_ticket == 'ok'"
+               decoration-warning="doc_scale_ticket == 'pending'"
+               decoration-danger="doc_scale_ticket == 'missing'"
+               optional="show"/>
+        <field name="doc_invoice"             string="Invoice"
+               widget="badge"
+               decoration-success="doc_invoice == 'ok'"
+               decoration-warning="doc_invoice == 'pending'"
+               decoration-danger="doc_invoice == 'missing'"
+               optional="show"/>
+        <field name="doc_customer_order"      string="CO"
+               widget="badge"
+               decoration-success="doc_customer_order == 'ok'"
+               decoration-warning="doc_customer_order == 'pending'"
+               decoration-danger="doc_customer_order == 'missing'"
+               optional="show"/>
+        <field name="commission_amount"       string="Est. Commission" widget="monetary" optional="show"/>
+        <field name="commission_locked_amount" string="Final Commission" widget="monetary" optional="hide"/>
+        <field name="commission_payout_state" string="Pay Status"
+               widget="badge"
+               decoration-success="commission_payout_state == 'paid'"
+               decoration-warning="commission_payout_state == 'confirmed'"
+               decoration-muted="commission_payout_state == 'unpaid'"
+               optional="show"/>
+        <!-- Hidden helpers for list decorations -->
+        <field name="docs_all_clear"          column_invisible="1"/>
+        <field name="currency_id"             column_invisible="1"/>
+      </list>
+    </field>
+  </record>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       FORM VIEW — drill into a single deal
+  ═══════════════════════════════════════════════════════════ -->
+  <record id="view_sales_dashboard_form" model="ir.ui.view">
+    <field name="name">plasticos.sales.dashboard.form</field>
+    <field name="model">plasticos.sales.dashboard</field>
+    <field name="arch" type="xml">
+      <form string="My Deal" create="false" edit="false" delete="false">
+        <sheet>
+          <div class="oe_title">
+            <h1><field name="transaction_ref" readonly="1"/></h1>
+          </div>
+          <field name="transaction_state" widget="statusbar"
+                 statusbar_visible="active,dispatched,in_transit,delivered,invoiced,closed"
+                 readonly="1"/>
+
+          <group>
+            <group string="Deal">
+              <field name="supplier_id"         readonly="1"/>
+              <field name="buyer_id"            readonly="1"/>
+              <field name="product_id"          string="Material" readonly="1"/>
+              <field name="quantity"            readonly="1"/>
+              <field name="uom_id"              readonly="1"/>
+            </group>
+            <group string="Financials">
+              <field name="purchase_cost_total" string="Buy Total"    widget="monetary" readonly="1"/>
+              <field name="revenue_total"       string="Sell Total"   widget="monetary" readonly="1"/>
+              <field name="freight_cost_total"  string="Freight"      widget="monetary" readonly="1"/>
+              <field name="gross_margin"        string="Gross Margin" widget="monetary" readonly="1"/>
+              <field name="currency_id"         invisible="1"/>
+            </group>
+          </group>
+
+          <group>
+            <group string="Weight">
+              <field name="final_weight"          string="Final Net Weight (lbs)" readonly="1"/>
+              <field name="weight_source"         readonly="1" widget="badge"
+                     decoration-success="weight_source == 'scale'"
+                     decoration-warning="weight_source in ('buyer','supplier')"
+                     decoration-danger="weight_source == 'none'"/>
+              <field name="weight_discrepancy_flagged" string="Discrepancy Flagged" readonly="1"/>
+              <field name="weight_discrepancy_pct" string="Discrepancy %" readonly="1"
+                     invisible="not weight_discrepancy_flagged"/>
+              <button name="action_view_scale_docs" type="object"
+                      string="↗ View Scale Ticket" class="btn-link text-warning"
+                      invisible="weight_source == 'scale' and doc_scale_ticket == 'ok'"/>
+            </group>
+            <group string="Logistics">
+              <field name="load_state"        readonly="1" widget="badge"
+                     decoration-danger="load_state == 'exception'"
+                     decoration-success="load_state == 'delivered'"/>
+              <field name="carrier_name"      string="Carrier" readonly="1"/>
+              <field name="trailer_number"    readonly="1"/>
+              <field name="delivery_term"     readonly="1"/>
+              <field name="pickup_datetime"   readonly="1"/>
+              <field name="delivery_datetime" string="Est. Delivery" readonly="1"/>
+              <field name="delivered_at"      readonly="1" invisible="not delivered_at"/>
+              <button name="action_view_load" type="object"
+                      string="↗ Track Load" class="btn-link"/>
+            </group>
+          </group>
+
+          <group string="Documents — Missing = Blocking Payment">
+            <group>
+              <field name="doc_bol" string="Bill of Lading" readonly="1" widget="badge"
+                     decoration-success="doc_bol == 'ok'"
+                     decoration-warning="doc_bol == 'pending'"
+                     decoration-danger="doc_bol == 'missing'"/>
+              <button name="action_view_bol_docs" type="object"
+                      string="↗ View BOL" class="btn-link"
+                      invisible="doc_bol == 'missing'"/>
+
+              <field name="doc_scale_ticket" string="Scale Ticket" readonly="1" widget="badge"
+                     decoration-success="doc_scale_ticket == 'ok'"
+                     decoration-warning="doc_scale_ticket == 'pending'"
+                     decoration-danger="doc_scale_ticket == 'missing'"/>
+              <button name="action_view_scale_docs" type="object"
+                      string="↗ View Scale Ticket" class="btn-link"
+                      invisible="doc_scale_ticket == 'missing'"/>
+            </group>
+            <group>
+              <field name="doc_invoice" string="Invoice" readonly="1" widget="badge"
+                     decoration-success="doc_invoice == 'ok'"
+                     decoration-warning="doc_invoice == 'pending'"
+                     decoration-danger="doc_invoice == 'missing'"/>
+              <field name="doc_customer_order" string="Customer Order" readonly="1" widget="badge"
+                     decoration-success="doc_customer_order == 'ok'"
+                     decoration-warning="doc_customer_order == 'pending'"
+                     decoration-danger="doc_customer_order == 'missing'"/>
+              <field name="docs_all_clear" string="All Docs ✓" readonly="1" widget="boolean"/>
+            </group>
+            <div class="text-muted o_field_widget mt4">
+              <i class="fa fa-info-circle"/> ⏳ Pending Review = uploaded but flagged for human verification.
+            </div>
+          </group>
+
+          <group string="My Commission">
+            <field name="commission_amount"         string="Estimated"      widget="monetary" readonly="1"/>
+            <field name="commission_locked_amount"  string="Final (Locked)" widget="monetary" readonly="1"/>
+            <field name="commission_payout_state"   string="Pay Status" widget="badge"
+                   decoration-success="commission_payout_state == 'paid'"
+                   decoration-warning="commission_payout_state == 'confirmed'"
+                   decoration-muted="commission_payout_state == 'unpaid'"
+                   readonly="1"/>
+            <button name="action_view_payout" type="object"
+                    string="↗ View Payout Details" class="btn-link"
+                    invisible="commission_payout_state == 'unpaid'"/>
+          </group>
+
+          <notebook>
+            <page string="All Documents" name="documents">
+              <p class="text-muted">All documents linked to this deal, including buyer documents.</p>
+              <button name="action_view_my_docs" type="object"
+                      string="Open Full Document List" class="btn-secondary"/>
+            </page>
+          </notebook>
+
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SEARCH VIEW
+  ═══════════════════════════════════════════════════════════ -->
+  <record id="view_sales_dashboard_search" model="ir.ui.view">
+    <field name="name">plasticos.sales.dashboard.search</field>
+    <field name="model">plasticos.sales.dashboard</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="transaction_ref" string="Deal #"/>
+        <field name="buyer_id"/>
+        <field name="supplier_id"/>
+        <filter name="docs_missing"
+                string="⚠ Docs Missing"
+                domain="[('docs_all_clear','=',False),('transaction_state','not in',['draft','cancelled'])]"/>
+        <filter name="in_transit"
+                string="In Transit"
+                domain="[('load_state','in',['dispatched','picked_up'])]"/>
+        <filter name="delivered_not_closed"
+                string="Delivered — Awaiting Docs"
+                domain="[('transaction_state','in',['delivered','invoiced']),('docs_all_clear','=',False)]"/>
+        <filter name="commission_unpaid"
+                string="Commission Unpaid"
+                domain="[('commission_payout_state','=','unpaid'),('transaction_state','=','closed')]"/>
+        <filter name="active_deals"
+                string="Active"
+                domain="[('transaction_state','not in',['closed','cancelled','draft'])]"/>
+        <filter name="load_exception"
+                string="Load Exception"
+                domain="[('load_state','=','exception')]"/>
+        <separator/>
+        <group expand="0" string="Group By">
+          <filter name="group_deal_status"   string="Deal Status"   context="{'group_by': 'transaction_state'}"/>
+          <filter name="group_load_status"   string="Load Status"   context="{'group_by': 'load_state'}"/>
+          <filter name="group_pay_status"    string="Pay Status"    context="{'group_by': 'commission_payout_state'}"/>
+          <filter name="group_weight_source" string="Weight Source" context="{'group_by': 'weight_source'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       ACTION + MENU
+  ═══════════════════════════════════════════════════════════ -->
+  <record id="action_sales_dashboard" model="ir.actions.act_window">
+    <field name="name">My Deals</field>
+    <field name="res_model">plasticos.sales.dashboard</field>
+    <field name="view_mode">list,form</field>
+    <field name="context">{"search_default_active_deals": 1}</field>
+    <field name="help" type="html">
+      <p class="o_view_nocontent_smiling_face">No deals yet.</p>
+      <p>Your transactions will appear here once assigned.</p>
+    </field>
+  </record>
+
+  <menuitem id="menu_sales_rep_root"
+            name="My Deals"
+            sequence="1"
+            groups="plasticos_security_base.group_sales_rep"/>
+
+  <menuitem id="menu_sales_dashboard"
+            name="My Deals"
+            parent="menu_sales_rep_root"
+            action="action_sales_dashboard"
+            sequence="1"
+            groups="plasticos_security_base.group_sales_rep"/>
+
+</odoo>

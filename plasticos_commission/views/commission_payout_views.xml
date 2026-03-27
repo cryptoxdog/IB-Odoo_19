@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <record id="view_commission_payout_list" model="ir.ui.view">
+    <field name="name">plasticos.commission.payout.list</field>
+    <field name="model">plasticos.commission.payout</field>
+    <field name="arch" type="xml">
+      <list string="Commission Payouts"
+            decoration-success="state == 'paid'"
+            decoration-warning="state == 'confirmed'"
+            decoration-muted="state == 'cancelled'">
+        <field name="name"               string="Payout #"/>
+        <field name="sales_rep_id"       string="Sales Rep"/>
+        <field name="period_start"       string="Period Start"/>
+        <field name="period_end"         string="Period End"/>
+        <field name="transaction_count"  string="# Deals"/>
+        <field name="gross_margin_total" string="Total Margin"   widget="monetary"/>
+        <field name="commission_due"     string="Commission Due" widget="monetary"/>
+        <field name="commission_paid"    string="Paid"           widget="monetary" optional="show"/>
+        <field name="commission_balance" string="Balance"        widget="monetary" optional="show"/>
+        <field name="state"              string="Status" widget="badge"
+               decoration-success="state == 'paid'"
+               decoration-warning="state == 'confirmed'"
+               decoration-danger="state == 'cancelled'"/>
+        <field name="payment_date"       optional="show"/>
+        <field name="currency_id"        column_invisible="1"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_commission_payout_form" model="ir.ui.view">
+    <field name="name">plasticos.commission.payout.form</field>
+    <field name="model">plasticos.commission.payout</field>
+    <field name="arch" type="xml">
+      <form string="Commission Payout">
+        <header>
+          <button name="action_confirm"     type="object" string="Confirm"
+                  class="btn-primary"
+                  invisible="state != 'draft'"
+                  groups="plasticos_security_base.group_accounting_ops"/>
+          <button name="action_mark_paid"   type="object" string="Mark as Paid"
+                  class="btn-primary"
+                  invisible="state != 'confirmed'"
+                  groups="plasticos_security_base.group_accounting_ops"/>
+          <button name="action_reset_draft" type="object" string="Reset to Draft"
+                  invisible="state in ('paid','cancelled')"
+                  groups="plasticos_security_base.group_operations_manager"/>
+          <button name="action_cancel"      type="object" string="Cancel"
+                  invisible="state in ('paid','cancelled')"
+                  groups="plasticos_security_base.group_operations_manager"/>
+          <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,paid"/>
+        </header>
+        <sheet>
+          <div class="oe_title">
+            <h1><field name="name" readonly="1"/></h1>
+          </div>
+          <group>
+            <group string="Rep &amp; Period">
+              <field name="sales_rep_id"       readonly="state != 'draft'"/>
+              <field name="commission_rule_id" readonly="state != 'draft'" optional="show"/>
+              <field name="period_start"       readonly="state != 'draft'"/>
+              <field name="period_end"         readonly="state != 'draft'"/>
+            </group>
+            <group string="Amounts">
+              <field name="transaction_count"  readonly="1"/>
+              <field name="gross_margin_total" readonly="1" widget="monetary"/>
+              <field name="commission_due"     readonly="1" widget="monetary"/>
+              <field name="commission_paid"    widget="monetary" readonly="state == 'paid'"/>
+              <field name="commission_balance" readonly="1" widget="monetary"/>
+              <field name="currency_id"        invisible="1"/>
+            </group>
+          </group>
+          <group>
+            <group string="Payment">
+              <field name="payment_date"      readonly="state == 'paid'"/>
+              <field name="payment_reference" readonly="state == 'paid'"/>
+            </group>
+          </group>
+          <group string="Notes">
+            <field name="notes" nolabel="1" colspan="2"/>
+          </group>
+          <notebook>
+            <page string="Transactions" name="transactions">
+              <field name="transaction_ids" readonly="state != 'draft'"
+                     domain="[('state','=','closed'),('commission_locked','=',True)]">
+                <list>
+                  <field name="name"                     string="Deal #"/>
+                  <field name="supplier_id"              string="Supplier"/>
+                  <field name="buyer_id"                 string="Buyer"/>
+                  <field name="gross_margin"             string="Margin"     widget="monetary"/>
+                  <field name="commission_locked_amount" string="Commission" widget="monetary"/>
+                  <field name="state"                    string="Status"/>
+                  <field name="currency_id"              column_invisible="1"/>
+                </list>
+              </field>
+            </page>
+          </notebook>
+        </sheet>
+        <chatter/>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_commission_payout" model="ir.actions.act_window">
+    <field name="name">Commission Payouts</field>
+    <field name="res_model">plasticos.commission.payout</field>
+    <field name="view_mode">list,form</field>
+  </record>
+
+  <record id="view_commission_payout_search" model="ir.ui.view">
+    <field name="name">plasticos.commission.payout.search</field>
+    <field name="model">plasticos.commission.payout</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="name"/>
+        <field name="sales_rep_id"/>
+        <filter name="draft"     string="Draft"     domain="[('state','=','draft')]"/>
+        <filter name="confirmed" string="Confirmed" domain="[('state','=','confirmed')]"/>
+        <filter name="paid"      string="Paid"      domain="[('state','=','paid')]"/>
+        <separator/>
+        <group expand="0" string="Group By">
+          <filter name="group_rep"   string="Sales Rep" context="{'group_by': 'sales_rep_id'}"/>
+          <filter name="group_state" string="Status"    context="{'group_by': 'state'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+
+</odoo>
