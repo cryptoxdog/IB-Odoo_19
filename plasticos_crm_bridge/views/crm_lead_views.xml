@@ -176,7 +176,7 @@
                         </span>
                     </div>
 
-                    <field name="partner_id.personal_intel"
+                    <field name="partner_personal_intel"
                            nolabel="1"
                            readonly="1"
                            placeholder="No Personal Intel recorded yet. Open the Contact to add notes."/>
