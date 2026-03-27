@@ -203,7 +203,8 @@ class ResPartner(models.Model):
     )
 
     # ── Lead Source ───────────────────────────────────────────────────
-    lead_source_id = fields.Many2one(        "utm.source",
+    lead_source_id = fields.Many2one(
+        "utm.source",
         string="Lead Source",
         tracking=True,
         index=True,
