@@ -652,6 +652,7 @@ class PlasticosRepPerformance(models.Model):
             ),
             closed_tx AS (
                 SELECT
+                    t.id,
                     t.user_id,
                     rp.name AS rep_name,
                     t.revenue_total,
@@ -678,7 +679,7 @@ class PlasticosRepPerformance(models.Model):
                 p.period_label      AS period,
                 p.period_sort       AS period_sort,
 
-                COUNT(DISTINCT ct.ctid) FILTER (WHERE ct.write_date >= p.period_start) AS deals_closed,
+                COUNT(DISTINCT ct.id) FILTER (WHERE ct.write_date >= p.period_start) AS deals_closed,
                 COALESCE(SUM(ct.revenue_total)  FILTER (WHERE ct.write_date >= p.period_start), 0) AS revenue_closed,
                 COALESCE(SUM(ct.gross_margin)   FILTER (WHERE ct.write_date >= p.period_start), 0) AS gm_closed,
                 CASE WHEN COALESCE(SUM(ct.revenue_total) FILTER (WHERE ct.write_date >= p.period_start),0) = 0 THEN 0
