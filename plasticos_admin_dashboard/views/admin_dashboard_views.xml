@@ -311,21 +311,21 @@
 <menuitem id="menu_plasticos_admin_root"
           name="Admin"
           sequence="1"
-          groups="plasticos_security_base.group_plasticos_admin"/>
+          groups="plasticos_security_base.group_system_admin"/>
 
 <menuitem id="menu_plasticos_admin_dashboard"
           name="Command Center"
           parent="menu_plasticos_admin_root"
           action="action_admin_kpi_form"
           sequence="1"
-          groups="plasticos_security_base.group_plasticos_admin"/>
+          groups="plasticos_security_base.group_system_admin"/>
 
 <menuitem id="menu_plasticos_rep_performance"
           name="Rep Performance"
           parent="menu_plasticos_admin_root"
           action="action_rep_performance_list"
           sequence="2"
-          groups="plasticos_security_base.group_plasticos_admin"/>
+          groups="plasticos_security_base.group_system_admin"/>
 
 </data>
 </odoo>
