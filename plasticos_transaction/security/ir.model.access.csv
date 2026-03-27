@@ -4,11 +4,9 @@ access_transaction_manager,transaction.manager,model_plasticos_transaction,plast
 access_transaction_line_user,transaction.line.user,model_plasticos_transaction_line,base.group_user,1,0,0,0
 access_transaction_line_manager,transaction.line.manager,model_plasticos_transaction_line,plasticos_transaction.group_plasticos_manager,1,1,1,1
 access_audit_cron_user,audit.cron.user,model_plasticos_audit_cron,base.group_user,1,0,0,0
-access_commission_rule_admin,commission.rule.admin,model_plasticos_commission_rule,base.group_system,1,1,1,1
 access_transaction_bulk_wizard_user,transaction.bulk.wizard.user,model_plasticos_tx_bulk_wizard,base.group_user,1,1,1,1
 access_transaction_bulk_assign_wizard_user,transaction.bulk.assign.wizard.user,model_plasticos_transaction_bulk_assign_wizard,base.group_user,1,1,1,1
 access_transaction_import_wizard_user,transaction.import.wizard.user,model_plasticos_transaction_import_wizard,base.group_user,1,1,1,1
 access_transaction_all,plasticos.transaction.all,model_plasticos_transaction,base.group_user,1,1,1,1
 access_transaction_line_all,plasticos.transaction.line.all,model_plasticos_transaction_line,base.group_user,1,1,1,1
 access_audit_cron_all,plasticos.audit.cron.all,model_plasticos_audit_cron,base.group_user,1,1,1,1
-access_commission_rule_all,plasticos.commission.rule.all,model_plasticos_commission_rule,base.group_user,1,1,1,1
