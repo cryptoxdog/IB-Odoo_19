@@ -16,7 +16,6 @@ env["plasticos.admin.kpi"]._get_or_create().action_refresh()
     <field name="user_id" ref="plasticos_base.user_system_cron"/>
     <field name="interval_number">15</field>
     <field name="interval_type">minutes</field>
-    <field name="doall">False</field>
     <field name="active">True</field>
 </record>
 
