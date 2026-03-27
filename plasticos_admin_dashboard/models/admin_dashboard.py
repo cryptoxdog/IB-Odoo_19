@@ -32,6 +32,7 @@ _logger = logging.getLogger(__name__)
 # KPI SINGLETON
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class PlasticosAdminKpi(models.Model):
     """Singleton record holding all RevOps KPIs for the admin command center.
 
@@ -51,95 +52,134 @@ class PlasticosAdminKpi(models.Model):
     # ══════════════════════════════════════════════════════════════════════════
 
     # Intakes
-    intake_draft        = fields.Integer(string="Intakes: Draft",       compute="_compute_kpis", store=False)
-    intake_matched      = fields.Integer(string="Intakes: Matched",     compute="_compute_kpis", store=False)
-    intake_offer_sent   = fields.Integer(string="Intakes: Offer Sent",  compute="_compute_kpis", store=False)
-    intake_processing   = fields.Integer(string="Intakes: Processing",  compute="_compute_kpis", store=False)
-    intake_won_mtd      = fields.Integer(string="Intakes Won (MTD)",    compute="_compute_kpis", store=False)
-    intake_lost_mtd     = fields.Integer(string="Intakes Lost (MTD)",   compute="_compute_kpis", store=False)
-    intake_total_open   = fields.Integer(string="Open Intakes",         compute="_compute_kpis", store=False)
+    intake_draft = fields.Integer(string="Intakes: Draft", compute="_compute_kpis", store=False)
+    intake_matched = fields.Integer(string="Intakes: Matched", compute="_compute_kpis", store=False)
+    intake_offer_sent = fields.Integer(string="Intakes: Offer Sent", compute="_compute_kpis", store=False)
+    intake_processing = fields.Integer(string="Intakes: Processing", compute="_compute_kpis", store=False)
+    intake_won_mtd = fields.Integer(string="Intakes Won (MTD)", compute="_compute_kpis", store=False)
+    intake_lost_mtd = fields.Integer(string="Intakes Lost (MTD)", compute="_compute_kpis", store=False)
+    intake_total_open = fields.Integer(string="Open Intakes", compute="_compute_kpis", store=False)
 
     # Offers
-    offer_draft         = fields.Integer(string="Offers: Draft",        compute="_compute_kpis", store=False)
-    offer_sent          = fields.Integer(string="Offers: Sent",         compute="_compute_kpis", store=False)
-    offer_responded     = fields.Integer(string="Offers: Responded",    compute="_compute_kpis", store=False)
-    offer_accepted_mtd  = fields.Integer(string="Offers Accepted (MTD)",compute="_compute_kpis", store=False)
-    offer_rejected_mtd  = fields.Integer(string="Offers Rejected (MTD)",compute="_compute_kpis", store=False)
-    offer_expired_mtd   = fields.Integer(string="Offers Expired (MTD)", compute="_compute_kpis", store=False)
-    offer_expiring_soon = fields.Integer(string="Expiring ≤3 Days",     compute="_compute_kpis", store=False)
+    offer_draft = fields.Integer(string="Offers: Draft", compute="_compute_kpis", store=False)
+    offer_sent = fields.Integer(string="Offers: Sent", compute="_compute_kpis", store=False)
+    offer_responded = fields.Integer(string="Offers: Responded", compute="_compute_kpis", store=False)
+    offer_accepted_mtd = fields.Integer(string="Offers Accepted (MTD)", compute="_compute_kpis", store=False)
+    offer_rejected_mtd = fields.Integer(string="Offers Rejected (MTD)", compute="_compute_kpis", store=False)
+    offer_expired_mtd = fields.Integer(string="Offers Expired (MTD)", compute="_compute_kpis", store=False)
+    offer_expiring_soon = fields.Integer(string="Expiring ≤3 Days", compute="_compute_kpis", store=False)
 
     # Deal Conversion
-    offer_accept_rate_mtd = fields.Float(string="Offer Accept Rate %",  compute="_compute_kpis", store=False,
-        digits=(5,1), help="Accepted / (Accepted+Rejected) × 100 MTD")
-    intake_win_rate_mtd   = fields.Float(string="Intake Win Rate %",    compute="_compute_kpis", store=False,
-        digits=(5,1), help="Won / (Won+Lost) × 100 MTD")
-    avg_intake_age_days   = fields.Float(string="Avg Intake Age (days)",compute="_compute_kpis", store=False,
-        digits=(5,1))
+    offer_accept_rate_mtd = fields.Float(
+        string="Offer Accept Rate %",
+        compute="_compute_kpis",
+        store=False,
+        digits=(5, 1),
+        help="Accepted / (Accepted+Rejected) × 100 MTD",
+    )
+    intake_win_rate_mtd = fields.Float(
+        string="Intake Win Rate %",
+        compute="_compute_kpis",
+        store=False,
+        digits=(5, 1),
+        help="Won / (Won+Lost) × 100 MTD",
+    )
+    avg_intake_age_days = fields.Float(
+        string="Avg Intake Age (days)", compute="_compute_kpis", store=False, digits=(5, 1)
+    )
 
     # Transaction Pipeline
-    tx_open             = fields.Integer(string="Open Transactions",    compute="_compute_kpis", store=False)
-    tx_in_motion        = fields.Integer(string="In Motion",            compute="_compute_kpis", store=False)
+    tx_open = fields.Integer(string="Open Transactions", compute="_compute_kpis", store=False)
+    tx_in_motion = fields.Integer(string="In Motion", compute="_compute_kpis", store=False)
     tx_delivered_uninvoiced = fields.Integer(string="Delivered-Uninvoiced", compute="_compute_kpis", store=False)
-    tx_missing_docs     = fields.Integer(string="Missing Docs",         compute="_compute_kpis", store=False)
-    tx_negative_margin  = fields.Integer(string="Negative Margin ⚠",   compute="_compute_kpis", store=False)
-    tx_sup_not_ready    = fields.Integer(string="Supplier Not Ready ⚠", compute="_compute_kpis", store=False)
+    tx_missing_docs = fields.Integer(string="Missing Docs", compute="_compute_kpis", store=False)
+    tx_negative_margin = fields.Integer(string="Negative Margin ⚠", compute="_compute_kpis", store=False)
+    tx_sup_not_ready = fields.Integer(string="Supplier Not Ready ⚠", compute="_compute_kpis", store=False)
     tx_stalled_followup = fields.Integer(string="3+ Followups No Resp ⚠", compute="_compute_kpis", store=False)
-    tx_closed_mtd       = fields.Integer(string="Closed (MTD)",         compute="_compute_kpis", store=False)
+    tx_closed_mtd = fields.Integer(string="Closed (MTD)", compute="_compute_kpis", store=False)
 
     # Web Leads
-    lead_received_today = fields.Integer(string="Leads Today",          compute="_compute_kpis", store=False)
-    lead_received_wtd   = fields.Integer(string="Leads WTD",            compute="_compute_kpis", store=False)
-    lead_received_mtd   = fields.Integer(string="Leads MTD",            compute="_compute_kpis", store=False)
-    lead_hot_mtd        = fields.Integer(string="HOT Leads MTD",        compute="_compute_kpis", store=False)
-    lead_cold_mtd       = fields.Integer(string="COLD Leads MTD",       compute="_compute_kpis", store=False)
-    lead_error_open     = fields.Integer(string="Lead Errors (open)",   compute="_compute_kpis", store=False)
-    lead_hot_rate_mtd   = fields.Float(string="Lead→HOT Rate %",        compute="_compute_kpis", store=False,
-        digits=(5,1))
+    lead_received_today = fields.Integer(string="Leads Today", compute="_compute_kpis", store=False)
+    lead_received_wtd = fields.Integer(string="Leads WTD", compute="_compute_kpis", store=False)
+    lead_received_mtd = fields.Integer(string="Leads MTD", compute="_compute_kpis", store=False)
+    lead_hot_mtd = fields.Integer(string="HOT Leads MTD", compute="_compute_kpis", store=False)
+    lead_cold_mtd = fields.Integer(string="COLD Leads MTD", compute="_compute_kpis", store=False)
+    lead_error_open = fields.Integer(string="Lead Errors (open)", compute="_compute_kpis", store=False)
+    lead_hot_rate_mtd = fields.Float(string="Lead→HOT Rate %", compute="_compute_kpis", store=False, digits=(5, 1))
 
     # ══════════════════════════════════════════════════════════════════════════
     # SECTION B — FINANCIAL SNAPSHOT
     # ══════════════════════════════════════════════════════════════════════════
 
-    revenue_mtd         = fields.Float(string="Revenue MTD",            compute="_compute_kpis", store=False)
-    revenue_ytd         = fields.Float(string="Revenue YTD",            compute="_compute_kpis", store=False)
-    gm_mtd              = fields.Float(string="Gross Margin MTD",       compute="_compute_kpis", store=False)
-    gm_ytd              = fields.Float(string="Gross Margin YTD",       compute="_compute_kpis", store=False)
-    gm_pct_mtd          = fields.Float(string="GM % MTD",               compute="_compute_kpis", store=False,
-        digits=(5,1))
-    gm_pct_ytd          = fields.Float(string="GM % YTD",               compute="_compute_kpis", store=False,
-        digits=(5,1))
-    net_margin_mtd      = fields.Float(string="Net Margin MTD",         compute="_compute_kpis", store=False)
-    net_margin_ytd      = fields.Float(string="Net Margin YTD",         compute="_compute_kpis", store=False)
-    commission_mtd      = fields.Float(string="Commission MTD",         compute="_compute_kpis", store=False)
-    commission_ytd      = fields.Float(string="Commission YTD",         compute="_compute_kpis", store=False)
-    commission_unlocked = fields.Integer(string="Comm Unlocked (closed)",compute="_compute_kpis", store=False)
-    pipeline_value_open = fields.Float(string="Open Pipeline Value",    compute="_compute_kpis", store=False,
-        help="Sum of revenue_total on non-closed, non-cancelled transactions")
+    revenue_mtd = fields.Float(string="Revenue MTD", compute="_compute_kpis", store=False)
+    revenue_ytd = fields.Float(string="Revenue YTD", compute="_compute_kpis", store=False)
+    gm_mtd = fields.Float(string="Gross Margin MTD", compute="_compute_kpis", store=False)
+    gm_ytd = fields.Float(string="Gross Margin YTD", compute="_compute_kpis", store=False)
+    gm_pct_mtd = fields.Float(string="GM % MTD", compute="_compute_kpis", store=False, digits=(5, 1))
+    gm_pct_ytd = fields.Float(string="GM % YTD", compute="_compute_kpis", store=False, digits=(5, 1))
+    net_margin_mtd = fields.Float(string="Net Margin MTD", compute="_compute_kpis", store=False)
+    net_margin_ytd = fields.Float(string="Net Margin YTD", compute="_compute_kpis", store=False)
+    commission_mtd = fields.Float(string="Commission MTD", compute="_compute_kpis", store=False)
+    commission_ytd = fields.Float(string="Commission YTD", compute="_compute_kpis", store=False)
+    commission_unlocked = fields.Integer(string="Comm Unlocked (closed)", compute="_compute_kpis", store=False)
+    pipeline_value_open = fields.Float(
+        string="Open Pipeline Value",
+        compute="_compute_kpis",
+        store=False,
+        help="Sum of revenue_total on non-closed, non-cancelled transactions",
+    )
 
     # ══════════════════════════════════════════════════════════════════════════
     # SECTION C — AI ENGINE STATS
     # ══════════════════════════════════════════════════════════════════════════
 
-    ai_leads_normalized_mtd  = fields.Integer(string="AI Normalized MTD",   compute="_compute_kpis", store=False,
-        help="Leads processed with ai_normalized != null MTD")
-    ai_leads_vision_mtd      = fields.Integer(string="Vision Analyzed MTD", compute="_compute_kpis", store=False,
-        help="Leads with ai_vision_results != null MTD")
-    ai_hot_auto_mtd          = fields.Integer(string="Auto-HOT MTD",        compute="_compute_kpis", store=False,
-        help="HOT leads auto-classified by AI (not manually overridden)")
-    ai_cold_auto_mtd         = fields.Integer(string="Auto-COLD MTD",       compute="_compute_kpis", store=False)
-    ai_error_mtd             = fields.Integer(string="AI Errors MTD",       compute="_compute_kpis", store=False,
-        help="Leads that hit state=error during triage MTD")
-    ai_hot_rate_mtd          = fields.Float(string="AI HOT Rate %",         compute="_compute_kpis", store=False,
-        digits=(5,1))
-    ai_intakes_auto_created  = fields.Integer(string="Auto-Intakes MTD",    compute="_compute_kpis", store=False,
-        help="Intakes created automatically from HOT web leads MTD")
-    ai_manual_override_mtd   = fields.Integer(string="Manual Overrides MTD",compute="_compute_kpis", store=False,
-        help="Cold leads manually forced to HOT by admin MTD")
-    ai_pending_review        = fields.Integer(string="Pending Review",      compute="_compute_kpis", store=False,
-        help="HOT intakes from web leads with no partner yet (need buyer-match action)")
-    ai_normalized_enabled    = fields.Boolean(string="AI Normalizer Active",compute="_compute_ai_config", store=False)
-    ai_vision_enabled        = fields.Boolean(string="Vision Active",       compute="_compute_ai_config", store=False)
-    ai_openai_key_set        = fields.Boolean(string="OpenAI Key Set",      compute="_compute_ai_config", store=False)
+    ai_leads_normalized_mtd = fields.Integer(
+        string="AI Normalized MTD",
+        compute="_compute_kpis",
+        store=False,
+        help="Leads processed with ai_normalized != null MTD",
+    )
+    ai_leads_vision_mtd = fields.Integer(
+        string="Vision Analyzed MTD",
+        compute="_compute_kpis",
+        store=False,
+        help="Leads with ai_vision_results != null MTD",
+    )
+    ai_hot_auto_mtd = fields.Integer(
+        string="Auto-HOT MTD",
+        compute="_compute_kpis",
+        store=False,
+        help="HOT leads auto-classified by AI (not manually overridden)",
+    )
+    ai_cold_auto_mtd = fields.Integer(string="Auto-COLD MTD", compute="_compute_kpis", store=False)
+    ai_error_mtd = fields.Integer(
+        string="AI Errors MTD",
+        compute="_compute_kpis",
+        store=False,
+        help="Leads that hit state=error during triage MTD",
+    )
+    ai_hot_rate_mtd = fields.Float(string="AI HOT Rate %", compute="_compute_kpis", store=False, digits=(5, 1))
+    ai_intakes_auto_created = fields.Integer(
+        string="Auto-Intakes MTD",
+        compute="_compute_kpis",
+        store=False,
+        help="Intakes created automatically from HOT web leads MTD",
+    )
+    ai_manual_override_mtd = fields.Integer(
+        string="Manual Overrides MTD",
+        compute="_compute_kpis",
+        store=False,
+        help="Cold leads manually forced to HOT by admin MTD",
+    )
+    ai_pending_review = fields.Integer(
+        string="Pending Review",
+        compute="_compute_kpis",
+        store=False,
+        help="HOT intakes from web leads with no partner yet (need buyer-match action)",
+    )
+    ai_normalized_enabled = fields.Boolean(string="AI Normalizer Active", compute="_compute_ai_config", store=False)
+    ai_vision_enabled = fields.Boolean(string="Vision Active", compute="_compute_ai_config", store=False)
+    ai_openai_key_set = fields.Boolean(string="OpenAI Key Set", compute="_compute_ai_config", store=False)
 
     # ══════════════════════════════════════════════════════════════════════════
     # COMPUTE
@@ -160,14 +200,15 @@ class PlasticosAdminKpi(models.Model):
                     (NOW() + INTERVAL '3 days')::date AS in_3_days
             """)
             row = cr.dictfetchone()
-            mtd = row['mtd_start']
-            ytd = row['ytd_start']
-            wtd = row['wtd_start']
-            today = row['today']
-            in_3d = row['in_3_days']
+            mtd = row["mtd_start"]
+            ytd = row["ytd_start"]
+            wtd = row["wtd_start"]
+            today = row["today"]
+            in_3d = row["in_3_days"]
 
             # ── INTAKES ───────────────────────────────────────────────────────
-            cr.execute("""
+            cr.execute(
+                """
                 SELECT
                     COUNT(*) FILTER (WHERE status='draft')                AS draft,
                     COUNT(*) FILTER (WHERE status='matched')              AS matched,
@@ -181,23 +222,26 @@ class PlasticosAdminKpi(models.Model):
                     AVG(EXTRACT(EPOCH FROM NOW()-create_date)/86400)
                         FILTER (WHERE status NOT IN ('won','lost','expired','draft')) AS avg_age
                 FROM plasticos_intake
-            """, (mtd, mtd))
+            """,
+                (mtd, mtd),
+            )
             r = cr.dictfetchone()
-            rec.intake_draft        = r['draft']       or 0
-            rec.intake_matched      = r['matched']     or 0
-            rec.intake_offer_sent   = r['offer_sent']  or 0
-            rec.intake_processing   = r['processing']  or 0
-            rec.intake_won_mtd      = r['won_mtd']     or 0
-            rec.intake_lost_mtd     = r['lost_mtd']    or 0
-            rec.intake_total_open   = r['total_open']  or 0
-            rec.avg_intake_age_days = round(r['avg_age'] or 0, 1)
+            rec.intake_draft = r["draft"] or 0
+            rec.intake_matched = r["matched"] or 0
+            rec.intake_offer_sent = r["offer_sent"] or 0
+            rec.intake_processing = r["processing"] or 0
+            rec.intake_won_mtd = r["won_mtd"] or 0
+            rec.intake_lost_mtd = r["lost_mtd"] or 0
+            rec.intake_total_open = r["total_open"] or 0
+            rec.avg_intake_age_days = round(r["avg_age"] or 0, 1)
 
-            won  = rec.intake_won_mtd
+            won = rec.intake_won_mtd
             lost = rec.intake_lost_mtd
             rec.intake_win_rate_mtd = round(won / (won + lost) * 100, 1) if (won + lost) else 0.0
 
             # ── OFFERS ────────────────────────────────────────────────────────
-            cr.execute("""
+            cr.execute(
+                """
                 SELECT
                     COUNT(*) FILTER (WHERE state='draft')                 AS draft,
                     COUNT(*) FILTER (WHERE state='sent')                  AS sent,
@@ -212,22 +256,25 @@ class PlasticosAdminKpi(models.Model):
                                      AND valid_until IS NOT NULL
                                      AND valid_until <= %s)               AS expiring_soon
                 FROM plasticos_offer
-            """, (mtd, mtd, mtd, in_3d))
+            """,
+                (mtd, mtd, mtd, in_3d),
+            )
             r = cr.dictfetchone()
-            rec.offer_draft         = r['draft']         or 0
-            rec.offer_sent          = r['sent']          or 0
-            rec.offer_responded     = r['responded']     or 0
-            rec.offer_accepted_mtd  = r['accepted_mtd']  or 0
-            rec.offer_rejected_mtd  = r['rejected_mtd']  or 0
-            rec.offer_expired_mtd   = r['expired_mtd']   or 0
-            rec.offer_expiring_soon = r['expiring_soon'] or 0
+            rec.offer_draft = r["draft"] or 0
+            rec.offer_sent = r["sent"] or 0
+            rec.offer_responded = r["responded"] or 0
+            rec.offer_accepted_mtd = r["accepted_mtd"] or 0
+            rec.offer_rejected_mtd = r["rejected_mtd"] or 0
+            rec.offer_expired_mtd = r["expired_mtd"] or 0
+            rec.offer_expiring_soon = r["expiring_soon"] or 0
 
-            acc  = rec.offer_accepted_mtd
-            rej  = rec.offer_rejected_mtd
+            acc = rec.offer_accepted_mtd
+            rej = rec.offer_rejected_mtd
             rec.offer_accept_rate_mtd = round(acc / (acc + rej) * 100, 1) if (acc + rej) else 0.0
 
             # ── TRANSACTIONS ──────────────────────────────────────────────────
-            cr.execute("""
+            cr.execute(
+                """
                 SELECT
                     COUNT(*) FILTER (WHERE state NOT IN ('closed','cancelled'))         AS tx_open,
                     COUNT(*) FILTER (WHERE state IN ('dispatched','in_progress','in_transit')) AS in_motion,
@@ -250,20 +297,23 @@ class PlasticosAdminKpi(models.Model):
                     SUM(revenue_total) FILTER (WHERE state NOT IN ('closed','cancelled')
                                               AND revenue_total > 0)                   AS pipeline_val
                 FROM plasticos_transaction
-            """, (mtd,))
+            """,
+                (mtd,),
+            )
             r = cr.dictfetchone()
-            rec.tx_open                 = r['tx_open']        or 0
-            rec.tx_in_motion            = r['in_motion']      or 0
-            rec.tx_delivered_uninvoiced = r['delivered_uninv']or 0
-            rec.tx_missing_docs         = r['missing_docs']   or 0
-            rec.tx_negative_margin      = r['neg_margin']     or 0
-            rec.tx_sup_not_ready        = r['sup_not_ready']  or 0
-            rec.tx_stalled_followup     = r['stalled_fu']     or 0
-            rec.tx_closed_mtd           = r['closed_mtd']     or 0
-            rec.pipeline_value_open     = r['pipeline_val']   or 0.0
+            rec.tx_open = r["tx_open"] or 0
+            rec.tx_in_motion = r["in_motion"] or 0
+            rec.tx_delivered_uninvoiced = r["delivered_uninv"] or 0
+            rec.tx_missing_docs = r["missing_docs"] or 0
+            rec.tx_negative_margin = r["neg_margin"] or 0
+            rec.tx_sup_not_ready = r["sup_not_ready"] or 0
+            rec.tx_stalled_followup = r["stalled_fu"] or 0
+            rec.tx_closed_mtd = r["closed_mtd"] or 0
+            rec.pipeline_value_open = r["pipeline_val"] or 0.0
 
             # ── FINANCIALS ────────────────────────────────────────────────────
-            cr.execute("""
+            cr.execute(
+                """
                 SELECT
                     SUM(revenue_total)   FILTER (WHERE write_date >= %s)  AS rev_mtd,
                     SUM(revenue_total)   FILTER (WHERE write_date >= %s)  AS rev_ytd,
@@ -277,25 +327,28 @@ class PlasticosAdminKpi(models.Model):
                                      AND commission_locked=FALSE)         AS comm_unlocked
                 FROM plasticos_transaction
                 WHERE state='closed'
-            """, (mtd, ytd, mtd, ytd, mtd, ytd, mtd, ytd))
+            """,
+                (mtd, ytd, mtd, ytd, mtd, ytd, mtd, ytd),
+            )
             r = cr.dictfetchone()
-            rec.revenue_mtd         = r['rev_mtd']       or 0.0
-            rec.revenue_ytd         = r['rev_ytd']       or 0.0
-            rec.gm_mtd              = r['gm_mtd']        or 0.0
-            rec.gm_ytd              = r['gm_ytd']        or 0.0
-            rec.net_margin_mtd      = r['nm_mtd']        or 0.0
-            rec.net_margin_ytd      = r['nm_ytd']        or 0.0
-            rec.commission_mtd      = r['comm_mtd']      or 0.0
-            rec.commission_ytd      = r['comm_ytd']      or 0.0
-            rec.commission_unlocked = r['comm_unlocked'] or 0
+            rec.revenue_mtd = r["rev_mtd"] or 0.0
+            rec.revenue_ytd = r["rev_ytd"] or 0.0
+            rec.gm_mtd = r["gm_mtd"] or 0.0
+            rec.gm_ytd = r["gm_ytd"] or 0.0
+            rec.net_margin_mtd = r["nm_mtd"] or 0.0
+            rec.net_margin_ytd = r["nm_ytd"] or 0.0
+            rec.commission_mtd = r["comm_mtd"] or 0.0
+            rec.commission_ytd = r["comm_ytd"] or 0.0
+            rec.commission_unlocked = r["comm_unlocked"] or 0
 
             rev_mtd = rec.revenue_mtd
             rev_ytd = rec.revenue_ytd
-            rec.gm_pct_mtd  = round(rec.gm_mtd / rev_mtd * 100, 1)  if rev_mtd  else 0.0
-            rec.gm_pct_ytd  = round(rec.gm_ytd / rev_ytd * 100, 1)  if rev_ytd  else 0.0
+            rec.gm_pct_mtd = round(rec.gm_mtd / rev_mtd * 100, 1) if rev_mtd else 0.0
+            rec.gm_pct_ytd = round(rec.gm_ytd / rev_ytd * 100, 1) if rev_ytd else 0.0
 
             # ── WEB LEADS ─────────────────────────────────────────────────────
-            cr.execute("""
+            cr.execute(
+                """
                 SELECT
                     COUNT(*) FILTER (WHERE create_date::date = %s)        AS today,
                     COUNT(*) FILTER (WHERE create_date >= %s)             AS wtd,
@@ -306,20 +359,23 @@ class PlasticosAdminKpi(models.Model):
                                      AND create_date >= %s)               AS cold_mtd,
                     COUNT(*) FILTER (WHERE state='error')                 AS err_open
                 FROM plasticos_web_lead
-            """, (today, wtd, mtd, mtd, mtd))
+            """,
+                (today, wtd, mtd, mtd, mtd),
+            )
             r = cr.dictfetchone()
-            rec.lead_received_today = r['today']   or 0
-            rec.lead_received_wtd   = r['wtd']     or 0
-            rec.lead_received_mtd   = r['mtd']     or 0
-            rec.lead_hot_mtd        = r['hot_mtd'] or 0
-            rec.lead_cold_mtd       = r['cold_mtd']or 0
-            rec.lead_error_open     = r['err_open']or 0
+            rec.lead_received_today = r["today"] or 0
+            rec.lead_received_wtd = r["wtd"] or 0
+            rec.lead_received_mtd = r["mtd"] or 0
+            rec.lead_hot_mtd = r["hot_mtd"] or 0
+            rec.lead_cold_mtd = r["cold_mtd"] or 0
+            rec.lead_error_open = r["err_open"] or 0
 
             total_leads = rec.lead_hot_mtd + rec.lead_cold_mtd
             rec.lead_hot_rate_mtd = round(rec.lead_hot_mtd / total_leads * 100, 1) if total_leads else 0.0
 
             # ── AI STATS ──────────────────────────────────────────────────────
-            cr.execute("""
+            cr.execute(
+                """
                 SELECT
                     COUNT(*) FILTER (WHERE ai_normalized IS NOT NULL
                                      AND create_date >= %s)               AS normalized_mtd,
@@ -333,34 +389,42 @@ class PlasticosAdminKpi(models.Model):
                     COUNT(*) FILTER (WHERE state='error'
                                      AND create_date >= %s)               AS err_mtd
                 FROM plasticos_web_lead
-            """, (mtd, mtd, mtd, mtd, mtd))
+            """,
+                (mtd, mtd, mtd, mtd, mtd),
+            )
             r = cr.dictfetchone()
-            rec.ai_leads_normalized_mtd = r['normalized_mtd'] or 0
-            rec.ai_leads_vision_mtd     = r['vision_mtd']     or 0
-            rec.ai_hot_auto_mtd         = r['hot_auto_mtd']   or 0
-            rec.ai_cold_auto_mtd        = r['cold_auto_mtd']  or 0
-            rec.ai_error_mtd            = r['err_mtd']        or 0
+            rec.ai_leads_normalized_mtd = r["normalized_mtd"] or 0
+            rec.ai_leads_vision_mtd = r["vision_mtd"] or 0
+            rec.ai_hot_auto_mtd = r["hot_auto_mtd"] or 0
+            rec.ai_cold_auto_mtd = r["cold_auto_mtd"] or 0
+            rec.ai_error_mtd = r["err_mtd"] or 0
 
-            hot  = rec.ai_hot_auto_mtd
+            hot = rec.ai_hot_auto_mtd
             cold = rec.ai_cold_auto_mtd
             rec.ai_hot_rate_mtd = round(hot / (hot + cold) * 100, 1) if (hot + cold) else 0.0
 
             # Auto-intakes: HOT leads that created intakes MTD
-            cr.execute("""
+            cr.execute(
+                """
                 SELECT COUNT(*) FROM plasticos_intake i
                 WHERE i.source_lead_id IS NOT NULL
                 AND i.create_date >= %s
-            """, (mtd,))
-            rec.ai_intakes_auto_created = (cr.fetchone()[0] or 0)
+            """,
+                (mtd,),
+            )
+            rec.ai_intakes_auto_created = cr.fetchone()[0] or 0
 
             # Manual overrides: COLD leads forced to HOT
-            cr.execute("""
+            cr.execute(
+                """
                 SELECT COUNT(*) FROM plasticos_web_lead
                 WHERE decision='hot'
                 AND triage_log ILIKE '%%Manual override%%'
                 AND create_date >= %s
-            """, (mtd,))
-            rec.ai_manual_override_mtd = (cr.fetchone()[0] or 0)
+            """,
+                (mtd,),
+            )
+            rec.ai_manual_override_mtd = cr.fetchone()[0] or 0
 
             # Pending review: HOT intakes from web leads with no partner
             cr.execute("""
@@ -369,7 +433,7 @@ class PlasticosAdminKpi(models.Model):
                 AND partner_id IS NULL
                 AND status NOT IN ('won','lost','expired')
             """)
-            rec.ai_pending_review = (cr.fetchone()[0] or 0)
+            rec.ai_pending_review = cr.fetchone()[0] or 0
 
             rec.last_refresh = fields.Datetime.now()
 
@@ -379,18 +443,18 @@ class PlasticosAdminKpi(models.Model):
             config_model = "plasticos.web.lead.config"
             if config_model not in self.env:
                 rec.ai_normalized_enabled = False
-                rec.ai_vision_enabled     = False
-                rec.ai_openai_key_set     = False
+                rec.ai_vision_enabled = False
+                rec.ai_openai_key_set = False
                 continue
             try:
                 config = self.env[config_model].sudo().get_config()
                 rec.ai_normalized_enabled = bool(getattr(config, "ai_enabled", False))
-                rec.ai_vision_enabled     = bool(getattr(config, "vision_enabled", False))
-                rec.ai_openai_key_set     = bool(getattr(config, "openai_api_key", ""))
+                rec.ai_vision_enabled = bool(getattr(config, "vision_enabled", False))
+                rec.ai_openai_key_set = bool(getattr(config, "openai_api_key", ""))
             except Exception:
                 rec.ai_normalized_enabled = False
-                rec.ai_vision_enabled     = False
-                rec.ai_openai_key_set     = False
+                rec.ai_vision_enabled = False
+                rec.ai_openai_key_set = False
 
     # ── Singleton helper ──────────────────────────────────────────────────────
 
@@ -539,6 +603,7 @@ class PlasticosAdminKpi(models.Model):
 # REP PERFORMANCE — SQL VIEW (one row per rep × period)
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class PlasticosRepPerformance(models.Model):
     """Rep performance SQL VIEW: one row per salesperson per period.
 
@@ -553,25 +618,25 @@ class PlasticosRepPerformance(models.Model):
     _rec_name = "rep_name"
     _order = "period_sort asc, revenue_closed desc"
 
-    rep_name        = fields.Char(   string="Rep",             readonly=True)
-    salesperson_id  = fields.Many2one("res.users",             readonly=True)
-    period          = fields.Char(   string="Period",          readonly=True)
-    period_sort     = fields.Integer(string="_psort",          readonly=True)
+    rep_name = fields.Char(string="Rep", readonly=True)
+    salesperson_id = fields.Many2one("res.users", readonly=True)
+    period = fields.Char(string="Period", readonly=True)
+    period_sort = fields.Integer(string="_psort", readonly=True)
 
-    deals_closed    = fields.Integer(string="Closed",          readonly=True)
-    revenue_closed  = fields.Float(  string="Revenue",         readonly=True, digits=(16,2))
-    gm_closed       = fields.Float(  string="GM $",            readonly=True, digits=(16,2))
-    gm_pct          = fields.Float(  string="GM %",            readonly=True, digits=(5,1))
-    net_margin      = fields.Float(  string="Net $",           readonly=True, digits=(16,2))
-    commission      = fields.Float(  string="Commission",      readonly=True, digits=(16,2))
+    deals_closed = fields.Integer(string="Closed", readonly=True)
+    revenue_closed = fields.Float(string="Revenue", readonly=True, digits=(16, 2))
+    gm_closed = fields.Float(string="GM $", readonly=True, digits=(16, 2))
+    gm_pct = fields.Float(string="GM %", readonly=True, digits=(5, 1))
+    net_margin = fields.Float(string="Net $", readonly=True, digits=(16, 2))
+    commission = fields.Float(string="Commission", readonly=True, digits=(16, 2))
 
-    deals_open      = fields.Integer(string="Open Deals",      readonly=True)
-    pipeline_val    = fields.Float(  string="Pipeline",        readonly=True, digits=(16,2))
-    intakes_created = fields.Integer(string="Intakes",         readonly=True)
-    offers_sent     = fields.Integer(string="Offers Sent",     readonly=True)
-    offers_accepted = fields.Integer(string="Acc'd",           readonly=True)
-    offer_acc_rate  = fields.Float(  string="Acc Rate %",      readonly=True, digits=(5,1))
-    avg_gm_pct      = fields.Float(  string="Avg GM %",        readonly=True, digits=(5,1))
+    deals_open = fields.Integer(string="Open Deals", readonly=True)
+    pipeline_val = fields.Float(string="Pipeline", readonly=True, digits=(16, 2))
+    intakes_created = fields.Integer(string="Intakes", readonly=True)
+    offers_sent = fields.Integer(string="Offers Sent", readonly=True)
+    offers_accepted = fields.Integer(string="Acc'd", readonly=True)
+    offer_acc_rate = fields.Float(string="Acc Rate %", readonly=True, digits=(5, 1))
+    avg_gm_pct = fields.Float(string="Avg GM %", readonly=True, digits=(5, 1))
 
     def init(self):
         self.env.cr.execute("DROP VIEW IF EXISTS plasticos_rep_performance")

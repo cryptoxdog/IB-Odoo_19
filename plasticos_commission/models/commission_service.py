@@ -45,7 +45,10 @@ class PlasticosCommissionService(models.AbstractModel):
             amount = gross_margin * override
             _logger.debug(
                 "Commission override on %s: %.4f × %.2f = %.2f",
-                record.name, override, gross_margin, amount,
+                record.name,
+                override,
+                gross_margin,
+                amount,
             )
             return round(amount, 2)
 
@@ -71,26 +74,29 @@ class PlasticosCommissionService(models.AbstractModel):
                 )
                 _logger.debug(
                     "Commission rule '%s' on %s: %.2f",
-                    rule.name, record.name, amount,
+                    rule.name,
+                    record.name,
+                    amount,
                 )
                 return round(max(amount, 0.0), 2)
             else:
                 _logger.debug(
                     "Commission rule '%s' not applicable for %s — falling through",
-                    rule.name, record.name,
+                    rule.name,
+                    record.name,
                 )
 
         # 4. ICP default rate fallback
         try:
             icp = record.env["ir.config_parameter"].sudo()
-            default_rate = float(
-                icp.get_param("plasticos.commission.default_rate", "0.0")
-            )
+            default_rate = float(icp.get_param("plasticos.commission.default_rate", "0.0"))
             if default_rate > 0:
                 amount = gross_margin * default_rate
                 _logger.debug(
                     "Commission ICP default rate %.4f on %s: %.2f",
-                    default_rate, record.name, amount,
+                    default_rate,
+                    record.name,
+                    amount,
                 )
                 return round(amount, 2)
         except Exception:

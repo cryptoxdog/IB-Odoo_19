@@ -23,9 +23,7 @@ class ResPartner(models.Model):
             partner.is_company = partner.company_type == "company"
 
     # ── Facility Profile link ─────────────────────────────────────────
-    facility_profile_ids = fields.One2many(
-        "plasticos.facility.profile", "partner_id", string="Facility Capabilities"
-    )
+    facility_profile_ids = fields.One2many("plasticos.facility.profile", "partner_id", string="Facility Capabilities")
     facility_profile_count = fields.Integer(
         string="Capabilities",
         compute="_compute_facility_profile_count",
@@ -251,7 +249,5 @@ class ResPartner(models.Model):
         if "parent_id" in vals and not vals.get("parent_id"):
             for rec in self:
                 if rec.facility_profile_ids:
-                    raise ValidationError(
-                        "Cannot convert facility to parent while capability profile exists."
-                    )
+                    raise ValidationError("Cannot convert facility to parent while capability profile exists.")
         return super().write(vals)
