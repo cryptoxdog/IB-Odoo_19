@@ -95,6 +95,7 @@ class ResPartner(models.Model):
             ("broker", "Broker"),
             ("internal", "Internal"),
             ("prospect", "Prospect"),
+            ("other", "Other"),
         ],
         string="Company Role",
         index=True,
