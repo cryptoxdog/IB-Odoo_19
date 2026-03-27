@@ -90,7 +90,6 @@
                   <field name="gross_margin"             string="Margin"     widget="monetary"/>
                   <field name="commission_locked_amount" string="Commission" widget="monetary"/>
                   <field name="state"                    string="Status"/>
-                  <field name="currency_id"              column_invisible="1"/>
                 </list>
               </field>
             </page>
