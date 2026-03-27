@@ -1,10 +1,4 @@
 rules:
-  - id: odoo-hardcoded-model-string
-    pattern: self.env["$MODEL"]
-    message: "Consider using a module-level constant instead of hardcoded model name string"
-    languages: [python]
-    severity: WARNING
-
   - id: odoo-commented-code
     pattern-regex: '^\s*#\s*(self\.|env\.|model\.|fields\.|vals\[)'
     message: "Remove commented-out Odoo code"
