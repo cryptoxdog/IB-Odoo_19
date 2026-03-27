@@ -57,7 +57,7 @@
             <field name="color">10</field>
         </record>
 
-        <!-- Role tags (from Buyer/Supplier column) -->
+        <!-- Role tags (from Buyer/Supplier/Expense column) -->
         <record id="categ_buyer" model="res.partner.category">
             <field name="name">Buyer</field>
             <field name="color">11</field>
@@ -66,6 +66,11 @@
         <record id="categ_supplier" model="res.partner.category">
             <field name="name">Supplier</field>
             <field name="color">14</field>
+        </record>
+
+        <record id="categ_expense" model="res.partner.category">
+            <field name="name">Expense</field>
+            <field name="color">15</field>
         </record>
 
     </data>

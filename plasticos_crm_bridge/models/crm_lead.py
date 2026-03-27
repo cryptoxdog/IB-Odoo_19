@@ -4,6 +4,13 @@ from odoo import api, fields, models
 class CrmLeadPlastOS(models.Model):
     _inherit = "crm.lead"
 
+    # ── Personal Intel (from linked contact) ────────────────
+    partner_personal_intel = fields.Html(
+        related="partner_id.personal_intel",
+        string="Personal Intel",
+        readonly=True,
+    )
+
     # ── Delivery Term (captured during qualification) ──────
     delivery_term = fields.Selection(
         [("fcfs", "FCFS"), ("appointment", "Appointment")],

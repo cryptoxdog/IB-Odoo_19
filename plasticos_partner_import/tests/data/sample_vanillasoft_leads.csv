@@ -1,0 +1,31 @@
+ContactID,Company,First Name,Last Name,Email,Direct,Mobile 1,Address,Address 2,City,State,Zip,Country,Lead Status,Lead Source,Company Type,Contact Owner,Buyer/Supplier,Notes
+1001,Acme Distribution LLC,John,Doe,jdoe@acmedist.com,555-100-0001,,100 Warehouse Blvd,,Dallas,TX,75201,United States,New,Web,Distribution Center,Igor Beylin,Supplier,Large DC with film and stretch wrap
+1002,GreenCycle Plastics Inc,Sarah,Miller,smiller@greencycle.com,555-100-0002,,200 Recycling Dr,,Atlanta,GA,30301,United States,New,Referral,Commercial Recycler,Igor Beylin,Supplier,C&I recycler with 3 routes
+1003,Palmetto Pallet Recovery,Mike,Johnson,mjohnson@palmettopallet.com,555-100-0003,,300 Pallet Ln,,Charleston,SC,29401,United States,Contacted,Web,Pallet Recycler,Igor Beylin,Supplier,HDPE pallet regrind
+1004,Southern Compounds LLC,Lisa,Chen,lchen@southerncompounds.com,555-100-0004,,400 Compound Ave,,Birmingham,AL,35201,United States,Qualified,Referral,Compounder,Igor Beylin,Buyer,PP compounder seeking post-industrial
+1005,Metro Grind & Process,Tom,Williams,twilliams@metrogrind.com,555-100-0005,,500 Industrial Pkwy,,Detroit,MI,48201,United States,New,Trade Show,Grinder/Processor,Igor Beylin,Supplier,Toll grinding HDPE
+1006,CircuitBoard Recyclers,Amy,Brown,abrown@circuitrecycle.com,555-100-0006,,600 Tech Park Dr,,San Jose,CA,95101,United States,New,Web,E-Waste,Igor Beylin,Supplier,E-waste plastics separation
+1007,Central MRF Partners,Dave,Garcia,dgarcia@centralmrf.com,555-100-0007,,700 Sorting Way,,Memphis,TN,38101,United States,Contacted,Cold Call,MRF,Igor Beylin,Supplier,Single stream MRF
+1008,Precision Molding Corp,Karen,Lee,klee@precisionmold.com,555-100-0008,,800 Mold St,,Grand Rapids,MI,49501,United States,Qualified,Web,Manufacturer,Igor Beylin,Buyer,Injection molder seeking HDPE regrind
+1009,National Resin Brokers,Paul,Martinez,pmartinez@natlresin.com,555-100-0009,,900 Broker Blvd,,Chicago,IL,60601,United States,New,Referral,Broker,Igor Beylin,Buyer/Supplier,Resin broker nationwide
+1010,FastFreight Logistics,Emma,Taylor,etaylor@fastfreight.com,555-100-0010,,1000 Trucking Rd,,Louisville,KY,40201,United States,Contacted,Cold Call,Carrier,Igor Beylin,,Flatbed and van fleet
+1011,Sunbelt Distribution Inc,James,Anderson,janderson@sunbeltdist.com,555-100-0011,,1100 Sun Pkwy,,Phoenix,AZ,85001,United States,New,Web,Distribution Center,Igor Beylin,Supplier,Film wrap from grocery DC
+1012,Valley Recycling Services,Maria,Wilson,mwilson@valleyrecycling.com,555-100-0012,,1200 Valley Rd,,Fresno,CA,93701,United States,Qualified,Referral,Commercial Recycler,Igor Beylin,Supplier,Post-industrial LDPE film
+1013,East Coast Pallet Co,Robert,Thomas,rthomas@ecpallet.com,555-100-0013,,1300 Pallet Way,,Baltimore,MD,21201,United States,New,Trade Show,Pallet Recycler,Igor Beylin,Supplier,HDPE and PP pallets
+1014,PolyBlend Technologies,Jennifer,Jackson,jjackson@polyblend.com,555-100-0014,,1400 Blend Dr,,Charlotte,NC,28201,United States,Contacted,Web,Compounder,Igor Beylin,Buyer,TPO compounder
+1015,Midwest Grinders Inc,Brian,White,bwhite@midwestgrind.com,555-100-0015,,1500 Grinder Ave,,Indianapolis,IN,46201,United States,New,Referral,Grinder/Processor,Igor Beylin,Supplier,LLDPE and HDPE grinding
+1016,TechWaste Solutions,Nicole,Harris,nharris@techwaste.com,555-100-0016,,1600 E-Waste Blvd,,Portland,OR,97201,United States,New,Web,E-Waste,Igor Beylin,Supplier,Computer housing ABS
+1017,Tri-County MRF,Steve,Clark,sclark@tricountymrf.com,555-100-0017,,1700 Recovery Dr,,Minneapolis,MN,55401,United States,Qualified,Cold Call,MRF,Igor Beylin,Supplier,Dual stream residential
+1018,Pacific Plastics Mfg,Diana,Lewis,dlewis@pacificplastics.com,555-100-0018,,1800 Factory Ln,,Seattle,WA,98101,United States,Contacted,Trade Show,Manufacturer,Igor Beylin,Buyer,Blow molder PE bottles
+1019,Coastal Resin Trading,Mark,Robinson,mrobinson@coastalresin.com,555-100-0019,,1900 Trade Center,,Miami,FL,33101,United States,New,Referral,Broker,Igor Beylin,Buyer/Supplier,PE and PP broker
+1020,Heartland Hauling LLC,Susan,Walker,swalker@heartlandhauling.com,555-100-0020,,2000 Haul Rd,,Kansas City,MO,64101,United States,Contacted,Web,Carrier,Igor Beylin,,Dedicated recycling routes
+1021,Southwest DC Holdings,Chris,Hall,chall@swdcholdings.com,555-100-0021,,2100 Warehouse St,,El Paso,TX,79901,United States,New,Cold Call,Distribution Center,Igor Beylin,Supplier,Pallet wrap and shrink film
+1022,Bayou Recyclers LLC,Angela,Allen,aallen@bayourecyclers.com,555-100-0022,,2200 Bayou Ln,,New Orleans,LA,70112,United States,Qualified,Web,Commercial Recycler,Igor Beylin,Supplier,Post-consumer HDPE
+1023,Mountain Pallet Works,Kevin,Young,kyoung@mtnpallet.com,555-100-0023,,2300 Mountain Dr,,Denver,CO,80201,United States,New,Referral,Pallet Recycler,Igor Beylin,Supplier,Mixed pallet regrind
+1024,Alpine Compounds Inc,Rachel,King,rking@alpinecompounds.com,555-100-0024,,2400 Alpine Way,,Salt Lake City,UT,84101,United States,Contacted,Trade Show,Compounder,Igor Beylin,Buyer,Nylon compounder
+1025,Industrial Shred & Grind,Tyler,Wright,twright@indshred.com,555-100-0025,,2500 Shred Blvd,,Columbus,OH,43201,United States,New,Web,Grinder/Processor,Igor Beylin,Supplier,Size reduction services
+1026,Harbor MRF Solutions,Laura,Lopez,llopez@harbormrf.com,555-100-0026,,2600 Harbor Ave,,Long Beach,CA,90801,United States,Qualified,Referral,MRF,Igor Beylin,Supplier,Port-adjacent MRF
+1027,Great Lakes Extrusion,Daniel,Hill,dhill@glelakes.com,555-100-0027,,2700 Extrusion Rd,,Cleveland,OH,44101,United States,Contacted,Web,Manufacturer,Igor Beylin,Buyer,Sheet extruder seeking regrind
+1028,Prairie Transport Co,Megan,Scott,mscott@prairietrans.com,555-100-0028,,2800 Prairie Pkwy,,Omaha,NE,68101,United States,New,Cold Call,Carrier,Igor Beylin,,Regional flatbed carrier
+1029,Cascade E-Cycle Inc,Jason,Green,jgreen@cascadeecycle.com,555-100-0029,,2900 Cascade Dr,,Tacoma,WA,98401,United States,New,Web,E-Waste,Igor Beylin,Supplier,Monitor and TV housings
+1030,Sunshine Film Recycling,Patricia,Adams,padams@sunshinefilm.com,555-100-0030,,3000 Sunshine Blvd,,Tampa,FL,33601,United States,Qualified,Referral,Commercial Recycler,Igor Beylin,Supplier,Ag film and greenhouse plastic

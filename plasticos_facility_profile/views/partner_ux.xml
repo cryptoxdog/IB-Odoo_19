@@ -94,7 +94,7 @@
             <xpath expr="//field[@name='country_id']" position="before">
                 <field name="company_role"
                        widget="badge"
-                       decoration-success="company_role in ('buyer', 'both')"
+                       decoration-success="company_role == 'buyer'"
                        decoration-info="company_role == 'supplier'"
                        decoration-warning="company_role == 'prospect'"
                        optional="show"/>
@@ -120,9 +120,9 @@
         <field name="arch" type="xml">
             <xpath expr="//filter[@name='supplier']" position="after">
                 <filter string="Buyers" name="role_buyer"
-                        domain="['|', ('company_role', '=', 'buyer'), ('company_role', '=', 'both')]"/>
+                        domain="[('customer_rank', '&gt;', 0)]"/>
                 <filter string="Suppliers" name="role_supplier"
-                        domain="['|', ('company_role', '=', 'supplier'), ('company_role', '=', 'both')]"/>
+                        domain="[('supplier_rank', '&gt;', 0)]"/>
                 <filter string="Prospects" name="role_prospect"
                         domain="[('company_role', '=', 'prospect')]"/>
                 <filter string="Blocked" name="status_blocked"

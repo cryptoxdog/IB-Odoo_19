@@ -40,45 +40,37 @@ class ResPartner(models.Model):
     )
 
     # ═══════════════════════════════════════════════════════════════════
-    # FACILITY ROLE — derived from partner_type_id.code
+    # FACILITY ROLE — granular specialization within the broad partner type
+    # Set via enrichment or manual entry. NOT derived from partner_type_id.
     # Synced to Neo4j for buyer-match graph traversal.
-    # NOT the same as company_type (person/company).
     # ═══════════════════════════════════════════════════════════════════
     facility_role = fields.Selection(
         selection=[
-            ("processor", "Processor"),
-            ("broker", "Broker"),
-            ("manufacturer", "Manufacturer"),
-            ("mrf", "MRF"),
+            ("commercial_recycler", "Commercial Recycler"),
+            ("pallet_recycler", "Pallet Recycler"),
+            ("ag_recycler", "Ag Recycler"),
+            ("ewaste", "E-Waste"),
+            ("drum_reconditioner", "Drum Reconditioner"),
+            ("thrift_store", "Thrift Store"),
+            ("molder", "Molder"),
+            ("extruder", "Extruder"),
+            ("thermoformer", "Thermoformer"),
+            ("film_producer", "Film Producer"),
+            ("regrinder", "Regrinder"),
+            ("pelletizer", "Pelletizer"),
             ("compounder", "Compounder"),
-            ("recycler", "Recycler"),
-            ("distributor", "Distributor"),
-            ("carrier", "Carrier"),
+            ("warehouse", "Warehouse"),
             ("other", "Other"),
         ],
-        compute="_compute_facility_role",
-        inverse="_inverse_facility_role",
+        string="Facility Role",
         store=True,
+        index=True,
         help=(
-            "Business role of this facility. Computed from partner_type_id. "
-            "NOT the same as company_type (person/company). "
-            "Synced to Neo4j as 'facility_role' for buyer matching."
+            "Specific facility specialization within the broad partner type. "
+            "Set via enrichment or manual entry. NOT derived from partner_type_id. "
+            "Synced to Neo4j for buyer matching."
         ),
     )
-
-    @api.depends("partner_type_id", "partner_type_id.code")
-    def _compute_facility_role(self):
-        for rec in self:
-            rec.facility_role = rec.partner_type_id.code if rec.partner_type_id else False
-
-    def _inverse_facility_role(self):
-        PartnerType = self.env["plasticos.partner.type"]
-        for rec in self:
-            if rec.facility_role:
-                pt = PartnerType.search([("code", "=", rec.facility_role)], limit=1)
-                rec.partner_type_id = pt.id if pt else False
-            else:
-                rec.partner_type_id = False
 
     # ═══════════════════════════════════════════════════════════════════
     # COMPANY ROLE — trade-facing classification
@@ -90,7 +82,6 @@ class ResPartner(models.Model):
         selection=[
             ("buyer", "Buyer"),
             ("supplier", "Supplier"),
-            ("both", "Buyer & Supplier"),
             ("carrier", "Carrier"),
             ("broker", "Broker"),
             ("internal", "Internal"),
@@ -110,8 +101,8 @@ class ResPartner(models.Model):
     @api.onchange("company_role")
     def _onchange_company_role(self):
         """Sync supplier_rank / customer_rank when role changes manually."""
-        SUPPLIER_ROLES = {"supplier", "both", "broker"}
-        CUSTOMER_ROLES = {"buyer", "both"}
+        SUPPLIER_ROLES = {"supplier", "broker"}
+        CUSTOMER_ROLES = {"buyer"}
         for rec in self:
             if rec.company_role in SUPPLIER_ROLES:
                 rec.supplier_rank = max(rec.supplier_rank or 0, 1)
@@ -175,7 +166,6 @@ class ResPartner(models.Model):
         selection=[
             ("supplier", "Supplier"),
             ("buyer", "Buyer"),
-            ("both", "Buyer & Supplier"),
             ("other", "Other"),
         ],
         string="Trade Role",

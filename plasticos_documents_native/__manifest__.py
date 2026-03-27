@@ -30,9 +30,7 @@
         "views/document_native_views.xml",
     ],
     # Requires Enterprise modules `documents` and `documents_account` on the host.
-    "installable": False,
+    "installable": True,
     "application": False,
-    # auto_install disabled: documents.folder model removed in Odoo 19 Enterprise.
-    # Module needs refactoring before it can be installed.
     "auto_install": False,
 }

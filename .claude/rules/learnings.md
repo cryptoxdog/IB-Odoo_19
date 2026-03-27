@@ -24,4 +24,4 @@ Review periodically and promote stable learnings to CLAUDE.md or relevant rule f
 
 - **[2026-03-27] Odoo 19 removed from `ir.cron`**: `doall`, `numbercall` fields. Remove from XML data files.
 
-- **[2026-03-27] `documents.folder` removed in Odoo 19 Enterprise** — modules depending on it need `installable: False` or a full refactor to use `documents.document` hierarchy.
+- **[2026-03-27] `documents.folder` still exists in Odoo 19 Enterprise** — KeyError occurs only when Enterprise `documents` module is not installed on the instance. Verify Enterprise modules are present before installing `plasticos_documents_native`.
