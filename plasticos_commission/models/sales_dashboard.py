@@ -147,7 +147,7 @@ class PlasticosSalesDashboard(models.Model):
 
     # ── SQL View ──────────────────────────────────────────────────────────────
     def init(self):
-        tools.drop_view_if_exists(self.env.cr, "plasticos_sales_dashboard")
+        tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute("""
             CREATE VIEW plasticos_sales_dashboard AS
             SELECT
