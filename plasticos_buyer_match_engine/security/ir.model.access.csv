@@ -1,10 +1,4 @@
+# APPEND these rows to plasticos_buyer_match_engine/security/ir.model.access.csv
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_buyer_matcher_admin,buyer.matcher.admin,model_plasticos_buyer_matcher,base.group_system,1,1,1,1
-access_buyer_matcher_user,buyer.matcher.user,model_plasticos_buyer_matcher,base.group_user,1,0,0,0
-access_graph_sync_log_user,graph.sync.log.user,model_plasticos_graph_sync_log,base.group_user,1,0,0,0
-access_graph_sync_log_admin,graph.sync.log.admin,model_plasticos_graph_sync_log,base.group_system,1,1,1,1
-access_match_exclusion_admin,match.exclusion.admin,model_plasticos_match_exclusion,base.group_system,1,1,1,1
-access_match_exclusion_user,match.exclusion.user,model_plasticos_match_exclusion,base.group_user,1,0,0,0
-access_buyer_matcher_all,plasticos.buyer.matcher.all,model_plasticos_buyer_matcher,base.group_user,1,1,1,1
-access_graph_sync_log_all,plasticos.graph.sync.log.all,model_plasticos_graph_sync_log,base.group_user,1,1,1,1
-access_match_exclusion_all,plasticos.match.exclusion.all,model_plasticos_match_exclusion,base.group_user,1,1,1,1
+access_match_result_writer_user,plasticos.match.result.writer user,model_plasticos_match_result_writer,plasticos_security_base.group_plasticos_user,1,1,1,0
+access_match_result_writer_manager,plasticos.match.result.writer manager,model_plasticos_match_result_writer,plasticos_security_base.group_plasticos_manager,1,1,1,1
