@@ -1,6 +1,6 @@
 import logging
 
-from odoo import api, fields, models
+from odoo import api, fields, models, tools
 
 _logger = logging.getLogger(__name__)
 
@@ -147,7 +147,7 @@ class PlasticosSalesDashboard(models.Model):
 
     # ── SQL View ──────────────────────────────────────────────────────────────
     def init(self):
-        self.env.cr.execute("DROP VIEW IF EXISTS plasticos_sales_dashboard")
+        tools.drop_view_if_exists(self.env.cr, "plasticos_sales_dashboard")
         self.env.cr.execute("""
             CREATE VIEW plasticos_sales_dashboard AS
             SELECT
