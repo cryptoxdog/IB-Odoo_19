@@ -1,6 +1,5 @@
 import logging
 import uuid
-from datetime import datetime
 
 from odoo import api, fields, models
 
@@ -42,10 +41,12 @@ class MatchResultWriter(models.AbstractModel):
 
         # Purge stale pending results for this intake before writing new ones.
         # Accepted/rejected results are immutable (guarded by model.write()).
-        stale = MatchResult.search([
-            ("intake_id", "=", intake.id),
-            ("state", "=", "pending"),
-        ])
+        stale = MatchResult.search(
+            [
+                ("intake_id", "=", intake.id),
+                ("state", "=", "pending"),
+            ]
+        )
         if stale:
             stale.unlink()
 
@@ -60,11 +61,7 @@ class MatchResultWriter(models.AbstractModel):
             score_pct = round(min(max(score_raw * 100, 0.0), 100.0), 2)
 
             gates_failed = m.get("gates_failed") or []
-            reasoning = (
-                "All gates passed"
-                if not gates_failed
-                else f"Gates failed: {', '.join(gates_failed)}"
-            )
+            reasoning = "All gates passed" if not gates_failed else f"Gates failed: {', '.join(gates_failed)}"
 
             score_breakdown = {
                 "total_score": score_raw,

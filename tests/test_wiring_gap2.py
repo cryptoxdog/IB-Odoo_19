@@ -3,13 +3,9 @@ GAP-2 Wiring Test Suite — 22 tests, no Odoo runtime required.
 
 Run: pytest tests/test_wiring_gap2.py -v
 """
+
 import ast
-import importlib.util
 import os
-import sys
-import types
-import uuid
-from unittest.mock import MagicMock, patch, call
 
 import pytest
 
@@ -33,8 +29,11 @@ def parse_source(*parts):
 
 
 def all_class_names(tree):
-    return {node.id if isinstance(node, ast.Name) else ast.unparse(node)
-            for node in ast.walk(tree) if isinstance(node, ast.ClassDef)}
+    return {
+        node.id if isinstance(node, ast.Name) else ast.unparse(node)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef)
+    }
 
 
 def all_function_names(tree):
@@ -107,9 +106,7 @@ class TestMatchResultWriter:
 # Group B: intake_extension_patched.py — result writer call wired
 # ─────────────────────────────────────────────────────────────────────────────
 
-PATCHED_EXT_PATH = source_path(
-    "plasticos_buyer_match_engine", "models", "intake_extension_patched.py"
-)
+PATCHED_EXT_PATH = source_path("plasticos_buyer_match_engine", "models", "intake_extension_patched.py")
 
 
 @pytest.mark.skipif(not os.path.exists(PATCHED_EXT_PATH), reason="intake_extension_patched.py not in pack")
@@ -175,9 +172,7 @@ class TestOfferPriceBridge:
 # Group D: migration idempotency logic
 # ─────────────────────────────────────────────────────────────────────────────
 
-MIGRATION_PATH = source_path(
-    "plasticos_buyer_match_engine", "migrations", "19.0.2.1.0", "post-migrate.py"
-)
+MIGRATION_PATH = source_path("plasticos_buyer_match_engine", "migrations", "19.0.2.1.0", "post-migrate.py")
 
 
 @pytest.mark.skipif(not os.path.exists(MIGRATION_PATH), reason="migration not in repo")
@@ -209,9 +204,7 @@ class TestMigration210:
 # Group E: __init__ import chain integrity
 # ─────────────────────────────────────────────────────────────────────────────
 
-INIT_PATCHED = source_path(
-    "plasticos_buyer_match_engine", "models", "__init___patched.py"
-)
+INIT_PATCHED = source_path("plasticos_buyer_match_engine", "models", "__init___patched.py")
 
 
 @pytest.mark.skipif(not os.path.exists(INIT_PATCHED), reason="__init___patched.py not in pack")

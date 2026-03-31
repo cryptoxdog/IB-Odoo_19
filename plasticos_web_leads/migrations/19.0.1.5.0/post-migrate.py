@@ -8,6 +8,7 @@ and fail a truthiness check unexpectedly.
 
 Safe to run multiple times (idempotent).
 """
+
 from __future__ import annotations
 
 import logging
@@ -50,6 +51,4 @@ def migrate(cr, version):
         """
     )
 
-    _logger.info(
-        "plasticos_web_leads 19.0.1.5.0 post-migrate: complete (ICP sentinel + api_key NULL guard)"
-    )
+    _logger.info("plasticos_web_leads 19.0.1.5.0 post-migrate: complete (ICP sentinel + api_key NULL guard)")

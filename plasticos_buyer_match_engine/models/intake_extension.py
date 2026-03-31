@@ -88,13 +88,9 @@ class PlasticosIntakeBuyerMatch(models.Model):
             # ── Persist to plasticos.match.result (canonical audit log) ──────
             if "plasticos.match.result.writer" in self.env:
                 try:
-                    self.env["plasticos.match.result.writer"].persist_match_lines(
-                        record, matches, run_id=run_id
-                    )
+                    self.env["plasticos.match.result.writer"].persist_match_lines(record, matches, run_id=run_id)
                 except Exception as exc:
-                    _logger.error(
-                        "match.result persistence failed for intake %s: %s", record.id, exc
-                    )
+                    _logger.error("match.result persistence failed for intake %s: %s", record.id, exc)
 
             if matches:
                 record.status = "matched"

@@ -2,6 +2,7 @@
 
 Provides max_budget_tokens with its legacy alias for backward compatibility.
 """
+
 from __future__ import annotations
 
 import logging
@@ -33,8 +34,7 @@ class PlasticosCommissionConfig(models.TransientModel):
         string="Max Tokens (legacy alias)",
         compute="_compute_max_tokens",
         inverse="_inverse_max_tokens",
-        help="Backward-compatible alias for max_budget_tokens. "
-             "Reads/writes the same ICP key.",
+        help="Backward-compatible alias for max_budget_tokens. Reads/writes the same ICP key.",
     )
 
     _ICP_MAX_BUDGET_TOKENS = "plasticos.commission.max_budget_tokens"

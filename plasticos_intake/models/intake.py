@@ -45,7 +45,7 @@ class PlasticosIntake(models.Model):
         required=False,
         tracking=True,
         index=True,
-        domain="[(\'is_company\', \'=\', True)]",
+        domain="[('is_company', '=', True)]",
         help="The parent company. Optional for web lead intakes pending review.",
         ondelete="restrict",
     )

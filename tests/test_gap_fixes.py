@@ -8,13 +8,12 @@ Tests proving:
   5. matching_engine_icp helpers: enabled/disabled param reading
   6. init() method on PlasticosRepPerformance drops and recreates the SQL view
 """
+
 from __future__ import annotations
 
-import json
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock
 
 import pytest
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers / stubs (import-time, no Odoo ORM needed)
@@ -57,7 +56,7 @@ class TestSyncBatching:
     def test_sync_preferred_contact_batches_same_facility(self):
         """Two intakes pointing at the SAME facility should produce ONE sudo().write()."""
         # Import the module under test
-        import importlib, types, sys
+        import types
 
         # Minimal stub module so we can import without Odoo
         odoo_stub = types.ModuleType("odoo")
@@ -145,7 +144,8 @@ class TestRemovedOnchangeStubs:
 
     def test_no_onchange_contact_id_stub(self):
         """_onchange_contact_id (empty pass stub) must not exist in fixed file."""
-        import ast, os
+        import ast
+        import os
 
         filepath = os.path.join(
             os.path.dirname(__file__),
@@ -161,18 +161,13 @@ class TestRemovedOnchangeStubs:
             source = fh.read()
 
         tree = ast.parse(source)
-        method_names = [
-            node.name
-            for node in ast.walk(tree)
-            if isinstance(node, ast.FunctionDef)
-        ]
-        assert "_onchange_contact_id" not in method_names, (
-            "_onchange_contact_id empty stub must be removed"
-        )
+        method_names = [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
+        assert "_onchange_contact_id" not in method_names, "_onchange_contact_id empty stub must be removed"
 
     def test_no_onchange_lead_source_id_stub(self):
         """_onchange_lead_source_id (empty pass stub) must not exist in fixed file."""
-        import ast, os
+        import ast
+        import os
 
         filepath = os.path.join(
             os.path.dirname(__file__),
@@ -188,14 +183,8 @@ class TestRemovedOnchangeStubs:
             source = fh.read()
 
         tree = ast.parse(source)
-        method_names = [
-            node.name
-            for node in ast.walk(tree)
-            if isinstance(node, ast.FunctionDef)
-        ]
-        assert "_onchange_lead_source_id" not in method_names, (
-            "_onchange_lead_source_id empty stub must be removed"
-        )
+        method_names = [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
+        assert "_onchange_lead_source_id" not in method_names, "_onchange_lead_source_id empty stub must be removed"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -303,7 +292,7 @@ class TestRepPerformanceInit:
 
     def test_init_calls_drop_view_then_execute(self):
         """init() must call drop_view_if_exists then cr.execute with CREATE VIEW.
-        
+
         This test does NOT require the odoo package: it simulates the init()
         body using pure MagicMock stubs, validating the execution contract
         without ORM dependencies.
@@ -327,6 +316,7 @@ class TestRepPerformanceInit:
         """The CREATE VIEW SQL must include all required column projections."""
         # Read the actual admin_dashboard.py and verify SQL structure
         import os
+
         filepath = os.path.join(
             os.path.dirname(__file__),
             "..",

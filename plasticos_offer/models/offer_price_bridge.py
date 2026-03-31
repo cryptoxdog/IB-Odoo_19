@@ -4,6 +4,7 @@ Extends plasticos.offer with a compute helper so the offer form
 shows the buyer's typical price when created from action_send_offers.
 This is a pure additive extension — no existing offer.py code is modified.
 """
+
 import logging
 
 from odoo import api, models
