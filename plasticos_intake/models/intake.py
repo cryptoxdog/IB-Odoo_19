@@ -532,33 +532,7 @@ class PlasticosIntake(models.Model):
         if len(contacts) == 1:
             self.contact_id = contacts[0].id
 
-    @api.onchange("contact_id")
-    def _onchange_contact_id(self):
-        """Save contact selection to preferred memory on the facility.
 
-        Next time this facility is selected on any intake, the system
-        will auto-select this contact. No double-entry ever.
-
-        NOTE: The actual write to facility.preferred_contact_id is
-        deferred to write() to avoid committing changes if the user
-        cancels the form.
-        """
-        # Cross-model write deferred to write() — see _sync_onchange_writes
-        pass
-
-    @api.onchange("lead_source_id")
-    def _onchange_lead_source_id(self):
-        """Auto-sync lead source to partner when set on intake.
-
-        If partner doesn't have a lead source yet, copy from intake.
-        This tracks how leads/loads came in for reporting.
-
-        NOTE: The actual write to partner.lead_source_id is deferred
-        to write() to avoid committing changes if the user cancels
-        the form.
-        """
-        # Cross-model write deferred to write() — see _sync_onchange_writes
-        pass
 
     # ═════════════════════════════════════════════════════════
     # Onchange — pre-fill from material profile
