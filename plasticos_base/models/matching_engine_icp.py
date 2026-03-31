@@ -21,6 +21,8 @@ ICP_MATCHING_USER_MESSAGE = "plasticos.feature_gate.user_message"
 
 def _param_truthy(env, key: str, *, default: str = "False") -> bool:
     icp = env["ir.config_parameter"].sudo()
+    if not key.startswith("plasticos."):
+        raise ValueError(f"ICP key must be prefixed with 'plasticos.', got: {key!r}")
     raw = (icp.get_param(key, default) or default).strip().lower()
     return raw in _TRUTHY
 
