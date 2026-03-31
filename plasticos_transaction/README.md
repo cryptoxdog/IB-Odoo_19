@@ -137,4 +137,3 @@ docker compose -p odoo19 run --rm odoo \
 | Freight Bill Auto-Link | Low | Complex heuristic (weight ±5%, date ±7 days, same carrier) — manual for launch |
 | Full statusbar (all 8 states) | Medium | Currently only shows `draft, active, closed` |
 | Commission auto-trigger on `state = closed` | High | `commission_service.calculate()` not yet called from transaction write |
-

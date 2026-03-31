@@ -82,4 +82,3 @@ docker compose -p odoo19 run --rm odoo \
 |---|---|
 | `plasticos_facility_profile` | Imported partners can be assigned facility profiles post-import |
 | `plasticos_crm_bridge` | CRM leads created from import can be bridged to the plasticos pipeline |
-

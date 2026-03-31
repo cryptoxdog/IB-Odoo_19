@@ -99,7 +99,9 @@ class PlasticosLoad(models.Model):
     )
 
     # ── Pickup Location Fields ──────────────────────────────────────
-    pickup_partner_id = fields.Many2one(RES_PARTNER, string="Pickup Location", help="Shipper/pickup location for BOL", ondelete="restrict")
+    pickup_partner_id = fields.Many2one(
+        RES_PARTNER, string="Pickup Location", help="Shipper/pickup location for BOL", ondelete="restrict"
+    )
     pickup_contact_name = fields.Char(string="Pickup Contact")
     pickup_contact_phone = fields.Char(string="Pickup Phone")
     pickup_contact_mobile = fields.Char(string="Pickup Mobile")

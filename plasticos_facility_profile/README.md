@@ -147,4 +147,3 @@ docker compose -p odoo19 run --rm odoo \
 | `plasticos_material_profile` | Provides `is_facility` computed field used in tab visibility |
 | CEG (external) | Facility sync via `POST /v1/execute` `action=sync` — sends capability packet on profile write |
 | `plasticos_logistics` | Load records reference facility for origin/destination |
-

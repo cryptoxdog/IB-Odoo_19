@@ -156,4 +156,3 @@ docker compose -p odoo19 run --rm odoo \
   -d odoo --db-host db --db-port 5432 --db-user odoo --db-password odoo \
   -u plasticos_material_profile --stop-after-init
 ```
-

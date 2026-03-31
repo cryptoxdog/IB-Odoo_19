@@ -65,7 +65,9 @@ class PlasticosCommissionPayout(models.Model):
     commission_balance = fields.Float(
         string="Balance Due", compute="_compute_balance", store=True, digits="Product Price"
     )
-    currency_id = fields.Many2one("res.currency", default=lambda self: self.env.company.currency_id, readonly=True, ondelete="restrict")
+    currency_id = fields.Many2one(
+        "res.currency", default=lambda self: self.env.company.currency_id, readonly=True, ondelete="restrict"
+    )
 
     # ── Linked Transactions ──────────────────────────────────────────────────
     transaction_ids = fields.Many2many(

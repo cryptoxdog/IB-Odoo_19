@@ -12,3 +12,5 @@ access_commission_payout_manager,plasticos.commission.payout.manager,model_plast
 access_sales_dashboard_rep,plasticos.sales.dashboard.rep,model_plasticos_sales_dashboard,plasticos_security_base.group_sales_rep,1,0,0,0
 access_sales_dashboard_manager,plasticos.sales.dashboard.manager,model_plasticos_sales_dashboard,plasticos_security_base.group_operations_manager,1,0,0,0
 access_sales_dashboard_accounting,plasticos.sales.dashboard.accounting,model_plasticos_sales_dashboard,plasticos_security_base.group_accounting_ops,1,0,0,0
+access_commission_config_user,plasticos.commission.config.user,model_plasticos_commission_config,base.group_user,1,0,0,0
+access_commission_config_manager,plasticos.commission.config.manager,model_plasticos_commission_config,sales_team.group_sale_manager,1,1,1,1

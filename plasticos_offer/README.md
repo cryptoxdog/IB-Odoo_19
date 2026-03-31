@@ -97,4 +97,3 @@ docker compose -p odoo19 run --rm odoo \
 | Offer accept → chatter notification to broker (activity + message) | High |
 | Offer expiry cron XML | Medium |
 | "View Offers" smart button on intake form (`offer_count`) | Medium |
-

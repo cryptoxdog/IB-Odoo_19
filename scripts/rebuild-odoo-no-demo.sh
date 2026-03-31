@@ -96,4 +96,3 @@ docker compose -p "$ODOO_COMPOSE_PROJECT" run --rm \
 echo ""
 echo "Done. '$DB_NAME' is ready."
 echo "Start Odoo: docker compose -p $ODOO_COMPOSE_PROJECT up odoo"
-

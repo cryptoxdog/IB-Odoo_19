@@ -1,11 +1,3 @@
-# PATCH FILE — replace plasticos_buyer_match_engine/models/intake_extension.py
-# Changes:
-#   1. After persisting intake.match lines, also call MatchResultWriter.persist_match_lines
-#   2. Pass run_id through the full chain for idempotency
-#   3. typical_price is now trusted from matcher output (not zeroed out here)
-#
-# NO other logic changed.  Drop this file over the original.
-
 import logging
 import uuid
 

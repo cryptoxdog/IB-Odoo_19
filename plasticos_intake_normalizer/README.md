@@ -93,4 +93,3 @@ No DB migration needed for packet logic changes (all computed, no stored fields 
 |---|---|
 | `plasticos_intake.action_match_to_buyers()` | Calls `assemble_packet()` to build CEG POST body |
 | CEG (external) | Consumes the packet dict via the HTTP POST body |
-

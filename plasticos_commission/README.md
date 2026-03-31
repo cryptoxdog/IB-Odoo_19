@@ -137,4 +137,3 @@ docker compose -p odoo19 run --rm odoo \
 |---|---|
 | Commission auto-trigger on `transaction.state = closed` | **High** — `commission_service.calculate()` not yet called from transaction write |
 | `action_generate_for_rep()` cron or wizard | Medium — payout batch generation |
-

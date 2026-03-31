@@ -211,4 +211,3 @@ docker compose -p odoo19 run --rm odoo \
 | `typical_price` population | High | Populated once CEG returns `typical_buy_price` from facility profile |
 | `offer_count` smart button | Medium | Field exists; XML button may need review |
 | Intake expiry cron | Medium | XML + Python method — 15-min write |
-
