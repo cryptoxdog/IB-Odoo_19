@@ -5,5 +5,3 @@ access_web_lead_config_user,plasticos.web.lead.config.user,model_plasticos_web_l
 access_web_lead_config_manager,plasticos.web.lead.config.manager,model_plasticos_web_lead_config,base.group_system,1,1,1,1
 access_web_lead_api_key_wizard,plasticos.web.lead.api.key.wizard,model_plasticos_web_lead_api_key_wizard,base.group_system,1,1,1,1
 access_lead_bulk_wizard_user,plasticos.web.lead.bulk.action.wizard.user,model_plasticos_web_lead_bulk_action_wizard,base.group_user,1,1,1,1
-access_web_lead_all,plasticos.web.lead.all,model_plasticos_web_lead,base.group_user,1,1,1,1
-access_web_lead_config_all,plasticos.web.lead.config.all,model_plasticos_web_lead_config,base.group_user,1,1,1,1
