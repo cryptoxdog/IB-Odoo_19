@@ -12,7 +12,7 @@ class PurchaseOrderAutomation(models.Model):
     ready_confirmed_on = fields.Datetime(string="Ready Confirmed On")
     followup_count = fields.Integer(string="Supplier Follow-up Count", default=0)
     last_followup_on = fields.Datetime(string="Last Follow-up On")
-    buyer_id = fields.Many2one("res.partner", string="Buyer (SO Customer)")
+    buyer_id = fields.Many2one("res.partner", string="Buyer (SO Customer)", ondelete="restrict")
 
     @api.model
     def cron_supplier_followup(self):

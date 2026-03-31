@@ -49,6 +49,7 @@ class PlasticosMatchResult(models.Model):
         related="intake_id.partner_id",
         store=True,
         string="Supplier",
+        ondelete="restrict",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -135,6 +136,7 @@ class PlasticosMatchResult(models.Model):
         "res.users",
         string="Reviewed By",
         readonly=True,
+        ondelete="restrict",
     )
     reviewed_date = fields.Datetime(
         readonly=True,

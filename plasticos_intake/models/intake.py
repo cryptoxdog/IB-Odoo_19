@@ -47,6 +47,7 @@ class PlasticosIntake(models.Model):
         index=True,
         domain="[('is_company', '=', True)]",
         help="The parent company. Optional for web lead intakes pending review.",
+        ondelete="restrict",
     )
     partner_entity_status = fields.Selection(
         related="partner_id.entity_status",
@@ -71,6 +72,7 @@ class PlasticosIntake(models.Model):
         index=True,
         domain="['|', ('id', '=', partner_id), ('parent_id', '=', partner_id)]",
         help="The facility (child location) or the company itself when it is also the processing site.",
+        ondelete="restrict",
     )
     contact_id = fields.Many2one(
         "res.partner",
@@ -79,6 +81,7 @@ class PlasticosIntake(models.Model):
         index=True,
         domain="[('is_company', '=', False), '|', ('parent_id', '=', facility_id), ('parent_id', '=', partner_id)]",
         help="The person at the facility you are dealing with. Auto-selected from preferred contact memory.",
+        ondelete="restrict",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -120,6 +123,7 @@ class PlasticosIntake(models.Model):
         index=True,
         domain="[('share', '=', False)]",
         help="Sales rep assigned to follow up on this intake. Dropdown shows all internal users (non-portal).",
+        ondelete="restrict",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -214,6 +218,7 @@ class PlasticosIntake(models.Model):
         "plasticos.material.form",
         string="Origin Form",
         help="What the material was before processing (Drums, Bottles, Film). Optional.",
+        ondelete="restrict",
     )
 
     # ── Packaging ────────────────────────────────────────────

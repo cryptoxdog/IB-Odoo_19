@@ -18,6 +18,7 @@ class PlasticosTransactionCommission(models.Model):
         "plasticos.commission.rule",
         string="Commission Rule",
         tracking=True,
+        ondelete="restrict",
     )
     commission_locked = fields.Boolean(
         string="Commission Locked",

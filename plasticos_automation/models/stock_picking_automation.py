@@ -13,6 +13,7 @@ class StockPickingAutomation(models.Model):
         "res.partner",
         string="Carrier",
         help="The carrier (trucker or freight broker) responsible for this delivery.",
+        ondelete="restrict",
     )
     receipt_confirmation = fields.Boolean(
         string="Trucker Receipt Confirmed",

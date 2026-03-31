@@ -32,12 +32,14 @@ class PlasticosCommissionPayout(models.Model):
         tracking=True,
         index=True,
         domain="[('share', '=', False)]",
+        ondelete="restrict",
     )
     commission_rule_id = fields.Many2one(
         "plasticos.commission.rule",
         string="Commission Rule",
         tracking=True,
         help="Primary rule used for this period. Informational only.",
+        ondelete="restrict",
     )
     period_start = fields.Date(required=True, tracking=True)
     period_end = fields.Date(required=True, tracking=True)
@@ -63,7 +65,7 @@ class PlasticosCommissionPayout(models.Model):
     commission_balance = fields.Float(
         string="Balance Due", compute="_compute_balance", store=True, digits="Product Price"
     )
-    currency_id = fields.Many2one("res.currency", default=lambda self: self.env.company.currency_id, readonly=True)
+    currency_id = fields.Many2one("res.currency", default=lambda self: self.env.company.currency_id, readonly=True, ondelete="restrict")
 
     # ── Linked Transactions ──────────────────────────────────────────────────
     transaction_ids = fields.Many2many(

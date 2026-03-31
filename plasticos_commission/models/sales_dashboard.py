@@ -25,16 +25,16 @@ class PlasticosSalesDashboard(models.Model):
     _order = "transaction_state desc, write_date desc"
 
     # ── Identity ──────────────────────────────────────────────────────────────
-    transaction_id = fields.Many2one(PLASTICOS_TRANSACTION, readonly=True)
+    transaction_id = fields.Many2one(PLASTICOS_TRANSACTION, readonly=True, ondelete="cascade")
     transaction_ref = fields.Char(string="Deal #", readonly=True)
-    user_id = fields.Many2one("res.users", string="Rep", readonly=True)
+    user_id = fields.Many2one("res.users", string="Rep", readonly=True, ondelete="restrict")
 
     # ── Deal Basics ───────────────────────────────────────────────────────────
-    supplier_id = fields.Many2one("res.partner", string="Supplier", readonly=True)
-    buyer_id = fields.Many2one("res.partner", string="Buyer", readonly=True)
-    product_id = fields.Many2one("product.product", string="Material", readonly=True)
+    supplier_id = fields.Many2one("res.partner", string="Supplier", readonly=True, ondelete="restrict")
+    buyer_id = fields.Many2one("res.partner", string="Buyer", readonly=True, ondelete="restrict")
+    product_id = fields.Many2one("product.product", string="Material", readonly=True, ondelete="restrict")
     quantity = fields.Float(string="Quantity", readonly=True)
-    uom_id = fields.Many2one("uom.uom", string="UOM", readonly=True)
+    uom_id = fields.Many2one("uom.uom", string="UOM", readonly=True, ondelete="restrict")
 
     # ── Financials ────────────────────────────────────────────────────────────
     unit_price = fields.Float(string="Sell $/unit", digits="Product Price", readonly=True)
@@ -42,7 +42,7 @@ class PlasticosSalesDashboard(models.Model):
     purchase_cost_total = fields.Float(string="Buy Total", digits="Product Price", readonly=True)
     freight_cost_total = fields.Float(string="Freight", digits="Product Price", readonly=True)
     gross_margin = fields.Float(string="Gross Margin", digits="Product Price", readonly=True)
-    currency_id = fields.Many2one("res.currency", readonly=True)
+    currency_id = fields.Many2one("res.currency", readonly=True, ondelete="restrict")
 
     # ── Weight ────────────────────────────────────────────────────────────────
     final_weight = fields.Float(string="Net Weight (lbs)", readonly=True)
@@ -90,7 +90,7 @@ class PlasticosSalesDashboard(models.Model):
         string="Load Status",
         readonly=True,
     )
-    load_id = fields.Many2one("plasticos.load", readonly=True)
+    load_id = fields.Many2one("plasticos.load", readonly=True, ondelete="cascade")
     pickup_datetime = fields.Datetime(string="Pickup", readonly=True)
     delivery_datetime = fields.Datetime(string="Est. Delivery", readonly=True)
     delivered_at = fields.Datetime(string="Delivered At", readonly=True)

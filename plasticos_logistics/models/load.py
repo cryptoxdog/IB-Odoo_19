@@ -19,8 +19,8 @@ class PlasticosLoad(models.Model):
     name = fields.Char(
         required=True, default=lambda self: self.env["ir.sequence"].next_by_code(PLASTICOS_LOAD) or "New"
     )
-    sale_order_id = fields.Many2one("sale.order")
-    carrier_id = fields.Many2one(RES_PARTNER, string="Carrier")
+    sale_order_id = fields.Many2one("sale.order", ondelete="restrict")
+    carrier_id = fields.Many2one(RES_PARTNER, string="Carrier", ondelete="restrict")
     rate_amount = fields.Float(string="Rate Amount")
     rate_confirmed_at = fields.Datetime()
     rate_auto_reused = fields.Boolean(default=False)
@@ -50,6 +50,7 @@ class PlasticosLoad(models.Model):
         store=True,
         index=True,
         help="Transaction linked to this load (reverse lookup).",
+        ondelete="cascade",
     )
 
     # ── Delivery Term (editable with override tracking) ───────────────
@@ -98,7 +99,7 @@ class PlasticosLoad(models.Model):
     )
 
     # ── Pickup Location Fields ──────────────────────────────────────
-    pickup_partner_id = fields.Many2one(RES_PARTNER, string="Pickup Location", help="Shipper/pickup location for BOL")
+    pickup_partner_id = fields.Many2one(RES_PARTNER, string="Pickup Location", help="Shipper/pickup location for BOL", ondelete="restrict")
     pickup_contact_name = fields.Char(string="Pickup Contact")
     pickup_contact_phone = fields.Char(string="Pickup Phone")
     pickup_contact_mobile = fields.Char(string="Pickup Mobile")
@@ -115,7 +116,7 @@ class PlasticosLoad(models.Model):
 
     # ── Delivery Location Fields ────────────────────────────────────
     delivery_partner_id = fields.Many2one(
-        RES_PARTNER, string="Delivery Location", help="Consignee/delivery location for BOL"
+        RES_PARTNER, string="Delivery Location", help="Consignee/delivery location for BOL", ondelete="restrict"
     )
     delivery_contact_name = fields.Char(string="Delivery Contact")
     delivery_contact_phone = fields.Char(string="Delivery Phone")

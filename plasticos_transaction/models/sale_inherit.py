@@ -4,7 +4,7 @@ from odoo import fields, models
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
-    transaction_id = fields.Many2one("plasticos.transaction")
+    transaction_id = fields.Many2one("plasticos.transaction", ondelete="cascade")
 
     def action_confirm(self):
         """Confirm sale order and auto-create linked transaction.

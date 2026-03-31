@@ -104,6 +104,7 @@ class PlasticosOffer(models.Model):
     currency_id = fields.Many2one(
         "res.currency",
         default=lambda self: self.env.company.currency_id,
+        ondelete="restrict",
     )
     quantity_lbs = fields.Float(
         tracking=True,
@@ -183,6 +184,7 @@ class PlasticosOffer(models.Model):
     accepted_by = fields.Many2one(
         "res.users",
         readonly=True,
+        ondelete="restrict",
     )
     accepted_date = fields.Datetime(
         readonly=True,

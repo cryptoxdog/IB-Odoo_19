@@ -37,6 +37,7 @@ class ResPartner(models.Model):
         "plasticos.partner.type",
         string="Partner Type",
         help="Canonical partner/facility type from master registry.",
+        ondelete="restrict",
     )
 
     # ═══════════════════════════════════════════════════════════════════
@@ -157,6 +158,7 @@ class ResPartner(models.Model):
             "Auto-populated when a user selects a contact on an intake. "
             "Used to auto-fill contact on subsequent intakes."
         ),
+        ondelete="restrict",
     )
 
     # ── Preferred Supplier Profile (dual-profile support) ────────────
@@ -168,6 +170,7 @@ class ResPartner(models.Model):
             "profile used as source of truth for intake matching. "
             "Set manually by broker or auto-selected on first profile creation."
         ),
+        ondelete="restrict",
     )
 
     # ── Trade Role — supply vs demand side ────────────────────────────
