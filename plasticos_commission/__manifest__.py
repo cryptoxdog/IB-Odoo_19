@@ -13,6 +13,7 @@
         "base",
         "product",
         "mail",
+        "sales_team",
     ],
     "data": [
         "security/commission_group.xml",

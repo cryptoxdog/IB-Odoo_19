@@ -99,16 +99,18 @@ class ResPartner(models.Model):
         ),
     )
 
-    @api.onchange("company_role")
-    def _onchange_company_role(self):
-        """Sync supplier_rank / customer_rank when role changes manually."""
-        SUPPLIER_ROLES = {"supplier", "broker"}
-        CUSTOMER_ROLES = {"buyer"}
+    _SUPPLIER_ROLES = {"supplier", "broker"}
+    _CUSTOMER_ROLES = {"buyer"}
+
+    def _sync_rank_from_role(self):
+        """Ensure supplier_rank / customer_rank reflect company_role."""
         for rec in self:
-            if rec.company_role in SUPPLIER_ROLES:
-                rec.supplier_rank = max(rec.supplier_rank or 0, 1)
-            if rec.company_role in CUSTOMER_ROLES:
-                rec.customer_rank = max(rec.customer_rank or 0, 1)
+            if rec.company_role in self._SUPPLIER_ROLES:
+                if not rec.supplier_rank:
+                    rec.supplier_rank = 1
+            if rec.company_role in self._CUSTOMER_ROLES:
+                if not rec.customer_rank:
+                    rec.customer_rank = 1
 
     # ═══════════════════════════════════════════════════════════════════
     # IS_FACILITY — computed gate for Capability Profile tab visibility
@@ -271,9 +273,18 @@ class ResPartner(models.Model):
             "context": {"default_partner_id": self.id},
         }
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        records.filtered("company_role")._sync_rank_from_role()
+        return records
+
     def write(self, vals):
         if "parent_id" in vals and not vals.get("parent_id"):
             for rec in self:
                 if rec.facility_profile_ids:
                     raise ValidationError("Cannot convert facility to parent while capability profile exists.")
-        return super().write(vals)
+        res = super().write(vals)
+        if "company_role" in vals:
+            self._sync_rank_from_role()
+        return res
