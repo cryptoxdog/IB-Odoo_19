@@ -41,7 +41,8 @@ class WebLeadController(http.Controller):
         if not token:
             return False, "Empty bearer token."
 
-        # sudo() used here only to read config — no write access granted
+        # sudo() is used here for config bootstrapping — get_config() may CREATE
+        # a default singleton record on first call. No external write access exposed.
         Config = req.env["plasticos.web.lead.config"].sudo()
         config = Config.get_config()
 
