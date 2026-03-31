@@ -25,6 +25,7 @@ class IntakeBuyerMatch(models.Model):
         required=True,
         domain="[('is_company', '=', True)]",
         index=True,
+        ondelete="restrict",
     )
     buyer_name = fields.Char(
         related="buyer_id.name",

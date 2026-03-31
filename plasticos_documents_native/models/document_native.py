@@ -29,6 +29,7 @@ class DocumentNative(models.Model):
         index=True,
         tracking=True,
         help="Primary polymer type referenced in this document.",
+        ondelete="restrict",
     )
     load_id = fields.Many2one(
         "plasticos.load",
@@ -36,6 +37,7 @@ class DocumentNative(models.Model):
         index=True,
         tracking=True,
         help="Load this document is associated with (BOL, scale ticket).",
+        ondelete="cascade",
     )
     transaction_id = fields.Many2one(
         "plasticos.transaction",
@@ -43,6 +45,7 @@ class DocumentNative(models.Model):
         index=True,
         tracking=True,
         help="Transaction this document belongs to.",
+        ondelete="cascade",
     )
     intake_id = fields.Many2one(
         "plasticos.intake",
@@ -50,6 +53,7 @@ class DocumentNative(models.Model):
         index=True,
         tracking=True,
         help="Intake record this document originated from.",
+        ondelete="cascade",
     )
 
     # ── Classification ───────────────────────────────────────
@@ -84,6 +88,7 @@ class DocumentNative(models.Model):
         "res.users",
         string="Verified By",
         readonly=True,
+        ondelete="restrict",
     )
     verified_at = fields.Datetime(
         string="Verified At",
@@ -106,6 +111,7 @@ class DocumentNative(models.Model):
         string="Plasticos Document",
         readonly=True,
         help="Link to the legacy plasticos.document record for backward compatibility.",
+        ondelete="restrict",
     )
 
     # ── Actions ──────────────────────────────────────────────

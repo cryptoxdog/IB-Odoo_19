@@ -155,6 +155,7 @@ class PlasticosWebLead(models.Model):
         index=True,
         tracking=True,
         help="How this lead was originally acquired (SICCODE, referral, web form, etc.).",
+        ondelete="restrict",
     )
 
     # ═══════════════════════════════════════════════════════════

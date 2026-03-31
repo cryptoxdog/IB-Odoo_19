@@ -285,6 +285,7 @@ class PlasticosMaterialProfile(models.Model):
         "plasticos.material.form",
         string="Origin Form",
         help="What the material was before processing (Drums, Bottles, Film). Optional.",
+        ondelete="restrict",
     )
 
     # ── Packaging ────────────────────────────────────────────
@@ -292,6 +293,7 @@ class PlasticosMaterialProfile(models.Model):
         "plasticos.packaging.type",
         string="Packaging",
         help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales). Optional.",
+        ondelete="restrict",
     )
 
     loads_per_month = fields.Float(
@@ -336,6 +338,7 @@ class PlasticosMaterialProfile(models.Model):
         related="partner_id.parent_id",
         string="Company",
         store=True,
+        ondelete="restrict",
     )
 
     # ═════════════════════════════════════════════════════════

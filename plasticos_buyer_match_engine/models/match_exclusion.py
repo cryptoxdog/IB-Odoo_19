@@ -71,6 +71,7 @@ class PlasticosMatchExclusion(models.Model):
         string="Created By",
         default=lambda self: self.env.uid,
         readonly=True,
+        ondelete="restrict",
     )
 
     # ═════════════════════════════════════════════════════════

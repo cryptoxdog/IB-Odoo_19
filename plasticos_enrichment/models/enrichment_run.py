@@ -25,6 +25,7 @@ class EnrichmentRun(models.Model):
         required=True,
         index=True,
         tracking=True,
+        ondelete="restrict",
     )
     source_ids = fields.Many2many("plasticos.enrichment.source")
     extraction_ids = fields.One2many(

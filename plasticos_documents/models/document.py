@@ -15,11 +15,11 @@ class PlasticosDocument(models.Model):
     res_model = fields.Char(required=True, index=True)
     res_id = fields.Integer(required=True, index=True)
 
-    attachment_id = fields.Many2one("ir.attachment", required=True)
-    tag_id = fields.Many2one("plasticos.document.tag", required=True)
+    attachment_id = fields.Many2one("ir.attachment", required=True, ondelete="restrict")
+    tag_id = fields.Many2one("plasticos.document.tag", required=True, ondelete="restrict")
 
     verified = fields.Boolean(default=False)
-    verified_by = fields.Many2one("res.users")
+    verified_by = fields.Many2one("res.users", ondelete="restrict")
     verified_at = fields.Datetime()
 
     override = fields.Boolean(default=False)
@@ -49,6 +49,7 @@ class PlasticosDocument(models.Model):
         "plasticos.document",
         string="Superseded By",
         help="Reference to the newer version of this document.",
+        ondelete="restrict",
     )
     is_current = fields.Boolean(
         string="Current Version",
@@ -62,6 +63,7 @@ class PlasticosDocument(models.Model):
         string="Transaction",
         index=True,
         help="Link this document to a specific transaction.",
+        ondelete="cascade",
     )
     load_id = fields.Many2one(
         "plasticos.load",

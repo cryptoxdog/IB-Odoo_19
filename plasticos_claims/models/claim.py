@@ -33,11 +33,13 @@ class PlasticosClaim(models.Model):
         related="transaction_id.load_id",
         store=True,
         index=True,
+        ondelete="cascade",
     )
     source_document_id = fields.Many2one(
         "plasticos.document",
         string="Source Document",
         help="Document that triggered this claim (e.g., Claim Pics).",
+        ondelete="restrict",
     )
 
     # ── Classification ───────────────────────────────────────
@@ -87,6 +89,7 @@ class PlasticosClaim(models.Model):
         string="Assignee",
         index=True,
         tracking=True,
+        ondelete="restrict",
     )
 
     # ── SLA Tracking ─────────────────────────────────────────
@@ -117,6 +120,7 @@ class PlasticosClaim(models.Model):
     currency_id = fields.Many2one(
         "res.currency",
         default=lambda self: self.env.company.currency_id,
+        ondelete="restrict",
     )
     claimed_amount = fields.Float(
         string="Claimed Amount",
@@ -182,6 +186,7 @@ class PlasticosClaim(models.Model):
         "res.users",
         string="Escalated To",
         help="User this claim was escalated to.",
+        ondelete="restrict",
     )
     escalation_reason = fields.Text(
         string="Escalation Reason",

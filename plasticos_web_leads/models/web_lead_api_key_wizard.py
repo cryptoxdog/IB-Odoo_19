@@ -7,7 +7,7 @@ class PlasticosWebLeadApiKeyWizard(models.TransientModel):
     _name = "plasticos.web.lead.api.key.wizard"
     _description = "Show new Web Lead API Key"
 
-    config_id = fields.Many2one("plasticos.web.lead.config", string="Configuration")
+    config_id = fields.Many2one("plasticos.web.lead.config", string="Configuration", ondelete="restrict")
     api_key = fields.Char(
         string="New API Key",
         readonly=True,

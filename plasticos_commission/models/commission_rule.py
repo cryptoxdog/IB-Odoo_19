@@ -20,7 +20,7 @@ class PlasticosCommissionRule(models.Model):
     active = fields.Boolean(default=True)
 
     # ── Sales Rep Assignment ──────────────────────────────────
-    sales_rep_id = fields.Many2one("res.users", string="Sales Rep", required=True)
+    sales_rep_id = fields.Many2one("res.users", string="Sales Rep", required=True, ondelete="restrict")
 
     # ── Calculation Type ──────────────────────────────────────
     calculation_type = fields.Selection(

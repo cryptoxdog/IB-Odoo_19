@@ -629,7 +629,7 @@ class PlasticosRepPerformance(models.Model):
     _order = "period_sort asc, revenue_closed desc"
 
     rep_name = fields.Char(string="Rep", readonly=True)
-    salesperson_id = fields.Many2one("res.users", readonly=True)
+    salesperson_id = fields.Many2one("res.users", readonly=True, ondelete="restrict")
     period = fields.Char(string="Period", readonly=True)
     period_sort = fields.Integer(string="_psort", readonly=True)
 

@@ -12,6 +12,7 @@ class PlasticosTransactionLoadBridge(models.Model):
         string="Load",
         help="Logistics load linked to this transaction.",
         index=True,
+        ondelete="cascade",
     )
 
     @api.model_create_multi
