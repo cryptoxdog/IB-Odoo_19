@@ -277,7 +277,7 @@
     <field name="name">plasticos.rep.performance.search</field>
     <field name="model">plasticos.rep.performance</field>
     <field name="arch" type="xml">
-        <search string="Rep Performance">
+        <search>
             <field name="rep_name"/>
             <filter name="filter_wtd" string="WTD" domain="[('period','=','WTD')]"/>
             <filter name="filter_mtd" string="MTD" domain="[('period','=','MTD')]"/>

@@ -231,30 +231,23 @@ def analyze_xml_file(path: Path) -> list[Violation]:
 
 
 def collect_files(root: Path) -> tuple[list[Path], list[Path]]:
-    py_files = [
-        p
-        for p in root.rglob("*.py")
-        if ".git" not in p.parts
-        and "__pycache__" not in p.parts
-        and p.parts[0] != ".venv"
-        and "plasticos_graph_" not in str(p)
-        and "docs" not in p.parts
-        and ".cursor" not in p.parts
-        and "tests-odoo" not in p.parts
-        and "odoo-enterprise" not in p.parts
-    ]
-    xml_files = [
-        p
-        for p in root.rglob("*.xml")
-        if ".git" not in p.parts
-        and "__pycache__" not in p.parts
-        and p.parts[0] != ".venv"
-        and "plasticos_graph_" not in str(p)
-        and "docs" not in p.parts
-        and ".cursor" not in p.parts
-        and "tests-odoo" not in p.parts
-        and "odoo-enterprise" not in p.parts
-    ]
+    _skip = {
+        ".git",
+        "__pycache__",
+        ".venv",
+        "docs",
+        ".cursor",
+        "tests-odoo",
+        "odoo-enterprise",
+        "Odoo Development Files",
+        "odoo-files-to-review",
+    }
+
+    def _included(p: Path) -> bool:
+        return not _skip.intersection(p.parts) and "plasticos_graph_" not in str(p)
+
+    py_files = [p for p in root.rglob("*.py") if _included(p)]
+    xml_files = [p for p in root.rglob("*.xml") if _included(p)]
     return py_files, xml_files
 
 
