@@ -24,7 +24,7 @@ Models created:
 
 import logging
 
-from odoo import api, fields, models
+from odoo import api, fields, models, tools
 
 _logger = logging.getLogger(__name__)
 
@@ -649,7 +649,7 @@ class PlasticosRepPerformance(models.Model):
     avg_gm_pct = fields.Float(string="Avg GM %", readonly=True, digits=(5, 1))
 
     def init(self):
-        self.env.cr.execute("DROP VIEW IF EXISTS plasticos_rep_performance")
+        tools.drop_view_if_exists(self.env.cr, "plasticos_rep_performance")
         self.env.cr.execute("""
             CREATE VIEW plasticos_rep_performance AS
             WITH periods AS (
