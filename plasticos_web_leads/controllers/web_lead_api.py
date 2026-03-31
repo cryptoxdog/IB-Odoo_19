@@ -16,6 +16,11 @@ class WebLeadController(http.Controller):
 
     Authentication: Bearer token in the Authorization header must
     match the API key stored in plasticos.web.lead.config.
+
+    Security note: Routes use auth="none" (public API). Token validation
+    is enforced via _authenticate() before any ORM access. sudo() is used
+    only after successful token validation to allow writes under the
+    technical user context.
     """
 
     # ═══════════════════════════════════════════════════════════
@@ -36,6 +41,8 @@ class WebLeadController(http.Controller):
         if not token:
             return False, "Empty bearer token."
 
+        # sudo() is used here for config bootstrapping — get_config() may CREATE
+        # a default singleton record on first call. No external write access exposed.
         Config = req.env["plasticos.web.lead.config"].sudo()
         config = Config.get_config()
 
@@ -108,6 +115,7 @@ class WebLeadController(http.Controller):
             return self._json_error(422, "Missing required field: decision")
 
         try:
+            # sudo() used after token validation — auth gate is _authenticate() above
             WebLead = request.env["plasticos.web.lead"].sudo()
             lead = WebLead.create_from_agent(body)
 
@@ -172,6 +180,7 @@ class WebLeadController(http.Controller):
             return self._json_error(401, result)
 
         try:
+            # sudo() used after token validation — auth gate is _authenticate() above
             WebLead = request.env["plasticos.web.lead"].sudo()
             lead = WebLead.create_from_cognito(body)
 
