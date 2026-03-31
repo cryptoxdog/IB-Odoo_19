@@ -538,15 +538,13 @@ class PlasticosIntake(models.Model):
 
         Next time this facility is selected on any intake, the system
         will auto-select this contact. No double-entry ever.
+
+        NOTE: The actual write to facility.preferred_contact_id is
+        deferred to write() to avoid committing changes if the user
+        cancels the form.
         """
-        if self.contact_id and self.facility_id:
-            # Write preferred contact memory (sudo to bypass ACL)
-            if self.facility_id.preferred_contact_id != self.contact_id:
-                self.facility_id.sudo().write(
-                    {
-                        "preferred_contact_id": self.contact_id.id,
-                    }
-                )
+        # Cross-model write deferred to write() — see _sync_onchange_writes
+        pass
 
     @api.onchange("lead_source_id")
     def _onchange_lead_source_id(self):
@@ -554,15 +552,13 @@ class PlasticosIntake(models.Model):
 
         If partner doesn't have a lead source yet, copy from intake.
         This tracks how leads/loads came in for reporting.
+
+        NOTE: The actual write to partner.lead_source_id is deferred
+        to write() to avoid committing changes if the user cancels
+        the form.
         """
-        if self.lead_source_id and self.partner_id:
-            if not self.partner_id.lead_source_id:
-                # sudo: update partner from intake (cross-model permission)
-                self.partner_id.sudo().write(
-                    {
-                        "lead_source_id": self.lead_source_id.id,
-                    }
-                )
+        # Cross-model write deferred to write() — see _sync_onchange_writes
+        pass
 
     # ═════════════════════════════════════════════════════════
     # Onchange — pre-fill from material profile
@@ -587,6 +583,42 @@ class PlasticosIntake(models.Model):
         self.contamination_pct = mp.contamination_percent or self.contamination_pct
         if mp.material_attribute_ids:
             self.material_attribute_ids = [(6, 0, mp.material_attribute_ids.ids)]
+
+    # ═════════════════════════════════════════════════════════
+    # CRUD Overrides
+    # ═════════════════════════════════════════════════════════
+
+    def write(self, vals):
+        """Override write to sync cross-model fields on actual save.
+
+        Deferred from @api.onchange to avoid committing changes when
+        the user cancels the form. See _onchange_contact_id and
+        _onchange_lead_source_id.
+        """
+        res = super().write(vals)
+        if "contact_id" in vals or "facility_id" in vals:
+            self._sync_preferred_contact()
+        if "lead_source_id" in vals or "partner_id" in vals:
+            self._sync_lead_source()
+        return res
+
+    def _sync_preferred_contact(self):
+        """Write preferred_contact_id on facility when contact changes."""
+        for rec in self:
+            if rec.contact_id and rec.facility_id:
+                if rec.facility_id.preferred_contact_id != rec.contact_id:
+                    rec.facility_id.sudo().write(
+                        {"preferred_contact_id": rec.contact_id.id}
+                    )
+
+    def _sync_lead_source(self):
+        """Write lead_source_id on partner when first set from intake."""
+        for rec in self:
+            if rec.lead_source_id and rec.partner_id:
+                if not rec.partner_id.lead_source_id:
+                    rec.partner_id.sudo().write(
+                        {"lead_source_id": rec.lead_source_id.id}
+                    )
 
     # ═════════════════════════════════════════════════════════
     # Validation
