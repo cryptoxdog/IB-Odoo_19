@@ -24,7 +24,7 @@ Models created:
 
 import logging
 
-from odoo import api, fields, models, tools
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
