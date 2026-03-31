@@ -16,19 +16,20 @@ from pathlib import Path
 
 # Models/contexts where cascade makes sense (child/subordinate)
 CASCADE_FIELD_PATTERNS = [
-    r'transaction_id',
-    r'intake_id',
-    r'claim_id',
-    r'load_id',
-    r'payout_id',
-    r'rule_id',
-    r'penalty_id',
-    r'header_id',
-    r'order_id',
-    r'picking_id',
-    r'move_id',
-    r'line_id',
+    "line_id",
+    "item_id",
+    "detail_id",
+    "entry_id",
 ]
+
+# Models that must NEVER receive cascade — primary source documents
+PROTECTED_MODELS = {
+    "account.move",
+    "sale.order",
+    "purchase.order",
+    "stock.picking",
+    "account.payment",
+}
 
 # Known "restrict" comodel patterns
 RESTRICT_COMODEL_PATTERNS = [
@@ -49,32 +50,14 @@ RESTRICT_COMODEL_PATTERNS = [
 ]
 
 
-def decide_ondelete(field_name: str, comodel: str, file_path: str) -> str:
-    """Decide ondelete value based on field name and comodel."""
-    # Always restrict for system models
-    for pat in RESTRICT_COMODEL_PATTERNS:
-        if re.search(pat, comodel):
-            return 'restrict'
-    
-    # Check if field name suggests child/subordinate relationship
-    for pat in CASCADE_FIELD_PATTERNS:
-        if re.match(pat, field_name):
-            return 'cascade'
-    
-    # File-level heuristics: if file is in a "_line" or "penalty" or "log" model
-    fname = os.path.basename(file_path)
-    if any(x in fname for x in ['_line', 'penalty', '_log', '_detail', '_item']):
-        # Only cascade the parent reference fields
-        if field_name.endswith('_id') and any(
-            field_name.startswith(x) for x in [
-                'transaction', 'intake', 'claim', 'load', 'order', 'move',
-                'payout', 'rule', 'header', 'picking', 'penalty'
-            ]
-        ):
-            return 'cascade'
-    
-    return 'restrict'
-
+def decide_ondelete(field_name: str, comodel: str, filename: str) -> str:
+    """Decide ondelete value.
+    Protected models always get 'restrict'."""
+    if comodel in PROTECTED_MODELS:
+        return "restrict"
+    if any(field_name.endswith(pat) for pat in CASCADE_FIELD_PATTERNS):
+        return "cascade"
+    return "restrict"
 
 def patch_file(filepath: str) -> int:
     """Patch a single Python file. Returns count of fields patched."""
