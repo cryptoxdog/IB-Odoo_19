@@ -1,7 +1,9 @@
 # Odoo 19 ReBoot - File Tree
 
-**Last Updated:** 2026-03-05
-**Total:** 250 directories, 1045 files
+**Last Updated:** 2026-03-31
+**Totals (approx., excluding `.git` / `.venv`):** ~10,000 directories, ~58,000 files — full clone includes all `plasticos_*` tests, `docs/`, `ci/`, and generated artifacts; numbers drift with daily work.
+
+**Installable Odoo addons:** 30 root-level `plasticos_*` modules with `__manifest__.py`. **Not addons:** `plasticos_graph_3d_embedding/`, `plasticos_graph_engine/`, `plasticos_graph_integration/`, `plasticos_graph_intelligence/` (no root manifest — research / graph code).
 
 ```
 .
@@ -33,22 +35,11 @@
 ├── PlasticOS
 │   └── l9_trace/
 ├── ci
-│   ├── _git_utils.py
-│   ├── audit_odoo_deps.py
-│   ├── check_circular_deps.py
-│   ├── check_critical_manifest.py
-│   ├── check_field_integrity.py
-│   ├── check_model_inheritance.py
-│   ├── check_odoo19_hooks.py
-│   ├── check_odoo19_xml.py
-│   ├── check_orm_integrity.py
-│   ├── check_orphan_model_refs.py
-│   ├── check_package_init.py
-│   ├── check_xpath_stability.py
 │   ├── critical_manifest.json
-│   ├── enhanced_audit.py
-│   ├── test_generator.py
-│   └── weak_test_fixer.py
+│   ├── check_odoo19_xml.py
+│   ├── check_orphan_model_refs.py
+│   ├── check_circular_deps.py
+│   └── … (~27 `*.py` audit helpers — see `ci/`)
 ├── config
 │   ├── odoo_module_order.yaml
 │   └── subsystems/
@@ -760,6 +751,28 @@
 │   ├── wizards/
 │   ├── __init__.py
 │   └── __manifest__.py
+├── plasticos_admin_dashboard
+│   ├── data/
+│   ├── models/
+│   │   ├── __init__.py
+│   │   └── admin_dashboard.py
+│   ├── security/
+│   ├── views/
+│   ├── __init__.py
+│   └── __manifest__.py
+├── plasticos_odoo_standard_apps
+│   ├── README.rst
+│   ├── __init__.py
+│   └── __manifest__.py
+├── plasticos_website
+│   ├── data/
+│   │   └── website_data.xml
+│   ├── static/
+│   │   └── src/img/logo.png
+│   ├── views/
+│   │   └── website_templates.xml
+│   ├── __init__.py
+│   └── __manifest__.py
 ├── reports
 │   ├── repo-index/
 │   │   └── repo-index-json/
@@ -873,6 +886,7 @@
 
 | Module | Description | Tests |
 |--------|-------------|-------|
+| `plasticos_admin_dashboard` | RevOps KPI dashboard (admin) | - |
 | `plasticos_accounting` | Chart of accounts and payment terms | - |
 | `plasticos_automation` | Cron jobs, workflow automation, alerts | 16 tests |
 | `plasticos_base` | Core utilities, attachments, midnight recompute | 5 tests |
@@ -895,19 +909,20 @@
 | `plasticos_material_profile` | Material profiles, polymers | 23 tests |
 | `plasticos_offer` | Offer management | 14 tests |
 | `plasticos_order_lines` | Sale/Purchase order line extensions | 4 tests |
+| `plasticos_odoo_standard_apps` | Auto-install bundle of standard Odoo CE apps | - |
 | `plasticos_partner_import` | Partner data import | 5 tests |
 | `plasticos_product` | Product template extensions | 3 tests |
 | `plasticos_security_base` | Security groups and rules | 3 tests |
 | `plasticos_transaction` | Transaction management (core) | 49 tests |
 | `plasticos_web_leads` | Web lead ingestion, AI triage | 12 tests |
+| `plasticos_website` | Website theme/templates, branding assets | - |
 
 ## Test Directories
 
 - `tests/` - Root-level cross-module tests
-- `tests/contracts/` - Contract tests (8 files)
-- `tests/integration/` - Integration tests (10 files)
+- `tests/contracts/` - Contract tests (**8** test modules, plus `__init__.py`)
+- `tests/integration/` - Integration tests (**10** test modules, plus `__init__.py`)
 - `tests-odoo/` - Odoo test framework utilities
 - `*/tests/` - Module-specific tests
 
-**Total Test Files:** 250+
-**Last Test Run:** 112 tests, 0 failed, 0 errors
+**Note:** Test counts in the module table are point-in-time; module and root `tests/` suites change often. Use `pytest tests/ --collect-only` (with Odoo test deps as required) for current totals.

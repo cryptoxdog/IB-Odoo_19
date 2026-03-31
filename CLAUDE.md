@@ -2,6 +2,8 @@
 
 @AGENTS.md
 
+**Repo metrics** (module count, line counts, test layout, shell commands): keep **`AGENTS.md`** as the canonical, maintained snapshot; update that file when the addon set or tooling changes.
+
 ## Design Principles
 
 1. **Deterministic Seed Doctrine** — all reference data versioned in XML with `noupdate="1"`. No CSV runtime bootstrap. No hardcoded database IDs.

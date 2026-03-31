@@ -5,7 +5,7 @@ Cross-tool agent instructions for the IB-Odoo_19 repository. Read by Claude Code
 ## Project Overview
 
 - **Name**: PlasticOS — Plastics Recycling Brokerage ERP
-- **Type**: Odoo 19 custom module suite (27 modules, ~53K lines Python, ~159 XML views)
+- **Type**: Odoo 19 custom module suite (**30** installable `plasticos_*` addons, **~32K** lines Python in addons, **~174** XML files in addons). Four additional `plasticos_graph_*` trees exist for experiments/research and **do not** ship as Odoo addons (no root `__manifest__.py`).
 - **Stage**: Production (staging branch → main)
 - **Stack**: Python 3.12, Odoo 19, PostgreSQL 16, Neo4j (graph scoring), Docker
 
@@ -41,7 +41,7 @@ python -m pytest tests/integration/ -v    # Integration tests
 
 - Contract tests: `tests/contracts/` — 8 contract test files
 - Integration tests: `tests/integration/` — 10 integration test files
-- Unit tests: `tests/test_*.py` — 20+ standalone test files
+- Unit tests: `tests/test_*.py` — **28** standalone test modules at `tests/` root (plus deeper `tests/` tree; run `pytest tests/ --collect-only` for full count)
 - Every new model/field needs at least one test
 - Tests must not mutate seed data
 - Run `pre-commit run --all-files` before opening a PR
@@ -60,6 +60,7 @@ plasticos_matching/          # Layer 2: Match result storage
 plasticos_buyer_match_engine/# Layer 2: 10-gate filtering + Neo4j graph scoring
 plasticos_geolocalize/       # Layer 2: Auto-geocode + nightly backfill
 plasticos_enrichment/        # Layer 2: AI web intelligence extraction
+plasticos_enrichment_bridge/ # Layer 2: Enrichment → CRM / lead bridge
 plasticos_web_leads/         # Layer 2: AI lead triage (Cognito → LLM → HOT/COLD)
 plasticos_inference_engine/  # Layer 2: Deterministic polymer inference (YAML KB)
 plasticos_accounting/        # Layer 3: Chart of accounts, payment terms, incoterms
@@ -75,9 +76,11 @@ plasticos_transaction/       # Layer 5: Transaction spine + commission
 plasticos_logistics/         # Layer 5: Load management, BOL, dispatch
 plasticos_claims/            # Layer 5: QC cases, claims, chargebacks
 plasticos_website/           # UI: Website extensions
+plasticos_admin_dashboard/   # Layer 3: RevOps KPI dashboard (admin)
+plasticos_odoo_standard_apps/ # Meta: auto-install bundle of standard Odoo CE apps (optional)
 plasticos_dev_tools/         # Dev-only: audit scripts, integrity checks
 tests/                       # Cross-module test suite
-ci/                          # 20+ CI audit scripts
+ci/                          # CI audit scripts (Odoo/XML/ORM/deps; ~27 Python tools)
 tools/                       # Cron checks, validators
 ```
 
