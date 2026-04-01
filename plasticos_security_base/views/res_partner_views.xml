@@ -100,19 +100,38 @@
             </xpath>
 
             <!-- ═══ TAB SEQUENCING ═══ -->
-            <!-- Order: Material Profile (10) → Facility Profile (20) → Sales &amp; Purchase (30) → Invoicing (40) -->
+            <!-- Order: Material Profile (1) → Facility Profile (2) → Sales &amp; Purchase (50) → Invoicing (60) -->
 
-            <!-- Sales &amp; Purchase = 30 -->
+            <!-- Sales &amp; Purchase = 50 -->
             <xpath expr="//page[@name='sales_purchases']" position="attributes">
-                <attribute name="sequence">30</attribute>
+                <attribute name="sequence">50</attribute>
             </xpath>
 
-            <!-- Invoicing = 40 -->
+            <!-- Invoicing = 60 -->
             <xpath expr="//page[@name='accounting']" position="attributes">
-                <attribute name="sequence">40</attribute>
+                <attribute name="sequence">60</attribute>
                 <attribute name="string">Invoicing</attribute>
             </xpath>
 
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         HIDE PURCHASE MODULE FIELDS (Group RFQ, Buyer)
+         These come from Odoo's purchase module and are not used in PlasticOS workflow.
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_partner_form_hide_purchase_fields" model="ir.ui.view">
+        <field name="name">res.partner.form.hide.purchase.fields</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="purchase.res_partner_purchase_property_form_inherit"/>
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='buyer_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='purchase_group_method']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
         </field>
     </record>
 

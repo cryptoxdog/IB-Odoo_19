@@ -10,13 +10,13 @@ Auto-COLD gates (any one triggers COLD):
   1. Material is PVC
   2. Estimated weight < cold_max_lbs (default 8,000 lbs)
   3. Source is residential / individual / homeowner
-  4. Request is a drop-off
-  5. Material matches reject list (vinyl siding, appliances, etc.)
-  6. Material is not plastic
+  4. Material matches reject list (vinyl siding, appliances, etc.)
+  5. Material is not plastic (non-plastic keyword + no polymer)
+  6. Request is a drop-off ("drop off", "bring it in", etc.)
 
 HOT qualification (all must be true):
   1. Estimated weight >= hot_min_lbs (default 10,000 lbs)
-  2. Material IS plastic
+  2. Positive plastic signal (polymer identified OR plastic hint in description)
   3. Source is commercial or industrial
 
 Everything else → COLD with reasons.
@@ -54,6 +54,47 @@ _NON_PLASTIC_KEYWORDS = frozenset(
         "fabric",
         "cloth",
         "rubber tire",
+    ]
+)
+
+# ── Positive plastic signals (material description hints) ────
+_PLASTIC_HINTS = frozenset(
+    [
+        "plastic",
+        "poly",
+        "resin",
+        "hdpe",
+        "ldpe",
+        "lldpe",
+        "pp",
+        "pet",
+        "pvc",
+        "abs",
+        "nylon",
+        "pc",
+        "regrind",
+        "flake",
+        "pellet",
+        "bale",
+        "film",
+        "rollstock",
+        "purge",
+        "gaylord",
+        "scrap",
+    ]
+)
+
+# ── Drop-off indicators (cold gate) ─────────────────────────
+_DROP_OFF_INDICATORS = frozenset(
+    [
+        "drop off",
+        "dropoff",
+        "drop-off",
+        "bring it in",
+        "deliver myself",
+        "i can bring",
+        "i will bring",
+        "i'll bring",
     ]
 )
 
@@ -143,6 +184,13 @@ def classify_lead(
             cold_gates.append(f"non_plastic: {kw}")
             break
 
+    # ── COLD Gate 6: Drop-off request ────────────────────────
+    combined_text = f"{mat_lower} {src_lower}"
+    for phrase in _DROP_OFF_INDICATORS:
+        if phrase in combined_text:
+            cold_gates.append(f"drop_off: {phrase}")
+            break
+
     # ── If any COLD gate triggered → COLD ────────────────────
     if cold_gates:
         return ClassificationResult(
@@ -156,11 +204,19 @@ def classify_lead(
     if estimated_lbs >= hot_min_lbs:
         hot_quals.append(f"weight_gte_{hot_min_lbs}_lbs (est={estimated_lbs})")
 
-    # Q2: Material is plastic
-    if is_plastic and poly_lower:
-        hot_quals.append(f"is_plastic (polymer={poly_lower})")
-    elif is_plastic:
-        hot_quals.append("is_plastic (inferred from description)")
+    # Q2: Material is plastic — requires positive evidence
+    has_positive_signal = bool(poly_lower)
+    if not has_positive_signal:
+        for hint in _PLASTIC_HINTS:
+            if hint in mat_lower:
+                has_positive_signal = True
+                break
+    if is_plastic and has_positive_signal:
+        if poly_lower:
+            hot_quals.append(f"is_plastic (polymer={poly_lower})")
+        else:
+            matched_hint = next((h for h in _PLASTIC_HINTS if h in mat_lower), "hint")
+            hot_quals.append(f"is_plastic (hint={matched_hint} in description)")
 
     # Q3: Commercial / industrial source
     is_commercial = False
@@ -182,8 +238,8 @@ def classify_lead(
     missing = []
     if estimated_lbs < hot_min_lbs:
         missing.append(f"weight below {hot_min_lbs} lbs")
-    if not is_plastic or not poly_lower:
-        missing.append("polymer not identified")
+    if not is_plastic or not has_positive_signal:
+        missing.append("no positive plastic signal (polymer or keyword)")
     if not is_commercial:
         missing.append("source not commercial/industrial")
 

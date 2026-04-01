@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 
 _logger = logging.getLogger(__name__)
@@ -71,6 +72,90 @@ CANONICAL_COLORS = [
     "mixed",
 ]
 
+# ── Deterministic weight inference (code fallback for LLM) ───
+_UNIT_WEIGHT_DEFAULTS: dict[str, int] = {
+    "pallet": 1100,
+    "pallets": 1100,
+    "gaylord": 1000,
+    "gaylords": 1000,
+    "bale": 1000,
+    "bales": 1000,
+    "truckload": 42000,
+    "truckloads": 42000,
+    "truck": 42000,
+    "trucks": 42000,
+    "load": 42000,
+    "loads": 42000,
+    "box": 50,
+    "boxes": 50,
+    "bag": 50,
+    "bags": 50,
+    "drum": 400,
+    "drums": 400,
+    "tote": 2000,
+    "totes": 2000,
+    "container": 42000,
+    "containers": 42000,
+    "supersack": 2000,
+    "super sack": 2000,
+    "super sacks": 2000,
+    "supersacks": 2000,
+}
+
+_DIRECT_WEIGHT_RE = re.compile(
+    r"(\d[\d,]*)\s*(?:lb|lbs|pound|pounds)",
+    re.IGNORECASE,
+)
+_TON_RE = re.compile(
+    r"(\d[\d,]*)\s*(?:ton|tons)",
+    re.IGNORECASE,
+)
+_UNIT_COUNT_RE = re.compile(
+    r"(\d[\d,]*)\s*(" + "|".join(sorted(_UNIT_WEIGHT_DEFAULTS, key=len, reverse=True)) + r")\b",
+    re.IGNORECASE,
+)
+_FULL_TRUCK_RE = re.compile(
+    r"\b(?:full\s+truck|truckload|full\s+load|ftl)\b",
+    re.IGNORECASE,
+)
+
+
+def infer_weight_from_text(text: str | None) -> int | None:
+    """Deterministic weight inference — sole shared parser.
+
+    Priority: direct lbs → tons → count × default → "truckload"/"full truck" → None.
+    """
+    if not text:
+        return None
+    text = str(text).strip()
+    if not text:
+        return None
+
+    # Direct lbs: "40,000 lbs"
+    m = _DIRECT_WEIGHT_RE.search(text)
+    if m:
+        return int(m.group(1).replace(",", ""))
+
+    # Tons: "20 tons"
+    m = _TON_RE.search(text)
+    if m:
+        return int(m.group(1).replace(",", "")) * 2000
+
+    # Unit count: "30 pallets", "5 gaylords"
+    m = _UNIT_COUNT_RE.search(text)
+    if m:
+        count = int(m.group(1).replace(",", ""))
+        unit = m.group(2).lower()
+        per_unit = _UNIT_WEIGHT_DEFAULTS.get(unit, 1000)
+        return count * per_unit
+
+    # Bare "truckload" / "full truck" without a number
+    if _FULL_TRUCK_RE.search(text):
+        return 42000
+
+    return None
+
+
 # ── System prompt (kept tight — one call, one purpose) ───────
 _SYSTEM_PROMPT = """\
 You are a plastics-industry material analyst working for a recycled-plastics broker.
@@ -96,10 +181,17 @@ Output schema:
 Rules:
 - Map freeform text to the CLOSEST canonical value.
 - If the submitter says "40,000 lbs" or "one truckload", estimate 40000.
+- ALWAYS estimate estimated_lbs_per_load even when only unit counts are given.
+  Use industry-standard weights: 1 pallet of baled plastic ≈ 1,000-1,200 lbs,
+  1 gaylord ≈ 800-1,200 lbs, 1 truckload ≈ 40,000-44,000 lbs,
+  1 bale ≈ 800-1,200 lbs. Multiply unit count × typical weight per unit.
+  Example: "30 pallets" → 30 × 1,100 ≈ 33,000. Never return null or 0 when
+  a unit count is provided — always infer a reasonable lbs estimate.
 - If they say "ongoing" or "monthly", set loads_per_month to an integer.
 - If the material is clearly not plastic (metal, wood, glass, etc.), set is_plastic=false.
 - If the source sounds residential/individual, set is_commercial_source=false.
-- Do NOT invent data — use null when genuinely unknown.
+- Do NOT invent data for fields like polymer or source_type — use null when genuinely unknown.
+  But DO infer estimated_lbs_per_load from context (unit counts, form type, images).
 """ % {
     "polymers": ", ".join(CANONICAL_POLYMERS),
     "forms": ", ".join(CANONICAL_FORMS),
@@ -112,29 +204,34 @@ def build_user_prompt(raw_payload: dict[str, Any]) -> str:
     """Build the user-message content from a raw Cognito form payload."""
     parts = []
 
-    # Extract known Cognito field names (case-insensitive search)
+    # Case-insensitive key → label mapping
     field_map = {
-        "YourBusinessCompanyName": "Company",
-        "YourName": "Contact",
-        "DescribeYourMaterial": "Material Description",
-        "WhatTypeOfPlastic": "Plastic Type",
-        "WhatIsTheQuantity": "Quantity",
-        "HowOftenDoYouHaveThisMaterial": "Frequency",
-        "AreThereAnyContaminants": "Contaminants",
-        "WhatIsTheSourceOfThisMaterial": "Source",
-        "HowIsTheMaterialCurrentlyStored": "Storage",
-        "AdditionalNotes": "Notes",
+        "yourbusinesscompanyname": "Company",
+        "yourname": "Contact",
+        "describeyourmaterial": "Material Description",
+        "whattypeofplastic": "Plastic Type",
+        "whatisthequantity": "Quantity (units/pallets/bales)",
+        "weightperload": "Weight Per Load",
+        "howoftendoyouhavethismaterial": "Frequency",
+        "arethereanycontaminants": "Contaminants",
+        "whatisthesourceofthismaterial": "Source",
+        "howisthematerialcurrentlystored": "Storage",
+        "additionalnotes": "Notes",
     }
 
-    for cognito_key, label in field_map.items():
-        val = raw_payload.get(cognito_key, "")
+    # Build lowercase→original key index for case-insensitive access
+    lower_payload = {str(k).lower(): v for k, v in raw_payload.items()}
+    matched_lower_keys: set[str] = set()
+
+    for lower_key, label in field_map.items():
+        val = lower_payload.get(lower_key, "")
         if val:
             parts.append(f"{label}: {val}")
+            matched_lower_keys.add(lower_key)
 
     # Catch any extra fields not in the map
-    mapped_keys = set(field_map.keys())
     for k, v in raw_payload.items():
-        if k not in mapped_keys and v and isinstance(v, str) and len(v) > 2:
+        if str(k).lower() not in matched_lower_keys and v and isinstance(v, str) and len(v) > 2:
             parts.append(f"{k}: {v}")
 
     return "\n".join(parts) if parts else "No form data provided."
@@ -227,6 +324,15 @@ def _call_llm_single(
 
         raw_text = response.choices[0].message.content or "{}"
         result = json.loads(raw_text)
+
+        # Backfill: if LLM returned null/0 for weight, try deterministic inference
+        if not result.get("estimated_lbs_per_load"):
+            joined_text = " ".join(str(v) for v in raw_payload.values() if isinstance(v, str))
+            inferred = infer_weight_from_text(joined_text)
+            if inferred:
+                result["estimated_lbs_per_load"] = inferred
+                result["_lbs_source"] = "deterministic_fallback"
+
         _logger.info(
             "AI normalization complete: polymer=%s, form=%s, lbs=%s",
             result.get("polymer"),

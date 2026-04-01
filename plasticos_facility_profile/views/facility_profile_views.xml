@@ -154,12 +154,11 @@
     <field name="inherit_id" ref="base.view_partner_form"/>
     <field name="arch" type="xml">
 
-      <!-- Add lead_source_id, delivery terms, salesperson, payment terms to partner form (visible for companies) -->
+      <!-- Add lead_source_id, delivery terms, salesperson to partner form (visible for companies) -->
       <xpath expr="//field[@name='category_id']" position="after">
         <field name="lead_source_id" invisible="not is_company"/>
         <field name="default_delivery_term" invisible="not is_company"/>
-        <field name="user_id" string="Salesperson" invisible="not is_company"/>
-        <field name="property_payment_term_id" string="Payment Terms" invisible="not is_company"/>
+        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" invisible="not is_company"/>
         <field name="property_supplier_payment_term_id" string="Supplier Payment Terms" invisible="not is_company or not supplier_rank"/>
       </xpath>
 
@@ -167,7 +166,7 @@
 
         <page string="Facility Profile" name="facility_profile"
               invisible="not is_facility"
-              sequence="20">
+              sequence="2">
 
           <group>
             <field name="partner_type_id" options="{'no_create': True}"/>

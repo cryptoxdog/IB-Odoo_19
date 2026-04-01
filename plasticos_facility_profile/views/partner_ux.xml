@@ -60,7 +60,7 @@
                       invisible="is_company">
 
                     <div class="alert alert-warning d-flex align-items-start gap-2 mb-3"
-                         role="note">
+                         role="status">
                         <i class="fa fa-lightbulb-o fa-lg mt-1" title="Tip"/>
                         <span>
                             <strong>Human-layer notes — for brokers only.</strong>

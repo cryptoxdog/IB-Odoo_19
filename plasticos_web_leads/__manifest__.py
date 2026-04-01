@@ -7,7 +7,7 @@
 # ═══════════════════════════════════════════════════════════
 {
     "name": "PlasticOS Web Leads",
-    "version": "19.0.2.3.0",
+    "version": "19.0.2.4.0",
     "summary": "AI-powered web lead triage: Cognito → LLM/Vision → HOT/COLD → Intake",
     "license": "LGPL-3",
     "author": "Igor Beylin",

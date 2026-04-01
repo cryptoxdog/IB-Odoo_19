@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import re
 import uuid
 from typing import Any
 
@@ -109,6 +110,9 @@ _FREQ_TO_DEAL: dict[str, str] = {
     "spot": "spot",
     "unclear": "spot",
 }
+
+
+_HAS_NUMERIC_SIGNAL = re.compile(r"\d")
 
 
 def _safe_int(val: Any, default: int = 0) -> int:
@@ -373,7 +377,15 @@ class PlasticosWebLead(models.Model):
             or raw_payload.get("WhatTypeOfPlastic", "")
             or ""
         ).strip()
-        quantity_text = (raw_payload.get("WeightPerLoad", "") or raw_payload.get("WhatIsTheQuantity", "") or "").strip()
+        _qty = (raw_payload.get("WhatIsTheQuantity", "") or "").strip()
+        _wpl = (raw_payload.get("WeightPerLoad", "") or "").strip()
+        # Prefer whichever has a numeric signal; skip non-numeric like "unknown"
+        if _qty and _HAS_NUMERIC_SIGNAL.search(_qty):
+            quantity_text = _qty
+        elif _wpl and _HAS_NUMERIC_SIGNAL.search(_wpl):
+            quantity_text = _wpl
+        else:
+            quantity_text = _qty or _wpl
         contaminants = (raw_payload.get("AreThereAnyContaminants", "") or "").strip()
 
         image_urls = self._extract_image_urls(raw_payload)
@@ -634,7 +646,19 @@ class PlasticosWebLead(models.Model):
         merged["form"] = _FORM_NORMALIZE.get((ai_data.get("form") or "").lower().strip(), None)
         merged["color"] = (ai_data.get("color") or "").lower().strip() or None
         merged["source_type"] = _SOURCE_NORMALIZE.get((ai_data.get("source_type") or "").lower().strip(), None)
-        merged["estimated_lbs"] = _safe_int(ai_data.get("estimated_lbs_per_load"), 0)
+        lbs_source = "ai"
+        ai_lbs = _safe_int(ai_data.get("estimated_lbs_per_load"), 0)
+        if not ai_lbs:
+            # Fallback 1: deterministic inference on quantity_text
+            lbs_source = "deterministic_fallback"
+            ai_lbs = ai_normalizer.infer_weight_from_text(self.quantity_text) or 0
+        if not ai_lbs:
+            # Fallback 2: deterministic inference on all raw_payload text
+            raw = self.raw_payload or {}
+            joined = " ".join(str(v) for v in raw.values() if isinstance(v, str))
+            ai_lbs = ai_normalizer.infer_weight_from_text(joined) or 0
+        merged["estimated_lbs"] = ai_lbs
+        merged["estimated_lbs_source"] = lbs_source
         merged["loads_per_month"] = _safe_int(ai_data.get("loads_per_month"), 0)
         merged["is_plastic"] = ai_data.get("is_plastic", True)
         merged["is_commercial_source"] = ai_data.get("is_commercial_source", False)
