@@ -150,7 +150,7 @@ class PlasticosWebLeadConfig(models.Model):
             ("claude-3-5-haiku-20241022", "Claude 3.5 Haiku"),
             ("claude-3-opus-20240229", "Claude 3 Opus"),
         ],
-        string="Model",
+        string="Anthropic Model",
         default="claude-sonnet-4-20250514",
         help="Anthropic model for text normalization.",
     )
@@ -171,7 +171,7 @@ class PlasticosWebLeadConfig(models.Model):
             ("codestral-latest", "Codestral"),
             ("ministral-8b-latest", "Ministral 8B"),
         ],
-        string="Model",
+        string="Mistral Model",
         default="mistral-large-latest",
         help="Mistral model for text normalization.",
     )

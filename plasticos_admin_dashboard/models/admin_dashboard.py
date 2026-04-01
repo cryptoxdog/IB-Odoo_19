@@ -649,6 +649,7 @@ class PlasticosRepPerformance(models.Model):
     avg_gm_pct = fields.Float(string="Avg GM %", readonly=True, digits=(5, 1))
 
     def init(self):
+        self.env.cr.execute("DROP VIEW IF EXISTS plasticos_rep_performance")
         self.env.cr.execute("""
             CREATE VIEW plasticos_rep_performance AS
             WITH periods AS (
