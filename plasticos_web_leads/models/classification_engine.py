@@ -18,28 +18,50 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Default reject lists (overridable via classify_lead kwargs)
 # ─────────────────────────────────────────────────────────────────────────────
 _REJECT_MATERIALS_DEFAULT: list[str] = [
-    "metal", "aluminum", "aluminium", "steel", "copper", "iron",
-    "glass", "wood", "paper", "cardboard", "rubber", "textile",
-    "fabric", "ceramic", "concrete", "asphalt",
+    "metal",
+    "aluminum",
+    "aluminium",
+    "steel",
+    "copper",
+    "iron",
+    "glass",
+    "wood",
+    "paper",
+    "cardboard",
+    "rubber",
+    "textile",
+    "fabric",
+    "ceramic",
+    "concrete",
+    "asphalt",
 ]
 
 _REJECT_SOURCES_DEFAULT: list[str] = [
-    "household", "residential", "home owner", "homeowner",
-    "drop off", "drop-off", "dropoff", "garage sale",
-    "dispose", "get rid", "personal use", "consumer drop",
+    "household",
+    "residential",
+    "home owner",
+    "homeowner",
+    "drop off",
+    "drop-off",
+    "dropoff",
+    "garage sale",
+    "dispose",
+    "get rid",
+    "personal use",
+    "consumer drop",
 ]
 
 # Commercial source keywords — word-boundary protected (FIX CE-04)
 _COMMERCIAL_KEYWORDS: list[str] = [
     r"\bmanufactur\w*\b",
-    r"\bfacility\b", r"\bfacilities\b",
-    r"\bplant\b",          # word-boundary prevents "transplant"
+    r"\bfacility\b",
+    r"\bfacilities\b",
+    r"\bplant\b",  # word-boundary prevents "transplant"
     r"\bwarehouse\b",
     r"\bproduction\b",
     r"\bindustrial\b",
@@ -47,12 +69,11 @@ _COMMERCIAL_KEYWORDS: list[str] = [
     r"\brecycler\b",
     r"\bdistributor\b",
     r"\bscrap\s+yard\b",
-    r"\bmolder\b", r"\bextruder\b",
+    r"\bmolder\b",
+    r"\bextruder\b",
     r"\bcompound\w*\b",
 ]
-_COMMERCIAL_PATTERN = re.compile(
-    "|".join(_COMMERCIAL_KEYWORDS), re.IGNORECASE
-)
+_COMMERCIAL_PATTERN = re.compile("|".join(_COMMERCIAL_KEYWORDS), re.IGNORECASE)
 
 # Minimum qualifiers to reach HOT (FIX CE-06)
 _MIN_HOT_QUALIFIERS = 2
@@ -60,6 +81,7 @@ _MIN_HOT_QUALIFIERS = 2
 # ─────────────────────────────────────────────────────────────────────────────
 # Result dataclass
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class ClassificationResult:
@@ -77,13 +99,14 @@ class ClassificationResult:
       estimated_lbs         : the weight value used
       effective_hot_min_lbs : the actual threshold applied (accounts for CE-09)
     """
+
     decision: str
     reasons: list[str] = field(default_factory=list)
     cold_gates_triggered: list[str] = field(default_factory=list)
     hot_qualifiers_met: list[str] = field(default_factory=list)
     weight_source: str = "none"
-    is_plastic: Optional[bool] = None
-    is_commercial_source: Optional[bool] = None
+    is_plastic: bool | None = None
+    is_commercial_source: bool | None = None
     estimated_lbs: float = 0.0
     effective_hot_min_lbs: float = 0.0
 
@@ -92,20 +115,21 @@ class ClassificationResult:
 # Main classifier
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def classify_lead(
     *,
-    polymer: Optional[str] = None,
-    material_description: Optional[str] = None,
+    polymer: str | None = None,
+    material_description: str | None = None,
     estimated_lbs: float = 0.0,
-    source_description: Optional[str] = None,
-    source_type: Optional[str] = None,
-    is_plastic_hint: Optional[bool] = None,
-    is_commercial_hint: Optional[bool] = None,
+    source_description: str | None = None,
+    source_type: str | None = None,
+    is_plastic_hint: bool | None = None,
+    is_commercial_hint: bool | None = None,
     weight_source: str = "none",
     hot_min_lbs: float = 10_000.0,
     cold_max_lbs: float = 8_000.0,
-    reject_materials: Optional[list[str]] = None,
-    reject_sources: Optional[list[str]] = None,
+    reject_materials: list[str] | None = None,
+    reject_sources: list[str] | None = None,
 ) -> ClassificationResult:
     """
     Classify a normalised lead as "hot" or "cold".
@@ -127,10 +151,8 @@ def classify_lead(
     src_lower = (source_description or "").strip().lower()
     stype_lower = (source_type or "").strip().lower()
 
-    rej_mats = [m.lower() for m in (reject_materials if reject_materials is not None
-                                    else _REJECT_MATERIALS_DEFAULT)]
-    rej_srcs = [s.lower() for s in (reject_sources if reject_sources is not None
-                                    else _REJECT_SOURCES_DEFAULT)]
+    rej_mats = [m.lower() for m in (reject_materials if reject_materials is not None else _REJECT_MATERIALS_DEFAULT)]
+    rej_srcs = [s.lower() for s in (reject_sources if reject_sources is not None else _REJECT_SOURCES_DEFAULT)]
 
     # ─────────────────────────────────────────────────────────────────────────
     # COLD GATE 1 — AI explicitly says not plastic (FIX CE-02)
@@ -154,17 +176,17 @@ def classify_lead(
     # ─────────────────────────────────────────────────────────────────────────
     search_text_mat = f"{poly_lower} {mat_lower}"
     for reject_kw in rej_mats:
-        if reject_kw and reject_kw in search_text_mat:
+        if reject_kw and re.search(r"\b" + re.escape(reject_kw) + r"\b", search_text_mat):
             cold_gates.append("reject_material")
             reasons.append(f"Material contains rejected keyword: '{reject_kw}'.")
             break
 
     # ─────────────────────────────────────────────────────────────────────────
-    # COLD GATE 4 — Rejected source type (FIX CE-01: case-insensitive)
+    # COLD GATE 4 — Rejected source type (CE-01: case-insensitive word-boundary)
     # ─────────────────────────────────────────────────────────────────────────
     search_text_src = f"{src_lower} {stype_lower}"
     for reject_kw in rej_srcs:
-        if reject_kw and reject_kw in search_text_src:
+        if reject_kw and re.search(r"\b" + re.escape(reject_kw) + r"\b", search_text_src):
             cold_gates.append("reject_source")
             reasons.append(f"Source contains rejected keyword: '{reject_kw}'.")
             break
@@ -181,10 +203,7 @@ def classify_lead(
     # ─────────────────────────────────────────────────────────────────────────
     elif 0 < estimated_lbs < cold_max_lbs:
         cold_gates.append("weight:below_cold_floor")
-        reasons.append(
-            f"Weight {estimated_lbs:,.0f} lbs is below COLD floor "
-            f"({cold_max_lbs:,.0f} lbs)."
-        )
+        reasons.append(f"Weight {estimated_lbs:,.0f} lbs is below COLD floor ({cold_max_lbs:,.0f} lbs).")
 
     # ─────────────────────────────────────────────────────────────────────────
     # If any COLD gate fired → return COLD immediately
@@ -219,8 +238,7 @@ def classify_lead(
     # ─────────────────────────────────────────────────────────────────────────
     if estimated_lbs < effective_hot_min:
         reasons.append(
-            f"Weight {estimated_lbs:,.0f} lbs is in warm zone (below HOT "
-            f"threshold of {effective_hot_min:,.0f} lbs)."
+            f"Weight {estimated_lbs:,.0f} lbs is in warm zone (below HOT threshold of {effective_hot_min:,.0f} lbs)."
         )
         return ClassificationResult(
             decision="cold",
@@ -235,10 +253,7 @@ def classify_lead(
 
     # Weight passes — add qualifier
     hot_quals.append(f"weight:{weight_source}:{estimated_lbs:,.0f}lbs")
-    reasons.append(
-        f"Weight {estimated_lbs:,.0f} lbs ≥ HOT threshold "
-        f"{effective_hot_min:,.0f} lbs."
-    )
+    reasons.append(f"Weight {estimated_lbs:,.0f} lbs ≥ HOT threshold {effective_hot_min:,.0f} lbs.")
 
     # ─────────────────────────────────────────────────────────────────────────
     # HOT QUALIFIER — confirmed polymer

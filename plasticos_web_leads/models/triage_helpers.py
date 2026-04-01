@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import re
-from typing import Optional, Tuple
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Unit-to-weight conversion table (lbs per unit)
@@ -45,14 +44,24 @@ UNIT_WEIGHTS_LBS: dict[str, float] = {
 
 # Written-out number words → integers (for "one truckload" etc.)
 _WORD_NUMBERS: dict[str, int] = {
-    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
-    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-    "a": 1, "an": 1,
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "a": 1,
+    "an": 1,
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
 # safe_int / safe_float — canonical definitions (imported by other modules)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def safe_int(value, *, default: int = 0) -> int:
     """Coerce value to int, returning default on None / non-numeric."""
@@ -123,7 +132,7 @@ def _strip_commas(s: str) -> float:
         return 0.0
 
 
-def parse_weight_lbs(raw: Optional[str]) -> Tuple[float, str]:
+def parse_weight_lbs(raw: str | None) -> tuple[float, str]:
     """
     Parse a free-text quantity string into (lbs: float, source_tag: str).
 
@@ -178,7 +187,7 @@ _TRUE_STRINGS = {"true", "yes", "1", "y", "t"}
 _FALSE_STRINGS = {"false", "no", "0", "n", "f"}
 
 
-def coerce_bool(value) -> Optional[bool]:
+def coerce_bool(value) -> bool | None:
     """
     Coerce AI string / int booleans to Python bool or None.
 

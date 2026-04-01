@@ -18,9 +18,9 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
-from .triage_helpers import coerce_bool, safe_float, safe_int, parse_weight_lbs
+from .triage_helpers import coerce_bool, parse_weight_lbs, safe_float
 
 _logger = logging.getLogger(__name__)
 
@@ -50,16 +50,16 @@ Return ONLY valid JSON — no markdown, no commentary, no trailing text.
 
 Required JSON fields (use null when unknown):
 {
-  "polymer": string | null,                  // e.g. "HDPE", "PP", "LDPE", "PET", "PS", "ABS", "PVC"
-  "material_description": string | null,     // cleaned description of the material
-  "source_type": string | null,              // one of: post_industrial | post_consumer | ocean_recovered | unknown
-  "source_description": string | null,       // brief description of where material comes from
+  "polymer": str | null,                     // e.g. "HDPE", "PP", "LDPE", "PET", "PS", "ABS", "PVC"
+  "material_description": str | null,        // cleaned description of the material
+  "source_type": str | null,                 // one of: post_industrial | post_consumer | ocean_recovered | unknown
+  "source_description": str | null,          // brief description of where material comes from
   "estimated_lbs_per_load": number | null,   // weight in lbs, numeric only, null if not determinable
   "loads_per_month": number | null,          // frequency, numeric only
   "is_plastic": boolean | null,              // true if definitely plastic, false if not, null if uncertain
   "is_commercial_source": boolean | null,    // true if industrial/commercial origin, false if residential
-  "confidence": number,                      // 0.0–1.0 overall confidence in this extraction
-  "notes": string | null                     // any extraction caveats
+  "confidence": number,                      // 0.0-1.0 overall confidence in this extraction
+  "notes": str | null                        // any extraction caveats
 }
 
 Rules:
@@ -76,9 +76,9 @@ Rules:
 # ─────────────────────────────────────────────────────────────────────────────
 # Validation bounds
 # ─────────────────────────────────────────────────────────────────────────────
-_LBS_MAX = 200_000.0   # single-load max plausible lbs
-_LBS_MIN = 1.0         # anything below 1 lb is noise
-_LOADS_MAX = 365.0     # max loads/month (daily = 30, weekly = 52/yr ≈ 4.3/mo)
+_LBS_MAX = 200_000.0  # single-load max plausible lbs
+_LBS_MIN = 1.0  # anything below 1 lb is noise
+_LOADS_MAX = 365.0  # max loads/month (daily = 30, weekly = 52/yr ≈ 4.3/mo)
 
 
 def validate_ai_output(raw: dict[str, Any]) -> dict[str, Any]:
@@ -100,7 +100,7 @@ def validate_ai_output(raw: dict[str, Any]) -> dict[str, Any]:
     lbs_raw = out.get("estimated_lbs_per_load")
     if lbs_raw is not None:
         lbs = safe_float(lbs_raw)
-        if lbs <= 0 or lbs > _LBS_MAX:
+        if lbs < _LBS_MIN or lbs > _LBS_MAX:
             _logger.debug("validate_ai_output: clamping estimated_lbs_per_load %s → null", lbs_raw)
             out["estimated_lbs_per_load"] = None
         else:
@@ -126,8 +126,7 @@ def validate_ai_output(raw: dict[str, Any]) -> dict[str, Any]:
             out[bool_field] = coerce_bool(out[bool_field])
 
     # ── string fields: empty → null ───────────────────────────────────────
-    for str_field in ("polymer", "source_type", "material_description",
-                      "source_description", "notes"):
+    for str_field in ("polymer", "source_type", "material_description", "source_description", "notes"):
         val = out.get(str_field)
         if isinstance(val, str) and not val.strip():
             out[str_field] = None
@@ -154,8 +153,9 @@ def build_user_prompt(form_data: dict[str, Any]) -> str:
     # Mapped fields first, in defined order
     for field_id, label in _FIELD_MAP.items():
         val = form_data.get(field_id)
-        if val and str(val).strip() and len(str(val).strip()) > 2:
-            lines.append(f"{label}: {str(val).strip()}")
+        val_str = str(val).strip() if val is not None else ""
+        if len(val_str) > 2:
+            lines.append(f"{label}: {val_str}")
             seen_keys.add(field_id)
 
     # Extra / unmapped fields
@@ -176,7 +176,7 @@ def merge_ai_into_record(
     record: dict[str, Any],
     ai_result: dict[str, Any],
     *,
-    inferred_fields: Optional[set[str]] = None,
+    inferred_fields: set[str] | None = None,
 ) -> dict[str, Any]:
     """
     Merge validated AI result into an existing record dict. (FIX AN-05, AN-06)
@@ -198,12 +198,7 @@ def merge_ai_into_record(
             continue  # AI didn't know — skip
         existing = merged.get(field)
 
-        # FIX AN-05: use explicit None check, not falsy-or
         if existing is None:
-            merged[field] = ai_val
-            inferred_fields.add(field)
-        # Special case: weight — deterministic parser always wins
-        elif field == "estimated_lbs_per_load" and existing == 0:
             merged[field] = ai_val
             inferred_fields.add(field)
 

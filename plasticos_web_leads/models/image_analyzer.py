@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import base64
 import logging
-from typing import Any, Optional
+from typing import Any
 
 _logger = logging.getLogger(__name__)
 
@@ -58,9 +58,11 @@ def analyse_image(
     """
     try:
         import json
+
         b64 = _encode_image(image_bytes)
         response = openai_client.chat.completions.create(
             model=model,
+            temperature=0.0,
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": _VISION_SYSTEM_PROMPT},
@@ -91,7 +93,7 @@ def merge_vision_results(
     results: list[dict[str, Any]],
     *,
     min_confidence: float = _MIN_CONFIDENCE_THRESHOLD,
-) -> Optional[dict[str, Any]]:
+) -> dict[str, Any] | None:
     """
     Merge a list of per-image analysis results into one canonical dict.
 
@@ -140,7 +142,62 @@ def merge_vision_results(
         base["observed_polymer_hint"] = None
         _logger.debug(
             "merge_vision_results: observed_polymer_hint nulled (confidence %.2f < %.2f)",
-            base_conf, min_confidence,
+            base_conf,
+            min_confidence,
         )
 
     return base
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Backward-compatible wrappers (used by web_lead.py)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def analyze_image(
+    image_url: str,
+    api_key: str,
+    model: str = "gpt-4o",
+    base_url: str | None = None,
+) -> dict[str, Any]:
+    """Fetch image from URL, delegate to analyse_image."""
+    try:
+        import httpx
+        from openai import OpenAI  # type: ignore[import-untyped]
+    except ImportError:
+        _logger.error("openai/httpx packages not installed — vision analysis unavailable.")
+        return {"error": "openai or httpx package not installed"}
+
+    _logger.info("Analyzing image: %s", image_url[:120])
+    try:
+        resp = httpx.get(image_url, timeout=30.0)
+        resp.raise_for_status()
+        image_bytes = resp.content
+        content_type = resp.headers.get("content-type", "image/jpeg").split(";")[0].strip()
+    except Exception as exc:
+        _logger.warning("Failed to fetch image URL %s: %s", image_url[:80], exc)
+        return {"error": f"fetch failed: {exc}"}
+
+    client_kwargs: dict[str, Any] = {"api_key": api_key}
+    if base_url:
+        client_kwargs["base_url"] = base_url
+    client = OpenAI(**client_kwargs)
+
+    result = analyse_image(image_bytes, client, model=model, mime_type=content_type)
+    result["source_url"] = image_url
+    return result
+
+
+def analyze_multiple_images(
+    image_urls: list[str],
+    api_key: str,
+    model: str = "gpt-4o",
+    base_url: str | None = None,
+    max_images: int = 5,
+) -> list[dict[str, Any]]:
+    """Analyse up to max_images URLs sequentially."""
+    results: list[dict[str, Any]] = []
+    for url in image_urls[:max_images]:
+        result = analyze_image(url, api_key, model, base_url)
+        results.append(result)
+    return results
