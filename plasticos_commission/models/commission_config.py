@@ -12,7 +12,7 @@ from odoo import api, fields, models
 _logger = logging.getLogger(__name__)
 
 
-class PlasticosCommissionConfig(models.TransientModel):
+class PlasticosCommissionConfig(models.Model):
     """System config accessor for commission module settings.
 
     Uses ir.config_parameter for persistence.
