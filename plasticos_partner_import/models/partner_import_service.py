@@ -29,8 +29,17 @@ class PlasticosPartnerImportService(models.AbstractModel):
     # -------------------------------------------------------------------------
     # Core upsert
     # -------------------------------------------------------------------------
-    def _upsert(self, model_name, external_id, values):
-        """Idempotent upsert with external ID tracking."""
+    def _upsert(self, model_name, external_id, values, match_domain=None):
+        """Idempotent upsert: XML ID first, then DB search, then create.
+
+        Args:
+            model_name: Odoo model name (e.g. 'res.partner')
+            external_id: Full XML ID for ir.model.data tracking
+            values: Dict of field values to write/create
+            match_domain: Optional Odoo domain to find existing record by
+                business keys when XML ID lookup misses. Prevents duplicates
+                for records created outside the import pipeline.
+        """
         env = self.env
         if not env.context.get("import_mode"):
             env = env(context=dict(env.context, import_mode=True))
@@ -39,8 +48,32 @@ class PlasticosPartnerImportService(models.AbstractModel):
 
         if record:
             record.write(values)
-            _logger.debug("Updated %s via %s", model_name, external_id)
+            _logger.debug("Updated %s via XML ID %s", model_name, external_id)
             return record
+
+        if match_domain:
+            record = env[model_name].search(match_domain, limit=1)
+            if record:
+                record.write(values)
+                imd = env["ir.model.data"].search(
+                    [
+                        ("module", "=", external_id.split(".")[0]),
+                        ("name", "=", external_id.split(".")[-1]),
+                    ],
+                    limit=1,
+                )
+                if not imd:
+                    env["ir.model.data"].create(
+                        {
+                            "name": external_id.split(".")[-1],
+                            "module": external_id.split(".")[0],
+                            "model": model_name,
+                            "res_id": record.id,
+                            "noupdate": True,
+                        }
+                    )
+                _logger.debug("Matched %s by domain, linked to %s (id=%d)", model_name, external_id, record.id)
+                return record
 
         model = env[model_name]
         rec = model.create(values)
@@ -188,8 +221,13 @@ class PlasticosPartnerImportService(models.AbstractModel):
 
         self.env["plasticos.partner.import.validation"].validate_reference_integrity()
 
-        corporate_count = self._import_corporate_csv(corporate_csv_path)
-        facility_count, contact_count = self._import_facility_csv(facility_csv_path)
+        corporate_count = 0
+        if corporate_csv_path:
+            corporate_count = self._import_corporate_csv(corporate_csv_path)
+
+        facility_count, contact_count = 0, 0
+        if facility_csv_path:
+            facility_count, contact_count = self._import_facility_csv(facility_csv_path)
 
         self.env["plasticos.partner.import.validation"].validate_partner_graph()
 
@@ -264,7 +302,16 @@ class PlasticosPartnerImportService(models.AbstractModel):
         if category_tag_ids:
             vals["category_id"] = [(6, 0, category_tag_ids)]
 
-        return self._upsert("res.partner", external_id, vals)
+        match_domain = [
+            ("is_company", "=", True),
+            ("parent_id", "=", False),
+        ]
+        if ref:
+            match_domain.append(("ref", "=", ref))
+        else:
+            match_domain.append(("name", "=ilike", name))
+
+        return self._upsert("res.partner", external_id, vals, match_domain=match_domain)
 
     # -------------------------------------------------------------------------
     # CSV Import: Facilities
@@ -333,7 +380,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
         else:
             partner_type = "contact"
 
-        external_id = self._make_external_id("fac", f"{partner_name}_{alias or facility_type}_{row_num}")
+        external_id = self._make_external_id("fac", f"{partner_name}_{alias or facility_type}")
 
         if facility_type == "Location":
             vals = {
@@ -364,7 +411,12 @@ class PlasticosPartnerImportService(models.AbstractModel):
                 "country_id": country_id,
             }
 
-        facility = self._upsert("res.partner", external_id, vals)
+        match_domain = [
+            ("name", "=ilike", facility_name),
+            ("parent_id", "=", parent.id),
+        ]
+
+        facility = self._upsert("res.partner", external_id, vals, match_domain=match_domain)
 
         contact = None
         contact_name = row.get("Contact", "").strip()
@@ -407,8 +459,14 @@ class PlasticosPartnerImportService(models.AbstractModel):
             "country_id": country_id,
         }
 
-        partner = self._upsert("res.partner", external_id, vals)
-        _logger.info("Auto-created corporate '%s' from child Remit/Invoice row", name)
+        match_domain = [
+            ("name", "=ilike", name),
+            ("is_company", "=", True),
+            ("parent_id", "=", False),
+        ]
+
+        partner = self._upsert("res.partner", external_id, vals, match_domain=match_domain)
+        _logger.info("Upserted corporate '%s' from child Remit/Invoice row", name)
         return partner
 
     def _find_corporate_by_name(self, name):
@@ -476,7 +534,17 @@ class PlasticosPartnerImportService(models.AbstractModel):
             "email": email,
         }
 
-        contact = self._upsert("res.partner", external_id, vals)
+        match_domain = [
+            ("name", "=ilike", name),
+            ("is_company", "=", False),
+            "|",
+            ("parent_id", "=", facility.id),
+            ("parent_id", "=", corporate.id),
+        ]
+        if email:
+            match_domain = [("email", "=ilike", email)] + match_domain
+
+        contact = self._upsert("res.partner", external_id, vals, match_domain=match_domain)
         contacts_created[dedup_key] = contact.id
 
         _logger.debug("Created %s contact '%s' under %s", contact_type, name, facility.name)

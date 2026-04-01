@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Logistics Dashboard — List View
+    ═══════════════════════════════════════════════════════════════ -->
+    <record id="view_load_dashboard_list" model="ir.ui.view">
+        <field name="name">plasticos.load.dashboard.list</field>
+        <field name="model">plasticos.load.dashboard</field>
+        <field name="arch" type="xml">
+            <list string="Logistics Dashboard" create="0" edit="0" delete="0"
+                  decoration-danger="sla_breached == True"
+                  decoration-warning="load_state == 'exception'"
+                  decoration-success="load_state == 'delivered'"
+                  decoration-muted="load_state == 'closed'">
+                <button name="action_view_transaction" type="object"
+                        string="Deal" icon="fa-external-link"
+                        class="btn-link"/>
+                <field name="transaction_ref" string="Deal #"/>
+                <field name="user_id" string="Rep" widget="many2one_avatar_user"/>
+                <field name="load_state" string="Status"
+                       widget="badge"
+                       decoration-info="load_state in ('draft','awaiting_ready')"
+                       decoration-warning="load_state in ('ready_confirmed','rate_confirmed','scheduled')"
+                       decoration-primary="load_state in ('dispatched','picked_up')"
+                       decoration-success="load_state == 'delivered'"
+                       decoration-danger="load_state == 'exception'"
+                       decoration-muted="load_state == 'closed'"/>
+                <field name="pickup_datetime" string="Pickup"/>
+                <field name="supplier_id" string="Supplier"/>
+                <field name="pickup_partner_id" string="Pickup Loc"/>
+                <field name="buyer_id" string="Buyer"/>
+                <field name="delivery_partner_id" string="Delivery Loc"/>
+                <button name="action_view_carrier" type="object"
+                        string="Carrier" icon="fa-truck"
+                        class="btn-link"/>
+                <field name="carrier_name" string="Carrier"/>
+                <field name="rate_amount" string="Rate" widget="monetary" optional="show"/>
+                <field name="trailer_number" string="Trailer #" optional="hide"/>
+                <field name="sla_breached" string="SLA" widget="boolean_toggle" optional="show"/>
+                <field name="cycle_time_hours" string="Cycle (hrs)" optional="hide"/>
+                <field name="bol_pickup_attached" string="BOL P/U" widget="boolean_toggle" optional="show"/>
+                <field name="bol_delivery_attached" string="BOL Del" widget="boolean_toggle" optional="show"/>
+                <field name="delivered_at" string="Delivered" optional="hide"/>
+                <button name="action_view_load" type="object"
+                        string="Open Load" icon="fa-arrow-right"
+                        class="btn-link"/>
+                <button name="action_view_documents" type="object"
+                        string="Docs" icon="fa-file-text-o"
+                        class="btn-link"/>
+                <field name="load_id" column_invisible="1"/>
+                <field name="carrier_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Logistics Dashboard — Search View
+    ═══════════════════════════════════════════════════════════════ -->
+    <record id="view_load_dashboard_search" model="ir.ui.view">
+        <field name="name">plasticos.load.dashboard.search</field>
+        <field name="model">plasticos.load.dashboard</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="load_ref"/>
+                <field name="transaction_ref"/>
+                <field name="carrier_name"/>
+                <field name="user_id"/>
+                <field name="supplier_id"/>
+                <field name="buyer_id"/>
+                <separator/>
+                <filter name="filter_active" string="Active (non-closed)"
+                        domain="[('load_state', 'not in', ['closed'])]"/>
+                <filter name="filter_in_transit" string="In Transit"
+                        domain="[('load_state', 'in', ['dispatched', 'picked_up'])]"/>
+                <filter name="filter_delivered" string="Delivered"
+                        domain="[('load_state', '=', 'delivered')]"/>
+                <filter name="filter_exception" string="Exceptions"
+                        domain="[('load_state', '=', 'exception')]"/>
+                <filter name="filter_sla_breached" string="SLA Breached"
+                        domain="[('sla_breached', '=', True)]"/>
+                <filter name="filter_missing_bol" string="Missing BOL"
+                        domain="['|', ('bol_pickup_attached', '=', False), ('bol_delivery_attached', '=', False)]"/>
+                <separator/>
+                <filter name="filter_today" string="Pickup Today"
+                        domain="[('pickup_datetime', '&gt;=', (context_today()).strftime('%Y-%m-%d 00:00:00')),
+                                 ('pickup_datetime', '&lt;', (context_today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d 00:00:00'))]"/>
+                <filter name="filter_this_week" string="Pickup This Week"
+                        domain="[('pickup_datetime', '&gt;=', (context_today() - datetime.timedelta(days=context_today().weekday())).strftime('%Y-%m-%d 00:00:00'))]"/>
+                <separator/>
+                <filter name="group_state" string="Status" context="{'group_by': 'load_state'}"/>
+                <filter name="group_rep" string="Rep" context="{'group_by': 'user_id'}"/>
+                <filter name="group_carrier" string="Carrier" context="{'group_by': 'carrier_id'}"/>
+                <filter name="group_supplier" string="Supplier" context="{'group_by': 'supplier_id'}"/>
+                <filter name="group_buyer" string="Buyer" context="{'group_by': 'buyer_id'}"/>
+                <filter name="group_pickup_date" string="Pickup Date" context="{'group_by': 'pickup_datetime:day'}"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Logistics Dashboard — Window Action
+    ═══════════════════════════════════════════════════════════════ -->
+    <record id="action_load_dashboard" model="ir.actions.act_window">
+        <field name="name">Logistics Dashboard</field>
+        <field name="res_model">plasticos.load.dashboard</field>
+        <field name="view_mode">list</field>
+        <field name="search_view_id" ref="view_load_dashboard_search"/>
+        <field name="context">{'search_default_filter_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No loads to display.
+            </p>
+            <p>Loads appear here once transactions have linked logistics.</p>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Menu Item — Under Logistics
+    ═══════════════════════════════════════════════════════════════ -->
+    <menuitem id="menu_load_dashboard"
+              name="Logistics Dashboard"
+              parent="plasticos_logistics.menu_plasticos_logistics_root"
+              action="action_load_dashboard"
+              sequence="5"/>
+
+</odoo>

@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Admin Dashboard",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.1.0",
     "summary": "RevOps Command Center — single-screen KPI dashboard for admins",
     "category": "PlasticOS",
     "author": "Igor Beylin",
@@ -10,6 +10,7 @@
         "plasticos_intake",
         "plasticos_offer",
         "plasticos_transaction",
+        "plasticos_logistics",
         "plasticos_commission",
         "plasticos_web_leads",
         "plasticos_security_base",
