@@ -35,6 +35,12 @@
                   type="object"
                   class="btn-secondary"
                   icon="fa-shopping-cart"/>
+          <button name="action_email_images"
+                  string="Email Images"
+                  type="object"
+                  class="btn-secondary"
+                  icon="fa-envelope-o"
+                  invisible="image_count == 0"/>
         </header>
         <sheet>
           <!-- ═══ Smart Buttons (Jump To) ═══ -->
@@ -67,6 +73,12 @@
               <span class="o_stat_text">Company</span>
             </button>
           </div>
+          <!-- ═══ Material Images ═══ -->
+          <field name="image_count" invisible="1"/>
+          <group string="Material Images" invisible="image_count == 0">
+            <field name="image_ids" nolabel="1" widget="many2many_binary"/>
+          </group>
+
           <notebook>
             <page string="Profile">
               <!-- Row 1: Source + Packaging -->

@@ -1,8 +1,12 @@
+import logging
+
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
 from ..form_codes import FORM_SELECTION
 from ..process_codes import PROCESS_SELECTION
+
+_logger = logging.getLogger(__name__)
 
 
 class PlasticosMaterialProfile(models.Model):
@@ -307,6 +311,30 @@ class PlasticosMaterialProfile(models.Model):
     food_grade = fields.Boolean()
     medical_grade = fields.Boolean()
     certification_notes = fields.Text()
+
+    # ── Material Images ────────────────────────────────────────
+    image_ids = fields.One2many(
+        "ir.attachment",
+        "res_id",
+        string="Material Images",
+        domain=[("res_model", "=", "plasticos.material.profile"), ("mimetype", "like", "image/")],
+        help="Photos of the material. Propagated from intake and available for email.",
+    )
+    image_count = fields.Integer(
+        string="Images",
+        compute="_compute_image_count",
+    )
+
+    def _compute_image_count(self):
+        Attachment = self.env["ir.attachment"]
+        for rec in self:
+            rec.image_count = Attachment.search_count(
+                [
+                    ("res_model", "=", "plasticos.material.profile"),
+                    ("res_id", "=", rec.id),
+                    ("mimetype", "like", "image/"),
+                ]
+            )
 
     # ── AI Enrichment ────────────────────────────────────────
     freeform_notes = fields.Text()
@@ -688,4 +716,82 @@ class PlasticosMaterialProfile(models.Model):
             "res_id": self.id,
             "view_mode": "form",
             "target": "current",
+        }
+
+    # ═════════════════════════════════════════════════════════
+    # Image Propagation & Email
+    # ═════════════════════════════════════════════════════════
+
+    def copy_images_from(self, source_model, source_id):
+        """Copy image attachments from another record to this profile.
+
+        Used when creating a material profile from an intake — the intake's
+        material images are duplicated onto the profile so they're always
+        accessible regardless of the source record.
+        """
+        self.ensure_one()
+        Attachment = self.env["ir.attachment"]
+        source_images = Attachment.search(
+            [
+                ("res_model", "=", source_model),
+                ("res_id", "=", source_id),
+                ("mimetype", "like", "image/"),
+            ]
+        )
+        for img in source_images:
+            img.copy(
+                {
+                    "res_model": "plasticos.material.profile",
+                    "res_id": self.id,
+                }
+            )
+        if source_images:
+            _logger.info(
+                "Copied %d image(s) from %s/%s to material profile %s.",
+                len(source_images),
+                source_model,
+                source_id,
+                self.id,
+            )
+
+    def action_email_images(self):
+        """Open email composer with material images pre-attached."""
+        self.ensure_one()
+        Attachment = self.env["ir.attachment"]
+        images = Attachment.search(
+            [
+                ("res_model", "=", "plasticos.material.profile"),
+                ("res_id", "=", self.id),
+                ("mimetype", "like", "image/"),
+            ]
+        )
+        if not images:
+            raise ValidationError("No material images to send. Upload images first.")
+
+        polymer_name = self.polymer_id.name if self.polymer_id else "Material"
+        form_name = self.form_id.name if self.form_id else ""
+        partner_name = self.partner_id.name if self.partner_id else ""
+        subject = f"Material Images: {polymer_name} {form_name} — {partner_name}".strip()
+
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Send Material Images",
+            "res_model": "mail.compose.message",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_model": "plasticos.material.profile",
+                "default_res_ids": [self.id],
+                "default_subject": subject,
+                "default_attachment_ids": images.ids,
+                "default_body": (
+                    f"<p>Please find attached material images for:</p>"
+                    f"<ul>"
+                    f"<li><b>Polymer:</b> {polymer_name}</li>"
+                    f"<li><b>Form:</b> {form_name}</li>"
+                    f"<li><b>Facility:</b> {partner_name}</li>"
+                    f"</ul>"
+                    f"<p>{len(images)} image(s) attached.</p>"
+                ),
+            },
         }

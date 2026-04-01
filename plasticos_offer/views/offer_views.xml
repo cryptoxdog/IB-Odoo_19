@@ -207,6 +207,10 @@
                     <button name="action_reset_to_draft" type="object"
                             string="Reset to Draft"
                             invisible="state not in ('rejected','cancelled')"/>
+                    <button name="action_email_images" type="object"
+                            string="Email Images" class="btn-secondary"
+                            icon="fa-envelope-o"
+                            invisible="image_count == 0"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,sent,responded,accepted"/>
                 </header>
@@ -221,6 +225,12 @@
                             <field name="supplier_id"/>
                             <field name="buyer_id"/>
                         </group>
+                    </group>
+
+                    <!-- ═══ Material Images ═══ -->
+                    <field name="image_count" invisible="1"/>
+                    <group string="Material Images" invisible="image_count == 0">
+                        <field name="image_ids" nolabel="1" widget="many2many_binary"/>
                     </group>
 
                     <notebook>

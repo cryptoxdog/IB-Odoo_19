@@ -352,6 +352,33 @@ class PlasticosIntake(models.Model):
     lat = fields.Float(string="Latitude")
     lon = fields.Float(string="Longitude")
 
+    # ═════════════════════════════════════════════════════════
+    # Material Images (from web lead attachments)
+    # ═════════════════════════════════════════════════════════
+
+    image_ids = fields.One2many(
+        "ir.attachment",
+        "res_id",
+        string="Material Images",
+        domain=[("res_model", "=", "plasticos.intake"), ("mimetype", "like", "image/")],
+        help="Images attached to this intake (uploaded via web lead form or manually).",
+    )
+    image_count = fields.Integer(
+        string="Images",
+        compute="_compute_image_count",
+    )
+
+    def _compute_image_count(self):
+        Attachment = self.env["ir.attachment"]
+        for rec in self:
+            rec.image_count = Attachment.search_count(
+                [
+                    ("res_model", "=", "plasticos.intake"),
+                    ("res_id", "=", rec.id),
+                    ("mimetype", "like", "image/"),
+                ]
+            )
+
     match_line_ids = fields.One2many(
         "plasticos.intake.match",
         "intake_id",
@@ -752,6 +779,10 @@ class PlasticosIntake(models.Model):
 
         profile = MaterialProfile.create(profile_vals)
         self.write({"material_profile_id": profile.id})
+
+        if hasattr(profile, "copy_images_from"):
+            profile.copy_images_from("plasticos.intake", self.id)
+
         self.message_post(
             body=(
                 f"Auto-created material profile: "

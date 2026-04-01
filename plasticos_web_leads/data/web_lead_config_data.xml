@@ -1,17 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <data noupdate="1">
+
+        <!-- Web Lead sequence: WL-00001, WL-00002, ... -->
+        <record id="seq_web_lead" model="ir.sequence">
+            <field name="name">Web Lead</field>
+            <field name="code">plasticos.web.lead</field>
+            <field name="prefix">WL-</field>
+            <field name="padding">5</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+        </record>
+
+    </data>
+
     <data noupdate="0">
 
-        <!-- Singleton config — API keys must be generated manually -->
+        <!-- Singleton config — LLM API keys entered via Settings form -->
         <record id="web_lead_config_default" model="plasticos.web.lead.config">
             <field name="name">Web Lead Configuration</field>
             <field name="is_active" eval="True"/>
             <field name="default_source_type">post_consumer</field>
             <field name="auto_create_partner" eval="True"/>
             <field name="auto_create_intake" eval="True"/>
+            <!-- LLM provider priority -->
+            <field name="llm_primary_provider">openai</field>
+            <field name="llm_secondary_provider">anthropic</field>
+            <field name="llm_tertiary_provider">mistral</field>
             <!-- OpenAI settings -->
             <field name="openai_model">gpt-4o</field>
             <field name="openai_vision_model">gpt-4o</field>
+            <!-- Anthropic settings -->
+            <field name="anthropic_model">claude-sonnet-4-20250514</field>
+            <!-- Mistral settings -->
+            <field name="mistral_model">mistral-large-latest</field>
+            <!-- Feature toggles -->
             <field name="ai_enabled" eval="True"/>
             <field name="vision_enabled" eval="True"/>
             <!-- Classification thresholds -->

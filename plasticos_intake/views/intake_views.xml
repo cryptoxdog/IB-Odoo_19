@@ -317,6 +317,12 @@
                         </group>
                     </group>
 
+                    <!-- Material Images (from web lead or manual upload) -->
+                    <field name="image_count" invisible="1"/>
+                    <group string="Material Images" invisible="image_count == 0">
+                        <field name="image_ids" nolabel="1" widget="many2many_binary"/>
+                    </group>
+
                     <!-- Hidden fields (preserved for data, not shown) -->
                     <field name="origin_application" invisible="1"/>
 

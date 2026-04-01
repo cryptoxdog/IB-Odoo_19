@@ -145,9 +145,18 @@ class PlasticosWebLead(models.Model):
         tracking=True,
         help="Unique lead identifier (e.g. WL123 or CG-abc123).",
     )
-    source = fields.Char(
-        default="cognito_form",
-        help="Origin system identifier.",
+    source = fields.Selection(
+        [
+            ("web_lead", "Web Lead"),
+            ("cognito_form", "Cognito Form"),
+            ("n8n", "n8n Webhook"),
+            ("api", "External API"),
+            ("manual", "Manual Entry"),
+        ],
+        string="Source",
+        default="web_lead",
+        tracking=True,
+        help="Channel through which this lead was received.",
     )
     lead_source_id = fields.Many2one(
         "utm.source",
@@ -324,14 +333,23 @@ class PlasticosWebLead(models.Model):
             or str(_entry.get("Number") or "")
             or raw_payload.get("EntryId")
             or raw_payload.get("entry_id")
-            or uuid.uuid4().hex[:12]
+            or ""
         )
-        lead_id = f"CG-{_raw_id}" if not str(_raw_id).startswith("CG-") else str(_raw_id)
 
-        existing = self.search([("lead_id", "=", str(lead_id))], limit=1)
-        if existing:
-            _logger.info("Duplicate Cognito submission %s — returning existing.", lead_id)
-            return existing
+        if _raw_id:
+            dup_domain = [
+                "|",
+                ("lead_id", "=", f"CG-{_raw_id}"),
+                ("raw_payload", "ilike", f'"Id": "{_raw_id}"'),
+            ]
+            existing = self.search(dup_domain, limit=1)
+            if existing:
+                _logger.info(
+                    "Duplicate Cognito submission (source id=%s) — returning existing %s.", _raw_id, existing.lead_id
+                )
+                return existing
+
+        lead_id = self.env["ir.sequence"].next_by_code("plasticos.web.lead") or f"WL-{uuid.uuid4().hex[:5].upper()}"
 
         company = (raw_payload.get("YourBusinessCompanyName", "") or raw_payload.get("CompanyName", "") or "").strip()
         # Cognito sends Name as a dict: {"First": ..., "Last": ..., "FirstAndLast": ...}
@@ -365,7 +383,7 @@ class PlasticosWebLead(models.Model):
 
         vals = {
             "lead_id": str(lead_id),
-            "source": "cognito_form",
+            "source": "web_lead",
             "lead_source_id": web_lead_source.id if web_lead_source else False,
             "decision": "cold",
             "raw_payload": raw_payload,
@@ -408,13 +426,13 @@ class PlasticosWebLead(models.Model):
         Returns the created web.lead record.
         """
         lead_id = payload.get("lead_id")
-        if not lead_id:
-            raise UserError("Missing required field: lead_id")
-
-        existing = self.search([("lead_id", "=", lead_id)], limit=1)
-        if existing:
-            _logger.info("Web lead %s already exists, returning existing.", lead_id)
-            return existing
+        if lead_id:
+            existing = self.search([("lead_id", "=", lead_id)], limit=1)
+            if existing:
+                _logger.info("Web lead %s already exists, returning existing.", lead_id)
+                return existing
+        else:
+            lead_id = self.env["ir.sequence"].next_by_code("plasticos.web.lead") or f"WL-{uuid.uuid4().hex[:5].upper()}"
 
         raw = payload.get("raw_payload", {})
         ai = payload.get("ai_analysis", {})
@@ -435,7 +453,7 @@ class PlasticosWebLead(models.Model):
 
         vals = {
             "lead_id": lead_id,
-            "source": payload.get("source", "cognito_form"),
+            "source": payload.get("source", "api"),
             "lead_source_id": web_lead_source.id if web_lead_source else False,
             "decision": "hot" if decision_raw == "hot" else "cold",
             "decision_reasons": payload.get("decision_reasons"),
@@ -482,36 +500,39 @@ class PlasticosWebLead(models.Model):
         log_lines: list[str] = []
 
         try:
-            # Step 1: AI Normalization
+            # Step 1: AI Normalization (multi-provider fallback)
             ai_data: dict[str, Any] = {}
-            if config.ai_enabled and config.openai_api_key:
+            providers = config.get_llm_providers_ordered() if config.ai_enabled else []
+            if providers:
                 log_lines.append("Step 1: Running AI normalization...")
-                ai_data = ai_normalizer.normalize_with_llm(
+                ai_data = ai_normalizer.normalize_with_fallback(
                     raw_payload=self.raw_payload or {},
-                    api_key=config.openai_api_key,
-                    model=config.openai_model or "gpt-4o",
+                    providers=providers,
                 )
                 self.write({"ai_normalized": ai_data})
                 if ai_data.get("error"):
                     log_lines.append(f"  WARNING: AI error — {ai_data['error']}")
                 else:
+                    provider_used = ai_data.pop("_provider_used", "unknown")
                     log_lines.append(
-                        f"  OK: polymer={ai_data.get('polymer')}, "
+                        f"  OK ({provider_used}): polymer={ai_data.get('polymer')}, "
                         f"form={ai_data.get('form')}, "
                         f"lbs={ai_data.get('estimated_lbs_per_load')}"
                     )
             else:
-                log_lines.append("Step 1: AI normalization SKIPPED (disabled or no key).")
+                log_lines.append("Step 1: AI normalization SKIPPED (disabled or no keys).")
 
-            # Step 2: Image Analysis
+            # Step 2: Image Analysis (vision-capable provider)
             vision_results: list[dict[str, Any]] = []
             urls = self.image_urls or []
-            if config.vision_enabled and config.openai_api_key and urls:
-                log_lines.append(f"Step 2: Analyzing {len(urls)} image(s)...")
+            vision_prov = config.get_vision_provider() if config.vision_enabled else None
+            if vision_prov and urls:
+                log_lines.append(f"Step 2: Analyzing {len(urls)} image(s) via {vision_prov['provider']}...")
                 vision_results = image_analyzer.analyze_multiple_images(
                     image_urls=urls,
-                    api_key=config.openai_api_key,
-                    model=config.openai_vision_model or "gpt-4o",
+                    api_key=vision_prov["api_key"],
+                    model=vision_prov["model"],
+                    base_url=vision_prov.get("base_url"),
                 )
                 self.write({"ai_vision_results": vision_results})
                 for i, vr in enumerate(vision_results):

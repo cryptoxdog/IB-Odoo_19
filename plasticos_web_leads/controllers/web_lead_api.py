@@ -81,8 +81,8 @@ class WebLeadController(http.Controller):
         Expected JSON body::
 
             {
-                "lead_id": "WL123",
-                "source": "cognito_form",
+                "lead_id": "WL-00001",
+                "source": "api",
                 "decision": "Hot",
                 "decision_reasons": [...],
                 "raw_payload": { ... },
@@ -113,10 +113,6 @@ class WebLeadController(http.Controller):
             _logger.warning("Web lead auth failure: %s", result)
             return self._json_error(401, result)
 
-        lead_id = body.get("lead_id")
-        if not lead_id:
-            return self._json_error(422, "Missing required field: lead_id")
-
         decision = body.get("decision")
         if not decision:
             return self._json_error(422, "Missing required field: decision")
@@ -138,11 +134,11 @@ class WebLeadController(http.Controller):
             if lead.state == "error":
                 response_data["error"] = lead.error_message
 
-            _logger.info("Web lead %s processed: state=%s", lead_id, lead.state)
+            _logger.info("Web lead %s processed: state=%s", lead.lead_id, lead.state)
             return self._json_response(200, response_data)
 
         except Exception:
-            _logger.exception("Unhandled error processing web lead %s", lead_id)
+            _logger.exception("Unhandled error processing web lead from agent endpoint")
             return self._json_error(500, "Internal server error. Please try again later.")
 
     # ═══════════════════════════════════════════════════════════

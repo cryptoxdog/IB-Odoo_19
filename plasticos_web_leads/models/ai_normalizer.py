@@ -151,6 +151,54 @@ def normalize_with_llm(
     Returns the parsed JSON dict on success, or a fallback dict with
     ``"error"`` key on failure.  Never raises.
     """
+    return _call_llm_single(raw_payload, api_key, model, base_url)
+
+
+def normalize_with_fallback(
+    raw_payload: dict[str, Any],
+    providers: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Try each provider in order until one succeeds.
+
+    ``providers`` is a list of dicts from config.get_llm_providers_ordered(),
+    each containing: provider, api_key, model, base_url.
+    """
+    if not providers:
+        return {"error": "No LLM providers configured with API keys."}
+
+    last_error = ""
+    for prov in providers:
+        _logger.info("Trying LLM provider: %s (model=%s)", prov["provider"], prov["model"])
+        result = _call_llm_single(
+            raw_payload,
+            api_key=prov["api_key"],
+            model=prov["model"],
+            base_url=prov.get("base_url"),
+        )
+        if not result.get("error"):
+            result["_provider_used"] = prov["provider"]
+            return result
+        last_error = result["error"]
+        _logger.warning(
+            "Provider %s failed: %s — trying next fallback.",
+            prov["provider"],
+            last_error,
+        )
+
+    return {"error": f"All LLM providers failed. Last error: {last_error}"}
+
+
+def _call_llm_single(
+    raw_payload: dict[str, Any],
+    api_key: str,
+    model: str = "gpt-4o",
+    base_url: str | None = None,
+) -> dict[str, Any]:
+    """Call a single OpenAI-compatible API to normalize a raw form payload.
+
+    Anthropic and Mistral both expose OpenAI-compatible endpoints, so
+    the openai Python client works for all three providers.
+    """
     try:
         from openai import OpenAI  # type: ignore[import-untyped]
     except ImportError:

@@ -173,6 +173,33 @@ class PlasticosOffer(models.Model):
         required=True,
     )
 
+    # ═════════════════════════════════════════════════════════
+    # Material Images (propagated from intake)
+    # ═════════════════════════════════════════════════════════
+
+    image_ids = fields.One2many(
+        "ir.attachment",
+        "res_id",
+        string="Material Images",
+        domain=[("res_model", "=", "plasticos.offer"), ("mimetype", "like", "image/")],
+        help="Material photos propagated from the intake record.",
+    )
+    image_count = fields.Integer(
+        string="Images",
+        compute="_compute_image_count",
+    )
+
+    def _compute_image_count(self):
+        Attachment = self.env["ir.attachment"]
+        for rec in self:
+            rec.image_count = Attachment.search_count(
+                [
+                    ("res_model", "=", "plasticos.offer"),
+                    ("res_id", "=", rec.id),
+                    ("mimetype", "like", "image/"),
+                ]
+            )
+
     response_notes = fields.Text(
         help="Buyer's response or counter-offer notes.",
     )
@@ -238,7 +265,7 @@ class PlasticosOffer(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        """Create offer with auto-generated sequence number."""
+        """Create offer with auto-generated sequence number + propagate images."""
         for vals in vals_list:
             if vals.get("name", "/") == "/":
                 sequence = self.env["ir.sequence"].next_by_code("plasticos.offer")
@@ -248,7 +275,11 @@ class PlasticosOffer(models.Model):
                         "Please ensure the sequence 'plasticos.offer' is configured."
                     )
                 vals["name"] = sequence
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        for rec in records:
+            if rec.intake_id:
+                rec.copy_images_from("plasticos.intake", rec.intake_id.id)
+        return records
 
     def write(self, vals):
         """Guard against modifying closed offers (except state changes)."""
@@ -383,6 +414,70 @@ class PlasticosOffer(models.Model):
             if rec.state not in ("rejected", "cancelled"):
                 raise UserError("Only rejected or cancelled offers can be reset.")
             rec.write({"state": "draft"})
+
+    # ═════════════════════════════════════════════════════════
+    # Image Propagation & Email
+    # ═════════════════════════════════════════════════════════
+
+    def copy_images_from(self, source_model, source_id):
+        """Copy image attachments from another record to this offer."""
+        self.ensure_one()
+        Attachment = self.env["ir.attachment"]
+        source_images = Attachment.search(
+            [
+                ("res_model", "=", source_model),
+                ("res_id", "=", source_id),
+                ("mimetype", "like", "image/"),
+            ]
+        )
+        for img in source_images:
+            img.copy(
+                {
+                    "res_model": "plasticos.offer",
+                    "res_id": self.id,
+                }
+            )
+        if source_images:
+            _logger.info(
+                "Copied %d image(s) from %s/%s to offer %s.",
+                len(source_images),
+                source_model,
+                source_id,
+                self.id,
+            )
+
+    def action_email_images(self):
+        """Open email composer with material images pre-attached."""
+        self.ensure_one()
+        Attachment = self.env["ir.attachment"]
+        images = Attachment.search(
+            [
+                ("res_model", "=", "plasticos.offer"),
+                ("res_id", "=", self.id),
+                ("mimetype", "like", "image/"),
+            ]
+        )
+        if not images:
+            raise UserError("No material images to send.")
+
+        subject = f"Material Images — {self.display_name}"
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Send Material Images",
+            "res_model": "mail.compose.message",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_model": "plasticos.offer",
+                "default_res_ids": [self.id],
+                "default_subject": subject,
+                "default_attachment_ids": images.ids,
+                "default_body": (
+                    f"<p>Please find attached material images for offer <b>{self.name}</b>.</p>"
+                    f"<p>{len(images)} image(s) attached.</p>"
+                ),
+            },
+        }
 
     @api.model
     def cron_expire_offers(self):

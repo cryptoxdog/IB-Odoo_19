@@ -24,6 +24,7 @@
         "data/attachment_maintenance_cron.xml",
         "data/midnight_recompute_cron.xml",
         "data/feature_flags.xml",
+        "data/uom_defaults.xml",
         "views/res_config_settings_views.xml",
     ],
     "pre_init_hook": "pre_init_hook",
