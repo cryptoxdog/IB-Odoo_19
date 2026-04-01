@@ -104,6 +104,63 @@ tools/                       # Cron checks, validators
 - Commit messages: conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`)
 - PRs require passing CI: ruff + XML validation + Odoo pattern checks + secret scan
 
+## CI Compliance Checklist (MANDATORY before commit/PR)
+
+Every code change MUST pass these checks. CI will reject PRs that fail.
+
+### When you create a NEW Python file
+
+1. Add `from . import <filename>` to the parent `models/__init__.py` (or `controllers/__init__.py`)
+2. If the file defines a new Odoo model (`_name = "plasticos.something"`):
+   - Add ACL entry in `security/ir.model.access.csv`
+   - Add the CSV to `__manifest__.py` `data` list if not already there
+
+### When you create a NEW model
+
+1. `_name` MUST be a string literal (`_name = "plasticos.foo"`) — never a variable/constant
+2. Add `security/ir.model.access.csv` entry with read/write/create/unlink permissions
+3. Every `fields.Many2one` MUST have `ondelete=` parameter (`"restrict"`, `"set null"`, or `"cascade"`)
+4. Every `@api.constrains(...)` field name must exist on the model
+
+### When you modify `__manifest__.py`
+
+1. Every module you `from <module> import ...` MUST be in the `depends` list
+2. Every XML/CSV file in `data/` or `security/` MUST be in the `data` list
+3. No circular dependencies: if A depends on B, B cannot depend on A
+
+### Before committing
+
+Run these checks (all must pass):
+
+```bash
+ruff check --fix .                        # Fix lint issues
+ruff format .                             # Format code
+python3 scripts/check_module_wiring.py    # Dependency + __init__.py wiring
+python3 ci/check_circular_deps.py         # No circular deps
+python3 ci/check_odoo19_xml.py            # XML pattern compliance
+```
+
+### CI gates that block merge
+
+| CI Job | What it checks | Common failure |
+|--------|---------------|----------------|
+| `static-checks` (test-quality.yml) | Circular deps, XML patterns, module wiring, ORM integrity, XPath stability, model inheritance | Missing `__init__.py` import, broken XPath anchor, phantom dependency in manifest |
+| `static-checks` (odoo-audit.yml) | Bash syntax, `_name` must be string literal | `_name = CONSTANT` instead of `_name = "model.name"` |
+| `Python Lint & Format` | `ruff check` + `ruff format --check` | Unsorted imports (I001), unused imports (F401), unformatted code |
+| `audit` | ACL completeness, constraint field validity, audit regressions | New model without `ir.model.access.csv`, `@api.constrains` on non-existent field |
+| `Check Module Dependencies` | `scripts/check_module_wiring.py` | New file not in `__init__.py`, import from module not in `depends` |
+| `Secret Detection` | GitGuardian + custom scan | API keys, passwords, tokens in committed code |
+
+### Odoo 19 patterns that CI rejects
+
+- `<tree>` in views → use `<list>`
+- `string="..."` attribute on `<search>` → remove it
+- `<group>` inside `<search>` → use flat `<filter>` elements
+- `attrs="{...}"` on fields → use `invisible="..."` / `readonly="..."` / `required="..."` directly
+- `states={"done": [("readonly", True)]}` → use `readonly="state == 'done'"`
+- `category_id` on `res.groups` → removed in Odoo 19
+- `numbercall` on `ir.cron` → deprecated
+
 ## Boundaries
 
 ### ✅ Always

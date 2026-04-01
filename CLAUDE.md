@@ -86,8 +86,11 @@ class PlasticosMaterialProfile(models.Model):
 ### ✅ Always
 - Declare `__manifest__.py` dependencies before importing from other modules
 - Add `security/ir.model.access.csv` for every new model
+- Add `from . import <file>` to `__init__.py` for every new Python file
 - Use `plasticos_` namespace for modules, `plasticos.` for models
-- Run `pre-commit run --all-files` before committing
+- Run `ruff check --fix . && ruff format .` before committing
+- Run `python3 scripts/check_module_wiring.py` before committing
+- Follow the **CI Compliance Checklist** in `AGENTS.md` — CI will reject PRs that skip these steps
 - Check `AI Agent Files/INVARIANTS.md` for full invariant list
 
 ### ⚠️ Ask Before

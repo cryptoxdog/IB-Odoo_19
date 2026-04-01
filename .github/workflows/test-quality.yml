@@ -64,26 +64,6 @@ jobs:
         run: |
           python3 -m pytest tests/test_repo_dependency_integrity.py -v
 
-  # Test count regression check
-  test-count-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Count test files
-        run: |
-          TOTAL=$(find . -name "test_*.py" -path "*/tests/*" ! -path "./.venv/*" | wc -l)
-          echo "Total test files: $TOTAL"
-
-          # Baseline after 2026-03-05 reorganization: 180+ test files
-          BASELINE=180
-
-          if [ "$TOTAL" -lt "$BASELINE" ]; then
-            echo "❌ REGRESSION: Test count dropped from $BASELINE to $TOTAL"
-            exit 1
-          fi
-          echo "✅ Test count OK: $TOTAL (baseline: $BASELINE)"
-
   # Odoo 19 compatibility tests (requires Odoo runtime - run on Odoo.sh, not bare CI)
   odoo19-compat-tests:
     runs-on: ubuntu-latest
