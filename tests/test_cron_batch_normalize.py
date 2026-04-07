@@ -73,6 +73,8 @@ class TestBatchNormalizeCron(PlasticosTestCase):
         ):
             self.Intake.cron_batch_normalize()
         self.assertEqual(intake.match_status, "error")
+        self.assertFalse(intake.normalized)
+        self.assertTrue(intake.normalization_errors)
 
     def test_unexpected_exception_handled(self):
         """Unexpected exceptions are caught per-record, not raised."""

@@ -517,8 +517,7 @@ class PlasticosIntake(models.Model):
         if len(contacts) == 1:
             self.contact_id = contacts[0].id
 
-        profile_partner = facility if facility.id != self.partner_id.id else self.partner_id
-        profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", profile_partner.id)])
+        profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", facility.id)])
         if len(profiles) == 1:
             self.material_profile_id = profiles[0].id
 
