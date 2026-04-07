@@ -32,7 +32,7 @@ Follow all 7 steps. Do not skip any.
 Count installable `plasticos_*` addons:
 
 ```bash
-find . -maxdepth 2 -name "__manifest__.py" -path "*/plasticos_*/*" | wc -l
+find . -maxdepth 3 -name "__manifest__.py" -path "*/plasticos_*/*" | wc -l
 ```
 
 For each module, extract layer and maturity from `__manifest__.py`:

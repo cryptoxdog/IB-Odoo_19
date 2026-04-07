@@ -251,7 +251,7 @@ These files are intentionally excluded from specific checks:
 | All pre-commit hooks | `odoo-enterprise/**`, `plasticos_graph_*/**` | External/experimental code |
 | All pre-commit hooks | `docs/**` | Documentation files |
 
-### Pre-commit Hooks (27 total)
+### Pre-commit Hooks (31 total)
 
 | Hook | Type | Blocking? | What it catches |
 |------|------|-----------|-----------------|
@@ -285,7 +285,7 @@ These files are intentionally excluded from specific checks:
 | `dev-tools-fence` | Odoo | Yes | Dev tools not imported from production |
 | `critical-manifest` | Odoo | Yes | Critical manifest rules |
 | `enhanced-audit` | Odoo | Yes | Enhanced code audit |
-| `mypy` | Type | Yes | Type checking (excludes many modules) |
+| `mypy` | Type | **No** | Type checking (excludes many modules) |
 
 ### Ruff Configuration (from `pyproject.toml`)
 

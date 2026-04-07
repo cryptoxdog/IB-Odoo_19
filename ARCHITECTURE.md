@@ -64,25 +64,24 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 | 9 | `plasticos_buyer_match_engine` | 2 | New | 10-gate filtering + Neo4j graph scoring |
 | 10 | `plasticos_geolocalize` | 2 | Production | Auto-geocode partners + nightly backfill cron |
 | 11 | `plasticos_enrichment` | 2 | Beta | AI web intelligence extraction for buyer profiles |
-| 12 | `plasticos_enrichment_bridge` | 2 | Beta | Enrichment → CRM / lead bridge |
-| 13 | `plasticos_web_leads` | 2 | Production | AI lead triage (Cognito → LLM → HOT/COLD) |
-| 14 | `plasticos_inference_engine` | 2 | Beta | Deterministic polymer inference from YAML knowledge base |
-| 15 | `plasticos_accounting` | 3 | Production | Chart of accounts, payment terms, incoterms seed |
-| 16 | `plasticos_offer` | 3 | Production | Offer lifecycle: match → negotiation → deal |
-| 17 | `plasticos_order_lines` | 3 | Production | Extend PO/SO lines with full material specifications |
-| 18 | `plasticos_automation` | 3 | Production | Workflow automation: approvals, reminders, SLA monitoring |
-| 19 | `plasticos_partner_import` | 3 | Production | Partner import wizard with validation |
-| 20 | `plasticos_crm_bridge` | 3 | Production | CRM integration bridge |
-| 21 | `plasticos_commission` | 3 | Production | Commission calculation engine |
-| 22 | `plasticos_admin_dashboard` | 3 | Production | RevOps KPI dashboard (admin) |
-| 23 | `plasticos_documents` | 4 | Production | Document validation matrices, compliance tracking |
-| 24 | `plasticos_documents_native` | 4 | Beta | Bridge to Odoo Enterprise Documents with AI auto-sort |
-| 25 | `plasticos_transaction` | 5 | Production | Transaction spine + commission engine |
-| 26 | `plasticos_logistics` | 5 | Production | Load management, BOL generation, dispatch |
-| 27 | `plasticos_claims` | 5 | Production | QC cases, claims, chargebacks, compliance workflows |
-| 28 | `plasticos_website` | UI | Production | Website extensions |
-| 29 | `plasticos_odoo_standard_apps` | Meta | Production | Auto-install bundle of standard Odoo CE apps |
-| 30 | `plasticos_dev_tools` | — | Dev-only | Audit scripts, integrity checks (`installable: False`) |
+| 12 | `plasticos_web_leads` | 2 | Production | AI lead triage (Cognito → LLM → HOT/COLD) |
+| 13 | `plasticos_inference_engine` | 2 | Beta | Deterministic polymer inference from YAML knowledge base |
+| 14 | `plasticos_accounting` | 3 | Production | Chart of accounts, payment terms, incoterms seed |
+| 15 | `plasticos_offer` | 3 | Production | Offer lifecycle: match → negotiation → deal |
+| 16 | `plasticos_order_lines` | 3 | Production | Extend PO/SO lines with full material specifications |
+| 17 | `plasticos_automation` | 3 | Production | Workflow automation: approvals, reminders, SLA monitoring |
+| 18 | `plasticos_partner_import` | 3 | Production | Partner import wizard with validation |
+| 19 | `plasticos_crm_bridge` | 3 | Production | CRM integration bridge |
+| 20 | `plasticos_commission` | 3 | Production | Commission calculation engine |
+| 21 | `plasticos_admin_dashboard` | 3 | Production | RevOps KPI dashboard (admin) |
+| 22 | `plasticos_documents` | 4 | Production | Document validation matrices, compliance tracking |
+| 23 | `plasticos_documents_native` | 4 | Beta | Bridge to Odoo Enterprise Documents with AI auto-sort |
+| 24 | `plasticos_transaction` | 5 | Production | Transaction spine + commission engine |
+| 25 | `plasticos_logistics` | 5 | Production | Load management, BOL generation, dispatch |
+| 26 | `plasticos_claims` | 5 | Production | QC cases, claims, chargebacks, compliance workflows |
+| 27 | `plasticos_website` | UI | Production | Website extensions |
+| 28 | `plasticos_odoo_standard_apps` | Meta | Production | Auto-install bundle of standard Odoo CE apps |
+| 29 | `plasticos_dev_tools` | — | Dev-only | Audit scripts, integrity checks (`installable: False`) |
 
 **Maturity guide**: Production = stable CI; Beta = higher churn, some CI waivers; New = active development; Dev-only = not for production install.
 

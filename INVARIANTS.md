@@ -333,7 +333,7 @@ Material Layer (1)
 **Pattern**:
 ```python
 def _get_inference_classes():
-    from odoo.addons.plasticos_inference_engine import InferenceEngine
+    from odoo.addons.plasticos_inference_engine.engine import InferenceEngine
     return InferenceEngine
 ```
 
