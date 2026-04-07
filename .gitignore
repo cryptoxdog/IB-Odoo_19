@@ -6,6 +6,7 @@
 .cursor/
 .cursor-commands
 .env
+.env.local
 .suite6-config.json
 .workflows/
 

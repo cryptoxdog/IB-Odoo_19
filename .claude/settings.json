@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'CMD=\"$CLAUDE_TOOL_INPUT\"; for PAT in \"_sql_constraints\" \"@api.one\" \"@api.multi\" \"numbercall\" \"eval()\" \"exec()\"; do if echo \"$CMD\" | grep -q \"$PAT\" 2>/dev/null; then echo \"{\\\"decision\\\": \\\"block\\\", \\\"reason\\\": \\\"Blocked: $PAT is a deprecated/banned Odoo 19 pattern. See AI Agent Files/INVARIANTS.md.\\\"}\" && exit 0; fi; done; echo \"{\\\"decision\\\": \\\"approve\\\"}\"'"
+            "command": "bash -c 'CMD=\"$CLAUDE_TOOL_INPUT\"; for PAT in \"_sql_constraints\" \"@api.one\" \"@api.multi\" \"numbercall\" \"eval()\" \"exec()\"; do if echo \"$CMD\" | grep -q \"$PAT\" 2>/dev/null; then echo \"{\\\"decision\\\": \\\"block\\\", \\\"reason\\\": \\\"Blocked: $PAT is a deprecated/banned Odoo 19 pattern. See INVARIANTS.md.\\\"}\" && exit 0; fi; done; echo \"{\\\"decision\\\": \\\"approve\\\"}\"'"
           }
         ]
       }
