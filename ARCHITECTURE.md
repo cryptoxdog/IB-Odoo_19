@@ -49,36 +49,43 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 └─────────────────────────────────────────────────┘
 ```
 
-## Module Index (25 Odoo Modules)
+## Module Index (30 Odoo Modules)
 
-| # | Module | Layer | Summary |
-|---|--------|-------|---------|
-| 1 | `plasticos_base` | 1 | Core seed data: partner tags, sales reps, material taxonomy |
-| 2 | `plasticos_security_base` | 1 | RBAC roles, record rules, private-partner flag |
-| 3 | `plasticos_material_profile` | 1 | Canonical material master: polymer, form, color, source, process |
-| 4 | `plasticos_product` | 1 | Scrap plastic product catalog with polymer-synced products |
-| 5 | `plasticos_facility_profile` | 2 | Facility capability profiles: equipment, tolerances, BCP |
-| 6 | `plasticos_intake` | 2 | Material intake with contact intelligence |
-| 7 | `plasticos_intake_normalizer` | 2 | Schema-driven intake normalization for L9 packets |
-| 8 | `plasticos_matching` | 2 | Match result storage for intake-to-buyer matching |
-| 9 | `plasticos_buyer_match_engine` | 2 | 10-gate filtering + Neo4j graph scoring |
-| 10 | `plasticos_geolocalize` | 2 | Auto-geocode partners + nightly backfill cron |
-| 11 | `plasticos_accounting` | 3 | Chart of accounts, payment terms, incoterms seed |
-| 12 | `plasticos_offer` | 3 | Offer lifecycle: match → negotiation → deal |
-| 13 | `plasticos_order_lines` | 3 | Extend PO/SO lines with full material specifications |
-| 14 | `plasticos_automation` | 3 | Workflow automation: approvals, reminders, SLA monitoring |
-| 15 | `plasticos_transaction` | 5 | Transaction spine + commission engine |
-| 16 | `plasticos_logistics` | 5 | Load management, BOL generation, dispatch |
-| 17 | `plasticos_documents` | 4 | Document validation matrices, compliance tracking |
-| 18 | `plasticos_documents_native` | 4 | Bridge to Odoo Enterprise Documents with AI auto-sort |
-| 19 | `plasticos_claims` | 5 | QC cases, claims, chargebacks, compliance workflows |
-| 20 | `plasticos_web_leads` | 2 | AI-powered web lead triage: Cognito → LLM → HOT/COLD |
-| 21 | `plasticos_enrichment` | 2 | AI-powered web intelligence extraction for buyer profiles |
-| 23 | `plasticos_inference_engine` | 2 | Deterministic polymer inference from YAML knowledge base |
-| 24 | `plasticos_partner_import` | 3 | Partner import wizard with validation |
-| 25 | `plasticos_dev_tools` | — | Dev-only: audit scripts, integrity checks, validators |
+| # | Module | Layer | Maturity | Summary |
+|---|--------|-------|----------|---------|
+| 1 | `plasticos_base` | 1 | Production | Core seed data: partner tags, sales reps, material taxonomy |
+| 2 | `plasticos_security_base` | 1 | Production | RBAC roles, record rules, private-partner flag |
+| 3 | `plasticos_material_profile` | 1 | Production | Canonical material master: polymer, form, color, source, process |
+| 4 | `plasticos_product` | 1 | Production | Scrap plastic product catalog with polymer-synced products |
+| 5 | `plasticos_facility_profile` | 2 | Production | Facility capability profiles: equipment, tolerances, BCP |
+| 6 | `plasticos_intake` | 2 | Production | Material intake with contact intelligence |
+| 7 | `plasticos_intake_normalizer` | 2 | Beta | Schema-driven intake normalization for L9 packets |
+| 8 | `plasticos_matching` | 2 | Production | Match result storage for intake-to-buyer matching |
+| 9 | `plasticos_buyer_match_engine` | 2 | New | 10-gate filtering + Neo4j graph scoring |
+| 10 | `plasticos_geolocalize` | 2 | Production | Auto-geocode partners + nightly backfill cron |
+| 11 | `plasticos_enrichment` | 2 | Beta | AI web intelligence extraction for buyer profiles |
+| 12 | `plasticos_web_leads` | 2 | Production | AI lead triage (Cognito → LLM → HOT/COLD) |
+| 13 | `plasticos_inference_engine` | 2 | Beta | Deterministic polymer inference from YAML knowledge base |
+| 14 | `plasticos_accounting` | 3 | Production | Chart of accounts, payment terms, incoterms seed |
+| 15 | `plasticos_offer` | 3 | Production | Offer lifecycle: match → negotiation → deal |
+| 16 | `plasticos_order_lines` | 3 | Production | Extend PO/SO lines with full material specifications |
+| 17 | `plasticos_automation` | 3 | Production | Workflow automation: approvals, reminders, SLA monitoring |
+| 18 | `plasticos_partner_import` | 3 | Production | Partner import wizard with validation |
+| 19 | `plasticos_crm_bridge` | 3 | Production | CRM integration bridge |
+| 20 | `plasticos_commission` | 3 | Production | Commission calculation engine |
+| 21 | `plasticos_admin_dashboard` | 3 | Production | RevOps KPI dashboard (admin) |
+| 22 | `plasticos_documents` | 4 | Production | Document validation matrices, compliance tracking |
+| 23 | `plasticos_documents_native` | 4 | Beta | Bridge to Odoo Enterprise Documents with AI auto-sort |
+| 24 | `plasticos_transaction` | 5 | Production | Transaction spine + commission engine |
+| 25 | `plasticos_logistics` | 5 | Production | Load management, BOL generation, dispatch |
+| 26 | `plasticos_claims` | 5 | Production | QC cases, claims, chargebacks, compliance workflows |
+| 27 | `plasticos_website` | UI | Production | Website extensions |
+| 28 | `plasticos_odoo_standard_apps` | Meta | Production | Auto-install bundle of standard Odoo CE apps |
+| 29 | `plasticos_dev_tools` | — | Dev-only | Audit scripts, integrity checks (`installable: False`) |
 
-**Note:** 4 additional directories (`plasticos_graph_*`) exist but are non-Odoo Python packages (no `__manifest__.py`).
+**Maturity guide**: Production = stable CI; Beta = higher churn, some CI waivers; New = active development; Dev-only = not for production install.
+
+**Note:** 4 additional directories (`plasticos_graph_*`) exist but are non-Odoo Python packages (no `__manifest__.py`). These are excluded from all pre-commit hooks and CI workflows.
 
 ## Module Dependency Graph (Extracted from Manifests)
 
@@ -576,10 +583,52 @@ services:
 - **plasticos_buyer_match_engine**: 5 tests
 - **Total**: 52 tests passing
 
-### CI/CD Integration
-- Pre-commit hooks: ruff, module wiring, XML validation
-- GitHub Actions (if configured): test suite on PR
-- Odoo.sh CI: automatic test run on push
+### CI/CD Architecture
+
+**5 GitHub Actions workflow files**, ~20 jobs total:
+
+#### Workflow Files
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `test-quality.yml` | push + PR | Static checks, module tests, integration tests, coverage, mutation |
+| `odoo-audit.yml` | push + PR | Bash syntax, `_name` literals, antipatterns, XPath regression, audit |
+| `pr-gate.yml` | PR only | Ruff, XML lint, shellcheck, Odoo patterns, manifest syntax, secrets |
+| `module-check.yml` | push + PR | Manifest validation, XML parsing, dependency check, security CSV |
+| `security.yml` | push + PR + weekly cron | pip-audit, Trivy, Gitleaks |
+
+#### Pre-commit Hooks (27 total)
+
+All hooks run via `pre-commit run --all-files`. Key hooks:
+
+| Category | Hooks |
+|----------|-------|
+| Format | `ruff`, `ruff-format`, `end-of-file-fixer`, `trailing-whitespace` |
+| Syntax | `check-xml`, `check-yaml`, `check-merge-conflict`, `check-added-large-files` |
+| Odoo 19 | `odoo-patterns` (24 sub-checks), `odoo19-xml`, `odoo19-hooks` |
+| Wiring | `module-wiring`, `circular-deps`, `package-init`, `orphan-model-refs` |
+| Integrity | `field-integrity`, `orm-integrity`, `constraint-patterns`, `model-inheritance` |
+| Safety | `cron-invariants`, `automation-field-refs`, `state-guard-bypass`, `pipeline-v2-guard` |
+| Audit | `enhanced-audit`, `acl-completeness` (warn-only), `critical-manifest`, `dev-tools-fence` |
+| Type | `mypy` (advisory — many modules excluded) |
+
+#### Global Exclusions
+
+These paths are excluded from all hooks and CI:
+- `odoo-enterprise/**`
+- `plasticos_graph_engine/**`, `plasticos_graph_integration/**`, `plasticos_graph_intelligence/**`, `plasticos_graph_3d_embedding/**`
+- `docs/**` (for ruff, ruff-format, check-xml, trailing-whitespace, end-of-file-fixer)
+
+#### Audit Baselines
+
+| Audit | Baseline | Blocks Merge If Exceeded |
+|-------|----------|--------------------------|
+| `odoo_audit.py` HIGH count | 0 | Yes |
+| Extended audit HIGH count | 4 | Yes (pre-existing N+1 in logistics/transaction) |
+| XPath CRITICAL | 0 | Yes |
+| XPath HIGH | 0 | Yes |
+
+See `AGENTS.md` CI Compliance Checklist for the complete reference.
 
 ## Performance Considerations
 
@@ -894,6 +943,6 @@ module/
 
 ---
 
-**Architecture Version**: 2.3.0
-**Last Updated**: 2026-03-04
+**Architecture Version**: 3.0.0
+**Last Updated**: 2026-03-31
 **Verified Against**: cryptoxdog/IB-Odoo_19 @ staging branch
