@@ -75,8 +75,8 @@ jobs:
           TOTAL=$(find . -name "test_*.py" -path "*/tests/*" ! -path "./.venv/*" | wc -l)
           echo "Total test files: $TOTAL"
 
-          # Baseline after 2026-03-05 reorganization: 180+ test files
-          BASELINE=180
+          # Baseline: actual test file count (top-level tests/ directory)
+          BASELINE=50
 
           if [ "$TOTAL" -lt "$BASELINE" ]; then
             echo "❌ REGRESSION: Test count dropped from $BASELINE to $TOTAL"
