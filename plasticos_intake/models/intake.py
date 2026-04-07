@@ -102,7 +102,12 @@ class PlasticosIntake(models.Model):
                   "Please set a Company or enter a Pending Company Name.")
             )
         if not self.material_profile_id:
-            self._create_material_profile_from_intake()
+            raise UserError(
+                _(
+                    "Cannot match buyers: Intake '%(name)s' has no material profile.\n\n"
+                    "Please link a Material Profile (polymer + form) before running matching.",
+                ) % {"name": self.name}
+            )
 
         # Idempotent reset
         if self.match_line_ids:
@@ -196,11 +201,9 @@ class PlasticosIntake(models.Model):
                 "intake_id": self.id,
                 "buyer_id": line.buyer_id.id,
                 "supplier_id": self.partner_id.id,
-                "material_profile_id": self.material_profile_id.id,
-                "offer_price": line.typical_price or self.asking_price or 0.0,
-                "offer_qty": self.quantity_lbs or 0.0,
+                "price_per_lb": line.typical_price or self.asking_price or 0.0,
+                "quantity_lbs": self.quantity_lbs or 0.0,
                 "state": "draft",
-                "source_match_id": line.id,
             })
             line.offer_id = offer.id
             created_ids.append(offer.id)
@@ -268,15 +271,3 @@ class PlasticosIntake(models.Model):
             subtype_xmlid="mail.mt_note",
         )
 
-    def _create_material_profile_from_intake(self):
-        self.ensure_one()
-        profile = self.env["plasticos.material.profile"].create({
-            "name": _("Profile — %s") % self.name,
-            "intake_id": self.id,
-        })
-        self.material_profile_id = profile.id
-        self.message_post(
-            body=_("Auto-created material profile: %s") % profile.name,
-            message_type="notification",
-            subtype_xmlid="mail.mt_note",
-        )

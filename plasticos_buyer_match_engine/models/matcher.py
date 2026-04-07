@@ -29,6 +29,7 @@ class PlasticosBuyerMatcher(models.Model):
         self,
         supplier_partner_id: int,
         intake_id: int,
+        max_results: int = 20,
         mode: str = "strict",
     ) -> list[dict[str, Any]]:
         """
@@ -48,99 +49,49 @@ class PlasticosBuyerMatcher(models.Model):
         try:
             results = self._match_via_neo4j(supplier, intake, mode)
             _logger.info("Neo4j path: %d results for intake %s", len(results), intake_id)
-            return results
+            return results[:max_results]
         except Exception as e:
             _logger.warning("Neo4j unavailable (%s). Falling back to pure-Python.", e)
-            return self._match_pure_python(supplier, intake, mode)
+            return self._match_pure_python(supplier, intake, mode)[:max_results]
 
     def _match_via_neo4j(self, supplier, intake, mode: str) -> list[dict[str, Any]]:
-        ICP = self.env["ir.config_parameter"].sudo()
-        uri = ICP.get_param("plasticos.neo4j.uri")
-        user = ICP.get_param("plasticos.neo4j.user")
-        pwd = ICP.get_param("plasticos.neo4j.pass")
-        if not all([uri, user, pwd]):
-            raise RuntimeError("Neo4j system parameters not configured.")
+        """Delegate Neo4j scoring to plasticos.graph.service (canonical schema owner).
 
-        try:
-            from neo4j import GraphDatabase
-        except ImportError as exc:
-            raise RuntimeError("neo4j driver not installed.") from exc
-
-        driver = GraphDatabase.driver(uri, auth=(user, pwd))
-        mp = intake.material_profile_id
-        polymer = mp.polymer or ""
-        form = mp.form or ""
-        resin_grade = mp.resin_grade or ""
-        qty_lbs = intake.quantity_lbs or 0.0
-        price_lb = intake.asking_price or 0.0
-        geo_region = (intake.facility_profile_id.region or "") if intake.facility_profile_id else ""
-        threshold = 0.60 if mode == "strict" else 0.35
-
-        cypher = """
-        MATCH (b:Buyer)-[s:SOLD_TO]->(p:Polymer {name: $polymer})
-        WHERE b.active = true
-        AND (b.form = $form OR $form = '')
-        AND (b.resin_grade = $resin_grade OR $resin_grade = '')
-        AND ($qty_lbs = 0 OR (b.min_qty_lbs <= $qty_lbs AND b.max_qty_lbs >= $qty_lbs))
-        WITH b, s
-        RETURN
-          b.odoo_partner_id AS buyer_id,
-          s.avg_price_per_lb AS avg_price_per_lb,
-          s.relationship_score AS relationship_score,
-          b.capacity_available AS capacity_available,
-          b.region AS region
-        ORDER BY relationship_score DESC
-        LIMIT 50
+        The graph service owns the Cypher queries and node schema (:Facility nodes,
+        polymer keyed by code, SOLD_TO edges). Writing raw Cypher here would require
+        duplicating and maintaining that schema alignment — delegation avoids that.
         """
+        graph_svc = self.env["plasticos.graph.service"]
+        if not hasattr(graph_svc, "match_buyers"):
+            raise RuntimeError("plasticos.graph.service does not expose match_buyers().")
 
-        with driver.session() as session:
-            rows = session.run(
-                cypher, polymer=polymer, form=form,
-                resin_grade=resin_grade, qty_lbs=qty_lbs,
-            ).data()
-        driver.close()
+        buyers = self.env["res.partner"].search(
+            [("is_company", "=", True), ("customer_rank", ">", 0), ("active", "=", True)],
+            limit=200,
+        )
+        if not buyers:
+            return []
+
+        threshold = 0.60 if mode == "strict" else 0.35
+        # graph_service.match_buyers handles Neo4j connection, correct schema, and scoring
+        scored_rows = graph_svc.match_buyers(intake, buyers.ids, mode=mode)
 
         results = []
-        for row in rows:
-            score, passed, failed = self._score_neo4j_row(row, intake, geo_region, price_lb)
+        for row in scored_rows:
+            score = row.get("total_score", 0.0)
             if score < threshold:
                 continue
-            # TODO #2 FIX: typical_price from avg_price_per_lb edge property
-            # (was hardcoded 0.0 for all rows)
             results.append({
-                "buyer_id": row["buyer_id"],
+                "buyer_id": row.get("facility_id") or row.get("buyer_id"),
                 "total_score": score,
-                "gates_passed": passed,
+                "gates_passed": row.get("gates_passed", 0),
                 "gates_total": _GATE_TOTAL,
-                "gates_failed": failed,
-                "typical_price": row.get("avg_price_per_lb") or 0.0,
+                "gates_failed": row.get("gates_failed", []),
+                "typical_price": row.get("typical_price") or row.get("avg_price_per_lb") or 0.0,
             })
 
         results.sort(key=lambda r: r["total_score"], reverse=True)
         return results
-
-    def _score_neo4j_row(self, row, intake, geo_region, price_lb):
-        mp = intake.material_profile_id
-        gs = {
-            "polymer_match": 1.0,
-            "form_match": 1.0 if not (mp and mp.form) else (1.0 if row.get("form") == mp.form else 0.0),
-            "resin_grade_match": 1.0 if not (mp and mp.resin_grade) else (1.0 if row.get("resin_grade") == mp.resin_grade else 0.0),
-            "quantity_range": 1.0,
-            "price_range": 1.0 if price_lb == 0.0 else (
-                1.0 if abs((row.get("avg_price_per_lb") or price_lb) - price_lb) / max(price_lb, 0.01) <= 0.20 else 0.5
-            ),
-            "geography": 1.0 if not geo_region or row.get("region") == geo_region else 0.5,
-            "certification": 1.0,
-            "contamination": 1.0,
-            "lead_time": 1.0,
-            "relationship_score": min(1.0, (row.get("relationship_score") or 0.0) / 10.0),
-            "capacity_available": 1.0 if row.get("capacity_available") else 0.0,
-            "active_buyer": 1.0,
-        }
-        total = sum(_GATE_WEIGHTS[g] * gs[g] for g in _GATE_WEIGHTS)
-        passed = sum(1 for g in gs if gs[g] > 0.0)
-        failed = [g for g in gs if gs[g] == 0.0]
-        return round(total, 6), passed, failed
 
     def _match_pure_python(self, supplier, intake, mode: str) -> list[dict[str, Any]]:
         """ORM-only fallback. typical_price is 0.0 — no price data available here."""
@@ -169,9 +120,11 @@ class PlasticosBuyerMatcher(models.Model):
         gs = {g: 1.0 for g in _GATE_WEIGHTS}
         gs["relationship_score"] = 0.5
         mp = intake.material_profile_id
-        if mp and mp.polymer:
-            accepted = str(buyer.mapped("facility_profile_ids.accepted_polymers"))
-            gs["polymer_match"] = 1.0 if mp.polymer in accepted else 0.0
+        if mp and mp.polymer_id:
+            accepted_codes = set(
+                buyer.mapped("facility_profile_ids.accepted_polymer_ids.code")
+            )
+            gs["polymer_match"] = 1.0 if mp.polymer_id.code in accepted_codes else 0.0
         total = sum(_GATE_WEIGHTS[g] * gs[g] for g in _GATE_WEIGHTS)
         passed = sum(1 for g in gs if gs[g] > 0.0)
         failed = [g for g in gs if gs[g] == 0.0]
