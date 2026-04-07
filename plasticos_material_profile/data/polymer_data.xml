@@ -231,5 +231,12 @@
       <field name="category">commodity</field>
       <field name="sequence">25</field>
     </record>
+    <record id="polymer_other" model="plasticos.polymer">
+      <field name="name">Other</field>
+      <field name="code">OTHER</field>
+      <field name="full_name">Other / Unknown Polymer</field>
+      <field name="category">commodity</field>
+      <field name="sequence">999</field>
+    </record>
   </data>
 </odoo>

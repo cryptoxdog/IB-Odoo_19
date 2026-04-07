@@ -127,6 +127,19 @@ class CrmLeadPlastOS(models.Model):
         if self.source_id:
             intake_vals["lead_source_id"] = self.source_id.id
 
+        # polymer_id and form_id are required on plasticos.intake.
+        # CRM conversion has no material context yet, so fall back to the
+        # canonical "Other / Unknown" records. The sales rep can refine these
+        # on the intake form after conversion.
+        Polymer = self.env["plasticos.polymer"]
+        Form = self.env["plasticos.material.form"]
+        other_polymer = Polymer.search([("code", "=ilike", "OTHER")], limit=1)
+        other_form = Form.search([("code", "=ilike", "OTHER")], limit=1)
+        if other_polymer:
+            intake_vals["polymer_id"] = other_polymer.id
+        if other_form:
+            intake_vals["form_id"] = other_form.id
+
         intake = self.env["plasticos.intake"].create(intake_vals)
 
         # 3. Move lead to Active Supplier stage

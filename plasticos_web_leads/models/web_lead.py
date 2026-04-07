@@ -871,7 +871,7 @@ class PlasticosWebLead(models.Model):
         freq_raw = (ai_freq.get("frequency") or "").lower()
         deal_type = _FREQ_TO_DEAL.get(freq_raw, "spot")
 
-        qty_per_load = _safe_int(ai_qty.get("per_load_lbs"), 40000)
+        qty_per_load = _safe_int(ai_qty.get("per_load_lbs"), 36000)
         loads_per_month = _safe_int(ai_qty.get("loads_per_month"), 1)
 
         # Look up Many2one records by code (BUG-073 fix)
@@ -905,10 +905,8 @@ class PlasticosWebLead(models.Model):
             "contamination_notes": self.contaminant_notes or False,
         }
 
-        if polymer_rec:
-            intake_vals["polymer_id"] = polymer_rec.id
-        if form_rec:
-            intake_vals["form_id"] = form_rec.id
+        intake_vals["polymer_id"] = polymer_rec.id if polymer_rec else False
+        intake_vals["form_id"] = form_rec.id if form_rec else False
 
         Intake = self.env["plasticos.intake"]
         intake = Intake.create(intake_vals)
