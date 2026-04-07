@@ -21,13 +21,13 @@
     "depends": [
         "base_setup",
         "plasticos_base",
+        "plasticos_security_base",
         "plasticos_intake",
         "plasticos_material_profile",
         "plasticos_facility_profile",
         "plasticos_matching",
         "plasticos_transaction",
         "plasticos_offer",
-        "plasticos_security_base",
     ],
     "data": [
         "security/ir.model.access.csv",
@@ -39,5 +39,8 @@
     "installable": True,
     "application": False,
     "auto_install": True,
+    "external_dependencies": {
+        "python": ["neo4j"],
+    },
     "license": "LGPL-3",
 }
