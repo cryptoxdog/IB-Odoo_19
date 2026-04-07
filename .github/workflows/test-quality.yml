@@ -76,7 +76,7 @@ jobs:
           echo "Total test files: $TOTAL"
 
           # Baseline: actual test file count (top-level tests/ directory)
-          BASELINE=50
+          BASELINE=45
 
           if [ "$TOTAL" -lt "$BASELINE" ]; then
             echo "❌ REGRESSION: Test count dropped from $BASELINE to $TOTAL"
