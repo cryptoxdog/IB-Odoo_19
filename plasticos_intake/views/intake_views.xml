@@ -299,7 +299,7 @@
                             <field name="polymer_id"/>
                             <field name="form_id"/>
                             <field name="color_id"/>
-                            <field name="packaging_type_ids" widget="many2many_tags"/>
+                            <field name="packaging_type_id"/>
                             <field name="material_attribute_ids" widget="many2many_tags"/>
                         </group>
                         <group string="Classification">

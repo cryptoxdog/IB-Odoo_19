@@ -181,18 +181,18 @@ class PlasticosIntake(models.Model):
     polymer_id = fields.Many2one(
         "plasticos.polymer",
         string="Polymer",
-        required=False,
+        required=True,
         index=True,
         ondelete="restrict",
-        help="Polymer type from master registry. Optional for web lead intakes pending normalization.",
+        help="Polymer type from master registry.",
     )
     form_id = fields.Many2one(
         "plasticos.material.form",
         string="Form",
-        required=False,
+        required=True,
         index=True,
         ondelete="restrict",
-        help="Material form from master registry. Optional for web lead intakes pending normalization.",
+        help="Material form from master registry.",
     )
     color_id = fields.Many2one(
         "plasticos.material.color",
@@ -217,13 +217,12 @@ class PlasticosIntake(models.Model):
         ondelete="restrict",
     )
 
-    packaging_type_ids = fields.Many2many(
+    packaging_type_id = fields.Many2one(
         "plasticos.packaging.type",
-        "plasticos_intake_packaging_rel",
-        "intake_id",
-        "packaging_type_id",
         string="Packaging",
-        help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales). Multi-select.",
+        index=True,
+        ondelete="restrict",
+        help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales).",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -308,7 +307,7 @@ class PlasticosIntake(models.Model):
     quantity_per_load_lbs = fields.Integer(
         string="Qty per Load (lbs)",
         required=True,
-        default=40000,
+        default=36000,
     )
     loads_per_month = fields.Integer(string="Loads / Month")
     deal_type = fields.Selection(
@@ -518,6 +517,11 @@ class PlasticosIntake(models.Model):
         if len(contacts) == 1:
             self.contact_id = contacts[0].id
 
+        profile_partner = facility if facility.id != self.partner_id.id else self.partner_id
+        profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", profile_partner.id)])
+        if len(profiles) == 1:
+            self.material_profile_id = profiles[0].id
+
     # NOTE: _onchange_contact_id and _onchange_lead_source_id removed.
     # Both were empty stubs that caused unnecessary RPC roundtrips from the web
     # client. The actual cross-model syncs are handled in write() below.
@@ -533,8 +537,7 @@ class PlasticosIntake(models.Model):
         self.color_id = mp.color_id.id if mp.color_id else self.color_id
         self.source_type_id = mp.source_type_id.id if mp.source_type_id else self.source_type_id
         self.origin_form_id = mp.origin_form_id.id if mp.origin_form_id else self.origin_form_id
-        if mp.packaging_type_id:
-            self.packaging_type_ids = [(4, mp.packaging_type_id.id)]
+        self.packaging_type_id = mp.packaging_type_id.id if mp.packaging_type_id else self.packaging_type_id
         self.mfi_value = mp.melt_flow_index or self.mfi_value
         self.density_value = mp.density or self.density_value
         self.contamination_pct = mp.contamination_percent or self.contamination_pct
