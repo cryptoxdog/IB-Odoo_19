@@ -11,7 +11,8 @@
             <field name="active" eval="False"/>
         </record>
 
-        <record id="utm.utm_source_lead_recall" model="utm.source">
+        <!-- "Lead Recall" was renamed to utm_source_mailing in Odoo 19 -->
+        <record id="utm.utm_source_mailing" model="utm.source">
             <field name="active" eval="False"/>
         </record>
 
