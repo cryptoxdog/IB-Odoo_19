@@ -249,10 +249,10 @@ class PlasticosCRMLeadImportService(models.AbstractModel):
             "vanillasoft_id": contact_id or False,
         }
 
-        # Apply category tags (via partner, not directly on lead)
-        # Tags will be applied when lead is converted to partner
-        if tag_ids:
-            vals["tag_ids"] = [(6, 0, tag_ids)]
+        # Partner category tags are stored in description for now.
+        # crm.lead.tag_ids points to crm.tag (not res.partner.category),
+        # so we cannot write partner category IDs there.
+        # Tags will be applied to the partner when the lead is converted.
 
         lead = self.env["crm.lead"].create(vals)
         return lead
