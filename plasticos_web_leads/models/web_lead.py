@@ -512,22 +512,30 @@ class PlasticosWebLead(models.Model):
         log_lines: list[str] = []
 
         try:
-            # Step 1: AI Normalization (multi-provider fallback)
+            # Step 1: AI Normalization (use first available provider)
             ai_data: dict[str, Any] = {}
             providers = config.get_llm_providers_ordered() if config.ai_enabled else []
             if providers:
                 log_lines.append("Step 1: Running AI normalization...")
-                ai_data = ai_normalizer.normalize_with_fallback(
-                    raw_payload=self.raw_payload or {},
-                    providers=providers,
+                from openai import OpenAI  # lazy import — only when AI is active
+
+                prov = providers[0]
+                client_kwargs: dict[str, Any] = {"api_key": prov["api_key"]}
+                if prov.get("base_url"):
+                    client_kwargs["base_url"] = prov["base_url"]
+                openai_client = OpenAI(**client_kwargs)
+
+                ai_data = ai_normalizer.normalize_lead(
+                    form_data=self.raw_payload or {},
+                    openai_client=openai_client,
+                    model=prov.get("model", "gpt-4o-mini"),
                 )
                 self.write({"ai_normalized": ai_data})
-                if ai_data.get("error"):
-                    log_lines.append(f"  WARNING: AI error — {ai_data['error']}")
+                if ai_data.get("_ai_error"):
+                    log_lines.append(f"  WARNING: AI error — {ai_data['_ai_error']}")
                 else:
-                    provider_used = ai_data.pop("_provider_used", "unknown")
                     log_lines.append(
-                        f"  OK ({provider_used}): polymer={ai_data.get('polymer')}, "
+                        f"  OK ({prov['provider']}): polymer={ai_data.get('polymer')}, "
                         f"form={ai_data.get('form')}, "
                         f"lbs={ai_data.get('estimated_lbs_per_load')}"
                     )
