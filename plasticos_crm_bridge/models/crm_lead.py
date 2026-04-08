@@ -1,8 +1,23 @@
+import re
+
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class CrmLeadPlastOS(models.Model):
     _inherit = "crm.lead"
+
+    # ── Mobile (Odoo 19 removed mobile from crm.lead) ──────
+    mobile = fields.Char(
+        string="Mobile",
+        help="Mobile phone number. Copied to partner on conversion.",
+    )
+    mobile_sanitized = fields.Char(
+        string="Mobile (E.164)",
+        compute="_compute_mobile_sanitized",
+        store=True,
+        help="Mobile number in E.164 format for SMS and integrations.",
+    )
 
     # ── Personal Intel (from linked contact) ────────────────
     partner_personal_intel = fields.Html(
@@ -95,6 +110,41 @@ class CrmLeadPlastOS(models.Model):
             pickups = profiles.mapped("last_pickup_date")
             pickups = [d for d in pickups if d]
             rec.partner_last_pickup = max(pickups) if pickups else False
+
+    @api.depends("mobile")
+    def _compute_mobile_sanitized(self):
+        for lead in self:
+            if lead.mobile:
+                lead.mobile_sanitized = (
+                    lead._phone_format(number=lead.mobile, force_format="E164") or lead.mobile
+                )
+            else:
+                lead.mobile_sanitized = False
+
+    @api.constrains("mobile")
+    def _check_mobile_format(self):
+        for lead in self:
+            if not lead.mobile:
+                continue
+            digits = re.sub(r"\D", "", lead.mobile)
+            if digits.startswith("1") and len(digits) == 11:
+                digits = digits[1:]
+            if len(digits) != 10:
+                raise ValidationError("Mobile must be a 10-digit US number (e.g., 555-100-0001).")
+
+    def _find_matching_partner(self):
+        """Extend Odoo's email-only matching to also try company name."""
+        partner = super()._find_matching_partner()
+        if not partner and self.partner_name:
+            partner = self.env["res.partner"].search(
+                [
+                    ("name", "=ilike", self.partner_name.strip()),
+                    ("is_company", "=", True),
+                    ("parent_id", "=", False),
+                ],
+                limit=1,
+            )
+        return partner
 
     # ── Phase 5: Convert CRM Lead to Intake ──────────────────
 
@@ -190,6 +240,7 @@ class CrmLeadPlastOS(models.Model):
             "is_company": True,
             "email": self.email_from,
             "phone": self.phone,
+            "mobile": self.mobile or False,
             "street": self.street,
             "city": self.city,
             "state_id": self.state_id.id if self.state_id else False,

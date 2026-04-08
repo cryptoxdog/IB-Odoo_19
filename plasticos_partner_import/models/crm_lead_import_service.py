@@ -236,6 +236,7 @@ class PlasticosCRMLeadImportService(models.AbstractModel):
             "contact_name": contact_name or False,
             "email_from": (row.get("Email") or "").strip() or False,
             "phone": (row.get("Direct") or "").strip() or False,
+            "mobile": (row.get("Mobile 1") or "").strip() or False,
             "street": (row.get("Address 1") or row.get("Address") or "").strip() or False,
             "street2": (row.get("Address 2") or "").strip() or False,
             "city": (row.get("City") or "").strip() or False,

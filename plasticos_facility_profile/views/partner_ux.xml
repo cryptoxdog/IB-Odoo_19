@@ -51,31 +51,19 @@
                 <attribute name="invisible">not is_facility</attribute>
             </xpath>
 
-            <!-- ── Personal Intel Tab ────────────────────────────────────────
-                 Visible only for person contacts (is_company = False).
-                 ─────────────────────────────────────────────────────────────── -->
-            <xpath expr="//page[@name='facility_profile']" position="after">
-                <page name="personal_intel"
-                      string="🧠 Personal Intel"
-                      invisible="is_company">
+            <!-- ── Personal Intel — inline field for person contacts ──────── -->
+            <xpath expr="//div[@class='o_address_format']" position="after">
+                <field name="personal_intel"
+                       string="Personal Intel"
+                       widget="html"
+                       placeholder="Personality, comms style, rapport hooks, motivators..."
+                       invisible="is_company"
+                       help="Internal broker notes: personality, communication style, rapport hooks, family context, hobbies, motivators. Never shared externally."/>
+            </xpath>
 
-                    <div class="alert alert-warning d-flex align-items-start gap-2 mb-3"
-                         role="status">
-                        <i class="fa fa-lightbulb-o fa-lg mt-1" title="Tip"/>
-                        <span>
-                            <strong>Human-layer notes — for brokers only.</strong>
-                            Record personality, communication style, rapport hooks,
-                            family context, hobbies, motivators.
-                            Separate from business <em>Notes</em>.
-                            <strong>Internal only — never shared externally.</strong>
-                        </span>
-                    </div>
-
-                    <field name="personal_intel"
-                           nolabel="1"
-                           placeholder="e.g. 'Prefers texts over email...'"/>
-
-                </page>
+            <!-- ── Invoicing tab — hide for person contacts (managed on parent) -->
+            <xpath expr="//page[@name='accounting']" position="attributes">
+                <attribute name="invisible">parent_id</attribute>
             </xpath>
 
         </field>

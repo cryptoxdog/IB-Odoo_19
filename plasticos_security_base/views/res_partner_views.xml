@@ -129,7 +129,19 @@
             <xpath expr="//field[@name='buyer_id']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
-            <!-- purchase_group_method does NOT exist in purchase.view_partner_property_form — removed -->
+        </field>
+    </record>
+
+    <!-- Group RFQ lives in purchase_stock, not purchase -->
+    <record id="view_partner_form_hide_group_rfq" model="ir.ui.view">
+        <field name="name">res.partner.form.hide.group.rfq</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="purchase_stock.res_partner_view_purchase_buttons_inherit"/>
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='group_rfq']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
         </field>
     </record>
 
