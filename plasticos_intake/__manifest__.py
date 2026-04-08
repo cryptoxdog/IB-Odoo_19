@@ -12,8 +12,6 @@
         "plasticos_base",
         "plasticos_material_profile",
         "plasticos_facility_profile",
-        "plasticos_offer",
-        "plasticos_buyer_match_engine",
     ],
     "data": [
         "security/ir.model.access.csv",
