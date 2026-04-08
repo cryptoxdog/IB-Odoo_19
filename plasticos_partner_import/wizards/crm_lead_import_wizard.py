@@ -11,7 +11,7 @@ from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
-DEFAULT_CRM_CSV = "3. VanillaSoft CRM - All Contacts (ALL).csv"
+DEFAULT_CRM_CSV = "tests/data/sample_vanillasoft_leads.csv"  # TODO: replace with real export
 CONFIG_CRM_CSV = "plasticos_partner_import.default_crm_csv"
 
 
