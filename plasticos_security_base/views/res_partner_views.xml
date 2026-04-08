@@ -129,9 +129,7 @@
             <xpath expr="//field[@name='buyer_id']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
-            <xpath expr="//field[@name='purchase_group_method']" position="attributes">
-                <attribute name="invisible">1</attribute>
-            </xpath>
+            <!-- purchase_group_method does NOT exist in purchase.view_partner_property_form — removed -->
         </field>
     </record>
 
