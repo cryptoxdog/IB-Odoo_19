@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Buyer Match Engine",
-    "version": "19.0.2.1.0",
+    "version": "19.0.2.2.0",
     "category": "Plasticos/Matching",
     "summary": "Buyer matching v2.0: facility.profile-based, 10-gate filtering, Neo4j graph scoring with gate_mode.",
     "description": """
@@ -38,7 +38,7 @@
     "post_init_hook": "post_init_hook",
     "installable": True,
     "application": False,
-    "auto_install": True,
+    "auto_install": False,
     "external_dependencies": {
         "python": ["neo4j"],
     },

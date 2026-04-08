@@ -5,8 +5,9 @@ Circular Dependency & Cross-Module @api.depends Checker
 
 Prevents two common Odoo module errors:
 
-1. CIRCULAR DEPENDENCIES: Module A depends on B, B depends on A
+1. CIRCULAR DEPENDENCIES: Module A depends on B, B depends on A (or longer chains)
    - Causes: "Recursion error in modules dependencies!"
+   - Uses Tarjan's SCC algorithm — catches 2-node AND multi-node cycles.
 
 2. CROSS-MODULE @api.depends: Using fields from other modules in @api.depends
    - Causes: Field not found error at module load time
@@ -18,10 +19,15 @@ Usage:
 Exit codes:
     0 = No issues found
     1 = Issues found (blocks CI)
+
+NOTE: This script scans files on disk (git working tree).  If your local branch
+is behind the remote, the remote version may have introduced cycles that this
+script won't see until you pull.  Always run `git pull` before this check.
 """
 
 import ast
 import re
+import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -57,16 +63,90 @@ def get_module_dependencies(root_dir: Path) -> dict[str, set[str]]:
     return deps
 
 
-def find_circular_deps(deps: dict[str, set[str]]) -> list[tuple[str, str]]:
-    """Find direct circular dependencies (A -> B -> A)."""
-    circular: list[tuple[str, str]] = []
-    for module, module_deps in deps.items():
-        for dep in module_deps:
-            if dep in deps and module in deps[dep]:
-                pair = (min(module, dep), max(module, dep))
-                if pair not in circular:
-                    circular.append(pair)
-    return circular
+def find_circular_deps(deps: dict[str, set[str]]) -> list[list[str]]:
+    """Find ALL dependency cycles using Tarjan's SCC algorithm.
+
+    Detects both direct 2-node cycles (A ↔ B) and longer chains (A→B→C→A).
+    Only considers our own plasticos_* modules — external Odoo modules are
+    excluded because we can't change them.
+
+    Returns a list of SCCs (Strongly Connected Components) where each SCC
+    contains 2+ modules that form a cycle.
+    """
+    our_modules = set(deps.keys())
+    # Build adjacency restricted to our modules only
+    adj: dict[str, set[str]] = {
+        m: {d for d in deps[m] if d in our_modules} for m in our_modules
+    }
+
+    index_counter = [0]
+    stack: list[str] = []
+    on_stack: dict[str, bool] = {}
+    index_map: dict[str, int] = {}
+    lowlink: dict[str, int] = {}
+    cycles: list[list[str]] = []
+
+    def _strongconnect(v: str) -> None:
+        index_map[v] = lowlink[v] = index_counter[0]
+        index_counter[0] += 1
+        stack.append(v)
+        on_stack[v] = True
+
+        for w in adj.get(v, set()):
+            if w not in index_map:
+                _strongconnect(w)
+                lowlink[v] = min(lowlink[v], lowlink[w])
+            elif on_stack.get(w):
+                lowlink[v] = min(lowlink[v], index_map[w])
+
+        if lowlink[v] == index_map[v]:
+            scc: list[str] = []
+            while True:
+                w = stack.pop()
+                on_stack[w] = False
+                scc.append(w)
+                if w == v:
+                    break
+            if len(scc) > 1:
+                cycles.append(sorted(scc))
+
+    for v in sorted(our_modules):
+        if v not in index_map:
+            _strongconnect(v)
+
+    return cycles
+
+
+def _warn_if_branch_behind_remote() -> None:
+    """Print a warning if the current branch is behind its remote tracking branch.
+
+    When the local branch is stale, the checker scans old manifests and can
+    miss cycles that exist in the pushed code.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            return  # No upstream configured — skip
+        upstream = result.stdout.strip()
+
+        behind = subprocess.run(
+            ["git", "rev-list", "--count", f"HEAD..{upstream}"],
+            capture_output=True,
+            text=True,
+        )
+        count = int(behind.stdout.strip() or "0")
+        if count > 0:
+            print(
+                f"\n⚠️  WARNING: local branch is {count} commit(s) behind {upstream}.\n"
+                "   The checker scans files on disk — remote code may have introduced\n"
+                "   cycles that won't be detected until you run: git pull\n"
+            )
+    except Exception:
+        pass  # Non-fatal — just skip the warning
 
 
 def get_module_fields(root_dir: Path) -> dict[str, dict[tuple[str, str], str]]:
@@ -215,9 +295,11 @@ def check_cross_module_depends(
 def main():
     root_dir = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
 
+    _warn_if_branch_behind_remote()
+
     print("🔍 Checking for circular dependencies...")
     deps = get_module_dependencies(root_dir)
-    circular = find_circular_deps(deps)
+    cycles = find_circular_deps(deps)
 
     print("🔍 Checking for cross-module @api.depends violations...")
     module_fields = get_module_fields(root_dir)
@@ -226,16 +308,17 @@ def main():
     # Report results
     errors = []
 
-    if circular:
-        print(f"\n❌ Found {len(circular)} circular dependencies:")
-        for mod_a, mod_b in circular:
-            print(f"   {mod_a} <-> {mod_b}")
+    if cycles:
+        print(f"\n❌ Found {len(cycles)} circular dependency cycle(s):")
+        for scc in cycles:
+            cycle_str = " -> ".join(scc) + f" -> {scc[0]}"
+            print(f"   {cycle_str}")
             errors.append(
                 {
                     "type": "CIRCULAR_DEPENDENCY",
-                    "modules": [mod_a, mod_b],
-                    "message": f"Circular dependency: {mod_a} <-> {mod_b}",
-                    "fix": f"Remove one direction of the dependency between {mod_a} and {mod_b}",
+                    "modules": scc,
+                    "message": f"Circular dependency cycle: {cycle_str}",
+                    "fix": f"Remove one dependency edge within: {', '.join(scc)}",
                 }
             )
 

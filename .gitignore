@@ -93,3 +93,10 @@ config/odoo.conf
 _code_analysis/
 plasticos_partner_import/3. VanillaSoft CRM - All Contacts (ALL).csv
 .vscode/
+
+# ═══════════════════════════════════════════════════════════
+# Cursor / workspace local files
+# ═══════════════════════════════════════════════════════════
+.cursorrules
+current work - ib/
+setup-new-workspace.yaml
