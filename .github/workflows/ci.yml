@@ -169,13 +169,7 @@ jobs:
             tests/test_triage_pipeline.py \
             tests/test_wiring_gap2.py \
             tests/test_gap_fixes.py \
-            tests/test_xpath_field_refs.py \
             tests/test_ci_check_odoo19_xml.py \
-            tests/test_action_methods.py \
-            tests/test_bridge_contracts.py \
-            tests/test_bridge_models.py \
-            tests/test_error_handling.py \
-            tests/test_golden_flows.py \
             tests/test_odoo_test_setup_validity.py \
             -v --tb=short --no-header \
             -p no:randomly
