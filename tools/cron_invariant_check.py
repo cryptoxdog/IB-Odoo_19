@@ -241,24 +241,10 @@ def collect_files(root: Path) -> tuple[list[Path], list[Path]]:
         "odoo-enterprise",
         "Odoo Development Files",
         "odoo-files-to-review",
-        "current work - ib",  # untracked WIP folder — never scan
     }
 
-    # Only scan git-tracked files to avoid untracked WIP folders
-    try:
-        import subprocess
-
-        tracked = set(
-            subprocess.check_output(["git", "ls-files", "--", "*.py", "*.xml"], cwd=root, text=True).splitlines()
-        )
-
-        def _included(p: Path) -> bool:
-            rel = str(p.relative_to(root))
-            return rel in tracked and "plasticos_graph_" not in rel
-    except Exception:
-
-        def _included(p: Path) -> bool:
-            return not _skip.intersection(p.parts) and "plasticos_graph_" not in str(p)
+    def _included(p: Path) -> bool:
+        return not _skip.intersection(p.parts) and "plasticos_graph_" not in str(p)
 
     py_files = [p for p in root.rglob("*.py") if _included(p)]
     xml_files = [p for p in root.rglob("*.xml") if _included(p)]
