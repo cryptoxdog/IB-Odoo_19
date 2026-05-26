@@ -1,27 +1,15 @@
+# DEPRECATED — replaced by ci.yml (unified CI Gate)
 name: Odoo Module Validation
 
 on:
-  push:
-    branches: [staging, main]
-    paths-ignore:
-      - 'plasticos_graph_engine/**'
-      - 'plasticos_graph_integration/**'
-      - 'plasticos_graph_intelligence/**'
-      - 'plasticos_graph_3d_embedding/**'
-  pull_request:
-    branches: [main, staging]
-    paths-ignore:
-      - 'plasticos_graph_engine/**'
-      - 'plasticos_graph_integration/**'
-      - 'plasticos_graph_intelligence/**'
-      - 'plasticos_graph_3d_embedding/**'
+  workflow_dispatch:  # manual only — replaced by ci.yml
 
 jobs:
   validate-manifests:
     name: Validate Module Manifests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -62,7 +50,7 @@ jobs:
     name: Check Module Dependencies
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -81,7 +69,7 @@ jobs:
     name: Validate XML Files
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -114,7 +102,7 @@ jobs:
     name: Validate Security Files
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Check ir.model.access.csv format
         run: |
