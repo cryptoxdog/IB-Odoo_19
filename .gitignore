@@ -3,7 +3,8 @@
 # ═══════════════════════════════════════════════════════════
 .DS_Store
 **/.DS_Store
-.cursor/
+.cursor/*
+!.cursor/rules/
 .cursor-commands
 .env
 .env.local
@@ -38,7 +39,6 @@ docs/*.pdf
 docs/*.png
 docs/*.jpg
 docs/*.jpeg
-docs/adr/
 l9_trace/
 odoo-enterprise/
 telemetry/
