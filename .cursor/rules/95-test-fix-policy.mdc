@@ -63,10 +63,10 @@ def setUpClass(cls):
 
 ```python
 # Odoo 18 and earlier
-product = Product.create({"name": "X", "type": "product"})  # Storable
+product = self.env["product.product"].create({"name": "X", "type": "product"})  # Storable
 
 # Odoo 19
-product = Product.create({"name": "X", "type": "consu"})  # Storable (consumable)
+product = self.env["product.product"].create({"name": "X", "type": "consu"})  # Storable (consumable)
 ```
 
 | Odoo 18 | Odoo 19 | Description |
@@ -79,7 +79,7 @@ product = Product.create({"name": "X", "type": "consu"})  # Storable (consumable
 
 ```python
 # Search for storable products (works in both Odoo 18 and 19)
-products = self.search([("type", "in", ("product", "consu"))])
+products = self.env["product.product"].search([("type", "in", ("product", "consu"))])
 ```
 
 ## Exception: Legitimate Skip Scenarios
