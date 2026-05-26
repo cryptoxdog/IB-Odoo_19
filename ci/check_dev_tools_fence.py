@@ -28,14 +28,26 @@ def main() -> int:
         if "plasticos_dev_tools" in depends:
             violations.append(str(manifest_path))
 
+    # Guard the dev_tools manifest itself — must stay fenced for production
+    dev_tools_manifest = root / "plasticos_dev_tools" / "__manifest__.py"
+    if dev_tools_manifest.exists():
+        try:
+            dt_data = ast.literal_eval(dev_tools_manifest.read_text(encoding="utf-8"))
+            if dt_data.get("auto_install") is True:
+                violations.append("plasticos_dev_tools/__manifest__.py [auto_install=True — must be False]")
+            if dt_data.get("installable") is True:
+                violations.append("plasticos_dev_tools/__manifest__.py [installable=True — must be False]")
+        except Exception:
+            pass
+
     if violations:
-        print("❌ FAIL: plasticos_dev_tools found in production module depends:")
+        print("❌ FAIL: plasticos_dev_tools production fence violations:")
         for v in violations:
             print(f"  {v}")
-        print("\nFix: Remove 'plasticos_dev_tools' from depends before go-live.")
+        print("\nFix: Remove 'plasticos_dev_tools' from depends and ensure installable=False, auto_install=False.")
         return 1
 
-    print("✅ PASS: plasticos_dev_tools is not a dependency of any production module")
+    print("✅ PASS: plasticos_dev_tools is fully fenced (not a dep of any module; installable=False, auto_install=False)")
     return 0
 
 
