@@ -115,9 +115,7 @@ class CrmLeadPlastOS(models.Model):
     def _compute_mobile_sanitized(self):
         for lead in self:
             if lead.mobile:
-                lead.mobile_sanitized = (
-                    lead._phone_format(number=lead.mobile, force_format="E164") or lead.mobile
-                )
+                lead.mobile_sanitized = lead._phone_format(number=lead.mobile, force_format="E164") or lead.mobile
             else:
                 lead.mobile_sanitized = False
 
