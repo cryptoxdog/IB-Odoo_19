@@ -1,10 +1,8 @@
+# DEPRECATED — replaced by ci.yml (unified CI Gate)
 name: Odoo Code Audit
 
 on:
-  push:
-    branches: [staging, main]
-  pull_request:
-    branches: [staging, main]
+  workflow_dispatch:  # manual only — replaced by ci.yml
 
 
 concurrency:
