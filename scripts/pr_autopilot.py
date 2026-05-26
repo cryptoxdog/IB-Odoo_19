@@ -28,8 +28,14 @@ import os
 import re
 import ssl
 import subprocess
+
+try:
+    import certifi  # type: ignore[import-untyped]
+
+    _SSL_CAFILE = certifi.where()
+except ImportError:
+    _SSL_CAFILE = None
 import sys
-import tempfile
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -53,13 +59,16 @@ SONAR_TOKEN = _env.get("SONARCLOUD_API_KEY", "")
 SONAR_PROJECT = "cryptoxdog_IB-Odoo_19"
 CODERABBIT_TOKEN = _env.get("CODERABBIT_API_KEY", "")
 
+
 # GitHub token from git credential store
 def _get_gh_token() -> str:
     try:
         result = subprocess.run(
             ["git", "credential", "fill"],
             input="url=https://github.com\n",
-            capture_output=True, text=True, cwd=REPO_ROOT
+            capture_output=True,
+            text=True,
+            cwd=REPO_ROOT,
         )
         for line in result.stdout.splitlines():
             if line.startswith("password="):
@@ -68,13 +77,16 @@ def _get_gh_token() -> str:
         pass
     return os.environ.get("GH_TOKEN", "")
 
+
 GH_TOKEN = _get_gh_token()
 
 # ── HTTP helpers ──────────────────────────────────────────────────────────────
 
-_ssl_ctx = ssl.create_default_context()
-_ssl_ctx.check_hostname = False
-_ssl_ctx.verify_mode = ssl.CERT_NONE
+
+def _make_ssl_ctx() -> ssl.SSLContext:
+    """Build a secure SSL context using certifi if available, else system defaults."""
+    ctx = ssl.create_default_context(cafile=_SSL_CAFILE)
+    return ctx
 
 
 def _http(method: str, url: str, token: str = "", data: dict | None = None) -> dict | list | str:
@@ -86,7 +98,7 @@ def _http(method: str, url: str, token: str = "", data: dict | None = None) -> d
     if data:
         req.data = json.dumps(data).encode()
     try:
-        with urllib.request.urlopen(req, context=_ssl_ctx) as r:
+        with urllib.request.urlopen(req, context=_make_ssl_ctx()) as r:
             body = r.read().decode()
             try:
                 return json.loads(body)
@@ -106,10 +118,11 @@ def sonar(path: str) -> Any:
 
 # ── Data classes ──────────────────────────────────────────────────────────────
 
+
 @dataclass
 class Issue:
-    source: str          # "ci", "sonar", "coderabbit", "github_review"
-    kind: str            # AUTO_FIX | REAL_BUG | FALSE_POS | ADVISORY
+    source: str  # "ci", "sonar", "coderabbit", "github_review"
+    kind: str  # AUTO_FIX | REAL_BUG | FALSE_POS | ADVISORY
     file: str = ""
     line: int = 0
     message: str = ""
@@ -122,6 +135,7 @@ class Issue:
 
 
 # ── Git helpers ───────────────────────────────────────────────────────────────
+
 
 def current_branch() -> str:
     r = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True, cwd=REPO_ROOT)
@@ -212,20 +226,27 @@ def get_ci_issues(branch: str) -> list[Issue]:
             # Extract relevant log lines
             excerpt_lines = []
             for line in log.splitlines():
-                if "error" in line.lower() or "failed" in line.lower() or "reformat" in line.lower() or "would" in line.lower():
+                if (
+                    "error" in line.lower()
+                    or "failed" in line.lower()
+                    or "reformat" in line.lower()
+                    or "would" in line.lower()
+                ):
                     clean = re.sub(r"^\d{4}-\d{2}-\d{2}T[\d:\.Z]+ ", "", line)
                     if clean and not clean.startswith("[command]"):
                         excerpt_lines.append(clean)
             excerpt = "\n".join(excerpt_lines[:20])
 
             kind = _classify_ci_step(step_name, excerpt)
-            issues.append(Issue(
-                source="ci",
-                kind=kind,
-                message=f"Job '{job_name}' / Step '{step_name}'\n{excerpt[:400]}",
-                rule=step_name,
-                raw={"job": job_name, "step": step_name, "log": excerpt},
-            ))
+            issues.append(
+                Issue(
+                    source="ci",
+                    kind=kind,
+                    message=f"Job '{job_name}' / Step '{step_name}'\n{excerpt[:400]}",
+                    rule=step_name,
+                    raw={"job": job_name, "step": step_name, "log": excerpt},
+                )
+            )
 
     return issues
 
@@ -235,10 +256,10 @@ def get_ci_issues(branch: str) -> list[Issue]:
 # SonarCloud rules that are false positives for this codebase
 _SONAR_FALSE_POS_RULES = {
     "python:S1192",  # Duplicate string literals — intentional in Odoo (model constants)
-    "python:S117",   # Variable naming — Odoo ORM uses PascalCase for model proxies
+    "python:S117",  # Variable naming — Odoo ORM uses PascalCase for model proxies
     "python:S3776",  # Cognitive complexity — complex Odoo methods are expected
     "python:S1135",  # TODO comments — tracked, not forgotten
-    "python:S125",   # Commented-out code — sometimes needed for Odoo patterns
+    "python:S125",  # Commented-out code — sometimes needed for Odoo patterns
 }
 
 # SonarCloud rules that indicate real bugs
@@ -278,20 +299,23 @@ def get_sonar_issues(pr_number: int | None) -> list[Issue]:
         else:
             kind = "ADVISORY"
 
-        issues.append(Issue(
-            source="sonar",
-            kind=kind,
-            file=component,
-            line=line,
-            message=f"[{severity}] {itype} {rule}: {msg}",
-            rule=rule,
-            raw=item,
-        ))
+        issues.append(
+            Issue(
+                source="sonar",
+                kind=kind,
+                file=component,
+                line=line,
+                message=f"[{severity}] {itype} {rule}: {msg}",
+                rule=rule,
+                raw=item,
+            )
+        )
 
     return issues
 
 
 # ── CodeRabbit signal ─────────────────────────────────────────────────────────
+
 
 def get_coderabbit_issues(pr_number: int | None) -> list[Issue]:
     """Get CodeRabbit review comments from GitHub PR comments."""
@@ -324,14 +348,16 @@ def get_coderabbit_issues(pr_number: int | None) -> list[Issue]:
 
         # Truncate long comments
         summary = body[:300].replace("\n", " ").strip()
-        issues.append(Issue(
-            source="coderabbit",
-            kind=kind,
-            file=path,
-            line=line,
-            message=summary,
-            raw=comment,
-        ))
+        issues.append(
+            Issue(
+                source="coderabbit",
+                kind=kind,
+                file=path,
+                line=line,
+                message=summary,
+                raw=comment,
+            )
+        )
 
     # Also check issue comments (CodeRabbit summary)
     issue_comments = gh(f"/repos/{REPO}/issues/{pr_number}/comments?per_page=50")
@@ -345,17 +371,20 @@ def get_coderabbit_issues(pr_number: int | None) -> list[Issue]:
             for line in body.splitlines():
                 line = line.strip()
                 if line.startswith(("- [ ]", "* [ ]", "🔴", "🟠", "⚠️")):
-                    issues.append(Issue(
-                        source="coderabbit",
-                        kind="REAL_BUG" if "🔴" in line else "ADVISORY",
-                        message=line[:200],
-                        raw={"comment_id": comment.get("id")},
-                    ))
+                    issues.append(
+                        Issue(
+                            source="coderabbit",
+                            kind="REAL_BUG" if "🔴" in line else "ADVISORY",
+                            message=line[:200],
+                            raw={"comment_id": comment.get("id")},
+                        )
+                    )
 
     return issues
 
 
 # ── GitHub review comments ────────────────────────────────────────────────────
+
 
 def get_review_issues(pr_number: int | None) -> list[Issue]:
     issues = []
@@ -373,17 +402,20 @@ def get_review_issues(pr_number: int | None) -> list[Issue]:
         state = review.get("state", "")
         body = review.get("body", "")
         if body and state in ("CHANGES_REQUESTED", "COMMENTED"):
-            issues.append(Issue(
-                source="github_review",
-                kind="REAL_BUG" if state == "CHANGES_REQUESTED" else "ADVISORY",
-                message=f"[{user}] {body[:300]}",
-                raw=review,
-            ))
+            issues.append(
+                Issue(
+                    source="github_review",
+                    kind="REAL_BUG" if state == "CHANGES_REQUESTED" else "ADVISORY",
+                    message=f"[{user}] {body[:300]}",
+                    raw=review,
+                )
+            )
 
     return issues
 
 
 # ── Auto-fix engine ───────────────────────────────────────────────────────────
+
 
 def apply_auto_fixes(issues: list[Issue]) -> list[str]:
     """Apply safe auto-fixes. Returns list of fix descriptions."""
@@ -393,7 +425,9 @@ def apply_auto_fixes(issues: list[Issue]) -> list[str]:
         return applied
 
     # Collect what needs fixing
-    needs_ruff = any("ruff" in i.rule.lower() or "format" in i.rule.lower() or "lint" in i.rule.lower() for i in auto_fix_issues)
+    needs_ruff = any(
+        "ruff" in i.rule.lower() or "format" in i.rule.lower() or "lint" in i.rule.lower() for i in auto_fix_issues
+    )
     needs_import_sort = any("import" in i.message.lower() or "I001" in i.message for i in auto_fix_issues)
     needs_float = any("S1244" in i.rule or "float" in i.message.lower() for i in auto_fix_issues)
 
@@ -431,23 +465,21 @@ def commit_and_push(branch: str, fix_descriptions: list[str]) -> bool:
         print("  ❌ No GitHub token — cannot push via API")
         return False
 
-    _ssl_ctx2 = ssl.create_default_context()
-    _ssl_ctx2.check_hostname = False
-    _ssl_ctx2.verify_mode = ssl.CERT_NONE
-
     def api_put(fpath: str, content: bytes, sha: str, msg: str) -> str | None:
         url = f"https://api.github.com/repos/{REPO}/contents/{fpath}"
-        data = json.dumps({
-            "message": msg,
-            "content": base64.b64encode(content).decode(),
-            "sha": sha,
-            "branch": branch,
-        }).encode()
+        data = json.dumps(
+            {
+                "message": msg,
+                "content": base64.b64encode(content).decode(),
+                "sha": sha,
+                "branch": branch,
+            }
+        ).encode()
         req = urllib.request.Request(url, method="PUT", data=data)
         req.add_header("Authorization", f"token {token}")
         req.add_header("Content-Type", "application/json")
         try:
-            with urllib.request.urlopen(req, context=_ssl_ctx2) as r:
+            with urllib.request.urlopen(req, context=_make_ssl_ctx()) as r:
                 d = json.load(r)
                 return d.get("commit", {}).get("sha", "")[:8]
         except Exception as e:
@@ -477,10 +509,11 @@ def commit_and_push(branch: str, fix_descriptions: list[str]) -> bool:
 
 # ── Report ────────────────────────────────────────────────────────────────────
 
+
 def print_report(all_issues: list[Issue], pr_number: int | None, branch: str) -> None:
     sep = "=" * 70
     print(f"\n{sep}")
-    print(f"PR AUTOPILOT REPORT")
+    print("PR AUTOPILOT REPORT")
     print(f"Branch: {branch}  |  PR: #{pr_number or 'none found'}")
     print(sep)
 
@@ -496,19 +529,22 @@ def print_report(all_issues: list[Issue], pr_number: int | None, branch: str) ->
         print(f"\n{icons[kind]} {kind} ({len(issues)})")
         print("-" * 50)
         for i in issues:
-            print(f"  [{i.source}] {i.file or ''}{':%d' % i.line if i.line else ''}")
+            print(f"  [{i.source}] {i.file or ''}{f':{i.line}' if i.line else ''}")
             for line in i.message[:300].splitlines():
                 print(f"    {line}")
 
     print(f"\n{sep}")
-    print(f"SUMMARY: {len(by_kind['REAL_BUG'])} real bugs  |  "
-          f"{len(by_kind['AUTO_FIX'])} auto-fixable  |  "
-          f"{len(by_kind['ADVISORY'])} advisory  |  "
-          f"{len(by_kind['FALSE_POS'])} false positives")
+    print(
+        f"SUMMARY: {len(by_kind['REAL_BUG'])} real bugs  |  "
+        f"{len(by_kind['AUTO_FIX'])} auto-fixable  |  "
+        f"{len(by_kind['ADVISORY'])} advisory  |  "
+        f"{len(by_kind['FALSE_POS'])} false positives"
+    )
     print(sep)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="PR Autopilot — gather all PR signals and optionally fix them")
