@@ -39,9 +39,8 @@ To run manually:
 """
 import re
 
-from odoo.tests import tagged
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-
+from odoo.tests import tagged
 
 # Match   //field[@name='foo']   or   //field[@name="foo"]
 # (also handles leading path segments like  //page/field[@name='...'])
