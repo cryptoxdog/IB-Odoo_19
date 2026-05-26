@@ -3,9 +3,8 @@
 # ═══════════════════════════════════════════════════════════
 .DS_Store
 **/.DS_Store
-.cursor/
+.cursor/*
 !.cursor/rules/
-!.cursor/rules/**
 .cursor-commands
 .env
 .env.local
