@@ -1,20 +1,8 @@
+# DEPRECATED — replaced by ci.yml (unified CI Gate)
 name: PR Gate
 
 on:
-  pull_request:
-    branches: [staging, main]
-    paths-ignore:
-      - 'plasticos_graph_engine/**'
-      - 'plasticos_graph_integration/**'
-      - 'plasticos_graph_intelligence/**'
-      - 'plasticos_graph_3d_embedding/**'
-  push:
-    branches: [staging, main]
-    paths-ignore:
-      - 'plasticos_graph_engine/**'
-      - 'plasticos_graph_integration/**'
-      - 'plasticos_graph_intelligence/**'
-      - 'plasticos_graph_3d_embedding/**'
+  workflow_dispatch:  # manual only — replaced by ci.yml
 
 concurrency:
   group: pr-gate-${{ github.ref }}
@@ -26,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
@@ -60,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Install validators
         run: sudo apt-get install -y libxml2-utils shellcheck
@@ -80,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
@@ -108,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
