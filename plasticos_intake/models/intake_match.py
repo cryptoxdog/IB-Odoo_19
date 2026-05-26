@@ -66,6 +66,17 @@ class IntakeBuyerMatch(models.Model):
         help="Buyer's typical price per lb for this material type.",
     )
 
+    # Offer link — set when action_send_offers() creates the offer for this line.
+    # Nullable FK: backwards-compatible, additive only. Enables idempotent offer
+    # creation (skip if offer_id already set) and powers offer_count on intake.
+    offer_id = fields.Many2one(
+        "plasticos.offer",
+        string="Offer",
+        index=True,
+        ondelete="set null",
+        help="Offer created from this match line. Set automatically by Send Offers.",
+    )
+
     @api.depends("buyer_id", "match_score")
     def _compute_display_name(self):
         for rec in self:
