@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -71,7 +71,7 @@ jobs:
     if: false  # Requires Odoo runtime — run on Odoo.sh only, not bare CI
     continue-on-error: true  # Odoo tests need Odoo.sh runtime
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -154,7 +154,7 @@ jobs:
           - plasticos_transaction
           - plasticos_web_leads
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -189,7 +189,7 @@ jobs:
     if: false  # Requires Odoo runtime — run on Odoo.sh only, not bare CI
     continue-on-error: true  # Odoo tests need Odoo.sh runtime
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -220,7 +220,7 @@ jobs:
     continue-on-error: true
     needs: static-checks
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -262,7 +262,7 @@ jobs:
     continue-on-error: true
     needs: static-checks
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -288,7 +288,7 @@ jobs:
     if: false  # Requires Odoo runtime — run on Odoo.sh only, not bare CI
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -326,7 +326,7 @@ jobs:
     if: false  # Requires Odoo runtime — run on Odoo.sh only, not bare CI
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -393,7 +393,7 @@ jobs:
     continue-on-error: true
     needs: coverage-report
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -438,7 +438,7 @@ jobs:
     continue-on-error: true
     needs: static-checks
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -453,7 +453,7 @@ jobs:
   ci-shield:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Bash syntax check
         run: |

@@ -883,9 +883,11 @@ class PlasticosIntake(models.Model):
                 _logger.info(
                     "Skipping match line %s — offer %s already exists",
                     match.id,
-                    match.offer_id.id,
+                    match.offer_id,
                 )
-                offers_created |= match.offer_id
+                existing = Offer.browse(match.offer_id).exists()
+                if existing:
+                    offers_created |= existing
                 continue
             offer = Offer.create(
                 {
@@ -896,7 +898,7 @@ class PlasticosIntake(models.Model):
                     "quantity_lbs": float(self.quantity_per_load_lbs or 0),
                 }
             )
-            match.offer_id = offer
+            match.offer_id = offer.id
             offers_created |= offer
 
         if not offers_created:
