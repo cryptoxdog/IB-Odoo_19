@@ -165,12 +165,47 @@ _CI_FALSE_POS_PATTERNS = [
     r"MEDIUM.*UNSCOPED",  # xpath medium warnings are advisory
 ]
 
-# Auto-fixable CI failures
-_CI_AUTO_FIX = {
-    "ruff": "ruff check --fix . && ruff format .",
-    "import": "ruff check --fix --select=I .",
-    "format": "ruff format .",
+# Gitleaks fingerprints confirmed as false positives
+_GITLEAKS_FP_FINGERPRINTS = {
+    # Makefile $$SONAR_TOKEN shell variable — not a hardcoded secret
+    "19f08514f46f1c9970ca122d0214a02a85014066:Makefile:curl-auth-user:273",
+    "19f08514f46f1c9970ca122d0214a02a85014066:Makefile:generic-api-key:274",
 }
+
+
+def _parse_gitleaks_log(log: str) -> list[dict]:
+    """Extract individual leak findings from a gitleaks log."""
+    findings: list[dict] = []
+    current: dict = {}
+    for line in log.splitlines():
+        line = line.strip()
+        if line.startswith("Finding:"):
+            if current:
+                findings.append(current)
+            current = {"finding": line.split(":", 1)[-1].strip()}
+        elif ":" in line and current:
+            key, _, val = line.partition(":")
+            key = key.strip().lower()
+            if key in ("ruleid", "file", "line", "commit", "fingerprint", "secret"):
+                current[key.replace("ruleid", "rule")] = val.strip()
+    if current:
+        findings.append(current)
+    return findings
+
+
+def _classify_gitleaks(finding: dict) -> str:
+    fp = finding.get("fingerprint", "")
+    rule = finding.get("rule", "")
+    ffile = finding.get("file", "")
+    if fp in _GITLEAKS_FP_FINGERPRINTS:
+        return "FALSE_POS"
+    # Shell variable patterns ($$VAR) in Makefile are false positives
+    if ffile == "Makefile" and rule in ("curl-auth-user", "generic-api-key"):
+        return "FALSE_POS"
+    # .env files should be gitignored — real bug if they appear
+    if ".env" in ffile:
+        return "REAL_BUG"
+    return "REAL_BUG"
 
 
 def _classify_ci_step(step_name: str, log_excerpt: str) -> str:
@@ -213,30 +248,58 @@ def get_ci_issues(branch: str) -> list[Issue]:
         job_name = job["name"]
         job_id = job["id"]
 
-        # Get log
+        # Always read FULL log — never rely on step pass/fail alone
         log_raw = gh(f"/repos/{REPO}/actions/jobs/{job_id}/logs")
         log = log_raw if isinstance(log_raw, str) else ""
 
-        # Find failed steps
+        # Secret/gitleaks step — parse every finding individually
+        is_secret_job = "secret" in job_name.lower() or "gitleaks" in log.lower()[:2000]
+        if is_secret_job:
+            findings = _parse_gitleaks_log(log)
+            for f in findings:
+                kind = _classify_gitleaks(f)
+                rule = f.get("rule", "unknown")
+                ffile = f.get("file", "")
+                fline = f.get("line", "0")
+                fp = f.get("fingerprint", "")
+                issues.append(
+                    Issue(
+                        source="ci",
+                        kind=kind,
+                        file=ffile,
+                        line=int(fline) if fline.isdigit() else 0,
+                        message=(
+                            f"[gitleaks:{rule}] {f.get('finding', '')[:100]}\n"
+                            f"Fingerprint: {fp}\n"
+                            f"Commit: {f.get('commit', '')[:12]}"
+                        ),
+                        rule=f"gitleaks:{rule}",
+                        raw=f,
+                    )
+                )
+            if not findings:
+                issues.append(
+                    Issue(
+                        source="ci",
+                        kind="REAL_BUG",
+                        message=f"Job '{job_name}' — secret scan failed, no findings parsed. Check full log.",
+                        rule="secret-scan",
+                    )
+                )
+            continue
+
+        # Non-security jobs — find failed steps and extract relevant lines
         for step in job.get("steps", []):
             if step.get("conclusion") != "failure":
                 continue
             step_name = step["name"]
-
-            # Extract relevant log lines
             excerpt_lines = []
             for line in log.splitlines():
-                if (
-                    "error" in line.lower()
-                    or "failed" in line.lower()
-                    or "reformat" in line.lower()
-                    or "would" in line.lower()
-                ):
+                if any(kw in line.lower() for kw in ("error", "failed", "reformat", "would reformat")):
                     clean = re.sub(r"^\d{4}-\d{2}-\d{2}T[\d:\.Z]+ ", "", line)
                     if clean and not clean.startswith("[command]"):
                         excerpt_lines.append(clean)
             excerpt = "\n".join(excerpt_lines[:20])
-
             kind = _classify_ci_step(step_name, excerpt)
             issues.append(
                 Issue(
