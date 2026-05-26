@@ -1263,13 +1263,21 @@ class TestRegistrySanity:
         try:
             import ast as _ast
             import pathlib as _pathlib
-            _src = (_pathlib.Path(__file__).parent.parent / "plasticos_material_profile" / "process_codes.py").read_text()
+
+            _src = (
+                _pathlib.Path(__file__).parent.parent / "plasticos_material_profile" / "process_codes.py"
+            ).read_text()
             _tree = _ast.parse(_src)
             actual = set()
             for _node in _ast.walk(_tree):
                 # Handle both annotated (PROCESS_CODES: tuple[str,...] = (...))
                 # and plain (PROCESS_CODES = (...)) assignments
-                if isinstance(_node, _ast.AnnAssign) and isinstance(_node.target, _ast.Name) and _node.target.id == "PROCESS_CODES" and _node.value:
+                if (
+                    isinstance(_node, _ast.AnnAssign)
+                    and isinstance(_node.target, _ast.Name)
+                    and _node.target.id == "PROCESS_CODES"
+                    and _node.value
+                ):
                     actual = set(_ast.literal_eval(_node.value))
                     break
                 elif isinstance(_node, _ast.Assign):
