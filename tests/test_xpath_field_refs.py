@@ -37,11 +37,11 @@ Runs automatically as part of the post-install test suite.
 To run manually:
     odoo-bin -u plasticos_base --test-tags xpath_field_refs --stop-after-init
 """
+
 import re
 
-from odoo.tests import tagged
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-
+from odoo.tests import tagged
 
 # Match   //field[@name='foo']   or   //field[@name="foo"]
 # (also handles leading path segments like  //page/field[@name='...'])
@@ -75,10 +75,16 @@ class TestXPathFieldReferences(PlasticosTestCase):
     def setUpClass(cls):
         super().setUpClass()
         # Collect all ir.ui.view records owned by a plasticos_* module
-        cls.plasticos_views = cls.env["ir.ui.view"].search([
-            ("model", "!=", False),
-            ("arch_db", "like", "xpath"),
-        ]).filtered(lambda v: cls._is_plasticos_view(v))
+        cls.plasticos_views = (
+            cls.env["ir.ui.view"]
+            .search(
+                [
+                    ("model", "!=", False),
+                    ("arch_db", "like", "xpath"),
+                ]
+            )
+            .filtered(lambda v: cls._is_plasticos_view(v))
+        )
 
     @staticmethod
     def _is_plasticos_view(view) -> bool:
@@ -120,9 +126,7 @@ class TestXPathFieldReferences(PlasticosTestCase):
                 f"\n\n{'=' * 70}\n"
                 f"INVALID XPATH FIELD REFERENCES IN PLASTICOS VIEWS\n"
                 f"{'=' * 70}\n"
-                f"Found {len(errors)} broken XPath field reference(s):\n\n"
-                + "\n".join(errors)
-                + f"\n{'=' * 70}\n"
+                f"Found {len(errors)} broken XPath field reference(s):\n\n" + "\n".join(errors) + f"\n{'=' * 70}\n"
                 f"Fix: verify the field name is correct and exists on the model.\n"
                 f"For external views (purchase, sale, etc.), check the parent\n"
                 f"view's arch to confirm the field is actually there.\n"

@@ -803,19 +803,49 @@ class EnumUsage(NamedTuple):
 
 def _extract_selection_options_from_source(src: str, filepath: str):
     """Parse Python source, find fields.Selection([...]) calls,
-    extract (key, label) tuples. Returns {field_name: set(keys)}."""
+    extract (key, label) tuples. Returns {field_name: set(keys)}.
+
+    Handles both inline lists and module-level constant references:
+      # Inline (always worked):
+      state = fields.Selection([("draft", "Draft"), ...])
+
+      # Constant reference (now also resolved):
+      MY_CHOICES = [("openai", "OpenAI"), ("anthropic", "Anthropic")]
+      provider = fields.Selection(MY_CHOICES, ...)
+    """
 
     field_options: dict[str, set[str]] = defaultdict(set)
     all_options: set[str] = set()
     sources: list[EnumSource] = []
 
-    # Pattern: field_name = fields.Selection([(key, label), ...], ...)
-    # We use AST for reliable extraction.
     try:
         tree = ast.parse(src, filename=filepath)
     except SyntaxError:
         return field_options, all_options, sources
 
+    # Pass 1: collect module-level list-of-tuples constants (Selection registries)
+    constants: dict[str, list[str]] = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign):
+            continue
+        if len(node.targets) != 1:
+            continue
+        target = node.targets[0]
+        if not isinstance(target, ast.Name):
+            continue
+        val = node.value
+        if not isinstance(val, ast.List):
+            continue
+        keys: list[str] = []
+        for elt in val.elts:
+            if isinstance(elt, ast.Tuple) and len(elt.elts) >= 2:
+                k = elt.elts[0]
+                if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                    keys.append(k.value)
+        if keys:
+            constants[target.id] = keys
+
+    # Pass 2: find fields.Selection(...) and resolve inline list or variable ref
     for node in ast.walk(tree):
         if not isinstance(node, ast.Assign):
             continue
@@ -826,35 +856,39 @@ def _extract_selection_options_from_source(src: str, filepath: str):
             continue
         field_name = target.id
 
-        # Check if RHS is fields.Selection(...)
         call = node.value
         if not isinstance(call, ast.Call):
             continue
         func = call.func
         if not (isinstance(func, ast.Attribute) and func.attr == "Selection"):
             continue
-
-        # First positional arg should be a list of tuples
         if not call.args:
             continue
-        selection_list = call.args[0]
-        if not isinstance(selection_list, ast.List):
-            continue
 
-        for elt in selection_list.elts:
-            if isinstance(elt, ast.Tuple) and len(elt.elts) >= 2:
-                key_node = elt.elts[0]
-                if isinstance(key_node, ast.Constant) and isinstance(key_node.value, str):
-                    key = key_node.value
-                    field_options[field_name].add(key)
-                    all_options.add(key)
-                    sources.append(
-                        EnumSource(
-                            value=key,
-                            source_file=filepath,
-                            source_type="selection",
-                        )
-                    )
+        selection_arg = call.args[0]
+        resolved_keys: list[str] = []
+
+        if isinstance(selection_arg, ast.List):
+            # Inline list literal
+            for elt in selection_arg.elts:
+                if isinstance(elt, ast.Tuple) and len(elt.elts) >= 2:
+                    k = elt.elts[0]
+                    if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                        resolved_keys.append(k.value)
+        elif isinstance(selection_arg, ast.Name):
+            # Variable reference — resolve from constants collected in pass 1
+            resolved_keys = constants.get(selection_arg.id, [])
+
+        for key in resolved_keys:
+            field_options[field_name].add(key)
+            all_options.add(key)
+            sources.append(
+                EnumSource(
+                    value=key,
+                    source_file=filepath,
+                    source_type="selection",
+                )
+            )
 
     return field_options, all_options, sources
 

@@ -75,9 +75,7 @@ def find_circular_deps(deps: dict[str, set[str]]) -> list[list[str]]:
     """
     our_modules = set(deps.keys())
     # Build adjacency restricted to our modules only
-    adj: dict[str, set[str]] = {
-        m: {d for d in deps[m] if d in our_modules} for m in our_modules
-    }
+    adj: dict[str, set[str]] = {m: {d for d in deps[m] if d in our_modules} for m in our_modules}
 
     index_counter = [0]
     stack: list[str] = []

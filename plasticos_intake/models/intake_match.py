@@ -66,6 +66,17 @@ class IntakeBuyerMatch(models.Model):
         help="Buyer's typical price per lb for this material type.",
     )
 
+    # Offer link — set when action_send_offers() creates the offer for this line.
+    # Stored as Integer (not Many2one) to avoid a circular ORM dependency:
+    # plasticos_intake is Layer 2; plasticos_offer is Layer 3. A Many2one
+    # would force a hard dep declaration that violates layer isolation.
+    # Same pattern as source_lead_id on plasticos.intake.
+    offer_id = fields.Integer(
+        string="Offer ID",
+        index=True,
+        help="ID of the plasticos.offer created from this match line. Set automatically by Send Offers.",
+    )
+
     @api.depends("buyer_id", "match_score")
     def _compute_display_name(self):
         for rec in self:

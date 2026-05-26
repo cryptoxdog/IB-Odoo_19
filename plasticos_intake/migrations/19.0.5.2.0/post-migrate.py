@@ -13,9 +13,7 @@ def migrate(cr, version):
 
     Idempotent: only touches rows where packaging_type_id IS NULL.
     """
-    _logger.info(
-        "[5.2.0 migration] Checking for old packaging relation table..."
-    )
+    _logger.info("[5.2.0 migration] Checking for old packaging relation table...")
 
     # Guard: relation table may not exist on fresh installs
     cr.execute("""
@@ -25,15 +23,11 @@ def migrate(cr, version):
         )
     """)
     if not cr.fetchone()[0]:
-        _logger.info(
-            "[5.2.0 migration] plasticos_intake_packaging_rel not found — "
-            "fresh install, skipping backfill"
-        )
+        _logger.info("[5.2.0 migration] plasticos_intake_packaging_rel not found — fresh install, skipping backfill")
         return
 
     _logger.info(
-        "[5.2.0 migration] Backfilling packaging_type_id from "
-        "plasticos_intake_packaging_rel (taking MIN per intake)"
+        "[5.2.0 migration] Backfilling packaging_type_id from plasticos_intake_packaging_rel (taking MIN per intake)"
     )
 
     cr.execute("""
@@ -48,9 +42,7 @@ def migrate(cr, version):
           AND pi.packaging_type_id IS NULL
     """)
 
-    cr.execute(
-        "SELECT COUNT(*) FROM plasticos_intake WHERE packaging_type_id IS NOT NULL"
-    )
+    cr.execute("SELECT COUNT(*) FROM plasticos_intake WHERE packaging_type_id IS NOT NULL")
     total = cr.fetchone()[0]
     _logger.info(
         "[5.2.0 migration] packaging_type_id backfill complete: %d intakes populated",
