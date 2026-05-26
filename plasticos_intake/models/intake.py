@@ -97,7 +97,7 @@ class PlasticosIntake(models.Model):
         help="How this lead/intake was acquired. Auto-syncs to partner when set.",
     )
 
-    # ── CRM Lead Link (Phase 5) ────────────────────────────────
+    # ── CRM Lead Link (Phase 5) ────────────────────────────
     crm_lead_id = fields.Many2one(
         "crm.lead",
         string="CRM Lead",
@@ -234,6 +234,39 @@ class PlasticosIntake(models.Model):
         string="Material Attributes",
         help="Condition attributes: Clean, Metalized, With Metal, Printed, etc.",
     )
+
+    # ─── Computed attribute flags (for matching engine) ────────────────────────────
+    # Derived from material_attribute_ids and stored for indexed access by the
+    # buyer matching engine (matcher.py). Do NOT set these directly; use the
+    # Many2many picker. store=True adds indexed PG columns that matcher.py
+    # can query without an ORM dependency chain.
+
+    has_metal = fields.Boolean(
+        string="Has Metal",
+        compute="_compute_material_flags",
+        store=True,
+        help="Derived: True when 'With Metal' attribute is in material_attribute_ids.",
+    )
+    is_metalized = fields.Boolean(
+        string="Metalized",
+        compute="_compute_material_flags",
+        store=True,
+        help="Derived: True when 'Metalized' attribute is in material_attribute_ids.",
+    )
+    has_fr = fields.Boolean(
+        string="Flame Retardant",
+        compute="_compute_material_flags",
+        store=True,
+        help="Derived: True when 'Flame Retardant' attribute is in material_attribute_ids.",
+    )
+
+    @api.depends("material_attribute_ids")
+    def _compute_material_flags(self):
+        for rec in self:
+            codes = set(rec.material_attribute_ids.mapped("code"))
+            rec.has_metal = "WITH_METAL" in codes
+            rec.is_metalized = "METALIZED" in codes
+            rec.has_fr = "FLAME_RETARDANT" in codes
 
     # ═════════════════════════════════════════════════════════
     # Observed Quality (Instance-Level)
