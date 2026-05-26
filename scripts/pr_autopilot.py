@@ -69,7 +69,19 @@ SONAR_PROJECT = "cryptoxdog_IB-Odoo_19"
 
 
 def _make_ssl() -> ssl.SSLContext:
-    return ssl.create_default_context(cafile=_SSL_CAFILE)
+    ctx = ssl.create_default_context(cafile=_SSL_CAFILE)
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2  # enforce TLS 1.2+ explicitly
+    return ctx
+
+
+_SAFE_BRANCH_RE = re.compile(r"^[a-zA-Z0-9/_.\-]+$")
+
+
+def _safe_ref(name: str) -> str:
+    """Validate branch/ref name before embedding in API URL paths."""
+    if not _SAFE_BRANCH_RE.match(name):
+        raise ValueError(f"Unsafe branch name rejected: {name!r}")
+    return name
 
 
 def _get_gh_token() -> str:
@@ -511,6 +523,200 @@ def get_coderabbit_issues(pr_number: int | None) -> list[Issue]:
     return issues
 
 
+# ── Gemini Code Assist reviews ───────────────────────────────────────────────
+
+_GEMINI_BOT_NAMES = {"gemini-code-assist[bot]", "gemini-code-review[bot]", "gemini-code-assist"}
+
+_SUGGESTION_RE = re.compile(r"```suggestion\r?\n(.*?)```", re.DOTALL)
+
+
+def _extract_suggestions(body: str) -> list[str]:
+    """Extract code suggestion blocks from a Gemini/GitHub review comment."""
+    return [m.group(1) for m in _SUGGESTION_RE.finditer(body)]
+
+
+def _suggestion_already_applied(suggestion: str, current_content: str) -> bool:
+    """Check if the suggested code is already present in the current file content."""
+    # Normalize whitespace for comparison
+    norm_suggestion = "\n".join(line.rstrip() for line in suggestion.strip().splitlines())
+    norm_current = "\n".join(line.rstrip() for line in current_content.splitlines())
+    return norm_suggestion in norm_current
+
+
+def _apply_suggestion(
+    original_content: str,
+    suggestion: str,
+    start_line: int,
+    end_line: int,
+) -> str | None:
+    """Replace lines [start_line, end_line] (1-indexed, inclusive) with suggestion."""
+    lines = original_content.splitlines(keepends=True)
+    if start_line < 1 or end_line > len(lines):
+        return None
+    new_lines = lines[: start_line - 1] + [suggestion.rstrip("\n") + "\n"] + lines[end_line:]
+    return "".join(new_lines)
+
+
+def get_gemini_issues(pr_number: int | None, branch: str) -> list[Issue]:
+    """Read Gemini Code Assist review comments, classify each, and check if
+    suggested code fixes are already applied or need to be applied."""
+    if not pr_number:
+        return []
+
+    issues: list[Issue] = []
+
+    # 1. Read all inline review comments from Gemini
+    comments = gh(f"/repos/{REPO}/pulls/{pr_number}/comments?per_page=100")
+    if not isinstance(comments, list):
+        return []
+
+    gemini_comments = [
+        c
+        for c in comments
+        if c.get("user", {}).get("login", "").lower() in _GEMINI_BOT_NAMES
+        or "gemini" in c.get("user", {}).get("login", "").lower()
+    ]
+
+    if not gemini_comments:
+        return []
+
+    print(f"  → Gemini Code Assist: {len(gemini_comments)} inline comment(s)")
+
+    # Cache file contents to avoid re-fetching
+    _file_cache: dict[str, str] = {}
+
+    def get_file(fpath: str) -> str:
+        if fpath not in _file_cache:
+            resp = gh(f"/repos/{REPO}/contents/{fpath}?ref={branch}")
+            if "_error" in resp:
+                _file_cache[fpath] = ""
+            else:
+                import base64
+
+                _file_cache[fpath] = base64.b64decode(resp["content"]).decode()
+        return _file_cache[fpath]
+
+    for c in gemini_comments:
+        body = c.get("body", "")
+        fpath = c.get("path", "")
+        start_line = c.get("start_line") or c.get("original_line") or c.get("line") or 0
+        end_line = c.get("line") or c.get("original_line") or start_line
+        severity = "high" if "high" in body.lower()[:200] else "medium"
+
+        suggestions = _extract_suggestions(body)
+        current = get_file(fpath) if fpath else ""
+
+        # Determine if already applied
+        already_applied = any(_suggestion_already_applied(s, current) for s in suggestions) if suggestions else False
+
+        if already_applied:
+            kind = "FALSE_POS"
+            msg_prefix = "[already applied] "
+        else:
+            # Classify by severity signal in body
+            if severity == "high" or any(
+                w in body.lower() for w in ("flaw", "bug", "incorrect", "broken", "fail", "error", "security")
+            ):
+                kind = "REAL_BUG"
+            else:
+                kind = "ADVISORY"
+            msg_prefix = ""
+
+        summary = body.split("\n\n")[0].replace("![high]", "").replace("![medium]", "").strip()
+        summary = re.sub(r"!\[.*?\]\(.*?\)", "", summary).strip()
+
+        issues.append(
+            Issue(
+                source="gemini",
+                kind=kind,
+                file=fpath,
+                line=start_line,
+                message=f"{msg_prefix}{summary[:200]}",
+                rule=f"gemini:{severity}",
+                raw={
+                    "comment_id": c.get("id"),
+                    "suggestions": suggestions,
+                    "start_line": start_line,
+                    "end_line": end_line,
+                    "file": fpath,
+                },
+            )
+        )
+
+    return issues
+
+
+def apply_gemini_fixes(issues: list[Issue], branch: str) -> list[str]:
+    """Apply REAL_BUG Gemini suggestions that have exactly one unambiguous fix."""
+    applied: list[str] = []
+    gemini_bugs = [i for i in issues if i.source == "gemini" and i.kind == "REAL_BUG"]
+    if not gemini_bugs:
+        return applied
+
+    import base64
+
+    _file_cache: dict[str, str] = {}
+    _file_sha: dict[str, str] = {}
+
+    def load_file(fpath: str) -> tuple[str, str]:
+        if fpath not in _file_cache:
+            resp = gh(f"/repos/{REPO}/contents/{fpath}?ref={branch}")
+            if "_error" in resp:
+                _file_cache[fpath] = ""
+                _file_sha[fpath] = ""
+            else:
+                _file_cache[fpath] = base64.b64decode(resp["content"]).decode()
+                _file_sha[fpath] = resp["sha"]
+        return _file_cache[fpath], _file_sha[fpath]
+
+    for issue in gemini_bugs:
+        raw = issue.raw
+        suggestions = raw.get("suggestions", [])
+        fpath = raw.get("file", "")
+        start_line = raw.get("start_line", 0)
+        end_line = raw.get("end_line", 0)
+
+        if not suggestions or not fpath or not start_line:
+            print(f"  ⚠  Gemini fix skipped (no suggestion/file/line): {issue.message[:60]}")
+            continue
+
+        if len(suggestions) > 1:
+            print(f"  ⚠  Gemini fix skipped (ambiguous — {len(suggestions)} suggestions): {fpath}:{start_line}")
+            continue
+
+        content, file_sha = load_file(fpath)
+        if not content:
+            print(f"  ⚠  Could not load {fpath}")
+            continue
+
+        suggestion = suggestions[0]
+
+        # Final check: already applied?
+        if _suggestion_already_applied(suggestion, content):
+            print(f"  ✅ Already applied: {fpath}:{start_line}")
+            continue
+
+        new_content = _apply_suggestion(content, suggestion, start_line, end_line)
+        if new_content is None:
+            print(f"  ⚠  Could not apply suggestion at {fpath}:{start_line}-{end_line}")
+            continue
+
+        # Update cache
+        _file_cache[fpath] = new_content
+        print(f"  🔧 Applied Gemini fix: {fpath}:{start_line}-{end_line}")
+        applied.append(f"Apply Gemini suggestion: {fpath}:{start_line} — {issue.message[:60]}")
+
+    # Write changed files back locally so atomic_push can pick them up
+    root = REPO_ROOT
+    for fpath, new_content in _file_cache.items():
+        local_path = root / fpath
+        if local_path.exists() and local_path.read_text() != new_content:
+            local_path.write_text(new_content)
+            print(f"  📝 Written locally: {fpath}")
+
+    return applied
+
+
 # ── GitHub reviews ────────────────────────────────────────────────────────────
 
 
@@ -604,7 +810,7 @@ def atomic_push(branch: str, commit_msg: str) -> bool:
             return json.load(resp)
 
     # 1. Get current branch HEAD commit
-    ref = api("GET", f"/repos/{REPO}/git/ref/heads/{branch}")
+    ref = api("GET", f"/repos/{REPO}/git/ref/heads/{_safe_ref(branch)}")
     head_sha = ref["object"]["sha"]
 
     # 2. Get the tree SHA of HEAD
@@ -652,7 +858,7 @@ def atomic_push(branch: str, commit_msg: str) -> bool:
     # 6. Update branch reference
     api(
         "PATCH",
-        f"/repos/{REPO}/git/refs/heads/{branch}",
+        f"/repos/{REPO}/git/refs/heads/{_safe_ref(branch)}",
         {"sha": new_commit["sha"], "force": False},
     )
 
@@ -742,7 +948,10 @@ def main() -> int:
     print("  [4/4] GitHub PR reviews ...")
     review_issues = get_review_issues(pr_number)
 
-    all_issues = ci_issues + sonar_issues + cr_issues + review_issues
+    print("  [5/5] Gemini Code Assist reviews ...")
+    gemini_issues = get_gemini_issues(pr_number, branch)
+
+    all_issues = ci_issues + sonar_issues + cr_issues + review_issues + gemini_issues
 
     print_report(all_issues, pr_number, branch)
 
@@ -760,6 +969,10 @@ def main() -> int:
 
     print("\n🔧 Applying ALL auto-fixes ...")
     fix_descriptions = apply_all_auto_fixes(all_issues)
+
+    print("\n🤖 Applying Gemini Code Assist fixes ...")
+    gemini_fixes = apply_gemini_fixes(all_issues, branch)
+    fix_descriptions.extend(gemini_fixes)
 
     print("\n🔒 Running make pr-check (must pass before push) ...")
     check = subprocess.run(["make", "pr-check"], cwd=REPO_ROOT)
