@@ -1,57 +1,95 @@
 ---
-description: Use GitHub API with SSH-derived token for git commits when local git checkout/mmap fails (Dropbox repo constraint)
+description: Pushing to remote — always use make push to enforce pre-push pipeline. GitHub API is a last resort only when git is broken (Dropbox mmap), and ONLY after make pr-check passes.
 alwaysApply: true
 ---
 
-# GitHub API Commit Pattern — PlasticOS
+# Pushing Code — PlasticOS
 
-This repo lives inside Dropbox. Local `git checkout`, `git mktree`, and pack-file operations frequently fail with `mmap failed: Operation timed out` or SIGBUS (signal 10). When this happens, use the GitHub API directly.
-
-## Get the Token First
+## ALWAYS use `make push` — not raw `git push`, not the API
 
 ```bash
-GH_TOKEN=$(echo "url=https://github.com" | git credential fill | grep password | cut -d= -f2)
+make push            # push current branch (runs pr-check first)
+make push b=Staging  # push to a specific branch
 ```
 
-## Commit a File Change via API
+`make push` = `make pr-check` → `git push`. The pre-push pipeline is **non-negotiable** before any code lands on the remote. It runs: ruff lint + format, XML validation, module wiring, circular deps, cron invariants, Odoo 19 patterns, semgrep, pipeline_v2 guard.
+
+**Never bypass this with raw `git push` or the GitHub API when adding/modifying code.**
+
+---
+
+## GitHub API — Last Resort Only (Dropbox mmap failure)
+
+The repo lives inside Dropbox. When `git push` itself fails with `mmap failed: Operation timed out` or SIGBUS (signal 10), use the API as a last resort to push commits that are already written and validated.
+
+**Mandatory before any API push: `make pr-check` must pass first.**
 
 ```bash
-# 1. Get current file SHA on the target branch
-FILE_SHA=$(curl -s "https://api.github.com/repos/cryptoxdog/IB-Odoo_19/contents/PATH/TO/FILE?ref=BRANCH" \
-  | python3 -c "import json,sys; print(json.load(sys.stdin)['sha'])")
-
-# 2. Prepare base64-encoded new content
-NEW_CONTENT=$(python3 -c "
-import base64
-content = open('PATH/TO/FILE').read()
-print(base64.b64encode(content.encode()).decode())
-")
-
-# 3. Commit via API
-curl -s -X PUT "https://api.github.com/repos/cryptoxdog/IB-Odoo_19/contents/PATH/TO/FILE" \
-  -H "Authorization: token $GH_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{\"message\":\"fix: description\",\"content\":\"$NEW_CONTENT\",\"sha\":\"$FILE_SHA\",\"branch\":\"BRANCH\"}" \
-  | python3 -c "import json,sys; d=json.load(sys.stdin); print('OK:', d.get('commit',{}).get('sha','ERROR'), d.get('message',''))"
+make pr-check   # MUST pass before touching the API
 ```
 
-## When to Use This
+Only then use the API to push:
 
-- `git checkout <branch>` fails with mmap/SIGBUS
-- `git mktree` or `git commit-tree` times out
-- `index.lock` keeps reappearing (Dropbox interference)
-- Branching to a remote branch without local checkout
+### Python API Helper (avoids SSL ctx shadowing bug)
 
-## Permanent Fix (do when convenient)
+```python
+import json, base64, ssl, urllib.request
 
-Move repo out of Dropbox — the git object store should never be inside Dropbox:
+token = "gho_..."  # from: echo "url=https://github.com" | git credential fill | grep password | cut -d= -f2
+repo = "cryptoxdog/IB-Odoo_19"
+
+# IMPORTANT: name SSL context _ssl_ctx — never 'ctx' (shadows return values → AttributeError)
+_ssl_ctx = ssl.create_default_context()
+_ssl_ctx.check_hostname = False
+_ssl_ctx.verify_mode = ssl.CERT_NONE
+
+def gh(method, path, data=None):
+    req = urllib.request.Request(f"https://api.github.com{path}", method=method)
+    req.add_header("Authorization", f"token {token}")
+    req.add_header("Content-Type", "application/json")
+    if data:
+        req.data = json.dumps(data).encode()
+    with urllib.request.urlopen(req, context=_ssl_ctx) as r:
+        return json.load(r)
+
+d = gh("GET", f"/repos/{repo}/contents/path/to/file?ref=branch")
+result = gh("PUT", f"/repos/{repo}/contents/path/to/file", {
+    "message": "fix: description",
+    "content": base64.b64encode(open("path/to/file", "rb").read()).decode(),
+    "sha": d["sha"],
+    "branch": "branch"
+})
+print("OK:", result["commit"]["sha"][:8])
+```
+
+### When the API is acceptable
+
+- `git push` itself crashes with mmap/SIGBUS after `make pr-check` already passed
+- Switching branches via `git checkout` is broken (index.lock / mmap timeout)
+- Committing a formatting fix where `make pr-check` was run in the same session
+
+### When the API is NOT acceptable
+
+- Skipping `make pr-check` to "save time"
+- Pushing speculative/exploratory code without validation
+- Any code change that hasn't been linted and format-checked
+
+---
+
+## Permanent Fix
+
+Move the repo out of Dropbox — the git object store should never live inside Dropbox:
+
 ```bash
 mv "/Users/macm2/Library/CloudStorage/Dropbox/Repo_Dropbox_IB/IB-Odoo_19" ~/dev/IB-Odoo_19
 ```
-GitHub is already the source of truth. Dropbox sync of `.git/` is redundant and harmful.
+
+GitHub is the source of truth. Dropbox sync of `.git/` is redundant and harmful.
+
+---
 
 ## Branch Model
 
-- **`Staging`** = dev branch (all PRs target this)
-- **`Production`** = prod/main (promote from Staging when CI is green)
-- Never merge feature branches directly to `Production`
+- **`Staging`** = dev branch — all PRs target this
+- **`Production`** = prod/main — promote from Staging when CI is green
+- Never push feature branches directly to `Production`
