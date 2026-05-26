@@ -1,0 +1,208 @@
+# .github/workflows/ci.yml
+# PlasticOS CI Gate — single gating workflow for all pure-Python checks
+# Replaces: test-quality.yml, odoo-audit.yml, module-check.yml, pr-gate.yml
+#
+# Tier 1 (lint)       → Tier 2 (static analysis) → Tier 3 (pure-python tests)
+# All three tiers run on bare GitHub Actions, no Odoo runtime required.
+# Odoo ORM tests run on Odoo.sh deploy hooks (not here).
+
+name: CI Gate
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── TIER 1: Lint & format ─────────────────────────────────────────────────
+  lint:
+    name: Ruff Lint & Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install ruff==0.14.11
+
+      - name: Ruff lint
+        run: ruff check . --output-format=github
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+  # ── TIER 2: Static analysis ───────────────────────────────────────────────
+  static-checks:
+    name: Static Analysis
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install lxml
+
+      - name: XML syntax
+        run: |
+          find . -name "*.xml" ! -path "./.git/*" ! -path "./.venv/*" | \
+            xargs --no-run-if-empty python3 -c "
+          import sys; from lxml import etree
+          errors=0
+          for f in sys.argv[1:]:
+              try: etree.parse(f)
+              except Exception as e: print(f'ERROR {f}: {e}'); errors+=1
+          sys.exit(errors)" -- || exit 1
+
+      - name: Bash syntax
+        run: |
+          find . -name "*.sh" ! -path "./.git/*" | while read f; do
+            bash -n "$f" || (echo "Syntax error in $f" && exit 1)
+          done
+
+      - name: Manifest syntax
+        run: |
+          ERRORS=0
+          for m in $(find . -name "__manifest__.py" ! -path "./.venv/*"); do
+            python3 -c "exec(open('$m').read())" 2>/dev/null || \
+              { echo "ERROR: $m"; ERRORS=$((ERRORS+1)); }
+          done
+          [ $ERRORS -eq 0 ] || exit 1
+
+      - name: Odoo 19 pattern check
+        run: chmod +x scripts/check_odoo_patterns.sh && ./scripts/check_odoo_patterns.sh || true
+
+      - name: Circular dependency check
+        run: python3 ci/check_circular_deps.py
+
+      - name: Module dependency wiring
+        run: python3 scripts/check_module_wiring.py
+
+      - name: Orphan model reference check
+        run: python3 ci/check_orphan_model_refs.py
+
+      - name: XPath stability check
+        run: python3 ci/check_xpath_stability.py
+
+      - name: Model inheritance patterns
+        run: python3 ci/check_model_inheritance.py
+
+      - name: ORM integrity check
+        run: python3 ci/check_orm_integrity.py
+
+      - name: Odoo 19 hook patterns
+        run: python3 ci/check_odoo19_hooks.py
+
+      - name: Odoo 19 XML patterns
+        run: python3 ci/check_odoo19_xml.py
+
+      - name: Dev tools fence
+        run: python3 ci/check_dev_tools_fence.py
+
+      - name: Pipeline v2 guard
+        run: python3 ci/check_pipeline_v2_guard.py
+
+      - name: Odoo anti-patterns
+        run: python3 ci/check_odoo_antipatterns.py || true
+
+      - name: ACL completeness
+        run: python3 ci/check_acl_completeness.py || true
+
+      - name: Package init wiring
+        run: python3 ci/check_package_init.py || true
+
+      - name: Field integrity
+        run: python3 ci/check_field_integrity.py || true
+
+      - name: State guard bypass check
+        run: python3 ci/check_state_guard_bypass.py || true
+
+      - name: Weak test check
+        run: python3 ci/weak_test_fixer.py || true
+
+  # ── TIER 3: Pure-Python tests ─────────────────────────────────────────────
+  pure-python-tests:
+    name: Pure Python Tests
+    needs: static-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install pytest==8.3.5
+
+      - name: Repo dependency integrity
+        run: python3 -m pytest tests/test_repo_dependency_integrity.py -v
+
+      - name: Odoo 19 compat tests
+        run: python3 -m pytest tests/test_odoo19_compat.py -v --tb=short
+
+      - name: Cypher schema alignment
+        run: python3 -m pytest tests/test_cypher_schema_alignment.py -v --tb=short
+
+      - name: Enum & process alignment
+        run: |
+          python3 -m pytest \
+            tests/test_phantom_enum_values.py \
+            tests/test_process_enum_alignment.py \
+            -v --tb=short
+
+      - name: Cron invariants
+        run: python3 -m pytest tests/test_cron_invariants.py -v --tb=short
+
+      - name: Triage pipeline tests
+        run: python3 -m pytest tests/test_triage_pipeline.py -v --tb=short
+
+      - name: Wiring & gap tests
+        run: |
+          python3 -m pytest \
+            tests/test_wiring_gap2.py \
+            tests/test_gap_fixes.py \
+            -v --tb=short
+
+      - name: XPath field ref tests
+        run: python3 -m pytest tests/test_xpath_field_refs.py -v --tb=short
+
+      - name: Contract & bridge tests
+        run: |
+          python3 -m pytest \
+            tests/test_bridge_contracts.py \
+            tests/test_bridge_models.py \
+            tests/test_action_methods.py \
+            tests/test_error_handling.py \
+            tests/test_golden_flows.py \
+            tests/test_ci_check_odoo19_xml.py \
+            tests/test_odoo_test_setup_validity.py \
+            -v --tb=short
+
+  # ── SECURITY: Runs in parallel, advisory ──────────────────────────────────
+  secret-scan:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── ODOO RUNTIME: Intentionally disabled — use Odoo.sh deploy hooks ───────
+  # Tests in this category: test_constraint_validation.py, test_security_acl.py,
+  # test_state_machines.py, test_integration_flows.py, test_performance.py,
+  # test_onchange_*.py, test_cron_*.py (Odoo-variant), module-level tests
+  # Trigger: Odoo.sh post-deploy hook → pytest plasticos_*/tests/ -v
