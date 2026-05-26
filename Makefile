@@ -10,7 +10,8 @@
         up down restart logs logs-error shell odoo-shell \
         update update-all rebuild backup \
         test test-module \
-        pr-check push sonar
+        pr-check push sonar \
+        pr-autopilot pr-fix
 
 # ── Load .env if present ──────────────────────────────────────────────────────
 -include .env
@@ -80,6 +81,8 @@ help:
 	@echo "    make pr-check         REQUIRED before any push: audit-quick + semgrep + pipeline-guard"
 	@echo "    make push             safe push: runs pr-check first, then git push current branch"
 	@echo "    make push b=Staging   safe push to a specific branch"
+	@echo "    make pr-autopilot     scan all PR signals (CI, SonarCloud, CodeRabbit) — report only"
+	@echo "    make pr-fix           scan + auto-fix safe issues + push back to branch (re-triggers CI)"
 	@echo "    make sonar            show SonarCloud quality gate status"
 	@echo ""
 
@@ -265,6 +268,17 @@ push: pr-check
 	echo "→ Pushing $$BRANCH → origin/$$TARGET ..."; \
 	git push origin HEAD:$$TARGET && echo "✅ Push complete" || \
 	echo "⚠️  git push failed (Dropbox mmap issue?). Run the API push instead:\n   See .cursor/rules/70-github-api-commit.mdc"
+
+# Scan PR for all CI/SonarCloud/CodeRabbit issues — report only, no changes
+pr-autopilot:
+	@echo "→ PR Autopilot — scanning all signals (CI, SonarCloud, CodeRabbit, reviews)..."
+	python3 scripts/pr_autopilot.py
+
+# Scan + auto-fix all safe issues + push back to branch (triggers CI re-run)
+# Runs make pr-check before pushing — never bypasses the pre-push pipeline
+pr-fix:
+	@echo "→ PR Autopilot — scanning + fixing + pushing..."
+	python3 scripts/pr_autopilot.py --fix
 
 sonar:
 	@echo "→ SonarCloud quality gate status for cryptoxdog_IB-Odoo_19..."
