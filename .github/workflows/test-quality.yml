@@ -1,7 +1,9 @@
+# DEPRECATED — replaced by ci.yml (unified CI Gate)
 # .github/workflows/test-quality.yml
 name: Test Quality Gate
 
-on: [push, pull_request]
+on:
+  workflow_dispatch:  # manual only — replaced by ci.yml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
