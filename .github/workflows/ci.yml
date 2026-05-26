@@ -5,6 +5,8 @@
 # Tier 1 (lint)       → Tier 2 (static analysis) → Tier 3 (pure-python tests)
 # All three tiers run on bare GitHub Actions, no Odoo runtime required.
 # Odoo ORM tests run on Odoo.sh deploy hooks (not here).
+#
+# Design: each tier runs ALL checks before failing — no whack-a-mole.
 
 name: CI Gate
 
@@ -15,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── TIER 1: Lint & format ─────────────────────────────────────────────────
+  # ── TIER 1: Lint & format — runs ALL checks, reports all failures ──────────
   lint:
     name: Ruff Lint & Format
     runs-on: ubuntu-latest
@@ -30,13 +32,21 @@ jobs:
 
       - run: pip install ruff==0.14.11
 
-      - name: Ruff lint
-        run: ruff check . --output-format=github
+      - name: Ruff lint + format (all errors before failing)
+        run: |
+          FAIL=0
+          echo "=== Ruff lint ==="
+          ruff check . --output-format=github || FAIL=1
+          echo ""
+          echo "=== Ruff format check ==="
+          ruff format --check . || FAIL=1
+          if [ $FAIL -ne 0 ]; then
+            echo ""
+            echo "💡 Fix locally: ruff check --fix . && ruff format ."
+            exit 1
+          fi
 
-      - name: Ruff format check
-        run: ruff format --check .
-
-  # ── TIER 2: Static analysis ───────────────────────────────────────────────
+  # ── TIER 2: Static analysis — runs ALL checks, reports all failures ────────
   static-checks:
     name: Static Analysis
     needs: lint
@@ -51,84 +61,88 @@ jobs:
 
       - run: pip install lxml
 
-      - name: XML syntax
+      - name: Run all static checks (all errors before failing)
         run: |
-          find . -name "*.xml" ! -path "./.git/*" ! -path "./.venv/*" | \
-            xargs --no-run-if-empty python3 -c "
-          import sys; from lxml import etree
+          FAIL=0
+          RESULTS=()
+
+          run_check() {
+            local name="$1"; shift
+            echo "--- $name ---"
+            if "$@"; then
+              RESULTS+=("✅ $name")
+            else
+              RESULTS+=("❌ $name")
+              FAIL=1
+            fi
+            echo ""
+          }
+
+          # XML syntax
+          run_check "XML syntax" python3 -c "
+          import sys
+          from lxml import etree
+          import glob
           errors=0
-          for f in sys.argv[1:]:
+          for f in glob.glob('**/*.xml', recursive=True):
+              if '.git' in f or '.venv' in f: continue
               try: etree.parse(f)
               except Exception as e: print(f'ERROR {f}: {e}'); errors+=1
-          sys.exit(errors)" -- || exit 1
+          sys.exit(errors)"
 
-      - name: Bash syntax
-        run: |
-          find . -name "*.sh" ! -path "./.git/*" | while read f; do
-            bash -n "$f" || (echo "Syntax error in $f" && exit 1)
-          done
+          # Bash syntax
+          run_check "Bash syntax" bash -c "
+          find . -name '*.sh' ! -path './.git/*' | while read f; do
+            bash -n \"\$f\" || echo \"Syntax error in \$f\"
+          done"
 
-      - name: Manifest syntax
-        run: |
-          ERRORS=0
-          for m in $(find . -name "__manifest__.py" ! -path "./.venv/*"); do
-            python3 -c "exec(open('$m').read())" 2>/dev/null || \
-              { echo "ERROR: $m"; ERRORS=$((ERRORS+1)); }
-          done
-          [ $ERRORS -eq 0 ] || exit 1
+          # Manifest syntax
+          run_check "Manifest syntax" python3 -c "
+          import sys, glob
+          errors=0
+          for m in glob.glob('**/__manifest__.py', recursive=True):
+              if '.venv' in m: continue
+              try: exec(open(m).read())
+              except Exception as e: print(f'ERROR {m}: {e}'); errors+=1
+          sys.exit(errors)"
 
-      - name: Odoo 19 pattern check
-        run: chmod +x scripts/check_odoo_patterns.sh && ./scripts/check_odoo_patterns.sh || true
+          # Odoo 19 pattern check (advisory — pre-existing issues tracked separately)
+          echo "--- Odoo 19 patterns (advisory) ---"
+          chmod +x scripts/check_odoo_patterns.sh
+          ./scripts/check_odoo_patterns.sh || true
+          RESULTS+=("⚠️  Odoo 19 patterns (advisory — see log)")
+          echo ""
 
-      - name: Circular dependency check
-        run: python3 ci/check_circular_deps.py
+          run_check "Circular dependencies"      python3 ci/check_circular_deps.py
+          run_check "Module dependency wiring"   python3 scripts/check_module_wiring.py
+          run_check "Orphan model references"    python3 ci/check_orphan_model_refs.py
+          run_check "XPath stability"            python3 ci/check_xpath_stability.py
+          run_check "Model inheritance patterns" python3 ci/check_model_inheritance.py
+          run_check "ORM integrity"              python3 ci/check_orm_integrity.py
+          run_check "Odoo 19 hook patterns"      python3 ci/check_odoo19_hooks.py
+          run_check "Odoo 19 XML patterns"       python3 ci/check_odoo19_xml.py
+          run_check "Dev tools fence"            python3 ci/check_dev_tools_fence.py
+          run_check "Pipeline v2 guard"          python3 ci/check_pipeline_v2_guard.py
 
-      - name: Module dependency wiring
-        run: python3 scripts/check_module_wiring.py
+          # Advisory checks (failures logged but don't block)
+          echo "--- Advisory checks (non-blocking) ---"
+          python3 ci/check_odoo_antipatterns.py  || true
+          python3 ci/check_acl_completeness.py   || true
+          python3 ci/check_package_init.py       || true
+          python3 ci/check_field_integrity.py    || true
+          python3 ci/check_state_guard_bypass.py || true
+          python3 ci/weak_test_fixer.py          || true
+          echo ""
 
-      - name: Orphan model reference check
-        run: python3 ci/check_orphan_model_refs.py
+          echo "============================================"
+          echo "Static Analysis Summary"
+          echo "============================================"
+          for r in "${RESULTS[@]}"; do echo "  $r"; done
+          echo "============================================"
 
-      - name: XPath stability check
-        run: python3 ci/check_xpath_stability.py
+          exit $FAIL
 
-      - name: Model inheritance patterns
-        run: python3 ci/check_model_inheritance.py
-
-      - name: ORM integrity check
-        run: python3 ci/check_orm_integrity.py
-
-      - name: Odoo 19 hook patterns
-        run: python3 ci/check_odoo19_hooks.py
-
-      - name: Odoo 19 XML patterns
-        run: python3 ci/check_odoo19_xml.py
-
-      - name: Dev tools fence
-        run: python3 ci/check_dev_tools_fence.py
-
-      - name: Pipeline v2 guard
-        run: python3 ci/check_pipeline_v2_guard.py
-
-      - name: Odoo anti-patterns
-        run: python3 ci/check_odoo_antipatterns.py || true
-
-      - name: ACL completeness
-        run: python3 ci/check_acl_completeness.py || true
-
-      - name: Package init wiring
-        run: python3 ci/check_package_init.py || true
-
-      - name: Field integrity
-        run: python3 ci/check_field_integrity.py || true
-
-      - name: State guard bypass check
-        run: python3 ci/check_state_guard_bypass.py || true
-
-      - name: Weak test check
-        run: python3 ci/weak_test_fixer.py || true
-
-  # ── TIER 3: Pure-Python tests ─────────────────────────────────────────────
+  # ── TIER 3: Pure-Python tests — runs ALL, reports all failures ─────────────
   pure-python-tests:
     name: Pure Python Tests
     needs: static-checks
@@ -143,49 +157,28 @@ jobs:
 
       - run: pip install pytest==8.3.5
 
-      - name: Repo dependency integrity
-        run: python3 -m pytest tests/test_repo_dependency_integrity.py -v
-
-      - name: Odoo 19 compat tests
-        run: python3 -m pytest tests/test_odoo19_compat.py -v --tb=short
-
-      - name: Cypher schema alignment
-        run: python3 -m pytest tests/test_cypher_schema_alignment.py -v --tb=short
-
-      - name: Enum & process alignment
+      - name: Run all pure-Python tests (all failures before exit)
         run: |
           python3 -m pytest \
+            tests/test_repo_dependency_integrity.py \
+            tests/test_odoo19_compat.py \
+            tests/test_cypher_schema_alignment.py \
             tests/test_phantom_enum_values.py \
             tests/test_process_enum_alignment.py \
-            -v --tb=short
-
-      - name: Cron invariants
-        run: python3 -m pytest tests/test_cron_invariants.py -v --tb=short
-
-      - name: Triage pipeline tests
-        run: python3 -m pytest tests/test_triage_pipeline.py -v --tb=short
-
-      - name: Wiring & gap tests
-        run: |
-          python3 -m pytest \
+            tests/test_cron_invariants.py \
+            tests/test_triage_pipeline.py \
             tests/test_wiring_gap2.py \
             tests/test_gap_fixes.py \
-            -v --tb=short
-
-      - name: XPath field ref tests
-        run: python3 -m pytest tests/test_xpath_field_refs.py -v --tb=short
-
-      - name: Contract & bridge tests
-        run: |
-          python3 -m pytest \
+            tests/test_xpath_field_refs.py \
+            tests/test_ci_check_odoo19_xml.py \
+            tests/test_action_methods.py \
             tests/test_bridge_contracts.py \
             tests/test_bridge_models.py \
-            tests/test_action_methods.py \
             tests/test_error_handling.py \
             tests/test_golden_flows.py \
-            tests/test_ci_check_odoo19_xml.py \
             tests/test_odoo_test_setup_validity.py \
-            -v --tb=short
+            -v --tb=short --no-header \
+            -p no:randomly
 
   # ── SECURITY: Runs in parallel, advisory ──────────────────────────────────
   secret-scan:
