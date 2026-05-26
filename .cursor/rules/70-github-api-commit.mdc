@@ -1,0 +1,57 @@
+---
+description: Use GitHub API with SSH-derived token for git commits when local git checkout/mmap fails (Dropbox repo constraint)
+alwaysApply: true
+---
+
+# GitHub API Commit Pattern — PlasticOS
+
+This repo lives inside Dropbox. Local `git checkout`, `git mktree`, and pack-file operations frequently fail with `mmap failed: Operation timed out` or SIGBUS (signal 10). When this happens, use the GitHub API directly.
+
+## Get the Token First
+
+```bash
+GH_TOKEN=$(echo "url=https://github.com" | git credential fill | grep password | cut -d= -f2)
+```
+
+## Commit a File Change via API
+
+```bash
+# 1. Get current file SHA on the target branch
+FILE_SHA=$(curl -s "https://api.github.com/repos/cryptoxdog/IB-Odoo_19/contents/PATH/TO/FILE?ref=BRANCH" \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['sha'])")
+
+# 2. Prepare base64-encoded new content
+NEW_CONTENT=$(python3 -c "
+import base64
+content = open('PATH/TO/FILE').read()
+print(base64.b64encode(content.encode()).decode())
+")
+
+# 3. Commit via API
+curl -s -X PUT "https://api.github.com/repos/cryptoxdog/IB-Odoo_19/contents/PATH/TO/FILE" \
+  -H "Authorization: token $GH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"message\":\"fix: description\",\"content\":\"$NEW_CONTENT\",\"sha\":\"$FILE_SHA\",\"branch\":\"BRANCH\"}" \
+  | python3 -c "import json,sys; d=json.load(sys.stdin); print('OK:', d.get('commit',{}).get('sha','ERROR'), d.get('message',''))"
+```
+
+## When to Use This
+
+- `git checkout <branch>` fails with mmap/SIGBUS
+- `git mktree` or `git commit-tree` times out
+- `index.lock` keeps reappearing (Dropbox interference)
+- Branching to a remote branch without local checkout
+
+## Permanent Fix (do when convenient)
+
+Move repo out of Dropbox — the git object store should never be inside Dropbox:
+```bash
+mv "/Users/macm2/Library/CloudStorage/Dropbox/Repo_Dropbox_IB/IB-Odoo_19" ~/dev/IB-Odoo_19
+```
+GitHub is already the source of truth. Dropbox sync of `.git/` is redundant and harmful.
+
+## Branch Model
+
+- **`Staging`** = dev branch (all PRs target this)
+- **`Production`** = prod/main (promote from Staging when CI is green)
+- Never merge feature branches directly to `Production`
