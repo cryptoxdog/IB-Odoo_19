@@ -700,6 +700,17 @@ GLOBAL_ALLOWLIST = frozenset(
         # AI NORMALIZER TEMPLATE FIELD NAMES — web form field name placeholders
         # from ai_normalizer.py, not Odoo selection values
         # ─────────────────────────────────────────────────────────────────────
+        # ─────────────────────────────────────────────────────────────────────
+        # IMAGE FORMAT STRINGS — web_lead.py image type dispatch dict keys
+        # These are MIME/format identifiers, not Odoo selection values
+        # ─────────────────────────────────────────────────────────────────────
+        "png",
+        "jpg",
+        "jpeg",
+        "gif",
+        "webp",
+        "bmp",
+        "svg",
         "YourBusinessCompanyName",
         "DescribeYourMaterial",
         "WhatIsTheQuantity",

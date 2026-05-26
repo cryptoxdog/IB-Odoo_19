@@ -35,12 +35,10 @@
         "views/intake_button_views.xml",
         "views/match_exclusion_views.xml",
     ],
+    "external_dependencies": {"python": ["neo4j"]},
     "post_init_hook": "post_init_hook",
     "installable": True,
     "application": False,
-    "auto_install": False,
-    "external_dependencies": {
-        "python": ["neo4j"],
-    },
+    "auto_install": True,
     "license": "LGPL-3",
 }
