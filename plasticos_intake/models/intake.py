@@ -260,7 +260,7 @@ class PlasticosIntake(models.Model):
         string="Filler Type",
         index=True,
         ondelete="restrict",
-        help="Type of filler additive (Glass Filled, Talc Filled, etc.).",
+@api.depends("material_attribute_ids.code")
     )
     filler_pct = fields.Float(string="Filler (%)")
     contamination_notes = fields.Text(string="Contamination")
@@ -403,7 +403,6 @@ class PlasticosIntake(models.Model):
     offer_count = fields.Integer(
         string="Offers",
         compute="_compute_offer_count",
-        store=True,
         help="Number of offers created from this intake.",
     )
 
@@ -419,10 +418,13 @@ class PlasticosIntake(models.Model):
             scores = rec.match_line_ids.mapped("match_score")
             rec.best_match_score = max(scores) if scores else 0.0
 
-    @api.depends("match_line_ids.offer_id")
     def _compute_offer_count(self):
+        if "plasticos.offer" not in self.env:
+            for rec in self:
+                rec.offer_count = 0
+            return
         for rec in self:
-            rec.offer_count = len(rec.match_line_ids.filtered("offer_id"))
+            rec.offer_count = self.env["plasticos.offer"].search_count([("intake_id", "=", rec.id)])
 
     @api.depends("name")
     def _compute_display_name(self):
@@ -879,16 +881,6 @@ class PlasticosIntake(models.Model):
                     match.buyer_name,
                 )
                 continue
-            if match.offer_id:
-                _logger.info(
-                    "Skipping match line %s — offer %s already exists",
-                    match.id,
-                    match.offer_id,
-                )
-                existing = Offer.browse(match.offer_id).exists()
-                if existing:
-                    offers_created |= existing
-                continue
             offer = Offer.create(
                 {
                     "intake_id": self.id,
@@ -898,7 +890,6 @@ class PlasticosIntake(models.Model):
                     "quantity_lbs": float(self.quantity_per_load_lbs or 0),
                 }
             )
-            match.offer_id = offer.id
             offers_created |= offer
 
         if not offers_created:
