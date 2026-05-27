@@ -124,6 +124,9 @@ jobs:
           run_check "Dev tools fence"            python3 ci/check_dev_tools_fence.py
           run_check "Pipeline v2 guard"          python3 ci/check_pipeline_v2_guard.py
 
+          run_check "Critical manifest check"        python3 ci/check_critical_manifest.py
+          run_check "Enhanced XML ID + dep audit"      python3 ci/enhanced_audit.py
+
           # Advisory checks (failures logged but don't block)
           echo "--- Advisory checks (non-blocking) ---"
           python3 ci/check_odoo_antipatterns.py  || true
