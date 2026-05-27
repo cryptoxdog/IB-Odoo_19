@@ -42,6 +42,18 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+# Allow sibling imports (pr_repair_adapter lives in the same scripts/ directory)
+_SCRIPTS_DIR = Path(__file__).parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+try:
+    from pr_repair_adapter import run_repair_loop as _pr_repair_run
+
+    _PR_REPAIR_WIRED = True
+except ImportError:
+    _PR_REPAIR_WIRED = False
+
 try:
     import certifi  # type: ignore[import-untyped]
 
@@ -85,6 +97,12 @@ def _safe_ref(name: str) -> str:
 
 
 def _get_gh_token() -> str:
+    # Check environment first (GitHub Actions provides GITHUB_TOKEN)
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if token:
+        return token
+
+    # Fall back to git credential store (local development)
     try:
         r = subprocess.run(
             ["git", "credential", "fill"],
@@ -98,7 +116,7 @@ def _get_gh_token() -> str:
                 return ln.split("=", 1)[1]
     except Exception:
         pass
-    return os.environ.get("GH_TOKEN", "")
+    return ""
 
 
 GH_TOKEN = _get_gh_token()
@@ -125,6 +143,73 @@ def _http(method: str, url: str, token: str = "", data: dict | None = None) -> A
 
 def gh(path: str, method: str = "GET", data: dict | None = None) -> Any:
     return _http(method, f"https://api.github.com{path}", token=GH_TOKEN, data=data)
+
+
+def _fetch_job_log(job_id: int) -> str:
+    """Fetch a GitHub Actions job log.
+
+    GitHub's /actions/jobs/{id}/logs returns a 302 redirect to an Azure Blob
+    Storage pre-signed URL. If we follow the redirect with the Authorization
+    header still set, Azure rejects it with 403 because Azure interprets the
+    GitHub PAT as an invalid Azure credential.
+
+    Strategy: use curl (always available in CI) with --location to follow
+    redirects naturally, stripping the auth header on redirect automatically.
+    Falls back to a two-step urllib approach if curl is unavailable.
+    """
+    api_url = f"https://api.github.com/repos/{REPO}/actions/jobs/{job_id}/logs"
+
+    # Preferred path: curl handles redirect stripping correctly
+    try:
+        result = subprocess.run(
+            [
+                "curl",
+                "-s",
+                "-L",  # follow redirects
+                "--max-redirs",
+                "3",
+                "-H",
+                f"Authorization: token {GH_TOKEN}",
+                "-H",
+                "Accept: application/vnd.github+json",
+                api_url,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode == 0 and result.stdout:
+            return result.stdout
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    # Fallback: two-step urllib — get redirect URL, then fetch without auth
+    step1_req = urllib.request.Request(api_url)
+    step1_req.add_header("Authorization", f"token {GH_TOKEN}")
+    step1_req.add_header("Accept", "application/vnd.github+json")
+
+    class _StopRedirect(urllib.request.HTTPRedirectHandler):
+        def http_error_302(self, req, fp, code, msg, headers):  # type: ignore[override]
+            raise urllib.error.HTTPError(req.full_url, code, msg, headers, fp)
+
+        http_error_301 = http_error_303 = http_error_307 = http_error_302
+
+    opener = urllib.request.build_opener(_StopRedirect())
+    try:
+        with opener.open(step1_req) as r:
+            return r.read().decode()
+    except urllib.error.HTTPError as e:
+        location = e.headers.get("Location") or e.headers.get("location") or ""
+        if not location:
+            return ""
+        blob_req = urllib.request.Request(location)
+        try:
+            with urllib.request.urlopen(blob_req, context=_make_ssl()) as r:
+                return r.read().decode()
+        except Exception:
+            return ""
+    except Exception:
+        return ""
 
 
 def sonar(path: str) -> Any:
@@ -276,8 +361,8 @@ def _extract_issues_from_log(log: str, job_name: str) -> list[Issue]:
         ln = re.sub(r"^\d{4}-\d{2}-\d{2}T[\d:\.Z]+ ", "", raw_line).strip()
         if re.search(r"\.(py|toml):\d+:\d+:.*[A-Z]\d+", ln):
             ruff_lines.append(ln)
-        elif "would reformat" in ln or "would be reformatted" in ln:
-            m = re.search(r"Would reformat.*?([^\s]+\.py)", ln)
+        elif "would reformat" in ln.lower() or "would be reformatted" in ln.lower():
+            m = re.search(r"[Ww]ould reformat:?\s+([^\s]+\.py)", ln)
             fpath = m.group(1) if m else ""
             issues.append(
                 Issue(
@@ -403,8 +488,7 @@ def get_ci_issues(branch: str) -> list[Issue]:
             continue
 
         print(f"  → Reading log: {job_name} ({job_conclusion})")
-        log_raw = gh(f"/repos/{REPO}/actions/jobs/{job_id}/logs")
-        log = log_raw if isinstance(log_raw, str) else ""
+        log = _fetch_job_log(job_id)
 
         job_issues = _extract_issues_from_log(log, job_name)
         print(f"    Found {len(job_issues)} issue(s)")
@@ -917,6 +1001,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--fix", action="store_true", help="Apply all safe fixes and push as one commit")
     parser.add_argument("--branch", help="Branch to scan (default: current git branch)")
+    parser.add_argument(
+        "--approve",
+        action="store_true",
+        help="Auto-approve any approval-required repair plans without interactive prompt",
+    )
     args = parser.parse_args()
 
     branch = args.branch or current_branch()
@@ -965,7 +1054,22 @@ def main() -> int:
             print(f"⚠️  {real_bug_count} real bug(s) require manual review after auto-fixes")
         return 1 if real_bug_count or auto_fix_count else 0
 
-    # ── FIX MODE ──────────────────────────────────────────────────────────────
+    # ── FIX MODE — routed through pr_repair engine ────────────────────────────
+
+    if _PR_REPAIR_WIRED:
+        return _pr_repair_run(
+            all_issues=all_issues,
+            branch=branch,
+            pr=pr,
+            pr_number=pr_number,
+            gh_token=GH_TOKEN,
+            atomic_push_fn=atomic_push,
+            force_approve=args.approve,
+        )
+
+    # Fallback: legacy single-pass fix (used when pr_repair is not installed)
+    print("\n⚠️  pr_repair not installed — falling back to legacy fix mode")
+    print("   Install: pip install git+https://github.com/cryptoxdog/PR_Repair.git")
 
     print("\n🔧 Applying ALL auto-fixes ...")
     fix_descriptions = apply_all_auto_fixes(all_issues)
@@ -997,9 +1101,9 @@ def main() -> int:
             for i in remaining_bugs[:5]:
                 print(f"   {i}")
         return 1 if remaining_bugs else 0
-    else:
-        print("\n⚠️  Nothing was pushed (no files changed after fixes)")
-        return 1 if real_bug_count else 0
+
+    print("\n⚠️  Nothing was pushed (no files changed after fixes)")
+    return 1 if real_bug_count else 0
 
 
 if __name__ == "__main__":

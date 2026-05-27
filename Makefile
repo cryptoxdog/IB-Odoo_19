@@ -6,11 +6,11 @@
         lint format format-fix check \
         audit audit-quick \
         xml-check wiring deps-check cron-check odoo19-check semgrep \
-        pipeline-guard dev-fence state-guard acl-check guards \
+        pipeline-guard dev-fence state-guard acl-check guards deploy-check \
         up down restart logs logs-error shell odoo-shell \
         update update-all rebuild backup \
         test test-module \
-        pr-check push sonar \
+        pr-check push api-push-check sonar changelog \
         pr-autopilot pr-fix
 
 # ── Load .env if present ──────────────────────────────────────────────────────
@@ -59,6 +59,7 @@ help:
 	@echo "    make dev-fence        production safety: plasticos_dev_tools fenced"
 	@echo "    make state-guard      write guard bypass check"
 	@echo "    make guards           all three hard gates combined"
+	@echo "    make deploy-check     pre-flight: pr-check + guards + ICP + Neo4j validation"
 	@echo ""
 	@echo "  Docker / Odoo"
 	@echo "    make up               docker compose up -d"
@@ -81,9 +82,11 @@ help:
 	@echo "    make pr-check         REQUIRED before any push: audit-quick + semgrep + pipeline-guard"
 	@echo "    make push             safe push: runs pr-check first, then git push current branch"
 	@echo "    make push b=Staging   safe push to a specific branch"
+	@echo "    make api-push-check   REQUIRED before GitHub API push (when git push fails)"
 	@echo "    make pr-autopilot     scan all PR signals (CI, SonarCloud, CodeRabbit) — report only"
 	@echo "    make pr-fix           scan + auto-fix safe issues + push back to branch (re-triggers CI)"
 	@echo "    make sonar            show SonarCloud quality gate status"
+	@echo "    make changelog        generate CHANGELOG.md from conventional commits"
 	@echo ""
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -184,6 +187,45 @@ state-guard:
 guards: pipeline-guard dev-fence state-guard
 	@echo "✅ All hard gates passed"
 
+# Deployment pre-flight check — validates ICP params + Neo4j credentials + guards
+deploy-check: pr-check guards
+	@echo ""
+	@echo "→ Deployment pre-flight validation..."
+	@echo ""
+	@echo "  1. Checking ICP configuration parameters..."
+	@if docker compose ps | grep -q "web.*Up"; then \
+		docker compose exec -T db psql -U $${POSTGRES_USER:-odoo} $(ODOO_DB_NAME) -c \
+			"SELECT key, value FROM ir_config_parameter WHERE key LIKE 'plasticos.%' ORDER BY key;" \
+			2>/dev/null || echo "    ⚠️  Could not query ICP params (DB not accessible)"; \
+	else \
+		echo "    ⚠️  Odoo container not running — start with: make up"; \
+	fi
+	@echo ""
+	@echo "  2. Checking Neo4j credentials..."
+	@if [ -f .env ] && grep -q "NEO4J_URL" .env; then \
+		echo "    ✅ NEO4J_URL configured in .env"; \
+		grep -q "NEO4J_USER" .env && echo "    ✅ NEO4J_USER configured" || echo "    ❌ NEO4J_USER missing"; \
+		grep -q "NEO4J_PASSWORD" .env && echo "    ✅ NEO4J_PASSWORD configured" || echo "    ❌ NEO4J_PASSWORD missing"; \
+	else \
+		echo "    ⚠️  NEO4J_URL not configured (matching engine will run in stub mode)"; \
+	fi
+	@echo ""
+	@echo "  3. Checking stub mode flags..."
+	@if docker compose ps | grep -q "web.*Up"; then \
+		ENABLED=$$(docker compose exec -T db psql -U $${POSTGRES_USER:-odoo} $(ODOO_DB_NAME) -t -c \
+			"SELECT value FROM ir_config_parameter WHERE key = 'plasticos.matching_engine.enabled';" 2>/dev/null | xargs); \
+		STUBBED=$$(docker compose exec -T db psql -U $${POSTGRES_USER:-odoo} $(ODOO_DB_NAME) -t -c \
+			"SELECT value FROM ir_config_parameter WHERE key = 'plasticos.matching_engine.stubbed';" 2>/dev/null | xargs); \
+		echo "    Matching engine enabled: $${ENABLED:-not set}"; \
+		echo "    Matching engine stubbed: $${STUBBED:-not set}"; \
+		if [ "$$ENABLED" = "True" ] && [ "$$STUBBED" = "False" ]; then \
+			echo "    ⚠️  WARNING: Matching engine is LIVE (not stubbed) — ensure Neo4j is accessible"; \
+		fi; \
+	fi
+	@echo ""
+	@echo "✅ Deploy pre-flight complete — safe to run: make update m=<module>"
+	@echo ""
+
 # ─────────────────────────────────────────────────────────────────────────────
 # DOCKER / ODOO
 # ─────────────────────────────────────────────────────────────────────────────
@@ -214,7 +256,41 @@ odoo-shell:
 # make update m=plasticos_intake,plasticos_offer
 update:
 	@if [ -z "$(m)" ]; then echo "Usage: make update m=<module>"; exit 1; fi
-	docker compose run --rm odoo -u $(m)
+	@echo "→ Upgrading module(s): $(m)..."
+	@docker compose run --rm odoo -u $(m) 2>&1 | tee /tmp/odoo-update-$$(date +%Y%m%d_%H%M%S).log; \
+	EXIT_CODE=$${PIPESTATUS[0]}; \
+	if [ $$EXIT_CODE -ne 0 ]; then \
+		echo ""; \
+		echo "❌ Module upgrade failed with exit code $$EXIT_CODE"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "→ Checking logs for errors..."
+	@if tail -100 /tmp/odoo-update-*.log | grep -E "ERROR|CRITICAL|Traceback" | grep -v "test_" | head -5; then \
+		echo ""; \
+		echo "⚠️  Errors detected in upgrade logs (see above)"; \
+		echo "Review full log: ls -t /tmp/odoo-update-*.log | head -1"; \
+		exit 1; \
+	else \
+		echo "✅ No errors detected in logs"; \
+	fi
+	@echo ""
+	@echo "→ Verifying module state in database..."
+	@MODULES=$$(echo "$(m)" | tr ',' ' '); \
+	for mod in $$MODULES; do \
+		STATE=$$(docker compose exec -T db psql -U $${POSTGRES_USER:-odoo} $(ODOO_DB_NAME) -t -c \
+			"SELECT state FROM ir_module_module WHERE name = '$$mod';" 2>/dev/null | xargs); \
+		if [ "$$STATE" = "installed" ]; then \
+			echo "  ✅ $$mod: installed"; \
+		elif [ "$$STATE" = "to upgrade" ]; then \
+			echo "  ⚠️  $$mod: to upgrade (restart required?)"; \
+		else \
+			echo "  ❌ $$mod: $$STATE (expected: installed)"; \
+			exit 1; \
+		fi; \
+	done
+	@echo ""
+	@echo "✅ Module upgrade verified — $(m) is ready"
 
 update-all:
 	docker compose run --rm odoo -u all
@@ -267,7 +343,12 @@ push: pr-check
 	TARGET=$${b:-$$BRANCH}; \
 	echo "→ Pushing $$BRANCH → origin/$$TARGET ..."; \
 	git push origin HEAD:$$TARGET && echo "✅ Push complete" || \
-	echo "⚠️  git push failed (Dropbox mmap issue?). Run the API push instead:\n   See .cursor/rules/70-github-api-commit.mdc"
+	echo "⚠️  git push failed (Dropbox mmap issue?). Run: make api-push-check"
+
+# REQUIRED before using GitHub API to push (when git push is broken)
+# Enforces same validation as make push but for API workflow
+api-push-check:
+	@python3 scripts/api_push.py
 
 # Scan PR for all CI/SonarCloud/CodeRabbit issues — report only, no changes
 pr-autopilot:
@@ -293,3 +374,19 @@ status=d['status']; \
 print(f'Quality Gate: {status}'); \
 [print(f'  {c[\"metricKey\"]}: {c[\"status\"]} (actual={c.get(\"actualValue\",\"n/a\")} threshold={c.get(\"errorThreshold\",\"n/a\")})') \
  for c in d['conditions']]"
+
+# Generate changelog from conventional commits
+changelog:
+	@echo "→ Generating CHANGELOG.md from conventional commits..."
+	@if [ ! -f CHANGELOG.md ]; then \
+		echo "# Changelog" > CHANGELOG.md; \
+		echo "" >> CHANGELOG.md; \
+		echo "All notable changes to PlasticOS will be documented in this file." >> CHANGELOG.md; \
+		echo "" >> CHANGELOG.md; \
+		echo "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)," >> CHANGELOG.md; \
+		echo "and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)." >> CHANGELOG.md; \
+		echo "" >> CHANGELOG.md; \
+	fi
+	@cz changelog --unreleased-version "HEAD" --incremental || \
+		(echo "❌ commitizen not installed — run: pip install commitizen"; exit 1)
+	@echo "✅ CHANGELOG.md updated"

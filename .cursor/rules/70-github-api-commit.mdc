@@ -22,11 +22,13 @@ make push b=Staging  # push to a specific branch
 
 The repo lives inside Dropbox. When `git push` itself fails with `mmap failed: Operation timed out` or SIGBUS (signal 10), use the API as a last resort to push commits that are already written and validated.
 
-**Mandatory before any API push: `make pr-check` must pass first.**
+**Mandatory before any API push: `make api-push-check` must pass first.**
 
 ```bash
-make pr-check   # MUST pass before touching the API
+make api-push-check   # REQUIRED — enforces full validation before API push
 ```
+
+This runs `make pr-check` and provides instructions for the API push workflow.
 
 Only then use the API to push:
 
