@@ -33,10 +33,10 @@ def main() -> int:
     if dev_tools_manifest.exists():
         try:
             dt_data = ast.literal_eval(dev_tools_manifest.read_text(encoding="utf-8"))
-            if dt_data.get("auto_install") is True:
-                violations.append("plasticos_dev_tools/__manifest__.py [auto_install=True — must be False]")
-            if dt_data.get("installable") is True:
-                violations.append("plasticos_dev_tools/__manifest__.py [installable=True — must be False]")
+            if dt_data.get("auto_install"):
+                violations.append("plasticos_dev_tools/__manifest__.py [auto_install must be False]")
+            if dt_data.get("installable", True) is not False:
+                violations.append("plasticos_dev_tools/__manifest__.py [installable must be False]")
         except Exception:
             pass
 
@@ -47,7 +47,9 @@ def main() -> int:
         print("\nFix: Remove 'plasticos_dev_tools' from depends and ensure installable=False, auto_install=False.")
         return 1
 
-    print("✅ PASS: plasticos_dev_tools is fully fenced (not a dep of any module; installable=False, auto_install=False)")
+    print(
+        "✅ PASS: plasticos_dev_tools is fully fenced (not a dep of any module; installable=False, auto_install=False)"
+    )
     return 0
 
 
