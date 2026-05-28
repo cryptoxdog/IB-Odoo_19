@@ -641,6 +641,16 @@ GLOBAL_ALLOWLIST = frozenset(
         # ─────────────────────────────────────────────────────────────────────
         "1-Currently Working With",
         "4-Dead Lead",
+        # ─────────────────────────────────────────────────────────────────────
+        # IMAGE FORMAT DISPATCH KEYS (web_lead vision processing — not enums)
+        # ─────────────────────────────────────────────────────────────────────
+        "png",
+        "jpg",
+        "jpeg",
+        "webp",
+        "gif",
+        "bmp",
+        "tiff",
     }
 )
 
