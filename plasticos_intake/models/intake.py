@@ -260,13 +260,13 @@ class PlasticosIntake(models.Model):
         help="Derived: True when 'Flame Retardant' attribute is in material_attribute_ids.",
     )
 
-    @api.depends("material_attribute_ids")
+    @api.depends("material_attribute_ids.code")
     def _compute_material_flags(self):
         for rec in self:
             codes = set(rec.material_attribute_ids.mapped("code"))
-            rec.has_metal = "WITH_METAL" in codes
-            rec.is_metalized = "METALIZED" in codes
-            rec.has_fr = "FLAME_RETARDANT" in codes
+            rec.has_metal = "with_metal" in codes
+            rec.is_metalized = "metalized" in codes
+            rec.has_fr = "flame_retardant" in codes
 
     # ═════════════════════════════════════════════════════════
     # Observed Quality (Instance-Level)
