@@ -260,7 +260,6 @@ class PlasticosIntake(models.Model):
         string="Filler Type",
         index=True,
         ondelete="restrict",
-@api.depends("material_attribute_ids.code")
     )
     filler_pct = fields.Float(string="Filler (%)")
     contamination_notes = fields.Text(string="Contamination")
