@@ -1,0 +1,94 @@
+---
+description: GitHub Actions CI rules — SHA pin third-party actions, test file existence, workflow triggers. Derived from .github/workflows/ci.yml and SonarCloud S7637.
+globs: ".github/workflows/*.yml"
+alwaysApply: false
+---
+
+# GitHub Actions CI Rules — PlasticOS
+
+Enforced by SonarCloud `githubactions:S7637` and CI Gate structure.
+
+## SHA-Pin All Third-Party Actions (S7637)
+
+**Never use mutable version tags** (`@v2`, `@main`, `@latest`) for third-party actions. A compromised maintainer account could push malicious code to the tag. Pin to the full commit SHA:
+
+```yaml
+# ❌ WRONG — mutable tag; supply chain attack vector
+- uses: gitleaks/gitleaks-action@v2
+- uses: actions/upload-artifact@v4
+- uses: codecov/codecov-action@v5
+
+# ✅ CORRECT — immutable SHA pin with version comment
+- uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2
+- uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # v4
+```
+
+**GitHub-owned actions** (`actions/*`) are exempt — they're controlled by GitHub:
+```yaml
+# ✅ OK to use version tags for actions/* (GitHub-owned)
+- uses: actions/checkout@v6
+- uses: actions/setup-python@v5
+```
+
+**How to get a SHA:**
+```bash
+gh api /repos/gitleaks/gitleaks-action/git/ref/tags/v2 | python3 -c \
+  "import json,sys; r=json.load(sys.stdin); print(r['object']['sha'])"
+```
+
+## Test File Existence Before Listing in CI
+
+The Pure Python Tests step lists test files explicitly. If a file doesn't exist on the branch, pytest exits with code 4 (no tests collected) and the step fails:
+
+```yaml
+# ❌ WRONG — test_triage_pipeline.py may not exist on older branches
+- run: |
+    python3 -m pytest \
+      tests/test_triage_pipeline.py \   # ← error if not on this branch
+      tests/test_wiring_gap2.py \
+      ...
+
+# ✅ CORRECT — verify file exists or use glob
+- run: |
+    python3 -m pytest \
+      $(find tests/ -name "test_*.py" ! -path "*/odoo*" | sort | tr '\n' ' ') \
+      -v --tb=short
+```
+
+When syncing `ci.yml` from `Staging` to an older PR branch, always check which test files actually exist on that branch.
+
+## CI Gate Tier Structure
+
+```
+Tier 1 (lint)       → always runs, blocks Tier 2 on failure
+Tier 2 (static)     → needs: lint; runs all ci/ scripts
+Tier 3 (pure-python)→ needs: static-checks; runs pytest suite
+Security            → parallel, continue-on-error: true (advisory)
+```
+
+Never remove `needs:` dependencies — they enforce the fail-fast ordering.
+
+## pytest-timeout
+
+Always install `pytest-timeout==2.4.0` (NOT 4.3.0 — that version doesn't exist):
+
+```yaml
+- run: pip install pytest==8.3.5 pytest-timeout==2.4.0
+```
+
+Configured in `pyproject.toml`:
+```toml
+[tool.pytest.ini_options]
+timeout = 30
+timeout_method = "thread"
+```
+
+## Disabled Workflows
+
+The old overlapping workflows (`test-quality.yml`, `odoo-audit.yml`, `module-check.yml`, `pr-gate.yml`) are disabled with `workflow_dispatch` triggers. Do not re-enable them — `ci.yml` is the single source of truth:
+
+```yaml
+# ✅ These are intentionally disabled:
+on:
+  workflow_dispatch:  # manual only — replaced by ci.yml
+```

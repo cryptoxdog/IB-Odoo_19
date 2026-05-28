@@ -1,0 +1,94 @@
+---
+description: PlasticOS security model — group hierarchy, ACL format, record rules pattern, sudo rules. Auto-loads for security files and plasticos_security_base.
+globs: "plasticos_*/security/**/*.csv, plasticos_security_base/**/*.py, plasticos_security_base/**/*.xml"
+alwaysApply: false
+---
+
+# PlasticOS Security Model
+# Source: .claude/rules/security.md
+
+## ⚠️ MANDATORY PRE-FLIGHT — Run Before Adding ANY ACL Row
+
+**STEP 1 — Read the full existing CSV before writing a single row.**
+Use `Shell cat <path>/security/ir.model.access.csv`. Never write from memory.
+
+**STEP 2 — Check for redundancy.** Before adding a row for group G on model M:
+- If an existing row already grants G ≥ the permissions you're about to add → **stop, your row is redundant**.
+- If an existing `_all`/`_user` row gives `base.group_user` CRUD on model M → adding a more-specific subgroup row for that model is redundant (subgroup inherits from group_user).
+
+**STEP 3 — Match the id-column format of the existing file.**
+- If existing ids are `access_foo_bar` (no module prefix) → use that style.
+- If existing ids are `plasticos_module.access_foo_bar` → use that style.
+- **Never mix formats in the same file.** Odoo does not deduplicate across prefix/non-prefix — you will get duplicate external IDs.
+
+**STEP 4 — Use the correct header.**
+The real header is `model_id:id,group_id:id` (colon, not slash). The format template below uses `/` for illustration only — always match the header already in the file.
+
+---
+
+## Group Hierarchy (plasticos_security_base)
+
+```
+plasticos_privilege_manager (Full Access)
+  ├── implied → base.group_system, base.group_erp_manager
+  └── CRUD on all models
+
+plasticos_privilege_user (Standard User)
+  ├── implied → base.group_user
+  └── Read all, write own records
+
+plasticos_privilege_readonly (Reports Only)
+  └── Read-only all models
+
+plasticos_group_sales      → implied → privilege_user
+plasticos_group_logistics  → implied → privilege_user
+plasticos_group_compliance → implied → privilege_user
+plasticos_group_accounting → implied → account.group_account_invoice
+```
+
+## ACL Requirements
+
+- **Every new model MUST have** `security/ir.model.access.csv`
+- The CSV entry must live in the **same module** that defines the model — not a foreign module
+- If referencing a model from another module, prefix: `other_module.model_plasticos_x`
+- **model_id:id column** — always use the SHORT format `model_plasticos_foo` (no module prefix); Odoo resolves it within the installing module's namespace
+
+**Canonical format for NEW files (use `plasticos_security_base` groups — not `base.*`):**
+```csv
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_plasticos_model_manager,plasticos.model manager,model_plasticos_model,plasticos_security_base.plasticos_privilege_manager,1,1,1,1
+access_plasticos_model_user,plasticos.model user,model_plasticos_model,plasticos_security_base.plasticos_privilege_user,1,1,1,0
+access_plasticos_model_readonly,plasticos.model readonly,model_plasticos_model,plasticos_security_base.plasticos_privilege_readonly,1,0,0,0
+```
+
+At minimum: manager=CRUD (1,1,1,1), user=CRU (1,1,1,0), readonly=R (1,0,0,0)
+
+**Do NOT add both a `_user` R-only row AND an `_all` CRUD row for the same group on the same model.**
+One row per model+group combination. If CRUD is needed, skip the R-only row entirely.
+
+## Record Rules
+
+- Multi-company isolation on all business models
+- Sales rep data scoping (own records only for sales group)
+- Standard domain pattern:
+  ```python
+  ['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]
+  ```
+
+## Forbidden
+
+- `❌ sudo()` without explicit justification in an inline comment on the same line
+- `❌` Sensitive fields without ACL protection
+- `❌` Exposing financial data to non-accounting groups
+- `❌` Using `category_id` on `res.groups` — removed in Odoo 19 (see `83-ci-odoo19-patterns`)
+- `❌` Leaving any model without an `ir.model.access.csv` entry
+
+## Validation
+
+```bash
+make acl-check
+# expands to: python3 ci/check_acl_completeness.py
+
+make guards
+# includes dev-fence + state-guard
+```

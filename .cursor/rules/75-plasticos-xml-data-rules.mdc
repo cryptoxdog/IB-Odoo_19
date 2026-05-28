@@ -1,0 +1,159 @@
+---
+description: PlasticOS XML data and cron rules — seed data doctrine, cron invariants, view extension rules. Auto-loads for all plasticos data XML files.
+globs: plasticos_*/data/**/*.xml, plasticos_*/data/*cron*.xml
+alwaysApply: false
+---
+
+# PlasticOS XML Data & Cron Rules
+# Source: .claude/rules/xml-views.md
+
+## Seed Data Rules (Deterministic Seed Doctrine)
+
+- Wrap ALL reference data in `<odoo noupdate="1">` — never plain `<odoo>`
+- Every record needs a prefixed external ID: `id="plasticos_{module}.record_name"`
+- `❌` Never hardcode database IDs in `ref=""` — always use external IDs
+- `❌` Never bootstrap data via CSV at runtime
+- `❌` No seed data without external IDs
+
+**Correct pattern:**
+```xml
+<odoo noupdate="1">
+  <record id="plasticos_base.partner_tag_buyer" model="res.partner.category">
+    <field name="name">Buyer</field>
+    <field name="active" eval="True"/>
+  </record>
+</odoo>
+```
+
+## File Skeleton — `<data>` vs `<data noupdate="1">`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+  <data noupdate="1">
+    <!-- reference/seed data — loaded ONLY on first install, never overwritten by -u -->
+  </data>
+  <data>
+    <!-- records that SHOULD re-sync on every upgrade (e.g. views, menus) -->
+  </data>
+</odoo>
+```
+
+`noupdate="1"` is mandatory for all seed/reference data and for `ir.cron` records (see below) — it prevents `make update m=X` from resetting customised or operator-disabled records.
+
+## The `eval` Attribute Context
+
+`eval=` runs a restricted Python expression instead of a literal. Only these names are in scope:
+
+| Name | Meaning | Example |
+| :-- | :-- | :-- |
+| `True` / `False` | Python booleans | `eval="True"` |
+| `datetime` | `datetime.datetime` | `eval="datetime.now()"` |
+| `timedelta` | `datetime.timedelta` | `eval="(datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d')"` |
+| `time` | Python `time` module | `eval="time.strftime('%Y-%m-%d')"` |
+| `ref(xml_id)` | External ID → DB `res_id` (raises if missing) | `eval="ref('base.main_company')"` |
+
+**Compliant patterns:**
+```xml
+<field name="active" eval="True"/>
+<field name="company_id" eval="ref('base.main_company')"/>
+<field name="company_id" eval="False"/>            <!-- unset a field -->
+<field name="tag_ids" eval="[(6, 0, [ref('plasticos_base.tag_1'), ref('plasticos_base.tag_2')])]"/>
+```
+
+For a plain Many2one, prefer the bare `ref` attribute over `eval`:
+```xml
+<field name="categ_id" ref="product.product_category_all"/>
+```
+
+**CI gate (check_odoo_patterns.sh #11):** never nest double quotes inside `eval`. Use single quotes:
+- `✅ eval="[ref('plasticos_base.tag_1')]"`
+- `❌ eval="[ref(\"plasticos_base.tag_1\")]"` — XML parse failure
+
+**Data load order in `__manifest__.py`** (required sequence):
+```
+security/*.csv  →  data/*.xml  →  views/*.xml  →  data/*cron*.xml
+```
+
+Seed categories (all must be XML with noupdate):
+- Partner tags, material taxonomy, payment terms, chart of accounts
+- Selection value seeds, ICP defaults, sequence seeds
+
+## Cron (ir.cron) Rules — Odoo 19
+
+> **Generic Odoo vs PlasticOS overrides.** Upstream Odoo 19 docs still show `numbercall`,
+> `doall`, `active eval="True"`, and `user_id` = `base.user_root`/`base.user_admin`.
+> **Inside this repo those are wrong** — the rules below win and are CI-enforced.
+
+- `❌ numbercall` — removed in Odoo 19; never add to XML (CRON306 + check_odoo_patterns.sh #5)
+- `❌ doall` — removed in Odoo 19; never add to XML (CRON305)
+- `✅` Always include `interval_number` **and** `interval_type` (CRON307)
+- `✅` `state=code` crons must carry a `code` field (CRON308)
+- `✅` `user_id` **must** be `plasticos_base.user_system_cron` — `base.user_root` is forbidden (CRON303/CRON304)
+- `✅` `model_id` ref **must** carry the module prefix: `ref="plasticos_module.model_plasticos_my_model"` (check_odoo_patterns.sh #10)
+- `✅` Default `active` eval="False" for new crons (enable via feature flag or ICP)
+- `✅` Wrap cron records in `<odoo noupdate="1">` so `-u` never resets next-run date or re-enables a disabled cron
+- Use advisory locks for crons that must not overlap (see `tools/cron_invariant_check.py` CRON2xx lifecycle rules):
+  ```python
+  if not self.env.cr.execute("SELECT pg_try_advisory_lock(hash)"):
+      return  # another cron instance is running
+  ```
+
+**Correct cron pattern:**
+```xml
+<odoo noupdate="1">
+  <record id="plasticos_module.cron_my_action" model="ir.cron">
+    <field name="name">PlasticOS: My Cron</field>
+    <field name="model_id" ref="plasticos_module.model_plasticos_my_model"/>
+    <field name="user_id" ref="plasticos_base.user_system_cron"/>
+    <field name="state">code</field>
+    <field name="code">model.my_cron_method()</field>
+    <field name="interval_number">1</field>
+    <field name="interval_type">hours</field>
+    <field name="active" eval="False"/>
+  </record>
+</odoo>
+```
+
+## The `<function>` Tag (install-time one-shot logic)
+
+Use `<function>` for setup logic that must run **once at install** (not on a schedule).
+It is not a cron — do not use it for recurring work.
+
+```xml
+<odoo noupdate="1">
+  <function model="plasticos.material.profile" name="_seed_default_profiles"/>
+
+  <!-- with positional args -->
+  <function model="res.partner" name="_create_partner_with_name">
+    <value>Acme Corp</value>
+  </function>
+</odoo>
+```
+
+## View Pattern Quick-Reference
+
+For full Odoo 19 XML view pattern rules (`<tree>`→`<list>`, alert roles, `active_id`, `decoration-secondary`, etc.) — **see `84-ci-odoo19-patterns.mdc`**.
+
+## View Extension Rules (XPath)
+
+- Target **named anchors only** — never positional
+- `✅ <xpath expr="//field[@name='partner_id']" position="after">`
+- `❌ <xpath expr="//group[2]/field[3]" position="replace">` — breaks on view changes
+- `❌` Never use `@string` as XPath anchor — strings can be translated/changed
+- Prefer `position="after"` or `position="inside"` over `position="replace"`
+- `❌` Never use `position="replace"` on base Odoo views without strong justification
+- All custom views: unique `id` with `plasticos_{module}.` prefix
+
+## Validation
+
+```bash
+make odoo19-check
+# expands to: python3 ci/check_odoo19_xml.py
+
+make cron-check
+# expands to: python3 tools/cron_invariant_check.py
+
+python3 ci/check_xpath_stability.py
+make xml-check
+```

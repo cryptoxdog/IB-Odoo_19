@@ -1,0 +1,166 @@
+---
+description: Odoo 19 forbidden patterns — XML view tags, hook signatures, deprecated API decorators, XML encoding. Derived from ci/check_odoo19_xml.py, ci/check_odoo19_hooks.py, scripts/check_odoo_patterns.sh.
+globs: "{plasticos_*/views/*.xml,plasticos_*/models/*.py,plasticos_*/hooks.py,plasticos_*/__init__.py}"
+alwaysApply: false
+---
+
+# Odoo 19 Patterns — PlasticOS
+
+Enforced by `ci/check_odoo19_xml.py`, `ci/check_odoo19_hooks.py`, `scripts/check_odoo_patterns.sh`.
+
+## XML View Patterns (check_odoo19_xml.py)
+
+### `<tree>` → `<list>` (Pattern 1)
+```xml
+<!-- ❌ WRONG — causes ParseError in Odoo 19 -->
+<tree string="Intakes">
+  <field name="name"/>
+</tree>
+
+<!-- ✅ CORRECT -->
+<list string="Intakes">
+  <field name="name"/>
+</list>
+```
+
+### Alert classes need `role` attribute (Pattern 2)
+```xml
+<!-- ❌ WRONG — accessibility violation -->
+<div class="alert alert-warning">...</div>
+
+<!-- ✅ CORRECT -->
+<div class="alert alert-warning" role="alert">...</div>
+```
+
+### `active_id` in context (Pattern 3)
+```xml
+<!-- ❌ WRONG — active_id doesn't exist on model -->
+<button context="{'default_intake_id': active_id}"/>
+
+<!-- ✅ CORRECT -->
+<button context="{'default_intake_id': id}"/>
+```
+
+### `view_mode` must use `list` not `tree` (Pattern 4)
+```xml
+<!-- ❌ WRONG -->
+<field name="view_mode">tree,form</field>
+
+<!-- ✅ CORRECT -->
+<field name="view_mode">list,form</field>
+```
+
+### `<group>` inside `<search>` (Pattern 5)
+```xml
+<!-- ❌ WRONG — Invalid view definition -->
+<search>
+  <group>...</group>
+</search>
+
+<!-- ✅ CORRECT — use <separator> or <filter> inside search -->
+<search>
+  <filter name="..." string="..."/>
+</search>
+```
+
+### Unescaped `&` in XML (check_odoo_patterns.sh)
+```xml
+<!-- ❌ WRONG — XML parse error -->
+<field name="name" domain="[('a', '=', 1) &amp; ('b', '=', 2)]"/>
+
+<!-- ✅ CORRECT — use &amp; -->
+<field name="name" domain="[('a', '=', 1), ('b', '=', 2)]"/>
+```
+
+## Hook Patterns (check_odoo19_hooks.py)
+
+### `pre_init_hook` signature (Pattern 3)
+```python
+# ❌ WRONG — Odoo 19 passes env, not raw cursor
+def pre_init_hook(cr):
+    cr.execute("SELECT ...")
+
+# ✅ CORRECT
+def pre_init_hook(env):
+    cr = env.cr
+    cr.execute("SELECT ...")
+```
+
+### ORM writes in hooks (Patterns 1 + 2)
+```python
+# ❌ WRONG — KeyError: 'groups_id' in post_init_hook
+user.write({"groups_id": [(4, group.id)]})
+
+# ❌ WRONG — KeyError: 'users' in post_init_hook
+group.write({"users": [(4, user.id)]})
+
+# ✅ CORRECT — use direct SQL in hooks
+env.cr.execute(
+    "INSERT INTO res_groups_users_rel (gid, uid) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+    (group.id, user.id),
+)
+```
+
+## Deprecated API Decorators (check_odoo_patterns.sh)
+
+```python
+# ❌ WRONG — removed in Odoo 13, fatal error in 19
+@api.one
+def my_method(self): ...
+
+@api.multi
+def my_method(self): ...
+
+# ❌ WRONG — disallowed in Odoo 19
+@api.depends("id")
+def _compute_something(self): ...
+
+# ✅ CORRECT — just a regular method or depends on actual fields
+def my_method(self): ...
+
+@api.depends("partner_id", "intake_date")
+def _compute_something(self): ...
+```
+
+## Namespace (check_odoo_patterns.sh)
+```python
+# ❌ WRONG — PlastoS (missing 'ic') causes namespace drift
+class PlastosIntake(models.Model): ...
+
+# ✅ CORRECT
+class PlasticosIntake(models.Model): ...
+```
+
+## `_sql_constraints` (Odoo 19 removed)
+```python
+# ❌ WRONG — removed in Odoo 19
+class MyModel(models.Model):
+    _sql_constraints = [("name_uniq", "UNIQUE(name)", "Name must be unique")]
+
+# ✅ CORRECT — use models.Constraint
+from odoo.models import UniqueConstraint
+class MyModel(models.Model):
+    _constraints = [UniqueConstraint("name", name="unique_name")]
+```
+
+## `category_id` on `res.groups` (removed in Odoo 19)
+```xml
+<!-- ❌ WRONG -->
+<record id="group_sales_rep" model="res.groups">
+    <field name="category_id" ref="..."/>
+</record>
+
+<!-- ✅ CORRECT — no category_id -->
+<record id="group_sales_rep" model="res.groups">
+    <field name="name">Sales Representative</field>
+</record>
+```
+
+## `decoration-secondary` on list views (deprecated)
+```xml
+<!-- ❌ WRONG -->
+<list decoration-secondary="state == 'draft'">
+
+<!-- ✅ CORRECT — use decoration-muted or decoration-info -->
+<list decoration-muted="state == 'draft'">
+```

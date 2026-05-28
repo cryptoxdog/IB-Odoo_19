@@ -1,0 +1,145 @@
+---
+description: PlasticOS web lead architecture guard — HOT/COLD pipeline, partner deferral, write/unlink guards, agent trap zones. Auto-loads for all plasticos_web_leads files.
+globs: plasticos_web_leads/**/*.py, plasticos_web_leads/**/*.xml
+alwaysApply: false
+---
+
+# PlasticOS Web Lead Architecture Guard
+# Source: docs/plasticos_kernel_pack_v1_2026_05_26/web_lead_context.md
+
+## Purpose
+
+This guard is pinned to `plasticos_web_leads/models/web_lead.py` and exists to keep agents from making well-intentioned but incorrect rewrites in one of the most workflow-sensitive files in IB-Odoo_19.
+
+The file implements the inbound web lead pipeline for PlasticOS. It is a multi-stage orchestration layer that receives lead payloads, normalizes them with AI, optionally analyzes images, classifies leads as HOT or COLD, creates downstream intake records for HOT leads, preserves audit history, and protects processed records from mutation.
+
+## MANDATORY: Run Tests Before Any Change
+
+```bash
+make test-module m=plasticos_web_leads
+# or at minimum:
+# find and run tests/test_web_lead*.py
+```
+
+Do not propose changes to `web_lead.py` without reading the existing tests first.
+
+---
+
+## Pipeline Architecture
+
+`plasticos.web.lead` has two entry paths and one core processing pipeline.
+
+### Entry point 1: `create_from_cognito(raw_payload)`
+
+Primary ingestion path for raw Cognito submissions. It:
+- derives or constructs a stable `lead_id`
+- enforces idempotency by checking for an existing lead
+- extracts raw company/contact/material fields from the payload
+- extracts image URLs
+- creates the `plasticos.web.lead` record in `received` state
+- invokes `_run_triage_pipeline()`
+
+This is the high-complexity path. AI normalization, vision analysis, deterministic classification, and HOT-lead intake creation all happen here.
+
+### Entry point 2: `create_from_agent(payload)`
+
+Legacy/pre-processed path. Accepts a payload that already contains decision and AI-derived structure. Intentionally simpler. **Do not try to "unify" it with the Cognito path** unless you have explicit instruction and regression coverage.
+
+## Core Triage Flow
+
+The high-level flow in `_run_triage_pipeline()` is:
+
+1. Load config from `plasticos.web.lead.config`
+2. Run AI text normalization if enabled and keyed
+3. Run image analysis if enabled, keyed, and images are present
+4. Merge AI + vision signals via `_merge_ai_and_vision()`
+5. Run deterministic classification via `classify_lead()` from `classification_engine.py`
+6. Persist classification fields and audit payloads
+7. If HOT, create intake and notify admin; if COLD, archive as `skipped`
+8. Fetch and attach submitted images
+9. Persist triage log and error state if anything fails
+
+## What `config` Holds
+
+`config = self.env["plasticos.web.lead.config"].sudo().get_config()` controls runtime behavior.
+
+Do not hardcode these values into `web_lead.py`. Check config first for:
+- `ai_enabled`, `vision_enabled`
+- `openai_api_key`, `openai_model`, `openai_vision_model`
+- `hot_min_lbs`, `cold_max_lbs`, `default_source_type`
+- `get_reject_materials()`, `get_reject_sources()`
+
+## Classification Boundaries
+
+`web_lead.py` does not own all classification logic:
+- `classify_lead()` lives in `classification_engine.py`
+- text normalization lives in `ai_normalizer`
+- image analysis lives in `image_analyzer`
+
+If classification behavior is wrong, do not immediately rewrite `web_lead.py`. First identify whether the defect is in payload extraction, merge logic, configuration, or the classification engine.
+
+---
+
+## AGENT TRAP ZONE 1 — Partner-Deferral Block
+
+**Do NOT create partners automatically in the triage path.**
+
+For HOT leads, the triage path creates an intake first and notifies admin for review:
+- intake is created without partner
+- company name is stored as `pending_company_name` on intake
+- partner/material profile creation is deferred until buyer-matching workflow
+
+This is a deliberate architectural decision to avoid premature partner creation from noisy inbound leads. **Do not reintroduce automatic partner creation** into `create_from_cognito()`, `_run_triage_pipeline()`, `_process_hot_lead_triage()`, or `_process_hot_lead_simple()` unless explicitly instructed with regression test coverage.
+
+## AGENT TRAP ZONE 2 — `self.intake_id` Double-Write
+
+In both `_create_intake_triage()` and `_create_intake_simple()`, the code links `self.intake_id = intake.id` after `Intake.create(...)`. Later, caller methods also write `{"intake_id": intake.id, "state": "intake_created"}`.
+
+**This looks redundant. Do not "clean it up" blindly.**
+
+The inner assignment guarantees linkage at creation boundary. The outer write ties intake linkage to explicit state transition and outer flow completion. Any cleanup here must be tested against audit flow, mail activity behavior, retry actions, and write-path assumptions elsewhere.
+
+---
+
+## `_find_or_create_partner()` Status
+
+- `DEPRECATED (2026-02-23)`
+- Not called by main flows
+- Retained for manual/utility use
+
+**Do not wire it back in** just because it exists.
+
+---
+
+## Processed-Lead Guards
+
+### `write()` guard
+
+If `state` is not being changed and the lead is already in `intake_created`, writes are blocked with a `UserError`. This preserves the handoff boundary between the lead record and downstream intake workflow.
+
+**Do not weaken this guard.** It is a business workflow protection, not incidental UX behavior. Validated by `ci/check_state_guard_bypass.py`.
+
+### `unlink()` guard
+
+Processed leads cannot be deleted once an intake exists. Preserves auditability. Do not remove.
+
+---
+
+## Safe Editing Rules for Agents
+
+1. Read `web_lead.py`, `classification_engine.py`, `ai_normalizer.py`, and `image_analyzer.py` before changing behavior.
+2. Check `plasticos.web.lead.config` before hardcoding any threshold or model setting.
+3. Preserve partner deferral unless explicitly instructed otherwise.
+4. Do not rewire `_find_or_create_partner()` into active flow.
+5. Treat the write/unlink guards as high-risk regression zones.
+6. Treat `_merge_ai_and_vision()` as a classification hotspot.
+7. Run web lead tests before and after changes.
+8. If a "cleanup" changes state transitions, classify it as behavioral, not cosmetic.
+
+## Test References
+
+Primary targets (on Production branch — flat layout):
+- `tests/test_web_lead*.py`
+- Any related intake or classification tests touched by web lead regressions
+
+Do not invent new fixtures until you have reviewed the existing ones.

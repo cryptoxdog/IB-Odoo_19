@@ -1,10 +1,7 @@
 name: PR Autopilot
 
 on:
-  schedule:
-    # Run every 24 hours at 6 AM UTC (2 AM EDT / 1 AM EST)
-    - cron: '0 6 * * *'
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:  # manual only — scheduled run disabled (too soon)
 
 # Limit to one autopilot run at a time
 concurrency:

@@ -1,0 +1,148 @@
+---
+description: Naming conventions and ruff rules enforced by CI — variable names, import order, f-strings, unused vars, type annotations. Derived from pyproject.toml ruff config and common CI failures.
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# Naming Conventions & Ruff Rules — PlasticOS
+
+Enforced by `ruff check` + `ruff format` (pre-commit + CI Gate Tier 1). Config in `pyproject.toml`.
+
+## Ruff Rules Active (select = E, W, F, I, B, UP, C90)
+
+### E741 — Ambiguous variable names
+```python
+# ❌ WRONG — l, O, I are ambiguous (look like 1, 0, 1)
+for l in lines: ...
+O = 0
+I = 1
+
+# ✅ CORRECT
+for line in lines: ...
+zero = 0
+one = 1
+```
+
+### F541 — f-string without placeholders
+```python
+# ❌ WRONG — triggers F541
+print(f"CI re-triggered by single push")
+
+# ✅ CORRECT
+print("CI re-triggered by single push")
+```
+
+### UP031 — Percent format → f-string
+```python
+# ❌ WRONG — UP031
+msg = "Value: %d" % value
+
+# ✅ CORRECT
+msg = f"Value: {value}"
+
+# Exception: allowed in files listed in pyproject.toml per-file-ignores:
+# "*validation_matrix*.py", "ai_*.py", "web_lead.py"
+```
+
+### I001 — Unsorted imports
+```python
+# ❌ WRONG — stdlib before third-party, or wrong group order
+import json
+import odoo
+import base64
+
+# ✅ CORRECT — stdlib → third-party → first-party (odoo) → local
+import base64
+import json
+
+from odoo import api, fields, models
+```
+
+### F841 — Unused variables
+```python
+# ❌ WRONG
+result = some_function()  # never used
+
+# ✅ CORRECT — use _ for intentionally unused
+_ = some_function()
+
+# Exception: allowed in test_*.py and **/tests/*.py via per-file-ignores
+```
+
+### S117 — Local variable naming (lowercase)
+```python
+# ❌ WRONG — PascalCase for local variables triggers S117
+Model = self.env["res.partner"]
+Attachment = self.env["ir.attachment"]
+
+# ✅ CORRECT — lowercase
+model = self.env["res.partner"]
+attachment_model = self.env["ir.attachment"]
+
+# Note: Odoo model proxy convention uses PascalCase — SonarCloud flags it
+# but ruff does NOT because scripts/*.py has C901 exemption
+```
+
+## Ruff Format Rules (120 char line length)
+
+```python
+# ❌ WRONG — will be reformatted by ruff format
+x=1
+y = {  'key': 'value' }
+def foo( a,b,c ):
+
+# ✅ CORRECT after ruff format
+x = 1
+y = {"key": "value"}
+def foo(a, b, c):
+```
+
+Always run after editing any Python file:
+```bash
+ruff check --fix path/to/file.py
+ruff format path/to/file.py
+ruff check path/to/file.py  # verify clean
+```
+
+## Model String Constants (Odoo convention)
+
+```python
+# ✅ CORRECT — define model name as constant at module top
+RES_PARTNER = "res.partner"
+PLASTICOS_INTAKE = "plasticos.intake"
+
+class PlasticosOffer(models.Model):
+    supplier_id = fields.Many2one(RES_PARTNER, ...)
+
+# SonarCloud S1192 flags duplicate string literals (>=3 uses)
+# Pre-empt it by declaring constants for any model string used 3+ times
+```
+
+## Per-File Ruff Exemptions (pyproject.toml)
+
+| File pattern | Exemption | Why |
+|---|---|---|
+| `__init__.py` | F401, I001 | Odoo model registry imports look unused |
+| `__manifest__.py` | B018 | Bare dicts are Odoo convention |
+| `test_*.py` | F841, B011, F821, B017 | Test patterns |
+| `scripts/*.py` | C901 | Complex analysis scripts |
+| `plasticos_buyer_match_engine/models/matcher.py` | C901 | 26-gate matching engine |
+| `web_lead.py` | B007 | Complex triage logic |
+
+## Complexity Threshold (C90/mccabe)
+
+Max complexity = **25** (from pyproject.toml). Functions above 25 branches will fail CI. Odoo business logic is expected to be complex; typical methods should stay under 15. Refactor with helper methods for clarity:
+
+```python
+# ❌ Will fail at complexity > 25
+def giant_method(self):
+    if ...: if ...: if ...: ...  # 30 branches
+
+# ✅ Split into helpers
+def _check_material_flags(self): ...
+def _check_volume_threshold(self): ...
+def classify_lead(self):
+    if not self._check_material_flags(): return "COLD"
+    if not self._check_volume_threshold(): return "COLD"
+    return "HOT"
+```

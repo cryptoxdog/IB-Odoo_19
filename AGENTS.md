@@ -5,7 +5,7 @@ Cross-tool agent instructions for the IB-Odoo_19 repository. Read by Claude Code
 ## Project Overview
 
 - **Name**: PlasticOS — Plastics Recycling Brokerage ERP
-- **Type**: Odoo 19 custom module suite (**30** installable `plasticos_*` addons, **~32K** lines Python in addons, **~174** XML files in addons). Four additional `plasticos_graph_*` trees exist for experiments/research and **do not** ship as Odoo addons (no root `__manifest__.py`).
+- **Type**: Odoo 19 custom module suite (**29** installable `plasticos_*` addons, **~32K** lines Python in addons, **~174** XML files in addons).
 - **Stage**: Production (staging branch → main)
 - **Stack**: Python 3.12, Odoo 19, PostgreSQL 16, Neo4j (graph scoring), Docker
 
@@ -60,7 +60,6 @@ plasticos_matching/          # Layer 2: Match result storage
 plasticos_buyer_match_engine/# Layer 2: 10-gate filtering + Neo4j graph scoring
 plasticos_geolocalize/       # Layer 2: Auto-geocode + nightly backfill
 plasticos_enrichment/        # Layer 2: AI web intelligence extraction
-plasticos_enrichment_bridge/ # Layer 2: Enrichment → CRM / lead bridge
 plasticos_web_leads/         # Layer 2: AI lead triage (Cognito → LLM → HOT/COLD)
 plasticos_inference_engine/  # Layer 2: Deterministic polymer inference (YAML KB)
 plasticos_accounting/        # Layer 3: Chart of accounts, payment terms, incoterms
@@ -122,7 +121,7 @@ Every code change MUST pass these checks. CI will reject PRs that fail. This sec
 
 ### When you create a NEW model
 
-1. `_name` MUST be a string literal (`_name = "plasticos.foo"`) — NEVER a variable or constant. CI enforces this with `grep _name = [A-Z]` in `odoo-audit.yml`
+1. `_name` MUST be a string literal (`_name = "plasticos.foo"`) — NEVER a variable or constant. CI enforces this with `grep _name = [A-Z]` in `ci.yml`
 2. Add `security/ir.model.access.csv` entry with manager (CRUD) and user (CRU) rows minimum
 3. Every `fields.Many2one` MUST have `ondelete=` parameter (`"restrict"`, `"set null"`, or `"cascade"`)
 4. Every `@api.constrains(...)` field name must exist on the model (CI validates this)
@@ -174,37 +173,44 @@ ruff format .                             # Format code
 python3 scripts/check_module_wiring.py    # Dependency + __init__.py wiring
 python3 ci/check_circular_deps.py         # No circular deps
 python3 ci/check_odoo19_xml.py            # XML pattern compliance
-pre-commit run --all-files                # Run ALL 27 hooks at once
+pre-commit run --all-files                # Run ALL 31 hooks at once
 ```
 
-### CI Architecture — 5 Workflow Files, ~20 Jobs
+### CI Architecture — `ci.yml` is the Single Gate (11 Workflow Files)
 
-**Blocking jobs** (must pass for merge):
+`ci.yml` is the **only workflow that runs automatically on PRs and pushes**. All other legacy check workflows (`pr-gate.yml`, `odoo-audit.yml`, `module-check.yml`, `test-quality.yml`) are disabled (`workflow_dispatch` manual-only) to eliminate duplicate runs.
 
-| CI Job | Workflow | What it checks | Common failure |
-|--------|----------|---------------|----------------|
-| `static-checks` | `test-quality.yml` | Circular deps, XML patterns, module wiring, ORM integrity, XPath stability, model inheritance, orphan refs | Missing `__init__.py` import, broken XPath anchor, phantom dependency in manifest |
-| `static-checks` | `odoo-audit.yml` | Bash syntax, `_name` must be string literal, antipattern scan | `_name = CONSTANT` instead of `_name = "model.name"` |
-| `lint` | `pr-gate.yml` | `ruff check` + `ruff format --check` | Unsorted imports (I001), unused imports (F401), unformatted code |
-| `xml-and-shell` | `pr-gate.yml` | `xmllint --noout` all XML, `shellcheck` all `.sh` | Malformed XML, shell script syntax errors |
-| `odoo-patterns` | `pr-gate.yml` | `scripts/check_odoo_patterns.sh` + manifest syntax | Invalid `__manifest__.py` Python syntax |
-| `validate-manifests` | `module-check.yml` | `exec()` every `__manifest__.py` + `validate_manifest.py` | Syntax error in manifest dict |
-| `validate-xml` | `module-check.yml` | `lxml.etree.parse()` every XML file | XML parse error |
-| `audit` | `odoo-audit.yml` | HIGH severity regression check (baseline=0) | New HIGH-severity audit finding |
-| `secret-scan` | `pr-gate.yml` | Gitleaks secret detection | API keys, passwords, tokens in code |
+**Active workflows and their triggers:**
 
-**Non-blocking jobs** (run but don't fail PRs):
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| **`ci.yml`** | push + PR (all branches) | Single CI gate — Tier 1 lint → Tier 2 static → Tier 3 pytest |
+| `security.yml` | push + PR → staging/main + weekly | pip-audit, Trivy, Gitleaks |
+| `changelog.yml` | push → Production + manual | Auto-update CHANGELOG.md |
+| `auto-merge.yml` | PR events → staging/main | Auto-merge approved non-draft PRs |
+| `auto-review-request.yml` | PR opened/sync → staging/main | Auto-request reviewers |
+| `release.yml` | tag `v*.*.*` + manual | GitHub Release creation |
+| `pr-autopilot.yml` | manual only | Scan open PRs for CI/SonarCloud signals |
+| `test-quality.yml` | manual only | Full Odoo runtime tests (Odoo.sh) |
+| `odoo-audit.yml` | manual only | Legacy — superseded by ci.yml |
+| `pr-gate.yml` | manual only | Legacy — superseded by ci.yml |
+| `module-check.yml` | manual only | Legacy — superseded by ci.yml |
+
+**`ci.yml` blocking jobs** (must pass for merge):
+
+| CI Job | Tier | What it checks | Common failure |
+|--------|------|---------------|----------------|
+| `lint` | 1 | `ruff check` + `ruff format --check` | Unsorted imports (I001), unformatted code |
+| `static-checks` | 2 (needs lint) | XML syntax, manifest syntax, bash syntax, Odoo 19 patterns, circular deps, module wiring, orphan refs, XPath stability, ORM integrity, model inheritance, dev-tools fence, pipeline-v2 guard | Missing `__init__.py` import, broken XPath, phantom dep |
+| `pure-python-tests` | 3 (needs static) | pytest suite (no Odoo runtime): dependency integrity, compat, cron invariants, XML patterns, enum alignment | Test assertion failure, missing fixture |
+
+**Non-blocking (advisory):**
 
 | CI Job | Workflow | Notes |
 |--------|----------|-------|
-| `odoo19-compat-tests` | `test-quality.yml` | `continue-on-error: true` — needs Odoo.sh runtime |
-| `module-tests` | `test-quality.yml` | `continue-on-error: true` — per-module pytest matrix |
-| `integration-tests` | `test-quality.yml` | `continue-on-error: true` |
-| `coverage-report` | `test-quality.yml` | `continue-on-error: true` — threshold 70% |
-| `mutation-tests` | `test-quality.yml` | `continue-on-error: true` — main branch only |
-| `dependency-scan` | `security.yml` | `pip-audit || true` |
-| `trivy-scan` | `security.yml` | `exit-code: 0` (never fails) |
-| `mypy` | `pr-gate.yml` | `continue-on-error: true` — advisory until backlog cleared |
+| `secret-scan` | `ci.yml` | `continue-on-error: true` — Gitleaks |
+| `dependency-scan` | `security.yml` | `pip-audit \|\| true` |
+| `trivy-scan` | `security.yml` | `exit-code: 0` |
 
 ### Odoo 19 patterns that CI rejects (24 checks in `check_odoo_patterns.sh`)
 
@@ -243,7 +249,7 @@ These files are intentionally excluded from specific checks:
 | Many2one string write (#22) | `ai_normalizer.py` | LLM prompt JSON schema, not field assignment |
 | Many2one string write (#22) | `graph_service.py`, `matcher.py`, `enrichment_service.py`, `material_profile.py`, `transaction_import` | Dict/API payloads, not ORM writes |
 | `self.env.get()` (#24) | `ci/*.py` | CI detection scripts contain pattern examples |
-| Ruff lint | `plasticos_inference_engine`, `plasticos_buyer_match_engine`, `plasticos_matching` | Excluded in `pr-gate.yml` |
+| Ruff lint | `plasticos_inference_engine`, `plasticos_buyer_match_engine`, `plasticos_matching` | Excluded in `ci.yml` ruff step |
 | mypy | `plasticos_web_leads`, `plasticos_enrichment`, `plasticos_buyer_match_engine`, `plasticos_inference_engine` | Complex patterns, gradual typing |
 | ACL completeness | all modules | Non-blocking hook (warn-only) |
 | Odoo patterns script | CI workflows | `|| true` — tracked separately |
@@ -300,7 +306,7 @@ These files are intentionally excluded from specific checks:
 | `__manifest__.py` exempt from | B018 (bare dict) |
 | `test_*.py` exempt from | F841, B011, F821, B017 |
 
-### Audit Baselines (from `odoo-audit.yml`)
+### Audit Baselines (enforced by `ci.yml` static-checks tier)
 
 CI fails if HIGH severity findings exceed these baselines:
 
@@ -313,8 +319,8 @@ CI fails if HIGH severity findings exceed these baselines:
 
 ### Version Drift Warning
 
-| Tool | Pre-commit | PR Gate CI |
-|------|-----------|------------|
+| Tool | Pre-commit | CI (`ci.yml`) |
+|------|-----------|--------------|
 | Ruff | `v0.15.5` | `0.14.11` |
 
 Pre-commit and CI may use different ruff versions. Always run `pre-commit run --all-files` locally before pushing.

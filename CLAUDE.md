@@ -91,7 +91,7 @@ class PlasticosMaterialProfile(models.Model):
 - `_name` MUST be a string literal — NEVER `_name = SOME_CONSTANT`
 - Every `fields.Many2one` MUST have `ondelete=` parameter
 - Cross-addon imports MUST be inside functions (lazy loading), never at module top level
-- Run `pre-commit run --all-files` before committing (runs all 27 hooks)
+- Run `pre-commit run --all-files` before committing (runs all 31 hooks)
 - Run `ruff check --fix . && ruff format .` before committing (line length = **120**, not 100)
 - Run `python3 scripts/check_module_wiring.py` before committing
 - Follow the **CI Compliance Checklist** in `AGENTS.md` — CI will reject PRs that skip these steps

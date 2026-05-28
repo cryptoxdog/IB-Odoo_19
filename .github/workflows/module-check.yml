@@ -1,20 +1,7 @@
 name: Odoo Module Validation
 
 on:
-  push:
-    branches: [staging, main]
-    paths-ignore:
-      - 'plasticos_graph_engine/**'
-      - 'plasticos_graph_integration/**'
-      - 'plasticos_graph_intelligence/**'
-      - 'plasticos_graph_3d_embedding/**'
-  pull_request:
-    branches: [main, staging]
-    paths-ignore:
-      - 'plasticos_graph_engine/**'
-      - 'plasticos_graph_integration/**'
-      - 'plasticos_graph_intelligence/**'
-      - 'plasticos_graph_3d_embedding/**'
+  workflow_dispatch:  # manual only — replaced by ci.yml (single CI gate)
 
 jobs:
   validate-manifests:

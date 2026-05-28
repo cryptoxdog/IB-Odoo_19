@@ -1,0 +1,219 @@
+---
+description: PlasticOS deploy validation kernel — Docker/make-based deploy steps, ICP param checks, rollback path. Auto-loads for Makefile/docker-compose. Invoke explicitly with DEPLOY_VALIDATION_MODE.
+globs: Makefile, docker-compose.yml, docker-compose*.yml
+alwaysApply: false
+---
+
+# PlasticOS Odoo Deploy Validation Kernel
+# Source: docs/plasticos_kernel_pack_v1_2026_05_26/revised_odoo_deploy_validation_kernel.md
+
+## Purpose
+
+Use this kernel to validate a deployment to the IB-Odoo_19 instance after any module upgrade, PR merge, or configuration change.
+
+Validation must be observable evidence-based. No fake pass. No assumed success.
+
+## Deploy Method (Confirmed)
+
+The IB-Odoo_19 repo uses **Docker Compose** as its deployment platform. All module upgrades, test runs, and shell access go through `docker compose` / `Makefile` targets.
+
+**Primary upgrade command:**
+
+```bash
+make update m=<module_name>
+# expands to: docker compose run --rm odoo -u <module_name>
+
+# Multi-module:
+docker compose run --rm odoo \
+  -u plasticos_intake,plasticos_offer,plasticos_buyer_match_engine,plasticos_claims
+
+# Full update:
+make update-all
+```
+
+**Restart after config-only changes:**
+
+```bash
+make restart
+# expands to: docker compose restart web
+```
+
+**Follow logs:**
+
+```bash
+make logs
+# expands to: docker compose logs -f web
+```
+
+**Shell into container:**
+
+```bash
+make shell
+# expands to: docker compose exec web bash
+```
+
+## Preflight (Required Before Every Deploy)
+
+```bash
+make pr-check
+# if passing:
+make audit
+# optional but recommended for production deploys
+```
+
+Both must pass. If `make pr-check` fails, fix before deploying.
+
+## Mode A — Normal Module Deploy (Docker, Full Access)
+
+### Step 1: Pre-deploy snapshot
+
+```bash
+# Take DB backup outside Docker before any upgrade
+pg_dump -h localhost -U <DB_USER> <DB_NAME> > backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+### Step 2: Module upgrade
+
+```bash
+make update m=<module_name>
+# or multi-module:
+docker compose run --rm odoo -u <m1>,<m2>,<m3>
+```
+
+### Step 3: Log validation
+
+```bash
+make logs
+# Look for:
+# - "odoo.modules.loading: Loading module <name>"
+# - Absence of: "ERROR", "CRITICAL", "ImportError", "ValueError"
+```
+
+### Step 4: Registry validation checks
+
+```bash
+# Confirm pipeline_v2 guard (hard requirement):
+python3 ci/check_pipeline_v2_guard.py
+
+# Confirm dev_tools fence (production only):
+python3 ci/check_dev_tools_fence.py
+
+# Module wiring:
+make wiring
+```
+
+### Step 5: Database schema validation
+
+Inside container via `make shell`:
+
+```sql
+-- Confirm new tables / columns exist
+\d+ plasticos_intake_match  -- example for PR #85 migration
+```
+
+Or use Odoo shell:
+
+```bash
+docker compose run --rm odoo shell -d <DB_NAME>
+# Then: self.env['plasticos.intake.match']._fields.keys()
+```
+
+### Step 6: Functional smoke test
+
+```bash
+make test-module m=<module_name>
+# expands to: docker compose run --rm odoo --test-enable --stop-after-init -d odoo_test --log-level=test -u <module>
+```
+
+Full suite:
+
+```bash
+make test
+```
+
+## Mode B — Limited Access (No Docker CLI)
+
+If Docker CLI is unavailable but Odoo admin panel is accessible:
+
+1. Navigate to **Settings → Technical → Modules**
+2. Search and upgrade affected module
+3. Review the debug log for errors
+4. Validate via Odoo shell at `/web/dataset/call_kw` or developer mode
+
+## Mode C — Validation Only (No Deploy Access)
+
+Use static audit outputs to infer deployment risk:
+
+```bash
+make audit
+# Reviews: field_integrity, orm_integrity, orphan_refs, automation_refs, xpath_stability, constraint_patterns
+```
+
+Label all Mode C findings as `INFERRED` not `CONFIRMED`.
+
+## ICP Configuration Validation
+
+Required system params to verify post-deploy (via Settings → Technical → Parameters → System Parameters):
+
+| Key | Expected Value | Condition |
+|---|---|---|
+| `plasticos.matching_engine.enabled` | `True` or `False` | Controlled per instance |
+| `plasticos.matching_engine.stubbed` | `True` (production stub mode until graph wired) | Required |
+| `plasticos_graph.neo4j_url` | set | Only if Stage 2 graph engine is active |
+| `plasticos_graph.neo4j_user` | set | Only if Stage 2 graph engine is active |
+| `plasticos_graph.neo4j_password` | set (via env, not hardcoded) | Only if Stage 2 graph engine is active |
+
+## Rollback Path
+
+If deploy introduces regression:
+
+```bash
+make down
+# restore DB from pre-deploy snapshot:
+psql -h localhost -U <DB_USER> <DB_NAME> < backup_<timestamp>.sql
+make up
+```
+
+For module-level only rollback (no schema change):
+
+```bash
+make update m=<module_name>
+# from last known good commit on the same module
+```
+
+## Output Contract
+
+```yaml
+deploy_validation_report:
+  date: ""
+  module_upgraded: []
+  deploy_mode: A | B | C
+  preflight_passed: true | false
+  upgrade_command_run: ""
+  log_errors_found: true | false
+  pipeline_v2_guard: pass | fail
+  dev_tools_fence: pass | fail
+  db_schema_validated: true | false | not_checked
+  test_results: pass | fail | not_run
+  icp_params_verified: true | false | not_checked
+  rollback_ready: true | false
+  verdict: validated | conditional | failed
+```
+
+## Objective Definition of Done
+
+```yaml
+definition_of_done:
+  objective: "confirm IB-Odoo_19 module deploy succeeded without regression"
+  preflight_pr_check: pass
+  upgrade_completed_without_crash: true
+  log_shows_no_errors: true
+  pipeline_v2_guard: pass
+  dev_tools_fence: pass
+  wiring_check: pass
+  smoke_test_run: true
+  icp_params_checked: true
+  rollback_plan_ready: true
+  evidence_type: confirmed | inferred (label required if inferred)
+  verdict_provided: true
+```

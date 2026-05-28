@@ -1,0 +1,94 @@
+---
+description: PlasticOS __manifest__.py contract rules — version format, depends layer ordering, external_dependencies. Derived from test_repo_dependency_integrity.py LAYER_ORDER and TestModuleManifest.
+globs: "**/__manifest__.py"
+alwaysApply: false
+---
+
+# Manifest Contract — PlasticOS
+
+Enforced by `tests/test_repo_dependency_integrity.py::TestModuleManifest` and `TestDependencyIntegrity`.
+
+## Version Format
+
+```python
+# ✅ CORRECT — Odoo 19 format: 19.0.MAJOR.MINOR.PATCH
+"version": "19.0.1.0.0"
+
+# ❌ WRONG — missing 19.0 prefix
+"version": "1.0.0"
+```
+
+When adding a new field or model: bump MINOR. When fixing a bug: bump PATCH. When adding a migration script: bump MINOR and add the migration.
+
+## Depends Ordering (enforced by test_depends_order_respects_layers)
+
+The `depends` list **must follow this layer order** — `test_depends_order_respects_layers` will fail if a lower-layer module appears after a higher-layer one:
+
+```
+Layer 1  → base, mail, contacts, account
+Layer 2  → plasticos_base
+Layer 3  → plasticos_security_base        ← must come before plasticos_intake
+Layer 4  → plasticos_intake
+Layer 5  → plasticos_material_profile
+Layer 6  → plasticos_facility_profile
+Layer 7  → plasticos_matching
+Layer 8  → plasticos_transaction
+Layer 9  → plasticos_offer
+Layer 10 → plasticos_buyer_match_engine
+```
+
+```python
+# ✅ CORRECT — security_base before intake
+"depends": [
+    "base_setup",
+    "plasticos_base",
+    "plasticos_security_base",   # layer 3
+    "plasticos_intake",          # layer 4
+    "plasticos_offer",           # layer 9
+]
+
+# ❌ WRONG — security_base declared after offer (layer 3 after layer 9)
+"depends": [
+    "plasticos_base",
+    "plasticos_intake",
+    "plasticos_offer",
+    "plasticos_security_base",   # ← triggers test_depends_order_respects_layers failure
+]
+```
+
+## External Python Dependencies
+
+Declare Python packages that are not part of Odoo standard:
+
+```python
+# ✅ Required for neo4j usage
+"external_dependencies": {"python": ["neo4j"]}
+
+# ✅ Multiple deps
+"external_dependencies": {"python": ["requests", "certifi"]}
+```
+
+## No Phantom Dependencies
+
+The `depends` list must only contain **known** modules — either Odoo core addons or plasticos_* modules that actually exist in the repo. `test_no_phantom_dependencies` scans the repo and rejects unknown names.
+
+```python
+# Known Odoo addons (always safe): base, base_setup, mail, contacts, account,
+# product, purchase, sale_management, web
+
+# ❌ WRONG — "some_nonexistent_module" will fail phantom dependency test
+"depends": ["plasticos_base", "some_nonexistent_module"]
+```
+
+## Ruff Format
+
+Manifests are Python dicts. Ruff enforces formatting — always run `ruff format` after editing a manifest:
+
+```bash
+ruff format plasticos_*/manifest__.py
+```
+
+Common issues:
+- Trailing comma in single-item list: `["neo4j",]` → `["neo4j"]` after format
+- Inconsistent quote style: mix of `"` and `'`
+- Extra blank lines inside dict

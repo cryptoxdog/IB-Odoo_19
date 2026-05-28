@@ -22,7 +22,7 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 ┌─────────────────────────────────────────────────┐
 │  Layer 5: TRANSACTION                          │
 │  plasticos_transaction, plasticos_logistics     │
-│  plasticos_documents, plasticos_claims          │
+│  plasticos_claims                               │
 └────────────────┬────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────┐
@@ -49,7 +49,7 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 └─────────────────────────────────────────────────┘
 ```
 
-## Module Index (30 Odoo Modules)
+## Module Index (29 Odoo Modules)
 
 | # | Module | Layer | Maturity | Summary |
 |---|--------|-------|----------|---------|
@@ -258,7 +258,7 @@ Extracted from `plasticos_base/data/partner_tags.xml`:
 
 ### Environment Configuration
 ```python
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+NEO4J_URL = os.getenv("NEO4J_URL", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
 ```
@@ -528,7 +528,7 @@ Graph Update
 ```yaml
 services:
   db:
-    image: postgres:15
+    image: postgres:16
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -585,19 +585,25 @@ services:
 
 ### CI/CD Architecture
 
-**5 GitHub Actions workflow files**, ~20 jobs total:
+**11 GitHub Actions workflow files**. `ci.yml` is the single active CI gate for all PRs and pushes. The other check workflows are disabled (manual trigger only) to eliminate duplicate runs.
 
 #### Workflow Files
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| `test-quality.yml` | push + PR | Static checks, module tests, integration tests, coverage, mutation |
-| `odoo-audit.yml` | push + PR | Bash syntax, `_name` literals, antipatterns, XPath regression, audit |
-| `pr-gate.yml` | PR only | Ruff, XML lint, shellcheck, Odoo patterns, manifest syntax, secrets |
-| `module-check.yml` | push + PR | Manifest validation, XML parsing, dependency check, security CSV |
-| `security.yml` | push + PR + weekly cron | pip-audit, Trivy, Gitleaks |
+| **`ci.yml`** | push + PR (all branches) | **Single CI gate**: Tier 1 lint → Tier 2 static analysis → Tier 3 pure-python tests |
+| `security.yml` | push + PR → staging/main + weekly cron | pip-audit, Trivy, Gitleaks |
+| `changelog.yml` | push → Production branch + manual | Auto-update CHANGELOG.md from conventional commits |
+| `pr-autopilot.yml` | manual only | Scan open PRs for CI/SonarCloud/CodeRabbit signals |
+| `auto-merge.yml` | PR events → staging/main | Auto-merge approved non-draft PRs |
+| `auto-review-request.yml` | PR opened/sync → staging/main | Auto-request reviewers on external PRs |
+| `release.yml` | tag push `v*.*.*` + manual | Create GitHub Release with changelog and module version list |
+| `test-quality.yml` | manual only | Full Odoo runtime tests (requires Odoo.sh) |
+| `odoo-audit.yml` | manual only | Legacy audit jobs — superseded by ci.yml |
+| `pr-gate.yml` | manual only | Legacy gate jobs — superseded by ci.yml |
+| `module-check.yml` | manual only | Legacy module validation — superseded by ci.yml |
 
-#### Pre-commit Hooks (27 total)
+#### Pre-commit Hooks (31 total)
 
 All hooks run via `pre-commit run --all-files`. Key hooks:
 
@@ -943,6 +949,6 @@ module/
 
 ---
 
-**Architecture Version**: 3.0.0
-**Last Updated**: 2026-03-31
+**Architecture Version**: 3.1.0
+**Last Updated**: 2026-05-28
 **Verified Against**: cryptoxdog/IB-Odoo_19 @ staging branch
