@@ -1,0 +1,25 @@
+# ── OS / editor junk ──────────────────────────────────────────
+.DS_Store
+*.swp
+*~
+
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Local environment / secrets (NEVER commit) ───────────────
+.env.local
+
+# ── Generated audit / analysis artifacts ─────────────────────
+/odoo_audit_report.json
+/xpath_stability_report.json
+
+# ── GMP reports (local artifacts, kept out of git by convention) ─
+/reports/GMP-Report-*.md
+
+# ── Personal working notes / scratch ─────────────────────────
+current work - ib/
