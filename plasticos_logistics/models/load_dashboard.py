@@ -72,21 +72,47 @@ class PlasticosLoadDashboard(models.Model):
     # ── SQL VIEW ──────────────────────────────────────────────────────────
     def init(self):
         tools.drop_view_if_exists(self.env.cr, self._table)
+        # plasticos_transaction.load_id is injected by transaction_inherit.py in this same
+        # module. On a fresh-DB install the column can be absent the first time this VIEW is
+        # built (registry crashed here with "column t.load_id does not exist"). Probe for it
+        # and fall back to a transaction-less view in that window; the next module update
+        # rebuilds the full view once the column exists.
+        # nosemgrep: odoo-raw-sql -- static information_schema probe, no interpolation
         self.env.cr.execute("""
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'plasticos_transaction' AND column_name = 'load_id'
+        """)
+        has_tx_link = bool(self.env.cr.fetchone())
+        if has_tx_link:
+            tx_columns = """
+                t.name                      AS transaction_ref,
+                t.user_id                   AS user_id,
+                t.supplier_id               AS supplier_id,
+                t.buyer_id                  AS buyer_id,"""
+            tx_join = "LEFT JOIN plasticos_transaction t ON t.load_id = l.id"
+        else:
+            _logger.warning(
+                "plasticos_load_dashboard: plasticos_transaction.load_id not present yet — "
+                "building transaction-less view; it rebuilds fully on the next module update."
+            )
+            tx_columns = """
+                NULL::varchar               AS transaction_ref,
+                NULL::integer               AS user_id,
+                NULL::integer               AS supplier_id,
+                NULL::integer               AS buyer_id,"""
+            tx_join = ""
+        # nosemgrep: odoo-raw-sql -- static CREATE VIEW, repo-owned identifiers, no user input
+        self.env.cr.execute(f"""
             CREATE VIEW plasticos_load_dashboard AS
             SELECT
                 l.id                        AS id,
                 l.id                        AS load_id,
-                l.name                      AS load_ref,
-                t.name                      AS transaction_ref,
-                t.user_id                   AS user_id,
+                l.name                      AS load_ref,{tx_columns}
                 l.state                     AS load_state,
                 l.pickup_datetime           AS pickup_datetime,
                 l.delivery_datetime         AS delivery_datetime,
                 l.delivered_at              AS delivered_at,
-                t.supplier_id               AS supplier_id,
                 l.pickup_partner_id         AS pickup_partner_id,
-                t.buyer_id                  AS buyer_id,
                 l.delivery_partner_id       AS delivery_partner_id,
                 l.carrier_id                AS carrier_id,
                 rp_carrier.name             AS carrier_name,
@@ -98,7 +124,7 @@ class PlasticosLoadDashboard(models.Model):
                 l.bol_delivery_attached     AS bol_delivery_attached,
                 l.write_date                AS write_date
             FROM plasticos_load l
-            LEFT JOIN plasticos_transaction t ON t.load_id = l.id
+            {tx_join}
             LEFT JOIN res_partner rp_carrier ON rp_carrier.id = l.carrier_id
             WHERE l.state != 'closed'
                OR l.write_date >= date_trunc('month', NOW())
