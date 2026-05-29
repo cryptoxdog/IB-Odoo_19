@@ -718,6 +718,23 @@ GLOBAL_ALLOWLIST = frozenset(
         "WhatIsYourRole",
         "AdditionalComments",
         "PhoneNumber",
+        # ─────────────────────────────────────────────────────────────────────
+        # DEBUG LOG DICT KEYS — _dbg() instrumentation in plasticos_geolocalize
+        # These are JSON log field names, not Odoo selection enum values
+        # ─────────────────────────────────────────────────────────────────────
+        "partner_name",
+        "exc_type",
+        "exc_msg",
+        "consecutive",
+        # ─────────────────────────────────────────────────────────────────────
+        # IMAGE MIME TYPE EXTENSION KEYS — plasticos_web_leads image filtering
+        # Used as dict keys for MIME type / file extension checks
+        # ─────────────────────────────────────────────────────────────────────
+        "png",
+        "webp",
+        "gif",
+        "jpg",
+        "jpeg",
     }
 )
 

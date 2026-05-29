@@ -11,14 +11,11 @@ fingerprints = [
     "19f08514f46f1c9970ca122d0214a02a85014066:Makefile:generic-api-key:274",
 ]
 
-# Also allowlist the sonar target pattern globally — $$SONAR_TOKEN is a shell
-# variable, not a hardcoded credential. Any curl -u "$$..." pattern is safe.
-[[rules]]
-id = "curl-auth-shell-var"
-description = "Allow curl -u with shell variable substitution ($$VAR pattern)"
-# Override: paths where we intentionally use curl -u with shell vars
-[rules.allowlist]
+# Top-level allowlist regexes: curl -u $$VAR is a Makefile shell variable
+# substitution. $$SONAR_TOKEN etc. are never hardcoded secrets. Expressed as a
+# top-level allowlist entry (not a [[rules]] block with no regex/path body) so
+# gitleaks 8.x does not crash with FTL and fails to emit results.sarif.
 regexes = [
-    # $$SONAR_TOKEN and similar — double-dollar is Makefile shell variable
+    # curl -u with Makefile shell variable ($$VAR) — not a secret
     'curl.*-u.*\$\$[A-Z_]+',
 ]
