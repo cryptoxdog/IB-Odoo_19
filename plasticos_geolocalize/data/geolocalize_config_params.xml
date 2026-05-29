@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Geo backfill tuning. Read fail-soft by res_partner_geo.cron_geo_backfill;
+         noupdate="1" seeds defaults once and never clobbers operator-tuned values. -->
+    <record id="param_nominatim_delay" model="ir.config_parameter">
+        <field name="key">plasticos_geolocalize.nominatim_delay</field>
+        <field name="value">1.1</field>
+    </record>
+    <record id="param_failure_delay" model="ir.config_parameter">
+        <field name="key">plasticos_geolocalize.failure_delay</field>
+        <field name="value">5.0</field>
+    </record>
+    <record id="param_batch_size" model="ir.config_parameter">
+        <field name="key">plasticos_geolocalize.batch_size</field>
+        <field name="value">25</field>
+    </record>
+    <record id="param_max_consecutive_failures" model="ir.config_parameter">
+        <field name="key">plasticos_geolocalize.max_consecutive_failures</field>
+        <field name="value">3</field>
+    </record>
+
+</odoo>
