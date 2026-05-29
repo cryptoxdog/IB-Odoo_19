@@ -734,8 +734,6 @@ class PlasticosRepPerformance(models.Model):
             LEFT JOIN closed_tx ct  ON ct.user_id = t.user_id
             LEFT JOIN open_tx ot    ON ot.user_id = t.user_id
             LEFT JOIN plasticos_intake i    ON i.assigned_user_id = t.user_id
-            LEFT JOIN plasticos_offer  o    ON o.supplier_id IN (
-                SELECT DISTINCT supplier_id FROM plasticos_transaction WHERE user_id = t.user_id
-            )
+            LEFT JOIN plasticos_offer  o    ON o.intake_id = i.id
             GROUP BY t.user_id, rp.name, p.period_label, p.period_sort
         """)
