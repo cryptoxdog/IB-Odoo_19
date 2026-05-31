@@ -1,37 +1,11 @@
-name: Auto Request Review
+name: Auto Request Review (disabled)
 
 on:
-  pull_request:
-    types: [opened, ready_for_review, synchronize]
-    branches: [staging, main]
+  workflow_dispatch:  # deactivated — was pinging cryptoxdog on every external PR
 
 jobs:
   request-review:
     name: Request Review from Owner
     runs-on: ubuntu-latest
-    if: >
-      github.event.pull_request.draft == false &&
-      github.event.pull_request.user.login != 'cryptoxdog'
     steps:
-      - name: Request review from cryptoxdog
-        uses: actions/github-script@v7
-        with:
-          script: |
-            // Only request if not already requested
-            const { data: reviewRequests } = await github.rest.pulls.listRequestedReviewers({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-            });
-            const alreadyRequested = reviewRequests.users.map(u => u.login);
-            if (!alreadyRequested.includes('cryptoxdog')) {
-              await github.rest.pulls.requestReviewers({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.issue.number,
-                reviewers: ['cryptoxdog'],
-              });
-              core.info('Review requested from cryptoxdog');
-            } else {
-              core.info('cryptoxdog already requested — skipping');
-            }
+      - run: echo "Auto review request is disabled."
