@@ -235,6 +235,39 @@ class PlasticosIntake(models.Model):
         help="Condition attributes: Clean, Metalized, With Metal, Printed, etc.",
     )
 
+    # ─── Computed attribute flags (for matching engine) ────────────────────────────
+    # Derived from material_attribute_ids and stored for indexed access by the
+    # buyer matching engine (matcher.py). Do NOT set these directly; use the
+    # Many2many picker. store=True adds indexed PG columns that matcher.py
+    # can query without an ORM dependency chain.
+
+    has_metal = fields.Boolean(
+        string="Has Metal",
+        compute="_compute_material_flags",
+        store=True,
+        help="Derived: True when 'With Metal' attribute is in material_attribute_ids.",
+    )
+    is_metalized = fields.Boolean(
+        string="Metalized",
+        compute="_compute_material_flags",
+        store=True,
+        help="Derived: True when 'Metalized' attribute is in material_attribute_ids.",
+    )
+    has_fr = fields.Boolean(
+        string="Flame Retardant",
+        compute="_compute_material_flags",
+        store=True,
+        help="Derived: True when 'Flame Retardant' attribute is in material_attribute_ids.",
+    )
+
+    @api.depends("material_attribute_ids.code")
+    def _compute_material_flags(self):
+        for rec in self:
+            codes = set(rec.material_attribute_ids.mapped("code"))
+            rec.has_metal = "with_metal" in codes
+            rec.is_metalized = "metalized" in codes
+            rec.has_fr = "flame_retardant" in codes
+
     # ═════════════════════════════════════════════════════════
     # Observed Quality (Instance-Level)
     # ═════════════════════════════════════════════════════════

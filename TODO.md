@@ -1,5 +1,25 @@
 # PlasticOS TODO
 
+## Trip Handoff — State as of 2026-06-02
+
+All local work has been committed and pushed to `cryptoxdog/IB-Odoo_19`. To continue on the laptop: clone, then `git fetch --all` and check out the branch you want.
+
+### Open PRs → `Staging` (base `ea4859b`, green / loaded in Odoo)
+- **PR #92** — `fix/geolocalize-nominatim-throttle` — geolocalize Nominatim throttle config + debug cleanup.
+- **PR #93** — `fix/logistics-load-dashboard-registry-crash` — logistics fresh-install registry crash fix.
+- **PR #94** — `chore/repo-docs-and-gitignore` — `.gitignore`, capitalized branch-name docs, ADR-002/003, `requirements-dev.txt`.
+
+### WIP branches pushed for continuation (no PR yet — run `make pr-check` before any PR)
+- `fix/prelaunch-consolidation` — in-progress prelaunch consolidation (geolocalize/intake/logistics manifests + models). Last commit is a WIP checkpoint; NOT validated yet.
+- `fix/semgrep-rules-overhaul` — semgrep Odoo rules overhaul (advisory-lock exemption, sql-injection rule, `--error` gating).
+- `fix/semgrep-odoo-raw-sql-triage` — 2 production-fix commits + a recovered WIP checkpoint commit (pr-autopilot/gitignore/requirements).
+
+### Reminders
+- Branch names are **capitalized**: `Staging` / `Production` (macOS case-insensitivity makes `git checkout staging` resolve to `Staging`).
+- Geo 429 durable fix (keyed geocoder provider, needs API key) is a separate follow-up GMP.
+
+---
+
 ## Pending Integration
 
 ### Intake → Buyer Matching → Offers Pipeline
