@@ -34,7 +34,9 @@ def _load_bridge_modules():
         spec.loader.exec_module(mod)
         loaded[mod_name] = mod
 
-    return loaded["plasticos_material_profile.intake_delta_bridge"], loaded["plasticos_material_profile.profile_features"]
+    return loaded["plasticos_material_profile.intake_delta_bridge"], loaded[
+        "plasticos_material_profile.profile_features"
+    ]
 
 
 _bridge, _features = _load_bridge_modules()
