@@ -4,7 +4,7 @@
 **Last updated:** 2026-06-04  
 **Authority:** [ADR-002: Gate Hub, CEG Routing, and Phased Autonomy](adr/ADR-002-gate-hub-phased-autonomy.md)  
 **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) § External Intelligence Boundary  
-**Registry:** [docs/roadmap/registry.yaml](roadmap/registry.yaml) — edit via `make roadmap-add` + `make roadmap-sync`
+**Registry:** [docs/roadmap/registry.yaml](roadmap/registry.yaml) — `make roadmap` (add + sync + validate)
 
 ## Objective
 

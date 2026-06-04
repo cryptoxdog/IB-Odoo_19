@@ -14,7 +14,8 @@ exclude: |
 
 repos:
   # Python linting with ruff (fast, replaces flake8/isort/pyupgrade)
-  # IMPORTANT: Keep version in sync with CI (.github/workflows/*.yml)
+  # IMPORTANT: Keep this rev, ci.yml (ruff==0.15.5), and pyproject.toml
+  # [tool.ruff] required-version (>=0.15,<0.16) in lockstep when upgrading.
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.5
     hooks:

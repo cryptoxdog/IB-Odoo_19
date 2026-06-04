@@ -28,9 +28,8 @@ python3 ci/check_odoo19_xml.py            # XML view validation
 python3 tools/cron_invariant_check.py     # Cron safety invariants
 
 # Roadmap (registry → synced planning docs)
-make roadmap                              # Validate docs/roadmap/registry.yaml alignment
-make roadmap-sync                         # Regenerate roadmap markdown from registry
-make roadmap-add domain=gate-autonomy phase=1 kind=backlog title="..."
+make roadmap                              # Sync + validate (add: domain= phase= kind= title=)
+make roadmap-list                         # List registry items
 
 # Docker
 docker-compose up -d                      # Start Odoo + PostgreSQL + Redis
@@ -64,6 +63,7 @@ Skills live in `.claude/skills/`; subagents in `.claude/agents/`. Full registry:
 | `odoo-sh-deploy` | Odoo.sh production errors — SSH diagnose before fix |
 | `update-agent-docs` | Refresh AGENTS.md / ARCHITECTURE.md / INVARIANTS.md / CLAUDE.md |
 | `skill-compiler` | Compile kernels/SOPs into zero-stub skill packs |
+| `gmp-protocol` | Deterministic phased (0–6) repo changes with modification lock + signed evidence report |
 
 | Subagent | Preloaded skills | Delegate for |
 |----------|------------------|--------------|
@@ -299,7 +299,6 @@ These files are intentionally excluded from specific checks:
 | Many2one string write (#22) | `ai_normalizer.py` | LLM prompt JSON schema, not field assignment |
 | Many2one string write (#22) | `graph_service.py`, `matcher.py`, `enrichment_service.py`, `material_profile.py`, `transaction_import` | Dict/API payloads, not ORM writes |
 | `self.env.get()` (#24) | `ci/*.py` | CI detection scripts contain pattern examples |
-| Ruff lint | `plasticos_inference_engine`, `plasticos_buyer_match_engine`, `plasticos_matching` | Excluded in `ci.yml` ruff step |
 | mypy | `plasticos_web_leads`, `plasticos_enrichment`, `plasticos_buyer_match_engine`, `plasticos_inference_engine` | Complex patterns, gradual typing |
 | ACL completeness | all modules | Non-blocking hook (warn-only) |
 | Odoo patterns script | CI workflows | `|| true` — tracked separately |

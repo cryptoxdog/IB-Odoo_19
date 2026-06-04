@@ -13,7 +13,7 @@
         pr-check commit push api-push-check sonar changelog \
         github-actions-kernel-check \
         pr-autopilot pr-fix \
-        roadmap roadmap-sync roadmap-add roadmap-list
+        roadmap roadmap-sync roadmap-list
 
 # ── Load .env if present ──────────────────────────────────────────────────────
 -include .env
@@ -99,10 +99,10 @@ help:
 	@echo "    make changelog        generate CHANGELOG.md from conventional commits"
 	@echo ""
 	@echo "  Roadmap (registry: docs/roadmap/registry.yaml)"
-	@echo "    make roadmap          validate registry + synced planning docs (default)"
-	@echo "    make roadmap-sync     regenerate roadmap markdown from registry.yaml"
+	@echo "    make roadmap          sync + validate (add item: pass domain phase kind title)"
 	@echo "    make roadmap-list     list all registry items"
-	@echo "    make roadmap-add domain=gate-autonomy phase=1 kind=backlog title=\"...\""
+	@echo "    make roadmap-sync     sync only (make roadmap preferred)"
+	@echo "    Example: make roadmap domain=gate-autonomy phase=1 kind=backlog title=\"...\""
 	@echo ""
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -475,20 +475,16 @@ changelog:
 # ─────────────────────────────────────────────────────────────────────────────
 
 roadmap:
-	@python3 scripts/roadmap.py check
+	@python3 scripts/roadmap.py update \
+		$(if $(domain),--domain "$(domain)",) \
+		$(if $(phase),--phase $(phase),) \
+		$(if $(kind),--kind "$(kind)",) \
+		$(if $(title),--title "$(title)",) \
+		$(if $(notes),--notes "$(notes)",) \
+		$(if $(status),--status "$(status)",)
 
 roadmap-sync:
 	@python3 scripts/roadmap.py sync
 
 roadmap-list:
 	@python3 scripts/roadmap.py list
-
-# Usage: make roadmap-add domain=gate-autonomy phase=1 kind=backlog title="Item text"
-# Kinds: backlog | scope_in | scope_out | observability | capability
-roadmap-add:
-	@test -n "$(title)" || (echo "Usage: make roadmap-add domain=gate-autonomy phase=1 kind=backlog title=\"...\""; exit 1)
-	@test -n "$(domain)" || (echo "❌ domain= required (e.g. domain=gate-autonomy)"; exit 1)
-	@test -n "$(phase)" || (echo "❌ phase= required (e.g. phase=1)"; exit 1)
-	@test -n "$(kind)" || (echo "❌ kind= required (backlog|scope_in|scope_out|observability|capability)"; exit 1)
-	@python3 scripts/roadmap.py add --domain "$(domain)" --phase "$(phase)" --kind "$(kind)" --title "$(title)" \
-		$(if $(notes),--notes "$(notes)",) $(if $(status),--status "$(status)",)

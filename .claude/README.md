@@ -22,6 +22,7 @@ Invoke via Claude Code subagent delegation or Cursor Task tool (`plasticos-code-
 | **odoo-sh-deploy** | `skills/odoo-sh-deploy/` | Odoo.sh production errors, SSH log diagnosis, deploy fixes |
 | **update-agent-docs** | `skills/update-agent-docs/` | Refresh AGENTS.md, ARCHITECTURE.md, INVARIANTS.md, CLAUDE.md |
 | **skill-compiler** | `skills/skill-compiler/` | Compile kernels/SOPs into zero-stub skill packs |
+| **gmp-protocol** | `skills/gmp-protocol/` | Deterministic phased (0–6) repo changes with modification lock + signed evidence report |
 
 > **Legacy duplicate:** `skills/SKILL - Skill Compiler Agent/` is deprecated. Use `skills/skill-compiler/` (canonical).
 

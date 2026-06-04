@@ -1,7 +1,19 @@
 # Odoo 19 ReBoot - Python project configuration
+#
+# This repo is an Odoo 19 addon suite, not a pip-installable package: there is
+# intentionally no [project] or [build-system] table. The [tool.*] sections below
+# configure dev/CI tooling only (pytest, ruff, mypy, pyright). Runtime deps live in
+# requirements.txt; dev/CI-only deps live in requirements-dev.txt.
 
 [tool.pytest.ini_options]
-# Do not collect or run tests from these directories
+# Constrain default collection to the pure-Python suite (mirrors CI Tier 3 and
+# `make test`). conftest.py auto-deactivates Odoo-importing modules when Odoo
+# is not installed, so a bare `pytest` here runs the Odoo-free set only.
+testpaths = ["tests"]
+# Centralize runner flags so CI (.github/workflows/ci.yml) and `make test` stay in
+# sync instead of re-specifying them on every command line.
+addopts = "--tb=short --no-header -p no:randomly"
+# Do not collect or run tests from these directories (mirrors ruff/mypy excludes).
 norecursedirs = [
     ".git",
     "__pycache__",
@@ -9,7 +21,11 @@ norecursedirs = [
     "venv",
     "*.egg-info",
     "docs",
+    "addons",
+    "tests-odoo",
+    "odoo-enterprise",
     "current work - ib",
+    "Current Work - IGNORE",
 ]
 # Per-test timeout: fail loudly if a test hangs (e.g. Dropbox filesystem I/O timeout)
 # rather than silently dying mid-run and producing incomplete results.
@@ -19,6 +35,10 @@ timeout_method = "thread"  # safe for pytest; doesn't interfere with subprocess 
 # pytest-timeout==2.4.0 required (pip install pytest-timeout==2.4.0)
 
 [tool.ruff]
+# Exact pin so local, pre-commit (ruff-pre-commit v0.15.5), and CI (ci.yml:
+# ruff==0.15.5) are ALWAYS in lockstep — any other ruff version fails fast rather
+# than producing a different lint/format verdict. Bump all three sites together.
+required-version = "==0.15.5"
 target-version = "py312"
 line-length = 120
 
@@ -44,6 +64,14 @@ select = [
     "B",      # flake8-bugbear
     "UP",     # pyupgrade
     "C90",    # mccabe complexity
+    "S",      # flake8-bandit (security) — enforced on production modules; dev/CI/test trees ignored below
+    # The families below were measured at ZERO findings repo-wide (ruff 0.15.5) and are
+    # enabled as ratchets: they cost nothing today and block regressions going forward.
+    "A",      # flake8-builtins — no shadowing of Python builtins
+    "FLY",    # flynt — static str.join() that should be an f-string
+    "INT",    # flake8-gettext — gettext / translation call correctness
+    "LOG",    # flake8-logging — correct logging usage (no f-string in _logger, etc.)
+    "YTT",    # flake8-2020 — no brittle sys.version / sys.version_info checks
 ]
 
 ignore = [
@@ -67,23 +95,33 @@ known-first-party = [
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 
 [tool.ruff.lint.flake8-bandit]
-# Security checks
-check-typed-exception = true
+# Active now that "S" is in select. Kept at the bandit default (False) deliberately:
+# we ONLY want S110/S112 to flag dangerous *bare* `except:`/`except Exception: pass`,
+# not narrow typed fallbacks like `except ValueError: continue`, which are legitimate
+# control flow in the inference/commission engines. Set True only if you also triage
+# the ~7 intentional typed-except sites in plasticos_* engines.
+check-typed-exception = false
 
 [tool.ruff.lint.per-file-ignores]
 # Odoo __init__.py files - imports ARE used by Odoo's model registry
 "__init__.py" = ["F401", "I001"]
 # __manifest__.py files have bare dicts (Odoo convention)
 "__manifest__.py" = ["B018"]
-# Test files can have unused variables, assertions, undefined env, and broad exceptions (Odoo pattern)
-"test_*.py" = ["F841", "B011", "F821", "B017"]
-"**/tests/*.py" = ["F841", "B011", "F821", "B017"]
+# Test files can have unused variables, assertions, undefined env, and broad exceptions (Odoo pattern).
+# "S" (bandit) is ignored: tests legitimately use assert (S101), temp files, and parse trusted fixtures.
+"test_*.py" = ["F841", "B011", "F821", "B017", "S"]
+"**/tests/*.py" = ["F841", "B011", "F821", "B017", "S"]
 # Legacy/forbidden code - don't enforce strict style
 "**/forbidden/*.py" = ["UP031", "UP030", "F841", "W291", "W293"]
-# Dev tools - relaxed rules (includes complex analysis functions)
-"**/tools/*.py" = ["UP031", "F821", "C901"]
-# Scripts - utility scripts with complex main() functions
-"scripts/*.py" = ["C901"]
+# Dev tools - relaxed rules (includes complex analysis functions). "S" ignored: dev tooling
+# runs subprocess and parses the repo's own (trusted) XML — not a production attack surface.
+"**/tools/*.py" = ["UP031", "F821", "C901", "S"]
+# Scripts - utility dev/CI scripts with complex main() functions. "S" ignored: subprocess +
+# url-open to known endpoints are inherent to these tools, not runtime code.
+"scripts/*.py" = ["C901", "S"]
+# CI audit scripts - run subprocess (git/python), parse trusted repo XML, and use assert.
+# "S" ignored: these never execute in the Odoo runtime / production attack surface.
+"ci/*.py" = ["S"]
 # Buyer match engine - _check_gates_strict is complex by nature (26 branches)
 # TODO: Refactor into smaller gate-checking functions
 "plasticos_buyer_match_engine/models/matcher.py" = ["C901"]
@@ -174,24 +212,11 @@ module = ["plasticos_graph_integration.*"]
 ignore_errors = true  # Uses requests; types-requests in CI
 
 # =============================================================================
-# BASEDPYRIGHT / PYRIGHT TYPE CHECKING
+# PYRIGHT TYPE CHECKING (editor-only; not run in CI/pre-commit)
 # =============================================================================
-[tool.basedpyright]
-pythonVersion = "3.12"
-typeCheckingMode = "off"
-reportMissingImports = false
-reportMissingModuleSource = false
-reportOptionalMemberAccess = false
-reportGeneralTypeIssues = false
-exclude = [
-    "**/__pycache__",
-    ".venv",
-    "venv",
-    "addons",
-    "tests-odoo",
-    "docs",
-]
-
+# Single source of truth for pyright AND basedpyright: basedpyright reads its own
+# [tool.basedpyright] table first, then falls back to [tool.pyright]. Keeping only
+# this block avoids the two drifting out of sync.
 [tool.pyright]
 pythonVersion = "3.12"
 typeCheckingMode = "off"
@@ -234,3 +259,43 @@ exclude = [
 #    grep -r "numbercall" --include="*.xml"
 #    Fix: Remove field
 # =============================================================================
+
+# =============================================================================
+# COVERAGE (coverage.py / pytest-cov)
+# =============================================================================
+# ADVISORY ONLY. The CI Tier 3 "pure-Python" suite does not import the Odoo
+# addons (conftest.py deactivates Odoo-importing tests when Odoo is absent), so
+# this measures the Odoo-free tooling/logic exercised by that suite — NOT the
+# plasticos_* runtime modules. Authoritative module coverage belongs to the Odoo
+# runtime tier (odoo --test-enable on Odoo.sh). No fail_under gate is set here on
+# purpose: enable one in CI only after a real baseline is observed, then ratchet.
+[tool.coverage.run]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    ".venv/*",
+    "venv/*",
+    "addons/*",
+    "tests-odoo/*",
+    "odoo-enterprise/*",
+    "docs/*",
+    "*/migrations/*",
+    # Odoo addon code is never imported by the pure-Python tier (conftest deactivates
+    # Odoo tests), so measuring it here yields a misleading ~0%. Omit it; real module
+    # coverage comes from the Odoo runtime tier. This keeps the advisory report focused
+    # on the Odoo-free tooling (ci/, scripts/, tools/) the suite actually exercises.
+    "plasticos_*/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+# Do NOT set fail_under here until a CI baseline exists; a premature threshold
+# would block merges on a metric the pure-Python tier cannot meaningfully raise.
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]

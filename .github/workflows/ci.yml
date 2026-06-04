@@ -30,7 +30,7 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - run: pip install ruff==0.14.11
+      - run: pip install ruff==0.15.5
 
       - name: Ruff lint + format (all errors before failing)
         run: |
@@ -162,16 +162,19 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install pytest==8.3.5 pytest-timeout==2.4.0
+      - run: pip install pytest==8.3.5 pytest-timeout==2.4.0 pytest-cov==5.0.0
 
       - name: Run all pure-Python tests (Odoo-free; conftest auto-skips Odoo tests)
         run: |
           # Odoo is intentionally NOT installed here. tests/conftest.py detects this
           # and collect-ignores every Odoo-importing test module, so `pytest tests/`
           # runs exactly the pure-Python set with no hand-maintained file list to drift.
+          # Coverage is ADVISORY (no --cov-fail-under): it reports a baseline only and
+          # never blocks the build. See [tool.coverage.*] in pyproject.toml.
           python3 -m pytest tests/ \
             -v --tb=short --no-header \
-            -p no:randomly
+            -p no:randomly \
+            --cov=. --cov-report=term-missing:skip-covered
 
   # ── SECURITY: Runs in parallel, advisory ──────────────────────────────────
   secret-scan:
