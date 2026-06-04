@@ -9,6 +9,7 @@ import importlib.util
 import os
 import sys
 import types
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -44,6 +45,7 @@ coerce_bool = _th.coerce_bool
 
 _ai = _load_module("ai_normalizer")
 validate_ai_output = _ai.validate_ai_output
+normalize_with_fallback = _ai.normalize_with_fallback
 
 _ia = _load_module("image_analyzer")
 merge_vision_results = _ia.merge_vision_results
@@ -345,6 +347,102 @@ class TestValidateAiOutput:
         result = validate_ai_output({"is_plastic": "yes", "is_commercial_source": "no"})
         assert result["is_plastic"] is True
         assert result["is_commercial_source"] is False
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# normalize_with_fallback
+# ═══════════════════════════════════════════════════════════════════════════════
+class TestNormalizeWithFallback:
+    def test_empty_providers_returns_configured_error(self):
+        result = normalize_with_fallback(
+            {"WhatIsTheQuantity": "30 pallets"},
+            [],
+        )
+        assert result["_provider_used"] == "none"
+        assert result["error"] == "no_llm_provider_configured"
+        assert result["estimated_lbs_per_load"] == 30 * 1800
+
+    @patch.object(_ai, "normalize_lead")
+    @patch.object(_ai, "_build_openai_client")
+    def test_first_provider_success(self, mock_build, mock_normalize):
+        mock_client = MagicMock()
+        mock_build.return_value = mock_client
+        mock_normalize.return_value = {
+            "polymer": "HDPE",
+            "estimated_lbs_per_load": 42_000,
+            "_inferred_fields": ["polymer"],
+        }
+        providers = [
+            {
+                "provider": "openai",
+                "api_key": "sk-test",
+                "model": "gpt-4o",
+                "base_url": None,
+            }
+        ]
+        payload = {"DescribeYourMaterial": "HDPE regrind"}
+
+        result = normalize_with_fallback(payload, providers)
+
+        assert result["_provider_used"] == "openai"
+        assert result["polymer"] == "HDPE"
+        assert "error" not in result
+        mock_build.assert_called_once_with("sk-test", None)
+        mock_normalize.assert_called_once_with(
+            payload,
+            mock_client,
+            model="gpt-4o",
+            temperature=0.0,
+        )
+
+    @patch.object(_ai, "normalize_lead")
+    @patch.object(_ai, "_build_openai_client")
+    def test_fallback_to_second_provider(self, mock_build, mock_normalize):
+        mock_build.return_value = MagicMock()
+        mock_normalize.side_effect = [
+            {"_ai_error": "rate limit", "estimated_lbs_per_load": None},
+            {"polymer": "PP", "_inferred_fields": []},
+        ]
+        providers = [
+            {"provider": "openai", "api_key": "sk-1", "model": "gpt-4o", "base_url": None},
+            {
+                "provider": "anthropic",
+                "api_key": "sk-ant-1",
+                "model": "claude-sonnet-4-20250514",
+                "base_url": "https://api.anthropic.com/v1/",
+            },
+        ]
+
+        result = normalize_with_fallback({}, providers)
+
+        assert result["_provider_used"] == "anthropic"
+        assert result["polymer"] == "PP"
+        assert mock_normalize.call_count == 2
+
+    @patch.object(_ai, "normalize_lead")
+    @patch.object(_ai, "_build_openai_client")
+    def test_all_providers_fail_returns_last_error(self, mock_build, mock_normalize):
+        mock_build.return_value = MagicMock()
+        mock_normalize.return_value = {"_ai_error": "timeout"}
+        providers = [{"provider": "openai", "api_key": "sk-1", "model": "gpt-4o", "base_url": None}]
+
+        result = normalize_with_fallback({}, providers)
+
+        assert result["_provider_used"] == "none"
+        assert result["error"] == "timeout"
+
+    @patch.object(_ai, "normalize_lead")
+    @patch.object(_ai, "_build_openai_client")
+    def test_client_unavailable_stops_early(self, mock_build, mock_normalize):
+        mock_build.return_value = None
+        mock_normalize.return_value = {"estimated_lbs_per_load": None, "_inferred_fields": []}
+        providers = [{"provider": "openai", "api_key": "", "model": "gpt-4o", "base_url": None}]
+
+        result = normalize_with_fallback({}, providers)
+
+        assert result["_provider_used"] == "none"
+        assert result["error"] == "openai_client_unavailable"
+        mock_normalize.assert_called_once()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

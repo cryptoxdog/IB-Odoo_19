@@ -97,7 +97,7 @@ class PlasticosIntake(models.Model):
         help="How this lead/intake was acquired. Auto-syncs to partner when set.",
     )
 
-    # ── CRM Lead Link (Phase 5) ────────────────────────────────
+    # ── CRM Lead Link (Phase 5) ────────────────────────────
     crm_lead_id = fields.Many2one(
         "crm.lead",
         string="CRM Lead",
@@ -293,6 +293,7 @@ class PlasticosIntake(models.Model):
         string="Filler Type",
         index=True,
         ondelete="restrict",
+        help="Type of filler additive (Glass Filled, Talc Filled, etc.).",
     )
     filler_pct = fields.Float(string="Filler (%)")
     contamination_notes = fields.Text(string="Contamination")

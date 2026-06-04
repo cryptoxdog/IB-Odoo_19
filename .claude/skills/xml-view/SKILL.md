@@ -1,6 +1,14 @@
 ---
 name: xml-view
-description: Create or modify Odoo XML views following PlasticOS conventions
+description: create or modify odoo 19 xml views following plasticos conventions. use when writing form, list, search, or xpath views; fixing odoo 19 view deprecations; or adding menu actions.
+skill_schema: 1
+layer: control_plane
+role: skill_entrypoint
+tags: [odoo, xml, views, plasticos]
+owner: igor_beylin
+status: active
+version: 1.0.0
+updated: 2026-06-04
 ---
 
 # XML View Development

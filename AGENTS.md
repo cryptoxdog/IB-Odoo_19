@@ -6,7 +6,7 @@ Cross-tool agent instructions for the IB-Odoo_19 repository. Read by Claude Code
 
 - **Name**: PlasticOS — Plastics Recycling Brokerage ERP
 - **Type**: Odoo 19 custom module suite (**29** installable `plasticos_*` addons, **~32K** lines Python in addons, **~174** XML files in addons).
-- **Stage**: Production (staging branch → main)
+- **Stage**: Production (`Staging` branch → `Production`)
 - **Stack**: Python 3.12, Odoo 19, PostgreSQL 16, Neo4j (graph scoring), Docker
 
 ## Commands
@@ -27,6 +27,11 @@ python3 ci/check_orphan_model_refs.py     # Orphan model references
 python3 ci/check_odoo19_xml.py            # XML view validation
 python3 tools/cron_invariant_check.py     # Cron safety invariants
 
+# Roadmap (registry → synced planning docs)
+make roadmap                              # Validate docs/roadmap/registry.yaml alignment
+make roadmap-sync                         # Regenerate roadmap markdown from registry
+make roadmap-add domain=gate-autonomy phase=1 kind=backlog title="..."
+
 # Docker
 docker-compose up -d                      # Start Odoo + PostgreSQL + Redis
 docker-compose exec web odoo -u plasticos_base --stop-after-init  # Update module
@@ -45,6 +50,25 @@ python -m pytest tests/integration/ -v    # Integration tests
 - Every new model/field needs at least one test
 - Tests must not mutate seed data
 - Run `pre-commit run --all-files` before opening a PR
+
+## Agent Skills & Subagents
+
+Skills live in `.claude/skills/`; subagents in `.claude/agents/`. Full registry: `.claude/README.md`.
+
+| Skill | When to load |
+|-------|--------------|
+| `structured-reasoning` | Planning, plan review, architecture decisions, debugging |
+| `new-odoo-module` | Scaffolding a new `plasticos_*` module |
+| `new-model-field` | Adding fields or models to existing modules |
+| `xml-view` | Creating or modifying Odoo XML views |
+| `odoo-sh-deploy` | Odoo.sh production errors — SSH diagnose before fix |
+| `update-agent-docs` | Refresh AGENTS.md / ARCHITECTURE.md / INVARIANTS.md / CLAUDE.md |
+| `skill-compiler` | Compile kernels/SOPs into zero-stub skill packs |
+
+| Subagent | Preloaded skills | Delegate for |
+|----------|------------------|--------------|
+| `plasticos-code-reviewer` | `structured-reasoning` | PR review, invariant compliance |
+| `module-auditor` | `structured-reasoning`, `new-odoo-module`, `new-model-field` | Module structure/wiring audit |
 
 ## Project Structure
 
@@ -98,10 +122,11 @@ tools/                       # Cron checks, validators
 
 ## Git Workflow
 
-- Branch from `staging`, PR to `staging`
-- Merge `staging` → `main` for production
-- Commit messages: conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`)
-- PRs require passing CI: ruff + XML validation + Odoo pattern checks + secret scan
+- Branch from `Staging`, PR to `Staging` (branch names are capitalized; macOS case-insensitivity makes `git checkout staging` resolve to `Staging`)
+- Merge `Staging` → `Production` for production — never merge feature branches directly to `Production`
+- Branch naming: `feat/short-description`, `fix/short-description`, `docs/short-description`, `refactor/short-description`, `test/short-description`
+- Commit messages: conventional commits with optional module scope — `feat(module): ...`, `fix(views): ...`, `docs: ...`, `refactor(intake): ...`, `test(integration): ...`
+- PRs require passing CI: ruff + XML validation + Odoo pattern checks + secret scan (gitleaks)
 
 ## CI Compliance Checklist (MANDATORY before commit/PR)
 
@@ -341,6 +366,7 @@ Pre-commit and CI may use different ruff versions. Always run `pre-commit run --
 - Changing security groups or record rules
 - Adding new `ir.cron` scheduled actions
 - Neo4j integration changes (graph boundary rules apply)
+- Gate / CEG integration (follow `docs/adr/ADR-002` and `docs/GATE_AUTONOMY_ROADMAP.md`)
 - Schema changes to `res.partner` (partner model constraints)
 
 ### 🚫 Never
@@ -358,3 +384,5 @@ Pre-commit and CI may use different ruff versions. Always run `pre-commit run --
 - Create custom partner role booleans → use native `customer_rank`/`supplier_rank`
 - Commit test data to production seed files
 - Attach material profiles directly to `res.partner` → use `plasticos.facility.profile`
+- Call CEG/EIE directly from Odoo → route through Gate (`constellation_node_sdk`; see ADR-002)
+- Apply Gate web-lead triage or remove local matcher fallback in Phase 1 (see GATE_AUTONOMY_ROADMAP.md)

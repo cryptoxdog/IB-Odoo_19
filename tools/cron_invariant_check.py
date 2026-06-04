@@ -237,7 +237,7 @@ def collect_files(root: Path) -> tuple[list[Path], list[Path]]:
         ".venv",
         "docs",
         ".cursor",
-        ".semgrep",  # semgrep rule fixtures contain intentional bad-cron patterns
+        ".semgrep",  # semgrep rule fixtures contain intentionally-bad crons — not real definitions
         "tests-odoo",
         "odoo-enterprise",
         "Odoo Development Files",
@@ -254,9 +254,8 @@ def collect_files(root: Path) -> tuple[list[Path], list[Path]]:
         )
 
         def _included(p: Path) -> bool:
-            rel = str(p.relative_to(root))
-            # Skip semgrep fixtures: they hold intentional bad-cron patterns for rule tests.
-            return rel in tracked and "plasticos_graph_" not in rel and not rel.startswith(".semgrep/")
+            rel = p.relative_to(root)
+            return str(rel) in tracked and "plasticos_graph_" not in str(rel) and not _skip.intersection(rel.parts)
     except Exception:
 
         def _included(p: Path) -> bool:

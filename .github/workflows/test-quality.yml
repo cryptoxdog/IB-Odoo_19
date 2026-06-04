@@ -104,7 +104,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Placeholder
-        run: echo "Run on Odoo.sh: pytest tests/test_constraint_validation.py tests/test_security_acl.py etc."
+        run: 'echo "Run on Odoo.sh: pytest tests/test_constraint_validation.py tests/test_security_acl.py etc."'
 
   # ── UTILITY: Weak test check ───────────────────────────────────────────────
   weak-test-check:

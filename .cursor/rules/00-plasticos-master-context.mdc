@@ -53,6 +53,10 @@ Before writing any code or making any change, identify your task and consult the
 - **`20-plasticos-pr-review-kernel`** — Hard reject conditions, base branch verification, migration assessment.
 - **`81-ci-manifest-contract`** + **`82-ci-module-wiring`** — Check manifest deps and wiring for every changed model file.
 
+### Gate / CEG / autonomy integration
+- **`docs/adr/ADR-002-gate-hub-phased-autonomy.md`** — Gate mandatory hub; Odoo local fallback; no direct Odoo→CEG.
+- **`docs/GATE_AUTONOMY_ROADMAP.md`** — Phase 1–3 scope, human checkpoints, deferred pack items.
+
 ### Editing `.github/workflows/ci.yml`
 - **`86-ci-github-actions`** — SHA-pin third-party actions. Verify test files exist on the branch. Never re-enable disabled workflows.
 
@@ -101,7 +105,8 @@ Before writing any code or making any change, identify your task and consult the
 | Item | Why |
 |------|-----|
 | `pipeline_v2.py` | External API bridge not ready; CI gate blocks activation |
-| `plasticos_enrichment` full wiring | Gated on pipeline_v2.py |
+| `plasticos_enrichment` full wiring | Gated on pipeline_v2.py (Gate `converge` path: see ADR-002 Phase 1 optional) |
+| Gate web-lead triage (`web_lead_gate_bridge`) | Phase 3 only — `docs/GATE_AUTONOMY_ROADMAP.md` |
 | Product ↔ material_profile link | Deferred |
 
 ---
