@@ -187,8 +187,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ── ODOO RUNTIME: Intentionally disabled — use Odoo.sh deploy hooks ───────
-  # Tests in this category: test_constraint_validation.py, test_security_acl.py,
-  # test_state_machines.py, test_integration_flows.py, test_performance.py,
-  # test_onchange_*.py, test_cron_*.py (Odoo-variant), module-level tests
-  # Trigger: Odoo.sh post-deploy hook → pytest plasticos_*/tests/ -v
+  # ── ODOO RUNTIME: PERMANENTLY DISABLED IN GITHUB ACTIONS ────────────────
+  # Do NOT add an odoo-bin / --test-enable job here. GitHub Actions has no Odoo
+  # registry, enterprise addons, or PostgreSQL module install — it will always fail.
+  #
+  # Odoo ORM tests belong in Docker locally:
+  #   make test-odoo              # docker compose run --rm odoo --test-enable ...
+  #   make test-module m=<mod>    # same, with -u <module>
+  #
+  # External status (NOT this workflow): Odoo.sh posts to GitHub on linked branches:
+  #   ci/odoo.sh (dev)     — feature/dev branch builds (Odoo Test Suite if enabled)
+  #   ci/odoo.sh (staging) — Staging branch build result (no test suite by default)
+  # Cannot disable via SSH on build containers — branch config lives in Odoo.sh UI.
+  # Test suite toggle appears ONLY on development branches (not Staging/Production):
+  #   Odoo.sh → dev branch (e.g. fix/*) → Settings → Test suite → untick validation.
+  # See AGENTS.md § "External Odoo.sh checks".

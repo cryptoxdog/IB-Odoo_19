@@ -342,7 +342,8 @@ test:
 # Backward-compatible alias
 test-pure: test
 
-# Odoo runtime tests — Docker native runner on installed modules (not tests/ pytest suite)
+# Odoo runtime tests — Docker native runner on installed modules (not tests/ pytest suite).
+# Same surface as ci/odoo.sh (dev) Odoo Test Suite, but runs locally via docker compose.
 test-odoo:
 	docker compose run --rm odoo \
 		--test-enable \
