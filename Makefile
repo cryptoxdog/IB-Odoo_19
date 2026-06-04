@@ -5,13 +5,15 @@
 .PHONY: help \
         lint format format-fix check \
         audit audit-quick \
-        xml-check wiring deps-check cron-check odoo19-check semgrep \
+        xml-check wiring deps-check cron-check odoo19-check semgrep semgrep-test \
         pipeline-guard dev-fence state-guard acl-check guards deploy-check \
         up down restart logs logs-error shell odoo-shell \
         update update-all rebuild backup \
-        test test-module \
-        pr-check push api-push-check sonar changelog \
-        pr-autopilot pr-fix
+        test test-odoo test-pure test-module \
+        pr-check commit push api-push-check sonar changelog \
+        github-actions-kernel-check \
+        pr-autopilot pr-fix \
+        roadmap roadmap-sync roadmap-add roadmap-list
 
 # ── Load .env if present ──────────────────────────────────────────────────────
 -include .env
@@ -26,7 +28,9 @@ RUFF_EXCLUDES = \
 	--exclude plasticos_inference_engine \
 	--exclude plasticos_buyer_match_engine \
 	--exclude plasticos_matching \
-	--exclude "current work - ib"
+	--exclude .semgrep/tests \
+	--exclude "current work - ib" \
+	--exclude "Current Work - IGNORE"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # HELP
@@ -45,13 +49,14 @@ help:
 	@echo ""
 	@echo "  Audit (run before PRs)"
 	@echo "    make audit-quick      fast: lint + format + wiring + odoo19 + xml + deps + cron"
-	@echo "    make audit            full: audit-quick + semgrep + all ci/ integrity scripts"
+	@echo "    make audit            full: audit-quick + semgrep + semgrep-test + all ci/ integrity scripts"
 	@echo "    make xml-check        xmllint on all plasticos XML files"
 	@echo "    make odoo19-check     Odoo 19 XML pattern violations"
 	@echo "    make wiring           module dependency wiring check"
 	@echo "    make deps-check       circular dependency check"
 	@echo "    make cron-check       cron invariant violations"
 	@echo "    make semgrep          semgrep custom Odoo rules (ERROR level)"
+	@echo "    make semgrep-test     validate semgrep config + positive/negative fixtures"
 	@echo "    make acl-check        ACL completeness (all models have ir.model.access)"
 	@echo ""
 	@echo "  Hard Gates (run individually or via make guards)"
@@ -75,11 +80,16 @@ help:
 	@echo "    make backup           snapshot DB to backup_<timestamp>.sql"
 	@echo ""
 	@echo "  Testing"
-	@echo "    make test             run full test suite"
-	@echo "    make test-module m=<mod>  run tests for one module"
+	@echo "    make test             pure pytest in tests/ (mirrors PR CI Tier 3)"
+	@echo "    make test-odoo        Odoo Docker native tests on installed modules"
+	@echo "    make test-pure        alias for make test"
+	@echo "    make test-module m=<mod>  Odoo tests for one module (-u m)"
 	@echo ""
 	@echo "  PR / CI Workflow"
-	@echo "    make pr-check         REQUIRED before any push: audit-quick + semgrep + pipeline-guard"
+	@echo "    make commit           stage all + commit; runs GA kernel if workflows staged"
+	@echo "    make commit m=\"...\"   commit with explicit conventional message"
+	@echo "    make github-actions-kernel-check  validate staged/all .github/workflows (R5 kernel)"
+	@echo "    make pr-check         REQUIRED before any push: audit-quick + semgrep + semgrep-test + pipeline-guard"
 	@echo "    make push             safe push: runs pr-check first, then git push current branch"
 	@echo "    make push b=Staging   safe push to a specific branch"
 	@echo "    make api-push-check   REQUIRED before GitHub API push (when git push fails)"
@@ -87,6 +97,12 @@ help:
 	@echo "    make pr-fix           scan + auto-fix safe issues + push back to branch (re-triggers CI)"
 	@echo "    make sonar            show SonarCloud quality gate status"
 	@echo "    make changelog        generate CHANGELOG.md from conventional commits"
+	@echo ""
+	@echo "  Roadmap (registry: docs/roadmap/registry.yaml)"
+	@echo "    make roadmap          validate registry + synced planning docs (default)"
+	@echo "    make roadmap-sync     regenerate roadmap markdown from registry.yaml"
+	@echo "    make roadmap-list     list all registry items"
+	@echo "    make roadmap-add domain=gate-autonomy phase=1 kind=backlog title=\"...\""
 	@echo ""
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -138,7 +154,15 @@ cron-check:
 
 semgrep:
 	@echo "→ Semgrep custom Odoo rules (ERROR level only)..."
-	semgrep --config .semgrep/odoo-patterns.yml --severity ERROR --quiet --include="plasticos_*"
+	semgrep --error --config .semgrep/odoo-patterns.yml --severity ERROR --quiet --include="plasticos_*"
+
+semgrep-test:
+	@echo "→ Semgrep rule fixture tests..."
+	semgrep --validate --config .semgrep/odoo-patterns.yml
+	@echo "→ Positive fixtures should produce findings..."
+	@semgrep --config .semgrep/odoo-patterns.yml .semgrep/tests/positive.py .semgrep/tests/odoo19.xml --quiet | grep -q .
+	@echo "→ Negative fixtures should produce no blocking findings..."
+	semgrep --error --config .semgrep/odoo-patterns.yml .semgrep/tests/negative.py --quiet
 
 acl-check:
 	@echo "→ ACL completeness check..."
@@ -148,7 +172,7 @@ audit-quick: lint format xml-check odoo19-check wiring deps-check cron-check
 	@echo ""
 	@echo "✅ Quick audit complete"
 
-audit: audit-quick semgrep guards acl-check
+audit: audit-quick semgrep semgrep-test guards acl-check
 	@echo "→ Field integrity..."
 	python3 ci/check_field_integrity.py
 	@echo "→ ORM integrity..."
@@ -308,7 +332,18 @@ backup:
 # TESTING
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Default test target — mirrors CI Tier 3 "Pure Python Tests".
+# conftest.py auto-deactivates every Odoo-importing test when Odoo isn't installed,
+# so this runs exactly the Odoo-free set without a hand-maintained file list.
 test:
+	@echo "→ Pure-Python test suite (Odoo-free; mirrors CI Tier 3)..."
+	python3 -m pytest tests/ --tb=short --no-header -p no:randomly -q
+
+# Backward-compatible alias
+test-pure: test
+
+# Odoo runtime tests — Docker native runner on installed modules (not tests/ pytest suite)
+test-odoo:
 	docker compose run --rm odoo \
 		--test-enable \
 		--stop-after-init \
@@ -330,9 +365,52 @@ test-module:
 # ─────────────────────────────────────────────────────────────────────────────
 
 # REQUIRED before any push or PR creation
-pr-check: audit-quick semgrep pipeline-guard
+pr-check: audit-quick semgrep semgrep-test pipeline-guard test
 	@echo ""
 	@echo "✅ PR gate passed — safe to push"
+
+# GitHub Actions kernel (github_actions_kernel.v1) — R5 developer_support gate
+# Checks: triggers, permissions, secrets, job_dependencies, SHA-pinned third-party actions
+github-actions-kernel-check:
+	@chmod +x ci/check_github_actions_kernel.sh
+	@ci/check_github_actions_kernel.sh $(if $(staged),--staged,)
+
+# Stage all tracked/untracked changes (respects .gitignore) and commit.
+# Runs github_actions_kernel.v1 when .github/workflows/* is staged.
+# Usage: make commit                    (default message: wip: snapshot local changes)
+#        make commit m="fix: description"
+commit:
+	@set -e; \
+	if git diff --quiet && git diff --cached --quiet \
+		&& [ -z "$$(git ls-files --others --exclude-standard)" ]; then \
+		echo "Nothing to commit (working tree clean)."; exit 1; \
+	fi; \
+	MSG='$(m)'; \
+	if [ -z "$$MSG" ]; then MSG="wip: snapshot local changes"; fi; \
+	echo "→ Staging all changes (git add -A)..."; \
+	git add -A; \
+	if git diff --cached --quiet; then \
+		echo "Nothing to commit after staging (ignored paths only?)."; exit 1; \
+	fi; \
+	if git diff --cached --name-only | grep -q '^\.github/workflows/.*\.ya\?ml$$'; then \
+		echo "→ Workflow files staged — running GitHub Actions kernel..."; \
+		$(MAKE) github-actions-kernel-check staged=1; \
+	fi; \
+	echo "→ Committing: $$MSG"; \
+	git commit -m "$$MSG"; \
+	echo ""; \
+	echo "============================================"; \
+	echo "Committed ($$(git rev-parse --short HEAD)):"; \
+	echo "============================================"; \
+	git show --stat --oneline -1; \
+	echo ""; \
+	if [ -t 0 ]; then \
+		printf "Run make push? [y/N] "; \
+		read -r ans; \
+		case "$$ans" in [yY]|[yY][eE][sS]) $(MAKE) push ;; *) echo "Skipped. Run: make push"; ;; esac; \
+	else \
+		echo "Run: make push   (or: make push b=Staging)"; \
+	fi
 
 # Safe push: runs full pr-check first, then git push
 # Usage: make push              (pushes current branch)
@@ -390,3 +468,26 @@ changelog:
 	@cz changelog --unreleased-version "HEAD" --incremental || \
 		(echo "❌ commitizen not installed — run: pip install commitizen"; exit 1)
 	@echo "✅ CHANGELOG.md updated"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ROADMAP (docs/roadmap/registry.yaml → synced planning docs)
+# ─────────────────────────────────────────────────────────────────────────────
+
+roadmap:
+	@python3 scripts/roadmap.py check
+
+roadmap-sync:
+	@python3 scripts/roadmap.py sync
+
+roadmap-list:
+	@python3 scripts/roadmap.py list
+
+# Usage: make roadmap-add domain=gate-autonomy phase=1 kind=backlog title="Item text"
+# Kinds: backlog | scope_in | scope_out | observability | capability
+roadmap-add:
+	@test -n "$(title)" || (echo "Usage: make roadmap-add domain=gate-autonomy phase=1 kind=backlog title=\"...\""; exit 1)
+	@test -n "$(domain)" || (echo "❌ domain= required (e.g. domain=gate-autonomy)"; exit 1)
+	@test -n "$(phase)" || (echo "❌ phase= required (e.g. phase=1)"; exit 1)
+	@test -n "$(kind)" || (echo "❌ kind= required (backlog|scope_in|scope_out|observability|capability)"; exit 1)
+	@python3 scripts/roadmap.py add --domain "$(domain)" --phase "$(phase)" --kind "$(kind)" --title "$(title)" \
+		$(if $(notes),--notes "$(notes)",) $(if $(status),--status "$(status)",)

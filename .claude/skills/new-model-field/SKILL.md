@@ -1,6 +1,14 @@
 ---
-name: new-field
-description: Add a new field or model to an existing PlasticOS module
+name: new-model-field
+description: add a new field or model to an existing plasticos module. use when adding fields, many2one relations, selection values, computed fields, or new models within an existing plasticos_* addon.
+skill_schema: 1
+layer: control_plane
+role: skill_entrypoint
+tags: [odoo, field, model, plasticos]
+owner: igor_beylin
+status: active
+version: 1.0.0
+updated: 2026-06-04
 ---
 
 # New Model / Field

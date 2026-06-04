@@ -1,25 +1,44 @@
-# ── OS / editor junk ──────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════
+# System / IDE
+# ═══════════════════════════════════════════════════════════
 .DS_Store
+**/.DS_Store
 *.swp
 *~
+.cursor/*
+!.cursor/rules/
+.env
+.env.local
 
-# ── Python ────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════
+# Python
+# ═══════════════════════════════════════════════════════════
+.venv/
+venv/
 __pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
 *.py[cod]
 *.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 
-# ── Local environment / secrets (NEVER commit) ───────────────
-.env.local
-
-# ── Generated audit / analysis artifacts ─────────────────────
-/odoo_audit_report.json
-/xpath_stability_report.json
-
-# ── GMP reports (local artifacts, kept out of git by convention) ─
-/reports/GMP-Report-*.md
-
-# ── Personal working notes / scratch ─────────────────────────
+# ═══════════════════════════════════════════════════════════
+# Local / working folders (not for repo)
+# ═══════════════════════════════════════════════════════════
+Current Work - IGNORE/
 current work - ib/
+
+# ═══════════════════════════════════════════════════════════
+# Generated audit reports
+# ═══════════════════════════════════════════════════════════
+xpath_stability_report.json
+odoo_audit_report.json
+extended_audit_report.json
+
+# ═══════════════════════════════════════════════════════════
+# GMP reports (local artifacts, kept out of git by convention)
+# ═══════════════════════════════════════════════════════════
+/reports/GMP-Report-*.md

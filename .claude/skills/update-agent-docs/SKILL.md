@@ -1,11 +1,14 @@
 ---
 name: update-agent-docs
-description: >-
-  Audit the repo and update AGENTS.md, ARCHITECTURE.md, INVARIANTS.md, and
-  CLAUDE.md with current module inventory, CI pipeline rules, known false
-  positives, and pre-commit hook details. Use when the user says "update agent
-  docs", "refresh repo docs", "sync agent files", or after adding/removing
-  modules, CI checks, or pre-commit hooks.
+description: audit the repo and update agents.md, architecture.md, invariants.md, and claude.md with current module inventory, ci pipeline rules, known false positives, and pre-commit hook details. use when the user says update agent docs, refresh repo docs, sync agent files, or after adding or removing modules, ci checks, or pre-commit hooks.
+skill_schema: 1
+layer: control_plane
+role: skill_entrypoint
+tags: [docs, agents, ci, maintenance]
+owner: igor_beylin
+status: active
+version: 1.0.0
+updated: 2026-06-04
 ---
 
 # Update Agent Documentation
@@ -124,6 +127,8 @@ Update these sections with fresh data from steps 1–6:
 - **Pre-commit Hooks table** → hook count and per-hook details
 - **Ruff Configuration table** → from step 5
 - **Audit Baselines table** → from step 2
+- **Agent Skills & Subagents** → skill/subagent tables from `.claude/README.md` (sync skill count and preloaded skills on agents)
+- When a **new skill** was added, verify `.claude/skills/skill-compiler/references/repo-wiring.md` gates were followed
 - **Version Drift Warning** → compare ruff versions between pre-commit and CI
 
 #### 7b. ARCHITECTURE.md
@@ -146,7 +151,7 @@ Update these sections:
 Update these sections:
 - **Always list** → must match invariants and CI checks
 - **Never list** → must include every pattern CI rejects
-- **References** → verify cross-links to AGENTS.md, ARCHITECTURE.md, INVARIANTS.md
+- **References** → verify cross-links to AGENTS.md, ARCHITECTURE.md, INVARIANTS.md, `.claude/README.md`
 
 ## Validation
 

@@ -266,3 +266,82 @@ def normalize_lead(
     inferred: set[str] = set()
     result = merge_ai_into_record(base, ai_validated, inferred_fields=inferred)
     return result
+
+
+def _build_openai_client(api_key: str | None, base_url: str | None = None):
+    """Construct an OpenAI-compatible client, or None if key/package is missing.
+
+    Mirrors the construction pattern in image_analyzer.analyze_image so all
+    providers (OpenAI, Anthropic, Mistral) are reached through the OpenAI SDK's
+    compatibility layer via their respective base_url.
+    """
+    if not api_key:
+        return None
+    try:
+        from openai import OpenAI  # type: ignore[import-untyped]
+    except ImportError:
+        _logger.error("openai package not installed — AI normalization unavailable.")
+        return None
+    client_kwargs: dict[str, Any] = {"api_key": api_key}
+    if base_url:
+        client_kwargs["base_url"] = base_url
+    return OpenAI(**client_kwargs)
+
+
+def normalize_with_fallback(
+    raw_payload: dict[str, Any],
+    providers: list[dict[str, Any]],
+    *,
+    temperature: float = 0.0,
+) -> dict[str, Any]:
+    """
+    Run normalize_lead across an ordered list of LLM providers with fallback.
+
+    Each provider dict has the shape returned by
+    plasticos.web.lead.config.get_llm_providers_ordered()::
+
+        {"provider": str, "api_key": str, "model": str, "base_url": str | None}
+
+    Behaviour:
+      - Tries providers in order (primary → secondary → tertiary).
+      - Returns the merged record from the FIRST provider that succeeds, with
+        "_provider_used" set to that provider's slug.
+      - If a provider's AI call fails (normalize_lead sets "_ai_error"), the
+        next provider is attempted.
+      - If every provider fails — or none are configured — returns the
+        deterministic-only base dict with "_provider_used"="none" and "error"
+        set, so the caller can log the failure without crashing.
+    """
+    form_data = raw_payload or {}
+
+    if not providers:
+        result = normalize_lead(form_data, None, temperature=temperature)
+        result["_provider_used"] = "none"
+        result["error"] = "no_llm_provider_configured"
+        return result
+
+    last_error: str | None = None
+    for prov in providers:
+        slug = prov.get("provider") or "unknown"
+        client = _build_openai_client(prov.get("api_key"), prov.get("base_url"))
+        if client is None:
+            # Same import/key failure would affect every provider — stop early.
+            last_error = "openai_client_unavailable"
+            break
+        result = normalize_lead(
+            form_data,
+            client,
+            model=prov.get("model") or "gpt-4o-mini",
+            temperature=temperature,
+        )
+        ai_error = result.get("_ai_error")
+        if not ai_error:
+            result["_provider_used"] = slug
+            return result
+        last_error = ai_error
+        _logger.warning("normalize_with_fallback: provider %s failed — %s", slug, ai_error)
+
+    result = normalize_lead(form_data, None, temperature=temperature)
+    result["_provider_used"] = "none"
+    result["error"] = last_error or "all_llm_providers_failed"
+    return result
