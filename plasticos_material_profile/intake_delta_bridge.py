@@ -13,14 +13,13 @@ INTAKE_TO_PROFILE_VALUE_MAP = {
 }
 
 # Shared Many2one / selection / M2M fields copied by the same name on both models.
-SHARED_PROFILE_FIELD_NAMES = (
+SHARED_PROFILE_SCALAR_FIELD_NAMES = (
     "polymer_id",
     "form_id",
     "color_id",
     "source_type_id",
     "origin_form_id",
     "origin_process_type",
-    "material_attribute_ids",
     "filler_type_id",
     "filler_pct",
     "quantity_per_load_lbs",
@@ -28,6 +27,8 @@ SHARED_PROFILE_FIELD_NAMES = (
     "lat",
     "lon",
 )
+
+SHARED_PROFILE_FIELD_NAMES = SHARED_PROFILE_SCALAR_FIELD_NAMES + ("material_attribute_ids",)
 
 # Stored profile fields that must never be sourced from material.profile ORM reads.
 FORBIDDEN_PROFILE_ORM_READ_KEYS = frozenset({"target_price", "has_residue"})
@@ -74,18 +75,16 @@ def build_material_profile_vals_from_intake(intake) -> dict:
         "moisture_percent": getattr(intake, "moisture_pct", 0) or 0,
         "contamination_percent": getattr(intake, "contamination_pct", 0) or 0,
     }
-    for field_name in SHARED_PROFILE_FIELD_NAMES:
-        if field_name == "material_attribute_ids":
-            attribute_ids = intake.material_attribute_ids.ids if intake.material_attribute_ids else []
-            if attribute_ids:
-                vals[field_name] = [(6, 0, attribute_ids)]
-            continue
+    for field_name in SHARED_PROFILE_SCALAR_FIELD_NAMES:
         if hasattr(intake, field_name):
             value = getattr(intake, field_name)
             if field_name.endswith("_id"):
                 vals[field_name] = _m2o_id(intake, field_name)
             else:
                 vals[field_name] = value
+    attribute_ids = intake.material_attribute_ids.ids if intake.material_attribute_ids else []
+    if attribute_ids:
+        vals["material_attribute_ids"] = [(6, 0, attribute_ids)]
     return vals
 
 
