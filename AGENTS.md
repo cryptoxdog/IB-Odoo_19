@@ -28,9 +28,8 @@ python3 ci/check_odoo19_xml.py            # XML view validation
 python3 tools/cron_invariant_check.py     # Cron safety invariants
 
 # Roadmap (registry → synced planning docs)
-make roadmap                              # Validate docs/roadmap/registry.yaml alignment
-make roadmap-sync                         # Regenerate roadmap markdown from registry
-make roadmap-add domain=gate-autonomy phase=1 kind=backlog title="..."
+make roadmap                              # Sync + validate (add: domain= phase= kind= title=)
+make roadmap-list                         # List registry items
 
 # Docker
 docker-compose up -d                      # Start Odoo + PostgreSQL + Redis
@@ -64,6 +63,7 @@ Skills live in `.claude/skills/`; subagents in `.claude/agents/`. Full registry:
 | `odoo-sh-deploy` | Odoo.sh production errors — SSH diagnose before fix |
 | `update-agent-docs` | Refresh AGENTS.md / ARCHITECTURE.md / INVARIANTS.md / CLAUDE.md |
 | `skill-compiler` | Compile kernels/SOPs into zero-stub skill packs |
+| `gmp-protocol` | Deterministic phased (0–6) repo changes with modification lock + signed evidence report |
 
 | Subagent | Preloaded skills | Delegate for |
 |----------|------------------|--------------|
