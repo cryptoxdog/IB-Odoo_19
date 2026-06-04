@@ -10,7 +10,7 @@
         up down restart logs logs-error shell odoo-shell \
         update update-all rebuild backup \
         test test-odoo test-pure test-module \
-        pr-check push api-push-check sonar changelog \
+        pr-check commit push api-push-check sonar changelog \
         pr-autopilot pr-fix
 
 # ── Load .env if present ──────────────────────────────────────────────────────
@@ -84,6 +84,8 @@ help:
 	@echo "    make test-module m=<mod>  Odoo tests for one module (-u m)"
 	@echo ""
 	@echo "  PR / CI Workflow"
+	@echo "    make commit           stage all changes + commit (m=\"message\" optional)"
+	@echo "    make commit m=\"...\"   commit with explicit conventional message"
 	@echo "    make pr-check         REQUIRED before any push: audit-quick + semgrep + semgrep-test + pipeline-guard"
 	@echo "    make push             safe push: runs pr-check first, then git push current branch"
 	@echo "    make push b=Staging   safe push to a specific branch"
@@ -357,6 +359,38 @@ test-module:
 pr-check: audit-quick semgrep semgrep-test pipeline-guard test
 	@echo ""
 	@echo "✅ PR gate passed — safe to push"
+
+# Stage all tracked/untracked changes (respects .gitignore) and commit.
+# Usage: make commit                    (default message: wip: snapshot local changes)
+#        make commit m="fix: description"
+commit:
+	@set -e; \
+	if git diff --quiet && git diff --cached --quiet \
+		&& [ -z "$$(git ls-files --others --exclude-standard)" ]; then \
+		echo "Nothing to commit (working tree clean)."; exit 1; \
+	fi; \
+	MSG='$(m)'; \
+	if [ -z "$$MSG" ]; then MSG="wip: snapshot local changes"; fi; \
+	echo "→ Staging all changes (git add -A)..."; \
+	git add -A; \
+	if git diff --cached --quiet; then \
+		echo "Nothing to commit after staging (ignored paths only?)."; exit 1; \
+	fi; \
+	echo "→ Committing: $$MSG"; \
+	git commit -m "$$MSG"; \
+	echo ""; \
+	echo "============================================"; \
+	echo "Committed ($$(git rev-parse --short HEAD)):"; \
+	echo "============================================"; \
+	git show --stat --oneline -1; \
+	echo ""; \
+	if [ -t 0 ]; then \
+		printf "Run make push? [y/N] "; \
+		read -r ans; \
+		case "$$ans" in [yY]|[yY][eE][sS]) $(MAKE) push ;; *) echo "Skipped. Run: make push"; ;; esac; \
+	else \
+		echo "Run: make push   (or: make push b=Staging)"; \
+	fi
 
 # Safe push: runs full pr-check first, then git push
 # Usage: make push              (pushes current branch)

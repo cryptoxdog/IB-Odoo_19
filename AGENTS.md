@@ -6,7 +6,7 @@ Cross-tool agent instructions for the IB-Odoo_19 repository. Read by Claude Code
 
 - **Name**: PlasticOS — Plastics Recycling Brokerage ERP
 - **Type**: Odoo 19 custom module suite (**29** installable `plasticos_*` addons, **~32K** lines Python in addons, **~174** XML files in addons).
-- **Stage**: Production (staging branch → main)
+- **Stage**: Production (`Staging` branch → `Production`)
 - **Stack**: Python 3.12, Odoo 19, PostgreSQL 16, Neo4j (graph scoring), Docker
 
 ## Commands
@@ -98,10 +98,11 @@ tools/                       # Cron checks, validators
 
 ## Git Workflow
 
-- Branch from `staging`, PR to `staging`
-- Merge `staging` → `main` for production
-- Commit messages: conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`)
-- PRs require passing CI: ruff + XML validation + Odoo pattern checks + secret scan
+- Branch from `Staging`, PR to `Staging` (branch names are capitalized; macOS case-insensitivity makes `git checkout staging` resolve to `Staging`)
+- Merge `Staging` → `Production` for production — never merge feature branches directly to `Production`
+- Branch naming: `feat/short-description`, `fix/short-description`, `docs/short-description`, `refactor/short-description`, `test/short-description`
+- Commit messages: conventional commits with optional module scope — `feat(module): ...`, `fix(views): ...`, `docs: ...`, `refactor(intake): ...`, `test(integration): ...`
+- PRs require passing CI: ruff + XML validation + Odoo pattern checks + secret scan (gitleaks)
 
 ## CI Compliance Checklist (MANDATORY before commit/PR)
 
