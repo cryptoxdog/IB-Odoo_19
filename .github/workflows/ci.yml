@@ -59,7 +59,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install lxml
+      - run: pip install lxml semgrep==1.164.0
 
       - name: Run all static checks (all errors before failing)
         run: |
@@ -105,6 +105,10 @@ jobs:
               try: exec(open(m).read())
               except Exception as e: print(f'ERROR {m}: {e}'); errors+=1
           sys.exit(errors)"
+
+          # Semgrep custom Odoo/security rules
+          run_check "Semgrep Odoo patterns" semgrep --error --config .semgrep/odoo-patterns.yml --severity ERROR --quiet --include="plasticos_*"
+          run_check "Semgrep fixture tests" make semgrep-test
 
           # Odoo 19 pattern check (advisory — pre-existing issues tracked separately)
           echo "--- Odoo 19 patterns (advisory) ---"

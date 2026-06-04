@@ -13,6 +13,8 @@ def migrate(cr, version):
     if not version:
         return
 
+    # Approved one-time cleanup: model is now AbstractModel with no table.
+    # nosemgrep: plasticos-destructive-migration-sql-py
     cr.execute("DROP TABLE IF EXISTS plasticos_commission_config CASCADE")
     _logger.info("Dropped orphaned table plasticos_commission_config (if it existed)")
 

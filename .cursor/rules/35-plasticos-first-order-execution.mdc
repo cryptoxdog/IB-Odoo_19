@@ -1,0 +1,27 @@
+---
+description: First-order execution rule: prioritize smallest live-blocking step over broad refactor or future architecture.
+alwaysApply: true
+---
+# First-Order Execution
+
+## Core Question
+What is the smallest verified change that improves the real runtime outcome?
+
+## Gates
+1. Does this unblock live intake -> match -> offer -> transaction flow?
+2. Is this the next required blocker, or a later cleanup?
+3. Is any fake-success path still present?
+4. How many files change versus how much runtime value is gained?
+5. Could this break registry load, module upgrade, data integrity, or production flow?
+
+## Prefer
+- small targeted patches;
+- config gates that remove killswitches only after dependencies are ready;
+- validation proving real records are created;
+- rollbackable changes.
+
+## Defer
+- enrichment before basic matching works;
+- broad refactors;
+- tooling churn competing with live blockers;
+- external engine integration before stable boundary contracts.

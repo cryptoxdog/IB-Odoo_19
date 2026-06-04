@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- filename: .semgrep/tests/odoo19.xml -->
+<odoo>
+    <!-- Positive fixtures: these intentionally trigger Odoo 19 XML Semgrep rules. -->
+    <record id="view_semgrep_bad_tree" model="ir.ui.view">
+        <field name="name">plasticos.semgrep.bad.tree</field>
+        <field name="model">plasticos.semgrep.fixture</field>
+        <field name="arch" type="xml">
+            <tree string="Bad Tree">
+                <field name="name" attrs="{'invisible': [('id', '=', False)]}"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_semgrep_bad_view_mode" model="ir.actions.act_window">
+        <field name="name">Bad View Mode</field>
+        <field name="res_model">plasticos.semgrep.fixture</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <template id="template_semgrep_bad_qweb">
+        <t t-esc="object.name"/>
+    </template>
+
+    <record id="cron_semgrep_bad_numbercall" model="ir.cron">
+        <field name="name">Bad Numbercall</field>
+        <field name="model_id" ref="plasticos_base.model_plasticos_base_config"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_fixture()</field>
+        <field name="numbercall">1</field>
+    </record>
+
+    <record id="group_semgrep_bad_category" model="res.groups">
+        <field name="name">Bad Category</field>
+        <field name="category_id" ref="base.module_category_hidden"/>
+    </record>
+
+    <!-- Negative control: valid Odoo 19 list view. -->
+    <record id="view_semgrep_good_list" model="ir.ui.view">
+        <field name="name">plasticos.semgrep.good.list</field>
+        <field name="model">plasticos.semgrep.fixture</field>
+        <field name="arch" type="xml">
+            <list string="Good List">
+                <field name="name" invisible="not name"/>
+            </list>
+        </field>
+    </record>
+</odoo>

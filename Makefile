@@ -5,7 +5,7 @@
 .PHONY: help \
         lint format format-fix check \
         audit audit-quick \
-        xml-check wiring deps-check cron-check odoo19-check semgrep \
+        xml-check wiring deps-check cron-check odoo19-check semgrep semgrep-test \
         pipeline-guard dev-fence state-guard acl-check guards deploy-check \
         up down restart logs logs-error shell odoo-shell \
         update update-all rebuild backup \
@@ -26,7 +26,9 @@ RUFF_EXCLUDES = \
 	--exclude plasticos_inference_engine \
 	--exclude plasticos_buyer_match_engine \
 	--exclude plasticos_matching \
-	--exclude "current work - ib"
+	--exclude .semgrep/tests \
+	--exclude "current work - ib" \
+	--exclude "Current Work - IGNORE"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # HELP
@@ -45,13 +47,14 @@ help:
 	@echo ""
 	@echo "  Audit (run before PRs)"
 	@echo "    make audit-quick      fast: lint + format + wiring + odoo19 + xml + deps + cron"
-	@echo "    make audit            full: audit-quick + semgrep + all ci/ integrity scripts"
+	@echo "    make audit            full: audit-quick + semgrep + semgrep-test + all ci/ integrity scripts"
 	@echo "    make xml-check        xmllint on all plasticos XML files"
 	@echo "    make odoo19-check     Odoo 19 XML pattern violations"
 	@echo "    make wiring           module dependency wiring check"
 	@echo "    make deps-check       circular dependency check"
 	@echo "    make cron-check       cron invariant violations"
 	@echo "    make semgrep          semgrep custom Odoo rules (ERROR level)"
+	@echo "    make semgrep-test     validate semgrep config + positive/negative fixtures"
 	@echo "    make acl-check        ACL completeness (all models have ir.model.access)"
 	@echo ""
 	@echo "  Hard Gates (run individually or via make guards)"
@@ -79,7 +82,7 @@ help:
 	@echo "    make test-module m=<mod>  run tests for one module"
 	@echo ""
 	@echo "  PR / CI Workflow"
-	@echo "    make pr-check         REQUIRED before any push: audit-quick + semgrep + pipeline-guard"
+	@echo "    make pr-check         REQUIRED before any push: audit-quick + semgrep + semgrep-test + pipeline-guard"
 	@echo "    make push             safe push: runs pr-check first, then git push current branch"
 	@echo "    make push b=Staging   safe push to a specific branch"
 	@echo "    make api-push-check   REQUIRED before GitHub API push (when git push fails)"
@@ -138,7 +141,15 @@ cron-check:
 
 semgrep:
 	@echo "→ Semgrep custom Odoo rules (ERROR level only)..."
-	semgrep --config .semgrep/odoo-patterns.yml --severity ERROR --quiet --include="plasticos_*"
+	semgrep --error --config .semgrep/odoo-patterns.yml --severity ERROR --quiet --include="plasticos_*"
+
+semgrep-test:
+	@echo "→ Semgrep rule fixture tests..."
+	semgrep --validate --config .semgrep/odoo-patterns.yml
+	@echo "→ Positive fixtures should produce findings..."
+	@semgrep --config .semgrep/odoo-patterns.yml .semgrep/tests/positive.py .semgrep/tests/odoo19.xml --quiet | grep -q .
+	@echo "→ Negative fixtures should produce no blocking findings..."
+	semgrep --error --config .semgrep/odoo-patterns.yml .semgrep/tests/negative.py --quiet
 
 acl-check:
 	@echo "→ ACL completeness check..."
@@ -148,7 +159,7 @@ audit-quick: lint format xml-check odoo19-check wiring deps-check cron-check
 	@echo ""
 	@echo "✅ Quick audit complete"
 
-audit: audit-quick semgrep guards acl-check
+audit: audit-quick semgrep semgrep-test guards acl-check
 	@echo "→ Field integrity..."
 	python3 ci/check_field_integrity.py
 	@echo "→ ORM integrity..."
@@ -330,7 +341,7 @@ test-module:
 # ─────────────────────────────────────────────────────────────────────────────
 
 # REQUIRED before any push or PR creation
-pr-check: audit-quick semgrep pipeline-guard
+pr-check: audit-quick semgrep semgrep-test pipeline-guard
 	@echo ""
 	@echo "✅ PR gate passed — safe to push"
 
