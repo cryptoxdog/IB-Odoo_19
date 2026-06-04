@@ -274,7 +274,6 @@ These files are intentionally excluded from specific checks:
 | Many2one string write (#22) | `ai_normalizer.py` | LLM prompt JSON schema, not field assignment |
 | Many2one string write (#22) | `graph_service.py`, `matcher.py`, `enrichment_service.py`, `material_profile.py`, `transaction_import` | Dict/API payloads, not ORM writes |
 | `self.env.get()` (#24) | `ci/*.py` | CI detection scripts contain pattern examples |
-| Ruff lint | `plasticos_inference_engine`, `plasticos_buyer_match_engine`, `plasticos_matching` | Excluded in `ci.yml` ruff step |
 | mypy | `plasticos_web_leads`, `plasticos_enrichment`, `plasticos_buyer_match_engine`, `plasticos_inference_engine` | Complex patterns, gradual typing |
 | ACL completeness | all modules | Non-blocking hook (warn-only) |
 | Odoo patterns script | CI workflows | `|| true` — tracked separately |

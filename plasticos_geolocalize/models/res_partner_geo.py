@@ -27,7 +27,7 @@ def _dbg(msg, data=None, hypothesis=None):
     try:
         with open(_LOG_PATH, "a") as f:
             f.write(json.dumps(entry) + "\n")
-    except Exception:
+    except Exception:  # noqa: S110 -- best-effort debug sink; must never interrupt the geocode cron
         pass
 
 
