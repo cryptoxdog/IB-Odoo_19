@@ -164,20 +164,12 @@ jobs:
 
       - run: pip install pytest==8.3.5 pytest-timeout==2.4.0
 
-      - name: Run all pure-Python tests (all failures before exit)
+      - name: Run all pure-Python tests (Odoo-free; conftest auto-skips Odoo tests)
         run: |
-          python3 -m pytest \
-            tests/test_repo_dependency_integrity.py \
-            tests/test_odoo19_compat.py \
-            tests/test_cypher_schema_alignment.py \
-            tests/test_phantom_enum_values.py \
-            tests/test_process_enum_alignment.py \
-            tests/test_cron_invariants.py \
-            tests/test_triage_pipeline.py \
-            tests/test_wiring_gap2.py \
-            tests/test_gap_fixes.py \
-            tests/test_ci_check_odoo19_xml.py \
-            tests/test_odoo_test_setup_validity.py \
+          # Odoo is intentionally NOT installed here. tests/conftest.py detects this
+          # and collect-ignores every Odoo-importing test module, so `pytest tests/`
+          # runs exactly the pure-Python set with no hand-maintained file list to drift.
+          python3 -m pytest tests/ \
             -v --tb=short --no-header \
             -p no:randomly
 

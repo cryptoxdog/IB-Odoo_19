@@ -340,8 +340,15 @@ test-module:
 # PR / CI WORKFLOW
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Pure-Python test suite — mirrors CI Tier 3 "Pure Python Tests".
+# conftest.py auto-deactivates every Odoo-importing test when Odoo isn't installed,
+# so this runs exactly the Odoo-free set without a hand-maintained file list.
+test-pure:
+	@echo "→ Pure-Python test suite (Odoo-free; mirrors CI Tier 3)..."
+	python3 -m pytest tests/ --tb=short --no-header -p no:randomly -q
+
 # REQUIRED before any push or PR creation
-pr-check: audit-quick semgrep semgrep-test pipeline-guard
+pr-check: audit-quick semgrep semgrep-test pipeline-guard test-pure
 	@echo ""
 	@echo "✅ PR gate passed — safe to push"
 
