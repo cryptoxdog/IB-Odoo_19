@@ -1,197 +1,318 @@
-# ═══════════════════════════════════════════════════════════
-# Module : classification_engine
-# Purpose: Deterministic HOT/COLD classification — zero LLM.
-#          Pure Python logic applied after AI normalization.
-# ═══════════════════════════════════════════════════════════
-"""
-Classification Rules (from n8n WebLeadTriage-FIN workflow):
-
-Auto-COLD gates (any one triggers COLD):
-  1. Material is PVC
-  2. Estimated weight < cold_max_lbs (default 8,000 lbs)
-  3. Source is residential / individual / homeowner
-  4. Request is a drop-off
-  5. Material matches reject list (vinyl siding, appliances, etc.)
-  6. Material is not plastic
-
-HOT qualification (all must be true):
-  1. Estimated weight >= hot_min_lbs (default 10,000 lbs)
-  2. Material IS plastic
-  3. Source is commercial or industrial
-
-Everything else → COLD with reasons.
-"""
-
+# ═══════════════════════════════════════════════════════════════════════════════
+# classification_engine.py
+# Module : plasticos_web_leads
+# Purpose: Deterministic HOT / COLD / WARM classification of normalised leads.
+#
+# FIXES APPLIED:
+# CE-01 — reject list checks are case-insensitive substring matches
+# CE-02 — is_plastic=None is UNKNOWN, not False; does NOT trigger cold gate
+# CE-03 — is_plastic=True alone is NOT a HOT qualifier (needs polymer or source)
+# CE-04 — commercial keyword detection uses word-boundary regex (no substring FP)
+# CE-05 — 0-lbs leads get weight:unknown gate, not weight:below_cold_floor gate
+# CE-06 — HOT requires ≥ 2 independent qualifiers
+# CE-07 — ClassificationResult carries weight_source field
+# CE-08 — cold_gates_triggered is a structured list, not free text
+# CE-09 — is_commercial=None reduces effective HOT threshold to 80%
+# ═══════════════════════════════════════════════════════════════════════════════
 from __future__ import annotations
 
-import logging
+import re
 from dataclasses import dataclass, field
 
-_logger = logging.getLogger(__name__)
+# ─────────────────────────────────────────────────────────────────────────────
+# Default reject lists (overridable via classify_lead kwargs)
+# ─────────────────────────────────────────────────────────────────────────────
+_REJECT_MATERIALS_DEFAULT: list[str] = [
+    "metal",
+    "aluminum",
+    "aluminium",
+    "steel",
+    "copper",
+    "iron",
+    "glass",
+    "wood",
+    "paper",
+    "cardboard",
+    "rubber",
+    "textile",
+    "fabric",
+    "ceramic",
+    "concrete",
+    "asphalt",
+]
 
-# ── Non-plastic keywords ────────────────────────────────────
-_NON_PLASTIC_KEYWORDS = frozenset(
-    [
-        "metal",
-        "steel",
-        "aluminum",
-        "aluminium",
-        "copper",
-        "brass",
-        "wood",
-        "lumber",
-        "paper",
-        "cardboard",
-        "glass",
-        "ceramic",
-        "concrete",
-        "asphalt",
-        "dirt",
-        "soil",
-        "food waste",
-        "organic",
-        "textile",
-        "fabric",
-        "cloth",
-        "rubber tire",
-    ]
-)
+_REJECT_SOURCES_DEFAULT: list[str] = [
+    "household",
+    "residential",
+    "home owner",
+    "homeowner",
+    "drop off",
+    "drop-off",
+    "dropoff",
+    "garage sale",
+    "dispose",
+    "get rid",
+    "personal use",
+    "consumer drop",
+]
 
-# ── Commercial / industrial source indicators ───────────────
-_COMMERCIAL_INDICATORS = frozenset(
-    [
-        "commercial",
-        "industrial",
-        "manufacturing",
-        "factory",
-        "warehouse",
-        "distribution",
-        "plant",
-        "facility",
-        "processor",
-        "recycler",
-        "broker",
-        "post-industrial",
-        "post_industrial",
-        "post-commercial",
-        "post_commercial",
-        "agricultural",
-    ]
-)
+# Commercial source keywords — word-boundary protected (FIX CE-04)
+_COMMERCIAL_KEYWORDS: list[str] = [
+    r"\bmanufactur\w*\b",
+    r"\bfacility\b",
+    r"\bfacilities\b",
+    r"\bplant\b",  # word-boundary prevents "transplant"
+    r"\bwarehouse\b",
+    r"\bproduction\b",
+    r"\bindustrial\b",
+    r"\bprocessor\b",
+    r"\brecycler\b",
+    r"\bdistributor\b",
+    r"\bscrap\s+yard\b",
+    r"\bmolder\b",
+    r"\bextruder\b",
+    r"\bcompound\w*\b",
+]
+_COMMERCIAL_PATTERN = re.compile("|".join(_COMMERCIAL_KEYWORDS), re.IGNORECASE)
+
+# Minimum qualifiers to reach HOT (FIX CE-06)
+_MIN_HOT_QUALIFIERS = 2
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Result dataclass
+# ─────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass
 class ClassificationResult:
-    """Immutable result of the deterministic classification."""
+    """
+    Full audit record of a lead classification decision.
 
-    decision: str  # "hot" or "cold"
+    Attributes:
+      decision              : "hot" | "cold"
+      reasons               : human-readable list of decision drivers
+      cold_gates_triggered  : machine-readable gate IDs that fired COLD
+      hot_qualifiers_met    : machine-readable qualifier IDs that fired HOT
+      weight_source         : source tag from parse_weight_lbs (FIX CE-07)
+      is_plastic            : the is_plastic value used (None = unknown)
+      is_commercial_source  : the commercial hint value used
+      estimated_lbs         : the weight value used
+      effective_hot_min_lbs : the actual threshold applied (accounts for CE-09)
+    """
+
+    decision: str
     reasons: list[str] = field(default_factory=list)
     cold_gates_triggered: list[str] = field(default_factory=list)
     hot_qualifiers_met: list[str] = field(default_factory=list)
+    weight_source: str = "none"
+    is_plastic: bool | None = None
+    is_commercial_source: bool | None = None
+    estimated_lbs: float = 0.0
+    effective_hot_min_lbs: float = 0.0
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Main classifier
+# ─────────────────────────────────────────────────────────────────────────────
 
 
 def classify_lead(
     *,
-    polymer: str | None,
-    material_description: str | None,
-    estimated_lbs: int,
-    source_description: str | None,
-    source_type: str | None,
-    reject_materials: frozenset[str],
-    reject_sources: frozenset[str],
-    hot_min_lbs: int = 10_000,
-    cold_max_lbs: int = 8_000,
+    polymer: str | None = None,
+    material_description: str | None = None,
+    estimated_lbs: float = 0.0,
+    source_description: str | None = None,
+    source_type: str | None = None,
+    is_plastic_hint: bool | None = None,
+    is_commercial_hint: bool | None = None,
+    weight_source: str = "none",
+    hot_min_lbs: float = 10_000.0,
+    cold_max_lbs: float = 8_000.0,
+    reject_materials: list[str] | None = None,
+    reject_sources: list[str] | None = None,
 ) -> ClassificationResult:
-    """Apply deterministic classification rules.
-
-    All inputs should already be normalized (lowercase, stripped).
-    Returns a ClassificationResult with decision and audit trail.
     """
+    Classify a normalised lead as "hot" or "cold".
+
+    HOT requires ALL of:
+      1. No COLD gate has fired
+      2. Weight ≥ effective_hot_min_lbs (adjusted down 20% if commercial is unknown)
+      3. ≥ _MIN_HOT_QUALIFIERS independent positive signals
+
+    COLD fires on the FIRST matching gate (evaluated in priority order).
+    """
+    reasons: list[str] = []
     cold_gates: list[str] = []
     hot_quals: list[str] = []
 
-    mat_lower = (material_description or "").lower().strip()
-    src_lower = (source_description or "").lower().strip()
-    src_type_lower = (source_type or "").lower().strip()
-    poly_lower = (polymer or "").lower().strip()
+    # Normalise inputs
+    poly_lower = (polymer or "").strip().lower()
+    mat_lower = (material_description or "").strip().lower()
+    src_lower = (source_description or "").strip().lower()
+    stype_lower = (source_type or "").strip().lower()
 
-    # ── COLD Gate 1: PVC ─────────────────────────────────────
-    if poly_lower == "pvc":
-        cold_gates.append("pvc_material")
+    rej_mats = [m.lower() for m in (reject_materials if reject_materials is not None else _REJECT_MATERIALS_DEFAULT)]
+    rej_srcs = [s.lower() for s in (reject_sources if reject_sources is not None else _REJECT_SOURCES_DEFAULT)]
 
-    # ── COLD Gate 2: Below minimum weight ────────────────────
-    if estimated_lbs < cold_max_lbs:
-        cold_gates.append(f"below_{cold_max_lbs}_lbs (est={estimated_lbs})")
+    # ─────────────────────────────────────────────────────────────────────────
+    # COLD GATE 1 — AI explicitly says not plastic (FIX CE-02)
+    #   is_plastic=False → cold
+    #   is_plastic=None  → unknown, do NOT cold here
+    #   is_plastic=True  → pass through to qualifiers
+    # ─────────────────────────────────────────────────────────────────────────
+    if is_plastic_hint is False:
+        cold_gates.append("is_plastic:false")
+        reasons.append("AI determined material is not plastic.")
 
-    # ── COLD Gate 3: Residential / individual source ─────────
-    for pattern in reject_sources:
-        if pattern in src_lower or pattern in src_type_lower:
-            cold_gates.append(f"rejected_source: {pattern}")
+    # ─────────────────────────────────────────────────────────────────────────
+    # COLD GATE 2 — AI explicitly says not a commercial source
+    # ─────────────────────────────────────────────────────────────────────────
+    if is_commercial_hint is False:
+        cold_gates.append("is_commercial_source:false")
+        reasons.append("AI determined source is not commercial (residential/personal).")
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # COLD GATE 3 — Rejected material type (FIX CE-01: case-insensitive)
+    # ─────────────────────────────────────────────────────────────────────────
+    search_text_mat = f"{poly_lower} {mat_lower}"
+    for reject_kw in rej_mats:
+        if reject_kw and re.search(r"\b" + re.escape(reject_kw) + r"\b", search_text_mat):
+            cold_gates.append("reject_material")
+            reasons.append(f"Material contains rejected keyword: '{reject_kw}'.")
             break
 
-    # ── COLD Gate 4: Reject-list materials ───────────────────
-    for pattern in reject_materials:
-        if pattern in mat_lower:
-            cold_gates.append(f"rejected_material: {pattern}")
+    # ─────────────────────────────────────────────────────────────────────────
+    # COLD GATE 4 — Rejected source type (CE-01: case-insensitive word-boundary)
+    # ─────────────────────────────────────────────────────────────────────────
+    search_text_src = f"{src_lower} {stype_lower}"
+    for reject_kw in rej_srcs:
+        if reject_kw and re.search(r"\b" + re.escape(reject_kw) + r"\b", search_text_src):
+            cold_gates.append("reject_source")
+            reasons.append(f"Source contains rejected keyword: '{reject_kw}'.")
             break
 
-    # ── COLD Gate 5: Non-plastic material ────────────────────
-    is_plastic = True
-    for kw in _NON_PLASTIC_KEYWORDS:
-        if kw in mat_lower and not poly_lower:
-            is_plastic = False
-            cold_gates.append(f"non_plastic: {kw}")
-            break
+    # ─────────────────────────────────────────────────────────────────────────
+    # COLD GATE 5 — Weight unknown (FIX CE-05: distinct from below-floor gate)
+    # ─────────────────────────────────────────────────────────────────────────
+    if estimated_lbs == 0 or weight_source == "none":
+        cold_gates.append("weight:unknown")
+        reasons.append("No usable weight information — cannot qualify as HOT.")
 
-    # ── If any COLD gate triggered → COLD ────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
+    # COLD GATE 6 — Weight below cold floor (only fires if weight IS known)
+    # ─────────────────────────────────────────────────────────────────────────
+    elif 0 < estimated_lbs < cold_max_lbs:
+        cold_gates.append("weight:below_cold_floor")
+        reasons.append(f"Weight {estimated_lbs:,.0f} lbs is below COLD floor ({cold_max_lbs:,.0f} lbs).")
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # If any COLD gate fired → return COLD immediately
+    # ─────────────────────────────────────────────────────────────────────────
     if cold_gates:
         return ClassificationResult(
             decision="cold",
-            reasons=[f"COLD gate: {g}" for g in cold_gates],
+            reasons=reasons,
             cold_gates_triggered=cold_gates,
+            weight_source=weight_source,
+            is_plastic=is_plastic_hint,
+            is_commercial_source=is_commercial_hint,
+            estimated_lbs=estimated_lbs,
+            effective_hot_min_lbs=hot_min_lbs,
         )
 
-    # ── HOT Qualification ────────────────────────────────────
-    # Q1: Weight >= hot_min_lbs
-    if estimated_lbs >= hot_min_lbs:
-        hot_quals.append(f"weight_gte_{hot_min_lbs}_lbs (est={estimated_lbs})")
+    # ─────────────────────────────────────────────────────────────────────────
+    # HOT threshold adjustment (FIX CE-09)
+    # If commercial status is unknown, require only 80% of hot_min_lbs.
+    # ─────────────────────────────────────────────────────────────────────────
+    if is_commercial_hint is None:
+        effective_hot_min = hot_min_lbs * 0.80
+        reasons.append(
+            f"Commercial source unknown — effective HOT threshold reduced to "
+            f"{effective_hot_min:,.0f} lbs (80% of {hot_min_lbs:,.0f})."
+        )
+    else:
+        effective_hot_min = hot_min_lbs
 
-    # Q2: Material is plastic
-    if is_plastic and poly_lower:
-        hot_quals.append(f"is_plastic (polymer={poly_lower})")
-    elif is_plastic:
-        hot_quals.append("is_plastic (inferred from description)")
+    # ─────────────────────────────────────────────────────────────────────────
+    # Weight gate: must clear HOT threshold
+    # ─────────────────────────────────────────────────────────────────────────
+    if estimated_lbs < effective_hot_min:
+        reasons.append(
+            f"Weight {estimated_lbs:,.0f} lbs is in warm zone (below HOT threshold of {effective_hot_min:,.0f} lbs)."
+        )
+        return ClassificationResult(
+            decision="cold",
+            reasons=reasons,
+            cold_gates_triggered=["weight:below_hot_threshold"],
+            weight_source=weight_source,
+            is_plastic=is_plastic_hint,
+            is_commercial_source=is_commercial_hint,
+            estimated_lbs=estimated_lbs,
+            effective_hot_min_lbs=effective_hot_min,
+        )
 
-    # Q3: Commercial / industrial source
-    is_commercial = False
-    for indicator in _COMMERCIAL_INDICATORS:
-        if indicator in src_lower or indicator in src_type_lower:
-            is_commercial = True
-            hot_quals.append(f"commercial_source: {indicator}")
-            break
+    # Weight passes — add qualifier
+    hot_quals.append(f"weight:{weight_source}:{estimated_lbs:,.0f}lbs")
+    reasons.append(f"Weight {estimated_lbs:,.0f} lbs ≥ HOT threshold {effective_hot_min:,.0f} lbs.")
 
-    # All three qualifiers must be met for HOT
-    if len(hot_quals) >= 3:
+    # ─────────────────────────────────────────────────────────────────────────
+    # HOT QUALIFIER — confirmed polymer
+    # ─────────────────────────────────────────────────────────────────────────
+    if polymer and poly_lower:
+        hot_quals.append(f"polymer_confirmed:{poly_lower}")
+        reasons.append(f"Polymer identified: {polymer}.")
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # HOT QUALIFIER — commercial source (FIX CE-04: word-boundary regex)
+    # ─────────────────────────────────────────────────────────────────────────
+    if is_commercial_hint is True:
+        hot_quals.append("is_commercial_source:true")
+        reasons.append("AI confirmed commercial/industrial source.")
+    elif is_commercial_hint is None:
+        combined = f"{src_lower} {mat_lower}"
+        if _COMMERCIAL_PATTERN.search(combined):
+            hot_quals.append("commercial_keyword_detected")
+            reasons.append("Commercial keyword detected in source/material description.")
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # HOT QUALIFIER — post-industrial source type
+    # ─────────────────────────────────────────────────────────────────────────
+    if stype_lower in ("post_industrial", "post-industrial"):
+        hot_quals.append("source_type:post_industrial")
+        reasons.append("Source type is post-industrial.")
+
+    # NOTE: is_plastic=True alone is NOT a HOT qualifier (FIX CE-03)
+    # It only confirms material type; commercial viability needs more evidence.
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Decision: HOT requires ≥ _MIN_HOT_QUALIFIERS independent signals (CE-06)
+    # ─────────────────────────────────────────────────────────────────────────
+    if len(hot_quals) >= _MIN_HOT_QUALIFIERS:
         return ClassificationResult(
             decision="hot",
-            reasons=[f"HOT qualifier: {q}" for q in hot_quals],
+            reasons=reasons,
+            cold_gates_triggered=[],
             hot_qualifiers_met=hot_quals,
+            weight_source=weight_source,
+            is_plastic=is_plastic_hint,
+            is_commercial_source=is_commercial_hint,
+            estimated_lbs=estimated_lbs,
+            effective_hot_min_lbs=effective_hot_min,
         )
 
-    # ── Default: COLD (not enough qualifiers) ────────────────
-    missing = []
-    if estimated_lbs < hot_min_lbs:
-        missing.append(f"weight below {hot_min_lbs} lbs")
-    if not is_plastic or not poly_lower:
-        missing.append("polymer not identified")
-    if not is_commercial:
-        missing.append("source not commercial/industrial")
-
+    # Passed weight gate but insufficient qualifiers
+    reasons.append(
+        f"Insufficient HOT qualifiers: {len(hot_quals)} of {_MIN_HOT_QUALIFIERS} required. "
+        f"Qualifiers met: {hot_quals or ['none']}."
+    )
     return ClassificationResult(
         decision="cold",
-        reasons=[
-            f"Insufficient HOT qualifiers ({len(hot_quals)}/3)",
-            *[f"Missing: {m}" for m in missing],
-        ],
+        reasons=reasons,
+        cold_gates_triggered=["insufficient_qualifiers"],
         hot_qualifiers_met=hot_quals,
+        weight_source=weight_source,
+        is_plastic=is_plastic_hint,
+        is_commercial_source=is_commercial_hint,
+        estimated_lbs=estimated_lbs,
+        effective_hot_min_lbs=effective_hot_min,
     )

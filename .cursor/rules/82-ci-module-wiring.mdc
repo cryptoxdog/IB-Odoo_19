@@ -1,0 +1,84 @@
+---
+description: Module dependency wiring rules — every model reference must be declared in __manifest__.py depends. Cross-layer references use Integer not Many2one. Derived from scripts/check_module_wiring.py.
+globs: "plasticos_*/models/*.py"
+alwaysApply: false
+---
+
+# Module Dependency Wiring — PlasticOS
+
+Enforced by `scripts/check_module_wiring.py` (runs on every push via pre-commit).
+
+## Every Model Reference Needs a Manifest Dep
+
+When your model file references a model from another module, that module **must** appear in `__manifest__.py depends`. The wiring checker scans these patterns:
+
+- `comodel_name="plasticos.offer"` on a relational field
+- `_inherit = "plasticos.intake"`
+- `self.env["plasticos.transaction"]`
+
+```python
+# ✅ CORRECT — module declared in depends, Many2one is fine
+# In __manifest__.py: "depends": [..., "plasticos_offer"]
+offer_id = fields.Many2one("plasticos.offer", ...)
+
+# ❌ WRONG — using plasticos.offer without it in depends
+offer_id = fields.Many2one("plasticos.offer", ...)
+# check_module_wiring.py error: "references model 'plasticos.offer' but does not declare it as a dependency"
+```
+
+## Cross-Layer References: Integer Not Many2one
+
+PlasticOS has a strict layer hierarchy. A lower-layer module **cannot declare a Many2one** to a higher-layer module — that creates a circular dependency at the ORM level.
+
+| Layer | Modules |
+|-------|---------|
+| 2 (Capability) | `plasticos_intake`, `plasticos_facility_profile` |
+| 3 (Commercial) | `plasticos_offer`, `plasticos_transaction`, `plasticos_commission` |
+
+```python
+# Scenario: intake (Layer 2) wants to track an offer (Layer 3)
+
+# ❌ WRONG — Many2one from Layer 2 to Layer 3 forces circular dep declaration
+# plasticos_intake → depends on → plasticos_offer → depends on → plasticos_intake  ← CYCLE
+offer_id = fields.Many2one("plasticos.offer", string="Offer")
+
+# ✅ CORRECT — Integer stores the ID without creating ORM dependency
+# Same pattern as source_lead_id on plasticos.intake
+offer_id = fields.Integer(
+    string="Offer ID",
+    index=True,
+    help="ID of the plasticos.offer created. Integer avoids Layer 2→3 circular dep.",
+)
+```
+
+## Import Wiring
+
+Every `.py` file in `models/` must be imported in `models/__init__.py`:
+
+```python
+# models/__init__.py
+from . import intake        # ✅
+from . import intake_match  # ✅
+# If intake_match.py exists but isn't here → check_module_wiring.py FAILS
+```
+
+Migration `__init__.py` must import its scripts:
+
+```python
+# plasticos_intake/migrations/19.0.5.2.0/__init__.py
+from . import post_migrate  # ✅ — empty file triggers Odoo 19 pattern check
+```
+
+## Soft Dependencies (self.env guard)
+
+If you reference a model that may not be installed, use the soft-dep pattern — the wiring checker recognizes it and skips the dep requirement:
+
+```python
+# ✅ CORRECT — soft dependency; checker skips this reference
+if "plasticos.offer" not in self.env:
+    return
+Offer = self.env["plasticos.offer"]
+
+# ✅ Also recognized
+Offer = self.env["plasticos.offer"] if "plasticos.offer" in self.env else None
+```

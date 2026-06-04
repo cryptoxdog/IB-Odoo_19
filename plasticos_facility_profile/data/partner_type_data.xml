@@ -1,186 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <data noupdate="0">
-    <!--
-      PLASTICOS PARTNER TYPE MASTER REGISTRY — Schema v5.0.0
-      =========================================================
-      code field alignment:
-        company_role Selection    → same code
-        Neo4j node property       → company_role
-        CEG entity_type gate      → via ROLE_ENTITY_MAP in graphservice.py
-        gate_mode                 → CEG matching strictness
-        is_facility               → Facility Profile tab visibility
 
-      ADDING TYPES → see SCHEMA_TAXONOMY.md at repo root
-    -->
-
-    <record id="partner_type_recycler" model="plasticos.partner.type">
-      <field name="name">Recycler</field>
-      <field name="code">recycler</field>
-      <field name="description">General recycler — buys or collects scrap plastic and
-        processes it for resale. Open-market or undifferentiated service model.
-        Use Commercial Recycler for B2B/C&amp;I service-route operators.
-        Supplier side only.</field>
-      <field name="is_facility">True</field>
-      <field name="sequence">10</field>
-      <field name="gate_mode">flexible</field>
-    </record>
-
-    <record id="partner_type_commercial_recycler" model="plasticos.partner.type">
-      <field name="name">Commercial Recycler</field>
-      <field name="code">commercial_recycler</field>
-      <field name="description">B2B recycler servicing commercial and industrial (C&amp;I) generators.
-        Collects post-industrial scrap, trim, purge, and in-plant scrap directly from
-        commercial accounts via service-route or scheduled pickup model.
-        Primary feedstock: post-industrial, pre-consumer material.
-        Supplier side only.</field>
-      <field name="is_facility">True</field>
-      <field name="sequence">15</field>
-      <field name="gate_mode">flexible</field>
-    </record>
+    <!-- Canonical Partner/Facility Types -->
 
     <record id="partner_type_processor" model="plasticos.partner.type">
       <field name="name">Processor</field>
       <field name="code">processor</field>
-      <field name="description">Plastics processor — converts raw or recycled materials into
-        a higher-value form (pellets, flake, regrind) for resale.
-        Can appear on supply side (sells processed material) or demand side
-        (buys scrap to process).</field>
+      <field name="description">Plastics processor - converts raw materials into products.</field>
       <field name="is_facility">True</field>
-      <field name="sequence">20</field>
-      <field name="gate_mode">flexible</field>
-    </record>
-
-    <record id="partner_type_compounder" model="plasticos.partner.type">
-      <field name="name">Compounder</field>
-      <field name="code">compounder</field>
-      <field name="description">Compounds and blends polymer materials — adds fillers, colorants,
-        or modifiers to produce custom resin compounds.
-        CEG equivalence: processor.
-        plasticos_process_type_ids is always 'compounding' for this role.
-        Primarily buyer-side.</field>
-      <field name="is_facility">True</field>
-      <field name="sequence">25</field>
-      <field name="gate_mode">flexible</field>
-    </record>
-
-    <record id="partner_type_manufacturer" model="plasticos.partner.type">
-      <field name="name">Manufacturer</field>
-      <field name="code">manufacturer</field>
-      <field name="description">Manufacturer or end user of plastic material — buys resin or regrind
-        as input to a manufacturing process.
-        Includes: injection molders, blow molders, extruders, thermoformers, film producers.
-        NOTE: Do NOT set process_type at import — set via enrichment only.
-        Buyer side only.</field>
-      <field name="is_facility">True</field>
-      <field name="sequence">30</field>
-      <field name="gate_mode">strict</field>
-    </record>
-
-    <record id="partner_type_mrf" model="plasticos.partner.type">
-      <field name="name">MRF</field>
-      <field name="code">mrf</field>
-      <field name="description">Materials Recovery Facility — sorts and consolidates recyclables
-        from residential or commercial streams.
-        Supplier side only.
-        Never passes process_type to CEG.
-        Never appears as a buyer in the matching engine.</field>
-      <field name="is_facility">True</field>
-      <field name="sequence">40</field>
-      <field name="gate_mode">flexible</field>
-    </record>
-
-    <record id="partner_type_transfer_station" model="plasticos.partner.type">
-      <field name="name">Transfer Station</field>
-      <field name="code">transfer_station</field>
-      <field name="description">Waste transfer station — aggregates and consolidates material
-        for onward transport to processors or recyclers.
-        Supplier side only. No material transformation.
-        Never appears as a buyer in the matching engine.</field>
-      <field name="is_facility">True</field>
-      <field name="sequence">45</field>
-      <field name="gate_mode">optimistic</field>
+      <field name="sequence">10</field>
     </record>
 
     <record id="partner_type_broker" model="plasticos.partner.type">
       <field name="name">Broker</field>
       <field name="code">broker</field>
-      <field name="description">Material broker — facilitates transactions between buyers and sellers.
-        Does not hold inventory.
-        Excluded from equipment-based matching gates.
-        Can appear on either or both trade sides.</field>
+      <field name="description">Material broker - facilitates transactions between buyers and sellers.</field>
       <field name="is_facility">False</field>
+      <field name="sequence">20</field>
+    </record>
+
+    <record id="partner_type_manufacturer" model="plasticos.partner.type">
+      <field name="name">Manufacturer</field>
+      <field name="code">manufacturer</field>
+      <field name="description">Original manufacturer of plastic products.</field>
+      <field name="is_facility">True</field>
+      <field name="sequence">30</field>
+    </record>
+
+    <record id="partner_type_mrf" model="plasticos.partner.type">
+      <field name="name">MRF</field>
+      <field name="code">mrf</field>
+      <field name="description">Materials Recovery Facility - sorts and processes recyclables.</field>
+      <field name="is_facility">True</field>
+      <field name="sequence">40</field>
+    </record>
+
+    <record id="partner_type_compounder" model="plasticos.partner.type">
+      <field name="name">Compounder</field>
+      <field name="code">compounder</field>
+      <field name="description">Compounds and blends polymer materials.</field>
+      <field name="is_facility">True</field>
       <field name="sequence">50</field>
-      <field name="gate_mode">flexible</field>
+    </record>
+
+    <record id="partner_type_recycler" model="plasticos.partner.type">
+      <field name="name">Recycler</field>
+      <field name="code">recycler</field>
+      <field name="description">Recycles plastic materials for reuse.</field>
+      <field name="is_facility">True</field>
+      <field name="sequence">60</field>
     </record>
 
     <record id="partner_type_distributor" model="plasticos.partner.type">
       <field name="name">Distributor</field>
       <field name="code">distributor</field>
-      <field name="description">Distributes materials to end customers.
-        Holds inventory; resells without transformation.
-        Can appear on supply or demand side.</field>
+      <field name="description">Distributes materials to end customers.</field>
       <field name="is_facility">True</field>
-      <field name="sequence">55</field>
-      <field name="gate_mode">flexible</field>
-    </record>
-
-    <record id="partner_type_distribution_center" model="plasticos.partner.type">
-      <field name="name">Distribution Center</field>
-      <field name="code">distribution_center</field>
-      <field name="description">Distribution center (DC) — generates post-industrial plastic waste
-        (film, pallet wrap, strapping, foam) as a byproduct of logistics operations.
-        Always a SUPPLIER of scrap material.
-        auto-sets trade_role=supplier, origin_sector=distribution_logistics at import.
-        Never a buyer of plastic material in the matching engine.</field>
-      <field name="is_facility">True</field>
-      <field name="sequence">57</field>
-      <field name="gate_mode">optimistic</field>
-    </record>
-
-    <record id="partner_type_grower_farm" model="plasticos.partner.type">
-      <field name="name">Grower / Farm</field>
-      <field name="code">grower_farm</field>
-      <field name="description">Agricultural grower, farm, nursery, or flower grower.
-        Generates agricultural plastic waste: mulch film, silage wrap, drip tape,
-        greenhouse film, nursery pots, supersacks, bale net wrap.
-        auto-sets trade_role=supplier, origin_sector=agriculture at import.</field>
-      <field name="is_facility">True</field>
-      <field name="sequence">60</field>
-      <field name="gate_mode">optimistic</field>
+      <field name="sequence">70</field>
     </record>
 
     <record id="partner_type_carrier" model="plasticos.partner.type">
       <field name="name">Carrier</field>
       <field name="code">carrier</field>
-      <field name="description">Transportation and logistics provider.
-        Excluded from material matching entirely.
-        Appears only in load/logistics records.</field>
-      <field name="is_facility">False</field>
-      <field name="sequence">70</field>
-      <field name="gate_mode">flexible</field>
-    </record>
-
-    <record id="partner_type_equipment_supplier" model="plasticos.partner.type">
-      <field name="name">Equipment Supplier</field>
-      <field name="code">equipment_supplier</field>
-      <field name="description">Supplier of equipment (balers, grinders, shredders, wash lines, etc.).
-        Not a material trading counterparty.
-        Excluded from material matching entirely.</field>
+      <field name="description">Transportation and logistics provider.</field>
       <field name="is_facility">False</field>
       <field name="sequence">80</field>
-      <field name="gate_mode">optimistic</field>
+    </record>
+
+    <record id="partner_type_end_user" model="plasticos.partner.type">
+      <field name="name">End User</field>
+      <field name="code">end_user</field>
+      <field name="description">End user - buys material as input to their operations.</field>
+      <field name="is_facility">True</field>
+      <field name="sequence">85</field>
+    </record>
+
+    <record id="partner_type_prison" model="plasticos.partner.type">
+      <field name="name">Prison</field>
+      <field name="code">prison</field>
+      <field name="description">Correctional facility.</field>
+      <field name="is_facility">False</field>
+      <field name="sequence">90</field>
     </record>
 
     <record id="partner_type_other" model="plasticos.partner.type">
       <field name="name">Other</field>
       <field name="code">other</field>
-      <field name="description">Partner type not classified above.
-        Includes: media, consultants, government, testing labs, industry associations.
-        Excluded from material matching.</field>
+      <field name="description">Other partner type not classified above.</field>
       <field name="is_facility">True</field>
       <field name="sequence">999</field>
-      <field name="gate_mode">optimistic</field>
     </record>
 
   </data>

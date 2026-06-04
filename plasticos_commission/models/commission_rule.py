@@ -20,7 +20,7 @@ class PlasticosCommissionRule(models.Model):
     active = fields.Boolean(default=True)
 
     # ── Sales Rep Assignment ──────────────────────────────────
-    sales_rep_id = fields.Many2one("res.users", string="Sales Rep", required=True)
+    sales_rep_id = fields.Many2one("res.users", string="Sales Rep", required=True, ondelete="restrict")
 
     # ── Calculation Type ──────────────────────────────────────
     calculation_type = fields.Selection(
@@ -113,20 +113,43 @@ class PlasticosCommissionRule(models.Model):
         for rec in self:
             rec.percentage = (rec.display_percentage or 0.0) / 100
 
-    # ── Constraints ───────────────────────────────────────────
-    @api.constrains("sales_rep_id", "active")
-    def _check_unique_active_sales_rep(self):
-        """Ensure only one active commission rule per sales rep."""
-        for rec in self:
-            if not rec.active:
+    # ── Uniqueness Guard (before SQL) ──────────────────────────
+    def _check_unique_active_sales_rep(self, vals_list):
+        """Raise before INSERT/UPDATE if another active rule exists for the same rep."""
+        for vals in vals_list:
+            rep_id = vals.get("sales_rep_id")
+            is_active = vals.get("active", True)
+            if not rep_id or not is_active:
                 continue
-            duplicate = self.search(
-                [("sales_rep_id", "=", rec.sales_rep_id.id), ("active", "=", True), ("id", "!=", rec.id)],
-                limit=1,
-            )
-            if duplicate:
-                raise ValidationError(f"Sales rep {rec.sales_rep_id.name} already has an active commission rule.")
+            rec_id = vals.get("id")
+            domain = [("sales_rep_id", "=", rep_id), ("active", "=", True)]
+            if rec_id:
+                domain.append(("id", "!=", rec_id))
+            if self.search(domain, limit=1):
+                rep = self.env["res.users"].browse(rep_id)
+                raise ValidationError(f"Sales rep {rep.name} already has an active commission rule.")
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        self._check_unique_active_sales_rep(vals_list)
+        return super().create(vals_list)
+
+    def write(self, vals):
+        res = super().write(vals)
+        if "sales_rep_id" in vals or "active" in vals:
+            for rec in self:
+                if rec.active:
+                    dup = self.search(
+                        [("sales_rep_id", "=", rec.sales_rep_id.id), ("active", "=", True), ("id", "!=", rec.id)],
+                        limit=1,
+                    )
+                    if dup:
+                        raise ValidationError(
+                            f"Sales rep {rec.sales_rep_id.name} already has an active commission rule."
+                        )
+        return res
+
+    # ── Constraints ───────────────────────────────────────────
     @api.constrains("name")
     def _check_name_required(self):
         """Ensure name is not empty or falsy."""

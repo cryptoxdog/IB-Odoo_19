@@ -231,30 +231,38 @@ def analyze_xml_file(path: Path) -> list[Violation]:
 
 
 def collect_files(root: Path) -> tuple[list[Path], list[Path]]:
-    py_files = [
-        p
-        for p in root.rglob("*.py")
-        if ".git" not in p.parts
-        and "__pycache__" not in p.parts
-        and p.parts[0] != ".venv"
-        and "plasticos_graph_" not in str(p)
-        and "docs" not in p.parts
-        and ".cursor" not in p.parts
-        and "tests-odoo" not in p.parts
-        and "odoo-enterprise" not in p.parts
-    ]
-    xml_files = [
-        p
-        for p in root.rglob("*.xml")
-        if ".git" not in p.parts
-        and "__pycache__" not in p.parts
-        and p.parts[0] != ".venv"
-        and "plasticos_graph_" not in str(p)
-        and "docs" not in p.parts
-        and ".cursor" not in p.parts
-        and "tests-odoo" not in p.parts
-        and "odoo-enterprise" not in p.parts
-    ]
+    _skip = {
+        ".git",
+        "__pycache__",
+        ".venv",
+        "docs",
+        ".cursor",
+        ".semgrep",  # semgrep rule fixtures contain intentionally-bad crons — not real definitions
+        "tests-odoo",
+        "odoo-enterprise",
+        "Odoo Development Files",
+        "odoo-files-to-review",
+        "current work - ib",  # untracked WIP folder — never scan
+    }
+
+    # Only scan git-tracked files to avoid untracked WIP folders
+    try:
+        import subprocess
+
+        tracked = set(
+            subprocess.check_output(["git", "ls-files", "--", "*.py", "*.xml"], cwd=root, text=True).splitlines()
+        )
+
+        def _included(p: Path) -> bool:
+            rel = p.relative_to(root)
+            return str(rel) in tracked and "plasticos_graph_" not in str(rel) and not _skip.intersection(rel.parts)
+    except Exception:
+
+        def _included(p: Path) -> bool:
+            return not _skip.intersection(p.parts) and "plasticos_graph_" not in str(p)
+
+    py_files = [p for p in root.rglob("*.py") if _included(p)]
+    xml_files = [p for p in root.rglob("*.xml") if _included(p)]
     return py_files, xml_files
 
 

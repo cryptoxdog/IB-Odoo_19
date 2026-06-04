@@ -70,10 +70,10 @@
                     <div class="oe_title">
                         <h1><field name="lead_id" readonly="1"/></h1>
                     </div>
+                    <!-- Classification + Links -->
                     <group>
                         <group string="Classification">
                             <field name="decision"/>
-                            <field name="source"/>
                             <field name="lead_source_id"/>
                         </group>
                         <group string="Links" name="links">
@@ -81,37 +81,37 @@
                             <field name="intake_id"/>
                         </group>
                     </group>
+
+                    <!-- Contact Info -->
+                    <group string="Contact">
+                        <group>
+                            <field name="company_name"/>
+                            <field name="contact_name"/>
+                        </group>
+                        <group>
+                            <field name="contact_email" widget="email"/>
+                            <field name="contact_phone" widget="phone"/>
+                        </group>
+                    </group>
+
+                    <!-- Material Info -->
+                    <group string="Material">
+                        <group>
+                            <field name="material_description"/>
+                            <field name="quantity_text"/>
+                            <field name="has_contaminants"/>
+                            <field name="contaminant_notes"
+                                   invisible="not has_contaminants"/>
+                        </group>
+                        <group>
+                            <field name="estimated_lbs_per_load"/>
+                            <field name="estimated_loads_per_month"/>
+                            <field name="frequency"/>
+                        </group>
+                    </group>
+
+                    <!-- Technical tabs (AI, raw data, errors) -->
                     <notebook>
-                        <page string="Contact" name="contact_page">
-                            <group>
-                                <group>
-                                    <field name="company_name"/>
-                                    <field name="contact_name"/>
-                                </group>
-                                <group>
-                                    <field name="contact_email"/>
-                                    <field name="contact_phone"/>
-                                </group>
-                            </group>
-                        </page>
-                        <page string="Material" name="material_page">
-                            <group>
-                                <group>
-                                    <field name="material_description"/>
-                                    <field name="quantity_text"/>
-                                </group>
-                                <group>
-                                    <field name="estimated_lbs_per_load"/>
-                                    <field name="estimated_loads_per_month"/>
-                                    <field name="frequency"/>
-                                </group>
-                            </group>
-                            <group>
-                                <field name="has_contaminants"/>
-                                <field name="contaminant_notes"
-                                       invisible="not has_contaminants"/>
-                            </group>
-                        </page>
                         <page string="AI Analysis" name="ai_analysis_page">
                             <group>
                                 <field name="ai_analysis" widget="json"/>

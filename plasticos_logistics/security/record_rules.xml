@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       Logistics Dashboard Record Rules
+       Sales reps see ONLY loads linked to their transactions.
+       Logistics, ops managers, and admins see all.
+  ══════════════════════════════════════════════════════════════════════ -->
+
+  <!-- Sales Rep: filter to own user_id (from transaction) -->
+  <record id="rule_load_dashboard_rep_own" model="ir.rule">
+    <field name="name">Load Dashboard: Sales Reps see own loads only</field>
+    <field name="model_id" ref="plasticos_logistics.model_plasticos_load_dashboard"/>
+    <field name="domain_force">[("user_id", "=", user.id)]</field>
+    <field name="groups" eval="[(4, ref('plasticos_security_base.group_sales_rep'))]"/>
+    <field name="perm_read"   eval="True"/>
+    <field name="perm_write"  eval="False"/>
+    <field name="perm_create" eval="False"/>
+    <field name="perm_unlink" eval="False"/>
+  </record>
+
+  <!-- Logistics: global read -->
+  <record id="rule_load_dashboard_logistics_all" model="ir.rule">
+    <field name="name">Load Dashboard: Logistics sees all loads</field>
+    <field name="model_id" ref="plasticos_logistics.model_plasticos_load_dashboard"/>
+    <field name="domain_force">[(1, "=", 1)]</field>
+    <field name="groups" eval="[(4, ref('plasticos_security_base.group_logistics'))]"/>
+    <field name="perm_read"   eval="True"/>
+    <field name="perm_write"  eval="False"/>
+    <field name="perm_create" eval="False"/>
+    <field name="perm_unlink" eval="False"/>
+  </record>
+
+  <!-- Operations Manager: global read -->
+  <record id="rule_load_dashboard_ops_manager_all" model="ir.rule">
+    <field name="name">Load Dashboard: Ops Managers see all loads</field>
+    <field name="model_id" ref="plasticos_logistics.model_plasticos_load_dashboard"/>
+    <field name="domain_force">[(1, "=", 1)]</field>
+    <field name="groups" eval="[(4, ref('plasticos_security_base.group_operations_manager'))]"/>
+    <field name="perm_read"   eval="True"/>
+    <field name="perm_write"  eval="False"/>
+    <field name="perm_create" eval="False"/>
+    <field name="perm_unlink" eval="False"/>
+  </record>
+
+</odoo>

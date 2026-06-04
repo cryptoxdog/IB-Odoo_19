@@ -5,12 +5,22 @@ from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
+LLM_PROVIDER_SELECTION = [
+    ("openai", "OpenAI"),
+    ("anthropic", "Anthropic"),
+    ("mistral", "Mistral"),
+]
+
 
 class PlasticosWebLeadConfig(models.Model):
     """Singleton configuration for web leads REST endpoint and AI triage.
 
-    Stores the API key for authentication, OpenAI credentials for AI
-    normalization/vision, classification thresholds, and reject lists.
+    Stores the API key for authentication, multi-provider LLM credentials
+    for AI normalization/vision, classification thresholds, and reject lists.
+
+    LLM Provider Fallback: Primary → Secondary → Tertiary.
+    If the primary provider fails, the system automatically tries the next
+    configured provider in priority order.
     """
 
     _name = "plasticos.web.lead.config"
@@ -64,22 +74,106 @@ class PlasticosWebLeadConfig(models.Model):
     )
 
     # ═══════════════════════════════════════════════════════════
-    # OpenAI Credentials (for AI Triage)
+    # LLM Provider Configuration (Multi-Provider with Fallback)
     # ═══════════════════════════════════════════════════════════
+
+    llm_primary_provider = fields.Selection(
+        LLM_PROVIDER_SELECTION,
+        string="Primary LLM Provider",
+        default="openai",
+        required=True,
+        help="Primary AI provider. Used first for all LLM calls.",
+    )
+    llm_secondary_provider = fields.Selection(
+        LLM_PROVIDER_SELECTION,
+        string="Secondary LLM Provider",
+        default="anthropic",
+        help="Fallback provider if primary fails.",
+    )
+    llm_tertiary_provider = fields.Selection(
+        LLM_PROVIDER_SELECTION,
+        string="Tertiary LLM Provider",
+        default="mistral",
+        help="Last-resort fallback if both primary and secondary fail.",
+    )
+
+    # ── OpenAI ────────────────────────────────────────────────
 
     openai_api_key = fields.Char(
         string="OpenAI API Key",
-        help="API key for OpenAI. Used for text normalization and image analysis.",
+        groups="base.group_system",
+        help="API key for OpenAI (sk-...).",
     )
-    openai_model = fields.Char(
-        string="LLM Model",
+    openai_model = fields.Selection(
+        [
+            ("gpt-4o", "GPT-4o"),
+            ("gpt-4o-mini", "GPT-4o Mini"),
+            ("gpt-4.1", "GPT-4.1"),
+            ("gpt-4.1-mini", "GPT-4.1 Mini"),
+            ("gpt-4.1-nano", "GPT-4.1 Nano"),
+            ("o3", "o3"),
+            ("o3-mini", "o3 Mini"),
+            ("o4-mini", "o4 Mini"),
+            ("gpt-4.5-preview", "GPT-4.5 Preview"),
+        ],
+        string="Text Model",
         default="gpt-4o",
-        help="Model for text normalization (e.g. gpt-4o).",
+        help="Model for text normalization.",
     )
-    openai_vision_model = fields.Char(
+    openai_vision_model = fields.Selection(
+        [
+            ("gpt-4o", "GPT-4o"),
+            ("gpt-4o-mini", "GPT-4o Mini"),
+            ("gpt-4.1", "GPT-4.1"),
+            ("gpt-4.1-mini", "GPT-4.1 Mini"),
+            ("o3", "o3"),
+            ("o4-mini", "o4 Mini"),
+        ],
         string="Vision Model",
         default="gpt-4o",
-        help="Model for image analysis (gpt-4o multimodal; replaces deprecated vision-preview models).",
+        help="Model for image analysis (must support vision).",
+    )
+
+    # ── Anthropic ─────────────────────────────────────────────
+
+    anthropic_api_key = fields.Char(
+        string="Anthropic API Key",
+        groups="base.group_system",
+        help="API key for Anthropic (sk-ant-...).",
+    )
+    anthropic_model = fields.Selection(
+        [
+            ("claude-sonnet-4-20250514", "Claude Sonnet 4"),
+            ("claude-opus-4-20250514", "Claude Opus 4"),
+            ("claude-3-7-sonnet-20250219", "Claude 3.7 Sonnet"),
+            ("claude-3-5-sonnet-20241022", "Claude 3.5 Sonnet"),
+            ("claude-3-5-haiku-20241022", "Claude 3.5 Haiku"),
+            ("claude-3-opus-20240229", "Claude 3 Opus"),
+        ],
+        string="Anthropic Model",
+        default="claude-sonnet-4-20250514",
+        help="Anthropic model for text normalization.",
+    )
+
+    # ── Mistral ───────────────────────────────────────────────
+
+    mistral_api_key = fields.Char(
+        string="Mistral API Key",
+        groups="base.group_system",
+        help="API key for Mistral AI.",
+    )
+    mistral_model = fields.Selection(
+        [
+            ("mistral-large-latest", "Mistral Large"),
+            ("mistral-medium-latest", "Mistral Medium"),
+            ("mistral-small-latest", "Mistral Small"),
+            ("open-mistral-nemo", "Mistral Nemo"),
+            ("codestral-latest", "Codestral"),
+            ("ministral-8b-latest", "Ministral 8B"),
+        ],
+        string="Mistral Model",
+        default="mistral-large-latest",
+        help="Mistral model for text normalization.",
     )
 
     # ═══════════════════════════════════════════════════════════
@@ -153,6 +247,73 @@ class PlasticosWebLeadConfig(models.Model):
         if not raw:
             return frozenset()
         return frozenset(p.strip().lower() for p in raw.split("|") if p.strip())
+
+    # ═══════════════════════════════════════════════════════════
+    # LLM Provider Resolution (Fallback Chain)
+    # ═══════════════════════════════════════════════════════════
+
+    def get_llm_providers_ordered(self):
+        """Return an ordered list of (provider, api_key, model, base_url) tuples.
+
+        Follows the configured priority: primary → secondary → tertiary.
+        Only providers with a configured API key are included.
+        """
+        self.ensure_one()
+        provider_order = [
+            self.llm_primary_provider,
+            self.llm_secondary_provider,
+            self.llm_tertiary_provider,
+        ]
+        seen = set()
+        result = []
+        for provider in provider_order:
+            if not provider or provider in seen:
+                continue
+            seen.add(provider)
+            info = self._get_provider_info(provider)
+            if info and info["api_key"]:
+                result.append(info)
+        return result
+
+    def get_vision_provider(self):
+        """Return the vision-capable provider info (OpenAI only for now).
+
+        Anthropic and Mistral vision support can be added here later.
+        """
+        self.ensure_one()
+        if self.openai_api_key:
+            return {
+                "provider": "openai",
+                "api_key": self.openai_api_key,
+                "model": self.openai_vision_model or "gpt-4o",
+                "base_url": None,
+            }
+        return None
+
+    def _get_provider_info(self, provider):
+        """Return dict with api_key, model, base_url for a given provider slug."""
+        if provider == "openai" and self.openai_api_key:
+            return {
+                "provider": "openai",
+                "api_key": self.openai_api_key,
+                "model": self.openai_model or "gpt-4o",
+                "base_url": None,
+            }
+        if provider == "anthropic" and self.anthropic_api_key:
+            return {
+                "provider": "anthropic",
+                "api_key": self.anthropic_api_key,
+                "model": self.anthropic_model or "claude-sonnet-4-20250514",
+                "base_url": "https://api.anthropic.com/v1/",
+            }
+        if provider == "mistral" and self.mistral_api_key:
+            return {
+                "provider": "mistral",
+                "api_key": self.mistral_api_key,
+                "model": self.mistral_model or "mistral-large-latest",
+                "base_url": "https://api.mistral.ai/v1/",
+            }
+        return None
 
     # ═══════════════════════════════════════════════════════════
     # Actions

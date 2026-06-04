@@ -1,0 +1,117 @@
+---
+description: PlasticOS testing rules — test type catalog, fixture rules, Odoo test patterns, make test commands. Auto-loads for all test files.
+globs: tests/**/*.py, tests/contracts/**/*.py, tests/integration/**/*.py
+alwaysApply: false
+---
+
+# PlasticOS Testing Rules
+# Source: .claude/rules/testing.md + .cursor/rules/95-test-fix-policy.mdc
+
+## Test Catalog (Production branch — flat layout)
+
+| Type | Location | Count | Coverage |
+|---|---|---|---|
+| Contract tests | `tests/contracts/` | 8 files | API signatures, bridge wiring, computed deps, CRM leads, intake, partner, selection, transaction |
+| Integration tests | `tests/integration/` | 10 files | account-move links, compliance, cron idempotency, graph hooks, intake cascade, match guards, offer state, polymer sync, sale-order autocreate, write/unlink guards |
+| Unit tests | `tests/test_*.py` | 20+ files | Constraints, state machines, golden flows, security ACL, performance, Odoo 19 compat |
+
+**PR #85 HEAD only** (not yet on Production):
+- `tests/plasticos_intake/test_intake_matching_flow.py`
+- `tests/plasticos_claims/test_claim_ux_filters.py`
+- `tests/plasticos_offer/test_offer_ux_icons.py`
+
+## Rules
+
+- Tests must **not mutate seed data** — use `setUp`/`setUpClass` to create test-only records
+- Use `tests/common.py` and `tests/conftest.py` for shared fixtures
+- `❌` Never commit test data to production seed XML files
+- `❌` Never use `skipTest()` to avoid fixture issues — create the fixture instead
+- New models/fields need at least one test
+- Before proposing changes to `plasticos_web_leads`: run `tests/test_web_lead*.py` first
+
+## Odoo Test Patterns
+
+```python
+# ✅ GOOD — TransactionCase, proper setUpClass, explicit assertions
+from odoo.tests import TransactionCase
+
+class TestPlasticosOffer(TransactionCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.partner = cls.env["res.partner"].create({
+            "name": "Test Supplier",
+            "supplier_rank": 1,
+            "is_company": True,
+        })
+
+    def test_offer_state_transition(self):
+        offer = self.env["plasticos.offer"].create({"supplier_id": self.partner.id})
+        self.assertEqual(offer.state, "draft")
+        offer.action_confirm()
+        self.assertEqual(offer.state, "confirmed")
+```
+
+## Odoo 19 Product Type Change
+
+```python
+# Odoo 18 and earlier
+product = Product.create({"name": "X", "type": "product"})  # Storable
+
+# Odoo 19 — storable = "consu"
+product = Product.create({"name": "X", "type": "consu"})    # Storable
+```
+
+| Odoo 18 | Odoo 19 | Meaning |
+|---|---|---|
+| `type='product'` | `type='consu'` | Storable product |
+| `type='consu'` | `type='consu'` | Consumable (unchanged) |
+| `type='service'` | `type='service'` | Service (unchanged) |
+
+## Missing Fixture Pattern (Never Skip — Always Create)
+
+```python
+# ❌ WRONG
+def setUp(self):
+    if not self._journal:
+        self.skipTest("No journal")
+
+# ✅ CORRECT — create missing fixtures
+@classmethod
+def setUpClass(cls):
+    super().setUpClass()
+    cls._journal = cls.env["account.journal"].search(
+        [("type", "=", "sale")], limit=1
+    )
+    if not cls._journal:
+        cls._journal = cls.env["account.journal"].create({
+            "name": "Test Sales Journal",
+            "type": "sale",
+            "code": "TSALE",
+        })
+```
+
+## Float Equality — SonarCloud S1244 (triggers CI quality gate failure)
+
+```python
+# ❌ WRONG — SonarCloud S1244, CI quality gate FAILS
+self.assertEqual(score, 0.85)
+assert result == 42.0
+
+# ✅ CORRECT — use assertAlmostEqual or pytest.approx
+self.assertAlmostEqual(score, 0.85, places=5)
+self.assertAlmostEqual(weight_lbs, 36000.0, delta=1.0)
+
+# ✅ In pytest style
+assert result == pytest.approx(42.0, rel=1e-5)
+```
+
+This is **not advisory** — SonarCloud classifies float equality as BUG (S1244) and it fails the `new_reliability_rating` quality gate condition, blocking PR merge.
+
+## Run Commands
+
+```bash
+make test                        # full suite
+make test-module m=<module>      # single module
+# expands to: docker compose run --rm odoo --test-enable --stop-after-init -d odoo_test --log-level=test -u <module>
+```

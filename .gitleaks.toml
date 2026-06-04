@@ -1,0 +1,21 @@
+title = "PlasticOS gitleaks config"
+
+[allowlist]
+description = "Known false positives — shell variables and non-secret identifiers"
+
+# These fingerprints are false positives confirmed on 2026-05-26:
+# - Makefile `make sonar` uses $$SONAR_TOKEN (shell variable from .env.local, NOT hardcoded)
+# - SonarCloud project key in URL is a public identifier, not a secret
+fingerprints = [
+    "19f08514f46f1c9970ca122d0214a02a85014066:Makefile:curl-auth-user:273",
+    "19f08514f46f1c9970ca122d0214a02a85014066:Makefile:generic-api-key:274",
+]
+
+# Top-level allowlist regexes: curl -u $$VAR is a Makefile shell variable
+# substitution. $$SONAR_TOKEN etc. are never hardcoded secrets. Expressed as a
+# top-level allowlist entry (not a [[rules]] block with no regex/path body) so
+# gitleaks 8.x does not crash with FTL and fails to emit results.sarif.
+regexes = [
+    # curl -u with Makefile shell variable ($$VAR) — not a secret
+    'curl.*-u.*\$\$[A-Z_]+',
+]

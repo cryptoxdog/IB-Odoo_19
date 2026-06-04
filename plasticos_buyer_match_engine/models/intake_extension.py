@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from odoo import _, fields, models
 from odoo.addons.plasticos_base.models.matching_engine_icp import matching_engine_require_enabled_for_ui
@@ -24,9 +25,8 @@ class PlasticosIntakeBuyerMatch(models.Model):
     def action_match_to_buyers(self):
         """Run buyer matching v2.0: facility.profile + Neo4j graph scoring.
 
-        Requires a linked material_profile_id. Results are written to
-        plasticos.match.result. If Neo4j is unavailable, only deterministic
-        results are used and a notification is shown.
+        Persists results to both plasticos.intake.match (for UI selection)
+        and plasticos.match.result (canonical audit log).
         """
         matching_engine_require_enabled_for_ui(self.env)
         graph_used = False
@@ -41,7 +41,7 @@ class PlasticosIntakeBuyerMatch(models.Model):
                     )
                 )
 
-            # Use new v2.0 matcher model with mode support
+            run_id = str(uuid.uuid4())
             matcher = self.env["plasticos.buyer.matcher"]
             try:
                 matches = matcher.find_matches_for_supplier(
@@ -62,7 +62,7 @@ class PlasticosIntakeBuyerMatch(models.Model):
 
             _logger.info("Buyer match v2.0 for intake %s: found %d matches", record.name, len(matches))
 
-            # Persist match results to intake.match lines
+            # ── Persist to plasticos.intake.match (UI selection layer) ───────
             record.match_line_ids.unlink()
             for m in matches:
                 if not m.get("buyer_id"):
@@ -73,19 +73,25 @@ class PlasticosIntakeBuyerMatch(models.Model):
                         "buyer_id": m.get("buyer_id"),
                         "match_score": (m.get("total_score") or 0.0) * 100,
                         "match_reason": ", ".join(m.get("gates_failed") or []) or "All gates passed",
-                        "typical_price": m.get("typical_price", 0.0),
+                        "typical_price": m.get("typical_price") or 0.0,
                     }
                 )
+
+            # ── Persist to plasticos.match.result (canonical audit log) ──────
+            if "plasticos.match.result.writer" in self.env:
+                try:
+                    self.env["plasticos.match.result.writer"].persist_match_lines(record, matches, run_id=run_id)
+                except Exception as exc:
+                    _logger.error("match.result persistence failed for intake %s: %s", record.id, exc)
 
             if matches:
                 record.status = "matched"
                 record.message_post(
-                    body=f"Matched {len(matches)} buyer(s) via v2.0 engine.",
+                    body=f"Matched {len(matches)} buyer(s) via v2.0 engine (run {run_id[:8]}).",
                     message_type="notification",
                     subtype_xmlid="mail.mt_note",
                 )
 
-            # Check if Neo4j was used for scoring (via graph_service.calculate_match_score)
             if "plasticos.graph.service" in self.env:
                 cfg = self.env["plasticos.graph.service"]._get_config()
                 if cfg.get("uri") and cfg.get("user") and cfg.get("password"):

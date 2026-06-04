@@ -1,0 +1,103 @@
+---
+description: Pushing to remote — always use make push to enforce pre-push pipeline. GitHub API is a last resort only when git is broken (Dropbox mmap), and ONLY after make pr-check passes.
+alwaysApply: true
+---
+
+# Pushing Code — PlasticOS
+
+## ALWAYS use `make push` — not raw `git push`, not the API
+
+```bash
+make push            # push current branch (runs pr-check first)
+make push b=Staging  # push to a specific branch
+```
+
+`make push` = `make pr-check` → `git push`. The pre-push pipeline is **non-negotiable** before any code lands on the remote. It runs: ruff lint + format, XML validation, module wiring, circular deps, cron invariants, Odoo 19 patterns, semgrep, pipeline_v2 guard.
+
+**Never bypass this with raw `git push` or the GitHub API when adding/modifying code.**
+
+---
+
+## GitHub API — Last Resort Only (Dropbox mmap failure)
+
+The repo lives inside Dropbox. When `git push` itself fails with `mmap failed: Operation timed out` or SIGBUS (signal 10), use the API as a last resort to push commits that are already written and validated.
+
+**Mandatory before any API push: `make api-push-check` must pass first.**
+
+```bash
+make api-push-check   # REQUIRED — enforces full validation before API push
+```
+
+This runs `make pr-check` and provides instructions for the API push workflow.
+
+Only then use the API to push:
+
+### Python API Helper (avoids SSL ctx shadowing bug)
+
+```python
+import json, base64, ssl, urllib.request
+
+token = "gho_..."  # from: echo "url=https://github.com" | git credential fill | grep password | cut -d= -f2
+repo = "cryptoxdog/IB-Odoo_19"
+
+# IMPORTANT: name SSL context _ssl_ctx — never 'ctx' (shadows return values → AttributeError)
+_ssl_ctx = ssl.create_default_context()
+_ssl_ctx.check_hostname = False
+_ssl_ctx.verify_mode = ssl.CERT_NONE
+
+def gh(method, path, data=None):
+    req = urllib.request.Request(f"https://api.github.com{path}", method=method)
+    req.add_header("Authorization", f"token {token}")
+    req.add_header("Content-Type", "application/json")
+    if data:
+        req.data = json.dumps(data).encode()
+    with urllib.request.urlopen(req, context=_ssl_ctx) as r:
+        return json.load(r)
+
+d = gh("GET", f"/repos/{repo}/contents/path/to/file?ref=branch")
+result = gh("PUT", f"/repos/{repo}/contents/path/to/file", {
+    "message": "fix: description",
+    "content": base64.b64encode(open("path/to/file", "rb").read()).decode(),
+    "sha": d["sha"],
+    "branch": "branch"
+})
+print("OK:", result["commit"]["sha"][:8])
+```
+
+### When the API is acceptable
+
+- `git push` itself crashes with mmap/SIGBUS after `make pr-check` already passed
+- Switching branches via `git checkout` is broken (index.lock / mmap timeout)
+- Committing a formatting fix where `make pr-check` was run in the same session
+
+### When the API is NOT acceptable
+
+- Skipping `make pr-check` to "save time"
+- Pushing speculative/exploratory code without validation
+- Any code change that hasn't been linted and format-checked
+
+---
+
+## Permanent Fix
+
+Move the repo out of Dropbox — the git object store should never live inside Dropbox:
+
+```bash
+mv "/Users/macm2/Library/CloudStorage/Dropbox/Repo_Dropbox_IB/IB-Odoo_19" ~/dev/IB-Odoo_19
+```
+
+GitHub is the source of truth. Dropbox sync of `.git/` is redundant and harmful.
+
+---
+
+## Branch Model
+
+- **`Staging`** = dev branch — all PRs target this
+- **`Production`** = prod/main — promote from Staging when CI is green
+- Never push feature branches directly to `Production`
+
+### Branch names are capitalized — `Staging` / `Production` (not `staging`/`production`)
+
+The canonical remote/local branches are **`Staging`** and **`Production`** with a capital first letter. macOS has a case-insensitive filesystem, so `git checkout staging` silently resolves to the local `Staging` branch and git prints `Switched to branch 'staging'` — this is the *same* ref, not a new one. Always use the capitalized form (`git checkout Staging`, `make push b=Staging`) to avoid confusion. The remote default is `origin/Staging` (`origin/HEAD -> origin/Staging`); there is no separate lowercase branch.
+
+When branching for a fix, verify state explicitly: `git rev-parse --abbrev-ref HEAD` and `git rev-list --left-right --count Staging...origin/Staging` (local `Staging` may be ahead of `origin/Staging` by unpushed commits — branching off local `Staging` carries those into your PR).

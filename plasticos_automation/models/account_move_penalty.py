@@ -20,6 +20,7 @@ class AccountMovePenalty(models.Model):
         string="Transaction",
         index=True,
         help="Linked transaction for scrap management",
+        ondelete="cascade",
     )
 
     reconciliation_status = fields.Selection(
@@ -48,6 +49,7 @@ class AccountMovePenalty(models.Model):
     penalty_rule_id = fields.Many2one(
         "plasticos.penalty.rule",
         string="Applied Penalty Rule",
+        ondelete="cascade",
     )
 
     # ── Weight Variance ───────────────────────────────────────
@@ -64,6 +66,7 @@ class AccountMovePenalty(models.Model):
     weight_variance_approved_by = fields.Many2one(
         "res.users",
         string="Approved By",
+        ondelete="restrict",
     )
     weight_variance_approved_date = fields.Datetime(string="Approval Date")
 
@@ -219,6 +222,7 @@ class InvoiceAdjustment(models.Model):
         "account.account",
         string="Account",
         help="Account for the adjustment entry",
+        ondelete="restrict",
     )
 
     reason = fields.Char(string="Reason")

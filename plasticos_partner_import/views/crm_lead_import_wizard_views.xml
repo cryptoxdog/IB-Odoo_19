@@ -21,7 +21,7 @@
                 <group invisible="state != 'draft'">
                     <div class="alert alert-info" role="alert">
                         <strong>Default File:</strong>
-                        <code>3. VanillaSoft CRM - All Contacts (ALL).csv</code>
+                        <code>tests/data/sample_vanillasoft_leads.csv</code> (test data — replace with real export)
                         <br/><br/>
                         <strong>Expected Columns:</strong>
                         ContactID, Company, First Name, Last Name, Email, Direct, Mobile 1,

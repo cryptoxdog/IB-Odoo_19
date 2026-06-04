@@ -1,0 +1,194 @@
+# .github/workflows/ci.yml
+# PlasticOS CI Gate — single gating workflow for all pure-Python checks
+# Replaces: test-quality.yml, odoo-audit.yml, module-check.yml, pr-gate.yml
+#
+# Tier 1 (lint)       → Tier 2 (static analysis) → Tier 3 (pure-python tests)
+# All three tiers run on bare GitHub Actions, no Odoo runtime required.
+# Odoo ORM tests run on Odoo.sh deploy hooks (not here).
+#
+# Design: each tier runs ALL checks before failing — no whack-a-mole.
+
+name: CI Gate
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── TIER 1: Lint & format — runs ALL checks, reports all failures ──────────
+  lint:
+    name: Ruff Lint & Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install ruff==0.14.11
+
+      - name: Ruff lint + format (all errors before failing)
+        run: |
+          FAIL=0
+          echo "=== Ruff lint ==="
+          ruff check . --output-format=github || FAIL=1
+          echo ""
+          echo "=== Ruff format check ==="
+          ruff format --check . || FAIL=1
+          if [ $FAIL -ne 0 ]; then
+            echo ""
+            echo "💡 Fix locally: ruff check --fix . && ruff format ."
+            exit 1
+          fi
+
+  # ── TIER 2: Static analysis — runs ALL checks, reports all failures ────────
+  static-checks:
+    name: Static Analysis
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install lxml semgrep==1.164.0
+
+      - name: Run all static checks (all errors before failing)
+        run: |
+          FAIL=0
+          RESULTS=()
+
+          run_check() {
+            local name="$1"; shift
+            echo "--- $name ---"
+            if "$@"; then
+              RESULTS+=("✅ $name")
+            else
+              RESULTS+=("❌ $name")
+              FAIL=1
+            fi
+            echo ""
+          }
+
+          # XML syntax
+          run_check "XML syntax" python3 -c "
+          import sys
+          from lxml import etree
+          import glob
+          errors=0
+          for f in glob.glob('**/*.xml', recursive=True):
+              if '.git' in f or '.venv' in f: continue
+              try: etree.parse(f)
+              except Exception as e: print(f'ERROR {f}: {e}'); errors+=1
+          sys.exit(errors)"
+
+          # Bash syntax
+          run_check "Bash syntax" bash -c "
+          find . -name '*.sh' ! -path './.git/*' | while read f; do
+            bash -n \"\$f\" || echo \"Syntax error in \$f\"
+          done"
+
+          # Manifest syntax
+          run_check "Manifest syntax" python3 -c "
+          import sys, glob
+          errors=0
+          for m in glob.glob('**/__manifest__.py', recursive=True):
+              if '.venv' in m: continue
+              try: exec(open(m).read())
+              except Exception as e: print(f'ERROR {m}: {e}'); errors+=1
+          sys.exit(errors)"
+
+          # Semgrep custom Odoo/security rules
+          run_check "Semgrep Odoo patterns" semgrep --error --config .semgrep/odoo-patterns.yml --severity ERROR --quiet --include="plasticos_*"
+          run_check "Semgrep fixture tests" make semgrep-test
+
+          # Odoo 19 pattern check (advisory — pre-existing issues tracked separately)
+          echo "--- Odoo 19 patterns (advisory) ---"
+          chmod +x scripts/check_odoo_patterns.sh
+          ./scripts/check_odoo_patterns.sh || true
+          RESULTS+=("⚠️  Odoo 19 patterns (advisory — see log)")
+          echo ""
+
+          run_check "Circular dependencies"      python3 ci/check_circular_deps.py
+          run_check "Module dependency wiring"   python3 scripts/check_module_wiring.py
+          run_check "Orphan model references"    python3 ci/check_orphan_model_refs.py
+          run_check "XPath stability"            python3 ci/check_xpath_stability.py
+          run_check "Model inheritance patterns" python3 ci/check_model_inheritance.py
+          run_check "ORM integrity"              python3 ci/check_orm_integrity.py
+          run_check "Odoo 19 hook patterns"      python3 ci/check_odoo19_hooks.py
+          run_check "Odoo 19 XML patterns"       python3 ci/check_odoo19_xml.py
+          run_check "Dev tools fence"            python3 ci/check_dev_tools_fence.py
+          run_check "Pipeline v2 guard"          python3 ci/check_pipeline_v2_guard.py
+
+          run_check "Critical manifest check"        python3 ci/check_critical_manifest.py
+          run_check "Enhanced XML ID + dep audit"      python3 ci/enhanced_audit.py
+
+          # Advisory checks (failures logged but don't block)
+          echo "--- Advisory checks (non-blocking) ---"
+          python3 ci/check_odoo_antipatterns.py  || true
+          python3 ci/check_acl_completeness.py   || true
+          python3 ci/check_package_init.py       || true
+          python3 ci/check_field_integrity.py    || true
+          python3 ci/check_state_guard_bypass.py || true
+          python3 ci/weak_test_fixer.py          || true
+          echo ""
+
+          echo "============================================"
+          echo "Static Analysis Summary"
+          echo "============================================"
+          for r in "${RESULTS[@]}"; do echo "  $r"; done
+          echo "============================================"
+
+          exit $FAIL
+
+  # ── TIER 3: Pure-Python tests — runs ALL, reports all failures ─────────────
+  pure-python-tests:
+    name: Pure Python Tests
+    needs: static-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install pytest==8.3.5 pytest-timeout==2.4.0
+
+      - name: Run all pure-Python tests (Odoo-free; conftest auto-skips Odoo tests)
+        run: |
+          # Odoo is intentionally NOT installed here. tests/conftest.py detects this
+          # and collect-ignores every Odoo-importing test module, so `pytest tests/`
+          # runs exactly the pure-Python set with no hand-maintained file list to drift.
+          python3 -m pytest tests/ \
+            -v --tb=short --no-header \
+            -p no:randomly
+
+  # ── SECURITY: Runs in parallel, advisory ──────────────────────────────────
+  secret-scan:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2 — SHA-pinned per SonarCloud S7637
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── ODOO RUNTIME: Intentionally disabled — use Odoo.sh deploy hooks ───────
+  # Tests in this category: test_constraint_validation.py, test_security_acl.py,
+  # test_state_machines.py, test_integration_flows.py, test_performance.py,
+  # test_onchange_*.py, test_cron_*.py (Odoo-variant), module-level tests
+  # Trigger: Odoo.sh post-deploy hook → pytest plasticos_*/tests/ -v

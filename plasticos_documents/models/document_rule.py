@@ -6,9 +6,9 @@ class PlasticosDocumentRule(models.Model):
     _description = "Document Compliance Rule"
 
     name = fields.Char(required=True)
-    tag_id = fields.Many2one("plasticos.document.tag", required=True, index=True)
+    tag_id = fields.Many2one("plasticos.document.tag", required=True, index=True, ondelete="restrict")
     res_model = fields.Char(required=True, index=True)
-    client_id = fields.Many2one("res.partner", index=True)
+    client_id = fields.Many2one("res.partner", index=True, ondelete="restrict")
     required_for_invoice = fields.Boolean(default=False)
     required_for_close = fields.Boolean(default=True)
     active = fields.Boolean(default=True)

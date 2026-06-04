@@ -44,6 +44,7 @@ class PlasticosPolymer(models.Model):
         string="Product",
         readonly=True,
         help="Auto-created product for this polymer.",
+        ondelete="restrict",
     )
 
     @api.model_create_multi

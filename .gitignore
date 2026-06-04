@@ -3,11 +3,12 @@
 # ═══════════════════════════════════════════════════════════
 .DS_Store
 **/.DS_Store
-.cursor/
-.cursor-commands
+*.swp
+*~
+.cursor/*
+!.cursor/rules/
 .env
-.suite6-config.json
-.workflows/
+.env.local
 
 # ═══════════════════════════════════════════════════════════
 # Python
@@ -18,77 +19,26 @@ __pycache__/
 **/__pycache__/
 *.pyc
 *.pyo
-*.pyd
-.Python
-*.so
-.eggs/
+*.py[cod]
 *.egg-info/
-*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # ═══════════════════════════════════════════════════════════
-# Local / Working folders (not for repo)
+# Local / working folders (not for repo)
 # ═══════════════════════════════════════════════════════════
-Files To Harvest/
-PlasticOS/
-_Source Files/
-addons/
-docs/*.ai
-docs/*.pdf
-docs/*.png
-docs/*.jpg
-docs/*.jpeg
-docs/adr/
-l9_trace/
-odoo-enterprise/
-telemetry/
-tests-odoo/
+Current Work - IGNORE/
+current work - ib/
 
 # ═══════════════════════════════════════════════════════════
-# Local files (not for repo)
+# Generated audit reports
 # ═══════════════════════════════════════════════════════════
-docker-compose.yml
-export_odoo_index.py
-installation logs.md
-run-odoo-tests.sh
-workflow_state.md
-plasticos_partner_import/3. VanillaSoft - All Contacts (ALL).csv
-
-# ═══════════════════════════════════════════════════════════
-# Local / Working (not for staging)
-# ═══════════════════════════════════════════════════════════
-# scripts/
-Transactions.Test.csv.numbers
-plasticos_graph_engine/
-plasticos_graph_engine/**
-plasticos_graph_integration/
-plasticos_graph_integration/**
-plasticos_graph_intelligence/
-plasticos_graph_intelligence/**
-plasticos_graph_3d_embedding/
-plasticos_graph_3d_embedding/**
-plasticos_inference_engine/
-plasticos_inference_engine/**
-plasticos_enrichment_bridge/
-
-
-# ═══════════════════════════════════════════════════════════
-# Module test folders (not ready for CI)
-# ═══════════════════════════════════════════════════════════
-# NOTE: Test folders now tracked in git (2026-03-05)
-# plasticos_transaction/tests/
-# plasticos_intake/tests/
-# plasticos_logistics/tests/
-# plasticos_documents/tests/
-# plasticos_commission/tests/
 xpath_stability_report.json
 odoo_audit_report.json
 extended_audit_report.json
 
 # ═══════════════════════════════════════════════════════════
-# Scratch / log files
+# GMP reports (local artifacts, kept out of git by convention)
 # ═══════════════════════════════════════════════════════════
-z-logs*.md
-config/odoo.conf
-_code_analysis/
-plasticos_partner_import/3. VanillaSoft CRM - All Contacts (ALL).csv
-.vscode/
+/reports/GMP-Report-*.md

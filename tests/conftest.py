@@ -1,38 +1,51 @@
 # conftest.py - pytest configuration for tests/
 #
-# This file configures pytest to skip Odoo-specific tests when running
-# outside of the Odoo environment (e.g., in CI without Odoo runtime).
+# When the Odoo framework is not importable (a plain `pytest` run, e.g. the CI
+# "pure-python" tier and local `make pr-check`/`make test`), every test
+# module that imports Odoo is automatically deactivated. Those tests run under
+# `odoo --test-enable` (Odoo.sh runtime), never in the pure-python environment.
+#
+# Detection is automatic (scan for an `import odoo` / `from odoo` line) so the
+# pure-python set stays in sync without a hand-maintained allowlist that drifts
+# whenever an Odoo test is added or renamed.
 
-import sys
+import importlib.util
+import os
 
-# Odoo-specific test modules that require the Odoo framework
-# These are run via `odoo --test-enable`, not pytest
-_ODOO_TEST_MODULES = [
-    "test_action_methods.py",
-    "test_bridge_contracts.py",
-    "test_bridge_models.py",
-    "test_constraint_validation.py",
-    "test_constraints_material_profile.py",
-    "test_constraints_onchanges.py",
-    "test_cron_batch_normalize.py",
-    "test_cron_plasticos_base.py",
-    "test_cron_runtime.py",
-    "test_depends_transaction_claims_bridge.py",
-    "test_error_handling.py",
-    "test_golden_flows.py",
-    "test_integration_flows.py",
-    "test_onchange_purchase_order_line_plasticos.py",
-    "test_onchange_sale_order_line_plasticos.py",
-    "test_performance.py",
-    "test_security_acl.py",
-    "test_state_machines.py",
-]
+_HERE = os.path.dirname(os.path.abspath(__file__))
 
-# Skip Odoo-specific tests if odoo is not available
-if "odoo" not in sys.modules:
-    collect_ignore = _ODOO_TEST_MODULES
-    # Also ignore subdirectories that contain Odoo-specific tests
-    collect_ignore_glob = [
-        "integration/*",
-        "contracts/*",
-    ]
+
+def _imports_odoo(path: str) -> bool:
+    try:
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                stripped = line.lstrip()
+                if stripped.startswith(("import odoo", "from odoo")):
+                    return True
+    except OSError:
+        return False
+    return False
+
+
+def _collect_odoo_test_files() -> list[str]:
+    ignored = []
+    for dirpath, _dirs, files in os.walk(_HERE):
+        for name in files:
+            if not name.endswith(".py") or name == "conftest.py":
+                continue
+            full = os.path.join(dirpath, name)
+            if _imports_odoo(full):
+                ignored.append(os.path.relpath(full, _HERE))
+    return ignored
+
+
+def _odoo_available() -> bool:
+    try:
+        return importlib.util.find_spec("odoo") is not None
+    except (ImportError, ValueError):
+        return False
+
+
+# Deactivate Odoo-dependent tests when the Odoo framework isn't installed.
+if not _odoo_available():
+    collect_ignore = _collect_odoo_test_files()

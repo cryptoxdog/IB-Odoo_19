@@ -1,0 +1,45 @@
+name: PR Autopilot
+
+on:
+  workflow_dispatch:  # manual only — scheduled run disabled (too soon)
+
+# Limit to one autopilot run at a time
+concurrency:
+  group: pr-autopilot
+  cancel-in-progress: false
+
+jobs:
+  scan-prs:
+    name: Scan Open PRs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for PR analysis
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install requests PyGithub
+
+      - name: Run PR Autopilot (scan only)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONARCLOUD_API_KEY: ${{ secrets.SONARCLOUD_API_KEY }}
+        run: |
+          python3 scripts/pr_autopilot.py
+        continue-on-error: true  # Don't fail workflow if PRs have issues
+
+      - name: Report completion
+        if: always()
+        run: |
+          echo "✅ PR Autopilot scan complete"
+          echo "Review results in the job logs above"

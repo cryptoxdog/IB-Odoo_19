@@ -5,6 +5,8 @@ Renames legacy Studio-style fields to clean module fields in plasticos_documents
 
 import logging
 
+from psycopg2 import sql
+
 _logger = logging.getLogger(__name__)
 
 
@@ -39,7 +41,13 @@ def migrate(cr, version):
             (old_name,),
         )
         if cr.fetchone():
-            cr.execute(f'ALTER TABLE documents_document RENAME COLUMN "{old_name}" TO "{new_name}"')
+            cr.execute(
+                sql.SQL("ALTER TABLE {} RENAME COLUMN {} TO {}").format(
+                    sql.Identifier("documents_document"),
+                    sql.Identifier(old_name),
+                    sql.Identifier(new_name),
+                )
+            )
             _logger.info("Renamed documents_document.%s -> %s", old_name, new_name)
         else:
             _logger.debug("Column documents_document.%s not found, skipping", old_name)

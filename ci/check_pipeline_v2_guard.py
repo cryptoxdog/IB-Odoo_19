@@ -30,6 +30,8 @@ def main() -> int:
         path = root / py_file if not Path(py_file).is_absolute() else Path(py_file)
         if "pipeline_v2" in str(path):
             continue  # the file itself is allowed to exist, just not be referenced
+        if ".semgrep/tests" in str(path):
+            continue  # intentional Semgrep positive fixtures
         try:
             content = path.read_text(encoding="utf-8")
         except Exception:

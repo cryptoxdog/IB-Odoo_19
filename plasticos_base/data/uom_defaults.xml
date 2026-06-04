@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!--
+        Use set_param() (upsert) instead of <record> (bare INSERT) so this
+        survives fresh builds where the standard `product` post_init_hook has
+        already inserted these keys with default values (0 / False).
+        A bare INSERT would hit the ir_config_parameter_key_uniq constraint.
+    -->
+
+    <!-- Default weight unit: Pounds (lb) instead of Kilograms -->
+    <function model="ir.config_parameter" name="set_param">
+        <value eval="'product.weight_in_lbs'"/>
+        <value eval="'1'"/>
+    </function>
+
+    <!-- Default volume unit: Cubic Feet (ft³) instead of Cubic Meters -->
+    <function model="ir.config_parameter" name="set_param">
+        <value eval="'product.volume_in_cubic_feet'"/>
+        <value eval="'1'"/>
+    </function>
+
+</odoo>

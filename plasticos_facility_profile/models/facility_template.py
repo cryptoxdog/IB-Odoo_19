@@ -81,6 +81,7 @@ class PlasticosFacilityTemplate(models.Model):
     form_preference_id = fields.Many2one(
         "plasticos.material.form",
         string="Form Preference",
+        ondelete="restrict",
     )
 
     # ── Notes ──────────────────────────────────────────────────

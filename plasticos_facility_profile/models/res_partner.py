@@ -37,48 +37,41 @@ class ResPartner(models.Model):
         "plasticos.partner.type",
         string="Partner Type",
         help="Canonical partner/facility type from master registry.",
+        ondelete="restrict",
     )
 
     # ═══════════════════════════════════════════════════════════════════
-    # FACILITY ROLE — derived from partner_type_id.code
+    # FACILITY ROLE — granular specialization within the broad partner type
+    # Set via enrichment or manual entry. NOT derived from partner_type_id.
     # Synced to Neo4j for buyer-match graph traversal.
-    # NOT the same as company_type (person/company).
     # ═══════════════════════════════════════════════════════════════════
     facility_role = fields.Selection(
         selection=[
-            ("processor", "Processor"),
-            ("broker", "Broker"),
-            ("manufacturer", "Manufacturer"),
-            ("mrf", "MRF"),
+            ("commercial_recycler", "Commercial Recycler"),
+            ("pallet_recycler", "Pallet Recycler"),
+            ("ag_recycler", "Ag Recycler"),
+            ("ewaste", "E-Waste"),
+            ("drum_reconditioner", "Drum Reconditioner"),
+            ("thrift_store", "Thrift Store"),
+            ("molder", "Molder"),
+            ("extruder", "Extruder"),
+            ("thermoformer", "Thermoformer"),
+            ("film_producer", "Film Producer"),
+            ("regrinder", "Regrinder"),
+            ("pelletizer", "Pelletizer"),
             ("compounder", "Compounder"),
-            ("recycler", "Recycler"),
-            ("distributor", "Distributor"),
-            ("carrier", "Carrier"),
+            ("warehouse", "Warehouse"),
             ("other", "Other"),
         ],
-        compute="_compute_facility_role",
-        inverse="_inverse_facility_role",
+        string="Facility Role",
         store=True,
+        index=True,
         help=(
-            "Business role of this facility. Computed from partner_type_id. "
-            "NOT the same as company_type (person/company). "
-            "Synced to Neo4j as 'facility_role' for buyer matching."
+            "Specific facility specialization within the broad partner type. "
+            "Set via enrichment or manual entry. NOT derived from partner_type_id. "
+            "Synced to Neo4j for buyer matching."
         ),
     )
-
-    @api.depends("partner_type_id", "partner_type_id.code")
-    def _compute_facility_role(self):
-        for rec in self:
-            rec.facility_role = rec.partner_type_id.code if rec.partner_type_id else False
-
-    def _inverse_facility_role(self):
-        PartnerType = self.env["plasticos.partner.type"]
-        for rec in self:
-            if rec.facility_role:
-                pt = PartnerType.search([("code", "=", rec.facility_role)], limit=1)
-                rec.partner_type_id = pt.id if pt else False
-            else:
-                rec.partner_type_id = False
 
     # ═══════════════════════════════════════════════════════════════════
     # COMPANY ROLE — trade-facing classification
@@ -90,7 +83,6 @@ class ResPartner(models.Model):
         selection=[
             ("buyer", "Buyer"),
             ("supplier", "Supplier"),
-            ("both", "Buyer & Supplier"),
             ("carrier", "Carrier"),
             ("broker", "Broker"),
             ("internal", "Internal"),
@@ -107,16 +99,18 @@ class ResPartner(models.Model):
         ),
     )
 
-    @api.onchange("company_role")
-    def _onchange_company_role(self):
-        """Sync supplier_rank / customer_rank when role changes manually."""
-        SUPPLIER_ROLES = {"supplier", "both", "broker"}
-        CUSTOMER_ROLES = {"buyer", "both"}
+    _SUPPLIER_ROLES = {"supplier", "broker"}
+    _CUSTOMER_ROLES = {"buyer"}
+
+    def _sync_rank_from_role(self):
+        """Ensure supplier_rank / customer_rank reflect company_role."""
         for rec in self:
-            if rec.company_role in SUPPLIER_ROLES:
-                rec.supplier_rank = max(rec.supplier_rank or 0, 1)
-            if rec.company_role in CUSTOMER_ROLES:
-                rec.customer_rank = max(rec.customer_rank or 0, 1)
+            if rec.company_role in self._SUPPLIER_ROLES:
+                if not rec.supplier_rank:
+                    rec.supplier_rank = 1
+            if rec.company_role in self._CUSTOMER_ROLES:
+                if not rec.customer_rank:
+                    rec.customer_rank = 1
 
     # ═══════════════════════════════════════════════════════════════════
     # IS_FACILITY — computed gate for Capability Profile tab visibility
@@ -157,6 +151,7 @@ class ResPartner(models.Model):
             "Auto-populated when a user selects a contact on an intake. "
             "Used to auto-fill contact on subsequent intakes."
         ),
+        ondelete="restrict",
     )
 
     # ── Preferred Supplier Profile (dual-profile support) ────────────
@@ -168,6 +163,7 @@ class ResPartner(models.Model):
             "profile used as source of truth for intake matching. "
             "Set manually by broker or auto-selected on first profile creation."
         ),
+        ondelete="restrict",
     )
 
     # ── Trade Role — supply vs demand side ────────────────────────────
@@ -175,7 +171,6 @@ class ResPartner(models.Model):
         selection=[
             ("supplier", "Supplier"),
             ("buyer", "Buyer"),
-            ("both", "Buyer & Supplier"),
             ("other", "Other"),
         ],
         string="Trade Role",
@@ -278,9 +273,18 @@ class ResPartner(models.Model):
             "context": {"default_partner_id": self.id},
         }
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        records.filtered("company_role")._sync_rank_from_role()
+        return records
+
     def write(self, vals):
         if "parent_id" in vals and not vals.get("parent_id"):
             for rec in self:
                 if rec.facility_profile_ids:
                     raise ValidationError("Cannot convert facility to parent while capability profile exists.")
-        return super().write(vals)
+        res = super().write(vals)
+        if "company_role" in vals:
+            self._sync_rank_from_role()
+        return res

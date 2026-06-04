@@ -24,7 +24,7 @@ Models created:
 
 import logging
 
-from odoo import api, fields, models
+from odoo import api, fields, models, tools
 
 _logger = logging.getLogger(__name__)
 
@@ -629,7 +629,7 @@ class PlasticosRepPerformance(models.Model):
     _order = "period_sort asc, revenue_closed desc"
 
     rep_name = fields.Char(string="Rep", readonly=True)
-    salesperson_id = fields.Many2one("res.users", readonly=True)
+    salesperson_id = fields.Many2one("res.users", readonly=True, ondelete="restrict")
     period = fields.Char(string="Period", readonly=True)
     period_sort = fields.Integer(string="_psort", readonly=True)
 
@@ -649,7 +649,7 @@ class PlasticosRepPerformance(models.Model):
     avg_gm_pct = fields.Float(string="Avg GM %", readonly=True, digits=(5, 1))
 
     def init(self):
-        self.env.cr.execute("DROP VIEW IF EXISTS plasticos_rep_performance")
+        tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute("""
             CREATE VIEW plasticos_rep_performance AS
             WITH periods AS (
@@ -734,8 +734,6 @@ class PlasticosRepPerformance(models.Model):
             LEFT JOIN closed_tx ct  ON ct.user_id = t.user_id
             LEFT JOIN open_tx ot    ON ot.user_id = t.user_id
             LEFT JOIN plasticos_intake i    ON i.assigned_user_id = t.user_id
-            LEFT JOIN plasticos_offer  o    ON o.supplier_id IN (
-                SELECT DISTINCT supplier_id FROM plasticos_transaction WHERE user_id = t.user_id
-            )
+            LEFT JOIN plasticos_offer  o    ON o.intake_id = i.id
             GROUP BY t.user_id, rp.name, p.period_label, p.period_sort
         """)

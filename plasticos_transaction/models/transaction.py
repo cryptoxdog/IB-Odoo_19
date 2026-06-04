@@ -27,9 +27,10 @@ class PlasticosTransaction(models.Model):
         tracking=True,
         index=True,
         help="Responsible salesperson. Uses Odoo native user_id convention.",
+        ondelete="restrict",
     )
 
-    sale_order_id = fields.Many2one("sale.order")
+    sale_order_id = fields.Many2one("sale.order", ondelete="restrict")
     purchase_order_ids = fields.Many2many("purchase.order")
 
     # ── Partner References (harvested from linda_logistics_v6) ──
@@ -39,6 +40,7 @@ class PlasticosTransaction(models.Model):
         domain=[("is_company", "=", True), ("supplier_rank", ">", 0)],
         tracking=True,
         index=True,
+        ondelete="restrict",
     )
     buyer_id = fields.Many2one(
         RES_PARTNER,
@@ -46,12 +48,14 @@ class PlasticosTransaction(models.Model):
         domain=[("is_company", "=", True), ("customer_rank", ">", 0)],
         tracking=True,
         index=True,
+        ondelete="restrict",
     )
     carrier_id = fields.Many2one(
         RES_PARTNER,
         string="Carrier",
         domain=[("is_company", "=", True)],
         tracking=True,
+        ondelete="restrict",
     )
 
     # ── Denormalized Material Profile Links (fast lookup) ──────
@@ -61,6 +65,7 @@ class PlasticosTransaction(models.Model):
         compute="_compute_profile_refs",
         store=True,
         help="Denormalized link to supplier's material profile for fast lookup.",
+        ondelete="restrict",
     )
     buyer_profile_id = fields.Many2one(
         PLASTICOS_MATERIAL_PROFILE,
@@ -68,6 +73,7 @@ class PlasticosTransaction(models.Model):
         compute="_compute_profile_refs",
         store=True,
         help="Denormalized link to buyer's material profile for fast lookup.",
+        ondelete="restrict",
     )
 
     # Denormalized profile references (computed/stored for fast lookup)
@@ -78,6 +84,7 @@ class PlasticosTransaction(models.Model):
         store=True,
         index=True,
         help="Cached facility capability profile from sale order partner",
+        ondelete="restrict",
     )
 
     supplier_material_id = fields.Many2one(
@@ -87,6 +94,7 @@ class PlasticosTransaction(models.Model):
         store=True,
         index=True,
         help="Cached material profile from primary purchase order partner",
+        ondelete="restrict",
     )
 
     # ── Product Info (harvested) ───────────────────────────────
@@ -94,6 +102,7 @@ class PlasticosTransaction(models.Model):
         "product.product",
         string="Product",
         tracking=True,
+        ondelete="restrict",
     )
     quantity = fields.Float(
         string="Quantity",
@@ -103,6 +112,7 @@ class PlasticosTransaction(models.Model):
     uom_id = fields.Many2one(
         "uom.uom",
         string="Unit of Measure",
+        ondelete="restrict",
     )
     unit_price = fields.Float(
         string="Unit Price",
@@ -295,7 +305,7 @@ class PlasticosTransaction(models.Model):
         default=False,
     )
 
-    customer_invoice_id = fields.Many2one(ACCOUNT_MOVE, domain=[("move_type", "=", "out_invoice")])
+    customer_invoice_id = fields.Many2one(ACCOUNT_MOVE, domain=[("move_type", "=", "out_invoice")], ondelete="restrict")
 
     vendor_bill_ids = fields.Many2many(
         ACCOUNT_MOVE, relation="plasticos_tx_vendor_rel", domain=[("move_type", "=", "in_invoice")]
@@ -469,6 +479,7 @@ class PlasticosTransaction(models.Model):
         domain=[("picking_type_code", "=", "outgoing")],
         tracking=True,
         help="Linked delivery order for this transaction.",
+        ondelete="restrict",
     )
     do_number = fields.Char(
         string="DO Number",

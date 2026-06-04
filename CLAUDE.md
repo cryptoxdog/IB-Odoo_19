@@ -2,6 +2,8 @@
 
 @AGENTS.md
 
+**Repo metrics** (module count, line counts, test layout, shell commands): keep **`AGENTS.md`** as the canonical, maintained snapshot; update that file when the addon set or tooling changes.
+
 ## Design Principles
 
 1. **Deterministic Seed Doctrine** — all reference data versioned in XML with `noupdate="1"`. No CSV runtime bootstrap. No hardcoded database IDs.
@@ -84,9 +86,16 @@ class PlasticosMaterialProfile(models.Model):
 ### ✅ Always
 - Declare `__manifest__.py` dependencies before importing from other modules
 - Add `security/ir.model.access.csv` for every new model
-- Use `plasticos_` namespace for modules, `plasticos.` for models
-- Run `pre-commit run --all-files` before committing
-- Check `AI Agent Files/INVARIANTS.md` for full invariant list
+- Add `from . import <file>` to `__init__.py` for every new Python file (models, controllers, wizards)
+- Use `plasticos_` namespace for modules, `plasticos.` for models, `Plasticos` for class names
+- `_name` MUST be a string literal — NEVER `_name = SOME_CONSTANT`
+- Every `fields.Many2one` MUST have `ondelete=` parameter
+- Cross-addon imports MUST be inside functions (lazy loading), never at module top level
+- Run `pre-commit run --all-files` before committing (runs all 31 hooks)
+- Run `ruff check --fix . && ruff format .` before committing (line length = **120**, not 100)
+- Run `python3 scripts/check_module_wiring.py` before committing
+- Follow the **CI Compliance Checklist** in `AGENTS.md` — CI will reject PRs that skip these steps
+- Check `INVARIANTS.md` for full invariant list (18 invariants, all CI-enforced)
 
 ### ⚠️ Ask Before
 - Creating new modules (affects dependency graph + install order)
@@ -96,20 +105,31 @@ class PlasticosMaterialProfile(models.Model):
 - Neo4j integration changes
 
 ### 🚫 Never
-- `_sql_constraints` → `models.Constraint`
+- `_sql_constraints` → `models.Constraint` / `UniqueConstraint`
 - `@api.one` / `@api.multi` → removed
 - `@api.depends("id")` → remove "id"
 - `category_id` on `res.groups` → removed in Odoo 19
+- `<tree>` in views → use `<list>`
+- `attrs="{...}"` on fields → use `invisible=`, `readonly=`, `required=` directly
+- `states=` on fields → use direct attribute expressions
+- `string=` on `<search>` views → remove it
+- `t-esc=` in templates → use `t-out=`
+- `numbercall` on `ir.cron` → deprecated
+- `self.env.get("model.name")` → use `self.env["model.name"]`
+- `x_` prefixed fields
 - Circular module dependencies
 - `sudo()` without justification
 - Hardcoded database IDs → use external IDs
+- Top-level `from odoo.addons.plasticos_*` imports in model files
 
 ## Imports
 
 ```python
 @AI Agent Files/AGENT.md
-@AI Agent Files/ARCHITECTURE.md
-@AI Agent Files/INVARIANTS.md
+@ARCHITECTURE.md
+@INVARIANTS.md
+@.claude/README.md
+@.claude/skills/structured-reasoning/SKILL.md
 ```
 
 ## References
@@ -122,3 +142,8 @@ Detailed reference material loads from `.claude/rules/` when editing relevant fi
 - **XML Views** → `.claude/rules/xml-views.md`
 - **Neo4j Boundary** → `.claude/rules/neo4j.md`
 - **System State** → `.claude/rules/system-state.md`
+- **Agent Skills & Subagents** → `.claude/README.md` (skill registry + wiring)
+- **Structured Reasoning** → `.claude/skills/structured-reasoning/SKILL.md` (planning, architecture, debugging)
+- **CI Pipeline** → `AGENTS.md` § CI Compliance Checklist (authoritative CI reference)
+- **System Invariants** → `INVARIANTS.md` (18 invariants with CI enforcement map)
+- **Gate hub & phased autonomy** → `docs/adr/ADR-002-gate-hub-phased-autonomy.md`, `docs/GATE_AUTONOMY_ROADMAP.md`

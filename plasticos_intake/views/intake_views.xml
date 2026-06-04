@@ -299,7 +299,7 @@
                             <field name="polymer_id"/>
                             <field name="form_id"/>
                             <field name="color_id"/>
-                            <field name="packaging_type_ids" widget="many2many_tags"/>
+                            <field name="packaging_type_id"/>
                             <field name="material_attribute_ids" widget="many2many_tags"/>
                         </group>
                         <group string="Classification">
@@ -315,6 +315,12 @@
                             <field name="loads_per_month"/>
                             <field name="grade_hint"/>
                         </group>
+                    </group>
+
+                    <!-- Material Images (from web lead or manual upload) -->
+                    <field name="image_count" invisible="1"/>
+                    <group string="Material Images" invisible="image_count == 0">
+                        <field name="image_ids" nolabel="1" widget="many2many_binary"/>
                     </group>
 
                     <!-- Hidden fields (preserved for data, not shown) -->

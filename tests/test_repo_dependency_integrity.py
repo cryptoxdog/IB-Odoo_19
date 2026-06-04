@@ -35,11 +35,12 @@ MODULE_ROOT = os.path.join(
 MODULE_ROOT = os.path.normpath(MODULE_ROOT)
 
 EXPECTED_NAME = "PlasticOS Buyer Match Engine"
-EXPECTED_VERSION = "19.0.2.0.0"
+EXPECTED_VERSION = "19.0.2.2.0"
 EXPECTED_CATEGORY = "Plasticos/Matching"
 EXPECTED_DEPENDS = [
     "base_setup",
     "plasticos_base",
+    "plasticos_security_base",
     "plasticos_intake",
     "plasticos_material_profile",
     "plasticos_facility_profile",
@@ -56,6 +57,7 @@ LAYER_ORDER = [
     "contacts",
     "account",
     "plasticos_base",
+    "plasticos_security_base",
     "plasticos_intake",
     "plasticos_material_profile",
     "plasticos_facility_profile",

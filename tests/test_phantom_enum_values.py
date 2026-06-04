@@ -641,6 +641,100 @@ GLOBAL_ALLOWLIST = frozenset(
         # ─────────────────────────────────────────────────────────────────────
         "1-Currently Working With",
         "4-Dead Lead",
+        # ─────────────────────────────────────────────────────────────────────
+        # MIME TYPE PREFIXES — used in Odoo attachment domain filters
+        # e.g. [('mimetype', 'like', 'image/')] — not selection enum values
+        # ─────────────────────────────────────────────────────────────────────
+        "image/",
+        "application/",
+        "text/",
+        "video/",
+        "audio/",
+        # ─────────────────────────────────────────────────────────────────────
+        # INTERNAL METHOD / CALLBACK NAMES — used in string comparisons
+        # e.g. assert method_name == '_reverse_tx' — not selection enum values
+        # ─────────────────────────────────────────────────────────────────────
+        "_reverse_tx",
+        # ─────────────────────────────────────────────────────────────────────
+        # MESSAGE / NOTIFICATION STRINGS — used in chatter posts and log filters
+        # These are full human-readable strings, not selection keys
+        # ─────────────────────────────────────────────────────────────────────
+        "ESCALATION: Supplier confirmation",
+        "URGENT: No carrier acknowledgment",
+        # ─────────────────────────────────────────────────────────────────────
+        # VANILLASOFT CRM IMPORT STATUS CODES — external system format "N=Label"
+        # Keys in crm_lead_import_service.py dispatch dict, not Odoo selections
+        # ─────────────────────────────────────────────────────────────────────
+        "1= Currently Working With",
+        "4=Unqualified",
+        "7=Do Not Call",
+        "8=Duplicate",
+        "6=Wrong #",
+        # ─────────────────────────────────────────────────────────────────────
+        # PARTNER IMPORT DISPATCH KEYS — mapping keys in partner_import_service
+        # ─────────────────────────────────────────────────────────────────────
+        "customer",
+        # ─────────────────────────────────────────────────────────────────────
+        # LLM PROVIDER IDENTIFIERS — web_lead_config.py comparison strings
+        # These are AI provider names used in provider-dispatch logic,
+        # not Odoo selection enum values
+        # ─────────────────────────────────────────────────────────────────────
+        "openai",
+        "anthropic",
+        "mistral",
+        "gemini",
+        "perplexity",
+        # ─────────────────────────────────────────────────────────────────────
+        # WEB LEAD PARSER DISPATCH KEYS — triage_helpers.py container/unit maps
+        # These are natural language parsing keys, not Odoo selection values
+        # ─────────────────────────────────────────────────────────────────────
+        "drum",
+        "tote",
+        "supersack",
+        "super sack",
+        "truckload",
+        "truck",
+        "container",
+        "load",
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "ten",
+        # ─────────────────────────────────────────────────────────────────────
+        # AI NORMALIZER TEMPLATE FIELD NAMES — web form field name placeholders
+        # from ai_normalizer.py, not Odoo selection values
+        # ─────────────────────────────────────────────────────────────────────
+        "YourBusinessCompanyName",
+        "DescribeYourMaterial",
+        "WhatIsTheQuantity",
+        "HowOften",
+        "WhereIsItLocated",
+        "WhatIsYourRole",
+        "AdditionalComments",
+        "PhoneNumber",
+        # ─────────────────────────────────────────────────────────────────────
+        # DEBUG LOG DICT KEYS — _dbg() instrumentation in plasticos_geolocalize
+        # These are JSON log field names, not Odoo selection enum values
+        # ─────────────────────────────────────────────────────────────────────
+        "partner_name",
+        "exc_type",
+        "exc_msg",
+        "consecutive",
+        # ─────────────────────────────────────────────────────────────────────
+        # IMAGE MIME TYPE EXTENSION KEYS — plasticos_web_leads image filtering
+        # Used as dict keys for MIME type / file extension checks
+        # ─────────────────────────────────────────────────────────────────────
+        "png",
+        "webp",
+        "gif",
+        "jpg",
+        "jpeg",
     }
 )
 
@@ -1179,6 +1273,9 @@ class TestRegistrySanity:
         assert expected == actual, f"application_class mismatch.\n  Expected: {expected}\n  Actual:   {actual}"
 
     def test_process_type_options(self):
+        # process_type uses a dynamic selection (selection=_get_process_selection),
+        # so the static scanner cannot find it in SELECTION_BY_FIELD.
+        # Verify against PROCESS_CODES from process_codes.py instead.
         expected = {
             "injection",
             "blow_mold",
@@ -1190,8 +1287,33 @@ class TestRegistrySanity:
             "compounding",
             "other",
         }
-        actual = SELECTION_BY_FIELD.get("process_type", set())
-        assert expected == actual
+        try:
+            import ast as _ast
+            import pathlib as _pathlib
+
+            _src = (
+                _pathlib.Path(__file__).parent.parent / "plasticos_material_profile" / "process_codes.py"
+            ).read_text()
+            _tree = _ast.parse(_src)
+            actual = set()
+            for _node in _ast.walk(_tree):
+                # Handle both annotated (PROCESS_CODES: tuple[str,...] = (...))
+                # and plain (PROCESS_CODES = (...)) assignments
+                if (
+                    isinstance(_node, _ast.AnnAssign)
+                    and isinstance(_node.target, _ast.Name)
+                    and _node.target.id == "PROCESS_CODES"
+                    and _node.value
+                ):
+                    actual = set(_ast.literal_eval(_node.value))
+                    break
+                elif isinstance(_node, _ast.Assign):
+                    for _t in _node.targets:
+                        if isinstance(_t, _ast.Name) and _t.id == "PROCESS_CODES":
+                            actual = set(_ast.literal_eval(_node.value))
+        except Exception:
+            actual = SELECTION_BY_FIELD.get("process_type", set())
+        assert expected == actual, f"process_type codes mismatch.\n  Expected: {expected}\n  Actual:   {actual}"
 
     def test_feedstock_type_options(self):
         expected = {"post_industrial", "post_consumer", "mixed", "virgin", "unknown"}

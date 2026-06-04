@@ -6,12 +6,10 @@ _logger = logging.getLogger(__name__)
 def migrate(cr, version):
     """Backfill company_role on existing res.partner records.
 
-    Logic mirrors _derive_company_role() in partner_import_service:
-      supplier_rank > 0 AND customer_rank > 0  ->  both
-      supplier_rank > 0                         ->  supplier
-      customer_rank > 0                         ->  buyer
-      is_company = TRUE, both 0                 ->  prospect
-      is_company = FALSE                        ->  NULL (person contact, no role)
+    supplier_rank > 0  ->  supplier  (primary business is buying from suppliers)
+    customer_rank > 0  ->  buyer
+    is_company = TRUE  ->  prospect
+    person contacts    ->  NULL
 
     Idempotent: only touches rows where company_role IS NULL.
     """
@@ -20,10 +18,9 @@ def migrate(cr, version):
     cr.execute("""
         UPDATE res_partner
         SET company_role = CASE
-            WHEN supplier_rank > 0 AND customer_rank > 0 THEN 'both'
-            WHEN supplier_rank > 0                        THEN 'supplier'
-            WHEN customer_rank > 0                        THEN 'buyer'
-            WHEN is_company = TRUE                        THEN 'prospect'
+            WHEN supplier_rank > 0  THEN 'supplier'
+            WHEN customer_rank > 0  THEN 'buyer'
+            WHEN is_company = TRUE  THEN 'prospect'
             ELSE NULL
         END
         WHERE company_role IS NULL

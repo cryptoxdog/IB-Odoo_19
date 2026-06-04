@@ -1,0 +1,195 @@
+---
+description: PlasticOS zero-stub and zero-regression laws — stub detection, regression hotspots, full 29-module boundary map. Auto-loads for all plasticos model files.
+globs: plasticos_*/models/**/*.py
+alwaysApply: false
+---
+
+# PlasticOS Odoo Zero-Stub / No-Regression Kernel
+# Source: docs/plasticos_kernel_pack_v1_2026_05_26/revised_odoo_zero_stub_no_regression_kernel.md
+
+## Purpose
+
+Enforce two non-negotiable quality laws across all work in the IB-Odoo_19 repo:
+
+1. **Zero-Stub Law** — No placeholder code is acceptable as delivered implementation.
+2. **Zero-Regression Law** — No existing working behavior may be weakened, removed, or silently broken.
+
+## Zero-Stub Law
+
+### Definition
+
+A stub is:
+
+- A `pass` body in a business-logic method that should have implementation
+- A `return []` / `return {}` / `return 0.0` that replaces real logic
+- A `# TODO: implement` comment in a production code path
+- A method that raises `NotImplementedError` in production model code
+- A print/log line with "NOT IMPLEMENTED" in a callable method
+
+### What Is NOT a Stub
+
+The following are **intentional deferrals**, not stubs:
+
+| Item | Status | Why Not a Stub |
+|---|---|---|
+| `plasticos_inference_engine/pipeline_v2.py` | Guarded deferral | Explicit L9 constraint; guarded by `ci/check_pipeline_v2_guard.py`; never activate |
+| `plasticos_matching_engine.stubbed = True` ICP | Controlled runtime flag | Intentional stub mode; flipped when graph engine is wired |
+| External API bridge to L9/Sonar services | Future phase | Not in current scope; no code references needed |
+| TODO items #1-4 in `plasticos_intake` | Active PR #85 | In progress, not abandoned; tracked in open PR |
+
+### Enforcement
+
+Before accepting any code change:
+
+```yaml
+stub_check:
+  search_patterns:
+    - "pass  # TODO"
+    - "raise NotImplementedError"
+    - "return []  # stub"
+    - "# PLACEHOLDER"
+    - "TODO: implement"
+  exclusions:
+    - "plasticos_inference_engine/pipeline_v2.py"  # guarded by ci/check_pipeline_v2_guard.py
+    - test files (stubs in tests are acceptable)
+```
+
+For automated enforcement:
+
+```bash
+make semgrep
+# catches bare-except and raw-sql patterns
+```
+
+For manual stub sweep:
+
+```bash
+grep -r "pass$\|NotImplementedError\|# TODO.*implement" plasticos_*/models/ --include="*.py" \
+  | grep -v pipeline_v2 \
+  | grep -v __pycache__
+```
+
+---
+
+## Zero-Regression Law
+
+### Definition
+
+A regression is:
+
+- A working method that breaks after a change
+- A state transition that is no longer possible
+- A guard that is removed or weakened
+- A field that is deleted that other code depended on
+- A UI path that is removed without replacement
+- A cron that no longer runs or runs in an incorrect cadence
+- A `write()` guard bypassed
+- A `sudo()` removed without replacement authorization
+- A HOT lead reclassified as COLD (or vice versa) without legitimate data cause
+
+### Active Regression Hotspots (confirmed by open PRs)
+
+These paths must be treated as regression-sensitive with extra scrutiny:
+
+| Path | Risk | Source |
+|---|---|---|
+| `plasticos_web_leads/models/web_lead.py` HOT/COLD classification | Critical — 17 bugs previously identified | PR #83 |
+| `web_lead.py` write guard on `intake_created` state | Critical — must block non-state field writes | PR #83 |
+| `web_lead.py` `_process_hot_lead_simple` sudo gate | High — sudo was missing; now added | PR #83 |
+| `web_lead.py` weight fallback cascade in `_merge_ai_and_vision` | High — was zero-filling, now 4-step cascade | PR #83 |
+| `plasticos_intake/models/intake.py` `action_match_to_buyers()` | High — being wired in PR #85 | PR #85 |
+| `plasticos_intake_match` `offer_id` FK | Medium — new nullable FK, additive only | PR #85 |
+| `plasticos_buyer_match_engine/models/matcher.py` `typical_price` | Medium — was hardcoded 0.0, now sourced from Neo4j edge | PR #85 |
+
+### Module Boundary Map (Full — all 29 modules)
+
+```yaml
+plasticos_accounting: financial models, gross margin, freight bill linking
+plasticos_admin_dashboard: admin-facing dashboard (do not remove views)
+plasticos_automation: scheduled actions, automation rules
+plasticos_base: core models, shared fields, base config, ICP params
+plasticos_buyer_match_engine: buyer matching logic and match scoring
+plasticos_claims: claims management workflow
+plasticos_commission: commission calculation (known circular dep with transaction — non-fatal)
+plasticos_crm_bridge: CRM ↔ pipeline bridge
+plasticos_dev_tools: dev/debug utilities — must be fenced off in production
+plasticos_documents: document management (enterprise layer)
+plasticos_documents_native: native document layer fallback
+plasticos_enrichment: data enrichment pipelines (intentional stub — gated on pipeline_v2.py bridge)
+plasticos_facility_profile: facility/supplier profile records
+plasticos_geolocalize: geolocation services
+plasticos_inference_engine: AI inference — pipeline_v2.py IS DEFERRED; pure-Python engines active
+plasticos_intake: material intake UI + matching trigger
+plasticos_intake_normalizer: normalizes intake data for matching
+plasticos_logistics: shipping, freight, logistics tracking
+plasticos_matching: core buyer-seller match orchestration
+plasticos_material_profile: material taxonomy (polymer, form, resin grade)
+plasticos_odoo_standard_apps: standard app configuration/extension
+plasticos_offer: offer records (sent to buyers)
+plasticos_order_lines: order line extensions
+plasticos_partner_import: CSV/bulk partner import tooling
+plasticos_product: product template extensions
+plasticos_security_base: access control, record rules, groups
+plasticos_transaction: transaction lifecycle management (known circular dep with commission)
+plasticos_web_leads: website lead capture — HOT/COLD classification critical path
+plasticos_website: frontend/website customizations
+```
+
+### Regression Detection Commands
+
+```bash
+# State guard bypass detection:
+python3 ci/check_state_guard_bypass.py
+
+# ORM integrity (field deletions, removed compute):
+python3 ci/check_orm_integrity.py
+
+# Field integrity (missing fields referenced):
+python3 ci/check_field_integrity.py
+
+# Run module tests before and after a change:
+make test-module m=<module>
+```
+
+### Regression Verdict
+
+```yaml
+regression_verdict:
+  no_working_method_broken: true
+  no_state_transition_removed: true
+  no_guard_weakened: true
+  no_field_deleted_without_migration: true
+  no_cron_broken: true
+  write_guard_intact: true
+  hot_cold_classification_stable: true
+  pipeline_v2_still_deferred: true
+  commission_transaction_circular_dep_acknowledged: true
+```
+
+## Output Contract
+
+```yaml
+zero_stub_regression_report:
+  scope: ""
+  stubs_found: []
+  regressions_found: []
+  false_positive_deferrals_cleared: []
+  regression_hotspots_checked: []
+  verdict: pass | fail
+  blockers: []
+```
+
+## Objective Definition of Done
+
+```yaml
+definition_of_done:
+  objective: "confirm no stubs or regressions in proposed change or current repo state"
+  stub_sweep_run: true
+  regression_hotspots_reviewed: true
+  write_guard_confirmed_intact: true
+  hot_cold_classification_confirmed_stable: true
+  pipeline_v2_confirmed_deferred: true
+  commission_transaction_dep_acknowledged: true
+  module_boundary_map_referenced: true
+  verdict_provided: true
+```

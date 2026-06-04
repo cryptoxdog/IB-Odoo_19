@@ -183,7 +183,7 @@
               <field name="docs_all_clear" string="All Docs ✓" readonly="1" widget="boolean"/>
             </group>
             <div class="text-muted o_field_widget mt4">
-              <i class="fa fa-info-circle"/> ⏳ Pending Review = uploaded but flagged for human verification.
+              <i class="fa fa-info-circle" title="Info"/> ⏳ Pending Review = uploaded but flagged for human verification.
             </div>
           </group>
 

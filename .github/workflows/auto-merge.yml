@@ -24,37 +24,3 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           merge-method: squash
-
-  re-request-review:
-    name: Re-Request Review After New Commits
-    runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'pull_request' &&
-      github.event.action == 'synchronize'
-    steps:
-      - name: Re-request reviews from change-requesters
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { data: reviews } = await github.rest.pulls.listReviews({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-            });
-            const toRerequest = [...new Set(
-              reviews
-                .filter(r => r.state === 'CHANGES_REQUESTED' || r.state === 'DISMISSED')
-                .map(r => r.user.login)
-                .filter(login => login !== context.actor)
-            )];
-            if (toRerequest.length > 0) {
-              await github.rest.pulls.requestReviewers({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.payload.pull_request.number,
-                reviewers: toRerequest,
-              });
-              core.info(`Re-requested review from: ${toRerequest.join(', ')}`);
-            } else {
-              core.info('No dismissed reviews to re-request.');
-            }

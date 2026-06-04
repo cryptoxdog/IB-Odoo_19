@@ -1,4 +1,3 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_match_result_user,plasticos.match.result.user,model_plasticos_match_result,base.group_user,1,0,0,0
 access_match_result_manager,plasticos.match.result.manager,model_plasticos_match_result,base.group_system,1,1,1,1
-access_match_result_all,plasticos.match.result.all,model_plasticos_match_result,base.group_user,1,1,1,1

@@ -1,49 +1,84 @@
----
-component_id: "plasticos_partner_import"
-component_name: "Plasticos Partner Import"
-module_version: "19.0.1.2.0"
-layer: "integration"
-domain: "plasticos"
-type: "odoo_module"
-status: "active"
-purpose: "Partner and facility CSV import service"
-summary: "Bulk partner data import"
----
+# plasticos_partner_import
 
-# Plasticos Partner Import
+**Version:** 19.0.2.1.0
+**Category:** PlasticOS / Data Operations
+**Depends:** `plasticos_base`, `plasticos_facility_profile`, `plasticos_material_profile`, `plasticos_security_base`
+
+---
 
 ## Purpose
-Partner and facility CSV import service
 
-## Summary
-Bulk partner data import
+Provides bulk partner import tooling for loading CRM leads, supplier contacts, and facility data from external CSV sources (VanillaSoft CRM, broker spreadsheets, historical records). Used for initial data migration and ongoing batch imports from sales tooling.
 
-## Structure
-```
-1. Counterparties - Parent - CORPORATE-Ready To Import.csv
-2. Counterparties - Child - FACILITY LOCATIONS.csv
-README.md
-README.rst
-__init__.py
-__manifest__.py
-models/
-scripts/
-security/
-views/
-wizards/
-```
-
-## Dependencies
-base, contacts, account, plasticos_facility_profile, plasticos_intake
+---
 
 ## Models
-plasticos.partner.import.service, plasticos.partner.import.validation
 
-## Tier
-integration
+### `plasticos.partner.import.wizard` (TransientModel)
 
+The primary import UI. Accepts a CSV file, maps columns to `res.partner` fields, previews the mapping, and executes the import with deduplication logic.
 
-## Related Documentation
+**Key fields:**
 
-- `ARCHITECTURE.md` — # ARCHITECTURE.md — PlasticOS System Architecture  **Repository**: cryptoxdog/IB...
-- `DEPLOYMENT.md` — # DEPLOYMENT.md — PlasticOS Deployment Guide  **Repository**: cryptoxdog/IB-Odoo...
+| Field | Notes |
+|---|---|
+| `import_file` | Binary CSV upload |
+| `file_name` | |
+| `facility_role` | Role to assign imported partners — was `x_facility_role` (x-field), renamed via migration, fixed in code |
+| `import_mode` | `create_only / update_only / upsert` |
+| `dedup_key` | Field to use for deduplication (email, phone, vanillasoft_id) |
+| `preview_line_ids` | `One2many` — first 10 rows shown in form before commit |
+| `result_summary` | Text summary after import |
+
+---
+
+## Service: `crm_lead_import_service.py`
+
+Processes CRM lead CSVs exported from VanillaSoft. Maps VanillaSoft fields to Odoo `res.partner` and `crm.lead` fields.
+
+**Key field rename history:**
+- `x_vanillasoft_id` → `vanillasoft_id` (migration 19.0.1.x renamed the DB column)
+- `x_facility_role` → `facility_role` (same migration sweep)
+- All code references corrected during the x-field cleanup sweep
+
+**Deduplication logic:** Checks existing partners by `vanillasoft_id` first, then falls back to email, then phone. Creates new or updates existing depending on `import_mode`.
+
+---
+
+## Views
+
+| File | Description |
+|---|---|
+| `partner_import_wizard_views.xml` | Import wizard form — file upload, column mapping, preview grid, result summary |
+
+**Button labels:** All reference `facility_role` (not `x_facility_role`) after the rename fix.
+
+---
+
+## Migrations
+
+| Version | Change |
+|---|---|
+| `19.0.1.1.0` | Renames `x_vanillasoft_id` → `vanillasoft_id` in DB |
+| `19.0.1.2.0` | Renames `x_facility_role` → `facility_role` in DB |
+
+**Note:** Migration scripts reference the old `x_` names intentionally — that is correct behavior for migration files. Do not treat those as bugs.
+
+---
+
+## Deployment
+
+```bash
+docker compose -p odoo19 run --rm odoo \
+  -d odoo --db-host db --db-port 5432 --db-user odoo --db-password odoo \
+  -u plasticos_partner_import --stop-after-init
+```
+
+---
+
+## Integration Points
+
+| Module | Notes |
+|---|---|
+| `plasticos_facility_profile` | Imported partners can be assigned facility profiles post-import |
+| `plasticos_crm_bridge` | CRM leads created from import can be bridged to the plasticos pipeline |

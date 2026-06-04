@@ -5,6 +5,8 @@ Renames legacy Studio-style fields to clean module fields in plasticos_facility_
 
 import logging
 
+from psycopg2 import sql
+
 _logger = logging.getLogger(__name__)
 
 
@@ -30,7 +32,13 @@ def migrate(cr, version):
             (old_name,),
         )
         if cr.fetchone():
-            cr.execute(f'ALTER TABLE res_partner RENAME COLUMN "{old_name}" TO "{new_name}"')
+            cr.execute(
+                sql.SQL("ALTER TABLE {} RENAME COLUMN {} TO {}").format(
+                    sql.Identifier("res_partner"),
+                    sql.Identifier(old_name),
+                    sql.Identifier(new_name),
+                )
+            )
             _logger.info("Renamed res_partner.%s -> %s", old_name, new_name)
         else:
             _logger.debug("Column res_partner.%s not found, skipping", old_name)

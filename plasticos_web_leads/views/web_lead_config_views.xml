@@ -21,9 +21,9 @@
                             <field name="default_source_type"/>
                         </group>
                     </group>
-                    <group string="API Authentication">
+                    <group string="API Authentication (Inbound Webhook)">
                         <group>
-                            <field name="api_key" password="True"/>
+                            <field name="api_key" invisible="1"/>
                             <button name="action_generate_api_key"
                                     string="Generate New API Key"
                                     type="object"
@@ -31,17 +31,60 @@
                                     confirm="This will invalidate the current key. External integrations will need the new key. Continue?"/>
                         </group>
                     </group>
-                    <group string="OpenAI Credentials (AI Triage)">
-                        <group>
-                            <field name="openai_api_key" password="True"/>
-                            <field name="openai_model"/>
-                            <field name="openai_vision_model"/>
+
+                    <separator string="LLM Provider Configuration"/>
+                    <div class="alert alert-secondary mb-3" role="alert">
+                        <strong>Fallback Chain:</strong> If the primary provider fails, the system
+                        automatically tries the secondary, then tertiary. All three providers use
+                        OpenAI-compatible APIs. One shared key pool powers web lead triage, chatbot,
+                        and the PlasticsBrokerAgent.
+                    </div>
+                    <group>
+                        <group string="Provider Priority">
+                            <field name="llm_primary_provider"/>
+                            <field name="llm_secondary_provider"/>
+                            <field name="llm_tertiary_provider"/>
                         </group>
-                        <group>
+                        <group string="Feature Toggles">
                             <field name="ai_enabled"/>
                             <field name="vision_enabled"/>
                         </group>
                     </group>
+
+                    <notebook>
+                        <page string="OpenAI" name="openai_page">
+                            <group>
+                                <group string="Credentials">
+                                    <field name="openai_api_key" password="True"/>
+                                </group>
+                                <group string="Models">
+                                    <field name="openai_model"/>
+                                    <field name="openai_vision_model"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Anthropic" name="anthropic_page">
+                            <group>
+                                <group string="Credentials">
+                                    <field name="anthropic_api_key" password="True"/>
+                                </group>
+                                <group string="Model">
+                                    <field name="anthropic_model"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Mistral" name="mistral_page">
+                            <group>
+                                <group string="Credentials">
+                                    <field name="mistral_api_key" password="True"/>
+                                </group>
+                                <group string="Model">
+                                    <field name="mistral_model"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+
                     <group string="Classification Thresholds">
                         <group>
                             <field name="hot_min_lbs"/>

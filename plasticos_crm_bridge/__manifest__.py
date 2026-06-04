@@ -1,6 +1,6 @@
 {
     "name": "PlastOS CRM Bridge",
-    "version": "19.0.2.0.0",
+    "version": "19.0.3.2.1",
     "author": "Igor Beylin",
     "summary": "CRM integration for plastics brokerage workflow",
     "depends": [
@@ -21,6 +21,7 @@
         "data/crm_stage_data.xml",
         "data/partner_category_data.xml",
         "data/lead_source_data.xml",
+        "data/utm_source_deactivate.xml",
         "views/crm_lead_views.xml",
         "views/material_profile_views.xml",
     ],

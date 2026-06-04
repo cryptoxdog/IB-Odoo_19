@@ -1,20 +1,7 @@
 name: PR Gate
 
 on:
-  pull_request:
-    branches: [staging, main]
-    paths-ignore:
-      - 'plasticos_graph_engine/**'
-      - 'plasticos_graph_integration/**'
-      - 'plasticos_graph_intelligence/**'
-      - 'plasticos_graph_3d_embedding/**'
-  push:
-    branches: [staging, main]
-    paths-ignore:
-      - 'plasticos_graph_engine/**'
-      - 'plasticos_graph_integration/**'
-      - 'plasticos_graph_intelligence/**'
-      - 'plasticos_graph_3d_embedding/**'
+  workflow_dispatch:  # manual only — replaced by ci.yml (single CI gate)
 
 concurrency:
   group: pr-gate-${{ github.ref }}
@@ -103,6 +90,27 @@ jobs:
           done
           [ $ERRORS -eq 0 ] || exit 1
 
+  semgrep:
+    name: Semgrep Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install semgrep
+        run: pip install semgrep
+
+      - name: Run semgrep Odoo patterns (ERROR level blocks merge)
+        run: |
+          semgrep --config .semgrep/odoo-patterns.yml \
+            --severity ERROR \
+            --quiet \
+            --include="plasticos_*"
+
   secret-scan:
     name: Secret Detection
     runs-on: ubuntu-latest
@@ -112,6 +120,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2 — SHA-pinned per SonarCloud S7637
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

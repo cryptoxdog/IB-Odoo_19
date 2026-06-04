@@ -35,6 +35,7 @@ class PlasticosDocumentValidationMatrix(models.Model):
         string="Required Document Tag",
         required=True,
         help="The document tag that must be present for compliance.",
+        ondelete="restrict",
     )
     required_for_close = fields.Boolean(
         string="Required for Close",

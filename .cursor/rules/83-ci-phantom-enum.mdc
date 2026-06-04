@@ -1,0 +1,94 @@
+---
+description: Phantom enum scanner rules — Selection fields must be detectable by AST scanner; string constants used as non-enum dispatch keys need to be in GLOBAL_ALLOWLIST. Derived from tests/test_phantom_enum_values.py.
+globs: "plasticos_*/models/*.py"
+alwaysApply: false
+---
+
+# Phantom Enum Values — PlasticOS
+
+Enforced by `tests/test_phantom_enum_values.py`. The scanner detects string literals used in comparisons/domains/dict-keys and checks they're registered as valid Selection values or XML data.
+
+## Selection Field Declaration
+
+The scanner uses a **two-pass AST approach**. Both forms are detected:
+
+```python
+# ✅ Form 1 — Inline list (always detected)
+state = fields.Selection(
+    [("draft", "Draft"), ("sent", "Sent"), ("done", "Done")],
+    default="draft",
+)
+
+# ✅ Form 2 — Module-level constant (detected since scanner v2)
+# The constant MUST be defined in the SAME FILE as the fields.Selection() call
+LLM_PROVIDER_SELECTION = [
+    ("openai", "OpenAI"),
+    ("anthropic", "Anthropic"),
+    ("mistral", "Mistral"),
+]
+provider = fields.Selection(LLM_PROVIDER_SELECTION, ...)
+
+# ❌ NOT DETECTED — constant defined in another file (imported)
+# from .constants import MY_SELECTION
+# field = fields.Selection(MY_SELECTION, ...)  ← scanner sees ast.Name, can't resolve
+# FIX: inline the list, or redefine the constant in this file
+```
+
+## Dynamic/Callable Selections
+
+Functions passed to `selection=` cannot be statically detected. The test for that field will fail unless you use the `process_type` workaround pattern:
+
+```python
+# This is NOT detected by SELECTION_BY_FIELD:
+origin_process_type = fields.Selection(selection=_get_process_selection)
+
+# The test_process_type_options test reads PROCESS_CODES via AST from process_codes.py directly.
+# If you add a new dynamic selection, add a corresponding test that reads its source constant.
+```
+
+## GLOBAL_ALLOWLIST — What's Already Whitelisted
+
+Strings in these categories are **pre-approved** and won't trigger phantom enum failures:
+
+| Category | Examples |
+|----------|---------|
+| Odoo states | `draft`, `confirmed`, `done`, `cancel`, `sent`, `open`, `closed` |
+| Odoo move types | `out_invoice`, `in_invoice`, `out_refund`, etc. |
+| Odoo journal types | `sale`, `purchase`, `cash`, `bank`, `general` |
+| Image/MIME prefixes | `image/`, `png`, `jpg`, `jpeg`, `gif`, `webp`, `bmp`, `svg` |
+| LLM providers | `openai`, `anthropic`, `mistral`, `gemini`, `perplexity` |
+| Partner types | `contact`, `invoice`, `delivery`, `private` |
+| Web lead parser keys | `drum`, `tote`, `truck`, `truckload`, `one`, `two`, ... |
+| ORM verbs | `create`, `write`, `unlink`, `read` |
+| Domain operators | `=`, `!=`, `like`, `ilike`, `in`, `not in`, `child_of` |
+| VanillaSoft codes | `1= Currently Working With`, `4=Unqualified`, etc. |
+
+## What Triggers False Positives (and how to fix)
+
+```python
+# ❌ This WILL trigger phantom enum if "my_type" isn't a known Selection key:
+if record.type == "my_type":   # comparison
+    ...
+
+# ✅ Fix option 1 — add "my_type" to your Selection field definition
+type = fields.Selection([("my_type", "My Type"), ...])
+
+# ✅ Fix option 2 — if it's a dispatch/parser key, not an enum, add to GLOBAL_ALLOWLIST
+# in tests/test_phantom_enum_values.py with a comment explaining why
+
+# ✅ Fix option 3 — use a module constant instead of bare string
+MY_TYPE = "my_type"  # defined once, not scanned as enum usage
+if record.type == MY_TYPE:
+    ...
+```
+
+## Dict Dispatch Keys
+
+The scanner flags dict string keys that look like enum values. Image format dicts, parser dicts, and external system code maps must be in the allowlist:
+
+```python
+# ❌ Will trigger phantom enum for 'png', 'jpg', etc. (if not in allowlist)
+MIME_MAP = {"png": "image/png", "jpg": "image/jpeg"}
+
+# ✅ 'png', 'jpg', 'jpeg', 'gif', 'webp' are already in GLOBAL_ALLOWLIST
+```

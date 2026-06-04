@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Base",
-    "version": "19.0.1.1.4",
+    "version": "19.0.1.1.5",
     "summary": "Core seed data, feature gates, and microservice integration",
     "license": "LGPL-3",
     "author": "Igor Beylin",
@@ -24,6 +24,7 @@
         "data/attachment_maintenance_cron.xml",
         "data/midnight_recompute_cron.xml",
         "data/feature_flags.xml",
+        "data/uom_defaults.xml",
         "views/res_config_settings_views.xml",
     ],
     "pre_init_hook": "pre_init_hook",

@@ -47,6 +47,7 @@ class PlasticosIntake(models.Model):
         index=True,
         domain="[('is_company', '=', True)]",
         help="The parent company. Optional for web lead intakes pending review.",
+        ondelete="restrict",
     )
     partner_entity_status = fields.Selection(
         related="partner_id.entity_status",
@@ -71,6 +72,7 @@ class PlasticosIntake(models.Model):
         index=True,
         domain="['|', ('id', '=', partner_id), ('parent_id', '=', partner_id)]",
         help="The facility (child location) or the company itself when it is also the processing site.",
+        ondelete="restrict",
     )
     contact_id = fields.Many2one(
         "res.partner",
@@ -79,6 +81,7 @@ class PlasticosIntake(models.Model):
         index=True,
         domain="[('is_company', '=', False), '|', ('parent_id', '=', facility_id), ('parent_id', '=', partner_id)]",
         help="The person at the facility you are dealing with. Auto-selected from preferred contact memory.",
+        ondelete="restrict",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -94,7 +97,7 @@ class PlasticosIntake(models.Model):
         help="How this lead/intake was acquired. Auto-syncs to partner when set.",
     )
 
-    # ── CRM Lead Link (Phase 5) ────────────────────────────────
+    # ── CRM Lead Link (Phase 5) ────────────────────────────
     crm_lead_id = fields.Many2one(
         "crm.lead",
         string="CRM Lead",
@@ -120,6 +123,7 @@ class PlasticosIntake(models.Model):
         index=True,
         domain="[('share', '=', False)]",
         help="Sales rep assigned to follow up on this intake. Dropdown shows all internal users (non-portal).",
+        ondelete="restrict",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -131,7 +135,6 @@ class PlasticosIntake(models.Model):
         string="Contact Phone",
         readonly=True,
     )
-    # Note: 'mobile' field removed in Odoo 19 from res.partner base model
     contact_email = fields.Char(
         related="contact_id.email",
         string="Contact Email",
@@ -173,25 +176,23 @@ class PlasticosIntake(models.Model):
 
     # ═════════════════════════════════════════════════════════
     # Material Snapshot (Schema-Aligned)
-    # Kept as editable Char/Selection for manual intake and
-    # backward compatibility. Can be pre-filled from profile.
     # ═════════════════════════════════════════════════════════
 
     polymer_id = fields.Many2one(
         "plasticos.polymer",
         string="Polymer",
-        required=False,
+        required=True,
         index=True,
         ondelete="restrict",
-        help="Polymer type from master registry. Optional for web lead intakes pending normalization.",
+        help="Polymer type from master registry.",
     )
     form_id = fields.Many2one(
         "plasticos.material.form",
         string="Form",
-        required=False,
+        required=True,
         index=True,
         ondelete="restrict",
-        help="Material form from master registry. Optional for web lead intakes pending normalization.",
+        help="Material form from master registry.",
     )
     color_id = fields.Many2one(
         "plasticos.material.color",
@@ -209,21 +210,19 @@ class PlasticosIntake(models.Model):
     )
     grade_hint = fields.Char()
 
-    # ── Origin Form (what it was before processing) ──────────
     origin_form_id = fields.Many2one(
         "plasticos.material.form",
         string="Origin Form",
         help="What the material was before processing (Drums, Bottles, Film). Optional.",
+        ondelete="restrict",
     )
 
-    # ── Packaging ────────────────────────────────────────────
-    packaging_type_ids = fields.Many2many(
+    packaging_type_id = fields.Many2one(
         "plasticos.packaging.type",
-        "plasticos_intake_packaging_rel",
-        "intake_id",
-        "packaging_type_id",
         string="Packaging",
-        help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales). Multi-select.",
+        index=True,
+        ondelete="restrict",
+        help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales).",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -235,6 +234,39 @@ class PlasticosIntake(models.Model):
         string="Material Attributes",
         help="Condition attributes: Clean, Metalized, With Metal, Printed, etc.",
     )
+
+    # ─── Computed attribute flags (for matching engine) ────────────────────────────
+    # Derived from material_attribute_ids and stored for indexed access by the
+    # buyer matching engine (matcher.py). Do NOT set these directly; use the
+    # Many2many picker. store=True adds indexed PG columns that matcher.py
+    # can query without an ORM dependency chain.
+
+    has_metal = fields.Boolean(
+        string="Has Metal",
+        compute="_compute_material_flags",
+        store=True,
+        help="Derived: True when 'With Metal' attribute is in material_attribute_ids.",
+    )
+    is_metalized = fields.Boolean(
+        string="Metalized",
+        compute="_compute_material_flags",
+        store=True,
+        help="Derived: True when 'Metalized' attribute is in material_attribute_ids.",
+    )
+    has_fr = fields.Boolean(
+        string="Flame Retardant",
+        compute="_compute_material_flags",
+        store=True,
+        help="Derived: True when 'Flame Retardant' attribute is in material_attribute_ids.",
+    )
+
+    @api.depends("material_attribute_ids.code")
+    def _compute_material_flags(self):
+        for rec in self:
+            codes = set(rec.material_attribute_ids.mapped("code"))
+            rec.has_metal = "with_metal" in codes
+            rec.is_metalized = "metalized" in codes
+            rec.has_fr = "flame_retardant" in codes
 
     # ═════════════════════════════════════════════════════════
     # Observed Quality (Instance-Level)
@@ -250,7 +282,6 @@ class PlasticosIntake(models.Model):
         string="Contamination (%)",
         help="Total contamination as a percentage.",
     )
-    # has_residue computed from contamination_pct - hidden from UI, used for buyer matching
     has_residue = fields.Boolean(
         string="Residue Present",
         compute="_compute_has_residue",
@@ -271,13 +302,8 @@ class PlasticosIntake(models.Model):
         help="Freeform notes about this intake. Will be normalized via LLM.",
     )
 
-    # ═════════════════════════════════════════════════════════
-    # Computed Quality Fields
-    # ═════════════════════════════════════════════════════════
-
     @api.depends("contamination_pct")
     def _compute_has_residue(self):
-        """Auto-compute has_residue from contamination percentage."""
         for rec in self:
             rec.has_residue = rec.contamination_pct > 0
 
@@ -314,7 +340,7 @@ class PlasticosIntake(models.Model):
     quantity_per_load_lbs = fields.Integer(
         string="Qty per Load (lbs)",
         required=True,
-        default=40000,
+        default=36000,
     )
     loads_per_month = fields.Integer(string="Loads / Month")
     deal_type = fields.Selection(
@@ -333,7 +359,7 @@ class PlasticosIntake(models.Model):
     )
 
     # ═════════════════════════════════════════════════════════
-    # Status (simplified 2-stage workflow)
+    # Status
     # ═════════════════════════════════════════════════════════
 
     status = fields.Selection(
@@ -355,16 +381,35 @@ class PlasticosIntake(models.Model):
         "Lost = deal lost. Expired = no activity timeout.",
     )
 
-    # ═════════════════════════════════════════════════════════
-    # Geo (hidden from UI, used by freight automation)
-    # ═════════════════════════════════════════════════════════
-
     lat = fields.Float(string="Latitude")
     lon = fields.Float(string="Longitude")
 
     # ═════════════════════════════════════════════════════════
-    # Match Results (populated after matching)
+    # Material Images (from web lead attachments)
     # ═════════════════════════════════════════════════════════
+
+    image_ids = fields.One2many(
+        "ir.attachment",
+        "res_id",
+        string="Material Images",
+        domain=[("res_model", "=", "plasticos.intake"), ("mimetype", "like", "image/")],
+        help="Images attached to this intake (uploaded via web lead form or manually).",
+    )
+    image_count = fields.Integer(
+        string="Images",
+        compute="_compute_image_count",
+    )
+
+    def _compute_image_count(self):
+        Attachment = self.env["ir.attachment"]
+        for rec in self:
+            rec.image_count = Attachment.search_count(
+                [
+                    ("res_model", "=", "plasticos.intake"),
+                    ("res_id", "=", rec.id),
+                    ("mimetype", "like", "image/"),
+                ]
+            )
 
     match_line_ids = fields.One2many(
         "plasticos.intake.match",
@@ -402,13 +447,11 @@ class PlasticosIntake(models.Model):
 
     @api.depends("match_line_ids.match_score")
     def _compute_best_match_score(self):
-        """Highest match score across all buyer match lines."""
         for rec in self:
             scores = rec.match_line_ids.mapped("match_score")
             rec.best_match_score = max(scores) if scores else 0.0
 
     def _compute_offer_count(self):
-        """Count offers linked to this intake. Works with or without plasticos_offer."""
         if "plasticos.offer" not in self.env:
             for rec in self:
                 rec.offer_count = 0
@@ -416,16 +459,10 @@ class PlasticosIntake(models.Model):
         for rec in self:
             rec.offer_count = self.env["plasticos.offer"].search_count([("intake_id", "=", rec.id)])
 
-    # ═════════════════════════════════════════════════════════
-    # Computed
-    # ═════════════════════════════════════════════════════════
-
     @api.depends("name")
     def _compute_display_name(self):
-        """Display name = prefix-number without year (e.g., INT-26-02001 → INT-02001)."""
         for rec in self:
             if rec.name and rec.name != "/":
-                # Remove year portion: INT-26-02001 → INT-02001
                 parts = rec.name.split("-")
                 if len(parts) == 3:
                     rec.display_name = f"{parts[0]}-{parts[2]}"
@@ -436,7 +473,6 @@ class PlasticosIntake(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        """Create intake with auto-generated sequence number."""
         for vals in vals_list:
             if vals.get("name", "/") == "/":
                 sequence = self.env["ir.sequence"].next_by_code("plasticos.intake")
@@ -450,7 +486,6 @@ class PlasticosIntake(models.Model):
 
     @api.depends("partner_id", "pending_company_name")
     def _compute_company_display(self):
-        """Show partner name or pending company name for list views."""
         for rec in self:
             if rec.partner_id:
                 rec.company_display = rec.partner_id.name
@@ -461,17 +496,11 @@ class PlasticosIntake(models.Model):
 
     # ═════════════════════════════════════════════════════════
     # Onchange — Smart Cascade
-    # partner_id → facility_id → contact_id → details
     # ═════════════════════════════════════════════════════════
 
     @api.onchange("partner_id")
     def _onchange_partner_id(self):
-        """Auto-select facility when company has exactly one.
-
-        Also handles the flagship case: if the company itself is a
-        processing facility (has facility_profile_ids), default to it.
-        Clears downstream fields when company changes.
-        """
+        """Auto-select facility when company has exactly one."""
         self.facility_id = False
         self.contact_id = False
         self.material_profile_id = False
@@ -487,41 +516,30 @@ class PlasticosIntake(models.Model):
         )
 
         if not children:
-            # Company IS the facility (standalone or flagship)
             self.facility_id = partner.id
         elif len(children) == 1:
-            # Single facility — auto-select
             self.facility_id = children[0].id
-        # else: multiple facilities — user must pick
 
     @api.onchange("facility_id")
     def _onchange_facility_id(self):
-        """Auto-select contact from preferred memory or single contact.
-
-        Checks preferred_contact_id on the facility first. If not set,
-        auto-selects when there is exactly one contact. Clears contact
-        when facility changes.
-        """
+        """Auto-select contact from preferred memory or single contact."""
         self.contact_id = False
         if not self.facility_id:
             return
 
         facility = self.facility_id
 
-        # Check preferred contact memory
         preferred = facility.preferred_contact_id
         if preferred and preferred.parent_id.id == facility.id:
             self.contact_id = preferred.id
             return
 
-        # Also check parent-level preferred if facility == partner
         if facility.id == self.partner_id.id:
             preferred = facility.preferred_contact_id
             if preferred:
                 self.contact_id = preferred.id
                 return
 
-        # Auto-select if single contact
         contacts = self.env["res.partner"].search(
             [
                 ("parent_id", "=", facility.id),
@@ -532,41 +550,13 @@ class PlasticosIntake(models.Model):
         if len(contacts) == 1:
             self.contact_id = contacts[0].id
 
-    @api.onchange("contact_id")
-    def _onchange_contact_id(self):
-        """Save contact selection to preferred memory on the facility.
+        profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", facility.id)])
+        if len(profiles) == 1:
+            self.material_profile_id = profiles[0].id
 
-        Next time this facility is selected on any intake, the system
-        will auto-select this contact. No double-entry ever.
-        """
-        if self.contact_id and self.facility_id:
-            # Write preferred contact memory (sudo to bypass ACL)
-            if self.facility_id.preferred_contact_id != self.contact_id:
-                self.facility_id.sudo().write(
-                    {
-                        "preferred_contact_id": self.contact_id.id,
-                    }
-                )
-
-    @api.onchange("lead_source_id")
-    def _onchange_lead_source_id(self):
-        """Auto-sync lead source to partner when set on intake.
-
-        If partner doesn't have a lead source yet, copy from intake.
-        This tracks how leads/loads came in for reporting.
-        """
-        if self.lead_source_id and self.partner_id:
-            if not self.partner_id.lead_source_id:
-                # sudo: update partner from intake (cross-model permission)
-                self.partner_id.sudo().write(
-                    {
-                        "lead_source_id": self.lead_source_id.id,
-                    }
-                )
-
-    # ═════════════════════════════════════════════════════════
-    # Onchange — pre-fill from material profile
-    # ═════════════════════════════════════════════════════════
+    # NOTE: _onchange_contact_id and _onchange_lead_source_id removed.
+    # Both were empty stubs that caused unnecessary RPC roundtrips from the web
+    # client. The actual cross-model syncs are handled in write() below.
 
     @api.onchange("material_profile_id")
     def _onchange_material_profile(self):
@@ -579,14 +569,58 @@ class PlasticosIntake(models.Model):
         self.color_id = mp.color_id.id if mp.color_id else self.color_id
         self.source_type_id = mp.source_type_id.id if mp.source_type_id else self.source_type_id
         self.origin_form_id = mp.origin_form_id.id if mp.origin_form_id else self.origin_form_id
-        # Copy packaging types from profile (Many2many)
-        if mp.packaging_type_id:
-            self.packaging_type_ids = [(4, mp.packaging_type_id.id)]
+        self.packaging_type_id = mp.packaging_type_id.id if mp.packaging_type_id else self.packaging_type_id
         self.mfi_value = mp.melt_flow_index or self.mfi_value
         self.density_value = mp.density or self.density_value
         self.contamination_pct = mp.contamination_percent or self.contamination_pct
         if mp.material_attribute_ids:
             self.material_attribute_ids = [(6, 0, mp.material_attribute_ids.ids)]
+
+    # ═════════════════════════════════════════════════════════
+    # CRUD Overrides
+    # ═════════════════════════════════════════════════════════
+
+    def write(self, vals):
+        """Override write to sync cross-model fields on actual save.
+
+        Deferred from @api.onchange to avoid committing changes when
+        the user cancels the form.
+        """
+        res = super().write(vals)
+        if "contact_id" in vals or "facility_id" in vals:
+            self._sync_preferred_contact()
+        if "lead_source_id" in vals or "partner_id" in vals:
+            self._sync_lead_source()
+        return res
+
+    def _sync_preferred_contact(self):
+        """Batch-write preferred_contact_id on facilities when contact changes.
+
+        Collects unique (facility → contact) pairs first to minimise
+        the number of sudo().write() SQL UPDATE statements.
+        """
+        facility_updates = {}
+        for record in self:
+            if record.contact_id and record.facility_id:
+                facility_updates[record.facility_id] = record.contact_id.id
+
+        for facility, contact_id in facility_updates.items():
+            if facility.preferred_contact_id.id != contact_id:
+                facility.sudo().write({"preferred_contact_id": contact_id})
+
+    def _sync_lead_source(self):
+        """Batch-write lead_source_id on partners when first set from intake.
+
+        Collects unique (partner → source) pairs first to minimise
+        the number of sudo().write() SQL UPDATE statements.
+        """
+        partner_updates = {}
+        for record in self:
+            if record.lead_source_id and record.partner_id and not record.partner_id.lead_source_id:
+                partner_updates[record.partner_id] = record.lead_source_id.id
+
+        for partner, source_id in partner_updates.items():
+            partner.sudo().write({"lead_source_id": source_id})
 
     # ═════════════════════════════════════════════════════════
     # Validation
@@ -605,11 +639,10 @@ class PlasticosIntake(models.Model):
                 raise ValidationError("Loads per month cannot be negative.")
 
     # ═════════════════════════════════════════════════════════
-    # Navigation Actions (Jump To)
+    # Navigation Actions
     # ═════════════════════════════════════════════════════════
 
     def action_view_material_profile(self):
-        """Navigate to the linked material profile."""
         self.ensure_one()
         if not self.material_profile_id:
             return
@@ -622,7 +655,6 @@ class PlasticosIntake(models.Model):
         }
 
     def action_view_supplier(self):
-        """Navigate to the supplier company."""
         self.ensure_one()
         if not self.partner_id:
             return
@@ -635,7 +667,6 @@ class PlasticosIntake(models.Model):
         }
 
     def action_view_facility(self):
-        """Navigate to the facility."""
         self.ensure_one()
         if not self.facility_id:
             return
@@ -648,7 +679,6 @@ class PlasticosIntake(models.Model):
         }
 
     def action_view_offers(self):
-        """Navigate to offers created from this intake."""
         self.ensure_one()
         if "plasticos.offer" not in self.env:
             return
@@ -662,7 +692,6 @@ class PlasticosIntake(models.Model):
         }
 
     def action_view_matches(self):
-        """Navigate to the buyer match lines for this intake."""
         self.ensure_one()
         return {
             "type": "ir.actions.act_window",
@@ -674,7 +703,6 @@ class PlasticosIntake(models.Model):
         }
 
     def action_view_best_match(self):
-        """Navigate to the best-scoring buyer match line."""
         self.ensure_one()
         best = self.match_line_ids.sorted("match_score", reverse=True)[:1]
         if best:
@@ -688,37 +716,32 @@ class PlasticosIntake(models.Model):
         return self.action_view_matches()
 
     # ═════════════════════════════════════════════════════════
-    # Status Transition Actions (Phase 4)
+    # Status Transition Actions
     # ═════════════════════════════════════════════════════════
 
     def _assert_status(self, *allowed):
-        """Guard: raise if current status not in allowed list."""
         self.ensure_one()
         if self.status not in allowed:
             raise UserError(f"Cannot perform this action from status '{self.status}'. Allowed: {', '.join(allowed)}")
 
     def action_mark_processing(self):
-        """Move intake to processing (PO in progress, logistics pending)."""
         for rec in self:
             rec._assert_status("offer_sent")
             rec.status = "processing"
             rec.message_post(body="Intake moved to processing.")
 
     def action_mark_won(self):
-        """Close intake as won — PO has been created."""
         for rec in self:
             rec._assert_status("offer_sent", "processing")
             rec.status = "won"
             rec.message_post(body="Deal closed — PO created.")
 
     def action_mark_lost(self):
-        """Close intake as lost."""
         for rec in self:
             rec.status = "lost"
             rec.message_post(body="Deal marked as lost.")
 
     def action_mark_expired(self):
-        """Close intake as expired — no activity timeout."""
         for rec in self:
             rec.status = "expired"
             rec.message_post(body="Intake expired — no activity.")
@@ -728,20 +751,11 @@ class PlasticosIntake(models.Model):
     # ═════════════════════════════════════════════════════════
 
     def action_match_to_buyers(self):
-        """Run buyer matching via external microservice.
-
-        Feature-gated: shows friendly message when microservice is disabled.
-        When enabled, calls the matching microservice REST API.
-
-        For web lead intakes without a partner, creates the partner first.
-        Auto-creates material profile if not set.
-        """
+        """Run buyer matching via external microservice."""
         self.ensure_one()
 
-        # Feature gate (no mixin on intake — use shared helper)
         matching_engine_require_enabled_for_ui(self.env)
 
-        # Ensure we have a partner (create from pending_company_name if needed)
         if not self.partner_id and self.pending_company_name:
             self._create_partner_from_pending()
 
@@ -750,16 +764,12 @@ class PlasticosIntake(models.Model):
                 "Cannot match buyers without a company.\n\nPlease set a Company or enter a Pending Company Name first."
             )
 
-        # Auto-create material profile if not set
         if not self.material_profile_id:
             self._create_material_profile_from_intake()
 
-        # Get microservice URL
         icp = self.env["ir.config_parameter"].sudo()
         base_url = icp.get_param("plasticos.matching_engine.url", "http://localhost:8001")
 
-        # Call the matching microservice
-        # TODO: Implement actual HTTP call when microservice is ready
         _logger.info(
             "Matching microservice call: intake=%s partner=%s url=%s",
             self.id,
@@ -767,7 +777,6 @@ class PlasticosIntake(models.Model):
             base_url,
         )
 
-        # For now, return a placeholder action (will be replaced with actual results)
         return {
             "type": "ir.actions.client",
             "tag": "display_notification",
@@ -780,16 +789,9 @@ class PlasticosIntake(models.Model):
         }
 
     def _create_material_profile_from_intake(self):
-        """Auto-create material profile from intake fields.
-
-        Called by action_match_to_buyers when material_profile_id is not set.
-        Creates a new profile linked to the partner/facility with intake's
-        material specifications.
-        """
         self.ensure_one()
         MaterialProfile = self.env["plasticos.material.profile"]
 
-        # Determine the partner to link the profile to (facility or company)
         profile_partner = self.facility_id or self.partner_id
         if not profile_partner:
             return
@@ -812,6 +814,10 @@ class PlasticosIntake(models.Model):
 
         profile = MaterialProfile.create(profile_vals)
         self.write({"material_profile_id": profile.id})
+
+        if hasattr(profile, "copy_images_from"):
+            profile.copy_images_from("plasticos.intake", self.id)
+
         self.message_post(
             body=(
                 f"Auto-created material profile: "
@@ -822,11 +828,6 @@ class PlasticosIntake(models.Model):
         )
 
     def _create_partner_from_pending(self):
-        """Create partner from pending_company_name (web lead flow).
-
-        Called when admin decides to buyer-match a web lead intake.
-        Creates the partner, links it, and clears pending_company_name.
-        """
         self.ensure_one()
         if not self.pending_company_name:
             return
@@ -834,7 +835,6 @@ class PlasticosIntake(models.Model):
         Partner = self.env["res.partner"]
         name = self.pending_company_name
 
-        # Check if partner already exists (may have been created elsewhere)
         existing = Partner.search([("name", "=ilike", name)], limit=1)
         if existing:
             self.write(
@@ -849,7 +849,6 @@ class PlasticosIntake(models.Model):
             )
             return
 
-        # Create new partner
         partner_vals = {
             "name": name,
             "is_company": True,
@@ -857,7 +856,6 @@ class PlasticosIntake(models.Model):
             "comment": f"Created from web lead intake {self.name}",
         }
 
-        # Copy lead source from intake, or default to web_lead
         if self.lead_source_id:
             partner_vals["lead_source_id"] = self.lead_source_id.id
         else:
@@ -865,7 +863,6 @@ class PlasticosIntake(models.Model):
             if web_lead_source:
                 partner_vals["lead_source_id"] = web_lead_source.id
 
-        # Pull contact info from intake's contact if available
         if self.contact_id:
             if self.contact_id.email:
                 partner_vals["email"] = self.contact_id.email
@@ -885,7 +882,6 @@ class PlasticosIntake(models.Model):
         )
 
     def action_reset_to_draft(self):
-        """Reset intake back to draft for editing."""
         for rec in self:
             if rec.status == "won":
                 raise UserError("Cannot reset a Won intake. Create a new one instead.")
@@ -894,10 +890,7 @@ class PlasticosIntake(models.Model):
             rec.message_post(body="Reset to draft for editing.")
 
     def action_send_offers(self):
-        """Create plasticos.offer records for each selected match line.
-
-        Requires plasticos_offer module. Advances intake status to offer_sent.
-        """
+        """Create plasticos.offer records for each selected match line."""
         self.ensure_one()
         self._assert_status("matched")
         selected = self.match_line_ids.filtered("selected")
@@ -957,16 +950,7 @@ class PlasticosIntake(models.Model):
         }
 
     def action_make_po(self):
-        """Create transaction from intake and close as Won.
-
-        This is the one-click PO creation flow:
-        1. Validates intake is in offer_sent or processing state
-        2. Creates plasticos.transaction from intake data
-        3. Moves intake to 'won' status
-        4. Opens the new transaction form
-
-        Requires plasticos_transaction module to be installed.
-        """
+        """Create transaction from intake and close as Won."""
         self.ensure_one()
         self._assert_status("offer_sent", "processing", "matched")
 
@@ -979,32 +963,23 @@ class PlasticosIntake(models.Model):
             )
         Transaction = self.env["plasticos.transaction"]
 
-        # Build transaction values from intake
         tx_vals = {
             "intake_id": self.id,
             "supplier_id": self.partner_id.id,
             "quantity": self.quantity_per_load_lbs,
-            # "supplier_facility_id": self.facility_id.id if self.facility_id else False,
-            # "polymer_id": self.polymer_id.id if self.polymer_id else False,
-            # "form_id": self.form_id.id if self.form_id else False,
         }
 
-        # Link to material profile if available
         if self.material_profile_id:
             tx_vals["supplier_profile_id"] = self.material_profile_id.id
 
-        # Link to best buyer match if selected
         selected_match = self.match_line_ids.filtered("selected").sorted("match_score", reverse=True)[:1]
         if selected_match:
-            # tx_vals["buyer_name"] = selected_match.buyer_name
-            # Try to find buyer partner
             buyer = self.env["res.partner"].search([("name", "=", selected_match.buyer_name)], limit=1)
             if buyer:
                 tx_vals["buyer_id"] = buyer.id
 
         tx = Transaction.create(tx_vals)
 
-        # Move intake to Won
         self.status = "won"
         self.message_post(
             body=f"PO created → Transaction "

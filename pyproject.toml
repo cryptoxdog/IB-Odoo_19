@@ -9,7 +9,14 @@ norecursedirs = [
     "venv",
     "*.egg-info",
     "docs",
+    "current work - ib",
 ]
+# Per-test timeout: fail loudly if a test hangs (e.g. Dropbox filesystem I/O timeout)
+# rather than silently dying mid-run and producing incomplete results.
+# Tests that legitimately scan many files (test_phantom_enum_values) may need ~30s.
+timeout = 30
+timeout_method = "thread"  # safe for pytest; doesn't interfere with subprocess tests
+# pytest-timeout==2.4.0 required (pip install pytest-timeout==2.4.0)
 
 [tool.ruff]
 target-version = "py312"
@@ -22,7 +29,9 @@ exclude = [
     ".venv",
     "venv",
     "*.egg-info",
+    ".semgrep/tests",
     "current work - ib",
+    "Current Work - IGNORE",
 ]
 
 [tool.ruff.lint]

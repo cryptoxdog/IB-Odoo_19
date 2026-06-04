@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/commitlintrc.json",
+  "rules": {
+    "type-enum": [
+      2,
+      "always",
+      [
+        "feat",
+        "fix",
+        "docs",
+        "style",
+        "refactor",
+        "perf",
+        "test",
+        "build",
+        "ci",
+        "chore",
+        "revert"
+      ]
+    ],
+    "type-case": [2, "always", "lower-case"],
+    "type-empty": [2, "never"],
+    "subject-empty": [2, "never"],
+    "subject-full-stop": [2, "never", "."],
+    "header-max-length": [2, "always", 100]
+  },
+  "help": "See https://www.conventionalcommits.org/ for conventional commit format.\n\nExamples:\n  feat: add buyer matching stage 2 scoring\n  fix: correct intake normalizer null handling\n  docs: update AGENTS.md with module count\n  refactor: extract matching logic to service\n  test: add integration tests for offer flow\n  ci: add semgrep to pr-gate workflow"
+}

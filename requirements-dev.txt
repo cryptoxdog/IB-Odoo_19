@@ -1,0 +1,20 @@
+# PlasticOS DEVELOPER / CI-only Python dependencies
+#
+# IMPORTANT: This file is NOT read by Odoo.sh. Odoo.sh only installs packages
+# from requirements.txt. Anything here runs ONLY in local dev or GitHub Actions
+# tooling — never inside the production Odoo runtime.
+#
+# Install locally with:  pip install -r requirements-dev.txt
+
+# Pure-Python test runner (pins match .github/workflows/ci.yml pure-python-tests job).
+# pytest-timeout enables [tool.pytest.ini_options] timeout settings in pyproject.toml.
+pytest==8.3.5
+pytest-timeout==2.4.0
+
+# PR Repair engine — used by scripts/pr_repair_adapter.py for the
+# state-machine-governed CI repair loop (Issue→Finding conversion, approval
+# gates, repeated-failure guard). Pinned to a specific commit SHA for
+# reproducible builds.
+# To upgrade: fetch the new SHA and update the @<sha> below.
+#   gh api repos/cryptoxdog/PR_Repair/commits/main --jq '.sha'
+pr-repair @ git+https://github.com/cryptoxdog/PR_Repair.git@bb364e427c7f5ebe4efc1a50aa5fe04e94105b38

@@ -1,8 +1,30 @@
+import re
+
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class CrmLeadPlastOS(models.Model):
     _inherit = "crm.lead"
+
+    # ── Mobile (Odoo 19 removed mobile from crm.lead) ──────
+    mobile = fields.Char(
+        string="Mobile",
+        help="Mobile phone number. Copied to partner on conversion.",
+    )
+    mobile_sanitized = fields.Char(
+        string="Mobile (E.164)",
+        compute="_compute_mobile_sanitized",
+        store=True,
+        help="Mobile number in E.164 format for SMS and integrations.",
+    )
+
+    # ── Personal Intel (from linked contact) ────────────────
+    partner_personal_intel = fields.Html(
+        related="partner_id.personal_intel",
+        string="Personal Intel",
+        readonly=True,
+    )
 
     # ── Delivery Term (captured during qualification) ──────
     delivery_term = fields.Selection(
@@ -89,6 +111,39 @@ class CrmLeadPlastOS(models.Model):
             pickups = [d for d in pickups if d]
             rec.partner_last_pickup = max(pickups) if pickups else False
 
+    @api.depends("mobile")
+    def _compute_mobile_sanitized(self):
+        for lead in self:
+            if lead.mobile:
+                lead.mobile_sanitized = lead._phone_format(number=lead.mobile, force_format="E164") or lead.mobile
+            else:
+                lead.mobile_sanitized = False
+
+    @api.constrains("mobile")
+    def _check_mobile_format(self):
+        for lead in self:
+            if not lead.mobile:
+                continue
+            digits = re.sub(r"\D", "", lead.mobile)
+            if digits.startswith("1") and len(digits) == 11:
+                digits = digits[1:]
+            if len(digits) != 10:
+                raise ValidationError("Mobile must be a 10-digit US number (e.g., 555-100-0001).")
+
+    def _find_matching_partner(self):
+        """Extend Odoo's email-only matching to also try company name."""
+        partner = super()._find_matching_partner()
+        if not partner and self.partner_name:
+            partner = self.env["res.partner"].search(
+                [
+                    ("name", "=ilike", self.partner_name.strip()),
+                    ("is_company", "=", True),
+                    ("parent_id", "=", False),
+                ],
+                limit=1,
+            )
+        return partner
+
     # ── Phase 5: Convert CRM Lead to Intake ──────────────────
 
     def action_convert_to_intake(self):
@@ -119,6 +174,19 @@ class CrmLeadPlastOS(models.Model):
         # Set lead source from CRM source_id if available
         if self.source_id:
             intake_vals["lead_source_id"] = self.source_id.id
+
+        # polymer_id and form_id are required on plasticos.intake.
+        # CRM conversion has no material context yet, so fall back to the
+        # canonical "Other / Unknown" records. The sales rep can refine these
+        # on the intake form after conversion.
+        Polymer = self.env["plasticos.polymer"]
+        Form = self.env["plasticos.material.form"]
+        other_polymer = Polymer.search([("code", "=ilike", "OTHER")], limit=1)
+        other_form = Form.search([("code", "=ilike", "OTHER")], limit=1)
+        if other_polymer:
+            intake_vals["polymer_id"] = other_polymer.id
+        if other_form:
+            intake_vals["form_id"] = other_form.id
 
         intake = self.env["plasticos.intake"].create(intake_vals)
 
@@ -170,6 +238,7 @@ class CrmLeadPlastOS(models.Model):
             "is_company": True,
             "email": self.email_from,
             "phone": self.phone,
+            "mobile": self.mobile or False,
             "street": self.street,
             "city": self.city,
             "state_id": self.state_id.id if self.state_id else False,

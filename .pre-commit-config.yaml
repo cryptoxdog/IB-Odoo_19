@@ -1,5 +1,5 @@
 # Pre-commit hooks for Odoo 19 development
-# Install: pip install pre-commit && pre-commit install && pre-commit install --hook-type pre-push
+# Install: pip install pre-commit && pre-commit install && pre-commit install --hook-type pre-push && pre-commit install --hook-type commit-msg
 # Run manually: pre-commit run --all-files
 # Pre-push (index export): pre-commit run --hook-stage pre-push
 
@@ -46,6 +46,25 @@ repos:
         args: ['--maxkb=1000']
 
       - id: check-merge-conflict
+
+  # Commit message validation (conventional commits: feat:, fix:, docs:, etc.)
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args:
+          - feat
+          - fix
+          - docs
+          - style
+          - refactor
+          - perf
+          - test
+          - build
+          - ci
+          - chore
+          - revert
 
   # Odoo-specific checks (catches what ruff/mypy can't)
   - repo: local
@@ -169,15 +188,26 @@ repos:
         pass_filenames: false
         stages: [pre-commit, pre-push]
 
-      # NOTE: ACL check is warn-only (exit 0 via bash); make blocking: entry: python3 ci/check_acl_completeness.py
-      # To make blocking: change entry back to 'python3 ci/check_acl_completeness.py'
       - id: acl-completeness
         name: ACL completeness check
-        entry: bash -c 'python3 ci/check_acl_completeness.py || echo "⚠️  ACL check failed (non-blocking)"'
+        entry: python3 ci/check_acl_completeness.py
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
-        verbose: true
+
+      - id: phantom-enum-values
+        name: Phantom enum value check
+        entry: python3 -m pytest tests/test_phantom_enum_values.py -x -q --no-header --tb=short
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: manifest-contract
+        name: Manifest contract check (version, depends order)
+        entry: python3 -m pytest tests/test_repo_dependency_integrity.py -x -q --no-header --tb=short
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
 
       - id: pipeline-v2-guard
         name: pipeline_v2.py import fence
@@ -206,6 +236,24 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+
+  # Secret detection — uses locally installed gitleaks (brew install gitleaks)
+  # bypasses pre-commit managed download due to macOS SSL cert issues
+  - repo: local
+    hooks:
+      - id: gitleaks-commit
+        name: gitleaks (staged file scan)
+        entry: gitleaks protect --config .gitleaks.toml --redact --staged --exit-code 2
+        language: system
+        stages: [pre-commit]
+        pass_filenames: false
+
+      - id: gitleaks-push
+        name: gitleaks (full repo scan on push)
+        entry: gitleaks detect --config .gitleaks.toml --redact --exit-code 2
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
 
   # Python type checking
   - repo: https://github.com/pre-commit/mirrors-mypy

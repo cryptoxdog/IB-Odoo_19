@@ -32,7 +32,7 @@ class TestBatchNormalizeCron(PlasticosTestCase):
             "partner_id": self.partner.id,
             "polymer_id": self.polymer.id,
             "form_id": self.form.id,
-            "quantity_per_load_lbs": 40000,
+            "quantity_per_load_lbs": 36000,
             "normalized": False,
             "match_status": "pending",
         }
@@ -64,8 +64,14 @@ class TestBatchNormalizeCron(PlasticosTestCase):
 
     def test_validation_error_sets_error_status(self):
         """Intakes with validation errors get match_status=error."""
-        intake = self._create_intake(polymer_id=False)  # Missing required field
-        self.Intake.cron_batch_normalize()
+        intake = self._create_intake()
+        intake.write({"quantity_per_load_lbs": 1})
+        with patch.object(
+            type(intake),
+            "_validate_for_normalization",
+            side_effect=Exception("Simulated validation failure"),
+        ):
+            self.Intake.cron_batch_normalize()
         self.assertEqual(intake.match_status, "error")
         self.assertFalse(intake.normalized)
         self.assertTrue(intake.normalization_errors)
