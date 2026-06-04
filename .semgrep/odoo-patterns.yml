@@ -1,38 +1,417 @@
 rules:
-  - id: odoo-commented-code
-    pattern-regex: '^\s*#\s*(self\.|env\.|model\.|fields\.|vals\[)'
-    message: "Remove commented-out Odoo code"
-    languages: [python]
-    severity: WARNING
+  # ---------------------------------------------------------------------------
+  # PlasticOS / IB-Odoo_19 Semgrep Rules
+  # Purpose: fast, low-noise blocker detection for Odoo 19 + PlasticOS safety.
+  # Scope: Semgrep catches high-confidence patterns only.
+  # Non-goals: architectural layer validation, sudo comment proof, full XML audit.
+  # ---------------------------------------------------------------------------
 
-  - id: odoo-bare-except
+  # ---------------------------------------------------------------------------
+  # Python safety blockers
+  # ---------------------------------------------------------------------------
+
+  - id: plasticos-python-bare-except
     patterns:
       - pattern: |
           try:
             ...
           except:
             ...
-    message: "Use specific exception types instead of bare except"
+    message: "Bare except hides real Odoo registry/runtime errors. Use a specific exception type."
     languages: [python]
     severity: ERROR
+    metadata:
+      category: safety
+      confidence: HIGH
+      plasticos_gate: pr-check
 
-  - id: odoo-sudo-without-comment
-    pattern: .sudo()
-    message: "sudo() call should have inline comment justifying elevated privileges"
-    languages: [python]
-    severity: WARNING
-
-  - id: odoo-raw-sql
+  - id: plasticos-python-eval-exec
     pattern-either:
-      - pattern: self.env.cr.execute(...)
-      - pattern: self._cr.execute(...)
-    message: "Raw SQL detected - prefer ORM methods to prevent SQL injection"
+      - pattern: eval(...)
+      - pattern: exec(...)
+      - pattern: compile(...)
+    message: "Dynamic code execution is forbidden in production Odoo code."
     languages: [python]
     severity: ERROR
+    metadata:
+      category: security
+      confidence: HIGH
+      plasticos_gate: pr-check
 
-  - id: odoo-env-ref-unguarded
-    pattern: self.env.ref($REF)
-    pattern-not: self.env.ref($REF, raise_if_not_found=False)
-    message: "env.ref() should use raise_if_not_found=False to handle missing records gracefully"
+  - id: plasticos-python-pickle-load
+    pattern-either:
+      - pattern: pickle.load(...)
+      - pattern: pickle.loads(...)
+    message: "pickle load is unsafe for untrusted or externally influenced data."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: security
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  - id: plasticos-python-yaml-unsafe-load
+    patterns:
+      - pattern: yaml.load(...)
+      - pattern-not: yaml.load(..., Loader=yaml.SafeLoader)
+      - pattern-not: yaml.load(..., Loader=SafeLoader)
+      - pattern-not: yaml.safe_load(...)
+    message: "Use yaml.safe_load() or yaml.load(..., Loader=yaml.SafeLoader)."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: security
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  # ---------------------------------------------------------------------------
+  # PlasticOS deferred subsystem hard guard
+  # ---------------------------------------------------------------------------
+
+  - id: plasticos-pipeline-v2-import
+    pattern-either:
+      - pattern: import plasticos_inference_engine.pipeline_v2
+      - pattern: from plasticos_inference_engine import pipeline_v2
+      - pattern: from plasticos_inference_engine.pipeline_v2 import $X
+      - pattern: import pipeline_v2
+      - pattern: from pipeline_v2 import $X
+    message: "pipeline_v2.py is deferred and must not be imported or activated."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: deferred_protected
+      confidence: HIGH
+      plasticos_gate: pipeline-guard
+
+  - id: plasticos-pipeline-v2-string-activation
+    pattern-regex: "pipeline_v2"
+    paths:
+      exclude:
+        - "ci/check_pipeline_v2_guard.py"
+        - ".semgrep/odoo-patterns.yml"
+        - "**/*.md"
+        - "**/*.mdc"
+        - "**/reports/**"
+    message: "Reference to pipeline_v2 detected outside allowed docs/guard files. Confirm this is not activation wiring."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: deferred_protected
+      confidence: MEDIUM
+      plasticos_gate: pipeline-guard
+
+  # ---------------------------------------------------------------------------
+  # SQL safety
+  # ---------------------------------------------------------------------------
+
+  - id: plasticos-sql-fstring-execute
+    pattern-either:
+      - pattern: self.env.cr.execute(f"...")
+      - pattern: self._cr.execute(f"...")
+      - pattern: $CR.execute(f"...")
+    message: "SQL/Cypher-style execution must not use f-string interpolation. Use parameters."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: injection
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  - id: plasticos-sql-format-execute
+    pattern-either:
+      - pattern: self.env.cr.execute("...".format(...))
+      - pattern: self._cr.execute("...".format(...))
+      - pattern: $CR.execute("...".format(...))
+    message: "SQL execution must not use .format() interpolation. Use parameters."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: injection
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  - id: plasticos-sql-percent-format-execute
+    pattern-either:
+      - pattern: self.env.cr.execute("..." % ...)
+      - pattern: self._cr.execute("..." % ...)
+      - pattern: $CR.execute("..." % ...)
+    message: "SQL execution must not use percent interpolation. Use parameters."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: injection
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  - id: plasticos-sql-string-concat-execute
+    pattern-either:
+      - pattern: self.env.cr.execute("..." + ...)
+      - pattern: self._cr.execute("..." + ...)
+      - pattern: $CR.execute("..." + ...)
+    message: "SQL execution must not use string concatenation. Use parameters."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: injection
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  - id: plasticos-raw-sql-review
+    patterns:
+      - pattern-either:
+          - pattern: self.env.cr.execute(...)
+          - pattern: self._cr.execute(...)
+      - pattern-not: self.env.cr.execute($SQL, ...)
+      - pattern-not: self._cr.execute($SQL, ...)
+    message: "Raw SQL requires review. Prefer ORM unless justified and parameterized."
     languages: [python]
     severity: WARNING
+    metadata:
+      category: orm_safety
+      confidence: MEDIUM
+      plasticos_gate: review
+
+  # ---------------------------------------------------------------------------
+  # Odoo 19 Python deprecations / compatibility
+  # ---------------------------------------------------------------------------
+
+  - id: plasticos-odoo-api-one-multi
+    pattern-either:
+      - pattern: "@api.one"
+      - pattern: "@api.multi"
+    message: "@api.one and @api.multi are removed/deprecated. Use plain recordset methods."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: odoo19
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  - id: plasticos-odoo-sql-constraints
+    pattern: _sql_constraints = [...]
+    message: "Odoo 19 convention requires models.Constraint / UniqueConstraint, not _sql_constraints tuples."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: odoo19
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  - id: plasticos-odoo-env-get
+    pattern: self.env.get(...)
+    paths:
+      exclude:
+        - "ci/**"
+        - "tests/**"
+    message: "Use self.env['model.name'], not self.env.get(...), in Odoo model code."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: odoo19
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  - id: plasticos-odoo-depends-id
+    pattern: "@api.depends('id')"
+    message: "@api.depends('id') is invalid/noisy. Depend on real fields used by the compute."
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: odoo19
+      confidence: MEDIUM
+      plasticos_gate: review
+
+  - id: plasticos-odoo-unprotected-env-ref
+    patterns:
+      - pattern: self.env.ref($REF)
+      - pattern-not: self.env.ref($REF, raise_if_not_found=False)
+    message: "Use raise_if_not_found=False when missing external IDs are survivable."
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: registry_safety
+      confidence: MEDIUM
+      plasticos_gate: review
+
+  # ---------------------------------------------------------------------------
+  # Stub / incomplete implementation blockers
+  # ---------------------------------------------------------------------------
+
+  - id: plasticos-production-notimplemented
+    pattern: raise NotImplementedError(...)
+    paths:
+      exclude:
+        - "tests/**"
+        - "**/test_*.py"
+    message: "Production Odoo code must not ship NotImplementedError stubs."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: zero_stub
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  - id: plasticos-production-todo-implement
+    pattern-regex: "(TODO|FIXME|PLACEHOLDER|NOT IMPLEMENTED|Not implemented|stub)"
+    paths:
+      include:
+        - "plasticos_*/models/**/*.py"
+        - "plasticos_*/controllers/**/*.py"
+        - "plasticos_*/wizards/**/*.py"
+      exclude:
+        - "tests/**"
+    message: "Production path contains TODO/stub marker. Implement, remove, or document as an approved deferral."
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: zero_stub
+      confidence: MEDIUM
+      plasticos_gate: review
+
+  # ---------------------------------------------------------------------------
+  # Secret / credential detection
+  # ---------------------------------------------------------------------------
+
+  - id: plasticos-hardcoded-secret-assignment
+    pattern-regex: "(?i)(api[_-]?key|secret|token|password|passwd|pwd)\\s*=\\s*['\"][^'\"]{8,}['\"]"
+    paths:
+      exclude:
+        - "tests/**"
+        - "**/*.md"
+        - "**/*.mdc"
+    message: "Possible hardcoded secret. Use .env or Odoo system parameters."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: secrets
+      confidence: MEDIUM
+      plasticos_gate: pr-check
+
+  # ---------------------------------------------------------------------------
+  # Destructive migration blockers
+  # ---------------------------------------------------------------------------
+
+  - id: plasticos-destructive-migration-sql-py
+    pattern-regex: "(?i)\\b(DROP\\s+TABLE|DROP\\s+COLUMN|ALTER\\s+TABLE.+SET\\s+NOT\\s+NULL|TRUNCATE\\s+TABLE)\\b"
+    paths:
+      include:
+        - "plasticos_*/migrations/**/*.py"
+    message: "Destructive migration requires explicit approval and rollback plan."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: migration_safety
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  - id: plasticos-destructive-migration-sql-file
+    pattern-regex: "(?i)\\b(DROP\\s+TABLE|DROP\\s+COLUMN|ALTER\\s+TABLE.+SET\\s+NOT\\s+NULL|TRUNCATE\\s+TABLE)\\b"
+    paths:
+      include:
+        - "plasticos_*/migrations/**/*.sql"
+    message: "Destructive migration requires explicit approval and rollback plan."
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: migration_safety
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  # ---------------------------------------------------------------------------
+  # XML / generic Odoo 19 compatibility checks
+  # Semgrep generic mode is intentionally simple. Deep XML validation remains
+  # owned by ci/check_odoo19_xml.py.
+  # ---------------------------------------------------------------------------
+
+  - id: plasticos-xml-tree-tag
+    pattern-regex: "<\\s*tree\\b"
+    paths:
+      include:
+        - "plasticos_*/**/*.xml"
+    message: "Odoo 19 views must use <list>, not <tree>."
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: odoo19_xml
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  - id: plasticos-xml-tree-view-mode
+    pattern-regex: "view_mode\\s*=\\s*['\"][^'\"]*tree"
+    paths:
+      include:
+        - "plasticos_*/**/*.xml"
+    message: "Odoo 19 view_mode should use list, not tree."
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: odoo19_xml
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  - id: plasticos-xml-attrs-states
+    pattern-regex: "\\b(attrs|states)\\s*="
+    paths:
+      include:
+        - "plasticos_*/**/*.xml"
+    message: "Odoo 19 XML should use direct invisible/readonly/required expressions, not attrs/states."
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: odoo19_xml
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  - id: plasticos-xml-qweb-t-esc
+    pattern-regex: "\\bt-esc\\s*="
+    paths:
+      include:
+        - "plasticos_*/**/*.xml"
+    message: "Use t-out instead of t-esc in Odoo 19 QWeb templates."
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: odoo19_xml
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  - id: plasticos-xml-cron-numbercall
+    pattern-regex: "\\bnumbercall\\s*="
+    paths:
+      include:
+        - "plasticos_*/**/*.xml"
+    message: "numbercall on ir.cron is deprecated. Omit it."
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: odoo19_xml
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  - id: plasticos-xml-groups-category-id
+    pattern-regex: "\\bcategory_id\\b"
+    paths:
+      include:
+        - "plasticos_*/security/**/*.xml"
+        - "plasticos_*/data/**/*.xml"
+    message: "category_id on res.groups is removed in Odoo 19."
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: odoo19_xml
+      confidence: MEDIUM
+      plasticos_gate: pr-check
+
+  # ---------------------------------------------------------------------------
+  # Legacy cleanup signal
+  # ---------------------------------------------------------------------------
+
+  - id: plasticos-commented-odoo-code
+    pattern-regex: "^\\s*#\\s*(self\\.|env\\.|model\\.|fields\\.|vals\\[)"
+    message: "Remove commented-out Odoo code."
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: cleanup
+      confidence: MEDIUM
+      plasticos_gate: review

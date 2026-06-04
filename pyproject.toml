@@ -29,7 +29,9 @@ exclude = [
     ".venv",
     "venv",
     "*.egg-info",
+    ".semgrep/tests",
     "current work - ib",
+    "Current Work - IGNORE",
 ]
 
 [tool.ruff.lint]
