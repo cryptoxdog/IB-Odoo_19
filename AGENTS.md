@@ -237,6 +237,31 @@ pre-commit run --all-files                # Run ALL 31 hooks at once
 | `dependency-scan` | `security.yml` | `pip-audit \|\| true` |
 | `trivy-scan` | `security.yml` | `exit-code: 0` |
 
+**External Odoo.sh checks (NOT GitHub Actions — cannot disable in `.github/workflows/`):**
+
+| Status context | When it appears | Repo gate? |
+|----------------|-----------------|------------|
+| `ci/odoo.sh (dev)` | PRs from feature branches (`fix/*`, `feat/*`) | **No** |
+| `ci/odoo.sh (staging)` | Commits on `Staging` | **No** |
+| `ci/odoo.sh (production)` | Commits on `Production` | **No** |
+
+These are **commit statuses** pushed by Odoo.sh (webhook: `https://www.odoo.sh/paas/webhook/github`), not jobs in `ci.yml`. There is no workflow file to delete.
+
+**To stop `ci/odoo.sh (dev)` showing on PRs (keeps Odoo.sh deploys working):**
+
+1. Open https://www.odoo.sh/project/cryptoxdog-ib-odoo-19 → **Settings** (Admin only)
+2. Section **GitHub commit statuses** → **remove / clear the GitHub token**
+3. Save — Odoo.sh still receives pushes via deploy key + webhook; it just stops posting statuses to GitHub
+
+Optional: on a specific dev branch → Settings → **Test suite** → untick validation (stops `--test-enable` runs; status may still post if token remains).
+
+**Odoo runtime tests (local Docker — not GitHub):**
+
+```bash
+make test-odoo              # docker compose --test-enable on ODOO_TEST_DB
+make test-module m=<module>
+```
+
 ### Odoo 19 patterns that CI rejects (24 checks in `check_odoo_patterns.sh`)
 
 | # | Pattern | Detection |

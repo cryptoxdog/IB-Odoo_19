@@ -18,7 +18,7 @@ You are a production debugging assistant for the PlasticOS Odoo.sh instance.
 **NEVER fire blindly.** Before writing a single line of code:
 
 1. **SSH into staging** and read the actual logs
-ssh 29915952@cryptoxdog-ib-odoo-19-staging-29915952.dev.odoo.com
+ssh 32727906@cryptoxdog-ib-odoo-19-staging-32727906.dev.odoo.com
 
 
 2. **Identify the root cause** from tracebacks, not from the user's error summary alone
@@ -31,11 +31,26 @@ The user-reported error (browser RPC error, 500, 404, etc.) is a **symptom**. Th
 
 ```bash
 # Production
-ssh 29915952@cryptoxdog-ib-odoo-19.odoo.com
+ssh 29882273@cryptoxdog-ib-odoo-19.odoo.com
 
 # Staging
-ssh 29915952@cryptoxdog-ib-odoo-19-staging-29915952.dev.odoo.com
+ssh 32727906@cryptoxdog-ib-odoo-19-staging-32727906.dev.odoo.com
 ```
+
+Values also in `.env.local` (`ODOO_SH_PRODUCTION_SSH`, `ODOO_SH_STAGING_SSH`).
+
+## Odoo runtime tests vs Odoo.sh CI status
+
+**`make test-odoo`** / **`make test-module m=X`** — local Docker `--test-enable` (correct home for Odoo ORM tests).
+
+**`ci/odoo.sh (dev)`** on GitHub PRs — external Odoo.sh status for **feature/dev branches**, not GitHub Actions.
+
+- Staging/Production Odoo.sh branches **do not** show a "Test suite" settings tab.
+- Test suite toggle exists only on **development branches** in Odoo.sh UI.
+- **Cannot disable via SSH** — build containers have no branch-policy config (verified on staging build `32727906`).
+- To disable on a PR branch: Odoo.sh → select dev branch (e.g. `fix/foo`) → Settings → Test suite → untick validation.
+
+Repo CI stays pure-Python only (`make pr-check`). Do not add Odoo runtime jobs to `ci.yml`.
 
 ## Critical Facts
 
@@ -44,7 +59,7 @@ ssh 29915952@cryptoxdog-ib-odoo-19-staging-29915952.dev.odoo.com
 - **Production branch** on GitHub: `Production`
 - **Staging branch** on GitHub: `Staging`
 - Local branch name is `staging` (lowercase) — remote branches are capitalized
-- Odoo.sh instance ID: `29915952`
+- Odoo.sh build IDs (rotate per deploy): Production `29882273`, Staging `32727906`
 - Production URL: `cryptoxdog-ib-odoo-19.odoo.com`
 - **Correct addons path for manual odoo-bin commands:**
   `/home/odoo/src/odoo/addons,/home/odoo/src/enterprise,/home/odoo/src/user`
@@ -57,42 +72,42 @@ ssh 29915952@cryptoxdog-ib-odoo-19-staging-29915952.dev.odoo.com
 
 ```bash
 # What commits are live?
-ssh 29915952@cryptoxdog-ib-odoo-19.odoo.com "cd /home/odoo/src/user && git log --oneline -10"
+ssh 29882273@cryptoxdog-ib-odoo-19.odoo.com "cd /home/odoo/src/user && git log --oneline -10"
 
 # What branch is active?
-ssh 29915952@cryptoxdog-ib-odoo-19.odoo.com "cd /home/odoo/src/user && git branch"
+ssh 29882273@cryptoxdog-ib-odoo-19.odoo.com "cd /home/odoo/src/user && git branch"
 ```
 
 ### Step 2 — Read the server logs for the REAL error
 
 ```bash
 # update.log — module install/update tracebacks (START HERE for registry failures)
-ssh 29915952@cryptoxdog-ib-odoo-19.odoo.com "tail -200 ~/logs/update.log | grep -A20 'ERROR\|CRITICAL\|Traceback'"
+ssh 29882273@cryptoxdog-ib-odoo-19.odoo.com "tail -200 ~/logs/update.log | grep -A20 'ERROR\|CRITICAL\|Traceback'"
 
 # odoo.log — live runtime errors (RPC failures, field errors, permission errors)
-ssh 29915952@cryptoxdog-ib-odoo-19.odoo.com "tail -200 ~/logs/odoo.log | grep -A10 'ERROR\|Traceback'"
+ssh 29882273@cryptoxdog-ib-odoo-19.odoo.com "tail -200 ~/logs/odoo.log | grep -A10 'ERROR\|Traceback'"
 
 # Registry load failures specifically
-ssh 29915952@cryptoxdog-ib-odoo-19.odoo.com "grep -A10 'Failed to load registry' ~/logs/update.log | tail -50"
+ssh 29882273@cryptoxdog-ib-odoo-19.odoo.com "grep -A10 'Failed to load registry' ~/logs/update.log | tail -50"
 ```
 
 ### Step 3 — Inspect specific files on the server
 
 ```bash
 # Check a specific file's contents
-ssh 29915952@cryptoxdog-ib-odoo-19.odoo.com "sed -n '85,110p' /home/odoo/src/user/<module>/models/<file>.py"
+ssh 29882273@cryptoxdog-ib-odoo-19.odoo.com "sed -n '85,110p' /home/odoo/src/user/<module>/models/<file>.py"
 
 # Confirm a specific change is or isn't live
-ssh 29915952@cryptoxdog-ib-odoo-19.odoo.com "grep -n 'search_term' /home/odoo/src/user/<module>/models/<file>.py"
+ssh 29882273@cryptoxdog-ib-odoo-19.odoo.com "grep -n 'search_term' /home/odoo/src/user/<module>/models/<file>.py"
 
 # Check manifest version
-ssh 29915952@cryptoxdog-ib-odoo-19.odoo.com "grep version /home/odoo/src/user/<module>/__manifest__.py"
+ssh 29882273@cryptoxdog-ib-odoo-19.odoo.com "grep version /home/odoo/src/user/<module>/__manifest__.py"
 ```
 
 ### Step 4 — Check available log files
 
 ```bash
-ssh 29915952@cryptoxdog-ib-odoo-19.odoo.com "ls -lh ~/logs/"
+ssh 29882273@cryptoxdog-ib-odoo-19.odoo.com "ls -lh ~/logs/"
 ```
 
 ### Log Files Reference
@@ -142,13 +157,13 @@ git push origin staging:Production
 
 ```bash
 # Confirm commits arrived on server
-ssh 29915952@cryptoxdog-ib-odoo-19.odoo.com "cd /home/odoo/src/user && git log --oneline -5"
+ssh 29882273@cryptoxdog-ib-odoo-19.odoo.com "cd /home/odoo/src/user && git log --oneline -5"
 
 # Check update log for success
-ssh 29915952@cryptoxdog-ib-odoo-19.odoo.com "tail -100 ~/logs/update.log"
+ssh 29882273@cryptoxdog-ib-odoo-19.odoo.com "tail -100 ~/logs/update.log"
 
 # Confirm specific file change is live
-ssh 29915952@cryptoxdog-ib-odoo-19.odoo.com "grep -n 'your_change' /home/odoo/src/user/<module>/models/<file>.py"
+ssh 29882273@cryptoxdog-ib-odoo-19.odoo.com "grep -n 'your_change' /home/odoo/src/user/<module>/models/<file>.py"
 ```
 
 ### Successful Deployment Confirmation
@@ -168,7 +183,7 @@ If you see `Registry loaded` — the deploy succeeded.
 Use when Odoo.sh hasn't auto-deployed or you need to force a module update:
 
 ```bash
-ssh 29915952@cryptoxdog-ib-odoo-19.odoo.com \
+ssh 29882273@cryptoxdog-ib-odoo-19.odoo.com \
   "/home/odoo/src/odoo/odoo-bin \
     -c ~/.config/odoo/odoo.conf \
     --addons-path=/home/odoo/src/odoo/addons,/home/odoo/src/enterprise,/home/odoo/src/user \
