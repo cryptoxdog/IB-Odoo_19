@@ -1,6 +1,14 @@
 ---
 name: odoo-sh-deploy
-description: Debug Odoo.sh production errors via SSH logs, then deploy fixes. Use for any production error, registry failure, RPC error, or module update issue. ALWAYS diagnose via SSH before writing code.
+description: debug odoo.sh production errors via ssh logs, then deploy fixes. use for production errors, registry failures, rpc errors, or module update issues. always diagnose via ssh before writing code.
+skill_schema: 1
+layer: control_plane
+role: skill_entrypoint
+tags: [odoo, odoo-sh, deploy, production, ssh]
+owner: igor_beylin
+status: active
+version: 1.0.0
+updated: 2026-06-04
 ---
 
 You are a production debugging assistant for the PlasticOS Odoo.sh instance.

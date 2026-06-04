@@ -11,7 +11,9 @@
         update update-all rebuild backup \
         test test-odoo test-pure test-module \
         pr-check commit push api-push-check sonar changelog \
-        pr-autopilot pr-fix
+        github-actions-kernel-check \
+        pr-autopilot pr-fix \
+        roadmap roadmap-sync roadmap-add roadmap-list
 
 # ── Load .env if present ──────────────────────────────────────────────────────
 -include .env
@@ -84,8 +86,9 @@ help:
 	@echo "    make test-module m=<mod>  Odoo tests for one module (-u m)"
 	@echo ""
 	@echo "  PR / CI Workflow"
-	@echo "    make commit           stage all changes + commit (m=\"message\" optional)"
+	@echo "    make commit           stage all + commit; runs GA kernel if workflows staged"
 	@echo "    make commit m=\"...\"   commit with explicit conventional message"
+	@echo "    make github-actions-kernel-check  validate staged/all .github/workflows (R5 kernel)"
 	@echo "    make pr-check         REQUIRED before any push: audit-quick + semgrep + semgrep-test + pipeline-guard"
 	@echo "    make push             safe push: runs pr-check first, then git push current branch"
 	@echo "    make push b=Staging   safe push to a specific branch"
@@ -94,6 +97,12 @@ help:
 	@echo "    make pr-fix           scan + auto-fix safe issues + push back to branch (re-triggers CI)"
 	@echo "    make sonar            show SonarCloud quality gate status"
 	@echo "    make changelog        generate CHANGELOG.md from conventional commits"
+	@echo ""
+	@echo "  Roadmap (registry: docs/roadmap/registry.yaml)"
+	@echo "    make roadmap          validate registry + synced planning docs (default)"
+	@echo "    make roadmap-sync     regenerate roadmap markdown from registry.yaml"
+	@echo "    make roadmap-list     list all registry items"
+	@echo "    make roadmap-add domain=gate-autonomy phase=1 kind=backlog title=\"...\""
 	@echo ""
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -360,7 +369,14 @@ pr-check: audit-quick semgrep semgrep-test pipeline-guard test
 	@echo ""
 	@echo "✅ PR gate passed — safe to push"
 
+# GitHub Actions kernel (github_actions_kernel.v1) — R5 developer_support gate
+# Checks: triggers, permissions, secrets, job_dependencies, SHA-pinned third-party actions
+github-actions-kernel-check:
+	@chmod +x ci/check_github_actions_kernel.sh
+	@ci/check_github_actions_kernel.sh $(if $(staged),--staged,)
+
 # Stage all tracked/untracked changes (respects .gitignore) and commit.
+# Runs github_actions_kernel.v1 when .github/workflows/* is staged.
 # Usage: make commit                    (default message: wip: snapshot local changes)
 #        make commit m="fix: description"
 commit:
@@ -375,6 +391,10 @@ commit:
 	git add -A; \
 	if git diff --cached --quiet; then \
 		echo "Nothing to commit after staging (ignored paths only?)."; exit 1; \
+	fi; \
+	if git diff --cached --name-only | grep -q '^\.github/workflows/.*\.ya\?ml$$'; then \
+		echo "→ Workflow files staged — running GitHub Actions kernel..."; \
+		$(MAKE) github-actions-kernel-check staged=1; \
 	fi; \
 	echo "→ Committing: $$MSG"; \
 	git commit -m "$$MSG"; \
@@ -448,3 +468,26 @@ changelog:
 	@cz changelog --unreleased-version "HEAD" --incremental || \
 		(echo "❌ commitizen not installed — run: pip install commitizen"; exit 1)
 	@echo "✅ CHANGELOG.md updated"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ROADMAP (docs/roadmap/registry.yaml → synced planning docs)
+# ─────────────────────────────────────────────────────────────────────────────
+
+roadmap:
+	@python3 scripts/roadmap.py check
+
+roadmap-sync:
+	@python3 scripts/roadmap.py sync
+
+roadmap-list:
+	@python3 scripts/roadmap.py list
+
+# Usage: make roadmap-add domain=gate-autonomy phase=1 kind=backlog title="Item text"
+# Kinds: backlog | scope_in | scope_out | observability | capability
+roadmap-add:
+	@test -n "$(title)" || (echo "Usage: make roadmap-add domain=gate-autonomy phase=1 kind=backlog title=\"...\""; exit 1)
+	@test -n "$(domain)" || (echo "❌ domain= required (e.g. domain=gate-autonomy)"; exit 1)
+	@test -n "$(phase)" || (echo "❌ phase= required (e.g. phase=1)"; exit 1)
+	@test -n "$(kind)" || (echo "❌ kind= required (backlog|scope_in|scope_out|observability|capability)"; exit 1)
+	@python3 scripts/roadmap.py add --domain "$(domain)" --phase "$(phase)" --kind "$(kind)" --title "$(title)" \
+		$(if $(notes),--notes "$(notes)",) $(if $(status),--status "$(status)",)

@@ -249,7 +249,31 @@ Extracted from `plasticos_base/data/partner_tags.xml`:
 - `Toll Processor`
 - `Converter`
 
+## External Intelligence Boundary (Gate)
+
+**Authority:** [docs/adr/ADR-002-gate-hub-phased-autonomy.md](docs/adr/ADR-002-gate-hub-phased-autonomy.md)  
+**Phases:** [docs/GATE_AUTONOMY_ROADMAP.md](docs/GATE_AUTONOMY_ROADMAP.md)
+
+PlasticOS routes external matching and enrichment through the **Constellation Gate** — not direct HTTP from Odoo to [Cognitive.Engine.Graphs](https://github.com/cryptoxdog/Cognitive.Engine.Graphs) (CEG) or inference engines.
+
+```
+Odoo  ──TransportPacket (constellation_node_sdk)──►  Gate  ──►  CEG / EIE
+Odoo  ◄──────────────────────────────────────────  Gate  ◄──
+```
+
+| Rule | Detail |
+|------|--------|
+| Gate is mandatory hub | No Odoo → CEG/EIE direct calls |
+| Primary path (healthy nodes) | Gate → CEG for matching; Gate → converge for enrichment (when enabled) |
+| Fallback path | In-Odoo matcher (Python gates + Neo4j) and local enrichment when Gate/nodes fail |
+| Web lead triage (Phase 1) | **Odoo local only** — LLM/vision/HOT-COLD; Gate triage deferred to Phase 3 |
+| Human gates (Phase 1) | HOT lead review, match line selection, explicit Send Offer |
+
+**Phase 1 seam:** `plasticos.buyer.matcher.find_matches_for_supplier()` → Gate `action=match` → persist via `intake_extension.action_match_to_buyers()`.
+
 ## Neo4j Integration Architecture
+
+> **Role under ADR-002:** Phase 1 **fallback** when Gate/CEG is unavailable. Primary matching targets Gate → CEG when configured.
 
 ### Connection Strategy
 - **Driver**: `neo4j>=5.0.0` Python driver
@@ -374,8 +398,8 @@ Material Spec Extraction
     ↓
 Classification: HOT | COLD
     ↓
-HOT → Auto-create Intake
-COLD → Manual Review Queue
+HOT → Human review → Intake (Phase 1; see GATE_AUTONOMY_ROADMAP.md)
+COLD → Skipped / manual review queue
 ```
 
 **Safety Constraints**:
@@ -397,11 +421,10 @@ COLD → Manual Review Queue
                        │
                        ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  MATCHING PHASE                                             │
+│  MATCHING PHASE (human selects buyers)                      │
 │  plasticos_buyer_match_engine                               │
-│  - 10-gate Python filtering                                 │
-│  - Neo4j graph scoring                                      │
-│  - Geographic proximity                                     │
+│  - Primary: Odoo → Gate → CEG → Odoo (ADR-002)              │
+│  - Fallback: 10-gate Python + Neo4j scoring                 │
 └──────────────────────┬──────────────────────────────────────┘
                        │
                        ▼

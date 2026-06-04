@@ -1,6 +1,14 @@
 ---
-name: new-module
-description: Create a new PlasticOS Odoo 19 module with proper structure and conventions
+name: new-odoo-module
+description: create a new plasticos odoo 19 module with proper structure, manifest, acl, views, and layer-correct dependencies. use when scaffolding a new plasticos_* addon or bootstrapping module files.
+skill_schema: 1
+layer: control_plane
+role: skill_entrypoint
+tags: [odoo, module, scaffold, plasticos]
+owner: igor_beylin
+status: active
+version: 1.0.0
+updated: 2026-06-04
 ---
 
 # New Odoo Module
