@@ -59,7 +59,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install lxml semgrep
+      - run: pip install lxml semgrep==1.164.0
 
       - name: Run all static checks (all errors before failing)
         run: |
