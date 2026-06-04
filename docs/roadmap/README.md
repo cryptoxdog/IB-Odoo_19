@@ -8,7 +8,7 @@ PlasticOS roadmaps follow a **registry → sync → check** pattern (same idea a
 |------|------|
 | **Registry (source of truth)** | `docs/roadmap/registry.yaml` |
 | **Domain roadmap (sync-managed sections)** | e.g. `docs/GATE_AUTONOMY_ROADMAP.md` |
-| **ADR (binding decision)** | e.g. `docs/adr/ADR-002-gate-hub-phased-autonomy.md` |
+| **ADR (binding decision)** | `docs/adr/` — index at [docs/adr/README.md](../adr/README.md) (not `reports/adr/`) |
 | **Index** | `ROADMAP.md`, `docs/README_INDEX.md` |
 | **Structure** | `ARCHITECTURE.md` |
 

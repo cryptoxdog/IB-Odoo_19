@@ -15,6 +15,37 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 3. **Graph Augmentation**: Neo4j for scoring, Odoo for transactions
 4. **Partner Hierarchy**: Native Odoo fields + capability profiles
 5. **Intake-First Flow**: Supplier intake drives buyer matching
+6. **Intake / Profile Split**: Transactional capture on intake; canonical reusable spec on material profile ([ADR-004](docs/adr/ADR-004-intake-vs-material-profile-domain-split.md))
+
+## Intake vs Material Profile (Domain Split)
+
+PlasticOS uses **two models** for material data. See [ADR-004](docs/adr/ADR-004-intake-vs-material-profile-domain-split.md) (roles) and [ADR-005](docs/adr/ADR-005-intake-material-profile-delta-bridge.md) (bridge contract).
+
+```
+┌─────────────────────────────┐         ┌──────────────────────────────────┐
+│  plasticos.intake           │         │  plasticos.material.profile       │
+│  Transactional / load     │  link   │  Canonical reusable spec          │
+│  ─────────────────────    │ ──────► │  ─────────────────────────────    │
+│  status, matches, offers  │         │  polymer/form/color/source        │
+│  facility, contact        │         │  supply: qty/load, loads/month    │
+│  snapshot quality names   │  bridge │  quality: MFI, density, moisture  │
+│  (mfi_value, moisture_pct)│ ◄────── │  geo: lat, lon                    │
+└─────────────────────────────┘         └──────────────────────────────────┘
+         │                                           ▲
+         │  intake_delta_bridge.py                   │
+         └───────────────────────────────────────────┘
+```
+
+| Concern | Intake | Material profile |
+|---------|--------|------------------|
+| Pipeline workflow | Yes (`status`, matches, offers) | No |
+| Partner context | `partner_id`, `facility_id`, `contact_id` | `partner_id` (facility only) |
+| Quality field names | Snapshot (`mfi_value`, `contamination_pct`, …) | Canonical (`melt_flow_index`, `contamination_percent`, …) |
+| `target_price` | Commercial drift only — **not** on profile | Not stored |
+| `has_residue` | Optional computed on intake | **Derived in payload only** (`profile_features.compute_has_residue_feature`) |
+| Bridge entrypoint | `_create_material_profile_from_intake()` | `build_material_profile_vals_from_intake()` |
+
+**Module rule:** `plasticos_material_profile` does not depend on `plasticos_intake`. Intake inherits profile for UX (intake count, create-intake actions).
 
 ## Layer Architecture
 
@@ -98,7 +129,7 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 
 **plasticos_material_profile**
 - **Depends**: `base`, `contacts`, `mail`, `purchase`, `sale_management`, `product`
-- **Provides**: Polymer, form, color, source, process registries
+- **Provides**: Polymer, form, color, source, process registries; canonical `plasticos.material.profile`; intake bridge helpers
 - **Models**:
   - `plasticos.polymer`
   - `plasticos.material.form`
@@ -106,13 +137,17 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
   - `plasticos.source.type`
   - `plasticos.process.type`
   - `plasticos.material.profile`
+- **Bridge (pure Python)**:
+  - `intake_delta_bridge.py` — vals + payload mapping ([ADR-005](docs/adr/ADR-005-intake-material-profile-delta-bridge.md))
+  - `profile_features.py` — `compute_has_residue_feature()`
 
 **plasticos_intake**
 - **Depends**: `base`, `contacts`, `mail`, `plasticos_material_profile`, `plasticos_facility_profile`
-- **Provides**: Material intake with contact intelligence
+- **Provides**: Transactional material intake, matching trigger, offer/PO actions
 - **Models**:
-  - `plasticos.intake`
+  - `plasticos.intake` — load-specific capture; links to `material_profile_id`
   - `plasticos.intake.match`
+- **Inherits** (in `plasticos_intake`, avoids circular dep): navigation/actions on `plasticos.material.profile`
 
 ### Layer 2: Capability Profiles
 
@@ -224,15 +259,15 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
   - Geographic constraints
   - Company type (`broker`, `mrf`, `recycler`, `enduser`, etc.)
 
- mode (`strict` vs `relaxed`)
-
-**Material Profile** (`plasticos.material.profile`)
-- **Purpose**: Material specifications (not attached to partner directly)
-- **Relationship**: Referenced by intake, facility profiles
-- **Fields**:
-  - Polymer, form, color, source, process
-  - MFI, density, moisture content
-  - Packaging, contamination levels
+**Material Profile** (`plasticos.material.profile`) — see [ADR-004](docs/adr/ADR-004-intake-vs-material-profile-domain-split.md)
+- **Purpose**: Canonical reusable material specification for a **facility** (`partner_id` with parent company)
+- **Uniqueness**: `(partner_id, polymer_id, form_id)` — one profile per facility + polymer + form
+- **Relationship**: Referenced by `plasticos.intake.material_profile_id`; PO/SO lines via `plasticos_order_lines`
+- **Canonical quality fields**: `melt_flow_index`, `density`, `moisture_percent`, `contamination_percent` (not intake snapshot names)
+- **Supply / geo**: `quantity_per_load_lbs`, `loads_per_month`, `lat`, `lon`
+- **Required alignment**: `source_type_id` in bridge payloads and profile views
+- **Not stored**: `target_price`, `has_residue` (residue is payload-derived per ADR-005)
+- **Intake bridge**: `build_material_profile_vals_from_intake()` / `build_intake_to_profile_bridge_payload()`
 
 ### Partner Type Taxonomy (`res.partner.category`)
 
@@ -248,6 +283,22 @@ Extracted from `plasticos_base/data/partner_tags.xml`:
 - `Grinder`
 - `Toll Processor`
 - `Converter`
+
+## Architecture Decision Records
+
+| ADR | Title |
+|-----|-------|
+| [ADR-001](docs/adr/ADR-001-master-data-field-architecture.md) | Master data field architecture (Many2one registries) |
+| [ADR-002](docs/adr/ADR-002-gate-hub-phased-autonomy.md) | Gate hub, CEG routing, phased autonomy |
+| [ADR-002 (nav)](docs/adr/ADR-002-navigation-menu-architecture.md) | Navigation menu architecture |
+| [ADR-003](docs/adr/ADR-003-contact-import-configuration.md) | Contact import configuration |
+| [ADR-004](docs/adr/ADR-004-intake-vs-material-profile-domain-split.md) | Intake vs material profile domain split |
+| [ADR-005](docs/adr/ADR-005-intake-material-profile-delta-bridge.md) | Intake–material profile delta bridge |
+| [ADR-006](docs/adr/ADR-006-module-installation-and-display.md) | Module installation and dashboard display |
+| [ADR-007](docs/adr/ADR-007-deployment-architecture.md) | Deployment architecture (Docker vs Odoo.sh) |
+| [ADR-008](docs/adr/ADR-008-odoo-action-methods.md) | Odoo `action_*` navigation pattern |
+
+Full index: [docs/adr/README.md](docs/adr/README.md). **Canonical path only** — `reports/adr/` is deprecated.
 
 ## External Intelligence Boundary (Gate)
 
@@ -413,10 +464,11 @@ COLD → Skipped / manual review queue
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  INTAKE PHASE                                               │
-│  plasticos.intake                                           │
-│  - Supplier contact intelligence                            │
-│  - Material spec capture                                    │
-│  - Quantity, location, availability                         │
+│  plasticos.intake (transactional)                             │
+│  - Workflow: draft → matched → offer_sent → won/lost        │
+│  - Facility/contact context, match lines, offers            │
+│  - Load snapshot + optional link to material.profile        │
+│  - Auto-create profile via intake_delta_bridge when matching  │
 └──────────────────────┬──────────────────────────────────────┘
                        │
                        ▼
@@ -972,6 +1024,6 @@ module/
 
 ---
 
-**Architecture Version**: 3.1.0
-**Last Updated**: 2026-05-28
-**Verified Against**: cryptoxdog/IB-Odoo_19 @ staging branch
+**Architecture Version**: 3.2.0
+**Last Updated**: 2026-06-04
+**Verified Against**: cryptoxdog/IB-Odoo_19 @ feat/material-profile-intake-delta-bridge

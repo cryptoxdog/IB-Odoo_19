@@ -267,7 +267,15 @@ class PlasticosMaterialProfile(models.Model):
     moisture_percent = fields.Float()
     contamination_percent = fields.Float(index=True)
 
-    # ── Volume ───────────────────────────────────────────────
+    # ── Volume / Supply Profile ──────────────────────────────
+    quantity_per_load_lbs = fields.Float(
+        string="Quantity per Load (lbs)",
+        help="Typical reusable per-load quantity for this material profile.",
+    )
+    loads_per_month = fields.Integer(
+        string="Loads per Month",
+        help="Expected recurring monthly load count for this material profile.",
+    )
     avg_lot_size_lbs = fields.Float(index=True)
     min_lot_size_lbs = fields.Float()
     max_lot_size_lbs = fields.Float()
@@ -300,11 +308,16 @@ class PlasticosMaterialProfile(models.Model):
         ondelete="restrict",
     )
 
-    loads_per_month = fields.Float(
-        string="Loads Per Month",
-        compute="_compute_loads_per_month",
-        store=True,
-        help="Computed: Monthly Volume / Avg Lot Size",
+    # ── Geography ──────────────────────────────────────────────
+    lat = fields.Float(
+        string="Latitude",
+        digits=(10, 7),
+        help="Reusable geographic latitude associated with this material profile, when applicable.",
+    )
+    lon = fields.Float(
+        string="Longitude",
+        digits=(10, 7),
+        help="Reusable geographic longitude associated with this material profile, when applicable.",
     )
 
     # ── Compliance ───────────────────────────────────────────
@@ -428,14 +441,6 @@ class PlasticosMaterialProfile(models.Model):
         for rec in self:
             code = rec.source_type_id.code if rec.source_type_id else False
             rec.source_type = code if code in valid_codes else False
-
-    @api.depends("monthly_volume_lbs", "avg_lot_size_lbs")
-    def _compute_loads_per_month(self):
-        for rec in self:
-            if rec.avg_lot_size_lbs:
-                rec.loads_per_month = rec.monthly_volume_lbs / rec.avg_lot_size_lbs
-            else:
-                rec.loads_per_month = 0.0
 
     @api.depends()
     def _compute_po_line_count(self):

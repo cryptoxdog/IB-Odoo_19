@@ -95,7 +95,6 @@
                 </group>
                 <group string="Packaging">
                   <field name="packaging_type_id" string="Packaging"/>
-                  <field name="loads_per_month" string="Loads Per Month"/>
                   <field name="filler_type_id"/>
                   <field name="filler_pct" invisible="not filler_type_id"/>
                   <field name="origin_process_type" string="Process"/>
@@ -106,9 +105,11 @@
                 </group>
               </group>
 
-              <!-- Row 2: Volume + Specs -->
+              <!-- Row 2: Volume / Supply + Specs -->
               <group>
-                <group string="Volume">
+                <group string="Volume / Supply Profile">
+                  <field name="quantity_per_load_lbs"/>
+                  <field name="loads_per_month"/>
                   <field name="avg_lot_size_lbs" string="Avg Weight Lbs"/>
                   <!-- min/max lot sizes removed per mockup -->
                   <field name="min_lot_size_lbs" invisible="1"/>
@@ -116,6 +117,10 @@
                   <field name="monthly_volume_lbs"/>
                   <field name="frequency" string="Load Frequency"/>
                   <field name="origin_form_id" string="Origin Form"/>
+                </group>
+                <group string="Geography">
+                  <field name="lat"/>
+                  <field name="lon"/>
                 </group>
                 <group string="Specs">
                   <field name="melt_flow_index"/>

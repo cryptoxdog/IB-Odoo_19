@@ -9,6 +9,23 @@ Cross-tool agent instructions for the IB-Odoo_19 repository. Read by Claude Code
 - **Stage**: Production (`Staging` branch → `Production`)
 - **Stack**: Python 3.12, Odoo 19, PostgreSQL 16, Neo4j (graph scoring), Docker
 
+## Architecture Decision Records
+
+**Canonical location:** `docs/adr/` only (see [docs/adr/README.md](docs/adr/README.md)). Do not add ADRs under `reports/adr/`.
+
+| ADR | Load when |
+|-----|-----------|
+| [ADR-001](docs/adr/ADR-001-master-data-field-architecture.md) | Adding categorical fields / master data |
+| [ADR-002 Gate](docs/adr/ADR-002-gate-hub-phased-autonomy.md) | Gate, CEG, matching, enrichment, autonomy phases |
+| [ADR-003](docs/adr/ADR-003-contact-import-configuration.md) | Partner/contact import |
+| [ADR-004](docs/adr/ADR-004-intake-vs-material-profile-domain-split.md) | Intake vs material profile ownership |
+| [ADR-005](docs/adr/ADR-005-intake-material-profile-delta-bridge.md) | Intake→profile bridge, payload mapping |
+| [ADR-006](docs/adr/ADR-006-module-installation-and-display.md) | `installable` / `application` manifest policy |
+| [ADR-007](docs/adr/ADR-007-deployment-architecture.md) | Docker local vs Odoo.sh staging/production |
+| [ADR-008](docs/adr/ADR-008-odoo-action-methods.md) | Form buttons returning `ir.actions.act_window` |
+
+System structure: [ARCHITECTURE.md](ARCHITECTURE.md). Phased Gate delivery: [docs/GATE_AUTONOMY_ROADMAP.md](docs/GATE_AUTONOMY_ROADMAP.md).
+
 ## Commands
 
 ```bash
@@ -390,7 +407,7 @@ Pre-commit and CI may use different ruff versions. Always run `pre-commit run --
 - Changing security groups or record rules
 - Adding new `ir.cron` scheduled actions
 - Neo4j integration changes (graph boundary rules apply)
-- Gate / CEG integration (follow `docs/adr/ADR-002` and `docs/GATE_AUTONOMY_ROADMAP.md`)
+- Gate / CEG integration (follow [ADR-002 Gate](docs/adr/ADR-002-gate-hub-phased-autonomy.md) and `docs/GATE_AUTONOMY_ROADMAP.md`)
 - Schema changes to `res.partner` (partner model constraints)
 
 ### 🚫 Never
@@ -408,5 +425,6 @@ Pre-commit and CI may use different ruff versions. Always run `pre-commit run --
 - Create custom partner role booleans → use native `customer_rank`/`supplier_rank`
 - Commit test data to production seed files
 - Attach material profiles directly to `res.partner` → use `plasticos.facility.profile`
-- Call CEG/EIE directly from Odoo → route through Gate (`constellation_node_sdk`; see ADR-002)
+- Call CEG/EIE directly from Odoo → route through Gate (`constellation_node_sdk`; see [ADR-002 Gate](docs/adr/ADR-002-gate-hub-phased-autonomy.md))
+- Add `target_price` or stored `has_residue` on `plasticos.material.profile` → see [ADR-004](docs/adr/ADR-004-intake-vs-material-profile-domain-split.md) / [ADR-005](docs/adr/ADR-005-intake-material-profile-delta-bridge.md)
 - Apply Gate web-lead triage or remove local matcher fallback in Phase 1 (see GATE_AUTONOMY_ROADMAP.md)

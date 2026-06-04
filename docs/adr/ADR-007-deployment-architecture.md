@@ -1,9 +1,10 @@
-# ADR-002: Deployment Architecture
+# ADR-007: Deployment Architecture
 
-**Status:** Accepted
-**Date:** 2026-03-17
-**Deciders:** Igor Beylin
-**Scope:** PlasticOS infrastructure and deployment
+**Status:** Accepted  
+**Date:** 2026-03-17  
+**Deciders:** Igor Beylin  
+**Scope:** PlasticOS infrastructure and deployment  
+**Related:** [ADR-006](ADR-006-module-installation-and-display.md), [ARCHITECTURE.md](../../ARCHITECTURE.md)
 
 ## Context
 
@@ -41,6 +42,7 @@ command: >
 ```
 
 **Process model (5 processes):**
+
 - 1 master process
 - 2 HTTP workers (`--workers=2`)
 - 1 gevent worker (longpolling)
@@ -62,11 +64,13 @@ Odoo.sh **ignores** `docker-compose.yml` entirely. It manages:
 | SSL/TLS | Automatic via Odoo.sh |
 
 **What Odoo.sh reads from repo:**
+
 - `odoo.conf` (if present) — some settings honored, workers typically overridden
 - Module code in addons paths
 - `requirements.txt` for Python dependencies
 
 **What Odoo.sh ignores:**
+
 - `docker-compose.yml`
 - `Dockerfile`
 - Local `.env` files
@@ -84,9 +88,11 @@ Odoo.sh **ignores** `docker-compose.yml` entirely. It manages:
 
 | Branch | Environment | Auto-deploy |
 |--------|-------------|-------------|
-| `main` | Production | Yes |
-| `staging` | Staging | Yes |
+| `Production` | Production | Yes |
+| `Staging` | Staging | Yes |
 | Feature branches | Development builds | On push |
+
+> Repo canonical branches are **`Staging`** and **`Production`** (capitalized). Odoo.sh project settings must match.
 
 ## Consequences
 
