@@ -403,6 +403,132 @@ rules:
       plasticos_gate: pr-check
 
   # ---------------------------------------------------------------------------
+  # PlasticOS naming / Odoo 19 single-file patterns
+  # Harvested from scripts/check_odoo_patterns.sh so they also gate at pr-check
+  # (semgrep runs in pr-check; the bash script only runs in make audit / CI).
+  # ---------------------------------------------------------------------------
+
+  # #8 — Namespace drift: class Plastos* instead of Plasticos*
+  - id: plasticos-namespace-drift
+    pattern-regex: 'class\s+Plastos[A-Z]'
+    paths:
+      include:
+        - "plasticos_*/**/*.py"
+    message: "Namespace drift: class name uses Plastos* — rename to Plasticos*."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: naming
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  # #23 — Studio/legacy x_ prefixed fields
+  - id: plasticos-x-prefixed-field
+    pattern-regex: '^\s+x_\w+\s*=\s*fields\.'
+    paths:
+      include:
+        - "plasticos_*/**/*.py"
+    message: "x_ prefixed field detected. Use clean module field names (e.g. x_trucker_id → trucker_id)."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: naming
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  # #15 — Invalid decoration-secondary
+  - id: plasticos-xml-decoration-secondary
+    pattern-regex: 'decoration-secondary\s*='
+    paths:
+      include:
+        - "plasticos_*/**/*.xml"
+    message: "decoration-secondary is invalid. Use decoration-info/success/warning/danger/muted."
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: odoo19_xml
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  # #13 — string attribute on <search> (invalid Odoo 19 RNG)
+  - id: plasticos-xml-search-string
+    pattern-regex: '<search[^>]+string\s*='
+    paths:
+      include:
+        - "plasticos_*/**/*.xml"
+    message: "string= is invalid on <search>. Remove it (Odoo 19 RNG)."
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: odoo19_xml
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  # #14 — string attribute on <group name="group_by"> in search views
+  - id: plasticos-xml-group-by-string
+    pattern-either:
+      - pattern-regex: '<group[^>]+name="group_by"[^>]+string\s*='
+      - pattern-regex: '<group[^>]+string\s*=[^>]+name="group_by"'
+    paths:
+      include:
+        - "plasticos_*/**/*.xml"
+    message: 'string= is invalid on <group name="group_by"> in search views. Remove it (Odoo 19 RNG).'
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: odoo19_xml
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  # #11 — XML eval with nested double quotes
+  - id: plasticos-xml-eval-nested-quotes
+    pattern-regex: 'eval="[^"]*ref\("[^"]*"\)[^"]*"'
+    paths:
+      include:
+        - "plasticos_*/**/*.xml"
+    message: "Nested double quotes in eval. Use single quotes inside: eval=\"[ref('module.id')]\"."
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: odoo19_xml
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  # #10 — cron model_id ref missing module prefix (scoped to *cron.xml to match
+  # check_odoo_patterns.sh; same-module action binding refs are valid unprefixed).
+  - id: plasticos-xml-cron-model-ref-no-prefix
+    pattern-regex: 'ref="model_plasticos'
+    paths:
+      include:
+        - "plasticos_*/**/*cron.xml"
+    message: 'cron model_id ref missing module prefix. Use ref="plasticos_module.model_plasticos_x".'
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: odoo19_xml
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  # ---------------------------------------------------------------------------
+  # Partner model doctrine
+  # Harvested from .claude/agents/code-reviewer.md (#7): use native
+  # customer_rank/supplier_rank, never custom partner role booleans.
+  # ---------------------------------------------------------------------------
+
+  - id: plasticos-custom-partner-boolean
+    pattern-regex: '^\s+(is_customer|is_supplier|is_buyer|is_seller|is_vendor|is_broker)\s*=\s*fields\.Boolean'
+    paths:
+      include:
+        - "plasticos_*/**/*.py"
+    message: "Custom partner role boolean is forbidden. Use native customer_rank/supplier_rank."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: partner_model
+      confidence: HIGH
+      plasticos_gate: pr-check
+
+  # ---------------------------------------------------------------------------
   # Legacy cleanup signal
   # ---------------------------------------------------------------------------
 

@@ -1,7 +1,7 @@
 # conftest.py - pytest configuration for tests/
 #
 # When the Odoo framework is not importable (a plain `pytest` run, e.g. the CI
-# "pure-python" tier and local `make pr-check`/`make test-pure`), every test
+# "pure-python" tier and local `make pr-check`/`make test`), every test
 # module that imports Odoo is automatically deactivated. Those tests run under
 # `odoo --test-enable` (Odoo.sh runtime), never in the pure-python environment.
 #

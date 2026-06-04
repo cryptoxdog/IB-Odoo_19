@@ -9,7 +9,7 @@
         pipeline-guard dev-fence state-guard acl-check guards deploy-check \
         up down restart logs logs-error shell odoo-shell \
         update update-all rebuild backup \
-        test test-module \
+        test test-odoo test-pure test-module \
         pr-check push api-push-check sonar changelog \
         pr-autopilot pr-fix
 
@@ -78,8 +78,10 @@ help:
 	@echo "    make backup           snapshot DB to backup_<timestamp>.sql"
 	@echo ""
 	@echo "  Testing"
-	@echo "    make test             run full test suite"
-	@echo "    make test-module m=<mod>  run tests for one module"
+	@echo "    make test             pure pytest in tests/ (mirrors PR CI Tier 3)"
+	@echo "    make test-odoo        Odoo Docker native tests on installed modules"
+	@echo "    make test-pure        alias for make test"
+	@echo "    make test-module m=<mod>  Odoo tests for one module (-u m)"
 	@echo ""
 	@echo "  PR / CI Workflow"
 	@echo "    make pr-check         REQUIRED before any push: audit-quick + semgrep + semgrep-test + pipeline-guard"
@@ -319,7 +321,18 @@ backup:
 # TESTING
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Default test target — mirrors CI Tier 3 "Pure Python Tests".
+# conftest.py auto-deactivates every Odoo-importing test when Odoo isn't installed,
+# so this runs exactly the Odoo-free set without a hand-maintained file list.
 test:
+	@echo "→ Pure-Python test suite (Odoo-free; mirrors CI Tier 3)..."
+	python3 -m pytest tests/ --tb=short --no-header -p no:randomly -q
+
+# Backward-compatible alias
+test-pure: test
+
+# Odoo runtime tests — Docker native runner on installed modules (not tests/ pytest suite)
+test-odoo:
 	docker compose run --rm odoo \
 		--test-enable \
 		--stop-after-init \
@@ -340,15 +353,8 @@ test-module:
 # PR / CI WORKFLOW
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Pure-Python test suite — mirrors CI Tier 3 "Pure Python Tests".
-# conftest.py auto-deactivates every Odoo-importing test when Odoo isn't installed,
-# so this runs exactly the Odoo-free set without a hand-maintained file list.
-test-pure:
-	@echo "→ Pure-Python test suite (Odoo-free; mirrors CI Tier 3)..."
-	python3 -m pytest tests/ --tb=short --no-header -p no:randomly -q
-
 # REQUIRED before any push or PR creation
-pr-check: audit-quick semgrep semgrep-test pipeline-guard test-pure
+pr-check: audit-quick semgrep semgrep-test pipeline-guard test
 	@echo ""
 	@echo "✅ PR gate passed — safe to push"
 
