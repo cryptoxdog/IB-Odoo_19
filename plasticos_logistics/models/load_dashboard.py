@@ -101,7 +101,7 @@ class PlasticosLoadDashboard(models.Model):
                 NULL::integer               AS supplier_id,
                 NULL::integer               AS buyer_id,"""
             tx_join = ""
-        # nosemgrep: odoo-raw-sql -- static CREATE VIEW, repo-owned identifiers, no user input
+        # nosemgrep: plasticos-sql-fstring-execute -- static CREATE VIEW, repo-owned identifiers, no user input
         self.env.cr.execute(f"""
             CREATE VIEW plasticos_load_dashboard AS
             SELECT
