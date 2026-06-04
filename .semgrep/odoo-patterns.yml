@@ -389,12 +389,12 @@ rules:
       plasticos_gate: pr-check
 
   - id: plasticos-xml-groups-category-id
-    pattern-regex: "\\bcategory_id\\b"
+    pattern-regex: '<record[^>]+model="res\\.groups"[^>]*>[\\s\\S]*?<field name="category_id"'
     paths:
       include:
         - "plasticos_*/security/**/*.xml"
         - "plasticos_*/data/**/*.xml"
-    message: "category_id on res.groups is removed in Odoo 19."
+    message: "category_id on res.groups is removed in Odoo 19. Use privilege_id instead."
     languages: [generic]
     severity: ERROR
     metadata:

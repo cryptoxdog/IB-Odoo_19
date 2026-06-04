@@ -9,6 +9,8 @@ Migration: 19.0.1.0.0 → 19.0.1.0.1
 
 import logging
 
+from psycopg2 import sql
+
 _logger = logging.getLogger(__name__)
 
 
@@ -38,7 +40,13 @@ def migrate(cr, version):
         )
         if cr.fetchone():
             _logger.info("Renaming column %s → %s", old_name, new_name)
-            cr.execute(f'ALTER TABLE plasticos_match_result RENAME COLUMN "{old_name}" TO "{new_name}"')
+            cr.execute(
+                sql.SQL("ALTER TABLE {} RENAME COLUMN {} TO {}").format(
+                    sql.Identifier("plasticos_match_result"),
+                    sql.Identifier(old_name),
+                    sql.Identifier(new_name),
+                )
+            )
         else:
             _logger.info("Column %s does not exist, skipping", old_name)
 
@@ -53,6 +61,11 @@ def migrate(cr, version):
     )
     for (constraint_name,) in cr.fetchall():
         _logger.info("Dropping old constraint: %s", constraint_name)
-        cr.execute(f'ALTER TABLE plasticos_match_result DROP CONSTRAINT IF EXISTS "{constraint_name}"')
+        cr.execute(
+            sql.SQL("ALTER TABLE {} DROP CONSTRAINT IF EXISTS {}").format(
+                sql.Identifier("plasticos_match_result"),
+                sql.Identifier(constraint_name),
+            )
+        )
 
     _logger.info("Migration complete")

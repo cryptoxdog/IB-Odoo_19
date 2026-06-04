@@ -141,7 +141,7 @@ cron-check:
 
 semgrep:
 	@echo "→ Semgrep custom Odoo rules (ERROR level only)..."
-	semgrep --config .semgrep/odoo-patterns.yml --severity ERROR --quiet --include="plasticos_*"
+	semgrep --error --config .semgrep/odoo-patterns.yml --severity ERROR --quiet --include="plasticos_*"
 
 semgrep-test:
 	@echo "→ Semgrep rule fixture tests..."
