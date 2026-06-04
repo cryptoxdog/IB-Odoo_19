@@ -3,6 +3,8 @@
 # ═══════════════════════════════════════════════════════════
 .DS_Store
 **/.DS_Store
+*.swp
+*~
 .cursor/*
 !.cursor/rules/
 .env
@@ -17,7 +19,11 @@ __pycache__/
 **/__pycache__/
 *.pyc
 *.pyo
+*.py[cod]
 *.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # ═══════════════════════════════════════════════════════════
 # Local / working folders (not for repo)
@@ -31,3 +37,8 @@ current work - ib/
 xpath_stability_report.json
 odoo_audit_report.json
 extended_audit_report.json
+
+# ═══════════════════════════════════════════════════════════
+# GMP reports (local artifacts, kept out of git by convention)
+# ═══════════════════════════════════════════════════════════
+/reports/GMP-Report-*.md

@@ -95,3 +95,9 @@ GitHub is the source of truth. Dropbox sync of `.git/` is redundant and harmful.
 - **`Staging`** = dev branch — all PRs target this
 - **`Production`** = prod/main — promote from Staging when CI is green
 - Never push feature branches directly to `Production`
+
+### Branch names are capitalized — `Staging` / `Production` (not `staging`/`production`)
+
+The canonical remote/local branches are **`Staging`** and **`Production`** with a capital first letter. macOS has a case-insensitive filesystem, so `git checkout staging` silently resolves to the local `Staging` branch and git prints `Switched to branch 'staging'` — this is the *same* ref, not a new one. Always use the capitalized form (`git checkout Staging`, `make push b=Staging`) to avoid confusion. The remote default is `origin/Staging` (`origin/HEAD -> origin/Staging`); there is no separate lowercase branch.
+
+When branching for a fix, verify state explicitly: `git rev-parse --abbrev-ref HEAD` and `git rev-list --left-right --count Staging...origin/Staging` (local `Staging` may be ahead of `origin/Staging` by unpushed commits — branching off local `Staging` carries those into your PR).
