@@ -1,233 +1,197 @@
-# PlasticOS roadmap registry — single source of truth for phased items.
-# Edit via: make roadmap-add …  then make roadmap-sync
-# Validate: make roadmap  (default: check)
-
 schema_version: 1
-
 domains:
   gate-autonomy:
     title: Gate Integration & Autonomy
     adr: docs/adr/ADR-002-gate-hub-phased-autonomy.md
     roadmap: docs/GATE_AUTONOMY_ROADMAP.md
-    adr_number: "002"
-    index_summary: Gate → CEG matching, human-in-loop phases, autonomy graduation, implementation scope
-    adr_index_summary: Why Gate is the hub, why Odoo local is fallback, what agents must not ship in Phase 1
-
+    adr_number: '002'
+    index_summary: Gate → CEG matching, human-in-loop phases, autonomy graduation,
+      implementation scope
+    adr_index_summary: Why Gate is the hub, why Odoo local is fallback, what agents
+      must not ship in Phase 1
 items:
-  # Phase 1 — product backlog (checkboxes)
-  - id: ROAD-GATE-001
-    domain: gate-autonomy
-    phase: 1
-    kind: backlog
-    title: Top-N match lines selected by default (target top 10) after match run
-    status: pending
-
-  - id: ROAD-GATE-002
-    domain: gate-autonomy
-    phase: 1
-    kind: backlog
-    title: Side-by-side or logged comparison when Gate and local scores diverge (optional debug mode)
-    status: pending
-
-  # Phase 1 — implementation scope
-  - id: ROAD-GATE-010
-    domain: gate-autonomy
-    phase: 1
-    kind: scope_in
-    title: Gate client at `plasticos.buyer.matcher` seam
-    status: pending
-
-  - id: ROAD-GATE-011
-    domain: gate-autonomy
-    phase: 1
-    kind: scope_in
-    title: try Gate → fallback local matcher + Neo4j
-    status: pending
-
-  - id: ROAD-GATE-012
-    domain: gate-autonomy
-    phase: 1
-    kind: scope_in
-    title: "Match audit: `plasticos.match.result`, correlation IDs"
-    status: pending
-
-  - id: ROAD-GATE-013
-    domain: gate-autonomy
-    phase: 1
-    kind: scope_in
-    title: "Optional: Gate `converge` for enrichment (with local fallback)"
-    status: pending
-
-  - id: ROAD-GATE-014
-    domain: gate-autonomy
-    phase: 1
-    kind: scope_in
-    title: "ICP: `plasticos.gate.url`, `plasticos.gate.matching_enabled`"
-    status: pending
-
-  - id: ROAD-GATE-015
-    domain: gate-autonomy
-    phase: 1
-    kind: scope_in
-    title: "`external_dependencies`: `constellation-node-sdk` (match module)"
-    status: pending
-
-  - id: ROAD-GATE-020
-    domain: gate-autonomy
-    phase: 1
-    kind: scope_out
-    title: "`web_lead_gate_bridge` / Gate triage"
-    status: deferred
-
-  - id: ROAD-GATE-021
-    domain: gate-autonomy
-    phase: 1
-    kind: scope_out
-    title: Gate-only matcher (no fallback)
-    status: deferred
-
-  - id: ROAD-GATE-022
-    domain: gate-autonomy
-    phase: 1
-    kind: scope_out
-    title: Auto-send offers
-    status: deferred
-
-  - id: ROAD-GATE-023
-    domain: gate-autonomy
-    phase: 1
-    kind: scope_out
-    title: "`plasticos.gate.webleads_*` ICP"
-    status: deferred
-
-  - id: ROAD-GATE-024
-    domain: gate-autonomy
-    phase: 1
-    kind: scope_out
-    title: "`plasticos.gate.auto_writeback=1`"
-    status: deferred
-
-  - id: ROAD-GATE-025
-    domain: gate-autonomy
-    phase: 1
-    kind: scope_out
-    title: Phase 3 autonomy flags
-    status: deferred
-
-  # Phase 1 — observability
-  - id: ROAD-GATE-030
-    domain: gate-autonomy
-    phase: 1
-    kind: observability
-    title: Match acceptance rate (broker keeps vs removes match lines)
-    status: pending
-
-  - id: ROAD-GATE-031
-    domain: gate-autonomy
-    phase: 1
-    kind: observability
-    title: Gate vs local fallback invocation ratio and latency
-    status: pending
-
-  - id: ROAD-GATE-032
-    domain: gate-autonomy
-    phase: 1
-    kind: observability
-    title: Offer reply / conversion rate by match source (Gate vs fallback)
-    status: pending
-
-  - id: ROAD-GATE-033
-    domain: gate-autonomy
-    phase: 1
-    kind: observability
-    title: Email/offer quality issues logged by brokers
-    status: pending
-
-  - id: ROAD-GATE-034
-    domain: gate-autonomy
-    phase: 1
-    kind: observability
-    title: Gate/CEG error rate and correlation ID traceability
-    status: pending
-
-  # Phase 2 — capabilities
-  - id: ROAD-GATE-040
-    domain: gate-autonomy
-    phase: 2
-    kind: capability
-    title: Auto-select top N match lines (default 10)
-    notes: Can deselect before send
-    status: pending
-
-  - id: ROAD-GATE-041
-    domain: gate-autonomy
-    phase: 2
-    kind: capability
-    title: Pre-fill offer drafts from match metadata + typical price
-    notes: Edit before send
-    status: pending
-
-  - id: ROAD-GATE-042
-    domain: gate-autonomy
-    phase: 2
-    kind: capability
-    title: Richer intake defaults from triage output
-    notes: Review on intake form
-    status: pending
-
-  - id: ROAD-GATE-043
-    domain: gate-autonomy
-    phase: 2
-    kind: capability
-    title: Enrichment auto-writeback to partner/profile (low-risk fields only)
-    notes: Review queue for flagged records
-    status: pending
-
-  - id: ROAD-GATE-044
-    domain: gate-autonomy
-    phase: 2
-    kind: capability
-    title: "**Send Offer**"
-    notes: "**Still explicit human action**"
-    status: pending
-
-  # Phase 3 — capabilities
-  - id: ROAD-GATE-050
-    domain: gate-autonomy
-    phase: 3
-    kind: capability
-    title: Gate-routed web-lead triage (`process_web_lead`)
-    notes: Replaces local LLM/vision path for high-confidence paths only
-    status: deferred
-
-  - id: ROAD-GATE-051
-    domain: gate-autonomy
-    phase: 3
-    kind: capability
-    title: Auto-intake for trusted HOT patterns
-    notes: Human queue for edge cases
-    status: deferred
-
-  - id: ROAD-GATE-052
-    domain: gate-autonomy
-    phase: 3
-    kind: capability
-    title: Auto-match on intake confirm (caps, exclusions)
-    notes: Audit in `plasticos.match.result`
-    status: deferred
-
-  - id: ROAD-GATE-053
-    domain: gate-autonomy
-    phase: 3
-    kind: capability
-    title: Auto-offer draft generation
-    notes: Human or rule-gated send
-    status: deferred
-
-  - id: ROAD-GATE-054
-    domain: gate-autonomy
-    phase: 3
-    kind: capability
-    title: Auto-send for trusted supplier/buyer patterns
-    notes: Last gate to remove; highest commercial risk
-    status: deferred
+- id: ROAD-GATE-001
+  domain: gate-autonomy
+  phase: 1
+  kind: backlog
+  title: Top-N match lines selected by default (target top 10) after match run
+  status: pending
+- id: ROAD-GATE-002
+  domain: gate-autonomy
+  phase: 1
+  kind: backlog
+  title: Side-by-side or logged comparison when Gate and local scores diverge (optional
+    debug mode)
+  status: pending
+- id: ROAD-GATE-010
+  domain: gate-autonomy
+  phase: 1
+  kind: scope_in
+  title: Gate client at `plasticos.buyer.matcher` seam
+  status: pending
+- id: ROAD-GATE-011
+  domain: gate-autonomy
+  phase: 1
+  kind: scope_in
+  title: try Gate → fallback local matcher + Neo4j
+  status: pending
+- id: ROAD-GATE-012
+  domain: gate-autonomy
+  phase: 1
+  kind: scope_in
+  title: 'Match audit: `plasticos.match.result`, correlation IDs'
+  status: pending
+- id: ROAD-GATE-013
+  domain: gate-autonomy
+  phase: 1
+  kind: scope_in
+  title: 'Optional: Gate `converge` for enrichment (with local fallback)'
+  status: pending
+- id: ROAD-GATE-014
+  domain: gate-autonomy
+  phase: 1
+  kind: scope_in
+  title: 'ICP: `plasticos.gate.url`, `plasticos.gate.matching_enabled`'
+  status: pending
+- id: ROAD-GATE-015
+  domain: gate-autonomy
+  phase: 1
+  kind: scope_in
+  title: '`external_dependencies`: `constellation-node-sdk` (match module)'
+  status: pending
+- id: ROAD-GATE-020
+  domain: gate-autonomy
+  phase: 1
+  kind: scope_out
+  title: '`web_lead_gate_bridge` / Gate triage'
+  status: deferred
+- id: ROAD-GATE-021
+  domain: gate-autonomy
+  phase: 1
+  kind: scope_out
+  title: Gate-only matcher (no fallback)
+  status: deferred
+- id: ROAD-GATE-022
+  domain: gate-autonomy
+  phase: 1
+  kind: scope_out
+  title: Auto-send offers
+  status: deferred
+- id: ROAD-GATE-023
+  domain: gate-autonomy
+  phase: 1
+  kind: scope_out
+  title: '`plasticos.gate.webleads_*` ICP'
+  status: deferred
+- id: ROAD-GATE-024
+  domain: gate-autonomy
+  phase: 1
+  kind: scope_out
+  title: '`plasticos.gate.auto_writeback=1`'
+  status: deferred
+- id: ROAD-GATE-025
+  domain: gate-autonomy
+  phase: 1
+  kind: scope_out
+  title: Phase 3 autonomy flags
+  status: deferred
+- id: ROAD-GATE-030
+  domain: gate-autonomy
+  phase: 1
+  kind: observability
+  title: Match acceptance rate (broker keeps vs removes match lines)
+  status: pending
+- id: ROAD-GATE-031
+  domain: gate-autonomy
+  phase: 1
+  kind: observability
+  title: Gate vs local fallback invocation ratio and latency
+  status: pending
+- id: ROAD-GATE-032
+  domain: gate-autonomy
+  phase: 1
+  kind: observability
+  title: Offer reply / conversion rate by match source (Gate vs fallback)
+  status: pending
+- id: ROAD-GATE-033
+  domain: gate-autonomy
+  phase: 1
+  kind: observability
+  title: Email/offer quality issues logged by brokers
+  status: pending
+- id: ROAD-GATE-034
+  domain: gate-autonomy
+  phase: 1
+  kind: observability
+  title: Gate/CEG error rate and correlation ID traceability
+  status: pending
+- id: ROAD-GATE-040
+  domain: gate-autonomy
+  phase: 2
+  kind: capability
+  title: Auto-select top N match lines (default 10)
+  notes: Can deselect before send
+  status: pending
+- id: ROAD-GATE-041
+  domain: gate-autonomy
+  phase: 2
+  kind: capability
+  title: Pre-fill offer drafts from match metadata + typical price
+  notes: Edit before send
+  status: pending
+- id: ROAD-GATE-042
+  domain: gate-autonomy
+  phase: 2
+  kind: capability
+  title: Richer intake defaults from triage output
+  notes: Review on intake form
+  status: pending
+- id: ROAD-GATE-043
+  domain: gate-autonomy
+  phase: 2
+  kind: capability
+  title: Enrichment auto-writeback to partner/profile (low-risk fields only)
+  notes: Review queue for flagged records
+  status: pending
+- id: ROAD-GATE-044
+  domain: gate-autonomy
+  phase: 2
+  kind: capability
+  title: '**Send Offer**'
+  notes: '**Still explicit human action**'
+  status: pending
+- id: ROAD-GATE-050
+  domain: gate-autonomy
+  phase: 3
+  kind: capability
+  title: Gate-routed web-lead triage (`process_web_lead`)
+  notes: Replaces local LLM/vision path for high-confidence paths only
+  status: deferred
+- id: ROAD-GATE-051
+  domain: gate-autonomy
+  phase: 3
+  kind: capability
+  title: Auto-intake for trusted HOT patterns
+  notes: Human queue for edge cases
+  status: deferred
+- id: ROAD-GATE-052
+  domain: gate-autonomy
+  phase: 3
+  kind: capability
+  title: Auto-match on intake confirm (caps, exclusions)
+  notes: Audit in `plasticos.match.result`
+  status: deferred
+- id: ROAD-GATE-053
+  domain: gate-autonomy
+  phase: 3
+  kind: capability
+  title: Auto-offer draft generation
+  notes: Human or rule-gated send
+  status: deferred
+- id: ROAD-GATE-054
+  domain: gate-autonomy
+  phase: 3
+  kind: capability
+  title: Auto-send for trusted supplier/buyer patterns
+  notes: Last gate to remove; highest commercial risk
+  status: deferred

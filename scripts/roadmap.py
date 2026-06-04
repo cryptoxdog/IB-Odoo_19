@@ -295,7 +295,7 @@ def cmd_check() -> int:
         for item in _items_for(reg, dom_id):
             iid = item.get("id", "")
             if iid and iid not in content:
-                print(f"  ❌ item {iid} not in synced doc — run: make roadmap-sync")
+                print(f"  ❌ item {iid} not in synced doc — run: make roadmap")
                 failures += 1
 
     adr = domains.get("gate-autonomy", {}).get("adr")
@@ -363,8 +363,27 @@ def cmd_add(args: argparse.Namespace) -> int:
         yaml.dump(reg, sort_keys=False, allow_unicode=True, default_flow_style=False),
         encoding="utf-8",
     )
-    print(f"✅ Added {new_item['id']} to registry — run: make roadmap-sync")
+    print(f"  ✅ added {new_item['id']} to registry")
     return 0
+
+
+def cmd_update(args: argparse.Namespace) -> int:
+    """Optional add → sync → check (default make roadmap pipeline)."""
+    if args.title:
+        if not args.domain or args.phase is None or not args.kind:
+            print(
+                "❌ Adding an item requires: domain= phase= kind= title=\n"
+                '   Example: make roadmap domain=gate-autonomy phase=1 kind=backlog title="..."',
+                file=sys.stderr,
+            )
+            return 1
+        rc = cmd_add(args)
+        if rc != 0:
+            return rc
+    print("→ Syncing roadmap docs from registry.yaml...")
+    if cmd_sync() != 0:
+        return 1
+    return cmd_check()
 
 
 def main() -> int:
@@ -374,11 +393,27 @@ def main() -> int:
     sub.add_parser("check", help="Validate registry and synced docs")
     sub.add_parser("sync", help="Regenerate sync blocks from registry.yaml")
 
+    update_p = sub.add_parser("update", help="Optional add, then sync, then check (make roadmap)")
+    update_p.add_argument("--domain", default=None)
+    update_p.add_argument("--phase", type=int, default=None)
+    update_p.add_argument(
+        "--kind",
+        default=None,
+        choices=["backlog", "scope_in", "scope_out", "observability", "capability"],
+    )
+    update_p.add_argument("--title", default=None)
+    update_p.add_argument("--notes", default=None)
+    update_p.add_argument(
+        "--status",
+        default="pending",
+        choices=["pending", "in_progress", "done", "deferred"],
+    )
+
     list_p = sub.add_parser("list", help="List registry items")
     list_p.add_argument("--domain", default=None)
     list_p.add_argument("--phase", type=int, default=None)
 
-    add_p = sub.add_parser("add", help="Append item to registry.yaml")
+    add_p = sub.add_parser("add", help="Append item to registry.yaml only")
     add_p.add_argument("--domain", required=True)
     add_p.add_argument("--phase", type=int, required=True)
     add_p.add_argument(
@@ -395,7 +430,7 @@ def main() -> int:
     )
 
     args = parser.parse_args()
-    cmd = args.command or "check"
+    cmd = args.command or "update"
 
     if cmd == "check":
         return cmd_check()
@@ -406,6 +441,8 @@ def main() -> int:
         return cmd_list(args)
     if cmd == "add":
         return cmd_add(args)
+    if cmd == "update":
+        return cmd_update(args)
     parser.print_help()
     return 1
 

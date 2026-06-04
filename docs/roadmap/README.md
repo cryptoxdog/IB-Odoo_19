@@ -6,7 +6,7 @@ PlasticOS roadmaps follow a **registry → sync → check** pattern (same idea a
 
 | Role | Path |
 |------|------|
-| **Registry (edit items here via CLI)** | `docs/roadmap/registry.yaml` |
+| **Registry (source of truth)** | `docs/roadmap/registry.yaml` |
 | **Domain roadmap (sync-managed sections)** | e.g. `docs/GATE_AUTONOMY_ROADMAP.md` |
 | **ADR (binding decision)** | e.g. `docs/adr/ADR-002-gate-hub-phased-autonomy.md` |
 | **Index** | `ROADMAP.md`, `docs/README_INDEX.md` |
@@ -15,13 +15,14 @@ PlasticOS roadmaps follow a **registry → sync → check** pattern (same idea a
 ## Commands
 
 ```bash
-make roadmap              # validate registry + synced docs (default)
-make roadmap-sync         # regenerate sync blocks from registry.yaml
-make roadmap-list         # print all registry items
+# Sync all roadmap docs + validate IDs (no item added)
+make roadmap
 
-# Add one item, then sync:
-make roadmap-add domain=gate-autonomy phase=1 kind=backlog title="Your item text"
-make roadmap-sync
+# Add item → auto ID (ROAD-GATE-NNN) → sync → validate — one command
+make roadmap domain=gate-autonomy phase=1 kind=backlog title="Your item text"
+
+make roadmap-list         # print all registry items
+make roadmap-sync         # sync only (prefer make roadmap)
 ```
 
 ### Item kinds
@@ -34,12 +35,14 @@ make roadmap-sync
 | `observability` | Phase 1 observability bullets |
 | `capability` | Phase 2/3 capability tables (`notes` → second column) |
 
+Optional: `notes="..."`, `status=done|deferred|in_progress`
+
 ### Adding a new roadmap domain
 
 1. Add ADR under `docs/adr/ADR-NNN-….md` (decision).
 2. Add domain block to `registry.yaml` (`domains:`).
 3. Create `docs/YOUR_ROADMAP.md` with sync markers (copy from `GATE_AUTONOMY_ROADMAP.md`).
-4. Run `make roadmap-sync` and `make roadmap`.
+4. Run `make roadmap`.
 
 Sync markers look like:
 
@@ -49,4 +52,4 @@ Sync markers look like:
 <!-- roadmap:gate-autonomy:phase1-backlog:end -->
 ```
 
-**Do not** edit text between markers by hand — change `registry.yaml` and run `make roadmap-sync`.
+**Do not** edit text between markers by hand — change `registry.yaml` and run `make roadmap`.

@@ -10,6 +10,6 @@ PlasticOS planning docs are split by concern (industry norm: **ADRs** for decisi
 <!-- roadmap:index:domains:end -->
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Layer map, module index, Gate boundary summary |
 | [docs/README_INDEX.md](docs/README_INDEX.md) | Module README bundle, go-live gates, config params |
-| [docs/roadmap/README.md](docs/roadmap/README.md) | How to add roadmap items (`make roadmap-add`, `make roadmap-sync`) |
+| [docs/roadmap/README.md](docs/roadmap/README.md) | How to add roadmap items (`make roadmap`) |
 
 **Do not** duplicate phase tables in domain roadmaps — edit `docs/roadmap/registry.yaml` and run `make roadmap-sync`.
