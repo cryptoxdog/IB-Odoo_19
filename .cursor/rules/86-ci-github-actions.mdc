@@ -92,3 +92,17 @@ The old overlapping workflows (`test-quality.yml`, `odoo-audit.yml`, `module-che
 on:
   workflow_dispatch:  # manual only — replaced by ci.yml
 ```
+
+## External Odoo.sh Status Checks (NOT GitHub Actions)
+
+PRs may show **`ci/odoo.sh (dev) — Odoo Test Suite`**. This is **not** a workflow in this repo.
+
+| Context | Branch type | Test suite UI in Odoo.sh? |
+|---------|-------------|---------------------------|
+| `ci/odoo.sh (dev)` | Feature/dev branches on PRs | Yes — dev branch → Settings → Test suite |
+| `ci/odoo.sh (staging)` | `Staging` merges | No — Staging settings have no test suite toggle |
+
+- **Odoo runtime tests in this repo:** `make test-odoo` / `make test-module m=X` (Docker Compose).
+- **Never add** an Odoo runtime job to `ci.yml`.
+- **Cannot disable via SSH** on Odoo.sh containers — branch policy is platform-side only.
+- **GitHub org rulesets 404:** `cryptoxdog/IB-Odoo_19` is a user repo, not an org — that API call is expected to 404 and is unrelated to CI.
