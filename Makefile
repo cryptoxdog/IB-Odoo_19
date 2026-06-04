@@ -23,6 +23,12 @@ ODOO_DB_NAME          ?= odoo
 ODOO_TEST_DB          ?= odoo_test
 ODOO_COMPOSE_PROJECT  ?= odoo19
 
+# Pinned ruff resolver. pyproject pins ruff EXACTLY (==0.15.5 via [tool.ruff]
+# required-version), so a mismatched PATH ruff (e.g. Homebrew latest, or an old
+# pip --user 0.14.x) aborts every invocation. Prefer the project venv's pinned
+# binary; fall back to PATH ruff (CI has no .venv and installs 0.15.5 directly).
+RUFF := $(shell [ -x .venv/bin/ruff ] && echo .venv/bin/ruff || echo ruff)
+
 # Modules excluded from ruff (pre-existing violations / external scope)
 RUFF_EXCLUDES = \
 	--exclude plasticos_inference_engine \
@@ -42,6 +48,7 @@ help:
 	@echo "──────────────────────────────────────────────────────"
 	@echo ""
 	@echo "  Code Quality"
+	@echo "    make venv             build pinned local .venv (ruff==0.15.5, semgrep, pytest) — mirrors CI"
 	@echo "    make lint             ruff check (lint only)"
 	@echo "    make format           ruff format --check (check only)"
 	@echo "    make format-fix       ruff format (auto-fix)"
@@ -90,8 +97,8 @@ help:
 	@echo "    make commit m=\"...\"   commit with explicit conventional message"
 	@echo "    make github-actions-kernel-check  validate staged/all .github/workflows (R5 kernel)"
 	@echo "    make pr-check         REQUIRED before any push: audit-quick + semgrep + semgrep-test + pipeline-guard"
-	@echo "    make push             safe push: runs pr-check first, then git push current branch"
-	@echo "    make push b=Staging   safe push to a specific branch"
+	@echo "    make push             safe push: pr-check, then push current FEATURE branch (Staging/Production are PR-only)"
+	@echo "    make push pr=1        push feature branch, then open a PR into Staging"
 	@echo "    make api-push-check   REQUIRED before GitHub API push (when git push fails)"
 	@echo "    make pr-autopilot     scan all PR signals (CI, SonarCloud, CodeRabbit) — report only"
 	@echo "    make pr-fix           scan + auto-fix safe issues + push back to branch (re-triggers CI)"
@@ -109,14 +116,33 @@ help:
 # CODE QUALITY
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Build a complete, pinned local dev virtualenv (.venv) that mirrors CI.
+# Installs requirements-dev.txt + the EXACT-pinned ruff and semgrep so every tool
+# (ruff, pytest, semgrep, pr-repair) resolves to one reproducible set. The .envrc
+# (direnv) auto-activates it; `make` also auto-prefers .venv/bin/ruff via $(RUFF).
+# Idempotent: safe to re-run to repair/upgrade the environment.
+VENV ?= .venv
+venv:
+	@echo "→ Building $(VENV) (python3.12, pinned dev toolchain)..."
+	python3.12 -m venv $(VENV)
+	@$(VENV)/bin/python -m pip install --quiet --upgrade pip
+	$(VENV)/bin/python -m pip install -r requirements-dev.txt
+	$(VENV)/bin/python -m pip install "ruff==0.15.5" "semgrep==1.164.0"
+	@echo ""
+	@echo "✅ $(VENV) ready:"
+	@$(VENV)/bin/ruff --version
+	@$(VENV)/bin/python -m pytest --version 2>&1 | head -1
+	@$(VENV)/bin/semgrep --version 2>&1 | head -1
+	@echo "→ Activate automatically with direnv (direnv allow), or: source $(VENV)/bin/activate"
+
 lint:
-	ruff check . $(RUFF_EXCLUDES)
+	$(RUFF) check . $(RUFF_EXCLUDES)
 
 format:
-	ruff format --check . $(RUFF_EXCLUDES)
+	$(RUFF) format --check . $(RUFF_EXCLUDES)
 
 format-fix:
-	ruff format . $(RUFF_EXCLUDES)
+	$(RUFF) format . $(RUFF_EXCLUDES)
 
 check: lint format
 	@echo "✅ lint + format check passed"
@@ -410,19 +436,47 @@ commit:
 		read -r ans; \
 		case "$$ans" in [yY]|[yY][eE][sS]) $(MAKE) push ;; *) echo "Skipped. Run: make push"; ;; esac; \
 	else \
-		echo "Run: make push   (or: make push b=Staging)"; \
+		echo "Run: make push   (feature branch; Staging/Production are PR-only — use: make push pr=1)"; \
 	fi
 
-# Safe push: runs full pr-check first, then git push
-# Usage: make push              (pushes current branch)
-#        make push b=Staging    (pushes to a specific remote branch)
+# Protected branches — PR-only via GitHub ruleset "Protect Staging & Production"
+# (require PR + required status checks: Ruff Lint & Format, Static Analysis, Pure Python Tests).
+# Keep this list in sync with the repo ruleset. Direct pushes here are rejected by GitHub.
+PROTECTED_BRANCHES := Staging Production
+
+# Safe push: runs full pr-check, then pushes the CURRENT FEATURE branch.
+# Staging/Production are PR-only — this target refuses to push to them directly
+# (the ruleset would reject it anyway) and points you to the PR flow.
+# Usage: make push              (push current feature branch)
+#        make push pr=1         (push, then open a PR into Staging)
+#        make push base=Production pr=1   (open the PR against Production instead)
 push: pr-check
 	@echo ""
 	@BRANCH=$$(git branch --show-current); \
 	TARGET=$${b:-$$BRANCH}; \
+	for p in $(PROTECTED_BRANCHES); do \
+		if [ "$$TARGET" = "$$p" ]; then \
+			echo "⛔ '$$p' is a protected branch (PR-only + required checks)."; \
+			echo "   The GitHub ruleset rejects direct pushes. Use a feature branch + PR:"; \
+			echo "       git switch -c fix/<short-description>"; \
+			echo "       make push pr=1"; \
+			exit 1; \
+		fi; \
+	done; \
 	echo "→ Pushing $$BRANCH → origin/$$TARGET ..."; \
-	git push origin HEAD:$$TARGET && echo "✅ Push complete" || \
-	echo "⚠️  git push failed (Dropbox mmap issue?). Run: make api-push-check"
+	if git push origin HEAD:$$TARGET; then \
+		echo "✅ Push complete"; \
+		BASE=$${base:-Staging}; \
+		if [ -n "$(pr)" ]; then \
+			echo "→ Opening PR: $$TARGET → $$BASE ..."; \
+			gh pr create --base "$$BASE" --head "$$TARGET" --fill || \
+				echo "⚠️  PR create failed (already open?). Check: gh pr view --web"; \
+		else \
+			echo "ℹ️  Open a PR when ready:  gh pr create --base $$BASE   (or: make push pr=1)"; \
+		fi; \
+	else \
+		echo "⚠️  git push failed (Dropbox mmap issue?). Run: make api-push-check"; \
+	fi
 
 # REQUIRED before using GitHub API to push (when git push is broken)
 # Enforces same validation as make push but for API workflow
