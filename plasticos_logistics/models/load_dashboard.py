@@ -83,52 +83,78 @@ class PlasticosLoadDashboard(models.Model):
             WHERE table_name = 'plasticos_transaction' AND column_name = 'load_id'
         """)
         has_tx_link = bool(self.env.cr.fetchone())
+        # Two fully-static VIEW definitions instead of f-string interpolation: the
+        # transaction-linked variant and the fresh-install fallback (column
+        # plasticos_transaction.load_id may not exist yet on the first build).
+        # Static literals keep this free of any SQL-injection surface and mirror the
+        # convention used by the admin/sales dashboard VIEWs.
         if has_tx_link:
-            tx_columns = """
-                t.name                      AS transaction_ref,
-                t.user_id                   AS user_id,
-                t.supplier_id               AS supplier_id,
-                t.buyer_id                  AS buyer_id,"""
-            tx_join = "LEFT JOIN plasticos_transaction t ON t.load_id = l.id"
+            self.env.cr.execute("""
+                CREATE VIEW plasticos_load_dashboard AS
+                SELECT
+                    l.id                        AS id,
+                    l.id                        AS load_id,
+                    l.name                      AS load_ref,
+                    t.name                      AS transaction_ref,
+                    t.user_id                   AS user_id,
+                    t.supplier_id               AS supplier_id,
+                    t.buyer_id                  AS buyer_id,
+                    l.state                     AS load_state,
+                    l.pickup_datetime           AS pickup_datetime,
+                    l.delivery_datetime         AS delivery_datetime,
+                    l.delivered_at              AS delivered_at,
+                    l.pickup_partner_id         AS pickup_partner_id,
+                    l.delivery_partner_id       AS delivery_partner_id,
+                    l.carrier_id                AS carrier_id,
+                    rp_carrier.name             AS carrier_name,
+                    l.rate_amount               AS rate_amount,
+                    l.trailer_number            AS trailer_number,
+                    l.sla_breached              AS sla_breached,
+                    l.cycle_time_hours          AS cycle_time_hours,
+                    l.bol_pickup_attached       AS bol_pickup_attached,
+                    l.bol_delivery_attached     AS bol_delivery_attached,
+                    l.write_date                AS write_date
+                FROM plasticos_load l
+                LEFT JOIN plasticos_transaction t ON t.load_id = l.id
+                LEFT JOIN res_partner rp_carrier ON rp_carrier.id = l.carrier_id
+                WHERE l.state != 'closed'
+                   OR l.write_date >= date_trunc('month', NOW())
+            """)
         else:
             _logger.warning(
                 "plasticos_load_dashboard: plasticos_transaction.load_id not present yet — "
                 "building transaction-less view; it rebuilds fully on the next module update."
             )
-            tx_columns = """
-                NULL::varchar               AS transaction_ref,
-                NULL::integer               AS user_id,
-                NULL::integer               AS supplier_id,
-                NULL::integer               AS buyer_id,"""
-            tx_join = ""
-        # nosemgrep: odoo-raw-sql -- static CREATE VIEW, repo-owned identifiers, no user input
-        self.env.cr.execute(f"""
-            CREATE VIEW plasticos_load_dashboard AS
-            SELECT
-                l.id                        AS id,
-                l.id                        AS load_id,
-                l.name                      AS load_ref,{tx_columns}
-                l.state                     AS load_state,
-                l.pickup_datetime           AS pickup_datetime,
-                l.delivery_datetime         AS delivery_datetime,
-                l.delivered_at              AS delivered_at,
-                l.pickup_partner_id         AS pickup_partner_id,
-                l.delivery_partner_id       AS delivery_partner_id,
-                l.carrier_id                AS carrier_id,
-                rp_carrier.name             AS carrier_name,
-                l.rate_amount               AS rate_amount,
-                l.trailer_number            AS trailer_number,
-                l.sla_breached              AS sla_breached,
-                l.cycle_time_hours          AS cycle_time_hours,
-                l.bol_pickup_attached       AS bol_pickup_attached,
-                l.bol_delivery_attached     AS bol_delivery_attached,
-                l.write_date                AS write_date
-            FROM plasticos_load l
-            {tx_join}
-            LEFT JOIN res_partner rp_carrier ON rp_carrier.id = l.carrier_id
-            WHERE l.state != 'closed'
-               OR l.write_date >= date_trunc('month', NOW())
-        """)
+            self.env.cr.execute("""
+                CREATE VIEW plasticos_load_dashboard AS
+                SELECT
+                    l.id                        AS id,
+                    l.id                        AS load_id,
+                    l.name                      AS load_ref,
+                    NULL::varchar               AS transaction_ref,
+                    NULL::integer               AS user_id,
+                    NULL::integer               AS supplier_id,
+                    NULL::integer               AS buyer_id,
+                    l.state                     AS load_state,
+                    l.pickup_datetime           AS pickup_datetime,
+                    l.delivery_datetime         AS delivery_datetime,
+                    l.delivered_at              AS delivered_at,
+                    l.pickup_partner_id         AS pickup_partner_id,
+                    l.delivery_partner_id       AS delivery_partner_id,
+                    l.carrier_id                AS carrier_id,
+                    rp_carrier.name             AS carrier_name,
+                    l.rate_amount               AS rate_amount,
+                    l.trailer_number            AS trailer_number,
+                    l.sla_breached              AS sla_breached,
+                    l.cycle_time_hours          AS cycle_time_hours,
+                    l.bol_pickup_attached       AS bol_pickup_attached,
+                    l.bol_delivery_attached     AS bol_delivery_attached,
+                    l.write_date                AS write_date
+                FROM plasticos_load l
+                LEFT JOIN res_partner rp_carrier ON rp_carrier.id = l.carrier_id
+                WHERE l.state != 'closed'
+                   OR l.write_date >= date_trunc('month', NOW())
+            """)
 
     # ── Drill-Through Actions ─────────────────────────────────────────────
 
