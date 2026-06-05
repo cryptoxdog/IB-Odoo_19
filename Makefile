@@ -19,6 +19,11 @@
 -include .env
 export
 
+# Prefer repo .venv for ruff/pytest (matches pyproject required-version pin)
+ifneq ($(wildcard $(CURDIR)/.venv/bin/ruff),)
+export PATH := $(CURDIR)/.venv/bin:$(PATH)
+endif
+
 ODOO_DB_NAME          ?= odoo
 ODOO_TEST_DB          ?= odoo_test
 ODOO_COMPOSE_PROJECT  ?= odoo19
@@ -86,12 +91,16 @@ help:
 	@echo "    make test-module m=<mod>  Odoo tests for one module (-u m)"
 	@echo ""
 	@echo "  PR / CI Workflow"
-	@echo "    make commit           stage all + commit; runs GA kernel if workflows staged"
+	@echo "    make commit           commit only (same staging rules as push)"
 	@echo "    make commit m=\"...\"   commit with explicit conventional message"
 	@echo "    make github-actions-kernel-check  validate staged/all .github/workflows (R5 kernel)"
 	@echo "    make pr-check         REQUIRED before any push: audit-quick + semgrep + semgrep-test + pipeline-guard"
-	@echo "    make push             safe push: runs pr-check first, then git push current branch"
-	@echo "    make push b=Staging   safe push to a specific branch"
+	@echo "    make push             pr-check → commit → push → PR (full github kernel)"
+	@echo "    make push m=\"feat(x): ...\"  explicit conventional commit (else inferred)"
+	@echo "    make push commit=0    skip commit (already committed)"
+	@echo "    make push b=Staging   push to integration branch (no PR)"
+	@echo "    make push pr=0        push without creating a PR"
+	@echo "    make push base=Staging  PR base branch (default: Staging)"
 	@echo "    make api-push-check   REQUIRED before GitHub API push (when git push fails)"
 	@echo "    make pr-autopilot     scan all PR signals (CI, SonarCloud, CodeRabbit) — report only"
 	@echo "    make pr-fix           scan + auto-fix safe issues + push back to branch (re-triggers CI)"
@@ -376,53 +385,24 @@ github-actions-kernel-check:
 	@chmod +x ci/check_github_actions_kernel.sh
 	@ci/check_github_actions_kernel.sh $(if $(staged),--staged,)
 
-# Stage all tracked/untracked changes (respects .gitignore) and commit.
-# Runs github_actions_kernel.v1 when .github/workflows/* is staged.
-# Usage: make commit                    (default message: wip: snapshot local changes)
-#        make commit m="fix: description"
+# Commit workspace only (no pr-check / push). Prefer make push for the full pipeline.
+# Usage: make commit m="fix(scope): description"
 commit:
-	@set -e; \
-	if git diff --quiet && git diff --cached --quiet \
-		&& [ -z "$$(git ls-files --others --exclude-standard)" ]; then \
-		echo "Nothing to commit (working tree clean)."; exit 1; \
-	fi; \
-	MSG='$(m)'; \
-	if [ -z "$$MSG" ]; then MSG="wip: snapshot local changes"; fi; \
-	echo "→ Staging all changes (git add -A)..."; \
-	git add -A; \
-	if git diff --cached --quiet; then \
-		echo "Nothing to commit after staging (ignored paths only?)."; exit 1; \
-	fi; \
-	if git diff --cached --name-only | grep -q '^\.github/workflows/.*\.ya\?ml$$'; then \
-		echo "→ Workflow files staged — running GitHub Actions kernel..."; \
-		$(MAKE) github-actions-kernel-check staged=1; \
-	fi; \
-	echo "→ Committing: $$MSG"; \
-	git commit -m "$$MSG"; \
-	echo ""; \
-	echo "============================================"; \
-	echo "Committed ($$(git rev-parse --short HEAD)):"; \
-	echo "============================================"; \
-	git show --stat --oneline -1; \
-	echo ""; \
-	if [ -t 0 ]; then \
-		printf "Run make push? [y/N] "; \
-		read -r ans; \
-		case "$$ans" in [yY]|[yY][eE][sS]) $(MAKE) push ;; *) echo "Skipped. Run: make push"; ;; esac; \
-	else \
-		echo "Run: make push   (or: make push b=Staging)"; \
-	fi
+	@bash scripts/git_commit_workspace.sh "$(m)" require
 
-# Safe push: runs full pr-check first, then git push
-# Usage: make push              (pushes current branch)
-#        make push b=Staging    (pushes to a specific remote branch)
-push: pr-check
-	@echo ""
-	@BRANCH=$$(git branch --show-current); \
+# Full github push kernel: pr-check → commit → push → PR (labels, CI, auto-merge)
+# Usage: make push m="feat(scope): summary"
+#        make push commit=0 pr=0 b=Staging
+push:
+	@export PATH="$(CURDIR)/.venv/bin:$$PATH"; \
+	BRANCH=$$(git branch --show-current); \
 	TARGET=$${b:-$$BRANCH}; \
-	echo "→ Pushing $$BRANCH → origin/$$TARGET ..."; \
-	git push origin HEAD:$$TARGET && echo "✅ Push complete" || \
-	echo "⚠️  git push failed (Dropbox mmap issue?). Run: make api-push-check"
+	BASE=$${base:-Staging}; \
+	OPEN_PR=$${pr:-1}; \
+	DO_COMMIT=$${commit:-1}; \
+	chmod +x scripts/make_push_pipeline.sh scripts/git_commit_workspace.sh \
+		scripts/git_push_with_pr.sh scripts/git_open_pr.sh scripts/apply_pr_kernel_metadata.sh; \
+	bash scripts/make_push_pipeline.sh "$(m)" "$$TARGET" "$$BASE" "$$OPEN_PR" "$$DO_COMMIT"
 
 # REQUIRED before using GitHub API to push (when git push is broken)
 # Enforces same validation as make push but for API workflow

@@ -48,6 +48,13 @@ python3 tools/cron_invariant_check.py     # Cron safety invariants
 make roadmap                              # Sync + validate (add: domain= phase= kind= title=)
 make roadmap-list                         # List registry items
 
+# Push (github kernel: pr-check → commit → push → PR → Staging)
+make push                                 # full pipeline; message inferred if m omitted
+make push m="fix(scope): description"       # explicit conventional commit header
+make push commit=0                          # skip commit when already committed
+make push pr=0                            # push only, skip PR
+make push b=Staging                       # integration branch push, no PR
+
 # Docker
 docker-compose up -d                      # Start Odoo + PostgreSQL + Redis
 docker-compose exec web odoo -u plasticos_base --stop-after-init  # Update module

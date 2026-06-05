@@ -8,11 +8,17 @@ alwaysApply: true
 ## ALWAYS use `make push` — not raw `git push`, not the API
 
 ```bash
-make push            # push current branch (runs pr-check first)
-make push b=Staging  # push to a specific branch
+make push                           # pr-check → commit → push → PR → Staging (one command)
+make push m="feat(scope): summary"  # explicit conventional commit (else inferred from diff)
+make push commit=0                  # skip commit when already committed
+make push b=Staging                 # integration branch push only (no PR)
+make push pr=0                      # push without opening a PR
+make commit m="..."                 # commit only (runs pr-check is NOT run — use make push)
 ```
 
-`make push` = `make pr-check` → `git push`. The pre-push pipeline is **non-negotiable** before any code lands on the remote. It runs: ruff lint + format, XML validation, module wiring, circular deps, cron invariants, Odoo 19 patterns, semgrep, pipeline_v2 guard.
+`make push` = **`pr-check` first** (lint, XML, wiring, semgrep, tests on workspace) → **commit kernel** (`git add -A`, infer/validate conventional message, GA workflow kernel if needed) → **`git push -u`** → **`gh pr create`** with body + labels → **`Staging`**. Triggers `ci.yml` on `pull_request` and `.github/workflows/auto-merge.yml` when checks pass.
+
+Requires **`gh auth login`**. Never bypass with raw `git commit` / `git push`.
 
 **Never bypass this with raw `git push` or the GitHub API when adding/modifying code.**
 
