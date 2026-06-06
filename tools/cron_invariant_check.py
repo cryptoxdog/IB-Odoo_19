@@ -6,6 +6,7 @@ import ast
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 
 @dataclass
@@ -23,7 +24,7 @@ def _is_cron_method(node: ast.FunctionDef) -> bool:
     return node.name.startswith(("cron_", "_cron_", "action_cron_")) or node.name in {"run_monthly_audit"}
 
 
-def _attr_name(call: ast.Call) -> str | None:
+def _attr_name(call: ast.Call) -> Optional[str]:
     if isinstance(call.func, ast.Attribute):
         return call.func.attr
     return None

@@ -115,7 +115,8 @@ check-typed-exception = false
 "**/forbidden/*.py" = ["UP031", "UP030", "F841", "W291", "W293"]
 # Dev tools - relaxed rules (includes complex analysis functions). "S" ignored: dev tooling
 # runs subprocess and parses the repo's own (trusted) XML — not a production attack surface.
-"**/tools/*.py" = ["UP031", "F821", "C901", "S"]
+# UP045 ignored so Optional[] survives when hooks invoke tools with macOS system Python 3.9.
+"**/tools/*.py" = ["UP031", "F821", "C901", "S", "UP045"]
 # Scripts - utility dev/CI scripts with complex main() functions. "S" ignored: subprocess +
 # url-open to known endpoints are inherent to these tools, not runtime code.
 "scripts/*.py" = ["C901", "S"]
