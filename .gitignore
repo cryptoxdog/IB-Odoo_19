@@ -35,6 +35,7 @@ current work - ib/
 
 # Code-graph RAG MCP local index (regenerate via l9-code-graph-rag-mcp batch_index CLI)
 .code-graph-rag/
+logs_llm/
 
 # MCP / LLM server runtime logs (local diagnostics only)
 logs_llm/
