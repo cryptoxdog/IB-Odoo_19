@@ -9,7 +9,7 @@ SKILLS="$GC/skills"
 GOV_VALIDATE="$GC/ops/scripts/validate_governance_symlinks.sh"
 
 FAIL=0
-L9_SKILLS=(l9-structured-reasoning l9-skill-compiler l9-wire-skill-into-repo l9-create-skill l9-update-agent-docs l9-gmp-protocol)
+L9_SKILLS=(l9-structured-reasoning l9-skill-compiler l9-wire-skill-into-repo l9-update-agent-docs l9-gmp-protocol l9-context7-docs l9-plan l9-code-analysis l9-gap-analysis l9-pr-analysis l9-ynp l9-code-graph-rag-mcp l9-api-smoke-testing l9-architecture-decision-records l9-auditing-performance l9-auditing-security l9-monitoring-terminal-errors l9-prompt-engineering l9-incident-response l9-setting-up-ci l9-python-tdd-with-uv l9-kubernetes-deploying l9-setting-up-terraform)
 
 pass() { echo "  OK: $1"; }
 fail() { echo "  FAIL: $1"; FAIL=1; }

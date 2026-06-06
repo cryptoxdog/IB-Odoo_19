@@ -38,7 +38,6 @@ current work - ib/
 
 # MCP / LLM server runtime logs (local diagnostics only)
 logs_llm/
-
 # ═══════════════════════════════════════════════════════════
 # Generated audit reports
 # ═══════════════════════════════════════════════════════════

@@ -29,12 +29,27 @@ All PlasticOS project skills use the **`plasticos-` prefix** on directory name a
 
 Add row to **Agent Skills & Subagents → Skills** with matching `plasticos-*` or `l9-*` name.
 
+## Register L9 invocation tier in `AUTONOMY_MANIFEST.yaml`
+
+Mandatory for every **L9 global** skill (not for `plasticos-*` project skills). Add to exactly one tier under `tiers` in `@.cursor-commands/skills/AUTONOMY_MANIFEST.yaml`:
+
+```yaml
+# auto-invoked (no disable-model-invocation in SKILL.md)
+    - skill: "l9-{name}"
+      use_when: "{when triggers}"
+# explicit-only (disable-model-invocation: true)
+    - skill: "l9-{name}"
+      reason: "{why explicit-only}"
+```
+
+Never both tiers; remove the entry when a skill is deleted.
+
 ## Wire Subagents (`.claude/agents/`)
 
 | Subagent | Preload when skill is… |
 |----------|------------------------|
 | `code-reviewer.md` | `l9-structured-reasoning`; `plasticos-pr-review-kernel` |
-| `module-auditor.md` | `l9-structured-reasoning`, `plasticos-new-odoo-module`, `plasticos-new-model-field` |
+| `module-auditor.md` | `l9-structured-reasoning`, `l9-code-graph-rag-mcp`, `plasticos-new-odoo-module`, `plasticos-new-model-field` |
 
 Example:
 
@@ -58,6 +73,7 @@ When skill tables change, run **`l9-update-agent-docs`** (adapter: `plasticos-up
 - [ ] L9 globals in **L9 Global Skills** table only
 - [ ] Project skills in **Project Skills** table only
 - [ ] Row in `AGENTS.md`
+- [ ] L9 global skill in `AUTONOMY_MANIFEST.yaml` — exactly one tier (auto vs explicit)
 - [ ] Subagent `skills:` updated when preload required
 - [ ] No stale unprefixed paths (`new-odoo-module`, `odoo-sh-deploy`, etc.)
 

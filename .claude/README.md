@@ -4,6 +4,8 @@ Central registry for `.claude/agents/` (subagents) and `.claude/skills/` (projec
 
 **L9 universal skills** live in `@.cursor-commands/skills/l9-*/` (Dropbox SSOT via `.cursor-commands`). Not duplicated under `.claude/skills/` or `.cursor/governance/`.
 
+**Invocation tiers** (which L9 skills auto-invoke vs explicit-only) are defined in `@.cursor-commands/skills/AUTONOMY_MANIFEST.yaml` — keep it in sync when adding/removing an L9 skill (see Wiring Rules).
+
 Canonical law: `@.cursor/governance/CANONICAL_LAW.md`
 
 ## Subagents
@@ -24,9 +26,26 @@ Personal skills — available in all repos via `~/.cursor/skills/`.
 | **l9-structured-reasoning** | `@.cursor-commands/skills/l9-structured-reasoning/` | Planning, plan analysis, architecture decisions, debugging |
 | **l9-skill-compiler** | `@.cursor-commands/skills/l9-skill-compiler/` | Compile kernels/SOPs into zero-stub skill packs |
 | **l9-wire-skill-into-repo** | `@.cursor-commands/skills/l9-wire-skill-into-repo/` | Register skills in repo agent config after create/compile |
-| **l9-create-skill** | `@.cursor-commands/skills/l9-create-skill/` | Author new skills; chains l9-wire-skill-into-repo |
 | **l9-update-agent-docs** | `@.cursor-commands/skills/l9-update-agent-docs/` | Refresh AGENTS.md, ARCHITECTURE.md, INVARIANTS.md, CLAUDE.md |
 | **l9-gmp-protocol** | `@.cursor-commands/skills/l9-gmp-protocol/` | Deterministic phased (0–6) repo changes with modification lock + signed evidence report |
+| **l9-context7-docs** | `@.cursor-commands/skills/l9-context7-docs/` | Fetch current library/framework/SDK/API docs before coding |
+| **l9-plan** | `@.cursor-commands/skills/l9-plan/` | Create an execution plan/spec when scope is unclear |
+| **l9-code-analysis** | `@.cursor-commands/skills/l9-code-analysis/` | Explore unfamiliar code, map flows, identify hotspots |
+| **l9-gap-analysis** | `@.cursor-commands/skills/l9-gap-analysis/` | Assess readiness, missing pieces, % complete vs target |
+| **l9-pr-analysis** | `@.cursor-commands/skills/l9-pr-analysis/` | Review PRs, merge blockers, review comments, PR readiness |
+| **l9-ynp** | `@.cursor-commands/skills/l9-ynp/` | Synthesize the single highest-leverage next action |
+| **l9-code-graph-rag-mcp** | `@.cursor-commands/skills/l9-code-graph-rag-mcp/` | Operate code-graph-rag MCP — indexing, importers, impact analysis, cross-module discovery (token-safe) |
+| **l9-api-smoke-testing** | `@.cursor-commands/skills/l9-api-smoke-testing/` | Smoke-test every API route; report 404/500 regressions |
+| **l9-architecture-decision-records** | `@.cursor-commands/skills/l9-architecture-decision-records/` | Capture an architecture/design decision as an ADR |
+| **l9-auditing-performance** | `@.cursor-commands/skills/l9-auditing-performance/` | Profile/optimize bundle, render, query, Core Web Vitals |
+| **l9-auditing-security** | `@.cursor-commands/skills/l9-auditing-security/` | Systematic security audit — OWASP Top 10, secrets, insecure patterns |
+| **l9-monitoring-terminal-errors** | `@.cursor-commands/skills/l9-monitoring-terminal-errors/` | Watch running processes, fix crashes/stack traces live |
+| **l9-prompt-engineering** | `@.cursor-commands/skills/l9-prompt-engineering/` | Design/improve LLM prompts, system messages, output schemas |
+| **l9-incident-response** | `@.cursor-commands/skills/l9-incident-response/` | Triage/mitigate production incidents; write postmortems |
+| **l9-setting-up-ci** | `@.cursor-commands/skills/l9-setting-up-ci/` | Bootstrap GitHub Actions CI (lint/test/type-check/deploy) |
+| **l9-python-tdd-with-uv** | `@.cursor-commands/skills/l9-python-tdd-with-uv/` | **Explicit** — Python TDD with uv (red-green-refactor) |
+| **l9-kubernetes-deploying** | `@.cursor-commands/skills/l9-kubernetes-deploying/` | **Explicit** — deploy to Kubernetes (manifests, scaling) |
+| **l9-setting-up-terraform** | `@.cursor-commands/skills/l9-setting-up-terraform/` | **Explicit** — bootstrap Terraform IaC (modules, state, CI) |
 
 ## Project Skills
 
@@ -43,8 +62,6 @@ Repo-local under `.claude/skills/`.
 | **plasticos-repo-review-kernel** | `skills/plasticos-repo-review-kernel/` | Repo-wide readiness, go-live / pack review |
 | **plasticos-final-touches** | `skills/plasticos-final-touches/` | `FINAL_TOUCHES_MODE` — 10 pre-go-live gates |
 
-> **Legacy:** `skills/SKILL - Skill Compiler Agent/` is deprecated. Use global **`l9-skill-compiler`**.
-
 ## Adapters
 
 | File | Used by |
@@ -59,7 +76,7 @@ Repo-local under `.claude/skills/`.
 3. **Project skills:** live in `.claude/skills/`, register in **Project Skills** + `AGENTS.md`.
 4. Subagents preload via frontmatter `skills:` list.
 5. Load **`l9-structured-reasoning`** for non-trivial planning and debugging.
-6. **New skills:** run **`l9-wire-skill-into-repo`** after **`l9-create-skill`** or **`l9-skill-compiler`**. L9 packs live in `@.cursor-commands/skills/l9-*/` — never repo `.cursor/skills/`. PlasticOS adapter: `adapters/plasticos-repo-wiring.md`. **Law:** `@.cursor/governance/CANONICAL_LAW.md`.
+6. **New skills:** run **`l9-wire-skill-into-repo`** after **`l9-skill-compiler`**. L9 packs live in `@.cursor-commands/skills/l9-*/` — never repo `.cursor/skills/`. PlasticOS adapter: `adapters/plasticos-repo-wiring.md`. **Law:** `@.cursor/governance/CANONICAL_LAW.md`.
 
 ## Related Config
 
