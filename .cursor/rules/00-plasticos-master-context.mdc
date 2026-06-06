@@ -10,7 +10,7 @@ alwaysApply: true
 **Repo:** `cryptoxdog/IB-Odoo_19` | **Staging** = dev branch | **Production** = prod/main
 **Live repo path:** `/Users/macm2/IB_Odoo-19 (MacMini)/IB-Odoo_19` — use this for ALL shell commands. Repo was moved out of Dropbox; the old Dropbox path is stale.
 
----
+**Cursor governance:** `@.cursor/governance/CANONICAL_LAW.md` — global commands/skills/rules via `@.cursor-commands/` only; repo `.cursor/rules/` is PlasticOS overlay only.
 
 ## TASK ROUTER — Read This First
 
@@ -50,7 +50,7 @@ Before writing any code or making any change, identify your task and consult the
 - **`70-github-push-workflow`** — `make push` always. API only after `make pr-check` passes and `git push` fails (Dropbox mmap). Never skip pre-commit hooks.
 
 ### Reviewing or creating a PR
-- **`20-plasticos-pr-review-kernel`** — Hard reject conditions, base branch verification, migration assessment.
+- **`plasticos-pr-review-kernel`** — Hard reject conditions, base branch verification, migration assessment.
 - **`81-ci-manifest-contract`** + **`82-ci-module-wiring`** — Check manifest deps and wiring for every changed model file.
 
 ### Gate / CEG / autonomy integration
@@ -67,7 +67,7 @@ Before writing any code or making any change, identify your task and consult the
 - **`30-plasticos-deploy-validation`** — Pre-deploy snapshot, log validation, ICP params check, pipeline_v2 guard.
 
 ### Final pre-go-live pass
-- **`60-plasticos-final-touches`** — All 10 gates in sequence. `make pr-check` must pass last.
+- **`plasticos-final-touches`** — All 10 gates in sequence. `make pr-check` must pass last.
 
 ---
 
@@ -143,7 +143,7 @@ Before writing any code or making any change, identify your task and consult the
 
 | Phrase | Activates |
 |--------|-----------|
-| `PR_REVIEW_MODE` or `REVIEW PR #N` | `20-plasticos-pr-review-kernel` |
+| `PR_REVIEW_MODE` or `REVIEW PR #N` | `plasticos-pr-review-kernel` |
 | `DEPLOY_VALIDATION_MODE` | `30-plasticos-deploy-validation` |
-| `FINAL_TOUCHES_MODE` | `60-plasticos-final-touches` |
+| `FINAL_TOUCHES_MODE` | `plasticos-final-touches` |
 | `AUDIT_MODE = "FULL"` | `docs/.../01_code_review_audit_prompt.md` |

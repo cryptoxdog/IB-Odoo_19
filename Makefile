@@ -10,7 +10,8 @@
         up down restart logs logs-error shell odoo-shell \
         update update-all rebuild backup \
         test test-odoo test-pure test-module \
-        pr-check commit push api-push-check sonar changelog \
+        pr-check pr-check-% commit push api-push-check sonar changelog \
+        governance-backup \
         github-actions-kernel-check \
         pr-autopilot pr-fix \
         roadmap roadmap-sync roadmap-list
@@ -18,6 +19,19 @@
 # ── Load .env if present ──────────────────────────────────────────────────────
 -include .env
 export
+
+# Prefer repo .venv for ruff/pytest (matches pyproject required-version pin)
+ifneq ($(wildcard $(CURDIR)/.venv/bin/ruff),)
+export PATH := $(CURDIR)/.venv/bin:$(PATH)
+endif
+
+# Target a specific PR for remote feedback: make pr-check pr=100
+#   or: make pr-check pr=https://github.com/cryptoxdog/IB-Odoo_19/pull/100
+#   or: make pr-check-100  /  scripts/pr_check.sh <url-or-number>
+# (bare URL cannot be a make goal — https:// breaks make target parsing)
+ifneq ($(pr),)
+export PR_REMOTE_REF := $(pr)
+endif
 
 ODOO_DB_NAME          ?= odoo
 ODOO_TEST_DB          ?= odoo_test
@@ -28,6 +42,9 @@ ODOO_COMPOSE_PROJECT  ?= odoo19
 # pip --user 0.14.x) aborts every invocation. Prefer the project venv's pinned
 # binary; fall back to PATH ruff (CI has no .venv and installs 0.15.5 directly).
 RUFF := $(shell [ -x .venv/bin/ruff ] && echo .venv/bin/ruff || echo ruff)
+
+# Symlinked governance tree — lives in Dropbox / separate repo; never commit or push from here.
+COMMIT_EXCLUDE := .cursor-commands
 
 # Modules excluded from ruff (pre-existing violations / external scope)
 RUFF_EXCLUDES = \
@@ -85,6 +102,7 @@ help:
 	@echo "    make update-all       -u all modules"
 	@echo "    make rebuild          drop DB + full rebuild (no demo)"
 	@echo "    make backup           snapshot DB to backup_<timestamp>.sql"
+	@echo "    make governance-backup  push .cursor-commands → Cursor-Governance GitHub"
 	@echo ""
 	@echo "  Testing"
 	@echo "    make test             pure pytest in tests/ (mirrors PR CI Tier 3)"
@@ -93,10 +111,12 @@ help:
 	@echo "    make test-module m=<mod>  Odoo tests for one module (-u m)"
 	@echo ""
 	@echo "  PR / CI Workflow"
-	@echo "    make commit           stage all + commit; runs GA kernel if workflows staged"
+	@echo "    make commit           stage all (except .cursor-commands) + commit"
 	@echo "    make commit m=\"...\"   commit with explicit conventional message"
 	@echo "    make github-actions-kernel-check  validate staged/all .github/workflows (R5 kernel)"
 	@echo "    make pr-check         REQUIRED before any push: audit-quick + semgrep + semgrep-test + pipeline-guard"
+	@echo "    make pr-check pr=100       remote gate for PR #100 or full GitHub URL"
+	@echo "    make pr-check-100          shorthand for pr=100"
 	@echo "    make push             safe push: pr-check, then push current FEATURE branch (Staging/Production are PR-only)"
 	@echo "    make push pr=1        push feature branch, then open a PR into Staging"
 	@echo "    make api-push-check   REQUIRED before GitHub API push (when git push fails)"
@@ -110,6 +130,11 @@ help:
 	@echo "    make roadmap-list     list all registry items"
 	@echo "    make roadmap-sync     sync only (make roadmap preferred)"
 	@echo "    Example: make roadmap domain=gate-autonomy phase=1 kind=backlog title=\"...\""
+	@echo ""
+	@echo "  Agent review kernels (.claude/skills/ — playbooks, not extra targets)"
+	@echo "    FINAL_TOUCHES_MODE     plasticos-final-touches  → make audit + make pr-check"
+	@echo "    PR_REVIEW_MODE         plasticos-pr-review-kernel → make pr-check"
+	@echo "    (static/repo audit)    plasticos-static-audit-kernel / plasticos-repo-review-kernel → make audit"
 	@echo ""
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -354,6 +379,16 @@ backup:
 		> backup_$$(date +%Y%m%d_%H%M%S).sql
 	@echo "✅ Backup complete"
 
+governance-backup:
+	@if [ -L .cursor-commands ] && [ -f .cursor-commands/ops/scripts/backup_to_github.sh ]; then \
+		bash .cursor-commands/ops/scripts/backup_to_github.sh; \
+	elif [ -f "$(HOME)/Dropbox/cursor governance/GlobalCommands/ops/scripts/backup_to_github.sh" ]; then \
+		bash "$(HOME)/Dropbox/cursor governance/GlobalCommands/ops/scripts/backup_to_github.sh"; \
+	else \
+		echo "ERROR: backup_to_github.sh not found — run setup_workspace_symlinks.sh first" >&2; \
+		exit 1; \
+	fi
+
 # ─────────────────────────────────────────────────────────────────────────────
 # TESTING
 # ─────────────────────────────────────────────────────────────────────────────
@@ -391,10 +426,18 @@ test-module:
 # PR / CI WORKFLOW
 # ─────────────────────────────────────────────────────────────────────────────
 
-# REQUIRED before any push or PR creation
-pr-check: audit-quick semgrep semgrep-test pipeline-guard test
+# REQUIRED before any push or PR creation (local + remote when PR/CI exists)
+pr-check: audit-quick semgrep semgrep-test pipeline-guard test pr-remote-feedback
 	@echo ""
 	@echo "✅ PR gate passed — safe to push"
+
+# Shorthand: make pr-check-100 → make pr-check pr=100
+pr-check-%:
+	@$(MAKE) pr-check pr=$*
+
+# GitHub Actions job logs + SonarCloud + CodeRabbit/Gemini/Codex/human review comments
+pr-remote-feedback:
+	@python3 scripts/pr_check_remote_feedback.py $(if $(PR_REMOTE_REF),--pr "$(PR_REMOTE_REF)",)
 
 # GitHub Actions kernel (github_actions_kernel.v1) — R5 developer_support gate
 # Checks: triggers, permissions, secrets, job_dependencies, SHA-pinned third-party actions
@@ -403,19 +446,26 @@ github-actions-kernel-check:
 	@ci/check_github_actions_kernel.sh $(if $(staged),--staged,)
 
 # Stage all tracked/untracked changes (respects .gitignore) and commit.
+# OMIT $(COMMIT_EXCLUDE) — governance symlink; synced to a separate repo.
 # Runs github_actions_kernel.v1 when .github/workflows/* is staged.
 # Usage: make commit                    (default message: wip: snapshot local changes)
 #        make commit m="fix: description"
 commit:
 	@set -e; \
 	if git diff --quiet && git diff --cached --quiet \
-		&& [ -z "$$(git ls-files --others --exclude-standard)" ]; then \
+		&& [ -z "$$(git ls-files --others --exclude-standard | grep -v '^$(COMMIT_EXCLUDE)$$' || true)" ]; then \
 		echo "Nothing to commit (working tree clean)."; exit 1; \
 	fi; \
 	MSG='$(m)'; \
 	if [ -z "$$MSG" ]; then MSG="wip: snapshot local changes"; fi; \
-	echo "→ Staging all changes (git add -A)..."; \
-	git add -A; \
+	echo "→ Staging all changes except $(COMMIT_EXCLUDE)..."; \
+	git add -u -- . ':(exclude)$(COMMIT_EXCLUDE)'; \
+	git ls-files --others --exclude-standard -z | grep -zv '^$(COMMIT_EXCLUDE)$$' | xargs -0 -r git add 2>/dev/null || true; \
+	if git diff --cached --name-only | grep -q '^$(COMMIT_EXCLUDE)'; then \
+		echo "⛔ Refusing to commit: $(COMMIT_EXCLUDE) is governance-only (separate repo)."; \
+		git reset -- '$(COMMIT_EXCLUDE)' 2>/dev/null || true; \
+		exit 1; \
+	fi; \
 	if git diff --cached --quiet; then \
 		echo "Nothing to commit after staging (ignored paths only?)."; exit 1; \
 	fi; \
@@ -445,6 +495,7 @@ commit:
 PROTECTED_BRANCHES := Staging Production
 
 # Safe push: runs full pr-check, then pushes the CURRENT FEATURE branch.
+# Refuses to push if any commit since upstream touches $(COMMIT_EXCLUDE).
 # Staging/Production are PR-only — this target refuses to push to them directly
 # (the ruleset would reject it anyway) and points you to the PR flow.
 # Usage: make push              (push current feature branch)
@@ -452,8 +503,20 @@ PROTECTED_BRANCHES := Staging Production
 #        make push base=Production pr=1   (open the PR against Production instead)
 push: pr-check
 	@echo ""
-	@BRANCH=$$(git branch --show-current); \
+	@set -e; \
+	BRANCH=$$(git branch --show-current); \
 	TARGET=$${b:-$$BRANCH}; \
+	UPSTREAM=$$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true); \
+	if [ -n "$$UPSTREAM" ]; then \
+		BASE=$$(git merge-base HEAD "$$UPSTREAM"); \
+	else \
+		BASE=$$(git merge-base HEAD origin/Staging 2>/dev/null || git rev-list --max-parents=0 HEAD | tail -1); \
+	fi; \
+	if git diff --name-only "$$BASE"..HEAD | grep -q '^$(COMMIT_EXCLUDE)'; then \
+		echo "⛔ Refusing to push: commits include $(COMMIT_EXCLUDE) (governance repo only)."; \
+		echo "   Remove those paths from the branch before pushing to IB-Odoo_19."; \
+		exit 1; \
+	fi; \
 	for p in $(PROTECTED_BRANCHES); do \
 		if [ "$$TARGET" = "$$p" ]; then \
 			echo "⛔ '$$p' is a protected branch (PR-only + required checks)."; \

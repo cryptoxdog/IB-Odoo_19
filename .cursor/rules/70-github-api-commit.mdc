@@ -12,7 +12,10 @@ make push            # push current branch (runs pr-check first)
 make push b=Staging  # push to a specific branch
 ```
 
-`make push` = `make pr-check` → `git push`. The pre-push pipeline is **non-negotiable** before any code lands on the remote. It runs: ruff lint + format, XML validation, module wiring, circular deps, cron invariants, Odoo 19 patterns, semgrep, pipeline_v2 guard.
+`make push` = **`make pr-check` first** (local lint/XML/wiring/semgrep/pytest; remote CI/review signals when a PR exists) → **`git push`**. The pre-push pipeline is **non-negotiable** before any code lands on the remote.
+
+Use **`make commit`** separately to stage and commit (omits `.cursor-commands` — governance repo only). Then **`make push pr=1`** to push and open a PR into `Staging`.
+
 
 **Never bypass this with raw `git push` or the GitHub API when adding/modifying code.**
 
