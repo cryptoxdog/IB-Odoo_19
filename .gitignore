@@ -30,6 +30,8 @@ __pycache__/
 # ═══════════════════════════════════════════════════════════
 Current Work - IGNORE/
 current work - ib/
+# Governance commands/skills — symlink to Dropbox SSOT; pushed via separate repo, not IB-Odoo_19
+.cursor-commands
 
 # ═══════════════════════════════════════════════════════════
 # Generated audit reports

@@ -1,0 +1,44 @@
+---
+description: Enforces Cursor CANONICAL_LAW — global governance via .cursor-commands only; repo .cursor/ is overlay-only.
+alwaysApply: true
+---
+
+# Cursor Governance Law (repo)
+
+Read `@.cursor/governance/CANONICAL_LAW.md` before adding commands, skills, or rules.
+
+## Global (SSOT — single repo entry: `.cursor-commands`)
+
+| Asset | Path |
+|-------|------|
+| GlobalCommands | `@.cursor-commands/` |
+| Commands | `@.cursor-commands/commands/` |
+| L9 skills | `@.cursor-commands/skills/l9-*/` |
+| Global rules | `@.cursor-commands/rules/` |
+| Wiring scripts | `.cursor-commands/ops/scripts/` |
+
+## Repo `.cursor/` allowed
+
+- `governance/CANONICAL_LAW.md` — symlink to Dropbox law file only
+- `rules/` — PlasticOS overlay
+- `README.md`
+
+## Forbidden
+
+- `.cursor/governance` symlink to Dropbox root (exposes duplicate GlobalCommands tree)
+- `.cursor/governance/GlobalCommands/`
+- `.cursor/commands/`, `.cursor/skills/`
+
+## Path contract (CANONICAL_LAW §9)
+
+- SSOT paths: **`$HOME/Dropbox/...` only** — never `/Users/<user>/...` or `/home/<user>/...`
+- Bash resolver: `resolve_governance_paths.sh` → `$GOV_ROOT`, `$GLOBAL_COMMANDS`
+- Global rule: `@.cursor-commands/rules/97-governance-ssot-paths.mdc` (`alwaysApply: true`)
+- Hooks via `~/.cursor/hooks/` symlinks: use `realpath` + `$GLOBAL_COMMANDS`, not `dirname "$0"`
+
+## Validate
+
+```bash
+bash .cursor-commands/ops/scripts/validate_governance_symlinks.sh
+bash .cursor-commands/ops/scripts/validate_governance_no_hardcoded_paths.sh
+```

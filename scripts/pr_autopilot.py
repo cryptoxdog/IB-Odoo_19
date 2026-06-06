@@ -247,6 +247,46 @@ def current_branch() -> str:
     return r.stdout.strip()
 
 
+_PR_URL_RE = re.compile(
+    r"github\.com/(?P<owner>[^/]+)/(?P<repo>[^/]+)/pull/(?P<num>\d+)",
+    re.IGNORECASE,
+)
+
+
+def fetch_pr_by_number(pr_number: int) -> dict | None:
+    """Fetch a pull request by number (open or closed)."""
+    pr = gh(f"/repos/{REPO}/pulls/{pr_number}")
+    if isinstance(pr, dict) and pr.get("number"):
+        return pr
+    return None
+
+
+def resolve_pr_ref(ref: str | int) -> tuple[dict | None, str | None, int | None]:
+    """Resolve PR URL or number → (pr_dict, head_branch, pr_number)."""
+    pr_number: int | None = None
+    if isinstance(ref, int):
+        pr_number = ref
+    elif str(ref).strip().isdigit():
+        pr_number = int(str(ref).strip())
+    else:
+        text = str(ref).strip()
+        match = _PR_URL_RE.search(text)
+        if match:
+            owner, repo, num = match.group("owner"), match.group("repo"), match.group("num")
+            expected = REPO.split("/")
+            if owner != expected[0] or repo != expected[1]:
+                print(f"  ⚠️  PR URL repo {owner}/{repo} != {REPO} — using number from URL anyway")
+            pr_number = int(num)
+        else:
+            raise ValueError(f"Unrecognized PR reference: {ref!r} (use URL or number)")
+
+    pr = fetch_pr_by_number(pr_number) if pr_number else None
+    if not pr:
+        return None, None, pr_number
+    branch = pr.get("head", {}).get("ref")
+    return pr, branch, pr.get("number")
+
+
 def find_pr(branch: str) -> dict | None:
     prs = gh(f"/repos/{REPO}/pulls?state=open&head=cryptoxdog:{branch}&per_page=5")
     if isinstance(prs, list) and prs:
@@ -449,30 +489,34 @@ def _extract_issues_from_log(log: str, job_name: str) -> list[Issue]:
     return issues
 
 
-def get_ci_issues(branch: str) -> list[Issue]:
+def latest_ci_gate_run(branch: str) -> dict | None:
+    """Return the latest 'CI Gate' workflow run for a branch, if any."""
+    runs = gh(f"/repos/{REPO}/actions/runs?branch={_safe_ref(branch)}&per_page=10")
+    if not isinstance(runs, dict):
+        return None
+    for run in runs.get("workflow_runs", []):
+        if run.get("name") == "CI Gate":
+            return run
+    return None
+
+
+def get_ci_issues(branch: str, *, verbose: bool = True) -> list[Issue]:
     """Get issues from the latest CI run — reads ALL job logs completely."""
     issues: list[Issue] = []
 
-    runs = gh(f"/repos/{REPO}/actions/runs?branch={branch}&per_page=10")
-    if not isinstance(runs, dict):
-        return issues
-
-    ci_run = None
-    for run in runs.get("workflow_runs", []):
-        if run.get("name") == "CI Gate":
-            ci_run = run
-            break
-
+    ci_run = latest_ci_gate_run(branch)
     if not ci_run:
         return issues
 
-    conclusion = ci_run.get("conclusion", "in_progress")
+    conclusion = ci_run.get("conclusion") or "in_progress"
     if conclusion == "success":
-        print("  ✅ CI Gate: all checks passed — no issues to fix")
+        if verbose:
+            print("  ✅ CI Gate: all checks passed — no issues to fix")
         return issues
 
     run_id = ci_run["id"]
-    print(f"  → Reading CI run #{run_id} (conclusion: {conclusion})")
+    if verbose:
+        print(f"  → Reading CI run #{run_id} (conclusion: {conclusion})")
 
     jobs_resp = gh(f"/repos/{REPO}/actions/runs/{run_id}/jobs")
     if not isinstance(jobs_resp, dict):
@@ -487,11 +531,13 @@ def get_ci_issues(branch: str) -> list[Issue]:
         if job_conclusion == "success":
             continue
 
-        print(f"  → Reading log: {job_name} ({job_conclusion})")
+        if verbose:
+            print(f"  → Reading log: {job_name} ({job_conclusion})")
         log = _fetch_job_log(job_id)
 
         job_issues = _extract_issues_from_log(log, job_name)
-        print(f"    Found {len(job_issues)} issue(s)")
+        if verbose:
+            print(f"    Found {len(job_issues)} issue(s)")
         issues.extend(job_issues)
 
     # Deduplicate by (rule, file, line, message[:60])
@@ -706,8 +752,7 @@ def get_gemini_issues(pr_number: int | None, branch: str) -> list[Issue]:
                 kind = "ADVISORY"
             msg_prefix = ""
 
-        summary = body.split("\n\n")[0].replace("![high]", "").replace("![medium]", "").strip()
-        summary = re.sub(r"!\[.*?\]\(.*?\)", "", summary).strip()
+        summary = _summarize_review_body(body)
 
         issues.append(
             Issue(
@@ -715,7 +760,7 @@ def get_gemini_issues(pr_number: int | None, branch: str) -> list[Issue]:
                 kind=kind,
                 file=fpath,
                 line=start_line,
-                message=f"{msg_prefix}{summary[:200]}",
+                message=f"{msg_prefix}{summary}",
                 rule=f"gemini:{severity}",
                 raw={
                     "comment_id": c.get("id"),
@@ -802,6 +847,77 @@ def apply_gemini_fixes(issues: list[Issue], branch: str) -> list[str]:
 
 
 # ── GitHub reviews ────────────────────────────────────────────────────────────
+
+
+def _summarize_review_body(body: str, *, max_len: int = 220) -> str:
+    """First substantive line from a bot/human review comment."""
+    for raw in body.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if line.startswith("!["):
+            continue
+        if line.startswith("(") and "http" in line:
+            continue
+        line = re.sub(r"!\[.*?\]\(.*?\)", "", line).strip()
+        if line:
+            return line[:max_len]
+    return body[:max_len].replace("\n", " ")
+
+
+def get_inline_bot_issues(
+    pr_number: int | None,
+    *,
+    login_substrings: tuple[str, ...],
+    source: str,
+) -> list[Issue]:
+    """Inline PR review comments from bots (Codex, etc.) — not CodeRabbit/Gemini paths."""
+    if not pr_number:
+        return []
+
+    comments = gh(f"/repos/{REPO}/pulls/{pr_number}/comments?per_page=100")
+    if not isinstance(comments, list):
+        return []
+
+    issues: list[Issue] = []
+    matched = 0
+    for c in comments:
+        login = c.get("user", {}).get("login", "").lower()
+        if not any(sub in login for sub in login_substrings):
+            continue
+        if "coderabbit" in login or "gemini" in login:
+            continue
+        matched += 1
+        body = c.get("body", "")
+        low = body.lower()
+        if any(tok in low for tok in ("p1 badge", "p2 badge", "p0 badge", "must fix", "security")):
+            kind = "REAL_BUG"
+        elif any(tok in low for tok in ("bug", "incorrect", "broken", "wrong location", "flaw")):
+            kind = "REAL_BUG"
+        else:
+            kind = "ADVISORY"
+        issues.append(
+            Issue(
+                source=source,
+                kind=kind,
+                file=c.get("path", ""),
+                line=c.get("line") or c.get("original_line") or 0,
+                message=_summarize_review_body(body),
+                rule=f"{source}:inline",
+                raw=c,
+            )
+        )
+    if matched:
+        print(f"  → {source}: {matched} inline comment(s)")
+    return issues
+
+
+def get_codex_issues(pr_number: int | None) -> list[Issue]:
+    return get_inline_bot_issues(
+        pr_number,
+        login_substrings=("codex", "chatgpt-codex"),
+        source="codex",
+    )
 
 
 def get_review_issues(pr_number: int | None) -> list[Issue]:
@@ -951,6 +1067,82 @@ def atomic_push(branch: str, commit_msg: str) -> bool:
     return True
 
 
+# ── Signal gathering (shared by pr-check gate and pr-autopilot) ───────────────
+
+
+def gather_all_signals(
+    branch: str | None = None,
+    *,
+    pr_ref: str | int | None = None,
+    verbose: bool = True,
+) -> tuple[list[Issue], int | None, dict | None, str | None]:
+    """Poll GitHub Actions logs, SonarCloud, CodeRabbit, Gemini, Codex, and human reviews.
+
+    pr_ref: optional PR URL (https://github.com/org/repo/pull/N) or number — overrides branch lookup.
+
+    Returns (issues, pr_number, pr_dict, ci_gate_conclusion).
+    ci_gate_conclusion is None when no CI Gate run exists for the branch.
+    """
+    pr: dict | None = None
+    pr_number: int | None = None
+
+    if pr_ref is not None:
+        pr, branch_from_pr, pr_number = resolve_pr_ref(pr_ref)
+        branch = branch_from_pr or branch
+        if verbose and pr_number:
+            url = pr.get("html_url", f"https://github.com/{REPO}/pull/{pr_number}") if pr else ""
+            print(f"\n📡 Remote PR signals — PR #{pr_number} {url}")
+    else:
+        branch = branch or current_branch()
+
+    if not branch:
+        return [], pr_number, pr, None
+
+    if verbose and pr_ref is None:
+        print(f"\n📡 Remote PR signals — branch: {branch}")
+
+    if not pr:
+        pr = find_pr(branch)
+        pr_number = pr["number"] if pr else pr_number
+
+    if verbose:
+        if pr_number:
+            title = (pr or {}).get("title", "")[:70]
+            print(f"  → PR #{pr_number}: {title}")
+        else:
+            print("  → No open PR (CI + SonarCloud branch scope still polled)")
+
+    ci_run = latest_ci_gate_run(branch)
+    ci_conclusion = (ci_run.get("conclusion") or "in_progress") if ci_run else None
+
+    if verbose:
+        print("  [1/6] GitHub Actions — ALL failed-job logs ...")
+    ci_issues = get_ci_issues(branch, verbose=verbose)
+
+    if verbose:
+        print("  [2/6] SonarCloud ...")
+    sonar_issues = get_sonar_issues(pr_number)
+
+    if verbose:
+        print("  [3/6] CodeRabbit review comments ...")
+    cr_issues = get_coderabbit_issues(pr_number)
+
+    if verbose:
+        print("  [4/6] Human PR reviews ...")
+    review_issues = get_review_issues(pr_number)
+
+    if verbose:
+        print("  [5/6] Gemini Code Assist ...")
+    gemini_issues = get_gemini_issues(pr_number, branch)
+
+    if verbose:
+        print("  [6/6] Codex (chatgpt-codex-connector) ...")
+    codex_issues = get_codex_issues(pr_number)
+
+    all_issues = ci_issues + sonar_issues + cr_issues + review_issues + gemini_issues + codex_issues
+    return all_issues, pr_number, pr, ci_conclusion
+
+
 # ── Report ────────────────────────────────────────────────────────────────────
 
 
@@ -1015,32 +1207,7 @@ def main() -> int:
 
     print(f"\n🔍 PR Autopilot — scanning branch: {branch}")
 
-    print("  → Looking up PR ...")
-    pr = find_pr(branch)
-    pr_number = pr["number"] if pr else None
-    if pr_number:
-        print(f"  → PR #{pr_number}: {pr.get('title', '')[:70]}")
-    else:
-        print("  → No open PR found (CI + SonarCloud still available)")
-
-    print("\n📡 Fetching all signals ...")
-
-    print("  [1/4] GitHub Actions — reading ALL CI job logs ...")
-    ci_issues = get_ci_issues(branch)
-
-    print("  [2/4] SonarCloud issues ...")
-    sonar_issues = get_sonar_issues(pr_number)
-
-    print("  [3/4] CodeRabbit review comments ...")
-    cr_issues = get_coderabbit_issues(pr_number)
-
-    print("  [4/4] GitHub PR reviews ...")
-    review_issues = get_review_issues(pr_number)
-
-    print("  [5/5] Gemini Code Assist reviews ...")
-    gemini_issues = get_gemini_issues(pr_number, branch)
-
-    all_issues = ci_issues + sonar_issues + cr_issues + review_issues + gemini_issues
+    all_issues, pr_number, pr, _ci_conclusion = gather_all_signals(branch, verbose=True)
 
     print_report(all_issues, pr_number, branch)
 

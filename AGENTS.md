@@ -31,6 +31,16 @@ python3 tools/cron_invariant_check.py     # Cron safety invariants
 make roadmap                              # Sync + validate (add: domain= phase= kind= title=)
 make roadmap-list                         # List registry items
 
+# pr-check = local (ruff, XML, wiring, semgrep, pytest) + remote when PR/CI exists
+#   (GitHub Actions job logs, SonarCloud, CodeRabbit, Gemini, human reviews via pr_autopilot)
+#   Target a PR: make pr-check pr=100
+#     or: make pr-check https://github.com/cryptoxdog/IB-Odoo_19/pull/100
+#   Skip remote: PR_CHECK_SKIP_REMOTE=1 make push
+
+# Push (safe: pr-check first, then push feature branch; use pr=1 to open PR into Staging)
+make push                                 # pr-check then push current branch
+make push pr=1                            # push, then open PR into Staging
+
 # Docker
 docker-compose up -d                      # Start Odoo + PostgreSQL + Redis
 docker-compose exec web odoo -u plasticos_base --stop-after-init  # Update module
@@ -52,23 +62,29 @@ python -m pytest tests/integration/ -v    # Integration tests
 
 ## Agent Skills & Subagents
 
-Skills live in `.claude/skills/`; subagents in `.claude/agents/`. Full registry: `.claude/README.md`.
+Skills: L9 globals in `~/.cursor/skills/l9-*/`; project skills in `.claude/skills/`. Full registry: `.claude/README.md`.
 
-| Skill | When to load |
-|-------|--------------|
-| `structured-reasoning` | Planning, plan review, architecture decisions, debugging |
-| `new-odoo-module` | Scaffolding a new `plasticos_*` module |
-| `new-model-field` | Adding fields or models to existing modules |
-| `xml-view` | Creating or modifying Odoo XML views |
-| `odoo-sh-deploy` | Odoo.sh production errors — SSH diagnose before fix |
-| `update-agent-docs` | Refresh AGENTS.md / ARCHITECTURE.md / INVARIANTS.md / CLAUDE.md |
-| `skill-compiler` | Compile kernels/SOPs into zero-stub skill packs |
-| `gmp-protocol` | Deterministic phased (0–6) repo changes with modification lock + signed evidence report |
+| Skill | When to load | Primary `make` targets |
+|-------|--------------|------------------------|
+| `l9-structured-reasoning` | Planning, plan review, architecture decisions, debugging | — |
+| `l9-skill-compiler` | Compile kernels/SOPs into zero-stub skill packs | — |
+| `l9-wire-skill-into-repo` | Register skills after create/compile | — |
+| `l9-create-skill` | Author new skills (chains l9-wire-skill-into-repo) | — |
+| `l9-update-agent-docs` | Refresh AGENTS.md / ARCHITECTURE.md / INVARIANTS.md / CLAUDE.md | — |
+| `l9-gmp-protocol` | Deterministic phased (0–6) repo changes with modification lock + signed evidence report | `pr-check` |
+| `plasticos-new-odoo-module` | Scaffolding a new `plasticos_*` module | `wiring`, `pr-check` |
+| `plasticos-new-model-field` | Adding fields or models to existing modules | `wiring`, `pr-check` |
+| `plasticos-xml-view` | Creating or modifying Odoo XML views | `odoo19-check`, `xml-check` |
+| `plasticos-odoo-sh-deploy` | Odoo.sh production errors — SSH diagnose before fix | `logs`, `update`, `test-module` |
+| `plasticos-static-audit-kernel` | Broad static audit / evidence report | `audit`, `audit-quick` |
+| `plasticos-pr-review-kernel` | `PR_REVIEW_MODE`, `REVIEW PR #N` | `pr-check`, `audit` |
+| `plasticos-repo-review-kernel` | Repo-wide readiness / pack review | `audit`, `wiring` |
+| `plasticos-final-touches` | `FINAL_TOUCHES_MODE` | `audit` + `pr-check` |
 
 | Subagent | Preloaded skills | Delegate for |
 |----------|------------------|--------------|
-| `plasticos-code-reviewer` | `structured-reasoning` | PR review, invariant compliance |
-| `module-auditor` | `structured-reasoning`, `new-odoo-module`, `new-model-field` | Module structure/wiring audit |
+| `plasticos-code-reviewer` | `l9-structured-reasoning`, `plasticos-pr-review-kernel` | PR review, invariant compliance |
+| `module-auditor` | `l9-structured-reasoning`, `plasticos-new-odoo-module`, `plasticos-new-model-field` | Module audit — attach `plasticos-repo-review-kernel` or `plasticos-static-audit-kernel` |
 
 ## Project Structure
 
@@ -126,6 +142,7 @@ tools/                       # Cron checks, validators
 - Merge `Staging` → `Production` for production — never merge feature branches directly to `Production`
 - Branch naming: `feat/short-description`, `fix/short-description`, `docs/short-description`, `refactor/short-description`, `test/short-description`
 - Commit messages: conventional commits with optional module scope — `feat(module): ...`, `fix(views): ...`, `docs: ...`, `refactor(intake): ...`, `test(integration): ...`
+- **`make commit` / `make push` omit `.cursor-commands`** — local symlink to Dropbox governance SSOT; that tree is pushed from a separate repo, never from IB-Odoo_19
 - PRs require passing CI: ruff + XML validation + Odoo pattern checks + secret scan (gitleaks)
 
 ## CI Compliance Checklist (MANDATORY before commit/PR)
