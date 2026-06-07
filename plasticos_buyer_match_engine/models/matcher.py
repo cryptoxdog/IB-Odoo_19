@@ -38,6 +38,50 @@ class BuyerMatcher(models.Model):
         return not matching_engine_is_enabled(self.env) or matching_engine_is_stubbed(self.env)
 
     @api.model
+    def _should_try_gate_matching(self):
+        """Return True when Gate URL is configured and SDK is available."""
+        from odoo.addons.plasticos_gate.services.gate_config import gate_matching_enabled
+
+        return gate_matching_enabled(self.env)
+
+    @api.model
+    def _find_matches_via_gate(self, supplier_partner_id, intake_id=None, max_results=20, mode="strict"):
+        """Route match request through Constellation Gate (CEG worker)."""
+        from odoo.addons.plasticos_gate.services.gate_builders import build_match_request
+        from odoo.addons.plasticos_gate.services.gate_client import send_match_action
+        from odoo.addons.plasticos_gate.services.gate_mappers import (
+            extract_audit_metadata,
+            map_match_response,
+            map_match_response_to_matcher_dicts,
+        )
+
+        supplier = self.env["res.partner"].browse(supplier_partner_id)
+        if not supplier.exists():
+            raise ValidationError(_("Supplier partner %s not found") % supplier_partner_id)
+
+        intake = None
+        if intake_id:
+            intake = self.env["plasticos.intake"].browse(intake_id)
+            if not intake.exists() or intake.partner_id.id != supplier_partner_id:
+                raise ValidationError(_("Intake %s not found or doesn't match supplier") % intake_id)
+
+        if intake and intake.exists():
+            request = build_match_request(self.env, intake=intake, top_n=max_results, mode=mode)
+        else:
+            request = build_match_request(self.env, supplier=supplier, top_n=max_results, mode=mode)
+
+        correlation_id = request.odoo.get("correlation_id") if request.odoo else None
+        gate_result = send_match_action(
+            self.env,
+            payload=request.to_dict(),
+            correlation_id=correlation_id,
+        )
+        mapped = map_match_response(gate_result["payload"])
+        audit = extract_audit_metadata(gate_result["packet"])
+        matches = map_match_response_to_matcher_dicts(mapped, audit_metadata=audit)
+        return matches[:max_results]
+
+    @api.model
     def find_matches_for_supplier(self, supplier_partner_id, intake_id=None, max_results=20, mode="strict"):
         """
         Find buyer matches for a supplier based on material requirements.
@@ -50,18 +94,6 @@ class BuyerMatcher(models.Model):
 
         Returns:
             list[dict]: Match results with buyer info and scores, sorted by score descending
-            [
-                {
-                    'buyer_id': 123,
-                    'buyer_name': 'Acme Recycling',
-                    'total_score': 0.85,
-                    'gates_passed': 8,
-                    'gates_failed': ['gate_3', 'gate_7'],
-                    'match_details': {...},  # From graph service
-                    'facility_profile_id': 456
-                },
-                ...
-            ]
         """
         if self._matching_stub_enabled():
             _logger.warning(
@@ -71,6 +103,31 @@ class BuyerMatcher(models.Model):
             )
             return []
 
+        if self._should_try_gate_matching():
+            try:
+                return self._find_matches_via_gate(
+                    supplier_partner_id,
+                    intake_id=intake_id,
+                    max_results=max_results,
+                    mode=mode,
+                )
+            except Exception as exc:
+                _logger.warning(
+                    "Gate match failed; falling back to local matcher: %s",
+                    exc,
+                    exc_info=True,
+                )
+
+        return self._find_matches_local(
+            supplier_partner_id,
+            intake_id=intake_id,
+            max_results=max_results,
+            mode=mode,
+        )
+
+    @api.model
+    def _find_matches_local(self, supplier_partner_id, intake_id=None, max_results=20, mode="strict"):
+        """Local Stage-1 gates + Neo4j scoring (pre-Gate fallback path)."""
         # Validate supplier exists and has intake data
         supplier = self.env["res.partner"].browse(supplier_partner_id)
         if not supplier.exists():
