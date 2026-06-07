@@ -5,7 +5,8 @@ alwaysApply: false
 ---
 
 # PlasticOS Odoo Deploy Validation Kernel
-# Source: docs/plasticos_kernel_pack_v1_2026_05_26/revised_odoo_deploy_validation_kernel.md
+
+**Authority:** Invoke with `DEPLOY_VALIDATION_MODE` · `make update m=X` · `make pr-check` before deploy.
 
 ## Purpose
 

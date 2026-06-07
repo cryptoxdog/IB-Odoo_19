@@ -1,0 +1,13 @@
+---
+description: FastAPI/microservices template — not applicable to plasticos_* Odoo addons in this repo. Retained for reference only.
+alwaysApply: false
+globs: []
+---
+
+# FastAPI / Microservices — Not In Scope (PlasticOS)
+
+This repo is an **Odoo 19 addon suite** — no FastAPI services. Do not apply microservices/serverless guidance to `plasticos_*` work.
+
+**When editing external libraries:** use overlay `02-context7-auto-invoke` + `l9-context7-docs` skill.
+
+**When editing L9 pure-Python services** (other repos): global `20-lang-python.mdc` applies.

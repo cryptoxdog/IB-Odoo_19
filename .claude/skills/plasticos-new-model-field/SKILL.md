@@ -4,51 +4,65 @@ description: add a new field or model to an existing plasticos module. use when 
 skill_schema: 1
 layer: control_plane
 role: skill_entrypoint
-tags: [odoo, field, model, plasticos]
+tags: [plasticos, odoo, field, model, acl, views]
 owner: igor_beylin
 status: active
-version: 1.0.0
-updated: 2026-06-04
+version: 1.1.0
+updated: 2026-06-06
 ---
 
 # New Model / Field
 
-## Adding a Field to Existing Model
+## Purpose
 
-1. Open the model file in `plasticos_{module}/models/`
-2. Add field following this pattern:
-   ```python
-   new_field = fields.{Type}(
-       string="Human Label",
-       help="Explain what this field stores and how it's used.",
-       tracking=True,  # for business-relevant fields
-       index=True,     # for fields used in search/filter
-   )
-   ```
-3. If the field is a `Many2one`, add:
-   - Model string constant at top: `TARGET_MODEL = "plasticos.target"`
-   - `domain=` for filtering
-   - `ondelete="restrict"` or `"cascade"` explicitly
-4. If the field is a `Selection`, define choices as module-level constant
-5. If `compute=`, declare `@api.depends()` with all actual dependencies
-6. Update views in `views/` to display the new field
-7. Update `security/ir.model.access.csv` if new model
-8. Write a test in `tests/` verifying the field behavior
-9. Run `pre-commit run --all-files`
+Add a field or model to an existing `plasticos_*` module with correct Odoo 19 ORM patterns, manifest deps, ACL, views, and tests.
 
-## Adding a New Model
+## Core Contract
 
-1. Create model file in `plasticos_{module}/models/{model_name}.py`
-2. Import in `models/__init__.py`
-3. Follow naming: `_name = "plasticos.{model_name}"`
-4. Add `_description`, inherit `mail.thread` for business models
-5. Create `security/ir.model.access.csv` entry
-6. Create views (form + tree + search minimum)
-7. Add menu item in `views/menu.xml`
-8. Write tests
+| Operation | Required artifacts |
+|-----------|-------------------|
+| New field on existing model | Field declaration, view update, test, `pre-commit` |
+| New model in existing module | Model file, `__init__.py` import, ACL, views, menu, test |
+| Many2one | Model constant, `domain=`, `ondelete=` explicit |
+| Selection | Inline list or same-file constant (phantom-enum CI) |
+| Compute | `@api.depends()` with all real deps; never `@api.depends("id")` |
 
-## Computed Field Rules
-- `@api.depends()` must list ALL actual field dependencies
-- ❌ Never use `@api.depends("id")` — crashes in Odoo 19
-- Use `store=True` for fields used in search/sort/group
-- Run: `python3 ci/check_field_integrity.py`
+## Authority Order
+
+1. Explicit user request (model, module, field spec).
+2. `INVARIANTS.md` — `_name` literal, Many2one `ondelete`, no `_sql_constraints`.
+3. `AGENTS.md` — CI Compliance Checklist (new model/field/file rules).
+4. `.cursor/rules/82-ci-module-wiring.mdc`, `83-ci-phantom-enum.mdc`, `71-plasticos-security-model.mdc`.
+5. This skill's references.
+6. `Unknown` — stop if comodel module or layer boundary is unclear.
+
+## Compact Workflow
+
+1. Read target model file and full ACL CSV before editing.
+2. Apply patterns from [field-patterns.md](references/field-patterns.md).
+3. Wire views, manifest deps, and ACL per [new-model-checklist.md](references/new-model-checklist.md).
+4. Write at least one test; run validation commands.
+
+## Resource Map
+
+- [references/field-patterns.md](references/field-patterns.md) — field, Many2one, Selection, compute patterns.
+- [references/new-model-checklist.md](references/new-model-checklist.md) — new model wiring, ACL, views, validation commands.
+
+## Validation
+
+Before declaring complete:
+
+```bash
+python3 ci/check_field_integrity.py
+python3 scripts/check_module_wiring.py
+pre-commit run --all-files
+```
+
+New models MUST have ACL rows in the same module. Cross-module `comodel_name` MUST appear in `__manifest__.py` `depends`.
+
+## Failure Handling
+
+- ACL CSV edit without reading current file → STOP; `cat` full CSV first per master context.
+- Phantom enum CI failure → add inline Selection constant or GLOBAL_ALLOWLIST entry; do not skip test.
+- Cross-layer Many2one prohibited → use `Integer` FK per wiring rule 82.
+- Missing manifest dep → add to `depends` before import; re-run wiring check.

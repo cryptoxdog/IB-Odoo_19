@@ -5,7 +5,8 @@ alwaysApply: false
 ---
 
 # PlasticOS XML Data & Cron Rules
-# Source: .claude/rules/xml-views.md
+
+**Authority:** `.claude/rules/xml-views.md` (pointer) · `84-ci-odoo19-patterns.mdc` for view XML.
 
 ## Seed Data Rules (Deterministic Seed Doctrine)
 

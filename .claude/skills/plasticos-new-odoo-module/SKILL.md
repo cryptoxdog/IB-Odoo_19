@@ -4,53 +4,64 @@ description: create a new plasticos odoo 19 module with proper structure, manife
 skill_schema: 1
 layer: control_plane
 role: skill_entrypoint
-tags: [odoo, module, scaffold, plasticos]
+tags: [plasticos, odoo, module, scaffold, layer, manifest]
 owner: igor_beylin
 status: active
-version: 1.0.0
-updated: 2026-06-04
+version: 1.1.0
+updated: 2026-06-06
 ---
 
 # New Odoo Module
 
-## Steps
+## Purpose
 
-1. **Determine the layer** (1–5) this module belongs to per ARCHITECTURE.md
-2. **Create directory**: `plasticos_{name}/`
-3. **Create `__manifest__.py`**:
-   - `name`: "PlasticOS {Name}"
-   - `version`: "19.0.1.0.0"
-   - `license`: "LGPL-3"
-   - `author`: "Igor Beylin"
-   - `category`: "PlasticOS"
-   - `depends`: list all required modules (check layer — never depend on higher layers)
-   - `data`: list all XML/CSV data files
-   - `installable`: True (False for dev-only)
-4. **Create `__init__.py`** with `from . import models`
-5. **Create `models/__init__.py`** importing all model files
-6. **Create model files** in `models/` following patterns:
-   - Model string constants at top: `RES_PARTNER = "res.partner"`
-   - `_name = "plasticos.{model_name}"`
-   - `_description` required
-   - `_inherit = ["mail.thread"]` for business models
-   - Fields with `help=`, `tracking=True`, `index=True` where appropriate
-7. **Create `security/ir.model.access.csv`** with ACL for all groups
-8. **Create `views/` directory** with form/tree/search views
-9. **Create `data/` directory** for seed data XML (noupdate="1", external IDs)
-10. **Update `config/odoo_module_order.yaml`** with install position
-11. **Run checks**:
-    ```bash
-    python3 scripts/check_module_wiring.py
-    python3 ci/check_circular_deps.py
-    pre-commit run --all-files
-    ```
+Scaffold a new `plasticos_*` Odoo 19 addon with correct layer placement, manifest contract, ACL, views, seed data, and install order.
 
-## Checklist
-- [ ] Module name uses `plasticos_` prefix
-- [ ] Model names use `plasticos.` prefix
-- [ ] External IDs use `plasticos_{module}.` prefix
-- [ ] `__manifest__.py` dependencies declared
-- [ ] `security/ir.model.access.csv` exists
-- [ ] No deprecated Odoo patterns
-- [ ] Module wiring check passes
-- [ ] Circular dependency check passes
+## Core Contract
+
+| Artifact | Requirement |
+|----------|-------------|
+| Directory | `plasticos_{name}/` with non-empty root `__init__.py` |
+| Manifest | Version `19.0.X.Y.Z`, layer-correct `depends`, all data files listed |
+| Models | `_name` literal, string constants, `Plasticos*` class prefix |
+| Security | `ir.model.access.csv` for every new model |
+| Install order | Entry in `config/odoo_module_order.yaml` |
+
+## Authority Order
+
+1. Explicit user approval — new modules affect dependency graph (master context: ask before creating).
+2. `ARCHITECTURE.md` — layer 1–5 placement and dependency direction.
+3. `INVARIANTS.md` — no circular deps, deterministic seed doctrine.
+4. `AGENTS.md` — new Python file, new model, manifest CI rules.
+5. `.cursor/rules/81-ci-manifest-contract.mdc`, `82-ci-module-wiring.mdc`.
+6. This skill's references.
+7. `Unknown` — stop if layer or depends list cannot be verified.
+
+## Compact Workflow
+
+1. Determine layer per [layer-depends.md](references/layer-depends.md).
+2. Scaffold per [scaffold-checklist.md](references/scaffold-checklist.md).
+3. Run wiring and circular-dep checks.
+4. Register in `config/odoo_module_order.yaml`.
+
+## Resource Map
+
+- [references/scaffold-checklist.md](references/scaffold-checklist.md) — directory layout, manifest, models, security, views, data.
+- [references/layer-depends.md](references/layer-depends.md) — layer map and dependency rules.
+
+## Validation
+
+```bash
+python3 scripts/check_module_wiring.py
+python3 ci/check_circular_deps.py
+pre-commit run --all-files
+```
+
+All checklist items in scaffold-checklist MUST be satisfied before declaring complete.
+
+## Failure Handling
+
+- Circular dependency detected → revise `depends` or defer module; do not merge with cycle.
+- Cross-layer import → use Integer FK or move model to correct layer.
+- Missing ACL → add before any model merge; CI blocks registry load.
+- User has not approved new module → STOP at step 1.

@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Odoo 19 Patterns — PlasticOS
 
-Enforced by `ci/check_odoo19_xml.py`, `ci/check_odoo19_hooks.py`, `scripts/check_odoo_patterns.sh`.
+**Authority:** `AGENTS.md` § Odoo 19 patterns that CI rejects · enforced by `ci/check_odoo19_xml.py`, `ci/check_odoo19_hooks.py`, `scripts/check_odoo_patterns.sh`.
 
 ## XML View Patterns (check_odoo19_xml.py)
 

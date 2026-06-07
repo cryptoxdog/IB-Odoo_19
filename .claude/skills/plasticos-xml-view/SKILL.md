@@ -4,66 +4,63 @@ description: create or modify odoo 19 xml views following plasticos conventions.
 skill_schema: 1
 layer: control_plane
 role: skill_entrypoint
-tags: [odoo, xml, views, plasticos]
+tags: [plasticos, odoo, xml, views, xpath, odoo19]
 owner: igor_beylin
 status: active
-version: 1.0.0
-updated: 2026-06-04
+version: 1.1.0
+updated: 2026-06-06
 ---
 
 # XML View Development
 
-## Creating a New View
+## Purpose
 
-1. Create file in `plasticos_{module}/views/{model}_views.xml`
-2. Add to `__manifest__.py` `data` list
-3. Include form, tree, and search views:
+Create or extend Odoo 19 XML views in `plasticos_*` modules with CI-compliant patterns — list not tree, direct attributes not attrs, stable XPath anchors.
 
-```xml
-<odoo>
-  <!-- Tree View -->
-  <record id="plasticos_{module}.{model}_tree" model="ir.ui.view">
-    <field name="name">plasticos.{model}.tree</field>
-    <field name="model">plasticos.{model}</field>
-    <field name="arch" type="xml">
-      <list>
-        <field name="name"/>
-        <field name="state" widget="badge"
-               decoration-info="state == 'draft'"
-               decoration-success="state == 'active'"/>
-      </list>
-    </field>
-  </record>
+## Core Contract
 
-  <!-- Form View -->
-  <record id="plasticos_{module}.{model}_form" model="ir.ui.view">
-    <field name="name">plasticos.{model}.form</field>
-    <field name="model">plasticos.{model}</field>
-    <field name="arch" type="xml">
-      <form>
-        <header>
-          <field name="state" widget="statusbar"/>
-        </header>
-        <sheet>
-          <group>
-            <field name="name"/>
-          </group>
-        </sheet>
-        <chatter/>
-      </form>
-    </field>
-  </record>
-</odoo>
-```
+| Element | Rule |
+|---------|------|
+| List views | `<list>` not `<tree>` |
+| Search | No `string=` on `<search>` or search `<group>` |
+| Visibility | `invisible=` / `readonly=` / `required=` — never `attrs=` or `states=` |
+| XPath | Field-name anchors; run xpath stability check |
+| Manifest | Every view XML listed in `__manifest__.py` `data` |
 
-## Extending Existing Views (XPath)
+## Authority Order
 
-- Target stable anchors (field names, not positions)
-- ✅ `<xpath expr="//field[@name='partner_id']" position="after">`
-- ❌ `<xpath expr="//group[2]/field[3]" position="replace">` (fragile)
-- Prefer `position="after"` or `position="inside"` over `position="replace"`
-- Run: `python3 ci/check_xpath_stability.py`
+1. Explicit user request (model, view type, inheritance target).
+2. `AGENTS.md` — XML CI checklist (24 Odoo pattern checks).
+3. `.cursor/rules/84-ci-odoo19-patterns.mdc`, `75-plasticos-xml-data-rules.mdc`.
+4. Existing views in target module — match naming and external ID prefix.
+5. This skill's references.
+6. `Unknown` — stop if inherit view xml_id cannot be verified.
+
+## Compact Workflow
+
+1. Create or extend view file in `plasticos_{module}/views/`.
+2. Apply patterns from [view-patterns.md](references/view-patterns.md).
+3. Validate against [odoo19-xml-rules.md](references/odoo19-xml-rules.md).
+4. Add to manifest `data`; run CI checks.
+
+## Resource Map
+
+- [references/view-patterns.md](references/view-patterns.md) — form, list, search templates, XPath extension.
+- [references/odoo19-xml-rules.md](references/odoo19-xml-rules.md) — CI-rejected patterns and validation commands.
 
 ## Validation
-- `xmllint --noout` on all XML files (checked in CI)
-- `python3 ci/check_odoo19_xml.py` for Odoo 19 compatibility
+
+```bash
+python3 ci/check_odoo19_xml.py
+python3 ci/check_xpath_stability.py
+pre-commit run check-xml --all-files
+```
+
+All changed XML MUST pass odoo19-check before commit.
+
+## Failure Handling
+
+- `<tree>` in new view → replace with `<list>` before proceeding.
+- Fragile XPath → refactor to `//field[@name='...']` anchor.
+- `attrs=` in diff → convert to direct attributes per Odoo 19 rules.
+- Unescaped `&` in XML → use `&amp;`; CI check #6 blocks merge.

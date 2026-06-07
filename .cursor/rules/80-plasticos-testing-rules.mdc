@@ -5,7 +5,8 @@ alwaysApply: false
 ---
 
 # PlasticOS Testing Rules
-# Source: .claude/rules/testing.md + .cursor/rules/95-plasticos-test-fix-policy.mdc
+
+**Authority:** `AGENTS.md` § Testing · global `95-test-fix-policy.mdc` · `.claude/rules/testing.md` (pointer).
 
 ## Test Catalog (Production branch — flat layout)
 
