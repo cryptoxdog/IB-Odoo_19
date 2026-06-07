@@ -215,16 +215,23 @@ ignore_errors = true  # Uses requests; types-requests in CI
 # =============================================================================
 # PYRIGHT TYPE CHECKING (editor-only; not run in CI/pre-commit)
 # =============================================================================
-# Single source of truth for pyright AND basedpyright: basedpyright reads its own
-# [tool.basedpyright] table first, then falls back to [tool.pyright]. Keeping only
-# this block avoids the two drifting out of sync.
+# SSOT for Pyright/basedpyright policy (mode, reporters, excludes). basedpyright
+# reads [tool.basedpyright] first, then falls back here — keep one block only.
+# Machine-specific Odoo source paths live in .vscode/settings.json (extraPaths),
+# not here. See .cursor/rules/88-plasticos-odoo-python-tooling.mdc.
 [tool.pyright]
 pythonVersion = "3.12"
-typeCheckingMode = "off"
-reportMissingImports = false
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "basic"
+reportMissingImports = "warning"
 reportMissingModuleSource = false
-reportOptionalMemberAccess = false
-reportGeneralTypeIssues = false
+# ORM: self.env["x"], fields, @api.* are dynamically typed — keep Unknown reporters off.
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportUnknownArgumentType = false
+reportOptionalMemberAccess = "warning"
+reportGeneralTypeIssues = "warning"
 exclude = [
     "**/__pycache__",
     ".venv",
@@ -232,6 +239,9 @@ exclude = [
     "addons",
     "tests-odoo",
     "docs",
+    "odoo-enterprise",
+    "current work - ib",
+    "Current Work - IGNORE",
 ]
 
 # =============================================================================

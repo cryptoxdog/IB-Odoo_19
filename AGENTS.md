@@ -51,6 +51,22 @@ python -m pytest tests/contracts/ -v      # Contract tests
 python -m pytest tests/integration/ -v    # Integration tests
 ```
 
+## Tooling SSOT (editor + CI)
+
+This repo is an **Odoo addon suite**, not a pip/uv package. No `[project]` table in `pyproject.toml`.
+
+| Concern | File | Notes |
+|---------|------|-------|
+| Ruff / pytest / mypy / Pyright policy | `pyproject.toml` | Pyright is **editor-only** (`typeCheckingMode = basic`) |
+| Odoo import paths (Pylance) | `.vscode/settings.json` | `${env:HOME}/dev/odoo-19` — clone Odoo 19 CE on each machine |
+| Dev venv | `make venv` + `.envrc` | ruff, pytest, semgrep — Odoo runtime is separate |
+| Runtime deps | `requirements.txt` | Odoo.sh |
+| Dev/CI deps | `requirements-dev.txt` | GitHub Actions Tier 3 |
+
+Cursor overlay: `.cursor/rules/88-plasticos-odoo-python-tooling.mdc`. Global `20-lang-python` applies only to L9 `src/` repos, not PlasticOS.
+
+**Fresh clone runbook:** [docs/LOCAL_DEV_SETUP.md](docs/LOCAL_DEV_SETUP.md)
+
 ## Testing
 
 - Contract tests: `tests/contracts/` — 8 contract test files
@@ -62,16 +78,45 @@ python -m pytest tests/integration/ -v    # Integration tests
 
 ## Agent Skills & Subagents
 
-Skills: L9 globals in `~/.cursor/skills/l9-*/`; project skills in `.claude/skills/`. Full registry: `.claude/README.md`.
+Skills: L9 globals in `~/.cursor/skills/l9-*/`; project skills in `.claude/skills/`. Full registry: `.claude/README.md`. Invocation tiers (which L9 skills auto-invoke vs explicit-only) are defined in `@.cursor-commands/skills/AUTONOMY_MANIFEST.yaml`.
 
 | Skill | When to load | Primary `make` targets |
 |-------|--------------|------------------------|
 | `l9-structured-reasoning` | Planning, plan review, architecture decisions, debugging | — |
 | `l9-skill-compiler` | Compile kernels/SOPs into zero-stub skill packs | — |
 | `l9-wire-skill-into-repo` | Register skills after create/compile | — |
-| `l9-create-skill` | Author new skills (chains l9-wire-skill-into-repo) | — |
 | `l9-update-agent-docs` | Refresh AGENTS.md / ARCHITECTURE.md / INVARIANTS.md / CLAUDE.md | — |
 | `l9-gmp-protocol` | Deterministic phased (0–6) repo changes with modification lock + signed evidence report | `pr-check` |
+| `l9-context7-docs` | Fetch current library/framework/SDK/API docs before coding | — |
+| `l9-plan` | Create an execution plan/spec when scope is unclear | — |
+| `l9-code-analysis` | Explore unfamiliar code, map flows, identify hotspots | — |
+| `l9-gap-analysis` | Assess readiness, missing pieces, % complete vs target | — |
+| `l9-pr-analysis` | Review PRs, merge blockers, review comments | `pr-check` |
+| `l9-ynp` | Synthesize the single highest-leverage next action | — |
+| `l9-code-graph-rag-mcp` | Operate code-graph-rag MCP — indexing, importers, impact analysis, cross-module discovery | — |
+| `l9-api-smoke-testing` | Smoke-test every API route; report 404/500 regressions | — |
+| `l9-architecture-decision-records` | Capture an architecture/design decision as an ADR | — |
+| `l9-auditing-performance` | Profile/optimize bundle, render, query, Core Web Vitals | — |
+| `l9-auditing-security` | Systematic security audit — OWASP Top 10, secrets, insecure patterns | — |
+| `l9-monitoring-terminal-errors` | Watch running processes, fix crashes/stack traces live | — |
+| `l9-prompt-engineering` | Design/improve LLM prompts, system messages, output schemas | — |
+| `l9-incident-response` | Triage/mitigate production incidents; write postmortems | — |
+| `l9-setting-up-ci` | Bootstrap GitHub Actions CI (lint/test/type-check/deploy) | — |
+| `l9-python-tdd-with-uv` | **Explicit** — Python TDD with uv (red-green-refactor) | — |
+| `l9-kubernetes-deploying` | **Explicit** — deploy to Kubernetes (manifests, scaling) | — |
+| `l9-setting-up-terraform` | **Explicit** — bootstrap Terraform IaC (modules, state, CI) | — |
+| `l9-chat-extraction` | **Explicit** — extract learnings and content from chat to memory or structured output | — |
+| `l9-ci-ops` | **Explicit** — CI/CD status, fix failures, list gates, author CI regression policies | — |
+| `l9-code-maintenance` | **Explicit** — lint-fix, migrate, clean/compress, consolidate, refactor-sweep via DAG executors | — |
+| `l9-component-verification` | **Explicit** — component audit, verify, runtime probe escalation ladder | — |
+| `l9-dag-authoring` | **Explicit** — create or update L9 workflow DAGs via dag-authoring-v1 | — |
+| `l9-end-session` | **Explicit** — close session, pickup context, governance backup | — |
+| `l9-forge` | **Explicit** — autonomous high-velocity execution, batch GMP runs | — |
+| `l9-governance-wiring` | **Explicit** — governance symlinks, wire executor, confirm-wiring, SSOT backup | — |
+| `l9-harvest-pipeline` | **Explicit** — harvest extraction and use-harvest deployment pipeline | — |
+| `l9-inspect` | **Explicit** — inspect external code before it enters L9 | — |
+| `l9-repo-index` | **Explicit** — export repo indexes for fast lookup | — |
+| `l9-update-command` | **Explicit** — minimize slash commands to DAG triggers | — |
 | `plasticos-new-odoo-module` | Scaffolding a new `plasticos_*` module | `wiring`, `pr-check` |
 | `plasticos-new-model-field` | Adding fields or models to existing modules | `wiring`, `pr-check` |
 | `plasticos-xml-view` | Creating or modifying Odoo XML views | `odoo19-check`, `xml-check` |

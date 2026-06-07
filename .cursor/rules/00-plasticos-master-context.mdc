@@ -8,7 +8,7 @@ alwaysApply: true
 **Project:** PlasticOS IB-Odoo_19 — recycled-plastics brokerage ERP, 29 custom modules.
 **Status:** DEPLOYED. Final optimization / go-live phase. No new features without explicit approval.
 **Repo:** `cryptoxdog/IB-Odoo_19` | **Staging** = dev branch | **Production** = prod/main
-**Live repo path:** `/Users/macm2/IB_Odoo-19 (MacMini)/IB-Odoo_19` — use this for ALL shell commands. Repo was moved out of Dropbox; the old Dropbox path is stale.
+**Shell cwd:** Use the Cursor workspace root (`$CURSOR_PROJECT_DIR` or repo clone path on the active machine). Repo was moved out of Dropbox — do not assume a machine-specific absolute path.
 
 **Cursor governance:** `@.cursor/governance/CANONICAL_LAW.md` — global commands/skills/rules via `@.cursor-commands/` only; repo `.cursor/rules/` is PlasticOS overlay only.
 
@@ -47,7 +47,7 @@ Before writing any code or making any change, identify your task and consult the
 - **`50-plasticos-web-lead-guard`** — Read this ENTIRE rule first. Do not touch write/unlink guards, partner-deferral block, or `_find_or_create_partner()`. Run web lead tests before and after.
 
 ### Pushing code to remote
-- **`70-github-push-workflow`** — `make push` always. API only after `make pr-check` passes and `git push` fails (Dropbox mmap). Never skip pre-commit hooks.
+- **`70-github-api-commit`** — `make push` always (`make pr-check` first). API only after `make api-push-check` when `git push` fails. Global `01-git-push-prohibition` + `96-git-push-approval` govern commit/push approval.
 
 ### Reviewing or creating a PR
 - **`plasticos-pr-review-kernel`** — Hard reject conditions, base branch verification, migration assessment.
@@ -63,11 +63,21 @@ Before writing any code or making any change, identify your task and consult the
 ### Writing or running tests
 - **`80-plasticos-testing-rules`** — `TransactionCase`, `setUpClass` fixtures (never `skipTest`), `type='consu'` for storable in Odoo 19.
 
+### Python editor tooling / pyproject / Pyright / autocomplete
+- **`88-plasticos-odoo-python-tooling`** — Pyright `basic` (editor-only), pyproject SSOT, `~/dev/odoo-19` extraPaths in `.vscode/settings.json`. Global `20-lang-python` does **not** apply here.
+
 ### Deploying to Docker / running `make update`
 - **`30-plasticos-deploy-validation`** — Pre-deploy snapshot, log validation, ICP params check, pipeline_v2 guard.
 
 ### Final pre-go-live pass
 - **`plasticos-final-touches`** — All 10 gates in sequence. `make pr-check` must pass last.
+
+### External libraries / platforms (FastAPI, Neo4j, pytest, GitHub Actions, new tools)
+- **`02-context7-auto-invoke`** — Context7 MCP before first edit; repo Odoo rules still win when both apply.
+
+### Code navigation / cross-module wiring / MCP code-graph
+- **`87-plasticos-code-graph-rag`** — grep first; graph for importers, impact, unknown cross-module location only.
+- Load **`l9-code-graph-rag-mcp`** (`@.cursor-commands/skills/l9-code-graph-rag-mcp/`) for tool gate and CLI indexing.
 
 ---
 
