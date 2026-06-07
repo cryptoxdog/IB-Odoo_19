@@ -21,6 +21,7 @@
     "depends": [
         "base_setup",
         "plasticos_base",
+        "plasticos_gate",
         "plasticos_security_base",
         "plasticos_intake",
         "plasticos_material_profile",

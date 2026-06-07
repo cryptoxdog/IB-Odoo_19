@@ -12,6 +12,9 @@ requests>=2.28.0
 # Required for plasticos_buyer_match_engine Neo4j graph traversal
 neo4j>=5.0.0
 
+# Constellation Gate TransportPacket client (plasticos_gate)
+constellation-node-sdk @ git+https://github.com/cryptoxdog/Gate_SDK.git@ab9df5f15c1ba433c3f072a1ca01052584682758
+
 # PR Repair engine — pr_repair_adapter.py uses this for state-machine-governed
 # CI repair loop (Issue→Finding conversion, approval gates, repeated-failure guard).
 # Pinned to a specific commit SHA for reproducible builds.
