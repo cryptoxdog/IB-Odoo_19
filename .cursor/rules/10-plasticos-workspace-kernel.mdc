@@ -8,13 +8,11 @@ alwaysApply: false
 # Kernel ID: plasticos.workspace.odoo19.git_max.v4
 # Source: docs/plasticos_prompt_pack_v1_2026_05_26/03_workspace_kernel.md
 
-## ⚠️ LIVE REPO PATH — Always Use This
+## Shell Working Directory
 
-```
-REPO_PATH = /Users/macm2/Dropbox/Repo_Dropbox_IB/IB-Odoo_19
-```
+Use the **Cursor workspace root** (`$CURSOR_PROJECT_DIR` or the active clone path). Do not hardcode machine-specific absolute paths. GitHub (`cryptoxdog/IB-Odoo_19`) is source of truth — not Dropbox sync paths.
 
-**NEVER** use `/Users/macm2/Library/CloudStorage/Dropbox/Repo_Dropbox_IB/IB-Odoo_19` — that path is a Dropbox CloudStorage symlink mount that is `.cursorignore`d and may be stale. All `cat`, `git`, `python3`, and shell commands MUST use the path above.
+**Authority:** `97-governance-ssot-paths.mdc` · `00-plasticos-master-context.mdc`
 
 ## Execution Mode
 

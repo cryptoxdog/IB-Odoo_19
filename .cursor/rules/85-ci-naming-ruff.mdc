@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Naming Conventions & Ruff Rules — PlasticOS
 
-Enforced by `ruff check` + `ruff format` (pre-commit + CI Gate Tier 1). Config in `pyproject.toml`.
+**Authority:** `AGENTS.md` § Ruff Configuration · `pyproject.toml` `[tool.ruff]` · enforced by `ruff check` + `ruff format` (pre-commit + CI Tier 1).
 
 ## Ruff Rules Active (select = E, W, F, I, B, UP, C90)
 

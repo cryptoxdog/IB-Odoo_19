@@ -21,9 +21,9 @@ Use **`make commit`** separately to stage and commit (omits `.cursor-commands` �
 
 ---
 
-## GitHub API — Last Resort Only (Dropbox mmap failure)
+## GitHub API — Last Resort Only (git transport failure)
 
-The repo lives inside Dropbox. When `git push` itself fails with `mmap failed: Operation timed out` or SIGBUS (signal 10), use the API as a last resort to push commits that are already written and validated.
+When `git push` fails with `mmap failed: Operation timed out`, SIGBUS (signal 10), or index.lock/mmap errors (common when `.git/` lived in Dropbox sync), use the API as a last resort to push commits that are already written and validated.
 
 **Mandatory before any API push: `make api-push-check` must pass first.**
 
@@ -83,13 +83,9 @@ print("OK:", result["commit"]["sha"][:8])
 
 ## Permanent Fix
 
-Move the repo out of Dropbox — the git object store should never live inside Dropbox:
+Keep the git object store **outside** cloud-sync folders (Dropbox, iCloud). Clone to a local dev path (e.g. `~/dev/IB-Odoo_19`). GitHub is the source of truth — never rely on Dropbox sync of `.git/`.
 
-```bash
-mv "/Users/macm2/Library/CloudStorage/Dropbox/Repo_Dropbox_IB/IB-Odoo_19" ~/dev/IB-Odoo_19
-```
-
-GitHub is the source of truth. Dropbox sync of `.git/` is redundant and harmful.
+**Authority:** Global `97-governance-ssot-paths.mdc` — no `/Users/<user>/` paths in rules or scripts.
 
 ---
 

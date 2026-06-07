@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Context7 Auto-Invoke (External Docs)
 
+**Authority:** Global `22-context7-auto-invoke.mdc` · this overlay adds PlasticOS skip/precedence below.
+
 **MCP server:** `user-Context7` · **Skill:** `@.cursor-commands/skills/l9-context7-docs/`
 
 ## Mandatory — call Context7 before first implementation

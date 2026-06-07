@@ -46,6 +46,18 @@ Personal skills — available in all repos via `~/.cursor/skills/`.
 | **l9-python-tdd-with-uv** | `@.cursor-commands/skills/l9-python-tdd-with-uv/` | **Explicit** — Python TDD with uv (red-green-refactor) |
 | **l9-kubernetes-deploying** | `@.cursor-commands/skills/l9-kubernetes-deploying/` | **Explicit** — deploy to Kubernetes (manifests, scaling) |
 | **l9-setting-up-terraform** | `@.cursor-commands/skills/l9-setting-up-terraform/` | **Explicit** — bootstrap Terraform IaC (modules, state, CI) |
+| **l9-chat-extraction** | `@.cursor-commands/skills/l9-chat-extraction/` | **Explicit** — extract learnings from chat to memory or structured output |
+| **l9-ci-ops** | `@.cursor-commands/skills/l9-ci-ops/` | **Explicit** — CI/CD status, fix failures, gates, CI policy authoring |
+| **l9-code-maintenance** | `@.cursor-commands/skills/l9-code-maintenance/` | **Explicit** — lint-fix, migrate, refactor-sweep via DAG executors |
+| **l9-component-verification** | `@.cursor-commands/skills/l9-component-verification/` | **Explicit** — component audit, verify, runtime probe |
+| **l9-dag-authoring** | `@.cursor-commands/skills/l9-dag-authoring/` | **Explicit** — create or update L9 workflow DAGs |
+| **l9-end-session** | `@.cursor-commands/skills/l9-end-session/` | **Explicit** — session close, pickup context, governance backup |
+| **l9-forge** | `@.cursor-commands/skills/l9-forge/` | **Explicit** — autonomous high-velocity execution |
+| **l9-governance-wiring** | `@.cursor-commands/skills/l9-governance-wiring/` | **Explicit** — governance symlinks, wire executor, SSOT backup |
+| **l9-harvest-pipeline** | `@.cursor-commands/skills/l9-harvest-pipeline/` | **Explicit** — harvest extraction and deployment pipeline |
+| **l9-inspect** | `@.cursor-commands/skills/l9-inspect/` | **Explicit** — external code gate and file audit |
+| **l9-repo-index** | `@.cursor-commands/skills/l9-repo-index/` | **Explicit** — export repo indexes for fast lookup |
+| **l9-update-command** | `@.cursor-commands/skills/l9-update-command/` | **Explicit** — minimize slash commands to DAG triggers |
 
 ## Project Skills
 

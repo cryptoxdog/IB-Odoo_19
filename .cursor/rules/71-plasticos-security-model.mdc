@@ -5,7 +5,8 @@ alwaysApply: false
 ---
 
 # PlasticOS Security Model
-# Source: .claude/rules/security.md
+
+**Authority:** `INVARIANTS.md` § Security · `.claude/rules/security.md` (pointer).
 
 ## ⚠️ MANDATORY PRE-FLIGHT — Run Before Adding ANY ACL Row
 

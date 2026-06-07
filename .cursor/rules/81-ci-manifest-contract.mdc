@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Manifest Contract — PlasticOS
 
-Enforced by `tests/test_repo_dependency_integrity.py::TestModuleManifest` and `TestDependencyIntegrity`.
+**Authority:** `AGENTS.md` § When you modify `__manifest__.py` · enforced by `tests/test_repo_dependency_integrity.py`.
 
 ## Version Format
 
@@ -85,7 +85,7 @@ The `depends` list must only contain **known** modules — either Odoo core addo
 Manifests are Python dicts. Ruff enforces formatting — always run `ruff format` after editing a manifest:
 
 ```bash
-ruff format plasticos_*/manifest__.py
+ruff format plasticos_*/__manifest__.py
 ```
 
 Common issues:
