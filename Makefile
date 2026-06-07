@@ -46,15 +46,6 @@ RUFF := $(shell [ -x .venv/bin/ruff ] && echo .venv/bin/ruff || echo ruff)
 # Symlinked governance tree — lives in Dropbox / separate repo; never commit or push from here.
 COMMIT_EXCLUDE := .cursor-commands
 
-# Modules excluded from ruff (pre-existing violations / external scope)
-RUFF_EXCLUDES = \
-	--exclude plasticos_inference_engine \
-	--exclude plasticos_buyer_match_engine \
-	--exclude plasticos_matching \
-	--exclude .semgrep/tests \
-	--exclude "current work - ib" \
-	--exclude "Current Work - IGNORE"
-
 # ─────────────────────────────────────────────────────────────────────────────
 # HELP
 # ─────────────────────────────────────────────────────────────────────────────
@@ -161,13 +152,13 @@ venv:
 	@echo "→ Activate automatically with direnv (direnv allow), or: source $(VENV)/bin/activate"
 
 lint:
-	$(RUFF) check . $(RUFF_EXCLUDES)
+	$(RUFF) check .
 
 format:
-	$(RUFF) format --check . $(RUFF_EXCLUDES)
+	$(RUFF) format --check .
 
 format-fix:
-	$(RUFF) format . $(RUFF_EXCLUDES)
+	$(RUFF) format .
 
 check: lint format
 	@echo "✅ lint + format check passed"

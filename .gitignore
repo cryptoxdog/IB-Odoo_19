@@ -33,6 +33,12 @@ current work - ib/
 # Governance commands/skills — symlink to Dropbox SSOT; pushed via separate repo, not IB-Odoo_19
 .cursor-commands
 
+# Code-graph RAG MCP local index (regenerate via l9-code-graph-rag-mcp batch_index CLI)
+.code-graph-rag/
+
+# MCP / LLM server runtime logs (local diagnostics only)
+logs_llm/
+
 # ═══════════════════════════════════════════════════════════
 # Generated audit reports
 # ═══════════════════════════════════════════════════════════

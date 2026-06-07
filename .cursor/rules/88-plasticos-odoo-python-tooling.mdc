@@ -1,0 +1,54 @@
+---
+description: Odoo PlasticOS Python editor tooling — Pyright basic (editor-only), pyproject SSOT, no uv/strict CI typing. Supersedes global 20-lang-python for this repo.
+alwaysApply: true
+---
+
+# PlasticOS Odoo Python Tooling
+
+**Authority:** This repo is an Odoo 19 addon suite, not an L9 pure-Python service. Global `20-lang-python` (strict typing, async-first, mypy in CI) does **not** apply here.
+
+## Tooling SSOT
+
+| Concern | Owner | Notes |
+|---------|-------|-------|
+| Ruff lint/format policy | `pyproject.toml` `[tool.ruff]` | CI + pre-commit + `make lint` |
+| Pytest runner | `pyproject.toml` `[tool.pytest.ini_options]` | `make test` / CI Tier 3 |
+| Mypy (pre-commit only) | `pyproject.toml` `[tool.mypy]` | Not a CI gate |
+| Pyright mode/reporters | `pyproject.toml` `[tool.pyright]` | Editor-only; `typeCheckingMode = basic` |
+| Odoo import paths | `.vscode/settings.json` | `${env:HOME}/dev/odoo-19` extraPaths — same layout on every machine |
+| Dev venv | `make venv` + `.envrc` | ruff, pytest, semgrep — **no Odoo in venv** |
+| Runtime pip deps | `requirements.txt` | Odoo.sh installs this |
+| Dev/CI pip deps | `requirements-dev.txt` | Not Odoo.sh |
+
+**Retired:** `pyrightconfig.json` — do not reintroduce; avoids dual Pyright config drift.
+
+## Editor (Pylance / Pyright)
+
+- **Mode:** `basic` — not `off`, not `strict`
+- **Unknown ORM reporters stay off** — `reportUnknownMemberType`, `reportUnknownVariableType`, `reportUnknownArgumentType` = false
+- **Not a CI gate** — never add Pyright to `ci.yml` or blocking pre-commit for PlasticOS
+- **Odoo source on host:** clone CE to `~/dev/odoo-19` on each machine; `.vscode/settings.json` resolves imports via `${env:HOME}`
+- **Onboarding doc:** `docs/LOCAL_DEV_SETUP.md` — run after every fresh clone
+
+## Logging and strings
+
+- **No f-strings in `_logger.*`** — use lazy `%s` args (ruff `LOG` family)
+- **No f-string SQL/Cypher** — use parameterized queries / `sanitize_label()` patterns
+- F-strings elsewhere are fine
+
+## Correctness authority
+
+```
+plasticos_* models  → Odoo runtime tests (make test-odoo / Odoo.sh), not Pyright strict
+ci/ scripts/ tools/ → ruff + pure pytest tier
+```
+
+## Non-goals (do not port from L9 Frontier pack)
+
+- No `[project]` / `uv.lock` / `uv sync` in this repo
+- No `typeCheckingMode = strict` or Pyright CI gate
+- No `make type` as a merge blocker unless explicitly scoped advisory only
+
+## When editing tooling files
+
+Read `pyproject.toml` header + this rule before changing Pyright, ruff, or editor settings. Bump ruff in **three** places together: `pyproject.toml` `required-version`, `.pre-commit-config.yaml`, `.github/workflows/ci.yml`.
