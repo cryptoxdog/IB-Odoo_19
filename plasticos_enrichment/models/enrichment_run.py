@@ -64,6 +64,18 @@ class EnrichmentRun(models.Model):
     profiles_updated = fields.Integer(readonly=True, default=0)
     fields_written = fields.Integer(readonly=True, default=0)
 
+    engine_used = fields.Selection(
+        [("local", "Local"), ("gate", "Gate")],
+        readonly=True,
+        help="Which engine produced this run: local pipeline or Gate converge.",
+    )
+    gate_proposal = fields.Json(
+        readonly=True,
+        help="Gate converge proposal awaiting human review (Phase 1: no auto-writeback).",
+    )
+    gate_packet_id = fields.Char(readonly=True, help="Gate response TransportPacket id for audit.")
+    gate_correlation_id = fields.Char(readonly=True, help="Gate correlation id for traceability.")
+
     @api.depends(
         "extraction_ids.confidence",
         "extraction_ids.is_injectable",
@@ -99,20 +111,89 @@ class EnrichmentRun(models.Model):
 
     # ── Pipeline Actions ───────────────────────────────────────
 
+    @api.model
+    def _should_try_gate_converge(self):
+        """Return True when Gate enrichment (converge) is enabled and SDK is available."""
+        from odoo.addons.plasticos_gate.services.gate_config import gate_enrichment_enabled
+
+        return gate_enrichment_enabled(self.env)
+
+    def _run_gate_converge(self):
+        """Route enrichment through Gate converge (EIE worker).
+
+        Phase 1 contract (ADR-002): store the converge proposal for human review and
+        set state to 'review'. No auto-writeback to partner/profile (that is Phase 2,
+        gated by plasticos.gate.auto_writeback). Returns True on success.
+        """
+        self.ensure_one()
+        from odoo.addons.plasticos_gate.services.gate_builders import build_converge_request
+        from odoo.addons.plasticos_gate.services.gate_client import send_converge_action
+        from odoo.addons.plasticos_gate.services.gate_mappers import (
+            extract_audit_metadata,
+            map_converge_response,
+            partner_writeback_from_converge,
+        )
+
+        request = build_converge_request(self.env, self)
+        result = send_converge_action(
+            self.env,
+            payload=request.to_dict(),
+            correlation_id=request.odoo.get("correlation_id") if request.odoo else None,
+        )
+        resp = map_converge_response(result["payload"])
+        audit = extract_audit_metadata(result["packet"])
+        proposed = partner_writeback_from_converge(resp)
+        self.write(
+            {
+                "engine_used": "gate",
+                "gate_proposal": {
+                    "final_fields": resp.final_fields,
+                    "writeback": resp.writeback,
+                    "proposed_partner_fields": proposed,
+                },
+                "gate_packet_id": audit.get("gate_packet_id"),
+                "gate_correlation_id": audit.get("gate_correlation_id"),
+                "state": "review",
+                "validation_issues": [
+                    "Gate converge proposal awaiting human review (no auto-writeback in Phase 1).",
+                ],
+            }
+        )
+        self.message_post(
+            body=(
+                f"Gate converge proposed {len(proposed)} partner field(s) for review "
+                f"(packet {audit.get('gate_packet_id')})."
+            ),
+            subtype_xmlid="mail.mt_note",
+        )
+        return True
+
     def action_execute(self):
-        """Full pipeline: crawl -> extract -> evaluate.
+        """Full pipeline: try Gate converge -> fall back to local crawl/extract/evaluate.
 
         State transitions (direct writes are intentional - pipeline method):
         - draft -> crawling -> extracting -> validated/review/failed
         """
         self.ensure_one()
+
+        if self._should_try_gate_converge():
+            try:
+                if self._run_gate_converge():
+                    return
+            except Exception as exc:
+                _logger.warning(
+                    "Gate converge failed; falling back to local enrichment: %s",
+                    exc,
+                    exc_info=True,
+                )
+
         svc = self.env["plasticos.enrichment.service"]
 
         if not self.source_ids:
             raise UserError("Add at least one source URL.")
 
         # 1. Crawl
-        self.write({"state": "crawling"})
+        self.write({"state": "crawling", "engine_used": "local"})
         for source in self.source_ids:
             svc.crawl_source(source)
 

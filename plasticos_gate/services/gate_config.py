@@ -32,6 +32,36 @@ def get_matching_action(env) -> str:
     return (icp.get_param("plasticos.gate.matching_action") or "match").strip().lower()
 
 
+def gate_enrichment_enabled(env) -> bool:
+    """Return True when Gate enrichment (converge) should be attempted (never raises).
+
+    Opt-in: defaults OFF (Phase 1 keeps enrichment conservative). Never seeded —
+    set ``plasticos.gate.enrichment_enabled=1`` manually to enable.
+    """
+    icp = env["ir.config_parameter"].sudo()
+    url = (icp.get_param("plasticos.gate.url") or "").strip()
+    if not url.startswith(("http://", "https://")):
+        return False
+    if (icp.get_param("plasticos.gate.enrichment_enabled", "0") or "").strip() not in {
+        "1",
+        "true",
+        "True",
+        "yes",
+        "on",
+    }:
+        return False
+    try:
+        import constellation_node_sdk  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+def get_enrichment_action(env) -> str:
+    icp = env["ir.config_parameter"].sudo()
+    return (icp.get_param("plasticos.gate.enrichment_action") or "converge").strip().lower()
+
+
 def build_gate_client_config(env) -> GateClientConfig:
     """Build SDK config — call only after gate_matching_enabled() passes."""
     from constellation_node_sdk import GateClientConfig

@@ -8,6 +8,7 @@
     "post_init_hook": "post_init_hook",
     "depends": [
         "plasticos_base",
+        "plasticos_gate",
         "base",
         "mail",
         "contacts",

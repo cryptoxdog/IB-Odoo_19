@@ -46,7 +46,7 @@ items:
   phase: 1
   kind: scope_in
   title: 'Optional: Gate `converge` for enrichment (with local fallback)'
-  status: pending
+  status: complete
 - id: ROAD-GATE-014
   domain: gate-autonomy
   phase: 1
