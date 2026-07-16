@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Run transaction import from cieTrade.WksDetail.csv.
+Run transaction import from ERP.WksDetail.csv.
 
 Usage (Odoo shell):
     from plasticos_transaction.scripts.run_transaction_import import run
@@ -22,13 +22,13 @@ def run(env, csv_path: str = None, dry_run: bool = False):
 
     Args:
         env: Odoo environment
-        csv_path: Path to CSV file (defaults to module's cieTrade.WksDetail.csv)
+        csv_path: Path to CSV file (defaults to module's ERP.WksDetail.csv)
         dry_run: If True, validate without committing
     """
     if csv_path is None:
         # Default to the CSV in the module directory
         module_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        csv_path = os.path.join(module_path, "cieTrade.WksDetail.csv")
+        csv_path = os.path.join(module_path, "ERP.WksDetail.csv")
 
     print(f"Importing transactions from: {csv_path}")
     print(f"Dry run: {dry_run}")
