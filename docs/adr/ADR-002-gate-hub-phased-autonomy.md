@@ -91,9 +91,23 @@ Gate does **not** participate in web-lead triage in Phase 1.
 4. `action_send_offers()` remains human-triggered through Phase 2.
 5. Log Gate correlation IDs (`gate_packet_id`, run_id) for match quality auditing.
 
+## Amendment 2026-07-19 (Deciders: Igor Beylin)
+
+**Enrichment converge is live, not review-only.** The original Phase-1 stance kept Gate `converge`
+review-only with auto-writeback deferred (ROAD-GATE-024, `scope_out`). Per operator decision,
+enrichment must be live-activated and testable on sample data, so:
+
+- `plasticos.gate.enrichment_enabled` defaults to **`1`** (converge attempted whenever a Gate URL is set + SDK present).
+- `plasticos.gate.auto_writeback` defaults to **`1`**: converge results are applied to the partner immediately, restricted to the **allowlisted** partner fields (`name, website, city, zip, street, street2, email, phone`), **merge-not-overwrite** (blanks only), with a `plasticos.enrichment.provenance` row per write. ROAD-GATE-024 moves to `scope_in` / `complete`.
+- Setting `plasticos.gate.auto_writeback=0` restores review-only (proposal stored, `state="review"`, no writes).
+- Contract stays **`action="converge"`** (`ConvergeRequest`); EIE must add a matching `converge` handler (see `docs/track_b/03_enrichment_inference_engine.md`).
+
+Unchanged: Gate remains the mandatory hub, local enrichment remains the fallback, and web-lead
+triage stays local in Phase 1 (ROAD-GATE-020/023 still deferred).
+
 ## References
 
-- External repos: [Cognitive.Engine.Graphs](https://github.com/cryptoxdog/Cognitive.Engine.Graphs), Constellation Gate / `constellation_node_sdk`
+- External repos: [Constellation.Gate](https://github.com/Quantum-L9/Constellation.Gate) (hub), [Cognitive.Engine.Graphs](https://github.com/Quantum-L9/Cognitive.Engine.Graphs) (CEG), [Enrichment.Inference.Engine](https://github.com/Quantum-L9/Enrichment.Inference.Engine) (EIE), [Gate_SDK](https://github.com/Quantum-L9/Gate_SDK) / `constellation_node_sdk`
 - In-repo draft pack (not authoritative; subject to ADR-002): `Current Work - IGNORE/Odoo - Deployment Work/Odoo - Gate Integration/`
 - Current matcher seam: `plasticos_buyer_match_engine/models/matcher.py`, `intake_extension.py`
 - Web lead triage (Phase 1 local): `plasticos_web_leads/models/web_lead.py`

@@ -32,29 +32,37 @@ def get_matching_action(env) -> str:
     return (icp.get_param("plasticos.gate.matching_action") or "match").strip().lower()
 
 
+_TRUTHY = {"1", "true", "True", "yes", "on"}
+
+
 def gate_enrichment_enabled(env) -> bool:
     """Return True when Gate enrichment (converge) should be attempted (never raises).
 
-    Opt-in: defaults OFF (Phase 1 keeps enrichment conservative). Never seeded —
-    set ``plasticos.gate.enrichment_enabled=1`` manually to enable.
+    Live by default: enabled whenever a Gate URL is configured and the SDK is present
+    (seeded ``plasticos.gate.enrichment_enabled=1``). Set it to ``0`` to disable.
     """
     icp = env["ir.config_parameter"].sudo()
     url = (icp.get_param("plasticos.gate.url") or "").strip()
     if not url.startswith(("http://", "https://")):
         return False
-    if (icp.get_param("plasticos.gate.enrichment_enabled", "0") or "").strip() not in {
-        "1",
-        "true",
-        "True",
-        "yes",
-        "on",
-    }:
+    if (icp.get_param("plasticos.gate.enrichment_enabled", "1") or "").strip() not in _TRUTHY:
         return False
     try:
         import constellation_node_sdk  # noqa: F401
     except ImportError:
         return False
     return True
+
+
+def gate_auto_writeback_enabled(env) -> bool:
+    """Return True when converge results should be applied live to the partner.
+
+    ON by default: allowlisted fields are backfilled (merge-not-overwrite) with
+    provenance. Set ``plasticos.gate.auto_writeback=0`` to fall back to review-only
+    (proposal stored, state='review', no partner writes).
+    """
+    icp = env["ir.config_parameter"].sudo()
+    return (icp.get_param("plasticos.gate.auto_writeback", "1") or "").strip() in _TRUTHY
 
 
 def get_enrichment_action(env) -> str:

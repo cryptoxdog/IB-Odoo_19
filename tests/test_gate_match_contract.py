@@ -13,7 +13,11 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from plasticos_gate.services.gate_builders import build_converge_request, build_match_request  # noqa: E402
-from plasticos_gate.services.gate_config import gate_enrichment_enabled, gate_matching_enabled  # noqa: E402
+from plasticos_gate.services.gate_config import (  # noqa: E402
+    gate_auto_writeback_enabled,
+    gate_enrichment_enabled,
+    gate_matching_enabled,
+)
 from plasticos_gate.services.gate_mappers import (  # noqa: E402
     extract_audit_metadata,
     map_converge_response,
@@ -205,10 +209,20 @@ def test_gate_enrichment_enabled_false_when_url_empty():
     assert gate_enrichment_enabled(env) is False
 
 
-def test_gate_enrichment_enabled_false_by_default_when_flag_unset():
-    # URL set but enrichment flag unset → opt-in default OFF
-    env = _MockEnv({"plasticos.gate.url": "https://gate.example.com"})
+def test_gate_enrichment_enabled_false_when_flag_off():
+    # Live-by-default, but an explicit "0" disables even with URL set
+    env = _MockEnv({"plasticos.gate.url": "https://gate.example.com", "plasticos.gate.enrichment_enabled": "0"})
     assert gate_enrichment_enabled(env) is False
+
+
+def test_gate_auto_writeback_enabled_default_on():
+    # No param set → live application is the default
+    assert gate_auto_writeback_enabled(_MockEnv()) is True
+
+
+def test_gate_auto_writeback_enabled_off_when_flag_zero():
+    env = _MockEnv({"plasticos.gate.auto_writeback": "0"})
+    assert gate_auto_writeback_enabled(env) is False
 
 
 def test_build_converge_request_maps_partner_snapshot():

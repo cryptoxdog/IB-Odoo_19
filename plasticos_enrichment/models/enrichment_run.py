@@ -71,7 +71,7 @@ class EnrichmentRun(models.Model):
     )
     gate_proposal = fields.Json(
         readonly=True,
-        help="Gate converge proposal awaiting human review (Phase 1: no auto-writeback).",
+        help="Gate converge proposal (final_fields, writeback, proposed_partner_fields) retained for audit.",
     )
     gate_packet_id = fields.Char(readonly=True, help="Gate response TransportPacket id for audit.")
     gate_correlation_id = fields.Char(readonly=True, help="Gate correlation id for traceability.")
@@ -121,13 +121,15 @@ class EnrichmentRun(models.Model):
     def _run_gate_converge(self):
         """Route enrichment through Gate converge (EIE worker).
 
-        Phase 1 contract (ADR-002): store the converge proposal for human review and
-        set state to 'review'. No auto-writeback to partner/profile (that is Phase 2,
-        gated by plasticos.gate.auto_writeback). Returns True on success.
+        Live path (default): apply the converge proposal to the partner immediately
+        (merge-not-overwrite of allowlisted fields, with provenance) and set state to
+        'injected'. When plasticos.gate.auto_writeback=0, store the proposal for human
+        review (state='review') without writing. Returns True on success.
         """
         self.ensure_one()
         from odoo.addons.plasticos_gate.services.gate_builders import build_converge_request
         from odoo.addons.plasticos_gate.services.gate_client import send_converge_action
+        from odoo.addons.plasticos_gate.services.gate_config import gate_auto_writeback_enabled
         from odoo.addons.plasticos_gate.services.gate_mappers import (
             extract_audit_metadata,
             map_converge_response,
@@ -143,30 +145,83 @@ class EnrichmentRun(models.Model):
         resp = map_converge_response(result["payload"])
         audit = extract_audit_metadata(result["packet"])
         proposed = partner_writeback_from_converge(resp)
+
+        base_vals = {
+            "engine_used": "gate",
+            "gate_proposal": {
+                "final_fields": resp.final_fields,
+                "writeback": resp.writeback,
+                "proposed_partner_fields": proposed,
+            },
+            "gate_packet_id": audit.get("gate_packet_id"),
+            "gate_correlation_id": audit.get("gate_correlation_id"),
+        }
+
+        if not gate_auto_writeback_enabled(self.env):
+            self.write(
+                {
+                    **base_vals,
+                    "state": "review",
+                    "validation_issues": [
+                        "Gate converge proposal awaiting human review (auto-writeback disabled).",
+                    ],
+                }
+            )
+            self.message_post(
+                body=(
+                    f"Gate converge proposed {len(proposed)} partner field(s) for review "
+                    f"(packet {audit.get('gate_packet_id')})."
+                ),
+                subtype_xmlid="mail.mt_note",
+            )
+            return True
+
+        written = self._apply_converge_writeback(proposed, audit)
         self.write(
             {
-                "engine_used": "gate",
-                "gate_proposal": {
-                    "final_fields": resp.final_fields,
-                    "writeback": resp.writeback,
-                    "proposed_partner_fields": proposed,
-                },
-                "gate_packet_id": audit.get("gate_packet_id"),
-                "gate_correlation_id": audit.get("gate_correlation_id"),
-                "state": "review",
-                "validation_issues": [
-                    "Gate converge proposal awaiting human review (no auto-writeback in Phase 1).",
-                ],
+                **base_vals,
+                "state": "injected",
+                "injected_at": fields.Datetime.now(),
+                "fields_written": written,
+                "validation_issues": False,
             }
         )
         self.message_post(
-            body=(
-                f"Gate converge proposed {len(proposed)} partner field(s) for review "
-                f"(packet {audit.get('gate_packet_id')})."
-            ),
+            body=(f"Gate converge applied {written} partner field(s) live (packet {audit.get('gate_packet_id')})."),
             subtype_xmlid="mail.mt_note",
         )
         return True
+
+    def _apply_converge_writeback(self, proposed, audit):
+        """Backfill allowlisted partner fields (merge-not-overwrite) with provenance."""
+        partner = self.partner_id
+        to_write = {}
+        for field_name, value in (proposed or {}).items():
+            if field_name not in partner._fields:
+                continue
+            if partner[field_name]:  # merge-not-overwrite: never clobber existing values
+                continue
+            to_write[field_name] = value
+        if not to_write:
+            return 0
+        partner.write(to_write)
+        packet_id = audit.get("gate_packet_id") or ""
+        for field_name, value in to_write.items():
+            self.env["plasticos.enrichment.provenance"].create(
+                {
+                    "run_id": self.id,
+                    "partner_id": partner.id,
+                    "target_model": "res.partner",
+                    "target_field": field_name,
+                    "value_written": str(value),
+                    "previous_value": "",
+                    "source_sentence": f"gate_converge:{packet_id}",
+                    "confidence": 1.0,
+                    "inference_type": "explicit",
+                    "status": "written",
+                }
+            )
+        return len(to_write)
 
     def action_execute(self):
         """Full pipeline: try Gate converge -> fall back to local crawl/extract/evaluate.
