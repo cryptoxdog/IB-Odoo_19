@@ -124,7 +124,9 @@ class EnrichmentRun(models.Model):
         Live path (default): apply the converge proposal to the partner immediately
         (merge-not-overwrite of allowlisted fields, with provenance) and set state to
         'injected'. When plasticos.gate.auto_writeback=0, store the proposal for human
-        review (state='review') without writing. Returns True on success.
+        review (state='review') without writing. Returns True when Gate produced a
+        usable result; returns False (non-ok status or no writable fields) so the
+        caller falls back to the local pipeline.
         """
         self.ensure_one()
         from odoo.addons.plasticos_gate.services.gate_builders import build_converge_request
@@ -144,6 +146,17 @@ class EnrichmentRun(models.Model):
         )
         resp = map_converge_response(result["payload"])
         audit = extract_audit_metadata(result["packet"])
+
+        # EIE contract: only status == "ok" is a usable result. Anything else is a
+        # worker/hub failure signal -> fall back to local (never mark injected on junk).
+        if str(resp.status or "").strip().lower() != "ok":
+            _logger.warning(
+                "Gate converge returned non-ok status %r (packet %s); falling back to local.",
+                resp.status,
+                audit.get("gate_packet_id"),
+            )
+            return False
+
         proposed = partner_writeback_from_converge(resp)
 
         base_vals = {
@@ -175,6 +188,13 @@ class EnrichmentRun(models.Model):
                 subtype_xmlid="mail.mt_note",
             )
             return True
+
+        if not proposed:
+            _logger.info(
+                "Gate converge returned no writable allowlisted fields (packet %s); falling back to local.",
+                audit.get("gate_packet_id"),
+            )
+            return False
 
         written = self._apply_converge_writeback(proposed, audit)
         self.write(

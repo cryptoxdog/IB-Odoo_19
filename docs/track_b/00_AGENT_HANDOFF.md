@@ -3,7 +3,7 @@
 **One handoff for all three external repos.** Read this first, then execute the per-repo files in numeric order: `01` → `02` → `03`.
 
 > Authority: [`docs/adr/ADR-002-gate-hub-phased-autonomy.md`](../adr/ADR-002-gate-hub-phased-autonomy.md), [`docs/GATE_AUTONOMY_ROADMAP.md`](../GATE_AUTONOMY_ROADMAP.md).
-> Track A (the Odoo client) is **already built and merged on branch `feat/gate-client-matcher-fallback`** (PR #105). Track B must conform to the contract Track A already emits — do **not** redesign the wire format.
+> **Authority model (see [`04_odoo_gate_consumer_wiring.md`](04_odoo_gate_consumer_wiring.md) §0):** the **wire format and worker contracts are owned by Gate_SDK / Constellation.Gate / EIE / CEG**. Odoo (`plasticos_gate`) is a **consumer that adapts** to them — it does not own the transport. The payload shapes below are the shapes Odoo currently **emits/reads as a client**; when a worker's live contract differs, **Odoo adapts** (bump `Gate_SDK` + re-pin all nodes for schema changes).
 
 ---
 
@@ -40,7 +40,7 @@ Odoo (Track A) ──TransportPacket──► [01] Gate hub ──routes by acti
 
 ---
 
-## 3. The wire contract (authoritative — taken from Track A source)
+## 3. The wire contract (as Odoo emits/reads it — Gate_SDK is the schema owner)
 
 ### 3.1 TransportPacket envelope
 

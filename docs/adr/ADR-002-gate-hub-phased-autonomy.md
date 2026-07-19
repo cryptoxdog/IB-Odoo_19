@@ -102,6 +102,13 @@ enrichment must be live-activated and testable on sample data, so:
 - Setting `plasticos.gate.auto_writeback=0` restores review-only (proposal stored, `state="review"`, no writes).
 - Contract stays **`action="converge"`** (`ConvergeRequest`); EIE must add a matching `converge` handler (see `docs/track_b/03_enrichment_inference_engine.md`).
 
+**Authority model clarification.** The `TransportPacket` schema (Gate_SDK), hub routing / `/v1/execute`
+semantics (Constellation.Gate), and worker action/payload contracts (EIE/CEG) are owned by those
+constellation repos. Odoo (`plasticos_gate`) is a **consumer that adapts** to them — it does not own
+the transport or worker contracts. Odoo owns only *when* to call Gate, *how* it maps results into CRM
+records (allowlists, merge-not-overwrite, fallback), and its own audit/UX. Odoo-side wiring guidance:
+[`docs/track_b/04_odoo_gate_consumer_wiring.md`](../track_b/04_odoo_gate_consumer_wiring.md).
+
 Unchanged: Gate remains the mandatory hub, local enrichment remains the fallback, and web-lead
 triage stays local in Phase 1 (ROAD-GATE-020/023 still deferred).
 

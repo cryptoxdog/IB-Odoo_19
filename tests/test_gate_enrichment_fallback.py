@@ -110,6 +110,41 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
             {"website": "https://enriched.example"},
         )
 
+    def test_gate_converge_non_ok_status_falls_back_to_local(self):
+        """A non-ok EIE status is a failure signal -> local fallback, never injected."""
+        run = self._new_run(self._new_partner())
+        with (
+            patch.object(type(run), "_should_try_gate_converge", return_value=True),
+            patch(
+                _SEND,
+                return_value={
+                    "packet": SimpleNamespace(header=SimpleNamespace(packet_id="p", correlation_id="c")),
+                    "payload": {"status": "error", "final_fields": {"website": "https://x.example"}},
+                },
+            ),
+        ):
+            # Non-ok -> _run_gate_converge returns False -> local path -> no sources -> UserError
+            with self.assertRaises(UserError):
+                run.action_execute()
+        self.assertNotEqual(run.engine_used, "gate")
+        self.assertNotEqual(run.state, "injected")
+
+    def test_gate_converge_empty_fields_falls_back_to_local(self):
+        """status ok but no writable allowlisted fields -> fall back, do not fake success."""
+        run = self._new_run(self._new_partner())
+        with (
+            patch.object(type(run), "_should_try_gate_converge", return_value=True),
+            patch(
+                _SEND,
+                # only non-allowlisted keys -> partner_writeback_from_converge drops all
+                return_value=_fake_gate_result(final_fields={"unknown_key": "x", "notes": "y"}),
+            ),
+        ):
+            with self.assertRaises(UserError):
+                run.action_execute()
+        self.assertNotEqual(run.engine_used, "gate")
+        self.assertNotEqual(run.state, "injected")
+
     def test_gate_disabled_uses_local_pipeline(self):
         run = self._new_run(self._new_partner())
         with (

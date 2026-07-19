@@ -2,7 +2,7 @@
 
 **Repo:** `Quantum-L9/Enrichment.Inference.Engine`
 **Role:** Worker for `action="converge"`. Receives a `ConvergeRequest` (partner snapshot + source URLs), performs CRM/material field backfill (e.g. Perplexity + inference, optionally collaborating with CEG graph context internally), and returns `final_fields` / `writeback`.
-**Contract decision:** Odoo standardizes on **`action="converge"`** (the `ConvergeRequest` shape below). EIE **must add a `converge` handler**; the existing `process_web_lead` / `process_intake` handlers are separate and do not satisfy this path.
+**Contract ownership:** EIE owns the `converge` handler and its payload contract (shipped in `Quantum-L9/Enrichment.Inference.Engine` PR #128, served over the SDK `/v1/execute`). Odoo is a **consumer that adapts** its builders/mappers to EIE's live contract — it does not dictate it. The shapes below are what Odoo currently emits/reads; reconcile against EIE's live handler and adapt the Odoo side if they differ. (`process_web_lead` / `process_intake` are separate EIE actions, not this path.)
 **Why last:** Match (02) is higher business priority, so build EIE after the match path is live. But `action=converge` is **live by default** in Odoo (`plasticos.gate.enrichment_enabled=1`, `plasticos.gate.auto_writeback=1`): Odoo **applies** the returned allowlisted fields to the partner immediately (merge-not-overwrite, with provenance). EIE output goes straight into the CRM — return only confidently-resolved values.
 
 > Read [`00_AGENT_HANDOFF.md`](00_AGENT_HANDOFF.md) §3.3. Odoo writes back **only** allowlisted partner fields: `name, website, city, zip, street, street2, email, phone`.
