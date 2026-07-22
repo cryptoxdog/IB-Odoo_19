@@ -1,4 +1,4 @@
-# ADR-002: Navigation & Menu Architecture
+# ADR-004: Navigation & Menu Architecture
 
 **Status:** Accepted  
 **Date:** 2026-03-13  

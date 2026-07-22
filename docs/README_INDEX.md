@@ -6,6 +6,10 @@
 
 ---
 
+## Repo Index — Check Before Grepping
+
+`reports/repo-index/` holds pre-generated, grep-friendly indexes (classes, functions, methods, imports, Odoo models/views/crons/security groups/automations/email templates, routes, tests, READMEs). Search there first — `grep "plasticos.transaction" reports/repo-index/odoo_model_registry.txt` — before a broad repo-wide `grep`/`rg`. Regenerate via the `l9-repo-index` skill when stale.
+
 ## Architecture & Roadmap
 
 | File | Topic |
