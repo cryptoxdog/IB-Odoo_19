@@ -5,7 +5,7 @@ Cross-tool agent instructions for the IB-Odoo_19 repository. Read by Claude Code
 ## Project Overview
 
 - **Name**: PlasticOS — Plastics Recycling Brokerage ERP
-- **Type**: Odoo 19 custom module suite (**29** installable `plasticos_*` addons, **~32K** lines Python in addons, **~174** XML files in addons).
+- **Type**: Odoo 19 custom module suite (**30** `plasticos_*` addons — **28** installable, 2 dev/non-installable; **~33K** lines Python in addons, **~174** XML files in addons).
 - **Stage**: Production (`Staging` branch → `Production`)
 - **Stack**: Python 3.12, Odoo 19, PostgreSQL 16, Neo4j (graph scoring), Docker
 
@@ -51,6 +51,18 @@ python -m pytest tests/contracts/ -v      # Contract tests
 python -m pytest tests/integration/ -v    # Integration tests
 ```
 
+## Repo Index — Check Before Grepping
+
+`reports/repo-index/` holds pre-generated, grep-friendly indexes of the codebase (classes, functions, methods, imports, inheritance, Odoo models/views/crons/security groups/automations/email templates/routes, tests, READMEs). Check these **before** running a broad `grep`/`rg` sweep across the repo:
+
+```bash
+grep "ClassName" reports/repo-index/class_definitions.txt
+grep "plasticos.transaction" reports/repo-index/odoo_model_registry.txt
+grep "def action_" reports/repo-index/method_catalog.txt
+```
+
+Regenerate when stale via the `l9-repo-index` skill (synced generator script; no repo-local generator exists in this repo). See `@.cursor-commands/skills/l9-repo-index/SKILL.md`.
+
 ## Tooling SSOT (editor + CI)
 
 This repo is an **Odoo addon suite**, not a pip/uv package. No `[project]` table in `pyproject.toml`.
@@ -71,7 +83,7 @@ Cursor overlay: `.cursor/rules/88-plasticos-odoo-python-tooling.mdc`. Global `20
 
 - Contract tests: `tests/contracts/` — 8 contract test files
 - Integration tests: `tests/integration/` — 10 integration test files
-- Unit tests: `tests/test_*.py` — **28** standalone test modules at `tests/` root (plus deeper `tests/` tree; run `pytest tests/ --collect-only` for full count)
+- Unit tests: `tests/test_*.py` — **32** standalone test modules at `tests/` root (plus deeper `tests/` tree; run `pytest tests/ --collect-only` for full count)
 - Every new model/field needs at least one test
 - Tests must not mutate seed data
 - Run `pre-commit run --all-files` before opening a PR
@@ -125,6 +137,7 @@ Skills: L9 globals in `~/.cursor/skills/l9-*/`; project skills in `.claude/skill
 | `plasticos-pr-review-kernel` | `PR_REVIEW_MODE`, `REVIEW PR #N` | `pr-check`, `audit` |
 | `plasticos-repo-review-kernel` | Repo-wide readiness / pack review | `audit`, `wiring` |
 | `plasticos-final-touches` | `FINAL_TOUCHES_MODE` | `audit` + `pr-check` |
+| `plasticos-prompt-pack` | Router for `docs/plasticos_prompt_pack/` — context primer, tiered audit (`AUDIT_MODE`), matching-pipeline gap handoff, pre-code kernel, 10-block architecture/deployment reasoning chain | `audit`, `pr-check` |
 
 | Subagent | Preloaded skills | Delegate for |
 |----------|------------------|--------------|
@@ -144,6 +157,7 @@ plasticos_intake_normalizer/ # Layer 2: L9 packet normalization
 plasticos_matching/          # Layer 2: Match result storage
 plasticos_buyer_match_engine/# Layer 2: 10-gate filtering + Neo4j graph scoring
 plasticos_geolocalize/       # Layer 2: Auto-geocode + nightly backfill
+plasticos_gate/              # Layer 2: Constellation Gate TransportPacket client (ADR-002)
 plasticos_enrichment/        # Layer 2: AI web intelligence extraction
 plasticos_web_leads/         # Layer 2: AI lead triage (Cognito → LLM → HOT/COLD)
 plasticos_inference_engine/  # Layer 2: Deterministic polymer inference (YAML KB)
@@ -159,7 +173,7 @@ plasticos_documents_native/  # Layer 4: Enterprise Documents bridge
 plasticos_transaction/       # Layer 5: Transaction spine + commission
 plasticos_logistics/         # Layer 5: Load management, BOL, dispatch
 plasticos_claims/            # Layer 5: QC cases, claims, chargebacks
-plasticos_website/           # UI: Website extensions
+plasticos_website/           # UI: Website extensions (installable: False — disabled)
 plasticos_admin_dashboard/   # Layer 3: RevOps KPI dashboard (admin)
 plasticos_odoo_standard_apps/ # Meta: auto-install bundle of standard Odoo CE apps (optional)
 plasticos_dev_tools/         # Dev-only: audit scripts, integrity checks
@@ -260,7 +274,7 @@ ruff format .                             # Format code
 python3 scripts/check_module_wiring.py    # Dependency + __init__.py wiring
 python3 ci/check_circular_deps.py         # No circular deps
 python3 ci/check_odoo19_xml.py            # XML pattern compliance
-pre-commit run --all-files                # Run ALL 31 hooks at once
+pre-commit run --all-files                # Run ALL 36 hooks at once
 ```
 
 ### CI Architecture — `ci.yml` is the Single Gate (11 Workflow Files)
@@ -288,8 +302,10 @@ pre-commit run --all-files                # Run ALL 31 hooks at once
 | CI Job | Tier | What it checks | Common failure |
 |--------|------|---------------|----------------|
 | `lint` | 1 | `ruff check` + `ruff format --check` | Unsorted imports (I001), unformatted code |
-| `static-checks` | 2 (needs lint) | XML syntax, manifest syntax, bash syntax, Odoo 19 patterns, circular deps, module wiring, orphan refs, XPath stability, ORM integrity, model inheritance, dev-tools fence, pipeline-v2 guard | Missing `__init__.py` import, broken XPath, phantom dep |
+| `static-checks` | 2 (needs lint) | XML syntax, bash syntax, manifest syntax, Semgrep Odoo/security rules (`.semgrep/odoo-patterns.yml`), circular deps, module wiring, orphan refs, XPath stability, model inheritance, ORM integrity, Odoo 19 hook/XML patterns, dev-tools fence, pipeline-v2 guard, critical manifest, enhanced audit | Missing `__init__.py` import, broken XPath, phantom dep, semgrep rule hit |
 | `pure-python-tests` | 3 (needs static) | pytest suite (no Odoo runtime): dependency integrity, compat, cron invariants, XML patterns, enum alignment | Test assertion failure, missing fixture |
+
+**Advisory-only checks inside `static-checks`** (run with `|| true`, logged but never fail the job): `check_odoo_patterns.sh` (the 24-check Odoo 19 pattern script itself), `check_odoo_antipatterns.py`, `check_acl_completeness.py`, `check_package_init.py`, `check_field_integrity.py`, `check_state_guard_bypass.py`, `weak_test_fixer.py`. These same checks ARE blocking as local pre-commit hooks (see Pre-commit Hooks table) — the CI/pre-commit blocking status differs per check.
 
 **Non-blocking (advisory):**
 
@@ -368,11 +384,11 @@ These files are intentionally excluded from specific checks:
 | All pre-commit hooks | `odoo-enterprise/**`, `plasticos_graph_*/**` | External/experimental code |
 | All pre-commit hooks | `docs/**` | Documentation files |
 
-### Pre-commit Hooks (31 total)
+### Pre-commit Hooks (36 total)
 
 | Hook | Type | Blocking? | What it catches |
 |------|------|-----------|-----------------|
-| `ruff` | Lint | Yes | Python lint violations (E/W/F/I/B/UP/C90) |
+| `ruff` | Lint | Yes | Python lint violations (E/W/F/I/B/UP/C90/S/A/FLY/INT/LOG/YTT) |
 | `ruff-format` | Format | Yes | Unformatted Python code |
 | `check-xml` | Syntax | Yes | Malformed XML |
 | `check-yaml` | Syntax | Yes | Malformed YAML |
@@ -380,6 +396,7 @@ These files are intentionally excluded from specific checks:
 | `trailing-whitespace` | Format | Yes | Trailing whitespace |
 | `check-added-large-files` | Guard | Yes | Files over 1000 KB |
 | `check-merge-conflict` | Guard | Yes | Leftover merge conflict markers |
+| `conventional-pre-commit` | Format | Yes (commit-msg stage) | Non-conventional commit messages |
 | `odoo-patterns` | Odoo | Yes | 24 Odoo 19 pattern checks |
 | `module-wiring` | Odoo | Yes | Manifest deps + `__init__.py` imports |
 | `cron-invariants` | Odoo | Yes | Cron safety rules |
@@ -398,11 +415,17 @@ These files are intentionally excluded from specific checks:
 | `automation-field-refs` | Odoo | Yes | Automation field references |
 | `state-guard-bypass` | Odoo | Yes | State guard bypass detection |
 | `acl-completeness` | Odoo | **No** | ACL coverage (warn-only) |
+| `phantom-enum-values` | Odoo | Yes (pre-push) | `tests/test_phantom_enum_values.py` |
+| `manifest-contract` | Odoo | Yes (pre-push) | `tests/test_repo_dependency_integrity.py` (version, depends order) |
 | `pipeline-v2-guard` | Odoo | Yes | Import fence for pipeline v2 |
 | `dev-tools-fence` | Odoo | Yes | Dev tools not imported from production |
 | `critical-manifest` | Odoo | Yes | Critical manifest rules |
 | `enhanced-audit` | Odoo | Yes | Enhanced code audit |
+| `gitleaks-commit` | Security | Yes | Secret scan on staged files (commit stage) |
+| `gitleaks-push` | Security | Yes (pre-push) | Full repo secret scan on push |
 | `mypy` | Type | **No** | Type checking (excludes many modules) |
+
+Hooks marked "Yes (pre-push)" only run at the `pre-push` git stage, not on every commit — see `.pre-commit-config.yaml` `stages:`.
 
 ### Ruff Configuration (from `pyproject.toml`)
 
@@ -410,7 +433,7 @@ These files are intentionally excluded from specific checks:
 |---------|-------|
 | Line length | **120** (not 100) |
 | Target Python | 3.12 |
-| Rules selected | E, W, F, I, B, UP, C90 |
+| Rules selected | E, W, F, I, B, UP, C90, S, A, FLY, INT, LOG, YTT |
 | McCabe max-complexity | 25 |
 | Ignored | E501 (formatter), E731 (lambdas), B008 (Odoo field defaults), B905 (zip strict) |
 | `__init__.py` exempt from | F401 (unused imports), I001 (import order) |
@@ -428,13 +451,13 @@ CI fails if HIGH severity findings exceed these baselines:
 | XPath CRITICAL | 0 | No new CRITICAL XPath issues allowed |
 | XPath HIGH | 0 | No new HIGH XPath issues allowed |
 
-### Version Drift Warning
+### Version Lockstep
 
-| Tool | Pre-commit | CI (`ci.yml`) |
-|------|-----------|--------------|
-| Ruff | `v0.15.5` | `0.14.11` |
+| Tool | Pre-commit | CI (`ci.yml`) | `pyproject.toml` |
+|------|-----------|--------------|-------------------|
+| Ruff | `v0.15.5` | `0.15.5` | `required-version = "==0.15.5"` |
 
-Pre-commit and CI may use different ruff versions. Always run `pre-commit run --all-files` locally before pushing.
+All three are pinned in lockstep on purpose — `pyproject.toml`'s `required-version` fails fast if any site drifts. Bump all three together when upgrading ruff. Always run `pre-commit run --all-files` locally before pushing.
 
 ## Boundaries
 

@@ -3,8 +3,8 @@
 **Purpose**: Unchangeable rules that govern the PlasticOS codebase.
 **Status**: Constitutional
 **Enforcement**: Machine + Human
-**Version**: 2.0.0
-**Last Updated**: 2026-03-31
+**Version**: 2.0.1
+**Last Updated**: 2026-07-22
 
 ## Meta-Rule
 
@@ -422,8 +422,8 @@ These patterns are excluded from CI checks because they are valid code, not viol
 ## Enforcement Strategy
 
 ### Automated Checks
-- **Pre-commit hooks**: 27 hooks including ruff, module wiring, XML validation, cron invariants
-- **CI/CD pipeline**: 5 workflow files with ~20 jobs total
+- **Pre-commit hooks**: 36 hooks including ruff, module wiring, XML validation, cron invariants, secret scan (gitleaks)
+- **CI/CD pipeline**: 11 workflow files; `ci.yml` is the single blocking gate (lint → static-checks → pure-python-tests)
 - **Module wiring script**: Dependency graph + `__init__.py` validation
 
 ### Manual Reviews
