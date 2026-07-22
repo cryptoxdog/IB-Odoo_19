@@ -1,0 +1,342 @@
+---
+id: plasticos.rule.odoo-native
+version: 1.0.0
+description: Odoo-native ORM, recordset, domain, action, and XML patterns for PlasticOS modules.
+scope: repository
+domain: odoo
+activation: auto_attached
+authority: canonical_repository
+context_cost: moderate
+alwaysApply: false
+globs:
+  - "plasticos_*/**/*.py"
+  - "plasticos_*/**/*.xml"
+---
+# Odoo-Native Code Patterns (PlasticOS)
+
+**Scope:** All `plasticos_*` modules in this repository.
+
+Write **Odoo-native code**, not Python-with-Odoo-imports. The ORM is the language.
+
+---
+
+## Core Principle
+
+Odoo is a **framework**, not a library. Code should leverage Odoo's ORM, recordsets, and declarative patterns - not fight them with raw Python.
+
+---
+
+## Recordset Operations (Use ORM, Not Python)
+
+### Iteration and Filtering
+
+```python
+# WRONG - Python-with-Odoo-imports
+partner_ids = []
+for rec in self:
+    if rec.partner_id:
+        partner_ids.append(rec.partner_id.id)
+partners = self.env["res.partner"].browse(partner_ids)
+
+# CORRECT - Odoo-native
+partners = self.mapped("partner_id")
+```
+
+```python
+# WRONG - Python list comprehension
+active_intakes = [i for i in intakes if i.status == "active"]
+
+# CORRECT - Recordset filtering
+active_intakes = intakes.filtered(lambda i: i.status == "active")
+# OR with domain:
+active_intakes = intakes.filtered_domain([("status", "=", "active")])
+```
+
+### Aggregation
+
+```python
+# WRONG - Python list allocation
+amounts = [rec.amount for rec in self]
+total = sum(amounts)
+
+# CORRECT - Odoo mapped + sum
+total = sum(self.mapped("amount"))
+```
+
+### Sorting
+
+```python
+# WRONG - Convert recordset to a plain list
+sorted_recs = sorted(records, key=lambda r: r.date, reverse=True)
+
+# CORRECT - Recordset sorted()
+sorted_recs = records.sorted("date", reverse=True)
+```
+
+### Existence Checks
+
+```python
+# WRONG - This checks an integer, not the relation contract
+if partner_id:
+    ...
+
+# CORRECT - Empty recordsets are falsy
+if rec.partner_id:
+    ...
+```
+
+---
+
+## Field Definitions (Declarative, Not Imperative)
+
+### Computed Fields
+
+```python
+# WRONG - Missing dependency declaration
+def _compute_total(self):
+    for rec in self:
+        rec.total = rec.qty * rec.price
+
+# CORRECT
+@api.depends("qty", "price")
+def _compute_total(self):
+    for rec in self:
+        rec.total = rec.qty * rec.price
+```
+
+### Related Fields
+
+```python
+# WRONG - Computed field for simple relation traversal
+partner_name = fields.Char(compute="_compute_partner_name")
+
+# CORRECT
+partner_name = fields.Char(related="partner_id.name", string="Partner Name")
+```
+
+### Selection Fields
+
+```python
+# WRONG - Free-text state
+status = fields.Char()
+
+# CORRECT - Constrained selection
+status = fields.Selection(
+    [
+        ("draft", "Draft"),
+        ("active", "Active"),
+        ("closed", "Closed"),
+    ],
+    default="draft",
+    required=True,
+)
+```
+
+---
+
+## Model Inheritance Patterns
+
+### Extension (`_inherit` only)
+
+```python
+class ResPartnerPlasticOS(models.Model):
+    _inherit = "res.partner"
+
+    intake_count = fields.Integer(compute="_compute_intake_count")
+```
+
+### Delegation (`_inherits`)
+
+Use delegation only when the model contract genuinely owns a delegated record and the lifecycle implications are understood.
+
+```python
+class ProductTemplate(models.Model):
+    _name = "product.template"
+    _inherits = {"product.product": "product_id"}
+```
+
+### New Model (`_name` plus `_description`)
+
+```python
+class PlasticosIntake(models.Model):
+    _name = "plasticos.intake"
+    _description = "Material Intake"
+    _order = "create_date desc"
+```
+
+---
+
+## Search and Browse (Use Domains, Not SQL)
+
+### Domain Syntax
+
+```python
+# WRONG - Raw SQL for normal ORM data
+self.env.cr.execute("SELECT id FROM res_partner WHERE supplier_rank > 0")
+
+# CORRECT
+suppliers = self.env["res.partner"].search([("supplier_rank", ">", 0)])
+```
+
+### Complex Domains
+
+```python
+domain = [
+    "|",
+    ("supplier_profile_id", "in", profile_ids),
+    ("buyer_profile_id", "in", profile_ids),
+]
+```
+
+### Search with Limit
+
+```python
+partner = self.env["res.partner"].search([("email", "=", email)], limit=1)
+```
+
+---
+
+## CRUD Operations
+
+### Create
+
+```python
+intake = self.env["plasticos.intake"].create({
+    "partner_id": partner.id,
+    "status": "draft",
+})
+```
+
+### Write
+
+```python
+self.write({"status": "active"})
+
+# Direct assignment is acceptable for a single field on a known recordset.
+self.status = "active"
+```
+
+### Unlink
+
+```python
+obsolete_records.unlink()
+```
+
+---
+
+## Action Returns
+
+### Standard Window Action
+
+```python
+def action_view_intakes(self):
+    """Navigate to intakes for this partner."""
+    self.ensure_one()
+    return {
+        "type": "ir.actions.act_window",
+        "name": f"Intakes - {self.name}",
+        "res_model": "plasticos.intake",
+        "view_mode": "list,form",
+        "domain": [("partner_id", "=", self.id)],
+        "context": {"default_partner_id": self.id},
+    }
+```
+
+### Single Record Form
+
+```python
+def action_view_profile(self):
+    self.ensure_one()
+    return {
+        "type": "ir.actions.act_window",
+        "name": "Material Profile",
+        "res_model": "plasticos.material.profile",
+        "res_id": self.material_profile_id.id,
+        "view_mode": "form",
+        "target": "current",
+    }
+```
+
+### Notification
+
+```python
+def action_feature_disabled(self):
+    return {
+        "type": "ir.actions.client",
+        "tag": "display_notification",
+        "params": {
+            "title": "Feature Disabled",
+            "message": "This feature is handled externally.",
+            "type": "warning",
+        },
+    }
+```
+
+---
+
+## XML Data Files
+
+### Use `noupdate="1"` for Stable Reference Data
+
+```xml
+<odoo noupdate="1">
+    <record id="stage_active_supplier" model="crm.stage">
+        <field name="name">Active Supplier</field>
+        <field name="sequence">50</field>
+    </record>
+</odoo>
+```
+
+### External IDs for Lookups
+
+```python
+stage = self.env.ref(
+    "plasticos_crm_bridge.stage_active_supplier",
+    raise_if_not_found=False,
+)
+if stage:
+    self.stage_id = stage
+```
+
+---
+
+## Anti-Patterns
+
+| Anti-pattern | Odoo-native alternative |
+|---|---|
+| `for id in ids: browse(id)` | `browse(ids)` in one call |
+| `rec.field_id.id` in a domain | Pass the record or explicit ID according to the API contract |
+| `len(recordset) > 0` | `if recordset:` |
+| `recordset[0]` without proof | `recordset[:1]` or `ensure_one()` |
+| Raw SQL for standard CRUD | ORM `search`, `create`, `write`, and `unlink` |
+| `@api.one` | Removed; iterate over `self` |
+| `@api.multi` | Removed; recordsets are implicit |
+
+---
+
+## Odoo 19 Specifics
+
+- Do not use `@api.one` or `@api.multi`.
+- Use `fields.Command` for One2many and Many2many writes:
+
+  ```python
+  self.write({"line_ids": [fields.Command.create({"name": "New"})]})
+  ```
+
+- Prefer targeted `flush_model()` over broad `env.flush_all()`.
+- Use `with_context()` instead of mutating `env.context`.
+- Use `models.Constraint` rather than legacy `_sql_constraints` for new Odoo 19 constraints.
+
+---
+
+## Enforcement
+
+Before committing Odoo model code, verify:
+
+- [ ] No plain-Python loops where recordset operations express the contract better.
+- [ ] No raw SQL for standard CRUD.
+- [ ] Computed fields declare dependencies.
+- [ ] Simple relation traversal uses `related=`.
+- [ ] Actions return valid Odoo action dictionaries.
+- [ ] External IDs, not hardcoded database IDs, are used for reference data.
+- [ ] XML, ACL, manifest, and import wiring are updated with the model change.

@@ -1,31 +1,79 @@
 ---
-description: PlasticOS Odoo 19 test-fix addendum — fixture patterns and product types. Base policy is global 95-test-fix-policy.
-globs: tests/**/*.py
+description: PlasticOS Odoo 19 test-fix addendum — Odoo fixture patterns, journals, companies, currencies, partners, and product-type compatibility. Base policy is global 95-test-fix-policy.
+globs:
+  - "tests/**/*.py"
+  - "plasticos_*/tests/**/*.py"
 alwaysApply: false
 ---
 
-# Test Fix Policy — PlasticOS Addendum
+# Test Fix Policy — PlasticOS Odoo 19 Addendum
 
-**Authority:** Global `@.cursor-commands/rules/95-test-fix-policy.mdc` (never skip tests — fix fixtures). This overlay adds Odoo 19 PlasticOS patterns only.
+**Authority:** Global `@.cursor-commands/rules/95-test-fix-policy.mdc`. This repository rule extends the global policy with PlasticOS and Odoo-specific fixture guidance. It does not replace or weaken the global prohibition against skipping tests to hide failures.
 
-## Odoo 19 Product Types
+## Odoo 19 product types
 
 ```python
-# Odoo 19 — storable products use type='consu'
-product = self.env["product.product"].create({"name": "X", "type": "consu"})
+# Odoo 19 — storable products use type="consu".
+product = self.env["product.product"].create({
+    "name": "Test Product",
+    "type": "consu",
+})
 ```
 
-| Odoo 18 | Odoo 19 | Description |
-|---------|---------|-------------|
-| `type='product'` | `type='consu'` | Storable products |
-| `type='service'` | `type='service'` | Service (unchanged) |
+| Odoo 18 and earlier | Odoo 19 | Meaning |
+|---|---|---|
+| `type="product"` | `type="consu"` | Storable product |
+| `type="consu"` | `type="consu"` | Consumable |
+| `type="service"` | `type="service"` | Service |
 
-## Common Fixtures (create in setUpClass — never skipTest)
+When compatibility across versions is intentionally required, search with an explicit compatible domain rather than weakening the test:
 
-| Fixture | Creation |
-|---------|----------|
-| Sale journal | `account.journal` with `type='sale'` |
-| Purchase journal | `account.journal` with `type='purchase'` |
-| Partner | `res.partner` with `supplier_rank` or `customer_rank` |
+```python
+products = self.env["product.product"].search([
+    ("type", "in", ("product", "consu")),
+])
+```
 
-**Full patterns:** `80-plasticos-testing-rules.mdc` · `AGENTS.md` § Testing
+## Common Odoo fixtures
+
+Create required records in `setUpClass` where possible. Reuse an existing valid record only when the test does not require isolation.
+
+| Fixture | Model and minimum intent |
+|---|---|
+| Sale journal | `account.journal` with `type="sale"` and a unique test code |
+| Purchase journal | `account.journal` with `type="purchase"` and a unique test code |
+| Bank journal | `account.journal` with `type="bank"` for payment tests |
+| Company | `res.company` for explicit multi-company behavior |
+| Currency | `res.currency` for multi-currency behavior; activate when required |
+| Partner | `res.partner` with the required `supplier_rank` or `customer_rank` |
+| Product | `product.product` with Odoo 19-compatible `type` and required accounting fields |
+
+## Journal fixture example
+
+```python
+@classmethod
+def setUpClass(cls):
+    super().setUpClass()
+    cls.sale_journal = cls.env["account.journal"].search(
+        [("type", "=", "sale")],
+        limit=1,
+    )
+    if not cls.sale_journal:
+        cls.sale_journal = cls.env["account.journal"].create({
+            "name": "Test Sales Journal",
+            "type": "sale",
+            "code": "TSALE",
+        })
+```
+
+## PlasticOS enforcement
+
+Before declaring a PlasticOS test repaired:
+
+- [ ] The test ran instead of being skipped.
+- [ ] Odoo records required by the test were created deterministically.
+- [ ] Product fixtures use Odoo 19-compatible values.
+- [ ] Company and currency context is explicit where behavior depends on it.
+- [ ] Journals use the correct journal type and a collision-safe test code.
+- [ ] The fix does not depend on unrelated staging data.
+- [ ] Relevant guidance in `80-plasticos-testing-rules.mdc` was followed.
