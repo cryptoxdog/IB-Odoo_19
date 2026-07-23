@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT))
 
 from plasticos_gate.services.gate_builders import build_converge_request, build_match_request  # noqa: E402
 from plasticos_gate.services.gate_config import (  # noqa: E402
+    _gate_url_usable,
     gate_auto_writeback_enabled,
     gate_enrichment_enabled,
     gate_matching_enabled,
@@ -97,6 +98,29 @@ class _IntakeStub:
 def test_gate_matching_enabled_false_when_url_empty():
     env = _MockEnv({"plasticos.gate.matching_enabled": "1"})
     assert gate_matching_enabled(env) is False
+
+
+def test_gate_url_rejects_plain_http_by_default():
+    """Cleartext HTTP Gate URLs are rejected unless explicitly opted in (S5332)."""
+    env = _MockEnv({"plasticos.gate.url": "http://gate.example.com", "plasticos.gate.matching_enabled": "1"})
+    assert _gate_url_usable(env["ir.config_parameter"].sudo()) is False
+    assert gate_matching_enabled(env) is False
+
+
+def test_gate_url_allows_http_with_explicit_insecure_opt_in():
+    """Local-dev loopback deployments may opt in to plain HTTP explicitly."""
+    env = _MockEnv(
+        {
+            "plasticos.gate.url": "http://127.0.0.1:8080",
+            "plasticos.gate.allow_insecure_http": "1",
+        }
+    )
+    assert _gate_url_usable(env["ir.config_parameter"].sudo()) is True
+
+
+def test_gate_url_accepts_https_without_opt_in():
+    env = _MockEnv({"plasticos.gate.url": "https://gate.example.com"})
+    assert _gate_url_usable(env["ir.config_parameter"].sudo()) is True
 
 
 def test_gate_matching_enabled_false_when_flag_off():

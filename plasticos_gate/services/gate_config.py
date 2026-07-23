@@ -12,11 +12,27 @@ class GateIntegrationError(Exception):
     """Raised when Gate transport fails; matcher catches and falls back locally."""
 
 
+_TRUTHY = {"1", "true", "True", "yes", "on"}
+
+
+def _gate_url_usable(icp) -> bool:
+    """Return True when the configured Gate URL is present and uses an accepted scheme.
+
+    HTTPS is required by default. Cleartext HTTP is accepted only when the
+    deployment explicitly opts in via ``plasticos.gate.allow_insecure_http=1``
+    (intended for local development against a loopback Gate only).
+    """
+    url = (icp.get_param("plasticos.gate.url") or "").strip()
+    if url.startswith("https://"):
+        return True
+    insecure_ok = (icp.get_param("plasticos.gate.allow_insecure_http") or "").strip() in _TRUTHY
+    return insecure_ok and url.startswith("http://")
+
+
 def gate_matching_enabled(env) -> bool:
     """Return True when Gate matching should be attempted (never raises)."""
     icp = env["ir.config_parameter"].sudo()
-    url = (icp.get_param("plasticos.gate.url") or "").strip()
-    if not url.startswith(("http://", "https://")):
+    if not _gate_url_usable(icp):
         return False
     if (icp.get_param("plasticos.gate.matching_enabled", "1") or "").strip() in {"0", "false", "False"}:
         return False
@@ -32,9 +48,6 @@ def get_matching_action(env) -> str:
     return (icp.get_param("plasticos.gate.matching_action") or "match").strip().lower()
 
 
-_TRUTHY = {"1", "true", "True", "yes", "on"}
-
-
 def gate_enrichment_enabled(env) -> bool:
     """Return True when Gate enrichment (converge) should be attempted (never raises).
 
@@ -42,8 +55,7 @@ def gate_enrichment_enabled(env) -> bool:
     (seeded ``plasticos.gate.enrichment_enabled=1``). Set it to ``0`` to disable.
     """
     icp = env["ir.config_parameter"].sudo()
-    url = (icp.get_param("plasticos.gate.url") or "").strip()
-    if not url.startswith(("http://", "https://")):
+    if not _gate_url_usable(icp):
         return False
     if (icp.get_param("plasticos.gate.enrichment_enabled", "1") or "").strip() not in _TRUTHY:
         return False
