@@ -90,7 +90,7 @@ Work from branch `feat/gate-client-matcher-fallback` (or its merge target if alr
 In `requirements.txt` (Track A branch):
 
 ```text
-constellation-node-sdk @ git+https://github.com/Quantum-L9/Gate_SDK.git@ab9df5f15c1ba433c3f072a1ca01052584682758
+constellation-node-sdk @ git+https://github.com/Quantum-L9/Gate_SDK.git@68d4be34c9b144cde8f10f76be42c292cdd25c3b
 ```
 
 EIE currently pins the **same SHA** (via `cryptoxdog/Gate_SDK` remote alias of the same commit). Keep SHA lockstep across Odoo / Gate hub / EIE.
