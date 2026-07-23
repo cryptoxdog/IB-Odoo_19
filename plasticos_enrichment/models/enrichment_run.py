@@ -5,6 +5,9 @@ from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
+PROVENANCE_MODEL = "plasticos.enrichment.provenance"
+SUBTYPE_NOTE = "mail.mt_note"
+
 
 class EnrichmentRun(models.Model):
     _name = "plasticos.enrichment.run"
@@ -33,7 +36,7 @@ class EnrichmentRun(models.Model):
         "run_id",
     )
     provenance_ids = fields.One2many(
-        "plasticos.enrichment.provenance",
+        PROVENANCE_MODEL,
         "run_id",
     )
 
@@ -185,7 +188,7 @@ class EnrichmentRun(models.Model):
                     f"Gate converge proposed {len(proposed)} partner field(s) for review "
                     f"(packet {audit.get('gate_packet_id')})."
                 ),
-                subtype_xmlid="mail.mt_note",
+                subtype_xmlid=SUBTYPE_NOTE,
             )
             return True
 
@@ -208,7 +211,7 @@ class EnrichmentRun(models.Model):
         )
         self.message_post(
             body=(f"Gate converge applied {written} partner field(s) live (packet {audit.get('gate_packet_id')})."),
-            subtype_xmlid="mail.mt_note",
+            subtype_xmlid=SUBTYPE_NOTE,
         )
         return True
 
@@ -227,7 +230,7 @@ class EnrichmentRun(models.Model):
         partner.write(to_write)
         packet_id = audit.get("gate_packet_id") or ""
         for field_name, value in to_write.items():
-            self.env["plasticos.enrichment.provenance"].create(
+            self.env[PROVENANCE_MODEL].create(
                 {
                     "run_id": self.id,
                     "partner_id": partner.id,
@@ -451,7 +454,7 @@ class EnrichmentRun(models.Model):
                         existing.write(merge_vals)
                         existing.message_post(
                             body=(f"Enrichment {self.name} merged fields: {', '.join(merge_vals.keys())}"),
-                            subtype_xmlid="mail.mt_note",
+                            subtype_xmlid=SUBTYPE_NOTE,
                         )
                         updated += 1
                 else:
@@ -530,7 +533,7 @@ class EnrichmentRun(models.Model):
             (p for p in prov_items if p["target_field"] == field),
             {},
         )
-        self.env["plasticos.enrichment.provenance"].create(
+        self.env[PROVENANCE_MODEL].create(
             {
                 "run_id": self.id,
                 "partner_id": partner.id,
@@ -601,7 +604,7 @@ class EnrichmentRun(models.Model):
         if inference_count:
             self.message_post(
                 body=(f"Inference engine augmented {inference_count} material profile(s) for {self.partner_id.name}."),
-                subtype_xmlid="mail.mt_note",
+                subtype_xmlid=SUBTYPE_NOTE,
             )
 
         return inference_count

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 
 if TYPE_CHECKING:
     from constellation_node_sdk import GateClientConfig
@@ -18,15 +19,16 @@ _TRUTHY = {"1", "true", "True", "yes", "on"}
 def _gate_url_usable(icp) -> bool:
     """Return True when the configured Gate URL is present and uses an accepted scheme.
 
-    HTTPS is required by default. Cleartext HTTP is accepted only when the
-    deployment explicitly opts in via ``plasticos.gate.allow_insecure_http=1``
+    TLS (``https``) is required by default. The cleartext scheme is accepted only
+    when the deployment explicitly opts in via ``plasticos.gate.allow_insecure_http=1``
     (intended for local development against a loopback Gate only).
     """
     url = (icp.get_param("plasticos.gate.url") or "").strip()
-    if url.startswith("https://"):
+    scheme = urlsplit(url).scheme.lower()
+    if scheme == "https":
         return True
     insecure_ok = (icp.get_param("plasticos.gate.allow_insecure_http") or "").strip() in _TRUTHY
-    return insecure_ok and url.startswith("http://")
+    return insecure_ok and scheme == "http"  # NOSONAR(S5332) explicit local-dev opt-in, off by default
 
 
 def gate_matching_enabled(env) -> bool:
