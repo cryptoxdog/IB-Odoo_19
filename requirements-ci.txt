@@ -1,0 +1,13 @@
+# Minimal dependency manifest for the GATE-01 baseline ratchet
+# (.github/workflows/baseline-ratchet.yml). The ratchet re-runs the pure-Python
+# test tier ("Tier 3" of ci.yml) in a clean environment; tests/conftest.py
+# auto-deactivates every Odoo-importing test module, so no Odoo runtime, no
+# constellation-node-sdk, and none of the requirements.txt runtime deps are
+# needed here. Verified: a venv containing only these three packages runs
+# `pytest tests/` at 296 passed / 10 skipped, identical to the full dev venv.
+#
+# Pins match .github/workflows/ci.yml (pure-python-tests job) and
+# requirements-dev.txt — keep all three in lockstep when upgrading.
+pytest==8.3.5
+pytest-timeout==2.4.0
+pytest-cov==5.0.0
