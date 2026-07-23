@@ -45,8 +45,23 @@ jobs:
             echo "" >> CHANGELOG.md
           fi
           
-          # Generate changelog from conventional commits
-          cz changelog --unreleased-version "HEAD" --incremental || true
+          # Generate changelog from conventional commits.
+          # cz exits non-zero when there are no new conventional commits since
+          # the last release — that is an expected no-op, not a failure. Detect
+          # it explicitly instead of masking every error with `|| true`.
+          set +e
+          OUTPUT=$(cz changelog --unreleased-version "HEAD" --incremental 2>&1)
+          STATUS=$?
+          set -e
+          echo "$OUTPUT"
+          if [ $STATUS -ne 0 ]; then
+            if echo "$OUTPUT" | grep -qi "no commits found\|nothing to generate\|no new commits"; then
+              echo "No new conventional commits — changelog unchanged (expected no-op)."
+            else
+              echo "::error::cz changelog failed unexpectedly (exit $STATUS)"
+              exit $STATUS
+            fi
+          fi
 
       - name: Check for changes
         id: check
