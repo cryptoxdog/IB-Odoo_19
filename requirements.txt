@@ -12,6 +12,41 @@ requests>=2.28.0
 # Required for plasticos_buyer_match_engine Neo4j graph traversal
 neo4j>=5.0.0
 
+# cryptography / pyOpenSSL compatibility pin — Odoo.sh registry-crash incident (2026-07-16 → 2026-07-24)
+#
+# constellation-node-sdk (below) declares "cryptography>=42.0.0" with NO upper
+# bound (verified: github.com/cryptoxdog/Gate_SDK pyproject.toml). The Odoo.sh
+# container ships an old pyOpenSSL (23.2.0) whose compiled bindings only support
+# "cryptography<42.0.0" (pyOpenSSL changelog: 23.2.0 = "cryptography maximum
+# version increased to 41.0.x"). Those two ranges do NOT overlap — capping
+# cryptography down to satisfy the old pyOpenSSL is mathematically impossible
+# without forking constellation-node-sdk. The only fix is to pin pyOpenSSL
+# FORWARD to a version whose supported range covers our pinned cryptography.
+#
+# Without this pin, pip silently resolves the newest cryptography wheel (e.g.
+# 49.0.0) while the stale pyOpenSSL 23.2.0 binary stays on disk, and `base`
+# fails to import with:
+#   AttributeError: module 'lib' has no attribute 'GEN_EMAIL' / 'X509_...'
+# which crashes the ENTIRE Odoo registry on every restart (every module import
+# chains through `base`, not just plasticos_*).
+#
+# Chosen pair: cryptography 43.0.3 + pyOpenSSL 24.3.0 — both satisfy
+# constellation-node-sdk's floor, both have >1 year of production soak time
+# (avoids pairing with same-week bleeding-edge releases), and pyOpenSSL 24.3.0's
+# declared range (cryptography 41.0.5–44.x) comfortably contains 43.0.3.
+# Ref: https://www.pyopenssl.org/en/stable/changelog.html ; pyca/pyopenssl#1177
+#
+# This is a COMPATIBILITY SHIM, not a permanent fix: PyCA (pyOpenSSL's own
+# maintainers) has pending-deprecated OpenSSL.crypto in favor of calling
+# `cryptography` directly. No plasticos_* code imports OpenSSL.crypto (verified
+# via repo-wide grep) — pyOpenSSL is only present because it's baked into the
+# Odoo.sh base container / pulled transitively (paramiko, josepy). Once Odoo.sh
+# ships a base image with a pyOpenSSL-free (or cryptography>=42-compatible)
+# toolchain, or constellation-node-sdk's transitive deps drop pyOpenSSL, this
+# pin block can likely be removed. Revisit on next Odoo.sh base image bump.
+cryptography==43.0.3
+pyOpenSSL==24.3.0
+
 # Constellation Gate TransportPacket client (plasticos_gate)
 constellation-node-sdk @ git+https://github.com/cryptoxdog/Gate_SDK.git@ab9df5f15c1ba433c3f072a1ca01052584682758
 
