@@ -25,7 +25,13 @@ on:
 env:
   # Keep in lockstep with .github/workflows/baseline-ratchet.yml's core-revision.
   L9_CORE_REF: "d81a06ed821106a487df2e5ad06d93e347392af6"
-  L9_PROFILE: "pr_fast"
+  # pr_fast.allowed_events = [pull_request, workflow_dispatch] only (see
+  # .github/governance/execution-profiles.yaml) — it does NOT allow `push`.
+  # This workflow also triggers on `push: branches: [Staging]`, so the
+  # profile must switch per event or resolve-governance rejects push runs.
+  # `merge` is the profile execution-profiles.yaml defines specifically for
+  # push events (allowed_events: [push, workflow_dispatch]).
+  L9_PROFILE: ${{ github.event_name == 'push' && 'merge' || 'pr_fast' }}
   L9_MATRIX_ID: "pr-semgrep"
 
 permissions:
