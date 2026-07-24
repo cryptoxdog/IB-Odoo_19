@@ -274,65 +274,31 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install jq
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
-
       - id: audit
-        name: Run comprehensive + extended audits (compare vs baseline)
+        name: Run comprehensive + extended audits (diff vs per-finding baseline)
         run: |
+          # Per-finding fingerprint baseline (ci/baselines/*.json), not a raw
+          # count comparison — see scripts/audit/baseline_utils.py. Each entry
+          # there is a human-reviewed known false positive or accepted debt
+          # item; anything NOT in the log is treated as new and fails the gate,
+          # so a count staying flat can never mask "one known FP got fixed,
+          # one new real bug appeared" the way a count-only baseline could.
           FAIL=0
 
           echo "=== Comprehensive audit (scripts/audit/odoo_audit.py) ==="
           python3 scripts/audit/odoo_audit.py . || true
-          # Baseline: 444 CRITICAL, 1 HIGH — all pre-existing false positives from
-          # known odoo_audit.py limitations, verified 2026-07: (1) FIELD_NOT_FOUND
-          # (444x) misattributes ir.ui.view/ir.actions.act_window container fields
-          # (arch, inherit_id, priority, name, view_mode, res_model, context, help,
-          # search_view_id, target) as if they belonged to the model the view
-          # displays — the script doesn't distinguish view-record fields from
-          # displayed-model fields; (2) INVALID_CONSTRAINT_FIELD (1x, transaction.py
-          # commission_override_pct) is a single-file scanner that can't see fields
-          # added via cross-module _inherit (field is defined in plasticos_commission).
-          # NOT zero known debt — tracks NEW regressions beyond these false positives.
-          BASELINE_CRITICAL=444
-          BASELINE_HIGH=1
-          CRITICAL_COUNT=$(jq '[.[] | select(.severity=="CRITICAL")] | length' odoo_audit_report.json)
-          HIGH_COUNT=$(jq '[.[] | select(.severity=="HIGH")] | length' odoo_audit_report.json)
-          {
-            echo "### Comprehensive Audit"
-            echo "- CRITICAL: $CRITICAL_COUNT (baseline: $BASELINE_CRITICAL)"
-            echo "- HIGH: $HIGH_COUNT (baseline: $BASELINE_HIGH)"
-          } >> "$GITHUB_STEP_SUMMARY"
-          if [ "$CRITICAL_COUNT" -gt "$BASELINE_CRITICAL" ] || [ "$HIGH_COUNT" -gt "$BASELINE_HIGH" ]; then
-            echo "❌ REGRESSION: comprehensive audit CRITICAL=$CRITICAL_COUNT HIGH=$HIGH_COUNT (baseline: $BASELINE_CRITICAL/$BASELINE_HIGH)"
-            FAIL=1
-          else
-            echo "✅ Comprehensive audit: no regression (CRITICAL=$CRITICAL_COUNT, HIGH=$HIGH_COUNT)"
-          fi
+          python3 scripts/audit/check_baseline.py \
+            odoo_audit_report.json ci/baselines/odoo_audit_baseline.json \
+            --severities CRITICAL,HIGH --label "Comprehensive audit" \
+            --summary-file "$GITHUB_STEP_SUMMARY" || FAIL=1
           echo ""
 
           echo "=== Extended audit (scripts/audit/run_all_audits.py) ==="
           python3 scripts/audit/run_all_audits.py . || true
-          if [ -f extended_audit_report.json ]; then
-            # Baseline: 15 pre-existing HIGH, verified 2026-07 — tracked debt, not
-            # new regressions: 9x N_PLUS_ONE_QUERY (transaction.py, purchase_inherit.py,
-            # load.py x3, facility_profile.py x2, intake_extension.py, commission_rule.py)
-            # + 6x SENSITIVE_DATA_LOGGED (keyword false positives on "token"/"api_key"
-            # substrings in log messages describing config, not logging real secret
-            # values — pr_autopilot.py, pr_check_remote_feedback.py, web_leads post-migrate).
-            BASELINE_EXT_HIGH=15
-            EXT_HIGH=$(jq '[.[] | select(.severity=="HIGH")] | length' extended_audit_report.json)
-            {
-              echo "### Extended Audit"
-              echo "- HIGH: $EXT_HIGH (baseline: $BASELINE_EXT_HIGH)"
-            } >> "$GITHUB_STEP_SUMMARY"
-            if [ "$EXT_HIGH" -gt "$BASELINE_EXT_HIGH" ]; then
-              echo "❌ REGRESSION: extended audit HIGH=$EXT_HIGH (baseline: $BASELINE_EXT_HIGH)"
-              FAIL=1
-            else
-              echo "✅ Extended audit: no regression (found: $EXT_HIGH, baseline: $BASELINE_EXT_HIGH)"
-            fi
-          fi
+          python3 scripts/audit/check_baseline.py \
+            extended_audit_report.json ci/baselines/extended_audit_baseline.json \
+            --severities HIGH --label "Extended audit" \
+            --summary-file "$GITHUB_STEP_SUMMARY" || FAIL=1
 
           echo "fail=$FAIL" >> "$GITHUB_OUTPUT"
 
@@ -356,10 +322,13 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: "## ❌ Audit Regression Detected\n\nThis PR introduces new CRITICAL/HIGH severity issues " +
-                "vs the tracked baseline. See the `audit-baseline` job log and the `odoo-audit-reports` " +
-                "artifact for details.\n\nRun locally: `python3 scripts/audit/odoo_audit.py .` and " +
-                "`python3 scripts/audit/run_all_audits.py .`",
+              body: "## ❌ Audit Regression Detected\n\nThis PR introduces CRITICAL/HIGH findings not already " +
+                "logged in `ci/baselines/*.json`. See the `audit-baseline` job log and the `odoo-audit-reports` " +
+                "artifact for details.\n\nFix the code, or if this is a confirmed false positive / accepted debt, " +
+                "add it to the baseline: `python3 scripts/audit/odoo_audit.py .` then " +
+                "`python3 scripts/audit/check_baseline.py odoo_audit_report.json ci/baselines/odoo_audit_baseline.json " +
+                "--severities CRITICAL,HIGH --dump-new` (same pattern for `extended_audit_report.json` / " +
+                "`extended_audit_baseline.json` --severities HIGH). Never edit the scanner scripts to special-case a finding.",
             });
 
       - name: Gate on regression

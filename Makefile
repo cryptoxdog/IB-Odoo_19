@@ -69,7 +69,7 @@ help:
 	@echo "  Audit (run before PRs — mirrors ci.yml job-for-job)"
 	@echo "    make audit-quick      fast: lint + format + wiring + odoo19 + xml + deps + cron"
 	@echo "    make audit            full: 1:1 parity with ci.yml static-checks (all blocking checks)"
-	@echo "    make audit-baseline   comprehensive+extended audit vs baseline (mirrors ci.yml audit-baseline job)"
+	@echo "    make audit-baseline   comprehensive+extended audit vs ci/baselines/*.json fingerprint log (mirrors ci.yml)"
 	@echo "    make advisory-checks  mypy + ACL CSV header + test-attribute-guard (never fails)"
 	@echo "    make xml-check        xmllint on all plasticos XML files"
 	@echo "    make odoo19-check     Odoo 19 XML pattern violations"
@@ -351,24 +351,21 @@ advisory-checks: mypy-check acl-csv-check test-attr-guard-check
 # commission_override_pct) is a cross-module _inherit field the single-file
 # scanner can't see (defined in plasticos_commission). Keep in sync with the
 # BASELINE_CRITICAL/BASELINE_HIGH values in ci.yml's audit-baseline job.
+# Per-finding fingerprint baseline (ci/baselines/*.json) — NOT a raw count
+# comparison. See scripts/audit/baseline_utils.py for the rationale and
+# ci/baselines/README.md for how to log a newly-reviewed finding. Mirrors
+# ci.yml's audit-baseline job exactly (same two scripts, same flags).
 audit-baseline:
-	@echo "→ Comprehensive audit (scripts/audit/odoo_audit.py) vs baseline (444 CRITICAL, 1 HIGH known false positives)..."
+	@echo "→ Comprehensive audit (scripts/audit/odoo_audit.py) vs ci/baselines/odoo_audit_baseline.json..."
 	@python3 scripts/audit/odoo_audit.py . || true
-	@python3 -c "\
-import json, sys; \
-d = json.load(open('odoo_audit_report.json')); \
-c = len([x for x in d if x['severity'] == 'CRITICAL']); \
-h = len([x for x in d if x['severity'] == 'HIGH']); \
-print(f'  CRITICAL={c} (baseline: 444), HIGH={h} (baseline: 1)'); \
-sys.exit(1 if (c > 444 or h > 1) else 0)"
-	@echo "→ Extended audit (scripts/audit/run_all_audits.py) vs baseline (15 pre-existing HIGH: 9 N+1 + 6 sensitive-data-logged false positives)..."
+	@python3 scripts/audit/check_baseline.py \
+		odoo_audit_report.json ci/baselines/odoo_audit_baseline.json \
+		--severities CRITICAL,HIGH --label "Comprehensive audit"
+	@echo "→ Extended audit (scripts/audit/run_all_audits.py) vs ci/baselines/extended_audit_baseline.json..."
 	@python3 scripts/audit/run_all_audits.py . || true
-	@python3 -c "\
-import json, sys; \
-d = json.load(open('extended_audit_report.json')); \
-h = len([x for x in d if x['severity'] == 'HIGH']); \
-print(f'  HIGH={h} (baseline: 15)'); \
-sys.exit(1 if h > 15 else 0)"
+	@python3 scripts/audit/check_baseline.py \
+		extended_audit_report.json ci/baselines/extended_audit_baseline.json \
+		--severities HIGH --label "Extended audit"
 	@echo "✅ No audit baseline regression"
 
 secret-scan:

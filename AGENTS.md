@@ -442,20 +442,25 @@ Hooks marked "Yes (pre-push)" only run at the `pre-push` git stage, not on every
 
 ### Audit Baselines (enforced by `ci.yml`'s `audit-baseline` job — separate parallel Phase 1 job, not `static-checks`)
 
-CI fails if CRITICAL/HIGH severity findings exceed these baselines. Verified against
-current repo state 2026-07 — run `make audit-baseline` locally to reproduce these counts.
+CI diffs each scanner's findings against a **per-finding fingerprint log**
+(`ci/baselines/*.json`), not a raw count — see `ci/baselines/README.md` for the
+full workflow and `scripts/audit/baseline_utils.py` for the fingerprinting
+logic. Any finding not already logged fails the gate, so "count stayed the
+same" can never mask "one known issue got fixed, one new one appeared."
+Run `make audit-baseline` locally to reproduce.
 
-| Audit | Baseline | Notes |
-|-------|----------|-------|
-| `scripts/audit/odoo_audit.py` CRITICAL | 444 | All `FIELD_NOT_FOUND` — script misattributes `ir.ui.view`/`ir.actions.act_window` container fields (`arch`, `inherit_id`, `name`, `view_mode`, `res_model`, `context`, `help`, `search_view_id`, `target`, `priority`) as fields of the model the view displays |
-| `scripts/audit/odoo_audit.py` HIGH | 1 | `INVALID_CONSTRAINT_FIELD` on `plasticos_transaction/models/transaction.py:497` (`commission_override_pct`) — field is added via cross-module `_inherit` from `plasticos_commission`; the single-file scanner can't see it |
-| `scripts/audit/run_all_audits.py` HIGH | 15 | 9x `N_PLUS_ONE_QUERY` (`transaction.py`, `purchase_inherit.py`, `load.py` x3, `facility_profile.py` x2, `intake_extension.py`, `commission_rule.py`) + 6x `SENSITIVE_DATA_LOGGED` keyword false positives on "token"/"api_key" substrings in log messages (`pr_autopilot.py`, `pr_check_remote_feedback.py`, `web_leads` post-migrate) — none log actual secret values |
-| XPath CRITICAL | 0 | No new CRITICAL XPath issues allowed |
-| XPath HIGH | 0 | No new HIGH XPath issues allowed |
+| Audit | Baseline file | Gated severities | Notes |
+|-------|--------------|-------------------|-------|
+| `scripts/audit/odoo_audit.py` | `ci/baselines/odoo_audit_baseline.json` | CRITICAL, HIGH | 444x `FIELD_NOT_FOUND` (CRITICAL) — script misattributes `ir.ui.view`/`ir.actions.act_window` container fields (`arch`, `inherit_id`, `name`, `view_mode`, `res_model`, `context`, `help`, `search_view_id`, `target`, `priority`) as fields of the model the view displays; 1x `INVALID_CONSTRAINT_FIELD` (HIGH) on `plasticos_transaction/models/transaction.py` (`commission_override_pct`) — field is added via cross-module `_inherit` from `plasticos_commission`, the single-file scanner can't see it |
+| `scripts/audit/run_all_audits.py` | `ci/baselines/extended_audit_baseline.json` | HIGH | 9x `N_PLUS_ONE_QUERY` (`transaction.py`, `purchase_inherit.py`, `load.py` x3, `facility_profile.py` x2, `intake_extension.py`, `commission_rule.py`) — real pattern, accepted as low-impact debt (small recordsets); 6x `SENSITIVE_DATA_LOGGED` keyword false positives on "token"/"api_key" substrings in log messages (`pr_autopilot.py`, `pr_check_remote_feedback.py`, `web_leads` post-migrate) — none log actual secret values |
+| XPath CRITICAL | — (count-based, unchanged) | — | 0 — no new CRITICAL XPath issues allowed |
+| XPath HIGH | — (count-based, unchanged) | — | 0 — no new HIGH XPath issues allowed |
 
-These baselines are a **ratchet**, not zero known debt: any NEW finding beyond the
-tracked count fails CI, but the pre-existing false positives / tracked N+1s above are
-not blocking until someone fixes the underlying scanner limitation or the actual query.
+To log a newly-reviewed false positive or accepted-debt finding (never edit the
+scanner scripts to special-case it): `python3 scripts/audit/check_baseline.py
+<report.json> <baseline.json> --severities ... --dump-new`, review the printed
+entries, then merge them into the baseline file's `entries` array. Full
+workflow: `ci/baselines/README.md`.
 
 ### Version Lockstep
 

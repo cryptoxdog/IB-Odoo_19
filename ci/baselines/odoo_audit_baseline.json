@@ -1,0 +1,4458 @@
+{
+  "_description": "Per-finding allowlist for scripts/audit/odoo_audit.py CRITICAL/HIGH findings. Each entry is a known, human-reviewed false positive or accepted item \u2014 NOT a blanket count baseline. Any finding whose fingerprint is not in this list fails the audit-baseline CI job (fix the code, or add a new reviewed entry here).",
+  "_how_to_add_entries": "python3 scripts/audit/check_baseline.py odoo_audit_report.json ci/baselines/odoo_audit_baseline.json --severities CRITICAL,HIGH --dump-new -- review the output, then merge the printed entries into this file. Never edit scripts/audit/odoo_audit.py to special-case a finding.",
+  "_verified": "2026-07-24",
+  "_root_cause": "FIELD_NOT_FOUND (444x, CRITICAL): odoo_audit.py cannot distinguish ir.ui.view / ir.actions.act_window container fields (arch, inherit_id, priority, name, view_mode, res_model, context, help, search_view_id, target, ...) from fields on the model a view displays -- it misattributes them all as missing model fields. INVALID_CONSTRAINT_FIELD (1x, HIGH): transaction.py commission_override_pct is defined via cross-module _inherit in plasticos_commission; the single-file scanner cannot see it.",
+  "entries": [
+    {
+      "fingerprint": "533531e3132d743a",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_source_views.xml",
+      "line": 6,
+      "model": "plasticos.enrichment.source",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.enrichment.source'"
+    },
+    {
+      "fingerprint": "7908363eb7d649a0",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_source_views.xml",
+      "line": 21,
+      "model": "plasticos.enrichment.source",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.enrichment.source'"
+    },
+    {
+      "fingerprint": "6cf80f7e8c942b24",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_source_views.xml",
+      "line": 22,
+      "model": "plasticos.enrichment.source",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.enrichment.source'"
+    },
+    {
+      "fingerprint": "1d2ddf7f8ab5b725",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_source_views.xml",
+      "line": 23,
+      "model": "plasticos.enrichment.source",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.enrichment.source'"
+    },
+    {
+      "fingerprint": "cf070a1e49406611",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 6,
+      "model": "plasticos.enrichment.run",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "cf070a1e49406611",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 27,
+      "model": "plasticos.enrichment.run",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "3cc2859032bfad5e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 59,
+      "model": "plasticos.enrichment.run",
+      "field": "url",
+      "message": "Field 'url' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "0213d3351fdf4985",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 60,
+      "model": "plasticos.enrichment.run",
+      "field": "source_type",
+      "message": "Field 'source_type' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "ec84415d700c3417",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 61,
+      "model": "plasticos.enrichment.run",
+      "field": "crawl_status",
+      "message": "Field 'crawl_status' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "e5a05605bdc7d5ec",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 62,
+      "model": "plasticos.enrichment.run",
+      "field": "last_crawled_at",
+      "message": "Field 'last_crawled_at' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "7fdbd0438352b5ca",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 63,
+      "model": "plasticos.enrichment.run",
+      "field": "error_message",
+      "message": "Field 'error_message' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "b5a905ba02ecd0dd",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 70,
+      "model": "plasticos.enrichment.run",
+      "field": "source_id",
+      "message": "Field 'source_id' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "94b721cf542592fd",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 71,
+      "model": "plasticos.enrichment.run",
+      "field": "confidence",
+      "message": "Field 'confidence' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "94b721cf542592fd",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 85,
+      "model": "plasticos.enrichment.run",
+      "field": "confidence",
+      "message": "Field 'confidence' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "e2fbcff675c1b996",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 72,
+      "model": "plasticos.enrichment.run",
+      "field": "governance_passed",
+      "message": "Field 'governance_passed' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "ca9dedf178315c26",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 73,
+      "model": "plasticos.enrichment.run",
+      "field": "is_injectable",
+      "message": "Field 'is_injectable' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "8db63973c441dfdc",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 74,
+      "model": "plasticos.enrichment.run",
+      "field": "extracted_at",
+      "message": "Field 'extracted_at' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "1bb8d608d934d720",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 81,
+      "model": "plasticos.enrichment.run",
+      "field": "target_field",
+      "message": "Field 'target_field' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "91fe637259a39c46",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 82,
+      "model": "plasticos.enrichment.run",
+      "field": "value_written",
+      "message": "Field 'value_written' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "13e1930d368bc20d",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 83,
+      "model": "plasticos.enrichment.run",
+      "field": "previous_value",
+      "message": "Field 'previous_value' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "9071e9d93cd0ca77",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 84,
+      "model": "plasticos.enrichment.run",
+      "field": "status",
+      "message": "Field 'status' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "ea2698929cafb8c6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 86,
+      "model": "plasticos.enrichment.run",
+      "field": "inference_type",
+      "message": "Field 'inference_type' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "e9daf76b1eef41e1",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 87,
+      "model": "plasticos.enrichment.run",
+      "field": "source_sentence",
+      "message": "Field 'source_sentence' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "f53d39026890c58f",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 93,
+      "model": "plasticos.enrichment.run",
+      "field": "validation_issues",
+      "message": "Field 'validation_issues' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "7074904afc975bd7",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 104,
+      "model": "plasticos.enrichment.run",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "662924f3badb5920",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_enrichment/views/enrichment_run_views.xml",
+      "line": 105,
+      "model": "plasticos.enrichment.run",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.enrichment.run'"
+    },
+    {
+      "fingerprint": "894b3f077ab2266e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_ux.xml",
+      "line": 12,
+      "model": "plasticos.transaction",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "894b3f077ab2266e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_ux.xml",
+      "line": 101,
+      "model": "plasticos.transaction",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "894b3f077ab2266e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_ux.xml",
+      "line": 132,
+      "model": "plasticos.transaction",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "772e4d1740666514",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_bridge_views.xml",
+      "line": 6,
+      "model": "plasticos.transaction",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "1a8d0f5be27468c4",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/transaction_load_views.xml",
+      "line": 11,
+      "model": "plasticos.transaction",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "1a8d0f5be27468c4",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/transaction_load_views.xml",
+      "line": 33,
+      "model": "plasticos.transaction",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "1a8d0f5be27468c4",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/transaction_load_views.xml",
+      "line": 59,
+      "model": "plasticos.transaction",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "1a8d0f5be27468c4",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/transaction_load_views.xml",
+      "line": 79,
+      "model": "plasticos.transaction",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "15cb5047483f3fef",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/transaction_docs_bridge_views.xml",
+      "line": 6,
+      "model": "plasticos.transaction",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "42d7c43cf9e3c9b3",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/transaction_docs_views.xml",
+      "line": 7,
+      "model": "plasticos.transaction",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "6978b93d615e45a4",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/transaction_claims_bridge_views.xml",
+      "line": 6,
+      "model": "plasticos.transaction",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "9c86699562a9044f",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/transaction_commission_views.xml",
+      "line": 13,
+      "model": "plasticos.transaction",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "c123e2ff5aac5a31",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_ux.xml",
+      "line": 13,
+      "model": "plasticos.transaction",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "c123e2ff5aac5a31",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_ux.xml",
+      "line": 102,
+      "model": "plasticos.transaction",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "c123e2ff5aac5a31",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_ux.xml",
+      "line": 133,
+      "model": "plasticos.transaction",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "2246c1e6f5dbc4e1",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_bridge_views.xml",
+      "line": 7,
+      "model": "plasticos.transaction",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "7ef5368f964f8ceb",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/transaction_load_views.xml",
+      "line": 12,
+      "model": "plasticos.transaction",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "7ef5368f964f8ceb",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/transaction_load_views.xml",
+      "line": 34,
+      "model": "plasticos.transaction",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "7ef5368f964f8ceb",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/transaction_load_views.xml",
+      "line": 60,
+      "model": "plasticos.transaction",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "7ef5368f964f8ceb",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/transaction_load_views.xml",
+      "line": 80,
+      "model": "plasticos.transaction",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "b28d8c8742f92148",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/transaction_docs_bridge_views.xml",
+      "line": 7,
+      "model": "plasticos.transaction",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "49cc66263038c3a0",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/transaction_claims_bridge_views.xml",
+      "line": 7,
+      "model": "plasticos.transaction",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "b209e3617c1342d8",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/transaction_commission_views.xml",
+      "line": 14,
+      "model": "plasticos.transaction",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "5df05be0b687364c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_ux.xml",
+      "line": 14,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "5df05be0b687364c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_ux.xml",
+      "line": 103,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "5df05be0b687364c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_ux.xml",
+      "line": 134,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "93aa226d74ffb033",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_bulk_update_wizard_views.xml",
+      "line": 8,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "4a85095d3bcac752",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 10,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "4a85095d3bcac752",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 59,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "4a85095d3bcac752",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 91,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "4a85095d3bcac752",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 110,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "4a85095d3bcac752",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 125,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "959daee7f6b68da4",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_bridge_views.xml",
+      "line": 8,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "5ea377858eafe5de",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/transaction_load_views.xml",
+      "line": 13,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "5ea377858eafe5de",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/transaction_load_views.xml",
+      "line": 35,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "5ea377858eafe5de",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/transaction_load_views.xml",
+      "line": 61,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "5ea377858eafe5de",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/transaction_load_views.xml",
+      "line": 81,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "7ee49bc444729b0e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/transaction_docs_bridge_views.xml",
+      "line": 8,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "624be4473d286361",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/transaction_docs_views.xml",
+      "line": 8,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "41c9f5686c9cc903",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/transaction_claims_bridge_views.xml",
+      "line": 8,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "69abb9f19b3e02f6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/transaction_commission_views.xml",
+      "line": 15,
+      "model": "plasticos.transaction",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "2f1dbb53d5b2dfae",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 207,
+      "model": "plasticos.transaction",
+      "field": "detail_id",
+      "message": "Field 'detail_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "642284407258ac5f",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 208,
+      "model": "plasticos.transaction",
+      "field": "grade_id",
+      "message": "Field 'grade_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "345b4b2e3dd1c58d",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 209,
+      "model": "plasticos.transaction",
+      "field": "description",
+      "message": "Field 'description' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "763527230355cfbc",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 210,
+      "model": "plasticos.transaction",
+      "field": "sale_weight",
+      "message": "Field 'sale_weight' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "67b4947053495244",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 211,
+      "model": "plasticos.transaction",
+      "field": "weight_uom",
+      "message": "Field 'weight_uom' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "d737ed8f9d67ed2b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 212,
+      "model": "plasticos.transaction",
+      "field": "sale_price",
+      "message": "Field 'sale_price' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "057068415d514ecc",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 213,
+      "model": "plasticos.transaction",
+      "field": "sale_amount",
+      "message": "Field 'sale_amount' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "eec181f20c2dbe3c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 214,
+      "model": "plasticos.transaction",
+      "field": "purchase_price",
+      "message": "Field 'purchase_price' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "6c9b7cd4ffff91c1",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 215,
+      "model": "plasticos.transaction",
+      "field": "purchase_amount",
+      "message": "Field 'purchase_amount' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "bfee20134366d125",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 216,
+      "model": "plasticos.transaction",
+      "field": "margin",
+      "message": "Field 'margin' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "0c749aa63ddd3528",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 229,
+      "model": "plasticos.transaction",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "b2a08f19e9374620",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 230,
+      "model": "plasticos.transaction",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "544e43a0c17c8085",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 231,
+      "model": "plasticos.transaction",
+      "field": "search_view_id",
+      "message": "Field 'search_view_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "4de641939c0ab1fc",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 232,
+      "model": "plasticos.transaction",
+      "field": "context",
+      "message": "Field 'context' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "1d7b872ec50e27fe",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 233,
+      "model": "plasticos.transaction",
+      "field": "help",
+      "message": "Field 'help' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "7f17f9d3a6645ee8",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/intake_bridge_views.xml",
+      "line": 6,
+      "model": "plasticos.intake",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "4880a52977ce6446",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/intake_normalizer_views.xml",
+      "line": 11,
+      "model": "plasticos.intake",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "ed72bf0ba0326534",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/intake_button_views.xml",
+      "line": 7,
+      "model": "plasticos.intake",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "d9ec52a6f87d1145",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_ux.xml",
+      "line": 12,
+      "model": "plasticos.intake",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "d9ec52a6f87d1145",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_ux.xml",
+      "line": 98,
+      "model": "plasticos.intake",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "d9ec52a6f87d1145",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_ux.xml",
+      "line": 129,
+      "model": "plasticos.intake",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "bb1670dec068d85b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/intake_bridge_views.xml",
+      "line": 7,
+      "model": "plasticos.intake",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "e7aad02745670ad4",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/intake_normalizer_views.xml",
+      "line": 12,
+      "model": "plasticos.intake",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "24e1daf55394c86d",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_ux.xml",
+      "line": 13,
+      "model": "plasticos.intake",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "24e1daf55394c86d",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_ux.xml",
+      "line": 99,
+      "model": "plasticos.intake",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "24e1daf55394c86d",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_ux.xml",
+      "line": 130,
+      "model": "plasticos.intake",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "3258272658ff4a87",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/intake_bridge_views.xml",
+      "line": 8,
+      "model": "plasticos.intake",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "650476b350edac49",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/intake_normalizer_views.xml",
+      "line": 13,
+      "model": "plasticos.intake",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "d35b976b14e9b78e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/intake_button_views.xml",
+      "line": 8,
+      "model": "plasticos.intake",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "2cbb3ab49d6bd4de",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_ux.xml",
+      "line": 14,
+      "model": "plasticos.intake",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "2cbb3ab49d6bd4de",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_ux.xml",
+      "line": 100,
+      "model": "plasticos.intake",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "2cbb3ab49d6bd4de",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_ux.xml",
+      "line": 131,
+      "model": "plasticos.intake",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "5624faf7434e6230",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 11,
+      "model": "plasticos.intake",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "5624faf7434e6230",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 76,
+      "model": "plasticos.intake",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "5624faf7434e6230",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 106,
+      "model": "plasticos.intake",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "5624faf7434e6230",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 124,
+      "model": "plasticos.intake",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "5624faf7434e6230",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 139,
+      "model": "plasticos.intake",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "5624faf7434e6230",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 202,
+      "model": "plasticos.intake",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "c88cae075aba27d9",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/intake_bridge_views.xml",
+      "line": 15,
+      "model": "plasticos.intake",
+      "field": "transaction_count",
+      "message": "Field 'transaction_count' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "e3588882b882ec66",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/offer_bridge_views.xml",
+      "line": 6,
+      "model": "plasticos.offer",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "2cfe26c064058184",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_ux.xml",
+      "line": 13,
+      "model": "plasticos.offer",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "2cfe26c064058184",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_ux.xml",
+      "line": 144,
+      "model": "plasticos.offer",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "2cfe26c064058184",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_ux.xml",
+      "line": 171,
+      "model": "plasticos.offer",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "ff1e310dbbd54fe9",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/offer_bridge_views.xml",
+      "line": 7,
+      "model": "plasticos.offer",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "501ceded954ed644",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_ux.xml",
+      "line": 14,
+      "model": "plasticos.offer",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "501ceded954ed644",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_ux.xml",
+      "line": 145,
+      "model": "plasticos.offer",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "501ceded954ed644",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_ux.xml",
+      "line": 172,
+      "model": "plasticos.offer",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "3cd9c61ba077f410",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/offer_bridge_views.xml",
+      "line": 8,
+      "model": "plasticos.offer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "6b3f94edf0b4fdaf",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_views.xml",
+      "line": 10,
+      "model": "plasticos.offer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "6b3f94edf0b4fdaf",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_views.xml",
+      "line": 54,
+      "model": "plasticos.offer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "6b3f94edf0b4fdaf",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_views.xml",
+      "line": 84,
+      "model": "plasticos.offer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "6b3f94edf0b4fdaf",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_views.xml",
+      "line": 136,
+      "model": "plasticos.offer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "6b3f94edf0b4fdaf",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_views.xml",
+      "line": 157,
+      "model": "plasticos.offer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "6b3f94edf0b4fdaf",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_views.xml",
+      "line": 174,
+      "model": "plasticos.offer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "6b3f94edf0b4fdaf",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_views.xml",
+      "line": 189,
+      "model": "plasticos.offer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "3efff1823c2ecfe7",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_ux.xml",
+      "line": 15,
+      "model": "plasticos.offer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "3efff1823c2ecfe7",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_ux.xml",
+      "line": 146,
+      "model": "plasticos.offer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "3efff1823c2ecfe7",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_ux.xml",
+      "line": 173,
+      "model": "plasticos.offer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "3be1a7e3ea814b9b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_ux.xml",
+      "line": 12,
+      "model": "plasticos.load",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "3be1a7e3ea814b9b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_ux.xml",
+      "line": 118,
+      "model": "plasticos.load",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "3be1a7e3ea814b9b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_ux.xml",
+      "line": 148,
+      "model": "plasticos.load",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "ef9983e9836c26d5",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/load_docs_bridge_views.xml",
+      "line": 6,
+      "model": "plasticos.load",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "328eb18d6b2f4af9",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_ux.xml",
+      "line": 13,
+      "model": "plasticos.load",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "328eb18d6b2f4af9",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_ux.xml",
+      "line": 119,
+      "model": "plasticos.load",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "328eb18d6b2f4af9",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_ux.xml",
+      "line": 149,
+      "model": "plasticos.load",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "d55130745f9356b0",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/load_docs_bridge_views.xml",
+      "line": 7,
+      "model": "plasticos.load",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "838c332d71f15c31",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_ux.xml",
+      "line": 14,
+      "model": "plasticos.load",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "838c332d71f15c31",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_ux.xml",
+      "line": 120,
+      "model": "plasticos.load",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "838c332d71f15c31",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_ux.xml",
+      "line": 150,
+      "model": "plasticos.load",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "59ca328d0f6ee573",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_views.xml",
+      "line": 10,
+      "model": "plasticos.load",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "59ca328d0f6ee573",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_views.xml",
+      "line": 57,
+      "model": "plasticos.load",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "59ca328d0f6ee573",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_views.xml",
+      "line": 86,
+      "model": "plasticos.load",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "59ca328d0f6ee573",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_views.xml",
+      "line": 143,
+      "model": "plasticos.load",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "59ca328d0f6ee573",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_views.xml",
+      "line": 164,
+      "model": "plasticos.load",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "fa0512aaf6cea965",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/load_docs_bridge_views.xml",
+      "line": 8,
+      "model": "plasticos.load",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "26e24bbc757aa80c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_dashboard_views.xml",
+      "line": 10,
+      "model": "plasticos.load.dashboard",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.load.dashboard'"
+    },
+    {
+      "fingerprint": "26e24bbc757aa80c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_dashboard_views.xml",
+      "line": 63,
+      "model": "plasticos.load.dashboard",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.load.dashboard'"
+    },
+    {
+      "fingerprint": "4adabd15f40449ba",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_dashboard_views.xml",
+      "line": 61,
+      "model": "plasticos.load.dashboard",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.load.dashboard'"
+    },
+    {
+      "fingerprint": "4adabd15f40449ba",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_dashboard_views.xml",
+      "line": 105,
+      "model": "plasticos.load.dashboard",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.load.dashboard'"
+    },
+    {
+      "fingerprint": "276ed5cb5f16d57c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_dashboard_views.xml",
+      "line": 106,
+      "model": "plasticos.load.dashboard",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.load.dashboard'"
+    },
+    {
+      "fingerprint": "2e3135f9ee0d0c17",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_dashboard_views.xml",
+      "line": 107,
+      "model": "plasticos.load.dashboard",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.load.dashboard'"
+    },
+    {
+      "fingerprint": "bbeb90c553667b97",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_dashboard_views.xml",
+      "line": 108,
+      "model": "plasticos.load.dashboard",
+      "field": "search_view_id",
+      "message": "Field 'search_view_id' not defined on model 'plasticos.load.dashboard'"
+    },
+    {
+      "fingerprint": "71e90c15e93f6458",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_dashboard_views.xml",
+      "line": 109,
+      "model": "plasticos.load.dashboard",
+      "field": "context",
+      "message": "Field 'context' not defined on model 'plasticos.load.dashboard'"
+    },
+    {
+      "fingerprint": "b941ac0ebe9ac019",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_dashboard_views.xml",
+      "line": 110,
+      "model": "plasticos.load.dashboard",
+      "field": "help",
+      "message": "Field 'help' not defined on model 'plasticos.load.dashboard'"
+    },
+    {
+      "fingerprint": "95ee4a221869b88e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/transaction_load_views.xml",
+      "line": 17,
+      "model": "plasticos.transaction",
+      "field": "load_id",
+      "message": "Field 'load_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "95ee4a221869b88e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/transaction_load_views.xml",
+      "line": 65,
+      "model": "plasticos.transaction",
+      "field": "load_id",
+      "message": "Field 'load_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "95ee4a221869b88e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/transaction_load_views.xml",
+      "line": 85,
+      "model": "plasticos.transaction",
+      "field": "load_id",
+      "message": "Field 'load_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "f589b248f795d920",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_views.xml",
+      "line": 309,
+      "model": "plasticos.load",
+      "field": "message_follower_ids",
+      "message": "Field 'message_follower_ids' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "a2c4017281c6cf50",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_views.xml",
+      "line": 310,
+      "model": "plasticos.load",
+      "field": "message_ids",
+      "message": "Field 'message_ids' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "fe8e0d153dec8782",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_views.xml",
+      "line": 321,
+      "model": "plasticos.load",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "7c7aeb8fa723a354",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_views.xml",
+      "line": 322,
+      "model": "plasticos.load",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "f48842bc261f62f6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_views.xml",
+      "line": 323,
+      "model": "plasticos.load",
+      "field": "search_view_id",
+      "message": "Field 'search_view_id' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "9a51a430d04ff943",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_views.xml",
+      "line": 324,
+      "model": "plasticos.load",
+      "field": "context",
+      "message": "Field 'context' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "239a23f2544427d1",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_logistics/views/load_views.xml",
+      "line": 325,
+      "model": "plasticos.load",
+      "field": "help",
+      "message": "Field 'help' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "991daf0d687bf49b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/partner_type_views.xml",
+      "line": 7,
+      "model": "plasticos.partner.type",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.partner.type'"
+    },
+    {
+      "fingerprint": "991daf0d687bf49b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/partner_type_views.xml",
+      "line": 21,
+      "model": "plasticos.partner.type",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.partner.type'"
+    },
+    {
+      "fingerprint": "f11b1fd2018f3634",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/partner_type_views.xml",
+      "line": 45,
+      "model": "plasticos.partner.type",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.partner.type'"
+    },
+    {
+      "fingerprint": "3989999438649d78",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/partner_type_views.xml",
+      "line": 46,
+      "model": "plasticos.partner.type",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.partner.type'"
+    },
+    {
+      "fingerprint": "6356f18bb047efc5",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_profile_views.xml",
+      "line": 10,
+      "model": "plasticos.facility.profile",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.facility.profile'"
+    },
+    {
+      "fingerprint": "6356f18bb047efc5",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_profile_views.xml",
+      "line": 29,
+      "model": "plasticos.facility.profile",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.facility.profile'"
+    },
+    {
+      "fingerprint": "d444ba28ed181b74",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_profile_ux.xml",
+      "line": 14,
+      "model": "plasticos.facility.profile",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.facility.profile'"
+    },
+    {
+      "fingerprint": "d444ba28ed181b74",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_profile_ux.xml",
+      "line": 135,
+      "model": "plasticos.facility.profile",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.facility.profile'"
+    },
+    {
+      "fingerprint": "d444ba28ed181b74",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_profile_ux.xml",
+      "line": 175,
+      "model": "plasticos.facility.profile",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.facility.profile'"
+    },
+    {
+      "fingerprint": "e9ceab9a6c75129e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_profile_views.xml",
+      "line": 27,
+      "model": "plasticos.facility.profile",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.facility.profile'"
+    },
+    {
+      "fingerprint": "e9ceab9a6c75129e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_profile_views.xml",
+      "line": 152,
+      "model": "plasticos.facility.profile",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.facility.profile'"
+    },
+    {
+      "fingerprint": "d6c68960ce77b61d",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_profile_ux.xml",
+      "line": 133,
+      "model": "plasticos.facility.profile",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.facility.profile'"
+    },
+    {
+      "fingerprint": "d6c68960ce77b61d",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_profile_ux.xml",
+      "line": 171,
+      "model": "plasticos.facility.profile",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.facility.profile'"
+    },
+    {
+      "fingerprint": "89bebbf70fb639dd",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_template_views.xml",
+      "line": 7,
+      "model": "plasticos.facility.template",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.facility.template'"
+    },
+    {
+      "fingerprint": "89bebbf70fb639dd",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_template_views.xml",
+      "line": 25,
+      "model": "plasticos.facility.template",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.facility.template'"
+    },
+    {
+      "fingerprint": "89bebbf70fb639dd",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_template_views.xml",
+      "line": 84,
+      "model": "plasticos.facility.template",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.facility.template'"
+    },
+    {
+      "fingerprint": "fe91a46cd35c24c3",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_template_views.xml",
+      "line": 100,
+      "model": "plasticos.facility.template",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.facility.template'"
+    },
+    {
+      "fingerprint": "b5c7e933ecc72079",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_template_views.xml",
+      "line": 101,
+      "model": "plasticos.facility.template",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.facility.template'"
+    },
+    {
+      "fingerprint": "592bec02acabec84",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_profile_ux.xml",
+      "line": 12,
+      "model": "plasticos.facility.profile",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.facility.profile'"
+    },
+    {
+      "fingerprint": "592bec02acabec84",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_profile_ux.xml",
+      "line": 173,
+      "model": "plasticos.facility.profile",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.facility.profile'"
+    },
+    {
+      "fingerprint": "2b7b359195dd8666",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_profile_ux.xml",
+      "line": 13,
+      "model": "plasticos.facility.profile",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.facility.profile'"
+    },
+    {
+      "fingerprint": "2b7b359195dd8666",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_facility_profile/views/facility_profile_ux.xml",
+      "line": 174,
+      "model": "plasticos.facility.profile",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.facility.profile'"
+    },
+    {
+      "fingerprint": "ff70db2f7b68b554",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/validation_matrix_views.xml",
+      "line": 7,
+      "model": "plasticos.document.validation.matrix",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.document.validation.matrix'"
+    },
+    {
+      "fingerprint": "ff70db2f7b68b554",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/validation_matrix_views.xml",
+      "line": 24,
+      "model": "plasticos.document.validation.matrix",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.document.validation.matrix'"
+    },
+    {
+      "fingerprint": "7c1d8b230412143b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/validation_matrix_views.xml",
+      "line": 49,
+      "model": "plasticos.document.validation.matrix",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.document.validation.matrix'"
+    },
+    {
+      "fingerprint": "bea5ec4d085cf123",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/validation_matrix_views.xml",
+      "line": 50,
+      "model": "plasticos.document.validation.matrix",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.document.validation.matrix'"
+    },
+    {
+      "fingerprint": "8cc2aa73e295912b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/load_docs_bridge_views.xml",
+      "line": 15,
+      "model": "plasticos.load",
+      "field": "document_count",
+      "message": "Field 'document_count' not defined on model 'plasticos.load'"
+    },
+    {
+      "fingerprint": "d3eed7f334a2c520",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/document_views.xml",
+      "line": 10,
+      "model": "plasticos.document",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.document'"
+    },
+    {
+      "fingerprint": "d3eed7f334a2c520",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/document_views.xml",
+      "line": 45,
+      "model": "plasticos.document",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.document'"
+    },
+    {
+      "fingerprint": "d3eed7f334a2c520",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/document_views.xml",
+      "line": 65,
+      "model": "plasticos.document",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.document'"
+    },
+    {
+      "fingerprint": "a58892abf90ae923",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/document_extension_views.xml",
+      "line": 9,
+      "model": "plasticos.document",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.document'"
+    },
+    {
+      "fingerprint": "6742e1a6824bb42f",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/document_views.xml",
+      "line": 104,
+      "model": "plasticos.document",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.document'"
+    },
+    {
+      "fingerprint": "5f9292b87d11d313",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/document_views.xml",
+      "line": 105,
+      "model": "plasticos.document",
+      "field": "search_view_id",
+      "message": "Field 'search_view_id' not defined on model 'plasticos.document'"
+    },
+    {
+      "fingerprint": "fa3221fb543685b5",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/document_views.xml",
+      "line": 106,
+      "model": "plasticos.document",
+      "field": "context",
+      "message": "Field 'context' not defined on model 'plasticos.document'"
+    },
+    {
+      "fingerprint": "8b275f9a80cebfc2",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/document_views.xml",
+      "line": 107,
+      "model": "plasticos.document",
+      "field": "help",
+      "message": "Field 'help' not defined on model 'plasticos.document'"
+    },
+    {
+      "fingerprint": "ee758b6dffdc000d",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/transaction_docs_bridge_views.xml",
+      "line": 15,
+      "model": "plasticos.transaction",
+      "field": "document_count",
+      "message": "Field 'document_count' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "15a62f83b27a120a",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/document_rule_views.xml",
+      "line": 5,
+      "model": "plasticos.document.rule",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.document.rule'"
+    },
+    {
+      "fingerprint": "c9b262702eac6cce",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/transaction_docs_views.xml",
+      "line": 12,
+      "model": "plasticos.transaction",
+      "field": "missing_doc_status",
+      "message": "Field 'missing_doc_status' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "aa28b660fe1a1bbf",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/transaction_docs_views.xml",
+      "line": 13,
+      "model": "plasticos.transaction",
+      "field": "doc_reminder_count",
+      "message": "Field 'doc_reminder_count' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "6d778670eeeac0be",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/transaction_docs_views.xml",
+      "line": 14,
+      "model": "plasticos.transaction",
+      "field": "last_doc_reminder_date",
+      "message": "Field 'last_doc_reminder_date' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "74456abea5ab3645",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/transaction_docs_views.xml",
+      "line": 17,
+      "model": "plasticos.transaction",
+      "field": "missing_supplier_docs",
+      "message": "Field 'missing_supplier_docs' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "5c68b8cabf36a4e5",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/transaction_docs_views.xml",
+      "line": 18,
+      "model": "plasticos.transaction",
+      "field": "missing_carrier_docs",
+      "message": "Field 'missing_carrier_docs' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "07528f2018d6e94b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/transaction_docs_views.xml",
+      "line": 19,
+      "model": "plasticos.transaction",
+      "field": "missing_buyer_docs",
+      "message": "Field 'missing_buyer_docs' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "edcd013e7e11ce36",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/document_extension_views.xml",
+      "line": 7,
+      "model": "plasticos.document",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.document'"
+    },
+    {
+      "fingerprint": "b0e4ea8db1e713c9",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/document_extension_views.xml",
+      "line": 8,
+      "model": "plasticos.document",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.document'"
+    },
+    {
+      "fingerprint": "a68b20153e149a34",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_documents/views/document_tag_views.xml",
+      "line": 5,
+      "model": "plasticos.document.tag",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.document.tag'"
+    },
+    {
+      "fingerprint": "3172f091c2bc2a54",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 11,
+      "model": "plasticos.web.lead",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "3172f091c2bc2a54",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 41,
+      "model": "plasticos.web.lead",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "3172f091c2bc2a54",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 159,
+      "model": "plasticos.web.lead",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "3172f091c2bc2a54",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 221,
+      "model": "plasticos.web.lead",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "5fe436f843b141c6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_ux.xml",
+      "line": 19,
+      "model": "plasticos.web.lead",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "5fe436f843b141c6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_ux.xml",
+      "line": 99,
+      "model": "plasticos.web.lead",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "42db834adb2f6148",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/crm_lead_views.xml",
+      "line": 291,
+      "model": "plasticos.web.lead",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "42db834adb2f6148",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/crm_lead_views.xml",
+      "line": 306,
+      "model": "plasticos.web.lead",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "54eadadb497d02cd",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 39,
+      "model": "plasticos.web.lead",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "54eadadb497d02cd",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 157,
+      "model": "plasticos.web.lead",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "54eadadb497d02cd",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 219,
+      "model": "plasticos.web.lead",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "54eadadb497d02cd",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 251,
+      "model": "plasticos.web.lead",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "0ea82b2117eb0bd8",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_ux.xml",
+      "line": 95,
+      "model": "plasticos.web.lead",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "f2d43213833b7ef5",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/crm_lead_views.xml",
+      "line": 303,
+      "model": "plasticos.web.lead",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "c174933c1a28851a",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 117,
+      "model": "plasticos.web.lead",
+      "field": "ai_analysis",
+      "message": "Field 'ai_analysis' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "a99a405b89bfcae0",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 118,
+      "model": "plasticos.web.lead",
+      "field": "decision_reasons",
+      "message": "Field 'decision_reasons' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "dfa446ba3286bdd4",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 123,
+      "model": "plasticos.web.lead",
+      "field": "ai_normalized",
+      "message": "Field 'ai_normalized' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "d2a8defdb56d9872",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 126,
+      "model": "plasticos.web.lead",
+      "field": "ai_vision_results",
+      "message": "Field 'ai_vision_results' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "1dfff65ed5f6e866",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 129,
+      "model": "plasticos.web.lead",
+      "field": "image_urls",
+      "message": "Field 'image_urls' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "d9f8d1507432aff2",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 137,
+      "model": "plasticos.web.lead",
+      "field": "raw_payload",
+      "message": "Field 'raw_payload' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "cd9762e0e80739d5",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 252,
+      "model": "plasticos.web.lead",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "184c53bd363d4f9b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 253,
+      "model": "plasticos.web.lead",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "23c84deae701014e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 254,
+      "model": "plasticos.web.lead",
+      "field": "search_view_id",
+      "message": "Field 'search_view_id' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "e5ed69ee649cb3a9",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 255,
+      "model": "plasticos.web.lead",
+      "field": "context",
+      "message": "Field 'context' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "45059cbb65aed0eb",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_views.xml",
+      "line": 256,
+      "model": "plasticos.web.lead",
+      "field": "help",
+      "message": "Field 'help' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "151bfa1b49347b48",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_ux.xml",
+      "line": 17,
+      "model": "plasticos.web.lead",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "151bfa1b49347b48",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_ux.xml",
+      "line": 97,
+      "model": "plasticos.web.lead",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "f56cbb0dea352075",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/crm_lead_views.xml",
+      "line": 290,
+      "model": "plasticos.web.lead",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "f56cbb0dea352075",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/crm_lead_views.xml",
+      "line": 305,
+      "model": "plasticos.web.lead",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "a06f2686436186cc",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_ux.xml",
+      "line": 18,
+      "model": "plasticos.web.lead",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "a06f2686436186cc",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_ux.xml",
+      "line": 98,
+      "model": "plasticos.web.lead",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "1c414d9944cf18ee",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_config_views.xml",
+      "line": 11,
+      "model": "plasticos.web.lead.config",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.web.lead.config'"
+    },
+    {
+      "fingerprint": "149fe2d208aeae0f",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_config_views.xml",
+      "line": 122,
+      "model": "plasticos.web.lead.config",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.web.lead.config'"
+    },
+    {
+      "fingerprint": "b9060ea9041f8744",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_config_views.xml",
+      "line": 123,
+      "model": "plasticos.web.lead.config",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.web.lead.config'"
+    },
+    {
+      "fingerprint": "0472430da20f0338",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_config_views.xml",
+      "line": 124,
+      "model": "plasticos.web.lead.config",
+      "field": "target",
+      "message": "Field 'target' not defined on model 'plasticos.web.lead.config'"
+    },
+    {
+      "fingerprint": "6cee773d9fa14027",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_config_views.xml",
+      "line": 125,
+      "model": "plasticos.web.lead.config",
+      "field": "res_id",
+      "message": "Field 'res_id' not defined on model 'plasticos.web.lead.config'"
+    },
+    {
+      "fingerprint": "27f80063107db65d",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_web_leads/views/web_lead_api_key_wizard_views.xml",
+      "line": 7,
+      "model": "plasticos.web.lead.api.key.wizard",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.web.lead.api.key.wizard'"
+    },
+    {
+      "fingerprint": "0dc6d38b1274f1c6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/automation_log_views.xml",
+      "line": 6,
+      "model": "plasticos.automation.log",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.automation.log'"
+    },
+    {
+      "fingerprint": "0dc6d38b1274f1c6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/automation_log_views.xml",
+      "line": 20,
+      "model": "plasticos.automation.log",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.automation.log'"
+    },
+    {
+      "fingerprint": "79528282d27adc29",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/automation_log_views.xml",
+      "line": 40,
+      "model": "plasticos.automation.log",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.automation.log'"
+    },
+    {
+      "fingerprint": "b1e0174b97d7a8f0",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/automation_log_views.xml",
+      "line": 41,
+      "model": "plasticos.automation.log",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.automation.log'"
+    },
+    {
+      "fingerprint": "5a4dd0c7b4070194",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/automation_config_views.xml",
+      "line": 6,
+      "model": "plasticos.automation.config",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.automation.config'"
+    },
+    {
+      "fingerprint": "284fdbea3dbda7cd",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/automation_config_views.xml",
+      "line": 42,
+      "model": "plasticos.automation.config",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.automation.config'"
+    },
+    {
+      "fingerprint": "df2266409bd38b2c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/automation_config_views.xml",
+      "line": 43,
+      "model": "plasticos.automation.config",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.automation.config'"
+    },
+    {
+      "fingerprint": "2302985a1fc376c7",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/automation_config_views.xml",
+      "line": 44,
+      "model": "plasticos.automation.config",
+      "field": "target",
+      "message": "Field 'target' not defined on model 'plasticos.automation.config'"
+    },
+    {
+      "fingerprint": "c7183d097eba3cfd",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/automation_config_views.xml",
+      "line": 45,
+      "model": "plasticos.automation.config",
+      "field": "context",
+      "message": "Field 'context' not defined on model 'plasticos.automation.config'"
+    },
+    {
+      "fingerprint": "9c6946127ec1a1f7",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/penalty_rule_views.xml",
+      "line": 11,
+      "model": "plasticos.penalty.rule",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.penalty.rule'"
+    },
+    {
+      "fingerprint": "9c6946127ec1a1f7",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/penalty_rule_views.xml",
+      "line": 55,
+      "model": "plasticos.penalty.rule",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.penalty.rule'"
+    },
+    {
+      "fingerprint": "9c6946127ec1a1f7",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/penalty_rule_views.xml",
+      "line": 73,
+      "model": "plasticos.penalty.rule",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.penalty.rule'"
+    },
+    {
+      "fingerprint": "d946eeb9361c6a75",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/penalty_rule_views.xml",
+      "line": 92,
+      "model": "plasticos.penalty.rule",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.penalty.rule'"
+    },
+    {
+      "fingerprint": "cc7af435006a6b98",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/penalty_rule_views.xml",
+      "line": 93,
+      "model": "plasticos.penalty.rule",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.penalty.rule'"
+    },
+    {
+      "fingerprint": "1caa68f9ebdd0eaf",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/penalty_rule_views.xml",
+      "line": 94,
+      "model": "plasticos.penalty.rule",
+      "field": "context",
+      "message": "Field 'context' not defined on model 'plasticos.penalty.rule'"
+    },
+    {
+      "fingerprint": "0505c62bb68f9062",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/penalty_rule_views.xml",
+      "line": 95,
+      "model": "plasticos.penalty.rule",
+      "field": "help",
+      "message": "Field 'help' not defined on model 'plasticos.penalty.rule'"
+    },
+    {
+      "fingerprint": "3822c72cc1d65d94",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/penalty_rule_views.xml",
+      "line": 114,
+      "model": "plasticos.invoice.adjustment",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.invoice.adjustment'"
+    },
+    {
+      "fingerprint": "235d55eeac970057",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_automation/views/penalty_rule_views.xml",
+      "line": 134,
+      "model": "plasticos.invoice.adjustment",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.invoice.adjustment'"
+    },
+    {
+      "fingerprint": "cb0d9185d18ba0e2",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/intake_normalizer_views.xml",
+      "line": 29,
+      "model": "plasticos.intake",
+      "field": "normalized",
+      "message": "Field 'normalized' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "3cc32ebf83a24a37",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/intake_normalizer_views.xml",
+      "line": 30,
+      "model": "plasticos.intake",
+      "field": "normalization_ts",
+      "message": "Field 'normalization_ts' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "e3d5c61e87d715ca",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/intake_normalizer_views.xml",
+      "line": 33,
+      "model": "plasticos.intake",
+      "field": "last_packet_id",
+      "message": "Field 'last_packet_id' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "a3c9d8585d9c4f57",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/intake_normalizer_views.xml",
+      "line": 34,
+      "model": "plasticos.intake",
+      "field": "last_packet_version",
+      "message": "Field 'last_packet_version' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "d707adcebbe7910e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/intake_normalizer_views.xml",
+      "line": 35,
+      "model": "plasticos.intake",
+      "field": "last_packet_ts",
+      "message": "Field 'last_packet_ts' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "3d27e0a13da46a5c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/intake_normalizer_views.xml",
+      "line": 39,
+      "model": "plasticos.intake",
+      "field": "normalization_errors",
+      "message": "Field 'normalization_errors' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "d0b46785a97d9d6b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/intake_normalizer_views.xml",
+      "line": 42,
+      "model": "plasticos.intake",
+      "field": "normalization_warnings",
+      "message": "Field 'normalization_warnings' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "79c796431571d764",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/intake_normalizer_views.xml",
+      "line": 45,
+      "model": "plasticos.intake",
+      "field": "last_packet_payload",
+      "message": "Field 'last_packet_payload' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "1e8feacae82d0e0c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/normalizer_config_views.xml",
+      "line": 11,
+      "model": "plasticos.normalizer.config",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.normalizer.config'"
+    },
+    {
+      "fingerprint": "3a6f15db2fa626bf",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/normalizer_config_views.xml",
+      "line": 51,
+      "model": "plasticos.normalizer.config",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.normalizer.config'"
+    },
+    {
+      "fingerprint": "dce961366cf60b63",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/normalizer_config_views.xml",
+      "line": 52,
+      "model": "plasticos.normalizer.config",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.normalizer.config'"
+    },
+    {
+      "fingerprint": "b9ccc308fee06c94",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/normalizer_config_views.xml",
+      "line": 53,
+      "model": "plasticos.normalizer.config",
+      "field": "target",
+      "message": "Field 'target' not defined on model 'plasticos.normalizer.config'"
+    },
+    {
+      "fingerprint": "d4c216589cf072d9",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake_normalizer/views/normalizer_config_views.xml",
+      "line": 54,
+      "model": "plasticos.normalizer.config",
+      "field": "res_id",
+      "message": "Field 'res_id' not defined on model 'plasticos.normalizer.config'"
+    },
+    {
+      "fingerprint": "5587baaedeef184c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_views.xml",
+      "line": 294,
+      "model": "plasticos.offer",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "989beaf0405bfb43",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_views.xml",
+      "line": 295,
+      "model": "plasticos.offer",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "edc739973128f414",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_views.xml",
+      "line": 296,
+      "model": "plasticos.offer",
+      "field": "search_view_id",
+      "message": "Field 'search_view_id' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "2045e6454c2d9c97",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_views.xml",
+      "line": 297,
+      "model": "plasticos.offer",
+      "field": "context",
+      "message": "Field 'context' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "5d28c66be257d698",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_offer/views/offer_views.xml",
+      "line": 298,
+      "model": "plasticos.offer",
+      "field": "help",
+      "message": "Field 'help' not defined on model 'plasticos.offer'"
+    },
+    {
+      "fingerprint": "09e16bd1c7588544",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_color_views.xml",
+      "line": 7,
+      "model": "plasticos.material.color",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.material.color'"
+    },
+    {
+      "fingerprint": "1eb58a462d364ef9",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_color_views.xml",
+      "line": 20,
+      "model": "plasticos.material.color",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.material.color'"
+    },
+    {
+      "fingerprint": "46efe183a660ede4",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_color_views.xml",
+      "line": 21,
+      "model": "plasticos.material.color",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.material.color'"
+    },
+    {
+      "fingerprint": "ab04a687f82708d6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_profile_ux.xml",
+      "line": 12,
+      "model": "plasticos.material.profile",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "ab04a687f82708d6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_profile_ux.xml",
+      "line": 60,
+      "model": "plasticos.material.profile",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "67465840b224bc22",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 12,
+      "model": "plasticos.material.profile",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "67465840b224bc22",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 117,
+      "model": "plasticos.material.profile",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "133b958e05f4315a",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/material_profile_intake_views.xml",
+      "line": 10,
+      "model": "plasticos.material.profile",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "79143e794743b4ab",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_profile_ux.xml",
+      "line": 13,
+      "model": "plasticos.material.profile",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "79143e794743b4ab",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_profile_ux.xml",
+      "line": 61,
+      "model": "plasticos.material.profile",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "4a0c2801d1fd8c81",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 14,
+      "model": "plasticos.material.profile",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "2c44df1a27ae97ce",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_profile_ux.xml",
+      "line": 14,
+      "model": "plasticos.material.profile",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "2c44df1a27ae97ce",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_profile_ux.xml",
+      "line": 62,
+      "model": "plasticos.material.profile",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "058a456ccc3b06fe",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_profile_views.xml",
+      "line": 10,
+      "model": "plasticos.material.profile",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "058a456ccc3b06fe",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_profile_views.xml",
+      "line": 29,
+      "model": "plasticos.material.profile",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "b60bde691e57c952",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 15,
+      "model": "plasticos.material.profile",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "b60bde691e57c952",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 119,
+      "model": "plasticos.material.profile",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "3d533a696f94c627",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/material_profile_intake_views.xml",
+      "line": 11,
+      "model": "plasticos.material.profile",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "957f6e3cee1617e3",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_profile_ux.xml",
+      "line": 58,
+      "model": "plasticos.material.profile",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "be326b67949b4a1e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_profile_views.xml",
+      "line": 27,
+      "model": "plasticos.material.profile",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "be326b67949b4a1e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_profile_views.xml",
+      "line": 159,
+      "model": "plasticos.material.profile",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "c6e42066385faa4e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 115,
+      "model": "plasticos.material.profile",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "c6e42066385faa4e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 141,
+      "model": "plasticos.material.profile",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "5cc85e8974aa20b0",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/material_profile_intake_views.xml",
+      "line": 40,
+      "model": "plasticos.material.profile",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "fc1f4d70fb18e1c9",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/source_type_views.xml",
+      "line": 7,
+      "model": "plasticos.source.type",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.source.type'"
+    },
+    {
+      "fingerprint": "fb74471f5e73c654",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/source_type_views.xml",
+      "line": 20,
+      "model": "plasticos.source.type",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.source.type'"
+    },
+    {
+      "fingerprint": "b7b9d4337a9e094e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/source_type_views.xml",
+      "line": 21,
+      "model": "plasticos.source.type",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.source.type'"
+    },
+    {
+      "fingerprint": "4fe227c24755ba88",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_form_views.xml",
+      "line": 7,
+      "model": "plasticos.material.form",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.material.form'"
+    },
+    {
+      "fingerprint": "0bf567df68949a9b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_form_views.xml",
+      "line": 20,
+      "model": "plasticos.material.form",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.material.form'"
+    },
+    {
+      "fingerprint": "e9a48be1aada3948",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/material_form_views.xml",
+      "line": 21,
+      "model": "plasticos.material.form",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.material.form'"
+    },
+    {
+      "fingerprint": "fc070ecd635f645d",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/polymer_views.xml",
+      "line": 7,
+      "model": "plasticos.polymer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.polymer'"
+    },
+    {
+      "fingerprint": "fc070ecd635f645d",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/polymer_views.xml",
+      "line": 23,
+      "model": "plasticos.polymer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.polymer'"
+    },
+    {
+      "fingerprint": "fc070ecd635f645d",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/polymer_views.xml",
+      "line": 37,
+      "model": "plasticos.polymer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.polymer'"
+    },
+    {
+      "fingerprint": "40cdc8f09a6cda17",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_product/views/polymer_views.xml",
+      "line": 12,
+      "model": "plasticos.polymer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.polymer'"
+    },
+    {
+      "fingerprint": "40cdc8f09a6cda17",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_product/views/polymer_views.xml",
+      "line": 24,
+      "model": "plasticos.polymer",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.polymer'"
+    },
+    {
+      "fingerprint": "82f64826880eb520",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/polymer_views.xml",
+      "line": 60,
+      "model": "plasticos.polymer",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.polymer'"
+    },
+    {
+      "fingerprint": "cdb7bb3209316e5b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/polymer_views.xml",
+      "line": 61,
+      "model": "plasticos.polymer",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.polymer'"
+    },
+    {
+      "fingerprint": "5b5a39afb5083d59",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/process_type_views.xml",
+      "line": 7,
+      "model": "plasticos.process.type",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.process.type'"
+    },
+    {
+      "fingerprint": "a27ad7c4d7571471",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/process_type_views.xml",
+      "line": 20,
+      "model": "plasticos.process.type",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.process.type'"
+    },
+    {
+      "fingerprint": "219344d01d845298",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/process_type_views.xml",
+      "line": 21,
+      "model": "plasticos.process.type",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.process.type'"
+    },
+    {
+      "fingerprint": "10d5033d622d8700",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/grade_template_views.xml",
+      "line": 7,
+      "model": "plasticos.grade.template",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.grade.template'"
+    },
+    {
+      "fingerprint": "10d5033d622d8700",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/grade_template_views.xml",
+      "line": 24,
+      "model": "plasticos.grade.template",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.grade.template'"
+    },
+    {
+      "fingerprint": "10d5033d622d8700",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/grade_template_views.xml",
+      "line": 67,
+      "model": "plasticos.grade.template",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.grade.template'"
+    },
+    {
+      "fingerprint": "292a27920bb0677a",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/grade_template_views.xml",
+      "line": 84,
+      "model": "plasticos.grade.template",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.grade.template'"
+    },
+    {
+      "fingerprint": "6fb8860d768b09b3",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_material_profile/views/grade_template_views.xml",
+      "line": 85,
+      "model": "plasticos.grade.template",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.grade.template'"
+    },
+    {
+      "fingerprint": "83bb0a8f278d8103",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 28,
+      "model": "plasticos.material.profile",
+      "field": "match_count",
+      "message": "Field 'match_count' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "83bb0a8f278d8103",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 83,
+      "model": "plasticos.material.profile",
+      "field": "match_count",
+      "message": "Field 'match_count' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "83bb0a8f278d8103",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 122,
+      "model": "plasticos.material.profile",
+      "field": "match_count",
+      "message": "Field 'match_count' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "91d01040ffe27efe",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 42,
+      "model": "plasticos.material.profile",
+      "field": "best_match_score",
+      "message": "Field 'best_match_score' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "91d01040ffe27efe",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 84,
+      "model": "plasticos.material.profile",
+      "field": "best_match_score",
+      "message": "Field 'best_match_score' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "91d01040ffe27efe",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 123,
+      "model": "plasticos.material.profile",
+      "field": "best_match_score",
+      "message": "Field 'best_match_score' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "444c464e6ce55e3a",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 55,
+      "model": "plasticos.material.profile",
+      "field": "transaction_count",
+      "message": "Field 'transaction_count' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "444c464e6ce55e3a",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 95,
+      "model": "plasticos.material.profile",
+      "field": "transaction_count",
+      "message": "Field 'transaction_count' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "444c464e6ce55e3a",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 125,
+      "model": "plasticos.material.profile",
+      "field": "transaction_count",
+      "message": "Field 'transaction_count' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "d3cc862809833eb1",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 71,
+      "model": "plasticos.material.profile",
+      "field": "last_pickup_date",
+      "message": "Field 'last_pickup_date' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "d3cc862809833eb1",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 99,
+      "model": "plasticos.material.profile",
+      "field": "last_pickup_date",
+      "message": "Field 'last_pickup_date' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "d3cc862809833eb1",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 128,
+      "model": "plasticos.material.profile",
+      "field": "last_pickup_date",
+      "message": "Field 'last_pickup_date' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "328ec023e30e4c20",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 88,
+      "model": "plasticos.material.profile",
+      "field": "pending_match_count",
+      "message": "Field 'pending_match_count' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "104520189dff76c7",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 96,
+      "model": "plasticos.material.profile",
+      "field": "total_revenue",
+      "message": "Field 'total_revenue' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "104520189dff76c7",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/material_profile_views.xml",
+      "line": 126,
+      "model": "plasticos.material.profile",
+      "field": "total_revenue",
+      "message": "Field 'total_revenue' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "72baf5be783cc003",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/crm_lead_views.xml",
+      "line": 293,
+      "model": "plasticos.web.lead",
+      "field": "crm_lead_id",
+      "message": "Field 'crm_lead_id' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "72baf5be783cc003",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_bridge/views/crm_lead_views.xml",
+      "line": 308,
+      "model": "plasticos.web.lead",
+      "field": "crm_lead_id",
+      "message": "Field 'crm_lead_id' not defined on model 'plasticos.web.lead'"
+    },
+    {
+      "fingerprint": "ac0b7dafe91588b7",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 7,
+      "model": "plasticos.match.exclusion",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "ac0b7dafe91588b7",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 24,
+      "model": "plasticos.match.exclusion",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "ac0b7dafe91588b7",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 58,
+      "model": "plasticos.match.exclusion",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "e6b22d295e2d3e62",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 22,
+      "model": "plasticos.match.exclusion",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "e6b22d295e2d3e62",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 56,
+      "model": "plasticos.match.exclusion",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "e6b22d295e2d3e62",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 72,
+      "model": "plasticos.match.exclusion",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "e6b22d295e2d3e62",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 94,
+      "model": "plasticos.match.exclusion",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "b626e35fd0ea65a3",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 73,
+      "model": "plasticos.match.exclusion",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "531aedb97c4ee5fd",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 74,
+      "model": "plasticos.match.exclusion",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "949ced090f16d1b1",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 75,
+      "model": "plasticos.match.exclusion",
+      "field": "search_view_id",
+      "message": "Field 'search_view_id' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "a6a891f089233494",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 76,
+      "model": "plasticos.match.exclusion",
+      "field": "context",
+      "message": "Field 'context' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "203051ee73bffd9e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 77,
+      "model": "plasticos.match.exclusion",
+      "field": "help",
+      "message": "Field 'help' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "f4d5f3003ae0b256",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 95,
+      "model": "plasticos.match.exclusion",
+      "field": "model_id",
+      "message": "Field 'model_id' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "7eae90b3478191f1",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 96,
+      "model": "plasticos.match.exclusion",
+      "field": "state",
+      "message": "Field 'state' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "afb9c5c84682ebee",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 97,
+      "model": "plasticos.match.exclusion",
+      "field": "code",
+      "message": "Field 'code' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "ddbc4aa35ff6444e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 98,
+      "model": "plasticos.match.exclusion",
+      "field": "interval_number",
+      "message": "Field 'interval_number' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "0c5e168d75cb7e49",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 99,
+      "model": "plasticos.match.exclusion",
+      "field": "interval_type",
+      "message": "Field 'interval_type' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "110fd35c087d208d",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_buyer_match_engine/views/match_exclusion_views.xml",
+      "line": 101,
+      "model": "plasticos.match.exclusion",
+      "field": "user_id",
+      "message": "Field 'user_id' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "ea4e5bde3f559af2",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/transaction_claims_bridge_views.xml",
+      "line": 15,
+      "model": "plasticos.transaction",
+      "field": "claim_count",
+      "message": "Field 'claim_count' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "4f67a995e66f1995",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_views.xml",
+      "line": 7,
+      "model": "plasticos.claim",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "4f67a995e66f1995",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_views.xml",
+      "line": 32,
+      "model": "plasticos.claim",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "4f67a995e66f1995",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_views.xml",
+      "line": 96,
+      "model": "plasticos.claim",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "4f67a995e66f1995",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_views.xml",
+      "line": 144,
+      "model": "plasticos.claim",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "eecf60378277ff44",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_ux.xml",
+      "line": 14,
+      "model": "plasticos.claim",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "eecf60378277ff44",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_ux.xml",
+      "line": 192,
+      "model": "plasticos.claim",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "eecf60378277ff44",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_ux.xml",
+      "line": 237,
+      "model": "plasticos.claim",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "048adef71adf1717",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_views.xml",
+      "line": 174,
+      "model": "plasticos.claim",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "471e7b2445175606",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_views.xml",
+      "line": 175,
+      "model": "plasticos.claim",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "6def55b8f39aaa58",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_views.xml",
+      "line": 176,
+      "model": "plasticos.claim",
+      "field": "context",
+      "message": "Field 'context' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "5add2e949327cc45",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_views.xml",
+      "line": 177,
+      "model": "plasticos.claim",
+      "field": "help",
+      "message": "Field 'help' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "1ea922f903259b2c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_ux.xml",
+      "line": 12,
+      "model": "plasticos.claim",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "1ea922f903259b2c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_ux.xml",
+      "line": 190,
+      "model": "plasticos.claim",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "1ea922f903259b2c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_ux.xml",
+      "line": 235,
+      "model": "plasticos.claim",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "33be1c23478b51b1",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_ux.xml",
+      "line": 13,
+      "model": "plasticos.claim",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "33be1c23478b51b1",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_ux.xml",
+      "line": 191,
+      "model": "plasticos.claim",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "33be1c23478b51b1",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_claims/views/claim_ux.xml",
+      "line": 236,
+      "model": "plasticos.claim",
+      "field": "priority",
+      "message": "Field 'priority' not defined on model 'plasticos.claim'"
+    },
+    {
+      "fingerprint": "df3136a1434d3b13",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/transaction_commission_views.xml",
+      "line": 20,
+      "model": "plasticos.transaction",
+      "field": "commission_rule_id",
+      "message": "Field 'commission_rule_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "41d8836f828d867d",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/transaction_commission_views.xml",
+      "line": 22,
+      "model": "plasticos.transaction",
+      "field": "commission_locked",
+      "message": "Field 'commission_locked' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "32fa64a79a79b7c0",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/transaction_commission_views.xml",
+      "line": 23,
+      "model": "plasticos.transaction",
+      "field": "commission_locked_amount",
+      "message": "Field 'commission_locked_amount' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "ca6bdb255a15dfe6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_rule_views.xml",
+      "line": 10,
+      "model": "plasticos.commission.rule",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.commission.rule'"
+    },
+    {
+      "fingerprint": "ca6bdb255a15dfe6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_rule_views.xml",
+      "line": 70,
+      "model": "plasticos.commission.rule",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.commission.rule'"
+    },
+    {
+      "fingerprint": "ca6bdb255a15dfe6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_rule_views.xml",
+      "line": 88,
+      "model": "plasticos.commission.rule",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.commission.rule'"
+    },
+    {
+      "fingerprint": "5a1a11406310f36b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_rule_views.xml",
+      "line": 108,
+      "model": "plasticos.commission.rule",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.commission.rule'"
+    },
+    {
+      "fingerprint": "4e5c622ef3e636c5",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_rule_views.xml",
+      "line": 109,
+      "model": "plasticos.commission.rule",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.commission.rule'"
+    },
+    {
+      "fingerprint": "44d6cba9665963b6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_rule_views.xml",
+      "line": 110,
+      "model": "plasticos.commission.rule",
+      "field": "context",
+      "message": "Field 'context' not defined on model 'plasticos.commission.rule'"
+    },
+    {
+      "fingerprint": "18792b851b55da8a",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_rule_views.xml",
+      "line": 111,
+      "model": "plasticos.commission.rule",
+      "field": "help",
+      "message": "Field 'help' not defined on model 'plasticos.commission.rule'"
+    },
+    {
+      "fingerprint": "678dafe0be0dc134",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/sales_dashboard_views.xml",
+      "line": 16,
+      "model": "plasticos.sales.dashboard",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.sales.dashboard'"
+    },
+    {
+      "fingerprint": "678dafe0be0dc134",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/sales_dashboard_views.xml",
+      "line": 100,
+      "model": "plasticos.sales.dashboard",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.sales.dashboard'"
+    },
+    {
+      "fingerprint": "678dafe0be0dc134",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/sales_dashboard_views.xml",
+      "line": 222,
+      "model": "plasticos.sales.dashboard",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.sales.dashboard'"
+    },
+    {
+      "fingerprint": "db07034a2d247d3b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/sales_dashboard_views.xml",
+      "line": 98,
+      "model": "plasticos.sales.dashboard",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.sales.dashboard'"
+    },
+    {
+      "fingerprint": "db07034a2d247d3b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/sales_dashboard_views.xml",
+      "line": 220,
+      "model": "plasticos.sales.dashboard",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.sales.dashboard'"
+    },
+    {
+      "fingerprint": "db07034a2d247d3b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/sales_dashboard_views.xml",
+      "line": 259,
+      "model": "plasticos.sales.dashboard",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.sales.dashboard'"
+    },
+    {
+      "fingerprint": "b71cd9cb08ad33b0",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/sales_dashboard_views.xml",
+      "line": 260,
+      "model": "plasticos.sales.dashboard",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.sales.dashboard'"
+    },
+    {
+      "fingerprint": "7ecb2db3823fb5a5",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/sales_dashboard_views.xml",
+      "line": 261,
+      "model": "plasticos.sales.dashboard",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.sales.dashboard'"
+    },
+    {
+      "fingerprint": "06e928ac7b51593a",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/sales_dashboard_views.xml",
+      "line": 262,
+      "model": "plasticos.sales.dashboard",
+      "field": "context",
+      "message": "Field 'context' not defined on model 'plasticos.sales.dashboard'"
+    },
+    {
+      "fingerprint": "107d89443e7e0a86",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/sales_dashboard_views.xml",
+      "line": 263,
+      "model": "plasticos.sales.dashboard",
+      "field": "help",
+      "message": "Field 'help' not defined on model 'plasticos.sales.dashboard'"
+    },
+    {
+      "fingerprint": "af08b6a15f7255fa",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_payout_views.xml",
+      "line": 7,
+      "model": "plasticos.commission.payout",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.commission.payout'"
+    },
+    {
+      "fingerprint": "af08b6a15f7255fa",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_payout_views.xml",
+      "line": 34,
+      "model": "plasticos.commission.payout",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.commission.payout'"
+    },
+    {
+      "fingerprint": "af08b6a15f7255fa",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_payout_views.xml",
+      "line": 112,
+      "model": "plasticos.commission.payout",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.commission.payout'"
+    },
+    {
+      "fingerprint": "9b472488a28b52d2",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_payout_views.xml",
+      "line": 88,
+      "model": "plasticos.commission.payout",
+      "field": "supplier_id",
+      "message": "Field 'supplier_id' not defined on model 'plasticos.commission.payout'"
+    },
+    {
+      "fingerprint": "c9f048c8ae295bd0",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_payout_views.xml",
+      "line": 89,
+      "model": "plasticos.commission.payout",
+      "field": "buyer_id",
+      "message": "Field 'buyer_id' not defined on model 'plasticos.commission.payout'"
+    },
+    {
+      "fingerprint": "9b3f41c2ea0c76de",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_payout_views.xml",
+      "line": 90,
+      "model": "plasticos.commission.payout",
+      "field": "gross_margin",
+      "message": "Field 'gross_margin' not defined on model 'plasticos.commission.payout'"
+    },
+    {
+      "fingerprint": "a71e1136d3c3bebf",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_payout_views.xml",
+      "line": 91,
+      "model": "plasticos.commission.payout",
+      "field": "commission_locked_amount",
+      "message": "Field 'commission_locked_amount' not defined on model 'plasticos.commission.payout'"
+    },
+    {
+      "fingerprint": "98b60f6ed2248ad6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_payout_views.xml",
+      "line": 105,
+      "model": "plasticos.commission.payout",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.commission.payout'"
+    },
+    {
+      "fingerprint": "dd93fed2a18cdd90",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_commission/views/commission_payout_views.xml",
+      "line": 106,
+      "model": "plasticos.commission.payout",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.commission.payout'"
+    },
+    {
+      "fingerprint": "cb89e64d52a86efc",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 380,
+      "model": "plasticos.intake",
+      "field": "selected",
+      "message": "Field 'selected' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "099dd5f09e378e99",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 381,
+      "model": "plasticos.intake",
+      "field": "buyer_name",
+      "message": "Field 'buyer_name' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "a7556ba51451cc57",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 382,
+      "model": "plasticos.intake",
+      "field": "buyer_city",
+      "message": "Field 'buyer_city' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "7c65fa52c22e7f91",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 383,
+      "model": "plasticos.intake",
+      "field": "buyer_state",
+      "message": "Field 'buyer_state' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "3edf622a45a13be9",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 384,
+      "model": "plasticos.intake",
+      "field": "match_reason",
+      "message": "Field 'match_reason' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "3ad38fa94cd71c3f",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 385,
+      "model": "plasticos.intake",
+      "field": "match_score",
+      "message": "Field 'match_score' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "6e0ff8c0db6ae8f2",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 386,
+      "model": "plasticos.intake",
+      "field": "typical_price",
+      "message": "Field 'typical_price' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "9480935a6555dfb8",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 400,
+      "model": "plasticos.intake",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "9e4fba9e977e9cb3",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 401,
+      "model": "plasticos.intake",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "e890a22dec98ce84",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 402,
+      "model": "plasticos.intake",
+      "field": "search_view_id",
+      "message": "Field 'search_view_id' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "82dc7d2355a76e62",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 403,
+      "model": "plasticos.intake",
+      "field": "context",
+      "message": "Field 'context' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "266709d11fc1ef70",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/intake_views.xml",
+      "line": 404,
+      "model": "plasticos.intake",
+      "field": "help",
+      "message": "Field 'help' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "989e77a6569be810",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_intake/views/material_profile_intake_views.xml",
+      "line": 28,
+      "model": "plasticos.material.profile",
+      "field": "intake_count",
+      "message": "Field 'intake_count' not defined on model 'plasticos.material.profile'"
+    },
+    {
+      "fingerprint": "e5b29e9803fced49",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_product/views/polymer_views.xml",
+      "line": 11,
+      "model": "plasticos.polymer",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.polymer'"
+    },
+    {
+      "fingerprint": "e5b29e9803fced49",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_product/views/polymer_views.xml",
+      "line": 23,
+      "model": "plasticos.polymer",
+      "field": "inherit_id",
+      "message": "Field 'inherit_id' not defined on model 'plasticos.polymer'"
+    },
+    {
+      "fingerprint": "4b3fde1c4832f905",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_product/views/polymer_views.xml",
+      "line": 14,
+      "model": "plasticos.polymer",
+      "field": "product_id",
+      "message": "Field 'product_id' not defined on model 'plasticos.polymer'"
+    },
+    {
+      "fingerprint": "4b3fde1c4832f905",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_product/views/polymer_views.xml",
+      "line": 39,
+      "model": "plasticos.polymer",
+      "field": "product_id",
+      "message": "Field 'product_id' not defined on model 'plasticos.polymer'"
+    },
+    {
+      "fingerprint": "f2466310f4405f3b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_product/views/polymer_views.xml",
+      "line": 48,
+      "model": "plasticos.polymer",
+      "field": "model_id",
+      "message": "Field 'model_id' not defined on model 'plasticos.polymer'"
+    },
+    {
+      "fingerprint": "003c062304505817",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_product/views/polymer_views.xml",
+      "line": 49,
+      "model": "plasticos.polymer",
+      "field": "binding_model_id",
+      "message": "Field 'binding_model_id' not defined on model 'plasticos.polymer'"
+    },
+    {
+      "fingerprint": "c971087a4fe4da4f",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_product/views/polymer_views.xml",
+      "line": 50,
+      "model": "plasticos.polymer",
+      "field": "binding_view_types",
+      "message": "Field 'binding_view_types' not defined on model 'plasticos.polymer'"
+    },
+    {
+      "fingerprint": "e9b6273e1f0bdb95",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_product/views/polymer_views.xml",
+      "line": 51,
+      "model": "plasticos.polymer",
+      "field": "state",
+      "message": "Field 'state' not defined on model 'plasticos.polymer'"
+    },
+    {
+      "fingerprint": "e11b42a36cf49586",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_admin_dashboard/views/admin_dashboard_views.xml",
+      "line": 25,
+      "model": "plasticos.admin.kpi",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.admin.kpi'"
+    },
+    {
+      "fingerprint": "6d9a961963070673",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_admin_dashboard/views/admin_dashboard_views.xml",
+      "line": 249,
+      "model": "plasticos.admin.kpi",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.admin.kpi'"
+    },
+    {
+      "fingerprint": "f6046e3eb7cf84f6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_result_views.xml",
+      "line": 11,
+      "model": "plasticos.match.result",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.match.result'"
+    },
+    {
+      "fingerprint": "f6046e3eb7cf84f6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_result_views.xml",
+      "line": 54,
+      "model": "plasticos.match.result",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.match.result'"
+    },
+    {
+      "fingerprint": "f6046e3eb7cf84f6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_result_views.xml",
+      "line": 83,
+      "model": "plasticos.match.result",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.match.result'"
+    },
+    {
+      "fingerprint": "f6046e3eb7cf84f6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_result_views.xml",
+      "line": 142,
+      "model": "plasticos.match.result",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.match.result'"
+    },
+    {
+      "fingerprint": "6316dbfef1ddae29",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_result_views.xml",
+      "line": 52,
+      "model": "plasticos.match.result",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.match.result'"
+    },
+    {
+      "fingerprint": "6316dbfef1ddae29",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_result_views.xml",
+      "line": 81,
+      "model": "plasticos.match.result",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.match.result'"
+    },
+    {
+      "fingerprint": "6316dbfef1ddae29",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_result_views.xml",
+      "line": 140,
+      "model": "plasticos.match.result",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.match.result'"
+    },
+    {
+      "fingerprint": "6316dbfef1ddae29",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_result_views.xml",
+      "line": 215,
+      "model": "plasticos.match.result",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.match.result'"
+    },
+    {
+      "fingerprint": "b1894eff213a4de7",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_result_views.xml",
+      "line": 184,
+      "model": "plasticos.match.result",
+      "field": "score_breakdown",
+      "message": "Field 'score_breakdown' not defined on model 'plasticos.match.result'"
+    },
+    {
+      "fingerprint": "20589db8e5b67325",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_result_views.xml",
+      "line": 216,
+      "model": "plasticos.match.result",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.match.result'"
+    },
+    {
+      "fingerprint": "ac40320d64425866",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_result_views.xml",
+      "line": 217,
+      "model": "plasticos.match.result",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.match.result'"
+    },
+    {
+      "fingerprint": "6796ad46aa19fcec",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_result_views.xml",
+      "line": 218,
+      "model": "plasticos.match.result",
+      "field": "search_view_id",
+      "message": "Field 'search_view_id' not defined on model 'plasticos.match.result'"
+    },
+    {
+      "fingerprint": "314b973ff18b81d2",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_result_views.xml",
+      "line": 219,
+      "model": "plasticos.match.result",
+      "field": "context",
+      "message": "Field 'context' not defined on model 'plasticos.match.result'"
+    },
+    {
+      "fingerprint": "e0e288d3a040be6b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_result_views.xml",
+      "line": 220,
+      "model": "plasticos.match.result",
+      "field": "help",
+      "message": "Field 'help' not defined on model 'plasticos.match.result'"
+    },
+    {
+      "fingerprint": "9276c6434ccf90a0",
+      "type": "INVALID_CONSTRAINT_FIELD",
+      "severity": "HIGH",
+      "file": "plasticos_transaction/models/transaction.py",
+      "line": 497,
+      "model": "plasticos.transaction",
+      "field": "commission_override_pct",
+      "message": "@api.constrains references non-existent field 'commission_override_pct'"
+    }
+  ]
+}
