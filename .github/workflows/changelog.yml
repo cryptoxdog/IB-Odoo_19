@@ -30,7 +30,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install commitizen
-        run: pip install commitizen
+        run: pip install --only-binary ":all:" commitizen==4.10.0
 
       - name: Generate changelog
         run: |

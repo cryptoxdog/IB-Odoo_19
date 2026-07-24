@@ -122,6 +122,14 @@ def _already_migrated(content: str) -> bool:
     return True
 
 
+def _safe_write(path: Path, content: str) -> None:
+    """Write only to files contained inside the repository root (path-traversal guard)."""
+    resolved = path.resolve()
+    if not resolved.is_relative_to(REPO_ROOT):
+        raise ValueError(f"Refusing to write outside repo root: {resolved}")
+    resolved.write_text(content, encoding="utf-8")
+
+
 def migrate_file(path: Path, dry_run: bool, cleanup: bool = False) -> bool:
     """Apply migration to a single file. Returns True if changed."""
     content = path.read_text(encoding="utf-8")
@@ -130,7 +138,7 @@ def migrate_file(path: Path, dry_run: bool, cleanup: bool = False) -> bool:
             cleaned = cleanup_redundant_setup(content)
             if cleaned != content:
                 if not dry_run:
-                    path.write_text(cleaned, encoding="utf-8")
+                    _safe_write(path, cleaned)
                 return True
         return False
     if should_skip(path):
@@ -138,12 +146,9 @@ def migrate_file(path: Path, dry_run: bool, cleanup: bool = False) -> bool:
 
     original = content
 
-    # 1. Replace imports
+    # 1. Replace imports (replacement may be a string or a callable; re.sub handles both)
     for pattern, replacement in IMPORT_PATTERNS:
-        if callable(replacement):
-            content = pattern.sub(replacement, content)
-        else:
-            content = pattern.sub(replacement, content)
+        content = pattern.sub(replacement, content)
 
     # 2. Remove PlastOSTestFactoryMixin imports
     for pat in REMOVE_IMPORT_PATTERNS:
@@ -159,7 +164,7 @@ def migrate_file(path: Path, dry_run: bool, cleanup: bool = False) -> bool:
 
     if content != original:
         if not dry_run:
-            path.write_text(content, encoding="utf-8")
+            _safe_write(path, content)
         return True
     return False
 

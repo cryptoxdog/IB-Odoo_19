@@ -1001,12 +1001,17 @@ def atomic_push(branch: str, commit_msg: str) -> bool:
     ssl_ctx = _make_ssl()
 
     def api(method: str, path: str, data: dict | None = None) -> Any:
-        req = urllib.request.Request(f"https://api.github.com{path}", method=method)
+        # SSRF guard (SonarCloud S7044): only same-origin GitHub API paths are
+        # allowed — reject anything that could redirect the request elsewhere.
+        if not path.startswith("/repos/") or "://" in path or path.startswith("//"):
+            raise ValueError(f"Refusing non-GitHub-API path: {path!r}")
+        url = f"https://api.github.com{path}"
+        req = urllib.request.Request(url, method=method)  # noqa: S310 — https scheme enforced above
         req.add_header("Authorization", f"token {token}")
         req.add_header("Content-Type", "application/json")
         if data:
             req.data = json.dumps(data).encode()
-        with urllib.request.urlopen(req, context=ssl_ctx) as resp:
+        with urllib.request.urlopen(req, context=ssl_ctx) as resp:  # noqa: S310
             return json.load(resp)
 
     # 1. Get current branch HEAD commit
