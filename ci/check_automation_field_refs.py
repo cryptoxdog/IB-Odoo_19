@@ -327,15 +327,15 @@ def check_automation_field_refs(root_dir: Path) -> list[dict]:
                 continue
 
             suspect = _extract_code_field_refs(code, known_fields)
-            for field in suspect:
+            for field_name in suspect:
                 issues.append(
                     {
                         "file": str(xml_path.relative_to(root_dir)),
                         "record_id": action_id,
                         "type": "code_field",
                         "model": model_name,
-                        "field": field,
-                        "context": f"server action code references '{field}'",
+                        "field": field_name,
+                        "context": f"server action code references '{field_name}'",
                         "severity": "HIGH",
                     }
                 )

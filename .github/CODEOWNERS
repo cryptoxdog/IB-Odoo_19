@@ -1,2 +1,13 @@
 # Default reviewer for all PRs
 * @cryptoxdog
+
+# GATE-01 baseline ledgers are human-owned debt registers: CI never writes
+# them, and every change (adding/removing quarantine or packet-envelope
+# entries) must be reviewed by the repository owner in the same PR that
+# introduces the debt or pays it down.
+/.l9/baselines/ @cryptoxdog
+
+# Workflow changes alter what CI enforces (including the ratchet caller and
+# the label-gated auto-merge); they always require owner review.
+/.github/workflows/ @cryptoxdog
+/.github/CODEOWNERS @cryptoxdog

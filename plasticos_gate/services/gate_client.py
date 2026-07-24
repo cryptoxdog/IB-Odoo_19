@@ -14,14 +14,16 @@ from .gate_config import (
     resolve_tenant,
 )
 
+# The SDK is optional at import time (Odoo.sh installs it via requirements.txt;
+# bare dev environments may lack it). Bind the two entry points as `Any` so the
+# guard assignments below are type-safe under mypy.
+GateClient: Any = None
+create_transport_packet: Any = None
+_SDK_IMPORT_ERROR: Exception | None = None
 try:
-    from constellation_node_sdk import GateClient, create_transport_packet
+    from constellation_node_sdk import GateClient, create_transport_packet  # noqa: F811
 except Exception as exc:  # pragma: no cover
-    GateClient = None
-    create_transport_packet = None
     _SDK_IMPORT_ERROR = exc
-else:  # pragma: no cover
-    _SDK_IMPORT_ERROR = None
 
 
 def _require_sdk() -> None:

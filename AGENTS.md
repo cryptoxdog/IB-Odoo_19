@@ -277,25 +277,19 @@ python3 ci/check_odoo19_xml.py            # XML pattern compliance
 pre-commit run --all-files                # Run ALL 36 hooks at once
 ```
 
-### CI Architecture — `ci.yml` is the Single Gate (11 Workflow Files)
-
-`ci.yml` is the **only workflow that runs automatically on PRs and pushes**. All other legacy check workflows (`pr-gate.yml`, `odoo-audit.yml`, `module-check.yml`, `test-quality.yml`) are disabled (`workflow_dispatch` manual-only) to eliminate duplicate runs.
-
+### CI Architecture — `ci.yml` is the Single Gate (8 Workflow Files)
+`ci.yml` is the **only check workflow that runs automatically on PRs and pushes**, alongside the GATE-01 baseline ratchet. The legacy check workflows (`pr-gate.yml`, `odoo-audit.yml`, `module-check.yml`, `test-quality.yml`) were **deleted** during GATE-01 adoption: they were manual-only, fully superseded by ci.yml, and carried fail-open constructs (`|| true` / `continue-on-error`) that violate workflow integrity. All ci.yml checks are now **blocking (fail-closed)** — the former advisory block (Odoo 19 patterns, antipatterns, ACL completeness, package init, field integrity, state-guard bypass, weak-test detection) was promoted after false positives were excluded at the source, and `secret-scan` no longer uses `continue-on-error`.
 **Active workflows and their triggers:**
-
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| **`ci.yml`** | push + PR (all branches) | Single CI gate — Tier 1 lint → Tier 2 static → Tier 3 pytest |
+| **`ci.yml`** | push + PR (all branches) | Single CI gate — Tier 1 lint → Tier 2 static → Tier 3 pytest + secret-scan (all blocking) |
+| **`baseline-ratchet.yml`** | push + PR → Staging | GATE-01 baseline ratchet (l9-ci-core reusable workflow, SHA-pinned) |
 | `security.yml` | push + PR → staging/main + weekly | pip-audit, Trivy, Gitleaks |
 | `changelog.yml` | push → Production + manual | Auto-update CHANGELOG.md |
-| `auto-merge.yml` | PR events → staging/main | Auto-merge approved non-draft PRs |
+| `auto-merge.yml` | PR events → staging/main | Auto-merge — arms ONLY when the PR carries the `automerge` label |
 | `auto-review-request.yml` | PR opened/sync → staging/main | Auto-request reviewers |
 | `release.yml` | tag `v*.*.*` + manual | GitHub Release creation |
 | `pr-autopilot.yml` | manual only | Scan open PRs for CI/SonarCloud signals |
-| `test-quality.yml` | manual only | Full Odoo runtime tests (Odoo.sh) |
-| `odoo-audit.yml` | manual only | Legacy — superseded by ci.yml |
-| `pr-gate.yml` | manual only | Legacy — superseded by ci.yml |
-| `module-check.yml` | manual only | Legacy — superseded by ci.yml |
 
 **`ci.yml` blocking jobs** (must pass for merge):
 
