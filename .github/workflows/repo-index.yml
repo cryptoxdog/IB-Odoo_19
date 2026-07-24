@@ -1,0 +1,58 @@
+name: Update Repo Index
+
+# Runs after every PR merge (a merge always produces a push to the base
+# branch) plus manual dispatch. Keeps reports/repo-index/*.txt fresh via
+# the l9-repo-index skill's repo-local generator.
+on:
+  push:
+    branches:
+      - Staging
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write
+
+# Only one index update at a time
+concurrency:
+  group: repo-index
+  cancel-in-progress: false
+
+jobs:
+  update-repo-index:
+    name: Regenerate repo-index
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Generate repo indexes
+        run: python3 scripts/repo_generators/export_repo_indexes.py
+
+      - name: Check for changes
+        id: check
+        run: |
+          if git diff --quiet -- reports/repo-index; then
+            echo "No index updates needed"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Repo index has been updated"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push updated indexes
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/repo-index
+          git commit -m "chore(repo-index): regenerate lookup indexes [skip ci]"
+          git push
