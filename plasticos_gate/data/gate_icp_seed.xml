@@ -25,5 +25,17 @@
         <field name="key">plasticos.gate.org_id</field>
         <field name="value"></field>
     </record>
+    <record id="param_gate_enrichment_enabled" model="ir.config_parameter">
+        <field name="key">plasticos.gate.enrichment_enabled</field>
+        <field name="value">1</field>
+    </record>
+    <record id="param_gate_enrichment_action" model="ir.config_parameter">
+        <field name="key">plasticos.gate.enrichment_action</field>
+        <field name="value">converge</field>
+    </record>
+    <record id="param_gate_auto_writeback" model="ir.config_parameter">
+        <field name="key">plasticos.gate.auto_writeback</field>
+        <field name="value">1</field>
+    </record>
 
 </odoo>

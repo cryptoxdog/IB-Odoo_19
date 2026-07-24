@@ -26,6 +26,7 @@ ODOO_TEST_MODULES = [
     "test_cron_runtime",
     "test_depends_transaction_claims_bridge",
     "test_error_handling",
+    "test_gate_enrichment_fallback",
     "test_gate_matcher_fallback",
     "test_golden_flows",
     "test_integration_flows",

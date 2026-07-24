@@ -12,12 +12,19 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from plasticos_gate.services.gate_builders import build_match_request  # noqa: E402
-from plasticos_gate.services.gate_config import gate_matching_enabled  # noqa: E402
+from plasticos_gate.services.gate_builders import build_converge_request, build_match_request  # noqa: E402
+from plasticos_gate.services.gate_config import (  # noqa: E402
+    _gate_url_usable,
+    gate_auto_writeback_enabled,
+    gate_enrichment_enabled,
+    gate_matching_enabled,
+)
 from plasticos_gate.services.gate_mappers import (  # noqa: E402
     extract_audit_metadata,
+    map_converge_response,
     map_match_response,
     map_match_response_to_matcher_dicts,
+    partner_writeback_from_converge,
 )
 
 
@@ -93,6 +100,29 @@ def test_gate_matching_enabled_false_when_url_empty():
     assert gate_matching_enabled(env) is False
 
 
+def test_gate_url_rejects_plain_http_by_default():
+    """Cleartext HTTP Gate URLs are rejected unless explicitly opted in (S5332)."""
+    env = _MockEnv({"plasticos.gate.url": "http://gate.example.com", "plasticos.gate.matching_enabled": "1"})
+    assert _gate_url_usable(env["ir.config_parameter"].sudo()) is False
+    assert gate_matching_enabled(env) is False
+
+
+def test_gate_url_allows_http_with_explicit_insecure_opt_in():
+    """Local-dev loopback deployments may opt in to plain HTTP explicitly."""
+    env = _MockEnv(
+        {
+            "plasticos.gate.url": "http://127.0.0.1:8080",
+            "plasticos.gate.allow_insecure_http": "1",
+        }
+    )
+    assert _gate_url_usable(env["ir.config_parameter"].sudo()) is True
+
+
+def test_gate_url_accepts_https_without_opt_in():
+    env = _MockEnv({"plasticos.gate.url": "https://gate.example.com"})
+    assert _gate_url_usable(env["ir.config_parameter"].sudo()) is True
+
+
 def test_gate_matching_enabled_false_when_flag_off():
     env = _MockEnv(
         {
@@ -159,3 +189,90 @@ def test_extract_audit_metadata_reads_packet_header():
     audit = extract_audit_metadata(packet)
     assert audit["gate_packet_id"] == "abc-123"
     assert audit["gate_correlation_id"] == "corr-xyz"
+
+
+# ── Enrichment converge (ROAD-GATE-013) ────────────────────────────────────
+
+
+class _PartnerStub:
+    _name = "res.partner"
+
+    def __init__(self):
+        self.id = 55
+        self._fields = {"name", "website", "city", "zip", "street", "street2", "comment", "email", "phone"}
+        self.name = "Acme Recycling"
+        self.website = "https://acme.example"
+        self.city = "Charlotte"
+        self.zip = "28202"
+        self.street = "1 Polymer Way"
+        self.street2 = False
+        self.comment = False
+        self.email = False
+        self.phone = False
+
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+
+class _SourceStub:
+    def __init__(self, url):
+        self.url = url
+
+
+class _RunStub:
+    _name = "plasticos.enrichment.run"
+
+    def __init__(self):
+        self.id = 7
+        self.partner_id = _PartnerStub()
+        self.source_ids = [_SourceStub("https://acme.example/about")]
+
+
+def test_gate_enrichment_enabled_false_when_url_empty():
+    env = _MockEnv({"plasticos.gate.enrichment_enabled": "1"})
+    assert gate_enrichment_enabled(env) is False
+
+
+def test_gate_enrichment_enabled_false_when_flag_off():
+    # Live-by-default, but an explicit "0" disables even with URL set
+    env = _MockEnv({"plasticos.gate.url": "https://gate.example.com", "plasticos.gate.enrichment_enabled": "0"})
+    assert gate_enrichment_enabled(env) is False
+
+
+def test_gate_auto_writeback_enabled_default_on():
+    # No param set → live application is the default
+    assert gate_auto_writeback_enabled(_MockEnv()) is True
+
+
+def test_gate_auto_writeback_enabled_off_when_flag_zero():
+    env = _MockEnv({"plasticos.gate.auto_writeback": "0"})
+    assert gate_auto_writeback_enabled(env) is False
+
+
+def test_build_converge_request_maps_partner_snapshot():
+    env = _MockEnv()
+    run = _RunStub()
+    request = build_converge_request(env, run)
+    assert request.entity_id == "res.partner:55"
+    assert request.domain == "plasticos"
+    assert request.entity_snapshot["name"] == "Acme Recycling"
+    assert request.entity_snapshot["website"] == "https://acme.example"
+    assert request.entity_snapshot["source_urls"] == ["https://acme.example/about"]
+    assert request.odoo["model"] == "plasticos.enrichment.run"
+    assert request.odoo["record_id"] == 7
+
+
+def test_partner_writeback_from_converge_allowlist_only():
+    resp = map_converge_response(
+        {
+            "status": "ok",
+            "final_fields": {
+                "website": "https://acme-new.example",
+                "city": "Raleigh",
+                "supplier_rank": 9,  # not in allowlist -> dropped
+                "phone": "",  # empty -> dropped
+            },
+        }
+    )
+    vals = partner_writeback_from_converge(resp)
+    assert vals == {"website": "https://acme-new.example", "city": "Raleigh"}

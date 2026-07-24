@@ -6,7 +6,13 @@ import asyncio
 import threading
 from typing import Any
 
-from .gate_config import GateIntegrationError, build_gate_client_config, get_matching_action, resolve_tenant
+from .gate_config import (
+    GateIntegrationError,
+    build_gate_client_config,
+    get_enrichment_action,
+    get_matching_action,
+    resolve_tenant,
+)
 
 # The SDK is optional at import time (Odoo.sh installs it via requirements.txt;
 # bare dev environments may lack it). Bind the two entry points as `Any` so the
@@ -106,4 +112,20 @@ def send_match_action(
         payload=payload,
         correlation_id=correlation_id,
         compliance_tags=("ERP", "MATCHING"),
+    )
+
+
+def send_converge_action(
+    env,
+    *,
+    payload: dict[str, Any],
+    correlation_id: str | None = None,
+) -> dict[str, Any]:
+    action = get_enrichment_action(env)
+    return send_action(
+        env,
+        action=action,
+        payload=payload,
+        correlation_id=correlation_id,
+        compliance_tags=("ERP", "ENRICHMENT"),
     )
