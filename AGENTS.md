@@ -277,13 +277,17 @@ python3 ci/check_odoo19_xml.py            # XML pattern compliance
 pre-commit run --all-files                # Run ALL 36 hooks at once
 ```
 
-### CI Architecture — `ci.yml` is the Single Gate (8 Workflow Files)
-`ci.yml` is the **only check workflow that runs automatically on PRs and pushes**, alongside the GATE-01 baseline ratchet. The legacy check workflows (`pr-gate.yml`, `odoo-audit.yml`, `module-check.yml`, `test-quality.yml`) were **deleted** during GATE-01 adoption: they were manual-only, fully superseded by ci.yml, and carried fail-open constructs (`|| true` / `continue-on-error`) that violate workflow integrity. All ci.yml checks are now **blocking (fail-closed)** — the former advisory block (Odoo 19 patterns, antipatterns, ACL completeness, package init, field integrity, state-guard bypass, weak-test detection) was promoted after false positives were excluded at the source, and `secret-scan` no longer uses `continue-on-error`.
+### CI Architecture — `ci.yml` is the Single Gate (9 Workflow Files)
+`ci.yml` is the **only check workflow that runs automatically on PRs and pushes and blocks merge**, alongside the GATE-01 baseline ratchet. The legacy check workflows (`pr-gate.yml`, `odoo-audit.yml`, `module-check.yml`, `test-quality.yml`) were **deleted** during GATE-01 adoption (#112): they were manual-only, and most of their checks were already duplicated in `ci.yml`. **2026-07 correction:** a follow-up audit found #112 had also silently dropped several checks that were NOT duplicates (mypy, shellcheck, `_name` string-literal enforcement, manifest field validation via `scripts/validate_manifest.py`, ACL CSV header/format check, test-attribute-guard, and the `odoo_audit.py`/`run_all_audits.py` baseline-regression audit with PR auto-comment) — all were restored into `ci.yml` as new checks/jobs (see inline `restored 2026-07` comments in the workflow file). `l9-analysis.yml` was added as a new, additive, non-duplicating governed-semgrep pipeline (see `.github/governance/README.md`) — it does not block merge yet (advisory-first rollout).
+
+**2026-07 fail-slow correction:** `ci.yml`'s `lint`/`static-checks`/`pure-python-tests` previously ran as a sequential `needs:` chain (Tier 1 → 2 → 3), so a `lint` failure hid every static-analysis and test failure until fixed and re-pushed — the opposite of "identify all errors in one CI run." They now run in **parallel** (no `needs:` between them) alongside `secret-scan` and the new `audit-baseline` job; a final `ci-gate-result` job (`needs:` all of them, `if: always()`) is the single fail-closed verdict. `ci/check_github_actions_kernel.sh`'s `merge_gate_logic` check enforces this contract structurally (no `needs:` on the three tiers, an aggregator job present).
+
 **Active workflows and their triggers:**
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| **`ci.yml`** | push + PR (all branches) | Single CI gate — Tier 1 lint → Tier 2 static → Tier 3 pytest + secret-scan (all blocking) |
+| **`ci.yml`** | push + PR (all branches) | Single CI gate — lint / static / pytest / audit-baseline run in parallel (fail-slow), `ci-gate-result` aggregates last |
 | **`baseline-ratchet.yml`** | push + PR → Staging | GATE-01 baseline ratchet (l9-ci-core reusable workflow, SHA-pinned) |
+| `l9-analysis.yml` | push → Staging + PR + manual | l9-ci-core governed semgrep pipeline (generic `p/python`), publishes a GitHub Check; advisory-first, not yet a required check |
 | `security.yml` | push + PR → staging/main + weekly | pip-audit, Trivy, Gitleaks |
 | `changelog.yml` | push → Production + manual | Auto-update CHANGELOG.md |
 | `auto-merge.yml` | PR events → staging/main | Auto-merge — arms ONLY when the PR carries the `automerge` label |
@@ -291,23 +295,25 @@ pre-commit run --all-files                # Run ALL 36 hooks at once
 | `release.yml` | tag `v*.*.*` + manual | GitHub Release creation |
 | `pr-autopilot.yml` | manual only | Scan open PRs for CI/SonarCloud signals |
 
-**`ci.yml` blocking jobs** (must pass for merge):
+**`ci.yml` blocking jobs** (must pass for merge) — **fail-slow, not fail-fast**: `lint`, `static-checks`, `pure-python-tests`, `secret-scan`, and `audit-baseline` run **concurrently** (no `needs:` between them; each job still aggregates ALL of its own checks before exiting). A final `ci-gate-result` job (`needs: [lint, static-checks, pure-python-tests, secret-scan, audit-baseline]`, `if: always()`) runs last and is the single fail-closed verdict for the workflow — every job still must pass, this just surfaces every failure in one run instead of stopping at whichever tier failed first.
 
-| CI Job | Tier | What it checks | Common failure |
-|--------|------|---------------|----------------|
-| `lint` | 1 | `ruff check` + `ruff format --check` | Unsorted imports (I001), unformatted code |
-| `static-checks` | 2 (needs lint) | XML syntax, bash syntax, manifest syntax, Semgrep Odoo/security rules (`.semgrep/odoo-patterns.yml`), circular deps, module wiring, orphan refs, XPath stability, model inheritance, ORM integrity, Odoo 19 hook/XML patterns, dev-tools fence, pipeline-v2 guard, critical manifest, enhanced audit | Missing `__init__.py` import, broken XPath, phantom dep, semgrep rule hit |
-| `pure-python-tests` | 3 (needs static) | pytest suite (no Odoo runtime): dependency integrity, compat, cron invariants, XML patterns, enum alignment | Test assertion failure, missing fixture |
+| CI Job | Phase | What it checks | Common failure |
+|--------|-------|---------------|----------------|
+| `lint` | 1 (parallel) | `ruff check` + `ruff format --check` | Unsorted imports (I001), unformatted code |
+| `static-checks` | 1 (parallel) | XML syntax, bash syntax, manifest syntax + field validation (`scripts/validate_manifest.py`), `_name` string-literal enforcement, shellcheck, Semgrep Odoo/security rules (`.semgrep/odoo-patterns.yml`), circular deps, module wiring, orphan refs, XPath stability, model inheritance, ORM integrity, Odoo 19 hook/XML patterns, dev-tools fence, pipeline-v2 guard, critical manifest, enhanced audit, antipatterns, ACL completeness, package init, field integrity, state-guard bypass, weak-test detection | Missing `__init__.py` import, broken XPath, phantom dep, semgrep rule hit, shellcheck warning, `_name = CONSTANT` |
+| `pure-python-tests` | 1 (parallel) | pytest suite (no Odoo runtime): dependency integrity, compat, cron invariants, XML patterns, enum alignment | Test assertion failure, missing fixture |
+| `audit-baseline` | 1 (parallel) | `scripts/audit/odoo_audit.py` (field/required-field/compute/security/constraint/state-machine/onchange bugs; baseline CRITICAL=0 HIGH=0) + `scripts/audit/run_all_audits.py` (extended: business-logic/performance/security N+1 queries; baseline HIGH≤4 — pre-existing `plasticos_logistics/load.py` + `plasticos_transaction/transaction.py`); auto-comments on the PR and uploads an `odoo-audit-reports` artifact on regression | New CRITICAL/HIGH issue vs tracked baseline — read the PR comment or artifact |
+| `ci-gate-result` | 2 (sequential, always last) | Aggregates the 5 jobs above; fails if any is not `success` | One of the Phase 1 jobs failed — read ITS log, not this job's |
 
-**Advisory-only checks inside `static-checks`** (run with `|| true`, logged but never fail the job): `check_odoo_patterns.sh` (the 24-check Odoo 19 pattern script itself), `check_odoo_antipatterns.py`, `check_acl_completeness.py`, `check_package_init.py`, `check_field_integrity.py`, `check_state_guard_bypass.py`, `weak_test_fixer.py`. These same checks ARE blocking as local pre-commit hooks (see Pre-commit Hooks table) — the CI/pre-commit blocking status differs per check.
+**Advisory-only checks inside `static-checks`** (logged but never fail the job): `mypy` (type checking — not a CI gate per `.cursor/rules/88-plasticos-odoo-python-tooling`, pre-commit only), ACL CSV header/format check, test-attribute-guard (`self.*_rec` warn). These same checks ARE blocking as local pre-commit hooks where applicable (see Pre-commit Hooks table) — the CI/pre-commit blocking status differs per check.
 
 **Non-blocking (advisory):**
 
 | CI Job | Workflow | Notes |
 |--------|----------|-------|
-| `secret-scan` | `ci.yml` | `continue-on-error: true` — Gitleaks |
 | `dependency-scan` | `security.yml` | `pip-audit \|\| true` |
 | `trivy-scan` | `security.yml` | `exit-code: 0` |
+| `l9-analysis.yml` (all jobs) | `l9-analysis.yml` | Governed semgrep findings default to `mode: advisory` in `.github/governance/semgrep-policy.yaml` — no individual rule is promoted to blocking yet |
 
 **External Odoo.sh checks (NOT GitHub Actions — cannot disable in `.github/workflows/`):**
 
@@ -434,16 +440,22 @@ Hooks marked "Yes (pre-push)" only run at the `pre-push` git stage, not on every
 | `__manifest__.py` exempt from | B018 (bare dict) |
 | `test_*.py` exempt from | F841, B011, F821, B017 |
 
-### Audit Baselines (enforced by `ci.yml` static-checks tier)
+### Audit Baselines (enforced by `ci.yml`'s `audit-baseline` job — separate parallel Phase 1 job, not `static-checks`)
 
-CI fails if HIGH severity findings exceed these baselines:
+CI fails if CRITICAL/HIGH severity findings exceed these baselines. Verified against
+current repo state 2026-07 — run `make audit-baseline` locally to reproduce these counts.
 
 | Audit | Baseline | Notes |
 |-------|----------|-------|
-| `odoo_audit.py` HIGH | 0 | Any new HIGH finding blocks merge |
-| Extended audit HIGH | 4 | Pre-existing N+1 in `plasticos_logistics/load.py` and `plasticos_transaction/transaction.py` |
+| `scripts/audit/odoo_audit.py` CRITICAL | 444 | All `FIELD_NOT_FOUND` — script misattributes `ir.ui.view`/`ir.actions.act_window` container fields (`arch`, `inherit_id`, `name`, `view_mode`, `res_model`, `context`, `help`, `search_view_id`, `target`, `priority`) as fields of the model the view displays |
+| `scripts/audit/odoo_audit.py` HIGH | 1 | `INVALID_CONSTRAINT_FIELD` on `plasticos_transaction/models/transaction.py:497` (`commission_override_pct`) — field is added via cross-module `_inherit` from `plasticos_commission`; the single-file scanner can't see it |
+| `scripts/audit/run_all_audits.py` HIGH | 15 | 9x `N_PLUS_ONE_QUERY` (`transaction.py`, `purchase_inherit.py`, `load.py` x3, `facility_profile.py` x2, `intake_extension.py`, `commission_rule.py`) + 6x `SENSITIVE_DATA_LOGGED` keyword false positives on "token"/"api_key" substrings in log messages (`pr_autopilot.py`, `pr_check_remote_feedback.py`, `web_leads` post-migrate) — none log actual secret values |
 | XPath CRITICAL | 0 | No new CRITICAL XPath issues allowed |
 | XPath HIGH | 0 | No new HIGH XPath issues allowed |
+
+These baselines are a **ratchet**, not zero known debt: any NEW finding beyond the
+tracked count fails CI, but the pre-existing false positives / tracked N+1s above are
+not blocking until someone fixes the underlying scanner limitation or the actual query.
 
 ### Version Lockstep
 

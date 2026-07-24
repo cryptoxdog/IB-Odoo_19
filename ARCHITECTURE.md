@@ -622,23 +622,21 @@ services:
 
 ### CI/CD Architecture
 
-**11 GitHub Actions workflow files**. `ci.yml` is the single active CI gate for all PRs and pushes. The other check workflows are disabled (manual trigger only) to eliminate duplicate runs.
+**9 GitHub Actions workflow files**. `ci.yml` is the single active CI gate for all PRs and pushes and the only one that blocks merge (alongside the GATE-01 `baseline-ratchet.yml`). The 4 legacy check workflows (`pr-gate.yml`, `odoo-audit.yml`, `module-check.yml`, `test-quality.yml`) were deleted in 2026-07 — every unique check they ran (mypy, shellcheck, `_name` string-literal enforcement, manifest field validation, ACL CSV format, test-attribute-guard, audit-baseline regression) was ported into `ci.yml`, not silently dropped. See `AGENTS.md` § "CI Architecture" for the full job table.
 
 #### Workflow Files
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| **`ci.yml`** | push + PR (all branches) | **Single CI gate**: Tier 1 lint → Tier 2 static analysis → Tier 3 pure-python tests |
+| **`ci.yml`** | push + PR (all branches) | **Single CI gate**: lint / static-checks / pure-python-tests / secret-scan / audit-baseline run in parallel (fail-slow), `ci-gate-result` aggregates last |
+| **`baseline-ratchet.yml`** | push + PR → Staging | GATE-01 baseline ratchet (l9-ci-core reusable workflow, SHA-pinned) |
+| `l9-analysis.yml` | push → Staging + PR + manual | Governed semgrep pipeline (l9-ci-core) — advisory-first, not yet a required check |
 | `security.yml` | push + PR → staging/main + weekly cron | pip-audit, Trivy, Gitleaks |
 | `changelog.yml` | push → Production branch + manual | Auto-update CHANGELOG.md from conventional commits |
 | `pr-autopilot.yml` | manual only | Scan open PRs for CI/SonarCloud/CodeRabbit signals |
 | `auto-merge.yml` | PR events → staging/main | Auto-merge approved non-draft PRs |
 | `auto-review-request.yml` | PR opened/sync → staging/main | Auto-request reviewers on external PRs |
 | `release.yml` | tag push `v*.*.*` + manual | Create GitHub Release with changelog and module version list |
-| `test-quality.yml` | manual only | Full Odoo runtime tests (requires Odoo.sh) |
-| `odoo-audit.yml` | manual only | Legacy audit jobs — superseded by ci.yml |
-| `pr-gate.yml` | manual only | Legacy gate jobs — superseded by ci.yml |
-| `module-check.yml` | manual only | Legacy module validation — superseded by ci.yml |
 
 #### Pre-commit Hooks (36 total)
 
