@@ -8,7 +8,7 @@
         xml-check wiring deps-check cron-check odoo19-check semgrep semgrep-test \
         pipeline-guard dev-fence state-guard acl-check guards deploy-check \
         up down restart logs logs-error shell odoo-shell \
-        update update-all rebuild backup \
+        update update-all rebuild backup lock-deps \
         test test-odoo test-pure test-module \
         pr-check pr-check-% commit push api-push-check sonar changelog \
         governance-backup \
@@ -69,6 +69,7 @@ help:
 	@echo "    make odoo19-check     Odoo 19 XML pattern violations"
 	@echo "    make wiring           module dependency wiring check"
 	@echo "    make deps-check       circular dependency check"
+	@echo "    make lock-deps        regenerate constraints.txt (Dockerfile dependency lock)"
 	@echo "    make cron-check       cron invariant violations"
 	@echo "    make semgrep          semgrep custom Odoo rules (ERROR level)"
 	@echo "    make semgrep-test     validate semgrep config + positive/negative fixtures"
@@ -187,6 +188,19 @@ wiring:
 deps-check:
 	@echo "→ Circular dependency check (known pre-existing: commission↔transaction)..."
 	python3 ci/check_circular_deps.py || true
+
+# Regenerate constraints.txt — the transitive dependency lock consumed by the
+# Dockerfile install (SonarCloud S8541/S8544 reproducible-build requirement).
+lock-deps:
+	@echo "→ Resolving requirements.txt in a clean venv and freezing constraints.txt ..."
+	python3 -m venv /tmp/lock-deps-venv
+	@/tmp/lock-deps-venv/bin/pip install --quiet --upgrade pip
+	/tmp/lock-deps-venv/bin/pip install --quiet -r requirements.txt
+	@{ echo "# constraints.txt — transitive dependency lock for Dockerfile installs (SonarCloud S8541/S8544)"; \
+	   echo "# Regenerate: make lock-deps  (resolves requirements.txt in a clean venv and freezes)"; \
+	   echo "# Note: git-pinned direct deps (constellation-node-sdk, pr-repair) are already SHA-locked in requirements.txt."; \
+	   /tmp/lock-deps-venv/bin/pip freeze --exclude-editable | grep -v "^constellation-node-sdk\|^pr-repair"; } > constraints.txt
+	@echo "✅ constraints.txt updated"
 
 cron-check:
 	@echo "→ Cron invariant check..."

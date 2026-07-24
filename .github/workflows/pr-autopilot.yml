@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests PyGithub
+          pip install --only-binary ":all:" requests==2.32.5 PyGithub==2.8.1
 
       # Scan-only reporter: pr_autopilot.py reports PR signals and never gates
       # merges. A non-zero exit means the scanner itself broke — that should

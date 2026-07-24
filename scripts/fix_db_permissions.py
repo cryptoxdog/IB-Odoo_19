@@ -4,6 +4,7 @@ import sys
 
 try:
     import psycopg2
+    from psycopg2 import sql
     from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 except ImportError:
     print("Error: 'psycopg2' module not found.")
@@ -42,7 +43,8 @@ def fix_permissions():
         # 3. Grant Permissions
         print(f"Granting SELECT on pg_database to {target_odoo_user}...")
         try:
-            cur.execute(f'GRANT SELECT ON pg_database TO "{target_odoo_user}";')
+            # psycopg2.sql.Identifier safely quotes the role name (SonarCloud S8702)
+            cur.execute(sql.SQL("GRANT SELECT ON pg_database TO {}").format(sql.Identifier(target_odoo_user)))
             print("✅ Permission GRANTED.")
         except Exception as e:
             print(f"⚠️  Could not grant permission: {e}")
@@ -56,7 +58,11 @@ def fix_permissions():
         if not exists:
             print(f"Database '{target_db_name}' does not exist. Creating it...")
             try:
-                cur.execute(f'CREATE DATABASE "{target_db_name}" OWNER "{target_odoo_user}";')
+                cur.execute(
+                    sql.SQL("CREATE DATABASE {} OWNER {}").format(
+                        sql.Identifier(target_db_name), sql.Identifier(target_odoo_user)
+                    )
+                )
                 print(f"✅ Database '{target_db_name}' CREATED successfully.")
             except Exception as e:
                 print(f"❌ Failed to create database: {e}")
