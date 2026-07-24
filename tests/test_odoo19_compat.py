@@ -30,6 +30,12 @@ _SQL_JUSTIFIED_FILES = {
     "plasticos_transaction/models/transaction.py": "Advisory lock for concurrency",
     # Load model uses SQL for batch operations
     "plasticos_logistics/models/load.py": "Batch load operations",
+    # _auto=False dashboard VIEWs: CREATE VIEW DDL has no ORM equivalent
+    "plasticos_logistics/models/load_dashboard.py": "CREATE VIEW DDL for _auto=False dashboard",
+    "plasticos_commission/models/sales_dashboard.py": "CREATE VIEW DDL for _auto=False dashboard",
+    # Uninstall hook bulk-deletes records being discarded with the module —
+    # no unlink() business logic (state transitions, notifications) applies
+    "plasticos_intake/__init__.py": "Bulk delete on module uninstall",
     # Automation models use SQL for batch operations and performance
     "plasticos_automation/models/": "Automation batch operations",
     # Documents models use SQL for batch document operations
