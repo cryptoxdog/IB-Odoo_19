@@ -447,11 +447,25 @@ CI fails if HIGH severity findings exceed these baselines:
 
 ### Version Lockstep
 
-| Tool | Pre-commit | CI (`ci.yml`) | `pyproject.toml` |
-|------|-----------|--------------|-------------------|
-| Ruff | `v0.15.5` | `0.15.5` | `required-version = "==0.15.5"` |
+| Tool | Pre-commit | CI (`ci.yml`) | Local (`make venv` / `requirements-dev.txt`) | `pyproject.toml` |
+|------|-----------|--------------|------------------------------------------------|-------------------|
+| Ruff | `v0.15.5` | `0.15.5` | `make venv` pins `ruff==0.15.5` explicitly | `required-version = "==0.15.5"` (hard-fails on any drift — this is the enforcement mechanism, not a lockfile) |
+| mypy | `v1.14.0` | `1.14.0` | `requirements-dev.txt` pins `mypy==1.14.0` | `[tool.mypy]` config (no version field — mypy has no `required-version` equivalent) |
+| Semgrep | n/a (not a hook) | `1.164.0` | `make venv` pins `semgrep==1.164.0` explicitly | n/a |
+| pytest | n/a (not a hook) | `8.3.5` / `pytest-timeout==2.4.0` / `pytest-cov==5.0.0` | `requirements-dev.txt` — same three pins | `[tool.pytest.ini_options]` |
+| gitleaks | pre-commit hook (`gitleaks-commit`/`gitleaks-push`, unpinned local binary) | SHA-pinned action (`gitleaks/gitleaks-action@ff98106e...`, tag `v2`) | local `gitleaks` binary version, unpinned | n/a |
+| shellcheck | not yet a pre-commit hook | unpinned (`apt-get install -y shellcheck` = whatever Ubuntu ships) | unpinned (`brew install shellcheck`) | n/a |
 
-All three are pinned in lockstep on purpose — `pyproject.toml`'s `required-version` fails fast if any site drifts. Bump all three together when upgrading ruff. Always run `pre-commit run --all-files` locally before pushing.
+Ruff is the only tool with a **hard version gate** (`required-version` in `pyproject.toml` — this is
+what caught the drift on 2026-07: a global `ruff==0.14.11` on PATH refused to run against a repo
+pinned to `0.15.5`, exactly as designed). This repo intentionally has **no `uv.lock`** — see
+`.cursor/rules/88-plasticos-odoo-python-tooling.mdc` "Non-goals": there's no `[project]` table in
+`pyproject.toml` because this is an Odoo addon suite, not a pip/uv-installable package. The
+equivalent of a lockfile here is **pins repeated at each of the three sites above** (pre-commit,
+CI, local `requirements-dev.txt`/`make venv`), kept in lockstep manually. Bump a tool by updating
+all applicable cells in one PR; `make venv` and `pre-commit autoupdate` regenerate the local/hook
+pins, `pyproject.toml`'s `required-version` (Ruff only) is what actually blocks a stale local tool
+from running silently. Always run `pre-commit run --all-files` locally before pushing.
 
 ## Boundaries
 

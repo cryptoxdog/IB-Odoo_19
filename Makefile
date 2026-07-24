@@ -150,6 +150,7 @@ venv:
 	@$(VENV)/bin/ruff --version
 	@$(VENV)/bin/python -m pytest --version 2>&1 | head -1
 	@$(VENV)/bin/semgrep --version 2>&1 | head -1
+	@$(VENV)/bin/mypy --version 2>&1 | head -1
 	@echo "→ Activate automatically with direnv (direnv allow), or: source $(VENV)/bin/activate"
 
 lint:
