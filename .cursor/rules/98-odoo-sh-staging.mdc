@@ -1,0 +1,66 @@
+---
+id: plasticos.rule.odoo-sh-staging
+version: 1.0.0
+description: PlasticOS Odoo.sh staging endpoint, deployment trigger, and operator access reference.
+scope: repository
+domain: deployment
+activation: agent_requested
+authority: canonical_repository
+context_cost: minimal
+alwaysApply: false
+---
+# Odoo.sh Staging Environment
+
+**Effective:** 2026-03-31
+
+## Staging instance
+
+| Property | Value |
+|---|---|
+| URL | `https://cryptoxdog-ib-odoo-19-staging-30217068.dev.odoo.com` |
+| Build ID | `30217068` |
+| Branch | `Staging` |
+| Platform | Odoo.sh |
+
+## SSH access
+
+```bash
+ssh 30217068@cryptoxdog-ib-odoo-19-staging-30217068.dev.odoo.com
+```
+
+- The build number is the SSH username.
+- The host is the full Odoo.sh development domain.
+- The operator's SSH key must be registered in project settings.
+- Confirm the current build in Odoo.sh before relying on this reference; build IDs rotate.
+
+## Shell commands
+
+```bash
+# Odoo shell
+odoo-bin shell -d <dbname>
+
+# Logs
+cat ~/logs/odoo.log
+tail -f ~/logs/odoo.log
+
+# Update a module
+odoo-bin -u plasticos_base --stop-after-init
+
+# Install a module
+odoo-bin -i plasticos_new_module --stop-after-init
+```
+
+## Web lead staging endpoints
+
+| Method | Path | Auth |
+|---|---|---|
+| `POST` | `/api/v1/web-lead` | Bearer token |
+| `POST` | `/api/v1/cognito-webhook` | Bearer token |
+| `GET` | `/api/v1/web-lead/health` | None |
+
+## Deployment boundary
+
+- A push to `Staging` triggers an Odoo.sh deployment.
+- Commit and push both require explicit operator authorization.
+- SSH sessions are ephemeral; changes outside persistent storage are lost on rebuild.
+- Confirm the database name from the Odoo.sh dashboard or shell before running commands.

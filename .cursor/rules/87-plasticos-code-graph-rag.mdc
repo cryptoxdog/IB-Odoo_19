@@ -1,0 +1,47 @@
+---
+description: Code-graph RAG MCP discipline — grep first; graph for importers, impact, cross-module only.
+alwaysApply: true
+---
+# Code Graph RAG MCP Discipline
+
+For **IB-Odoo_19**: prefer **Grep/Read** when the symbol or file path is known.
+
+Use **code-graph** MCP only for:
+
+- **Importers** (`list_module_importers`)
+- **Impact analysis** (`analyze_code_impact`) before shared-model edits
+- **Unknown cross-module location** (`resolve_entity` → `get_entity_source`, scoped)
+
+## Never in chat
+
+- `get_graph`, `clean_index`, `reset_graph`, unscoped `semantic_search`
+- `batch_index`, `index`, clone detection, `suggest_refactoring`
+- Full-repo indexing — **Terminal only**
+
+## Indexing (zero chat tokens)
+
+```bash
+bash "$HOME/Dropbox/Cursor Governance/GlobalCommands/skills/l9-code-graph-rag-mcp/scripts/code_graph_batch_index.sh" "$CURSOR_PROJECT_DIR"
+```
+
+Health check: `code_graph_health.sh` in the same directory.
+
+## Token order
+
+1. `AGENTS.md` / rules
+2. Grep / Read
+3. Structural MCP tools (above)
+4. Scoped `semantic_search` last (module path required)
+
+## Full SOP
+
+Load **`l9-code-graph-rag-mcp`** (`@.cursor-commands/skills/l9-code-graph-rag-mcp/SKILL.md`).  
+**When to read from graph:** `assets/plasticos-trigger-matrix.md`.
+
+## GMP Phase 0
+
+For cross-module locked plans, run `code_graph_gmp_baseline.sh` (CLI only) before Phase 2 edits — see trigger matrix.
+
+## Not episodic memory
+
+Decisions and session resume → Graphiti + `memory-bank/`. Code-graph = code structure only.

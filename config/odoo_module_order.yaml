@@ -84,6 +84,7 @@ docker_enterprise_modules:
 default_install_order:
   - plasticos_accounting
   - plasticos_base
+  - plasticos_gate
   - plasticos_material_profile
   - plasticos_logistics
   - plasticos_facility_profile

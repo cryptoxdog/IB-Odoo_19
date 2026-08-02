@@ -23,11 +23,11 @@
                 <group invisible="state != 'draft'">
                     <div class="alert alert-info" role="alert">
                         <strong>Default File:</strong>
-                        <code>cieTrade.WksDetail.csv</code>
+                        <code>ERP.WksDetail.csv</code>
                         <br/>
                         This file is located in the <code>plasticos_transaction</code> module directory.
                         <br/><br/>
-                        <strong>CSV Format:</strong> cieTrade WksDetail export with columns:
+                        <strong>CSV Format:</strong> ERP WksDetail export with columns:
                         <ul>
                             <li><code>BuySellNo</code> - Transaction reference (groups lines)</li>
                             <li><code>GradeID</code> - Material grade code</li>

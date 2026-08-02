@@ -6,7 +6,7 @@ alwaysApply: false
 
 # GitHub Actions CI Rules — PlasticOS
 
-Enforced by SonarCloud `githubactions:S7637` and CI Gate structure.
+**Authority:** `AGENTS.md` § CI Architecture · `.github/workflows/ci.yml` is the single PR gate · SonarCloud `githubactions:S7637` for SHA pins.
 
 ## SHA-Pin All Third-Party Actions (S7637)
 

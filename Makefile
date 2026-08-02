@@ -8,9 +8,10 @@
         xml-check wiring deps-check cron-check odoo19-check semgrep semgrep-test \
         pipeline-guard dev-fence state-guard acl-check guards deploy-check \
         up down restart logs logs-error shell odoo-shell \
-        update update-all rebuild backup \
+        update update-all rebuild backup lock-deps \
         test test-odoo test-pure test-module \
-        pr-check commit push api-push-check sonar changelog \
+        pr-check pr-check-% commit push api-push-check sonar changelog \
+        governance-backup \
         github-actions-kernel-check \
         pr-autopilot pr-fix \
         roadmap roadmap-sync roadmap-list
@@ -24,18 +25,26 @@ ifneq ($(wildcard $(CURDIR)/.venv/bin/ruff),)
 export PATH := $(CURDIR)/.venv/bin:$(PATH)
 endif
 
+# Target a specific PR for remote feedback: make pr-check pr=100
+#   or: make pr-check pr=https://github.com/cryptoxdog/IB-Odoo_19/pull/100
+#   or: make pr-check-100  /  scripts/pr_check.sh <url-or-number>
+# (bare URL cannot be a make goal — https:// breaks make target parsing)
+ifneq ($(pr),)
+export PR_REMOTE_REF := $(pr)
+endif
+
 ODOO_DB_NAME          ?= odoo
 ODOO_TEST_DB          ?= odoo_test
 ODOO_COMPOSE_PROJECT  ?= odoo19
 
-# Modules excluded from ruff (pre-existing violations / external scope)
-RUFF_EXCLUDES = \
-	--exclude plasticos_inference_engine \
-	--exclude plasticos_buyer_match_engine \
-	--exclude plasticos_matching \
-	--exclude .semgrep/tests \
-	--exclude "current work - ib" \
-	--exclude "Current Work - IGNORE"
+# Pinned ruff resolver. pyproject pins ruff EXACTLY (==0.15.5 via [tool.ruff]
+# required-version), so a mismatched PATH ruff (e.g. Homebrew latest, or an old
+# pip --user 0.14.x) aborts every invocation. Prefer the project venv's pinned
+# binary; fall back to PATH ruff (CI has no .venv and installs 0.15.5 directly).
+RUFF := $(shell [ -x .venv/bin/ruff ] && echo .venv/bin/ruff || echo ruff)
+
+# Symlinked governance tree — lives in Dropbox / separate repo; never commit or push from here.
+COMMIT_EXCLUDE := .cursor-commands
 
 # ─────────────────────────────────────────────────────────────────────────────
 # HELP
@@ -47,6 +56,7 @@ help:
 	@echo "──────────────────────────────────────────────────────"
 	@echo ""
 	@echo "  Code Quality"
+	@echo "    make venv             build pinned local .venv (ruff==0.15.5, semgrep, pytest) — mirrors CI"
 	@echo "    make lint             ruff check (lint only)"
 	@echo "    make format           ruff format --check (check only)"
 	@echo "    make format-fix       ruff format (auto-fix)"
@@ -59,6 +69,7 @@ help:
 	@echo "    make odoo19-check     Odoo 19 XML pattern violations"
 	@echo "    make wiring           module dependency wiring check"
 	@echo "    make deps-check       circular dependency check"
+	@echo "    make lock-deps        regenerate constraints.txt (Dockerfile dependency lock)"
 	@echo "    make cron-check       cron invariant violations"
 	@echo "    make semgrep          semgrep custom Odoo rules (ERROR level)"
 	@echo "    make semgrep-test     validate semgrep config + positive/negative fixtures"
@@ -83,6 +94,7 @@ help:
 	@echo "    make update-all       -u all modules"
 	@echo "    make rebuild          drop DB + full rebuild (no demo)"
 	@echo "    make backup           snapshot DB to backup_<timestamp>.sql"
+	@echo "    make governance-backup  push .cursor-commands → Cursor-Governance GitHub"
 	@echo ""
 	@echo "  Testing"
 	@echo "    make test             pure pytest in tests/ (mirrors PR CI Tier 3)"
@@ -91,16 +103,14 @@ help:
 	@echo "    make test-module m=<mod>  Odoo tests for one module (-u m)"
 	@echo ""
 	@echo "  PR / CI Workflow"
-	@echo "    make commit           commit only (same staging rules as push)"
+	@echo "    make commit           stage all (except .cursor-commands) + commit"
 	@echo "    make commit m=\"...\"   commit with explicit conventional message"
 	@echo "    make github-actions-kernel-check  validate staged/all .github/workflows (R5 kernel)"
 	@echo "    make pr-check         REQUIRED before any push: audit-quick + semgrep + semgrep-test + pipeline-guard"
-	@echo "    make push             pr-check → commit → push → PR (full github kernel)"
-	@echo "    make push m=\"feat(x): ...\"  explicit conventional commit (else inferred)"
-	@echo "    make push commit=0    skip commit (already committed)"
-	@echo "    make push b=Staging   push to integration branch (no PR)"
-	@echo "    make push pr=0        push without creating a PR"
-	@echo "    make push base=Staging  PR base branch (default: Staging)"
+	@echo "    make pr-check pr=100       remote gate for PR #100 or full GitHub URL"
+	@echo "    make pr-check-100          shorthand for pr=100"
+	@echo "    make push             safe push: pr-check, then push current FEATURE branch (Staging/Production are PR-only)"
+	@echo "    make push pr=1        push feature branch, then open a PR into Staging"
 	@echo "    make api-push-check   REQUIRED before GitHub API push (when git push fails)"
 	@echo "    make pr-autopilot     scan all PR signals (CI, SonarCloud, CodeRabbit) — report only"
 	@echo "    make pr-fix           scan + auto-fix safe issues + push back to branch (re-triggers CI)"
@@ -113,19 +123,44 @@ help:
 	@echo "    make roadmap-sync     sync only (make roadmap preferred)"
 	@echo "    Example: make roadmap domain=gate-autonomy phase=1 kind=backlog title=\"...\""
 	@echo ""
+	@echo "  Agent review kernels (.claude/skills/ — playbooks, not extra targets)"
+	@echo "    FINAL_TOUCHES_MODE     plasticos-final-touches  → make audit + make pr-check"
+	@echo "    PR_REVIEW_MODE         plasticos-pr-review-kernel → make pr-check"
+	@echo "    (static/repo audit)    plasticos-static-audit-kernel / plasticos-repo-review-kernel → make audit"
+	@echo ""
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CODE QUALITY
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Build a complete, pinned local dev virtualenv (.venv) that mirrors CI.
+# Installs requirements-dev.txt + the EXACT-pinned ruff and semgrep so every tool
+# (ruff, pytest, semgrep, pr-repair) resolves to one reproducible set. The .envrc
+# (direnv) auto-activates it; `make` also auto-prefers .venv/bin/ruff via $(RUFF).
+# Idempotent: safe to re-run to repair/upgrade the environment.
+VENV ?= .venv
+venv:
+	@echo "→ Building $(VENV) (python3.12, pinned dev toolchain)..."
+	python3.12 -m venv $(VENV)
+	@$(VENV)/bin/python -m pip install --quiet --upgrade pip
+	$(VENV)/bin/python -m pip install -r requirements-dev.txt
+	$(VENV)/bin/python -m pip install "ruff==0.15.5" "semgrep==1.164.0"
+	@echo ""
+	@echo "✅ $(VENV) ready:"
+	@$(VENV)/bin/ruff --version
+	@$(VENV)/bin/python -m pytest --version 2>&1 | head -1
+	@$(VENV)/bin/semgrep --version 2>&1 | head -1
+	@$(VENV)/bin/mypy --version 2>&1 | head -1
+	@echo "→ Activate automatically with direnv (direnv allow), or: source $(VENV)/bin/activate"
+
 lint:
-	ruff check . $(RUFF_EXCLUDES)
+	$(RUFF) check .
 
 format:
-	ruff format --check . $(RUFF_EXCLUDES)
+	$(RUFF) format --check .
 
 format-fix:
-	ruff format . $(RUFF_EXCLUDES)
+	$(RUFF) format .
 
 check: lint format
 	@echo "✅ lint + format check passed"
@@ -154,6 +189,19 @@ wiring:
 deps-check:
 	@echo "→ Circular dependency check (known pre-existing: commission↔transaction)..."
 	python3 ci/check_circular_deps.py || true
+
+# Regenerate constraints.txt — the transitive dependency lock consumed by the
+# Dockerfile install (SonarCloud S8541/S8544 reproducible-build requirement).
+lock-deps:
+	@echo "→ Resolving requirements.txt in a clean venv and freezing constraints.txt ..."
+	python3 -m venv /tmp/lock-deps-venv
+	@/tmp/lock-deps-venv/bin/pip install --quiet --upgrade pip
+	/tmp/lock-deps-venv/bin/pip install --quiet -r requirements.txt
+	@{ echo "# constraints.txt — transitive dependency lock for Dockerfile installs (SonarCloud S8541/S8544)"; \
+	   echo "# Regenerate: make lock-deps  (resolves requirements.txt in a clean venv and freezes)"; \
+	   echo "# Note: git-pinned direct deps (constellation-node-sdk, pr-repair) are already SHA-locked in requirements.txt."; \
+	   /tmp/lock-deps-venv/bin/pip freeze --exclude-editable | grep -v "^constellation-node-sdk\|^pr-repair"; } > constraints.txt
+	@echo "✅ constraints.txt updated"
 
 cron-check:
 	@echo "→ Cron invariant check..."
@@ -337,6 +385,16 @@ backup:
 		> backup_$$(date +%Y%m%d_%H%M%S).sql
 	@echo "✅ Backup complete"
 
+governance-backup:
+	@if [ -L .cursor-commands ] && [ -f .cursor-commands/ops/scripts/backup_to_github.sh ]; then \
+		bash .cursor-commands/ops/scripts/backup_to_github.sh; \
+	elif [ -f "$(HOME)/Dropbox/cursor governance/GlobalCommands/ops/scripts/backup_to_github.sh" ]; then \
+		bash "$(HOME)/Dropbox/cursor governance/GlobalCommands/ops/scripts/backup_to_github.sh"; \
+	else \
+		echo "ERROR: backup_to_github.sh not found — run setup_workspace_symlinks.sh first" >&2; \
+		exit 1; \
+	fi
+
 # ─────────────────────────────────────────────────────────────────────────────
 # TESTING
 # ─────────────────────────────────────────────────────────────────────────────
@@ -374,10 +432,18 @@ test-module:
 # PR / CI WORKFLOW
 # ─────────────────────────────────────────────────────────────────────────────
 
-# REQUIRED before any push or PR creation
-pr-check: audit-quick semgrep semgrep-test pipeline-guard test
+# REQUIRED before any push or PR creation (local + remote when PR/CI exists)
+pr-check: audit-quick semgrep semgrep-test pipeline-guard test pr-remote-feedback
 	@echo ""
 	@echo "✅ PR gate passed — safe to push"
+
+# Shorthand: make pr-check-100 → make pr-check pr=100
+pr-check-%:
+	@$(MAKE) pr-check pr=$*
+
+# GitHub Actions job logs + SonarCloud + CodeRabbit/Gemini/Codex/human review comments
+pr-remote-feedback:
+	@python3 scripts/pr_check_remote_feedback.py $(if $(PR_REMOTE_REF),--pr "$(PR_REMOTE_REF)",)
 
 # GitHub Actions kernel (github_actions_kernel.v1) — R5 developer_support gate
 # Checks: triggers, permissions, secrets, job_dependencies, SHA-pinned third-party actions
@@ -385,24 +451,101 @@ github-actions-kernel-check:
 	@chmod +x ci/check_github_actions_kernel.sh
 	@ci/check_github_actions_kernel.sh $(if $(staged),--staged,)
 
-# Commit workspace only (no pr-check / push). Prefer make push for the full pipeline.
-# Usage: make commit m="fix(scope): description"
+# Stage all tracked/untracked changes (respects .gitignore) and commit.
+# OMIT $(COMMIT_EXCLUDE) — governance symlink; synced to a separate repo.
+# Runs github_actions_kernel.v1 when .github/workflows/* is staged.
+# Usage: make commit                    (default message: wip: snapshot local changes)
+#        make commit m="fix: description"
 commit:
-	@bash scripts/git_commit_workspace.sh "$(m)" require
+	@set -e; \
+	if git diff --quiet && git diff --cached --quiet \
+		&& [ -z "$$(git ls-files --others --exclude-standard | grep -v '^$(COMMIT_EXCLUDE)$$' || true)" ]; then \
+		echo "Nothing to commit (working tree clean)."; exit 1; \
+	fi; \
+	MSG='$(m)'; \
+	if [ -z "$$MSG" ]; then MSG="wip: snapshot local changes"; fi; \
+	echo "→ Staging all changes except $(COMMIT_EXCLUDE)..."; \
+	git add -u -- . ':(exclude)$(COMMIT_EXCLUDE)'; \
+	git ls-files --others --exclude-standard -z | grep -zv '^$(COMMIT_EXCLUDE)$$' | xargs -0 -r git add 2>/dev/null || true; \
+	if git diff --cached --name-only | grep -q '^$(COMMIT_EXCLUDE)'; then \
+		echo "⛔ Refusing to commit: $(COMMIT_EXCLUDE) is governance-only (separate repo)."; \
+		git reset -- '$(COMMIT_EXCLUDE)' 2>/dev/null || true; \
+		exit 1; \
+	fi; \
+	if git diff --cached --quiet; then \
+		echo "Nothing to commit after staging (ignored paths only?)."; exit 1; \
+	fi; \
+	if git diff --cached --name-only | grep -q '^\.github/workflows/.*\.ya\?ml$$'; then \
+		echo "→ Workflow files staged — running GitHub Actions kernel..."; \
+		$(MAKE) github-actions-kernel-check staged=1; \
+	fi; \
+	echo "→ Committing: $$MSG"; \
+	git commit -m "$$MSG"; \
+	echo ""; \
+	echo "============================================"; \
+	echo "Committed ($$(git rev-parse --short HEAD)):"; \
+	echo "============================================"; \
+	git show --stat --oneline -1; \
+	echo ""; \
+	if [ -t 0 ]; then \
+		printf "Run make push? [y/N] "; \
+		read -r ans; \
+		case "$$ans" in [yY]|[yY][eE][sS]) $(MAKE) push ;; *) echo "Skipped. Run: make push"; ;; esac; \
+	else \
+		echo "Run: make push   (feature branch; Staging/Production are PR-only — use: make push pr=1)"; \
+	fi
 
-# Full github push kernel: pr-check → commit → push → PR (labels, CI, auto-merge)
-# Usage: make push m="feat(scope): summary"
-#        make push commit=0 pr=0 b=Staging
-push:
-	@export PATH="$(CURDIR)/.venv/bin:$$PATH"; \
+# Protected branches — PR-only via GitHub ruleset "Protect Staging & Production"
+# (require PR + required status checks: Ruff Lint & Format, Static Analysis, Pure Python Tests).
+# Keep this list in sync with the repo ruleset. Direct pushes here are rejected by GitHub.
+PROTECTED_BRANCHES := Staging Production
+
+# Safe push: runs full pr-check, then pushes the CURRENT FEATURE branch.
+# Refuses to push if any commit since upstream touches $(COMMIT_EXCLUDE).
+# Staging/Production are PR-only — this target refuses to push to them directly
+# (the ruleset would reject it anyway) and points you to the PR flow.
+# Usage: make push              (push current feature branch)
+#        make push pr=1         (push, then open a PR into Staging)
+#        make push base=Production pr=1   (open the PR against Production instead)
+push: pr-check
+	@echo ""
+	@set -e; \
 	BRANCH=$$(git branch --show-current); \
 	TARGET=$${b:-$$BRANCH}; \
-	BASE=$${base:-Staging}; \
-	OPEN_PR=$${pr:-1}; \
-	DO_COMMIT=$${commit:-1}; \
-	chmod +x scripts/make_push_pipeline.sh scripts/git_commit_workspace.sh \
-		scripts/git_push_with_pr.sh scripts/git_open_pr.sh scripts/apply_pr_kernel_metadata.sh; \
-	bash scripts/make_push_pipeline.sh "$(m)" "$$TARGET" "$$BASE" "$$OPEN_PR" "$$DO_COMMIT"
+	UPSTREAM=$$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true); \
+	if [ -n "$$UPSTREAM" ]; then \
+		BASE=$$(git merge-base HEAD "$$UPSTREAM"); \
+	else \
+		BASE=$$(git merge-base HEAD origin/Staging 2>/dev/null || git rev-list --max-parents=0 HEAD | tail -1); \
+	fi; \
+	if git diff --name-only "$$BASE"..HEAD | grep -q '^$(COMMIT_EXCLUDE)'; then \
+		echo "⛔ Refusing to push: commits include $(COMMIT_EXCLUDE) (governance repo only)."; \
+		echo "   Remove those paths from the branch before pushing to IB-Odoo_19."; \
+		exit 1; \
+	fi; \
+	for p in $(PROTECTED_BRANCHES); do \
+		if [ "$$TARGET" = "$$p" ]; then \
+			echo "⛔ '$$p' is a protected branch (PR-only + required checks)."; \
+			echo "   The GitHub ruleset rejects direct pushes. Use a feature branch + PR:"; \
+			echo "       git switch -c fix/<short-description>"; \
+			echo "       make push pr=1"; \
+			exit 1; \
+		fi; \
+	done; \
+	echo "→ Pushing $$BRANCH → origin/$$TARGET ..."; \
+	if git push origin HEAD:$$TARGET; then \
+		echo "✅ Push complete"; \
+		BASE=$${base:-Staging}; \
+		if [ -n "$(pr)" ]; then \
+			echo "→ Opening PR: $$TARGET → $$BASE ..."; \
+			gh pr create --base "$$BASE" --head "$$TARGET" --fill || \
+				echo "⚠️  PR create failed (already open?). Check: gh pr view --web"; \
+		else \
+			echo "ℹ️  Open a PR when ready:  gh pr create --base $$BASE   (or: make push pr=1)"; \
+		fi; \
+	else \
+		echo "⚠️  git push failed (Dropbox mmap issue?). Run: make api-push-check"; \
+	fi
 
 # REQUIRED before using GitHub API to push (when git push is broken)
 # Enforces same validation as make push but for API workflow

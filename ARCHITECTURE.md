@@ -15,37 +15,6 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 3. **Graph Augmentation**: Neo4j for scoring, Odoo for transactions
 4. **Partner Hierarchy**: Native Odoo fields + capability profiles
 5. **Intake-First Flow**: Supplier intake drives buyer matching
-6. **Intake / Profile Split**: Transactional capture on intake; canonical reusable spec on material profile ([ADR-004](docs/adr/ADR-004-intake-vs-material-profile-domain-split.md))
-
-## Intake vs Material Profile (Domain Split)
-
-PlasticOS uses **two models** for material data. See [ADR-004](docs/adr/ADR-004-intake-vs-material-profile-domain-split.md) (roles) and [ADR-005](docs/adr/ADR-005-intake-material-profile-delta-bridge.md) (bridge contract).
-
-```
-┌─────────────────────────────┐         ┌──────────────────────────────────┐
-│  plasticos.intake           │         │  plasticos.material.profile       │
-│  Transactional / load     │  link   │  Canonical reusable spec          │
-│  ─────────────────────    │ ──────► │  ─────────────────────────────    │
-│  status, matches, offers  │         │  polymer/form/color/source        │
-│  facility, contact        │         │  supply: qty/load, loads/month    │
-│  snapshot quality names   │  bridge │  quality: MFI, density, moisture  │
-│  (mfi_value, moisture_pct)│ ◄────── │  geo: lat, lon                    │
-└─────────────────────────────┘         └──────────────────────────────────┘
-         │                                           ▲
-         │  intake_delta_bridge.py                   │
-         └───────────────────────────────────────────┘
-```
-
-| Concern | Intake | Material profile |
-|---------|--------|------------------|
-| Pipeline workflow | Yes (`status`, matches, offers) | No |
-| Partner context | `partner_id`, `facility_id`, `contact_id` | `partner_id` (facility only) |
-| Quality field names | Snapshot (`mfi_value`, `contamination_pct`, …) | Canonical (`melt_flow_index`, `contamination_percent`, …) |
-| `target_price` | Commercial drift only — **not** on profile | Not stored |
-| `has_residue` | Optional computed on intake | **Derived in payload only** (`profile_features.compute_has_residue_feature`) |
-| Bridge entrypoint | `_create_material_profile_from_intake()` | `build_material_profile_vals_from_intake()` |
-
-**Module rule:** `plasticos_material_profile` does not depend on `plasticos_intake`. Intake inherits profile for UX (intake count, create-intake actions).
 
 ## Layer Architecture
 
@@ -71,6 +40,7 @@ PlasticOS uses **two models** for material data. See [ADR-004](docs/adr/ADR-004-
 │  Layer 2: CAPABILITY                           │
 │  plasticos_facility_profile                     │
 │  plasticos_buyer_match_engine (+ Neo4j)         │
+│  plasticos_gate (Constellation Gate client)     │
 └────────────────┬────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────┐
@@ -80,7 +50,7 @@ PlasticOS uses **two models** for material data. See [ADR-004](docs/adr/ADR-004-
 └─────────────────────────────────────────────────┘
 ```
 
-## Module Index (29 Odoo Modules)
+## Module Index (30 Odoo Modules)
 
 | # | Module | Layer | Maturity | Summary |
 |---|--------|-------|----------|---------|
@@ -94,27 +64,28 @@ PlasticOS uses **two models** for material data. See [ADR-004](docs/adr/ADR-004-
 | 8 | `plasticos_matching` | 2 | Production | Match result storage for intake-to-buyer matching |
 | 9 | `plasticos_buyer_match_engine` | 2 | New | 10-gate filtering + Neo4j graph scoring |
 | 10 | `plasticos_geolocalize` | 2 | Production | Auto-geocode partners + nightly backfill cron |
-| 11 | `plasticos_enrichment` | 2 | Beta | AI web intelligence extraction for buyer profiles |
-| 12 | `plasticos_web_leads` | 2 | Production | AI lead triage (Cognito → LLM → HOT/COLD) |
-| 13 | `plasticos_inference_engine` | 2 | Beta | Deterministic polymer inference from YAML knowledge base |
-| 14 | `plasticos_accounting` | 3 | Production | Chart of accounts, payment terms, incoterms seed |
-| 15 | `plasticos_offer` | 3 | Production | Offer lifecycle: match → negotiation → deal |
-| 16 | `plasticos_order_lines` | 3 | Production | Extend PO/SO lines with full material specifications |
-| 17 | `plasticos_automation` | 3 | Production | Workflow automation: approvals, reminders, SLA monitoring |
-| 18 | `plasticos_partner_import` | 3 | Production | Partner import wizard with validation |
-| 19 | `plasticos_crm_bridge` | 3 | Production | CRM integration bridge |
-| 20 | `plasticos_commission` | 3 | Production | Commission calculation engine |
-| 21 | `plasticos_admin_dashboard` | 3 | Production | RevOps KPI dashboard (admin) |
-| 22 | `plasticos_documents` | 4 | Production | Document validation matrices, compliance tracking |
-| 23 | `plasticos_documents_native` | 4 | Beta | Bridge to Odoo Enterprise Documents with AI auto-sort |
-| 24 | `plasticos_transaction` | 5 | Production | Transaction spine + commission engine |
-| 25 | `plasticos_logistics` | 5 | Production | Load management, BOL generation, dispatch |
-| 26 | `plasticos_claims` | 5 | Production | QC cases, claims, chargebacks, compliance workflows |
-| 27 | `plasticos_website` | UI | Production | Website extensions |
-| 28 | `plasticos_odoo_standard_apps` | Meta | Production | Auto-install bundle of standard Odoo CE apps |
-| 29 | `plasticos_dev_tools` | — | Dev-only | Audit scripts, integrity checks (`installable: False`) |
+| 11 | `plasticos_gate` | 2 | New | Constellation Gate TransportPacket client seam (ADR-002) |
+| 12 | `plasticos_enrichment` | 2 | Beta | AI web intelligence extraction for buyer profiles |
+| 13 | `plasticos_web_leads` | 2 | Production | AI lead triage (Cognito → LLM → HOT/COLD) |
+| 14 | `plasticos_inference_engine` | 2 | Beta | Deterministic polymer inference from YAML knowledge base |
+| 15 | `plasticos_accounting` | 3 | Production | Chart of accounts, payment terms, incoterms seed |
+| 16 | `plasticos_offer` | 3 | Production | Offer lifecycle: match → negotiation → deal |
+| 17 | `plasticos_order_lines` | 3 | Production | Extend PO/SO lines with full material specifications |
+| 18 | `plasticos_automation` | 3 | Production | Workflow automation: approvals, reminders, SLA monitoring |
+| 19 | `plasticos_partner_import` | 3 | Production | Partner import wizard with validation |
+| 20 | `plasticos_crm_bridge` | 3 | Production | CRM integration bridge |
+| 21 | `plasticos_commission` | 3 | Production | Commission calculation engine |
+| 22 | `plasticos_admin_dashboard` | 3 | Production | RevOps KPI dashboard (admin) |
+| 23 | `plasticos_documents` | 4 | Production | Document validation matrices, compliance tracking |
+| 24 | `plasticos_documents_native` | 4 | Beta | Bridge to Odoo Enterprise Documents with AI auto-sort |
+| 25 | `plasticos_transaction` | 5 | Production | Transaction spine + commission engine |
+| 26 | `plasticos_logistics` | 5 | Production | Load management, BOL generation, dispatch |
+| 27 | `plasticos_claims` | 5 | Production | QC cases, claims, chargebacks, compliance workflows |
+| 28 | `plasticos_website` | UI | Disabled | Website extensions (`installable: False`) |
+| 29 | `plasticos_odoo_standard_apps` | Meta | Production | Auto-install bundle of standard Odoo CE apps |
+| 30 | `plasticos_dev_tools` | — | Dev-only | Audit scripts, integrity checks (`installable: False`) |
 
-**Maturity guide**: Production = stable CI; Beta = higher churn, some CI waivers; New = active development; Dev-only = not for production install.
+**Maturity guide**: Production = stable CI; Beta = higher churn, some CI waivers; New = active development; Disabled = `installable: False`, not currently installed; Dev-only = not for production install.
 
 **Note:** 4 additional directories (`plasticos_graph_*`) exist but are non-Odoo Python packages (no `__manifest__.py`). These are excluded from all pre-commit hooks and CI workflows.
 
@@ -129,7 +100,7 @@ PlasticOS uses **two models** for material data. See [ADR-004](docs/adr/ADR-004-
 
 **plasticos_material_profile**
 - **Depends**: `base`, `contacts`, `mail`, `purchase`, `sale_management`, `product`
-- **Provides**: Polymer, form, color, source, process registries; canonical `plasticos.material.profile`; intake bridge helpers
+- **Provides**: Polymer, form, color, source, process registries
 - **Models**:
   - `plasticos.polymer`
   - `plasticos.material.form`
@@ -137,17 +108,13 @@ PlasticOS uses **two models** for material data. See [ADR-004](docs/adr/ADR-004-
   - `plasticos.source.type`
   - `plasticos.process.type`
   - `plasticos.material.profile`
-- **Bridge (pure Python)**:
-  - `intake_delta_bridge.py` — vals + payload mapping ([ADR-005](docs/adr/ADR-005-intake-material-profile-delta-bridge.md))
-  - `profile_features.py` — `compute_has_residue_feature()`
 
 **plasticos_intake**
 - **Depends**: `base`, `contacts`, `mail`, `plasticos_material_profile`, `plasticos_facility_profile`
-- **Provides**: Transactional material intake, matching trigger, offer/PO actions
+- **Provides**: Material intake with contact intelligence
 - **Models**:
-  - `plasticos.intake` — load-specific capture; links to `material_profile_id`
+  - `plasticos.intake`
   - `plasticos.intake.match`
-- **Inherits** (in `plasticos_intake`, avoids circular dep): navigation/actions on `plasticos.material.profile`
 
 ### Layer 2: Capability Profiles
 
@@ -175,6 +142,16 @@ PlasticOS uses **two models** for material data. See [ADR-004](docs/adr/ADR-004-
 - **Services**:
   - `graph_service.py` (Neo4j driver wrapper)
   - `matcher.py` (10-gate filtering + Cypher scoring)
+
+**plasticos_gate**
+- **Depends**: `base`, `plasticos_base`
+- **Provides**: Constellation Gate TransportPacket client seam — Odoo intelligence routing (see [External Intelligence Boundary (Gate)](#external-intelligence-boundary-gate))
+- **External**: `constellation_node_sdk`
+- **Models**: None (seed data: ICP allowlist)
+- **Services**:
+  - `gate_client.py` (TransportPacket send/receive)
+  - `gate_builders.py`, `gate_mappers.py`, `gate_contracts.py` (packet construction/mapping)
+  - `gate_config.py`, `gate_allowlists.py` (config + ICP allowlist)
 
 ### Layer 3: Commercial Operations
 
@@ -259,15 +236,15 @@ PlasticOS uses **two models** for material data. See [ADR-004](docs/adr/ADR-004-
   - Geographic constraints
   - Company type (`broker`, `mrf`, `recycler`, `enduser`, etc.)
 
-**Material Profile** (`plasticos.material.profile`) — see [ADR-004](docs/adr/ADR-004-intake-vs-material-profile-domain-split.md)
-- **Purpose**: Canonical reusable material specification for a **facility** (`partner_id` with parent company)
-- **Uniqueness**: `(partner_id, polymer_id, form_id)` — one profile per facility + polymer + form
-- **Relationship**: Referenced by `plasticos.intake.material_profile_id`; PO/SO lines via `plasticos_order_lines`
-- **Canonical quality fields**: `melt_flow_index`, `density`, `moisture_percent`, `contamination_percent` (not intake snapshot names)
-- **Supply / geo**: `quantity_per_load_lbs`, `loads_per_month`, `lat`, `lon`
-- **Required alignment**: `source_type_id` in bridge payloads and profile views
-- **Not stored**: `target_price`, `has_residue` (residue is payload-derived per ADR-005)
-- **Intake bridge**: `build_material_profile_vals_from_intake()` / `build_intake_to_profile_bridge_payload()`
+ mode (`strict` vs `relaxed`)
+
+**Material Profile** (`plasticos.material.profile`)
+- **Purpose**: Material specifications (not attached to partner directly)
+- **Relationship**: Referenced by intake, facility profiles
+- **Fields**:
+  - Polymer, form, color, source, process
+  - MFI, density, moisture content
+  - Packaging, contamination levels
 
 ### Partner Type Taxonomy (`res.partner.category`)
 
@@ -283,22 +260,6 @@ Extracted from `plasticos_base/data/partner_tags.xml`:
 - `Grinder`
 - `Toll Processor`
 - `Converter`
-
-## Architecture Decision Records
-
-| ADR | Title |
-|-----|-------|
-| [ADR-001](docs/adr/ADR-001-master-data-field-architecture.md) | Master data field architecture (Many2one registries) |
-| [ADR-002](docs/adr/ADR-002-gate-hub-phased-autonomy.md) | Gate hub, CEG routing, phased autonomy |
-| [ADR-002 (nav)](docs/adr/ADR-002-navigation-menu-architecture.md) | Navigation menu architecture |
-| [ADR-003](docs/adr/ADR-003-contact-import-configuration.md) | Contact import configuration |
-| [ADR-004](docs/adr/ADR-004-intake-vs-material-profile-domain-split.md) | Intake vs material profile domain split |
-| [ADR-005](docs/adr/ADR-005-intake-material-profile-delta-bridge.md) | Intake–material profile delta bridge |
-| [ADR-006](docs/adr/ADR-006-module-installation-and-display.md) | Module installation and dashboard display |
-| [ADR-007](docs/adr/ADR-007-deployment-architecture.md) | Deployment architecture (Docker vs Odoo.sh) |
-| [ADR-008](docs/adr/ADR-008-odoo-action-methods.md) | Odoo `action_*` navigation pattern |
-
-Full index: [docs/adr/README.md](docs/adr/README.md). **Canonical path only** — `reports/adr/` is deprecated.
 
 ## External Intelligence Boundary (Gate)
 
@@ -321,6 +282,8 @@ Odoo  ◄───────────────────────�
 | Human gates (Phase 1) | HOT lead review, match line selection, explicit Send Offer |
 
 **Phase 1 seam:** `plasticos.buyer.matcher.find_matches_for_supplier()` → Gate `action=match` → persist via `intake_extension.action_match_to_buyers()`.
+
+**Implementation module:** `plasticos_gate` (Layer 2) — `services/gate_client.py` sends/receives `TransportPacket` via `constellation_node_sdk`; `gate_builders.py`/`gate_mappers.py`/`gate_contracts.py` construct and map packets; `gate_config.py`/`gate_allowlists.py` hold connection config and the ICP allowlist seed (`data/gate_icp_seed.xml`).
 
 ## Neo4j Integration Architecture
 
@@ -464,11 +427,10 @@ COLD → Skipped / manual review queue
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  INTAKE PHASE                                               │
-│  plasticos.intake (transactional)                             │
-│  - Workflow: draft → matched → offer_sent → won/lost        │
-│  - Facility/contact context, match lines, offers            │
-│  - Load snapshot + optional link to material.profile        │
-│  - Auto-create profile via intake_delta_bridge when matching  │
+│  plasticos.intake                                           │
+│  - Supplier contact intelligence                            │
+│  - Material spec capture                                    │
+│  - Quantity, location, availability                         │
 └──────────────────────┬──────────────────────────────────────┘
                        │
                        ▼
@@ -678,7 +640,7 @@ services:
 | `pr-gate.yml` | manual only | Legacy gate jobs — superseded by ci.yml |
 | `module-check.yml` | manual only | Legacy module validation — superseded by ci.yml |
 
-#### Pre-commit Hooks (31 total)
+#### Pre-commit Hooks (36 total)
 
 All hooks run via `pre-commit run --all-files`. Key hooks:
 
@@ -686,11 +648,14 @@ All hooks run via `pre-commit run --all-files`. Key hooks:
 |----------|-------|
 | Format | `ruff`, `ruff-format`, `end-of-file-fixer`, `trailing-whitespace` |
 | Syntax | `check-xml`, `check-yaml`, `check-merge-conflict`, `check-added-large-files` |
+| Commit hygiene | `conventional-pre-commit` (commit-msg stage) |
 | Odoo 19 | `odoo-patterns` (24 sub-checks), `odoo19-xml`, `odoo19-hooks` |
 | Wiring | `module-wiring`, `circular-deps`, `package-init`, `orphan-model-refs` |
 | Integrity | `field-integrity`, `orm-integrity`, `constraint-patterns`, `model-inheritance` |
 | Safety | `cron-invariants`, `automation-field-refs`, `state-guard-bypass`, `pipeline-v2-guard` |
 | Audit | `enhanced-audit`, `acl-completeness` (warn-only), `critical-manifest`, `dev-tools-fence` |
+| Pre-push only | `phantom-enum-values`, `manifest-contract`, `gitleaks-push` |
+| Secrets | `gitleaks-commit` (staged-file scan), `gitleaks-push` (full repo scan) |
 | Type | `mypy` (advisory — many modules excluded) |
 
 #### Global Exclusions
@@ -1025,5 +990,5 @@ module/
 ---
 
 **Architecture Version**: 3.2.0
-**Last Updated**: 2026-06-04
-**Verified Against**: cryptoxdog/IB-Odoo_19 @ feat/material-profile-intake-delta-bridge
+**Last Updated**: 2026-07-22
+**Verified Against**: cryptoxdog/IB-Odoo_19 @ Staging branch

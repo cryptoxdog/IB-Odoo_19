@@ -91,7 +91,7 @@ class PlasticosMaterialProfile(models.Model):
 - `_name` MUST be a string literal — NEVER `_name = SOME_CONSTANT`
 - Every `fields.Many2one` MUST have `ondelete=` parameter
 - Cross-addon imports MUST be inside functions (lazy loading), never at module top level
-- Run `pre-commit run --all-files` before committing (runs all 31 hooks)
+- Run `pre-commit run --all-files` before committing (runs all 36 hooks)
 - Run `ruff check --fix . && ruff format .` before committing (line length = **120**, not 100)
 - Run `python3 scripts/check_module_wiring.py` before committing
 - Follow the **CI Compliance Checklist** in `AGENTS.md` — CI will reject PRs that skip these steps
@@ -129,7 +129,7 @@ class PlasticosMaterialProfile(models.Model):
 @ARCHITECTURE.md
 @INVARIANTS.md
 @.claude/README.md
-@.claude/skills/structured-reasoning/SKILL.md
+@.cursor-commands/skills/l9-structured-reasoning/SKILL.md
 ```
 
 ## References
@@ -143,7 +143,9 @@ Detailed reference material loads from `.claude/rules/` when editing relevant fi
 - **Neo4j Boundary** → `.claude/rules/neo4j.md`
 - **System State** → `.claude/rules/system-state.md`
 - **Agent Skills & Subagents** → `.claude/README.md` (skill registry + wiring)
-- **Structured Reasoning** → `.claude/skills/structured-reasoning/SKILL.md` (planning, architecture, debugging)
+- **Repo Index (check before grepping)** → `reports/repo-index/` — classes, functions, methods, Odoo models/views/crons/security groups, tests; regenerate via `l9-repo-index` skill
+- **Skill invocation tiers** → `@.cursor-commands/skills/AUTONOMY_MANIFEST.yaml` (which L9 skills auto-invoke vs explicit-only)
+- **Structured Reasoning** → `@.cursor-commands/skills/l9-structured-reasoning/SKILL.md`
 - **CI Pipeline** → `AGENTS.md` § CI Compliance Checklist (authoritative CI reference)
 - **System Invariants** → `INVARIANTS.md` (18 invariants with CI enforcement map)
 - **ADRs (canonical)** → `docs/adr/README.md` (index); Gate → `docs/adr/ADR-002-gate-hub-phased-autonomy.md`, `docs/GATE_AUTONOMY_ROADMAP.md`

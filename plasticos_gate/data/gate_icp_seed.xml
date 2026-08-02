@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <record id="param_gate_url" model="ir.config_parameter">
+        <field name="key">plasticos.gate.url</field>
+        <field name="value"></field>
+    </record>
+    <record id="param_gate_local_node" model="ir.config_parameter">
+        <field name="key">plasticos.gate.local_node</field>
+        <field name="value">odoo</field>
+    </record>
+    <record id="param_gate_matching_enabled" model="ir.config_parameter">
+        <field name="key">plasticos.gate.matching_enabled</field>
+        <field name="value">1</field>
+    </record>
+    <record id="param_gate_matching_action" model="ir.config_parameter">
+        <field name="key">plasticos.gate.matching_action</field>
+        <field name="value">match</field>
+    </record>
+    <record id="param_gate_timeout_seconds" model="ir.config_parameter">
+        <field name="key">plasticos.gate.timeout_seconds</field>
+        <field name="value">30</field>
+    </record>
+    <record id="param_gate_org_id" model="ir.config_parameter">
+        <field name="key">plasticos.gate.org_id</field>
+        <field name="value"></field>
+    </record>
+    <record id="param_gate_enrichment_enabled" model="ir.config_parameter">
+        <field name="key">plasticos.gate.enrichment_enabled</field>
+        <field name="value">1</field>
+    </record>
+    <record id="param_gate_enrichment_action" model="ir.config_parameter">
+        <field name="key">plasticos.gate.enrichment_action</field>
+        <field name="value">converge</field>
+    </record>
+    <record id="param_gate_auto_writeback" model="ir.config_parameter">
+        <field name="key">plasticos.gate.auto_writeback</field>
+        <field name="value">1</field>
+    </record>
+
+</odoo>

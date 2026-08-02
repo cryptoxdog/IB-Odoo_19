@@ -68,6 +68,9 @@ class MatchResultWriter(models.AbstractModel):
                 "gates_passed": m.get("gates_passed", 0),
                 "gates_failed": gates_failed,
                 "typical_price": m.get("typical_price", 0.0),
+                "match_source": m.get("match_source", "local"),
+                "gate_packet_id": m.get("gate_packet_id"),
+                "gate_correlation_id": m.get("gate_correlation_id"),
             }
             if m.get("match_details"):
                 score_breakdown["match_details"] = m["match_details"]

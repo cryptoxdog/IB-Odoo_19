@@ -6,10 +6,15 @@
 
 ---
 
+## Repo Index — Check Before Grepping
+
+`reports/repo-index/` holds pre-generated, grep-friendly indexes (classes, functions, methods, imports, Odoo models/views/crons/security groups/automations/email templates, routes, tests, READMEs). Search there first — `grep "plasticos.transaction" reports/repo-index/odoo_model_registry.txt` — before a broad repo-wide `grep`/`rg`. Regenerate via the `l9-repo-index` skill when stale.
+
 ## Architecture & Roadmap
 
 | File | Topic |
 |---|---|
+| [LOCAL_DEV_SETUP.md](LOCAL_DEV_SETUP.md) | Fresh clone: venv, Odoo source for Pylance, Cursor, two-machine parity |
 <!-- roadmap:index:architecture:start -->
 | [ADR-002-gate-hub-phased-autonomy.md](ADR-002-gate-hub-phased-autonomy.md) | Why Gate is the hub, why Odoo local is fallback, what agents must not ship in Phase 1 |
 | [GATE_AUTONOMY_ROADMAP.md](GATE_AUTONOMY_ROADMAP.md) | Gate → CEG matching, human-in-loop phases, autonomy graduation, implementation scope |

@@ -40,6 +40,7 @@ EXPECTED_CATEGORY = "Plasticos/Matching"
 EXPECTED_DEPENDS = [
     "base_setup",
     "plasticos_base",
+    "plasticos_gate",
     "plasticos_security_base",
     "plasticos_intake",
     "plasticos_material_profile",
@@ -57,6 +58,7 @@ LAYER_ORDER = [
     "contacts",
     "account",
     "plasticos_base",
+    "plasticos_gate",
     "plasticos_security_base",
     "plasticos_intake",
     "plasticos_material_profile",

@@ -40,9 +40,12 @@ ERRORS=0
 echo "🔍 Checking Odoo 19 patterns (git-tracked files only)..."
 echo ""
 
-# Get git-tracked Python files
-PY_FILES=$(git ls-files '*.py' 2>/dev/null || find . -name "*.py" -type f)
-XML_FILES=$(git ls-files '*.xml' 2>/dev/null || find . -name "*.xml" -type f)
+# Get git-tracked Python files.
+# .semgrep/tests/ holds INTENTIONAL rule-test positives (fixtures that verify
+# the semgrep rules fire); they are not product code and are excluded here so
+# this checker can run fail-closed (blocking) in CI.
+PY_FILES=$(git ls-files '*.py' 2>/dev/null | grep -v '^\.semgrep/tests/' || find . -name "*.py" -type f -not -path "./.semgrep/tests/*")
+XML_FILES=$(git ls-files '*.xml' 2>/dev/null | grep -v '^\.semgrep/tests/' || find . -name "*.xml" -type f -not -path "./.semgrep/tests/*")
 
 # 1. [REMOVED] models.Constraint() check
 # models.Constraint IS VALID in Odoo 19 - it's the new recommended syntax
@@ -116,6 +119,11 @@ fi
 echo -n "Checking empty __init__.py in modules... "
 EMPTY_INITS=""
 for init_file in $(git ls-files '*/__init__.py' 2>/dev/null); do
+    # Skip migrations/ packages: Odoo migration dirs legitimately carry an
+    # empty __init__.py (scripts are discovered by filename, not imports).
+    if [[ "$init_file" == */migrations/* ]]; then
+        continue
+    fi
     # Check if it's in a plasticos_* module directory
     if [[ "$init_file" == plasticos_*/__init__.py ]] || [[ "$init_file" == plasticos_*/models/__init__.py ]]; then
         if [ ! -s "$init_file" ]; then

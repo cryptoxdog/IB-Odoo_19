@@ -195,7 +195,7 @@
                         <!-- Claims page moved to plasticos_claims module which extends this view -->
                         <page string="Historical Lines" invisible="line_count == 0">
                             <group>
-                                <group string="Historical Totals (from cieTrade)">
+                                <group string="Historical Totals (from ERP)">
                                     <field name="historical_sale_total"/>
                                     <field name="historical_purchase_total"/>
                                     <field name="historical_margin"/>

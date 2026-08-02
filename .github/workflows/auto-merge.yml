@@ -1,8 +1,13 @@
 name: Auto-Merge
 
+# Auto-merge is OPT-IN: a PR is armed for squash auto-merge ONLY when a human
+# applies the `automerge` label. Previously every non-draft PR was armed
+# automatically, which merged PRs the moment CI went green — without explicit
+# human intent. Label-gating restores that intent boundary (GATE-01).
+
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
     branches: [Staging, Production]
   pull_request_review:
     types: [submitted]
@@ -15,7 +20,9 @@ jobs:
   enable-auto-merge:
     name: Enable Auto-Merge
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
+    if: >-
+      github.event.pull_request.draft == false &&
+      contains(github.event.pull_request.labels.*.name, 'automerge')
     steps:
       - uses: actions/checkout@v6
 

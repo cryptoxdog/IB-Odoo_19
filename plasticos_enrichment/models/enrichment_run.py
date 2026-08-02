@@ -5,6 +5,9 @@ from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
+PROVENANCE_MODEL = "plasticos.enrichment.provenance"
+SUBTYPE_NOTE = "mail.mt_note"
+
 
 class EnrichmentRun(models.Model):
     _name = "plasticos.enrichment.run"
@@ -33,7 +36,7 @@ class EnrichmentRun(models.Model):
         "run_id",
     )
     provenance_ids = fields.One2many(
-        "plasticos.enrichment.provenance",
+        PROVENANCE_MODEL,
         "run_id",
     )
 
@@ -63,6 +66,18 @@ class EnrichmentRun(models.Model):
     profiles_created = fields.Integer(readonly=True, default=0)
     profiles_updated = fields.Integer(readonly=True, default=0)
     fields_written = fields.Integer(readonly=True, default=0)
+
+    engine_used = fields.Selection(
+        [("local", "Local"), ("gate", "Gate")],
+        readonly=True,
+        help="Which engine produced this run: local pipeline or Gate converge.",
+    )
+    gate_proposal = fields.Json(
+        readonly=True,
+        help="Gate converge proposal (final_fields, writeback, proposed_partner_fields) retained for audit.",
+    )
+    gate_packet_id = fields.Char(readonly=True, help="Gate response TransportPacket id for audit.")
+    gate_correlation_id = fields.Char(readonly=True, help="Gate correlation id for traceability.")
 
     @api.depends(
         "extraction_ids.confidence",
@@ -99,20 +114,164 @@ class EnrichmentRun(models.Model):
 
     # ── Pipeline Actions ───────────────────────────────────────
 
+    @api.model
+    def _should_try_gate_converge(self):
+        """Return True when Gate enrichment (converge) is enabled and SDK is available."""
+        from odoo.addons.plasticos_gate.services.gate_config import gate_enrichment_enabled
+
+        return gate_enrichment_enabled(self.env)
+
+    def _run_gate_converge(self):
+        """Route enrichment through Gate converge (EIE worker).
+
+        Live path (default): apply the converge proposal to the partner immediately
+        (merge-not-overwrite of allowlisted fields, with provenance) and set state to
+        'injected'. When plasticos.gate.auto_writeback=0, store the proposal for human
+        review (state='review') without writing. Returns True when Gate produced a
+        usable result; returns False (non-ok status or no writable fields) so the
+        caller falls back to the local pipeline.
+        """
+        self.ensure_one()
+        from odoo.addons.plasticos_gate.services.gate_builders import build_converge_request
+        from odoo.addons.plasticos_gate.services.gate_client import send_converge_action
+        from odoo.addons.plasticos_gate.services.gate_config import gate_auto_writeback_enabled
+        from odoo.addons.plasticos_gate.services.gate_mappers import (
+            extract_audit_metadata,
+            map_converge_response,
+            partner_writeback_from_converge,
+        )
+
+        request = build_converge_request(self.env, self)
+        result = send_converge_action(
+            self.env,
+            payload=request.to_dict(),
+            correlation_id=request.odoo.get("correlation_id") if request.odoo else None,
+        )
+        resp = map_converge_response(result["payload"])
+        audit = extract_audit_metadata(result["packet"])
+
+        # EIE contract: only status == "ok" is a usable result. Anything else is a
+        # worker/hub failure signal -> fall back to local (never mark injected on junk).
+        if str(resp.status or "").strip().lower() != "ok":
+            _logger.warning(
+                "Gate converge returned non-ok status %r (packet %s); falling back to local.",
+                resp.status,
+                audit.get("gate_packet_id"),
+            )
+            return False
+
+        proposed = partner_writeback_from_converge(resp)
+
+        base_vals = {
+            "engine_used": "gate",
+            "gate_proposal": {
+                "final_fields": resp.final_fields,
+                "writeback": resp.writeback,
+                "proposed_partner_fields": proposed,
+            },
+            "gate_packet_id": audit.get("gate_packet_id"),
+            "gate_correlation_id": audit.get("gate_correlation_id"),
+        }
+
+        if not gate_auto_writeback_enabled(self.env):
+            self.write(
+                {
+                    **base_vals,
+                    "state": "review",
+                    "validation_issues": [
+                        "Gate converge proposal awaiting human review (auto-writeback disabled).",
+                    ],
+                }
+            )
+            self.message_post(
+                body=(
+                    f"Gate converge proposed {len(proposed)} partner field(s) for review "
+                    f"(packet {audit.get('gate_packet_id')})."
+                ),
+                subtype_xmlid=SUBTYPE_NOTE,
+            )
+            return True
+
+        if not proposed:
+            _logger.info(
+                "Gate converge returned no writable allowlisted fields (packet %s); falling back to local.",
+                audit.get("gate_packet_id"),
+            )
+            return False
+
+        written = self._apply_converge_writeback(proposed, audit)
+        self.write(
+            {
+                **base_vals,
+                "state": "injected",
+                "injected_at": fields.Datetime.now(),
+                "fields_written": written,
+                "validation_issues": False,
+            }
+        )
+        self.message_post(
+            body=(f"Gate converge applied {written} partner field(s) live (packet {audit.get('gate_packet_id')})."),
+            subtype_xmlid=SUBTYPE_NOTE,
+        )
+        return True
+
+    def _apply_converge_writeback(self, proposed, audit):
+        """Backfill allowlisted partner fields (merge-not-overwrite) with provenance."""
+        partner = self.partner_id
+        to_write = {}
+        for field_name, value in (proposed or {}).items():
+            if field_name not in partner._fields:
+                continue
+            if partner[field_name]:  # merge-not-overwrite: never clobber existing values
+                continue
+            to_write[field_name] = value
+        if not to_write:
+            return 0
+        partner.write(to_write)
+        packet_id = audit.get("gate_packet_id") or ""
+        for field_name, value in to_write.items():
+            self.env[PROVENANCE_MODEL].create(
+                {
+                    "run_id": self.id,
+                    "partner_id": partner.id,
+                    "target_model": "res.partner",
+                    "target_field": field_name,
+                    "value_written": str(value),
+                    "previous_value": "",
+                    "source_sentence": f"gate_converge:{packet_id}",
+                    "confidence": 1.0,
+                    "inference_type": "explicit",
+                    "status": "written",
+                }
+            )
+        return len(to_write)
+
     def action_execute(self):
-        """Full pipeline: crawl -> extract -> evaluate.
+        """Full pipeline: try Gate converge -> fall back to local crawl/extract/evaluate.
 
         State transitions (direct writes are intentional - pipeline method):
         - draft -> crawling -> extracting -> validated/review/failed
         """
         self.ensure_one()
+
+        if self._should_try_gate_converge():
+            try:
+                if self._run_gate_converge():
+                    return
+            except Exception as exc:
+                _logger.warning(
+                    "Gate converge failed; falling back to local enrichment: %s",
+                    exc,
+                    exc_info=True,
+                )
+
         svc = self.env["plasticos.enrichment.service"]
 
         if not self.source_ids:
             raise UserError("Add at least one source URL.")
 
         # 1. Crawl
-        self.write({"state": "crawling"})
+        self.write({"state": "crawling", "engine_used": "local"})
         for source in self.source_ids:
             svc.crawl_source(source)
 
@@ -295,7 +454,7 @@ class EnrichmentRun(models.Model):
                         existing.write(merge_vals)
                         existing.message_post(
                             body=(f"Enrichment {self.name} merged fields: {', '.join(merge_vals.keys())}"),
-                            subtype_xmlid="mail.mt_note",
+                            subtype_xmlid=SUBTYPE_NOTE,
                         )
                         updated += 1
                 else:
@@ -374,7 +533,7 @@ class EnrichmentRun(models.Model):
             (p for p in prov_items if p["target_field"] == field),
             {},
         )
-        self.env["plasticos.enrichment.provenance"].create(
+        self.env[PROVENANCE_MODEL].create(
             {
                 "run_id": self.id,
                 "partner_id": partner.id,
@@ -445,7 +604,7 @@ class EnrichmentRun(models.Model):
         if inference_count:
             self.message_post(
                 body=(f"Inference engine augmented {inference_count} material profile(s) for {self.partner_id.name}."),
-                subtype_xmlid="mail.mt_note",
+                subtype_xmlid=SUBTYPE_NOTE,
             )
 
         return inference_count

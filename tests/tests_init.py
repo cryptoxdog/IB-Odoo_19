@@ -26,6 +26,8 @@ ODOO_TEST_MODULES = [
     "test_cron_runtime",
     "test_depends_transaction_claims_bridge",
     "test_error_handling",
+    "test_gate_enrichment_fallback",
+    "test_gate_matcher_fallback",
     "test_golden_flows",
     "test_integration_flows",
     "test_onchange_purchase_order_line_plasticos",
@@ -39,6 +41,7 @@ ODOO_TEST_MODULES = [
 PURE_PYTHON_MODULES = [
     "test_cron_invariants",
     "test_cypher_schema_alignment",
+    "test_gate_match_contract",
     "test_odoo19_compat",
     "test_odoo_test_setup_validity",
     "test_phantom_enum_values",

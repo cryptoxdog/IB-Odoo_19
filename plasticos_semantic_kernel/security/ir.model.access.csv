@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_plasticos_material_specification_user,plasticos.material.specification.user,model_plasticos_material_specification,base.group_user,1,1,1,0
+access_plasticos_material_specification_admin,plasticos.material.specification.admin,model_plasticos_material_specification,base.group_system,1,1,1,1
+access_plasticos_material_observation_user,plasticos.material.observation.user,model_plasticos_material_observation,base.group_user,1,1,1,0
+access_plasticos_material_observation_admin,plasticos.material.observation.admin,model_plasticos_material_observation,base.group_system,1,1,1,1
+access_plasticos_supply_opportunity_user,plasticos.supply.opportunity.user,model_plasticos_supply_opportunity,base.group_user,1,1,1,0
+access_plasticos_supply_opportunity_admin,plasticos.supply.opportunity.admin,model_plasticos_supply_opportunity,base.group_system,1,1,1,1
+access_plasticos_buyer_demand_user,plasticos.buyer.demand.user,model_plasticos_buyer_demand,base.group_user,1,1,1,0
+access_plasticos_buyer_demand_admin,plasticos.buyer.demand.admin,model_plasticos_buyer_demand,base.group_system,1,1,1,1
+access_plasticos_facility_material_rule_user,plasticos.facility.material.rule.user,model_plasticos_facility_material_rule,base.group_user,1,1,1,0
+access_plasticos_facility_material_rule_admin,plasticos.facility.material.rule.admin,model_plasticos_facility_material_rule,base.group_system,1,1,1,1
+access_plasticos_capacity_observation_user,plasticos.capacity.observation.user,model_plasticos_capacity_observation,base.group_user,1,1,1,0
+access_plasticos_capacity_observation_admin,plasticos.capacity.observation.admin,model_plasticos_capacity_observation,base.group_system,1,1,1,1

@@ -28,37 +28,37 @@ items:
   phase: 1
   kind: scope_in
   title: Gate client at `plasticos.buyer.matcher` seam
-  status: pending
+  status: complete
 - id: ROAD-GATE-011
   domain: gate-autonomy
   phase: 1
   kind: scope_in
   title: try Gate → fallback local matcher + Neo4j
-  status: pending
+  status: complete
 - id: ROAD-GATE-012
   domain: gate-autonomy
   phase: 1
   kind: scope_in
   title: 'Match audit: `plasticos.match.result`, correlation IDs'
-  status: pending
+  status: complete
 - id: ROAD-GATE-013
   domain: gate-autonomy
   phase: 1
   kind: scope_in
   title: 'Optional: Gate `converge` for enrichment (with local fallback)'
-  status: pending
+  status: complete
 - id: ROAD-GATE-014
   domain: gate-autonomy
   phase: 1
   kind: scope_in
   title: 'ICP: `plasticos.gate.url`, `plasticos.gate.matching_enabled`'
-  status: pending
+  status: complete
 - id: ROAD-GATE-015
   domain: gate-autonomy
   phase: 1
   kind: scope_in
   title: '`external_dependencies`: `constellation-node-sdk` (match module)'
-  status: pending
+  status: complete
 - id: ROAD-GATE-020
   domain: gate-autonomy
   phase: 1
@@ -86,9 +86,9 @@ items:
 - id: ROAD-GATE-024
   domain: gate-autonomy
   phase: 1
-  kind: scope_out
-  title: '`plasticos.gate.auto_writeback=1`'
-  status: deferred
+  kind: scope_in
+  title: '`plasticos.gate.auto_writeback=1` (live converge writeback, merge-not-overwrite + provenance)'
+  status: complete
 - id: ROAD-GATE-025
   domain: gate-autonomy
   phase: 1

@@ -32,13 +32,14 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-from _git_utils import get_git_tracked_files
+from _git_utils import contained_path, get_git_tracked_files
 
 
 def parse_manifest(manifest_path: Path) -> dict | None:
     """Parse __manifest__.py and return dict."""
     try:
-        with open(manifest_path, encoding="utf-8") as f:
+        # contained_path: reject traversal outside the repo (SonarCloud S8707)
+        with open(contained_path(manifest_path), encoding="utf-8") as f:
             content = f.read()
         return ast.literal_eval(content)
     except Exception:
@@ -163,7 +164,8 @@ def get_module_fields(root_dir: Path) -> dict[str, dict[tuple[str, str], str]]:
         module_name = py_file.parent.parent.name
 
         try:
-            with open(py_file, encoding="utf-8") as f:
+            # contained_path: reject traversal outside the repo (SonarCloud S8707)
+            with open(contained_path(py_file), encoding="utf-8") as f:
                 content = f.read()
         except Exception:
             continue
@@ -233,7 +235,8 @@ def _check_depends_in_file(
         return []
     module_name = py_file.parent.parent.name
     try:
-        with open(py_file, encoding="utf-8") as f:
+        # contained_path: reject traversal outside the repo (SonarCloud S8707)
+        with open(contained_path(py_file), encoding="utf-8") as f:
             content = f.read()
     except Exception:
         return []
