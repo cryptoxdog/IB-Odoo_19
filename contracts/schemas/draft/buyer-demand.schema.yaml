@@ -1,0 +1,93 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: urn:l9:plasticos:contracts:payload:buyer-demand:1.0.0-draft
+title: PlasticOS Buyer Demand Payload
+description: Current buyer-side demand projected from Odoo. It is distinct from reusable facility capability.
+x-publication-status: draft-unpublished
+type: object
+additionalProperties: false
+required:
+- contract_version
+- domain
+- demand_ref
+- revision
+- state
+- material_requirement_ref
+- quantity
+- need_window
+- source_record
+- projection_version
+properties:
+  contract_version:
+    $ref: urn:l9:plasticos:contracts:common:1.0.0-draft#/$defs/contract_version
+  domain:
+    $ref: urn:l9:plasticos:contracts:common:1.0.0-draft#/$defs/domain
+  demand_ref:
+    $ref: urn:l9:plasticos:contracts:common:1.0.0-draft#/$defs/entity_ref
+  revision:
+    $ref: urn:l9:plasticos:contracts:common:1.0.0-draft#/$defs/revision
+  state:
+    type: string
+    enum:
+    - draft
+    - qualified
+    - open
+    - paused
+    - sourcing
+    - satisfied
+    - expired
+    - withdrawn
+    - closed
+  buyer_ref:
+    $ref: urn:l9:plasticos:contracts:common:1.0.0-draft#/$defs/entity_ref
+  destination_facility_ref:
+    $ref: urn:l9:plasticos:contracts:common:1.0.0-draft#/$defs/entity_ref
+  material_requirement_ref:
+    $ref: urn:l9:plasticos:contracts:common:1.0.0-draft#/$defs/entity_ref
+  quantity:
+    $ref: urn:l9:plasticos:contracts:common:1.0.0-draft#/$defs/quantity_range
+  need_window:
+    $ref: urn:l9:plasticos:contracts:common:1.0.0-draft#/$defs/time_window
+  target_price:
+    type:
+    - object
+    - 'null'
+    additionalProperties: false
+    required:
+    - amount
+    - currency
+    - unit
+    properties:
+      amount:
+        type: number
+      currency:
+        type: string
+        pattern: ^[A-Z]{3}$
+      unit:
+        type: string
+  required_certifications:
+    type: array
+    items:
+      type: string
+    uniqueItems: true
+  evidence_refs:
+    type: array
+    items:
+      $ref: urn:l9:plasticos:contracts:common:1.0.0-draft#/$defs/evidence_ref
+    uniqueItems: true
+  unresolved_fields:
+    type: array
+    items:
+      type: string
+    uniqueItems: true
+  source_record:
+    $ref: urn:l9:plasticos:contracts:common:1.0.0-draft#/$defs/source_ref
+  projection_version:
+    type: string
+    minLength: 1
+  field_dictionary_version:
+    type: string
+    minLength: 1
+x-plasticos-cross-field-rules:
+- quantity minimum <= target <= maximum
+- need_window start_at <= end_at
+artifact_status: approved_contract
