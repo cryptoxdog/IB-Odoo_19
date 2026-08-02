@@ -1,0 +1,64 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: urn:l9:plasticos:contracts:common:1.0.0-draft
+title: PlasticOS Common Payload Definitions
+description: Shared $defs for payload-only contracts. Not a transport envelope.
+x-publication-status: draft-unpublished
+$defs:
+  contract_version:
+    type: string
+    const: 1.0.0-draft
+  domain:
+    type: string
+    const: plasticos
+  entity_ref:
+    type: string
+    pattern: ^[a-z0-9_.-]+:[^\s]+$
+  revision:
+    oneOf:
+    - type: integer
+      minimum: 0
+    - type: string
+      minLength: 1
+  semver_ref:
+    type: object
+    additionalProperties: false
+    required: [id, version]
+    properties:
+      id:
+        type: string
+        minLength: 1
+      version:
+        type: string
+        minLength: 1
+  source_ref:
+    type: object
+    additionalProperties: false
+    required:
+    - system
+    - record_ref
+    properties:
+      system:
+        type: string
+        enum:
+        - odoo
+        - eie
+        - ceg
+        - operator
+        - external_source
+      record_ref:
+        $ref: urn:l9:plasticos:contracts:common:1.0.0-draft#/$defs/entity_ref
+      revision:
+        $ref: urn:l9:plasticos:contracts:common:1.0.0-draft#/$defs/revision
+  evidence_ref:
+    $ref: urn:l9:plasticos:contracts:common:1.0.0-draft#/$defs/entity_ref
+  field_value_state:
+    type: string
+    enum:
+    - observed
+    - reported
+    - inferred
+    - unknown
+    - not_applicable
+    - stale
+    - conflicting
+    - superseded
