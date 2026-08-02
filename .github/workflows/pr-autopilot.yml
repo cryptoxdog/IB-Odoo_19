@@ -28,15 +28,17 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests PyGithub
+          pip install --only-binary ":all:" requests==2.32.5 PyGithub==2.8.1
 
+      # Scan-only reporter: pr_autopilot.py reports PR signals and never gates
+      # merges. A non-zero exit means the scanner itself broke — that should
+      # fail this run visibly (GATE-01 fail-closed), not be masked.
       - name: Run PR Autopilot (scan only)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONARCLOUD_API_KEY: ${{ secrets.SONARCLOUD_API_KEY }}
         run: |
           python3 scripts/pr_autopilot.py
-        continue-on-error: true  # Don't fail workflow if PRs have issues
 
       - name: Report completion
         if: always()

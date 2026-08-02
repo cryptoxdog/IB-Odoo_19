@@ -48,7 +48,7 @@ cryptography==43.0.3
 pyOpenSSL==24.3.0
 
 # Constellation Gate TransportPacket client (plasticos_gate)
-constellation-node-sdk @ git+https://github.com/cryptoxdog/Gate_SDK.git@ab9df5f15c1ba433c3f072a1ca01052584682758
+constellation-node-sdk @ git+https://github.com/Quantum-L9/Gate_SDK.git@a770e8531dc1c59ce01e1dbb0f4162785d9dda89
 
 # PR Repair engine — pr_repair_adapter.py uses this for state-machine-governed
 # CI repair loop (Issue→Finding conversion, approval gates, repeated-failure guard).

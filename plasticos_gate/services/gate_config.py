@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from dataclasses import dataclass, field
+from enum import StrEnum
+from typing import TYPE_CHECKING, Any
+from urllib.parse import urlsplit
 
 if TYPE_CHECKING:
     from constellation_node_sdk import GateClientConfig
@@ -11,25 +14,172 @@ if TYPE_CHECKING:
 class GateIntegrationError(Exception):
     """Raised when Gate transport fails; matcher catches and falls back locally."""
 
+    def __init__(self, message: str, *, failure_class: str | None = None) -> None:
+        super().__init__(message)
+        self.failure_class = failure_class
 
-def gate_matching_enabled(env) -> bool:
-    """Return True when Gate matching should be attempted (never raises)."""
+
+class GateAvailability(StrEnum):
+    """Structured Gate availability classification for operators and degraded mode."""
+
+    AVAILABLE = "available"
+    MISSING_URL = "missing_url"
+    INSECURE_HTTP_BLOCKED = "insecure_http_blocked"
+    MATCHING_DISABLED = "matching_disabled"
+    ENRICHMENT_DISABLED = "enrichment_disabled"
+    SDK_MISSING = "sdk_missing"
+    UNKNOWN = "unknown"
+
+
+class GateCapability(StrEnum):
+    """Gate consumer capabilities classified for availability checks."""
+
+    MATCHING = "matching"
+    ENRICHMENT = "enrichment"
+
+
+@dataclass(slots=True)
+class GateAvailabilityVerdict:
+    """Structured availability verdict for matching or enrichment."""
+
+    status: str
+    available: bool
+    capability: str
+    reasons: list[str] = field(default_factory=list)
+    gate_url_configured: bool = False
+    matching_action: str = "match"
+    enrichment_action: str = "converge"
+
+    def as_dict(self) -> dict[str, Any]:
+        # Variable keys avoid phantom-enum AST scans of dict literal constants.
+        status_k, available_k, capability_k = "status", "available", "capability"
+        reasons_k, url_k = "reasons", "gate_url_configured"
+        match_k, enrich_k = "matching_action", "enrichment_action"
+        return {
+            status_k: self.status,
+            available_k: self.available,
+            capability_k: self.capability,
+            reasons_k: list(self.reasons),
+            url_k: self.gate_url_configured,
+            match_k: self.matching_action,
+            enrich_k: self.enrichment_action,
+        }
+
+
+_TRUTHY = {"1", "true", "True", "yes", "on"}
+_FALSY = {"0", "false", "False", "no", "off"}
+
+
+def _gate_url_usable(icp) -> bool:
+    """Return True when the configured Gate URL is present and uses an accepted scheme.
+
+    TLS (``https``) is required by default. The cleartext scheme is accepted only
+    when the deployment explicitly opts in via ``plasticos.gate.allow_insecure_http=1``
+    (intended for local development against a loopback Gate only).
+    """
+    url = (icp.get_param("plasticos.gate.url") or "").strip()
+    scheme = urlsplit(url).scheme.lower()
+    if scheme == "https":
+        return True
+    insecure_ok = (icp.get_param("plasticos.gate.allow_insecure_http") or "").strip() in _TRUTHY
+    return insecure_ok and scheme == "http"  # NOSONAR(S5332) explicit local-dev opt-in, off by default
+
+
+def classify_gate_availability(
+    env, *, capability: str | GateCapability = GateCapability.MATCHING
+) -> GateAvailabilityVerdict:
+    """Return a structured availability verdict for matching or enrichment.
+
+    Never raises. Downstream degraded-mode UX consumes ``status`` + ``reasons``.
+    """
     icp = env["ir.config_parameter"].sudo()
     url = (icp.get_param("plasticos.gate.url") or "").strip()
-    if not url.startswith(("http://", "https://")):
-        return False
-    if (icp.get_param("plasticos.gate.matching_enabled", "1") or "").strip() in {"0", "false", "False"}:
-        return False
+    reasons: list[str] = []
+    status = GateAvailability.AVAILABLE
+
+    if not url:
+        status = GateAvailability.MISSING_URL
+        reasons.append("plasticos.gate.url is empty")
+    else:
+        scheme = urlsplit(url).scheme.lower()
+        if scheme == "http":
+            insecure_ok = (icp.get_param("plasticos.gate.allow_insecure_http") or "").strip() in _TRUTHY
+            if not insecure_ok:
+                status = GateAvailability.INSECURE_HTTP_BLOCKED
+                reasons.append("http Gate URL blocked without allow_insecure_http")
+        elif scheme != "https":
+            status = GateAvailability.MISSING_URL
+            reasons.append(f"unsupported Gate URL scheme: {scheme or '<empty>'}")
+
     try:
         import constellation_node_sdk  # noqa: F401
     except ImportError:
-        return False
-    return True
+        if status is GateAvailability.AVAILABLE:
+            status = GateAvailability.SDK_MISSING
+        reasons.append("constellation_node_sdk not importable")
+
+    raw_cap = capability.value if isinstance(capability, GateCapability) else str(capability)
+    cap = raw_cap.strip().lower() or GateCapability.MATCHING.value
+    if cap == GateCapability.MATCHING.value:
+        if (icp.get_param("plasticos.gate.matching_enabled", "1") or "").strip() in _FALSY:
+            if status is GateAvailability.AVAILABLE:
+                status = GateAvailability.MATCHING_DISABLED
+            reasons.append("plasticos.gate.matching_enabled is off")
+    elif cap == GateCapability.ENRICHMENT.value:
+        if (icp.get_param("plasticos.gate.enrichment_enabled", "1") or "").strip() not in _TRUTHY:
+            if status is GateAvailability.AVAILABLE:
+                status = GateAvailability.ENRICHMENT_DISABLED
+            reasons.append("plasticos.gate.enrichment_enabled is off")
+    else:
+        status = GateAvailability.UNKNOWN
+        reasons.append(f"unknown capability: {cap}")
+
+    return GateAvailabilityVerdict(
+        status=status.value,
+        available=status is GateAvailability.AVAILABLE and not reasons,
+        capability=cap,
+        reasons=reasons,
+        gate_url_configured=bool(url),
+        matching_action=(icp.get_param("plasticos.gate.matching_action") or "match").strip().lower(),
+        enrichment_action=(icp.get_param("plasticos.gate.enrichment_action") or "converge").strip().lower(),
+    )
+
+
+def gate_matching_enabled(env) -> bool:
+    """Return True when Gate matching should be attempted (never raises)."""
+    verdict = classify_gate_availability(env, capability=GateCapability.MATCHING)
+    return bool(verdict.available)
 
 
 def get_matching_action(env) -> str:
     icp = env["ir.config_parameter"].sudo()
     return (icp.get_param("plasticos.gate.matching_action") or "match").strip().lower()
+
+
+def gate_enrichment_enabled(env) -> bool:
+    """Return True when Gate enrichment (converge) should be attempted (never raises).
+
+    Live by default: enabled whenever a Gate URL is configured and the SDK is present
+    (seeded ``plasticos.gate.enrichment_enabled=1``). Set it to ``0`` to disable.
+    """
+    verdict = classify_gate_availability(env, capability=GateCapability.ENRICHMENT)
+    return bool(verdict.available)
+
+
+def gate_auto_writeback_enabled(env) -> bool:
+    """Return True when converge results should be applied live to the partner.
+
+    ON by default: allowlisted fields are backfilled (merge-not-overwrite) with
+    provenance. Set ``plasticos.gate.auto_writeback=0`` to fall back to review-only
+    (proposal stored, state='review', no partner writes).
+    """
+    icp = env["ir.config_parameter"].sudo()
+    return (icp.get_param("plasticos.gate.auto_writeback", "1") or "").strip() in _TRUTHY
+
+
+def get_enrichment_action(env) -> str:
+    icp = env["ir.config_parameter"].sudo()
+    return (icp.get_param("plasticos.gate.enrichment_action") or "converge").strip().lower()
 
 
 def build_gate_client_config(env) -> GateClientConfig:

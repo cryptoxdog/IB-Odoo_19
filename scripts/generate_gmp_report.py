@@ -148,7 +148,10 @@ def main():
     gmp_id = args.gmp_id or f"GMP-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     filename = f"GMP-Report-{gmp_id.replace('GMP-', '')}-{task_slug}.md"
 
-    output_path = reports_dir / filename
+    output_path = (reports_dir / filename).resolve()
+    # Containment guard: CLI-derived slug must not escape reports/ (SonarCloud S8707)
+    if not output_path.is_relative_to(reports_dir.resolve()):
+        raise ValueError(f"Refusing to write outside reports/: {output_path}")
     output_path.write_text(report)
 
     print(f"Report saved: {output_path}")

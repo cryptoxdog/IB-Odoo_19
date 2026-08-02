@@ -135,7 +135,7 @@ class PlasticosIntakeNormalizer(models.Model):
             return
 
         # Skip if already geocoded
-        if target.partner_latitude and target.partner_latitude != 0.0:
+        if target.partner_latitude:
             _logger.debug("Facility %s already geocoded (lat=%s)", target.name, target.partner_latitude)
             return
 
@@ -146,7 +146,7 @@ class PlasticosIntakeNormalizer(models.Model):
 
         try:
             target.geo_localize()
-            if target.partner_latitude and target.partner_latitude != 0.0:
+            if target.partner_latitude:
                 _logger.info(
                     "Geocoded facility %s during normalization: lat=%s, lon=%s",
                     target.name,

@@ -1,0 +1,11 @@
+# OdooLS (Odoo.odoo VS Code/Cursor extension) project configuration.
+# Mirrors the convention documented in docs/LOCAL_DEV_SETUP.md:
+#   - Odoo 19 CE source clone at ~/dev/odoo-19 (editor import resolution only)
+#   - Dev venv at .venv (created via `make venv`)
+# See docs/LOCAL_DEV_SETUP.md for the fresh-clone runbook.
+
+[[config]]
+name = "default"
+odoo_path = "${userHome}/dev/odoo-19"
+addons_paths = ["${userHome}/dev/odoo-19/addons", "$autoDetectAddons"]
+python_path = "${workspaceFolder}/.venv/bin/python"

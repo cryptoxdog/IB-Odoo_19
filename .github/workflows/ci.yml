@@ -30,7 +30,7 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - run: pip install ruff==0.15.5
+      - run: pip install --only-binary ":all:" ruff==0.15.5
 
       - name: Ruff lint + format (all errors before failing)
         run: |
@@ -59,7 +59,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install lxml semgrep==1.164.0
+      - run: pip install --only-binary ":all:" lxml==6.0.2 semgrep==1.164.0
 
       - name: Run all static checks (all errors before failing)
         run: |
@@ -110,12 +110,11 @@ jobs:
           run_check "Semgrep Odoo patterns" semgrep --error --config .semgrep/odoo-patterns.yml --severity ERROR --quiet --include="plasticos_*"
           run_check "Semgrep fixture tests" make semgrep-test
 
-          # Odoo 19 pattern check (advisory — pre-existing issues tracked separately)
-          echo "--- Odoo 19 patterns (advisory) ---"
+          # Odoo 19 pattern check (blocking — GATE-01 fail-closed; the former
+          # "pre-existing issues" were semgrep test fixtures and migration
+          # __init__.py false positives, now excluded inside the script)
           chmod +x scripts/check_odoo_patterns.sh
-          ./scripts/check_odoo_patterns.sh || true
-          RESULTS+=("⚠️  Odoo 19 patterns (advisory — see log)")
-          echo ""
+          run_check "Odoo 19 patterns" ./scripts/check_odoo_patterns.sh
 
           run_check "Circular dependencies"      python3 ci/check_circular_deps.py
           run_check "Module dependency wiring"   python3 scripts/check_module_wiring.py
@@ -131,15 +130,14 @@ jobs:
           run_check "Critical manifest check"        python3 ci/check_critical_manifest.py
           run_check "Enhanced XML ID + dep audit"      python3 ci/enhanced_audit.py
 
-          # Advisory checks (failures logged but don't block)
-          echo "--- Advisory checks (non-blocking) ---"
-          python3 ci/check_odoo_antipatterns.py  || true
-          python3 ci/check_acl_completeness.py   || true
-          python3 ci/check_package_init.py       || true
-          python3 ci/check_field_integrity.py    || true
-          python3 ci/check_state_guard_bypass.py || true
-          python3 ci/weak_test_fixer.py          || true
-          echo ""
+          # Formerly-advisory checks promoted to blocking (GATE-01 fail-closed:
+          # all six pass at adoption; any regression now fails CI)
+          run_check "Odoo antipatterns"       python3 ci/check_odoo_antipatterns.py
+          run_check "ACL completeness"        python3 ci/check_acl_completeness.py
+          run_check "Package init integrity"  python3 ci/check_package_init.py
+          run_check "Field integrity"         python3 ci/check_field_integrity.py
+          run_check "State guard bypass"      python3 ci/check_state_guard_bypass.py
+          run_check "Weak test detection"     python3 ci/weak_test_fixer.py
 
           echo "============================================"
           echo "Static Analysis Summary"
@@ -162,7 +160,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install pytest==8.3.5 pytest-timeout==2.4.0 pytest-cov==5.0.0
+      - run: pip install --only-binary ":all:" pytest==8.3.5 pytest-timeout==2.4.0 pytest-cov==5.0.0
 
       - name: Run all pure-Python tests (Odoo-free; conftest auto-skips Odoo tests)
         run: |
@@ -176,11 +174,10 @@ jobs:
             -p no:randomly \
             --cov=. --cov-report=term-missing:skip-covered
 
-  # ── SECURITY: Runs in parallel, advisory ──────────────────────────────────
+  # ── SECURITY: Runs in parallel, blocking (GATE-01 fail-closed) ───────────
   secret-scan:
     name: Secret Detection
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v6
         with:

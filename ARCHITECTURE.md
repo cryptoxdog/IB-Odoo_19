@@ -40,6 +40,7 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 │  Layer 2: CAPABILITY                           │
 │  plasticos_facility_profile                     │
 │  plasticos_buyer_match_engine (+ Neo4j)         │
+│  plasticos_gate (Constellation Gate client)     │
 └────────────────┬────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────┐
@@ -49,7 +50,7 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 └─────────────────────────────────────────────────┘
 ```
 
-## Module Index (29 Odoo Modules)
+## Module Index (30 Odoo Modules)
 
 | # | Module | Layer | Maturity | Summary |
 |---|--------|-------|----------|---------|
@@ -63,27 +64,28 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 | 8 | `plasticos_matching` | 2 | Production | Match result storage for intake-to-buyer matching |
 | 9 | `plasticos_buyer_match_engine` | 2 | New | 10-gate filtering + Neo4j graph scoring |
 | 10 | `plasticos_geolocalize` | 2 | Production | Auto-geocode partners + nightly backfill cron |
-| 11 | `plasticos_enrichment` | 2 | Beta | AI web intelligence extraction for buyer profiles |
-| 12 | `plasticos_web_leads` | 2 | Production | AI lead triage (Cognito → LLM → HOT/COLD) |
-| 13 | `plasticos_inference_engine` | 2 | Beta | Deterministic polymer inference from YAML knowledge base |
-| 14 | `plasticos_accounting` | 3 | Production | Chart of accounts, payment terms, incoterms seed |
-| 15 | `plasticos_offer` | 3 | Production | Offer lifecycle: match → negotiation → deal |
-| 16 | `plasticos_order_lines` | 3 | Production | Extend PO/SO lines with full material specifications |
-| 17 | `plasticos_automation` | 3 | Production | Workflow automation: approvals, reminders, SLA monitoring |
-| 18 | `plasticos_partner_import` | 3 | Production | Partner import wizard with validation |
-| 19 | `plasticos_crm_bridge` | 3 | Production | CRM integration bridge |
-| 20 | `plasticos_commission` | 3 | Production | Commission calculation engine |
-| 21 | `plasticos_admin_dashboard` | 3 | Production | RevOps KPI dashboard (admin) |
-| 22 | `plasticos_documents` | 4 | Production | Document validation matrices, compliance tracking |
-| 23 | `plasticos_documents_native` | 4 | Beta | Bridge to Odoo Enterprise Documents with AI auto-sort |
-| 24 | `plasticos_transaction` | 5 | Production | Transaction spine + commission engine |
-| 25 | `plasticos_logistics` | 5 | Production | Load management, BOL generation, dispatch |
-| 26 | `plasticos_claims` | 5 | Production | QC cases, claims, chargebacks, compliance workflows |
-| 27 | `plasticos_website` | UI | Production | Website extensions |
-| 28 | `plasticos_odoo_standard_apps` | Meta | Production | Auto-install bundle of standard Odoo CE apps |
-| 29 | `plasticos_dev_tools` | — | Dev-only | Audit scripts, integrity checks (`installable: False`) |
+| 11 | `plasticos_gate` | 2 | New | Constellation Gate TransportPacket client seam (ADR-002) |
+| 12 | `plasticos_enrichment` | 2 | Beta | AI web intelligence extraction for buyer profiles |
+| 13 | `plasticos_web_leads` | 2 | Production | AI lead triage (Cognito → LLM → HOT/COLD) |
+| 14 | `plasticos_inference_engine` | 2 | Beta | Deterministic polymer inference from YAML knowledge base |
+| 15 | `plasticos_accounting` | 3 | Production | Chart of accounts, payment terms, incoterms seed |
+| 16 | `plasticos_offer` | 3 | Production | Offer lifecycle: match → negotiation → deal |
+| 17 | `plasticos_order_lines` | 3 | Production | Extend PO/SO lines with full material specifications |
+| 18 | `plasticos_automation` | 3 | Production | Workflow automation: approvals, reminders, SLA monitoring |
+| 19 | `plasticos_partner_import` | 3 | Production | Partner import wizard with validation |
+| 20 | `plasticos_crm_bridge` | 3 | Production | CRM integration bridge |
+| 21 | `plasticos_commission` | 3 | Production | Commission calculation engine |
+| 22 | `plasticos_admin_dashboard` | 3 | Production | RevOps KPI dashboard (admin) |
+| 23 | `plasticos_documents` | 4 | Production | Document validation matrices, compliance tracking |
+| 24 | `plasticos_documents_native` | 4 | Beta | Bridge to Odoo Enterprise Documents with AI auto-sort |
+| 25 | `plasticos_transaction` | 5 | Production | Transaction spine + commission engine |
+| 26 | `plasticos_logistics` | 5 | Production | Load management, BOL generation, dispatch |
+| 27 | `plasticos_claims` | 5 | Production | QC cases, claims, chargebacks, compliance workflows |
+| 28 | `plasticos_website` | UI | Disabled | Website extensions (`installable: False`) |
+| 29 | `plasticos_odoo_standard_apps` | Meta | Production | Auto-install bundle of standard Odoo CE apps |
+| 30 | `plasticos_dev_tools` | — | Dev-only | Audit scripts, integrity checks (`installable: False`) |
 
-**Maturity guide**: Production = stable CI; Beta = higher churn, some CI waivers; New = active development; Dev-only = not for production install.
+**Maturity guide**: Production = stable CI; Beta = higher churn, some CI waivers; New = active development; Disabled = `installable: False`, not currently installed; Dev-only = not for production install.
 
 **Note:** 4 additional directories (`plasticos_graph_*`) exist but are non-Odoo Python packages (no `__manifest__.py`). These are excluded from all pre-commit hooks and CI workflows.
 
@@ -140,6 +142,16 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 - **Services**:
   - `graph_service.py` (Neo4j driver wrapper)
   - `matcher.py` (10-gate filtering + Cypher scoring)
+
+**plasticos_gate**
+- **Depends**: `base`, `plasticos_base`
+- **Provides**: Constellation Gate TransportPacket client seam — Odoo intelligence routing (see [External Intelligence Boundary (Gate)](#external-intelligence-boundary-gate))
+- **External**: `constellation_node_sdk`
+- **Models**: None (seed data: ICP allowlist)
+- **Services**:
+  - `gate_client.py` (TransportPacket send/receive)
+  - `gate_builders.py`, `gate_mappers.py`, `gate_contracts.py` (packet construction/mapping)
+  - `gate_config.py`, `gate_allowlists.py` (config + ICP allowlist)
 
 ### Layer 3: Commercial Operations
 
@@ -270,6 +282,8 @@ Odoo  ◄───────────────────────�
 | Human gates (Phase 1) | HOT lead review, match line selection, explicit Send Offer |
 
 **Phase 1 seam:** `plasticos.buyer.matcher.find_matches_for_supplier()` → Gate `action=match` → persist via `intake_extension.action_match_to_buyers()`.
+
+**Implementation module:** `plasticos_gate` (Layer 2) — `services/gate_client.py` sends/receives `TransportPacket` via `constellation_node_sdk`; `gate_builders.py`/`gate_mappers.py`/`gate_contracts.py` construct and map packets; `gate_config.py`/`gate_allowlists.py` hold connection config and the ICP allowlist seed (`data/gate_icp_seed.xml`).
 
 ## Neo4j Integration Architecture
 
@@ -626,7 +640,7 @@ services:
 | `pr-gate.yml` | manual only | Legacy gate jobs — superseded by ci.yml |
 | `module-check.yml` | manual only | Legacy module validation — superseded by ci.yml |
 
-#### Pre-commit Hooks (31 total)
+#### Pre-commit Hooks (36 total)
 
 All hooks run via `pre-commit run --all-files`. Key hooks:
 
@@ -634,11 +648,14 @@ All hooks run via `pre-commit run --all-files`. Key hooks:
 |----------|-------|
 | Format | `ruff`, `ruff-format`, `end-of-file-fixer`, `trailing-whitespace` |
 | Syntax | `check-xml`, `check-yaml`, `check-merge-conflict`, `check-added-large-files` |
+| Commit hygiene | `conventional-pre-commit` (commit-msg stage) |
 | Odoo 19 | `odoo-patterns` (24 sub-checks), `odoo19-xml`, `odoo19-hooks` |
 | Wiring | `module-wiring`, `circular-deps`, `package-init`, `orphan-model-refs` |
 | Integrity | `field-integrity`, `orm-integrity`, `constraint-patterns`, `model-inheritance` |
 | Safety | `cron-invariants`, `automation-field-refs`, `state-guard-bypass`, `pipeline-v2-guard` |
 | Audit | `enhanced-audit`, `acl-completeness` (warn-only), `critical-manifest`, `dev-tools-fence` |
+| Pre-push only | `phantom-enum-values`, `manifest-contract`, `gitleaks-push` |
+| Secrets | `gitleaks-commit` (staged-file scan), `gitleaks-push` (full repo scan) |
 | Type | `mypy` (advisory — many modules excluded) |
 
 #### Global Exclusions
@@ -972,6 +989,6 @@ module/
 
 ---
 
-**Architecture Version**: 3.1.0
-**Last Updated**: 2026-05-28
-**Verified Against**: cryptoxdog/IB-Odoo_19 @ staging branch
+**Architecture Version**: 3.2.0
+**Last Updated**: 2026-07-22
+**Verified Against**: cryptoxdog/IB-Odoo_19 @ Staging branch

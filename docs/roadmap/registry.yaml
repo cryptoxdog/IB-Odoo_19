@@ -46,7 +46,7 @@ items:
   phase: 1
   kind: scope_in
   title: 'Optional: Gate `converge` for enrichment (with local fallback)'
-  status: pending
+  status: complete
 - id: ROAD-GATE-014
   domain: gate-autonomy
   phase: 1
@@ -86,9 +86,9 @@ items:
 - id: ROAD-GATE-024
   domain: gate-autonomy
   phase: 1
-  kind: scope_out
-  title: '`plasticos.gate.auto_writeback=1`'
-  status: deferred
+  kind: scope_in
+  title: '`plasticos.gate.auto_writeback=1` (live converge writeback, merge-not-overwrite + provenance)'
+  status: complete
 - id: ROAD-GATE-025
   domain: gate-autonomy
   phase: 1
