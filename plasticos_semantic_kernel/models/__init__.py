@@ -1,1 +1,2 @@
-# Models intentionally empty in TASK-022 (install-only skeleton).
+from . import material_specification
+from . import material_observation
