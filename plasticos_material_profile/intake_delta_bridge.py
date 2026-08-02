@@ -61,10 +61,12 @@ def _attribute_codes(record) -> list[str]:
 
 
 def _source_type_label(record) -> str | None:
-    source_type = getattr(record, "source_type_id", False)
-    if not source_type:
+    source_type = getattr(record, "source_type_id", None)
+    if source_type in (None, False):
         return None
-    return source_type.code or source_type.name
+    code = getattr(source_type, "code", None) or None
+    name = getattr(source_type, "name", None) or None
+    return code or name
 
 
 def build_material_profile_vals_from_intake(intake) -> dict:
