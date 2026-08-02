@@ -1,4 +1,4 @@
-"""Gate-only match orchestrator (mothball M2). No local scoring/discovery."""
+"""Gate-only match orchestrator (mothball M2/M3). No local scoring/discovery."""
 
 from __future__ import annotations
 
@@ -10,25 +10,38 @@ from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
+_RETRYABLE = "retryable"
+_PERMANENT = "permanent"
+_UNKNOWN = "unknown"
+
 
 class PlasticosMatchOrchestrator(models.AbstractModel):
     """Orchestrates buyer matching exclusively through Constellation Gate.
 
-    Hard rules (ADR-003-single / M2):
+    Hard rules (ADR-003-single / M2 / M3):
     - No Neo4j / local Stage-1 candidate discovery in this addon
     - No silent fallback to plasticos.buyer.matcher local path
-    - Failures are classified and recorded on plasticos.match.run
+    - Gate failures are classified, audited on plasticos.match.run, and fail closed
+    - Retryable failures expose operator retry; never substitute empty success
     """
 
     _name = "plasticos.match.orchestrator"
     _description = "Gate-Only Match Orchestrator"
 
     @api.model
-    def run_match_for_intake(self, intake, max_results=20, mode="strict"):
+    def _state_for_failure(self, failure_class: str) -> str:
+        if failure_class == _RETRYABLE:
+            return "retryable"
+        if failure_class == _PERMANENT:
+            return "failed"
+        return "degraded"
+
+    @api.model
+    def run_match_for_intake(self, intake, max_results=20, mode="strict", *, retry_of=None):
         """Execute Gate match for one intake; return (run, matches).
 
-        Raises UserError on classified permanent/unknown failures after recording
-        the run. Does not invoke local matcher scoring.
+        Raises UserError on classified failures after recording the run.
+        Does not invoke local matcher scoring under any failure class.
         """
         intake.ensure_one()
         if not intake.partner_id:
@@ -39,24 +52,15 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
                 % (intake.display_name,)
             )
 
-        MatchRun = self.env["plasticos.match.run"]
-        run = MatchRun.create(
-            {
-                "intake_id": intake.id,
-                "supplier_partner_id": intake.partner_id.id,
-                "mode": mode or "strict",
-                "state": "pending",
-                "engine": "gate",
-            }
-        )
-
         from odoo.addons.plasticos_gate.services.gate_builders import build_match_request
         from odoo.addons.plasticos_gate.services.gate_client import (
             classify_transport_failure,
             send_match_action,
         )
         from odoo.addons.plasticos_gate.services.gate_config import (
+            GateCapability,
             GateIntegrationError,
+            classify_gate_availability,
             gate_matching_enabled,
         )
         from odoo.addons.plasticos_gate.services.gate_mappers import (
@@ -65,15 +69,34 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             map_match_response_to_matcher_dicts,
         )
 
+        availability = classify_gate_availability(self.env, capability=GateCapability.MATCHING)
+        MatchRun = self.env["plasticos.match.run"]
+        vals = {
+            "intake_id": intake.id,
+            "supplier_partner_id": intake.partner_id.id,
+            "mode": mode or "strict",
+            "state": "pending",
+            "engine": "gate",
+            "availability_status": availability.status,
+        }
+        if retry_of:
+            vals["retry_of_id"] = retry_of.id
+        run = MatchRun.create(vals)
+
         if not gate_matching_enabled(self.env):
+            reasons = "; ".join(availability.reasons) or "Gate matching unavailable"
             run.write(
                 {
                     "state": "failed",
-                    "failure_class": "permanent",
-                    "error_message": "Gate matching not enabled (URL/SDK/ICP).",
+                    "failure_class": _PERMANENT,
+                    "error_message": reasons,
+                    "availability_status": availability.status,
                 }
             )
-            raise UserError(_("Gate matching is not enabled. Configure Gate URL and matching ICP."))
+            raise UserError(
+                _("Gate matching is not enabled (%(status)s): %(reasons)s")
+                % {"status": availability.status, "reasons": reasons}
+            )
 
         try:
             request = build_match_request(self.env, intake=intake, top_n=max_results, mode=mode or "strict")
@@ -90,7 +113,7 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             failure = getattr(exc, "failure_class", None) or classify_transport_failure(exc).value
             run.write(
                 {
-                    "state": "failed",
+                    "state": self._state_for_failure(failure),
                     "failure_class": failure,
                     "error_message": str(exc),
                 }
@@ -103,7 +126,7 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             failure = classify_transport_failure(exc).value
             run.write(
                 {
-                    "state": "failed",
+                    "state": self._state_for_failure(failure),
                     "failure_class": failure,
                     "error_message": str(exc),
                 }
@@ -134,6 +157,38 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             }
         )
         return run, matches
+
+    @api.model
+    def retry_match_run(self, prior_run):
+        """Retry a prior non-ok run. Suppresses duplicate retries while pending."""
+        prior_run.ensure_one()
+        if prior_run.state == "ok":
+            raise UserError(_("Match run %s already succeeded.") % prior_run.id)
+        pending = self.env["plasticos.match.run"].search(
+            [
+                ("intake_id", "=", prior_run.intake_id.id),
+                ("state", "=", "pending"),
+                ("retry_of_id", "=", prior_run.id),
+            ],
+            limit=1,
+        )
+        if pending:
+            raise UserError(_("A retry is already pending for run %s (pending run %s).") % (prior_run.id, pending.id))
+        run, matches = self.run_match_for_intake(
+            prior_run.intake_id,
+            max_results=20,
+            mode=prior_run.mode or "strict",
+            retry_of=prior_run,
+        )
+        self.persist_review_results(prior_run.intake_id, matches, run)
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Match Run"),
+            "res_model": "plasticos.match.run",
+            "res_id": run.id,
+            "view_mode": "form",
+            "target": "current",
+        }
 
     @api.model
     def _build_intake_match_line_vals(self, intake, matches):
