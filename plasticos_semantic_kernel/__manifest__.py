@@ -1,7 +1,7 @@
 {
     "name": "PlasticOS Semantic Kernel",
-    "version": "19.0.1.0.1",
-    "summary": "Additive semantic models for specifications and observations.",
+    "version": "19.0.1.0.2",
+    "summary": "Additive semantic models for specifications, observations, supply, and demand.",
     "license": "LGPL-3",
     "author": "Igor Beylin",
     "category": "Plasticos/Semantic",
@@ -15,6 +15,8 @@
         "security/ir.model.access.csv",
         "views/material_specification_views.xml",
         "views/material_observation_views.xml",
+        "views/supply_opportunity_views.xml",
+        "views/buyer_demand_views.xml",
         "views/menus.xml",
     ],
     "installable": True,
