@@ -3,8 +3,8 @@
 **Purpose**: Unchangeable rules that govern the PlasticOS codebase.
 **Status**: Constitutional
 **Enforcement**: Machine + Human
-**Version**: 2.0.1
-**Last Updated**: 2026-07-22
+**Version**: 2.1.0
+**Last Updated**: 2026-08-02
 
 ## Meta-Rule
 
@@ -397,6 +397,35 @@ Every invariant is enforced by one or more automated tools:
 | 15. Cron Safety | `cron-invariants` | — | `cron_invariant_check.py` |
 | 17. File Wiring | `package-init`, `module-wiring` | `static-checks` | `check_package_init.py` |
 | 18. XML Views | `odoo19-xml`, `xpath-stability` | `static-checks` | `check_odoo19_xml.py`, `check_xpath_stability.py` |
+
+---
+
+### 19. Single External Intelligence Authority
+
+**Rule**: Matching and enrichment **intelligence authority** is external and Gate-mediated.
+Local Odoo algorithmic engines are not architectural authority.
+
+**Authority** (binding):
+[`docs/adr/ADR-003-single-external-intelligence-authority.md`](docs/adr/ADR-003-single-external-intelligence-authority.md)
+(supersedes ADR-002 §2 fallback-as-authority). Hub topology and “never Odoo → CEG/EIE direct”
+from ADR-002 remain in force.
+
+**Required**:
+- ✅ Odoo intelligence egress only through `plasticos_gate` → Constellation.Gate (`TransportPacket`)
+- ✅ CEG owns match semantics; EIE owns converge/enrichment intelligence
+- ✅ Cite the full ADR filename — numeric `ADR-003` alone is ambiguous (contact-import ADR shares the prefix)
+
+**Forbidden**:
+- ❌ Treating `plasticos_buyer_match_engine`, local Neo4j matcher paths, or in-Odoo enrichment
+  crawl/extract/inference as the product authority for match/enrichment quality
+- ❌ Direct Odoo → CEG/EIE HTTP or SDK bypass of Gate
+- ❌ Restoring “local fallback as design” language in constitutional docs after this invariant
+
+**Note**: Residual local engine **code** may remain until mothball M2–M5. Residue ≠ authority.
+
+**Detection**: `tests/contracts/test_external_intelligence_authority.py`
+
+**Enforcement**: Contract tests + code review of Gate consumer docs (`docs/track_b/04_*`)
 
 ---
 

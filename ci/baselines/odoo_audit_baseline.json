@@ -2,7 +2,7 @@
   "_description": "Per-finding allowlist for scripts/audit/odoo_audit.py CRITICAL/HIGH findings. Each entry is a known, human-reviewed false positive or accepted item \u2014 NOT a blanket count baseline. Any finding whose fingerprint is not in this list fails the audit-baseline CI job (fix the code, or add a new reviewed entry here).",
   "_how_to_add_entries": "python3 scripts/audit/check_baseline.py odoo_audit_report.json ci/baselines/odoo_audit_baseline.json --severities CRITICAL,HIGH --dump-new -- review the output, then merge the printed entries into this file. Never edit scripts/audit/odoo_audit.py to special-case a finding.",
   "_verified": "2026-08-02",
-  "_root_cause": "FIELD_NOT_FOUND (444x, CRITICAL): odoo_audit.py cannot distinguish ir.ui.view / ir.actions.act_window container fields (arch, inherit_id, priority, name, view_mode, res_model, context, help, search_view_id, target, ...) from fields on the model a view displays -- it misattributes them all as missing model fields. INVALID_CONSTRAINT_FIELD (1x, HIGH): transaction.py commission_override_pct is defined via cross-module _inherit in plasticos_commission; the single-file scanner cannot see it.\n\n2026-08-02: plasticos_semantic_kernel view XML false positives \u2014 auditor treats ir.ui.view attrs (arch/name/res_model/view_mode) as model fields on observation/specification/facility.material.rule/capacity/supply/buyer.demand. Same FP class as existing enrichment.* view entries; logged not scanner-patched (PR #116 audit restore).",
+  "_root_cause": "FIELD_NOT_FOUND (444x, CRITICAL): odoo_audit.py cannot distinguish ir.ui.view / ir.actions.act_window container fields (arch, inherit_id, priority, name, view_mode, res_model, context, help, search_view_id, target, ...) from fields on the model a view displays -- it misattributes them all as missing model fields. INVALID_CONSTRAINT_FIELD (1x, HIGH): transaction.py commission_override_pct is defined via cross-module _inherit in plasticos_commission; the single-file scanner cannot see it.\n\n2026-08-02: plasticos_semantic_kernel view XML false positives \u2014 auditor treats ir.ui.view attrs (arch/name/res_model/view_mode) as model fields on observation/specification/facility.material.rule/capacity/supply/buyer.demand. Same FP class as existing enrichment.* view entries; logged not scanner-patched (PR #116 audit restore).\n\n2026-08-02: plasticos_matching match_run/match_exclusion view XML false positives (ir.ui.view / ir.actions.act_window / ir.cron container fields) after M2 home move \u2014 same FP class as buyer_match_engine match_exclusion_views entries.",
   "entries": [
     {
       "fingerprint": "533531e3132d743a",
@@ -4663,6 +4663,246 @@
       "model": "plasticos.buyer.demand",
       "field": "view_mode",
       "message": "Field 'view_mode' not defined on model 'plasticos.buyer.demand'"
+    },
+    {
+      "fingerprint": "d773abe0a1545470",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 7,
+      "model": "plasticos.match.exclusion",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "d773abe0a1545470",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 24,
+      "model": "plasticos.match.exclusion",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "d773abe0a1545470",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 58,
+      "model": "plasticos.match.exclusion",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "4d281a6d8b83ff19",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 22,
+      "model": "plasticos.match.exclusion",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "4d281a6d8b83ff19",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 56,
+      "model": "plasticos.match.exclusion",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "4d281a6d8b83ff19",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 72,
+      "model": "plasticos.match.exclusion",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "4d281a6d8b83ff19",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 94,
+      "model": "plasticos.match.exclusion",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "1da2c7960f4bb94d",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 73,
+      "model": "plasticos.match.exclusion",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "2c75e7ece7843d94",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 74,
+      "model": "plasticos.match.exclusion",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "53bce6d3f892fcc9",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 75,
+      "model": "plasticos.match.exclusion",
+      "field": "search_view_id",
+      "message": "Field 'search_view_id' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "6adc8cfe3887c100",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 76,
+      "model": "plasticos.match.exclusion",
+      "field": "context",
+      "message": "Field 'context' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "486cc0cb0ecce93a",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 77,
+      "model": "plasticos.match.exclusion",
+      "field": "help",
+      "message": "Field 'help' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "ff99a758bd549302",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 95,
+      "model": "plasticos.match.exclusion",
+      "field": "model_id",
+      "message": "Field 'model_id' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "a298d8f75a059171",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 96,
+      "model": "plasticos.match.exclusion",
+      "field": "state",
+      "message": "Field 'state' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "22da39168bfef2bb",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 97,
+      "model": "plasticos.match.exclusion",
+      "field": "code",
+      "message": "Field 'code' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "20876f71a7b6cc8b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 98,
+      "model": "plasticos.match.exclusion",
+      "field": "interval_number",
+      "message": "Field 'interval_number' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "38aad05b292e4b77",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 99,
+      "model": "plasticos.match.exclusion",
+      "field": "interval_type",
+      "message": "Field 'interval_type' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "adcafe2cd2668422",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_exclusion_views.xml",
+      "line": 101,
+      "model": "plasticos.match.exclusion",
+      "field": "user_id",
+      "message": "Field 'user_id' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "fc145311261e2c7a",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_run_views.xml",
+      "line": 6,
+      "model": "plasticos.match.run",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.match.run'"
+    },
+    {
+      "fingerprint": "fc145311261e2c7a",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_run_views.xml",
+      "line": 23,
+      "model": "plasticos.match.run",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.match.run'"
+    },
+    {
+      "fingerprint": "e8528ccc07119e4e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_run_views.xml",
+      "line": 21,
+      "model": "plasticos.match.run",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.match.run'"
+    },
+    {
+      "fingerprint": "e8528ccc07119e4e",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_run_views.xml",
+      "line": 55,
+      "model": "plasticos.match.run",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.match.run'"
+    },
+    {
+      "fingerprint": "17a46815992c3333",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_run_views.xml",
+      "line": 56,
+      "model": "plasticos.match.run",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.match.run'"
+    },
+    {
+      "fingerprint": "83c146996bbe3c9b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_matching/views/match_run_views.xml",
+      "line": 57,
+      "model": "plasticos.match.run",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.match.run'"
     }
   ]
 }

@@ -220,7 +220,15 @@ class TestModuleManifest:
         data = self.manifest.get("data", [])
         assert "security/ir.model.access.csv" in data
         assert "views/intake_button_views.xml" in data
-        assert "views/match_exclusion_views.xml" in data
+        # M2: exclusion views live in plasticos_matching
+        assert "views/match_exclusion_views.xml" not in data
+        matching_manifest = os.path.normpath(
+            os.path.join(os.path.dirname(__file__), os.pardir, "plasticos_matching", "__manifest__.py")
+        )
+        with open(matching_manifest, encoding="utf-8") as fh:
+            matching_src = fh.read()
+        matching_data = ast.literal_eval(matching_src)
+        assert "views/match_exclusion_views.xml" in matching_data.get("data", [])
 
     def test_license_declared(self):
         assert self.manifest.get("license") == "LGPL-3"
@@ -295,8 +303,14 @@ class TestModelRegistration:
             assert f"from . import {mod}" in src, f"Missing 'from . import {mod}' in models/__init__.py"
 
     def test_match_exclusion_model_name(self):
-        src = _read_file("models/match_exclusion.py")
-        assert src is not None
+        """M2: identity lives in plasticos_matching; BME keeps an _inherit stub."""
+        stub = _read_file("models/match_exclusion.py")
+        assert stub is not None
+        assert '_inherit = "plasticos.match.exclusion"' in stub
+        matching_root = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir, "plasticos_matching"))
+        home = os.path.join(matching_root, "models", "match_exclusion.py")
+        assert os.path.isfile(home)
+        src = open(home, encoding="utf-8").read()
         assert '_name = "plasticos.match.exclusion"' in src
 
     def test_graph_sync_log_model_name(self):
@@ -378,8 +392,9 @@ class TestModelRegistration:
         assert "models.AbstractModel" in src, "graph_service.py must inherit models.AbstractModel"
 
     def test_match_exclusion_inherits_mail_thread(self):
-        src = _read_file("models/match_exclusion.py")
-        assert src is not None
+        matching_root = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir, "plasticos_matching"))
+        home = os.path.join(matching_root, "models", "match_exclusion.py")
+        src = open(home, encoding="utf-8").read()
         assert "mail.thread" in src
 
     def test_no_deprecated_namespace_plastos(self):

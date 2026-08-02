@@ -500,7 +500,7 @@ from running silently. Always run `pre-commit run --all-files` locally before pu
 - Changing security groups or record rules
 - Adding new `ir.cron` scheduled actions
 - Neo4j integration changes (graph boundary rules apply)
-- Gate / CEG integration (follow `docs/adr/ADR-002` and `docs/GATE_AUTONOMY_ROADMAP.md`)
+- Gate / CEG / EIE integration (follow `docs/adr/ADR-003-single-external-intelligence-authority.md`, ADR-002 topology, and `docs/GATE_AUTONOMY_ROADMAP.md`)
 - Schema changes to `res.partner` (partner model constraints)
 
 ### 🚫 Never
@@ -518,5 +518,7 @@ from running silently. Always run `pre-commit run --all-files` locally before pu
 - Create custom partner role booleans → use native `customer_rank`/`supplier_rank`
 - Commit test data to production seed files
 - Attach material profiles directly to `res.partner` → use `plasticos.facility.profile`
-- Call CEG/EIE directly from Odoo → route through Gate (`constellation_node_sdk`; see ADR-002)
-- Apply Gate web-lead triage or remove local matcher fallback in Phase 1 (see GATE_AUTONOMY_ROADMAP.md)
+- Call CEG/EIE directly from Odoo → route through Gate (`constellation_node_sdk`; see ADR-003-single + ADR-002)
+- Treat local matcher/enrichment engines as architectural intelligence authority (ADR-003-single; mothball M1+)
+- Apply Gate web-lead triage in Phase 1 (see GATE_AUTONOMY_ROADMAP.md) — triage stays Odoo-local until Phase 3
+- Overwrite `docs/adr/ADR-003-contact-import-configuration.md` when editing the mothball ADR-003-single file (filename collision)

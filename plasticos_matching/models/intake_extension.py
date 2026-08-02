@@ -1,35 +1,21 @@
-"""Intake match button — delegates to plasticos.match.orchestrator (M2 Gate-only)."""
+"""Intake match action in surviving matching addon (M2 Gate-only path)."""
 
-import logging
-
-from odoo import _, fields, models
+from odoo import _, models
 from odoo.addons.plasticos_base.models.matching_engine_icp import matching_engine_require_enabled_for_ui
 
-_logger = logging.getLogger(__name__)
 
-
-class PlasticosIntakeBuyerMatch(models.Model):
+class PlasticosIntakeGateMatch(models.Model):
     _inherit = "plasticos.intake"
 
-    match_mode = fields.Selection(
-        [
-            ("strict", "Strict (all gates hard)"),
-            ("relaxed", "Relaxed (polymer only hard)"),
-        ],
-        string="Match Mode",
-        default="strict",
-        help="Forwarded to Gate/CEG via plasticos.match.orchestrator.",
-    )
-
     def action_match_to_buyers(self):
-        """UI entry: Gate-only orchestrator (no local matcher fallback)."""
+        """Match buyers via Gate-only orchestrator (no local scoring fallback)."""
         matching_engine_require_enabled_for_ui(self.env)
         orchestrator = self.env["plasticos.match.orchestrator"]
         for record in self:
             run, matches = orchestrator.run_match_for_intake(
                 record,
                 max_results=20,
-                mode=record.match_mode or "strict",
+                mode=getattr(record, "match_mode", None) or "strict",
             )
             run_id = orchestrator.persist_review_results(record, matches, run)
             if matches:

@@ -1,14 +1,27 @@
 # Gate Integration & Autonomy Roadmap
 
 **Status:** Active  
-**Last updated:** 2026-06-04  
-**Authority:** [ADR-002: Gate Hub, CEG Routing, and Phased Autonomy](adr/ADR-002-gate-hub-phased-autonomy.md)  
+**Last updated:** 2026-08-02  
+**Authority (intelligence):** [ADR-003: Single External Intelligence Authority](adr/ADR-003-single-external-intelligence-authority.md)  
+**Topology / phased human gates:** [ADR-002: Gate Hub, CEG Routing, and Phased Autonomy](adr/ADR-002-gate-hub-phased-autonomy.md)  
 **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) § External Intelligence Boundary  
 **Registry:** [docs/roadmap/registry.yaml](roadmap/registry.yaml) — `make roadmap` (add + sync + validate)
 
 ## Objective
 
 Maximize pipeline autonomy over time by **removing human-in-the-middle steps only after each step has proven reliable in production** — starting with Gate-routed matching to CEG while keeping triage and offer send human-gated.
+
+## Mothball authority (Wave 7 / M1)
+
+As of **ADR-003-single-external-intelligence-authority** (TASK-045 / PROMOTION_APPROVED):
+
+- CEG (via Gate) is the **matching** intelligence authority; EIE (via Gate) is the **enrichment/converge** intelligence authority.
+- In-Odoo algorithmic match/enrichment paths are **non-authority transitional residue** until M2–M5 — not product design.
+- Synced Phase-1 scope tables below remain registry-driven operational history; do not hand-edit marker blocks. Registry promotion of `ROAD-GATE-021` is a follow-on (out of M1 writable scope).
+
+**Forbidden:** Odoo → CEG/EIE direct HTTP or SDK bypass of Gate.
+
+---
 
 ## Topology (all phases)
 
@@ -154,7 +167,8 @@ Before moving Phase N → N+1:
 
 ## Related documents
 
-- [ADR-002](adr/ADR-002-gate-hub-phased-autonomy.md) — binding decision
+- [ADR-003-single-external-intelligence-authority](adr/ADR-003-single-external-intelligence-authority.md) — intelligence authority (mothball M1)
+- [ADR-002](adr/ADR-002-gate-hub-phased-autonomy.md) — Gate hub topology + phased human checkpoints
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — system structure
 - [plasticos_intake/README.md](../plasticos_intake/README.md) — intake pipeline
 - [Cognitive.Engine.Graphs](https://github.com/cryptoxdog/Cognitive.Engine.Graphs) — external match engine

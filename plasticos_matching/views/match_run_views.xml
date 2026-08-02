@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_match_run_list" model="ir.ui.view">
+        <field name="name">plasticos.match.run.list</field>
+        <field name="model">plasticos.match.run</field>
+        <field name="arch" type="xml">
+            <list string="Match Runs">
+                <field name="create_date"/>
+                <field name="intake_id"/>
+                <field name="supplier_partner_id"/>
+                <field name="mode"/>
+                <field name="state"/>
+                <field name="engine"/>
+                <field name="match_count"/>
+                <field name="failure_class"/>
+                <field name="gate_packet_id"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_match_run_form" model="ir.ui.view">
+        <field name="name">plasticos.match.run.form</field>
+        <field name="model">plasticos.match.run</field>
+        <field name="arch" type="xml">
+            <form string="Match Run">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="intake_id"/>
+                            <field name="supplier_partner_id"/>
+                            <field name="mode"/>
+                            <field name="engine"/>
+                        </group>
+                        <group>
+                            <field name="state"/>
+                            <field name="match_count"/>
+                            <field name="failure_class"/>
+                            <field name="gate_packet_id"/>
+                            <field name="gate_correlation_id"/>
+                        </group>
+                    </group>
+                    <group string="Error" invisible="not error_message">
+                        <field name="error_message" nolabel="1"/>
+                    </group>
+                    <notebook>
+                        <page string="Results">
+                            <field name="result_ids"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="action_match_run" model="ir.actions.act_window">
+        <field name="name">Match Runs</field>
+        <field name="res_model">plasticos.match.run</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>
