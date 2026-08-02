@@ -1,0 +1,1032 @@
+./ci/test_check_odoo19_xml.py:41:class TestTreePattern:
+./ci/test_check_odoo19_xml.py:42:    def test_detects_tree_tag(self, tmp_path):
+./ci/test_check_odoo19_xml.py:62:    def test_detects_tree_with_attributes(self, tmp_path):
+./ci/test_check_odoo19_xml.py:76:    def test_no_false_positive_list_tag(self, tmp_path):
+./ci/test_check_odoo19_xml.py:91:    def test_excludes_tree_txt_reference(self, tmp_path):
+./ci/test_check_odoo19_xml.py:106:    def test_word_boundary_no_false_positive_on_treeview(self, tmp_path):
+./ci/test_check_odoo19_xml.py:120:    def test_line_number_is_1_indexed(self, tmp_path):
+./ci/test_check_odoo19_xml.py:142:class TestAlertPattern:
+./ci/test_check_odoo19_xml.py:143:    def test_detects_alert_class_without_role(self, tmp_path):
+./ci/test_check_odoo19_xml.py:161:    def test_no_error_when_role_present_on_same_line(self, tmp_path):
+./ci/test_check_odoo19_xml.py:174:    def test_no_error_when_role_in_context_window(self, tmp_path):
+./ci/test_check_odoo19_xml.py:189:    def test_no_false_positive_non_alert_class(self, tmp_path):
+./ci/test_check_odoo19_xml.py:202:    def test_all_four_fields_present(self, tmp_path):
+./ci/test_check_odoo19_xml.py:224:class TestActiveIdPattern:
+./ci/test_check_odoo19_xml.py:225:    def test_detects_active_id_in_context(self, tmp_path):
+./ci/test_check_odoo19_xml.py:243:    def test_no_false_positive_without_context(self, tmp_path):
+./ci/test_check_odoo19_xml.py:256:    def test_all_four_fields_present(self, tmp_path):
+./ci/test_check_odoo19_xml.py:277:class TestViewModePattern:
+./ci/test_check_odoo19_xml.py:278:    def test_detects_view_mode_tree_in_view_file(self, tmp_path):
+./ci/test_check_odoo19_xml.py:296:    def test_detects_view_mode_tree_in_data_file(self, tmp_path):
+./ci/test_check_odoo19_xml.py:313:    def test_no_error_when_view_mode_is_list(self, tmp_path):
+./ci/test_check_odoo19_xml.py:326:    def test_all_four_fields_present(self, tmp_path):
+./ci/test_check_odoo19_xml.py:347:class TestCleanFile:
+./ci/test_check_odoo19_xml.py:348:    def test_compliant_view_produces_no_errors(self, tmp_path):
+./ci/test_check_odoo19_xml.py:376:class TestMultipleErrors:
+./ci/test_check_odoo19_xml.py:377:    def test_multiple_patterns_in_one_file(self, tmp_path):
+./ci/test_check_odoo19_xml.py:396:    def test_each_error_has_correct_line_number(self, tmp_path):
+./ci/test_check_odoo19_xml.py:418:class TestFileField:
+./ci/test_check_odoo19_xml.py:419:    def test_file_field_is_string_not_path(self, tmp_path):
+./ci/test_check_odoo19_xml.py:425:    def test_file_field_matches_input_path(self, tmp_path):
+./ci/test_check_odoo19_xml.py:436:class TestCheckXmlPatterns:
+./ci/test_check_odoo19_xml.py:437:    def test_finds_errors_via_glob_fallback(self, tmp_path, monkeypatch):
+./ci/test_check_odoo19_xml.py:451:    def test_returns_empty_list_for_clean_tree(self, tmp_path, monkeypatch):
+./ci/test_generator.py:10:class TestGenerator:
+./ci/test_generator.py:47:    def test_create_basic(self):
+./ci/test_generator.py:75:    def test_constraint_{field["name"]}_required(self):
+./plasticos_dev_tools/tools/test_enhanced_matching_v6.0.py:23:def test_enhanced_buyer_matching(env):
+./scripts/audit/test_audit.py:13:class TestAudit:
+./tests/contracts/test_api_signature_contracts.py:14:class TestMatcherAPIContract(PlasticosTestCase):
+./tests/contracts/test_api_signature_contracts.py:26:    def test_run_matching_method_exists(self):
+./tests/contracts/test_api_signature_contracts.py:34:    def test_run_matching_accepts_intake(self):
+./tests/contracts/test_api_signature_contracts.py:45:class TestCommissionServiceContract(PlasticosTestCase):
+./tests/contracts/test_api_signature_contracts.py:57:    def test_commission_rule_model_exists(self):
+./tests/contracts/test_api_signature_contracts.py:65:    def test_commission_service_model_exists(self):
+./tests/contracts/test_api_signature_contracts.py:75:class TestWebLeadAPIContract(PlasticosTestCase):
+./tests/contracts/test_api_signature_contracts.py:87:    def test_web_lead_model_exists(self):
+./tests/contracts/test_api_signature_contracts.py:92:    def test_web_lead_has_create_from_agent(self):
+./tests/contracts/test_api_signature_contracts.py:101:    def test_web_lead_has_classification_fields(self):
+./tests/contracts/test_bridge_wiring_contracts.py:13:class TestIntakeBridgeWiring(PlasticosTestCase):
+./tests/contracts/test_bridge_wiring_contracts.py:21:    def test_normalizer_fields_present(self):
+./tests/contracts/test_bridge_wiring_contracts.py:35:    def test_geo_fields_present(self):
+./tests/contracts/test_bridge_wiring_contracts.py:41:    def test_offer_bridge_fields_present(self):
+./tests/contracts/test_bridge_wiring_contracts.py:49:    def test_match_engine_fields_present(self):
+./tests/contracts/test_bridge_wiring_contracts.py:61:class TestTransactionBridgeWiring(PlasticosTestCase):
+./tests/contracts/test_bridge_wiring_contracts.py:69:    def test_claims_bridge_fields(self):
+./tests/contracts/test_bridge_wiring_contracts.py:77:    def test_logistics_bridge_fields(self):
+./tests/contracts/test_bridge_wiring_contracts.py:85:    def test_documents_bridge_fields(self):
+./tests/contracts/test_computed_field_deps.py:13:class TestIntakeComputedFieldDeps(PlasticosTestCase):
+./tests/contracts/test_computed_field_deps.py:27:    def test_match_count_depends_on_match_line_ids(self):
+./tests/contracts/test_computed_field_deps.py:32:    def test_selected_count_depends_on_selected(self):
+./tests/contracts/test_computed_field_deps.py:39:    def test_best_match_score_depends_on_match_score(self):
+./tests/contracts/test_computed_field_deps.py:45:    def test_has_residue_depends_on_contamination_pct(self):
+./tests/contracts/test_computed_field_deps.py:50:    def test_display_name_depends_on_name(self):
+./tests/contracts/test_computed_field_deps.py:55:    def test_company_display_depends_on_partner_and_pending(self):
+./tests/contracts/test_crm_lead_contracts.py:16:class TestCrmLeadContract(PlasticosTestCase):
+./tests/contracts/test_crm_lead_contracts.py:31:    def test_intake_ids_on_lead(self):
+./tests/contracts/test_crm_lead_contracts.py:35:    def test_intake_count_on_lead(self):
+./tests/contracts/test_crm_lead_contracts.py:39:    def test_action_convert_to_intake_exists(self):
+./tests/contracts/test_crm_lead_contracts.py:47:    def test_material_profile_ids_on_lead(self):
+./tests/contracts/test_intake_contracts.py:20:class TestIntakeFieldContract(PlasticosTestCase):
+./tests/contracts/test_intake_contracts.py:30:    def test_name_field_exists_and_is_char(self):
+./tests/contracts/test_intake_contracts.py:34:    def test_partner_id_exists_and_targets_res_partner(self):
+./tests/contracts/test_intake_contracts.py:38:    def test_facility_id_exists_and_targets_res_partner(self):
+./tests/contracts/test_intake_contracts.py:42:    def test_contact_id_exists_and_targets_res_partner(self):
+./tests/contracts/test_intake_contracts.py:47:    def test_polymer_id_exists(self):
+./tests/contracts/test_intake_contracts.py:52:    def test_form_id_exists(self):
+./tests/contracts/test_intake_contracts.py:57:    def test_color_id_exists(self):
+./tests/contracts/test_intake_contracts.py:60:    def test_source_type_id_exists(self):
+./tests/contracts/test_intake_contracts.py:63:    def test_material_profile_id_exists(self):
+./tests/contracts/test_intake_contracts.py:68:    def test_material_attribute_ids_exists(self):
+./tests/contracts/test_intake_contracts.py:72:    def test_quality_boolean_fields(self):
+./tests/contracts/test_intake_contracts.py:86:    def test_numeric_quality_fields(self):
+./tests/contracts/test_intake_contracts.py:99:    def test_quantity_per_load_lbs_exists(self):
+./tests/contracts/test_intake_contracts.py:103:    def test_loads_per_month_exists(self):
+./tests/contracts/test_intake_contracts.py:107:    def test_status_field_exists_and_is_selection(self):
+./tests/contracts/test_intake_contracts.py:112:    def test_status_has_required_values(self):
+./tests/contracts/test_intake_contracts.py:129:    def test_geo_fields_exist(self):
+./tests/contracts/test_intake_contracts.py:135:    def test_crm_lead_id_exists(self):
+./tests/contracts/test_intake_contracts.py:139:    def test_source_lead_id_exists(self):
+./tests/contracts/test_intake_contracts.py:145:    def test_match_line_ids_exists(self):
+./tests/contracts/test_intake_contracts.py:150:    def test_match_count_is_stored_computed(self):
+./tests/contracts/test_intake_contracts.py:155:    def test_best_match_score_exists(self):
+./tests/contracts/test_intake_contracts.py:159:    def test_assigned_user_id_exists(self):
+./tests/contracts/test_intake_contracts.py:164:    def test_pending_company_name_exists(self):
+./tests/contracts/test_intake_contracts.py:168:    def test_origin_fields_exist(self):
+./tests/contracts/test_intake_contracts.py:172:    def test_origin_sector_selection_values(self):
+./tests/contracts/test_intake_contracts.py:179:    def test_origin_process_type_selection_values(self):
+./tests/contracts/test_intake_contracts.py:188:class TestIntakeMethodContract(PlasticosTestCase):
+./tests/contracts/test_intake_contracts.py:197:    def test_action_send_offer_exists(self):
+./tests/contracts/test_intake_contracts.py:200:    def test_action_mark_processing_exists(self):
+./tests/contracts/test_intake_contracts.py:203:    def test_action_mark_won_exists(self):
+./tests/contracts/test_intake_contracts.py:206:    def test_action_mark_lost_exists(self):
+./tests/contracts/test_intake_contracts.py:209:    def test_action_mark_expired_exists(self):
+./tests/contracts/test_intake_contracts.py:212:    def test_action_reset_to_draft_exists(self):
+./tests/contracts/test_intake_contracts.py:216:    def test_action_match_to_buyers_exists(self):
+./tests/contracts/test_intake_contracts.py:220:    def test_action_send_offers_exists(self):
+./tests/contracts/test_intake_contracts.py:224:    def test_action_make_po_exists(self):
+./tests/contracts/test_intake_contracts.py:228:    def test_navigation_actions_exist(self):
+./tests/contracts/test_intake_contracts.py:243:    def test_create_material_profile_from_intake_exists(self):
+./tests/contracts/test_intake_contracts.py:246:    def test_create_partner_from_pending_exists(self):
+./tests/contracts/test_intake_contracts.py:249:    def test_assert_status_guard_exists(self):
+./tests/contracts/test_intake_contracts.py:254:class TestIntakeMailMixin(PlasticosTestCase):
+./tests/contracts/test_intake_contracts.py:257:    def test_intake_has_mail_thread(self):
+./tests/contracts/test_intake_contracts.py:260:    def test_intake_has_message_post(self):
+./tests/contracts/test_partner_contracts.py:20:class TestPartnerFieldContract(PlasticosTestCase):
+./tests/contracts/test_partner_contracts.py:28:    def test_entity_status_exists(self):
+./tests/contracts/test_partner_contracts.py:33:    def test_facility_profile_ids_exists(self):
+./tests/contracts/test_partner_contracts.py:38:    def test_partner_type_id_exists(self):
+./tests/contracts/test_partner_contracts.py:42:    def test_material_profile_ids_exists(self):
+./tests/contracts/test_partner_contracts.py:47:    def test_geo_fields_on_partner(self):
+./tests/contracts/test_partner_contracts.py:56:    def test_intake_ids_exists(self):
+./tests/contracts/test_partner_contracts.py:60:    def test_intake_count_exists(self):
+./tests/contracts/test_partner_contracts.py:64:    def test_contract_fields_exist(self):
+./tests/contracts/test_partner_contracts.py:70:    def test_enrichment_source_ids_exists(self):
+./tests/contracts/test_partner_contracts.py:74:    def test_preferred_contact_id_exists(self):
+./tests/contracts/test_partner_contracts.py:79:    def test_lead_source_id_exists(self):
+./tests/contracts/test_selection_contracts.py:25:class TestIntakeStatusValues(PlasticosTestCase):
+./tests/contracts/test_selection_contracts.py:26:    def test_intake_status_complete(self):
+./tests/contracts/test_selection_contracts.py:33:    def test_intake_deal_type_values(self):
+./tests/contracts/test_selection_contracts.py:39:    def test_intake_origin_sector_values(self):
+./tests/contracts/test_selection_contracts.py:47:class TestClaimStateValues(PlasticosTestCase):
+./tests/contracts/test_selection_contracts.py:57:    def test_claim_state_values(self):
+./tests/contracts/test_selection_contracts.py:68:class TestLoadStateValues(PlasticosTestCase):
+./tests/contracts/test_selection_contracts.py:78:    def test_load_state_values(self):
+./tests/contracts/test_selection_contracts.py:88:class TestOfferStateValues(PlasticosTestCase):
+./tests/contracts/test_selection_contracts.py:98:    def test_offer_state_values(self):
+./tests/contracts/test_transaction_contracts.py:16:class TestTransactionFieldContract(PlasticosTestCase):
+./tests/contracts/test_transaction_contracts.py:24:    def test_name_field(self):
+./tests/contracts/test_transaction_contracts.py:28:    def test_state_field_is_selection(self):
+./tests/contracts/test_transaction_contracts.py:33:    def test_state_required_values(self):
+./tests/contracts/test_transaction_contracts.py:42:    def test_supplier_id_exists(self):
+./tests/contracts/test_transaction_contracts.py:46:    def test_buyer_id_exists(self):
+./tests/contracts/test_transaction_contracts.py:51:    def test_intake_id_exists(self):
+./tests/contracts/test_transaction_contracts.py:56:    def test_quantity_field_exists(self):
+./tests/contracts/test_transaction_contracts.py:60:    def test_supplier_profile_id_exists(self):
+./tests/contracts/test_transaction_contracts.py:64:    def test_has_mail_thread(self):
+./tests/contracts/test_transaction_contracts.py:72:class TestTransactionMethodContract(PlasticosTestCase):
+./tests/contracts/test_transaction_contracts.py:78:    def test_state_transition_methods_exist(self):
+./tests/integration/test_account_move_transaction_link.py:26:class TestAccountMoveTransactionLink(PlasticosTestCase):
+./tests/integration/test_account_move_transaction_link.py:83:    def test_find_linked_transactions_via_customer_invoice(self):
+./tests/integration/test_account_move_transaction_link.py:91:    def test_find_linked_transactions_via_vendor_bill(self):
+./tests/integration/test_account_move_transaction_link.py:99:    def test_find_linked_transactions_via_freight_bill(self):
+./tests/integration/test_account_move_transaction_link.py:109:    def test_find_linked_transactions_returns_empty_when_no_link(self):
+./tests/integration/test_account_move_transaction_link.py:117:class TestAccountMoveCancelGuard(PlasticosTestCase):
+./tests/integration/test_account_move_transaction_link.py:145:    def test_cannot_cancel_invoice_linked_to_closed_tx(self):
+./tests/integration/test_account_move_transaction_link.py:170:    def test_cancel_allowed_when_tx_not_closed(self):
+./tests/integration/test_account_move_transaction_link.py:200:class TestAccountMoveUnlinkGuard(PlasticosTestCase):
+./tests/integration/test_account_move_transaction_link.py:224:    def test_cannot_delete_invoice_linked_to_closed_tx(self):
+./tests/integration/test_account_move_transaction_link.py:249:    def test_delete_allowed_when_no_linked_tx(self):
+./tests/integration/test_account_move_transaction_link.py:272:class TestAccountMoveCreditNoteGuard(PlasticosTestCase):
+./tests/integration/test_account_move_transaction_link.py:296:    def test_credit_note_blocked_for_closed_transaction(self):
+./tests/integration/test_account_move_transaction_link.py:342:class TestAccountMoveComplianceGate(PlasticosTestCase):
+./tests/integration/test_account_move_transaction_link.py:355:    def test_compliance_check_blocks_invoice_when_docs_missing(self):
+./tests/integration/test_compliance_service.py:20:class TestComplianceServiceExists(PlasticosTestCase):
+./tests/integration/test_compliance_service.py:36:    def test_model_exists(self):
+./tests/integration/test_compliance_service.py:40:    def test_is_compliant_method_exists(self):
+./tests/integration/test_compliance_service.py:47:    def test_is_compliant_signature(self):
+./tests/integration/test_compliance_service.py:62:class TestDocumentRuleModel(PlasticosTestCase):
+./tests/integration/test_compliance_service.py:65:    def test_document_rule_model_exists(self):
+./tests/integration/test_compliance_service.py:72:    def test_document_rule_has_required_fields(self):
+./tests/integration/test_compliance_service.py:86:class TestDocumentValidationMatrix(PlasticosTestCase):
+./tests/integration/test_compliance_service.py:89:    def test_validation_matrix_model_exists(self):
+./tests/integration/test_compliance_service.py:96:    def test_validation_matrix_has_key_fields(self):
+./tests/integration/test_compliance_service.py:106:class TestDocumentModel(PlasticosTestCase):
+./tests/integration/test_compliance_service.py:109:    def test_document_model_exists(self):
+./tests/integration/test_compliance_service.py:116:    def test_document_has_tag_ids(self):
+./tests/integration/test_compliance_service.py:123:    def test_document_has_transaction_link(self):
+./tests/integration/test_cron_idempotency.py:48:class TestCronIdempotency(PlasticosTestCase):
+./tests/integration/test_cron_idempotency.py:62:    def test_midnight_recompute_idempotent(self):
+./tests/integration/test_cron_idempotency.py:66:    def test_batch_normalize_idempotent(self):
+./tests/integration/test_cron_idempotency.py:70:    def test_geo_backfill_idempotent(self):
+./tests/integration/test_cron_idempotency.py:74:    def test_expire_offers_idempotent(self):
+./tests/integration/test_cron_idempotency.py:78:    def test_claim_cron_idempotent(self):
+./tests/integration/test_cron_idempotency.py:82:    def test_logistics_cron_idempotent(self):
+./tests/integration/test_cron_idempotency.py:86:    def test_enrichment_cron_idempotent(self):
+./tests/integration/test_cron_idempotency.py:90:    def test_graph_sync_cron_idempotent(self):
+./tests/integration/test_cron_idempotency.py:94:    def test_audit_cron_idempotent(self):
+./tests/integration/test_cron_idempotency.py:98:    def test_scale_ticket_cron_idempotent(self):
+./tests/integration/test_cron_idempotency.py:101:    def test_missing_docs_cron_idempotent(self):
+./tests/integration/test_cron_idempotency.py:105:    def test_contract_renewal_cron_idempotent(self):
+./tests/integration/test_cron_idempotency.py:108:    def test_invoice_reminder_cron_idempotent(self):
+./tests/integration/test_cron_idempotency.py:111:    def test_sale_approval_cron_idempotent(self):
+./tests/integration/test_cron_idempotency.py:116:class TestCronEmptyRecordset(PlasticosTestCase):
+./tests/integration/test_cron_idempotency.py:119:    def test_expire_offers_empty_db(self):
+./tests/integration/test_cron_idempotency.py:134:    def test_batch_normalize_empty_db(self):
+./tests/integration/test_graph_hooks_trigger.py:17:class TestGraphHookMethodsExist(PlasticosTestCase):
+./tests/integration/test_graph_hooks_trigger.py:27:    def test_intake_has_graph_hook_methods(self):
+./tests/integration/test_graph_hooks_trigger.py:43:    def test_facility_profile_has_graph_hooks(self):
+./tests/integration/test_graph_hooks_trigger.py:56:    def test_material_profile_has_graph_hooks(self):
+./tests/integration/test_graph_hooks_trigger.py:71:class TestGraphSyncLogModel(PlasticosTestCase):
+./tests/integration/test_graph_hooks_trigger.py:74:    def test_graph_sync_log_model_exists(self):
+./tests/integration/test_graph_hooks_trigger.py:80:    def test_graph_sync_log_has_required_fields(self):
+./tests/integration/test_intake_onchange_cascade.py:17:class TestIntakePartnerCascade(PlasticosTestCase):
+./tests/integration/test_intake_onchange_cascade.py:45:    def test_single_facility_auto_selected(self):
+./tests/integration/test_intake_onchange_cascade.py:52:    def test_standalone_company_is_own_facility(self):
+./tests/integration/test_intake_onchange_cascade.py:65:    def test_multiple_facilities_no_auto_select(self):
+./tests/integration/test_intake_onchange_cascade.py:80:    def test_single_contact_auto_selected(self):
+./tests/integration/test_intake_onchange_cascade.py:88:    def test_changing_partner_clears_downstream(self):
+./tests/integration/test_intake_onchange_cascade.py:106:class TestIntakeMaterialProfilePrefill(PlasticosTestCase):
+./tests/integration/test_intake_onchange_cascade.py:148:    def test_material_profile_prefills_polymer(self):
+./tests/integration/test_intake_onchange_cascade.py:157:    def test_material_profile_prefills_form(self):
+./tests/integration/test_intake_onchange_cascade.py:166:    def test_material_profile_prefills_quality_numerics(self):
+./tests/integration/test_match_result_guards.py:21:class TestMatchResultStateMachine(PlasticosTestCase):
+./tests/integration/test_match_result_guards.py:82:    def test_accept_from_pending_succeeds(self):
+./tests/integration/test_match_result_guards.py:89:    def test_accept_sets_reviewer_and_date(self):
+./tests/integration/test_match_result_guards.py:96:    def test_accept_from_accepted_raises(self):
+./tests/integration/test_match_result_guards.py:103:    def test_accept_from_rejected_raises(self):
+./tests/integration/test_match_result_guards.py:110:    def test_accept_from_expired_raises(self):
+./tests/integration/test_match_result_guards.py:117:    def test_reject_from_pending_succeeds(self):
+./tests/integration/test_match_result_guards.py:123:    def test_reject_sets_reviewer_and_date(self):
+./tests/integration/test_match_result_guards.py:130:    def test_reject_from_accepted_raises(self):
+./tests/integration/test_match_result_guards.py:138:    def test_state_selection_values_complete(self):
+./tests/integration/test_match_result_guards.py:146:    def test_score_range_constraint_lower(self):
+./tests/integration/test_match_result_guards.py:152:    def test_score_range_constraint_upper(self):
+./tests/integration/test_match_result_guards.py:158:    def test_confidence_range_constraint(self):
+./tests/integration/test_match_result_guards.py:163:    def test_uniqueness_constraint(self):
+./tests/integration/test_match_result_guards.py:171:    def test_display_name_format(self):
+./tests/integration/test_offer_state_machine.py:28:class TestOfferStateMachine(PlasticosTestCase):
+./tests/integration/test_offer_state_machine.py:89:    def test_happy_path_full_lifecycle(self):
+./tests/integration/test_offer_state_machine.py:105:    def test_accept_from_sent_succeeds(self):
+./tests/integration/test_offer_state_machine.py:114:    def test_accept_from_draft_raises(self):
+./tests/integration/test_offer_state_machine.py:120:    def test_accept_from_rejected_raises(self):
+./tests/integration/test_offer_state_machine.py:128:    def test_accept_from_expired_raises(self):
+./tests/integration/test_offer_state_machine.py:134:    def test_accept_from_cancelled_raises(self):
+./tests/integration/test_offer_state_machine.py:142:    def test_send_from_sent_raises(self):
+./tests/integration/test_offer_state_machine.py:150:    def test_respond_from_draft_raises(self):
+./tests/integration/test_offer_state_machine.py:157:    def test_reject_from_accepted_raises(self):
+./tests/integration/test_offer_state_machine.py:165:    def test_reject_from_cancelled_raises(self):
+./tests/integration/test_offer_state_machine.py:172:    def test_reject_from_expired_raises(self):
+./tests/integration/test_offer_state_machine.py:179:    def test_cancel_from_accepted_raises(self):
+./tests/integration/test_offer_state_machine.py:188:    def test_reset_from_draft_raises(self):
+./tests/integration/test_offer_state_machine.py:194:    def test_reset_from_rejected_succeeds(self):
+./tests/integration/test_offer_state_machine.py:202:    def test_reset_from_cancelled_succeeds(self):
+./tests/integration/test_offer_state_machine.py:211:class TestOfferComputed(PlasticosTestCase):
+./tests/integration/test_offer_state_machine.py:247:    def test_total_value_computation(self):
+./tests/integration/test_offer_state_machine.py:260:    def test_total_value_zero_when_no_price(self):
+./tests/integration/test_offer_state_machine.py:273:    def test_days_until_expiry_positive(self):
+./tests/integration/test_offer_state_machine.py:285:    def test_days_until_expiry_negative_when_past(self):
+./tests/integration/test_offer_state_machine.py:297:    def test_sequence_generation(self):
+./tests/integration/test_offer_state_machine.py:311:class TestOfferCronExpiry(PlasticosTestCase):
+./tests/integration/test_offer_state_machine.py:347:    def test_cron_expires_past_due_offers(self):
+./tests/integration/test_offer_state_machine.py:362:    def test_cron_does_not_expire_accepted(self):
+./tests/integration/test_offer_state_machine.py:378:    def test_cron_idempotent_on_rerun(self):
+./tests/integration/test_polymer_product_sync.py:17:class TestProductBridgeWiring(PlasticosTestCase):
+./tests/integration/test_polymer_product_sync.py:20:    def test_product_template_model_accessible(self):
+./tests/integration/test_polymer_product_sync.py:23:    def test_plasticos_product_categories_seeded(self):
+./tests/integration/test_polymer_product_sync.py:36:    def test_product_data_seeded(self):
+./tests/integration/test_polymer_product_sync.py:49:class TestPolymerProductSync(PlasticosTestCase):
+./tests/integration/test_polymer_product_sync.py:65:    def test_polymer_model_has_product_link(self):
+./tests/integration/test_polymer_product_sync.py:74:    def test_polymer_create_generates_product(self):
+./tests/integration/test_sale_order_transaction_autocreate.py:18:class TestSaleOrderTransactionBridge(PlasticosTestCase):
+./tests/integration/test_sale_order_transaction_autocreate.py:40:    def test_sale_order_has_transaction_id_field(self):
+./tests/integration/test_sale_order_transaction_autocreate.py:49:    def test_sale_order_transaction_id_targets_transaction(self):
+./tests/integration/test_sale_order_transaction_autocreate.py:56:    def test_transaction_has_sale_order_link(self):
+./tests/integration/test_sale_order_transaction_autocreate.py:65:class TestSaleConfirmTransactionCreation(PlasticosTestCase):
+./tests/integration/test_sale_order_transaction_autocreate.py:116:    def test_confirm_creates_transaction(self):
+./tests/integration/test_write_unlink_guards.py:18:class TestIntakeWriteGuards(PlasticosTestCase):
+./tests/integration/test_write_unlink_guards.py:40:    def test_reset_to_draft_blocked_on_won(self):
+./tests/integration/test_write_unlink_guards.py:46:    def test_action_send_offer_only_from_matched(self):
+./tests/integration/test_write_unlink_guards.py:51:    def test_action_mark_processing_only_from_offer_sent(self):
+./tests/integration/test_write_unlink_guards.py:56:    def test_action_mark_won_only_from_offer_sent_or_processing(self):
+./tests/integration/test_write_unlink_guards.py:61:    def test_action_make_po_requires_partner(self):
+./tests/integration/test_write_unlink_guards.py:72:    def test_action_match_to_buyers_raises_without_engine(self):
+./tests/integration/test_write_unlink_guards.py:85:class TestOfferWriteGuards(PlasticosTestCase):
+./tests/integration/test_write_unlink_guards.py:124:    def test_cancel_blocked_on_accepted_offer(self):
+./tests/integration/test_write_unlink_guards.py:132:    def test_send_blocked_on_non_draft(self):
+./tests/test_action_methods.py:28:class TestIntakeActions(PlasticosTestCase):
+./tests/test_action_methods.py:49:    def test_action_confirm_draft_to_confirmed(self):
+./tests/test_action_methods.py:54:    def test_action_confirm_posts_message(self):
+./tests/test_action_methods.py:59:    def test_action_confirm_not_draft_raises(self):
+./tests/test_action_methods.py:70:    def test_action_cancel_sets_cancelled(self):
+./tests/test_action_methods.py:75:    def test_action_cancel_posts_message(self):
+./tests/test_action_methods.py:82:    def test_action_archive_sets_inactive(self):
+./tests/test_action_methods.py:88:    def test_action_reset_to_draft(self):
+./tests/test_action_methods.py:96:    def test_action_normalize(self):
+./tests/test_action_methods.py:103:    def test_action_match_to_buyers_creates_partner(self):
+./tests/test_action_methods.py:111:    def test_action_view_match_results_returns_action(self):
+./tests/test_action_methods.py:117:    def test_action_view_offers_returns_action(self):
+./tests/test_action_methods.py:124:    def test_action_view_transactions_returns_action(self):
+./tests/test_action_methods.py:131:    def test_action_view_loads_returns_action(self):
+./tests/test_action_methods.py:138:    def test_action_open_partner_returns_action(self):
+./tests/test_action_methods.py:149:class TestLoadActions(PlasticosTestCase):
+./tests/test_action_methods.py:163:    def test_action_confirm_ready(self):
+./tests/test_action_methods.py:169:    def test_action_dispatch(self):
+./tests/test_action_methods.py:175:    def test_action_deliver(self):
+./tests/test_action_methods.py:181:    def test_action_cancel_from_draft(self):
+./tests/test_action_methods.py:187:    def test_action_cancel_from_delivered_raises(self):
+./tests/test_action_methods.py:193:    def test_action_schedule(self):
+./tests/test_action_methods.py:199:    def test_action_confirm_rate(self):
+./tests/test_action_methods.py:205:    def test_action_close(self):
+./tests/test_action_methods.py:211:    def test_state_posts_message(self):
+./tests/test_action_methods.py:218:    def test_action_view_transaction(self):
+./tests/test_action_methods.py:229:class TestOfferActions(PlasticosTestCase):
+./tests/test_action_methods.py:244:    def test_action_send_sets_sent(self):
+./tests/test_action_methods.py:250:    def test_action_accept(self):
+./tests/test_action_methods.py:256:    def test_action_reject(self):
+./tests/test_action_methods.py:262:    def test_action_accept_creates_transaction(self):
+./tests/test_action_methods.py:269:    def test_action_expire(self):
+./tests/test_action_methods.py:275:    def test_action_cancel(self):
+./tests/test_action_methods.py:281:    def test_action_resend(self):
+./tests/test_action_methods.py:287:    def test_action_view_intake(self):
+./tests/test_action_methods.py:293:    def test_action_view_transaction(self):
+./tests/test_action_methods.py:304:class TestClaimActions(PlasticosTestCase):
+./tests/test_action_methods.py:324:    def test_action_investigate(self):
+./tests/test_action_methods.py:330:    def test_action_resolve(self):
+./tests/test_action_methods.py:336:    def test_action_close(self):
+./tests/test_action_methods.py:342:    def test_action_reopen(self):
+./tests/test_action_methods.py:348:    def test_action_escalate(self):
+./tests/test_action_methods.py:354:    def test_action_close_from_open_raises(self):
+./tests/test_action_methods.py:360:    def test_resolve_posts_message(self):
+./tests/test_action_methods.py:371:class TestWebLeadActions(PlasticosTestCase):
+./tests/test_action_methods.py:392:    def test_action_retry_processing_only_error(self):
+./tests/test_action_methods.py:397:    def test_action_retry_processing_from_error(self):
+./tests/test_action_methods.py:401:    def test_action_force_create_intake(self):
+./tests/test_action_methods.py:407:    def test_action_force_create_intake_already_exists_raises(self):
+./tests/test_action_methods.py:413:    def test_action_retry_triage(self):
+./tests/test_action_methods.py:418:    def test_action_retry_triage_wrong_state_raises(self):
+./tests/test_action_methods.py:423:    def test_action_force_hot(self):
+./tests/test_action_methods.py:429:    def test_action_view_intake(self):
+./tests/test_action_methods.py:435:    def test_action_view_partner_no_partner(self):
+./tests/test_action_methods.py:445:class TestCrmLeadActions(PlasticosTestCase):
+./tests/test_action_methods.py:465:    def test_action_convert_to_intake_creates_intake(self):
+./tests/test_action_methods.py:471:    def test_action_convert_creates_partner_if_missing(self):
+./tests/test_action_methods.py:476:    def test_action_convert_moves_stage(self):
+./tests/test_action_methods.py:483:    def test_action_convert_posts_message(self):
+./tests/test_action_methods.py:489:    def test_action_view_intakes(self):
+./tests/test_action_methods.py:494:    def test_action_view_web_leads(self):
+./tests/test_action_methods.py:499:    def test_action_view_material_profiles(self):
+./tests/test_action_methods.py:504:    def test_action_view_match_results(self):
+./tests/test_action_methods.py:509:    def test_action_view_transactions(self):
+./tests/test_action_methods.py:514:    def test_computed_fields(self):
+./tests/test_action_methods.py:520:    def test_profile_summary_no_partner(self):
+./tests/test_action_methods.py:530:class TestEnrichmentRunActions(PlasticosTestCase):
+./tests/test_action_methods.py:544:    def test_action_execute(self):
+./tests/test_action_methods.py:550:    def test_action_inject(self):
+./tests/test_action_methods.py:555:    def test_action_run_inference(self):
+./tests/test_action_methods.py:561:    def test_action_retry_from_error(self):
+./tests/test_action_methods.py:567:    def test_action_cancel(self):
+./tests/test_action_methods.py:578:class TestMaterialProfileActions(PlasticosTestCase):
+./tests/test_action_methods.py:593:    def test_action_archive(self):
+./tests/test_action_methods.py:598:    def test_action_unarchive(self):
+./tests/test_action_methods.py:604:    def test_action_view_match_results(self):
+./tests/test_action_methods.py:610:    def test_action_view_transactions(self):
+./tests/test_action_methods.py:616:    def test_action_run_matching(self):
+./tests/test_action_methods.py:622:    def test_action_refresh_scores(self):
+./tests/test_action_methods.py:632:class TestTransactionActions(PlasticosTestCase):
+./tests/test_action_methods.py:646:    def test_action_confirm(self):
+./tests/test_action_methods.py:652:    def test_action_cancel(self):
+./tests/test_action_methods.py:658:    def test_action_complete(self):
+./tests/test_action_methods.py:664:    def test_action_view_loads(self):
+./tests/test_bridge_contracts.py:21:    def test_model_exists(self):
+./tests/test_bridge_contracts.py:25:    def test_intake_has_transaction_ids_one2many(self):
+./tests/test_bridge_contracts.py:52:class TestIntakeModelContract(PlasticosTestCase):
+./tests/test_bridge_contracts.py:65:    def test_intake_has_partner_id_many2one(self):
+./tests/test_bridge_contracts.py:72:    def test_intake_has_polymer_id_many2one(self):
+./tests/test_bridge_contracts.py:79:    def test_intake_has_form_id_many2one(self):
+./tests/test_bridge_contracts.py:86:    def test_intake_has_state_selection(self):
+./tests/test_bridge_contracts.py:92:    def test_intake_state_has_required_values(self):
+./tests/test_bridge_contracts.py:101:    def test_intake_has_quantity_per_load_lbs(self):
+./tests/test_bridge_contracts.py:107:    def test_intake_has_crm_lead_id(self):
+./tests/test_bridge_contracts.py:116:    def test_intake_has_transaction_ids_one2many(self):
+./tests/test_bridge_contracts.py:124:    def test_intake_has_transaction_count_computed(self):
+./tests/test_bridge_contracts.py:131:    def test_intake_has_action_view_transactions(self):
+./tests/test_bridge_contracts.py:144:    def test_intake_has_offer_ids_one2many(self):
+./tests/test_bridge_contracts.py:151:    def test_intake_has_offer_count_computed(self):
+./tests/test_bridge_contracts.py:157:    def test_intake_has_action_view_offers(self):
+./tests/test_bridge_contracts.py:166:    def test_intake_has_normalized_boolean(self):
+./tests/test_bridge_contracts.py:172:    def test_intake_has_match_status_selection(self):
+./tests/test_bridge_contracts.py:178:    def test_intake_match_status_has_required_values(self):
+./tests/test_bridge_contracts.py:188:    def test_intake_has_packet_fields(self):
+./tests/test_bridge_contracts.py:194:    def test_intake_has_action_normalize(self):
+./tests/test_bridge_contracts.py:201:    def test_intake_has_cron_batch_normalize(self):
+./tests/test_bridge_contracts.py:210:    def test_intake_has_lat_lon_fields(self):
+./tests/test_bridge_contracts.py:219:    def test_intake_has_match_result_ids(self):
+./tests/test_bridge_contracts.py:239:class TestTransactionModelContract(PlasticosTestCase):
+./tests/test_bridge_contracts.py:252:    def test_transaction_has_intake_id(self):
+./tests/test_bridge_contracts.py:259:    def test_transaction_has_offer_id(self):
+./tests/test_bridge_contracts.py:266:    def test_transaction_has_supplier_and_buyer(self):
+./tests/test_bridge_contracts.py:274:    def test_transaction_has_state_selection(self):
+./tests/test_bridge_contracts.py:282:    def test_transaction_has_claim_ids_one2many(self):
+./tests/test_bridge_contracts.py:290:    def test_transaction_has_claim_count_computed_stored(self):
+./tests/test_bridge_contracts.py:297:    def test_transaction_has_has_quality_claim_computed(self):
+./tests/test_bridge_contracts.py:304:    def test_transaction_has_action_view_claims(self):
+./tests/test_bridge_contracts.py:313:    def test_transaction_has_load_ids(self):
+./tests/test_bridge_contracts.py:322:    def test_transaction_has_document_ids(self):
+./tests/test_bridge_contracts.py:338:class TestPartnerModelContract(PlasticosTestCase):
+./tests/test_bridge_contracts.py:349:    def test_partner_has_intake_count(self):
+./tests/test_bridge_contracts.py:356:    def test_partner_has_action_view_intakes(self):
+./tests/test_bridge_contracts.py:363:    def test_partner_has_action_create_intake(self):
+./tests/test_bridge_contracts.py:372:    def test_partner_has_transaction_as_supplier_ids(self):
+./tests/test_bridge_contracts.py:379:    def test_partner_has_transaction_as_buyer_ids(self):
+./tests/test_bridge_contracts.py:385:    def test_partner_has_plasticos_transaction_count(self):
+./tests/test_bridge_contracts.py:391:    def test_partner_has_action_view_plasticos_transactions(self):
+./tests/test_bridge_contracts.py:400:    def test_partner_has_lat_lon_fields(self):
+./tests/test_bridge_contracts.py:410:    def test_partner_has_material_profile_ids(self):
+./tests/test_bridge_contracts.py:420:    def test_partner_has_facility_profile_ids(self):
+./tests/test_bridge_contracts.py:436:class TestCrmLeadModelContract(PlasticosTestCase):
+./tests/test_bridge_contracts.py:449:    def test_lead_has_web_lead_ids(self):
+./tests/test_bridge_contracts.py:456:    def test_lead_has_web_lead_count(self):
+./tests/test_bridge_contracts.py:464:    def test_lead_has_intake_ids(self):
+./tests/test_bridge_contracts.py:472:    def test_lead_has_intake_count(self):
+./tests/test_bridge_contracts.py:480:    def test_lead_has_profile_summary_fields(self):
+./tests/test_bridge_contracts.py:494:    def test_lead_has_action_convert_to_intake(self):
+./tests/test_bridge_contracts.py:501:    def test_action_convert_to_intake_returns_action(self):
+./tests/test_bridge_contracts.py:516:    def test_lead_has_action_view_intakes(self):
+./tests/test_bridge_contracts.py:520:    def test_lead_has_action_view_web_leads(self):
+./tests/test_bridge_contracts.py:524:    def test_lead_has_action_view_material_profiles(self):
+./tests/test_bridge_contracts.py:528:    def test_lead_has_action_view_match_results(self):
+./tests/test_bridge_contracts.py:532:    def test_lead_has_action_view_transactions(self):
+./tests/test_bridge_contracts.py:543:class TestClaimModelContract(PlasticosTestCase):
+./tests/test_bridge_contracts.py:554:    def test_claim_has_transaction_id(self):
+./tests/test_bridge_contracts.py:561:    def test_claim_has_state_selection(self):
+./tests/test_bridge_contracts.py:567:    def test_claim_state_has_required_values(self):
+./tests/test_bridge_contracts.py:576:    def test_claim_has_case_type_selection(self):
+./tests/test_bridge_contracts.py:582:    def test_claim_case_type_has_required_values(self):
+./tests/test_bridge_contracts.py:591:    def test_claim_has_recovery_amount(self):
+./tests/test_bridge_contracts.py:604:class TestOfferModelContract(PlasticosTestCase):
+./tests/test_bridge_contracts.py:615:    def test_offer_has_intake_id(self):
+./tests/test_bridge_contracts.py:622:    def test_offer_has_transaction_id(self):
+./tests/test_bridge_contracts.py:629:    def test_offer_has_buyer_partner_id(self):
+./tests/test_bridge_contracts.py:636:    def test_offer_has_state_selection(self):
+./tests/test_bridge_contracts.py:642:    def test_offer_state_has_required_values(self):
+./tests/test_bridge_contracts.py:650:    def test_offer_has_action_accept(self):
+./tests/test_bridge_contracts.py:657:    def test_offer_has_action_send(self):
+./tests/test_bridge_contracts.py:661:    def test_offer_has_action_reject(self):
+./tests/test_bridge_contracts.py:672:class TestLoadModelContract(PlasticosTestCase):
+./tests/test_bridge_contracts.py:683:    def test_load_has_transaction_id(self):
+./tests/test_bridge_contracts.py:690:    def test_load_has_state_selection(self):
+./tests/test_bridge_contracts.py:696:    def test_load_state_has_required_values(self):
+./tests/test_bridge_contracts.py:704:    def test_load_has_logistics_actions(self):
+./tests/test_bridge_contracts.py:720:    def test_load_has_document_ids(self):
+./tests/test_bridge_contracts.py:727:    def test_load_has_bol_attachment_id(self):
+./tests/test_bridge_models.py:24:class TestOfferBridge(PlasticosTestCase):
+./tests/test_bridge_models.py:51:    def test_offer_accept_creates_transaction(self):
+./tests/test_bridge_models.py:60:    def test_transaction_links_back_to_offer(self):
+./tests/test_bridge_models.py:70:    def test_offer_reject_no_transaction(self):
+./tests/test_bridge_models.py:82:class TestIntakeBridge(PlasticosTestCase):
+./tests/test_bridge_models.py:90:    def test_intake_has_transaction_ids(self):
+./tests/test_bridge_models.py:102:    def test_transaction_links_to_intake(self):
+./tests/test_bridge_models.py:116:    def test_intake_transaction_count(self):
+./tests/test_bridge_models.py:133:class TestMatchResultBridge(PlasticosTestCase):
+./tests/test_bridge_models.py:141:    def test_match_result_has_offer_link(self):
+./tests/test_bridge_models.py:146:    def test_match_result_has_transaction_link(self):
+./tests/test_bridge_models.py:151:    def test_match_result_computed_counts(self):
+./tests/test_bridge_models.py:161:class TestTransactionDocsBridge(PlasticosTestCase):
+./tests/test_bridge_models.py:169:    def test_transaction_has_document_ids(self):
+./tests/test_bridge_models.py:175:    def test_document_links_to_transaction(self):
+./tests/test_bridge_models.py:180:    def test_document_count_computed(self):
+./tests/test_bridge_models.py:191:class TestLoadDocsBridge(PlasticosTestCase):
+./tests/test_bridge_models.py:199:    def test_load_has_document_ids(self):
+./tests/test_bridge_models.py:205:    def test_bol_attachment(self):
+./tests/test_bridge_models.py:215:class TestTransactionClaimsBridge(PlasticosTestCase):
+./tests/test_bridge_models.py:223:    def test_transaction_has_claim_ids(self):
+./tests/test_bridge_models.py:229:    def test_claim_links_to_transaction(self):
+./tests/test_bridge_models.py:234:    def test_claim_count_computed(self):
+./tests/test_bridge_models.py:245:class TestPartnerBridge(PlasticosTestCase):
+./tests/test_bridge_models.py:252:    def test_partner_has_intake_ids(self):
+./tests/test_bridge_models.py:256:    def test_partner_has_transaction_count(self):
+./tests/test_bridge_models.py:260:    def test_partner_has_material_profile_ids(self):
+./tests/test_bridge_models.py:264:    def test_partner_supplier_rank_from_intake(self):
+./tests/test_bridge_models.py:273:    def test_partner_intake_count_computed(self):
+./tests/test_ci_check_odoo19_xml.py:21:class TestCheckViewXmlFile(unittest.TestCase):
+./tests/test_ci_check_odoo19_xml.py:35:    def test_tree_tag_detected(self):
+./tests/test_ci_check_odoo19_xml.py:63:    def test_tree_tag_not_detected_in_comment(self):
+./tests/test_ci_check_odoo19_xml.py:79:    def test_list_tag_no_error(self):
+./tests/test_ci_check_odoo19_xml.py:102:    def test_alert_without_role_detected(self):
+./tests/test_ci_check_odoo19_xml.py:130:    def test_alert_with_role_no_error(self):
+./tests/test_ci_check_odoo19_xml.py:149:    def test_alert_with_role_in_context_no_error(self):
+./tests/test_ci_check_odoo19_xml.py:175:    def test_active_id_in_context_detected(self):
+./tests/test_ci_check_odoo19_xml.py:211:    def test_active_id_without_context_equals_not_detected(self):
+./tests/test_ci_check_odoo19_xml.py:232:    def test_id_in_context_no_error(self):
+./tests/test_ci_check_odoo19_xml.py:251:    def test_view_mode_tree_detected(self):
+./tests/test_ci_check_odoo19_xml.py:272:    def test_view_mode_list_no_error(self):
+./tests/test_ci_check_odoo19_xml.py:291:    def test_multiple_errors_in_single_file(self):
+./tests/test_ci_check_odoo19_xml.py:334:    def test_error_dict_has_all_required_keys(self):
+./tests/test_ci_check_odoo19_xml.py:354:    def test_error_dict_types(self):
+./tests/test_ci_check_odoo19_xml.py:374:class TestCheckDataXmlFile(unittest.TestCase):
+./tests/test_ci_check_odoo19_xml.py:384:    def test_view_mode_tree_in_data_file(self):
+./tests/test_ci_check_odoo19_xml.py:405:    def test_data_file_only_checks_view_mode(self):
+./tests/test_ci_check_odoo19_xml.py:422:class TestCheckXmlPatterns(unittest.TestCase):
+./tests/test_ci_check_odoo19_xml.py:425:    def test_empty_directory_returns_empty_list(self):
+./tests/test_ci_check_odoo19_xml.py:431:    def test_clean_files_return_empty_list(self):
+./tests/test_ci_check_odoo19_xml.py:453:class TestEdgeCases(unittest.TestCase):
+./tests/test_ci_check_odoo19_xml.py:462:    def test_empty_file(self):
+./tests/test_ci_check_odoo19_xml.py:471:    def test_nonexistent_file(self):
+./tests/test_ci_check_odoo19_xml.py:476:    def test_line_numbers_are_1_indexed(self):
+./tests/test_ci_check_odoo19_xml.py:487:    def test_tree_word_boundary(self):
+./tests/test_constraint_validation.py:17:class TestConstraintValidation(PlasticosTestCase):
+./tests/test_constraint_validation.py:48:    def test_commission_rule_above_one_rejected(self):
+./tests/test_constraint_validation.py:59:    def test_commission_rule_negative_rejected(self):
+./tests/test_constraint_validation.py:72:    def test_document_matrix_duplicate_category_tag_rejected(self):
+./tests/test_constraint_validation.py:91:    def test_document_matrix_different_category_same_tag_accepted(self):
+./tests/test_constraint_validation.py:119:    def test_match_exclusion_same_partner_rejected(self):
+./tests/test_constraint_validation.py:134:    def test_match_exclusion_different_partners_accepted(self):
+./tests/test_constraint_validation.py:151:    def test_claim_resolve_without_note_raises(self):
+./tests/test_constraint_validation.py:165:    def test_claim_resolve_with_note_succeeds(self):
+./tests/test_constraints_material_profile.py:20:class TestMaterialProfileConstraintsConsolidated(PlasticosTestCase):
+./tests/test_constraints_material_profile.py:37:    def test_unique_polymer_form_partner(self):
+./tests/test_constraints_material_profile.py:55:    def test_density_bounds(self):
+./tests/test_constraints_onchanges.py:13:class TestTransactionConstraintsConsolidated(PlasticosTestCase):
+./tests/test_constraints_onchanges.py:25:    def test_commission_override_valid_50(self):
+./tests/test_constraints_onchanges.py:30:    def test_commission_override_boundary_0(self):
+./tests/test_constraints_onchanges.py:34:    def test_commission_override_boundary_100(self):
+./tests/test_constraints_onchanges.py:38:    def test_commission_override_negative_rejected(self):
+./tests/test_constraints_onchanges.py:43:    def test_commission_override_over_100_rejected(self):
+./tests/test_constraints_onchanges.py:48:    def test_unlink_with_invoice_blocked(self):
+./tests/test_constraints_onchanges.py:63:    def test_unlink_closed_blocked(self):
+./tests/test_constraints_onchanges.py:72:class TestIntakeConstraintsConsolidated(PlasticosTestCase):
+./tests/test_constraints_onchanges.py:83:    def test_quantity_zero_rejected(self):
+./tests/test_constraints_onchanges.py:87:    def test_quantity_negative_rejected(self):
+./tests/test_constraints_onchanges.py:91:    def test_quantity_valid(self):
+./tests/test_constraints_onchanges.py:94:    def test_loads_per_month_negative_rejected(self):
+./tests/test_constraints_onchanges.py:98:    def test_loads_per_month_zero_valid(self):
+./tests/test_constraints_onchanges.py:103:class TestIntakeOnchangesConsolidated(PlasticosTestCase):
+./tests/test_constraints_onchanges.py:117:    def test_onchange_partner_does_not_crash(self):
+./tests/test_constraints_onchanges.py:124:    def test_onchange_contact_does_not_crash(self):
+./tests/test_constraints_onchanges.py:132:class TestClaimConstraintsConsolidated(PlasticosTestCase):
+./tests/test_constraints_onchanges.py:147:    def test_resolved_without_note_raises(self):
+./tests/test_constraints_onchanges.py:153:    def test_resolved_with_note_ok(self):
+./tests/test_constraints_onchanges.py:161:class TestTransactionComputesConsolidated(PlasticosTestCase):
+./tests/test_constraints_onchanges.py:172:    def test_weight_variance_zero_no_crash(self):
+./tests/test_constraints_onchanges.py:176:    def test_weight_source_scale_priority(self):
+./tests/test_constraints_onchanges.py:180:    def test_weight_source_buyer_fallback(self):
+./tests/test_constraints_onchanges.py:184:    def test_weight_source_supplier_fallback(self):
+./tests/test_constraints_onchanges.py:188:    def test_weight_source_none(self):
+./tests/test_constraints_onchanges.py:192:    def test_tare_auto_set_by_unit_type(self):
+./tests/test_constraints_onchanges.py:196:    def test_total_tare_calculation(self):
+./tests/test_constraints_onchanges.py:200:    def test_final_weight_net_of_tare(self):
+./tests/test_constraints_onchanges.py:204:    def test_discrepancy_flags_above_5pct(self):
+./tests/test_constraints_onchanges.py:208:    def test_discrepancy_within_threshold(self):
+./tests/test_constraints_onchanges.py:212:    def test_light_weight_deduction_below_min(self):
+./tests/test_constraints_onchanges.py:217:    def test_light_weight_deduction_above_min(self):
+./tests/test_cron_batch_normalize.py:12:class TestBatchNormalizeCron(PlasticosTestCase):
+./tests/test_cron_batch_normalize.py:42:    def test_pending_intake_normalized(self):
+./tests/test_cron_batch_normalize.py:49:    def test_packet_fields_populated(self):
+./tests/test_cron_batch_normalize.py:58:    def test_idempotency_already_normalized(self):
+./tests/test_cron_batch_normalize.py:65:    def test_validation_error_sets_error_status(self):
+./tests/test_cron_batch_normalize.py:79:    def test_unexpected_exception_handled(self):
+./tests/test_cron_batch_normalize.py:86:    def test_batch_limit_from_config(self):
+./tests/test_cron_batch_normalize.py:97:    def test_advisory_lock_skip(self):
+./tests/test_cron_batch_normalize.py:102:    def test_creates_automation_log(self):
+./tests/test_cron_batch_normalize.py:108:    def test_normalization_warnings_stored(self):
+./tests/test_cron_batch_normalize.py:115:    def test_order_by_create_date(self):
+./tests/test_cron_invariants.py:10:def test_cron_invariants():
+./tests/test_cron_plasticos_base.py:17:class TestMidnightRecompute(PlasticosTestCase):
+./tests/test_cron_plasticos_base.py:26:    def test_lock_acquired_runs_full(self):
+./tests/test_cron_plasticos_base.py:36:    def test_lock_already_held_skips(self):
+./tests/test_cron_plasticos_base.py:45:    def test_lock_released_on_exception(self):
+./tests/test_cron_plasticos_base.py:55:    def test_recompute_newly_expired_documents(self):
+./tests/test_cron_plasticos_base.py:70:    def test_recompute_incorrectly_expired_documents(self):
+./tests/test_cron_plasticos_base.py:85:    def test_recompute_skips_missing_document_model(self):
+./tests/test_cron_plasticos_base.py:90:    def test_recompute_limit_1000_documents(self):
+./tests/test_cron_plasticos_base.py:104:    def test_recompute_claim_days_open(self):
+./tests/test_cron_plasticos_base.py:122:    def test_recompute_claim_is_overdue(self):
+./tests/test_cron_plasticos_base.py:139:    def test_recompute_skips_resolved_claims(self):
+./tests/test_cron_plasticos_base.py:151:    def test_recompute_skips_missing_claim_model(self):
+./tests/test_cron_plasticos_base.py:160:class TestAttachmentMaintenance(PlasticosTestCase):
+./tests/test_cron_plasticos_base.py:168:    def test_lock_acquired_runs_cleanup(self):
+./tests/test_cron_plasticos_base.py:174:    def test_lock_already_held_skips(self):
+./tests/test_cron_plasticos_base.py:180:    def test_missing_data_dir_skips(self):
+./tests/test_cron_plasticos_base.py:186:    def test_orphan_detection_and_deletion(self):
+./tests/test_cron_plasticos_base.py:200:    def test_existing_blobs_not_deleted(self):
+./tests/test_cron_plasticos_base.py:213:    def test_cleanup_limit_2000(self):
+./tests/test_cron_plasticos_base.py:227:    def test_lock_released_on_exception(self):
+./tests/test_cron_runtime.py:47:class TestCronMethodsExist(PlasticosTestCase):
+./tests/test_cron_runtime.py:50:    def test_all_cron_methods_resolvable(self):
+./tests/test_cron_runtime.py:69:class TestCronEmptyDataset(PlasticosTestCase):
+./tests/test_cron_runtime.py:85:    def test_load_sla_check_empty(self):
+./tests/test_cron_runtime.py:89:    def test_stock_alert_empty(self):
+./tests/test_cron_runtime.py:93:    def test_enrichment_pending_empty(self):
+./tests/test_cron_runtime.py:101:    def test_claim_escalation_empty(self):
+./tests/test_cron_runtime.py:105:    def test_transaction_audit_empty(self):
+./tests/test_cron_runtime.py:109:    def test_missing_docs_check_empty(self):
+./tests/test_cron_runtime.py:113:    def test_geo_backfill_empty(self):
+./tests/test_cron_runtime.py:119:class TestCronXmlIntegrity(PlasticosTestCase):
+./tests/test_cron_runtime.py:122:    def test_all_cron_records_have_model(self):
+./tests/test_cron_runtime.py:140:    def test_all_cron_records_have_user(self):
+./tests/test_cypher_schema_alignment.py:229:class TestDeprecatedFieldUsage:
+./tests/test_cypher_schema_alignment.py:237:    def test_no_deprecated_fields_in_cypher(self, cypher_files, deprecated_field, replacement_info):
+./tests/test_cypher_schema_alignment.py:270:class TestCypherParamAlignment:
+./tests/test_cypher_schema_alignment.py:277:    def test_cypher_params_have_python_source(self, graph_files):
+./tests/test_cypher_schema_alignment.py:319:class TestNodePropertyConsistency:
+./tests/test_cypher_schema_alignment.py:326:    def test_queried_properties_are_synced(self, graph_files):
+./tests/test_cypher_schema_alignment.py:390:class TestSchemaDocumentation:
+./tests/test_cypher_schema_alignment.py:393:    def test_graph_service_has_schema_comments(self):
+./tests/test_cypher_schema_alignment.py:426:class TestIntakeCypherMapping:
+./tests/test_cypher_schema_alignment.py:429:    def test_intake_to_match_params_alignment(self):
+./tests/test_depends_transaction_claims_bridge.py:6:class TestTransactionClaimsBridgeDepends(PlasticosTestCase):
+./tests/test_depends_transaction_claims_bridge.py:33:    def test_claim_percent_of_revenue(self):
+./tests/test_depends_transaction_claims_bridge.py:42:    def test_residual_margin_after_claim(self):
+./tests/test_error_handling.py:35:class TestAPIFailures(PlasticosTestCase):
+./tests/test_error_handling.py:38:    def test_neo4j_unavailable_graceful(self):
+./tests/test_error_handling.py:45:    def test_neo4j_execute_cypher_query_raises_usererror(self):
+./tests/test_error_handling.py:52:    def test_enrichment_api_failure_caught(self):
+./tests/test_error_handling.py:64:    def test_geo_backfill_api_timeout(self):
+./tests/test_error_handling.py:72:    def test_ai_normalize_failure_sets_error_state(self):
+./tests/test_error_handling.py:99:class TestInvalidData(PlasticosTestCase):
+./tests/test_error_handling.py:102:    def test_intake_missing_required_fields(self):
+./tests/test_error_handling.py:109:    def test_web_lead_duplicate_lead_id(self):
+./tests/test_error_handling.py:129:    def test_web_lead_create_from_agent_missing_lead_id(self):
+./tests/test_error_handling.py:135:    def test_claim_invalid_state_transition(self):
+./tests/test_error_handling.py:151:    def test_offer_negative_price_rejected(self):
+./tests/test_error_handling.py:162:    def test_load_cancel_from_delivered_rejected(self):
+./tests/test_error_handling.py:170:    def test_safe_int_helper_handles_garbage(self):
+./tests/test_error_handling.py:183:class TestPermissionDenied(PlasticosTestCase):
+./tests/test_error_handling.py:186:    def test_non_admin_cannot_write_config(self):
+./tests/test_error_handling.py:197:    def test_non_admin_cannot_delete_intake(self):
+./tests/test_error_handling.py:216:class TestConcurrentEdits(PlasticosTestCase):
+./tests/test_error_handling.py:219:    def test_advisory_lock_prevents_double_cron(self):
+./tests/test_error_handling.py:228:    def test_idempotent_web_lead_creation(self):
+./tests/test_error_handling.py:245:class TestRollbackScenarios(PlasticosTestCase):
+./tests/test_error_handling.py:248:    def test_intake_creation_atomic(self):
+./tests/test_error_handling.py:264:    def test_web_lead_triage_error_state(self):
+./tests/test_gap_fixes.py:37:class TestSyncBatching:
+./tests/test_gap_fixes.py:56:    def test_sync_preferred_contact_batches_same_facility(self):
+./tests/test_gap_fixes.py:111:    def test_sync_lead_source_skips_partner_with_existing_source(self):
+./tests/test_gap_fixes.py:142:class TestRemovedOnchangeStubs:
+./tests/test_gap_fixes.py:145:    def test_no_onchange_contact_id_stub(self):
+./tests/test_gap_fixes.py:167:    def test_no_onchange_lead_source_id_stub(self):
+./tests/test_gap_fixes.py:195:class TestWebLeadControllerAuth:
+./tests/test_gap_fixes.py:219:    def test_missing_bearer_header_fails(self):
+./tests/test_gap_fixes.py:225:    def test_wrong_token_fails(self):
+./tests/test_gap_fixes.py:231:    def test_valid_token_succeeds(self):
+./tests/test_gap_fixes.py:237:    def test_disabled_endpoint_fails(self):
+./tests/test_gap_fixes.py:243:    def test_empty_token_fails(self):
+./tests/test_gap_fixes.py:255:class TestMatchingEngineIcp:
+./tests/test_gap_fixes.py:263:    def test_true_string_is_enabled(self):
+./tests/test_gap_fixes.py:266:    def test_false_string_is_disabled(self):
+./tests/test_gap_fixes.py:269:    def test_one_string_is_enabled(self):
+./tests/test_gap_fixes.py:272:    def test_zero_string_is_disabled(self):
+./tests/test_gap_fixes.py:275:    def test_empty_string_is_disabled(self):
+./tests/test_gap_fixes.py:278:    def test_yes_is_enabled(self):
+./tests/test_gap_fixes.py:281:    def test_on_is_enabled(self):
+./tests/test_gap_fixes.py:290:class TestRepPerformanceInit:
+./tests/test_gap_fixes.py:293:    def test_init_calls_drop_view_then_execute(self):
+./tests/test_gap_fixes.py:315:    def test_view_sql_contains_required_columns(self):
+./tests/test_gate_match_contract.py:91:def test_gate_matching_enabled_false_when_url_empty():
+./tests/test_gate_match_contract.py:96:def test_gate_matching_enabled_false_when_flag_off():
+./tests/test_gate_match_contract.py:106:def test_build_match_request_maps_intake_fields():
+./tests/test_gate_match_contract.py:123:def test_map_match_response_to_matcher_dicts():
+./tests/test_gate_match_contract.py:155:def test_extract_audit_metadata_reads_packet_header():
+./tests/test_gate_matcher_fallback.py:12:class TestGateMatcherFallback(PlasticosTestCase):
+./tests/test_gate_matcher_fallback.py:22:    def test_stub_runs_before_gate_and_returns_empty(self):
+./tests/test_gate_matcher_fallback.py:37:    def test_gate_disabled_uses_local_only(self):
+./tests/test_gate_matcher_fallback.py:67:    def test_gate_failure_falls_back_to_local(self):
+./tests/test_golden_flows.py:19:class TestGoldenLeadToDelivery(PlasticosTestCase):
+./tests/test_golden_flows.py:51:    def test_lead_to_delivery_golden_flow(self):
+./tests/test_golden_flows.py:121:    def test_lead_conversion_creates_partner_when_missing(self):
+./tests/test_golden_flows.py:135:    def test_intake_confirmation_posts_message(self):
+./tests/test_golden_flows.py:145:class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
+./tests/test_golden_flows.py:187:    def test_hot_lead_creates_intake_without_partner(self):
+./tests/test_golden_flows.py:200:    def test_duplicate_lead_id_is_idempotent(self):
+./tests/test_golden_flows.py:208:    def test_hot_lead_ai_analysis_fields_populated(self):
+./tests/test_golden_flows.py:221:class TestGoldenTransactionWithClaim(PlasticosTestCase):
+./tests/test_golden_flows.py:238:    def test_transaction_claim_full_lifecycle(self):
+./tests/test_golden_flows.py:266:    def test_claim_reopen_from_resolved(self):
+./tests/test_golden_flows.py:275:    def test_claim_posts_messages_on_transitions(self):
+./tests/test_golden_flows.py:287:class TestGoldenCommissionCalculation(PlasticosTestCase):
+./tests/test_golden_flows.py:310:    def test_commission_created_for_closed_deal(self):
+./tests/test_golden_flows.py:343:    def test_commission_calculation_accuracy(self):
+./tests/test_integration_flows.py:23:class TestLeadToIntakeToTransaction(PlasticosTestCase):
+./tests/test_integration_flows.py:32:    def test_full_lead_to_transaction_flow(self):
+./tests/test_integration_flows.py:53:    def test_lead_creates_partner_when_missing(self):
+./tests/test_integration_flows.py:71:class TestIntakeToMatchToOffer(PlasticosTestCase):
+./tests/test_integration_flows.py:81:    def test_intake_to_match_to_offer(self):
+./tests/test_integration_flows.py:118:class TestTransactionToLoadToDelivery(PlasticosTestCase):
+./tests/test_integration_flows.py:126:    def test_transaction_to_load_lifecycle(self):
+./tests/test_integration_flows.py:156:class TestClaimLifecycle(PlasticosTestCase):
+./tests/test_integration_flows.py:176:    def test_full_claim_lifecycle(self):
+./tests/test_integration_flows.py:189:    def test_claim_reopen_then_resolve(self):
+./tests/test_integration_flows.py:205:class TestPartnerEnrichmentToProfile(PlasticosTestCase):
+./tests/test_integration_flows.py:214:    def test_enrichment_creates_profile_data(self):
+./tests/test_integration_flows.py:224:    def test_material_profile_linked_to_partner(self):
+./tests/test_odoo19_compat.py:107:class TestOdoo19APICompat(unittest.TestCase):
+./tests/test_odoo19_compat.py:110:    def test_no_groups_id_singular(self):
+./tests/test_odoo19_compat.py:139:    def test_no_api_depends_id(self):
+./tests/test_odoo19_compat.py:150:    def test_no_deprecated_api_multi(self):
+./tests/test_odoo19_compat.py:162:    def test_no_deprecated_api_one(self):
+./tests/test_odoo19_compat.py:174:    def test_no_old_style_constraints(self):
+./tests/test_odoo19_compat.py:184:    def test_no_direct_sql_without_justification(self):
+./tests/test_odoo19_compat.py:212:class TestOdoo19XMLCompat(unittest.TestCase):
+./tests/test_odoo19_compat.py:215:    def test_no_category_id_in_groups(self):
+./tests/test_odoo19_compat.py:251:    def test_no_tree_view_type(self):
+./tests/test_odoo19_compat.py:268:    def test_xml_well_formed(self):
+./tests/test_odoo19_compat.py:280:    def test_no_duplicate_xml_ids(self):
+./tests/test_odoo_test_setup_validity.py:234:def test_odoo_test_setup_validity():
+./tests/test_onchange_purchase_order_line_plasticos.py:14:class TestPurchaseOrderLineOnchange(PlasticosTestCase):
+./tests/test_onchange_purchase_order_line_plasticos.py:34:    def test_onchange_product_sets_price(self):
+./tests/test_onchange_purchase_order_line_plasticos.py:45:    def test_onchange_qty_updates_subtotal(self):
+./tests/test_onchange_purchase_order_line_plasticos.py:57:    def test_onchange_product_handles_missing_order_gracefully(self):
+./tests/test_onchange_sale_order_line_plasticos.py:13:class TestSaleOrderLineOnchange(PlasticosTestCase):
+./tests/test_onchange_sale_order_line_plasticos.py:28:    def test_onchange_product_sets_price(self):
+./tests/test_onchange_sale_order_line_plasticos.py:39:    def test_onchange_qty_updates_subtotal(self):
+./tests/test_onchange_sale_order_line_plasticos.py:52:    def test_onchange_product_handles_no_product_gracefully(self):
+./tests/test_performance.py:21:class TestBulkImportPerformance(PlasticosTestCase):
+./tests/test_performance.py:29:    def test_bulk_create_100_intakes(self):
+./tests/test_performance.py:46:    def test_bulk_create_100_partners(self):
+./tests/test_performance.py:55:    def test_bulk_create_100_match_results(self):
+./tests/test_performance.py:84:class TestGraphSyncPerformance(PlasticosTestCase):
+./tests/test_performance.py:93:    def test_build_facility_payloads_under_5s(self):
+./tests/test_performance.py:99:    def test_build_material_payloads_under_5s(self):
+./tests/test_performance.py:106:class TestCronPerformance(PlasticosTestCase):
+./tests/test_performance.py:109:    def test_midnight_recompute_under_30s(self):
+./tests/test_performance.py:118:    def test_batch_normalize_under_30s(self):
+./tests/test_performance.py:127:class TestSearchPerformance(PlasticosTestCase):
+./tests/test_performance.py:135:    def test_partner_search_under_1s(self):
+./tests/test_performance.py:147:    def test_intake_complex_domain_under_2s(self):
+./tests/test_phantom_enum_values.py:1241:class TestRegistrySanity:
+./tests/test_phantom_enum_values.py:1244:    def test_selection_fields_found(self):
+./tests/test_phantom_enum_values.py:1247:    def test_xml_names_found(self):
+./tests/test_phantom_enum_values.py:1250:    def test_known_polymers_in_registry(self):
+./tests/test_phantom_enum_values.py:1255:    def test_known_forms_in_registry(self):
+./tests/test_phantom_enum_values.py:1259:    def test_known_selection_keys_in_registry(self):
+./tests/test_phantom_enum_values.py:1270:    def test_application_class_options(self):
+./tests/test_phantom_enum_values.py:1275:    def test_process_type_options(self):
+./tests/test_phantom_enum_values.py:1318:    def test_feedstock_type_options(self):
+./tests/test_phantom_enum_values.py:1329:class TestSelectionComparisons:
+./tests/test_phantom_enum_values.py:1334:    def test_domain_values_match_selection_options(self):
+./tests/test_phantom_enum_values.py:1360:class TestPhantomEnumValues:
+./tests/test_phantom_enum_values.py:1364:    def test_no_phantom_comparison_values(self):
+./tests/test_phantom_enum_values.py:1381:    def test_no_phantom_domain_values(self):
+./tests/test_phantom_enum_values.py:1398:    def test_no_phantom_in_list_values(self):
+./tests/test_phantom_enum_values.py:1420:class TestPerModulePhantomAudit:
+./tests/test_phantom_enum_values.py:1424:    def test_module_has_no_phantom_enums(self, module_name):
+./tests/test_phantom_enum_values.py:1441:class TestSelectionFieldConsistency:
+./tests/test_phantom_enum_values.py:1461:    def test_shared_selection_fields_are_compatible(self):
+./tests/test_phantom_enum_values.py:1489:class TestXmlSelectionAlignment:
+./tests/test_phantom_enum_values.py:1493:    def test_xml_colors_are_canonical(self):
+./tests/test_phantom_enum_values.py:1503:    def test_xml_polymer_names_are_uppercase(self):
+./tests/test_phantom_enum_values.py:1610:class TestEquipmentCodeAlignment:
+./tests/test_phantom_enum_values.py:1614:    def test_equipment_codes_in_compute_match_seed_data(self):
+./tests/test_phantom_enum_values.py:1666:class TestPhantomAuditReport:
+./tests/test_phantom_enum_values.py:1670:    def test_print_phantom_summary(self, capsys):
+./tests/test_process_enum_alignment.py:66:class TestProcessEnumAlignment:
+./tests/test_process_enum_alignment.py:69:    def test_registry_has_codes(self):
+./tests/test_process_enum_alignment.py:75:    def test_mfi_ranges_cover_all_codes(self):
+./tests/test_process_enum_alignment.py:82:    def test_facility_profile_imports_registry(self):
+./tests/test_process_enum_alignment.py:93:    def test_matcher_imports_registry(self):
+./tests/test_process_enum_alignment.py:104:    def test_no_hardcoded_process_literals_in_matcher(self):
+./tests/test_process_enum_alignment.py:117:    def test_graph_service_process_alignment(self):
+./tests/test_repo_dependency_integrity.py:178:class TestModuleManifest:
+./tests/test_repo_dependency_integrity.py:185:    def test_manifest_exists(self):
+./tests/test_repo_dependency_integrity.py:188:    def test_name(self):
+./tests/test_repo_dependency_integrity.py:192:    def test_version(self):
+./tests/test_repo_dependency_integrity.py:197:    def test_version_starts_with_19(self):
+./tests/test_repo_dependency_integrity.py:202:    def test_installable(self):
+./tests/test_repo_dependency_integrity.py:205:    def test_category(self):
+./tests/test_repo_dependency_integrity.py:208:    def test_depends_exact(self):
+./tests/test_repo_dependency_integrity.py:214:    def test_external_dependencies_python(self):
+./tests/test_repo_dependency_integrity.py:219:    def test_data_files_declared(self):
+./tests/test_repo_dependency_integrity.py:225:    def test_license_declared(self):
+./tests/test_repo_dependency_integrity.py:234:class TestServiceFilesExist:
+./tests/test_repo_dependency_integrity.py:237:    def test_services_neo4j_pool_exists(self):
+./tests/test_repo_dependency_integrity.py:241:    def test_services_monitoring_exists(self):
+./tests/test_repo_dependency_integrity.py:245:    def test_models_graph_service_exists(self):
+./tests/test_repo_dependency_integrity.py:249:    def test_models_matcher_exists(self):
+./tests/test_repo_dependency_integrity.py:268:    def test_file_parses_without_syntax_error(self, relpath):
+./tests/test_repo_dependency_integrity.py:276:    def test_services_init_imports(self):
+./tests/test_repo_dependency_integrity.py:287:class TestModelRegistration:
+./tests/test_repo_dependency_integrity.py:290:    def test_models_init_imports_all(self):
+./tests/test_repo_dependency_integrity.py:297:    def test_match_exclusion_model_name(self):
+./tests/test_repo_dependency_integrity.py:302:    def test_graph_sync_log_model_name(self):
+./tests/test_repo_dependency_integrity.py:307:    def test_graph_service_model_name(self):
+./tests/test_repo_dependency_integrity.py:312:    def test_matcher_model_name(self):
+./tests/test_repo_dependency_integrity.py:317:    def test_all_model_names_have_plasticos_prefix(self):
+./tests/test_repo_dependency_integrity.py:336:    def test_sql_constraints_have_unique_names(self):
+./tests/test_repo_dependency_integrity.py:357:    def test_no_api_one(self):
+./tests/test_repo_dependency_integrity.py:363:    def test_no_api_multi(self):
+./tests/test_repo_dependency_integrity.py:369:    def test_no_api_depends_id(self):
+./tests/test_repo_dependency_integrity.py:374:    def test_graph_service_is_abstract(self):
+./tests/test_repo_dependency_integrity.py:380:    def test_match_exclusion_inherits_mail_thread(self):
+./tests/test_repo_dependency_integrity.py:385:    def test_no_deprecated_namespace_plastos(self):
+./tests/test_repo_dependency_integrity.py:397:class TestNeo4jOntologyAlignment:
+./tests/test_repo_dependency_integrity.py:405:    def test_facility_node_label(self):
+./tests/test_repo_dependency_integrity.py:410:    def test_material_profile_node_label(self):
+./tests/test_repo_dependency_integrity.py:415:    def test_has_material_relationship(self):
+./tests/test_repo_dependency_integrity.py:418:    def test_sold_to_relationship(self):
+./tests/test_repo_dependency_integrity.py:422:    def test_sync_method_exists(self, method):
+./tests/test_repo_dependency_integrity.py:426:    def test_match_method_exists(self, method):
+./tests/test_repo_dependency_integrity.py:429:    def test_facility_node_uses_merge(self):
+./tests/test_repo_dependency_integrity.py:433:    def test_material_node_uses_merge(self):
+./tests/test_repo_dependency_integrity.py:437:    def test_transaction_edge_uses_merge(self):
+./tests/test_repo_dependency_integrity.py:442:    def test_facility_has_stable_node_id(self):
+./tests/test_repo_dependency_integrity.py:446:    def test_material_has_stable_node_id(self):
+./tests/test_repo_dependency_integrity.py:450:    def test_schema_constraints_defined(self):
+./tests/test_repo_dependency_integrity.py:462:class TestCypherDeterminism:
+./tests/test_repo_dependency_integrity.py:470:    def test_strict_query_polymer_hard_gate(self):
+./tests/test_repo_dependency_integrity.py:474:    def test_strict_query_density_gate(self):
+./tests/test_repo_dependency_integrity.py:477:    def test_strict_query_mfi_gate(self):
+./tests/test_repo_dependency_integrity.py:480:    def test_strict_query_contamination_gate(self):
+./tests/test_repo_dependency_integrity.py:483:    def test_strict_query_lot_size_gate(self):
+./tests/test_repo_dependency_integrity.py:486:    def test_strict_query_food_grade_gate(self):
+./tests/test_repo_dependency_integrity.py:489:    def test_strict_query_medical_grade_gate(self):
+./tests/test_repo_dependency_integrity.py:492:    def test_calculate_match_score_distance_miles(self):
+./tests/test_repo_dependency_integrity.py:497:    def test_calculate_match_score_tx_count(self):
+./tests/test_repo_dependency_integrity.py:501:    def test_scoring_uses_weighted_dimensions(self):
+./tests/test_repo_dependency_integrity.py:506:    def test_scoring_weights_configurable(self):
+./tests/test_repo_dependency_integrity.py:513:    def test_relaxed_query_only_polymer_hard(self):
+./tests/test_repo_dependency_integrity.py:523:    def test_relaxed_query_orders_by_score(self):
+./tests/test_repo_dependency_integrity.py:527:    def test_gate_mode_strict_flexible_optimistic(self):
+./tests/test_repo_dependency_integrity.py:534:    def test_geo_scoring_uses_point_distance(self):
+./tests/test_repo_dependency_integrity.py:538:    def test_null_safe_geo_fallback(self):
+./tests/test_repo_dependency_integrity.py:548:class TestExternalDependencyImport:
+./tests/test_repo_dependency_integrity.py:551:    def test_neo4j_importable(self):
+./tests/test_repo_dependency_integrity.py:557:    def test_neo4j_version_minimum(self):
+./tests/test_repo_dependency_integrity.py:567:    def test_graph_service_handles_missing_neo4j(self):
+./tests/test_repo_dependency_integrity.py:572:    def test_neo4j_pool_handles_missing_neo4j(self):
+./tests/test_repo_dependency_integrity.py:583:class TestContractEngineCompatibility:
+./tests/test_repo_dependency_integrity.py:591:    def test_find_matches_for_supplier_exists(self):
+./tests/test_repo_dependency_integrity.py:594:    def test_find_matches_has_mode_param(self):
+./tests/test_repo_dependency_integrity.py:598:    def test_find_matches_has_max_results_param(self):
+./tests/test_repo_dependency_integrity.py:601:    def test_extract_material_requirements_exists(self):
+./tests/test_repo_dependency_integrity.py:604:    def test_get_buyer_profiles_exists(self):
+./tests/test_repo_dependency_integrity.py:607:    def test_check_gates_strict_exists(self):
+./tests/test_repo_dependency_integrity.py:610:    def test_check_gates_relaxed_exists(self):
+./tests/test_repo_dependency_integrity.py:613:    def test_exclusion_integration(self):
+./tests/test_repo_dependency_integrity.py:618:    def test_no_duplicate_method_signatures(self):
+./tests/test_repo_dependency_integrity.py:627:    def test_gate_count_strict_mode(self):
+./tests/test_repo_dependency_integrity.py:631:    def test_schema_alignment_comments_present(self):
+./tests/test_repo_dependency_integrity.py:635:    def test_intake_uses_correct_field_names(self):
+./tests/test_repo_dependency_integrity.py:642:    def test_intake_uses_quantity_per_load_lbs(self):
+./tests/test_repo_dependency_integrity.py:646:    def test_intake_geo_uses_lat_lon(self):
+./tests/test_repo_dependency_integrity.py:656:class TestDependencyIntegrity:
+./tests/test_repo_dependency_integrity.py:664:    def test_no_circular_self_dependency(self):
+./tests/test_repo_dependency_integrity.py:667:    def test_depends_order_respects_layers(self):
+./tests/test_repo_dependency_integrity.py:681:    def test_no_phantom_dependencies(self):
+./tests/test_repo_dependency_integrity.py:688:    def test_base_setup_is_treated_as_known_odoo_addon(self):
+./tests/test_repo_dependency_integrity.py:692:    def test_fake_dependency_still_rejected(self):
+./tests/test_repo_dependency_integrity.py:698:    def test_plasticos_matching_dependency(self):
+./tests/test_repo_dependency_integrity.py:702:    def test_plasticos_transaction_dependency(self):
+./tests/test_repo_dependency_integrity.py:706:    def test_plasticos_facility_profile_dependency(self):
+./tests/test_repo_dependency_integrity.py:710:    def test_plasticos_intake_dependency(self):
+./tests/test_repo_dependency_integrity.py:714:    def test_plasticos_material_profile_dependency(self):
+./tests/test_repo_dependency_integrity.py:724:class TestSecurityAccess:
+./tests/test_repo_dependency_integrity.py:732:    def test_buyer_matcher_acl(self):
+./tests/test_repo_dependency_integrity.py:735:    def test_match_exclusion_acl(self):
+./tests/test_repo_dependency_integrity.py:738:    def test_graph_sync_log_acl(self):
+./tests/test_repo_dependency_integrity.py:741:    def test_no_credentials_in_code(self):
+./tests/test_repo_dependency_integrity.py:772:class TestGraphIsolation:
+./tests/test_repo_dependency_integrity.py:780:    def test_execute_cypher_returns_empty_on_failure(self):
+./tests/test_repo_dependency_integrity.py:784:    def test_execute_cypher_catches_exceptions(self):
+./tests/test_repo_dependency_integrity.py:788:    def test_get_driver_returns_none_on_missing_config(self):
+./tests/test_repo_dependency_integrity.py:792:    def test_sync_log_records_failures(self):
+./tests/test_repo_dependency_integrity.py:797:    def test_no_neo4j_import_at_module_level_in_graph_service(self):
+./tests/test_security_acl.py:13:class TestTransactionACL(PlasticosTestCase):
+./tests/test_security_acl.py:44:    def test_base_user_can_read(self):
+./tests/test_security_acl.py:48:    def test_base_user_can_create(self):
+./tests/test_security_acl.py:52:    def test_base_user_cannot_unlink(self):
+./tests/test_security_acl.py:57:    def test_base_user_cannot_write_tx_line(self):
+./tests/test_security_acl.py:63:    def test_manager_can_write_tx_line(self):
+./tests/test_security_acl.py:69:    def test_commission_rule_admin_only(self):
+./tests/test_security_acl.py:74:    def test_closed_tx_immutable_fields(self):
+./tests/test_security_acl.py:81:    def test_name_immutable(self):
+./tests/test_security_acl.py:86:    def test_locked_commission_immutable(self):
+./tests/test_security_acl.py:95:class TestClaimACL(PlasticosTestCase):
+./tests/test_security_acl.py:138:    def test_claim_user_can_create(self):
+./tests/test_security_acl.py:141:    def test_claim_user_cannot_unlink(self):
+./tests/test_security_acl.py:146:    def test_claim_manager_can_unlink(self):
+./tests/test_security_acl.py:150:    def test_no_group_cannot_read(self):
+./tests/test_security_acl.py:157:class TestBillExclusivity(PlasticosTestCase):
+./tests/test_security_acl.py:180:    def test_vendor_bill_exclusivity(self):
+./tests/test_security_acl.py:186:    def test_freight_bill_exclusivity(self):
+./tests/test_state_machines.py:42:class TestLoadStateMachineConsolidated(PlasticosTestCase):
+./tests/test_state_machines.py:110:    def test_full_happy_path(self):
+./tests/test_state_machines.py:116:    def test_valid_transition_draft_to_awaiting(self):
+./tests/test_state_machines.py:121:    def test_valid_transition_awaiting_to_ready(self):
+./tests/test_state_machines.py:127:    def test_valid_transition_ready_to_rate(self):
+./tests/test_state_machines.py:133:    def test_valid_transition_rate_to_scheduled(self):
+./tests/test_state_machines.py:139:    def test_valid_transition_scheduled_to_dispatched(self):
+./tests/test_state_machines.py:145:    def test_valid_transition_dispatched_to_picked_up(self):
+./tests/test_state_machines.py:151:    def test_valid_transition_picked_up_to_delivered(self):
+./tests/test_state_machines.py:157:    def test_valid_transition_delivered_to_closed(self):
+./tests/test_state_machines.py:165:    def test_exception_from_any_active_state(self):
+./tests/test_state_machines.py:173:    def test_reset_from_exception(self):
+./tests/test_state_machines.py:183:    def test_invalid_draft_to_dispatched(self):
+./tests/test_state_machines.py:189:    def test_invalid_draft_to_closed(self):
+./tests/test_state_machines.py:195:    def test_invalid_scheduled_to_delivered(self):
+./tests/test_state_machines.py:202:    def test_invalid_dispatched_to_closed(self):
+./tests/test_state_machines.py:209:    def test_invalid_backward_transition(self):
+./tests/test_state_machines.py:216:    def test_exhaustive_invalid_from_draft(self):
+./tests/test_state_machines.py:235:class TestTransactionStateMachineConsolidated(PlasticosTestCase):
+./tests/test_state_machines.py:264:    def test_activate_from_draft(self):
+./tests/test_state_machines.py:269:    def test_activate_from_non_draft_raises(self):
+./tests/test_state_machines.py:276:    def test_state_via_direct_write_blocked(self):
+./tests/test_state_machines.py:282:    def test_state_write_active_allowed(self):
+./tests/test_state_machines.py:288:    def test_close_requires_posted_invoice(self):
+./tests/test_state_machines.py:295:    def test_supplier_ready_from_active(self):
+./tests/test_state_machines.py:301:    def test_in_progress_after_supplier_ready(self):
+./tests/test_state_machines.py:308:    def test_in_transit_after_in_progress(self):
+./tests/test_state_machines.py:315:    def test_delivered_after_in_transit(self):
+./tests/test_state_machines.py:322:    def test_invoiced_after_delivered(self):
+./tests/test_state_machines.py:336:class TestClaimStateMachineConsolidated(PlasticosTestCase):
+./tests/test_state_machines.py:364:    def test_pending_to_in_progress(self):
+./tests/test_state_machines.py:369:    def test_pending_to_escalated(self):
+./tests/test_state_machines.py:374:    def test_in_progress_to_escalated(self):
+./tests/test_state_machines.py:380:    def test_resolved_to_archived(self):
+./tests/test_state_machines.py:388:    def test_reopen_from_resolved(self):
+./tests/test_state_machines.py:396:    def test_reopen_from_archived(self):
+./tests/test_state_machines.py:405:    def test_escalation_records_timestamp(self):
+./tests/test_state_machines.py:411:    def test_sla_age_hours_nonnegative(self):
+./tests/test_state_machines.py:423:class TestOfferStateMachineConsolidated(PlasticosTestCase):
+./tests/test_state_machines.py:459:    def test_draft_to_sent(self):
+./tests/test_state_machines.py:464:    def test_sent_to_responded(self):
+./tests/test_state_machines.py:470:    def test_sent_to_accepted(self):
+./tests/test_state_machines.py:476:    def test_responded_to_accepted(self):
+./tests/test_state_machines.py:483:    def test_sent_to_rejected(self):
+./tests/test_state_machines.py:489:    def test_draft_to_cancelled(self):
+./tests/test_state_machines.py:494:    def test_reset_to_draft_from_rejected(self):
+./tests/test_state_machines.py:501:    def test_send_non_draft_raises(self):
+./tests/test_state_machines.py:507:    def test_respond_non_sent_raises(self):
+./tests/test_state_machines.py:512:    def test_accept_from_draft_raises(self):
+./tests/test_state_machines.py:517:    def test_cancel_accepted_raises(self):
+./tests/test_state_machines.py:524:    def test_reject_accepted_raises(self):
+./tests/test_state_machines.py:531:    def test_accept_records_metadata(self):
+./tests/test_triage_pipeline.py:61:class TestParseWeightLbs:
+./tests/test_triage_pipeline.py:62:    def test_none_returns_zero(self):
+./tests/test_triage_pipeline.py:67:    def test_empty_string_returns_zero(self):
+./tests/test_triage_pipeline.py:72:    def test_explicit_lbs(self):
+./tests/test_triage_pipeline.py:77:    def test_explicit_pounds(self):
+./tests/test_triage_pipeline.py:82:    def test_explicit_tons(self):
+./tests/test_triage_pipeline.py:87:    def test_explicit_metric_tons(self):
+./tests/test_triage_pipeline.py:92:    def test_explicit_kg(self):
+./tests/test_triage_pipeline.py:97:    def test_unit_count_pallets(self):
+./tests/test_triage_pipeline.py:102:    def test_unit_count_single_pallet(self):
+./tests/test_triage_pipeline.py:107:    def test_unit_count_gaylords(self):
+./tests/test_triage_pipeline.py:112:    def test_unit_count_truckload(self):
+./tests/test_triage_pipeline.py:117:    def test_unit_count_bales(self):
+./tests/test_triage_pipeline.py:122:    def test_word_number_one_truckload(self):
+./tests/test_triage_pipeline.py:127:    def test_word_number_two_pallets(self):
+./tests/test_triage_pipeline.py:132:    def test_bare_large_number_assumed_lbs(self):
+./tests/test_triage_pipeline.py:137:    def test_bare_small_number_below_threshold(self):
+./tests/test_triage_pipeline.py:142:    def test_commas_in_number(self):
+./tests/test_triage_pipeline.py:147:    def test_unknown_text_returns_zero(self):
+./tests/test_triage_pipeline.py:152:    def test_vague_text_returns_zero(self):
+./tests/test_triage_pipeline.py:161:class TestHelpers:
+./tests/test_triage_pipeline.py:162:    def test_safe_int_none(self):
+./tests/test_triage_pipeline.py:165:    def test_safe_int_string(self):
+./tests/test_triage_pipeline.py:168:    def test_safe_int_comma_number(self):
+./tests/test_triage_pipeline.py:171:    def test_safe_int_invalid(self):
+./tests/test_triage_pipeline.py:174:    def test_safe_float_none(self):
+./tests/test_triage_pipeline.py:177:    def test_safe_float_string(self):
+./tests/test_triage_pipeline.py:180:    def test_coerce_bool_true(self):
+./tests/test_triage_pipeline.py:185:    def test_coerce_bool_false(self):
+./tests/test_triage_pipeline.py:190:    def test_coerce_bool_none(self):
+./tests/test_triage_pipeline.py:199:class TestClassifyLead:
+./tests/test_triage_pipeline.py:200:    def test_hot_with_weight_and_polymer(self):
+./tests/test_triage_pipeline.py:214:    def test_cold_not_plastic(self):
+./tests/test_triage_pipeline.py:224:    def test_cold_not_commercial(self):
+./tests/test_triage_pipeline.py:235:    def test_cold_rejected_material(self):
+./tests/test_triage_pipeline.py:245:    def test_cold_rejected_source(self):
+./tests/test_triage_pipeline.py:256:    def test_cold_weight_unknown(self):
+./tests/test_triage_pipeline.py:265:    def test_cold_weight_below_floor(self):
+./tests/test_triage_pipeline.py:275:    def test_cold_insufficient_qualifiers(self):
+./tests/test_triage_pipeline.py:284:    def test_hot_threshold_reduced_unknown_commercial(self):
+./tests/test_triage_pipeline.py:293:    def test_word_boundary_reject_material_no_false_positive(self):
+./tests/test_triage_pipeline.py:305:    def test_drop_off_source_triggers_cold(self):
+./tests/test_triage_pipeline.py:320:class TestValidateAiOutput:
+./tests/test_triage_pipeline.py:321:    def test_clamps_lbs_above_max(self):
+./tests/test_triage_pipeline.py:325:    def test_clamps_lbs_below_min(self):
+./tests/test_triage_pipeline.py:329:    def test_valid_lbs_passes(self):
+./tests/test_triage_pipeline.py:333:    def test_negative_loads_nulled(self):
+./tests/test_triage_pipeline.py:337:    def test_confidence_clamped(self):
+./tests/test_triage_pipeline.py:341:    def test_empty_string_fields_nulled(self):
+./tests/test_triage_pipeline.py:346:    def test_boolean_fields_coerced(self):
+./tests/test_triage_pipeline.py:355:class TestNormalizeWithFallback:
+./tests/test_triage_pipeline.py:356:    def test_empty_providers_returns_configured_error(self):
+./tests/test_triage_pipeline.py:367:    def test_first_provider_success(self, mock_build, mock_normalize):
+./tests/test_triage_pipeline.py:400:    def test_fallback_to_second_provider(self, mock_build, mock_normalize):
+./tests/test_triage_pipeline.py:424:    def test_all_providers_fail_returns_last_error(self, mock_build, mock_normalize):
+./tests/test_triage_pipeline.py:436:    def test_client_unavailable_stops_early(self, mock_build, mock_normalize):
+./tests/test_triage_pipeline.py:451:class TestMergeVisionResults:
+./tests/test_triage_pipeline.py:452:    def test_empty_list_returns_none(self):
+./tests/test_triage_pipeline.py:455:    def test_all_errors_returns_none(self):
+./tests/test_triage_pipeline.py:458:    def test_highest_confidence_wins(self):
+./tests/test_triage_pipeline.py:466:    def test_contamination_any_positive_wins(self):
+./tests/test_triage_pipeline.py:474:    def test_contamination_notes_aggregated(self):
+./tests/test_triage_pipeline.py:483:    def test_low_confidence_nulls_polymer_hint(self):
+./tests/test_triage_pipeline.py:488:    def test_error_results_filtered(self):
+./tests/test_wiring_gap2.py:55:class TestMatchResultWriter:
+./tests/test_wiring_gap2.py:60:    def test_class_is_abstract_model(self):
+./tests/test_wiring_gap2.py:66:    def test_model_name_is_abstract(self):
+./tests/test_wiring_gap2.py:71:    def test_persist_match_lines_defined(self):
+./tests/test_wiring_gap2.py:76:    def test_stale_purge_only_pending(self):
+./tests/test_wiring_gap2.py:82:    def test_idempotent_run_id_uuid4(self):
+./tests/test_wiring_gap2.py:87:    def test_no_sudo_escalation(self):
+./tests/test_wiring_gap2.py:93:    def test_score_clamped_0_100(self):
+./tests/test_wiring_gap2.py:99:    def test_typical_price_forwarded(self):
+./tests/test_wiring_gap2.py:113:class TestIntakeExtensionPatch:
+./tests/test_wiring_gap2.py:118:    def test_persist_match_lines_called(self):
+./tests/test_wiring_gap2.py:121:    def test_match_result_writer_guarded_by_in_env(self):
+./tests/test_wiring_gap2.py:126:    def test_run_id_uuid_generated(self):
+./tests/test_wiring_gap2.py:129:    def test_typical_price_not_hardcoded_zero(self):
+./tests/test_wiring_gap2.py:145:class TestOfferPriceBridge:
+./tests/test_wiring_gap2.py:150:    def test_inherit_plasticos_offer(self):
+./tests/test_wiring_gap2.py:153:    def test_create_multi_override(self):
+./tests/test_wiring_gap2.py:157:    def test_only_fills_when_price_zero(self):
+./tests/test_wiring_gap2.py:162:    def test_searches_intake_match_for_typical_price(self):
+./tests/test_wiring_gap2.py:167:    def test_calls_super_create(self):
+./tests/test_wiring_gap2.py:179:class TestMigration210:
+./tests/test_wiring_gap2.py:184:    def test_migrate_function_defined(self):
+./tests/test_wiring_gap2.py:189:    def test_idempotent_check_before_insert(self):
+./tests/test_wiring_gap2.py:194:    def test_never_overwrites_existing(self):
+./tests/test_wiring_gap2.py:199:    def test_seeds_stub_key(self):
+./tests/test_wiring_gap2.py:211:def test_init_imports_match_result_writer():
+./tests/test_wiring_gap2.py:218:def test_init_imports_all_existing_models():
+./tests/test_wiring_gap2.py:229:def test_offer_init_imports_price_bridge():
+./tests/test_xpath_field_refs.py:71:class TestXPathFieldReferences(PlasticosTestCase):
+./tests/test_xpath_field_refs.py:98:    def test_xpath_field_names_exist_on_model(self):
+./tests/tests_init.py:60:class TestSuiteStructure:
+./tests/tests_init.py:63:    def test_all_test_files_parse(self):
+./tests/tests_init.py:75:    def test_no_orphaned_test_files(self):
+./tests/tests_init.py:86:    def test_categorized_files_exist(self):
+./tests/tests_init.py:96:    def test_pure_python_tests_no_odoo_import(self):
+./tests/tests_init.py:120:    def test_odoo_tests_have_transaction_case(self):
+./tests/tests_init.py:134:    def test_test_files_have_docstrings(self):
+./tests/tests_init.py:156:    def test_no_duplicate_test_class_names(self):
+./tests/tests_init.py:177:class TestTestFileNaming:
+./tests/tests_init.py:180:    def test_test_files_start_with_test(self):
+./tests/tests_init.py:191:    def test_no_test_prefix_in_non_test_files(self):
+./tests/tests_init.py:197:class TestTestContent:
+./tests/tests_init.py:200:    def test_no_print_statements_in_tests(self):
+./tests/tests_init.py:226:    def test_tests_have_assertions(self):
