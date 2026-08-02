@@ -1,1 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_plasticos_material_specification_user,plasticos.material.specification.user,model_plasticos_material_specification,base.group_user,1,1,1,0
+access_plasticos_material_specification_admin,plasticos.material.specification.admin,model_plasticos_material_specification,base.group_system,1,1,1,1
+access_plasticos_material_observation_user,plasticos.material.observation.user,model_plasticos_material_observation,base.group_user,1,1,1,0
+access_plasticos_material_observation_admin,plasticos.material.observation.admin,model_plasticos_material_observation,base.group_system,1,1,1,1
