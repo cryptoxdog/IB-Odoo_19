@@ -519,6 +519,6 @@ from running silently. Always run `pre-commit run --all-files` locally before pu
 - Commit test data to production seed files
 - Attach material profiles directly to `res.partner` → use `plasticos.facility.profile`
 - Call CEG/EIE directly from Odoo → route through Gate (`constellation_node_sdk`; see ADR-003-single + ADR-002)
-- Treat local matcher/enrichment engines as architectural intelligence authority (ADR-003-single; mothball M1+)
+- Treat local matcher/enrichment engines as architectural intelligence authority (ADR-003-single; mothball M1–M6 sealed — use `make no-local-intelligence` / `ci/check_no_local_intelligence.py`)
 - Apply Gate web-lead triage in Phase 1 (see GATE_AUTONOMY_ROADMAP.md) — triage stays Odoo-local until Phase 3
 - Overwrite `docs/adr/ADR-003-contact-import-configuration.md` when editing the mothball ADR-003-single file (filename collision)

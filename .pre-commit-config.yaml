@@ -77,6 +77,13 @@ repos:
         pass_filenames: false
         stages: [pre-commit, pre-push]
 
+      - id: no-local-intelligence
+        name: No local-intelligence authority drift (M6)
+        entry: python3 ci/check_no_local_intelligence.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+
       - id: module-wiring
         name: Module dependency wiring check
         entry: python3 scripts/check_module_wiring.py

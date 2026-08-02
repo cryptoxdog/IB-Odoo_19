@@ -6,7 +6,7 @@
         lint format format-fix check \
         audit audit-quick audit-baseline advisory-checks \
         xml-check wiring deps-check cron-check odoo19-check odoo19-hooks odoo-patterns \
-        name-check manifest-check shellcheck-check \
+        name-check manifest-check shellcheck-check no-local-intelligence \
         critical-manifest enhanced-audit odoo-antipatterns package-init weak-test-check \
         mypy-check acl-csv-check test-attr-guard-check \
         semgrep semgrep-test secret-scan \
@@ -76,6 +76,7 @@ help:
 	@echo "    make odoo19-hooks     Odoo 19 hook pattern violations"
 	@echo "    make odoo-patterns    24-check Odoo 19 pattern scanner (scripts/check_odoo_patterns.sh)"
 	@echo "    make name-check       _name must be a string literal enforcement"
+	@echo "    make no-local-intelligence  Gate-only intelligence drift guard (M6)"
 	@echo "    make manifest-check   __manifest__.py required-field validation"
 	@echo "    make shellcheck-check shellcheck on all *.sh files"
 	@echo "    make critical-manifest  critical manifest rules"
@@ -210,6 +211,12 @@ odoo-patterns:
 	@echo "→ Odoo 19 pattern checker (24 checks)..."
 	@chmod +x scripts/check_odoo_patterns.sh
 	./scripts/check_odoo_patterns.sh
+
+# M6 mothball: local-intelligence authority drift (blocking for new consumer drift;
+# residue reported, not excluded).
+no-local-intelligence:
+	@echo "→ No local-intelligence authority drift..."
+	python3 ci/check_no_local_intelligence.py
 
 # _name must be a string literal (ci/check_name_literal.py) — single source of
 # truth shared with ci.yml static-checks; do not re-inline this regex anywhere.
