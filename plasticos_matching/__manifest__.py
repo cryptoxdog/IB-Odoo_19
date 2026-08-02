@@ -1,7 +1,7 @@
 {
     "name": "PlasticOS Matching",
-    "version": "19.0.2.0.0",
-    "summary": "Gate-mediated match runs, exclusions, and result storage (mothball M2)",
+    "version": "19.0.2.1.0",
+    "summary": "Gate-mediated match runs with explicit degraded/retry mode (mothball M3)",
     "license": "LGPL-3",
     "author": "Igor Beylin",
     "category": "Hidden",

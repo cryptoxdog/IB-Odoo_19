@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class GateIntegrationError(Exception):
-    """Raised when Gate transport fails; matcher catches and falls back locally."""
+    """Raised when Gate transport fails; consumers must fail closed (no local substitute)."""
 
     def __init__(self, message: str, *, failure_class: str | None = None) -> None:
         super().__init__(message)
@@ -143,6 +143,19 @@ def classify_gate_availability(
         matching_action=(icp.get_param("plasticos.gate.matching_action") or "match").strip().lower(),
         enrichment_action=(icp.get_param("plasticos.gate.enrichment_action") or "converge").strip().lower(),
     )
+
+
+def gate_failure_categories() -> dict[str, str]:
+    """Return structured Gate failure categories for degraded-mode UX/docs."""
+    return {
+        "retryable": "Transient transport/timeout — operator may retry",
+        "permanent": "Configuration or contract failure — fix ICP/URL/SDK",
+        "unknown": "Unclassified failure — treat as degraded, do not substitute",
+        "missing_url": GateAvailability.MISSING_URL.value,
+        "insecure_http_blocked": GateAvailability.INSECURE_HTTP_BLOCKED.value,
+        "matching_disabled": GateAvailability.MATCHING_DISABLED.value,
+        "sdk_missing": GateAvailability.SDK_MISSING.value,
+    }
 
 
 def gate_matching_enabled(env) -> bool:

@@ -4,7 +4,10 @@
         <field name="name">plasticos.match.run.list</field>
         <field name="model">plasticos.match.run</field>
         <field name="arch" type="xml">
-            <list string="Match Runs">
+            <list string="Match Runs"
+                  decoration-danger="state in ('failed', 'degraded')"
+                  decoration-warning="state == 'retryable'"
+                  decoration-success="state == 'ok'">
                 <field name="create_date"/>
                 <field name="intake_id"/>
                 <field name="supplier_partner_id"/>
@@ -13,7 +16,9 @@
                 <field name="engine"/>
                 <field name="match_count"/>
                 <field name="failure_class"/>
+                <field name="availability_status"/>
                 <field name="gate_packet_id"/>
+                <field name="retry_of_id"/>
             </list>
         </field>
     </record>
@@ -22,6 +27,15 @@
         <field name="model">plasticos.match.run</field>
         <field name="arch" type="xml">
             <form string="Match Run">
+                <header>
+                    <button name="action_retry_match"
+                            type="object"
+                            string="Retry Gate Match"
+                            class="btn-primary"
+                            invisible="state not in ('retryable', 'failed', 'degraded')"/>
+                    <field name="state" widget="statusbar"
+                            statusbar_visible="pending,ok,retryable,failed,degraded"/>
+                </header>
                 <sheet>
                     <group>
                         <group>
@@ -29,11 +43,12 @@
                             <field name="supplier_partner_id"/>
                             <field name="mode"/>
                             <field name="engine"/>
+                            <field name="retry_of_id" readonly="1"/>
                         </group>
                         <group>
-                            <field name="state"/>
                             <field name="match_count"/>
                             <field name="failure_class"/>
+                            <field name="availability_status"/>
                             <field name="gate_packet_id"/>
                             <field name="gate_correlation_id"/>
                         </group>
