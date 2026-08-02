@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 
 class PlasticosSupplyOpportunity(models.Model):
@@ -128,3 +128,28 @@ class PlasticosSupplyOpportunity(models.Model):
         if "canonical_uuid" in vals:
             raise UserError("canonical_uuid is immutable once issued.")
         return super().write(vals)
+
+    @api.constrains("min_lot_size_lbs", "quantity_lbs", "max_lot_size_lbs")
+    def _check_quantity_order(self):
+        for rec in self:
+            minimum = rec.min_lot_size_lbs
+            target = rec.quantity_lbs
+            maximum = rec.max_lot_size_lbs
+            # Treat unset/False as absent; preserve explicit 0.0.
+            lo = None if minimum is False or minimum is None else float(minimum)
+            mid = None if target is False or target is None else float(target)
+            hi = None if maximum is False or maximum is None else float(maximum)
+            if lo is not None and mid is not None and lo > mid:
+                raise ValidationError("min_lot_size_lbs must be <= quantity_lbs")
+            if mid is not None and hi is not None and mid > hi:
+                raise ValidationError("quantity_lbs must be <= max_lot_size_lbs")
+            if lo is not None and hi is not None and lo > hi:
+                raise ValidationError("min_lot_size_lbs must be <= max_lot_size_lbs")
+
+    @api.constrains("available_from", "available_until")
+    def _check_window_order(self):
+        for rec in self:
+            start = rec.available_from
+            end = rec.available_until
+            if start and end and start > end:
+                raise ValidationError("availability start must be <= end")
