@@ -1,3 +1,7 @@
 # plasticos_semantic_kernel
 
-Additive PlasticOS semantic models (TASK-022…025). No Gate client, scoring, or inference execution.
+Additive PlasticOS semantic models (TASK-022…026).
+
+Backfill: `python3 scripts/semantic_kernel_backfill.py --dry-run --family specification --report-path /tmp/report.json`
+
+No Gate client, scoring, inference, or install-hook backfill.
