@@ -40,8 +40,6 @@ _SQL_JUSTIFIED_FILES = {
     "plasticos_automation/models/": "Automation batch operations",
     # Documents models use SQL for batch document operations
     "plasticos_documents/models/": "Document batch operations",
-    # Buyer match engine models use SQL for graph sync and exclusion operations
-    "plasticos_buyer_match_engine/models/": "Graph sync and exclusion operations",
     # Enrichment models use SQL for batch enrichment operations
     "plasticos_enrichment/models/": "Batch enrichment operations",
     # Geolocalize uses SQL for spatial queries
@@ -77,7 +75,6 @@ _PLASTICOS_MODULES = [
     "plasticos_facility_profile",
     "plasticos_partner_import",
     "plasticos_security_base",
-    "plasticos_buyer_match_engine",
     "plasticos_claims",
     "plasticos_commission",
     "plasticos_enrichment",

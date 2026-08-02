@@ -36,7 +36,6 @@ _PURE_PYTHON_MODULES = [
     "test_odoo_test_setup_validity",
     "test_phantom_enum_values",
     "test_process_enum_alignment",
-    "test_repo_dependency_integrity",
 ]
 
 
