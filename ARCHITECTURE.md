@@ -278,7 +278,7 @@ Odoo  ◄───────────────────────�
 |------|--------|
 | Gate is mandatory hub | No Odoo → CEG/EIE direct calls |
 | Intelligence authority | Gate → CEG for matching; Gate → EIE `converge` for enrichment |
-| Local engines | **Non-authority transitional residue** until mothball M2–M5 — not architectural fallback |
+| Local engines | **Non-authority transitional residue** after mothball M2–M6 (Gate-only + drift guard); physical uninstall later — not architectural fallback |
 | Web lead triage (Phase 1) | **Odoo local only** — LLM/vision/HOT-COLD; Gate triage deferred to Phase 3 |
 | Human gates (Phase 1) | HOT lead review, match line selection, explicit Send Offer |
 
@@ -288,7 +288,7 @@ Odoo  ◄───────────────────────�
 
 ## Neo4j Integration Architecture
 
-> **Role under ADR-003 (single external intelligence authority):** Neo4j under Odoo matching modules is **not** the architectural matching authority. Primary matching targets Gate → CEG. Any residual local Neo4j matcher use is mothball-bound transitional residue (M2+), not product design.
+> **Role under ADR-003 (single external intelligence authority):** Neo4j under Odoo matching modules is **not** the architectural matching authority. Primary matching targets Gate → CEG. Any residual local Neo4j matcher use is mothball-bound transitional residue (post-M6 until physical uninstall), not product design.
 
 ### Connection Strategy
 - **Driver**: `neo4j>=5.0.0` Python driver

@@ -47,7 +47,7 @@ This ADR **supersedes** ADR-002 §2 (“Odoo local engines are fallback — not 
 **as architectural authority**. Gate-hub topology, Phase human checkpoints, and “never
 Odoo → CEG/EIE direct” from ADR-002 remain binding.
 
-Local engines may still exist in the tree until M2–M5 extraction/degrade/uninstall. While present
+Local engines may still exist in the tree as **transitional residue** after M2–M6 Gate-only extraction, degraded modes, mothball migrations, and drift guards. While present
 they are **non-authority transitional residue**:
 
 - Must not be cited as the product matching/enrichment design.
@@ -55,7 +55,7 @@ they are **non-authority transitional residue**:
 - Failures should surface as **classified Gate/worker failures** (or explicit degraded-mode
   policy under later mothball contracts), not as restoration of local engines as authority.
 
-Runtime removal of local engines is **out of scope for M1** (docs + contract test only).
+Runtime removal of local engine *source directories* remains a later physical-retirement step (requires verified backup + restore). M2–M6 removed local *authority* and added nonblocking drift reporting that still scans residue paths.
 
 ### 3. Gate-only egress for intelligence
 
@@ -97,6 +97,39 @@ Odoo  ◄──TransportPacket──  Gate  ◄──
 2. Do not add direct CEG/EIE calls or second SDK import sites.
 3. Do not delete local engine modules in M1; that is M2–M5 scope.
 4. Do not overwrite `ADR-003-contact-import-configuration.md`.
+
+
+
+## Retirement evidence (M6 / TASK-068)
+
+Wave-7 mothball repository evidence (controller ledger under `l9-constellation-control`):
+
+| Phase | Task | Gate | Proof class |
+|-------|------|------|-------------|
+| M0 | TASK-046 | live transport | `LIVE_TRANSPORT_ROUNDTRIP_PASS` (not full LIVE_INTEGRATION_PASS) |
+| M1 | TASK-045 | GATE-047 | `REPOSITORY_TEST_PASS` + PROMOTION_APPROVED |
+| M2 | TASK-047 | GATE-051 | `REPOSITORY_TEST_PASS` |
+| M3 | TASK-048 | GATE-050 | `REPOSITORY_TEST_PASS` |
+| M4 | TASK-049 | GATE-052 | `REPOSITORY_TEST_PASS` |
+| M5 | TASK-050 | GATE-053 | `REPOSITORY_TEST_PASS` + A4 + restore-rehearsal receipt |
+| M6 | TASK-068 | GATE-056 | `REPOSITORY_TEST_PASS` (this seal) |
+
+Drift scanner: `ci/check_no_local_intelligence.py` (legacy residue reported, not excluded;
+new consumer-path authority drift is blocking).
+
+## Observation criteria
+
+Production completion of physical retirement is **not** claimed from repository tests alone.
+Operators must observe:
+
+1. Enrichment crons remain `active=False` in deployed DBs.
+2. Match/enrichment runs show `engine=gate` (or equivalent) with classified degraded/retry states — never silent local scoring.
+3. Drift scanner stays green for consumer paths; residue reports shrink only after approved uninstall.
+4. No direct Odoo → CEG/EIE egress; sole seam remains `plasticos_gate`.
+5. Backup/restore rehearsal evidence exists before any destructive uninstall (`TASK-050-restore-rehearsal`).
+
+Until those observations are recorded for a given environment, mothball status is
+**repository_validated**, not production-complete.
 
 ## References
 

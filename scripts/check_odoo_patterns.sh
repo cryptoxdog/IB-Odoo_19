@@ -385,6 +385,17 @@ else
     echo -e "${GREEN}OK${NC}"
 fi
 
+# 25. Local-intelligence authority drift (M6) — residue reported inside scanner;
+# new consumer-path drift fails this script.
+echo -n "Checking no local-intelligence authority drift... "
+if python3 ci/check_no_local_intelligence.py >/tmp/plasticos-no-local-intel.out 2>&1; then
+    echo -e "${GREEN}OK${NC}"
+else
+    echo -e "${RED}FOUND${NC}"
+    cat /tmp/plasticos-no-local-intel.out
+    ERRORS=$((ERRORS + 1))
+fi
+
 echo ""
 if [ $ERRORS -gt 0 ]; then
     echo -e "${RED}❌ Found $ERRORS Odoo pattern issue(s)${NC}"
