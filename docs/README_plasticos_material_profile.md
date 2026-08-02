@@ -10,7 +10,24 @@
 
 Owns the **canonical material master registries** for PlasticOS: polymer types, material forms, colors, source types, process codes, and all master data that defines what a material *is*. Every other module that classifies materials depends on this one.
 
-Also manages `plasticos.material.profile` — the structured material capability record attached to a partner (buyer or supplier) that captures their material preferences, tolerances, and specifications.
+Also manages `plasticos.material.profile` — the **canonical reusable material specification** attached to a facility partner. Transactional capture (`plasticos.intake`) keeps workflow, contacts, matching rows, and negotiation context; the profile stores reusable material, quality, volume, packaging, source, process, and geo data bridged from intake.
+
+---
+
+## Intake vs Material Profile Roles
+
+| Concern | `plasticos.intake` | `plasticos.material.profile` |
+|---|---|---|
+| Role | Load-specific transactional capture | Reusable material spec |
+| Workflow | `status`, matches, offers | None |
+| Commercial drift | `target_price` (if used in payloads) — **not** on profile | N/A |
+| Residue | Computed `has_residue` on intake | **Derived** in bridge payload via `compute_has_residue_feature()` — not stored |
+| Volume | `quantity_per_load_lbs`, `loads_per_month` | Same field names (stored on profile) |
+| Quality names | `mfi_value`, `density_value`, `moisture_pct`, `contamination_pct` | `melt_flow_index`, `density`, `moisture_percent`, `contamination_percent` |
+
+Bridge implementation: `plasticos_material_profile/intake_delta_bridge.py` (vals + payload). `source_type_id` is required in bridge payloads and profile alignment.
+
+**ADRs:** [ADR-004](adr/ADR-004-intake-vs-material-profile-domain-split.md) (domain split), [ADR-005](adr/ADR-005-intake-material-profile-delta-bridge.md) (bridge contract).
 
 ---
 
@@ -68,8 +85,13 @@ Structured material record attached to a `res.partner`. Identity is defined by `
 | `density` | `Float` | |
 | `filler_type_id` | `Many2one(plasticos.filler.type)` | |
 | `filler_pct` | `Float` | |
+| `quantity_per_load_lbs` | `Float` | Typical per-load weight (bridged from intake) |
+| `loads_per_month` | `Integer` | Expected recurring loads (stored; not computed from volume) |
+| `lat` / `lon` | `Float` | Reusable geo on the profile |
 | `previously_washed` | `Boolean` | |
 | `previously_pelletized` | `Boolean` | |
+
+**Not on profile:** `target_price`, stored `has_residue` (use derived bridge feature `has_residue` instead).
 
 ### `is_facility` Computed Field
 
@@ -90,7 +112,7 @@ Logic mirrors the facility profile constraint: child partners → True; standalo
 
 `has_metal`, `is_metalized`, `has_fr` were previously stored fields with bidirectional `onchange` sync (± `material_attribute_ids`). That pattern was removed — booleans are now **computed** from attributes. `material_attribute_ids` is the single source of truth.
 
-**`has_residue` was deliberately left** as a computed field from `contamination_pct` — different semantic, different pattern. Not attribute-synced.
+**Residue:** use `profile_features.compute_has_residue_feature()` for bridge/matcher payloads. Intake may keep its own computed `has_residue`; the profile does not store it.
 
 ### `emit_material_packet()`
 

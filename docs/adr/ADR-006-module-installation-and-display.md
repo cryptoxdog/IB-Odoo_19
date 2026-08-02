@@ -1,9 +1,12 @@
-# ADR-002: Module Installation and Display Configuration
+# ADR-006: Module Installation and Display Configuration
 
-**Status:** Accepted
-**Date:** 2026-03-17
-**Deciders:** Igor Beylin
-**Scope:** All PlasticOS modules
+**Status:** Accepted  
+**Date:** 2026-03-17  
+**Deciders:** Igor Beylin  
+**Scope:** All PlasticOS modules  
+**Related:** [ADR-007](ADR-007-deployment-architecture.md), [ARCHITECTURE.md](../../ARCHITECTURE.md)
+
+> **Note:** Module lists below reflect the decision at acceptance time. Verify `installable` / `application` in each module's `__manifest__.py` before changing production installs.
 
 ## Context
 
@@ -13,6 +16,7 @@ PlasticOS consists of 20+ custom Odoo modules deployed on Odoo.sh. Two key manif
 2. **`application`** — Whether the module appears as a tile on the Odoo dashboard
 
 Incorrect configuration of these settings has caused:
+
 - Modules not appearing in Apps list (`installable: False`)
 - Dashboard clutter from unwanted app tiles (`application: True` on utility modules)
 - Confusion about which modules are production-ready vs. disabled
@@ -71,11 +75,13 @@ These modules have `installable: False`:
 ## Consequences
 
 ### Positive
+
 - Clear separation between user-facing apps and utility modules
 - Dashboard shows only relevant tiles (6 PlasticOS + Contacts + CRM)
 - Disabled modules don't clutter the Apps list
 
 ### Negative
+
 - Must manually update this ADR when adding new modules
 - Manifest files for displayed modules are now PROTECTED (see below)
 

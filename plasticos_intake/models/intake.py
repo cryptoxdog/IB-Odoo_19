@@ -572,7 +572,19 @@ class PlasticosIntake(models.Model):
         self.packaging_type_id = mp.packaging_type_id.id if mp.packaging_type_id else self.packaging_type_id
         self.mfi_value = mp.melt_flow_index or self.mfi_value
         self.density_value = mp.density or self.density_value
+        self.moisture_pct = mp.moisture_percent or self.moisture_pct
         self.contamination_pct = mp.contamination_percent or self.contamination_pct
+        if mp.quantity_per_load_lbs:
+            self.quantity_per_load_lbs = int(mp.quantity_per_load_lbs)
+        if mp.loads_per_month:
+            self.loads_per_month = mp.loads_per_month
+        if mp.lat:
+            self.lat = mp.lat
+        if mp.lon:
+            self.lon = mp.lon
+        self.origin_process_type = mp.origin_process_type or self.origin_process_type
+        self.filler_type_id = mp.filler_type_id.id if mp.filler_type_id else self.filler_type_id
+        self.filler_pct = mp.filler_pct or self.filler_pct
         if mp.material_attribute_ids:
             self.material_attribute_ids = [(6, 0, mp.material_attribute_ids.ids)]
 
@@ -790,27 +802,20 @@ class PlasticosIntake(models.Model):
 
     def _create_material_profile_from_intake(self):
         self.ensure_one()
+        from odoo.addons.plasticos_material_profile.intake_delta_bridge import (
+            build_material_profile_vals_from_intake,
+        )
+
         MaterialProfile = self.env["plasticos.material.profile"]
 
         profile_partner = self.facility_id or self.partner_id
         if not profile_partner:
             return
 
-        profile_vals = {
-            "partner_id": profile_partner.id,
-            "polymer_id": self.polymer_id.id if self.polymer_id else False,
-            "form_id": self.form_id.id if self.form_id else False,
-            "color_id": self.color_id.id if self.color_id else False,
-            "source_type_id": self.source_type_id.id if self.source_type_id else False,
-            "origin_form_id": self.origin_form_id.id if self.origin_form_id else False,
-            "melt_flow_index": self.mfi_value or 0,
-            "density": self.density_value or 0,
-            "moisture_percent": self.moisture_pct or 0,
-            "contamination_percent": self.contamination_pct or 0,
-        }
-
-        if self.material_attribute_ids:
-            profile_vals["material_attribute_ids"] = [(6, 0, self.material_attribute_ids.ids)]
+        profile_vals = build_material_profile_vals_from_intake(self)
+        profile_vals["partner_id"] = profile_partner.id
+        if self.packaging_type_id:
+            profile_vals["packaging_type_id"] = self.packaging_type_id.id
 
         profile = MaterialProfile.create(profile_vals)
         self.write({"material_profile_id": profile.id})

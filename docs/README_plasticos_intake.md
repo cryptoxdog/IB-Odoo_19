@@ -12,6 +12,10 @@
 
 This is the highest-traffic module in the system. Every brokerage deal begins here.
 
+**Role split:** intake is transactional (workflow, facility/contact, matches, offers). Canonical reusable specs live on `plasticos.material.profile` — see `plasticos_material_profile/intake_delta_bridge.py` for the field map. `target_price` is commercial drift and is **not** promoted to the material profile. `has_residue` on intake is computed; bridge payloads expose derived `has_residue` via `compute_has_residue_feature()` without storing it on the profile.
+
+**ADRs:** [ADR-004](adr/ADR-004-intake-vs-material-profile-domain-split.md), [ADR-005](adr/ADR-005-intake-material-profile-delta-bridge.md). System view: [ARCHITECTURE.md](../ARCHITECTURE.md).
+
 ---
 
 ## Pipeline Overview
@@ -76,8 +80,9 @@ The primary intake record. ~42KB model.
 | `has_residue` | `Boolean` | **Computed** from `contamination_pct` — different pattern, not attribute-synced |
 | `match_line_ids` | `One2many(plasticos.intake.match)` | Written by `action_match_to_buyers()` |
 | `offer_count` | `Integer` | Computed — drives the smart button |
-| `lat` / `lon` | `Float` | Geolocation — passed to CEG for distance scoring |
-| `target_price` | `Float` | Passed to CEG query payload |
+| `lat` / `lon` | `Float` | Geolocation — bridged to material profile when reusable |
+| `source_type_id` | `Many2one(plasticos.source.type)` | Required shared field — included in profile bridge payloads |
+| `target_price` | — | **Not on intake model** — commercial drift only; do not add to material profile |
 
 #### Boolean Flags — Important History
 

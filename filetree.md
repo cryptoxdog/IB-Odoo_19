@@ -45,9 +45,17 @@
 │   └── subsystems/
 │       └── readme_config.yaml
 ├── docs
-│   ├── adr/
+│   ├── adr/                    # canonical ADRs (see README.md)
+│   │   ├── README.md
 │   │   ├── ADR-001-master-data-field-architecture.md
-│   │   └── ADR-002-action-methods.md
+│   │   ├── ADR-002-gate-hub-phased-autonomy.md
+│   │   ├── ADR-002-navigation-menu-architecture.md
+│   │   ├── ADR-003-contact-import-configuration.md
+│   │   ├── ADR-004-intake-vs-material-profile-domain-split.md
+│   │   ├── ADR-005-intake-material-profile-delta-bridge.md
+│   │   ├── ADR-006-module-installation-and-display.md
+│   │   ├── ADR-007-deployment-architecture.md
+│   │   └── ADR-008-odoo-action-methods.md
 │   ├── Files To Harvest/
 │   ├── New AI Use Cases/
 │   ├── TEST_WRITING_GUIDE.md
