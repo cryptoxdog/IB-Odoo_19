@@ -154,13 +154,11 @@ plasticos_product/           # Layer 1: Scrap plastic product catalog
 plasticos_facility_profile/  # Layer 2: Facility capabilities, equipment, tolerances
 plasticos_intake/            # Layer 2: Material intake with contact intelligence
 plasticos_intake_normalizer/ # Layer 2: L9 packet normalization
-plasticos_matching/          # Layer 2: Match result storage
-plasticos_buyer_match_engine/# Layer 2: 10-gate filtering + Neo4j graph scoring
+plasticos_matching/          # Layer 2: Match result storage (Gate-mediated authority)
 plasticos_geolocalize/       # Layer 2: Auto-geocode + nightly backfill
 plasticos_gate/              # Layer 2: Constellation Gate TransportPacket client (ADR-002)
-plasticos_enrichment/        # Layer 2: AI web intelligence extraction
+plasticos_enrichment/        # Layer 2: Gate-mediated partner enrichment (local inference retired M7)
 plasticos_web_leads/         # Layer 2: AI lead triage (Cognito → LLM → HOT/COLD)
-plasticos_inference_engine/  # Layer 2: Deterministic polymer inference (YAML KB)
 plasticos_accounting/        # Layer 3: Chart of accounts, payment terms, incoterms
 plasticos_offer/             # Layer 3: Offer lifecycle (match → negotiation → deal)
 plasticos_order_lines/       # Layer 3: PO/SO lines with material specs
@@ -377,10 +375,10 @@ These files are intentionally excluded from specific checks:
 | Many2one string write (#22) | `ai_normalizer.py` | LLM prompt JSON schema, not field assignment |
 | Many2one string write (#22) | `graph_service.py`, `matcher.py`, `enrichment_service.py`, `material_profile.py`, `transaction_import` | Dict/API payloads, not ORM writes |
 | `self.env.get()` (#24) | `ci/*.py` | CI detection scripts contain pattern examples |
-| mypy | `plasticos_web_leads`, `plasticos_enrichment`, `plasticos_buyer_match_engine`, `plasticos_inference_engine` | Complex patterns, gradual typing |
+| mypy | `plasticos_web_leads`, `plasticos_enrichment` | Complex patterns, gradual typing |
 | ACL completeness | all modules | Non-blocking hook (warn-only) |
 | Odoo patterns script | CI workflows | `|| true` — tracked separately |
-| YAML syntax | `plasticos_enrichment/knowledge_base/*.yaml`, `buyer_matching_rag.yaml` | Complex YAML not standard Odoo |
+| YAML syntax | `plasticos_enrichment/knowledge_base/*.yaml` | Complex YAML not standard Odoo |
 | All pre-commit hooks | `odoo-enterprise/**`, `plasticos_graph_*/**` | External/experimental code |
 | All pre-commit hooks | `docs/**` | Documentation files |
 

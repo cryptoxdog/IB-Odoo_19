@@ -431,6 +431,7 @@ GLOBAL_ALLOWLIST = frozenset(
         "Person",
         "Contact",
         "corporate",
+        "facility",
         # ─────────────────────────────────────────────────────────────────────
         # INFERENCE ENGINE / RULE ENGINE VALUES
         # ─────────────────────────────────────────────────────────────────────

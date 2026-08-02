@@ -11,7 +11,6 @@ Pattern follows test_form_enum_alignment.py from PR #23.
 """
 
 import ast
-import re
 from pathlib import Path
 
 import pytest
@@ -90,45 +89,14 @@ class TestProcessEnumAlignment:
         )
         assert "PROCESS_SELECTION" in source, "facility_profile.py does not use PROCESS_SELECTION"
 
+    @pytest.mark.skip(reason="M7 / TASK-051: plasticos_buyer_match_engine physically deleted")
     def test_matcher_imports_registry(self):
-        """matcher.py must import check_mfi_compatibility from registry."""
-        matcher_path = REPO_ROOT / "plasticos_buyer_match_engine" / "models" / "matcher.py"
-        assert matcher_path.exists(), f"File not found: {matcher_path}"
+        """Retired with local matcher module."""
 
-        source = matcher_path.read_text()
-        assert "process_codes import" in source and "check_mfi_compatibility" in source, (
-            "matcher.py does not import check_mfi_compatibility from process_codes registry."
-        )
-        assert "check_mfi_compatibility" in source, "matcher.py does not use check_mfi_compatibility"
-
+    @pytest.mark.skip(reason="M7 / TASK-051: plasticos_buyer_match_engine physically deleted")
     def test_no_hardcoded_process_literals_in_matcher(self):
-        """matcher.py must not contain hardcoded process type string literals."""
-        matcher_path = REPO_ROOT / "plasticos_buyer_match_engine" / "models" / "matcher.py"
-        source = matcher_path.read_text()
+        """Retired with local matcher module."""
 
-        registry_codes = _get_process_codes_from_registry()
-        for code in registry_codes:
-            pattern = rf'["\']({code})["\']'
-            matches = re.findall(pattern, source)
-            assert not matches, (
-                f"matcher.py contains hardcoded process literal '{code}'. Use process_codes registry instead."
-            )
-
+    @pytest.mark.skip(reason="M7 / TASK-051: plasticos_buyer_match_engine physically deleted")
     def test_graph_service_process_alignment(self):
-        """graph_service.py Cypher queries must use registry-aligned process codes."""
-        gs_path = REPO_ROOT / "plasticos_buyer_match_engine" / "models" / "graph_service.py"
-        if not gs_path.exists():
-            pytest.skip("graph_service.py not found")
-
-        source = gs_path.read_text()
-        registry_codes = _get_process_codes_from_registry()
-
-        cypher_pattern = r"process_type\s*=\s*['\"](\w+)['\"]"
-        cypher_matches = set(re.findall(cypher_pattern, source, re.IGNORECASE))
-
-        if cypher_matches:
-            invalid = cypher_matches - registry_codes
-            msg = (
-                f"graph_service.py Cypher uses process codes not in registry: {invalid}. Valid codes: {registry_codes}"
-            )
-            assert not invalid, msg
+        """Retired with local graph service module."""
