@@ -13,7 +13,7 @@ requests>=2.28.0
 neo4j>=5.0.0
 
 # Constellation Gate TransportPacket client (plasticos_gate)
-constellation-node-sdk @ git+https://github.com/Quantum-L9/Gate_SDK.git@68d4be34c9b144cde8f10f76be42c292cdd25c3b
+constellation-node-sdk @ git+https://github.com/Quantum-L9/Gate_SDK.git@a770e8531dc1c59ce01e1dbb0f4162785d9dda89
 
 # PR Repair engine — pr_repair_adapter.py uses this for state-machine-governed
 # CI repair loop (Issue→Finding conversion, approval gates, repeated-failure guard).
