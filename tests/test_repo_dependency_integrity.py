@@ -295,8 +295,14 @@ class TestModelRegistration:
             assert f"from . import {mod}" in src, f"Missing 'from . import {mod}' in models/__init__.py"
 
     def test_match_exclusion_model_name(self):
-        src = _read_file("models/match_exclusion.py")
-        assert src is not None
+        """M2: identity lives in plasticos_matching; BME keeps an _inherit stub."""
+        stub = _read_file("models/match_exclusion.py")
+        assert stub is not None
+        assert '_inherit = "plasticos.match.exclusion"' in stub
+        matching_root = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir, "plasticos_matching"))
+        home = os.path.join(matching_root, "models", "match_exclusion.py")
+        assert os.path.isfile(home)
+        src = open(home, encoding="utf-8").read()
         assert '_name = "plasticos.match.exclusion"' in src
 
     def test_graph_sync_log_model_name(self):
@@ -378,8 +384,9 @@ class TestModelRegistration:
         assert "models.AbstractModel" in src, "graph_service.py must inherit models.AbstractModel"
 
     def test_match_exclusion_inherits_mail_thread(self):
-        src = _read_file("models/match_exclusion.py")
-        assert src is not None
+        matching_root = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir, "plasticos_matching"))
+        home = os.path.join(matching_root, "models", "match_exclusion.py")
+        src = open(home, encoding="utf-8").read()
         assert "mail.thread" in src
 
     def test_no_deprecated_namespace_plastos(self):

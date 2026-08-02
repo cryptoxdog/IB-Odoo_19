@@ -42,9 +42,7 @@ def test_contact_import_adr_preserved_under_filename_collision():
 def test_adr_002_topology_still_present():
     assert ADR_002.is_file()
     text = ADR_002.read_text(encoding="utf-8")
-    assert "Gate is the mandatory hub" in text or "Gate is the mandatory hub" in text.replace(
-        "—", "-"
-    )
+    assert "Gate is the mandatory hub" in text or "Gate is the mandatory hub" in text.replace("—", "-")
     assert "never Odoo" in text or "must not call CEG" in text
 
 
@@ -84,8 +82,7 @@ def test_roadmap_and_track_b_cite_successor_authority():
 def test_acceptance_local_engines_no_longer_architectural_authority():
     """Registry acceptance: local algorithmic fallback is no longer architectural authority."""
     corpus = "\n".join(
-        p.read_text(encoding="utf-8")
-        for p in (ADR_SINGLE, INVARIANTS, ARCHITECTURE, AGENTS, ROADMAP, TRACK_B_04)
+        p.read_text(encoding="utf-8") for p in (ADR_SINGLE, INVARIANTS, ARCHITECTURE, AGENTS, ROADMAP, TRACK_B_04)
     )
     assert "architectural authority" in corpus.lower()
     assert "ADR-003-single-external-intelligence-authority" in corpus

@@ -50,14 +50,14 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             }
         )
 
-        from odoo.addons.plasticos_gate.services.gate_config import (
-            GateIntegrationError,
-            gate_matching_enabled,
-        )
         from odoo.addons.plasticos_gate.services.gate_builders import build_match_request
         from odoo.addons.plasticos_gate.services.gate_client import (
             classify_transport_failure,
             send_match_action,
+        )
+        from odoo.addons.plasticos_gate.services.gate_config import (
+            GateIntegrationError,
+            gate_matching_enabled,
         )
         from odoo.addons.plasticos_gate.services.gate_mappers import (
             extract_audit_metadata,
@@ -73,14 +73,10 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
                     "error_message": "Gate matching not enabled (URL/SDK/ICP).",
                 }
             )
-            raise UserError(
-                _("Gate matching is not enabled. Configure plasticos.gate.url and matching ICP.")
-            )
+            raise UserError(_("Gate matching is not enabled. Configure Gate URL and matching ICP."))
 
         try:
-            request = build_match_request(
-                self.env, intake=intake, top_n=max_results, mode=mode or "strict"
-            )
+            request = build_match_request(self.env, intake=intake, top_n=max_results, mode=mode or "strict")
             correlation_id = request.odoo.get("correlation_id") if request.odoo else None
             gate_result = send_match_action(
                 self.env,
@@ -100,9 +96,7 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
                 }
             )
             _logger.warning("Gate-only match failed for intake %s: %s", intake.id, exc)
-            raise UserError(
-                _("Gate match failed (%s): %s") % (failure, exc)
-            ) from exc
+            raise UserError(_("Gate match failed (%s): %s") % (failure, exc)) from exc
         except (UserError, ValidationError):
             raise
         except Exception as exc:  # noqa: BLE001 — boundary: classify then fail closed
@@ -142,15 +136,14 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
         return run, matches
 
     @api.model
-    def persist_review_results(self, intake, matches, run):
-        """Persist UI lines + canonical match.result rows linked to the run."""
-        run_id = str(uuid.uuid4())
-        intake.match_line_ids.unlink()
+    def _build_intake_match_line_vals(self, intake, matches):
+        """Build vals for plasticos.intake.match rows (no ORM writes)."""
+        vals = []
         for m in matches:
             buyer_id = m.get("buyer_id")
             if not buyer_id:
                 continue
-            self.env["plasticos.intake.match"].create(
+            vals.append(
                 {
                     "intake_id": intake.id,
                     "buyer_id": buyer_id,
@@ -159,10 +152,23 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
                     "typical_price": m.get("typical_price") or 0.0,
                 }
             )
+        return vals
+
+    @api.model
+    def _create_intake_match_lines(self, vals_list):
+        """Batch-create UI match lines (kept loop-free for audit scanner)."""
+        if not vals_list:
+            return self.env["plasticos.intake.match"]
+        return self.env["plasticos.intake.match"].create(vals_list)
+
+    @api.model
+    def persist_review_results(self, intake, matches, run):
+        """Persist UI lines + canonical match.result rows linked to the run."""
+        run_id = str(uuid.uuid4())
+        intake.match_line_ids.unlink()
+        self._create_intake_match_lines(self._build_intake_match_line_vals(intake, matches))
         if "plasticos.match.result.writer" in self.env:
-            created = self.env["plasticos.match.result.writer"].persist_match_lines(
-                intake, matches, run_id=run_id
-            )
+            created = self.env["plasticos.match.result.writer"].persist_match_lines(intake, matches, run_id=run_id)
             if created and run:
                 created.write({"match_run_id": run.id})
         return run_id

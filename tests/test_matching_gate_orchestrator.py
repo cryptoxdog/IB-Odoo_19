@@ -4,9 +4,6 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 ORCH = ROOT / "plasticos_matching/models/match_orchestrator.py"

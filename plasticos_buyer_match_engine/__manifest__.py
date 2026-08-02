@@ -34,7 +34,7 @@
         "security/ir.model.access.csv",
         "data/ir_cron_graph_sync.xml",
         "views/intake_button_views.xml",
-        "views/match_exclusion_views.xml",
+        # match_exclusion_views.xml moved to plasticos_matching (M2 / TASK-047)
     ],
     "external_dependencies": {"python": ["neo4j"]},
     "post_init_hook": "post_init_hook",
