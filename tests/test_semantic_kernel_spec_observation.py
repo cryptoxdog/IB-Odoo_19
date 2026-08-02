@@ -67,7 +67,7 @@ def test_specification_field_set_and_constraints() -> None:
     ):
         assert required in names
     text = path.read_text()
-    assert "canonical_uuid_uniq" in text
+    assert "_canonical_uuid_uniq" in text
     assert "unique(canonical_uuid)" in text
     assert "mail.thread" in text
 
@@ -88,7 +88,7 @@ def test_observation_field_set_and_constraints() -> None:
     ):
         assert required in names
     text = path.read_text()
-    assert "canonical_uuid_uniq" in text
+    assert "_canonical_uuid_uniq" in text
     assert "mail.thread" not in text
 
 

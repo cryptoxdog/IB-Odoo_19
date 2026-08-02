@@ -108,13 +108,10 @@ class PlasticosMaterialSpecification(models.Model):
     migration_batch_id = fields.Char(index=True)
     contract_version = fields.Char(required=True, default="1.0")
 
-    _sql_constraints = [
-        (
-            "canonical_uuid_uniq",
-            "unique(canonical_uuid)",
-            "canonical_uuid must be unique and immutable.",
-        ),
-    ]
+    _canonical_uuid_uniq = models.Constraint(
+        "unique(canonical_uuid)",
+        "canonical_uuid must be unique and immutable.",
+    )
 
     @api.model_create_multi
     def create(self, vals_list):
