@@ -160,6 +160,7 @@ jobs:
           # __init__.py false positives, now excluded inside the script)
           chmod +x scripts/check_odoo_patterns.sh
           run_check "Odoo 19 patterns" ./scripts/check_odoo_patterns.sh
+          # M8 / TASK-052: blocking no-local-intelligence drift guard (post-M7 absence)
           run_check "No local-intelligence drift" python3 ci/check_no_local_intelligence.py
 
           run_check "Circular dependencies"      python3 ci/check_circular_deps.py

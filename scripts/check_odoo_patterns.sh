@@ -385,8 +385,8 @@ else
     echo -e "${GREEN}OK${NC}"
 fi
 
-# 25. Local-intelligence authority drift (M6) — residue reported inside scanner;
-# new consumer-path drift fails this script.
+# 25. Local-intelligence authority drift (M8 / TASK-052) — blocking;
+# retired module trees must stay absent (M7); consumer-path drift fails here.
 echo -n "Checking no local-intelligence authority drift... "
 if python3 ci/check_no_local_intelligence.py >/tmp/plasticos-no-local-intel.out 2>&1; then
     echo -e "${GREEN}OK${NC}"

@@ -1,8 +1,9 @@
-"""M7 / TASK-051 — post-retirement local-intelligence absence + drift scanner."""
+"""M8 / TASK-052 — blocking no-local-intelligence drift guards after M7 retirement."""
 
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -84,3 +85,32 @@ def test_precommit_wires_scanner():
 def test_odoo_patterns_invokes_scanner():
     text = PATTERNS.read_text(encoding="utf-8")
     assert "check_no_local_intelligence.py" in text
+
+
+def test_ci_uses_blocking_run_check():
+    text = CI_YML.read_text(encoding="utf-8")
+    assert 'run_check "No local-intelligence drift"' in text
+    assert (
+        "run_advisory"
+        not in text.split("No local-intelligence drift")[0][-200:] + text.split("No local-intelligence drift")[1][:200]
+    )
+
+
+def test_makefile_audit_includes_drift_guard():
+    text = MAKEFILE.read_text(encoding="utf-8")
+    # Primary `audit:` target (full CI parity) — not enhanced-audit / audit-baseline.
+    match = re.search(
+        r"^audit: audit-quick.*?\\\n\tenhanced-audit",
+        text,
+        re.MULTILINE | re.DOTALL,
+    )
+    assert match is not None, "Makefile audit target not found"
+    assert "no-local-intelligence" in match.group(0)
+
+
+def test_adr_documents_m7_m8_blocking_guards():
+    text = ADR.read_text(encoding="utf-8")
+    assert "M7" in text
+    assert "M8" in text or "TASK-052" in text
+    assert "blocking" in text.lower()
+    assert "transitional residue" not in text.lower() or "physically retired" in text.lower()

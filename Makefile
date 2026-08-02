@@ -76,7 +76,7 @@ help:
 	@echo "    make odoo19-hooks     Odoo 19 hook pattern violations"
 	@echo "    make odoo-patterns    24-check Odoo 19 pattern scanner (scripts/check_odoo_patterns.sh)"
 	@echo "    make name-check       _name must be a string literal enforcement"
-	@echo "    make no-local-intelligence  Gate-only intelligence drift guard (M6)"
+	@echo "    make no-local-intelligence  Gate-only intelligence drift guard (M8 — blocking)"
 	@echo "    make manifest-check   __manifest__.py required-field validation"
 	@echo "    make shellcheck-check shellcheck on all *.sh files"
 	@echo "    make critical-manifest  critical manifest rules"
@@ -212,8 +212,8 @@ odoo-patterns:
 	@chmod +x scripts/check_odoo_patterns.sh
 	./scripts/check_odoo_patterns.sh
 
-# M6 mothball: local-intelligence authority drift (blocking for new consumer drift;
-# residue reported, not excluded).
+# M8 mothball (TASK-052): blocking drift guard — retired modules absent (M7),
+# consumer-path authority drift fails CI/pre-commit/audit.
 no-local-intelligence:
 	@echo "→ No local-intelligence authority drift..."
 	python3 ci/check_no_local_intelligence.py
@@ -388,7 +388,7 @@ audit-quick: lint format xml-check odoo19-check wiring deps-check cron-check
 # Full audit — 1:1 parity with ci.yml's static-checks job (blocking checks
 # only; run `make advisory-checks` separately for the non-blocking set).
 audit: audit-quick semgrep semgrep-test guards acl-check \
-	name-check manifest-check odoo-patterns odoo19-hooks critical-manifest \
+	name-check manifest-check no-local-intelligence odoo-patterns odoo19-hooks critical-manifest \
 	enhanced-audit odoo-antipatterns package-init weak-test-check
 	@echo "→ Field integrity..."
 	python3 ci/check_field_integrity.py
