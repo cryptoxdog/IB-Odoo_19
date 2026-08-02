@@ -1,14 +1,16 @@
 """Matching pre-migrate 19.0.3.0.0 — snapshot retained audit counts (M5)."""
 
+# Static count queries only — table identifiers are not interpolated.
+_COUNT_SQL = {
+    "plasticos_match_run": "SELECT COUNT(*) FROM plasticos_match_run",
+    "plasticos_match_result": "SELECT COUNT(*) FROM plasticos_match_result",
+    "plasticos_match_exclusion": "SELECT COUNT(*) FROM plasticos_match_exclusion",
+}
+
 
 def migrate(cr, version):
     """Inventory retained match audit tables; never DELETE/DROP."""
-    retained = (
-        "plasticos_match_run",
-        "plasticos_match_result",
-        "plasticos_match_exclusion",
-    )
-    for table in retained:
+    for table, count_sql in _COUNT_SQL.items():
         cr.execute(
             """
             SELECT EXISTS (
@@ -21,7 +23,7 @@ def migrate(cr, version):
         exists = cr.fetchone()[0]
         if not exists:
             continue
-        cr.execute(f"SELECT COUNT(*) FROM {table}")  # noqa: S608 — fixed table list
+        cr.execute(count_sql)
         count = cr.fetchone()[0]
         cr.execute(
             """
