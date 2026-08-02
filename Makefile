@@ -4,8 +4,12 @@
 .DEFAULT_GOAL := help
 .PHONY: help \
         lint format format-fix check \
-        audit audit-quick \
-        xml-check wiring deps-check cron-check odoo19-check semgrep semgrep-test \
+        audit audit-quick audit-baseline advisory-checks \
+        xml-check wiring deps-check cron-check odoo19-check odoo19-hooks odoo-patterns \
+        name-check manifest-check shellcheck-check \
+        critical-manifest enhanced-audit odoo-antipatterns package-init weak-test-check \
+        mypy-check acl-csv-check test-attr-guard-check \
+        semgrep semgrep-test secret-scan \
         pipeline-guard dev-fence state-guard acl-check guards deploy-check \
         up down restart logs logs-error shell odoo-shell \
         update update-all rebuild backup lock-deps \
@@ -62,11 +66,23 @@ help:
 	@echo "    make format-fix       ruff format (auto-fix)"
 	@echo "    make check            lint + format check"
 	@echo ""
-	@echo "  Audit (run before PRs)"
+	@echo "  Audit (run before PRs — mirrors ci.yml job-for-job)"
 	@echo "    make audit-quick      fast: lint + format + wiring + odoo19 + xml + deps + cron"
-	@echo "    make audit            full: audit-quick + semgrep + semgrep-test + all ci/ integrity scripts"
+	@echo "    make audit            full: 1:1 parity with ci.yml static-checks (all blocking checks)"
+	@echo "    make audit-baseline   comprehensive+extended audit vs ci/baselines/*.json fingerprint log (mirrors ci.yml)"
+	@echo "    make advisory-checks  mypy + ACL CSV header + test-attribute-guard (never fails)"
 	@echo "    make xml-check        xmllint on all plasticos XML files"
 	@echo "    make odoo19-check     Odoo 19 XML pattern violations"
+	@echo "    make odoo19-hooks     Odoo 19 hook pattern violations"
+	@echo "    make odoo-patterns    24-check Odoo 19 pattern scanner (scripts/check_odoo_patterns.sh)"
+	@echo "    make name-check       _name must be a string literal enforcement"
+	@echo "    make manifest-check   __manifest__.py required-field validation"
+	@echo "    make shellcheck-check shellcheck on all *.sh files"
+	@echo "    make critical-manifest  critical manifest rules"
+	@echo "    make enhanced-audit   enhanced XML ID + dependency audit"
+	@echo "    make odoo-antipatterns  Python-vs-ORM idiom enforcement"
+	@echo "    make package-init     package __init__.py integrity"
+	@echo "    make weak-test-check  weak test detection"
 	@echo "    make wiring           module dependency wiring check"
 	@echo "    make deps-check       circular dependency check"
 	@echo "    make lock-deps        regenerate constraints.txt (Dockerfile dependency lock)"
@@ -74,6 +90,7 @@ help:
 	@echo "    make semgrep          semgrep custom Odoo rules (ERROR level)"
 	@echo "    make semgrep-test     validate semgrep config + positive/negative fixtures"
 	@echo "    make acl-check        ACL completeness (all models have ir.model.access)"
+	@echo "    make secret-scan      gitleaks secret detection (also runs via pre-commit pre-push hook)"
 	@echo ""
 	@echo "  Hard Gates (run individually or via make guards)"
 	@echo "    make pipeline-guard   HARD GATE: pipeline_v2.py must not be activated"
@@ -106,7 +123,7 @@ help:
 	@echo "    make commit           stage all (except .cursor-commands) + commit"
 	@echo "    make commit m=\"...\"   commit with explicit conventional message"
 	@echo "    make github-actions-kernel-check  validate staged/all .github/workflows (R5 kernel)"
-	@echo "    make pr-check         REQUIRED before any push: audit-quick + semgrep + semgrep-test + pipeline-guard"
+	@echo "    make pr-check         REQUIRED before any push: audit + audit-baseline + test (mirrors ci.yml)"
 	@echo "    make pr-check pr=100       remote gate for PR #100 or full GitHub URL"
 	@echo "    make pr-check-100          shorthand for pr=100"
 	@echo "    make push             safe push: pr-check, then push current FEATURE branch (Staging/Production are PR-only)"
@@ -182,6 +199,65 @@ odoo19-check:
 	@echo "→ Odoo 19 XML pattern check..."
 	python3 ci/check_odoo19_xml.py
 
+odoo19-hooks:
+	@echo "→ Odoo 19 hook pattern check..."
+	python3 ci/check_odoo19_hooks.py
+
+# 24-check Odoo 19 pattern scanner (ci/check_odoo_patterns.sh) — distinct from
+# odoo19-check above (ci/check_odoo19_xml.py, XML-only). Ported into ci.yml
+# static-checks 2026-07 from the deleted pr-gate.yml; this target mirrors it.
+odoo-patterns:
+	@echo "→ Odoo 19 pattern checker (24 checks)..."
+	@chmod +x scripts/check_odoo_patterns.sh
+	./scripts/check_odoo_patterns.sh
+
+# _name must be a string literal (ci/check_name_literal.py) — single source of
+# truth shared with ci.yml static-checks; do not re-inline this regex anywhere.
+name-check:
+	@echo "→ _name string literal enforcement..."
+	python3 ci/check_name_literal.py
+
+# Manifest field validation (restored 2026-07 from deleted module-check.yml) —
+# checks required fields beyond bare syntax via scripts/validate_manifest.py.
+manifest-check:
+	@echo "→ Manifest field validation..."
+	@ERRORS=0; \
+	for m in $$(find . -name "__manifest__.py" -not -path "./.venv/*"); do \
+		python3 scripts/validate_manifest.py "$$m" || ERRORS=$$((ERRORS + 1)); \
+	done; \
+	if [ $$ERRORS -ne 0 ]; then echo "❌ $$ERRORS manifest(s) failed validation"; exit 1; fi; \
+	echo "✅ All manifests valid"
+
+# Shellcheck (restored 2026-07 from deleted pr-gate.yml). Not yet a pre-commit
+# hook — install via: brew install shellcheck (macOS) / apt-get install shellcheck (CI).
+shellcheck-check:
+	@if ! command -v shellcheck >/dev/null 2>&1; then \
+		echo "❌ shellcheck not found — install: brew install shellcheck"; exit 1; \
+	fi
+	@echo "→ Shellcheck..."
+	@find . -name "*.sh" -not -path "./.git/*" | xargs --no-run-if-empty shellcheck --severity=warning
+
+critical-manifest:
+	@echo "→ Critical manifest check..."
+	python3 ci/check_critical_manifest.py
+
+enhanced-audit:
+	@echo "→ Enhanced XML ID + dependency audit..."
+	python3 ci/enhanced_audit.py
+
+# Promoted to blocking in ci.yml 2026-07 (GATE-01 fail-closed: all pass at adoption).
+odoo-antipatterns:
+	@echo "→ Odoo antipatterns (Python-vs-ORM idiom enforcement)..."
+	python3 ci/check_odoo_antipatterns.py
+
+package-init:
+	@echo "→ Package __init__.py integrity..."
+	python3 ci/check_package_init.py
+
+weak-test-check:
+	@echo "→ Weak test detection..."
+	python3 ci/weak_test_fixer.py
+
 wiring:
 	@echo "→ Module wiring check..."
 	python3 scripts/check_module_wiring.py
@@ -225,11 +301,88 @@ acl-check:
 	@echo "→ ACL completeness check..."
 	python3 ci/check_acl_completeness.py
 
+# ── Advisory checks (mirror ci.yml's run_advisory — never fail the build) ──
+# Restored 2026-07 from deleted workflows; non-blocking there and here.
+
+mypy-check:
+	@echo "→ mypy type check (advisory)..."
+	@mypy . --config-file=pyproject.toml || echo "⚠️  mypy findings above (advisory — non-blocking)"
+
+acl-csv-check:
+	@echo "→ ACL CSV header format (advisory)..."
+	@for csv in $$(find . -name "ir.model.access.csv" -not -path "./.venv/*"); do \
+		HEADER=$$(head -1 "$$csv"); \
+		EXPECTED="id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink"; \
+		if [ "$$HEADER" != "$$EXPECTED" ]; then \
+			echo "⚠️  Non-standard header in $$csv"; \
+			echo "   Expected: $$EXPECTED"; \
+			echo "   Got: $$HEADER"; \
+		fi; \
+		if grep -E ",," "$$csv" | grep -v "^#" > /dev/null; then \
+			echo "⚠️  Empty fields detected in $$csv"; \
+		fi; \
+	done; true
+
+test-attr-guard-check:
+	@echo "→ Test attribute guard (advisory)..."
+	@find . -name "test_*.py" -path "*/tests/*" ! -path "./.venv/*" | while read -r f; do \
+		REFS=$$(grep -oP "self\.[a-z_]+_rec\b" "$$f" 2>/dev/null | sort -u || true); \
+		if [ -z "$$REFS" ]; then continue; fi; \
+		for ref in $$REFS; do \
+			attr="$${ref#self.}"; \
+			if ! grep -qP "(cls\.$$attr\s*=|self\.$$attr\s*=)" "$$f"; then \
+				echo "⚠️  $$f uses $$ref but no cls.$$attr or self.$$attr= found"; \
+			fi; \
+		done; \
+	done; true
+
+advisory-checks: mypy-check acl-csv-check test-attr-guard-check
+	@echo "✅ Advisory checks complete (warnings above are non-blocking)"
+
+# Comprehensive audit baseline regression (restored 2026-07 from deleted
+# odoo-audit.yml). scripts/audit/odoo_audit.py + run_all_audits.py are NOT
+# duplicated by the checks above — they cover field/required-field/compute/
+# security/constraint/state-machine/onchange bugs and N+1-query performance,
+# a different check family from check_odoo_antipatterns.py. Mirrors the
+# audit-baseline job in ci.yml (same baseline thresholds); keep both in sync.
+# Baseline: 444 CRITICAL, 1 HIGH — all pre-existing false positives (verified
+# 2026-07), NOT zero known debt. FIELD_NOT_FOUND (444x) misattributes
+# ir.ui.view/ir.actions.act_window container fields (arch, inherit_id, name,
+# etc.) as model fields; INVALID_CONSTRAINT_FIELD (1x, transaction.py
+# commission_override_pct) is a cross-module _inherit field the single-file
+# scanner can't see (defined in plasticos_commission). Keep in sync with the
+# BASELINE_CRITICAL/BASELINE_HIGH values in ci.yml's audit-baseline job.
+# Per-finding fingerprint baseline (ci/baselines/*.json) — NOT a raw count
+# comparison. See scripts/audit/baseline_utils.py for the rationale and
+# ci/baselines/README.md for how to log a newly-reviewed finding. Mirrors
+# ci.yml's audit-baseline job exactly (same two scripts, same flags).
+audit-baseline:
+	@echo "→ Comprehensive audit (scripts/audit/odoo_audit.py) vs ci/baselines/odoo_audit_baseline.json..."
+	@python3 scripts/audit/odoo_audit.py . || true
+	@python3 scripts/audit/check_baseline.py \
+		odoo_audit_report.json ci/baselines/odoo_audit_baseline.json \
+		--severities CRITICAL,HIGH --label "Comprehensive audit"
+	@echo "→ Extended audit (scripts/audit/run_all_audits.py) vs ci/baselines/extended_audit_baseline.json..."
+	@python3 scripts/audit/run_all_audits.py . || true
+	@python3 scripts/audit/check_baseline.py \
+		extended_audit_report.json ci/baselines/extended_audit_baseline.json \
+		--severities HIGH --label "Extended audit"
+	@echo "✅ No audit baseline regression"
+
+secret-scan:
+	@echo "→ Secret detection (gitleaks)..."
+	@command -v gitleaks >/dev/null 2>&1 || { echo "❌ gitleaks not found — install: brew install gitleaks"; exit 1; }
+	gitleaks detect --no-banner -v
+
 audit-quick: lint format xml-check odoo19-check wiring deps-check cron-check
 	@echo ""
 	@echo "✅ Quick audit complete"
 
-audit: audit-quick semgrep semgrep-test guards acl-check
+# Full audit — 1:1 parity with ci.yml's static-checks job (blocking checks
+# only; run `make advisory-checks` separately for the non-blocking set).
+audit: audit-quick semgrep semgrep-test guards acl-check \
+	name-check manifest-check odoo-patterns odoo19-hooks critical-manifest \
+	enhanced-audit odoo-antipatterns package-init weak-test-check
 	@echo "→ Field integrity..."
 	python3 ci/check_field_integrity.py
 	@echo "→ ORM integrity..."
@@ -247,7 +400,7 @@ audit: audit-quick semgrep semgrep-test guards acl-check
 	@echo "→ Disabled actions..."
 	python3 ci/check_disabled_actions.py
 	@echo ""
-	@echo "✅ Full audit complete"
+	@echo "✅ Full audit complete (parity with ci.yml static-checks)"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # HARD GATES
@@ -432,8 +585,13 @@ test-module:
 # PR / CI WORKFLOW
 # ─────────────────────────────────────────────────────────────────────────────
 
-# REQUIRED before any push or PR creation (local + remote when PR/CI exists)
-pr-check: audit-quick semgrep semgrep-test pipeline-guard test pr-remote-feedback
+# REQUIRED before any push or PR creation (local + remote when PR/CI exists).
+# `audit` already covers guards/semgrep/semgrep-test — kept as one dependency
+# for 1:1 parity with ci.yml's static-checks job (see `audit` target above).
+# secret-scan is intentionally NOT listed here: pre-commit's gitleaks-push
+# hook already runs at `git push` time regardless of make, so listing it here
+# would just run gitleaks twice.
+pr-check: audit audit-baseline test pr-remote-feedback
 	@echo ""
 	@echo "✅ PR gate passed — safe to push"
 
@@ -496,8 +654,14 @@ commit:
 	fi
 
 # Protected branches — PR-only via GitHub ruleset "Protect Staging & Production"
-# (require PR + required status checks: Ruff Lint & Format, Static Analysis, Pure Python Tests).
-# Keep this list in sync with the repo ruleset. Direct pushes here are rejected by GitHub.
+# (require PR + required status check: "CI Gate Result" — ci.yml's aggregator
+# job; it only succeeds once lint, static-checks, pure-python-tests,
+# secret-scan, AND audit-baseline have all succeeded, so it alone is
+# sufficient as the required check — no need to list all 5 individually).
+# NOTE: this comment describes the intended ruleset config; if the GitHub
+# ruleset still lists the old individual job names (pre-2026-07 ci.yml), update
+# it via Settings → Rules → Protect Staging & Production → required checks.
+# Keep this comment in sync with the repo ruleset. Direct pushes here are rejected by GitHub.
 PROTECTED_BRANCHES := Staging Production
 
 # Safe push: runs full pr-check, then pushes the CURRENT FEATURE branch.

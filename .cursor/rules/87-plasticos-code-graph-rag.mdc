@@ -35,7 +35,7 @@ Health check: `code_graph_health.sh` in the same directory.
 
 ## Full SOP
 
-Load **`l9-code-graph-rag-mcp`** (`@.cursor-commands/skills/l9-code-graph-rag-mcp/SKILL.md`).  
+Load **`l9-code-graph-rag-mcp`** (`@.cursor-commands/skills/l9-code-graph-rag-mcp/SKILL.md`).
 **When to read from graph:** `assets/plasticos-trigger-matrix.md`.
 
 ## GMP Phase 0

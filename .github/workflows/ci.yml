@@ -1,12 +1,22 @@
 # .github/workflows/ci.yml
 # PlasticOS CI Gate — single gating workflow for all pure-Python checks
-# Replaces: test-quality.yml, odoo-audit.yml, module-check.yml, pr-gate.yml
+# Supersedes: test-quality.yml, odoo-audit.yml, module-check.yml, pr-gate.yml
+# (deleted 2026-07-23 in #112; every unique check they ran was ported below —
+#  see "restored 2026-07" comments — nothing was silently dropped).
 #
-# Tier 1 (lint)       → Tier 2 (static analysis) → Tier 3 (pure-python tests)
-# All three tiers run on bare GitHub Actions, no Odoo runtime required.
-# Odoo ORM tests run on Odoo.sh deploy hooks (not here).
+# Design: fail-slow, not fail-fast. `lint`, `static-checks`, `pure-python-tests`,
+# `secret-scan`, and `audit-baseline` all run in PARALLEL (no needs: between
+# them) so a single push surfaces every failing check in one CI run instead of
+# stopping at the first tier that fails. Each job also aggregates ALL of its
+# own checks before exiting (a `run_check`/`run_advisory` helper pattern) —
+# fail-slow at both the job level and the check level. A final `ci-gate-result`
+# job (needs: all of the above, if: always()) is the single fail-closed verdict:
+# every job still must pass, we just see every failure at once instead of
+# whack-a-mole across N pushes.
 #
-# Design: each tier runs ALL checks before failing — no whack-a-mole.
+# ci/check_github_actions_kernel.sh enforces this contract: lint/static-checks/
+# pure-python-tests must have no needs:, and an aggregator with needs: covering
+# all of them + if: always() must exist.
 
 name: CI Gate
 
@@ -17,7 +27,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── TIER 1: Lint & format — runs ALL checks, reports all failures ──────────
+  # ── PHASE 1 (parallel — no needs:): lint & format ──────────────────────────
   lint:
     name: Ruff Lint & Format
     runs-on: ubuntu-latest
@@ -46,10 +56,9 @@ jobs:
             exit 1
           fi
 
-  # ── TIER 2: Static analysis — runs ALL checks, reports all failures ────────
+  # ── PHASE 1 (parallel — no needs:): static analysis ────────────────────────
   static-checks:
     name: Static Analysis
-    needs: lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -59,7 +68,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install --only-binary ":all:" lxml==6.0.2 semgrep==1.164.0
+      - run: pip install --only-binary ":all:" lxml==6.0.2 semgrep==1.164.0 mypy==1.14.0
+
+      - name: Install shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
 
       - name: Run all static checks (all errors before failing)
         run: |
@@ -74,6 +86,19 @@ jobs:
             else
               RESULTS+=("❌ $name")
               FAIL=1
+            fi
+            echo ""
+          }
+
+          # Advisory checks never flip FAIL — logged but non-blocking, matching
+          # the deleted workflows' own continue-on-error / warn-only semantics.
+          run_advisory() {
+            local name="$1"; shift
+            echo "--- $name (advisory) ---"
+            if "$@"; then
+              RESULTS+=("✅ $name (advisory)")
+            else
+              RESULTS+=("⚠️  $name (advisory — non-blocking)")
             fi
             echo ""
           }
@@ -105,6 +130,26 @@ jobs:
               try: exec(open(m).read())
               except Exception as e: print(f'ERROR {m}: {e}'); errors+=1
           sys.exit(errors)"
+
+          # Manifest field validation (restored 2026-07 from module-check.yml —
+          # checks required fields beyond bare syntax, via scripts/validate_manifest.py)
+          run_check "Manifest field validation" bash -c '
+          ERRORS=0
+          for m in $(find . -name "__manifest__.py" -not -path "./.venv/*"); do
+            python3 scripts/validate_manifest.py "$m" || ERRORS=$((ERRORS + 1))
+          done
+          [ $ERRORS -eq 0 ]'
+
+          # _name must be a string literal, never _name = SOME_CONSTANT (restored
+          # 2026-07 from odoo-audit.yml; AGENTS.md already documents this contract).
+          # Shared with `make name-check` via ci/check_name_literal.py — do not
+          # re-inline this logic here, it will drift.
+          run_check "_name string literal enforcement" python3 ci/check_name_literal.py
+
+          # Shellcheck (restored 2026-07 from pr-gate.yml)
+          run_check "Shellcheck" bash -c "
+          find . -name '*.sh' -not -path './.git/*' | \
+            xargs --no-run-if-empty shellcheck --severity=warning"
 
           # Semgrep custom Odoo/security rules
           run_check "Semgrep Odoo patterns" semgrep --error --config .semgrep/odoo-patterns.yml --severity ERROR --quiet --include="plasticos_*"
@@ -139,6 +184,36 @@ jobs:
           run_check "State guard bypass"      python3 ci/check_state_guard_bypass.py
           run_check "Weak test detection"     python3 ci/weak_test_fixer.py
 
+          # Advisory checks (restored 2026-07 — non-blocking, matching the
+          # deleted workflows' own continue-on-error / warn-only semantics)
+          run_advisory "mypy type check" mypy . --config-file=pyproject.toml
+
+          run_advisory "ACL CSV header format" bash -c '
+          for csv in $(find . -name "ir.model.access.csv" -not -path "./.venv/*"); do
+            HEADER=$(head -1 "$csv")
+            EXPECTED="id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink"
+            if [ "$HEADER" != "$EXPECTED" ]; then
+              echo "WARNING: Non-standard header in $csv"
+              echo "  Expected: $EXPECTED"
+              echo "  Got: $HEADER"
+            fi
+            if grep -E ",," "$csv" | grep -v "^#" > /dev/null; then
+              echo "WARNING: Empty fields detected in $csv"
+            fi
+          done'
+
+          run_advisory "Test attribute guard" bash -c '
+          find . -name "test_*.py" -path "*/tests/*" ! -path "./.venv/*" | while read f; do
+            REFS=$(grep -oP "self\.[a-z_]+_rec\b" "$f" 2>/dev/null | sort -u; true)
+            if [ -z "$REFS" ]; then continue; fi
+            for ref in $REFS; do
+              attr="${ref#self.}"
+              if ! grep -qP "(cls\.$attr\s*=|self\.$attr\s*=)" "$f"; then
+                echo "WARNING: $f uses $ref but no cls.$attr or self.$attr= found"
+              fi
+            done
+          done'
+
           echo "============================================"
           echo "Static Analysis Summary"
           echo "============================================"
@@ -147,10 +222,9 @@ jobs:
 
           exit $FAIL
 
-  # ── TIER 3: Pure-Python tests — runs ALL, reports all failures ─────────────
+  # ── PHASE 1 (parallel — no needs:): pure-Python tests ──────────────────────
   pure-python-tests:
     name: Pure Python Tests
-    needs: static-checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -167,6 +241,8 @@ jobs:
           # Odoo is intentionally NOT installed here. tests/conftest.py detects this
           # and collect-ignores every Odoo-importing test module, so `pytest tests/`
           # runs exactly the pure-Python set with no hand-maintained file list to drift.
+          # pytest itself is already fail-slow: it runs every test and reports every
+          # failure, it does not stop at the first one.
           # Coverage is ADVISORY (no --cov-fail-under): it reports a baseline only and
           # never blocks the build. See [tool.coverage.*] in pyproject.toml.
           python3 -m pytest tests/ \
@@ -174,7 +250,105 @@ jobs:
             -p no:randomly \
             --cov=. --cov-report=term-missing:skip-covered
 
-  # ── SECURITY: Runs in parallel, blocking (GATE-01 fail-closed) ───────────
+  # ── PHASE 1 (parallel — no needs:): comprehensive audit baseline regression ─
+  # Restored 2026-07 from deleted odoo-audit.yml. scripts/audit/odoo_audit.py and
+  # run_all_audits.py are NOT duplicated by static-checks above — they cover
+  # field/required-field/compute/security/constraint/state-machine/onchange bugs
+  # and N+1-query performance issues, a different check family from
+  # check_odoo_antipatterns.py (Python-vs-ORM idiom enforcement). Both audit
+  # scripts here run to completion regardless of each other's result (fail-slow);
+  # only the final step gates the job.
+  audit-baseline:
+    name: Comprehensive Audit (Baseline Regression)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - id: audit
+        name: Run comprehensive + extended audits (diff vs per-finding baseline)
+        run: |
+          # Per-finding fingerprint baseline (ci/baselines/*.json), not a raw
+          # count comparison — see scripts/audit/baseline_utils.py. Each entry
+          # there is a human-reviewed known false positive or accepted debt
+          # item; anything NOT in the log is treated as new and fails the gate,
+          # so a count staying flat can never mask "one known FP got fixed,
+          # one new real bug appeared" the way a count-only baseline could.
+          FAIL=0
+
+          echo "=== Comprehensive audit (scripts/audit/odoo_audit.py) ==="
+          # Fail-slow within the step: always run the baseline gate even if the
+          # scanner exits non-zero. Do not use `|| true` (workflow-integrity ban).
+          set +e
+          python3 scripts/audit/odoo_audit.py .
+          python3 scripts/audit/check_baseline.py \
+            odoo_audit_report.json ci/baselines/odoo_audit_baseline.json \
+            --severities CRITICAL,HIGH --label "Comprehensive audit" \
+            --summary-file "$GITHUB_STEP_SUMMARY"
+          rc_comprehensive=$?
+          echo ""
+
+          echo "=== Extended audit (scripts/audit/run_all_audits.py) ==="
+          python3 scripts/audit/run_all_audits.py .
+          python3 scripts/audit/check_baseline.py \
+            extended_audit_report.json ci/baselines/extended_audit_baseline.json \
+            --severities HIGH --label "Extended audit" \
+            --summary-file "$GITHUB_STEP_SUMMARY"
+          rc_extended=$?
+          set -e
+
+          [ "$rc_comprehensive" -eq 0 ] || FAIL=1
+          [ "$rc_extended" -eq 0 ] || FAIL=1
+
+          echo "fail=$FAIL" >> "$GITHUB_OUTPUT"
+
+      - name: Upload audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: odoo-audit-reports
+          path: |
+            odoo_audit_report.json
+            extended_audit_report.json
+            AUDIT_REPORT.md
+          if-no-files-found: warn
+
+      - name: Comment on PR (regression detected)
+        if: steps.audit.outputs.fail == '1' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "## ❌ Audit Regression Detected\n\nThis PR introduces CRITICAL/HIGH findings not already " +
+                "logged in `ci/baselines/*.json`. See the `audit-baseline` job log and the `odoo-audit-reports` " +
+                "artifact for details.\n\nFix the code, or if this is a confirmed false positive / accepted debt, " +
+                "add it to the baseline: `python3 scripts/audit/odoo_audit.py .` then " +
+                "`python3 scripts/audit/check_baseline.py odoo_audit_report.json ci/baselines/odoo_audit_baseline.json " +
+                "--severities CRITICAL,HIGH --dump-new` (same pattern for `extended_audit_report.json` / " +
+                "`extended_audit_baseline.json` --severities HIGH). Never edit the scanner scripts to special-case a finding.",
+            });
+
+      - name: Gate on regression
+        run: |
+          if [ "${{ steps.audit.outputs.fail }}" = "1" ]; then
+            echo "::error::Audit baseline regression detected — see the step summary and odoo-audit-reports artifact above."
+            exit 1
+          fi
+          echo "✅ No audit baseline regression."
+
+  # ── PHASE 1 (parallel — no needs:): security, blocking (GATE-01 fail-closed) ─
   secret-scan:
     name: Secret Detection
     runs-on: ubuntu-latest
@@ -186,6 +360,36 @@ jobs:
       - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2 — SHA-pinned per SonarCloud S7637
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── PHASE 2 (sequential, always last): single fail-closed verdict ──────────
+  # Runs only after all Phase 1 jobs finish (if: always() so it runs even if
+  # some failed) and fails if any of them did not succeed. This is the ONE
+  # required status check to configure in branch protection — it is the only
+  # job that needs to gate merges; every Phase 1 job above still runs to
+  # completion and reports its own failures independently in the same run.
+  ci-gate-result:
+    name: CI Gate Result
+    if: always()
+    needs: [lint, static-checks, pure-python-tests, secret-scan, audit-baseline]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Aggregate Phase 1 results
+        run: |
+          echo "lint:              ${{ needs.lint.result }}"
+          echo "static-checks:      ${{ needs.static-checks.result }}"
+          echo "pure-python-tests:  ${{ needs.pure-python-tests.result }}"
+          echo "secret-scan:        ${{ needs.secret-scan.result }}"
+          echo "audit-baseline:     ${{ needs.audit-baseline.result }}"
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.static-checks.result }}" != "success" ] || \
+             [ "${{ needs.pure-python-tests.result }}" != "success" ] || \
+             [ "${{ needs.secret-scan.result }}" != "success" ] || \
+             [ "${{ needs.audit-baseline.result }}" != "success" ]; then
+            echo "::error::One or more CI Gate jobs failed — see the job that reported ❌ above."
+            exit 1
+          fi
+          echo "✅ All CI Gate jobs passed."
 
   # ── ODOO RUNTIME: PERMANENTLY DISABLED IN GITHUB ACTIONS ────────────────
   # Do NOT add an odoo-bin / --test-enable job here. GitHub Actions has no Odoo
