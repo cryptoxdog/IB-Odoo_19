@@ -34,7 +34,10 @@ FAMILIES: tuple[Family, ...] = (
 # Families blocked for automatic conversion (pack mapping decisions).
 BLOCKED_AUTOMATIC: frozenset[Family] = frozenset({"supply", "demand"})
 
-MAPPING_VERSION = "2.2.0-task-026"
+# TASK-031 locks execution to one semantic family for this wave slice.
+TASK_031_LOCKED_FAMILY: Family = "specification"
+
+MAPPING_VERSION = "2.2.0-task-031"
 SOURCE_SYSTEM = "odoo"
 CHECKPOINT_KEY_PREFIX = "plasticos_semantic_kernel.backfill.checkpoint"
 
@@ -60,6 +63,7 @@ class BackfillReport:
     dry_run: bool
     source_query: str
     source_count: int
+    planned: int = 0
     created: int = 0
     reused: int = 0
     skipped: int = 0
@@ -84,6 +88,7 @@ class BackfillReport:
             "family": self.family,
             "dry_run": self.dry_run,
             "source_count": self.source_count,
+            "planned": self.planned,
             "created": self.created,
             "reused": self.reused,
             "skipped": self.skipped,
@@ -212,7 +217,7 @@ class BackfillEngine:
 
             if self.dry_run:
                 report.rows.append(RowResult(identity=ident, status="planned", detail="dry-run create"))
-                report.created += 1  # planned creates counted for dry-run visibility
+                report.planned += 1
                 continue
 
             # Execute path: caller persists; engine records create intent success.

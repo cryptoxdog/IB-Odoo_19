@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Explicit semantic-kernel backfill CLI (TASK-026).
+"""Explicit semantic-kernel backfill CLI (TASK-026 / TASK-031).
+
+TASK-031 wave slice: run family=specification (supply/demand remain BLOCKED_AUTOMATIC).
 
 Usage examples:
   python3 scripts/semantic_kernel_backfill.py --dry-run --family specification --report-path /tmp/report.json
@@ -19,7 +21,12 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
 
-from semantic_kernel_backfill_engine import FAMILIES, BackfillEngine, SourceRow  # noqa: E402
+from semantic_kernel_backfill_engine import (  # noqa: E402
+    FAMILIES,
+    TASK_031_LOCKED_FAMILY,
+    BackfillEngine,
+    SourceRow,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -38,6 +45,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional JSON list of source rows for offline/dry-run tests",
     )
     p.add_argument("--code-sha", default="unknown")
+    p.add_argument(
+        "--task-031-lock",
+        action="store_true",
+        default=False,
+        help="Refuse families other than specification (TASK-031 one-family lock)",
+    )
     return p
 
 
@@ -60,14 +73,24 @@ def load_fixture_rows(path: Path | None) -> list[SourceRow]:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.task_031_lock and args.family != TASK_031_LOCKED_FAMILY:
+        print(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": "task_031_family_lock",
+                    "locked_family": TASK_031_LOCKED_FAMILY,
+                    "requested": args.family,
+                }
+            ),
+            file=sys.stderr,
+        )
+        return 2
     rows = load_fixture_rows(Path(args.fixture_path) if args.fixture_path else None)
-    # TASK-026 ships dry-run + report/checkpoint contract. Execute adapter is a later slice.
+    # Execute adapter remains a later slice; force dry-run unless explicitly extended.
     dry_run = True
     if not args.dry_run:
         print("execute mode not enabled in this slice; forcing --dry-run", file=sys.stderr)
-        dry_run = True
-    else:
-        dry_run = True
     engine = BackfillEngine(
         family=args.family,
         source_rows=rows,
@@ -83,7 +106,19 @@ def main(argv: list[str] | None = None) -> int:
     out = Path(args.report_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report.to_dict(), indent=2) + "\n")
-    print(json.dumps({"ok": True, "report_path": str(out), "checksum": report.checksum, "family": report.family}))
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "report_path": str(out),
+                "checksum": report.checksum,
+                "family": report.family,
+                "planned": report.planned,
+                "created": report.created,
+                "blocked": report.blocked,
+            }
+        )
+    )
     return 0
 
 
