@@ -21,7 +21,7 @@ GateClient: Any = None
 create_transport_packet: Any = None
 _SDK_IMPORT_ERROR: Exception | None = None
 try:
-    from constellation_node_sdk import GateClient, create_transport_packet  # noqa: F811
+    from constellation_node_sdk import GateClient, create_transport_packet  # type: ignore[no-redef]  # noqa: F811
 except Exception as exc:  # pragma: no cover
     _SDK_IMPORT_ERROR = exc
 
