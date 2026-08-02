@@ -10,7 +10,7 @@ from odoo import api, fields, models
 from odoo.exceptions import UserError
 
 if TYPE_CHECKING:
-    from odoo.addons.plasticos_inference_engine import InferenceEngine
+    InferenceEngine = None  # M4: local inference retired; optional import removed
 
 _logger = logging.getLogger(__name__)
 
@@ -19,10 +19,8 @@ _inference_engine: "InferenceEngine | None" = None
 
 
 def _get_inference_classes():
-    """Lazy load inference engine classes to avoid import error at module load time."""
-    from odoo.addons.plasticos_inference_engine import InferenceEngine, InferenceRequest
-
-    return InferenceEngine, InferenceRequest
+    """Retired in M4 — local inference engine is no longer a dependency."""
+    raise RuntimeError("plasticos_inference_engine removed from enrichment path (mothball M4)")
 
 
 # ── Normalization Maps ──────────────────────────────────────────
@@ -280,6 +278,7 @@ class EnrichmentService(models.AbstractModel):
         Returns:
             Dict with original + inferred fields (quality_tier, etc.)
         """
+        raise UserError("Local inference execution was removed (mothball M4). Enrichment is Gate-only.")
         engine = self._get_inference_engine()
         if engine is None:
             return dict(profile_vals)
@@ -357,6 +356,7 @@ class EnrichmentService(models.AbstractModel):
         Returns:
             Dict of fields that were updated.
         """
+        raise UserError("Local inference execution was removed (mothball M4). Enrichment is Gate-only.")
         profile.ensure_one()
 
         # Build profile_vals from existing record
@@ -468,6 +468,7 @@ class EnrichmentService(models.AbstractModel):
     @api.model
     def crawl_source(self, source):
         """Fetch content from a single enrichment.source record."""
+        raise UserError("Local crawl execution was removed (mothball M4). Enrichment is Gate-only.")
         headers = {"User-Agent": "PlastOS-Enrichment/1.0"}
         try:
             resp = http_requests.get(
@@ -511,6 +512,7 @@ class EnrichmentService(models.AbstractModel):
     @api.model
     def extract_from_source(self, source):
         """Route crawled content through AI extraction API."""
+        raise UserError("Local extract execution was removed (mothball M4). Enrichment is Gate-only.")
         if not source.raw_content:
             raise UserError(
                 f"Source {source.url} has no crawled content.",

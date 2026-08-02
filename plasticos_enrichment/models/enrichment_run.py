@@ -1,6 +1,6 @@
 import logging
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
@@ -48,6 +48,8 @@ class EnrichmentRun(models.Model):
             ("validated", "Validated"),
             ("review", "Needs Review"),
             ("injected", "Injected"),
+            ("retryable", "Retryable"),
+            ("degraded", "Degraded"),
             ("failed", "Failed"),
         ],
         default="draft",
@@ -78,6 +80,14 @@ class EnrichmentRun(models.Model):
     )
     gate_packet_id = fields.Char(readonly=True, help="Gate response TransportPacket id for audit.")
     gate_correlation_id = fields.Char(readonly=True, help="Gate correlation id for traceability.")
+    failure_class = fields.Char(
+        readonly=True,
+        help="Classified Gate failure (retryable/permanent/unknown) for degraded mode.",
+    )
+    availability_status = fields.Char(
+        readonly=True,
+        help="Structured Gate availability status at execute time.",
+    )
 
     @api.depends(
         "extraction_ids.confidence",
@@ -247,120 +257,91 @@ class EnrichmentRun(models.Model):
         return len(to_write)
 
     def action_execute(self):
-        """Full pipeline: try Gate converge -> fall back to local crawl/extract/evaluate.
+        """Gate-only converge (M4). Never falls back to local crawl/extract/inference.
 
-        State transitions (direct writes are intentional - pipeline method):
-        - draft -> crawling -> extracting -> validated/review/failed
+        On Gate unavailable/failure: classify, audit on this run, raise UserError.
         """
         self.ensure_one()
-
-        if self._should_try_gate_converge():
-            try:
-                if self._run_gate_converge():
-                    return
-            except Exception as exc:
-                _logger.warning(
-                    "Gate converge failed; falling back to local enrichment: %s",
-                    exc,
-                    exc_info=True,
-                )
-
-        svc = self.env["plasticos.enrichment.service"]
-
-        if not self.source_ids:
-            raise UserError("Add at least one source URL.")
-
-        # 1. Crawl
-        self.write({"state": "crawling", "engine_used": "local"})
-        for source in self.source_ids:
-            svc.crawl_source(source)
-
-        # 2. Extract
-        self.write({"state": "extracting"})
-        succeeded = self.source_ids.filtered(
-            lambda s: s.crawl_status == "success",
+        from odoo.addons.plasticos_gate.services.gate_client import classify_transport_failure
+        from odoo.addons.plasticos_gate.services.gate_config import (
+            GateCapability,
+            GateIntegrationError,
+            classify_gate_availability,
+            gate_enrichment_enabled,
         )
-        if not succeeded:
+
+        availability = classify_gate_availability(self.env, capability=GateCapability.ENRICHMENT)
+        self.write(
+            {
+                "engine_used": "gate",
+                "availability_status": availability.status,
+                "failure_class": False,
+            }
+        )
+
+        if not gate_enrichment_enabled(self.env):
+            reasons = "; ".join(availability.reasons) or "Gate enrichment unavailable"
             self.write(
                 {
                     "state": "failed",
+                    "failure_class": "permanent",
+                    "validation_issues": [reasons],
+                    "availability_status": availability.status,
+                }
+            )
+            raise UserError(
+                _("Gate enrichment is not enabled (%(status)s): %(reasons)s")
+                % {"status": availability.status, "reasons": reasons}
+            )
+
+        try:
+            if self._run_gate_converge():
+                return
+            # Gate returned non-applicable result (non-ok / empty allowlist) — fail closed
+            self.write(
+                {
+                    "state": "degraded",
+                    "failure_class": "unknown",
                     "validation_issues": [
-                        "No sources crawled successfully.",
+                        "Gate converge produced no injectable allowlisted fields.",
                     ],
                 }
             )
-            return
-
-        # Collect extraction results for batch create
-        extraction_vals_list = []
-        extraction_errors = []
-        for source in succeeded:
-            try:
-                parsed = svc.extract_from_source(source)
-                extraction_vals_list.append(
-                    {
-                        "run_id": self.id,
-                        "source_id": source.id,
-                        "material_json": parsed["materials"],
-                        "metadata_json": {
-                            "source_url": parsed["source_url"],
-                        },
-                        "confidence": parsed["overall_confidence"],
-                        "governance_passed": parsed["governance_passed"],
-                        "governance_flags": parsed["governance_flags"],
-                        "extracted_at": fields.Datetime.now(),
-                    }
-                )
-            except Exception as e:
-                extraction_errors.append(f"{source.url}: {e}")
-                _logger.error(
-                    "Extraction failed for source %s: %s",
-                    source.url,
-                    e,
-                )
-
-        # Batch create all extractions
-        if extraction_vals_list:
-            self.env["plasticos.enrichment.extraction"].create(extraction_vals_list)
-
-        # 3. Evaluate
-        if not self.extraction_ids:
-            issues = ["All extractions failed."]
-            if extraction_errors:
-                issues.extend(extraction_errors)
+            raise UserError(_("Gate enrichment degraded: no injectable fields from converge response."))
+        except UserError:
+            raise
+        except GateIntegrationError as exc:
+            failure = getattr(exc, "failure_class", None) or classify_transport_failure(exc).value
+            state = "retryable" if failure == "retryable" else ("failed" if failure == "permanent" else "degraded")
             self.write(
                 {
-                    "state": "failed",
-                    "validation_issues": issues,
+                    "state": state,
+                    "failure_class": failure,
+                    "validation_issues": [str(exc)],
                 }
             )
-            return
-
-        all_flags = []
-        for ext in self.extraction_ids:
-            all_flags.extend(ext.governance_flags or [])
-
-        injectable = all(ext.is_injectable for ext in self.extraction_ids)
-        if injectable and not all_flags:
-            if extraction_errors:
-                self.write(
-                    {
-                        "state": "review",
-                        "validation_issues": extraction_errors,
-                    }
-                )
-            else:
-                self.write({"state": "validated"})
-        else:
-            issues = all_flags or ["Low confidence or governance failure."]
-            if extraction_errors:
-                issues = list(issues) + extraction_errors
+            raise UserError(_("Gate enrichment failed (%s): %s") % (failure, exc)) from exc
+        except Exception as exc:  # noqa: BLE001 — boundary: classify then fail closed
+            failure = classify_transport_failure(exc).value
+            state = "retryable" if failure == "retryable" else ("failed" if failure == "permanent" else "degraded")
             self.write(
                 {
-                    "state": "review",
-                    "validation_issues": issues,
+                    "state": state,
+                    "failure_class": failure,
+                    "validation_issues": [str(exc)],
                 }
             )
+            _logger.exception("Gate enrichment unexpected error for run %s", self.id)
+            raise UserError(_("Gate enrichment failed (%s): %s") % (failure, exc)) from exc
+
+    def action_retry_enrichment(self):
+        """Operator retry — Gate-only; never local crawl/inference."""
+        self.ensure_one()
+        if self.state not in ("retryable", "failed", "degraded"):
+            raise UserError(_("Run %s is not in a retryable/failed/degraded state.") % self.name)
+        # Reset to draft for a clean Gate attempt while preserving audit via chatter
+        self.write({"state": "draft", "validation_issues": False, "failure_class": False})
+        return self.action_execute()
 
     def action_inject(self):
         """Write validated enrichment into plasticos.material.profile.
@@ -557,145 +538,18 @@ class EnrichmentRun(models.Model):
     # ── Inference Step ──────────────────────────────────────────
 
     def action_run_inference(self):
-        """
-        Run inference engine on all material profiles for this run's partner.
-        Called after injection to fill gaps with KB-based inference.
-        """
-        self.ensure_one()
-        if self.state != "injected":
-            raise UserError(
-                "Inference can only run after enrichment is injected.",
-            )
+        """Retired in M4 — local inference execution removed."""
+        raise UserError(_("Local inference execution was removed (mothball M4). Enrichment is Gate-only."))
 
-        svc = self.env["plasticos.enrichment.service"]
-        MatProf = self.env["plasticos.material.profile"]
-
-        # Get all profiles for this partner
-        profiles = MatProf.search(
-            [
-                ("partner_id", "=", self.partner_id.id),
-            ],
-            order="id ASC",
-        )
-
-        inference_count = 0
-        for profile in profiles:
-            try:
-                updated = svc.run_inference_on_profile(profile)
-                if updated:
-                    inference_count += 1
-                    # Record provenance for inferred fields
-                    for field_name, value in updated.items():
-                        self._record_provenance(
-                            self.partner_id,
-                            field_name,
-                            str(value),
-                            "",
-                            "inferred",
-                            [],
-                        )
-            except Exception as e:
-                _logger.warning(
-                    "Inference failed for profile %s: %s",
-                    profile.id,
-                    e,
-                )
-
-        if inference_count:
-            self.message_post(
-                body=(f"Inference engine augmented {inference_count} material profile(s) for {self.partner_id.name}."),
-                subtype_xmlid=SUBTYPE_NOTE,
-            )
-
-        return inference_count
-
-    # ── Cron ───────────────────────────────────────────────────
-
-    @api.model
     def action_cron_enrich_pending(self, run_inference: bool = True):
-        """Called by ir.cron. Process partners with enrichment sources that are stale."""
-        self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_enrichment.cron_enrichment_daily"])
-        if not self.env.cr.fetchone()[0]:
-            _logger.info("Skipping enrichment cron: lock is already held.")
-            return
-
-        stale_cutoff = fields.Datetime.subtract(fields.Datetime.now(), days=30)
-        try:
-            try:
-                sources = self.env["plasticos.enrichment.source"].search(
-                    [
-                        ("crawl_status", "in", ("pending", "success")),
-                        "|",
-                        ("last_crawled_at", "=", False),
-                        ("last_crawled_at", "<", stale_cutoff),
-                    ],
-                    order="last_crawled_at ASC, id ASC",
-                    limit=50,
-                )
-            except Exception as search_exc:
-                _logger.error("Enrichment cron source search failed: %s", search_exc)
-                return
-
-            for pid in sorted(set(sources.mapped("partner_id").ids)):
-                partner_sources = sources.filtered(lambda src, partner_id=pid: src.partner_id.id == partner_id)
-                run = self.create({"partner_id": pid, "source_ids": [(6, 0, partner_sources.ids)]})
-                try:
-                    run.action_execute()
-                    if run.state == "validated":
-                        run.action_inject()
-                        if run_inference and run.state == "injected":
-                            try:
-                                run.action_run_inference()
-                            except Exception as ie:
-                                _logger.warning("Inference step failed for partner %s: %s", pid, ie)
-                except Exception as exc:
-                    run.write({"state": "failed", "validation_issues": [str(exc)]})
-                    _logger.error("Enrichment cron failed for partner %s: %s", pid, exc)
-        except Exception as exc:
-            _logger.error("Enrichment cron crashed unexpectedly but was contained: %s", exc)
-            return
-        finally:
-            self.env.cr.execute(
-                "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_enrichment.cron_enrichment_daily"]
-            )
-
-    @api.model
-    def action_cron_inference_only(self):
-        """Standalone cron to inference stale profiles."""
-        self.env.cr.execute(
-            "SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_enrichment.cron_inference_standalone"]
+        """M4: cron disabled; no local enrichment batch execution."""
+        _logger.info(
+            "action_cron_enrich_pending skipped (M4 Gate-only; local cron retired). run_inference=%s",
+            run_inference,
         )
-        locked = self.env.cr.fetchone()[0]
-        if not locked:
-            _logger.info("Skipping inference-only cron: lock is already held.")
-            return 0
+        return True
 
-        svc = self.env["plasticos.enrichment.service"]
-        mat_prof = self.env["plasticos.material.profile"]
-        try:
-            try:
-                profiles = mat_prof.search(
-                    [("quality_tier", "=", False), ("polymer_id", "!=", False)],
-                    order="write_date ASC, id ASC",
-                    limit=100,
-                )
-            except Exception as search_exc:
-                _logger.error("Inference cron profile search failed: %s", search_exc)
-                return 0
-            count = 0
-            for profile in profiles:
-                try:
-                    updated = svc.run_inference_on_profile(profile)
-                    if updated:
-                        count += 1
-                except Exception as exc:
-                    _logger.warning("Inference cron failed for profile %s: %s", profile.id, exc)
-            _logger.info("Inference cron completed: %d profiles augmented", count)
-            return count
-        except Exception as exc:
-            _logger.error("Inference cron crashed unexpectedly but was contained: %s", exc)
-            return 0
-        finally:
-            self.env.cr.execute(
-                "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_enrichment.cron_inference_standalone"]
-            )
+    def action_cron_inference_only(self):
+        """Retired in M4 — standalone local inference cron is a no-op."""
+        _logger.info("action_cron_inference_only skipped (M4 local inference retired).")
+        return True

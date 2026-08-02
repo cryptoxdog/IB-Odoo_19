@@ -1,7 +1,7 @@
 {
     "name": "PlastOS Buyer CRM Enrichment Engine",
-    "version": "19.0.1.0.1",
-    "summary": "AI-powered web intelligence extraction for buyer material profiles",
+    "version": "19.0.2.0.0",
+    "summary": "Gate-mediated partner enrichment (local crawl/inference retired — mothball M4)",
     "category": "CRM",
     "author": "PlastOS",
     "website": "https://github.com/cryptoxdog/Odoo_19",
@@ -13,7 +13,6 @@
         "mail",
         "contacts",
         "plasticos_material_profile",
-        "plasticos_inference_engine",
     ],
     "data": [
         "security/security.xml",
