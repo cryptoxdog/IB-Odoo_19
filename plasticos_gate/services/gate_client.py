@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import threading
+from enum import StrEnum
 from typing import Any
 
 from .gate_config import (
@@ -26,9 +27,62 @@ except Exception as exc:  # pragma: no cover
     _SDK_IMPORT_ERROR = exc
 
 
+class TransportFailureClass(StrEnum):
+    """Operator-visible transport failure categories (no silent local substitution)."""
+
+    RETRYABLE = "retryable"
+    PERMANENT = "permanent"
+    UNKNOWN = "unknown"
+
+
+_RETRYABLE_TOKENS = (
+    "timeout",
+    "timed out",
+    "temporarily unavailable",
+    "connection reset",
+    "connection refused",
+    "connection aborted",
+    "broken pipe",
+    "network unreachable",
+    "503",
+    "502",
+    "504",
+    "429",
+    "gateway",
+)
+_PERMANENT_TOKENS = (
+    "unauthorized",
+    "forbidden",
+    "401",
+    "403",
+    "404",
+    "invalid signature",
+    "validation",
+    "schema",
+    "not installed",
+    "destination",
+    "policy",
+)
+
+
+def classify_transport_failure(exc: BaseException) -> TransportFailureClass:
+    """Classify a transport exception as retryable, permanent, or unknown."""
+    text = f"{type(exc).__name__}: {exc}".lower()
+    if any(token in text for token in _PERMANENT_TOKENS):
+        return TransportFailureClass.PERMANENT
+    if any(token in text for token in _RETRYABLE_TOKENS):
+        return TransportFailureClass.RETRYABLE
+    if isinstance(exc, (TimeoutError, ConnectionError, asyncio.TimeoutError)):
+        return TransportFailureClass.RETRYABLE
+    return TransportFailureClass.UNKNOWN
+
+
 def _require_sdk() -> None:
     if GateClient is None or create_transport_packet is None:
-        raise GateIntegrationError(f"constellation_node_sdk not installed: {_SDK_IMPORT_ERROR}")
+        raise GateIntegrationError(
+            f"constellation_node_sdk not installed: {_SDK_IMPORT_ERROR}",
+            failure_class=TransportFailureClass.PERMANENT.value,
+        )
 
 
 def _run_async(coro):
@@ -92,10 +146,13 @@ def send_action(
     try:
         response_packet = _run_async(client.send_to_gate(packet))
     except Exception as exc:
-        raise GateIntegrationError(str(exc)) from exc
+        failure = classify_transport_failure(exc)
+        raise GateIntegrationError(str(exc), failure_class=failure.value) from exc
+    packet_k, payload_k, failure_k = "packet", "payload", "failure_class"
     return {
-        "packet": response_packet,
-        "payload": dict(response_packet.payload),
+        packet_k: response_packet,
+        payload_k: dict(response_packet.payload),
+        failure_k: None,
     }
 
 
