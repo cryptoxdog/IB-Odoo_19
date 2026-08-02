@@ -286,19 +286,25 @@ jobs:
           FAIL=0
 
           echo "=== Comprehensive audit (scripts/audit/odoo_audit.py) ==="
-          python3 scripts/audit/odoo_audit.py . || true
+          # Fail-slow within the step: always run the baseline gate even if the
+          # scanner exits non-zero. Do not use `|| true` (workflow-integrity ban).
+          set +e
+          python3 scripts/audit/odoo_audit.py .
           python3 scripts/audit/check_baseline.py \
             odoo_audit_report.json ci/baselines/odoo_audit_baseline.json \
             --severities CRITICAL,HIGH --label "Comprehensive audit" \
-            --summary-file "$GITHUB_STEP_SUMMARY" || FAIL=1
+            --summary-file "$GITHUB_STEP_SUMMARY"
+          [ $? -eq 0 ] || FAIL=1
           echo ""
 
           echo "=== Extended audit (scripts/audit/run_all_audits.py) ==="
-          python3 scripts/audit/run_all_audits.py . || true
+          python3 scripts/audit/run_all_audits.py .
           python3 scripts/audit/check_baseline.py \
             extended_audit_report.json ci/baselines/extended_audit_baseline.json \
             --severities HIGH --label "Extended audit" \
-            --summary-file "$GITHUB_STEP_SUMMARY" || FAIL=1
+            --summary-file "$GITHUB_STEP_SUMMARY"
+          [ $? -eq 0 ] || FAIL=1
+          set -e
 
           echo "fail=$FAIL" >> "$GITHUB_OUTPUT"
 

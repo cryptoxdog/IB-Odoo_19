@@ -102,11 +102,16 @@ jobs:
           set -euo pipefail
           pip install --upgrade pip semgrep
           mkdir -p "artifacts/raw/semgrep/${L9_MATRIX_ID}"
+          # Always emit JSON for normalize; findings must not abort before publish.
+          # Do not use `|| true` (workflow-integrity ban) — capture rc under set +e.
+          set +e
           semgrep scan \
             --config p/python \
             --json \
             --output "artifacts/raw/semgrep/${L9_MATRIX_ID}/report.json" \
-            --error --quiet || true
+            --error --quiet
+          set -e
+          test -f "artifacts/raw/semgrep/${L9_MATRIX_ID}/report.json"
         env:
           L9_MATRIX_ID: ${{ env.L9_MATRIX_ID }}
 
