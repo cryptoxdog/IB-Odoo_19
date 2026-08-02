@@ -220,7 +220,15 @@ class TestModuleManifest:
         data = self.manifest.get("data", [])
         assert "security/ir.model.access.csv" in data
         assert "views/intake_button_views.xml" in data
-        assert "views/match_exclusion_views.xml" in data
+        # M2: exclusion views live in plasticos_matching
+        assert "views/match_exclusion_views.xml" not in data
+        matching_manifest = os.path.normpath(
+            os.path.join(os.path.dirname(__file__), os.pardir, "plasticos_matching", "__manifest__.py")
+        )
+        ns: dict = {}
+        with open(matching_manifest, encoding="utf-8") as fh:
+            exec(fh.read(), ns)
+        assert "views/match_exclusion_views.xml" in ns.get("data", [])
 
     def test_license_declared(self):
         assert self.manifest.get("license") == "LGPL-3"
