@@ -24,7 +24,7 @@ def test_orchestrator_never_calls_local_matcher():
     assert "_find_matches_local" not in src
     assert "find_matches_for_supplier" not in src
     # Docstring may name the forbidden path; ensure no runtime call site.
-    assert "env[\"plasticos.buyer.matcher\"]" not in src
+    assert 'env["plasticos.buyer.matcher"]' not in src
     assert "silent fallback" in src.lower()
     assert "retry_match_run" in src
     assert "_state_for_failure" in src
