@@ -204,7 +204,7 @@ jobs:
 
           run_advisory "Test attribute guard" bash -c '
           find . -name "test_*.py" -path "*/tests/*" ! -path "./.venv/*" | while read f; do
-            REFS=$(grep -oP "self\.[a-z_]+_rec\b" "$f" 2>/dev/null | sort -u || true)
+            REFS=$(grep -oP "self\.[a-z_]+_rec\b" "$f" 2>/dev/null | sort -u; true)
             if [ -z "$REFS" ]; then continue; fi
             for ref in $REFS; do
               attr="${ref#self.}"
@@ -294,7 +294,7 @@ jobs:
             odoo_audit_report.json ci/baselines/odoo_audit_baseline.json \
             --severities CRITICAL,HIGH --label "Comprehensive audit" \
             --summary-file "$GITHUB_STEP_SUMMARY"
-          [ $? -eq 0 ] || FAIL=1
+          rc_comprehensive=$?
           echo ""
 
           echo "=== Extended audit (scripts/audit/run_all_audits.py) ==="
@@ -303,8 +303,11 @@ jobs:
             extended_audit_report.json ci/baselines/extended_audit_baseline.json \
             --severities HIGH --label "Extended audit" \
             --summary-file "$GITHUB_STEP_SUMMARY"
-          [ $? -eq 0 ] || FAIL=1
+          rc_extended=$?
           set -e
+
+          [ "$rc_comprehensive" -eq 0 ] || FAIL=1
+          [ "$rc_extended" -eq 0 ] || FAIL=1
 
           echo "fail=$FAIL" >> "$GITHUB_OUTPUT"
 
