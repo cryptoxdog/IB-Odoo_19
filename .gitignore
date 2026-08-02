@@ -52,3 +52,10 @@ extended_audit_report.json
 # GMP reports (local artifacts, kept out of git by convention)
 # ═══════════════════════════════════════════════════════════
 /reports/GMP-Report-*.md
+
+# Explicit override: memory-bank/ is excluded by this machine's global
+# gitignore (~/.gitignore_global) but must be tracked in THIS repo so a fresh
+# clone gets T0 session-resume context. Negation must come after any blanket
+# ignore in this file (none currently exists here for memory-bank).
+!/memory-bank/
+!/memory-bank/**
