@@ -40,7 +40,8 @@ def test_dry_run_plans_creates_and_checksum() -> None:
     report = BackfillEngine(family="specification", source_rows=_rows(), dry_run=True, batch_size=10).run()
     assert report.dry_run is True
     assert report.source_count == 3
-    assert report.created == 3
+    assert report.planned == 3
+    assert report.created == 0
     assert report.checksum.startswith("sha256:")
     assert all(r.status == "planned" for r in report.rows)
 
