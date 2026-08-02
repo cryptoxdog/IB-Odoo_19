@@ -26,6 +26,9 @@ norecursedirs = [
     "odoo-enterprise",
     "current work - ib",
     "Current Work - IGNORE",
+    # Addon trees hold Odoo TransactionCase suites — not for bare pytest /
+    # Cursor-Governance `make pr` (`pytest .`). Pure suite is tests/ (CI Tier 3).
+    "plasticos_*",
 ]
 # Per-test timeout: fail loudly if a test hangs (e.g. Dropbox filesystem I/O timeout)
 # rather than silently dying mid-run and producing incomplete results.
