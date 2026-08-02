@@ -2,7 +2,8 @@
 
 Additive PlasticOS semantic models.
 
-- TASK-022: installable skeleton
-- TASK-023: `plasticos.material.specification` + `plasticos.material.observation`
+- TASK-022: skeleton
+- TASK-023: specification + observation
+- TASK-024: supply opportunity + buyer demand
 
 No Gate client, scoring, or inference execution lives here.

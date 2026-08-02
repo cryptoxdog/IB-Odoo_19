@@ -14,4 +14,14 @@
             parent="menu_plasticos_semantic_kernel_root"
             action="action_material_observation"
             sequence="20"/>
+  <menuitem id="menu_supply_opportunity"
+            name="Supply Opportunities"
+            parent="menu_plasticos_semantic_kernel_root"
+            action="action_supply_opportunity"
+            sequence="30"/>
+  <menuitem id="menu_buyer_demand"
+            name="Buyer Demand"
+            parent="menu_plasticos_semantic_kernel_root"
+            action="action_buyer_demand"
+            sequence="40"/>
 </odoo>
