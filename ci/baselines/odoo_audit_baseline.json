@@ -1,8 +1,8 @@
 {
   "_description": "Per-finding allowlist for scripts/audit/odoo_audit.py CRITICAL/HIGH findings. Each entry is a known, human-reviewed false positive or accepted item \u2014 NOT a blanket count baseline. Any finding whose fingerprint is not in this list fails the audit-baseline CI job (fix the code, or add a new reviewed entry here).",
   "_how_to_add_entries": "python3 scripts/audit/check_baseline.py odoo_audit_report.json ci/baselines/odoo_audit_baseline.json --severities CRITICAL,HIGH --dump-new -- review the output, then merge the printed entries into this file. Never edit scripts/audit/odoo_audit.py to special-case a finding.",
-  "_verified": "2026-07-24",
-  "_root_cause": "FIELD_NOT_FOUND (444x, CRITICAL): odoo_audit.py cannot distinguish ir.ui.view / ir.actions.act_window container fields (arch, inherit_id, priority, name, view_mode, res_model, context, help, search_view_id, target, ...) from fields on the model a view displays -- it misattributes them all as missing model fields. INVALID_CONSTRAINT_FIELD (1x, HIGH): transaction.py commission_override_pct is defined via cross-module _inherit in plasticos_commission; the single-file scanner cannot see it.",
+  "_verified": "2026-08-02",
+  "_root_cause": "FIELD_NOT_FOUND (444x, CRITICAL): odoo_audit.py cannot distinguish ir.ui.view / ir.actions.act_window container fields (arch, inherit_id, priority, name, view_mode, res_model, context, help, search_view_id, target, ...) from fields on the model a view displays -- it misattributes them all as missing model fields. INVALID_CONSTRAINT_FIELD (1x, HIGH): transaction.py commission_override_pct is defined via cross-module _inherit in plasticos_commission; the single-file scanner cannot see it.\n\n2026-08-02: plasticos_semantic_kernel view XML false positives \u2014 auditor treats ir.ui.view attrs (arch/name/res_model/view_mode) as model fields on observation/specification/facility.material.rule/capacity/supply/buyer.demand. Same FP class as existing enrichment.* view entries; logged not scanner-patched (PR #116 audit restore).",
   "entries": [
     {
       "fingerprint": "533531e3132d743a",
@@ -4453,6 +4453,216 @@
       "model": "plasticos.transaction",
       "field": "commission_override_pct",
       "message": "@api.constrains references non-existent field 'commission_override_pct'"
+    },
+    {
+      "fingerprint": "2739a3ece6df2d5c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/material_observation_views.xml",
+      "line": 6,
+      "model": "plasticos.material.observation",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.material.observation'"
+    },
+    {
+      "fingerprint": "b4109325367ef9c6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/material_observation_views.xml",
+      "line": 23,
+      "model": "plasticos.material.observation",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.material.observation'"
+    },
+    {
+      "fingerprint": "9f0af3c6c9308d63",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/material_observation_views.xml",
+      "line": 50,
+      "model": "plasticos.material.observation",
+      "field": "value_json",
+      "message": "Field 'value_json' not defined on model 'plasticos.material.observation'"
+    },
+    {
+      "fingerprint": "806e74d3952fe87a",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/material_observation_views.xml",
+      "line": 83,
+      "model": "plasticos.material.observation",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.material.observation'"
+    },
+    {
+      "fingerprint": "7b1bc44e23ed5302",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/material_observation_views.xml",
+      "line": 84,
+      "model": "plasticos.material.observation",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.material.observation'"
+    },
+    {
+      "fingerprint": "a71b226f520d2530",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/material_specification_views.xml",
+      "line": 6,
+      "model": "plasticos.material.specification",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.material.specification'"
+    },
+    {
+      "fingerprint": "19d0d38ae27940a6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/material_specification_views.xml",
+      "line": 95,
+      "model": "plasticos.material.specification",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.material.specification'"
+    },
+    {
+      "fingerprint": "e5dfdb9fee22ef93",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/material_specification_views.xml",
+      "line": 96,
+      "model": "plasticos.material.specification",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.material.specification'"
+    },
+    {
+      "fingerprint": "1ad14d498530d5fb",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/facility_material_rule_views.xml",
+      "line": 6,
+      "model": "plasticos.facility.material.rule",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.facility.material.rule'"
+    },
+    {
+      "fingerprint": "b1d9af496fa87dcc",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/facility_material_rule_views.xml",
+      "line": 73,
+      "model": "plasticos.facility.material.rule",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.facility.material.rule'"
+    },
+    {
+      "fingerprint": "31f03b269b361859",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/facility_material_rule_views.xml",
+      "line": 74,
+      "model": "plasticos.facility.material.rule",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.facility.material.rule'"
+    },
+    {
+      "fingerprint": "4705d676b27969c6",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/capacity_observation_views.xml",
+      "line": 6,
+      "model": "plasticos.capacity.observation",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.capacity.observation'"
+    },
+    {
+      "fingerprint": "3a66bdd88907be4c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/capacity_observation_views.xml",
+      "line": 20,
+      "model": "plasticos.capacity.observation",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.capacity.observation'"
+    },
+    {
+      "fingerprint": "efdfd7040e76b839",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/capacity_observation_views.xml",
+      "line": 58,
+      "model": "plasticos.capacity.observation",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.capacity.observation'"
+    },
+    {
+      "fingerprint": "b1154cba37f0acab",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/capacity_observation_views.xml",
+      "line": 59,
+      "model": "plasticos.capacity.observation",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.capacity.observation'"
+    },
+    {
+      "fingerprint": "edfff5ceb6281982",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/supply_opportunity_views.xml",
+      "line": 6,
+      "model": "plasticos.supply.opportunity",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.supply.opportunity'"
+    },
+    {
+      "fingerprint": "73228c73aa13a9d4",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/supply_opportunity_views.xml",
+      "line": 66,
+      "model": "plasticos.supply.opportunity",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.supply.opportunity'"
+    },
+    {
+      "fingerprint": "0049d6948ec7d555",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/supply_opportunity_views.xml",
+      "line": 67,
+      "model": "plasticos.supply.opportunity",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.supply.opportunity'"
+    },
+    {
+      "fingerprint": "e94828f859958156",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/buyer_demand_views.xml",
+      "line": 6,
+      "model": "plasticos.buyer.demand",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.buyer.demand'"
+    },
+    {
+      "fingerprint": "af28cbba2155cb13",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/buyer_demand_views.xml",
+      "line": 66,
+      "model": "plasticos.buyer.demand",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.buyer.demand'"
+    },
+    {
+      "fingerprint": "f2cc69e7c05cd0aa",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_semantic_kernel/views/buyer_demand_views.xml",
+      "line": 67,
+      "model": "plasticos.buyer.demand",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.buyer.demand'"
     }
   ]
 }
