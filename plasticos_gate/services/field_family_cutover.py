@@ -21,6 +21,11 @@ ICP_OPERATOR_APPROVED = "plasticos.gate.field_family_cutover_operator_approved"
 APPROVED_FAMILY = "specification"
 BLOCKED_FAMILIES = frozenset({"supply", "demand"})
 
+# Mode tokens (named constants — avoid bare string comparisons for phantom-enum CI).
+MODE_OFF = "off"
+MODE_BLOCKED = "blocked"
+MODE_READY = "cutover_ready"
+
 # Must be defined before any enable — observation window entry criteria.
 REQUIRED_OBSERVATION_METRICS: tuple[str, ...] = (
     "gate_path_success_rate",
@@ -35,7 +40,7 @@ class FieldFamilyCutoverDecision:
     enabled: bool
     operator_approved: bool
     family: str
-    mode: str  # "off" | "blocked" | "armed"
+    mode: str  # MODE_OFF | MODE_BLOCKED | MODE_READY
     gate_authority: bool = True
     local_intelligence_authority: bool = False
     observation_metrics: list[str] = field(default_factory=list)
@@ -82,28 +87,28 @@ def classify_cutover(env) -> FieldFamilyCutoverDecision:
 
     if family in BLOCKED_FAMILIES:
         reasons.append(f"family={family} is BLOCKED_AUTOMATIC")
-        mode = "blocked"
+        mode = MODE_BLOCKED
     elif family != APPROVED_FAMILY:
         reasons.append(f"family={family} is not the approved cutover family ({APPROVED_FAMILY})")
-        mode = "blocked"
+        mode = MODE_BLOCKED
     elif not enabled:
         reasons.append(f"{ICP_CUTOVER_ENABLED} is off (default)")
-        mode = "off"
+        mode = MODE_OFF
     elif not approved:
         reasons.append(f"{ICP_OPERATOR_APPROVED} is off — config alone is insufficient")
-        mode = "off"
+        mode = MODE_OFF
     elif not metrics:
         reasons.append("observation metrics missing — refuse enable")
-        mode = "blocked"
+        mode = MODE_BLOCKED
     else:
         reasons.append(
-            f"armed for family={family}; Gate-mediated read authority eligible "
+            f"cutover_ready for family={family}; Gate-mediated read authority eligible "
             "(production enable remains operator-owned)"
         )
-        mode = "armed"
+        mode = MODE_READY
 
     return FieldFamilyCutoverDecision(
-        enabled=enabled and approved and mode == "armed",
+        enabled=enabled and approved and mode == MODE_READY,
         operator_approved=approved,
         family=family,
         mode=mode,
@@ -116,9 +121,9 @@ def classify_cutover(env) -> FieldFamilyCutoverDecision:
 
 
 def field_family_uses_gate_authority(env, family: str) -> bool:
-    """True when cutover is armed for the given family."""
+    """True when cutover is ready for the given family."""
     decision = classify_cutover(env)
-    return decision.mode == "armed" and decision.family == family and family == APPROVED_FAMILY
+    return decision.mode == MODE_READY and decision.family == family and family == APPROVED_FAMILY
 
 
 def assert_no_local_intelligence_restoration(decision: FieldFamilyCutoverDecision) -> None:

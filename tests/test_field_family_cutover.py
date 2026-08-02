@@ -14,6 +14,7 @@ from field_family_cutover import (  # noqa: E402
     ICP_CUTOVER_ENABLED,
     ICP_CUTOVER_FAMILY,
     ICP_OPERATOR_APPROVED,
+    MODE_READY,
     REQUIRED_OBSERVATION_METRICS,
     assert_no_local_intelligence_restoration,
     classify_cutover,
@@ -64,7 +65,7 @@ def test_enable_alone_insufficient() -> None:
     assert "operator" in " ".join(decision.reasons).lower()
 
 
-def test_armed_requires_both_flags() -> None:
+def test_ready_requires_both_flags() -> None:
     env = _env(
         {
             ICP_CUTOVER_ENABLED: "1",
@@ -73,7 +74,7 @@ def test_armed_requires_both_flags() -> None:
         }
     )
     decision = classify_cutover(env)
-    assert decision.mode == "armed"
+    assert decision.mode == MODE_READY
     assert decision.enabled is True
     assert field_family_uses_gate_authority(env, "specification") is True
     assert set(decision.observation_metrics) == set(REQUIRED_OBSERVATION_METRICS)
