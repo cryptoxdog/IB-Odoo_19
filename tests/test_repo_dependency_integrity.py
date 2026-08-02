@@ -225,10 +225,10 @@ class TestModuleManifest:
         matching_manifest = os.path.normpath(
             os.path.join(os.path.dirname(__file__), os.pardir, "plasticos_matching", "__manifest__.py")
         )
-        ns: dict = {}
         with open(matching_manifest, encoding="utf-8") as fh:
-            exec(fh.read(), ns)
-        assert "views/match_exclusion_views.xml" in ns.get("data", [])
+            matching_src = fh.read()
+        matching_data = ast.literal_eval(matching_src)
+        assert "views/match_exclusion_views.xml" in matching_data.get("data", [])
 
     def test_license_declared(self):
         assert self.manifest.get("license") == "LGPL-3"
