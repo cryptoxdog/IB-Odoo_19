@@ -52,11 +52,11 @@ jobs:
       mode: ${{ steps.gov.outputs.mode }}
       governance-digest: ${{ steps.gov.outputs.governance-digest }}
       artifact-name: ${{ steps.names.outputs.artifact-name }}
-      profile: ${{ steps.names.outputs.profile }}
       # `env` context is not available in a reusable-workflow-call `with:` block
       # (jobs.<id>.with only sees github/needs/strategy/matrix/vars/inputs), so
       # the per-event profile picked above must be re-exposed as a job output
       # for the `publish` job below to consume via `needs.analyze.outputs.profile`.
+      # (Single key only — duplicate `profile:` breaks check-yaml / ruamel.)
       profile: ${{ env.L9_PROFILE }}
     permissions:
       contents: read
