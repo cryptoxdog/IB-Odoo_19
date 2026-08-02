@@ -38,4 +38,10 @@
         <field name="value">1</field>
     </record>
 
+    <record id="param_gate_dual_write_enabled" model="ir.config_parameter">
+        <field name="key">plasticos.gate.dual_write_enabled</field>
+        <field name="value">0</field>
+    </record>
+
 </odoo>
+
