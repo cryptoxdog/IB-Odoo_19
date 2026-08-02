@@ -1,8 +1,9 @@
 # 04 — Wire IB-Odoo_19 as a Gate Consumer (Odoo side)
 
-**Target repo:** `cryptoxdog/IB-Odoo_19` · **Branch:** `feat/gate-client-matcher-fallback`
+**Target repo:** `cryptoxdog/IB-Odoo_19` · **Branch:** `feat/mothball-local-intelligence`
 **Audience:** agent with write access to **IB-Odoo_19 only**.
 **Companion (other repo, do not edit here):** EIE `action=converge` handler — `Quantum-L9/Enrichment.Inference.Engine` PR #128 (`cursor/odoo-converge-handler-66d5`), served over the SDK `/v1/execute`.
+**Authority:** [`docs/adr/ADR-003-single-external-intelligence-authority.md`](../adr/ADR-003-single-external-intelligence-authority.md) (intelligence); ADR-002 (hub topology).
 
 Reference constellation repos (read-only for this agent):
 `Quantum-L9/Gate_SDK` (pip `constellation-node-sdk`), `Quantum-L9/Constellation.Gate` (hub), `Quantum-L9/Enrichment.Inference.Engine` (EIE), `Quantum-L9/Cognitive.Engine.Graphs` (CEG).
@@ -14,11 +15,12 @@ Reference constellation repos (read-only for this agent):
 ```
 Gate_SDK + Constellation.Gate + EIE/CEG  =  own transport / runtime / worker contracts
 Odoo (plasticos_gate)                    =  CONSUMER that must wire correctly and ADAPT
+Local Odoo match/enrich engines          =  NON-AUTHORITY transitional residue (mothball M2–M5)
 ```
 
-**Odoo owns:** CRM domain models (`res.partner`, enrichment runs, provenance, matcher UI); *when* to call Gate (ICP flags); *how* to map Gate results into Odoo (allowlists, merge-not-overwrite, local fallback); operator UX + audit fields.
+**Odoo owns:** CRM domain models (`res.partner`, enrichment runs, provenance, matcher UI); *when* to call Gate (ICP flags); *how* to map Gate results into Odoo (allowlists, merge-not-overwrite); operator UX + audit fields; classified failure surfacing when Gate/workers fail.
 
-**Odoo does NOT own:** the `TransportPacket` schema (Gate_SDK); hub routing / `/v1/execute` semantics (Constellation.Gate); worker action registry + handler payloads (EIE/CEG); any direct HTTP API on EIE/CEG.
+**Odoo does NOT own:** the `TransportPacket` schema (Gate_SDK); hub routing / `/v1/execute` semantics (Constellation.Gate); worker action registry + handler payloads (EIE/CEG); any direct HTTP API on EIE/CEG; matching/enrichment **intelligence authority** (CEG/EIE via Gate — ADR-003-single).
 
 ### Canonical topology
 ```
@@ -30,10 +32,11 @@ Odoo plasticos_gate
         ├─ "match"    → CEG  /v1/execute
         └─ "converge" → EIE  /v1/execute
   ← response TransportPacket (payload + header.packet_id/correlation_id)
-  → Odoo applies allowlisted fields / matcher results  OR  falls back local
+  → Odoo applies allowlisted fields / matcher results
+     OR surfaces classified Gate/worker failure (local engines ≠ authority)
 ```
 
-**Hard rule (ADR-002):** never Odoo → EIE/CEG direct HTTP; never import EIE/CEG code into Odoo models.
+**Hard rule (ADR-002 + ADR-003-single):** never Odoo → EIE/CEG direct HTTP; never import EIE/CEG code into Odoo models; never treat local engines as architectural intelligence authority.
 
 ---
 
@@ -44,7 +47,7 @@ Make IB-Odoo_19 a correct Gate **consumer**:
 2. `plasticos_gate` is the **sole** SDK import seam and only talks to Constellation.Gate.
 3. `converge` (enrichment) and `match` (matching) paths operate when `plasticos.gate.url` is set.
 4. Odoo request builders / response mappers **adapt to the live worker contracts** (EIE for converge, CEG for match).
-5. Preserve **try-Gate → local-fallback**; never hang; never hard-break ERP flows when Gate is down.
+5. Prefer Gate-mediated intelligence; on Gate/worker failure **classify and surface** — do not re-elevate local engines as product authority (residue may still run until M2–M5 code removal).
 
 Do **not** redesign Gate_SDK / Constellation.Gate / EIE from this repo.
 
@@ -79,10 +82,10 @@ Call sites: enrichment `plasticos.enrichment.run._run_gate_converge()` (`converg
 2. **Audit the sole-seam client** (`gate_client.py`) — only SDK import; builds packet with `destination_node="gate"` (never a worker host); sends via `GateClient(config).send_to_gate`; returns `{"packet": response_packet, "payload": dict(response_packet.payload)}`; raises `GateIntegrationError` on transport failure so callers fall back.
 3. **Wire ICP + install (staging)** — install/upgrade `plasticos_gate` + `plasticos_enrichment`; set `plasticos.gate.url = https://<gate-host>`; enablement helpers return True only when URL valid + SDK importable + flag truthy.
 4. **Align converge with live EIE contract** — see §4.
-5. **Align match with CEG** — keep `action=match`, require `buyer_partner_id`/`buyer_id` before writing matcher rows, preserve Gate→local fallback. Don't break the shared `gate_client.py` seam.
+5. **Align match with CEG** — keep `action=match`, require `buyer_partner_id`/`buyer_id` before writing matcher rows, treat Gate→CEG as intelligence authority. Don't break the shared `gate_client.py` seam. Residual local matcher code is non-authority until M2+.
 6. **Reject forbidden surfaces** — see §6.
 7. **Staging e2e (converge)** — see §7.
-8. **Docs framing** — Gate_SDK/Gate/EIE own transport; Odoo consumes/adapts. Document the payloads Odoo emits/reads as the **Odoo client contract**, not as ownership of worker internals.
+8. **Docs framing** — Gate_SDK/Gate/EIE/CEG own transport and intelligence; Odoo consumes/adapts. Document the payloads Odoo emits/reads as the **Odoo client contract**, not as ownership of worker internals.
 
 ---
 
@@ -151,4 +154,4 @@ Never block the HTTP worker indefinitely; honor `plasticos.gate.timeout_seconds`
 EIE `handle_converge` (EIE repo / PR #128); Constellation.Gate routing; Gate_SDK schema changes (multi-repo pin bump); Phase-3 Gate web-lead triage (stays local); CEG match algorithms.
 
 ## 10. One-line summary
-Install/pin Gate_SDK, talk **only** to Constellation.Gate with `action=converge|match`, adapt Odoo builders/mappers to the live EIE/CEG payloads, keep local fallback — never call EIE/CEG directly.
+Install/pin Gate_SDK, talk **only** to Constellation.Gate with `action=converge|match`, adapt Odoo builders/mappers to the live EIE/CEG payloads, treat CEG/EIE as intelligence authority — never call EIE/CEG directly; never restore local engines as architectural authority (ADR-003-single).

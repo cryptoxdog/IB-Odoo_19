@@ -263,10 +263,11 @@ Extracted from `plasticos_base/data/partner_tags.xml`:
 
 ## External Intelligence Boundary (Gate)
 
-**Authority:** [docs/adr/ADR-002-gate-hub-phased-autonomy.md](docs/adr/ADR-002-gate-hub-phased-autonomy.md)
+**Authority:** [docs/adr/ADR-003-single-external-intelligence-authority.md](docs/adr/ADR-003-single-external-intelligence-authority.md) (mothball successor; supersedes ADR-002 §2 fallback-as-authority)  
+**Topology / phased human gates:** [docs/adr/ADR-002-gate-hub-phased-autonomy.md](docs/adr/ADR-002-gate-hub-phased-autonomy.md)  
 **Phases:** [docs/GATE_AUTONOMY_ROADMAP.md](docs/GATE_AUTONOMY_ROADMAP.md)
 
-PlasticOS routes external matching and enrichment through the **Constellation Gate** — not direct HTTP from Odoo to [Cognitive.Engine.Graphs](https://github.com/cryptoxdog/Cognitive.Engine.Graphs) (CEG) or inference engines.
+PlasticOS routes matching and enrichment intelligence through the **Constellation Gate** — not direct HTTP from Odoo to [Cognitive.Engine.Graphs](https://github.com/cryptoxdog/Cognitive.Engine.Graphs) (CEG) or [Enrichment.Inference.Engine](https://github.com/cryptoxdog/Enrichment.Inference.Engine) (EIE). Odoo is a Gate **consumer** only; CEG/EIE own intelligence semantics.
 
 ```
 Odoo  ──TransportPacket (constellation_node_sdk)──►  Gate  ──►  CEG / EIE
@@ -276,8 +277,8 @@ Odoo  ◄───────────────────────�
 | Rule | Detail |
 |------|--------|
 | Gate is mandatory hub | No Odoo → CEG/EIE direct calls |
-| Primary path (healthy nodes) | Gate → CEG for matching; Gate → converge for enrichment (when enabled) |
-| Fallback path | In-Odoo matcher (Python gates + Neo4j) and local enrichment when Gate/nodes fail |
+| Intelligence authority | Gate → CEG for matching; Gate → EIE `converge` for enrichment |
+| Local engines | **Non-authority transitional residue** until mothball M2–M5 — not architectural fallback |
 | Web lead triage (Phase 1) | **Odoo local only** — LLM/vision/HOT-COLD; Gate triage deferred to Phase 3 |
 | Human gates (Phase 1) | HOT lead review, match line selection, explicit Send Offer |
 
@@ -287,7 +288,7 @@ Odoo  ◄───────────────────────�
 
 ## Neo4j Integration Architecture
 
-> **Role under ADR-002:** Phase 1 **fallback** when Gate/CEG is unavailable. Primary matching targets Gate → CEG when configured.
+> **Role under ADR-003 (single external intelligence authority):** Neo4j under Odoo matching modules is **not** the architectural matching authority. Primary matching targets Gate → CEG. Any residual local Neo4j matcher use is mothball-bound transitional residue (M2+), not product design.
 
 ### Connection Strategy
 - **Driver**: `neo4j>=5.0.0` Python driver
