@@ -22,6 +22,8 @@ def test_module_layout() -> None:
     assert (MOD / "models" / "material_observation.py").is_file()
     assert (MOD / "models" / "supply_opportunity.py").is_file()
     assert (MOD / "models" / "buyer_demand.py").is_file()
+    assert (MOD / "models" / "facility_material_rule.py").is_file()
+    assert (MOD / "models" / "capacity_observation.py").is_file()
     assert (MOD / "security" / "ir.model.access.csv").is_file()
     assert (MOD / "views" / "menus.xml").is_file()
 
