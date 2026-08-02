@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""CI Guard: no local intelligence authority drift (M6 / TASK-068).
+"""CI Guard: no local intelligence authority drift (M7+ / TASK-051).
 
 Scans the repo for reintroduction of Odoo-local matching/enrichment *authority*.
-Legacy residue under buyer_match_engine / inference_engine remains visible in the
-report (must not be excluded) but does not fail the build until physical retirement.
+After M7 physical retirement, legacy addon trees must be ABSENT. Presence of
+plasticos_buyer_match_engine / plasticos_inference_engine is blocking.
 
 Exit codes:
-  0 = PASS (no new consumer-path drift; residue may be reported)
-  1 = FAIL (new drift outside allowlisted transitional residue)
+  0 = PASS (no consumer-path drift; retired modules absent)
+  1 = FAIL (drift or retired modules still present)
 """
 
 from __future__ import annotations
@@ -194,8 +194,13 @@ def main(argv: list[str] | None = None) -> int:
     residue.extend(r2)
 
     scanned_residue = [_rel(p) for p in _iter_py_files() if _is_residue(_rel(p))]
-    if not scanned_residue:
-        blocking.append("scanner did not observe legacy residue paths (exclusion bug)")
+    # M7 physical retirement: retired addon trees must be gone.
+    for prefix in RESIDUE_PREFIXES:
+        root_dir = ROOT / prefix.rstrip("/")
+        if root_dir.exists():
+            blocking.append(f"retired module still present: {prefix.rstrip('/')}")
+    if scanned_residue:
+        blocking.append(f"legacy local-intelligence residue files still present ({len(scanned_residue)})")
 
     if args.json:
         print(

@@ -12,7 +12,7 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 
 1. **Deterministic Seed Doctrine**: All reference data versioned in XML
 2. **Layer Isolation**: Higher layers depend on lower, never reverse
-3. **Graph Augmentation**: Neo4j for scoring, Odoo for transactions
+3. **External intelligence via Gate**: Matching and enrichment authority is Gate → CEG/EIE; Odoo persists results only
 4. **Partner Hierarchy**: Native Odoo fields + capability profiles
 5. **Intake-First Flow**: Supplier intake drives buyer matching
 
@@ -39,8 +39,8 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 ┌────────────────▼────────────────────────────────┐
 │  Layer 2: CAPABILITY                           │
 │  plasticos_facility_profile                     │
-│  plasticos_buyer_match_engine (+ Neo4j)         │
-│  plasticos_gate (Constellation Gate client)     │
+│  plasticos_matching + plasticos_gate            │
+│  plasticos_enrichment (Gate-mediated)           │
 └────────────────┬────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────┐
@@ -50,7 +50,7 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 └─────────────────────────────────────────────────┘
 ```
 
-## Module Index (30 Odoo Modules)
+## Module Index (28 Odoo Modules)
 
 | # | Module | Layer | Maturity | Summary |
 |---|--------|-------|----------|---------|
@@ -62,28 +62,26 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 | 6 | `plasticos_intake` | 2 | Production | Material intake with contact intelligence |
 | 7 | `plasticos_intake_normalizer` | 2 | Beta | Schema-driven intake normalization for L9 packets |
 | 8 | `plasticos_matching` | 2 | Production | Match result storage for intake-to-buyer matching |
-| 9 | `plasticos_buyer_match_engine` | 2 | New | 10-gate filtering + Neo4j graph scoring |
-| 10 | `plasticos_geolocalize` | 2 | Production | Auto-geocode partners + nightly backfill cron |
-| 11 | `plasticos_gate` | 2 | New | Constellation Gate TransportPacket client seam (ADR-002) |
-| 12 | `plasticos_enrichment` | 2 | Beta | AI web intelligence extraction for buyer profiles |
-| 13 | `plasticos_web_leads` | 2 | Production | AI lead triage (Cognito → LLM → HOT/COLD) |
-| 14 | `plasticos_inference_engine` | 2 | Beta | Deterministic polymer inference from YAML knowledge base |
-| 15 | `plasticos_accounting` | 3 | Production | Chart of accounts, payment terms, incoterms seed |
-| 16 | `plasticos_offer` | 3 | Production | Offer lifecycle: match → negotiation → deal |
-| 17 | `plasticos_order_lines` | 3 | Production | Extend PO/SO lines with full material specifications |
-| 18 | `plasticos_automation` | 3 | Production | Workflow automation: approvals, reminders, SLA monitoring |
-| 19 | `plasticos_partner_import` | 3 | Production | Partner import wizard with validation |
-| 20 | `plasticos_crm_bridge` | 3 | Production | CRM integration bridge |
-| 21 | `plasticos_commission` | 3 | Production | Commission calculation engine |
-| 22 | `plasticos_admin_dashboard` | 3 | Production | RevOps KPI dashboard (admin) |
-| 23 | `plasticos_documents` | 4 | Production | Document validation matrices, compliance tracking |
-| 24 | `plasticos_documents_native` | 4 | Beta | Bridge to Odoo Enterprise Documents with AI auto-sort |
-| 25 | `plasticos_transaction` | 5 | Production | Transaction spine + commission engine |
-| 26 | `plasticos_logistics` | 5 | Production | Load management, BOL generation, dispatch |
-| 27 | `plasticos_claims` | 5 | Production | QC cases, claims, chargebacks, compliance workflows |
-| 28 | `plasticos_website` | UI | Disabled | Website extensions (`installable: False`) |
-| 29 | `plasticos_odoo_standard_apps` | Meta | Production | Auto-install bundle of standard Odoo CE apps |
-| 30 | `plasticos_dev_tools` | — | Dev-only | Audit scripts, integrity checks (`installable: False`) |
+| 9 | `plasticos_geolocalize` | 2 | Production | Auto-geocode partners + nightly backfill cron |
+| 10 | `plasticos_gate` | 2 | New | Constellation Gate TransportPacket client seam (ADR-002) |
+| 11 | `plasticos_enrichment` | 2 | Beta | Gate-mediated partner enrichment (local inference retired M7) |
+| 12 | `plasticos_web_leads` | 2 | Production | AI lead triage (Cognito → LLM → HOT/COLD) |
+| 13 | `plasticos_accounting` | 3 | Production | Chart of accounts, payment terms, incoterms seed |
+| 14 | `plasticos_offer` | 3 | Production | Offer lifecycle: match → negotiation → deal |
+| 15 | `plasticos_order_lines` | 3 | Production | Extend PO/SO lines with full material specifications |
+| 16 | `plasticos_automation` | 3 | Production | Workflow automation: approvals, reminders, SLA monitoring |
+| 17 | `plasticos_partner_import` | 3 | Production | Partner import wizard with validation |
+| 18 | `plasticos_crm_bridge` | 3 | Production | CRM integration bridge |
+| 19 | `plasticos_commission` | 3 | Production | Commission calculation engine |
+| 20 | `plasticos_admin_dashboard` | 3 | Production | RevOps KPI dashboard (admin) |
+| 21 | `plasticos_documents` | 4 | Production | Document validation matrices, compliance tracking |
+| 22 | `plasticos_documents_native` | 4 | Beta | Bridge to Odoo Enterprise Documents with AI auto-sort |
+| 23 | `plasticos_transaction` | 5 | Production | Transaction spine + commission engine |
+| 24 | `plasticos_logistics` | 5 | Production | Load management, BOL generation, dispatch |
+| 25 | `plasticos_claims` | 5 | Production | QC cases, claims, chargebacks, compliance workflows |
+| 26 | `plasticos_website` | UI | Disabled | Website extensions (`installable: False`) |
+| 27 | `plasticos_odoo_standard_apps` | Meta | Production | Auto-install bundle of standard Odoo CE apps |
+| 28 | `plasticos_dev_tools` | — | Dev-only | Audit scripts, integrity checks (`installable: False`) |
 
 **Maturity guide**: Production = stable CI; Beta = higher churn, some CI waivers; New = active development; Disabled = `installable: False`, not currently installed; Dev-only = not for production install.
 
@@ -128,20 +126,10 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 - **Partner Extension**: Adds `facility_profile_id` to `res.partner`
 
 **plasticos_matching**
-- **Depends**: `base`, `mail`, `plasticos_intake`, `plasticos_facility_profile`
-- **Provides**: Match result storage
+- **Depends**: `base`, `mail`, `plasticos_intake`, `plasticos_facility_profile`, `plasticos_gate`
+- **Provides**: Match result storage (Gate-mediated matching authority)
 - **Models**:
   - `plasticos.match.result`
-
-**plasticos_buyer_match_engine**
-- **Depends**: `plasticos_intake`, `plasticos_material_profile`, `plasticos_matching`, `plasticos_facility_profile`, `plasticos_transaction`
-- **Provides**: v2.0 facility-based matching with Neo4j scoring
-- **External**: `neo4j>=5.0.0`
-- **Models**:
-  - `plasticos.match.exclusion`
-- **Services**:
-  - `graph_service.py` (Neo4j driver wrapper)
-  - `matcher.py` (10-gate filtering + Cypher scoring)
 
 **plasticos_gate**
 - **Depends**: `base`, `plasticos_base`
@@ -278,111 +266,21 @@ Odoo  ◄───────────────────────�
 |------|--------|
 | Gate is mandatory hub | No Odoo → CEG/EIE direct calls |
 | Intelligence authority | Gate → CEG for matching; Gate → EIE `converge` for enrichment |
-| Local engines | **Non-authority transitional residue** after mothball M2–M6 (Gate-only + drift guard); physical uninstall later — not architectural fallback |
+| Local engines | **Non-authority — physically retired (M7)** — `plasticos_buyer_match_engine` and `plasticos_inference_engine` removed; Gate-only authority |
 | Web lead triage (Phase 1) | **Odoo local only** — LLM/vision/HOT-COLD; Gate triage deferred to Phase 3 |
 | Human gates (Phase 1) | HOT lead review, match line selection, explicit Send Offer |
 
-**Phase 1 seam:** `plasticos.buyer.matcher.find_matches_for_supplier()` → Gate `action=match` → persist via `intake_extension.action_match_to_buyers()`.
+**Phase 1 seam:** `plasticos.matching` orchestrator → Gate `action=match` → persist match results in Odoo.
 
 **Implementation module:** `plasticos_gate` (Layer 2) — `services/gate_client.py` sends/receives `TransportPacket` via `constellation_node_sdk`; `gate_builders.py`/`gate_mappers.py`/`gate_contracts.py` construct and map packets; `gate_config.py`/`gate_allowlists.py` hold connection config and the ICP allowlist seed (`data/gate_icp_seed.xml`).
 
-## Neo4j Integration Architecture
+## Retired Local Intelligence (M7)
 
-> **Role under ADR-003 (single external intelligence authority):** Neo4j under Odoo matching modules is **not** the architectural matching authority. Primary matching targets Gate → CEG. Any residual local Neo4j matcher use is mothball-bound transitional residue (post-M6 until physical uninstall), not product design.
+> **ADR-003 (single external intelligence authority):** Matching and enrichment architectural authority is Gate → CEG/EIE only. M7 physically deleted `plasticos_buyer_match_engine` (local matcher + Neo4j) and `plasticos_inference_engine` (YAML KB inference). Odoo retains result storage (`plasticos_matching`, `plasticos_enrichment`) and Gate client wiring only.
 
-### Connection Strategy
-- **Driver**: `neo4j>=5.0.0` Python driver
-- **Module**: `plasticos_buyer_match_engine`
-- **Service**: `services/graph_service.py`
+**Retirement evidence:** module directories absent from repo; `neo4j` driver removed from `requirements.txt`; Neo4j env vars removed from `.env.example`; superseded fallback runtime tests deleted. Drift scanner post-M7 finalization is TASK-052 / M8.
 
-### Environment Configuration
-```python
-NEO4J_URL = os.getenv("NEO4J_URL", "bolt://localhost:7687")
-NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
-```
-
-### Graph Isolation Boundaries
-
-**Safe Boundaries Enforced**:
-1. Neo4j imports wrapped in try/except
-2. Graph failures return empty results, do not crash
-3. No Neo4j imports in Odoo registry load path
-4. Connection pooling with timeout
-
-**Graph Service Pattern**:
-```python
-class GraphService:
-    def __init__(self):
-        self.driver = None
-        self._connect()
-
-    def _connect(self):
-        try:
-            self.driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
-        except Exception as e:
-            _logger.error(f"Neo4j connection failed: {e}")
-            self.driver = None
-
-    def execute_query(self, cypher, params):
-        if not self.driver:
-            return []
-        try:
-            with self.driver.session() as session:
-                result = session.run(cypher, params)
-                return [record.data() for record in result]
-        except Exception as e:
-            _logger.error(f"Neo4j query failed: {e}")
-            return []
-```
-
-### Matching Engine Flow
-
-**Stage 1: Python 10-Gate Filtering**
-```
-Intake Material → Facility Profiles
-├── Gate 1: Polymer Match
-├── Gate 2: Form Match
-├── Gate 3: Color Match
-├── Gate 4: Filler Match
-├── Gate 5: Source Type Match
-├── Gate 6: MFI Range
-├── Gate 7: Density Range
-├── Gate 8: Moisture Tolerance
-├── Gate 9: Contamination Tolerance
-└── Gate 10: Volume Minimum
-```
-
-**Gate Modes**:
-- **Strict Mode**: All 10 gates enforced
-- **Relaxed Mode**: Only polymer gate enforced, others penalized
-
-**Stage 2: Neo4j Cypher Scoring**
-```cypher
-MATCH (intake:Intake {intake_id: $intake_id})
-MATCH (facility:Facility)
-WHERE facility.accepted_polymers CONTAINS intake.polymer
-RETURN facility.partner_id AS buyer_id,
-       gds.similarity.cosine(intake.specs, facility.specs) AS score
-ORDER BY score DESC
-LIMIT 20
-```
-
-### Ontology Mapping
-
-From `ONTOLOGY_NEO4J_FIELD_CROSSWALK.md`:
-
-**Node Labels**:
-- `Material` → `plasticos.material.profile`
-- `Facility` → `plasticos.facility.profile`
-- `Intake` → `plasticos.intake`
-- `Transaction` → `plasticos.transaction`
-
-**Relationships**:
-- `(:Facility)-[:ACCEPTS]->(:Material)`
-- `(:Facility)-[:LOCATED_IN]->(:Region)`
-- `(:Intake)-[:MATCHED_TO]->(:Facility)`
-- `(:Transaction)-[:FULFILLED_BY]->(:Facility)`
+**Observation criteria:** `ci/check_no_local_intelligence.py` must not allow reintroduction of local matcher/inference authority on consumer paths; contract tests under `tests/contracts/` assert absence guards.
 
 ## AI/ML Integration Architecture
 
@@ -437,9 +335,9 @@ COLD → Skipped / manual review queue
                        ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  MATCHING PHASE (human selects buyers)                      │
-│  plasticos_buyer_match_engine                               │
-│  - Primary: Odoo → Gate → CEG → Odoo (ADR-002)              │
-│  - Fallback: 10-gate Python + Neo4j scoring                 │
+│  plasticos_matching + plasticos_gate                        │
+│  - Odoo → Gate → CEG → Odoo (ADR-002 / ADR-003)           │
+│  - Explicit degraded mode when Gate unavailable (no local)  │
 └──────────────────────┬──────────────────────────────────────┘
                        │
                        ▼
@@ -555,40 +453,14 @@ Model Constraints Validation
     ↓
 PostgreSQL Write
     ↓
-(Optional) Neo4j Sync via Outbox
-    ↓
-Graph Update
+Gate egress (match / converge) when intelligence action required
 ```
 
 ## Deployment Architecture
 
 ### Docker Deployment
-```yaml
-services:
-  db:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
 
-  odoo:
-    build: .
-    depends_on:
-      - db
-      - neo4j
-    environment:
-      - DB_HOST=db
-      - NEO4J_URI=bolt://neo4j:7687
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-    volumes:
-      - ./plasticos_*:/mnt/extra-addons
-
-  neo4j:
-    image: neo4j:5.15-community
-    environment:
-      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
-```
+Local `docker-compose.yml` provides PostgreSQL + Odoo only (no Neo4j service after M7). See repo root compose file for the authoritative service list.
 
 ### Odoo.sh Deployment
 
@@ -603,7 +475,7 @@ services:
 3. `plasticos_facility_profile`
 4. `plasticos_intake`
 5. `plasticos_matching`
-6. `plasticos_buyer_match_engine`
+6. `plasticos_gate`
 7. `plasticos_logistics`
 8. `plasticos_transaction`
 9. `plasticos_documents`
@@ -618,8 +490,8 @@ services:
 
 ### Test Coverage
 - **plasticos_transaction**: 47 tests
-- **plasticos_buyer_match_engine**: 5 tests
-- **Total**: 52 tests passing
+- **tests/contracts**: M7 absence guards + external-intelligence authority contracts
+- Odoo runtime tests run under `odoo --test-enable` (not pure-python CI tier)
 
 ### CI/CD Architecture
 
@@ -684,11 +556,6 @@ See `AGENTS.md` CI Compliance Checklist for the complete reference.
   - Transaction state fields
 - Custom indexes via migration scripts (if needed)
 
-### Neo4j Query Optimization
-- Cypher queries use `LIMIT` (default 20 results)
-- Graph indexes on `partner_id`, `material_id`
-- Connection pooling with max sessions = 50
-
 ### Caching Strategy
 - Odoo native cache for computed fields
 - Redis (optional) for session management
@@ -699,12 +566,11 @@ See `AGENTS.md` CI Compliance Checklist for the complete reference.
 ### Logging
 - Python `logging` module with structured logs
 - Log levels: `DEBUG`, `INFO`, `WARNING`, `ERROR`
-- Neo4j connection failures logged at `ERROR`
+- Gate client failures logged at `ERROR`
 - OpenAI API failures logged at `WARNING`
 
 ### Health Checks
 - Odoo HTTP endpoint: `/web/health`
-- Neo4j: `CALL dbms.ping()`
 - PostgreSQL: `SELECT 1`
 
 ### Metrics
@@ -726,24 +592,9 @@ Applied as part of the PlasticOS Odoo 19 Fix & Hardening GMP. These changes ensu
 
 **Invariants**: No deprecated `groups_id` on `res.users`; no `users` on `res.groups` in XML.
 
-### B. Tests — plasticos_buyer_match_engine
+### B. Tests — retired local matcher (M7)
 
-**Files**: `plasticos_buyer_match_engine/tests/test_matcher.py`
-
-**Fixes applied**:
-
-1. **Get-or-create for master data** (avoids `UniqueViolation` on module load):
-   - Polymer (hdpe, pp), material form (bales), material color (natural), source type (pcr, pir) are searched first; `create()` is called only if no record exists. Prevents duplicate key errors when demo data or other modules already created these records.
-
-2. **Required `form_id` on material profile creates** (avoids `NotNullViolation`):
-   - `plasticos.material.profile` has `form_id` required in DB. All test methods that create a material profile now include `form_id: self.form_bales.id`.
-   - Affected tests:
-     - `test_action_match_to_buyers_with_material_profile`
-     - `test_action_match_to_buyers_uses_match_mode_strict`
-     - `test_action_match_to_buyers_uses_match_mode_relaxed`
-     - `test_action_match_to_buyers_returns_action_window`
-
-**Pattern for new tests**: When creating `plasticos.material.profile`, always set `form_id` (and optionally `color_id`, `source_type_id`) from setUp’s get-or-create master data.
+**Status:** `plasticos_buyer_match_engine` physically deleted in M7 / TASK-051. Historical matcher runtime tests lived under the removed module; matching authority is Gate-only via `plasticos_matching` + `plasticos_gate`.
 
 ### C. Crons — ACL-Safe Execution
 
@@ -782,9 +633,7 @@ Applied as part of the PlasticOS Odoo 19 Fix & Hardening GMP. These changes ensu
 | File | Original Import | Fix |
 |------|-----------------|-----|
 | `plasticos_facility_profile/models/facility_profile.py` | `from plasticos_material_profile.form_codes import FORM_SELECTION` | `_get_form_selection()` callable for Selection field |
-| `plasticos_buyer_match_engine/models/graph_service.py` | `from odoo.addons.plasticos_material_profile.form_codes import EQUIPMENT_GATED_FORMS, PASSTHROUGH_FORMS` | `_get_form_codes()` lazy loader |
-| `plasticos_enrichment/models/enrichment_service.py` | `from odoo.addons.plasticos_inference_engine import InferenceEngine, InferenceRequest` | `_get_inference_classes()` lazy loader |
-| `plasticos_inference_engine/pipeline_v2.py` | `from plasticos_inference_engine import ...` | `from . import ...` (relative import) |
+| `plasticos_enrichment/models/enrichment_service.py` | (retired) lazy import of `plasticos_inference_engine` | Removed with M7 — Gate-only enrichment path |
 
 **Pattern**:
 ```python
@@ -862,7 +711,6 @@ _constraints = [
 **Problem**: Invalid `.strftime()` calls in domain expressions.
 
 **Fix**: Removed `.strftime('%Y-%m-%d')` from `context_today()` calls in:
-- `plasticos_buyer_match_engine/views/match_exclusion_views.xml`
 - `plasticos_logistics/views/load_views.xml`
 - `plasticos_offer/views/offer_views.xml`
 

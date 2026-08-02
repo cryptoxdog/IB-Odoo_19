@@ -1,7 +1,8 @@
-"""M6 / TASK-068 — architectural absence + drift scanner contract."""
+"""M7 / TASK-051 — post-retirement local-intelligence absence + drift scanner."""
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -14,6 +15,11 @@ MAKEFILE = ROOT / "Makefile"
 CI_YML = ROOT / ".github/workflows/ci.yml"
 PRECOMMIT = ROOT / ".pre-commit-config.yaml"
 PATTERNS = ROOT / "scripts/check_odoo_patterns.sh"
+
+RETIRED_MODULES = (
+    "plasticos_buyer_match_engine",
+    "plasticos_inference_engine",
+)
 
 
 def test_scanner_exists_and_passes():
@@ -30,7 +36,7 @@ def test_scanner_exists_and_passes():
     assert "residue_files=" in proc.stdout
 
 
-def test_scanner_reports_residue_not_excluded():
+def test_scanner_requires_modules_absent():
     proc = subprocess.run(
         [sys.executable, str(SCANNER), "--json"],
         cwd=ROOT,
@@ -38,12 +44,12 @@ def test_scanner_reports_residue_not_excluded():
         text=True,
         check=True,
     )
-    import json
-
     payload = json.loads(proc.stdout)
     assert payload["status"] == "PASS"
-    assert payload["residue_files_scanned"] > 0
+    assert payload["residue_files_scanned"] == 0
     assert payload["blocking"] == []
+    for name in RETIRED_MODULES:
+        assert not (ROOT / name).exists(), f"{name} must be physically absent after M7"
 
 
 def test_adr_has_retirement_and_observation():
