@@ -172,6 +172,7 @@ exclude = [
     "^addons/",
     "^\\.venv/",
     "^venv/",
+    "^\\.semgrep/",      # Semgrep fixture snippets (not production)
     ".*/migrations/.*",  # Odoo migration scripts (not regular modules)
     "^scripts/",         # Utility scripts
     "^tools/",           # Repo-level tool scripts
