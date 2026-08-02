@@ -1,6 +1,6 @@
 # Stash pop overlap log — 2026-06-06
 
-**Branch at pop:** `fix/python39-compat-cron-scripts`  
+**Branch at pop:** `fix/python39-compat-cron-scripts`
 **Stash:** `stash@{0}` — `wip-staging-before-merge-pr95` (from `feat/material-profile-intake-delta-bridge`)
 
 ## Overlap (same paths in stash + uncommitted working tree)
