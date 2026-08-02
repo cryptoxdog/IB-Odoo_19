@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_buyer_demand_list" model="ir.ui.view">
+    <field name="name">plasticos.buyer.demand.list</field>
+    <field name="model">plasticos.buyer.demand</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="name"/>
+        <field name="state"/>
+        <field name="buyer_partner_id"/>
+        <field name="specification_id"/>
+        <field name="quantity_lbs"/>
+        <field name="quantity_state"/>
+        <field name="target_price_per_lb"/>
+        <field name="company_id"/>
+      </list>
+    </field>
+  </record>
+  <record id="view_buyer_demand_form" model="ir.ui.view">
+    <field name="name">plasticos.buyer.demand.form</field>
+    <field name="model">plasticos.buyer.demand</field>
+    <field name="arch" type="xml">
+      <form>
+        <sheet>
+          <group>
+            <group>
+              <field name="name"/>
+              <field name="state"/>
+              <field name="active"/>
+            </group>
+            <group>
+              <field name="canonical_uuid" readonly="1"/>
+              <field name="company_id"/>
+              <field name="contract_version"/>
+            </group>
+          </group>
+          <group string="Demand">
+            <field name="buyer_partner_id"/>
+            <field name="buyer_facility_id"/>
+            <field name="specification_id"/>
+            <field name="quantity_lbs"/>
+            <field name="quantity_state"/>
+            <field name="min_lot_size_lbs"/>
+            <field name="max_lot_size_lbs"/>
+            <field name="cadence"/>
+            <field name="needed_from"/>
+            <field name="needed_until"/>
+            <field name="currency_id"/>
+            <field name="target_price_per_lb"/>
+            <field name="delivery_state_id"/>
+            <field name="delivery_zip"/>
+            <field name="required_evidence_ids" widget="many2many_tags"/>
+          </group>
+          <group string="Lineage">
+            <field name="source_system"/>
+            <field name="source_record_ref"/>
+            <field name="migration_batch_id"/>
+          </group>
+        </sheet>
+        <chatter/>
+      </form>
+    </field>
+  </record>
+  <record id="action_buyer_demand" model="ir.actions.act_window">
+    <field name="name">Buyer Demand</field>
+    <field name="res_model">plasticos.buyer.demand</field>
+    <field name="view_mode">list,form</field>
+  </record>
+</odoo>

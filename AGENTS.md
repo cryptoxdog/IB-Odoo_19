@@ -474,7 +474,7 @@ workflow: `ci/baselines/README.md`.
 | shellcheck | not yet a pre-commit hook | unpinned (`apt-get install -y shellcheck` = whatever Ubuntu ships) | unpinned (`brew install shellcheck`) | n/a |
 
 Ruff is the only tool with a **hard version gate** (`required-version` in `pyproject.toml` — this is
-what caught a drift on 2026-07: a global `ruff==0.14.11` on PATH refused to run against a repo
+what caught the drift on 2026-07: a global `ruff==0.14.11` on PATH refused to run against a repo
 pinned to `0.15.5`, exactly as designed). This repo intentionally has **no `uv.lock`** — see
 `.cursor/rules/88-plasticos-odoo-python-tooling.mdc` "Non-goals": there's no `[project]` table in
 `pyproject.toml` because this is an Odoo addon suite, not a pip/uv-installable package. The
