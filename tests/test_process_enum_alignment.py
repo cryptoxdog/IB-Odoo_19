@@ -11,7 +11,6 @@ Pattern follows test_form_enum_alignment.py from PR #23.
 """
 
 import ast
-import re
 from pathlib import Path
 
 import pytest
