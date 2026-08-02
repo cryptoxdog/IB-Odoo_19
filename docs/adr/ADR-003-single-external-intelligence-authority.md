@@ -47,15 +47,17 @@ This ADR **supersedes** ADR-002 §2 (“Odoo local engines are fallback — not 
 **as architectural authority**. Gate-hub topology, Phase human checkpoints, and “never
 Odoo → CEG/EIE direct” from ADR-002 remain binding.
 
-Local engines may still exist in the tree as **transitional residue** after M2–M6 Gate-only extraction, degraded modes, mothball migrations, and drift guards. While present
-they are **non-authority transitional residue**:
+Local engines were **physically retired in M7** (TASK-051): `plasticos_buyer_match_engine` and
+`plasticos_inference_engine` source trees are absent from the repository. They must not be cited
+as product matching/enrichment design and must not be reintroduced.
 
-- Must not be cited as the product matching/enrichment design.
-- Must not silently replace Gate intelligence as the intended path.
-- Failures should surface as **classified Gate/worker failures** (or explicit degraded-mode
-  policy under later mothball contracts), not as restoration of local engines as authority.
+- Failures must surface as **classified Gate/worker failures** (or explicit degraded-mode
+  policy), not as restoration of local engines as authority.
+- M8 (TASK-052) activates **blocking** drift guards in Makefile, pre-commit, CI, and
+  `scripts/check_odoo_patterns.sh` via `ci/check_no_local_intelligence.py`.
 
-Runtime removal of local engine *source directories* remains a later physical-retirement step (requires verified backup + restore). M2–M6 removed local *authority* and added nonblocking drift reporting that still scans residue paths.
+M2–M6 removed local *authority*; M7 removed local engine *source directories* (verified backup +
+restore rehearsal per TASK-050); M8 makes absence + consumer-path drift **blocking** in CI.
 
 ### 3. Gate-only egress for intelligence
 
@@ -95,14 +97,14 @@ Odoo  ◄──TransportPacket──  Gate  ◄──
 1. Cite this ADR (full path) for matching/enrichment **authority**; cite ADR-002 for hub topology
    and phased human checkpoints unless a later ADR supersedes those sections.
 2. Do not add direct CEG/EIE calls or second SDK import sites.
-3. Do not delete local engine modules in M1; that is M2–M5 scope.
+3. Do not reintroduce `plasticos_buyer_match_engine` or `plasticos_inference_engine` (M7 retired; M8 guards block).
 4. Do not overwrite `ADR-003-contact-import-configuration.md`.
 
 
 
-## Retirement evidence (M6 / TASK-068)
+## Retirement evidence (M6–M8)
 
-Wave-7 mothball repository evidence (controller ledger under `l9-constellation-control`):
+Wave-7/10 mothball repository evidence (controller ledger under `l9-constellation-control`):
 
 | Phase | Task | Gate | Proof class |
 |-------|------|------|-------------|
@@ -112,10 +114,13 @@ Wave-7 mothball repository evidence (controller ledger under `l9-constellation-c
 | M3 | TASK-048 | GATE-050 | `REPOSITORY_TEST_PASS` |
 | M4 | TASK-049 | GATE-052 | `REPOSITORY_TEST_PASS` |
 | M5 | TASK-050 | GATE-053 | `REPOSITORY_TEST_PASS` + A4 + restore-rehearsal receipt |
-| M6 | TASK-068 | GATE-056 | `REPOSITORY_TEST_PASS` (this seal) |
+| M6 | TASK-068 | GATE-056 | `REPOSITORY_TEST_PASS` (constitutional seal) |
+| M7 | TASK-051 | GATE-055 | `REPOSITORY_TEST_PASS` — physical module deletion |
+| M8 | TASK-052 | GATE-066 | `REPOSITORY_TEST_PASS` — **blocking** drift guards activated |
 
-Drift scanner: `ci/check_no_local_intelligence.py` (legacy residue reported, not excluded;
-new consumer-path authority drift is blocking).
+Drift scanner: `ci/check_no_local_intelligence.py` — **blocking** in CI (`run_check`), pre-commit,
+Makefile (`make no-local-intelligence`, `make audit`), and `scripts/check_odoo_patterns.sh`.
+Retired module trees must stay absent; consumer-path authority drift fails the build.
 
 ## Observation criteria
 

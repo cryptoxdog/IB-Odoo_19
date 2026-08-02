@@ -421,11 +421,14 @@ from ADR-002 remain in force.
 - ❌ Direct Odoo → CEG/EIE HTTP or SDK bypass of Gate
 - ❌ Restoring “local fallback as design” language in constitutional docs after this invariant
 
-**Note**: Residual local engine **code** may remain after mothball M2–M6 as transitional residue until physical uninstall. Residue ≠ authority. Drift guard: `ci/check_no_local_intelligence.py` (scans residue; blocks new consumer-path authority).
+**Note**: M7 physically retired `plasticos_buyer_match_engine` and `plasticos_inference_engine`
+from the repository. M8 (TASK-052) activates **blocking** drift guards in Makefile, pre-commit,
+and CI via `ci/check_no_local_intelligence.py` — reintroduction of retired modules or
+consumer-path local authority fails the build.
 
 **Detection**: `tests/contracts/test_external_intelligence_authority.py`, `tests/contracts/test_no_local_intelligence.py`, `ci/check_no_local_intelligence.py`
 
-**Enforcement**: Contract tests + CI/pre-commit drift guard + Gate consumer docs (`docs/track_b/04_*`)
+**Enforcement**: Blocking contract tests + CI/pre-commit/Makefile drift guard + Gate consumer docs (`docs/track_b/04_*`)
 
 ---
 

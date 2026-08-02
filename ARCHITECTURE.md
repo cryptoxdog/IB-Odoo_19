@@ -278,9 +278,9 @@ Odoo  ◄───────────────────────�
 
 > **ADR-003 (single external intelligence authority):** Matching and enrichment architectural authority is Gate → CEG/EIE only. M7 physically deleted `plasticos_buyer_match_engine` (local matcher + Neo4j) and `plasticos_inference_engine` (YAML KB inference). Odoo retains result storage (`plasticos_matching`, `plasticos_enrichment`) and Gate client wiring only.
 
-**Retirement evidence:** module directories absent from repo; `neo4j` driver removed from `requirements.txt`; Neo4j env vars removed from `.env.example`; superseded fallback runtime tests deleted. Drift scanner post-M7 finalization is TASK-052 / M8.
+**Retirement evidence:** module directories absent from repo (M7 / TASK-051); `neo4j` driver removed from `requirements.txt`; Neo4j env vars removed from `.env.example`; superseded fallback runtime tests deleted. M8 (TASK-052) activates blocking drift guards in Makefile, pre-commit, CI, and `scripts/check_odoo_patterns.sh`.
 
-**Observation criteria:** `ci/check_no_local_intelligence.py` must not allow reintroduction of local matcher/inference authority on consumer paths; contract tests under `tests/contracts/` assert absence guards.
+**Observation criteria:** `ci/check_no_local_intelligence.py` must block reintroduction of local matcher/inference modules or consumer-path authority; contract tests under `tests/contracts/test_no_local_intelligence.py` assert wiring and absence guards.
 
 ## AI/ML Integration Architecture
 

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""CI Guard: no local intelligence authority drift (M7+ / TASK-051).
+"""CI Guard: no local intelligence authority drift (M8 / TASK-052).
 
 Scans the repo for reintroduction of Odoo-local matching/enrichment *authority*.
 After M7 physical retirement, legacy addon trees must be ABSENT. Presence of
 plasticos_buyer_match_engine / plasticos_inference_engine is blocking.
+M8 activates this scanner as a required gate in Makefile, pre-commit, and CI.
 
 Exit codes:
   0 = PASS (no consumer-path drift; retired modules absent)
@@ -172,9 +173,11 @@ def check_constitutional() -> list[str]:
         text = path.read_text(encoding="utf-8")
         if rel.endswith("ADR-003-single-external-intelligence-authority.md"):
             if "Observation criteria" not in text and "observation criteria" not in text.lower():
-                violations.append(f"{rel}: missing observation criteria (M6)")
+                violations.append(f"{rel}: missing observation criteria (M8)")
             if "Retirement evidence" not in text and "retirement evidence" not in text.lower():
-                violations.append(f"{rel}: missing retirement evidence section (M6)")
+                violations.append(f"{rel}: missing retirement evidence section (M8)")
+            if "M8" not in text and "TASK-052" not in text:
+                violations.append(f"{rel}: missing M8 blocking-guard evidence (TASK-052)")
     return violations
 
 
