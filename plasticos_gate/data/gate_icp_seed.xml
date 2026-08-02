@@ -43,5 +43,18 @@
         <field name="value">0</field>
     </record>
 
+    <record id="param_gate_field_family_cutover_enabled" model="ir.config_parameter">
+        <field name="key">plasticos.gate.field_family_cutover_enabled</field>
+        <field name="value">0</field>
+    </record>
+    <record id="param_gate_field_family_cutover_family" model="ir.config_parameter">
+        <field name="key">plasticos.gate.field_family_cutover_family</field>
+        <field name="value">specification</field>
+    </record>
+    <record id="param_gate_field_family_cutover_operator_approved" model="ir.config_parameter">
+        <field name="key">plasticos.gate.field_family_cutover_operator_approved</field>
+        <field name="value">0</field>
+    </record>
+
 </odoo>
 
