@@ -60,7 +60,7 @@ class SemanticPayloadError(ValueError):
 
 
 def _ref(model: str, record_id: int | str | None) -> str | None:
-    if record_id in (None, False, ""):
+    if record_id is None or record_id == "":
         return None
     return f"{model}:{int(record_id)}"
 

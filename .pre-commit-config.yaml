@@ -270,6 +270,7 @@ repos:
             addons/.*|
             \.venv/.*|
             venv/.*|
+            \.semgrep/.*|
             .*/migrations/.*|
             scripts/.*|
             docs/.*|

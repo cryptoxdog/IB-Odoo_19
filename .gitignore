@@ -47,6 +47,12 @@ logs_llm/
 xpath_stability_report.json
 odoo_audit_report.json
 extended_audit_report.json
+AUDIT_REPORT.md
+.coverage
+
+# l9-analysis.yml CI-run artifacts (finding-bundle.json, agent-review-payload.json).
+# .l9/baselines/ is NOT ignored — those ledgers are committed + CODEOWNERS-protected.
+.l9/runtime/
 
 # ═══════════════════════════════════════════════════════════
 # GMP reports (local artifacts, kept out of git by convention)

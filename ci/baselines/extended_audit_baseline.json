@@ -1,0 +1,158 @@
+{
+  "_description": "Per-finding allowlist for scripts/audit/run_all_audits.py HIGH findings. Each entry is a known, human-reviewed item -- either a scanner false positive or accepted/tracked technical debt -- NOT a blanket count baseline. Any finding whose fingerprint is not in this list fails the audit-baseline CI job (fix the code, or add a new reviewed entry here).",
+  "_how_to_add_entries": "python3 scripts/audit/check_baseline.py extended_audit_report.json ci/baselines/extended_audit_baseline.json --severities HIGH --dump-new -- review the output, then merge the printed entries into this file. Never edit scripts/audit/performance_audit.py or security_audit.py to special-case a finding.",
+  "_verified": "2026-07-24",
+  "_root_cause": "N_PLUS_ONE_QUERY (9x): real ORM-call-in-loop pattern, accurately detected -- accepted as low-priority/low-impact debt because the recordsets involved are small (per-transaction/per-load line counts, not bulk imports); tracked here rather than reflagged every run. Re-evaluate if these loops start operating on larger recordsets. SENSITIVE_DATA_LOGGED (6x): genuine false positives -- the scanner keyword-matches \"token\"/\"api_key\" substrings inside descriptive log messages about config/flow state, not actual secret values being logged.",
+  "entries": [
+    {
+      "fingerprint": "1bef73dd5727a194",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_transaction/models/transaction.py",
+      "line": 581,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (N+1 query)"
+    },
+    {
+      "fingerprint": "361407e29c868b3d",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_transaction/models/purchase_inherit.py",
+      "line": 30,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (N+1 query)"
+    },
+    {
+      "fingerprint": "a3a81efda66a6c85",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/load.py",
+      "line": 182,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (N+1 query)"
+    },
+    {
+      "fingerprint": "e987ff873a459254",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/load.py",
+      "line": 228,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (N+1 query)"
+    },
+    {
+      "fingerprint": "e987ff873a459254",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/load.py",
+      "line": 270,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (N+1 query)"
+    },
+    {
+      "fingerprint": "80a9d9186ba1ce44",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_facility_profile/models/facility_profile.py",
+      "line": 322,
+      "model": null,
+      "field": null,
+      "message": "ORM .browse() inside loop (N+1 query)"
+    },
+    {
+      "fingerprint": "80a9d9186ba1ce44",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_facility_profile/models/facility_profile.py",
+      "line": 333,
+      "model": null,
+      "field": null,
+      "message": "ORM .browse() inside loop (N+1 query)"
+    },
+    {
+      "fingerprint": "39bbc2ad6a8906c4",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_buyer_match_engine/models/intake_extension.py",
+      "line": 70,
+      "model": null,
+      "field": null,
+      "message": "ORM .create() inside loop (N+1 query)"
+    },
+    {
+      "fingerprint": "815742c77c786932",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_commission/models/commission_rule.py",
+      "line": 129,
+      "model": null,
+      "field": null,
+      "message": "ORM .browse() inside loop (N+1 query)"
+    },
+    {
+      "fingerprint": "9920ba370736e92a",
+      "type": "SENSITIVE_DATA_LOGGED",
+      "severity": "HIGH",
+      "file": "scripts/pr_autopilot.py",
+      "line": 560,
+      "model": null,
+      "field": null,
+      "message": "Potentially sensitive data in log statement"
+    },
+    {
+      "fingerprint": "72a4c9e9b37ef7df",
+      "type": "SENSITIVE_DATA_LOGGED",
+      "severity": "HIGH",
+      "file": "scripts/pr_autopilot.py",
+      "line": 989,
+      "model": null,
+      "field": null,
+      "message": "Potentially sensitive data in log statement"
+    },
+    {
+      "fingerprint": "bd02e882c6df983c",
+      "type": "SENSITIVE_DATA_LOGGED",
+      "severity": "HIGH",
+      "file": "scripts/pr_check_remote_feedback.py",
+      "line": 99,
+      "model": null,
+      "field": null,
+      "message": "Potentially sensitive data in log statement"
+    },
+    {
+      "fingerprint": "79cc4d7b2b6d857b",
+      "type": "SENSITIVE_DATA_LOGGED",
+      "severity": "HIGH",
+      "file": "scripts/pr_check_remote_feedback.py",
+      "line": 100,
+      "model": null,
+      "field": null,
+      "message": "Potentially sensitive data in log statement"
+    },
+    {
+      "fingerprint": "a1f8d7e4eb29a3ae",
+      "type": "SENSITIVE_DATA_LOGGED",
+      "severity": "HIGH",
+      "file": "plasticos_web_leads/migrations/19.0.1.5.0/post-migrate.py",
+      "line": 24,
+      "model": null,
+      "field": null,
+      "message": "Potentially sensitive data in log statement"
+    },
+    {
+      "fingerprint": "45dfbc98aa6ed7f9",
+      "type": "SENSITIVE_DATA_LOGGED",
+      "severity": "HIGH",
+      "file": "plasticos_web_leads/migrations/19.0.1.5.0/post-migrate.py",
+      "line": 54,
+      "model": null,
+      "field": null,
+      "message": "Potentially sensitive data in log statement"
+    }
+  ]
+}

@@ -13,7 +13,7 @@ jobs:
     name: Scan Open PRs
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
