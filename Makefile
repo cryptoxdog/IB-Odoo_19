@@ -5,7 +5,7 @@
 .PHONY: help \
         lint format format-fix check \
         audit audit-quick audit-baseline advisory-checks \
-        xml-check wiring deps-check cron-check odoo19-check odoo19-hooks odoo-patterns \
+        xml-check wiring deps-check xml-ref-deps cron-check odoo19-check odoo19-hooks odoo-patterns \
         name-check manifest-check shellcheck-check no-local-intelligence \
         critical-manifest enhanced-audit odoo-antipatterns package-init weak-test-check \
         mypy-check acl-csv-check test-attr-guard-check \
@@ -13,7 +13,7 @@
         pipeline-guard dev-fence state-guard acl-check guards deploy-check \
         up down restart logs logs-error shell odoo-shell \
         update update-all rebuild backup lock-deps \
-        test test-odoo test-pure test-module \
+        test test-odoo test-pure test-module install-smoke \
         pr-check pr-check-% commit push api-push-check sonar changelog \
         governance-backup \
         github-actions-kernel-check \
@@ -117,6 +117,7 @@ help:
 	@echo "  Testing"
 	@echo "    make test             pure pytest in tests/ (mirrors PR CI Tier 3)"
 	@echo "    make test-odoo        Odoo Docker native tests on installed modules"
+	@echo "    make install-smoke    Docker -i modules --stop-after-init (blocks dirty loads before GH)"
 	@echo "    make test-pure        alias for make test"
 	@echo "    make test-module m=<mod>  Odoo tests for one module (-u m)"
 	@echo ""
@@ -269,6 +270,10 @@ wiring:
 	@echo "→ Module wiring check..."
 	python3 scripts/check_module_wiring.py
 
+xml-ref-deps:
+	@echo "→ XML module-ref vs depends..."
+	python3 ci/check_xml_module_ref_deps.py
+
 deps-check:
 	@echo "→ Circular dependency check (known pre-existing: commission↔transaction)..."
 	python3 ci/check_circular_deps.py || true
@@ -389,7 +394,7 @@ audit-quick: lint format xml-check odoo19-check wiring deps-check cron-check
 # only; run `make advisory-checks` separately for the non-blocking set).
 audit: audit-quick semgrep semgrep-test guards acl-check \
 	name-check manifest-check no-local-intelligence odoo-patterns odoo19-hooks critical-manifest \
-	enhanced-audit odoo-antipatterns package-init weak-test-check
+	enhanced-audit odoo-antipatterns package-init weak-test-check xml-ref-deps
 	@echo "→ Field integrity..."
 	python3 ci/check_field_integrity.py
 	@echo "→ ORM integrity..."
@@ -578,6 +583,11 @@ test-odoo:
 		-d $(ODOO_TEST_DB) \
 		--log-level=test
 
+# Fail-closed module install gate (xmlsec + enterprise + -i --stop-after-init).
+# Required before make push so unloadable modules never reach GitHub.
+install-smoke:
+	bash scripts/install_smoke.sh
+
 # make test-module m=plasticos_commission
 test-module:
 	@if [ -z "$(m)" ]; then echo "Usage: make test-module m=<module>"; exit 1; fi
@@ -598,7 +608,8 @@ test-module:
 # secret-scan is intentionally NOT listed here: pre-commit's gitleaks-push
 # hook already runs at `git push` time regardless of make, so listing it here
 # would just run gitleaks twice.
-pr-check: audit audit-baseline test pr-remote-feedback
+# install-smoke is the local Odoo load gate (GHA cannot run odoo-bin install).
+pr-check: audit audit-baseline test install-smoke pr-remote-feedback
 	@echo ""
 	@echo "✅ PR gate passed — safe to push"
 

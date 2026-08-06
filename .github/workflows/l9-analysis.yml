@@ -24,7 +24,7 @@ on:
 
 env:
   # Keep in lockstep with .github/workflows/baseline-ratchet.yml's core-revision.
-  L9_CORE_REF: "d81a06ed821106a487df2e5ad06d93e347392af6"
+  L9_CORE_REF: "3a085894895f754a4eab19a88d8449804ba805c3"
   # pr_fast.allowed_events = [pull_request, workflow_dispatch] only (see
   # .github/governance/execution-profiles.yaml) — it does NOT allow `push`.
   # This workflow also triggers on `push: branches: [Staging]`, so the
@@ -52,6 +52,7 @@ jobs:
       mode: ${{ steps.gov.outputs.mode }}
       governance-digest: ${{ steps.gov.outputs.governance-digest }}
       artifact-name: ${{ steps.names.outputs.artifact-name }}
+      sdk-revision: ${{ steps.sdk.outputs.sdk-revision }}
       # `env` context is not available in a reusable-workflow-call `with:` block
       # (jobs.<id>.with only sees github/needs/strategy/matrix/vars/inputs), so
       # the per-event profile picked above must be re-exposed as a job output
@@ -78,7 +79,7 @@ jobs:
 
       - id: gov
         name: Resolve governance
-        uses: Quantum-L9/l9-ci-core/.github/actions/resolve-governance@d81a06ed821106a487df2e5ad06d93e347392af6
+        uses: Quantum-L9/l9-ci-core/.github/actions/resolve-governance@3a085894895f754a4eab19a88d8449804ba805c3
         with:
           profile: ${{ env.L9_PROFILE }}
           provider: semgrep
@@ -118,11 +119,11 @@ jobs:
       - id: sdk
         name: Provision immutable SDK
         if: steps.gov.outputs.enabled == 'true'
-        uses: Quantum-L9/l9-ci-core/.github/actions/provision-sdk@d81a06ed821106a487df2e5ad06d93e347392af6
+        uses: Quantum-L9/l9-ci-core/.github/actions/provision-sdk@3a085894895f754a4eab19a88d8449804ba805c3
 
       - name: Normalize provider report
         if: steps.gov.outputs.enabled == 'true'
-        uses: Quantum-L9/l9-ci-core/.github/actions/invoke-sdk@d81a06ed821106a487df2e5ad06d93e347392af6
+        uses: Quantum-L9/l9-ci-core/.github/actions/invoke-sdk@3a085894895f754a4eab19a88d8449804ba805c3
         with:
           executable: ${{ steps.sdk.outputs.executable }}
           operation: semgrep-normalize
@@ -138,14 +139,14 @@ jobs:
 
       - name: Validate canonical bundle
         if: steps.gov.outputs.enabled == 'true'
-        uses: Quantum-L9/l9-ci-core/.github/actions/validate-bundle@d81a06ed821106a487df2e5ad06d93e347392af6
+        uses: Quantum-L9/l9-ci-core/.github/actions/validate-bundle@3a085894895f754a4eab19a88d8449804ba805c3
         with:
           executable: ${{ steps.sdk.outputs.executable }}
           bundle: .l9/runtime/${{ env.L9_MATRIX_ID }}/finding-bundle.json
 
       - name: Project agent-review payload
         if: steps.gov.outputs.enabled == 'true'
-        uses: Quantum-L9/l9-ci-core/.github/actions/invoke-sdk@d81a06ed821106a487df2e5ad06d93e347392af6
+        uses: Quantum-L9/l9-ci-core/.github/actions/invoke-sdk@3a085894895f754a4eab19a88d8449804ba805c3
         with:
           executable: ${{ steps.sdk.outputs.executable }}
           operation: bundle-project-agent-payload
@@ -156,7 +157,7 @@ jobs:
       - id: route
         name: Route artifacts
         if: steps.gov.outputs.enabled == 'true'
-        uses: Quantum-L9/l9-ci-core/.github/actions/route-artifacts@d81a06ed821106a487df2e5ad06d93e347392af6
+        uses: Quantum-L9/l9-ci-core/.github/actions/route-artifacts@3a085894895f754a4eab19a88d8449804ba805c3
         with:
           provider: semgrep
           matrix-id: ${{ env.L9_MATRIX_ID }}
@@ -167,7 +168,7 @@ jobs:
 
       - name: Build artifact manifest
         if: steps.gov.outputs.enabled == 'true'
-        uses: Quantum-L9/l9-ci-core/.github/actions/build-artifact-manifest@d81a06ed821106a487df2e5ad06d93e347392af6
+        uses: Quantum-L9/l9-ci-core/.github/actions/build-artifact-manifest@3a085894895f754a4eab19a88d8449804ba805c3
         with:
           provider: semgrep
           matrix-id: ${{ env.L9_MATRIX_ID }}
@@ -193,7 +194,7 @@ jobs:
     name: Publish analysis (Core)
     needs: analyze
     if: needs.analyze.outputs.enabled == 'true'
-    uses: Quantum-L9/l9-ci-core/.github/workflows/publish-analysis.yml@d81a06ed821106a487df2e5ad06d93e347392af6
+    uses: Quantum-L9/l9-ci-core/.github/workflows/publish-analysis.yml@3a085894895f754a4eab19a88d8449804ba805c3
     permissions:
       actions: read
       checks: write
@@ -204,6 +205,7 @@ jobs:
       mode: ${{ needs.analyze.outputs.mode }}
       provider: semgrep
       matrix-id: pr-semgrep
+      sdk-revision: ${{ needs.analyze.outputs.sdk-revision }}
       governance-digest: ${{ needs.analyze.outputs.governance-digest }}
       repository-revision: ${{ github.sha }}
       workflow-result: ${{ needs.analyze.result }}

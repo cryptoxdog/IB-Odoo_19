@@ -28,6 +28,11 @@ __pycache__/
 # ═══════════════════════════════════════════════════════════
 # Local / working folders (not for repo)
 # ═══════════════════════════════════════════════════════════
+# Odoo Enterprise addons — local symlink/copy only (never commit).
+# Expected: ln -s "$HOME/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise" odoo-enterprise
+odoo-enterprise/
+odoo-enterprise
+
 Current Work - IGNORE/
 current work - ib/
 # Governance commands/skills — symlink to Dropbox SSOT; pushed via separate repo, not IB-Odoo_19

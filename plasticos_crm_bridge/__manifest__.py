@@ -21,7 +21,6 @@
         "data/crm_stage_data.xml",
         "data/partner_category_data.xml",
         "data/lead_source_data.xml",
-        "data/utm_source_deactivate.xml",
         "views/crm_lead_views.xml",
         "views/material_profile_views.xml",
     ],
