@@ -7,6 +7,8 @@ Catches common Odoo coding mistakes.
 import re
 from pathlib import Path
 
+from path_filters import skip_path
+
 
 class BusinessLogicAudit:
     def __init__(self, root_dir="."):
@@ -43,6 +45,8 @@ class BusinessLogicAudit:
         ]
 
         for py_file in self.root_dir.rglob("models/*.py"):
+            if skip_path(py_file):
+                continue
             # Skip virtual environments and test files
             if ".venv" in str(py_file) or "venv" in str(py_file) or "/tests/" in str(py_file):
                 continue
@@ -102,6 +106,8 @@ class BusinessLogicAudit:
         ]
 
         for py_file in self.root_dir.rglob("models/*.py"):
+            if skip_path(py_file):
+                continue
             with open(py_file, encoding="utf-8") as f:
                 for line_num, line in enumerate(f, 1):
                     for pattern in SQL_PATTERNS:
@@ -125,6 +131,8 @@ class BusinessLogicAudit:
         errors = []
 
         for py_file in self.root_dir.rglob("models/*.py"):
+            if skip_path(py_file):
+                continue
             with open(py_file, encoding="utf-8") as f:
                 lines = f.readlines()
 
@@ -162,6 +170,8 @@ class BusinessLogicAudit:
         errors = []
 
         for py_file in self.root_dir.rglob("models/*.py"):
+            if skip_path(py_file):
+                continue
             with open(py_file, encoding="utf-8") as f:
                 content = f.read()
                 lines = content.split("\n")

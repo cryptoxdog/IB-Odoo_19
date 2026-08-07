@@ -7,6 +7,8 @@ Finds common security issues in Odoo code.
 import re
 from pathlib import Path
 
+from path_filters import skip_path
+
 
 class SecurityAudit:
     def __init__(self, root_dir="."):
@@ -17,6 +19,8 @@ class SecurityAudit:
         errors = []
 
         for py_file in self.root_dir.rglob("controllers/*.py"):
+            if skip_path(py_file):
+                continue
             with open(py_file, encoding="utf-8") as f:
                 content = f.read()
 
@@ -67,6 +71,8 @@ class SecurityAudit:
         ]
 
         for py_file in self.root_dir.rglob("**/*.py"):
+            if skip_path(py_file):
+                continue
             # Skip virtual environments and test files
             if ".venv" in str(py_file) or "venv" in str(py_file) or "tests/" in str(py_file):
                 continue

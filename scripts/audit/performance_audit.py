@@ -7,6 +7,8 @@ Finds N+1 queries and other performance issues.
 import re
 from pathlib import Path
 
+from path_filters import skip_path
+
 
 class PerformanceAudit:
     def __init__(self, root_dir="."):
@@ -19,6 +21,8 @@ class PerformanceAudit:
         ORM_METHODS = ["search", "browse", "read", "write", "create", "unlink"]
 
         for py_file in self.root_dir.rglob("models/*.py"):
+            if skip_path(py_file):
+                continue
             # Skip virtual environments
             if ".venv" in str(py_file) or "venv" in str(py_file):
                 continue
@@ -86,6 +90,8 @@ class PerformanceAudit:
         }
 
         for py_file in self.root_dir.rglob("models/*.py"):
+            if skip_path(py_file):
+                continue
             # Skip virtual environments
             if ".venv" in str(py_file) or "venv" in str(py_file):
                 continue
