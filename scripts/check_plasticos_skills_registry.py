@@ -19,7 +19,6 @@ Exit 0 on success, 1 on failure.
 from __future__ import annotations
 
 import re
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -136,9 +135,7 @@ def main() -> int:
         else:
             target = link.resolve()
             if target != d.resolve():
-                errors.append(
-                    f"discovery symlink target mismatch: {link} -> {target} (expected {d.resolve()})"
-                )
+                errors.append(f"discovery symlink target mismatch: {link} -> {target} (expected {d.resolve()})")
 
     if errors:
         print(f"FAIL: plasticos skills registry ({len(errors)} issue(s))")
