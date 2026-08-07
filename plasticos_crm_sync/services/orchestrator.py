@@ -79,16 +79,28 @@ class SyncOrchestrator:
         except (CrmAdapterStubError, CrmAdapterError, Exception) as exc:
             excerpt = str(exc)[:2000]
             _logger.exception("CRM sync failed connection=%s", connection.id)
-            run.write(
-                {
-                    "status": "failed",
-                    "finished_at": datetime.now(UTC).replace(tzinfo=None),
-                    "error_excerpt": excerpt,
-                }
-            )
-            connection.write({"last_error": excerpt})
+            # Prior page loops may have cr.commit()'d watermarks; persist failure
+            # outside the current request txn so UserError rollback cannot erase it.
+            self._persist_sync_failure(connection, run, excerpt)
             raise
         return run
+
+    def _persist_sync_failure(self, connection, run, excerpt: str) -> None:
+        """Write failed run + last_error in a separate cursor (survives UserError)."""
+        from odoo import api
+
+        finished = datetime.now(UTC).replace(tzinfo=None)
+        with self.env.registry.cursor() as cr:
+            env = api.Environment(cr, self.env.uid, dict(self.env.context))
+            if run:
+                env["plasticos.crm.sync.run"].browse(run.ids).write(
+                    {
+                        "status": "failed",
+                        "finished_at": finished,
+                        "error_excerpt": excerpt,
+                    }
+                )
+            env["plasticos.crm.connection"].browse(connection.ids).write({"last_error": excerpt})
 
     def upsert_contact_external_id(self, connection, external_id: str) -> Any:
         """Single-contact path: contact + call history + custom tables."""

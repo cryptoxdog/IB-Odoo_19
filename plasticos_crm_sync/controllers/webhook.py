@@ -46,7 +46,8 @@ class PlasticosCrmSyncWebhook(http.Controller):
         try:
             from ..services.orchestrator import SyncOrchestrator
 
-            SyncOrchestrator(request.env).upsert_contact_external_id(connection, contact_id)
+            # sudo env: public user has no CRM ACL after token gate
+            SyncOrchestrator(request.env.sudo()).upsert_contact_external_id(connection, contact_id)
         except Exception:  # noqa: BLE001
             _logger.exception("CRM webhook sync failed contact=%s", contact_id)
             return Response("Error", status=500, mimetype="text/plain")

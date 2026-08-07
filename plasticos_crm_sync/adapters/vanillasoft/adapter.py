@@ -221,22 +221,43 @@ class VanillaSoftAdapter:
         end: str,
         limit: int = 500,
     ) -> Iterator[list[CanonicalCall]]:
-        payload = self.client.get_call_history_batch(
-            start,
-            end,
-            project_id=self.project_id,
-            limit=limit,
-        )
-        rows = _extract_list(payload, "call_histories", "call_history", "CallHistory", "calls", "data", "results")
-        batch: list[CanonicalCall] = []
-        for row in rows:
-            if not isinstance(row, dict):
-                continue
-            call = call_to_canonical(row)
-            if call:
-                batch.append(call)
-        if batch:
-            yield batch
+        """Yield call batches until the window is exhausted.
+
+        VanillaSoft ``GetCallHistory`` is limit-capped; when a page fills the
+        limit we advance ``start`` past the last call timestamp so later pages
+        in the same window are not skipped when the orchestrator advances the
+        watermark.
+        """
+        cursor_start = start
+        page_limit = min(max(limit, 1), 20000)
+        while True:
+            payload = self.client.get_call_history_batch(
+                cursor_start,
+                end,
+                project_id=self.project_id,
+                limit=page_limit,
+            )
+            rows = _extract_list(payload, "call_histories", "call_history", "CallHistory", "calls", "data", "results")
+            batch: list[CanonicalCall] = []
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                call = call_to_canonical(row)
+                if call:
+                    batch.append(call)
+            if batch:
+                yield batch
+            if not rows or len(rows) < page_limit:
+                break
+            # Advance cursor past the latest call in this page (ISO Z timestamps).
+            last_ts = None
+            for call in batch:
+                ts = call.call_datetime_utc
+                if ts and (last_ts is None or str(ts) > str(last_ts)):
+                    last_ts = ts
+            if not last_ts or str(last_ts) <= str(cursor_start):
+                break
+            cursor_start = str(last_ts)
 
     def iter_calls_for_contact(self, contact_external_id: str) -> Iterator[list[CanonicalCall]]:
         """Per-contact call history (E2E / webhook enrichment path)."""
