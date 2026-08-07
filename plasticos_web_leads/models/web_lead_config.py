@@ -37,7 +37,14 @@ class PlasticosWebLeadConfig(models.Model):
 
     api_key = fields.Char(
         groups="base.group_system",
-        help="Bearer token for authenticating inbound requests. Generate via the button below.",
+        copy=False,
+        help="Bearer token for authenticating inbound requests. "
+        "Reveal the masked value (eye icon) or regenerate via the button below.",
+    )
+    api_key_configured = fields.Boolean(
+        string="API Key Configured",
+        compute="_compute_api_key_configured",
+        help="True when an inbound webhook Bearer token is stored on this config.",
     )
     is_active = fields.Boolean(
         default=True,
@@ -225,10 +232,26 @@ class PlasticosWebLeadConfig(models.Model):
     # Singleton Access
     # ═══════════════════════════════════════════════════════════
 
+    @api.depends("api_key")
+    def _compute_api_key_configured(self):
+        for rec in self:
+            rec.api_key_configured = bool((rec.api_key or "").strip())
+
     @api.model
     def get_config(self):
-        """Return the singleton config record, creating it if needed."""
-        config = self.search([], limit=1)
+        """Return the singleton config record, creating it if needed.
+
+        Prefers the XML-seeded ``web_lead_config_default`` record so auth always
+        validates against the same row the Settings form opens — not an arbitrary
+        ``search([], limit=1)`` hit when duplicate configs exist.
+        """
+        config = self.env.ref(
+            "plasticos_web_leads.web_lead_config_default",
+            raise_if_not_found=False,
+        )
+        if config and config.exists():
+            return config
+        config = self.search([], limit=1, order="id asc")
         if not config:
             config = self.create({"name": "Web Lead Configuration"})
             _logger.info("Created default web lead configuration.")
@@ -320,14 +343,28 @@ class PlasticosWebLeadConfig(models.Model):
     # ═══════════════════════════════════════════════════════════
 
     def action_generate_api_key(self):
-        """Generate a cryptographically secure API key and show it in a copy-friendly dialog."""
+        """Generate a cryptographically secure API key and show it in a copy-friendly dialog.
+
+        Always persist on get_config() (XML singleton), not merely ``self``, so the
+        key the wizard displays is the same row the public API authenticates against.
+        """
         self.ensure_one()
+        target = self.get_config()
         new_key = secrets.token_urlsafe(48)
-        self.write({"api_key": new_key})
-        _logger.info("Web Lead API key regenerated for config %s", self.id)
+        target.write({"api_key": new_key})
+        # Keep the open form row in sync when an orphan duplicate was edited.
+        if self.id != target.id:
+            self.write({"api_key": new_key})
+            _logger.warning(
+                "Web Lead API key written to singleton config %s (form was orphan %s)",
+                target.id,
+                self.id,
+            )
+        else:
+            _logger.info("Web Lead API key regenerated for config %s", target.id)
         wizard = self.env["plasticos.web.lead.api.key.wizard"].create(
             {
-                "config_id": self.id,
+                "config_id": target.id,
                 "api_key": new_key,
             }
         )

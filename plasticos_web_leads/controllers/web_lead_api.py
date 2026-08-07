@@ -33,36 +33,81 @@ class WebLeadController(http.Controller):
     # ═══════════════════════════════════════════════════════════
 
     @staticmethod
+    def _extract_token(req):
+        """Return the inbound API token from Authorization Bearer or X-API-Key."""
+        headers = req.httprequest.headers
+        auth_header = (headers.get("Authorization") or "").strip()
+        if auth_header.lower().startswith("bearer "):
+            token = auth_header[7:].strip().strip('"').strip("'")
+            if token:
+                return token
+        x_api_key = (headers.get("X-API-Key") or headers.get("X-Api-Key") or "").strip()
+        if x_api_key:
+            return x_api_key.strip('"').strip("'")
+        return ""
+
+    @staticmethod
     def _authenticate(req):
-        """Validate the Bearer token against the stored API key.
+        """Validate the inbound token against stored web-lead API key(s).
 
         Returns (True, config) on success or (False, error_msg) on failure.
-        sudo() is used to read/create the config singleton — this is the only
-        ORM access before auth is confirmed.
-        """
-        auth_header = req.httprequest.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            return False, "Missing or malformed Authorization header."
+        sudo() is used to read config — this is the only ORM access before auth
+        is confirmed.
 
-        token = auth_header[7:].strip()
+        Matching strategy: accept the token if it equals the api_key on ANY
+        active config row (read via SQL). The Settings form and get_config() are
+        supposed to be a singleton, but orphan duplicate rows have caused
+        "wizard showed key → API Invalid API key" mismatches in staging.
+        """
+        token = WebLeadController._extract_token(req)
         if not token:
-            return False, "Empty bearer token."
+            return False, "Missing or malformed Authorization header (expected Bearer <api_key> or X-API-Key)."
 
         # sudo() required here: public endpoint cannot read config without elevation.
-        # get_config() may create the singleton record on first call (intended).
         Config = req.env["plasticos.web.lead.config"].sudo()
         config = Config.get_config()
 
         if not config.is_active:
             return False, "Web lead endpoint is currently disabled."
 
-        if not config.api_key:
+        # SQL read bypasses field-level groups= masking and compares against every
+        # row so a key written on the Settings form record still authenticates even
+        # if an older orphan config is what search([], limit=1) would return.
+        req.env.cr.execute(
+            """
+            SELECT id, api_key
+            FROM plasticos_web_lead_config
+            WHERE COALESCE(is_active, TRUE) IS TRUE
+              AND api_key IS NOT NULL
+              AND BTRIM(api_key) <> ''
+            ORDER BY id ASC
+            """
+        )
+        rows = req.env.cr.fetchall()
+        if not rows:
             return False, "API key not configured on the server."
 
-        if token != config.api_key:
+        matched_id = None
+        for row_id, stored in rows:
+            stored_key = (stored or "").strip()
+            if stored_key and token == stored_key:
+                matched_id = row_id
+                break
+
+        if matched_id is None:
+            # Safe diagnostic: lengths only — never log the raw key.
+            presented_len = len(token)
+            stored_lens = [len((stored or "").strip()) for _id, stored in rows]
+            _logger.warning(
+                "Web lead auth mismatch: presented_len=%s stored_lens=%s config_ids=%s",
+                presented_len,
+                stored_lens,
+                [row_id for row_id, _stored in rows],
+            )
             return False, "Invalid API key."
 
-        return True, config
+        matched = Config.browse(matched_id)
+        return True, matched
 
     # ═══════════════════════════════════════════════════════════
     # POST /api/v1/web-lead (Legacy Agent Endpoint)
