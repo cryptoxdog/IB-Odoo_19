@@ -1,0 +1,6 @@
+# Adapter display metadata for this Skill pack.
+# Canonical path: agents/meta.yaml (never agents/openai.yaml).
+interface:
+  display_name: "PlasticOS Odoo Docker Testing"
+  short_description: "Docker install-smoke + runtime tests before Odoo.sh Staging"
+  brand_color: "#0B7285"

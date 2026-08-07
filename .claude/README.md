@@ -69,6 +69,7 @@ Repo-local under `.claude/skills/`.
 | **plasticos-new-model-field** | `skills/plasticos-new-model-field/` | Adding fields or models to existing modules |
 | **plasticos-xml-view** | `skills/plasticos-xml-view/` | Odoo 19 XML views (PlasticOS conventions) |
 | **plasticos-odoo-sh-deploy** | `skills/plasticos-odoo-sh-deploy/` | Odoo.sh production errors, SSH log diagnosis, deploy fixes |
+| **plasticos-odoo-docker-testing** | `skills/plasticos-odoo-docker-testing/` | Docker install-smoke / runtime tests before Odoo.sh |
 | **plasticos-static-audit-kernel** | `skills/plasticos-static-audit-kernel/` | Static audit command map and evidence contract |
 | **plasticos-pr-review-kernel** | `skills/plasticos-pr-review-kernel/` | `PR_REVIEW_MODE`, `REVIEW PR #N` — preloaded on code-reviewer |
 | **plasticos-repo-review-kernel** | `skills/plasticos-repo-review-kernel/` | Repo-wide readiness, go-live / pack review |
