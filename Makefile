@@ -143,7 +143,7 @@ help:
 	@echo "    make roadmap-sync     sync only (make roadmap preferred)"
 	@echo "    Example: make roadmap domain=gate-autonomy phase=1 kind=backlog title=\"...\""
 	@echo ""
-	@echo "  Agent review kernels (.claude/skills/ — playbooks, not extra targets)"
+	@echo "  Agent review kernels (skills/ — playbooks, not extra targets)"
 	@echo "    FINAL_TOUCHES_MODE     plasticos-final-touches  → make audit + make pr-check"
 	@echo "    PR_REVIEW_MODE         plasticos-pr-review-kernel → make pr-check"
 	@echo "    (static/repo audit)    plasticos-static-audit-kernel / plasticos-repo-review-kernel → make audit"
