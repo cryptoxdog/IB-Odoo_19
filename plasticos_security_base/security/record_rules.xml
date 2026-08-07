@@ -119,6 +119,45 @@
 
 
   <!-- ══════════════════════════════════════════════════════════════════════
+       Load Dashboard Record Rules
+       Owned here (not plasticos_logistics): groups are defined in this module,
+       and logistics cannot depend on security_base without a circular dep.
+  ══════════════════════════════════════════════════════════════════════ -->
+
+  <record id="rule_load_dashboard_rep_own" model="ir.rule">
+    <field name="name">Load Dashboard: Sales Reps see own loads only</field>
+    <field name="model_id" ref="plasticos_logistics.model_plasticos_load_dashboard"/>
+    <field name="domain_force">[("user_id", "=", user.id)]</field>
+    <field name="groups" eval="[(4, ref('plasticos_security_base.group_sales_rep'))]"/>
+    <field name="perm_read"   eval="True"/>
+    <field name="perm_write"  eval="False"/>
+    <field name="perm_create" eval="False"/>
+    <field name="perm_unlink" eval="False"/>
+  </record>
+
+  <record id="rule_load_dashboard_logistics_all" model="ir.rule">
+    <field name="name">Load Dashboard: Logistics sees all loads</field>
+    <field name="model_id" ref="plasticos_logistics.model_plasticos_load_dashboard"/>
+    <field name="domain_force">[(1, "=", 1)]</field>
+    <field name="groups" eval="[(4, ref('plasticos_security_base.group_logistics'))]"/>
+    <field name="perm_read"   eval="True"/>
+    <field name="perm_write"  eval="False"/>
+    <field name="perm_create" eval="False"/>
+    <field name="perm_unlink" eval="False"/>
+  </record>
+
+  <record id="rule_load_dashboard_ops_manager_all" model="ir.rule">
+    <field name="name">Load Dashboard: Ops Managers see all loads</field>
+    <field name="model_id" ref="plasticos_logistics.model_plasticos_load_dashboard"/>
+    <field name="domain_force">[(1, "=", 1)]</field>
+    <field name="groups" eval="[(4, ref('plasticos_security_base.group_operations_manager'))]"/>
+    <field name="perm_read"   eval="True"/>
+    <field name="perm_write"  eval="False"/>
+    <field name="perm_create" eval="False"/>
+    <field name="perm_unlink" eval="False"/>
+  </record>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
        Sales Dashboard Record Rules
        Sales reps see ONLY their own deals. Managers/accounting see all.
   ══════════════════════════════════════════════════════════════════════ -->

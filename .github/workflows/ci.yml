@@ -164,6 +164,7 @@ jobs:
           run_check "No local-intelligence drift" python3 ci/check_no_local_intelligence.py
 
           run_check "Circular dependencies"      python3 ci/check_circular_deps.py
+          run_check "XML module-ref depends"     python3 ci/check_xml_module_ref_deps.py
           run_check "Module dependency wiring"   python3 scripts/check_module_wiring.py
           run_check "Orphan model references"    python3 ci/check_orphan_model_refs.py
           run_check "XPath stability"            python3 ci/check_xpath_stability.py

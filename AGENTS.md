@@ -280,10 +280,12 @@ pre-commit run --all-files                # Run ALL 36 hooks at once
 
 **2026-07 fail-slow correction:** `ci.yml`'s `lint`/`static-checks`/`pure-python-tests` previously ran as a sequential `needs:` chain (Tier 1 → 2 → 3), so a `lint` failure hid every static-analysis and test failure until fixed and re-pushed — the opposite of "identify all errors in one CI run." They now run in **parallel** (no `needs:` between them) alongside `secret-scan` and the new `audit-baseline` job; a final `ci-gate-result` job (`needs:` all of them, `if: always()`) is the single fail-closed verdict. `ci/check_github_actions_kernel.sh`'s `merge_gate_logic` check enforces this contract structurally (no `needs:` on the three tiers, an aggregator job present).
 
+**Cross-workflow order (max concurrent → aggregator last):** On each PR push, **CI Gate**, **Baseline Ratchet**, and **L9 Analysis** start together (Wave 1 collectors). Do **not** serialize them with `workflow_run`. Wave 2 aggregators (`CI Gate Result`, `Ratchet Verdict`) and L9 `publish` run last within their own workflows. Prefer required merge checks on those aggregators; keep L9 advisory-first until `.github/governance/` promotes rules. **GitGuardian** is an external app (not a workflow) — it scans the PR commit range and does not cancel GHA; tip-only secret fixes leave GG red if an earlier PR commit still contains the secret (squash/rewrite the feature branch, or resolve the occurrence after rotation). Each workflow uses its own `concurrency` group with `cancel-in-progress: true` — treat only the latest **non-cancelled** HEAD run as signal.
+
 **Active workflows and their triggers:**
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| **`ci.yml`** | push + PR (all branches) | Single CI gate — lint / static / pytest / audit-baseline run in parallel (fail-slow), `ci-gate-result` aggregates last |
+| **`ci.yml`** | push + PR (all branches) | Single CI gate — lint / static / pytest / secret-scan / audit-baseline run in parallel (fail-slow), `ci-gate-result` aggregates last |
 | **`baseline-ratchet.yml`** | push + PR → Staging | GATE-01 baseline ratchet (l9-ci-core reusable workflow, SHA-pinned) |
 | `l9-analysis.yml` | push → Staging + PR + manual | l9-ci-core governed semgrep pipeline (generic `p/python`), publishes a GitHub Check; advisory-first, not yet a required check |
 | `security.yml` | push + PR → staging/main + weekly | pip-audit, Trivy, Gitleaks |
@@ -300,8 +302,9 @@ pre-commit run --all-files                # Run ALL 36 hooks at once
 | `lint` | 1 (parallel) | `ruff check` + `ruff format --check` | Unsorted imports (I001), unformatted code |
 | `static-checks` | 1 (parallel) | XML syntax, bash syntax, manifest syntax + field validation (`scripts/validate_manifest.py`), `_name` string-literal enforcement, shellcheck, Semgrep Odoo/security rules (`.semgrep/odoo-patterns.yml`), circular deps, module wiring, orphan refs, XPath stability, model inheritance, ORM integrity, Odoo 19 hook/XML patterns, dev-tools fence, pipeline-v2 guard, critical manifest, enhanced audit, antipatterns, ACL completeness, package init, field integrity, state-guard bypass, weak-test detection | Missing `__init__.py` import, broken XPath, phantom dep, semgrep rule hit, shellcheck warning, `_name = CONSTANT` |
 | `pure-python-tests` | 1 (parallel) | pytest suite (no Odoo runtime): dependency integrity, compat, cron invariants, XML patterns, enum alignment | Test assertion failure, missing fixture |
+| `secret-scan` | 1 (parallel) | Gitleaks (blocking — GATE-01 fail-closed; no `continue-on-error`) | Leaked token/password in git history of the push |
 | `audit-baseline` | 1 (parallel) | `scripts/audit/odoo_audit.py` (field/required-field/compute/security/constraint/state-machine/onchange bugs; baseline CRITICAL=0 HIGH=0) + `scripts/audit/run_all_audits.py` (extended: business-logic/performance/security N+1 queries; baseline HIGH≤4 — pre-existing `plasticos_logistics/load.py` + `plasticos_transaction/transaction.py`); auto-comments on the PR and uploads an `odoo-audit-reports` artifact on regression | New CRITICAL/HIGH issue vs tracked baseline — read the PR comment or artifact |
-| `ci-gate-result` | 2 (sequential, always last) | Aggregates the 5 jobs above; fails if any is not `success` | One of the Phase 1 jobs failed — read ITS log, not this job's |
+| `ci-gate-result` | 2 (sequential, always last) | Aggregates the 5 Phase 1 jobs above; fails if any is not `success` | One of the Phase 1 jobs failed — read ITS log, not this job's |
 
 **Advisory-only checks inside `static-checks`** (logged but never fail the job): `mypy` (type checking — not a CI gate per `.cursor/rules/88-plasticos-odoo-python-tooling`, pre-commit only), ACL CSV header/format check, test-attribute-guard (`self.*_rec` warn). These same checks ARE blocking as local pre-commit hooks where applicable (see Pre-commit Hooks table) — the CI/pre-commit blocking status differs per check.
 
