@@ -9,7 +9,7 @@
         <field name="name">plasticos.web.lead.config.form</field>
         <field name="model">plasticos.web.lead.config</field>
         <field name="arch" type="xml">
-            <form string="Web Lead Configuration">
+            <form string="Web Lead Configuration" create="0" delete="0">
                 <sheet>
                     <group string="Endpoint Settings">
                         <group>
@@ -23,13 +23,22 @@
                     </group>
                     <group string="API Authentication (Inbound Webhook)">
                         <group>
-                            <field name="api_key" invisible="1"/>
+                            <field name="api_key_configured" readonly="1"/>
+                            <field name="api_key" password="True"
+                                     placeholder="Click Generate New API Key"/>
                             <button name="action_generate_api_key"
                                     string="Generate New API Key"
                                     type="object"
                                     class="btn-warning"
                                     confirm="This will invalidate the current key. External integrations will need the new key. Continue?"/>
                         </group>
+                        <div class="alert alert-info" colspan="2" role="alert">
+                            Auth header: <code>Authorization: Bearer &lt;api_key&gt;</code>
+                            (or <code>X-API-Key: &lt;api_key&gt;</code>) on
+                            <code>POST /api/v1/cognito-webhook</code> /
+                            <code>POST /api/v1/web-lead</code>.
+                            Click the eye icon to reveal/copy. Regenerating replaces the stored value.
+                        </div>
                     </group>
 
                     <separator string="LLM Provider Configuration"/>
@@ -106,7 +115,7 @@
                             <li><code>GET /api/v1/web-lead/health</code> — Health check (no auth)</li>
                         </ul>
                         <p><strong>Auth:</strong> <code>Authorization: Bearer &lt;api_key&gt;</code></p>
-                        <p>HOT leads automatically create a partner and intake record.</p>
+                        <p>HOT leads create an intake (partner deferred until buyer-match).</p>
                     </div>
                 </sheet>
             </form>
