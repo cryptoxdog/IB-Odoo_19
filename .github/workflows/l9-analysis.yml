@@ -97,11 +97,21 @@ jobs:
           echo "artifact-name=l9-semgrep-${MATRIX_ID}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
           echo "profile=${PROFILE}" >> "$GITHUB_OUTPUT"
 
-      - name: Run semgrep
+      - id: semgrep
+        name: Run semgrep
         if: steps.gov.outputs.enabled == 'true'
         run: |
           set -euo pipefail
           pip install --upgrade pip semgrep
+          # SDK semgrep-normalize requires --provider-version (invoke-sdk input).
+          PROVIDER_VERSION="$(python3 -c 'import semgrep,sys; print(getattr(semgrep,"__VERSION__",None) or getattr(semgrep,"__version__","unknown"))')"
+          if [ -z "${PROVIDER_VERSION}" ] || [ "${PROVIDER_VERSION}" = "None" ]; then
+            PROVIDER_VERSION="$(semgrep --version 2>/dev/null | head -n1 | awk '{print $NF}')"
+          fi
+          if [ -z "${PROVIDER_VERSION}" ]; then
+            PROVIDER_VERSION="unknown"
+          fi
+          echo "provider-version=${PROVIDER_VERSION}" >> "$GITHUB_OUTPUT"
           mkdir -p "artifacts/raw/semgrep/${L9_MATRIX_ID}"
           # Always emit JSON for normalize; findings must not abort before publish.
           # Do not use `|| true` (workflow-integrity ban) — capture rc under set +e.
@@ -132,6 +142,7 @@ jobs:
           root: .
           snapshot-id: ${{ github.sha }}
           revision: ${{ github.sha }}
+          provider-version: ${{ steps.semgrep.outputs.provider-version }}
           strict: ${{ steps.gov.outputs.strict }}
           required: ${{ steps.gov.outputs.required-provider }}
           policy: ${{ steps.gov.outputs.sdk-policy }}

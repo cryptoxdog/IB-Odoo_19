@@ -38,18 +38,19 @@ LOG_FILE="${LOG_DIR}/odoo-install-smoke-$(date +%Y%m%d_%H%M%S).log"
 # compose `db` service definition already used by local Docker.
 if [ -z "${POSTGRES_PASSWORD:-}" ]; then
   # Ignore compose failures here (daemon down) — fall through to the unset check.
+  # Use python -c (stdin only): pipe + heredoc trips shellcheck SC2259.
   set +e
   POSTGRES_PASSWORD="$(
-    docker compose -p "$ODOO_COMPOSE_PROJECT" config 2>/dev/null | python3 - <<'PY'
+    docker compose -p "$ODOO_COMPOSE_PROJECT" config 2>/dev/null | python3 -c "
 import re
 import sys
 
 text = sys.stdin.read()
-match = re.search(r"(?ms)^  db:\n(.*?)(?=^  [a-zA-Z]|\Z)", text)
+match = re.search(r'(?ms)^  db:\n(.*?)(?=^  [a-zA-Z]|\Z)', text)
 block = match.group(1) if match else text
-pwd = re.search(r"POSTGRES_PASSWORD:\s*[\"']?([^\s\"']+)", block)
-print(pwd.group(1) if pwd else "", end="")
-PY
+pwd = re.search(r'POSTGRES_PASSWORD:\s*(.+)', block)
+print(pwd.group(1).strip().strip(chr(34) + chr(39)) if pwd else '', end='')
+"
   )"
   set -e
 fi
