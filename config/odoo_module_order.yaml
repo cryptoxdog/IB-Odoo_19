@@ -1,12 +1,17 @@
 # PlasticOS Odoo module install order (topological: dependencies before dependents).
-# Used by scripts/rebuild-odoo-no-demo.sh and scripts/run-odoo-tests.sh.
+# Used by scripts/rebuild-odoo-no-demo.sh, scripts/install_smoke.sh, scripts/run-odoo-tests.sh.
 # Odoo resolves dependencies from __manifest__.py; this order ensures consistency
 # and documents the intended load sequence for Docker/CI and for human readers.
 #
+# Gate architecture (Odoo → Gate → EIE/CEG → Gate → Odoo):
+#   - plasticos_matching / plasticos_enrichment are installable Gate shells
+#     (auto_install=True). They store Gate writebacks; they do NOT run local matching.
+#   - Deleted / never install: plasticos_buyer_match_engine, plasticos_inference_engine,
+#     plasticos_enrichment_bridge (external Cognitive.Engine.Graphs + Gate).
+#
 # Optional modules (excluded from default install):
-#   - plasticos_web_leads: requires pip openai, requests (not in base image)
-#   - plasticos_documents_native: installable=False; requires Odoo Enterprise documents
-#   - plasticos_dev_tools: installable=False (dev only)
+#   - plasticos_documents_native: needs Odoo Enterprise `documents`
+#   - plasticos_dev_tools / plasticos_website: installable=False
 #
 # ─────────────────────────────────────────────────────────────────────────────
 # DOCKER TESTING ONLY — Enterprise modules that mirror production (Odoo.sh).
@@ -80,7 +85,7 @@ docker_enterprise_modules:
   - web_grid                     # grid view
   - web_map                      # map view
 
-# Default install order (no optional):
+# Default install order (dependency-safe; Gate shells after gate + intake):
 default_install_order:
   - plasticos_accounting
   - plasticos_base
@@ -97,21 +102,28 @@ default_install_order:
   - plasticos_claims
   - plasticos_automation
   - plasticos_intake_normalizer
-  - plasticos_partner_import
-  - plasticos_crm_sync
+  - plasticos_matching            # Gate shell (auto_install); no local matcher
+  - plasticos_enrichment          # Gate shell (auto_install); no local IE
   - plasticos_geolocalize
-  - plasticos_security_base
+  - plasticos_web_leads
+  - plasticos_security_base       # after web_leads + logistics (depends both)
+  - plasticos_commission
+  - plasticos_crm_bridge          # after security_base
+  - plasticos_partner_import      # after crm_bridge
+  - plasticos_crm_sync            # after crm_bridge + security_base
+  - plasticos_admin_dashboard
 
-# Web leads module (tested separately after core modules pass):
+# Web leads kept as named section for scoped test scripts:
 web_leads_module:
   - plasticos_web_leads   # needs: pip install openai requests
 
-# Not installable or Enterprise-only (do not add to install list):
+# Never install locally / Docker smoke (deleted, False, or Enterprise-gated):
 excluded_modules:
   - plasticos_dev_tools         # installable: False
-  - plasticos_documents_native  # installable: False; Enterprise documents
-  - plasticos_inference_engine  # installable: False; external microservice
-  - plasticos_matching          # installable: False; external microservice
-  - plasticos_buyer_match_engine # installable: False; external microservice
-  - plasticos_enrichment        # installable: False; external microservice
-  - plasticos_enrichment_bridge # installable: False; external microservice
+  - plasticos_website           # installable: False
+  - plasticos_documents_native  # needs Enterprise documents (install on Odoo.sh only)
+  - plasticos_inference_engine  # DELETED — external CEG microservice
+  - plasticos_buyer_match_engine # DELETED — external CEG microservice
+  - plasticos_enrichment_bridge # DELETED / retired
+  - plasticos_odoo_standard_apps # auto_install bundle; skip explicit -i (Odoo pulls deps)
+  - plasticos_semantic_kernel   # optional; not in Staging critical path

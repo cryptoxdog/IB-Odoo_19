@@ -164,10 +164,22 @@ fi
 
 # Fail only on fatal install/registry failures — not application ERROR logs from
 # post_init hooks (e.g. partner_import graph validation that does not abort load).
-FATAL_PATTERNS='Failed to initialize database|ParseError|odoo\.registry: Failed to load registry|External ID not found|Invalid field'
+# Registry fatals only. Exclude convert.py <delete> misses (logged as WARNING +
+# Traceback ValueError on fresh DBs) — those do not abort module load.
+FATAL_PATTERNS='Failed to initialize database|ParseError|odoo\.registry: Failed to load registry|Invalid field'
+# External ID not found is fatal only outside convert delete-skip / cache lookup noise.
 if grep -E "$FATAL_PATTERNS" "$LOG_FILE" | grep -vE "test_|Undefined substitution|Unexpected indentation" | head -40; then
   echo "" >&2
   echo "❌ install-smoke FAILED: fatal install/registry error in log" >&2
+  echo "   Log: $LOG_FILE" >&2
+  exit 1
+fi
+if grep -E "External ID not found" "$LOG_FILE" \
+  | grep -vE "Skipping deletion for missing XML ID|_tag_delete|test_|Undefined substitution" \
+  | grep -E "ERROR|CRITICAL|ParseError|Failed to load registry" \
+  | head -40; then
+  echo "" >&2
+  echo "❌ install-smoke FAILED: fatal External ID error in log" >&2
   echo "   Log: $LOG_FILE" >&2
   exit 1
 fi

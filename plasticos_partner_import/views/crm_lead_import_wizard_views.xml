@@ -73,8 +73,4 @@
         <field name="target">new</field>
     </record>
 
-    <!-- Explicitly unlink former CRM / PlasticOS menus on upgrade -->
-    <delete model="ir.ui.menu" id="menu_crm_lead_import_wizard"/>
-    <delete model="ir.ui.menu" id="menu_crm_lead_import_wizard_plasticos"/>
-
 </odoo>
