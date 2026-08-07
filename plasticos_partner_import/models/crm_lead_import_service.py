@@ -2,46 +2,11 @@ import csv
 import logging
 
 from odoo import models
-from odoo.addons.plasticos_facility_profile.models.lead_source import LEAD_SOURCE_MAPPING
 from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 100
-
-# VanillaSoft Lead Status → crm.stage XML ID mapping
-STAGE_MAPPING = {
-    "2a=Qualified/HOT": "plasticos_crm_bridge.stage_qualified_hot",
-    "2b=Qualified/WARM": "plasticos_crm_bridge.stage_qualified_warm",
-    "2c=Qualified/COLD": "plasticos_crm_bridge.stage_qualified_warm",  # Map COLD to WARM stage
-    "2=Qualified/Open": "plasticos_crm_bridge.stage_qualified_warm",  # Map Open to WARM stage
-    "3=Qualified/Resist": "plasticos_crm_bridge.stage_resistant",
-    "1= Currently Working With": "plasticos_crm_bridge.stage_active_supplier",
-    "4=Unqualified": "plasticos_crm_bridge.stage_dead_lead",
-    "7=Do Not Call": "plasticos_crm_bridge.stage_dead_lead",
-    "8=Duplicate": "plasticos_crm_bridge.stage_dead_lead",
-    "6=Wrong #": "plasticos_crm_bridge.stage_dead_lead",
-    "New": "plasticos_crm_bridge.stage_new",
-}
-
-# VanillaSoft Company Type → res.partner.category XML ID mapping
-COMPANY_TYPE_MAPPING = {
-    "Distribution Center": "plasticos_crm_bridge.categ_distribution_center",
-    "Commercial Recycler": "plasticos_crm_bridge.categ_commercial_recycler",
-    "Pallet Recycler": "plasticos_crm_bridge.categ_pallet_recycler",
-    "Compounder": "plasticos_crm_bridge.categ_compounder",
-    "Grinder/Processor": "plasticos_crm_bridge.categ_grinder_processor",
-    "E-Waste": "plasticos_crm_bridge.categ_ewaste",
-    "MRF": "plasticos_crm_bridge.categ_mrf",
-    "Manufacturer": "plasticos_crm_bridge.categ_manufacturer",
-    "Broker": "plasticos_crm_bridge.categ_broker",
-    "Carrier": "plasticos_crm_bridge.categ_carrier",
-}
-
-ROLE_TAG_MAPPING = {
-    "Buyer": "plasticos_crm_bridge.categ_buyer",
-    "Supplier": "plasticos_crm_bridge.categ_supplier",
-}
 
 
 class PlasticosCRMLeadImportService(models.AbstractModel):
@@ -60,6 +25,9 @@ class PlasticosCRMLeadImportService(models.AbstractModel):
 
     def _resolve_stage(self, lead_status):
         """Map VanillaSoft Lead Status to crm.stage record."""
+        # Lazy cross-addon import (CI: no top-level plasticos_* imports)
+        from odoo.addons.plasticos_crm_bridge.models.crm_mapping import STAGE_MAPPING
+
         xml_id = STAGE_MAPPING.get(lead_status)
         if xml_id:
             stage = self.env.ref(xml_id, raise_if_not_found=False)
@@ -76,6 +44,8 @@ class PlasticosCRMLeadImportService(models.AbstractModel):
         """Map VanillaSoft Lead Source to utm.source record."""
         if not raw_source:
             return False
+        from odoo.addons.plasticos_facility_profile.models.lead_source import LEAD_SOURCE_MAPPING
+
         utm_name = LEAD_SOURCE_MAPPING.get(raw_source.strip(), "Other")
         source = self.env["utm.source"].search([("name", "=", utm_name)], limit=1)
         return source.id if source else False
@@ -85,6 +55,8 @@ class PlasticosCRMLeadImportService(models.AbstractModel):
         tag_ids = []
 
         # Company Type tag
+        from odoo.addons.plasticos_crm_bridge.models.crm_mapping import COMPANY_TYPE_MAPPING
+
         xml_id = COMPANY_TYPE_MAPPING.get(company_type)
         if xml_id:
             tag = self.env.ref(xml_id, raise_if_not_found=False)
@@ -94,6 +66,8 @@ class PlasticosCRMLeadImportService(models.AbstractModel):
         # Role tag (Buyer/Supplier)
         if role:
             for role_part in role.split("/"):
+                from odoo.addons.plasticos_crm_bridge.models.crm_mapping import ROLE_TAG_MAPPING
+
                 role_xml_id = ROLE_TAG_MAPPING.get(role_part.strip())
                 if role_xml_id:
                     tag = self.env.ref(role_xml_id, raise_if_not_found=False)

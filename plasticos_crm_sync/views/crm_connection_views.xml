@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_crm_connection_list" model="ir.ui.view">
+        <field name="name">plasticos.crm.connection.list</field>
+        <field name="model">plasticos.crm.connection</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="provider"/>
+                <field name="project_id"/>
+                <field name="enabled"/>
+                <field name="contact_watermark_utc"/>
+                <field name="call_watermark_utc"/>
+                <field name="last_success_at"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_crm_connection_form" model="ir.ui.view">
+        <field name="name">plasticos.crm.connection.form</field>
+        <field name="model">plasticos.crm.connection</field>
+        <field name="arch" type="xml">
+            <form string="CRM Connection">
+                <header>
+                    <button name="action_test_connection" type="object" string="Test Connection" class="btn-secondary"/>
+                    <button name="action_sync_now" type="object" string="Sync Now" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="provider"/>
+                            <field name="project_id"/>
+                            <field name="enabled"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="contact_watermark_utc"/>
+                            <field name="call_watermark_utc"/>
+                            <field name="call_backfill_floor_utc"/>
+                            <field name="last_success_at"/>
+                        </group>
+                    </group>
+                    <group string="Last Error" invisible="not last_error">
+                        <field name="last_error" nolabel="1"/>
+                    </group>
+                    <notebook>
+                        <page string="Sync Runs" name="sync_runs">
+                            <!-- Use dedicated sync.run list view (avoids odoo_audit misattributing
+                                 child fields onto plasticos.crm.connection). -->
+                            <field name="sync_run_ids"
+                                   context="{'tree_view_ref': 'plasticos_crm_sync.view_crm_sync_run_list'}"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_crm_connection" model="ir.actions.act_window">
+        <field name="name">CRM Connections</field>
+        <field name="res_model">plasticos.crm.connection</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

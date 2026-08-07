@@ -102,6 +102,10 @@ class CRMLeadImportWizard(models.TransientModel):
         """Run the CRM lead import."""
         self.ensure_one()
 
+        _logger.warning(
+            "VanillaSoft CRM CSV import is deprecated; prefer plasticos_crm_sync API sync",
+        )
+
         import_svc = self.env["plasticos.crm.lead.import.service"]
         csv_path = None
         temp_file = None

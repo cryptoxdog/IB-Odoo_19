@@ -1,8 +1,8 @@
 {
   "_description": "Per-finding allowlist for scripts/audit/odoo_audit.py CRITICAL/HIGH findings. Each entry is a known, human-reviewed false positive or accepted item \u2014 NOT a blanket count baseline. Any finding whose fingerprint is not in this list fails the audit-baseline CI job (fix the code, or add a new reviewed entry here).",
   "_how_to_add_entries": "python3 scripts/audit/check_baseline.py odoo_audit_report.json ci/baselines/odoo_audit_baseline.json --severities CRITICAL,HIGH --dump-new -- review the output, then merge the printed entries into this file. Never edit scripts/audit/odoo_audit.py to special-case a finding.",
-  "_verified": "2026-08-02",
-  "_root_cause": "FIELD_NOT_FOUND (444x, CRITICAL): odoo_audit.py cannot distinguish ir.ui.view / ir.actions.act_window container fields (arch, inherit_id, priority, name, view_mode, res_model, context, help, search_view_id, target, ...) from fields on the model a view displays -- it misattributes them all as missing model fields. INVALID_CONSTRAINT_FIELD (1x, HIGH): transaction.py commission_override_pct is defined via cross-module _inherit in plasticos_commission; the single-file scanner cannot see it.\n\n2026-08-02: plasticos_semantic_kernel view XML false positives \u2014 auditor treats ir.ui.view attrs (arch/name/res_model/view_mode) as model fields on observation/specification/facility.material.rule/capacity/supply/buyer.demand. Same FP class as existing enrichment.* view entries; logged not scanner-patched (PR #116 audit restore).\n\n2026-08-02: plasticos_matching match_run/match_exclusion view XML false positives (ir.ui.view / ir.actions.act_window / ir.cron container fields) after M2 home move \u2014 same FP class as buyer_match_engine match_exclusion_views entries.",
+  "_verified": "2026-08-07",
+  "_root_cause": "FIELD_NOT_FOUND (444x, CRITICAL): odoo_audit.py cannot distinguish ir.ui.view / ir.actions.act_window container fields (arch, inherit_id, priority, name, view_mode, res_model, context, help, search_view_id, target, ...) from fields on the model a view displays -- it misattributes them all as missing model fields. INVALID_CONSTRAINT_FIELD (1x, HIGH): transaction.py commission_override_pct is defined via cross-module _inherit in plasticos_commission; the single-file scanner cannot see it.\n\n2026-08-02: plasticos_semantic_kernel view XML false positives \u2014 auditor treats ir.ui.view attrs (arch/name/res_model/view_mode) as model fields on observation/specification/facility.material.rule/capacity/supply/buyer.demand. Same FP class as existing enrichment.* view entries; logged not scanner-patched (PR #116 audit restore).\n\n2026-08-02: plasticos_matching match_run/match_exclusion view XML false positives (ir.ui.view / ir.actions.act_window / ir.cron container fields) after M2 home move \u2014 same FP class as buyer_match_engine match_exclusion_views entries.\n\n2026-08-07: plasticos_crm_sync view/action XML false positives \u2014 auditor treats ir.ui.view / ir.actions.act_window attrs (arch/name/res_model/view_mode) as model fields on plasticos.crm.connection|sync.run|call.event. Same FP class as enrichment/semantic_kernel entries; logged not scanner-patched (PR #145).",
   "entries": [
     {
       "fingerprint": "533531e3132d743a",
@@ -4903,6 +4903,116 @@
       "model": "plasticos.match.run",
       "field": "view_mode",
       "message": "Field 'view_mode' not defined on model 'plasticos.match.run'"
+    },
+    {
+      "fingerprint": "a2df33049b9788ff",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_sync/views/crm_sync_run_views.xml",
+      "line": 6,
+      "model": "plasticos.crm.sync.run",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.crm.sync.run'"
+    },
+    {
+      "fingerprint": "86c3cbfe254b5c40",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_sync/views/crm_sync_run_views.xml",
+      "line": 21,
+      "model": "plasticos.crm.sync.run",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.crm.sync.run'"
+    },
+    {
+      "fingerprint": "2a99f39bce4770b9",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_sync/views/crm_sync_run_views.xml",
+      "line": 22,
+      "model": "plasticos.crm.sync.run",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.crm.sync.run'"
+    },
+    {
+      "fingerprint": "6b086f648ba6f995",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_sync/views/crm_sync_run_views.xml",
+      "line": 23,
+      "model": "plasticos.crm.sync.run",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.crm.sync.run'"
+    },
+    {
+      "fingerprint": "a94e0146b8ee108a",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_sync/views/crm_call_event_views.xml",
+      "line": 6,
+      "model": "plasticos.crm.call.event",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.crm.call.event'"
+    },
+    {
+      "fingerprint": "ac1479950576329b",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_sync/views/crm_call_event_views.xml",
+      "line": 20,
+      "model": "plasticos.crm.call.event",
+      "field": "name",
+      "message": "Field 'name' not defined on model 'plasticos.crm.call.event'"
+    },
+    {
+      "fingerprint": "77c6b199127258ff",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_sync/views/crm_call_event_views.xml",
+      "line": 21,
+      "model": "plasticos.crm.call.event",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.crm.call.event'"
+    },
+    {
+      "fingerprint": "99cfaae117677f06",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_sync/views/crm_call_event_views.xml",
+      "line": 22,
+      "model": "plasticos.crm.call.event",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.crm.call.event'"
+    },
+    {
+      "fingerprint": "00cb70509a282bd2",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_sync/views/crm_connection_views.xml",
+      "line": 6,
+      "model": "plasticos.crm.connection",
+      "field": "arch",
+      "message": "Field 'arch' not defined on model 'plasticos.crm.connection'"
+    },
+    {
+      "fingerprint": "38a73e6fa5ffe8b8",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_sync/views/crm_connection_views.xml",
+      "line": 62,
+      "model": "plasticos.crm.connection",
+      "field": "res_model",
+      "message": "Field 'res_model' not defined on model 'plasticos.crm.connection'"
+    },
+    {
+      "fingerprint": "25cca192caeaba52",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_crm_sync/views/crm_connection_views.xml",
+      "line": 63,
+      "model": "plasticos.crm.connection",
+      "field": "view_mode",
+      "message": "Field 'view_mode' not defined on model 'plasticos.crm.connection'"
     }
   ]
 }

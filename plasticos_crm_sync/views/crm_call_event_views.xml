@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_crm_call_event_list" model="ir.ui.view">
+        <field name="name">plasticos.crm.call.event.list</field>
+        <field name="model">plasticos.crm.call.event</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="call_datetime_utc"/>
+                <field name="lead_id"/>
+                <field name="user_name"/>
+                <field name="result_code"/>
+                <field name="duration_seconds"/>
+                <field name="provider"/>
+                <field name="external_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_crm_call_event" model="ir.actions.act_window">
+        <field name="name">CRM Call Events</field>
+        <field name="res_model">plasticos.crm.call.event</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

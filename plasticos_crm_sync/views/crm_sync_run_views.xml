@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_crm_sync_run_list" model="ir.ui.view">
+        <field name="name">plasticos.crm.sync.run.list</field>
+        <field name="model">plasticos.crm.sync.run</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="started_at"/>
+                <field name="connection_id"/>
+                <field name="provider"/>
+                <field name="status"/>
+                <field name="contacts_upserted"/>
+                <field name="calls_upserted"/>
+                <field name="orphans_buffered"/>
+                <field name="orphans_resolved"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_crm_sync_run" model="ir.actions.act_window">
+        <field name="name">CRM Sync Runs</field>
+        <field name="res_model">plasticos.crm.sync.run</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>
