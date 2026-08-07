@@ -256,6 +256,19 @@ class EnrichmentRun(models.Model):
             )
         return len(to_write)
 
+    def _persist_operator_state(self, vals):
+        """Write operator-visible run state in a separate cursor.
+
+        ``UserError`` in an HTTP/RPC request rolls back the request transaction.
+        Failure classification (degraded/failed/retryable) must survive that
+        rollback so operators can see why Gate failed and use Retry.
+        """
+        self.ensure_one()
+        self.flush_recordset()
+        with self.pool.cursor() as cr:
+            env = api.Environment(cr, self.env.uid, dict(self.env.context))
+            env[self._name].browse(self.ids).write(vals)
+
     def action_execute(self):
         """Gate-only converge (M4). Never falls back to local crawl/extract/inference.
 
@@ -281,8 +294,9 @@ class EnrichmentRun(models.Model):
 
         if not gate_enrichment_enabled(self.env):
             reasons = "; ".join(availability.reasons) or "Gate enrichment unavailable"
-            self.write(
+            self._persist_operator_state(
                 {
+                    "engine_used": "gate",
                     "state": "failed",
                     "failure_class": "permanent",
                     "validation_issues": [reasons],
@@ -298,8 +312,9 @@ class EnrichmentRun(models.Model):
             if self._run_gate_converge():
                 return
             # Gate returned non-applicable result (non-ok / empty allowlist) — fail closed
-            self.write(
+            self._persist_operator_state(
                 {
+                    "engine_used": "gate",
                     "state": "degraded",
                     "failure_class": "unknown",
                     "validation_issues": [
@@ -313,8 +328,9 @@ class EnrichmentRun(models.Model):
         except GateIntegrationError as exc:
             failure = getattr(exc, "failure_class", None) or classify_transport_failure(exc).value
             state = "retryable" if failure == "retryable" else ("failed" if failure == "permanent" else "degraded")
-            self.write(
+            self._persist_operator_state(
                 {
+                    "engine_used": "gate",
                     "state": state,
                     "failure_class": failure,
                     "validation_issues": [str(exc)],
@@ -324,8 +340,9 @@ class EnrichmentRun(models.Model):
         except Exception as exc:  # noqa: BLE001 — boundary: classify then fail closed
             failure = classify_transport_failure(exc).value
             state = "retryable" if failure == "retryable" else ("failed" if failure == "permanent" else "degraded")
-            self.write(
+            self._persist_operator_state(
                 {
+                    "engine_used": "gate",
                     "state": state,
                     "failure_class": failure,
                     "validation_issues": [str(exc)],
