@@ -9,6 +9,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from path_filters import skip_path
+
 
 class TestAudit:
     def __init__(self, root_dir="."):
@@ -21,6 +23,8 @@ class TestAudit:
         # Find all models
         all_models = set()
         for py_file in self.root_dir.rglob("models/*.py"):
+            if skip_path(py_file):
+                continue
             with open(py_file, encoding="utf-8") as f:
                 content = f.read()
                 for match in re.finditer(r'_name\s*=\s*["\']([^"\']+)["\']', content):
@@ -29,6 +33,8 @@ class TestAudit:
         # Find tested models
         tested_models = set()
         for test_file in self.root_dir.rglob("tests/*.py"):
+            if skip_path(test_file):
+                continue
             with open(test_file, encoding="utf-8") as f:
                 content = f.read()
                 for match in re.finditer(r'self\.env\[["\']([^"\']+)["\']\]', content):
@@ -54,6 +60,8 @@ class TestAudit:
         errors = []
 
         for test_file in self.root_dir.rglob("tests/test_*.py"):
+            if skip_path(test_file):
+                continue
             with open(test_file, encoding="utf-8") as f:
                 try:
                     tree = ast.parse(f.read())

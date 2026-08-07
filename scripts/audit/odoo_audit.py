@@ -46,6 +46,8 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+from path_filters import skip_path
+
 
 class OdooAudit:
     """Comprehensive Odoo codebase auditor.
@@ -98,7 +100,7 @@ class OdooAudit:
     def scan_model_fields(self):
         """Extract all field definitions from Python models."""
         for py_file in self.root_dir.rglob("*/models/*.py"):
-            if "__pycache__" in str(py_file):
+            if skip_path(py_file):
                 continue
             try:
                 with open(py_file, encoding="utf-8") as f:
@@ -158,7 +160,7 @@ class OdooAudit:
     def scan_view_field_refs(self):
         """Find all <field name="..."> in XML views."""
         for xml_file in self.root_dir.rglob("*/views/*.xml"):
-            if "__pycache__" in str(xml_file):
+            if skip_path(xml_file):
                 continue
             try:
                 with open(xml_file, encoding="utf-8") as f:
@@ -216,7 +218,7 @@ class OdooAudit:
         """Validate @api.depends() field references."""
         errors = []
         for py_file in self.root_dir.rglob("*/models/*.py"):
-            if "__pycache__" in str(py_file):
+            if skip_path(py_file):
                 continue
             try:
                 with open(py_file, encoding="utf-8") as f:
@@ -264,6 +266,8 @@ class OdooAudit:
         secured_models = set()
 
         for csv_file in self.root_dir.rglob("*/security/*.csv"):
+            if skip_path(csv_file):
+                continue
             try:
                 with open(csv_file, encoding="utf-8") as f:
                     content = f.read()
@@ -296,7 +300,7 @@ class OdooAudit:
         """Validate constraint decorators and SQL constraints."""
         errors = []
         for py_file in self.root_dir.rglob("*/models/*.py"):
-            if "__pycache__" in str(py_file):
+            if skip_path(py_file):
                 continue
             try:
                 with open(py_file, encoding="utf-8") as f:
@@ -331,7 +335,7 @@ class OdooAudit:
         """Validate @api.onchange decorators."""
         errors = []
         for py_file in self.root_dir.rglob("*/models/*.py"):
-            if "__pycache__" in str(py_file):
+            if skip_path(py_file):
                 continue
             try:
                 with open(py_file, encoding="utf-8") as f:
@@ -369,7 +373,7 @@ class OdooAudit:
         """Validate state field and button visibility."""
         errors = []
         for xml_file in self.root_dir.rglob("*/views/*.xml"):
-            if "__pycache__" in str(xml_file):
+            if skip_path(xml_file):
                 continue
             try:
                 with open(xml_file, encoding="utf-8") as f:

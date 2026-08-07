@@ -18,6 +18,27 @@ _RULE_XMLIDS = (
 
 def _rehome_load_dashboard_xmlids(cr, label: str) -> None:
     _logger.info("%s: reassign load-dashboard rule xmlids", label)
+    # Conflict with different res_id: drop the logistics ir.rule so it cannot
+    # stay active as an orphan after its xmlid is removed. Same res_id: keep
+    # the shared rule; only the duplicate logistics xmlid is deleted below.
+    cr.execute(
+        """
+        DELETE FROM ir_rule
+         WHERE id IN (
+               SELECT logistics.res_id
+                 FROM ir_model_data AS logistics
+                 JOIN ir_model_data AS sb
+                   ON sb.module = 'plasticos_security_base'
+                  AND sb.name = logistics.name
+                WHERE logistics.module = 'plasticos_logistics'
+                  AND logistics.name = ANY(%s)
+                  AND logistics.model = 'ir.rule'
+                  AND logistics.res_id IS DISTINCT FROM sb.res_id
+             )
+        """,
+        [list(_RULE_XMLIDS)],
+    )
+    rules_deleted = cr.rowcount
     cr.execute(
         """
         DELETE FROM ir_model_data AS logistics
@@ -43,8 +64,9 @@ def _rehome_load_dashboard_xmlids(cr, label: str) -> None:
         [list(_RULE_XMLIDS)],
     )
     _logger.info(
-        "%s: conflict_xmlids_removed=%s logistics_reassigned=%s",
+        "%s: orphan_rules_removed=%s conflict_xmlids_removed=%s logistics_reassigned=%s",
         label,
+        rules_deleted,
         deleted,
         cr.rowcount,
     )

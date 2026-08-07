@@ -130,7 +130,15 @@ class EnhancedFieldAudit:
     def scan_modules(self):
         """Find all Odoo modules with enhanced metadata"""
         # Folders to exclude from scanning (not our code)
-        exclude_dirs = {"odoo-enterprise", "odoo", "odoo-source", ".venv", "venv", "node_modules"}
+        exclude_dirs = {
+            "odoo-enterprise",
+            "odoo",
+            "odoo-source",
+            ".venv",
+            "venv",
+            "node_modules",
+            "Current Work - IGNORE",
+        }
 
         for manifest in self.root_dir.rglob("__manifest__.py"):
             if "__pycache__" in str(manifest):
