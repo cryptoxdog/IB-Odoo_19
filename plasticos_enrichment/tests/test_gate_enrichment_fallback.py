@@ -1,7 +1,10 @@
 """Odoo runtime tests for Gate-only enrichment converge (M4 / ROAD-GATE-013).
 
+Loaded via plasticos_enrichment/tests for `make test-module m=plasticos_enrichment`.
 Covers live auto-writeback (default), review-only opt-out, and fail-closed
 behavior when converge returns non-ok status or no writable allowlisted fields.
+Failure-path tests invalidate after UserError so assertions see state persisted
+outside the request transaction (see EnrichmentRun._persist_operator_state).
 """
 
 from __future__ import annotations
@@ -101,7 +104,7 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
         )
 
     def test_gate_converge_non_ok_status_fails_closed(self):
-        """Non-ok EIE status -> degraded UserError; never mark injected."""
+        """Non-ok EIE status -> degraded UserError; state survives request rollback."""
         partner = self._new_partner()
         run = self._new_run(partner)
         with (
@@ -117,11 +120,12 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
         ):
             with self.assertRaises(UserError):
                 run.action_execute()
+        run.invalidate_recordset()
         self.assertEqual(run.state, "degraded")
         self.assertNotEqual(run.state, "injected")
 
     def test_gate_converge_empty_fields_fails_closed(self):
-        """status ok but no writable allowlisted fields -> degraded, no fake success."""
+        """status ok but no writable allowlisted fields -> degraded across txn boundary."""
         partner = self._new_partner()
         run = self._new_run(partner)
         with (
@@ -134,6 +138,7 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
         ):
             with self.assertRaises(UserError):
                 run.action_execute()
+        run.invalidate_recordset()
         self.assertEqual(run.state, "degraded")
         self.assertNotEqual(run.state, "injected")
 
@@ -157,4 +162,5 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
         ):
             with self.assertRaises(UserError):
                 run.action_execute()
+        run.invalidate_recordset()
         self.assertEqual(run.state, "failed")
