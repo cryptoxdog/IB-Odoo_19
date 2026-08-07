@@ -51,4 +51,4 @@ def _rehome_load_dashboard_xmlids(cr, label: str) -> None:
 
 
 def migrate(cr, version):
-    _rehome_load_dashboard_xmlids(cr, "plasticos_security_base 19.0.1.2.10 pre")
+    _rehome_load_dashboard_xmlids(cr, "plasticos_security_base 19.0.1.2.11 pre")
