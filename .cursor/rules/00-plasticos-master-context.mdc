@@ -10,7 +10,7 @@ alwaysApply: true
 **Repo:** `cryptoxdog/IB-Odoo_19` | **Staging** = dev branch | **Production** = prod/main
 **Shell cwd:** Use the Cursor workspace root (`$CURSOR_PROJECT_DIR` or repo clone path on the active machine). Repo was moved out of Dropbox — do not assume a machine-specific absolute path.
 
-**Cursor governance:** `@.cursor/governance/CANONICAL_LAW.md` — global commands/skills/rules via `@.cursor-commands/` only; repo `.cursor/rules/` is PlasticOS overlay only.
+**Cursor governance:** global `@.cursor/governance/CANONICAL_LAW.md` (symlink — do not edit from this repo). **PlasticOS law:** `@skills/PLASTICOS_CANONICAL_LAW.md` — `skills/` SSOT, skill registry, non-addon boundary. Global commands/skills/rules via `@.cursor-commands/` only; repo `.cursor/rules/` is PlasticOS overlay.
 
 ## TASK ROUTER — Read This First
 
@@ -32,6 +32,10 @@ Before writing any code or making any change, identify your task and consult the
 2. **Check for redundancy** — if a row already grants the target group ≥ the permissions you need on that model, your new row is redundant. Do not add it.
 3. **Match id-column format** — if existing ids are `access_foo` (no prefix), use that. If they are `module.access_foo`, use that. **Never mix formats in the same file.**
 - See **`71-plasticos-security-model`** for the full format contract and forbidden patterns.
+
+
+### Changing module code that must reload on Staging/Docker
+- **`89-plasticos-odoo-version-bump`** + skill **`plasticos-odoo-version-bump`** — bump `__manifest__.py` version without asking; `make update m=<that_module>` only (never `update-all` / kitchen-sink `-u`).
 
 ### Editing `__manifest__.py`
 - **`81-ci-manifest-contract`** — Version format `19.0.X.Y.Z`, depends in layer order, `external_dependencies` for non-Odoo packages. Run `ruff format` after every edit.
@@ -94,6 +98,8 @@ Before writing any code or making any change, identify your task and consult the
 8. **No credentials in code** — use `.env.local` or Odoo system params
 9. **Additive migrations only** — no column/table drops without explicit approval
 10. **`ruff check && ruff format` before every push** — no exceptions, even for "trivial" changes
+11. **Version bump mandatory for runtime module changes** — never ask; upgrade only bumped module (`make update m=X`), never `update-all` for a one-module fix
+12. **PlasticOS skills SSOT is `skills/`** — not Claude Code, not Cursor-Governance; never an Odoo addon (`__manifest__.py` forbidden)
 
 ---
 

@@ -48,7 +48,7 @@ groups live in `plasticos_security_base/security/record_rules.xml` — not in
 
 ## Agent skill
 
-Load **`plasticos-odoo-docker-testing`** (`.claude/skills/plasticos-odoo-docker-testing/`)
+Load **`plasticos-odoo-docker-testing`** (`skills/plasticos-odoo-docker-testing/`)
 for the full Docker-first ladder (env → module-order SSOT → install-smoke →
 test-odoo → Staging). This runbook is the short operator cheat sheet.
 

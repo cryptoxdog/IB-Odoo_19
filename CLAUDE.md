@@ -142,11 +142,28 @@ Detailed reference material loads from `.claude/rules/` when editing relevant fi
 - **XML Views** → `.claude/rules/xml-views.md`
 - **Neo4j Boundary** → `.claude/rules/neo4j.md`
 - **System State** → `.claude/rules/system-state.md`
-- **Agent Skills & Subagents** → `.claude/README.md` (skill registry + wiring)
+- **Agent Skills & Subagents** → `.claude/README.md` + `skills/` (SSOT) + `skills/PLASTICOS_CANONICAL_LAW.md`
 - **Repo Index (check before grepping)** → `reports/repo-index/` — classes, functions, methods, Odoo models/views/crons/security groups, tests; regenerate via `l9-repo-index` skill
 - **Skill invocation tiers** → `@.cursor-commands/skills/AUTONOMY_MANIFEST.yaml` (which L9 skills auto-invoke vs explicit-only)
 - **Structured Reasoning** → `@.cursor-commands/skills/l9-structured-reasoning/SKILL.md`
 - **CI Pipeline** → `AGENTS.md` § CI Compliance Checklist (authoritative CI reference)
 - **System Invariants** → `INVARIANTS.md` (18 invariants with CI enforcement map)
-- **ADRs (canonical)** → `docs/adr/README.md` (index); Gate → `docs/adr/ADR-002-gate-hub-phased-autonomy.md`, `docs/GATE_AUTONOMY_ROADMAP.md`
+- **ADRs (canonical)** → `docs/adr/README.md` (index); Gate hub → `docs/adr/ADR-002-gate-hub-phased-autonomy.md` + `docs/adr/ADR-003-single-external-intelligence-authority.md`; convergence → ADR-009–019; phases → `docs/GATE_AUTONOMY_ROADMAP.md`
 - **Intake vs material profile** → `docs/adr/ADR-004-intake-vs-material-profile-domain-split.md`, `docs/adr/ADR-005-intake-material-profile-delta-bridge.md`
+
+<!-- BEGIN L9 FORMATTER OWNERSHIP (generated — do not edit) -->
+
+## Formatter ownership
+
+Workspace class: `biome_default` — Default for every governed workspace: Biome owns JS/TS/JSON, Ruff owns Python.
+
+Exactly one formatter owns each language. Do not reformat a file with a tool other than its owner, and do not add config for a competing formatter: the result is a diff that churns on every save.
+
+| Languages | Owner | Note |
+|---|---|---|
+| `javascript`, `javascriptreact`, `typescript`, `typescriptreact`, `json`, `jsonc` | **biome** | bound by the governed IDE profile |
+| `python` | **ruff** | bound by the governed IDE profile |
+
+Generated from `environment/ide/policy.json` in the governance clone by `ops/scripts/adapters/agentdocs.sh`. Edit the policy, not this block.
+
+<!-- END L9 FORMATTER OWNERSHIP -->

@@ -1,0 +1,39 @@
+---
+description: Mandatory PlasticOS module version bumps and scoped -u upgrades. Never ask; never reload the whole stack for one module.
+alwaysApply: true
+---
+
+# PlasticOS Version Bump — Mandatory
+
+**Skill SSOT:** `skills/plasticos-odoo-version-bump/SKILL.md`
+
+## Never ask
+
+Do **not** ask the user whether to bump a module version. If a `plasticos_*`
+change must reach a running DB, bump that module's `__manifest__.py` version in
+the same change set.
+
+## Never forget
+
+Odoo skips reload when the version is unchanged. Editing migrate scripts under
+an already-applied version is a no-op — bump to the next `19.0.X.Y.Z` and add a
+matching `migrations/<new_version>/` folder.
+
+## Scoped upgrade only
+
+After a bump, upgrade **only** that module:
+
+```bash
+make update m=<bumped_module>
+```
+
+Do **not** `make update-all` or `-u` unrelated solid modules. Staging carries a
+large `res.partner` set — full-stack reloads waste time and hide the real fault.
+
+## Task router
+
+| Change | Action |
+|---|---|
+| Python / XML / data / security / hooks / migrations in module M | Bump M; `make update m=M` |
+| Multiple modules changed | Bump each changed module; `-u` comma-list of **those only** |
+| Tests/docs/CI only | No bump |

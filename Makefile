@@ -90,6 +90,7 @@ help:
 	@echo "    make cron-check       cron invariant violations"
 	@echo "    make semgrep          semgrep custom Odoo rules (ERROR level)"
 	@echo "    make semgrep-test     validate semgrep config + positive/negative fixtures"
+	@echo "    make check-plasticos-skills  plasticos skill registry + auto-invoke manifest"
 	@echo "    make acl-check        ACL completeness (all models have ir.model.access)"
 	@echo "    make secret-scan      gitleaks secret detection (also runs via pre-commit pre-push hook)"
 	@echo ""
@@ -305,6 +306,9 @@ semgrep-test:
 	@echo "→ Negative fixtures should produce no blocking findings..."
 	semgrep --error --config .semgrep/odoo-patterns.yml .semgrep/tests/negative.py --quiet
 
+check-plasticos-skills:
+	@python3 scripts/check_plasticos_skills_registry.py
+
 acl-check:
 	@echo "→ ACL completeness check..."
 	python3 ci/check_acl_completeness.py
@@ -388,7 +392,7 @@ audit-quick: lint format xml-check odoo19-check wiring deps-check cron-check
 
 # Full audit — 1:1 parity with ci.yml's static-checks job (blocking checks
 # only; run `make advisory-checks` separately for the non-blocking set).
-audit: audit-quick semgrep semgrep-test guards acl-check \
+audit: audit-quick semgrep semgrep-test guards acl-check check-plasticos-skills \
 	name-check manifest-check no-local-intelligence odoo-patterns odoo19-hooks critical-manifest \
 	enhanced-audit odoo-antipatterns package-init weak-test-check xml-ref-deps
 	@echo "→ Field integrity..."

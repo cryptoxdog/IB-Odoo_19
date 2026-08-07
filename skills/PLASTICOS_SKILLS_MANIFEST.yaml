@@ -1,0 +1,100 @@
+# PlasticOS project skills manifest — SSOT for discovery + auto-invoke.
+# Location: skills/ in cryptoxdog/IB-Odoo_19 (NOT Claude Code, NOT Cursor-Governance).
+# Validated by: python3 scripts/check_plasticos_skills_registry.py
+# Generated/refreshed: 2026-08-07
+
+schema_version: 1
+project: IB-Odoo_19
+prefix: plasticos-
+skills_root: skills
+discovery_adapters: .claude/skills/plasticos-*  # symlinks only — edit SSOT under skills/
+default_invocation: auto
+odoo_addon: false  # never put __manifest__.py / __init__.py in this tree
+policy:
+  require_auto_invoke: true
+  require_agents_md_row: true
+  require_claude_readme_row: true
+  forbid_disable_model_invocation_true: true
+  forbid_odoo_module_markers: true
+registries:
+  - AGENTS.md
+  - .claude/README.md
+  - skills/PLASTICOS_SKILLS_MANIFEST.yaml
+skills:
+  - name: plasticos-final-touches
+    path: skills/plasticos-final-touches/
+    version: "1.1.0"
+    updated: "2026-06-06"
+    status: active
+    invocation: auto
+    description: "PlasticOS final-touches kernel — 10 pre-go-live gates, scoped to cleanup/hardening only, no new features. Invoke with FINAL_TOUCHES_MODE."
+  - name: plasticos-new-model-field
+    path: skills/plasticos-new-model-field/
+    version: "1.1.0"
+    updated: "2026-06-06"
+    status: active
+    invocation: auto
+    description: "add a new field or model to an existing plasticos module. use when adding fields, many2one relations, selection values, computed fields, or new models within an existing plasticos_* addon."
+  - name: plasticos-new-odoo-module
+    path: skills/plasticos-new-odoo-module/
+    version: "1.1.0"
+    updated: "2026-06-06"
+    status: active
+    invocation: auto
+    description: "create a new plasticos odoo 19 module with proper structure, manifest, acl, views, and layer-correct dependencies. use when scaffolding a new plasticos_* addon or bootstrapping module files."
+  - name: plasticos-odoo-docker-testing
+    path: skills/plasticos-odoo-docker-testing/
+    version: "1.0.0"
+    updated: "2026-08-07"
+    status: active
+    invocation: auto
+    description: "run PlasticOS Odoo Docker install-smoke and runtime tests before Odoo.sh. use when staging rebuilds fail, verifying module load order/versions, proving registry green locally, or after Gate-shell / security_base / partne"
+  - name: plasticos-odoo-sh-deploy
+    path: skills/plasticos-odoo-sh-deploy/
+    version: "1.2.0"
+    updated: "2026-08-07"
+    status: active
+    invocation: auto
+    description: "debug odoo.sh production errors via ssh logs, then deploy fixes. use for production errors, registry failures, rpc errors, or module update issues. always diagnose via ssh before writing code."
+  - name: plasticos-odoo-version-bump
+    path: skills/plasticos-odoo-version-bump/
+    version: "1.0.0"
+    updated: "2026-08-07"
+    status: active
+    invocation: auto
+    description: "Mandatory PlasticOS Odoo module version bumps and scoped module upgrades. Use whenever changing plasticos_* Python, XML, data, security, hooks, or migrations; before make update / Odoo.sh deploy; when a module did not re"
+  - name: plasticos-pr-review-kernel
+    path: skills/plasticos-pr-review-kernel/
+    version: "1.1.0"
+    updated: "2026-06-06"
+    status: active
+    invocation: auto
+    description: "PlasticOS PR review kernel — base branch topology, pipeline_v2 guard, migration assessment, zero-stub validation. Invoke with REVIEW PR #<number> or PR_REVIEW_MODE."
+  - name: plasticos-prompt-pack
+    path: skills/plasticos-prompt-pack/
+    version: "1.0.0"
+    updated: "2026-07-22"
+    status: active
+    invocation: auto
+    description: "Router for the PlasticOS prompt-pack reference docs (docs/plasticos_prompt_pack/) — full-context primer, phased code-review/audit protocol, historical stub/gap handoff, pre-code workspace kernel, and 10-block architectur"
+  - name: plasticos-repo-review-kernel
+    path: skills/plasticos-repo-review-kernel/
+    version: "1.1.0"
+    updated: "2026-06-06"
+    status: active
+    invocation: auto
+    description: "Repo-wide review kernel for inventory, installability, registry safety, architecture drift, and next-action readiness."
+  - name: plasticos-static-audit-kernel
+    path: skills/plasticos-static-audit-kernel/
+    version: "1.1.0"
+    updated: "2026-06-06"
+    status: active
+    invocation: auto
+    description: "Static audit command map and evidence contract for IB-Odoo_19."
+  - name: plasticos-xml-view
+    path: skills/plasticos-xml-view/
+    version: "1.1.0"
+    updated: "2026-06-06"
+    status: active
+    invocation: auto
+    description: "create or modify odoo 19 xml views following plasticos conventions. use when writing form, list, search, or xpath views; fixing odoo 19 view deprecations; or adding menu actions."

@@ -13,6 +13,9 @@ SKIP_DIR_PARTS = frozenset(
         "venv",
         "node_modules",
         "Current Work - IGNORE",
+        "skills",
+        "scripts",
+        "tools",
         "__pycache__",
         ".git",
     }
