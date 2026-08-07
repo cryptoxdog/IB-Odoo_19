@@ -57,16 +57,22 @@ The Pure Python Tests step lists test files explicitly. If a file doesn't exist 
 
 When syncing `ci.yml` from `Staging` to an older PR branch, always check which test files actually exist on that branch.
 
-## CI Gate Tier Structure
+## CI Gate Phase Structure (fail-slow)
 
 ```
-Tier 1 (lint)       → always runs, blocks Tier 2 on failure
-Tier 2 (static)     → needs: lint; runs all ci/ scripts
-Tier 3 (pure-python)→ needs: static-checks; runs pytest suite
-Security            → parallel, continue-on-error: true (advisory)
+Phase 1 (parallel, no needs: between them):
+  lint | static-checks | pure-python-tests | secret-scan | audit-baseline
+Phase 2 (always last):
+  ci-gate-result  → needs: [all Phase 1], if: always()
 ```
 
-Never remove `needs:` dependencies — they enforce the fail-fast ordering.
+**Fail-open collectors, fail-closed aggregator:** Phase 1 jobs run concurrently and each aggregates all of its own checks before exiting so one push surfaces every failure. `ci-gate-result` still fails the workflow if any Phase 1 job ≠ `success`.
+
+**Never** reintroduce `needs: lint` / `needs: static-checks` on Phase 1 jobs — that restores fail-fast and hides sibling failures. `ci/check_github_actions_kernel.sh` `merge_gate_logic` enforces Phase 1 parallelism + aggregator presence.
+
+**Cross-workflow:** `ci.yml`, `baseline-ratchet.yml`, and `l9-analysis.yml` start concurrently on PRs. Do **not** chain them with `workflow_run` (serializes and kills max-concurrent feedback). Prefer required status checks on aggregators (`CI Gate Result`, `Baseline Ratchet / Ratchet Verdict`) plus external GitGuardian. L9 Analysis stays advisory-first until governance promotes rules.
+
+**Concurrency:** each workflow uses its own `concurrency` group with `cancel-in-progress: true` (cost). Rapid re-pushes cancel in-flight runs — treat only the **latest settled (non-cancelled) HEAD run** as signal. GitGuardian is an external app check; it does **not** cancel GitHub Actions jobs.
 
 ## pytest-timeout
 
@@ -83,15 +89,9 @@ timeout = 30
 timeout_method = "thread"
 ```
 
-## Disabled Workflows
+## Deleted / Do-Not-Revive Workflows
 
-The old overlapping workflows (`test-quality.yml`, `odoo-audit.yml`, `module-check.yml`, `pr-gate.yml`) are disabled with `workflow_dispatch` triggers. Do not re-enable them — `ci.yml` is the single source of truth:
-
-```yaml
-# ✅ These are intentionally disabled:
-on:
-  workflow_dispatch:  # manual only — replaced by ci.yml
-```
+The old overlapping workflows (`test-quality.yml`, `odoo-audit.yml`, `module-check.yml`, `pr-gate.yml`) were **deleted** during GATE-01 adoption. Do not re-add them — `ci.yml` is the single blocking check workflow (plus `baseline-ratchet.yml`). Unique checks from those files were restored into `ci.yml` (see inline `restored 2026-07` comments).
 
 ## External Odoo.sh Status Checks (NOT GitHub Actions)
 
