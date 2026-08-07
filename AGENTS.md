@@ -525,19 +525,3 @@ from running silently. Always run `pre-commit run --all-files` locally before pu
 - Apply Gate web-lead triage in Phase 1 (see GATE_AUTONOMY_ROADMAP.md) — triage stays Odoo-local until Phase 3
 - Overwrite `docs/adr/ADR-003-contact-import-configuration.md` when editing the mothball ADR-003-single file (filename collision)
 
-<!-- BEGIN L9 FORMATTER OWNERSHIP (generated — do not edit) -->
-
-## Formatter ownership
-
-Workspace class: `biome_default` — Default for every governed workspace: Biome owns JS/TS/JSON, Ruff owns Python.
-
-Exactly one formatter owns each language. Do not reformat a file with a tool other than its owner, and do not add config for a competing formatter: the result is a diff that churns on every save.
-
-| Languages | Owner | Note |
-|---|---|---|
-| `javascript`, `javascriptreact`, `typescript`, `typescriptreact`, `json`, `jsonc` | **biome** | bound by the governed IDE profile |
-| `python` | **ruff** | bound by the governed IDE profile |
-
-Generated from `environment/ide/policy.json` in the governance clone by `ops/scripts/adapters/agentdocs.sh`. Edit the policy, not this block.
-
-<!-- END L9 FORMATTER OWNERSHIP -->
