@@ -229,12 +229,8 @@ name-check:
 # checks required fields beyond bare syntax via scripts/validate_manifest.py.
 manifest-check:
 	@echo "→ Manifest field validation..."
-	@ERRORS=0; \
-	for m in $$(find . -name "__manifest__.py" -not -path "./.venv/*"); do \
-		python3 scripts/validate_manifest.py "$$m" || ERRORS=$$((ERRORS + 1)); \
-	done; \
-	if [ $$ERRORS -ne 0 ]; then echo "❌ $$ERRORS manifest(s) failed validation"; exit 1; fi; \
-	echo "✅ All manifests valid"
+	@python3 scripts/validate_all_manifests.py
+
 
 # Shellcheck (restored 2026-07 from deleted pr-gate.yml). Not yet a pre-commit
 # hook — install via: brew install shellcheck (macOS) / apt-get install shellcheck (CI).

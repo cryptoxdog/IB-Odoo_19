@@ -1,0 +1,356 @@
+{
+  "schema_version": "1.0.0",
+  "mode": "plan",
+  "title": "Unblock Staging Odoo.sh green load after mothball + recent merges",
+  "objective": "Clear Staging registry/load failures so tip (through #145/#146) rebuilds green: remove phantom plasticos_buyer_match_engine from live DB state, land PR #146 (module-order + version alignment), and prove plasticos_security_base loads on Odoo.sh Staging.",
+  "success_criteria": [
+    "PR #146 CI green (CI Gate + Baseline Ratchet)",
+    "Live Staging SSH: plasticos_buyer_match_engine state != installed (uninstalled/absent)",
+    "Live Staging odoo.log has zero ERROR lines for plasticos_buyer_match_engine after rebuild",
+    "Odoo.sh Staging card on tip commit shows build 19.0 success (not failed on plasticos_security_base)",
+    "Local ODOO_ENTERPRISE_MODULES=none make install-smoke still PASS on tip"
+  ],
+  "scope": {
+    "in": [
+      "PR #146 feat/staging-version-align (module order, matching depends, versions, install-smoke)",
+      "tests/test_mothball_migration.py version assertion drift",
+      "Additive migration/hook to mark deleted local-intelligence modules uninstalled on upgrade",
+      "Staging SSH verify + Odoo.sh rebuild evidence",
+      "plasticos-odoo-docker-testing / INSTALL_SMOKE runbook cross-links if needed"
+    ],
+    "out": [
+      "Reintroducing plasticos_buyer_match_engine or plasticos_inference_engine",
+      "Local matcher/Neo4j Stage-1 scoring",
+      "Production promote",
+      "Automatic destructive mothball coordinator uninstall",
+      "Enterprise-only plasticos_documents_native force-install in Docker smoke"
+    ]
+  },
+  "code_in_scope": true,
+  "depth": "deep",
+  "pre_validation": [
+    {
+      "id": "P0",
+      "command_or_action": "SSH Staging 35033335@cryptoxdog-ib-odoo-19-staging-35033335.dev.odoo.com \u2014 git log + odoo-bin shell module inventory",
+      "pass_criteria": "Evidence captured: HEAD=87715b2 (#140); buyer_match_engine state=installed but ABSENT on disk; continuous odoo.log ERROR",
+      "status": "passed"
+    },
+    {
+      "id": "P1",
+      "command_or_action": "gh pr view 146 + gh run view failed CI logs",
+      "pass_criteria": "Identify CI blocker test_mothball_migration::test_matching_version_bumped_for_migration expects 19.0.3.0.0 vs manifest 19.0.3.0.1",
+      "status": "passed"
+    },
+    {
+      "id": "P2",
+      "command_or_action": "Local Docker install-smoke on feat/staging-version-align (prior session)",
+      "pass_criteria": "install-smoke PASSED with 25 modules including matching/enrichment/security_base (fresh DB)",
+      "status": "passed"
+    },
+    {
+      "id": "P3",
+      "command_or_action": "make pr-check on tip (planning bind \u2014 not re-run this turn)",
+      "pass_criteria": "Will fail until T1 (mothball test) fixed; treat as known red",
+      "status": "failed"
+    }
+  ],
+  "todos": [
+    {
+      "id": "T1",
+      "task": "Replace hardcoded mothball version pin with >= 19.0.3.0.0 floor using stdlib tuple parse in test_mothball_migration.py",
+      "files": [
+        "tests/test_mothball_migration.py"
+      ],
+      "effort": "S",
+      "risk": "low",
+      "dependencies": [],
+      "operation": "Replace",
+      "anchor": "test_matching_version_bumped_for_migration stdlib version floor",
+      "leverage_rank": 1,
+      "shared_root_cause": "hardcoded mothball version pin drifted after depends bump"
+    },
+    {
+      "id": "T2",
+      "task": "Add additive upgrade migration (prefer plasticos_base early in graph) that SETs ir_module_module.state='uninstalled' for deleted modules plasticos_buyer_match_engine (+ inference if ever installed) and clears stale dependency rows; bump owning module version",
+      "files": [
+        "plasticos_base/__manifest__.py",
+        "plasticos_base/migrations/<new_version>/pre-migrate.py",
+        "docs/runbooks/MOTHBALL_LOCAL_INTELLIGENCE.md"
+      ],
+      "effort": "M",
+      "risk": "high",
+      "dependencies": [
+        "T1"
+      ],
+      "operation": "Create",
+      "anchor": "ir_module_module phantom installed state",
+      "leverage_rank": 2,
+      "shared_root_cause": "physical mothball delete left DB module row installed"
+    },
+    {
+      "id": "T3",
+      "task": "Push T1+T2 onto feat/staging-version-align; confirm CI Gate + Baseline Ratchet green; merge #146 into Staging",
+      "files": [
+        "feat/staging-version-align",
+        "PR #146"
+      ],
+      "effort": "S",
+      "risk": "medium",
+      "dependencies": [
+        "T1",
+        "T2"
+      ],
+      "operation": "Replace",
+      "anchor": "GitHub merge to Staging",
+      "leverage_rank": 3
+    },
+    {
+      "id": "T4",
+      "task": "After Staging rebuild: SSH new/live build \u2014 verify git tip, buyer_match uninstalled, no buyer_match ERROR in odoo.log, security_base/matching/enrichment/crm_sync installed as expected",
+      "files": [
+        ".cursor/rules/98-odoo-sh-staging.mdc",
+        ".claude/skills/plasticos-odoo-sh-deploy/references/ssh-diagnose.md"
+      ],
+      "effort": "S",
+      "risk": "medium",
+      "dependencies": [
+        "T3"
+      ],
+      "operation": "Replace",
+      "anchor": "Staging SSH evidence",
+      "leverage_rank": 4
+    },
+    {
+      "id": "T5",
+      "task": "Contingency NotApplicable if tip green after T4; else SSH failed-build update.log within 24h; root-cause fix; re-smoke; push",
+      "files": [
+        "plasticos_security_base/",
+        "plasticos_logistics/",
+        "Unknown until traceback"
+      ],
+      "effort": "M",
+      "risk": "high",
+      "dependencies": [
+        "T4"
+      ],
+      "operation": "Replace",
+      "anchor": "ephemeral failed-build update.log",
+      "leverage_rank": 5,
+      "shared_root_cause": "ephemeral failed builds drop logs; last-green host has no tip update.log"
+    }
+  ],
+  "critical_path": [
+    "T1",
+    "T2",
+    "T3",
+    "T4"
+  ],
+  "milestones": [
+    {
+      "id": "M1",
+      "outcome": "PR #146 CI green with mothball test fixed",
+      "unlocks": "safe merge of module-order alignment"
+    },
+    {
+      "id": "M2",
+      "outcome": "Phantom buyer_match_engine cleared by additive migration on upgrade",
+      "unlocks": "Staging registry load without missing-module ERROR"
+    },
+    {
+      "id": "M3",
+      "outcome": "Odoo.sh Staging tip build 19.0 success",
+      "unlocks": "runtime verification of #142/#143/#144/#145/#146 work"
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "C1",
+      "after": "M1",
+      "evidence_required": "GitHub CI Gate Result + Ratchet Verdict success on PR #146 head",
+      "no_go_action": "do not merge; fix remaining pytest/ratchet findings"
+    },
+    {
+      "id": "C2",
+      "after": "M2",
+      "evidence_required": "SSH odoo-bin shell shows buyer_match_engine not installed; odoo.log ERROR count for that name is 0 after worker restart",
+      "no_go_action": "stop promote; verify migration version ran (plasticos_base latest_version)"
+    },
+    {
+      "id": "C3",
+      "after": "M3",
+      "evidence_required": "Odoo.sh Staging card success on tip SHA; optional make install-smoke reaffirm",
+      "no_go_action": "execute T5 on failed build SSH before further merges"
+    }
+  ],
+  "doc_root_surface_impact": [
+    {
+      "surface": "docs/runbooks/MOTHBALL_LOCAL_INTELLIGENCE.md",
+      "action": "update",
+      "todo_ids": [
+        "T2"
+      ]
+    },
+    {
+      "surface": ".cursor/rules/98-odoo-sh-staging.mdc",
+      "action": "update",
+      "todo_ids": [
+        "T4"
+      ]
+    },
+    {
+      "surface": "AGENTS.md",
+      "action": "n_a",
+      "reason": "skill already registered; no further AGENTS change required for this plan"
+    },
+    {
+      "surface": "Production",
+      "action": "n_a",
+      "reason": "Staging-only until green rebuild proven"
+    }
+  ],
+  "stress_test": {
+    "disconfirming_questions": [
+      "Is the Odoo.sh card failure on plasticos_security_base actually caused by the buyer_match phantom, or a separate ParseError only visible on tip upgrade dumps?",
+      "Would marking buyer_match uninstalled via SQL leave orphan ir.model / ir.model.data that break security_base or matching?",
+      "Does a fresh Odoo.sh Staging DB (no dump) already pass tip without T2, making T2 Staging-dump-specific only?",
+      "Could auto_install matching/enrichment on tip pull a dependency that fails security_base attribution incorrectly?"
+    ],
+    "assumed_false_ifs": [
+      "SSH to last-green host alone is sufficient to diagnose tip rebuild failures",
+      "Local fresh-DB install-smoke proves Staging dump upgrade path",
+      "Hardcoded mothball version tests remain valid after legitimate patch bumps"
+    ],
+    "blast_radius": "Staging rebuild + plasticos_base migration on every upgrade environment; incorrect uninstall SQL could strand xmlids or hide real depends; CI pin change affects mothball contract tests",
+    "rollback": "Revert T2 migration commit; Staging can stay on last green build 35033335; do not promote Production; keep buyer_match row if uninstall proves unsafe and instead document rebuild-from-scratch"
+  },
+  "leverage": {
+    "ranked_todo_ids": [
+      "T1",
+      "T2",
+      "T3",
+      "T4",
+      "T5"
+    ],
+    "shared_causes": [
+      "Mothball physical delete without DB uninstall left installed phantom module",
+      "Ephemeral failed Odoo.sh builds drop update.log; last-green SSH is stale",
+      "Module-order yaml/CI tests drifted from Gate-shell installable=True reality"
+    ],
+    "deletions_or_consolidations": [
+      "Do not restore buyer_match_engine \u2014 uninstall DB row only",
+      "One plasticos_base pre-migrate for deleted local-intelligence names",
+      "Stdlib version tuple floor instead of exact pin",
+      "T5 cancelled when tip Staging card green after T4",
+      "Cursor plan owns Build UI; JSON owns GMP/validator lock \u2014 keep content-aligned, no third plan",
+      "Happy-path critical_path ends at T4"
+    ]
+  },
+  "risks": [
+    {
+      "risk": "security_base tip failure is a distinct ParseError not fixed by phantom uninstall",
+      "mitigation": "T5: SSH failed build ID within 24h; keep #146 fixes; local upgrade-smoke from dump if available"
+    },
+    {
+      "risk": "SQL uninstall of buyer_match leaves broken ir.model.data / menus",
+      "mitigation": "Additive only; mark uninstalled without DROP TABLE; follow mothball runbook retained models (match.run stays via plasticos_matching)"
+    },
+    {
+      "risk": "Merge #146 without T1 leaves CI red and Staging unrepaired",
+      "mitigation": "T1 first; do not admin-merge over failing ratchet"
+    }
+  ],
+  "unknowns": [
+    {
+      "id": "U1",
+      "question": "Exact ParseError/traceback for plasticos_security_base on the failed tip rebuild containers (#141/#145 cards)",
+      "decision_effect": "May require T5 code fix beyond phantom uninstall",
+      "resolution": "probe"
+    },
+    {
+      "id": "U2",
+      "question": "Whether Odoo.sh Staging rebuilds from dump of 35033335 or empty DB for each Staging push",
+      "decision_effect": "Determines whether T2 migration is mandatory vs fresh-install-only path",
+      "resolution": "probe"
+    }
+  ],
+  "final_validation": [
+    {
+      "id": "V1",
+      "command": "pytest tests/test_mothball_migration.py -q",
+      "pass_criteria": "all PASSED",
+      "status": "pending"
+    },
+    {
+      "id": "V2",
+      "command": "ODOO_ENTERPRISE_MODULES=none make install-smoke",
+      "pass_criteria": "install-smoke PASSED",
+      "status": "pending"
+    },
+    {
+      "id": "V3",
+      "command": "SSH Staging: odoo-bin shell module states + grep odoo.log for buyer_match ERROR",
+      "pass_criteria": "buyer_match not installed; zero new ERRORs",
+      "status": "pending"
+    },
+    {
+      "id": "V4",
+      "command": "Odoo.sh Staging UI build card on tip SHA",
+      "pass_criteria": "build 19.0 success",
+      "status": "pending"
+    },
+    {
+      "id": "V_PR",
+      "command": "make pr-check",
+      "pass_criteria": "PASS (or install-smoke+pytest green equivalent on PR head)",
+      "status": "pending"
+    }
+  ],
+  "convergence": {
+    "status": "partial",
+    "remaining_unknown_ids": [
+      "U1",
+      "U2"
+    ],
+    "next_skill": "l9-gmp-protocol",
+    "stop_reason": "Recursive Alignment pass: dual-SSOT ownership + critical_path T1-T4; planning-only until Build. U1/U2 remain probe."
+  },
+  "gmp_handoff": {
+    "may_modify": [
+      "tests/test_mothball_migration.py",
+      "plasticos_base/__manifest__.py",
+      "plasticos_base/migrations/",
+      "docs/runbooks/MOTHBALL_LOCAL_INTELLIGENCE.md",
+      ".cursor/rules/98-odoo-sh-staging.mdc",
+      ".claude/skills/plasticos-odoo-sh-deploy/references/ssh-diagnose.md",
+      "feat/staging-version-align / PR #146 follow-ups"
+    ],
+    "must_not_modify": [
+      "plasticos_buyer_match_engine/ (deleted \u2014 do not restore)",
+      "plasticos_inference_engine/ (deleted \u2014 do not restore)",
+      "pipeline_v2.py",
+      "Production branch direct commits"
+    ],
+    "preserved_contracts": [
+      "Odoo \u2192 Gate \u2192 EIE/CEG \u2192 Gate \u2192 Odoo (no local matching authority)",
+      "Additive migrations only (no DROP of retained match.run / enrichment.run)",
+      "make install-smoke before claiming Staging-ready",
+      "Staging then Production promote"
+    ],
+    "validation_commands": [
+      "pytest tests/test_mothball_migration.py -q",
+      "python3 ci/check_xml_module_ref_deps.py",
+      "ODOO_ENTERPRISE_MODULES=none make install-smoke",
+      "ssh Staging odoo-bin shell module inventory"
+    ]
+  },
+  "checklist": [
+    "SSH evidence: phantom buyer_match installed",
+    "CI evidence: mothball version pin fail on #146",
+    "T1 fix test",
+    "T2 base pre-migrate uninstall phantoms",
+    "T3 merge #146",
+    "T4 Staging verify",
+    "T5 only if security_base still red with traceback"
+  ],
+  "estimate": "1 focused GMP (T1\u2013T3 same session; T4\u2013T5 after Odoo.sh rebuild)"
+}

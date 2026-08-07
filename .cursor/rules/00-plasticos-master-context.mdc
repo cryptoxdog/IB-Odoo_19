@@ -61,6 +61,7 @@ Before writing any code or making any change, identify your task and consult the
 - **`86-ci-github-actions`** — SHA-pin third-party actions. Verify test files exist on the branch. Never re-enable disabled workflows.
 
 ### Writing or running tests
+- **`plasticos-odoo-docker-testing`** — Docker `install-smoke` / `test-odoo` before Odoo.sh; Gate-shell module-order SSOT.
 - **`80-plasticos-testing-rules`** — `TransactionCase`, `setUpClass` fixtures (never `skipTest`), `type='consu'` for storable in Odoo 19.
 
 ### Python editor tooling / pyproject / Pyright / autocomplete

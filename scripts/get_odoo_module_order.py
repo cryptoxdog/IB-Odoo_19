@@ -41,9 +41,16 @@ CUSTOM_DEFAULT = [
     "plasticos_claims",
     "plasticos_automation",
     "plasticos_intake_normalizer",
-    "plasticos_partner_import",
+    "plasticos_matching",
+    "plasticos_enrichment",
     "plasticos_geolocalize",
+    "plasticos_web_leads",
     "plasticos_security_base",
+    "plasticos_commission",
+    "plasticos_crm_bridge",
+    "plasticos_partner_import",
+    "plasticos_crm_sync",
+    "plasticos_admin_dashboard",
 ]
 
 _ITEM_RE = re.compile(r"^\s*-\s+([^\s#]+)")

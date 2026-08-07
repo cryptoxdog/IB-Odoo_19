@@ -33,9 +33,15 @@ def test_required_m5_files_exist():
         assert path.is_file(), path
 
 
+def _manifest_version(src: str) -> tuple[int, ...]:
+    data = ast.literal_eval(src)
+    return tuple(int(p) for p in data["version"].split("."))
+
+
 def test_matching_version_bumped_for_migration():
-    src = MANIFEST.read_text(encoding="utf-8")
-    assert '"version": "19.0.3.0.0"' in src
+    """M5 floor: matching must stay at/above the mothball migration version."""
+    ver = _manifest_version(MANIFEST.read_text(encoding="utf-8"))
+    assert ver >= (19, 0, 3, 0, 0)
 
 
 def test_coordinator_inventory_retains_audit_models():

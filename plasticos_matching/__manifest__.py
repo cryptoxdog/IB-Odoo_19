@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Matching",
-    "version": "19.0.3.0.0",
+    "version": "19.0.3.0.1",
     "summary": "Gate-mediated match runs with explicit degraded/retry mode (mothball M5)",
     "license": "LGPL-3",
     "author": "Igor Beylin",
@@ -8,6 +8,7 @@
     "depends": [
         "base",
         "mail",
+        "plasticos_base",
         "plasticos_intake",
         "plasticos_facility_profile",
         "plasticos_gate",

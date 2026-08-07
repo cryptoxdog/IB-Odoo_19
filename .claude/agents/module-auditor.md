@@ -8,6 +8,7 @@ skills:
   - l9-code-graph-rag-mcp
   - plasticos-new-odoo-module
   - plasticos-new-model-field
+  - plasticos-odoo-docker-testing
 ---
 
 You are a module structure auditor for the PlasticOS Odoo 19 repository.

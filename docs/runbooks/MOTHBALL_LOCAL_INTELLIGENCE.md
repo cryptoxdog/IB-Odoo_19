@@ -62,6 +62,18 @@ pg_restore --clean --if-exists --dbname="$PGDATABASE_CLONE" backup-plasticos-…
 Record restore success/failure in the TASK-050 restore-rehearsal artifact.
 Do **not** claim production completion from repository tests alone.
 
+
+## Staging dump cleanup (additive module-state fix)
+
+After physical delete of local engines, Staging dumps may still show
+`plasticos_buyer_match_engine` / `plasticos_inference_engine` as `installed` in
+`ir_module_module`, causing registry ERROR on every worker load.
+
+**Fix (shipped):** `plasticos_base` migration `19.0.1.1.6/pre-migrate.py` marks
+those modules `uninstalled` and clears stale `ir_module_module_dependency` rows.
+No table drops. Retained `plasticos.match.*` / enrichment audit models remain
+owned by Gate shells (`plasticos_matching` / `plasticos_enrichment`).
+
 ## 5. Rollback
 
 - Git: `git revert` of the M5 merge commit

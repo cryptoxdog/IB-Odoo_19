@@ -133,6 +133,7 @@ Skills: L9 globals in `~/.cursor/skills/l9-*/`; project skills in `.claude/skill
 | `plasticos-new-model-field` | Adding fields or models to existing modules | `wiring`, `pr-check` |
 | `plasticos-xml-view` | Creating or modifying Odoo XML views | `odoo19-check`, `xml-check` |
 | `plasticos-odoo-sh-deploy` | Odoo.sh production errors — SSH diagnose before fix | `logs`, `update`, `test-module` |
+| `plasticos-odoo-docker-testing` | Docker install-smoke + Odoo runtime tests before Odoo.sh | `install-smoke`, `test-odoo`, `test-module` |
 | `plasticos-static-audit-kernel` | Broad static audit / evidence report | `audit`, `audit-quick` |
 | `plasticos-pr-review-kernel` | `PR_REVIEW_MODE`, `REVIEW PR #N` | `pr-check`, `audit` |
 | `plasticos-repo-review-kernel` | Repo-wide readiness / pack review | `audit`, `wiring` |
@@ -523,3 +524,4 @@ from running silently. Always run `pre-commit run --all-files` locally before pu
 - Treat local matcher/enrichment engines as architectural intelligence authority (ADR-003-single; mothball M1–M8 sealed — use `make no-local-intelligence` / `ci/check_no_local_intelligence.py`; M8 guards are **blocking** in CI/pre-commit)
 - Apply Gate web-lead triage in Phase 1 (see GATE_AUTONOMY_ROADMAP.md) — triage stays Odoo-local until Phase 3
 - Overwrite `docs/adr/ADR-003-contact-import-configuration.md` when editing the mothball ADR-003-single file (filename collision)
+

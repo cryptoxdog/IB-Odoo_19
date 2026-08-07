@@ -45,6 +45,13 @@ A module that does not load cannot be pushed via the Makefile path.
 groups live in `plasticos_security_base/security/record_rules.xml` — not in
 `plasticos_logistics` (logistics cannot depend on security_base without a cycle).
 
+
+## Agent skill
+
+Load **`plasticos-odoo-docker-testing`** (`.claude/skills/plasticos-odoo-docker-testing/`)
+for the full Docker-first ladder (env → module-order SSOT → install-smoke →
+test-odoo → Staging). This runbook is the short operator cheat sheet.
+
 ## Related
 
 - `scripts/install_smoke.sh`
