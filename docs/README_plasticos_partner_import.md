@@ -8,7 +8,7 @@
 
 ## Purpose
 
-Provides bulk partner import tooling for loading CRM leads, supplier contacts, and facility data from external CSV sources (VanillaSoft CRM, broker spreadsheets, historical records). Used for initial data migration and ongoing batch imports from sales tooling.
+Provides bulk **partner** import tooling (cieTrade / broker CSVs) for `res.partner` and facility data. VanillaSoft **CRM lead** load is API-first via `plasticos_crm_sync` (**Settings → PlasticOS CRM Sync → Run VanillaSoft API Sync**). The CRM lead CSV wizard remains in this module without CRM/PlasticOS menu entries (emergency Technical access only).
 
 ---
 
@@ -32,9 +32,9 @@ The primary import UI. Accepts a CSV file, maps columns to `res.partner` fields,
 
 ---
 
-## Service: `crm_lead_import_service.py`
+## Service: `crm_lead_import_service.py` (deprecated UI)
 
-Processes CRM lead CSVs exported from VanillaSoft. Maps VanillaSoft fields to Odoo `res.partner` and `crm.lead` fields.
+Emergency CSV path for VanillaSoft CRM leads. **Do not use for normal operations** — use `plasticos_crm_sync` API sync. Maps VanillaSoft fields to Odoo `res.partner` and `crm.lead` fields.
 
 **Key field rename history:**
 - `x_vanillasoft_id` → `vanillasoft_id` (migration 19.0.1.x renamed the DB column)

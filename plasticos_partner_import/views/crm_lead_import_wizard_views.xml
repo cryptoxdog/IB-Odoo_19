@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Wizard Form View -->
+    <!-- Wizard Form View (unlinked from CRM/PlasticOS menus — emergency Technical access only) -->
     <record id="view_crm_lead_import_wizard_form" model="ir.ui.view">
         <field name="name">plasticos.crm.lead.import.wizard.form</field>
         <field name="model">plasticos.crm.lead.import.wizard</field>
@@ -19,6 +19,14 @@
                     </group>
                 </group>
                 <group invisible="state != 'draft'">
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Deprecated:</strong>
+                        VanillaSoft CRM lead CSV import is replaced by live API sync.
+                        Use <strong>Settings → PlasticOS CRM Sync → Run VanillaSoft API Sync</strong>
+                        (or CRM → CRM Sync → Connections → Sync Now).
+                        This wizard has no menu entry — emergency Technical access only.
+                        cieTrade partner CSV import is unchanged.
+                    </div>
                     <div class="alert alert-info" role="alert">
                         <strong>Default File:</strong>
                         <code>tests/data/sample_vanillasoft_leads.csv</code> (test data — replace with real export)
@@ -57,7 +65,7 @@
         </field>
     </record>
 
-    <!-- Wizard Action -->
+    <!-- Wizard Action (no menuitem — Settings API sync is the operator path) -->
     <record id="action_crm_lead_import_wizard" model="ir.actions.act_window">
         <field name="name">Import CRM Leads</field>
         <field name="res_model">plasticos.crm.lead.import.wizard</field>
@@ -65,18 +73,8 @@
         <field name="target">new</field>
     </record>
 
-    <!-- Menu Item under CRM -->
-    <menuitem id="menu_crm_lead_import_wizard"
-              name="Import CRM Leads (VanillaSoft)"
-              parent="crm.crm_menu_root"
-              action="action_crm_lead_import_wizard"
-              sequence="100"/>
-
-    <!-- Also add to PlasticOS menu -->
-    <menuitem id="menu_crm_lead_import_wizard_plasticos"
-              name="Import CRM Leads"
-              parent="plasticos_base.plasticos_root_menu"
-              action="action_crm_lead_import_wizard"
-              sequence="91"/>
+    <!-- Explicitly unlink former CRM / PlasticOS menus on upgrade -->
+    <delete model="ir.ui.menu" id="menu_crm_lead_import_wizard"/>
+    <delete model="ir.ui.menu" id="menu_crm_lead_import_wizard_plasticos"/>
 
 </odoo>

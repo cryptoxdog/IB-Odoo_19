@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_crm_lead_sync_form" model="ir.ui.view">
+        <field name="name">crm.lead.plasticos.crm.sync.form</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="priority">40</field>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="CRM Sync" name="plasticos_crm_sync">
+                    <group>
+                        <field name="vanillasoft_id" readonly="1"/>
+                        <field name="crm_call_event_count"/>
+                        <field name="crm_table_row_count"/>
+                    </group>
+                    <separator string="Call History"/>
+                    <field name="crm_call_event_ids" nolabel="1">
+                        <list>
+                            <field name="call_datetime_utc"/>
+                            <field name="user_name"/>
+                            <field name="result_code"/>
+                            <field name="duration_seconds"/>
+                            <field name="comment"/>
+                        </list>
+                    </field>
+                    <separator string="Custom Tables"/>
+                    <field name="crm_external_table_row_ids" nolabel="1">
+                        <list>
+                            <field name="table_name"/>
+                            <field name="table_id"/>
+                            <field name="external_row_id"/>
+                            <field name="fields_json"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

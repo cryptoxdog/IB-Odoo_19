@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_crm_sync" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.plasticos.crm.sync</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app string="PlasticOS CRM Sync" name="plasticos_crm_sync" groups="base.group_system">
+                    <block title="VanillaSoft API">
+                        <setting id="plasticos_crm_sync_vs_key_setting"
+                                 string="API Key"
+                                 help="Project Integration Key from VanillaSoft Admin.">
+                            <field name="plasticos_crm_sync_vanillasoft_api_key" password="True"/>
+                        </setting>
+                        <setting id="plasticos_crm_sync_vs_root_setting"
+                                 string="Root Endpoint"
+                                 help="Base site URL; /WSPubAPI is appended automatically.">
+                            <field name="plasticos_crm_sync_vanillasoft_root_endpoint"
+                                     placeholder="https://vanillasoft.net"/>
+                        </setting>
+                        <setting id="plasticos_crm_sync_vs_project_setting"
+                                 string="Project ID"
+                                 help="Scrap Management = 139705.">
+                            <field name="plasticos_crm_sync_vanillasoft_project_id" placeholder="139705"/>
+                        </setting>
+                        <setting id="plasticos_crm_sync_webhook_setting"
+                                 string="Webhook Token"
+                                 help="Shared secret for Outgoing Web Lead URL.">
+                            <field name="plasticos_crm_sync_webhook_token" password="True"/>
+                        </setting>
+                        <setting id="plasticos_crm_sync_run_api_setting"
+                                 string="Run VanillaSoft API Sync"
+                                 help="Manual one-shot sync via the live VanillaSoft API (not CSV). Contacts list covers modifications within about 30 days only — not a full historical census. Prefer CRM → CRM Sync → Connections and cron for ongoing sync. Large first runs may be slow.">
+                            <button name="action_plasticos_crm_sync_run_vanillasoft"
+                                    type="object"
+                                    string="Run VanillaSoft API Sync"
+                                    class="btn-secondary"
+                                    groups="base.group_system"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>

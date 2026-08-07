@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_crm_connection_user,plasticos.crm.connection.user,model_plasticos_crm_connection,base.group_user,1,0,0,0
+access_crm_connection_manager,plasticos.crm.connection.manager,model_plasticos_crm_connection,base.group_system,1,1,1,1
+access_crm_sync_run_user,plasticos.crm.sync.run.user,model_plasticos_crm_sync_run,base.group_user,1,0,0,0
+access_crm_sync_run_manager,plasticos.crm.sync.run.manager,model_plasticos_crm_sync_run,base.group_system,1,1,1,1
+access_crm_external_ref_user,plasticos.crm.external.ref.user,model_plasticos_crm_external_ref,base.group_user,1,0,0,0
+access_crm_external_ref_manager,plasticos.crm.external.ref.manager,model_plasticos_crm_external_ref,base.group_system,1,1,1,1
+access_crm_call_event_user,plasticos.crm.call.event.user,model_plasticos_crm_call_event,base.group_user,1,0,0,0
+access_crm_call_event_manager,plasticos.crm.call.event.manager,model_plasticos_crm_call_event,base.group_system,1,1,1,1
+access_crm_external_table_row_user,plasticos.crm.external.table.row.user,model_plasticos_crm_external_table_row,base.group_user,1,0,0,0
+access_crm_external_table_row_manager,plasticos.crm.external.table.row.manager,model_plasticos_crm_external_table_row,base.group_system,1,1,1,1
+access_crm_sync_orphan_user,plasticos.crm.sync.orphan.user,model_plasticos_crm_sync_orphan,base.group_user,1,0,0,0
+access_crm_sync_orphan_manager,plasticos.crm.sync.orphan.manager,model_plasticos_crm_sync_orphan,base.group_system,1,1,1,1
