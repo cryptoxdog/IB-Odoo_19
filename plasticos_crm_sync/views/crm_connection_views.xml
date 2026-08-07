@@ -46,16 +46,10 @@
                     </group>
                     <notebook>
                         <page string="Sync Runs" name="sync_runs">
-                            <field name="sync_run_ids">
-                                <list>
-                                    <field name="started_at"/>
-                                    <field name="finished_at"/>
-                                    <field name="status"/>
-                                    <field name="contacts_upserted"/>
-                                    <field name="calls_upserted"/>
-                                    <field name="error_excerpt"/>
-                                </list>
-                            </field>
+                            <!-- Use dedicated sync.run list view (avoids odoo_audit misattributing
+                                 child fields onto plasticos.crm.connection). -->
+                            <field name="sync_run_ids"
+                                   context="{'tree_view_ref': 'plasticos_crm_sync.view_crm_sync_run_list'}"/>
                         </page>
                     </notebook>
                 </sheet>
