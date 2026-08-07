@@ -2,8 +2,7 @@
 
 Physical mothball deleted plasticos_buyer_match_engine / plasticos_inference_engine
 from the addons tree, but Staging DBs can still have ir_module_module.state=installed.
-That yields continuous registry ERROR and blocks tip upgrades. Additive only — no
-DROP TABLE; retained match/enrichment audit tables stay owned by Gate shells.
+That yields continuous registry ERROR and blocks tip upgrades. Additive only — no schema drops; retained match/enrichment audit tables stay owned by Gate shells.
 """
 
 import logging
