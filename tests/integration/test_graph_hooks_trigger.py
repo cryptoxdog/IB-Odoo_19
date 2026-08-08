@@ -39,6 +39,7 @@ class TestGraphHookMethodsExist(PlasticosTestCase):
         # If no hook found, the bridge may not be installed
         if not has_any:
             self.skipTest("No graph hook methods on intake — plasticos_buyer_match_engine may not be installed")
+        self.assertTrue(has_any)
 
     def test_facility_profile_has_graph_hooks(self):
         if not self._has_model("plasticos.facility.profile"):
@@ -52,6 +53,7 @@ class TestGraphHookMethodsExist(PlasticosTestCase):
         has_any = any(callable(getattr(FP, m, None)) for m in hook_candidates)
         if not has_any:
             self.skipTest("No graph hooks on facility profile")
+        self.assertTrue(has_any)
 
     def test_material_profile_has_graph_hooks(self):
         if not self._has_model("plasticos.material.profile"):
@@ -65,7 +67,7 @@ class TestGraphHookMethodsExist(PlasticosTestCase):
         has_any = any(callable(getattr(MP, m, None)) for m in hook_candidates)
         if not has_any:
             self.skipTest("No graph hooks on material profile")
-
+        self.assertTrue(has_any)
 
 @tagged("post_install", "-at_install", "graph", "hooks")
 class TestGraphSyncLogModel(PlasticosTestCase):
@@ -73,9 +75,10 @@ class TestGraphSyncLogModel(PlasticosTestCase):
 
     def test_graph_sync_log_model_exists(self):
         try:
-            self.env["plasticos.graph.sync.log"]
+            Log = self.env["plasticos.graph.sync.log"]
         except KeyError:
             self.skipTest("graph sync log model not installed")
+        self.assertTrue(Log._name)
 
     def test_graph_sync_log_has_required_fields(self):
         try:

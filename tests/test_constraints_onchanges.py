@@ -30,10 +30,12 @@ class TestTransactionConstraintsConsolidated(PlasticosTestCase):
     def test_commission_override_boundary_0(self):
         tx = self._tx()
         tx.write({"commission_override_pct": 0.0})
+        self.assertEqual(tx.commission_override_pct, 0.0)
 
     def test_commission_override_boundary_100(self):
         tx = self._tx()
         tx.write({"commission_override_pct": 100.0})
+        self.assertEqual(tx.commission_override_pct, 100.0)
 
     def test_commission_override_negative_rejected(self):
         tx = self._tx()
@@ -120,12 +122,14 @@ class TestIntakeOnchangesConsolidated(PlasticosTestCase):
         intake.partner_id = new_p
         if hasattr(intake, "_onchange_partner_id"):
             intake._onchange_partner_id()
+        self.assertEqual(intake.partner_id, new_p)
 
     def test_onchange_contact_does_not_crash(self):
         intake = self.env["plasticos.intake"].new({"partner_id": self.company.id})
         intake.contact_id = self.contact
         if hasattr(intake, "_onchange_contact_id"):
             intake._onchange_contact_id()
+        self.assertEqual(intake.contact_id, self.contact)
 
 
 @tagged("post_install", "-at_install", "plasticos", "constraint")

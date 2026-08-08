@@ -36,20 +36,28 @@ class TestMidnightRecompute(PlasticosTestCase):
     def test_lock_already_held_skips(self):
         """When advisory lock is held by another process, cron skips silently."""
         with (
-            patch.object(self.env.cr, "execute") as m_exec,
+            patch.object(self.env.cr, "execute"),
             patch.object(self.env.cr, "fetchone", return_value=(False,)),
+            patch.object(type(self.svc), "_recompute_document_expiry") as m_doc,
+            patch.object(type(self.svc), "_recompute_claim_time_fields") as m_claim,
         ):
             self.svc._cron_midnight_recompute()
-        # Should NOT call any recompute methods
+            m_doc.assert_not_called()
+            m_claim.assert_not_called()
 
     def test_lock_released_on_exception(self):
         """Advisory lock is released even when recompute raises."""
-        with patch.object(type(self.svc), "_recompute_document_expiry", side_effect=Exception("boom")):
+        with (
+            patch.object(type(self.svc), "_recompute_document_expiry", side_effect=Exception("boom")),
+            patch.object(self.env.cr, "execute") as m_exec,
+        ):
             try:
                 self.svc._cron_midnight_recompute()
             except Exception:
                 pass
-        # Lock release is in the finally block — verified by no deadlock
+            # finally block should release the advisory lock (pg_advisory_unlock)
+            unlock_calls = [c for c in m_exec.call_args_list if c.args and "advisory_unlock" in str(c.args[0]).lower()]
+            self.assertTrue(unlock_calls or m_exec.called, "expected lock release SQL after exception")
 
     # ── Document expiry recompute ──────────────────────────────
     def test_recompute_newly_expired_documents(self):
@@ -84,8 +92,11 @@ class TestMidnightRecompute(PlasticosTestCase):
 
     def test_recompute_skips_missing_document_model(self):
         """Gracefully skips when plasticos.document model not installed."""
-        with patch.object(self.env, "get", return_value=None):
-            self.svc._recompute_document_expiry()  # Should not raise
+        try:
+            with patch.object(self.env, "get", return_value=None):
+                self.svc._recompute_document_expiry()
+        except Exception as exc:
+            self.fail(f"_recompute_document_expiry raised when model missing: {exc}")
 
     def test_recompute_limit_1000_documents(self):
         """Each search is capped at limit=1000 to avoid memory issues."""
@@ -134,7 +145,9 @@ class TestMidnightRecompute(PlasticosTestCase):
             }
         )
         self.svc._recompute_claim_time_fields()
-        # Just verify it runs without error — actual is_overdue depends on SLA config
+        # Actual is_overdue depends on SLA config — claim must remain readable.
+        self.assertTrue(claim.exists())
+        self.assertIn(claim.state, ("pending", "open", "investigating", "resolved", "archived"))
 
     def test_recompute_skips_resolved_claims(self):
         """Resolved/archived claims are excluded from recompute."""
@@ -150,8 +163,11 @@ class TestMidnightRecompute(PlasticosTestCase):
 
     def test_recompute_skips_missing_claim_model(self):
         """Gracefully skips when plasticos.claim model not installed."""
-        with patch.object(self.env, "get", return_value=None):
-            self.svc._recompute_claim_time_fields()  # Should not raise
+        try:
+            with patch.object(self.env, "get", return_value=None):
+                self.svc._recompute_claim_time_fields()
+        except Exception as exc:
+            self.fail(f"_recompute_claim_time_fields raised when model missing: {exc}")
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -226,9 +242,19 @@ class TestAttachmentMaintenance(PlasticosTestCase):
 
     def test_lock_released_on_exception(self):
         """Advisory lock is released on unexpected exception."""
-        with patch("os.path.exists", side_effect=Exception("disk error")):
+        real_execute = self.env.cr.execute
+
+        def _execute(query, *args, **kwargs):
+            # Let lock acquire succeed; still record unlock calls.
+            return real_execute(query, *args, **kwargs)
+
+        with (
+            patch("os.path.exists", side_effect=Exception("disk error")),
+            patch.object(self.env.cr, "execute", side_effect=_execute) as m_exec,
+        ):
             try:
                 self.Attachment._cron_cleanup_missing_filestore_orphans()
             except Exception:
                 pass
-        # Lock in finally block ensures release
+            unlock = [c for c in m_exec.call_args_list if c.args and "advisory_unlock" in str(c.args[0]).lower()]
+            self.assertTrue(unlock, "expected pg_advisory_unlock in finally after disk error")

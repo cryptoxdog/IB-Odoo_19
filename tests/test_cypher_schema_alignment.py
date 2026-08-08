@@ -377,10 +377,10 @@ class TestNodePropertyConsistency:
                             f"{rel_path}: {alias}.{{{', '.join(sorted(missing))}}} referenced but not in MERGE/SET"
                         )
 
-        # This is informational - may have false positives
+        # Soft informational path: skip with detail when drift looks real.
         if issues:
             pytest.skip("Potential schema drift detected (review manually):\n  " + "\n  ".join(issues))
-
+        assert not issues
 
 # ═════════════════════════════════════════════════════════════════════════
 # TEST: SCHEMA ALIGNMENT DOCUMENTATION
