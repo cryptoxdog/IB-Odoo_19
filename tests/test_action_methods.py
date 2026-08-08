@@ -397,6 +397,7 @@ class TestWebLeadActions(PlasticosTestCase):
     def test_action_retry_processing_from_error(self):
         lead = self._make_web_lead(state="error", decision="hot")
         lead.action_retry_processing()
+        self.assertNotEqual(lead.state, "error")
 
     def test_action_force_create_intake(self):
         lead = self._make_web_lead(decision="cold")
@@ -412,8 +413,9 @@ class TestWebLeadActions(PlasticosTestCase):
 
     def test_action_retry_triage(self):
         lead = self._make_web_lead(state="error")
-        with patch.object(type(lead), "_run_triage_pipeline"):
+        with patch.object(type(lead), "_run_triage_pipeline") as m_triage:
             lead.action_retry_triage()
+            m_triage.assert_called()
 
     def test_action_retry_triage_wrong_state_raises(self):
         lead = self._make_web_lead(state="intake_created")
@@ -543,20 +545,26 @@ class TestEnrichmentRunActions(PlasticosTestCase):
 
     def test_action_execute(self):
         run = self._make_run()
-        if hasattr(run, "action_execute"):
-            with patch.object(type(run), "_crawl_source", return_value=True):
-                run.action_execute()
+        if not hasattr(run, "action_execute"):
+            self.skipTest("action_execute not available")
+        with patch.object(type(run), "_crawl_source", return_value=True):
+            run.action_execute()
+        self.assertTrue(run.exists())
 
     def test_action_inject(self):
         run = self._make_run(state="crawled")
-        if hasattr(run, "action_inject"):
-            run.action_inject()
+        if not hasattr(run, "action_inject"):
+            self.skipTest("action_inject not available")
+        run.action_inject()
+        self.assertTrue(run.exists())
 
     def test_action_run_inference(self):
         run = self._make_run(state="injected")
-        if hasattr(run, "action_run_inference"):
-            with patch.object(type(run), "_run_inference_internal"):
-                run.action_run_inference()
+        if not hasattr(run, "action_run_inference"):
+            self.skipTest("action_run_inference not available")
+        with patch.object(type(run), "_run_inference_internal") as m_inf:
+            run.action_run_inference()
+            m_inf.assert_called()
 
     def test_action_retry_from_error(self):
         run = self._make_run(state="error")
@@ -615,14 +623,18 @@ class TestMaterialProfileActions(PlasticosTestCase):
 
     def test_action_run_matching(self):
         profile = self._make_profile()
-        if hasattr(profile, "action_run_matching"):
-            with patch.object(type(profile), "_trigger_matching"):
-                profile.action_run_matching()
+        if not hasattr(profile, "action_run_matching"):
+            self.skipTest("action_run_matching not available")
+        with patch.object(type(profile), "_trigger_matching") as m_match:
+            profile.action_run_matching()
+            m_match.assert_called()
 
     def test_action_refresh_scores(self):
         profile = self._make_profile()
-        if hasattr(profile, "action_refresh_scores"):
-            profile.action_refresh_scores()
+        if not hasattr(profile, "action_refresh_scores"):
+            self.skipTest("action_refresh_scores not available")
+        profile.action_refresh_scores()
+        self.assertTrue(profile.exists())
 
 
 # ═══════════════════════════════════════════════════════════════
