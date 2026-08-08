@@ -229,7 +229,7 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
             if node.args and self._looks_like_record(node.args[0]):
                 arg0 = node.args[0]
                 if isinstance(arg0, ast.Name) and arg0.id in getattr(self, "_dict_param_names", set()):
-                    pass  # typed dict[str, …] parameter — not an ORM record
+                    pass  # typed dict[str, …] / Dict[…] parameter — not an ORM record
                 else:
                     self.issues.append(
                         AntiPatternIssue(
@@ -325,6 +325,7 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
         remain recordsets and are still flagged.
         """
         if isinstance(node, ast.Attribute):
+            # self.line_ids (One2many/Many2many) or self.partner_id (Many2one)
             if node.attr.endswith("_ids") or node.attr.endswith("_id"):
                 return True
             if node.attr in ("records", "partners", "users", "lines", "moves", "orders"):

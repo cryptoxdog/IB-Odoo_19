@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+TESTS_ROOT = ROOT / "tests"
 
 SKIP_PARTS = frozenset(
     {
@@ -27,6 +28,11 @@ SKIP_PARTS = frozenset(
     }
 )
 
+
+def _is_skipped(path: Path) -> bool:
+    return any(part in SKIP_PARTS for part in path.parts)
+
+
 _HELPER_PREFIXES = (
     "validate_",
     "assert_",
@@ -38,12 +44,10 @@ _HELPER_PREFIXES = (
 )
 
 
-def _is_skipped(path: Path) -> bool:
-    return any(part in SKIP_PARTS for part in path.parts)
-
-
 def _decorator_is_skip(dec: ast.expr) -> bool:
-    return "skip" in ast.dump(dec).lower()
+    """True for @pytest.mark.skip / @unittest.skip / skipIf / skipUnless."""
+    dump = ast.dump(dec)
+    return "skip" in dump.lower()
 
 
 def _call_name(func: ast.expr) -> str | None:
@@ -55,6 +59,7 @@ def _call_name(func: ast.expr) -> str | None:
 
 
 def _has_assertion_evidence(func_node: ast.AST) -> bool:
+    """True if the test body contains a meaningful assertion / expectation."""
     for node in ast.walk(func_node):
         if isinstance(node, ast.Assert):
             return True
@@ -64,18 +69,22 @@ def _has_assertion_evidence(func_node: ast.AST) -> bool:
                 continue
             if name.startswith("assert") or name in ("fail", "raises", "xfail"):
                 return True
+            # Helpers that encode the contract (raise / assert internally).
             if name.startswith(_HELPER_PREFIXES) or name in ("_run_twice",):
                 return True
     return False
 
 
 def _is_soft_warning_only(func_node: ast.AST) -> bool:
-    if _has_assertion_evidence(func_node):
+    """Collect + warnings.warn without asserts — intentional soft gate, not weak."""
+    has_warn = False
+    has_assert = _has_assertion_evidence(func_node)
+    if has_assert:
         return False
     for node in ast.walk(func_node):
         if isinstance(node, ast.Call) and _call_name(node.func) == "warn":
-            return True
-    return False
+            has_warn = True
+    return has_warn
 
 
 class WeakTestFixer:
@@ -84,6 +93,7 @@ class WeakTestFixer:
         self.tests_root = self.root_dir / "tests"
 
     def analyze_test_file(self, test_file: Path) -> list[dict]:
+        """Find tests with no assertion evidence and suggest fixes."""
         with open(test_file, encoding="utf-8") as f:
             tree = ast.parse(f.read())
 
@@ -94,11 +104,11 @@ class WeakTestFixer:
             if not node.name.startswith("test_"):
                 continue
             if any(_decorator_is_skip(d) for d in node.decorator_list):
-                continue
+                continue  # retired / explicitly skipped — not weak
             if _has_assertion_evidence(node):
                 continue
             if _is_soft_warning_only(node):
-                continue
+                continue  # intentional soft audit (warnings.warn)
             operations = self._extract_operations(node)
             weak_tests.append(
                 {
