@@ -1,13 +1,19 @@
 import csv
 import logging
+import os
 import re
 
-from odoo import models
-from odoo.exceptions import ValidationError
+from odoo import api, models
+from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 100
+
+DEFAULT_CORPORATE_CSV = "1. Counterparties - Parent - CORPORATE-Ready To Import.csv"
+DEFAULT_FACILITY_CSV = "2. Counterparties - Child - FACILITY LOCATIONS.csv"
+CONFIG_CORPORATE_CSV = "plasticos_partner_import.default_corporate_csv"
+CONFIG_FACILITY_CSV = "plasticos_partner_import.default_facility_csv"
 
 CONTACT_TYPE_AR = "invoice"
 CONTACT_TYPE_AP = "contact"
@@ -25,6 +31,48 @@ ROLE_TOKEN_TO_CATEGORY_XMLID = {
 class PlasticosPartnerImportService(models.AbstractModel):
     _name = "plasticos.partner.import.service"
     _description = "Deterministic Partner Import Service"
+
+    @api.model
+    def get_module_path(self) -> str:
+        import odoo.modules.module as mod
+
+        path = mod.get_module_path("plasticos_partner_import")
+        if not path:
+            raise UserError("Could not determine plasticos_partner_import module path.")
+        return path
+
+    @api.model
+    def resolve_default_csv_path(self, which: str) -> str:
+        """Resolve CSV path: configured ICP path, else module default.
+
+        Empty ICP → bundled module default. Non-empty ICP that is missing or
+        not a file → UserError (never silently fall back to the default).
+        """
+        param = self.env["ir.config_parameter"].sudo()
+        if which == "corporate":
+            custom = (param.get_param(CONFIG_CORPORATE_CSV) or "").strip()
+            default = os.path.join(self.get_module_path(), DEFAULT_CORPORATE_CSV)
+        elif which == "facility":
+            custom = (param.get_param(CONFIG_FACILITY_CSV) or "").strip()
+            default = os.path.join(self.get_module_path(), DEFAULT_FACILITY_CSV)
+        else:
+            raise UserError("which must be 'corporate' or 'facility'")
+        if not custom:
+            return default
+        if os.path.isfile(custom):
+            return custom
+        raise UserError(f"Configured {which} CSV path does not exist or is not a file: {custom}")
+
+    @api.model
+    def run_cietrade_default_import(self):
+        """One-shot server-side import from resolved default CSV paths."""
+        corporate = self.resolve_default_csv_path("corporate")
+        facility = self.resolve_default_csv_path("facility")
+        if not os.path.isfile(corporate):
+            raise UserError(f"Corporate CSV not found: {corporate}")
+        if not os.path.isfile(facility):
+            raise UserError(f"Facility CSV not found: {facility}")
+        return self.run_csv_import(corporate, facility)
 
     # -------------------------------------------------------------------------
     # Core upsert
