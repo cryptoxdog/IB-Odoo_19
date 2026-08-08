@@ -84,6 +84,18 @@ These files are **gitignored** — create them on each machine:
 | File | Purpose |
 |------|---------|
 | `.env.local` | Odoo.sh SSH, API keys, machine-specific overrides |
+
+### Odoo.sh Staging SSH (env-first)
+
+```bash
+set -a && source .env.local && set +a
+ssh "$ODOO_SH_STAGING_SSH"
+```
+
+- Set `ODOO_SH_STAGING_SSH=BUILD_ID@…-staging-BUILD_ID.dev.odoo.com` (no leading `ssh `).
+- Build IDs rotate on rebuild — refresh from Odoo.sh Connect, then update `.env.local`.
+- Rule snapshot: `.cursor/rules/98-odoo-sh-staging.mdc`. Skill: `plasticos-odoo-sh-deploy`.
+
 | `~/.cursor/mcp.json` | MCP server keys (e.g. Context7) — user-level, not in repo |
 
 Copy keys from your password manager; do not commit secrets or sync them via the repo.
