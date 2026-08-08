@@ -43,19 +43,25 @@ class PlasticosPartnerImportService(models.AbstractModel):
 
     @api.model
     def resolve_default_csv_path(self, which: str) -> str:
-        """ICP absolute path if file exists, else module default CSV."""
+        """Resolve CSV path: configured ICP path, else module default.
+
+        Empty ICP → bundled module default. Non-empty ICP that is missing or
+        not a file → UserError (never silently fall back to the default).
+        """
         param = self.env["ir.config_parameter"].sudo()
         if which == "corporate":
             custom = (param.get_param(CONFIG_CORPORATE_CSV) or "").strip()
-            if custom and os.path.isfile(custom):
-                return custom
-            return os.path.join(self.get_module_path(), DEFAULT_CORPORATE_CSV)
-        if which == "facility":
+            default = os.path.join(self.get_module_path(), DEFAULT_CORPORATE_CSV)
+        elif which == "facility":
             custom = (param.get_param(CONFIG_FACILITY_CSV) or "").strip()
-            if custom and os.path.isfile(custom):
-                return custom
-            return os.path.join(self.get_module_path(), DEFAULT_FACILITY_CSV)
-        raise UserError("which must be 'corporate' or 'facility'")
+            default = os.path.join(self.get_module_path(), DEFAULT_FACILITY_CSV)
+        else:
+            raise UserError("which must be 'corporate' or 'facility'")
+        if not custom:
+            return default
+        if os.path.isfile(custom):
+            return custom
+        raise UserError(f"Configured {which} CSV path does not exist or is not a file: {custom}")
 
     @api.model
     def run_cietrade_default_import(self):
