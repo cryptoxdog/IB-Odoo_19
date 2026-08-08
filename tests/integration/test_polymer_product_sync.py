@@ -43,6 +43,7 @@ class TestProductBridgeWiring(PlasticosTestCase):
         # May be empty if demo data not loaded — skip gracefully
         if not products:
             self.skipTest("No recycling products seeded (demo data may not be loaded)")
+        self.assertTrue(products)
 
 
 @tagged("post_install", "-at_install", "product", "polymer")
@@ -70,6 +71,7 @@ class TestPolymerProductSync(PlasticosTestCase):
         # If no direct link, sync might use name-based lookup
         if not has_link:
             self.skipTest("No direct product link on polymer — may use name-based sync")
+        self.assertTrue(has_link)
 
     def test_polymer_create_generates_product(self):
         """Creating a polymer should auto-create a matching product."""

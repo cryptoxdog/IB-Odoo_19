@@ -18,7 +18,9 @@ alwaysApply: false
 "version": "1.0.0"
 ```
 
-When adding a new field or model: bump MINOR. When fixing a bug: bump PATCH. When adding a migration script: bump MINOR and add the migration.
+When adding a new field or model: bump MINOR. When fixing a bug: bump PATCH. When adding a migration script: bump PATCH/MINOR and add the migration folder matching the new version.
+
+**Mandatory:** do not ask whether to bump. Runtime-affecting changes require a version bump in the same change set. After bump, upgrade **only** that module (`make update m=<module>`). Skill: `plasticos-odoo-version-bump` / rule `89-plasticos-odoo-version-bump`.
 
 ## Depends Ordering (enforced by test_depends_order_respects_layers)
 

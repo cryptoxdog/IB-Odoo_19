@@ -1,5 +1,7 @@
 # Track B — Agent Handoff (Gate hub + CEG + EIE)
 
+**Status: OPEN — not fully executed.** Session-load TODO: [`memory-bank/tasks.md`](../../memory-bank/tasks.md) § "OPEN — Track B". Partial proof only (`LIVE_TRANSPORT_ROUNDTRIP_PASS`); full `LIVE_INTEGRATION_PASS` still required — see [`05_external_authority_readiness.md`](05_external_authority_readiness.md).
+
 **One handoff for all three external repos.** Read this first, then execute the per-repo files in numeric order: `01` → `02` → `03`.
 
 > Authority: [`docs/adr/ADR-002-gate-hub-phased-autonomy.md`](../adr/ADR-002-gate-hub-phased-autonomy.md), [`docs/GATE_AUTONOMY_ROADMAP.md`](../GATE_AUTONOMY_ROADMAP.md).
@@ -17,9 +19,11 @@ PlasticOS Odoo (`cryptoxdog/IB-Odoo_19`) ships a thin client addon `plasticos_ga
 - Sends `action="match"` for buyer matching (primary path, enabled by default when URL set).
 - Sends `action="converge"` for enrichment (**live by default** — enabled when URL set; results are auto-written to the partner).
 - Reads the response **`payload`** dict and **`header.packet_id` / `header.correlation_id`** for audit.
-- **Always falls back to a local engine** if Gate is unreachable, disabled, or errors. So Track B going down degrades gracefully; it never hard-breaks Odoo.
+- On Gate unreachable/disabled/error: Odoo **fails closed** with classified run state (retryable/permanent/degraded) — local matcher/enrichment engines were **retired (M7)** and are not architectural fallback. See [`ADR-003-single-external-intelligence-authority.md`](../adr/ADR-003-single-external-intelligence-authority.md) and proposed **ADR-013** in the [architecture convergence backlog](../adr/PROPOSED-ADR-BACKLOG-2026-08-architecture-convergence.md).
 
-**Implication:** Track B is what turns the *primary* path on. Until it exists, Odoo silently uses local matching/enrichment.
+**Implication:** Track B is the intelligence path. Without Gate+workers, match/enrichment actions surface operator-visible failure — they do not silently score locally.
+
+> **Stale note:** Older drafts of this handoff said “always falls back to a local engine.” That sentence is **superseded**.
 
 ---
 
@@ -185,7 +189,7 @@ SDK pinned in Odoo `requirements.txt`:
 1. Gate hub deployed and reachable; SDK `send_to_gate` round-trips a signed/validated packet.
 2. `action=match` routes to CEG; CEG returns the 3.2 response; Odoo "Match to Buyers" shows `score_breakdown.match_source == "gate"` and `gate_packet_id` populated.
 3. `action=converge` routes to EIE; Odoo enrichment run shows `engine_used == "gate"`, `state == "injected"`, `fields_written > 0`, and the allowlisted fields are live on the partner (with `plasticos.enrichment.provenance` rows). With `auto_writeback=0`, `state == "review"` and a `gate_proposal` is stored instead.
-4. Worker outage → Gate returns an error/timeout → Odoo logs and falls back to local (verify both paths).
+4. Worker outage → Gate returns an error/timeout → Odoo **fails closed** with classified run state (`retryable` / `permanent` / `degraded`) — no silent local score substitution (M7).
 5. `correlation_id` is preserved request→response for every action.
 
 ## 6. Validation snippet (run from Odoo after each milestone)

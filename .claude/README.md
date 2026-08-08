@@ -1,12 +1,13 @@
 # PlasticOS Agent Configuration
 
-Central registry for `.claude/agents/` (subagents) and `.claude/skills/` (project workflows + review kernels).
+Central registry for `.claude/agents/` (subagents). PlasticOS project skills live in repo-root `skills/` (SSOT); `.claude/skills/plasticos-*` are discovery symlinks only.
 
 **L9 universal skills** live in `@.cursor-commands/skills/l9-*/` (Dropbox SSOT via `.cursor-commands`). Not duplicated under `.claude/skills/` or `.cursor/governance/`.
 
 **Invocation tiers** (which L9 skills auto-invoke vs explicit-only) are defined in `@.cursor-commands/skills/AUTONOMY_MANIFEST.yaml` — keep it in sync when adding/removing an L9 skill (see Wiring Rules).
 
-Canonical law: `@.cursor/governance/CANONICAL_LAW.md`
+PlasticOS law (this repo): `@skills/PLASTICOS_CANONICAL_LAW.md`  
+Global L9 law (symlink — do not edit here): `@.cursor/governance/CANONICAL_LAW.md`
 
 ## Subagents
 
@@ -61,19 +62,21 @@ Personal skills — available in all repos via `~/.cursor/skills/`.
 
 ## Project Skills
 
-Repo-local under `.claude/skills/`.
+Repo SSOT under `skills/` (not an Odoo addon — like `scripts/` / `tools/`). Discovery symlinks: `.claude/skills/plasticos-*`.
 
 | Skill | Path | Trigger |
 |-------|------|---------|
 | **plasticos-new-odoo-module** | `skills/plasticos-new-odoo-module/` | Creating a new `plasticos_*` module |
 | **plasticos-new-model-field** | `skills/plasticos-new-model-field/` | Adding fields or models to existing modules |
 | **plasticos-xml-view** | `skills/plasticos-xml-view/` | Odoo 19 XML views (PlasticOS conventions) |
+| **plasticos-odoo-version-bump** | `skills/plasticos-odoo-version-bump/` | Manifest version bumps + scoped `make update m=` (mandatory; never ask) |
 | **plasticos-odoo-sh-deploy** | `skills/plasticos-odoo-sh-deploy/` | Odoo.sh production errors, SSH log diagnosis, deploy fixes |
 | **plasticos-odoo-docker-testing** | `skills/plasticos-odoo-docker-testing/` | Docker install-smoke / runtime tests before Odoo.sh |
 | **plasticos-static-audit-kernel** | `skills/plasticos-static-audit-kernel/` | Static audit command map and evidence contract |
 | **plasticos-pr-review-kernel** | `skills/plasticos-pr-review-kernel/` | `PR_REVIEW_MODE`, `REVIEW PR #N` — preloaded on code-reviewer |
 | **plasticos-repo-review-kernel** | `skills/plasticos-repo-review-kernel/` | Repo-wide readiness, go-live / pack review |
 | **plasticos-final-touches** | `skills/plasticos-final-touches/` | `FINAL_TOUCHES_MODE` — 10 pre-go-live gates |
+| **plasticos-prompt-pack** | `skills/plasticos-prompt-pack/` | Prompt-pack router (`AUDIT_MODE`, context primer, architecture chain) |
 
 ## Adapters
 
@@ -86,10 +89,10 @@ Repo-local under `.claude/skills/`.
 
 1. **Skill `name` must match directory name.**
 2. **L9 globals:** `l9-` prefix, live in `~/.cursor/skills/`, register in **L9 Global Skills** + `AGENTS.md`.
-3. **Project skills:** live in `.claude/skills/`, register in **Project Skills** + `AGENTS.md`.
+3. **Project skills:** SSOT in `skills/`; discovery symlinks under `.claude/skills/plasticos-*`. Register in **Project Skills** + `AGENTS.md` + `skills/PLASTICOS_SKILLS_MANIFEST.yaml`. All `plasticos-*` skills are **auto-invoke** (`disable-model-invocation: false`). Never add `__manifest__.py` under `skills/`.
 4. Subagents preload via frontmatter `skills:` list.
 5. Load **`l9-structured-reasoning`** for non-trivial planning and debugging.
-6. **New skills:** run **`l9-wire-skill-into-repo`** after **`l9-skill-compiler`**. L9 packs live in `@.cursor-commands/skills/l9-*/` — never repo `.cursor/skills/`. PlasticOS adapter: `adapters/plasticos-repo-wiring.md`. **Law:** `@.cursor/governance/CANONICAL_LAW.md`.
+6. **New skills:** run **`l9-wire-skill-into-repo`** after **`l9-skill-compiler`**. L9 packs live in `@.cursor-commands/skills/l9-*/` — never repo `.cursor/skills/`. PlasticOS adapter: `adapters/plasticos-repo-wiring.md`. **PlasticOS law:** `@skills/PLASTICOS_CANONICAL_LAW.md`. Global: `@.cursor/governance/CANONICAL_LAW.md` (symlink).
 
 ## Related Config
 

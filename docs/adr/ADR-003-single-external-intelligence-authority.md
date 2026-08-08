@@ -142,3 +142,4 @@ Until those observations are recorded for a given environment, mothball status i
 - Consumer wiring: [`docs/track_b/04_odoo_gate_consumer_wiring.md`](../track_b/04_odoo_gate_consumer_wiring.md)
 - Readiness (M0): [`docs/track_b/05_external_authority_readiness.md`](../track_b/05_external_authority_readiness.md)
 - External repos: Constellation.Gate, Cognitive.Engine.Graphs, Enrichment.Inference.Engine, Gate_SDK
+- Enrichment selection/ranking not in Odoo: [`ADR-009-enrichment-selection-ranking-not-in-odoo.md`](ADR-009-enrichment-selection-ranking-not-in-odoo.md)

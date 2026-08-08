@@ -65,9 +65,13 @@ class TestAPIFailures(PlasticosTestCase):
         partner = self._partner("Geo Timeout")
         us_country = self.env.ref("base.us", raise_if_not_found=False)
         partner.write({"city": "Test", "country_id": us_country.id if us_country else False})
-        if hasattr(partner, "cron_geo_backfill"):
-            with patch("requests.get", side_effect=Exception("Timeout")):
-                partner.cron_geo_backfill()
+        if not hasattr(partner, "cron_geo_backfill"):
+            self.skipTest("cron_geo_backfill not available")
+        with patch("requests.get", side_effect=Exception("Timeout")):
+            partner.cron_geo_backfill()
+        # Timeout must not destroy the partner or raise out of the cron.
+        self.assertTrue(partner.exists())
+        self.assertEqual(partner.city, "Test")
 
     def test_ai_normalize_failure_sets_error_state(self):
         if "plasticos.web.lead" not in self.env:

@@ -128,15 +128,20 @@ class TestCronEmptyRecordset(PlasticosTestCase):
                 "valid_until": False,
             }
         )
-        # Should not raise
-        Offer.cron_expire_offers()
+        try:
+            Offer.cron_expire_offers()
+        except Exception as exc:
+            self.fail(f"cron_expire_offers raised on empty set: {exc}")
 
     def test_batch_normalize_empty_db(self):
         """No intakes to normalize — should succeed."""
         try:
             Intake = self.env["plasticos.intake"]
-            if not hasattr(Intake, "cron_batch_normalize"):
-                self.skipTest("cron method not available")
-            Intake.cron_batch_normalize()
         except KeyError:
             self.skipTest("not installed")
+        if not hasattr(Intake, "cron_batch_normalize"):
+            self.skipTest("cron method not available")
+        try:
+            Intake.cron_batch_normalize()
+        except Exception as exc:
+            self.fail(f"cron_batch_normalize raised on empty set: {exc}")

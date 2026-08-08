@@ -6,6 +6,8 @@
 **Scope:** External intelligence integration (`plasticos_buyer_match_engine`, `plasticos_enrichment`, brokerage pipeline)  
 **Related:** [GATE_AUTONOMY_ROADMAP.md](../GATE_AUTONOMY_ROADMAP.md), [ARCHITECTURE.md](../../ARCHITECTURE.md)
 
+> **Supersession (2026-08-07):** §2 “Odoo local engines are fallback” is **not** architectural authority. Binding rules: [ADR-003-single-external-intelligence-authority.md](ADR-003-single-external-intelligence-authority.md) (Gate → CEG/EIE only) and [ADR-013-fail-closed-gate-transport.md](ADR-013-fail-closed-gate-transport.md) (no silent local intelligence). Hub topology and phased human checkpoints in this ADR remain binding unless a later ADR amends them. See also ADR-009–019 architecture convergence set.
+
 ## Context
 
 PlasticOS matching and enrichment will move to external engines that are more capable than in-Odoo implementations:

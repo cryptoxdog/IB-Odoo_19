@@ -90,7 +90,18 @@ Cursor overlay: `.cursor/rules/88-plasticos-odoo-python-tooling.mdc`. Global `20
 
 ## Agent Skills & Subagents
 
-Skills: L9 globals in `~/.cursor/skills/l9-*/`; project skills in `.claude/skills/`. Full registry: `.claude/README.md`. Invocation tiers (which L9 skills auto-invoke vs explicit-only) are defined in `@.cursor-commands/skills/AUTONOMY_MANIFEST.yaml`.
+**PlasticOS law (this repo):** `skills/PLASTICOS_CANONICAL_LAW.md`  
+**Global L9 law (symlink — do not edit from IB-Odoo_19):** `.cursor/governance/CANONICAL_LAW.md`
+
+| Class | SSOT | Notes |
+|-------|------|-------|
+| PlasticOS project skills (`plasticos-*`) | `skills/` | Repo-owned; not an Odoo addon (like `scripts/` / `tools/`) |
+| Manifest | `skills/PLASTICOS_SKILLS_MANIFEST.yaml` | All `invocation: auto` |
+| Discovery adapters | `.claude/skills/plasticos-*` | Symlinks into `skills/` only — edit SSOT, not the link |
+| L9 global skills (`l9-*`) | `@.cursor-commands/skills/l9-*/` | Cursor-Governance / GlobalCommands |
+| Invocation tiers (L9 only) | `@.cursor-commands/skills/AUTONOMY_MANIFEST.yaml` | PlasticOS skills are always auto-invoke |
+
+Full project registry: `.claude/README.md`. Validate: `make check-plasticos-skills`.
 
 | Skill | When to load | Primary `make` targets |
 |-------|--------------|------------------------|
@@ -132,6 +143,7 @@ Skills: L9 globals in `~/.cursor/skills/l9-*/`; project skills in `.claude/skill
 | `plasticos-new-odoo-module` | Scaffolding a new `plasticos_*` module | `wiring`, `pr-check` |
 | `plasticos-new-model-field` | Adding fields or models to existing modules | `wiring`, `pr-check` |
 | `plasticos-xml-view` | Creating or modifying Odoo XML views | `odoo19-check`, `xml-check` |
+| `plasticos-odoo-version-bump` | Changing plasticos_* runtime code/XML/migrations — **mandatory** version bump + scoped `-u` only | `update` |
 | `plasticos-odoo-sh-deploy` | Odoo.sh production errors — SSH diagnose before fix | `logs`, `update`, `test-module` |
 | `plasticos-odoo-docker-testing` | Docker install-smoke + Odoo runtime tests before Odoo.sh | `install-smoke`, `test-odoo`, `test-module` |
 | `plasticos-static-audit-kernel` | Broad static audit / evidence report | `audit`, `audit-quick` |
@@ -143,11 +155,12 @@ Skills: L9 globals in `~/.cursor/skills/l9-*/`; project skills in `.claude/skill
 | Subagent | Preloaded skills | Delegate for |
 |----------|------------------|--------------|
 | `plasticos-code-reviewer` | `l9-structured-reasoning`, `plasticos-pr-review-kernel` | PR review, invariant compliance |
-| `module-auditor` | `l9-structured-reasoning`, `plasticos-new-odoo-module`, `plasticos-new-model-field` | Module audit — attach `plasticos-repo-review-kernel` or `plasticos-static-audit-kernel` |
+| `module-auditor` | `l9-structured-reasoning`, `plasticos-new-odoo-module`, `plasticos-new-model-field`, `plasticos-odoo-version-bump`, `plasticos-odoo-docker-testing` | Module audit — attach `plasticos-repo-review-kernel` or `plasticos-static-audit-kernel` |
 
 ## Project Structure
 
 ```
+skills/                # PlasticOS agent skills SSOT (NOT an Odoo addon; see PLASTICOS_CANONICAL_LAW)
 plasticos_base/              # Layer 1: Core seed data, feature gates, partner tags
 plasticos_security_base/     # Layer 1: RBAC roles, record rules, ACL
 plasticos_material_profile/  # Layer 1: Material master (polymer, form, color, source)
@@ -155,11 +168,11 @@ plasticos_product/           # Layer 1: Scrap plastic product catalog
 plasticos_facility_profile/  # Layer 2: Facility capabilities, equipment, tolerances
 plasticos_intake/            # Layer 2: Material intake with contact intelligence
 plasticos_intake_normalizer/ # Layer 2: L9 packet normalization
-plasticos_matching/          # Layer 2: Match result storage (Gate-mediated authority)
+plasticos_matching/          # Layer 2: Gate match orchestrator + result store (ADR-015; CEG scores)
 plasticos_geolocalize/       # Layer 2: Auto-geocode + nightly backfill
-plasticos_gate/              # Layer 2: Constellation Gate TransportPacket client (ADR-002)
-plasticos_enrichment/        # Layer 2: Gate-mediated partner enrichment (local inference retired M7)
-plasticos_web_leads/         # Layer 2: AI lead triage (Cognito → LLM → HOT/COLD)
+plasticos_gate/              # Layer 2: Sole TransportPacket client (ADR-002 / ADR-011)
+plasticos_enrichment/        # Layer 2: Gate converge orchestrator + writeback shell (ADR-012/015; ranking ADR-009)
+plasticos_web_leads/         # Layer 2: AI lead triage local Phase 1 (ADR-016; not enrichment ranking)
 plasticos_accounting/        # Layer 3: Chart of accounts, payment terms, incoterms
 plasticos_offer/             # Layer 3: Offer lifecycle (match → negotiation → deal)
 plasticos_order_lines/       # Layer 3: PO/SO lines with material specs
@@ -495,6 +508,7 @@ from running silently. Always run `pre-commit run --all-files` locally before pu
 - Declare dependencies in `__manifest__.py` before importing
 - Seed data in XML with `noupdate="1"` and external IDs
 - Run `python3 scripts/check_module_wiring.py` before commit
+- Keep PlasticOS skills under `skills/` (repo law: `skills/PLASTICOS_CANONICAL_LAW.md`); run `make check-plasticos-skills` when adding or moving skills
 
 ### ⚠️ Ask First
 - Adding new modules (affects dependency graph and install order)
@@ -502,7 +516,7 @@ from running silently. Always run `pre-commit run --all-files` locally before pu
 - Changing security groups or record rules
 - Adding new `ir.cron` scheduled actions
 - Neo4j integration changes (graph boundary rules apply)
-- Gate / CEG / EIE integration (follow `docs/adr/ADR-003-single-external-intelligence-authority.md`, ADR-002 topology, and `docs/GATE_AUTONOMY_ROADMAP.md`)
+- Gate / CEG / EIE integration (follow `docs/adr/ADR-003-single-external-intelligence-authority.md`, ADR-002 topology, ADR-009–018 convergence set, and `docs/GATE_AUTONOMY_ROADMAP.md`)
 - Schema changes to `res.partner` (partner model constraints)
 
 ### 🚫 Never
@@ -525,3 +539,19 @@ from running silently. Always run `pre-commit run --all-files` locally before pu
 - Apply Gate web-lead triage in Phase 1 (see GATE_AUTONOMY_ROADMAP.md) — triage stays Odoo-local until Phase 3
 - Overwrite `docs/adr/ADR-003-contact-import-configuration.md` when editing the mothball ADR-003-single file (filename collision)
 
+<!-- BEGIN L9 FORMATTER OWNERSHIP (generated — do not edit) -->
+
+## Formatter ownership
+
+Workspace class: `biome_default` — Default for every governed workspace: Biome owns JS/TS/JSON, Ruff owns Python.
+
+Exactly one formatter owns each language. Do not reformat a file with a tool other than its owner, and do not add config for a competing formatter: the result is a diff that churns on every save.
+
+| Languages | Owner | Note |
+|---|---|---|
+| `javascript`, `javascriptreact`, `typescript`, `typescriptreact`, `json`, `jsonc` | **biome** | bound by the governed IDE profile |
+| `python` | **ruff** | bound by the governed IDE profile |
+
+Generated from `environment/ide/policy.json` in the governance clone by `ops/scripts/adapters/agentdocs.sh`. Edit the policy, not this block.
+
+<!-- END L9 FORMATTER OWNERSHIP -->

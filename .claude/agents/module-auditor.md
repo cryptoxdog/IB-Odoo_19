@@ -9,6 +9,7 @@ skills:
   - plasticos-new-odoo-module
   - plasticos-new-model-field
   - plasticos-odoo-docker-testing
+  - plasticos-odoo-version-bump
 ---
 
 You are a module structure auditor for the PlasticOS Odoo 19 repository.
@@ -21,6 +22,7 @@ Apply preloaded skills in this order:
 2. **l9-code-graph-rag-mcp** — cross-module importers and impact via code-graph (grep/manifest first; never chat-index)
 3. **plasticos-new-odoo-module** — validate against module creation checklist when auditing new modules
 4. **plasticos-new-model-field** — validate field/model patterns when auditing model changes
+5. **plasticos-odoo-version-bump** — runtime changes must bump manifest; scoped `-u` only
 
 ## Your Role
 Audit a specific module or set of modules for structural correctness, dependency integrity, and Odoo 19 compliance.

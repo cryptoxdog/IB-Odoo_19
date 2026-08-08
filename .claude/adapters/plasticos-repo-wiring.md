@@ -1,15 +1,31 @@
 # Repo Wiring Contract (PlasticOS)
 
 > **Canonical workflow:** global **`l9-wire-skill-into-repo`** (`@.cursor-commands/skills/l9-wire-skill-into-repo/SKILL.md`).
+>
+> **PlasticOS law (this repo):** `@skills/PLASTICOS_CANONICAL_LAW.md` — do **not** edit Cursor-Governance `CANONICAL_LAW.md` for PlasticOS skill paths.
 
 ## Skill Locations
 
 | Scope | Location | Registry |
 |-------|----------|----------|
 | **L9 global** | `@.cursor-commands/skills/l9-{name}/` | **L9 Global Skills** table + `AGENTS.md` |
-| **Project (PlasticOS)** | `.claude/skills/plasticos-*/` | **Project Skills** table + `AGENTS.md` |
+| **Project (PlasticOS)** | `skills/plasticos-*/` (SSOT) | **Project Skills** table + `AGENTS.md` + manifest |
+| **Discovery adapters** | `.claude/skills/plasticos-*` → `../../skills/...` | Symlinks only — do not edit |
 
-All PlasticOS project skills use the **`plasticos-` prefix** on directory name and frontmatter `name`. Do **not** duplicate L9 packs under `.claude/skills/`. Do **not** create `agents/openai.yaml`.
+All PlasticOS project skills use the **`plasticos-` prefix** on directory name and frontmatter `name`. Do **not** store PlasticOS skill SSOT under `.claude/skills/` or Cursor-Governance. Do **not** duplicate L9 packs under `skills/`. Do **not** create `agents/openai.yaml`.
+
+## PlasticOS skills manifest (project SSOT)
+
+Every `plasticos-*` pack MUST appear in `skills/PLASTICOS_SKILLS_MANIFEST.yaml`
+with `invocation: auto`. Validate:
+
+```bash
+python3 scripts/check_plasticos_skills_registry.py
+```
+
+**Auto-invoke law:** project skills are never explicit-only. Frontmatter must set
+`disable-model-invocation: false` (or omit only if the checker still sees auto —
+prefer explicit `false`).
 
 ## Register in `.claude/README.md`
 
@@ -73,6 +89,11 @@ When skill tables change, run **`l9-update-agent-docs`** (adapter: `plasticos-up
 - [ ] L9 globals in **L9 Global Skills** table only
 - [ ] Project skills in **Project Skills** table only
 - [ ] Row in `AGENTS.md`
+- [ ] Pack under `skills/plasticos-*` (SSOT; no `__manifest__.py`)
+- [ ] Row in `skills/PLASTICOS_SKILLS_MANIFEST.yaml` with `invocation: auto`
+- [ ] Discovery symlink `.claude/skills/plasticos-*` → `../../skills/...`
+- [ ] `disable-model-invocation: false` (auto-invoke)
+- [ ] `python3 scripts/check_plasticos_skills_registry.py` passes
 - [ ] L9 global skill in `AUTONOMY_MANIFEST.yaml` — exactly one tier (auto vs explicit)
 - [ ] Subagent `skills:` updated when preload required
 - [ ] No stale unprefixed paths (`new-odoo-module`, `odoo-sh-deploy`, etc.)

@@ -1,0 +1,11 @@
+﻿CpID,CompanyNm,Role,ActiveStatus,MasterAccountID,OurCustNo,Terms,TermsCode,APEMail,PaymentDays,CurrCode,OnHold,CreditLimit
+2649,#1 POLYMER SOURCE INC,V,A,NULL,,(None)                        ,Net 30                         ,NULL,0,USD, ,0
+(INV)       ,(Inventory),P,A,NULL,NULL,,3,,NULL,USD,NULL,-1
+(OTHER)     ,(OTHER),A,A,NULL,NULL,,                               ,,NULL,USD,NULL,-1
+(PLANT)     ,(Plant),P,A,NULL,NULL,,3,,NULL,USD,NULL,-1
+1004,[STAGING],D,A,NULL,NULL,(None),Net 30                         ,NULL,NULL,USD,NULL,-1
+{C}         ,{Converting),C,A,NULL,NULL,,                               ,,NULL,USD,NULL,-1
+2257,29 LOGISTICS LLC,D,A,NULL,,(None)                        ,Net 30                         ,NULL,0,USD, ,0
+2432,3 RIVERS LOGISTICS INC,D,A,NULL,,(None)                        ,Net 30                         ,NULL,0,USD, ,0
+2334,360RESINS LLC,A,A,NULL,,Net 10                        ,Net 10                         ,NULL,0,USD, ,0
+2129,3L Distribution,A,A,NULL,,Net 30                        ,Net 30                         ,NULL,0,USD, ,0
