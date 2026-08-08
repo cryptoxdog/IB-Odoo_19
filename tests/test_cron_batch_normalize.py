@@ -96,14 +96,20 @@ class TestBatchNormalizeCron(PlasticosTestCase):
 
     def test_advisory_lock_skip(self):
         """Cron skips when lock held."""
-        with patch.object(self.env.cr, "execute"), patch.object(self.env.cr, "fetchone", return_value=(False,)):
+        with (
+            patch.object(self.env.cr, "execute"),
+            patch.object(self.env.cr, "fetchone", return_value=(False,)),
+            patch.object(self.Intake.__class__, "search") as m_search,
+        ):
             self.Intake.cron_batch_normalize()
+            m_search.assert_not_called()
 
     def test_creates_automation_log(self):
         """Normalized intake creates automation log entry."""
         intake = self._create_intake()
         self.Intake.cron_batch_normalize()
-        # Log is written via _log_normalization
+        # Log is written via _log_normalization — intake must still exist after cron.
+        self.assertTrue(intake.exists())
 
     def test_normalization_warnings_stored(self):
         """Non-blocking warnings are stored on the intake."""

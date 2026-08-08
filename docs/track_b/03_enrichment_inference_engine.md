@@ -7,6 +7,8 @@
 
 > Read [`00_AGENT_HANDOFF.md`](00_AGENT_HANDOFF.md) §3.3. Odoo writes back **only** allowlisted partner fields: `name, website, city, zip, street, street2, email, phone`.
 
+> **EIE is the executor, not the selector.** Which partners/entities to enrich and in what order is **not** an EIE (or Odoo) responsibility — CEG `engine/health/` ranks from the domain spec; Odoo only triggers converge + maps CRM writeback. See [`ADR-009`](../adr/ADR-009-enrichment-selection-ranking-not-in-odoo.md). The retired Odoo enrichment cron is not the product ranking design.
+
 ---
 
 ## Execution steps (in order, with rationale)

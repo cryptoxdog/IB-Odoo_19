@@ -6,6 +6,8 @@
 
 > Read [`00_AGENT_HANDOFF.md`](00_AGENT_HANDOFF.md) §3.2 for the exact request/response. Do not invent a different shape — Track A's `map_match_response` parses it as-is.
 
+> **Enrichment ranking (not match):** CEG also owns readiness/gap/ROI **enrichment selection** under `engine/health/` (domain-spec driven). That queue is **not** implemented in IB-Odoo_19 — see [`ADR-009`](../adr/ADR-009-enrichment-selection-ranking-not-in-odoo.md). Do not ask Odoo to reimplement it.
+
 ---
 
 ## Execution steps (in order, with rationale)

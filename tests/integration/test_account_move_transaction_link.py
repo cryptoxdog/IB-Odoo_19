@@ -265,7 +265,9 @@ class TestAccountMoveUnlinkGuard(PlasticosTestCase):
             }
         )
         # No tx link — should succeed
+        move_id = move.id
         move.unlink()
+        self.assertFalse(self.env["account.move"].browse(move_id).exists())
 
 
 @tagged("post_install", "-at_install", "accounting", "critical")

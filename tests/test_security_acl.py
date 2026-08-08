@@ -43,7 +43,9 @@ class TestTransactionACL(PlasticosTestCase):
 
     def test_base_user_can_read(self):
         tx = self._create_tx()
-        tx.with_user(self.base_user).read(["name", "state"])
+        data = tx.with_user(self.base_user).read(["name", "state"])
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["state"], tx.state)
 
     def test_base_user_can_create(self):
         tx = self._create_tx(user=self.base_user)
@@ -146,6 +148,7 @@ class TestClaimACL(PlasticosTestCase):
     def test_claim_manager_can_unlink(self):
         c = self._claim()
         c.with_user(self.claim_mgr).unlink()
+        self.assertFalse(c.exists())
 
     def test_no_group_cannot_read(self):
         c = self._claim()

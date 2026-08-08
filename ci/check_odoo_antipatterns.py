@@ -138,6 +138,7 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
         self.in_model_class = False
         self.in_onchange = False
         self.current_decorators: list[str] = []
+        self._dict_param_names: set[str] = set()
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         """Track if we're inside an Odoo model class."""
@@ -166,6 +167,14 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
                 self.current_decorators.append(dec.func.attr)
 
         self.in_onchange = "onchange" in self.current_decorators
+
+        # Track annotated dict parameters so dict(name) is not false-flagged (ODOO005).
+        prev_dict_params = getattr(self, "_dict_param_names", set())
+        dict_names = set(prev_dict_params)
+        for arg in (*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs):
+            if arg.annotation is not None and self._annotation_is_dict(arg.annotation):
+                dict_names.add(arg.arg)
+        self._dict_param_names = dict_names
 
         # Check for __init__ in model classes
         if self.in_model_class and node.name == "__init__":
@@ -200,6 +209,7 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
                             )
 
         self.generic_visit(node)
+        self._dict_param_names = prev_dict_params
         self.in_onchange = False
         self.current_decorators = []
 
@@ -214,20 +224,24 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
         # The preferred pattern is recordset.ids but list() isn't always wrong.
         # Disabled to reduce false positives.
 
-        # Check for dict(record)
+        # Check for dict(record) — skip plain dict parameters named like records.
         if isinstance(node.func, ast.Name) and node.func.id == "dict":
             if node.args and self._looks_like_record(node.args[0]):
-                self.issues.append(
-                    AntiPatternIssue(
-                        file=self.filepath,
-                        line=node.lineno,
-                        code="ODOO005",
-                        pattern="dict(record)",
-                        message="Don't use dict() on records",
-                        fix="Use record.read()[0] or record.read(['field1', 'field2'])[0]",
-                        severity="MEDIUM",
+                arg0 = node.args[0]
+                if isinstance(arg0, ast.Name) and arg0.id in getattr(self, "_dict_param_names", set()):
+                    pass  # typed dict[str, …] parameter — not an ORM record
+                else:
+                    self.issues.append(
+                        AntiPatternIssue(
+                            file=self.filepath,
+                            line=node.lineno,
+                            code="ODOO005",
+                            pattern="dict(record)",
+                            message="Don't use dict() on records",
+                            fix="Use record.read()[0] or record.read(['field1', 'field2'])[0]",
+                            severity="MEDIUM",
+                        )
                     )
-                )
 
         self.generic_visit(node)
 
@@ -292,33 +306,48 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    @staticmethod
+    def _annotation_is_dict(annotation: ast.expr) -> bool:
+        """True for dict / Dict[...] / dict[str, Any] style annotations."""
+        if isinstance(annotation, ast.Name) and annotation.id in ("dict", "Dict", "Mapping"):
+            return True
+        if isinstance(annotation, ast.Attribute) and annotation.attr in ("Dict", "Mapping"):
+            return True
+        if isinstance(annotation, ast.Subscript):
+            return OdooAntiPatternChecker._annotation_is_dict(annotation.value)
+        return False
+
     def _looks_like_recordset(self, node: ast.expr) -> bool:
-        """Heuristic to detect if a node is likely a recordset."""
+        """Heuristic to detect if a node is likely a recordset.
+
+        Bare names ending in ``_id`` (e.g. ``matched_id`` from SQL) are integer
+        PKs/FKs — not recordsets. Many2one *attributes* (``self.partner_id``)
+        remain recordsets and are still flagged.
+        """
         if isinstance(node, ast.Attribute):
-            # self.field_ids, self.line_ids, etc.
             if node.attr.endswith("_ids") or node.attr.endswith("_id"):
                 return True
-            # Common recordset names
             if node.attr in ("records", "partners", "users", "lines", "moves", "orders"):
                 return True
         if isinstance(node, ast.Name):
-            # Variable names that suggest recordsets
             name = node.id.lower()
-            if name.endswith("_ids") or name.endswith("_id"):
+            # Plural / explicit recordset locals only — not scalar ``*_id`` ints.
+            if name.endswith("_ids"):
                 return True
             if name in ("records", "partners", "users", "lines", "moves", "orders", "self"):
                 return True
         if isinstance(node, ast.Call):
-            # search(), browse(), filtered(), etc.
             if isinstance(node.func, ast.Attribute):
                 if node.func.attr in ("search", "browse", "filtered", "mapped", "sorted"):
                     return True
         return False
 
     def _looks_like_record(self, node: ast.expr) -> bool:
-        """Heuristic to detect if a node is likely a single record."""
+        """Heuristic to detect if a node is likely a single ORM record."""
         if isinstance(node, ast.Name):
             name = node.id.lower()
+            if name in getattr(self, "_dict_param_names", set()):
+                return False
             if name in ("record", "rec", "partner", "user", "line", "move", "order", "self"):
                 return True
         if isinstance(node, ast.Attribute):
