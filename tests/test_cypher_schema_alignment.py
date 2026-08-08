@@ -382,6 +382,7 @@ class TestNodePropertyConsistency:
             pytest.skip("Potential schema drift detected (review manually):\n  " + "\n  ".join(issues))
         assert not issues
 
+
 # ═════════════════════════════════════════════════════════════════════════
 # TEST: SCHEMA ALIGNMENT DOCUMENTATION
 # ═════════════════════════════════════════════════════════════════════════

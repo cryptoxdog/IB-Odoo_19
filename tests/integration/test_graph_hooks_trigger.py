@@ -69,6 +69,7 @@ class TestGraphHookMethodsExist(PlasticosTestCase):
             self.skipTest("No graph hooks on material profile")
         self.assertTrue(has_any)
 
+
 @tagged("post_install", "-at_install", "graph", "hooks")
 class TestGraphSyncLogModel(PlasticosTestCase):
     """Graph sync log captures sync events."""
