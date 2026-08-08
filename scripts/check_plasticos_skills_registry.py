@@ -122,9 +122,14 @@ def main() -> int:
         entry = manifest.get(d.name, {})
         if entry.get("invocation") != "auto":
             errors.append(f"manifest invocation not auto: {d.name}={entry.get('invocation')}")
-        path = entry.get("path", "")
-        if path and not path.startswith("skills/"):
-            errors.append(f"manifest path must be under skills/: {d.name} -> {path}")
+        path = (entry.get("path") or "").strip().rstrip("/")
+        expected_path = f"skills/{d.name}"
+        if not path:
+            errors.append(f"manifest path missing: {d.name}")
+        elif path != expected_path:
+            errors.append(f"manifest path must be {expected_path}/: {d.name} -> {path}")
+        elif not (SKILLS_ROOT / d.name).is_dir():
+            errors.append(f"manifest path target missing on disk: {expected_path}/")
 
         # Discovery symlink
         link = DISCOVERY / d.name
