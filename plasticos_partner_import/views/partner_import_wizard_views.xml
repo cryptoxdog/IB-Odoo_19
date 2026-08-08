@@ -8,6 +8,15 @@
         <field name="arch" type="xml">
             <form string="Import Partners">
                 <group invisible="state != 'draft'">
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Deprecated menu path:</strong>
+                        cieTrade partner CSV import is Settings-only.
+                        Use <strong>Settings → PlasticOS Partner Import → Run cieTrade Partner Import</strong>
+                        (server CSV paths; no browser upload).
+                        This wizard has no Contacts / PlasticOS menu entry — emergency Technical access only.
+                    </div>
+                </group>
+                <group invisible="state != 'draft'">
                     <group string="Import Options">
                         <field name="import_mode"/>
                         <field name="use_default_files"/>
@@ -55,7 +64,7 @@
         </field>
     </record>
 
-    <!-- Wizard Action -->
+    <!-- Wizard Action (no menuitem — Settings one-shot is the operator path) -->
     <record id="action_partner_import_wizard" model="ir.actions.act_window">
         <field name="name">Import Partners</field>
         <field name="res_model">plasticos.partner.import.wizard</field>
@@ -63,18 +72,7 @@
         <field name="target">new</field>
     </record>
 
-    <!-- Menu Item under Contacts -->
-    <menuitem id="menu_partner_import_wizard"
-              name="Import Partners (CSV)"
-              parent="contacts.menu_contacts"
-              action="action_partner_import_wizard"
-              sequence="100"/>
-
-    <!-- Also add to PlasticOS menu (parent from plasticos_intake; dependency guarantees it exists) -->
-    <menuitem id="menu_partner_import_wizard_plasticos"
-              name="Import Partners"
-              parent="plasticos_base.plasticos_root_menu"
-              action="action_partner_import_wizard"
-              sequence="90"/>
+    <!-- Wizard Action kept for emergency Technical access; menus removed -->
+    <!-- Former Contacts / PlasticOS menus cleaned by migrations/19.0.2.7.3/post-migrate.py -->
 
 </odoo>
