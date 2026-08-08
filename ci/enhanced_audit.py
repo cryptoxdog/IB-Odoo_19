@@ -138,6 +138,9 @@ class EnhancedFieldAudit:
             "venv",
             "node_modules",
             "Current Work - IGNORE",
+            "skills",
+            "scripts",
+            "tools",
         }
 
         for manifest in self.root_dir.rglob("__manifest__.py"):

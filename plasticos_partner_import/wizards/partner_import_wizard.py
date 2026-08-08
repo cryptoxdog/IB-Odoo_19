@@ -11,12 +11,6 @@ from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
-# Default filenames relative to module directory (overridable via ir.config_parameter)
-DEFAULT_CORPORATE_CSV = "1. Counterparties - Parent - CORPORATE-Ready To Import.csv"
-DEFAULT_FACILITY_CSV = "2. Counterparties - Child - FACILITY LOCATIONS.csv"
-CONFIG_CORPORATE_CSV = "plasticos_partner_import.default_corporate_csv"
-CONFIG_FACILITY_CSV = "plasticos_partner_import.default_facility_csv"
-
 
 class PartnerImportWizard(models.TransientModel):
     _name = "plasticos.partner.import.wizard"
@@ -71,33 +65,10 @@ class PartnerImportWizard(models.TransientModel):
     )
 
     def _get_module_path(self):
-        """Get the path to the plasticos_partner_import module."""
-        module = self.env["ir.module.module"].search([("name", "=", "plasticos_partner_import")], limit=1)
-        if not module:
-            raise UserError(_("Module plasticos_partner_import not found."))
-
-        # Get module path from addons
-        import odoo.modules.module as mod
-
-        path = mod.get_module_path("plasticos_partner_import")
-        if not path:
-            raise UserError(_("Could not determine module path."))
-        return path
+        return self.env["plasticos.partner.import.service"].get_module_path()
 
     def _get_default_csv_path(self, which: str) -> str:
-        """Resolve path for default CSV; ir.config_parameter overrides built-in path."""
-        param = self.env["ir.config_parameter"].sudo()
-        if which == "corporate":
-            custom = param.get_param(CONFIG_CORPORATE_CSV)
-            if custom and os.path.isfile(custom):
-                return custom
-            return os.path.join(self._get_module_path(), DEFAULT_CORPORATE_CSV)
-        if which == "facility":
-            custom = param.get_param(CONFIG_FACILITY_CSV)
-            if custom and os.path.isfile(custom):
-                return custom
-            return os.path.join(self._get_module_path(), DEFAULT_FACILITY_CSV)
-        raise ValueError("which must be 'corporate' or 'facility'")
+        return self.env["plasticos.partner.import.service"].resolve_default_csv_path(which)
 
     def _save_uploaded_file(self, binary_data, filename):
         """Save uploaded binary to temp file and return path."""
@@ -118,7 +89,6 @@ class PartnerImportWizard(models.TransientModel):
         self.ensure_one()
 
         import_svc = self.env["plasticos.partner.import.service"]
-        module_path = self._get_module_path()
 
         corporate_path = None
         facility_path = None
@@ -128,12 +98,12 @@ class PartnerImportWizard(models.TransientModel):
             # Determine file paths
             if self.use_default_files:
                 if self.import_mode in ("full", "corporate_only"):
-                    corporate_path = os.path.join(module_path, DEFAULT_CORPORATE_CSV)
+                    corporate_path = self._get_default_csv_path("corporate")
                     if not os.path.exists(corporate_path):
                         raise UserError(_("Default corporate CSV not found: %s") % corporate_path)
 
                 if self.import_mode in ("full", "facility_only"):
-                    facility_path = os.path.join(module_path, DEFAULT_FACILITY_CSV)
+                    facility_path = self._get_default_csv_path("facility")
                     if not os.path.exists(facility_path):
                         raise UserError(_("Default facility CSV not found: %s") % facility_path)
             else:

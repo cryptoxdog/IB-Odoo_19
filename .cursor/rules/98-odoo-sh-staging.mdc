@@ -1,7 +1,7 @@
 ---
 id: plasticos.rule.odoo-sh-staging
-version: 1.0.0
-description: PlasticOS Odoo.sh staging endpoint, deployment trigger, and operator access reference.
+version: 1.1.0
+description: PlasticOS Odoo.sh staging endpoint; .env.local is SSH SSOT (build IDs rotate).
 scope: repository
 domain: deployment
 activation: agent_requested
@@ -11,43 +11,47 @@ alwaysApply: false
 ---
 # Odoo.sh Staging Environment
 
-**Effective:** 2026-03-31
+**Effective:** 2026-08-07
 
-## Staging instance
+## SSH SSOT (mandatory)
+
+Live Connect credentials live in **repo-root `.env.local`** (gitignored):
+
+| Key | Format |
+|---|---|
+| `ODOO_SH_STAGING_SSH` | `BUILD_ID@cryptoxdog-ib-odoo-19-staging-BUILD_ID.dev.odoo.com` |
+| `ODOO_SH_STAGING_URL` | `https://cryptoxdog-ib-odoo-19-staging-BUILD_ID.dev.odoo.com/odoo` |
+| `ODOO_SH_STAGING_BRANCH` | `Staging` |
+
+**Canonical connect (agents + operators):**
+
+```bash
+set -a && source .env.local && set +a
+ssh "$ODOO_SH_STAGING_SSH"
+```
+
+Rules:
+
+1. **Never** put a literal `ssh ` prefix inside `ODOO_SH_STAGING_SSH` (breaks `ssh "$ODOO_SH_STAGING_SSH"`).
+2. Odoo.sh **rotates build IDs** on every Staging rebuild — update `.env.local` from the Connect dropdown first; this rule's snapshot below is secondary.
+3. Project SSH **key** is stable (Odoo.sh Profile); only the build number/host changes.
+4. After a rebuild: update `.env.local` → optionally sync the snapshot table in this file → diagnose via `plasticos-odoo-sh-deploy`.
+
+## Staging instance (snapshot — may lag `.env.local`)
 
 | Property | Value |
 |---|---|
-| URL | `https://cryptoxdog-ib-odoo-19-staging-30217068.dev.odoo.com` |
-| Build ID | `30217068` |
+| URL | `https://cryptoxdog-ib-odoo-19-staging-36097692.dev.odoo.com` |
+| Build ID | `36097692` |
 | Branch | `Staging` |
 | Platform | Odoo.sh |
-
-## SSH access
-
-```bash
-ssh 30217068@cryptoxdog-ib-odoo-19-staging-30217068.dev.odoo.com
-```
-
-- The build number is the SSH username.
-- The host is the full Odoo.sh development domain.
-- The operator's SSH key must be registered in project settings.
-- Confirm the current build in Odoo.sh before relying on this reference; build IDs rotate.
 
 ## Shell commands
 
 ```bash
-# Odoo shell
-odoo-bin shell -d <dbname>
-
-# Logs
-cat ~/logs/odoo.log
-tail -f ~/logs/odoo.log
-
-# Update a module
-odoo-bin -u plasticos_base --stop-after-init
-
-# Install a module
-odoo-bin -i plasticos_new_module --stop-after-init
+set -a && source .env.local && set +a
+BID="${ODOO_SH_STAGING_SSH%%@*}"
+ssh "$ODOO_SH_STAGING_SSH" "odoo-bin shell -d cryptoxdog-ib-odoo-19-staging-${BID}"
 ```
 
 ## Web lead staging endpoints
@@ -63,4 +67,3 @@ odoo-bin -i plasticos_new_module --stop-after-init
 - A push to `Staging` triggers an Odoo.sh deployment.
 - Commit and push both require explicit operator authorization.
 - SSH sessions are ephemeral; changes outside persistent storage are lost on rebuild.
-- Confirm the database name from the Odoo.sh dashboard or shell before running commands.

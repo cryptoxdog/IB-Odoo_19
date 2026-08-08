@@ -61,10 +61,10 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 | 5 | `plasticos_facility_profile` | 2 | Production | Facility capability profiles: equipment, tolerances, BCP |
 | 6 | `plasticos_intake` | 2 | Production | Material intake with contact intelligence |
 | 7 | `plasticos_intake_normalizer` | 2 | Beta | Schema-driven intake normalization for L9 packets |
-| 8 | `plasticos_matching` | 2 | Production | Match result storage for intake-to-buyer matching |
+| 8 | `plasticos_matching` | 2 | Production | Gate match orchestrator + result store (ADR-015; scoring in CEG) |
 | 9 | `plasticos_geolocalize` | 2 | Production | Auto-geocode partners + nightly backfill cron |
-| 10 | `plasticos_gate` | 2 | New | Constellation Gate TransportPacket client seam (ADR-002) |
-| 11 | `plasticos_enrichment` | 2 | Beta | Gate-mediated partner enrichment (local inference retired M7) |
+| 10 | `plasticos_gate` | 2 | Production | Sole TransportPacket client (ADR-002 / ADR-011) |
+| 11 | `plasticos_enrichment` | 2 | Beta | Gate converge orchestrator + CRM writeback shell (ADR-012/015; ranking in CEG — ADR-009) |
 | 12 | `plasticos_web_leads` | 2 | Production | AI lead triage (Cognito → LLM → HOT/COLD) |
 | 13 | `plasticos_accounting` | 3 | Production | Chart of accounts, payment terms, incoterms seed |
 | 14 | `plasticos_offer` | 3 | Production | Offer lifecycle: match → negotiation → deal |
@@ -127,9 +127,18 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 
 **plasticos_matching**
 - **Depends**: `base`, `mail`, `plasticos_intake`, `plasticos_facility_profile`, `plasticos_gate`
-- **Provides**: Match result storage (Gate-mediated matching authority)
+- **Provides**: Gate `action=match` orchestration + persistence/UX (ADR-015) — **not** local scoring
 - **Models**:
-  - `plasticos.match.result`
+  - `plasticos.match.result`, `plasticos.match.run`, `plasticos.match.exclusion`
+- **Authority**: CEG scores via Gate; fail-closed on Gate failure (ADR-011, ADR-013)
+
+**plasticos_enrichment**
+- **Depends**: `plasticos_base`, `plasticos_gate`, `base`, `mail`, `contacts`, `plasticos_material_profile`
+- **Provides**: Gate `action=converge` orchestration, run/provenance persistence, allowlisted partner writeback (ADR-012/015)
+- **Models**:
+  - `plasticos.enrichment.run`, `plasticos.enrichment.source`, `plasticos.enrichment.provenance`, `plasticos.enrichment.extraction`, `plasticos.enrichment.service`
+- **Not in this module**: entity selection/ranking (CEG health — ADR-009); local inference (retired M7)
+- **Triggers**: per-run execute/retry (ADR-010); enrichment crons are `active=False` / no-op
 
 **plasticos_gate**
 - **Depends**: `base`, `plasticos_base`
@@ -253,7 +262,8 @@ Extracted from `plasticos_base/data/partner_tags.xml`:
 
 **Authority:** [docs/adr/ADR-003-single-external-intelligence-authority.md](docs/adr/ADR-003-single-external-intelligence-authority.md) (mothball successor; supersedes ADR-002 §2 fallback-as-authority)  
 **Topology / phased human gates:** [docs/adr/ADR-002-gate-hub-phased-autonomy.md](docs/adr/ADR-002-gate-hub-phased-autonomy.md)  
-**Phases:** [docs/GATE_AUTONOMY_ROADMAP.md](docs/GATE_AUTONOMY_ROADMAP.md)
+**Phases:** [docs/GATE_AUTONOMY_ROADMAP.md](docs/GATE_AUTONOMY_ROADMAP.md)  
+**Convergence set (2026-08):** [ADR-009](docs/adr/ADR-009-enrichment-selection-ranking-not-in-odoo.md)–[ADR-019](docs/adr/ADR-019-documentation-convergence-supersession.md) — consumer triggers, action topology, writeback, fail-closed, DomainSpec SSOT, persistence shells, web-lead boundary, constellation feedback channel, human checkpoints, doc supersession. Index: [docs/adr/README.md](docs/adr/README.md).
 
 PlasticOS routes matching and enrichment intelligence through the **Constellation Gate** — not direct HTTP from Odoo to [Cognitive.Engine.Graphs](https://github.com/cryptoxdog/Cognitive.Engine.Graphs) (CEG) or [Enrichment.Inference.Engine](https://github.com/cryptoxdog/Enrichment.Inference.Engine) (EIE). Odoo is a Gate **consumer** only; CEG/EIE own intelligence semantics.
 
@@ -266,11 +276,15 @@ Odoo  ◄───────────────────────�
 |------|--------|
 | Gate is mandatory hub | No Odoo → CEG/EIE direct calls |
 | Intelligence authority | Gate → CEG for matching; Gate → EIE `converge` for enrichment |
-| Local engines | **Non-authority — physically retired (M7)** — `plasticos_buyer_match_engine` and `plasticos_inference_engine` removed; Gate-only authority |
-| Web lead triage (Phase 1) | **Odoo local only** — LLM/vision/HOT-COLD; Gate triage deferred to Phase 3 |
-| Human gates (Phase 1) | HOT lead review, match line selection, explicit Send Offer |
+| Local engines | **Non-authority — physically retired (M7)** — Gate-only; fail-closed (ADR-013), no silent local fallback |
+| DomainSpec SSOT | CEG YAML owns gates/scoring/readiness ranking (ADR-014); Odoo emits snapshots only |
+| Enrichment ranking | **Not in this repo** — CEG `engine/health/` (ADR-009); constellation feedback channel ADR-017 |
+| Web lead triage (Phase 1) | **Odoo local only** — not enrichment ranking (ADR-016); Gate triage deferred to Phase 3 |
+| Human gates (Phase 1) | HOT review, match-line selection, explicit Send Offer (ADR-018) |
+| CRM writeback | Allowlisted partner fields, merge-not-overwrite, provenance (ADR-012) |
 
-**Phase 1 seam:** `plasticos.matching` orchestrator → Gate `action=match` → persist match results in Odoo.
+**Phase 1 match seam:** Odoo trigger (ADR-010) → `plasticos.match.orchestrator` → Gate `action=match` → CEG → persist `plasticos.match.*` (ADR-011/015).  
+**Phase 1 enrich seam:** Odoo enrichment run execute/retry → Gate `action=converge` → EIE → allowlisted writeback (ADR-011/012). Ranking/selection stays in CEG (ADR-009).
 
 **Implementation module:** `plasticos_gate` (Layer 2) — `services/gate_client.py` sends/receives `TransportPacket` via `constellation_node_sdk`; `gate_builders.py`/`gate_mappers.py`/`gate_contracts.py` construct and map packets; `gate_config.py`/`gate_allowlists.py` hold connection config and the ICP allowlist seed (`data/gate_icp_seed.xml`).
 
@@ -616,7 +630,7 @@ Applied as part of the PlasticOS Odoo 19 Fix & Hardening GMP. These changes ensu
 
 **Crons unchanged** (still use `user_system_cron`):
 
-- `plasticos_enrichment/data/cron.xml` — enrichment daily, inference standalone
+- `plasticos_enrichment/data/cron.xml` — enrichment daily + inference crons present but **`active=False` / no-op** (M4; not product ranking — ADR-009/010)
 - `plasticos_documents/data/cron_missing_docs.xml`, `cron.xml` — missing docs, compliance audit
 - `plasticos_claims/data/claim_cron.xml` — SLA check
 
@@ -836,6 +850,7 @@ module/
 
 ---
 
-**Architecture Version**: 3.2.0
-**Last Updated**: 2026-07-22
-**Verified Against**: cryptoxdog/IB-Odoo_19 @ Staging branch
+**Architecture Version**: 3.3.0
+**Last Updated**: 2026-08-07
+**Verified Against**: cryptoxdog/IB-Odoo_19 @ Staging branch  
+**Doc convergence:** ADR-019 — Gate consumer narrative aligned with ADR-009–018
