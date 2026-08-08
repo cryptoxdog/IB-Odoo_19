@@ -38,13 +38,15 @@ repos:
         exclude: '^plasticos_enrichment/knowledge_base/.*\.yaml$|buyer_matching_rag\.yaml$|^docs/'
 
       - id: end-of-file-fixer
-        exclude: ^docs/
+        exclude: ^docs/|^data/cietrade_sm_export/
 
       - id: trailing-whitespace
-        exclude: ^docs/
+        exclude: ^docs/|^data/cietrade_sm_export/
 
       - id: check-added-large-files
         args: ['--maxkb=1000']
+        # Golden cieTrade CSVs are multi-MB extract fixtures (largest ~7MB).
+        exclude: ^data/cietrade_sm_export/
 
       - id: check-merge-conflict
 
