@@ -83,13 +83,20 @@ class MatchRequest:
 @dataclass(slots=True)
 class MatchCandidate:
     buyer_partner_id: int | None = None
+    entity_ref: str | None = None
     buyer_name: str | None = None
     facility_profile_id: int | None = None
     score: float | None = None
+    score_scale: str | None = None
+    normalized_score: float | None = None
+    eligible: bool = False
+    rank: int | None = None
     reason: str | None = None
     typical_price: float | None = None
     gates_passed: list[str] = field(default_factory=list)
     gates_failed: list[str] = field(default_factory=list)
+    feature_contributions: list[Any] = field(default_factory=list)
+    missing_evidence: list[Any] = field(default_factory=list)
     raw: dict[str, Any] = field(default_factory=dict)
 
 
@@ -99,6 +106,15 @@ class MatchResponse:
     match_direction: str | None = None
     top_n: int | None = None
     results: list[MatchCandidate] = field(default_factory=list)
+    unresolved: list[dict[str, Any]] = field(default_factory=list)
+    query_id: str | None = None
+    total_candidates: int | None = None
+    execution_time_ms: int | None = None
+    domain_spec_version: str | None = None
+    model_version: str | None = None
+    projection_version: str | None = None
+    contract_version: str | None = None
+    domain: str | None = None
     raw: dict[str, Any] = field(default_factory=dict)
 
 
