@@ -76,7 +76,7 @@ class EnrichmentRun(models.Model):
     )
     gate_proposal = fields.Json(
         readonly=True,
-        help="Gate converge proposal (final_fields, writeback, proposed_partner_fields) retained for audit.",
+        help="Gate converge proposal (final_fields, proposed_partner_fields) retained for audit.",
     )
     gate_packet_id = fields.Char(readonly=True, help="Gate response TransportPacket id for audit.")
     gate_correlation_id = fields.Char(readonly=True, help="Gate correlation id for traceability.")
@@ -176,7 +176,6 @@ class EnrichmentRun(models.Model):
             "engine_used": "gate",
             "gate_proposal": {
                 "final_fields": resp.final_fields,
-                "writeback": resp.writeback,
                 "proposed_partner_fields": proposed,
             },
             "gate_packet_id": audit.get("gate_packet_id"),

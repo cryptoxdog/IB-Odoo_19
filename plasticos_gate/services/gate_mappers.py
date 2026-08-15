@@ -173,23 +173,56 @@ def map_match_response_to_matcher_dicts(
     return results
 
 
+EIE_STATE_COMPLETED = "completed"
+
+
 def map_converge_response(payload: dict[str, Any]) -> ConvergeResponse:
+    """Map an EIE EnrichResponse into Odoo-storable fields WITHOUT fabrication.
+
+    Every EnrichResponse field is carried through (no field loss). Cost is
+    ``tokens_used``; ``total_cost_usd`` and ``writeback_applied`` stay
+    explicitly UNAVAILABLE (None) — never fabricated (DNB-006). ``status`` is
+    derived from EIE ``state``/``failure_reason`` for the Odoo consumer's
+    usable-result check.
+    """
+    state = payload.get("state", EIE_STATE_COMPLETED)
+    failure_reason = payload.get("failure_reason")
+    status = "ok" if (state == EIE_STATE_COMPLETED and not failure_reason) else (failure_reason or state or "failed")
     return ConvergeResponse(
-        run_id=payload.get("run_id"),
-        status=payload.get("status"),
+        status=status,
+        state=state,
+        failure_reason=failure_reason,
+        final_fields=payload.get("fields") or {},
         pass_count=payload.get("pass_count"),
-        final_fields=payload.get("final_fields") or {},
-        writeback=payload.get("writeback") or {},
-        total_tokens=payload.get("total_tokens"),
-        total_cost_usd=payload.get("total_cost_usd"),
+        variation_count=payload.get("variation_count"),
+        confidence=payload.get("confidence"),
+        consensus_threshold=payload.get("consensus_threshold"),
+        uncertainty_score=payload.get("uncertainty_score"),
+        processing_time_ms=payload.get("processing_time_ms"),
+        quality_tier=payload.get("quality_tier"),
+        inference_version=payload.get("inference_version"),
+        kb_content_hash=payload.get("kb_content_hash"),
+        kb_files_consulted=list(payload.get("kb_files_consulted") or []),
+        kb_fragment_ids=list(payload.get("kb_fragment_ids") or []),
+        inferences=list(payload.get("inferences") or []),
+        grade_matches=list(payload.get("grade_matches") or []),
+        enrichment_payload=payload.get("enrichment_payload"),
+        feature_vector=payload.get("feature_vector"),
+        tokens_used=payload.get("tokens_used"),
+        total_cost_usd=None,
+        writeback_applied=None,
         raw=payload,
     )
 
 
 def partner_writeback_from_converge(resp: ConvergeResponse) -> dict[str, Any]:
-    writeback = resp.writeback or {}
-    partner_fields = writeback.get("partner_fields") if isinstance(writeback, dict) else None
-    source = partner_fields if isinstance(partner_fields, dict) and partner_fields else resp.final_fields
+    """Derive the Odoo-side proposal from EIE fields (allowlisted only).
+
+    EIE converge performs no writeback itself; the proposal is an Odoo-side
+    review artifact derived from ``final_fields``, never a fabricated response
+    field.
+    """
+    source = resp.final_fields or {}
     return {k: v for k, v in source.items() if k in PARTNER_WRITEBACK_FIELD_ALLOWLIST and v not in (None, False, "")}
 
 
