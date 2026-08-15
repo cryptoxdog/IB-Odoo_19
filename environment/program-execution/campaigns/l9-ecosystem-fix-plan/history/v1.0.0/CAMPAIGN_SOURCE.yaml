@@ -1,0 +1,1160 @@
+schema: l9.program-execution.campaign-source.v2
+schema_version: 2.0.0
+
+metadata:
+  campaign_id: "l9-ecosystem-fix-plan"
+  title: "L9 Ecosystem Low-Hanging-Fruit Fix Campaign"
+  version: "1.0.0"
+  created_at: "2026-08-05T12:47:00Z"
+  status: operator_intake
+  owner: "Igor Beylin"
+  intended_host: Quantum-L9/Cursor-Governance
+  intended_drop_path: >-
+    environment/program-execution/campaigns/l9-ecosystem-fix-plan/CAMPAIGN_SOURCE.yaml
+  runtime_root: "$HOME/.l9/programs/l9-ecosystem-fix-plan"
+  worktree_root: "$HOME/.l9/program-worktrees/l9-ecosystem-fix-plan"
+  source_is_immutable: true
+  remote_mutation_during_admission: false
+
+integrity:
+  digest_algorithm: sha256
+  canonical_encoding: utf-8
+  canonical_line_endings: lf
+  digest_record_location: controller/admission/source-integrity-receipt.json
+  generated_counts_or_digests_may_be_hand_edited: false
+
+pipeline_contract:
+  pair: program-execution-system.v2
+  blueprint: program-execution-blueprint.v2
+  controller: program-execution-controller.v2
+  required_host_surfaces:
+    - environment/program-execution/core
+    - environment/program-execution/adapters
+    - environment/program-execution/conformance
+    - environment/program-execution/registry
+    - environment/program-execution/integrations
+  compilation_sequence:
+    - preserve_immutable_campaign_source
+    - instantiate_native_blueprint_and_controller
+    - compile_source_into_complete_native_blueprint
+    - collect_and_bind_current_state_evidence
+    - validate_blueprint_in_template_mode
+    - accept_blueprint_only_after_evidence_and_authority_resolution
+    - validate_blueprint_in_instantiated_mode
+    - bootstrap_controller_and_create_program_lock
+    - reconcile_exact_targets
+    - probe_adapters_and_validate_conformance
+    - admit_and_execute_ready_tasks
+    - record_attempt_and_verification_receipts
+    - evaluate_evidence_backed_gates
+    - export_controller_handoff_receipt
+    - obtain_program_owner_terminal_verdict
+  authority_boundaries:
+    campaign_source_owns: operator_intent_and_campaign_semantics
+    blueprint_owns: accepted_program_definition
+    controller_owns: mutable_runtime_state_and_gate_results
+    adapters_own: host_translation_and_execution_receipts
+    activation_prompt_owns: launch_mechanics_only
+
+operator_directive:
+  objective: >-
+    Apply the Wave 1-6 low-hanging-fruit fix plan across IB-Odoo_19, EIE, CEG,
+    and Constellation.Gate to reach a safe, contract-consistent launch state.
+  mode: controlled_autonomous_until_material_boundary
+  auto_continue:
+    - read_only_inspection
+    - blueprint_materialization
+    - reversible_repo_local_work
+    - local_validation
+    - independent_verification
+    - bounded_retry_of_transient_failures
+    - read_only_remote_observation
+    - unrelated_ready_work_when_one_subgraph_is_blocked
+  pause_only_for:
+    - missing_or_conflicting_semantic_authority
+    - material_scope_expansion
+    - stale_or_invalid_program_lock
+    - unresolved_blocking_unknown
+    - failed_blocking_gate
+    - security_or_secret_boundary
+    - exact_remote_mutation_approval
+    - exact_merge_tag_release_publish_deploy_or_migration_approval
+    - exact_destructive_action_approval
+
+program:
+  id: "l9-ecosystem-fix-plan"
+  name: "L9 Ecosystem Low-Hanging-Fruit Fix Campaign"
+  version: "1.0.0"
+  owner: "Igor Beylin"
+  definition_status: draft
+  snapshot_at: "2026-08-05"
+  objective: >-
+    Close known safety, tenancy, chassis, contract, and reachability gaps
+    across IB-Odoo_19, EIE, CEG, and Constellation.Gate before launch.
+  problem_statement: >-
+    Odoo Gate writeback can auto-mutate production data, CEG tenant
+    resolution falls back to database-name matching, CEG/EIE chassis and
+    version declarations are inconsistent, EIE is not confirmed reachable
+    from Gate's live registry, and the Odoo match/converge mappers read
+    fields (results, entity_snapshot) that do not match CEG/EIE's current
+    response and request contracts (candidates, entity/object_type/objective).
+  target_state: >-
+    Odoo cannot auto-write without explicit enablement; organization_id is
+    mandatory in all CEG requests; CEG production refuses to start on legacy
+    chassis; EIE reports a single consistent version; Gate's live registry
+    shows an active EIE node owning converge; a known CEG match response
+    produces correct Odoo buyer-match records; a real EIE converge response
+    is stored in Odoo without field loss; and the six launch-critical
+    round-trip paths (plus six failure cases) pass.
+  scope:
+    include:
+      - "Odoo Gate writeback safety default (plasticos_gate)"
+      - "CEG tenant_id/organization_id enforcement"
+      - "CEG/EIE chassis and version configuration consistency"
+      - "EIE explicit Gate registration lifecycle"
+      - "Odoo match mapper field-contract correction (results -> candidates)"
+      - "Cross-repo canonical contract fixtures (match, converge)"
+      - "Odoo <-> EIE converge request/response field mapping"
+      - "Launch-critical round-trip and failure-path validation"
+    exclude:
+      - "SDK pin upgrade"
+      - "Remediation of the 152 quarantined EIE/CEG test failures"
+      - "Complete PacketEnvelope removal"
+      - "Broad dead-code cleanup"
+      - "Dependency modernization"
+      - "Gate payload business-logic transformation"
+      - "New nodes or orchestration layers"
+  contracts:
+    blueprint: program-execution-blueprint.v2
+    controller_minimum: program-execution-controller.v2
+    pair: program-execution-system.v2
+  authority_order:
+    - applicable_safety_legal_security_requirements
+    - cursor_governance_canonical_law
+    - program_execution_v2_interface_contract
+    - latest_explicit_operator_instruction
+    - latest_accepted_program_decision
+    - accepted_architecture_and_contracts
+    - verified_current_state_evidence
+    - approved_task_card
+    - exact_rendered_source_contract
+    - repository_local_governance
+    - implementation
+    - documentation
+    - historical_material
+    - UNKNOWN
+  operating_rules:
+    - one_authority_per_responsibility
+    - controller_may_narrow_never_widen
+    - unknown_blocks_only_named_dependencies
+    - promotion_requires_evidence_backed_gates
+    - no_silent_scope_expansion
+    - no_irreversible_action_without_exact_authority
+    - worker_claim_is_not_verification
+    - passing_local_command_is_not_remote_event_proof
+    - tag_release_and_package_publication_are_distinct_events
+    - runtime_state_remains_outside_source_and_target_worktrees
+  terminal_verdicts:
+    - CONVERGED
+    - CONVERGED_WITH_NON_BLOCKING_RISKS
+    - NOT_CONVERGED
+    - INCONCLUSIVE
+
+targets:
+  - id: TARGET-001
+    name: "IB-Odoo_19"
+    kind: git_repository
+    authority_owner: "cryptoxdog"
+    execution_mode: repo_local
+    repository_id: "cryptoxdog/IB-Odoo_19"
+    source_of_truth: "cryptoxdog/IB-Odoo_19"
+    environments: [local, ci]
+    mutability: reversible
+    expected_revision: UNKNOWN
+    adapter: git_repo_adapter
+  - id: TARGET-002
+    name: "Enrichment.Inference.Engine"
+    kind: git_repository
+    authority_owner: "Quantum-L9"
+    execution_mode: repo_local
+    repository_id: "Quantum-L9/Enrichment.Inference.Engine"
+    source_of_truth: "Quantum-L9/Enrichment.Inference.Engine"
+    environments: [local, ci]
+    mutability: reversible
+    expected_revision: UNKNOWN
+    adapter: git_repo_adapter
+  - id: TARGET-003
+    name: "Cognitive.Engine.Graphs"
+    kind: git_repository
+    authority_owner: "Quantum-L9"
+    execution_mode: repo_local
+    repository_id: "Quantum-L9/Cognitive.Engine.Graphs"
+    source_of_truth: "Quantum-L9/Cognitive.Engine.Graphs"
+    environments: [local, ci]
+    mutability: reversible
+    expected_revision: UNKNOWN
+    adapter: git_repo_adapter
+  - id: TARGET-004
+    name: "Constellation.Gate"
+    kind: git_repository
+    authority_owner: "Quantum-L9"
+    execution_mode: repo_local
+    repository_id: "Quantum-L9/Constellation.Gate"
+    source_of_truth: "Quantum-L9/Constellation.Gate"
+    environments: [local, ci]
+    mutability: reversible
+    expected_revision: UNKNOWN
+    adapter: git_repo_adapter
+  - id: TARGET-005
+    name: "Gate_SDK"
+    kind: git_repository
+    authority_owner: "Quantum-L9"
+    execution_mode: repo_local
+    repository_id: "Quantum-L9/Gate_SDK"
+    source_of_truth: "Quantum-L9/Gate_SDK"
+    environments: [local, ci]
+    mutability: reversible
+    expected_revision: UNKNOWN
+    adapter: git_repo_adapter
+  - id: TARGET-006
+    name: Program Execution Control Plane
+    kind: program_control
+    authority_owner: Quantum-L9/Cursor-Governance
+    execution_mode: program_control
+    repository_id: null
+    source_of_truth: environment/program-execution
+    environments: [local]
+    mutability: controlled
+    expected_revision: UNKNOWN
+    adapter: controller
+
+authorities:
+  - id: AUTH-001
+    responsibility: program_ownership_and_terminal_verdict
+    owner: "Igor Beylin"
+    authority_type: human_owner
+    scope: [whole_program]
+    may_delegate: false
+    required_evidence: [controller_handoff_receipt]
+  - id: AUTH-002
+    responsibility: odoo_plasticos_gate_module_ownership
+    owner: "cryptoxdog/IB-Odoo_19 maintainers"
+    authority_type: repository_or_domain_owner
+    scope: [TARGET-001]
+    may_delegate: true
+    required_evidence: [repository_governance, accepted_architecture]
+  - id: AUTH-003
+    responsibility: eie_converge_contract_ownership
+    owner: "Quantum-L9/Enrichment.Inference.Engine maintainers"
+    authority_type: repository_or_domain_owner
+    scope: [TARGET-002]
+    may_delegate: true
+    required_evidence: [repository_governance, accepted_architecture]
+  - id: AUTH-004
+    responsibility: ceg_match_contract_and_tenant_resolution_ownership
+    owner: "Quantum-L9/Cognitive.Engine.Graphs maintainers"
+    authority_type: repository_or_domain_owner
+    scope: [TARGET-003]
+    may_delegate: true
+    required_evidence: [repository_governance, accepted_architecture]
+  - id: AUTH-005
+    responsibility: gate_routing_and_registration_ownership
+    owner: "Quantum-L9/Constellation.Gate maintainers"
+    authority_type: repository_or_domain_owner
+    scope: [TARGET-004, TARGET-005]
+    may_delegate: true
+    required_evidence: [repository_governance, accepted_architecture]
+
+evidence_requirements:
+  - id: EVID-001
+    claim: canonical_governance_and_host_are_available
+    source_type: repository_inspection
+    source_location: "$HOME/.cursor-governance"
+    collection_method: read_only_inspection
+    freshness: collect_at_admission
+    producer: operator
+    supports: [program_admission]
+    contradicts: []
+  - id: EVID-002
+    claim: odoo_plasticos_gate_writeback_default_is_known
+    source_type: repository_inspection
+    source_location: "IB-Odoo_19/plasticos_gate"
+    collection_method: read_only_inspection
+    freshness: collect_at_admission
+    producer: operator
+    supports: [current_state_lock, GATE-002]
+    contradicts: []
+  - id: EVID-003
+    claim: ceg_tenant_resolution_current_implementation_is_known
+    source_type: repository_inspection
+    source_location: "Cognitive.Engine.Graphs/engine/api/middleware.py"
+    collection_method: read_only_inspection
+    freshness: collect_at_admission
+    producer: operator
+    supports: [current_state_lock, GATE-002]
+    contradicts: []
+  - id: EVID-004
+    claim: candidate_entity_id_identity_contract_is_known
+    source_type: repository_inspection
+    source_location: "Cognitive.Engine.Graphs domain spec / contracts"
+    collection_method: read_only_inspection
+    freshness: collect_at_admission
+    producer: operator
+    supports: [DEC-001, GATE-003]
+    contradicts: []
+  - id: EVID-005
+    claim: eie_gate_registration_lifecycle_current_state_is_known
+    source_type: repository_inspection
+    source_location: "Enrichment.Inference.Engine/app"
+    collection_method: read_only_inspection
+    freshness: collect_at_admission
+    producer: operator
+    supports: [current_state_lock, GATE-002]
+    contradicts: []
+
+decisions:
+  - id: DEC-001
+    question: >-
+      Does CEG candidate.entity_id equal the Odoo res.partner integer ID, a
+      Neo4j-native node ID, or a domain-spec-defined key requiring an
+      explicit resolver mapping?
+    authority_id: AUTH-004
+    status: proposed
+    options:
+      - id: OPTION-A
+        description: >-
+          entity_id is confirmed equal to res.partner ID; map directly with
+          no resolver.
+      - id: OPTION-B
+        description: >-
+          entity_id is a graph-native or domain-spec key; introduce an
+          explicit resolver/lookup before mapping to buyer_partner_id.
+    recommended_option_id: OPTION-B
+    selected_option_id: null
+    blocking_task_ids: [TASK-004]
+    required_evidence_ids: [EVID-004]
+
+unknowns:
+  - id: UNK-001
+    statement: >-
+      Exact current default value of the Odoo Gate writeback-enablement flag
+      in plasticos_gate is not verified from source.
+    status: open
+    owner: "AUTH-002"
+    blocking_task_ids: [TASK-002]
+    resolution_method: "Direct repository inspection of plasticos_gate config/models"
+    resolution_evidence_ids: [EVID-002]
+  - id: UNK-002
+    statement: >-
+      Exact current CEG tenant-resolution fallback logic (whether it falls
+      back to database name) is not verified from source.
+    status: open
+    owner: "AUTH-004"
+    blocking_task_ids: [TASK-002]
+    resolution_method: "Direct repository inspection of CEG tenant resolver middleware"
+    resolution_evidence_ids: [EVID-003]
+  - id: UNK-003
+    statement: >-
+      Identity contract for candidate.entity_id (see DEC-001) is not
+      independently confirmed.
+    status: open
+    owner: "AUTH-004"
+    blocking_task_ids: [TASK-004]
+    resolution_method: "Inspect CEG domain-spec schema and contracts/schemas directory"
+    resolution_evidence_ids: [EVID-004]
+  - id: UNK-004
+    statement: >-
+      Status of Odoo PR #141 (install-smoke result) is not verified.
+    status: open
+    owner: "AUTH-002"
+    blocking_task_ids: [TASK-002]
+    resolution_method: "Inspect PR #141 CI status in IB-Odoo_19"
+    resolution_evidence_ids: []
+  - id: UNK-005
+    statement: >-
+      Whether EIE currently implements explicit Gate registration or relies
+      on auto_register_with_gate is not verified from source.
+    status: open
+    owner: "AUTH-003"
+    blocking_task_ids: [TASK-003]
+    resolution_method: "Inspect EIE app startup lifecycle code"
+    resolution_evidence_ids: [EVID-005]
+
+risks:
+  - id: RISK-001
+    statement: >-
+      Wave 3 match mapper may pass frozen-fixture tests while
+      candidate.entity_id points to the wrong Odoo res.partner record if
+      DEC-001 is resolved incorrectly or skipped.
+    tier: T2
+    likelihood: possible
+    impact: material
+    owner: "AUTH-004"
+    mitigations:
+      - "Block TASK-004 on DEC-001 resolution (identity contract checkpoint)"
+      - "Add explicit resolver mapping test asserting buyer identity correctness"
+    triggers:
+      - "TASK-004 begins before UNK-003 is resolved"
+  - id: RISK-002
+    statement: >-
+      Forcing L9_CHASSIS=sdk without confirming Gate_SDK compatibility could
+      break existing production traffic if the SDK chassis path is not
+      fully implemented.
+    tier: T2
+    likelihood: possible
+    impact: material
+    owner: "AUTH-005"
+    mitigations:
+      - "Validate SDK chassis in staging before production enforcement"
+      - "Stage the startup-fail-on-legacy-chassis behind a feature flag first"
+    triggers:
+      - "TASK-002 forces SDK chassis before staging validation"
+  - id: RISK-003
+    statement: >-
+      152 quarantined EIE/CEG test failures are explicitly deferred but may
+      overlap with converge or match code paths touched by TASK-004/TASK-005.
+    tier: T3
+    likelihood: possible
+    impact: moderate
+    owner: "AUTH-003"
+    mitigations:
+      - "Lightweight triage of quarantined failures against touched files before TASK-006 closeout"
+    triggers:
+      - "TASK-006 closeout begins without quarantine triage"
+
+waivers: []
+
+prohibited_paths:
+  - id: DNB-001
+    statement: Do not widen authority downstream of an accepted source contract.
+    rationale: Program Execution v2 authority is monotonic and may only narrow.
+  - id: DNB-002
+    statement: Do not treat worker completion as independent verification.
+    rationale: Completion and verification are separate authorities and receipts.
+  - id: DNB-003
+    statement: Do not place mutable runtime state in Cursor-Governance or target worktrees.
+    rationale: Runtime state belongs under the declared external program root.
+  - id: DNB-004
+    statement: Do not claim remote mutation, publication, release, or deployment without observed evidence.
+    rationale: Local intent or command success is not remote event proof.
+  - id: DNB-005
+    statement: Do not invent candidate.entity_id to res.partner ID mapping without DEC-001 resolution.
+    rationale: Unverified identity mapping risks silent buyer misattribution (RISK-001).
+  - id: DNB-006
+    statement: Do not fabricate EIE response fields (e.g. total_cost_usd) not returned by EIE.
+    rationale: Wave 5 explicitly forbids inventing unavailable fields.
+
+workstreams:
+  - id: WS-01
+    name: authority_and_current_state
+    owner: "Igor Beylin"
+    objective: Lock authority, target identities, evidence, decisions, Unknowns, and risks.
+  - id: WS-02
+    name: configuration_and_safety
+    owner: "AUTH-002 / AUTH-004 / AUTH-005"
+    objective: Execute Wave 1 safety/config fixes across Odoo, CEG, and EIE.
+  - id: WS-03
+    name: reachability_and_contracts
+    owner: "AUTH-003 / AUTH-004 / AUTH-005"
+    objective: Execute Wave 2-5 (registration, mapper, fixtures, converge mapping).
+  - id: WS-04
+    name: validation_and_closeout
+    owner: "Igor Beylin"
+    objective: Execute Wave 6 round-trip validation and reconcile evidence for handoff.
+
+dependency_edges:
+  - from: TASK-001
+    to: TASK-002
+  - from: TASK-002
+    to: TASK-003
+  - from: TASK-003
+    to: TASK-004
+  - from: TASK-004
+    to: TASK-005
+  - from: TASK-005
+    to: TASK-006
+  - from: TASK-006
+    to: TASK-007
+
+waves:
+  - id: W0
+    name: authority_and_current_state_lock
+    task_ids: [TASK-001]
+    predecessor_wave_ids: []
+    exit_gate_ids: [GATE-001]
+  - id: W1
+    name: configuration_and_safety
+    task_ids: [TASK-002]
+    predecessor_wave_ids: [W0]
+    exit_gate_ids: [GATE-002]
+  - id: W2
+    name: eie_gate_reachability
+    task_ids: [TASK-003]
+    predecessor_wave_ids: [W1]
+    exit_gate_ids: [GATE-003]
+  - id: W3
+    name: contract_break_and_fixtures
+    task_ids: [TASK-004, TASK-005]
+    predecessor_wave_ids: [W2]
+    exit_gate_ids: [GATE-004]
+  - id: W4
+    name: converge_compatibility
+    task_ids: [TASK-006]
+    predecessor_wave_ids: [W3]
+    exit_gate_ids: [GATE-005]
+  - id: W5
+    name: validation_and_closeout
+    task_ids: [TASK-007]
+    predecessor_wave_ids: [W4]
+    exit_gate_ids: [GATE-006]
+
+tasks:
+  - id: TASK-001
+    title: Admit campaign and lock current state
+    definition_status: ready
+    workstream_id: WS-01
+    wave_id: W0
+    target_id: TARGET-006
+    execution_kind: program_control
+    objective: Preserve the source, verify the host, collect target baselines, and lock authority.
+    authority_basis_ids: [AUTH-001]
+    required_decision_ids: []
+    blocking_unknown_ids: []
+    input_evidence_ids: [EVID-001]
+    actions:
+      - preserve_campaign_source
+      - verify_governance_host
+      - collect_repository_baselines
+      - materialize_complete_blueprint
+      - validate_blueprint_template_mode
+    outputs:
+      - id: OUT-001
+        type: evidence
+        location: CURRENT_STATE_DELTA.yaml
+        required: true
+      - id: OUT-002
+        type: artifact
+        location: MANIFEST.yaml
+        required: true
+    acceptance:
+      - id: AC-001
+        statement: The immutable source and all target identities are digest-bound and evidenced.
+        required_evidence_types: [inspection, digest]
+      - id: AC-002
+        statement: The complete draft Blueprint passes native v2 template validation.
+        required_evidence_types: [test_result]
+    validation:
+      - id: VAL-001
+        method: command
+        command_or_inspection: "python scripts/validate_blueprint.py . --mode template"
+        environment: blueprint
+        expected_result: PASS
+    negative_cases:
+      - missing_required_host_surface
+      - unexplained_dirty_tree
+      - duplicate_target_identity
+      - source_digest_mismatch
+    rollback:
+      strategy: discard_unaccepted_generated_blueprint_and_preserve_source
+      trigger: admission_or_template_validation_failure
+      validation: No target repository or accepted Blueprint was mutated.
+    risk:
+      tier: T0
+      reversibility: fully_reversible
+      blast_radius: program_definition
+    authorization_ceiling:
+      inspect: true
+      local_write: true
+      commit: false
+      push: false
+      pull_request: false
+      merge: false
+      publish_or_release: false
+      deploy_or_migrate: false
+      destructive_change: false
+      external_message: false
+    completion_gate_ids: [GATE-001]
+
+  - id: TASK-002
+    title: Configuration and safety fixes (Wave 1)
+    definition_status: blocked
+    workstream_id: WS-02
+    wave_id: W1
+    target_id: TARGET-001
+    execution_kind: repo_local
+    objective: >-
+      Default Odoo Gate writeback to review-only; require explicit
+      organization_id; force L9_CHASSIS=sdk in CEG production; fail CEG
+      startup on legacy chassis; align EIE version to 2.3.0; merge Odoo PR
+      #141 after install-smoke passes.
+    authority_basis_ids: [AUTH-002, AUTH-004, AUTH-005]
+    required_decision_ids: []
+    blocking_unknown_ids: [UNK-001, UNK-002, UNK-004]
+    input_evidence_ids: [EVID-002, EVID-003]
+    actions:
+      - set_odoo_gate_writeback_review_only_default
+      - require_explicit_organization_id_remove_db_name_fallback
+      - force_l9_chassis_sdk_in_ceg_production
+      - fail_ceg_startup_on_legacy_chassis_in_production
+      - align_eie_version_declarations_to_2_3_0
+      - merge_odoo_pr_141_after_install_smoke
+    outputs:
+      - id: OUT-003
+        type: artifact
+        location: "IB-Odoo_19/plasticos_gate config diff"
+        required: true
+      - id: OUT-004
+        type: artifact
+        location: "Cognitive.Engine.Graphs production config diff"
+        required: true
+      - id: OUT-005
+        type: artifact
+        location: "Enrichment.Inference.Engine version manifest diff"
+        required: true
+    acceptance:
+      - id: AC-003
+        statement: >-
+          Odoo cannot auto-write without explicit enablement; tenant ID is
+          mandatory; CEG production cannot start on legacy chassis; EIE
+          reports one consistent version; Odoo install-smoke passes.
+        required_evidence_types: [test_result, diff]
+    validation:
+      - id: VAL-002
+        method: command
+        command_or_inspection: "repository-owned install-smoke and startup-fail test suite"
+        environment: local
+        expected_result: PASS
+    negative_cases:
+      - odoo_writeback_defaults_to_enabled
+      - organization_id_missing_falls_back_to_db_name
+      - ceg_starts_on_legacy_chassis_in_production
+      - eie_version_declarations_diverge
+    rollback:
+      strategy: revert_configuration_commits_per_repository
+      trigger: validation_failure_or_gate_failure
+      validation: Prior safe-default configuration restored and re-verified.
+    risk:
+      tier: T2
+      reversibility: reversible
+      blast_radius: multi_target
+    authorization_ceiling:
+      inspect: true
+      local_write: true
+      commit: false
+      push: false
+      pull_request: false
+      merge: false
+      publish_or_release: false
+      deploy_or_migrate: false
+      destructive_change: false
+      external_message: false
+    completion_gate_ids: [GATE-002]
+
+  - id: TASK-003
+    title: EIE explicit Gate registration (Wave 2)
+    definition_status: blocked
+    workstream_id: WS-03
+    wave_id: W2
+    target_id: TARGET-002
+    execution_kind: repo_local
+    objective: >-
+      Add explicit Gate registration to EIE startup lifecycle declaring
+      node_name enrichment-engine, owner eie, execute_path /v1/execute,
+      supported_actions [converge, graph-inference-result, enrich,
+      enrich-and-sync], health_path /api/v1/health.
+    authority_basis_ids: [AUTH-003, AUTH-005]
+    required_decision_ids: []
+    blocking_unknown_ids: [UNK-005]
+    input_evidence_ids: [EVID-005]
+    actions:
+      - implement_explicit_gate_registration_on_startup
+      - reconcile_auto_register_with_gate_flag_with_implementation
+      - add_registration_and_deregistration_tests
+    outputs:
+      - id: OUT-006
+        type: artifact
+        location: "Enrichment.Inference.Engine startup lifecycle diff"
+        required: true
+    acceptance:
+      - id: AC-004
+        statement: Gate's live registry shows an active EIE node owning converge.
+        required_evidence_types: [test_result]
+    validation:
+      - id: VAL-003
+        method: command
+        command_or_inspection: "startup registers EIE exactly once; registration failure visible in health/readiness; Gate resolves converge to EIE; shutdown does not leave stale registration"
+        environment: local
+        expected_result: PASS
+    negative_cases:
+      - eie_registers_more_than_once
+      - registration_failure_hidden_from_health_check
+      - gate_cannot_resolve_converge_to_eie
+      - stale_registration_after_shutdown
+    rollback:
+      strategy: revert_registration_lifecycle_changes
+      trigger: validation_failure
+      validation: EIE startup returns to prior behavior with no stale registry entries.
+    risk:
+      tier: T2
+      reversibility: reversible
+      blast_radius: single_target
+    authorization_ceiling:
+      inspect: true
+      local_write: true
+      commit: false
+      push: false
+      pull_request: false
+      merge: false
+      publish_or_release: false
+      deploy_or_migrate: false
+      destructive_change: false
+      external_message: false
+    completion_gate_ids: [GATE-003]
+
+  - id: TASK-004
+    title: Identity contract checkpoint and Odoo match mapper (Wave 2.5 + Wave 3)
+    definition_status: blocked
+    workstream_id: WS-03
+    wave_id: W3
+    target_id: TARGET-001
+    execution_kind: repo_local
+    objective: >-
+      Resolve DEC-001 (candidate.entity_id identity contract), then change
+      the Odoo mapper from payload.get("results") to
+      payload.get("candidates") and flatten fields per the confirmed
+      identity contract.
+    authority_basis_ids: [AUTH-002, AUTH-004]
+    required_decision_ids: [DEC-001]
+    blocking_unknown_ids: [UNK-003]
+    input_evidence_ids: [EVID-004]
+    actions:
+      - resolve_entity_id_identity_contract
+      - change_mapper_results_to_candidates
+      - map_candidate_fields_to_odoo_buyer_match_fields
+      - preserve_query_id_scoring_meta_packet_id_correlation_id_raw_payload
+    outputs:
+      - id: OUT-007
+        type: artifact
+        location: "IB-Odoo_19/plasticos_matching mapper diff"
+        required: true
+    acceptance:
+      - id: AC-005
+        statement: A known CEG response produces usable Odoo buyer-match records with correct buyer identity.
+        required_evidence_types: [test_result, diff]
+    validation:
+      - id: VAL-004
+        method: command
+        command_or_inspection: "frozen CEG response fixture test: candidates not dropped, buyer IDs map correctly per DEC-001, scores normalize, sorting descending, missing IDs fail safely"
+        environment: local
+        expected_result: PASS
+    negative_cases:
+      - candidates_dropped
+      - buyer_id_mismapped_per_unresolved_identity_contract
+      - scores_not_normalized
+      - sorting_not_descending
+      - missing_candidate_id_not_handled_safely
+    rollback:
+      strategy: revert_mapper_diff_and_restore_prior_results_key_read
+      trigger: validation_failure
+      validation: Prior mapper behavior restored and re-verified against fixture.
+    risk:
+      tier: T2
+      reversibility: reversible
+      blast_radius: single_target
+    authorization_ceiling:
+      inspect: true
+      local_write: true
+      commit: false
+      push: false
+      pull_request: false
+      merge: false
+      publish_or_release: false
+      deploy_or_migrate: false
+      destructive_change: false
+      external_message: false
+    completion_gate_ids: [GATE-004]
+
+  - id: TASK-005
+    title: Canonical contract fixtures (Wave 4)
+    definition_status: blocked
+    workstream_id: WS-03
+    wave_id: W3
+    target_id: TARGET-004
+    execution_kind: repo_local
+    objective: >-
+      Create contracts/match_request.json, match_response.json,
+      converge_request.json, converge_response.json with CEG owning match
+      schemas, EIE owning converge schemas, Odoo testing against both, and
+      Gate routing unchanged; add cross-repo checks rejecting renamed or
+      missing required fields.
+    authority_basis_ids: [AUTH-003, AUTH-004, AUTH-005]
+    required_decision_ids: []
+    blocking_unknown_ids: []
+    input_evidence_ids: []
+    actions:
+      - create_canonical_fixture_pair_per_action
+      - assign_schema_ownership_per_engine
+      - add_cross_repository_field_conformance_checks
+    outputs:
+      - id: OUT-008
+        type: artifact
+        location: "contracts/match_request.json"
+        required: true
+      - id: OUT-009
+        type: artifact
+        location: "contracts/match_response.json"
+        required: true
+      - id: OUT-010
+        type: artifact
+        location: "contracts/converge_request.json"
+        required: true
+      - id: OUT-011
+        type: artifact
+        location: "contracts/converge_response.json"
+        required: true
+    acceptance:
+      - id: AC-006
+        statement: A contract change cannot merge in an engine while silently breaking Odoo.
+        required_evidence_types: [test_result]
+    validation:
+      - id: VAL-005
+        method: command
+        command_or_inspection: "cross-repository contract conformance check suite"
+        environment: ci
+        expected_result: PASS
+    negative_cases:
+      - required_field_renamed_without_conformance_failure
+      - required_field_removed_without_conformance_failure
+    rollback:
+      strategy: revert_fixture_and_conformance_check_additions
+      trigger: validation_failure
+      validation: Prior contract-check state restored.
+    risk:
+      tier: T1
+      reversibility: reversible
+      blast_radius: multi_target
+    authorization_ceiling:
+      inspect: true
+      local_write: true
+      commit: false
+      push: false
+      pull_request: false
+      merge: false
+      publish_or_release: false
+      deploy_or_migrate: false
+      destructive_change: false
+      external_message: false
+    completion_gate_ids: [GATE-004]
+
+  - id: TASK-006
+    title: Converge request/response compatibility (Wave 5)
+    definition_status: blocked
+    workstream_id: WS-03
+    wave_id: W4
+    target_id: TARGET-002
+    execution_kind: repo_local
+    objective: >-
+      Map Odoo's entity_snapshot/entity_id/domain/max_passes into EIE's live
+      request (entity, object_type, objective, kb_context, max_variations,
+      idempotency_key); map EIE response fields to Odoo fields without
+      inventing writeback or total_cost_usd.
+    authority_basis_ids: [AUTH-002, AUTH-003]
+    required_decision_ids: []
+    blocking_unknown_ids: []
+    input_evidence_ids: []
+    actions:
+      - map_odoo_request_fields_to_eie_request_schema
+      - preserve_odoo_ids_in_context_metadata_not_gate_transform
+      - map_eie_response_fields_to_odoo_fields
+      - mark_unavailable_fields_explicitly_rather_than_inventing
+    outputs:
+      - id: OUT-012
+        type: artifact
+        location: "IB-Odoo_19/plasticos_gate converge mapping diff"
+        required: true
+    acceptance:
+      - id: AC-007
+        statement: A real EIE converge response can be stored and reviewed inside Odoo without field loss.
+        required_evidence_types: [test_result, diff]
+    validation:
+      - id: VAL-006
+        method: command
+        command_or_inspection: "converge mapping test against real/frozen EIE response fixture"
+        environment: local
+        expected_result: PASS
+    negative_cases:
+      - fabricated_total_cost_usd_or_writeback_field
+      - field_loss_on_response_mapping
+    rollback:
+      strategy: revert_converge_mapping_diff
+      trigger: validation_failure
+      validation: Prior converge mapping restored and re-verified.
+    risk:
+      tier: T2
+      reversibility: reversible
+      blast_radius: multi_target
+    authorization_ceiling:
+      inspect: true
+      local_write: true
+      commit: false
+      push: false
+      pull_request: false
+      merge: false
+      publish_or_release: false
+      deploy_or_migrate: false
+      destructive_change: false
+      external_message: false
+    completion_gate_ids: [GATE-005]
+
+  - id: TASK-007
+    title: Targeted round-trip validation and closeout (Wave 6)
+    definition_status: blocked
+    workstream_id: WS-04
+    wave_id: W5
+    target_id: TARGET-006
+    execution_kind: program_control
+    objective: >-
+      Execute the five launch-critical round-trip paths and six failure
+      cases, capture packet/correlation/tenant/action/node/status for every
+      hop, triage quarantined-test overlap risk, and export the Controller
+      Handoff Receipt.
+    authority_basis_ids: [AUTH-001]
+    required_decision_ids: []
+    blocking_unknown_ids: []
+    input_evidence_ids: [EVID-001]
+    actions:
+      - execute_odoo_gate_health_auth_path
+      - execute_odoo_gate_ceg_match_path
+      - execute_odoo_gate_eie_converge_path
+      - execute_eie_gate_ceg_graph_sync_path
+      - execute_failure_case_invalid_tenant
+      - execute_failure_case_unavailable_node
+      - execute_failure_case_duplicate_idempotency_key
+      - execute_failure_case_malformed_response
+      - execute_failure_case_timeout
+      - execute_failure_case_unauthorized_action
+      - triage_quarantined_test_overlap_risk_003
+      - reconcile_task_and_gate_results
+      - export_controller_handoff_receipt
+      - request_program_owner_terminal_verdict
+    outputs:
+      - id: OUT-013
+        type: receipt
+        location: handoff.json
+        required: true
+    acceptance:
+      - id: AC-008
+        statement: >-
+          All five round-trip paths and six failure cases pass, quarantine
+          overlap risk is triaged, and the handoff contains exact
+          revisions, receipts, residual risks, and remaining Unknowns.
+        required_evidence_types: [test_result, receipt]
+    validation:
+      - id: VAL-007
+        method: inspection
+        command_or_inspection: Validate the Controller Handoff Receipt against the canonical schema.
+        environment: controller
+        expected_result: PASS
+    negative_cases:
+      - controller_declares_terminal_verdict
+      - missing_failed_or_superseded_task
+      - unsupported_remote_event_claim
+      - round_trip_path_untested
+      - failure_case_untested
+    rollback:
+      strategy: regenerate_handoff_from_immutable_controller_ledger
+      trigger: handoff_validation_failure
+      validation: Prior Controller evidence and receipts remain unchanged.
+    risk:
+      tier: T0
+      reversibility: fully_reversible
+      blast_radius: program_closeout
+    authorization_ceiling:
+      inspect: true
+      local_write: true
+      commit: false
+      push: false
+      pull_request: false
+      merge: false
+      publish_or_release: false
+      deploy_or_migrate: false
+      destructive_change: false
+      external_message: false
+    completion_gate_ids: [GATE-006]
+
+gates:
+  - id: GATE-001
+    name: campaign_admission_and_authority_lock
+    gate_type: entry
+    blocking: true
+    owner_authority_id: AUTH-001
+    task_ids: [TASK-001]
+    required_evidence_ids: [EVID-001]
+    pass_criteria:
+      - Immutable source is preserved and digest-bound externally.
+      - Required Program Execution host surfaces pass validation.
+      - Target identities and current revisions are recorded.
+      - The complete draft Blueprint passes template validation.
+    failure_effect: Block Controller bootstrap and task admission.
+  - id: GATE-002
+    name: configuration_and_safety_complete
+    gate_type: completion
+    blocking: true
+    owner_authority_id: AUTH-002
+    task_ids: [TASK-002]
+    required_evidence_ids: [EVID-002, EVID-003]
+    pass_criteria:
+      - Odoo cannot auto-write without explicit enablement.
+      - Tenant ID is mandatory in all CEG requests.
+      - CEG production cannot start on legacy chassis.
+      - EIE reports one consistent version.
+      - Full Odoo module install-smoke passes.
+    failure_effect: Block downstream promotion and Wave 2+ admission.
+  - id: GATE-003
+    name: eie_gate_reachability_complete
+    gate_type: completion
+    blocking: true
+    owner_authority_id: AUTH-003
+    task_ids: [TASK-003]
+    required_evidence_ids: [EVID-005]
+    pass_criteria:
+      - Gate's live registry shows an active EIE node owning converge.
+    failure_effect: Block converge-path validation and Wave 3+ admission.
+  - id: GATE-004
+    name: contract_break_and_fixtures_complete
+    gate_type: completion
+    blocking: true
+    owner_authority_id: AUTH-004
+    task_ids: [TASK-004, TASK-005]
+    required_evidence_ids: [EVID-004]
+    pass_criteria:
+      - DEC-001 identity contract is resolved with evidence.
+      - A known CEG response produces usable Odoo buyer-match records.
+      - Canonical contract fixtures exist and cross-repo checks reject drift.
+    failure_effect: Block Wave 4 (converge mapping) admission.
+  - id: GATE-005
+    name: converge_compatibility_complete
+    gate_type: completion
+    blocking: true
+    owner_authority_id: AUTH-003
+    task_ids: [TASK-006]
+    required_evidence_ids: []
+    pass_criteria:
+      - A real EIE converge response is stored and reviewed inside Odoo without field loss.
+    failure_effect: Block Wave 5 (round-trip validation) admission.
+  - id: GATE-006
+    name: controller_handoff_complete
+    gate_type: convergence
+    blocking: true
+    owner_authority_id: AUTH-001
+    task_ids: [TASK-007]
+    required_evidence_ids: [EVID-001]
+    pass_criteria:
+      - The Controller Handoff Receipt is schema-valid and evidence-complete.
+      - Remaining risks, Unknowns, waivers, failures, and rollback state are explicit.
+      - The Controller recommends but does not declare a terminal verdict.
+    failure_effect: Terminal verdict remains INCONCLUSIVE.
+
+scheduler:
+  objective_order:
+    - unblock_critical_path
+    - complete_authority_and_current_state_lock
+    - execute_ready_reversible_work
+    - preserve_independent_verification
+    - prepare_exact_approval_packets
+    - close_out_with_complete_evidence
+  one_writer_per_repository: true
+  non_mutating_cross_repository_tasks_allowed: true
+  mutating_cross_repository_tasks_forbidden: true
+  initial_max_workers: 1
+  maximum_workers_without_new_authorization: 2
+  blocked_task_behavior: >-
+    Block only the affected task or subgraph, continue unrelated ready work,
+    and include the blocker in the next program digest.
+
+retry_policy:
+  max_attempts: 2
+  retryable:
+    - worker_timeout
+    - worker_crash
+    - temporary_file_lock
+    - transient_test_infrastructure
+    - temporary_remote_observation_failure
+    - temporary_adapter_failure
+  non_retryable:
+    - deterministic_test_failure
+    - scope_violation
+    - secret_access_attempt
+    - stale_base_revision
+    - semantic_unknown
+    - approval_mismatch
+    - program_lock_failure
+    - forbidden_command
+  preserve_every_attempt: true
+  require_new_source_contract_when:
+    - base_revision_changes
+    - writable_scope_changes
+    - accepted_decision_changes
+    - validation_obligation_changes
+    - authorization_expiration_changes
+
+observability:
+  program_progress_fields:
+    - program
+    - current_wave
+    - current_task
+    - controller_status
+    - repository_revisions
+    - evidence_added
+    - commands_executed
+    - validation_result
+    - decisions_resolved
+    - unknowns_remaining
+    - risks_changed
+    - next_ready_task
+    - approval_required
+  evidence_policy:
+    append_only: true
+    bind_exact_revision: true
+    bind_collection_method: true
+    bind_environment: true
+    bind_producer_and_timestamp: true
+    distinguish_fact_intent_inference_recommendation_unknown: true
+
+cutover_and_rollback:
+  cutover_authority: exact_human_approval_required
+  preconditions:
+    - accepted_blueprint
+    - valid_program_lock
+    - exact_candidate_revision
+    - independent_verification
+    - all_predecessor_gates_pass
+    - current_rollback_proof
+  rollback_rules:
+    - never_move_a_public_tag
+    - never_replace_an_existing_published_package_version
+    - preserve_failed_release_and_deployment_evidence
+    - use_new_version_when_corrective_source_changes_are_required
+    - use_forward_recovery_when_restore_would_discard_valid_transactions
+  exact_campaign_rollbacks:
+    - "Revert configuration diffs per repository via standard git revert; no remote mutation performed without exact approval."
+    - "N/A: no remote or external transition is authorized within this campaign's authorization ceilings."
+
+closeout:
+  required_handoff_content:
+    - campaign_source_digest
+    - blueprint_digest
+    - program_lock_digest
+    - governance_revision
+    - final_target_revisions
+    - pull_requests_and_merge_commits
+    - tags_releases_publications_and_deployments
+    - workflow_runs_and_artifact_hashes
+    - completed_failed_cancelled_and_superseded_tasks
+    - gate_evaluations
+    - accepted_decisions
+    - remaining_unknowns_risks_and_waivers
+    - rollback_state
+    - recommended_terminal_verdict
+  controller_may_declare_terminal_verdict: false
+  terminal_verdict_authority_id: AUTH-001

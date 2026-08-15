@@ -1,0 +1,36 @@
+# Campaign-local PE binding for the remaining-only v1.1.0 source.
+schema: l9.program-execution.campaign-execution-binding.v1
+schema_version: 1.0.0
+campaign_id: l9-ecosystem-fix-plan
+updated: "2026-08-14"
+alignment: ../ECOSYSTEM_ODOO_ALIGNMENT.yaml
+
+definition:
+  host: Quantum-L9/Cursor-Governance
+  path: environment/program-execution/campaigns/l9-ecosystem-fix-plan
+  source: CAMPAIGN_SOURCE.yaml
+  source_version: "1.1.0"
+
+execution:
+  host: cryptoxdog/IB-Odoo_19
+  default_branch: Staging
+  integration_branch: campaign/l9-ecosystem-fix-plan
+  pr_base: campaign/l9-ecosystem-fix-plan
+  worktree: "$HOME/.l9/program-worktrees/l9-ecosystem-fix-plan"
+  program_root: "$HOME/.l9/programs/l9-ecosystem-fix-plan"
+  bind: "cryptoxdog/IB-Odoo_19=$HOME/.l9/program-worktrees/l9-ecosystem-fix-plan"
+
+l4:
+  local_commit: true
+  mid_execution_push: false
+  publish: "PR_REMEDIATE=0 make pr"
+  remediate: false
+  merge: false
+
+scheduler:
+  one_writer_per_repository: true
+  remaining_ready: [TASK-002, TASK-004, TASK-006]
+  remaining_blocked: [TASK-007]
+
+status: ready_for_odoo_execution
+execute_now: false

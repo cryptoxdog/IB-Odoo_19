@@ -1,0 +1,33 @@
+schema: l9.program-execution.current-state-delta.v1
+schema_version: 1.0.0
+campaign_id: l9-ecosystem-fix-plan
+source_version: "1.1.0"
+collected_at: "2026-08-14T20:36:00-04:00"
+collection_method: read_only_inspection
+producer: cursor-agent
+supersession_id: AUTH-001-L9-ECOSYSTEM-REMAINING-2026-08-14
+
+targets:
+  - id: TARGET-001
+    repository_id: cryptoxdog/IB-Odoo_19
+    default_branch: Staging
+    inspected_revision: e853f83283f6e96e9266ba546a364be11dd7e1b9
+    reachability: in_scope
+    remaining:
+      - writeback default is "1" (TASK-002)
+      - map_match_response reads payload.get("results") (TASK-004)
+      - no resolve_buyer_partner_id (TASK-004)
+      - converge still emits entity_snapshot (TASK-006)
+
+closed_elsewhere:
+  path: history/v1.0.0/
+  items:
+    - EIE #166 / #168
+    - CEG #195 / ADR-DEC-001
+    - Gate converge → eie
+    - Odoo #141
+
+unknowns_after_this_lock: []
+ready_tasks: [TASK-002, TASK-004, TASK-006]
+blocked_tasks: [TASK-007]
+do_not_execute_from_this_receipt: true

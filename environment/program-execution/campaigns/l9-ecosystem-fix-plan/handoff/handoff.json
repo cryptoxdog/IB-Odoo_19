@@ -1,0 +1,103 @@
+{
+  "approvals": [],
+  "archived_source_handoff": "history/v1.0.0/handoff.json",
+  "controller_id": "l9-ecosystem-fix-controller",
+  "decisions": [
+    {
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "id": "DEC-001",
+      "status": "accepted"
+    }
+  ],
+  "exported_at": "2026-08-14T20:36:00+00:00",
+  "gates": [
+    {
+      "evaluation_receipt": null,
+      "evidence_ids": [
+        "EVID-002"
+      ],
+      "id": "GATE-002",
+      "result": "UNKNOWN"
+    },
+    {
+      "evaluation_receipt": null,
+      "evidence_ids": [
+        "EVID-004"
+      ],
+      "id": "GATE-004",
+      "result": "UNKNOWN"
+    },
+    {
+      "evaluation_receipt": null,
+      "evidence_ids": [],
+      "id": "GATE-005",
+      "result": "UNKNOWN"
+    },
+    {
+      "evaluation_receipt": null,
+      "evidence_ids": [],
+      "id": "GATE-006",
+      "result": "UNKNOWN"
+    }
+  ],
+  "handoff_id": "HANDOFF-l9-ecosystem-remaining-0004",
+  "program_id": "l9-ecosystem-fix-plan",
+  "program_version": "1.1.0",
+  "receipt_digest": "2e97b645b2230909df8c19561c528e4a70789a37955cdfb846b5bfa3c636a669",
+  "recommended_program_verdict": "INCONCLUSIVE",
+  "residual_risks": [
+    "RISK-001",
+    "RISK-003"
+  ],
+  "runtime_summary": {
+    "blocking_gates_passed": 0,
+    "completed_tasks": 0,
+    "global_halt": false,
+    "ledger_valid": true,
+    "note": "Live source is remaining-only v1.1.0. pec was not started.",
+    "total_blocking_gates": 4,
+    "total_required_tasks": 4,
+    "unresolved_decisions": 0,
+    "unresolved_unknowns": 0
+  },
+  "schema": "program-execution-controller.handoff-receipt.v2",
+  "supersedes_handoff_id": "HANDOFF-l9-ecosystem-odoo-ready-0003",
+  "supersession_id": "AUTH-001-L9-ECOSYSTEM-REMAINING-2026-08-14",
+  "tasks": [
+    {
+      "id": "TASK-002",
+      "last_error": null,
+      "repository_id": "cryptoxdog/IB-Odoo_19",
+      "runtime_state": "READY",
+      "target_id": "TARGET-001"
+    },
+    {
+      "id": "TASK-004",
+      "last_error": null,
+      "repository_id": "cryptoxdog/IB-Odoo_19",
+      "runtime_state": "READY",
+      "target_id": "TARGET-001"
+    },
+    {
+      "id": "TASK-006",
+      "last_error": null,
+      "repository_id": "cryptoxdog/IB-Odoo_19",
+      "runtime_state": "READY",
+      "target_id": "TARGET-001"
+    },
+    {
+      "blocked_on": [
+        "TASK-002",
+        "TASK-004",
+        "TASK-006"
+      ],
+      "id": "TASK-007",
+      "last_error": null,
+      "runtime_state": "BLOCKED",
+      "target_id": "TARGET-006"
+    }
+  ],
+  "unknowns": []
+}
