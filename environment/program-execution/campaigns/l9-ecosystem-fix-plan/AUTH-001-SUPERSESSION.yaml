@@ -1,0 +1,57 @@
+schema: l9.program-execution.auth-001-supersession.v1
+schema_version: 1.0.0
+supersession_id: AUTH-001-L9-ECOSYSTEM-REMAINING-2026-08-14
+authority: AUTH-001
+owner: Igor Beylin
+issued_at: "2026-08-14T20:36:00Z"
+status: accepted
+campaign_id: l9-ecosystem-fix-plan
+shared_alignment: ../ECOSYSTEM_ODOO_ALIGNMENT.yaml
+
+preserves:
+  archived_source: history/v1.0.0/CAMPAIGN_SOURCE.yaml
+  archived_source_digest: 2e6e137597958203e595bcbceea52fc9fbb83dcb71cbc18dfa901a84f572ee79
+  archived_handoff: history/v1.0.0/handoff.json
+
+live_source:
+  path: CAMPAIGN_SOURCE.yaml
+  version: "1.1.0"
+  role: remaining_odoo_surface_only
+
+reason: >
+  Operator directed: remove parts already executed. v1.0.0 is archived.
+  Live source is v1.1.0 with only TARGET-001 remaining work.
+
+removed_from_live_source:
+  - TASK-001
+  - TASK-003
+  - TASK-005
+  - GATE-001
+  - GATE-003
+  - TARGET-002
+  - TARGET-003
+  - TARGET-004
+  - TARGET-005
+  - AUTH-003
+  - AUTH-004
+  - AUTH-005
+  - UNK-001
+  - UNK-002
+  - UNK-003
+  - UNK-004
+  - UNK-005
+  - EVID-001
+  - EVID-003
+  - EVID-005
+  - RISK-002
+  - merge_odoo_pr_141
+  - eie_gate_registration
+  - eie_version_2_3_0
+  - ceg_wave7_flags
+  - gate_converge_ownership
+
+remaining:
+  tasks: [TASK-002, TASK-004, TASK-006, TASK-007]
+  targets: [TARGET-001, TARGET-006]
+  unknowns: []
+  execute_now: false

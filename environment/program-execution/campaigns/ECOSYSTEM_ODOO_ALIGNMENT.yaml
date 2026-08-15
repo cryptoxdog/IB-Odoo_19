@@ -1,0 +1,52 @@
+schema: l9.program-execution.auth-001-supersession.v1
+schema_version: 1.0.0
+supersession_id: AUTH-001-ECOSYSTEM-REMAINING-2026-08-14
+authority: AUTH-001
+owner: Igor Beylin
+issued_at: "2026-08-14T20:36:00Z"
+status: accepted
+kind: remaining_only_source_successor
+
+preserves_archived_v1_0_0: true
+archived:
+  - environment/program-execution/campaigns/l9-ecosystem-fix-plan/history/v1.0.0/CAMPAIGN_SOURCE.yaml
+  - environment/program-execution/campaigns/l9-ecosystem-fix-plan/history/v1.0.0/source-integrity-receipt.json
+  - environment/program-execution/campaigns/l9-ecosystem-fix-plan/history/v1.0.0/handoff.json
+
+live_source:
+  path: environment/program-execution/campaigns/l9-ecosystem-fix-plan/CAMPAIGN_SOURCE.yaml
+  version: "1.1.0"
+
+reason: >
+  Operator directed removal of already-executed campaign parts. Live source
+  is remaining Odoo plasticos_gate work only. EIE/CEG/Gate/PR141 stay in
+  history/v1.0.0. This pass does not start pec or mutate Odoo.
+
+definition_host:
+  id: Quantum-L9/Cursor-Governance
+  role: campaign_source_ssot
+  path: environment/program-execution/campaigns/l9-ecosystem-fix-plan
+
+execution_host:
+  id: cryptoxdog/IB-Odoo_19
+  kind: git_repository
+  reachability: in_scope
+  default_branch: Staging
+  bind_revision: origin/Staging
+  adapter: git_repo_adapter
+
+runtime:
+  program_root: "$HOME/.l9/programs/l9-ecosystem-fix-plan"
+  worktree_root: "$HOME/.l9/program-worktrees/l9-ecosystem-fix-plan"
+
+pe_alignment:
+  pair: program-execution-system.v2
+  l4_local_autonomy: true
+  mid_execution_push: forbidden
+  publish_path: "PR_REMEDIATE=0 make pr"
+  pr_base: campaign/l9-ecosystem-fix-plan
+  merge: human_only
+  one_writer_per_repository: true
+
+remaining_tasks: [TASK-002, TASK-004, TASK-006, TASK-007]
+execute_now: false

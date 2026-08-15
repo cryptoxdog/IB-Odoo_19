@@ -1,0 +1,14 @@
+{
+  "schema": "source-integrity-receipt.v1",
+  "campaign_id": "l9-ecosystem-fix-plan",
+  "source_file": "source/CAMPAIGN_SOURCE.yaml",
+  "digest_algorithm": "sha256",
+  "digest": "2e6e137597958203e595bcbceea52fc9fbb83dcb71cbc18dfa901a84f572ee79",
+  "bytes": 41718,
+  "pack_recorded_digest": "2e6e137597958203e595bcbceea52fc9fbb83dcb71cbc18dfa901a84f572ee79",
+  "pack_recorded_bytes": 41718,
+  "digest_matches_pack": true,
+  "collected_at": "2026-08-05",
+  "collection_method": "read_only_inspection",
+  "producer": "controller-admission"
+}
