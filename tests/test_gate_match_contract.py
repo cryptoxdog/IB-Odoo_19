@@ -308,24 +308,36 @@ def test_gate_icp_seed_auto_writeback_review_only():
     assert '<field name="value">0</field>' in block
 
 
-def test_build_converge_request_maps_partner_snapshot():
+def test_build_converge_request_maps_partner_snapshot_to_eie_shape():
     env = _MockEnv()
     run = _RunStub()
     request = build_converge_request(env, run)
-    assert request.entity_id == "res.partner:55"
-    assert request.domain == "plasticos"
-    assert request.entity_snapshot["name"] == "Acme Recycling"
-    assert request.entity_snapshot["website"] == "https://acme.example"
-    assert request.entity_snapshot["source_urls"] == ["https://acme.example/about"]
+    assert request.entity["_odoo_entity_id"] == "res.partner:55"
+    assert request.entity["name"] == "Acme Recycling"
+    assert request.entity["website"] == "https://acme.example"
+    assert request.entity["source_urls"] == ["https://acme.example/about"]
+    assert request.object_type == "plasticos"
+    assert request.objective == "Full entity enrichment and inference"
+    assert request.max_variations == 5  # max_passes None -> EIE default
     assert request.odoo["model"] == "plasticos.enrichment.run"
     assert request.odoo["record_id"] == 7
+    wire = request.to_dict()
+    assert set(wire) >= {"entity", "object_type", "objective", "max_variations", "odoo"}
+    assert "_odoo_entity_id" in wire["entity"]
+
+
+def test_build_converge_request_clamps_max_passes():
+    env = _MockEnv()
+    run = _RunStub()
+    assert build_converge_request(env, run, max_passes=20).max_variations == 10
+    assert build_converge_request(env, run, max_passes=0).max_variations == 1
 
 
 def test_partner_writeback_from_converge_allowlist_only():
     resp = map_converge_response(
         {
-            "status": "ok",
-            "final_fields": {
+            "state": "completed",
+            "fields": {
                 "website": "https://acme-new.example",
                 "city": "Raleigh",
                 "supplier_rank": 9,  # not in allowlist -> dropped
@@ -335,3 +347,50 @@ def test_partner_writeback_from_converge_allowlist_only():
     )
     vals = partner_writeback_from_converge(resp)
     assert vals == {"website": "https://acme-new.example", "city": "Raleigh"}
+
+
+def test_map_converge_response_carries_eie_fields_without_fabrication():
+    # DNB-006: every EnrichResponse field carried; total_cost_usd/writeback never fabricated.
+    payload = {
+        "state": "completed",
+        "fields": {"website": "https://acme-new.example"},
+        "confidence": 0.9,
+        "variation_count": 3,
+        "pass_count": 2,
+        "consensus_threshold": 0.65,
+        "uncertainty_score": 0.1,
+        "processing_time_ms": 41,
+        "quality_tier": "high",
+        "inference_version": "v1.2.3",
+        "kb_content_hash": "abc123",
+        "kb_files_consulted": ["kb/a.md"],
+        "kb_fragment_ids": ["frag-1"],
+        "inferences": [{"k": "v"}],
+        "grade_matches": [{"k": "v"}],
+        "enrichment_payload": {"k": "v"},
+        "feature_vector": [0.1, 0.2],
+        "tokens_used": 512,
+        "failure_reason": None,
+    }
+    resp = map_converge_response(payload)
+    assert resp.status == "ok"
+    assert resp.state == "completed"
+    assert resp.final_fields == {"website": "https://acme-new.example"}
+    assert resp.confidence == 0.9
+    assert resp.variation_count == 3
+    assert resp.pass_count == 2
+    assert resp.tokens_used == 512
+    assert resp.kb_files_consulted == ["kb/a.md"]
+    assert resp.kb_fragment_ids == ["frag-1"]
+    assert resp.inferences == [{"k": "v"}]
+    assert resp.grade_matches == [{"k": "v"}]
+    assert resp.enrichment_payload == {"k": "v"}
+    assert resp.feature_vector == [0.1, 0.2]
+    assert resp.total_cost_usd is None  # UNAVAILABLE — not fabricated
+    assert resp.writeback_applied is None  # UNAVAILABLE — not fabricated
+
+
+def test_map_converge_response_non_completed_is_not_ok():
+    resp = map_converge_response({"state": "failed", "failure_reason": "worker timeout"})
+    assert resp.status != "ok"
+    assert resp.failure_reason == "worker timeout"

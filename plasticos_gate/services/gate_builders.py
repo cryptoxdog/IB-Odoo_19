@@ -38,9 +38,30 @@ def build_odoo_context(env, *, model: str, record_id: int) -> OdooContext:
     )
 
 
+_MIN_VARIATIONS = 1
+_MAX_VARIATIONS = 10
+_DEFAULT_OBJECTIVE = "Full entity enrichment and inference"
+
+
+def _clamp_variations(max_passes: Any) -> int:
+    """EIE clamps max_variations to 1..10; unparseable input falls back to 5."""
+    try:
+        value = int(max_passes)
+    except (TypeError, ValueError):
+        return 5
+    return max(_MIN_VARIATIONS, min(_MAX_VARIATIONS, value))
+
+
 def build_converge_request(
     env, run_rec, *, domain: str = "plasticos", max_passes: int | None = None
 ) -> ConvergeRequest:
+    """Map an Odoo enrichment run into an EIE EnrichRequest-shaped request.
+
+    The partner snapshot becomes EIE ``entity``; ``object_type`` derives from
+    the Odoo domain; ``max_passes`` maps to clamped ``max_variations``. The
+    Odoo entity id is preserved inside entity context (metadata), not as a
+    Gate-level transform.
+    """
     partner = run_rec.partner_id
     snapshot: dict[str, Any] = {}
     for src_field, payload_field in PARTNER_SNAPSHOT_FIELD_MAP.items():
@@ -52,12 +73,14 @@ def build_converge_request(
         if urls:
             snapshot["source_urls"] = urls
     odoo = build_odoo_context(env, model=run_rec._name, record_id=run_rec.id).to_dict()
+    entity = dict(snapshot)
+    entity.setdefault("_odoo_entity_id", f"res.partner:{partner.id}")
     return ConvergeRequest(
-        entity_id=f"res.partner:{partner.id}",
-        domain=domain,
-        entity_snapshot=snapshot,
+        entity=entity,
+        object_type=str(domain) if domain else "Account",
+        objective=_DEFAULT_OBJECTIVE,
+        max_variations=_clamp_variations(max_passes),
         odoo=odoo,
-        max_passes=max_passes,
     )
 
 
