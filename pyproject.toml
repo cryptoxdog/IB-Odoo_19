@@ -222,11 +222,11 @@ ignore_errors = true  # Uses requests; types-requests in CI
 # SSOT for Pyright/basedpyright policy (mode, reporters, excludes). basedpyright
 # reads [tool.basedpyright] first, then falls back here — keep one block only.
 # Machine-specific Odoo source paths live in .vscode/settings.json (extraPaths),
-# not here. See .cursor/rules/88-plasticos-odoo-python-tooling.mdc.
+# not here. Do not set venvPath/venv — a missing .venv makes Cursor Pyright fail
+# workspace settings resolution. Interpreter is python.defaultInterpreterPath.
+# See .cursor/rules/88-plasticos-odoo-python-tooling.mdc.
 [tool.pyright]
 pythonVersion = "3.12"
-venvPath = "."
-venv = ".venv"
 typeCheckingMode = "basic"
 reportMissingImports = "warning"
 reportMissingModuleSource = false
