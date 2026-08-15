@@ -201,11 +201,11 @@ def test_map_match_response_missing_candidates_key_raises():
 def test_map_match_response_unresolvable_refs_fail_safe():
     payload = {
         "candidates": [
-            {"entity_ref": "res.partner:102"},          # ok
-            {"entity_ref": "product.product:9"},        # foreign namespace -> skip
-            {"entity_ref": 102},                        # bare integer -> skip
-            {"entity_ref": "res.partner:not-an-int"},   # non-integer id -> skip
-            {},                                         # missing entity_ref -> skip
+            {"entity_ref": "res.partner:102"},  # ok
+            {"entity_ref": "product.product:9"},  # foreign namespace -> skip
+            {"entity_ref": 102},  # bare integer -> skip
+            {"entity_ref": "res.partner:not-an-int"},  # non-integer id -> skip
+            {},  # missing entity_ref -> skip
         ]
     }
     mapped = map_match_response(payload)
