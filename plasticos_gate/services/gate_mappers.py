@@ -44,20 +44,14 @@ def resolve_buyer_partner_id(entity_ref: str | None) -> int:
         raise UnresolvableBuyerRef("candidate has no entity_ref")
     match = _ENTITY_REF_RE.match(entity_ref.strip())
     if not match:
-        raise UnresolvableBuyerRef(
-            f"entity_ref does not match '<model>:<id>': {entity_ref!r}"
-        )
+        raise UnresolvableBuyerRef(f"entity_ref does not match '<model>:<id>': {entity_ref!r}")
     model, raw_id = match.group("model"), match.group("id")
     if model != BUYER_PARTNER_MODEL:
-        raise UnresolvableBuyerRef(
-            f"entity_ref model {model!r} is not {BUYER_PARTNER_MODEL!r}: {entity_ref!r}"
-        )
+        raise UnresolvableBuyerRef(f"entity_ref model {model!r} is not {BUYER_PARTNER_MODEL!r}: {entity_ref!r}")
     try:
         return int(raw_id)
     except (TypeError, ValueError) as exc:
-        raise UnresolvableBuyerRef(
-            f"entity_ref id is not an integer: {entity_ref!r}"
-        ) from exc
+        raise UnresolvableBuyerRef(f"entity_ref id is not an integer: {entity_ref!r}") from exc
 
 
 def normalize_score(score: float | None, score_scale: str | None) -> float | None:
@@ -87,9 +81,7 @@ def map_match_response(payload: dict[str, Any]) -> MatchResponse:
     """
     candidates = payload.get("candidates")
     if candidates is None:
-        raise KeyError(
-            f"CEG match payload has no 'candidates' key (got keys: {sorted(payload)})"
-        )
+        raise KeyError(f"CEG match payload has no 'candidates' key (got keys: {sorted(payload)})")
 
     results: list[MatchCandidate] = []
     unresolved: list[dict[str, Any]] = []
