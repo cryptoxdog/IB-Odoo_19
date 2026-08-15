@@ -55,6 +55,7 @@ exclude = [
     ".semgrep/tests",
     "current work - ib",
     "Current Work - IGNORE",
+    "*.md",  # ruff 0.16 formats fenced Python in markdown; docs stay human-owned
 ]
 
 [tool.ruff.lint]
