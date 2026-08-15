@@ -150,23 +150,34 @@ def test_build_match_request_maps_intake_fields():
     assert request.odoo["record_id"] == 42
 
 
-def test_map_match_response_to_matcher_dicts():
+def test_map_match_response_reads_candidates_and_resolves_entity_ref():
+    # DEC-001/OPTION-B: identity comes from entity_ref ("res.partner:<int>"), not a bare id.
     payload = {
-        "status": "ok",
-        "results": [
+        "query_id": "q-42",
+        "direction": "intake_to_buyer",
+        "candidates": [
             {
-                "buyer_partner_id": 7,
-                "buyer_name": "Buyer Co",
+                "entity_ref": "res.partner:7",
+                "eligible": True,
                 "score": 85,
-                "facility_profile_id": 3,
-                "reason": "Strong fit",
-                "typical_price": 0.42,
-                "gates_passed": 8,
-                "gates_failed": ["gate_3"],
+                "score_scale": "0_to_100",
+                "rank": 1,
+                "failed_gates": ["gate_3"],
+                "explanation": "Strong fit",
             }
         ],
+        "total_candidates": 1,
+        "execution_time_ms": 12,
     }
     mapped = map_match_response(payload)
+    assert mapped.unresolved == []
+    assert mapped.query_id == "q-42"
+    assert mapped.total_candidates == 1
+    assert len(mapped.results) == 1
+    cand = mapped.results[0]
+    assert cand.buyer_partner_id == 7
+    assert cand.entity_ref == "res.partner:7"
+    assert cand.normalized_score == pytest.approx(0.85)
     rows = map_match_response_to_matcher_dicts(
         mapped,
         audit_metadata={"gate_packet_id": "pkt-1", "gate_correlation_id": "corr-1"},
@@ -174,12 +185,46 @@ def test_map_match_response_to_matcher_dicts():
     assert len(rows) == 1
     row = rows[0]
     assert row["buyer_id"] == 7
-    assert row["buyer_name"] == "Buyer Co"
     assert row["total_score"] == pytest.approx(0.85)
     assert row["match_source"] == "gate"
     assert row["gate_packet_id"] == "pkt-1"
     assert row["gate_correlation_id"] == "corr-1"
     assert row["gates_failed"] == ["gate_3"]
+
+
+def test_map_match_response_missing_candidates_key_raises():
+    # The OLD "results" contract must fail loudly, never silently empty.
+    with pytest.raises(KeyError):
+        map_match_response({"results": [{"entity_ref": "res.partner:1"}]})
+
+
+def test_map_match_response_unresolvable_refs_fail_safe():
+    payload = {
+        "candidates": [
+            {"entity_ref": "res.partner:102"},          # ok
+            {"entity_ref": "product.product:9"},        # foreign namespace -> skip
+            {"entity_ref": 102},                        # bare integer -> skip
+            {"entity_ref": "res.partner:not-an-int"},   # non-integer id -> skip
+            {},                                         # missing entity_ref -> skip
+        ]
+    }
+    mapped = map_match_response(payload)
+    assert [c.buyer_partner_id for c in mapped.results] == [102]
+    assert len(mapped.unresolved) == 4
+    assert all("entity_ref" in entry for entry in mapped.unresolved)
+
+
+def test_map_match_response_sorts_by_normalized_score_descending():
+    payload = {
+        "candidates": [
+            {"entity_ref": "res.partner:1", "score": 40, "score_scale": "0_to_100"},
+            {"entity_ref": "res.partner:2", "score": 0.95, "score_scale": "0_to_1"},
+            {"entity_ref": "res.partner:3", "score": 10, "score_scale": "0_to_100"},
+        ]
+    }
+    mapped = map_match_response(payload)
+    assert [c.buyer_partner_id for c in mapped.results] == [2, 1, 3]
+    assert mapped.results[0].normalized_score == pytest.approx(0.95)
 
 
 def test_extract_audit_metadata_reads_packet_header():
