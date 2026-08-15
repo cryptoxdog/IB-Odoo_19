@@ -239,14 +239,28 @@ def test_gate_enrichment_enabled_false_when_flag_off():
     assert gate_enrichment_enabled(env) is False
 
 
-def test_gate_auto_writeback_enabled_default_on():
-    # No param set → live application is the default
-    assert gate_auto_writeback_enabled(_MockEnv()) is True
+def test_gate_auto_writeback_enabled_default_off():
+    # No param set → review-only is the default (TASK-002: no auto-write without explicit enablement)
+    assert gate_auto_writeback_enabled(_MockEnv()) is False
+
+
+def test_gate_auto_writeback_enabled_on_when_flag_one():
+    # Explicit opt-in re-enables live application
+    env = _MockEnv({"plasticos.gate.auto_writeback": "1"})
+    assert gate_auto_writeback_enabled(env) is True
 
 
 def test_gate_auto_writeback_enabled_off_when_flag_zero():
     env = _MockEnv({"plasticos.gate.auto_writeback": "0"})
     assert gate_auto_writeback_enabled(env) is False
+
+
+def test_gate_icp_seed_auto_writeback_review_only():
+    # VAL-002: the install seed must default to review-only (0)
+    seed = Path(__file__).resolve().parents[1] / "plasticos_gate/data/gate_icp_seed.xml"
+    text = seed.read_text(encoding="utf-8")
+    block = text.split('id="param_gate_auto_writeback"', 1)[1].split("</record>", 1)[0]
+    assert '<field name="value">0</field>' in block
 
 
 def test_build_converge_request_maps_partner_snapshot():
