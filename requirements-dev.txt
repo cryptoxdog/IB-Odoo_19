@@ -20,7 +20,7 @@ pytest-cov==5.0.0
 mypy==1.14.0
 
 # Checker pins — match .github/workflows/ci.yml (lint + static-checks).
-ruff==0.15.5
+ruff==0.16.0
 semgrep==1.164.0
 
 # PR Repair engine — used by scripts/pr_repair_adapter.py for the
