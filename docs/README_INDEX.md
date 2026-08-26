@@ -1,8 +1,8 @@
-# PlasticOS IB-Odoo 19 — README Bundle Index
+# PlasticOS IB-Odoo 19 — README Index
 
-**Generated:** 2026-03-22
-**Branch:** staging
-**Scope:** Modules with significant development, debugging, and architectural work performed during the pre-launch optimization phase.
+**Updated:** 2026-08-14
+**Branch:** Staging
+**Scope:** Pointer index only — per-module READMEs live in each module folder (`plasticos_X/README.md`), not in `docs/`. This file exists so agents and humans can find them without grepping.
 
 ---
 
@@ -22,19 +22,21 @@
 
 Managed by `make roadmap` — see [roadmap/README.md](roadmap/README.md).
 
-## Bundle Contents
+## Module README Locations
 
-| File | Module / Topic | Deploy Trigger |
+Each module README now lives beside its module code — check there first, or regenerate via `python3 scripts/generate_subsystem_readmes.py` (config: `config/subsystems/readme_config.yaml`).
+
+| Module / Topic | README Path | Deploy Trigger |
 |---|---|---|
-| `README_plasticos_intake.md` | `plasticos_intake` — Core pipeline entry point | `-u plasticos_intake` |
-| `README_plasticos_intake_normalizer.md` | `plasticos_intake_normalizer` — CEG packet assembly | `-u plasticos_intake_normalizer` |
-| `README_plasticos_offer.md` | `plasticos_offer` — Offer lifecycle | `-u plasticos_offer` |
-| `README_plasticos_transaction.md` | `plasticos_transaction` — Deal record, financials, compliance | `-u plasticos_transaction` |
-| `README_plasticos_facility_profile.md` | `plasticos_facility_profile` — Facility capability profiles | `-u plasticos_facility_profile` |
-| `README_plasticos_material_profile.md` | `plasticos_material_profile` — Material master + registries | `-u plasticos_material_profile` |
-| `README_plasticos_commission.md` | `plasticos_commission` — Broker commission + payout + dashboard | `-u plasticos_commission` |
-| `README_plasticos_partner_import.md` | `plasticos_partner_import` — Bulk CSV import tooling | `-u plasticos_partner_import` |
-| `README_backup_github_actions.md` | GitHub Actions S3 disaster recovery | N/A — infra |
+| `plasticos_intake` — Core pipeline entry point | [`../plasticos_intake/README.md`](../plasticos_intake/README.md) | `-u plasticos_intake` |
+| `plasticos_intake_normalizer` — CEG packet assembly | [`../plasticos_intake_normalizer/README.md`](../plasticos_intake_normalizer/README.md) | `-u plasticos_intake_normalizer` |
+| `plasticos_offer` — Offer lifecycle | [`../plasticos_offer/README.md`](../plasticos_offer/README.md) | `-u plasticos_offer` |
+| `plasticos_transaction` — Deal record, financials, compliance | [`../plasticos_transaction/README.md`](../plasticos_transaction/README.md) | `-u plasticos_transaction` |
+| `plasticos_facility_profile` — Facility capability profiles | [`../plasticos_facility_profile/README.md`](../plasticos_facility_profile/README.md) | `-u plasticos_facility_profile` |
+| `plasticos_material_profile` — Material master + registries | [`../plasticos_material_profile/README.md`](../plasticos_material_profile/README.md) | `-u plasticos_material_profile` |
+| `plasticos_commission` — Broker commission + payout + dashboard | [`../plasticos_commission/README.md`](../plasticos_commission/README.md) | `-u plasticos_commission` |
+| `plasticos_partner_import` — Bulk CSV import tooling | [`../plasticos_partner_import/README.md`](../plasticos_partner_import/README.md) | `-u plasticos_partner_import` |
+| GitHub Actions S3 disaster recovery | [`README_backup_github_actions.md`](README_backup_github_actions.md) | N/A — infra |
 
 ---
 
