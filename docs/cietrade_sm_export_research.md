@@ -15,7 +15,7 @@
 | Golden CSVs | `data/cietrade_sm_export/bulk/*.csv` |
 | WIP land / Excel | gitignored `Current Work - IGNORE/CieTrade Data Extraction/excel files/` |
 | Control plane | `~/.cursor-governance/tools/l9_agent_ui_control` |
-| Odoo partner import | [README_plasticos_partner_import.md](./README_plasticos_partner_import.md) — different CSV shape |
+| Odoo partner import | [plasticos_partner_import/README.md](../plasticos_partner_import/README.md) — different CSV shape |
 
 ---
 
@@ -252,7 +252,7 @@ PY
 | 3 | Headless load via shell / ICP — not Contacts wizard UI |
 | 4 | Payables / Receipt / WKS need a **new** staging path |
 
-See [README_plasticos_partner_import.md](./README_plasticos_partner_import.md).
+See [plasticos_partner_import/README.md](../plasticos_partner_import/README.md).
 
 ---
 

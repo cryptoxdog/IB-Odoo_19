@@ -3,6 +3,7 @@
 
 .DEFAULT_GOAL := help
 .PHONY: help \
+        install-extensions \
         lint format format-fix check \
         audit audit-quick audit-baseline advisory-checks \
         xml-check wiring deps-check xml-ref-deps cron-check odoo19-check odoo19-hooks odoo-patterns \
@@ -61,6 +62,7 @@ help:
 	@echo ""
 	@echo "  Code Quality"
 	@echo "    make venv             build pinned local .venv (ruff==0.15.5, semgrep, pytest) — mirrors CI"
+	@echo "    make install-extensions  install .vscode/extensions.json recommendations via cursor/code CLI"
 	@echo "    make lint             ruff check (lint only)"
 	@echo "    make format           ruff format --check (check only)"
 	@echo "    make format-fix       ruff format (auto-fix)"
@@ -173,6 +175,9 @@ venv:
 	@$(VENV)/bin/semgrep --version 2>&1 | head -1
 	@$(VENV)/bin/mypy --version 2>&1 | head -1
 	@echo "→ Activate automatically with direnv (direnv allow), or: source $(VENV)/bin/activate"
+
+install-extensions:
+	@bash scripts/install_editor_extensions.sh
 
 lint:
 	$(RUFF) check .
