@@ -67,6 +67,12 @@ Or manual activation: `source .venv/bin/activate`
 1. Open the repo folder in Cursor.
 2. `Cmd+Shift+P` → **Python: Select Interpreter** → choose `.venv/bin/python`.
 3. **Developer: Reload Window** (so Pylance picks up `pyproject.toml` + `.vscode/settings.json`).
+4. Install the recommended editor extensions (`.vscode/extensions.json` — carries over on every clone since it's git-tracked, but installation itself still requires one manual step per machine; VS Code/Cursor never auto-installs extensions from a cloned repo for security reasons):
+   ```bash
+   make install-extensions   # scripts/install_editor_extensions.sh — installs via cursor/code CLI
+   ```
+   Or manually: Extensions panel (`Cmd+Shift+X`) → **Recommended** section → Install.
+   Requires the `cursor` CLI on `PATH` (Cmd+Shift+P → "Shell Command: Install 'cursor' command in PATH" if missing).
 
 Committed workspace settings (`.vscode/settings.json`) set:
 

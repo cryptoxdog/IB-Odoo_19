@@ -25,7 +25,7 @@
                         Use <strong>Settings → PlasticOS CRM Sync → Run VanillaSoft API Sync</strong>
                         (or CRM → CRM Sync → Connections → Sync Now).
                         This wizard has no menu entry — emergency Technical access only.
-                        cieTrade partner CSV import is unchanged.
+                        cieTrade partner CSV import is Settings-only (Settings → PlasticOS Partner Import).
                     </div>
                     <div class="alert alert-info" role="alert">
                         <strong>Default File:</strong>
@@ -72,5 +72,7 @@
         <field name="view_mode">form</field>
         <field name="target">new</field>
     </record>
+
+    <!-- Former CRM / PlasticOS menus removed; cleaned by migrations/19.0.2.7.1/post-migrate.py -->
 
 </odoo>

@@ -3,6 +3,7 @@
 
 .DEFAULT_GOAL := help
 .PHONY: help \
+        install-extensions \
         lint format format-fix check \
         audit audit-quick audit-baseline advisory-checks \
         xml-check wiring deps-check xml-ref-deps cron-check odoo19-check odoo19-hooks odoo-patterns \
@@ -14,7 +15,7 @@
         up down restart logs logs-error shell odoo-shell \
         update update-all rebuild backup lock-deps \
         test test-odoo test-pure test-module install-smoke \
-        pr-check pr-check-% commit push api-push-check sonar changelog \
+        pr pr-check pr-check-% commit push api-push-check sonar changelog \
         governance-backup \
         github-actions-kernel-check \
         pr-autopilot pr-fix \
@@ -61,6 +62,7 @@ help:
 	@echo ""
 	@echo "  Code Quality"
 	@echo "    make venv             build pinned local .venv (ruff==0.15.5, semgrep, pytest) — mirrors CI"
+	@echo "    make install-extensions  install .vscode/extensions.json recommendations via cursor/code CLI"
 	@echo "    make lint             ruff check (lint only)"
 	@echo "    make format           ruff format --check (check only)"
 	@echo "    make format-fix       ruff format (auto-fix)"
@@ -126,7 +128,8 @@ help:
 	@echo "    make commit           stage all (except .cursor-commands) + commit"
 	@echo "    make commit m=\"...\"   commit with explicit conventional message"
 	@echo "    make github-actions-kernel-check  validate staged/all .github/workflows (R5 kernel)"
-	@echo "    make pr-check         REQUIRED before any push: audit + audit-baseline + test (mirrors ci.yml)"
+	@echo "    make pr               FAST local gate: audit-quick + test (use while iterating)"
+	@echo "    make pr-check         REQUIRED before push: parallel audit/baseline/test + smoke + remote"
 	@echo "    make pr-check pr=100       remote gate for PR #100 or full GitHub URL"
 	@echo "    make pr-check-100          shorthand for pr=100"
 	@echo "    make push             safe push: pr-check, then push current FEATURE branch (Staging/Production are PR-only)"
@@ -172,6 +175,9 @@ venv:
 	@$(VENV)/bin/semgrep --version 2>&1 | head -1
 	@$(VENV)/bin/mypy --version 2>&1 | head -1
 	@echo "→ Activate automatically with direnv (direnv allow), or: source $(VENV)/bin/activate"
+
+install-extensions:
+	@bash scripts/install_editor_extensions.sh
 
 lint:
 	$(RUFF) check .
@@ -395,22 +401,7 @@ audit-quick: lint format xml-check odoo19-check wiring deps-check cron-check
 audit: audit-quick semgrep semgrep-test guards acl-check check-plasticos-skills \
 	name-check manifest-check no-local-intelligence odoo-patterns odoo19-hooks critical-manifest \
 	enhanced-audit odoo-antipatterns package-init weak-test-check xml-ref-deps
-	@echo "→ Field integrity..."
-	python3 ci/check_field_integrity.py
-	@echo "→ ORM integrity..."
-	python3 ci/check_orm_integrity.py
-	@echo "→ Orphan model refs..."
-	python3 ci/check_orphan_model_refs.py
-	@echo "→ Automation field refs..."
-	python3 ci/check_automation_field_refs.py
-	@echo "→ XPath stability..."
-	python3 ci/check_xpath_stability.py
-	@echo "→ Constraint patterns..."
-	python3 ci/check_constraint_patterns.py
-	@echo "→ Model inheritance..."
-	python3 ci/check_model_inheritance.py
-	@echo "→ Disabled actions..."
-	python3 ci/check_disabled_actions.py
+	@bash scripts/run_audit_integrity.sh
 	@echo ""
 	@echo "✅ Full audit complete (parity with ci.yml static-checks)"
 
@@ -602,16 +593,22 @@ test-module:
 # PR / CI WORKFLOW
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Fast local iteration gate (not a push substitute).
+# Parallel: audit-quick + pytest. No full audit, baseline, smoke, or remote.
+pr:
+	@bash scripts/pr_check_run.sh fast
+
 # REQUIRED before any push or PR creation (local + remote when PR/CI exists).
-# `audit` already covers guards/semgrep/semgrep-test — kept as one dependency
-# for 1:1 parity with ci.yml's static-checks job (see `audit` target above).
+# Same check set as before; scheduled in CI-like parallel waves via
+# scripts/pr_check_run.sh (audit + audit-baseline + test in parallel, then smoke, then remote).
 # secret-scan is intentionally NOT listed here: pre-commit's gitleaks-push
 # hook already runs at `git push` time regardless of make, so listing it here
 # would just run gitleaks twice.
-# install-smoke is the local Odoo load gate (GHA cannot run odoo-bin install).
-pr-check: audit audit-baseline test install-smoke pr-remote-feedback
-	@echo ""
-	@echo "✅ PR gate passed — safe to push"
+# install-smoke is the local Odoo load gate (GHA cannot run odoo-bin install);
+# content-cached when plasticos/load inputs are unchanged (PR_CHECK_FORCE_SMOKE=1).
+pr-check:
+	@bash scripts/pr_check_run.sh full
+
 
 # Shorthand: make pr-check-100 → make pr-check pr=100
 pr-check-%:

@@ -112,4 +112,4 @@ On `material_profile_id` onchange, intake pre-fills snapshots from the profile (
 
 - `plasticos_intake/models/intake.py` — intake model and `_create_material_profile_from_intake`
 - `plasticos_material_profile/models/material_profile.py` — canonical profile schema
-- `docs/README_plasticos_intake.md`, `docs/README_plasticos_material_profile.md`
+- `plasticos_intake/README.md`, `plasticos_material_profile/README.md`

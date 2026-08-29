@@ -70,3 +70,6 @@ AUDIT_REPORT.md
 # ignore in this file (none currently exists here for memory-bank).
 !/memory-bank/
 !/memory-bank/**
+
+# Local PR-check / tool caches
+.cache/

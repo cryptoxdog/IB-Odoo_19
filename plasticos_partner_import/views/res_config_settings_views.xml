@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_partner_import" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.plasticos.partner.import</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app string="PlasticOS Partner Import" name="plasticos_partner_import" groups="base.group_system">
+                    <block title="cieTrade Partner CSV">
+                        <setting id="plasticos_partner_import_corporate_csv_setting"
+                                 string="Corporate CSV Path"
+                                 help="Optional absolute path on the server. Empty = module default CSV bundled with plasticos_partner_import.">
+                            <field name="plasticos_partner_import_corporate_csv"
+                                     placeholder="/path/on/server/corporate.csv"/>
+                        </setting>
+                        <setting id="plasticos_partner_import_facility_csv_setting"
+                                 string="Facility CSV Path"
+                                 help="Optional absolute path on the server. Empty = module default CSV bundled with plasticos_partner_import.">
+                            <field name="plasticos_partner_import_facility_csv"
+                                     placeholder="/path/on/server/facility.csv"/>
+                        </setting>
+                        <setting id="plasticos_partner_import_run_cietrade_setting"
+                                 string="Run cieTrade Partner Import"
+                                 help="One-shot server-side import from the resolved CSV paths above (or module defaults). No browser upload — files must already exist on the Odoo server.">
+                            <button name="action_plasticos_partner_import_run_cietrade"
+                                    type="object"
+                                    string="Run cieTrade Partner Import"
+                                    class="btn-secondary"
+                                    groups="base.group_system"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>
