@@ -92,6 +92,18 @@ def map_match_response(payload: dict[str, Any]) -> MatchResponse:
         except UnresolvableBuyerRef as exc:
             unresolved.append({"entity_ref": entity_ref, "reason": str(exc)})
             continue
+        # CEG hard-gate failures set eligible=false — never surface as selectable matches.
+        if cand.get("eligible") is False:
+            unresolved.append(
+                {
+                    "entity_ref": entity_ref,
+                    "reason": "candidate not eligible (hard gates failed)",
+                    "failed_gates": list(cand.get("failed_gates") or [])
+                    if not isinstance(cand.get("failed_gates"), int)
+                    else [],
+                }
+            )
+            continue
         failed_gates = cand.get("failed_gates") or []
         if isinstance(failed_gates, int):
             failed_gates = []
@@ -145,6 +157,8 @@ def map_match_response_to_matcher_dicts(
     for item in mapped.results:
         if not item.buyer_partner_id:
             continue
+        if not item.eligible:
+            continue
         results.append(
             {
                 "buyer_id": int(item.buyer_partner_id),
@@ -177,9 +191,15 @@ def map_converge_response(payload: dict[str, Any]) -> ConvergeResponse:
     derived from EIE ``state``/``failure_reason`` for the Odoo consumer's
     usable-result check.
     """
-    state = payload.get("state", EIE_STATE_COMPLETED)
+    # Require an explicit completed state — never manufacture completed/ok on
+    # empty, partial, or version-skewed payloads that omit state.
+    raw_state = payload.get("state")
+    state = raw_state if isinstance(raw_state, str) and raw_state.strip() else None
     failure_reason = payload.get("failure_reason")
-    status = "ok" if (state == EIE_STATE_COMPLETED and not failure_reason) else (failure_reason or state or "failed")
+    if state == EIE_STATE_COMPLETED and not failure_reason:
+        status = "ok"
+    else:
+        status = failure_reason or state or "failed"
     return ConvergeResponse(
         status=status,
         state=state,

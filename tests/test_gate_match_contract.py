@@ -394,3 +394,35 @@ def test_map_converge_response_non_completed_is_not_ok():
     resp = map_converge_response({"state": "failed", "failure_reason": "worker timeout"})
     assert resp.status != "ok"
     assert resp.failure_reason == "worker timeout"
+
+
+def test_map_converge_response_missing_state_is_not_ok():
+    # Empty/partial payloads must not manufacture state=completed / status=ok.
+    resp = map_converge_response({"fields": {"website": "https://acme.example"}})
+    assert resp.status != "ok"
+    assert resp.state is None
+
+
+def test_map_match_response_skips_ineligible_candidates():
+    payload = {
+        "candidates": [
+            {
+                "entity_ref": "res.partner:7",
+                "eligible": False,
+                "score": 90,
+                "score_scale": "0_to_100",
+                "failed_gates": ["hard_gate"],
+            },
+            {
+                "entity_ref": "res.partner:8",
+                "eligible": True,
+                "score": 50,
+                "score_scale": "0_to_100",
+            },
+        ]
+    }
+    mapped = map_match_response(payload)
+    assert [c.buyer_partner_id for c in mapped.results] == [8]
+    assert any(u.get("entity_ref") == "res.partner:7" for u in mapped.unresolved)
+    rows = map_match_response_to_matcher_dicts(mapped)
+    assert [r["buyer_id"] for r in rows] == [8]

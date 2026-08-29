@@ -134,12 +134,12 @@ class EnrichmentRun(models.Model):
     def _run_gate_converge(self):
         """Route enrichment through Gate converge (EIE worker).
 
-        Live path (default): apply the converge proposal to the partner immediately
-        (merge-not-overwrite of allowlisted fields, with provenance) and set state to
-        'injected'. When plasticos.gate.auto_writeback=0, store the proposal for human
-        review (state='review') without writing. Returns True when Gate produced a
-        usable result; returns False (non-ok status or no writable fields) so the
-        caller falls back to the local pipeline.
+        Review-only by default (``plasticos.gate.auto_writeback=0``): store the
+        proposal for human approval (state='review') without partner writes.
+        When auto_writeback is explicitly enabled, apply allowlisted fields
+        (merge-not-overwrite, with provenance) and set state to 'injected'.
+        Returns True when Gate produced a usable result; False on non-ok status
+        or empty allowlist (caller fails closed / no local fallback on M4).
         """
         self.ensure_one()
         from odoo.addons.plasticos_gate.services.gate_builders import build_converge_request
@@ -364,12 +364,43 @@ class EnrichmentRun(models.Model):
 
         Merge-not-overwrite: existing field values are never
         clobbered. Only empty/falsy fields are populated.
+
+        Gate review-only runs store ``gate_proposal.proposed_partner_fields``.
+        Approving those applies the allowlisted partner writeback before any
+        material-profile inject from ``extraction_ids``.
         """
         self.ensure_one()
         if self.state not in ("validated", "review"):
             raise UserError(
                 "Run must be validated or manually approved from review.",
             )
+
+        gate_written = 0
+        proposal = self.gate_proposal if isinstance(self.gate_proposal, dict) else {}
+        proposed = proposal.get("proposed_partner_fields") or {}
+        if proposed:
+            audit = {
+                "gate_packet_id": self.gate_packet_id,
+                "gate_correlation_id": self.gate_correlation_id,
+            }
+            gate_written = self._apply_converge_writeback(proposed, audit)
+            if not self.extraction_ids.filtered("is_injectable"):
+                self.write(
+                    {
+                        "state": "injected",
+                        "injected_at": fields.Datetime.now(),
+                        "fields_written": gate_written,
+                        "validation_issues": False,
+                    }
+                )
+                self.message_post(
+                    body=(
+                        f"Gate converge proposal approved: {gate_written} partner "
+                        f"field(s) applied (packet {self.gate_packet_id})."
+                    ),
+                    subtype_xmlid=SUBTYPE_NOTE,
+                )
+                return
 
         svc = self.env["plasticos.enrichment.service"]
         partner = self.partner_id
