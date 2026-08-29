@@ -29,36 +29,67 @@ class OdooContext:
 
 @dataclass(slots=True)
 class ConvergeRequest:
-    entity_id: str
-    domain: str
-    entity_snapshot: dict[str, Any] = field(default_factory=dict)
+    """EIE EnrichRequest-shaped converge request (entity/object_type/objective/max_variations).
+
+    Odoo identifiers ride in ``entity["_odoo_entity_id"]`` and the ``odoo``
+    context metadata — never as Gate-level transforms.
+    """
+
+    entity: dict[str, Any] = field(default_factory=dict)
+    object_type: str = "Account"
+    objective: str = "Full entity enrichment and inference"
+    max_variations: int = 5
+    kb_context: str | None = None
+    idempotency_key: str | None = None
     odoo: dict[str, Any] = field(default_factory=dict)
-    profile_id: str | None = None
-    max_passes: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
-            "entity_id": self.entity_id,
-            "domain": self.domain,
-            "entity_snapshot": self.entity_snapshot,
-            "odoo": self.odoo,
+            "entity": self.entity,
+            "object_type": self.object_type,
+            "objective": self.objective,
+            "max_variations": self.max_variations,
         }
-        if self.profile_id:
-            data["profile_id"] = self.profile_id
-        if self.max_passes is not None:
-            data["max_passes"] = self.max_passes
+        if self.kb_context is not None:
+            data["kb_context"] = self.kb_context
+        if self.idempotency_key is not None:
+            data["idempotency_key"] = self.idempotency_key
+        if self.odoo:
+            data["odoo"] = self.odoo
         return data
 
 
 @dataclass(slots=True)
 class ConvergeResponse:
-    run_id: str | None = None
+    """EIE EnrichResponse carried through without field loss or fabrication.
+
+    ``total_cost_usd`` and ``writeback_applied`` are explicitly UNAVAILABLE
+    (always None): EnrichResponse has no cost-in-USD or writeback field
+    (DNB-006). Cost is ``tokens_used``.
+    """
+
     status: str | None = None
-    pass_count: int | None = None
+    state: str | None = None
+    failure_reason: str | None = None
     final_fields: dict[str, Any] = field(default_factory=dict)
-    writeback: dict[str, Any] = field(default_factory=dict)
-    total_tokens: int | None = None
-    total_cost_usd: float | None = None
+    pass_count: int | None = None
+    variation_count: int | None = None
+    confidence: float | None = None
+    consensus_threshold: float | None = None
+    uncertainty_score: float | None = None
+    processing_time_ms: int | None = None
+    quality_tier: str | None = None
+    inference_version: str | None = None
+    kb_content_hash: str | None = None
+    kb_files_consulted: list[Any] = field(default_factory=list)
+    kb_fragment_ids: list[Any] = field(default_factory=list)
+    inferences: list[Any] = field(default_factory=list)
+    grade_matches: list[Any] = field(default_factory=list)
+    enrichment_payload: Any = None
+    feature_vector: Any = None
+    tokens_used: int | None = None
+    total_cost_usd: None = None  # UNAVAILABLE: EIE has no cost-in-USD field (DNB-006)
+    writeback_applied: None = None  # UNAVAILABLE: converge performs no writeback (DNB-006)
     raw: dict[str, Any] = field(default_factory=dict)
 
 
@@ -83,13 +114,20 @@ class MatchRequest:
 @dataclass(slots=True)
 class MatchCandidate:
     buyer_partner_id: int | None = None
+    entity_ref: str | None = None
     buyer_name: str | None = None
     facility_profile_id: int | None = None
     score: float | None = None
+    score_scale: str | None = None
+    normalized_score: float | None = None
+    eligible: bool = False
+    rank: int | None = None
     reason: str | None = None
     typical_price: float | None = None
     gates_passed: list[str] = field(default_factory=list)
     gates_failed: list[str] = field(default_factory=list)
+    feature_contributions: list[Any] = field(default_factory=list)
+    missing_evidence: list[Any] = field(default_factory=list)
     raw: dict[str, Any] = field(default_factory=dict)
 
 
@@ -99,6 +137,15 @@ class MatchResponse:
     match_direction: str | None = None
     top_n: int | None = None
     results: list[MatchCandidate] = field(default_factory=list)
+    unresolved: list[dict[str, Any]] = field(default_factory=list)
+    query_id: str | None = None
+    total_candidates: int | None = None
+    execution_time_ms: int | None = None
+    domain_spec_version: str | None = None
+    model_version: str | None = None
+    projection_version: str | None = None
+    contract_version: str | None = None
+    domain: str | None = None
     raw: dict[str, Any] = field(default_factory=dict)
 
 
