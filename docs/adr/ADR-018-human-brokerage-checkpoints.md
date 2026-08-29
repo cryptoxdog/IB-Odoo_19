@@ -1,9 +1,9 @@
 # ADR-018: Human Brokerage Checkpoints (Intake → Match → Offer)
 
-**Status:** Accepted  
-**Date:** 2026-08-07  
-**Deciders:** Igor Beylin  
-**Scope:** Phase-1 human-in-the-loop gates that automation must not skip  
+**Status:** Accepted
+**Date:** 2026-08-07
+**Deciders:** Igor Beylin
+**Scope:** Phase-1 human-in-the-loop gates that automation must not skip
 **Related:**
 [ADR-002-gate-hub-phased-autonomy.md](ADR-002-gate-hub-phased-autonomy.md),
 [GATE_AUTONOMY_ROADMAP.md](../GATE_AUTONOMY_ROADMAP.md),

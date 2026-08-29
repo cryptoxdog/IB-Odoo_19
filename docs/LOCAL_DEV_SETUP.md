@@ -35,7 +35,7 @@ git clone --depth 1 -b 19.0 https://github.com/odoo/odoo.git ~/dev/odoo-19
 
 If you keep the repo elsewhere, either:
 
-- symlink `~/dev/odoo-19` to your real Odoo clone, or  
+- symlink `~/dev/odoo-19` to your real Odoo clone, or
 - override `python.analysis.extraPaths` in **user** Cursor settings (avoid committing machine-specific paths).
 
 ---

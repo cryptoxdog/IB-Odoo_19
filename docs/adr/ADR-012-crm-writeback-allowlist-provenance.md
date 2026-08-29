@@ -1,9 +1,9 @@
 # ADR-012: CRM Writeback Allowlist, Merge-Not-Overwrite, and Provenance
 
-**Status:** Accepted  
-**Date:** 2026-08-07  
-**Deciders:** Igor Beylin  
-**Scope:** How Gate `converge` results are applied to `res.partner`  
+**Status:** Accepted
+**Date:** 2026-08-07
+**Deciders:** Igor Beylin
+**Scope:** How Gate `converge` results are applied to `res.partner`
 **Related:**
 [ADR-002-gate-hub-phased-autonomy.md](ADR-002-gate-hub-phased-autonomy.md) (amendment 2026-07-19 elevated here),
 [ADR-010-odoo-consumer-trigger-ownership.md](ADR-010-odoo-consumer-trigger-ownership.md),
