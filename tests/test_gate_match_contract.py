@@ -150,23 +150,34 @@ def test_build_match_request_maps_intake_fields():
     assert request.odoo["record_id"] == 42
 
 
-def test_map_match_response_to_matcher_dicts():
+def test_map_match_response_reads_candidates_and_resolves_entity_ref():
+    # DEC-001/OPTION-B: identity comes from entity_ref ("res.partner:<int>"), not a bare id.
     payload = {
-        "status": "ok",
-        "results": [
+        "query_id": "q-42",
+        "direction": "intake_to_buyer",
+        "candidates": [
             {
-                "buyer_partner_id": 7,
-                "buyer_name": "Buyer Co",
+                "entity_ref": "res.partner:7",
+                "eligible": True,
                 "score": 85,
-                "facility_profile_id": 3,
-                "reason": "Strong fit",
-                "typical_price": 0.42,
-                "gates_passed": 8,
-                "gates_failed": ["gate_3"],
+                "score_scale": "0_to_100",
+                "rank": 1,
+                "failed_gates": ["gate_3"],
+                "explanation": "Strong fit",
             }
         ],
+        "total_candidates": 1,
+        "execution_time_ms": 12,
     }
     mapped = map_match_response(payload)
+    assert mapped.unresolved == []
+    assert mapped.query_id == "q-42"
+    assert mapped.total_candidates == 1
+    assert len(mapped.results) == 1
+    cand = mapped.results[0]
+    assert cand.buyer_partner_id == 7
+    assert cand.entity_ref == "res.partner:7"
+    assert cand.normalized_score == pytest.approx(0.85)
     rows = map_match_response_to_matcher_dicts(
         mapped,
         audit_metadata={"gate_packet_id": "pkt-1", "gate_correlation_id": "corr-1"},
@@ -174,12 +185,46 @@ def test_map_match_response_to_matcher_dicts():
     assert len(rows) == 1
     row = rows[0]
     assert row["buyer_id"] == 7
-    assert row["buyer_name"] == "Buyer Co"
     assert row["total_score"] == pytest.approx(0.85)
     assert row["match_source"] == "gate"
     assert row["gate_packet_id"] == "pkt-1"
     assert row["gate_correlation_id"] == "corr-1"
     assert row["gates_failed"] == ["gate_3"]
+
+
+def test_map_match_response_missing_candidates_key_raises():
+    # The OLD "results" contract must fail loudly, never silently empty.
+    with pytest.raises(KeyError):
+        map_match_response({"results": [{"entity_ref": "res.partner:1"}]})
+
+
+def test_map_match_response_unresolvable_refs_fail_safe():
+    payload = {
+        "candidates": [
+            {"entity_ref": "res.partner:102"},  # ok
+            {"entity_ref": "product.product:9"},  # foreign namespace -> skip
+            {"entity_ref": 102},  # bare integer -> skip
+            {"entity_ref": "res.partner:not-an-int"},  # non-integer id -> skip
+            {},  # missing entity_ref -> skip
+        ]
+    }
+    mapped = map_match_response(payload)
+    assert [c.buyer_partner_id for c in mapped.results] == [102]
+    assert len(mapped.unresolved) == 4
+    assert all("entity_ref" in entry for entry in mapped.unresolved)
+
+
+def test_map_match_response_sorts_by_normalized_score_descending():
+    payload = {
+        "candidates": [
+            {"entity_ref": "res.partner:1", "score": 40, "score_scale": "0_to_100"},
+            {"entity_ref": "res.partner:2", "score": 0.95, "score_scale": "0_to_1"},
+            {"entity_ref": "res.partner:3", "score": 10, "score_scale": "0_to_100"},
+        ]
+    }
+    mapped = map_match_response(payload)
+    assert [c.buyer_partner_id for c in mapped.results] == [2, 1, 3]
+    assert mapped.results[0].normalized_score == pytest.approx(0.95)
 
 
 def test_extract_audit_metadata_reads_packet_header():
@@ -239,9 +284,15 @@ def test_gate_enrichment_enabled_false_when_flag_off():
     assert gate_enrichment_enabled(env) is False
 
 
-def test_gate_auto_writeback_enabled_default_on():
-    # No param set → live application is the default
-    assert gate_auto_writeback_enabled(_MockEnv()) is True
+def test_gate_auto_writeback_enabled_default_off():
+    # No param set → review-only is the default (TASK-002: no auto-write without explicit enablement)
+    assert gate_auto_writeback_enabled(_MockEnv()) is False
+
+
+def test_gate_auto_writeback_enabled_on_when_flag_one():
+    # Explicit opt-in re-enables live application
+    env = _MockEnv({"plasticos.gate.auto_writeback": "1"})
+    assert gate_auto_writeback_enabled(env) is True
 
 
 def test_gate_auto_writeback_enabled_off_when_flag_zero():
@@ -249,24 +300,44 @@ def test_gate_auto_writeback_enabled_off_when_flag_zero():
     assert gate_auto_writeback_enabled(env) is False
 
 
-def test_build_converge_request_maps_partner_snapshot():
+def test_gate_icp_seed_auto_writeback_review_only():
+    # VAL-002: the install seed must default to review-only (0)
+    seed = Path(__file__).resolve().parents[1] / "plasticos_gate/data/gate_icp_seed.xml"
+    text = seed.read_text(encoding="utf-8")
+    block = text.split('id="param_gate_auto_writeback"', 1)[1].split("</record>", 1)[0]
+    assert '<field name="value">0</field>' in block
+
+
+def test_build_converge_request_maps_partner_snapshot_to_eie_shape():
     env = _MockEnv()
     run = _RunStub()
     request = build_converge_request(env, run)
-    assert request.entity_id == "res.partner:55"
-    assert request.domain == "plasticos"
-    assert request.entity_snapshot["name"] == "Acme Recycling"
-    assert request.entity_snapshot["website"] == "https://acme.example"
-    assert request.entity_snapshot["source_urls"] == ["https://acme.example/about"]
+    assert request.entity["_odoo_entity_id"] == "res.partner:55"
+    assert request.entity["name"] == "Acme Recycling"
+    assert request.entity["website"] == "https://acme.example"
+    assert request.entity["source_urls"] == ["https://acme.example/about"]
+    assert request.object_type == "plasticos"
+    assert request.objective == "Full entity enrichment and inference"
+    assert request.max_variations == 5  # max_passes None -> EIE default
     assert request.odoo["model"] == "plasticos.enrichment.run"
     assert request.odoo["record_id"] == 7
+    wire = request.to_dict()
+    assert set(wire) >= {"entity", "object_type", "objective", "max_variations", "odoo"}
+    assert "_odoo_entity_id" in wire["entity"]
+
+
+def test_build_converge_request_clamps_max_passes():
+    env = _MockEnv()
+    run = _RunStub()
+    assert build_converge_request(env, run, max_passes=20).max_variations == 10
+    assert build_converge_request(env, run, max_passes=0).max_variations == 1
 
 
 def test_partner_writeback_from_converge_allowlist_only():
     resp = map_converge_response(
         {
-            "status": "ok",
-            "final_fields": {
+            "state": "completed",
+            "fields": {
                 "website": "https://acme-new.example",
                 "city": "Raleigh",
                 "supplier_rank": 9,  # not in allowlist -> dropped
@@ -276,3 +347,82 @@ def test_partner_writeback_from_converge_allowlist_only():
     )
     vals = partner_writeback_from_converge(resp)
     assert vals == {"website": "https://acme-new.example", "city": "Raleigh"}
+
+
+def test_map_converge_response_carries_eie_fields_without_fabrication():
+    # DNB-006: every EnrichResponse field carried; total_cost_usd/writeback never fabricated.
+    payload = {
+        "state": "completed",
+        "fields": {"website": "https://acme-new.example"},
+        "confidence": 0.9,
+        "variation_count": 3,
+        "pass_count": 2,
+        "consensus_threshold": 0.65,
+        "uncertainty_score": 0.1,
+        "processing_time_ms": 41,
+        "quality_tier": "high",
+        "inference_version": "v1.2.3",
+        "kb_content_hash": "abc123",
+        "kb_files_consulted": ["kb/a.md"],
+        "kb_fragment_ids": ["frag-1"],
+        "inferences": [{"k": "v"}],
+        "grade_matches": [{"k": "v"}],
+        "enrichment_payload": {"k": "v"},
+        "feature_vector": [0.1, 0.2],
+        "tokens_used": 512,
+        "failure_reason": None,
+    }
+    resp = map_converge_response(payload)
+    assert resp.status == "ok"
+    assert resp.state == "completed"
+    assert resp.final_fields == {"website": "https://acme-new.example"}
+    assert resp.confidence == 0.9
+    assert resp.variation_count == 3
+    assert resp.pass_count == 2
+    assert resp.tokens_used == 512
+    assert resp.kb_files_consulted == ["kb/a.md"]
+    assert resp.kb_fragment_ids == ["frag-1"]
+    assert resp.inferences == [{"k": "v"}]
+    assert resp.grade_matches == [{"k": "v"}]
+    assert resp.enrichment_payload == {"k": "v"}
+    assert resp.feature_vector == [0.1, 0.2]
+    assert resp.total_cost_usd is None  # UNAVAILABLE — not fabricated
+    assert resp.writeback_applied is None  # UNAVAILABLE — not fabricated
+
+
+def test_map_converge_response_non_completed_is_not_ok():
+    resp = map_converge_response({"state": "failed", "failure_reason": "worker timeout"})
+    assert resp.status != "ok"
+    assert resp.failure_reason == "worker timeout"
+
+
+def test_map_converge_response_missing_state_is_not_ok():
+    # Empty/partial payloads must not manufacture state=completed / status=ok.
+    resp = map_converge_response({"fields": {"website": "https://acme.example"}})
+    assert resp.status != "ok"
+    assert resp.state is None
+
+
+def test_map_match_response_skips_ineligible_candidates():
+    payload = {
+        "candidates": [
+            {
+                "entity_ref": "res.partner:7",
+                "eligible": False,
+                "score": 90,
+                "score_scale": "0_to_100",
+                "failed_gates": ["hard_gate"],
+            },
+            {
+                "entity_ref": "res.partner:8",
+                "eligible": True,
+                "score": 50,
+                "score_scale": "0_to_100",
+            },
+        ]
+    }
+    mapped = map_match_response(payload)
+    assert [c.buyer_partner_id for c in mapped.results] == [8]
+    assert any(u.get("entity_ref") == "res.partner:7" for u in mapped.unresolved)
+    rows = map_match_response_to_matcher_dicts(mapped)
+    assert [r["buyer_id"] for r in rows] == [8]
