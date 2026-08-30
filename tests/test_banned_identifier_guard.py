@@ -143,11 +143,34 @@ def test_near_matches_pass(repo, near):
     assert result.returncode == 0, result.stderr
 
 
-def test_unreadable_tracked_file_fails_closed(repo):
-    """A tracked file missing from the worktree yields exit 2, never a pass."""
-    (repo / "vanishing.txt").write_text("present at add time\n")
-    _git(repo, "add", "vanishing.txt")
-    os.remove(repo / "vanishing.txt")
+def test_deleted_worktree_file_still_evaluated_from_index(repo):
+    """Content is judged from the index, so deleting the file cannot hide it.
+
+    The index is what a commit will contain. Reading the worktree instead would
+    let a staged violation escape simply because the file was removed on disk,
+    and would also false-block on any unrelated deletion in a dirty tree.
+    """
+    (repo / "staged.md").write_text(f"legacy {BANNED} reference\n")
+    _git(repo, "add", "staged.md")
+    os.remove(repo / "staged.md")
     result = run_guard(repo)
+    assert result.returncode == 1
+    assert "staged.md" in result.stderr
+
+
+def test_clean_file_deleted_from_worktree_does_not_false_block(repo):
+    """A deleted but clean tracked file is not a violation and not an error."""
+    (repo / "gone.md").write_text("nothing prohibited here\n")
+    _git(repo, "add", "gone.md")
+    os.remove(repo / "gone.md")
+    result = run_guard(repo)
+    assert result.returncode == 0, result.stderr
+
+
+def test_outside_git_repository_fails_closed(tmp_path):
+    """No index means no verdict: exit 2, never a silent pass."""
+    outside = tmp_path / "not-a-repo"
+    outside.mkdir()
+    result = run_guard(outside)
     assert result.returncode == 2
     assert "FAIL-CLOSED" in result.stderr

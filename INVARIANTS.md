@@ -466,15 +466,18 @@ connection default.
 
 **Detection**: `ci/check_banned_identifier.py` — the single canonical implementation, invoked
 identically by CI, `make ban-check`, and the `banned-identifier` pre-commit hook. It reads
-tracked paths from git, inspects every path component and symlink target, and streams the raw
-bytes of every tracked file (binary included). It fails closed: any unreadable or missing
-tracked file exits non-zero rather than reporting clean.
+every tracked path and its content from the **git index** — not the worktree, so a staged
+violation cannot be hidden by deleting the file, and an unrelated deletion in a dirty tree
+cannot false-block the build. It inspects every path component, resolves every symlink target
+from the same index, and matches raw bytes, so binary files are covered. It fails closed: an
+unreadable index or object exits non-zero rather than reporting clean.
 
 **Enforcement**: blocking. `ci.yml` → `static-checks` (aggregated by `ci-gate-result`), plus
 `tests/test_banned_identifier_guard.py`, which proves the guard rejects lowercase, uppercase,
 capitalized and mixed-case content matches, filename-only matches, directory-name-only matches,
-symlink-target matches, binary matches, and matches straddling a read boundary — while allowing
-near-miss lookalikes. Violating fixtures are built at run time in a temporary repository, so no
+symlink-target matches (including a symlink absent from the worktree), binary matches, and
+content staged then deleted on disk — while allowing near-miss lookalikes and not
+false-blocking on an unrelated deletion. Violating fixtures are built at run time in a temporary repository, so no
 prohibited literal is ever committed.
 
 **Violation effect**: CI failure.

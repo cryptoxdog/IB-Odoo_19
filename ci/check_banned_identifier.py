@@ -21,7 +21,6 @@ condition that prevents a complete verdict (fail closed).
 
 from __future__ import annotations
 
-import os
 import subprocess
 import sys
 
@@ -29,9 +28,6 @@ import sys
 BANNED = bytes([99, 105, 101, 116, 114, 97, 100, 101])
 BANNED_STR = BANNED.decode("ascii")
 POLICY_ID = "BAN001"
-
-_CHUNK = 1 << 20  # 1 MiB
-_OVERLAP = len(BANNED) - 1
 
 
 def _run(args: list[str]) -> bytes:
@@ -68,47 +64,75 @@ def path_violation(path: str) -> str | None:
     return None
 
 
-def file_contains(path: str) -> bool:
-    """Stream raw bytes; overlap keeps a match across a chunk seam detectable."""
-    carry = b""
-    with open(path, "rb") as fh:
-        while True:
-            chunk = fh.read(_CHUNK)
-            if not chunk:
-                return False
-            if BANNED in (carry + chunk).lower():
-                return True
-            carry = chunk[-_OVERLAP:] if _OVERLAP else b""
+def read_blobs(paths: list[str]) -> dict[str, bytes]:
+    """Read every tracked blob from the git index in one batch.
+
+    The index, not the worktree, is the authority for "tracked content": it is
+    what a commit will contain, and it stays readable when a tracked file is
+    absent from a dirty worktree. Symlink targets are read the same way, so the
+    guard has exactly one notion of what it is inspecting.
+    """
+    if not paths:
+        return {}
+    proc = subprocess.Popen(
+        ["git", "cat-file", "--batch", "-z"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    query = b"".join(b":" + p.encode("utf-8", "surrogateescape") + b"\0" for p in paths)
+    out, err = proc.communicate(query)
+    if proc.returncode != 0:
+        sys.stderr.write(f"{POLICY_ID}: FAIL-CLOSED: git cat-file failed: {err.decode('utf-8', 'replace')}\n")
+        raise SystemExit(2)
+
+    blobs: dict[str, bytes] = {}
+    pos = 0
+    for path in paths:
+        nl = out.find(b"\n", pos)
+        if nl == -1:
+            sys.stderr.write(f"{POLICY_ID}: FAIL-CLOSED: truncated cat-file stream at {path}\n")
+            raise SystemExit(2)
+        header = out[pos:nl].decode("utf-8", "replace")
+        parts = header.split(" ")
+        if len(parts) != 3 or parts[1] != "blob":
+            sys.stderr.write(f"{POLICY_ID}: FAIL-CLOSED: unreadable tracked object {path}: {header}\n")
+            raise SystemExit(2)
+        size = int(parts[2])
+        start = nl + 1
+        blobs[path] = out[start : start + size]
+        pos = start + size + 1  # trailing newline after payload
+    return blobs
 
 
 def main() -> int:
     violations: list[str] = []
+    entries = tracked_entries()
 
-    for mode, path in tracked_entries():
+    # Gitlinks (submodule pointers) carry no blob of their own; their contents
+    # belong to the submodule's repository, not this index.
+    inspectable = [(mode, path) for mode, path in entries if mode != "160000"]
+    blobs = read_blobs([path for _, path in inspectable])
+
+    for mode, path in inspectable:
         component = path_violation(path)
         if component is not None:
             kind = "directory name" if component != path.rsplit("/", 1)[-1] else "file name"
             violations.append(f"{path}: prohibited sequence in {kind} component {component!r}")
 
-        if mode == "120000" or os.path.islink(path):
-            # Read the target from the index blob, not the worktree: a tracked
-            # symlink that is not currently materialised must still be inspected,
-            # otherwise a committed prohibited target could evade the guard.
-            target = _run(["git", "cat-file", "blob", f":{path}"]).decode("utf-8", "surrogateescape")
+        blob = blobs.get(path)
+        if blob is None:
+            sys.stderr.write(f"{POLICY_ID}: FAIL-CLOSED: no tracked content for {path}\n")
+            return 2
+
+        if mode == "120000":
+            target = blob.decode("utf-8", "surrogateescape")
             if BANNED_STR in target.lower():
                 violations.append(f"{path}: prohibited sequence in symlink target {target!r}")
             continue
 
-        if not os.path.isfile(path):
-            sys.stderr.write(f"{POLICY_ID}: FAIL-CLOSED: tracked file missing from worktree: {path}\n")
-            return 2
-
-        try:
-            if file_contains(path):
-                violations.append(f"{path}: prohibited sequence in file content")
-        except OSError as exc:
-            sys.stderr.write(f"{POLICY_ID}: FAIL-CLOSED: unreadable tracked file {path}: {exc}\n")
-            return 2
+        if BANNED in blob.lower():
+            violations.append(f"{path}: prohibited sequence in file content")
 
     if violations:
         sys.stderr.write(
