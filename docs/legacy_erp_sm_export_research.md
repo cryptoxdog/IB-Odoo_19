@@ -1,6 +1,6 @@
 # Legacy ERP `SM_EXPORT` — extract runbook
 
-**Status (2026-08-07):** P0 data on Mac as CSVs. PlasticOS import not wired.  
+**Status (2026-08-07):** P0 data on Mac as CSVs. PlasticOS import not wired.
 **SSOT** — re-run extracts with zero chat context.
 
 | | |

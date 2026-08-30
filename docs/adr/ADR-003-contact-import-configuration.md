@@ -1,8 +1,8 @@
 # ADR-003: Contact Import Configuration
 
-**Status:** Accepted  
-**Date:** 2026-03-13  
-**Deciders:** Igor Beylin  
+**Status:** Accepted
+**Date:** 2026-03-13
+**Deciders:** Igor Beylin
 **Scope:** `plasticos_partner_import`, `plasticos_base`
 
 ## Context
