@@ -40,7 +40,7 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - run: pip install --only-binary ":all:" ruff==0.15.5
+      - run: pip install --only-binary ":all:" ruff==0.16.0
 
       - name: Ruff lint + format (all errors before failing)
         run: |
