@@ -953,7 +953,7 @@ CT_ID,CpID,ContactNm,CompanyNm,Location,Email,PhoneBusiness,PhoneMobile,PhoneOth
 51050001,1553,Danielle Brodka,"CHOPTANK TRANSPORT, INC.",,danielle.brodka@choptanktransport.com,(410) 673-1240  ext 296,,,Y,Invoicing
 51100001,1841,Home Land Team,48FORTY SOLUTIONS - IB,,site208@48forty.com,,,,Y,
 51150001,1802,Home Land Team,48 FORTY SOLUTIONS - IB,,site208@48forty.com,,,,Y,
-51200001,1870,Bryce Jackson,HILEX POLY,INVOICE,bryce.jackson@novolex.com; David.Bangs@novolex.com;ib@scrapmanagement.com; Kasey.Leonard@novolex.com,(843) 857-4577,(843) 624-9669,,Y,Production Coordinator    
+51200001,1870,Bryce Jackson,HILEX POLY,INVOICE,bryce.jackson@novolex.com; David.Bangs@novolex.com;ib@scrapmanagement.com; Kasey.Leonard@novolex.com,(843) 857-4577,(843) 624-9669,,Y,Production Coordinator
 51250001,1842,Derek,FORT STEWART ARMY BASE,,,912-228-7154,,,Y,Project Manager
 51300001,1902,Zac Hennessey,ENTERPRIZE CONTAINER CORPORATION,,zac@enterprizecontainer.com,931.270.0341,931.797.2523,,Y,
 51350001,1704,James Stumpf,PZTECH,,James.Stumpf@pztechgroup.com,(317) 699-2299,,,Y,Set Pick-Up / Delivery Apts w/ James
@@ -2409,7 +2409,7 @@ CT_ID,CpID,ContactNm,CompanyNm,Location,Email,PhoneBusiness,PhoneMobile,PhoneOth
 131050001,1474,Shiv Kukreja,VISH GROUP,"FLEMINGTON, NJ",shiv@vishgroup.com,,,,Y,
 131100001,1474,Barbara,VISH GROUP,,Dispatch@vishgroup.com,,,,Y,
 131150001,1326,Brett Henderson,POWERHOUSE RECYCLING,RYAN PATRICK DRIVE,bh@powerhouserecycling.com; shipping@powerhouserecycling.com,,,,Y,NULL
-131200001,1968,Vita Depollo,SPROUT,INVOICE,vdepollo@sproutup.com,(704) 631-3720,,,Y,Ext 116  
+131200001,1968,Vita Depollo,SPROUT,INVOICE,vdepollo@sproutup.com,(704) 631-3720,,,Y,Ext 116
 131250001,1455,Tammy Rule,PETOSKEY PLASTICS,INVOICE,trule@petoskeyplastics.com; accountspayable@petoskeyplastics.com,231-347-2602,,,Y,Ext 3084
 131300001,2106,Sway Munoz,JEI,"FRANKLIN, KY",sway@jeiinc.net; vanessa@jeiinc.net,(502) 408-9877,(812) 946-9283,,Y,NULL
 131350001,2227,Steven Lopez,BYRD TRADING LLC,INVOICE,elopez@lopezscrapmetal.com; lhm_customerservice@lopezscrapmetal.com; rp@scrapmanagement.com,(915) 240-9666,,,Y,
@@ -3336,7 +3336,7 @@ CT_ID,CpID,ContactNm,CompanyNm,Location,Email,PhoneBusiness,PhoneMobile,PhoneOth
 179400001,2424,Faith Green,JAMPLAST INC.,FORT PAYNE AL,fgreen@jamplast.com,(636)238-2100,,,Y,NULL
 179450001,2468,Judith Wilson,R3CYCLE INDUSTRIES LLC,INVOICE,judith.wilson@r3cind.com,704.256.4303,,,Y,NULL
 179500001,2503,ar,INDUSTRIAL PALLET CORP,,ar@weareipc.com; ap@weareipc.com; glopez@weareipc.com,,,,Y,NULL
-179550001,2500,Shirley Olivares,BACE CORP,,SOlivares@bacecorp.com,(704) 394-2230,,(877) 506-BACE(2223),Y,Ext 240    Accounts Receivable Manager    
+179550001,2500,Shirley Olivares,BACE CORP,,SOlivares@bacecorp.com,(704) 394-2230,,(877) 506-BACE(2223),Y,Ext 240    Accounts Receivable Manager
 179600001,1299,Jacob Burnett,JB PLASTICS,EAGLE GROVE IA,jbplastics@woh.rr.com,(937) 863-0207,,,Y,NULL
 179650001,1299,Jacob Burnett,JB PLASTICS,EAGLE GROVE IA,jbplastics@woh.rr.com,(937) 863-0207,,,Y,NULL
 179700001,2514,Mike,PEDESTAL PALLETS INC,INVOICE,pedestalpallet@gmail.com,732-208-3335,,,Y,

@@ -1,6 +1,6 @@
 # cieTrade `SM_EXPORT` — extract runbook
 
-**Status (2026-08-07):** P0 data on Mac as CSVs. PlasticOS import not wired.  
+**Status (2026-08-07):** P0 data on Mac as CSVs. PlasticOS import not wired.
 **SSOT** — re-run extracts with zero chat context.
 
 | | |
@@ -15,7 +15,7 @@
 | Golden CSVs | `data/cietrade_sm_export/bulk/*.csv` |
 | WIP land / Excel | gitignored `Current Work - IGNORE/CieTrade Data Extraction/excel files/` |
 | Control plane | `~/.cursor-governance/tools/l9_agent_ui_control` |
-| Odoo partner import | [plasticos_partner_import/README.md](../plasticos_partner_import/README.md) — different CSV shape |
+| Odoo partner import | [README_plasticos_partner_import.md](./README_plasticos_partner_import.md) — different CSV shape |
 
 ---
 
@@ -252,7 +252,7 @@ PY
 | 3 | Headless load via shell / ICP — not Contacts wizard UI |
 | 4 | Payables / Receipt / WKS need a **new** staging path |
 
-See [plasticos_partner_import/README.md](../plasticos_partner_import/README.md).
+See [README_plasticos_partner_import.md](./README_plasticos_partner_import.md).
 
 ---
 

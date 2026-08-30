@@ -1,10 +1,10 @@
 # ADR-013: Fail-Closed Gate Transport (No Silent Local Intelligence)
 
-**Status:** Accepted  
-**Date:** 2026-08-07  
-**Deciders:** Igor Beylin  
-**Scope:** Odoo behavior when Gate or workers are unavailable or error  
-**Supersedes (documentation):** Pre-mothball “always fall back to local matcher/enrichment” language in track_b handoffs, READMEs, and agent guidance  
+**Status:** Accepted
+**Date:** 2026-08-07
+**Deciders:** Igor Beylin
+**Scope:** Odoo behavior when Gate or workers are unavailable or error
+**Supersedes (documentation):** Pre-mothball “always fall back to local matcher/enrichment” language in track_b handoffs, READMEs, and agent guidance
 **Related:**
 [ADR-002-gate-hub-phased-autonomy.md](ADR-002-gate-hub-phased-autonomy.md) §2 (authority already superseded by ADR-003-single),
 [ADR-003-single-external-intelligence-authority.md](ADR-003-single-external-intelligence-authority.md),

@@ -1,9 +1,9 @@
 # ADR-019: Documentation Convergence and Supersession Map
 
-**Status:** Accepted  
-**Date:** 2026-08-07  
-**Deciders:** Igor Beylin  
-**Scope:** Which docs are authoritative after Gate/CEG/EIE architecture convergence; what to revise  
+**Status:** Accepted
+**Date:** 2026-08-07
+**Deciders:** Igor Beylin
+**Scope:** Which docs are authoritative after Gate/CEG/EIE architecture convergence; what to revise
 **Related:**
 [ADR-003-single-external-intelligence-authority.md](ADR-003-single-external-intelligence-authority.md),
 [ADR-009-enrichment-selection-ranking-not-in-odoo.md](ADR-009-enrichment-selection-ranking-not-in-odoo.md),
@@ -20,11 +20,11 @@ Architecture has converged on Gate-mediated external intelligence and Odoo-as-co
 
 When docs conflict, prefer in this order:
 
-1. **ADR-003-single** — intelligence authority  
-2. **ADR-009 … ADR-018** — ownership, topology, writeback, fail-closed, DomainSpec, shells, leads, feedback, humans  
-3. **ADR-002** — hub topology + phased autonomy (**§2 fallback-as-authority superseded**; see banner)  
-4. `docs/GATE_AUTONOMY_ROADMAP.md` — phase criteria  
-5. `docs/track_b/*` — consumer/worker wiring (must match ADRs; fix if stale)  
+1. **ADR-003-single** — intelligence authority
+2. **ADR-009 … ADR-018** — ownership, topology, writeback, fail-closed, DomainSpec, shells, leads, feedback, humans
+3. **ADR-002** — hub topology + phased autonomy (**§2 fallback-as-authority superseded**; see banner)
+4. `docs/GATE_AUTONOMY_ROADMAP.md` — phase criteria
+5. `docs/track_b/*` — consumer/worker wiring (must match ADRs; fix if stale)
 6. `ARCHITECTURE.md`, `AGENTS.md`, `CLAUDE.md` — narrative indexes (must be updated to match ADRs)
 
 ### 2. Supersession / refresh map

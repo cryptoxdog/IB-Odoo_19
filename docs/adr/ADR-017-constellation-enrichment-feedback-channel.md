@@ -1,9 +1,9 @@
 # ADR-017: Constellation Enrichment Feedback Channel (CEG Health → Gate → EIE)
 
-**Status:** Accepted  
-**Date:** 2026-08-07  
-**Deciders:** Igor Beylin  
-**Scope:** Where ranked enrichment queues and graph→enrich feedback belong  
+**Status:** Accepted
+**Date:** 2026-08-07
+**Deciders:** Igor Beylin
+**Scope:** Where ranked enrichment queues and graph→enrich feedback belong
 **Related:**
 [ADR-009-enrichment-selection-ranking-not-in-odoo.md](ADR-009-enrichment-selection-ranking-not-in-odoo.md),
 [ADR-010-odoo-consumer-trigger-ownership.md](ADR-010-odoo-consumer-trigger-ownership.md),

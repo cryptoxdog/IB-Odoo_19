@@ -260,9 +260,9 @@ Extracted from `plasticos_base/data/partner_tags.xml`:
 
 ## External Intelligence Boundary (Gate)
 
-**Authority:** [docs/adr/ADR-003-single-external-intelligence-authority.md](docs/adr/ADR-003-single-external-intelligence-authority.md) (mothball successor; supersedes ADR-002 §2 fallback-as-authority)  
-**Topology / phased human gates:** [docs/adr/ADR-002-gate-hub-phased-autonomy.md](docs/adr/ADR-002-gate-hub-phased-autonomy.md)  
-**Phases:** [docs/GATE_AUTONOMY_ROADMAP.md](docs/GATE_AUTONOMY_ROADMAP.md)  
+**Authority:** [docs/adr/ADR-003-single-external-intelligence-authority.md](docs/adr/ADR-003-single-external-intelligence-authority.md) (mothball successor; supersedes ADR-002 §2 fallback-as-authority)
+**Topology / phased human gates:** [docs/adr/ADR-002-gate-hub-phased-autonomy.md](docs/adr/ADR-002-gate-hub-phased-autonomy.md)
+**Phases:** [docs/GATE_AUTONOMY_ROADMAP.md](docs/GATE_AUTONOMY_ROADMAP.md)
 **Convergence set (2026-08):** [ADR-009](docs/adr/ADR-009-enrichment-selection-ranking-not-in-odoo.md)–[ADR-019](docs/adr/ADR-019-documentation-convergence-supersession.md) — consumer triggers, action topology, writeback, fail-closed, DomainSpec SSOT, persistence shells, web-lead boundary, constellation feedback channel, human checkpoints, doc supersession. Index: [docs/adr/README.md](docs/adr/README.md).
 
 PlasticOS routes matching and enrichment intelligence through the **Constellation Gate** — not direct HTTP from Odoo to [Cognitive.Engine.Graphs](https://github.com/cryptoxdog/Cognitive.Engine.Graphs) (CEG) or [Enrichment.Inference.Engine](https://github.com/cryptoxdog/Enrichment.Inference.Engine) (EIE). Odoo is a Gate **consumer** only; CEG/EIE own intelligence semantics.
@@ -283,7 +283,7 @@ Odoo  ◄───────────────────────�
 | Human gates (Phase 1) | HOT review, match-line selection, explicit Send Offer (ADR-018) |
 | CRM writeback | Allowlisted partner fields, merge-not-overwrite, provenance (ADR-012) |
 
-**Phase 1 match seam:** Odoo trigger (ADR-010) → `plasticos.match.orchestrator` → Gate `action=match` → CEG → persist `plasticos.match.*` (ADR-011/015).  
+**Phase 1 match seam:** Odoo trigger (ADR-010) → `plasticos.match.orchestrator` → Gate `action=match` → CEG → persist `plasticos.match.*` (ADR-011/015).
 **Phase 1 enrich seam:** Odoo enrichment run execute/retry → Gate `action=converge` → EIE → allowlisted writeback (ADR-011/012). Ranking/selection stays in CEG (ADR-009).
 
 **Implementation module:** `plasticos_gate` (Layer 2) — `services/gate_client.py` sends/receives `TransportPacket` via `constellation_node_sdk`; `gate_builders.py`/`gate_mappers.py`/`gate_contracts.py` construct and map packets; `gate_config.py`/`gate_allowlists.py` hold connection config and the ICP allowlist seed (`data/gate_icp_seed.xml`).
@@ -852,5 +852,5 @@ module/
 
 **Architecture Version**: 3.3.0
 **Last Updated**: 2026-08-07
-**Verified Against**: cryptoxdog/IB-Odoo_19 @ Staging branch  
+**Verified Against**: cryptoxdog/IB-Odoo_19 @ Staging branch
 **Doc convergence:** ADR-019 — Gate consumer narrative aligned with ADR-009–018

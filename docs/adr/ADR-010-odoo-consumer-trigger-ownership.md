@@ -1,9 +1,9 @@
 # ADR-010: Odoo Consumer Trigger Ownership (When to Call Gate)
 
-**Status:** Accepted  
-**Date:** 2026-08-07  
-**Deciders:** Igor Beylin  
-**Scope:** Who decides when PlasticOS Odoo emits Gate `TransportPacket`s for match/converge  
+**Status:** Accepted
+**Date:** 2026-08-07
+**Deciders:** Igor Beylin
+**Scope:** Who decides when PlasticOS Odoo emits Gate `TransportPacket`s for match/converge
 **Related:**
 [ADR-003-single-external-intelligence-authority.md](ADR-003-single-external-intelligence-authority.md),
 [ADR-009-enrichment-selection-ranking-not-in-odoo.md](ADR-009-enrichment-selection-ranking-not-in-odoo.md),

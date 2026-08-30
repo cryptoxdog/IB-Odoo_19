@@ -6,7 +6,7 @@ Central registry for `.claude/agents/` (subagents). PlasticOS project skills liv
 
 **Invocation tiers** (which L9 skills auto-invoke vs explicit-only) are defined in `@.cursor-commands/skills/AUTONOMY_MANIFEST.yaml` — keep it in sync when adding/removing an L9 skill (see Wiring Rules).
 
-PlasticOS law (this repo): `@skills/PLASTICOS_CANONICAL_LAW.md`  
+PlasticOS law (this repo): `@skills/PLASTICOS_CANONICAL_LAW.md`
 Global L9 law (symlink — do not edit here): `@.cursor/governance/CANONICAL_LAW.md`
 
 ## Subagents
