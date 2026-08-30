@@ -1,9 +1,9 @@
 # ADR-016: Web-Lead Triage Boundary (Phase 1 Local; Not Enrichment Ranking)
 
-**Status:** Accepted  
-**Date:** 2026-08-07  
-**Deciders:** Igor Beylin  
-**Scope:** Separation of web-lead HOT/COLD triage from Gate match/enrichment  
+**Status:** Accepted
+**Date:** 2026-08-07
+**Deciders:** Igor Beylin
+**Scope:** Separation of web-lead HOT/COLD triage from Gate match/enrichment
 **Related:**
 [ADR-002-gate-hub-phased-autonomy.md](ADR-002-gate-hub-phased-autonomy.md),
 [GATE_AUTONOMY_ROADMAP.md](../GATE_AUTONOMY_ROADMAP.md),

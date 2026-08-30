@@ -1,9 +1,9 @@
 # ADR-011: Intelligence Action Topology (`match` vs `converge`)
 
-**Status:** Accepted  
-**Date:** 2026-08-07  
-**Deciders:** Igor Beylin  
-**Scope:** Gate action routing from Odoo to CEG and EIE  
+**Status:** Accepted
+**Date:** 2026-08-07
+**Deciders:** Igor Beylin
+**Scope:** Gate action routing from Odoo to CEG and EIE
 **Related:**
 [ADR-002-gate-hub-phased-autonomy.md](ADR-002-gate-hub-phased-autonomy.md),
 [ADR-003-single-external-intelligence-authority.md](ADR-003-single-external-intelligence-authority.md),

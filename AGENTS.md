@@ -90,7 +90,7 @@ Cursor overlay: `.cursor/rules/88-plasticos-odoo-python-tooling.mdc`. Global `20
 
 ## Agent Skills & Subagents
 
-**PlasticOS law (this repo):** `skills/PLASTICOS_CANONICAL_LAW.md`  
+**PlasticOS law (this repo):** `skills/PLASTICOS_CANONICAL_LAW.md`
 **Global L9 law (symlink — do not edit from IB-Odoo_19):** `.cursor/governance/CANONICAL_LAW.md`
 
 | Class | SSOT | Notes |

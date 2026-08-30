@@ -1,10 +1,10 @@
 # ADR-003: Single External Intelligence Authority
 
-**Status:** Accepted  
-**Date:** 2026-08-02  
-**Deciders:** Igor Beylin (operator PROMOTION_APPROVED — TASK-045 / M1)  
-**Scope:** Matching and enrichment intelligence authority for PlasticOS Odoo  
-**Contract:** PLASTICOS-MOTHBALL-M1-v2.2.0 · TASK-045 · Wave W7  
+**Status:** Accepted
+**Date:** 2026-08-02
+**Deciders:** Igor Beylin (operator PROMOTION_APPROVED — TASK-045 / M1)
+**Scope:** Matching and enrichment intelligence authority for PlasticOS Odoo
+**Contract:** PLASTICOS-MOTHBALL-M1-v2.2.0 · TASK-045 · Wave W7
 **Related:** [ADR-002](ADR-002-gate-hub-phased-autonomy.md), [GATE_AUTONOMY_ROADMAP.md](../GATE_AUTONOMY_ROADMAP.md), [ARCHITECTURE.md](../../ARCHITECTURE.md)
 
 > **Filename collision notice (RO-P5):** This file shares the `ADR-003` numeric prefix with

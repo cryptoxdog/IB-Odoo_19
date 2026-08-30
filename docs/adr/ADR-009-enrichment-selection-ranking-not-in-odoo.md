@@ -1,9 +1,9 @@
 # ADR-009: Enrichment Selection & Ranking Live Outside This Repo
 
-**Status:** Accepted  
-**Date:** 2026-08-07  
-**Deciders:** Igor Beylin  
-**Scope:** Why IB-Odoo_19 has no “which partners/leads to enrich, in what order” engine  
+**Status:** Accepted
+**Date:** 2026-08-07
+**Deciders:** Igor Beylin
+**Scope:** Why IB-Odoo_19 has no “which partners/leads to enrich, in what order” engine
 **Related:**
 [ADR-002](ADR-002-gate-hub-phased-autonomy.md),
 [ADR-003-single-external-intelligence-authority.md](ADR-003-single-external-intelligence-authority.md),

@@ -1,9 +1,9 @@
 # ADR-014: DomainSpec as SSOT for Gates, Scoring, and Readiness Ranking
 
-**Status:** Accepted  
-**Date:** 2026-08-07  
-**Deciders:** Igor Beylin  
-**Scope:** Source of truth for match filters/scores and enrichment readiness prioritization  
+**Status:** Accepted
+**Date:** 2026-08-07
+**Deciders:** Igor Beylin
+**Scope:** Source of truth for match filters/scores and enrichment readiness prioritization
 **Related:**
 [ADR-009-enrichment-selection-ranking-not-in-odoo.md](ADR-009-enrichment-selection-ranking-not-in-odoo.md),
 [ADR-011-intelligence-action-topology.md](ADR-011-intelligence-action-topology.md),

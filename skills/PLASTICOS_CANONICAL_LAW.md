@@ -1,7 +1,7 @@
 # PlasticOS Canonical Law (IB-Odoo_19)
 
-**Repo:** `cryptoxdog/IB-Odoo_19`  
-**Scope:** PlasticOS project layout, agent skills, and Odoo addon boundaries.  
+**Repo:** `cryptoxdog/IB-Odoo_19`
+**Scope:** PlasticOS project layout, agent skills, and Odoo addon boundaries.
 **Not this file:** Global Cursor / L9 law lives in the governance clone and is
 exposed here only as the symlink `.cursor/governance/CANONICAL_LAW.md` →
 Cursor-Governance. **Do not edit that symlink target from this repo.**

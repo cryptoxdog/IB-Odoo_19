@@ -1,9 +1,9 @@
 # ADR-015: Persistence Shells for Matching and Enrichment
 
-**Status:** Accepted  
-**Date:** 2026-08-07  
-**Deciders:** Igor Beylin  
-**Scope:** Role of `plasticos_matching` and `plasticos_enrichment` after mothball  
+**Status:** Accepted
+**Date:** 2026-08-07
+**Deciders:** Igor Beylin
+**Scope:** Role of `plasticos_matching` and `plasticos_enrichment` after mothball
 **Related:**
 [ADR-003-single-external-intelligence-authority.md](ADR-003-single-external-intelligence-authority.md),
 [ADR-009-enrichment-selection-ranking-not-in-odoo.md](ADR-009-enrichment-selection-ranking-not-in-odoo.md),
