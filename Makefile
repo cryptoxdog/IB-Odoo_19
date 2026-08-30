@@ -42,10 +42,10 @@ ODOO_DB_NAME          ?= odoo
 ODOO_TEST_DB          ?= odoo_test
 ODOO_COMPOSE_PROJECT  ?= odoo19
 
-# Pinned ruff resolver. pyproject pins ruff EXACTLY (==0.15.5 via [tool.ruff]
+# Pinned ruff resolver. pyproject pins ruff EXACTLY (==0.16.0 via [tool.ruff]
 # required-version), so a mismatched PATH ruff (e.g. Homebrew latest, or an old
 # pip --user 0.14.x) aborts every invocation. Prefer the project venv's pinned
-# binary; fall back to PATH ruff (CI has no .venv and installs 0.15.5 directly).
+# binary; fall back to PATH ruff (CI has no .venv and installs 0.16.0 directly).
 RUFF := $(shell [ -x .venv/bin/ruff ] && echo .venv/bin/ruff || echo ruff)
 
 # Symlinked governance tree — lives in Dropbox / separate repo; never commit or push from here.
@@ -61,7 +61,7 @@ help:
 	@echo "──────────────────────────────────────────────────────"
 	@echo ""
 	@echo "  Code Quality"
-	@echo "    make venv             build pinned local .venv (ruff==0.15.5, semgrep, pytest) — mirrors CI"
+	@echo "    make venv             build pinned local .venv (ruff==0.16.0, semgrep, pytest) — mirrors CI"
 	@echo "    make install-extensions  install .vscode/extensions.json recommendations via cursor/code CLI"
 	@echo "    make lint             ruff check (lint only)"
 	@echo "    make format           ruff format --check (check only)"
@@ -167,7 +167,7 @@ venv:
 	python3.12 -m venv $(VENV)
 	@$(VENV)/bin/python -m pip install --quiet --upgrade pip
 	$(VENV)/bin/python -m pip install -r requirements-dev.txt
-	$(VENV)/bin/python -m pip install "ruff==0.15.5" "semgrep==1.164.0"
+	$(VENV)/bin/python -m pip install "ruff==0.16.0" "semgrep==1.164.0"
 	@echo ""
 	@echo "✅ $(VENV) ready:"
 	@$(VENV)/bin/ruff --version

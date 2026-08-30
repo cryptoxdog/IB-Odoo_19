@@ -38,10 +38,10 @@ timeout_method = "thread"  # safe for pytest; doesn't interfere with subprocess 
 # pytest-timeout==2.4.0 required (pip install pytest-timeout==2.4.0)
 
 [tool.ruff]
-# Exact pin so local, pre-commit (ruff-pre-commit v0.15.5), and CI (ci.yml:
-# ruff==0.15.5) are ALWAYS in lockstep — any other ruff version fails fast rather
+# Exact pin so local, pre-commit (ruff-pre-commit v0.16.0), and CI (ci.yml:
+# ruff==0.16.0) are ALWAYS in lockstep — any other ruff version fails fast rather
 # than producing a different lint/format verdict. Bump all three sites together.
-required-version = "==0.15.5"
+required-version = "==0.16.0"
 target-version = "py312"
 line-length = 120
 
@@ -55,6 +55,7 @@ exclude = [
     ".semgrep/tests",
     "current work - ib",
     "Current Work - IGNORE",
+    "*.md",  # ruff 0.16 formats fenced Python in markdown; docs stay human-owned
 ]
 
 [tool.ruff.lint]
@@ -222,11 +223,11 @@ ignore_errors = true  # Uses requests; types-requests in CI
 # SSOT for Pyright/basedpyright policy (mode, reporters, excludes). basedpyright
 # reads [tool.basedpyright] first, then falls back here — keep one block only.
 # Machine-specific Odoo source paths live in .vscode/settings.json (extraPaths),
-# not here. See .cursor/rules/88-plasticos-odoo-python-tooling.mdc.
+# not here. Do not set venvPath/venv — a missing .venv makes Cursor Pyright fail
+# workspace settings resolution. Interpreter is python.defaultInterpreterPath.
+# See .cursor/rules/88-plasticos-odoo-python-tooling.mdc.
 [tool.pyright]
 pythonVersion = "3.12"
-venvPath = "."
-venv = ".venv"
 typeCheckingMode = "basic"
 reportMissingImports = "warning"
 reportMissingModuleSource = false
