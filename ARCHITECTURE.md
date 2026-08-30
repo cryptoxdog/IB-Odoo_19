@@ -831,7 +831,7 @@ Created 2026-02-21 to 2026-02-22 for common administrative operations.
 | `plasticos_web_leads` | `lead_bulk_action_wizard` | Bulk force-hot, retry triage, mark skipped |
 | `plasticos_partner_import` | `partner_bulk_update_wizard` | Bulk update partners (salesperson, categories, privacy) |
 | `plasticos_transaction` | `transaction_bulk_assign_wizard` | Bulk assign suppliers/buyers |
-| `plasticos_transaction` | `transaction_import_wizard` | Import from cieTrade CSV |
+| `plasticos_transaction` | `transaction_import_wizard` | Import from legacy ERP CSV |
 
 ### Wizard File Structure
 

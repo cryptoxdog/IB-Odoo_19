@@ -1,9 +1,9 @@
 # Q4 deep diagnosis summary
-Source: `/Users/ib-mac/IB-Odoo_19 (LOCAL)/IB-Odoo_19/Current Work - IGNORE/CieTrade Data Extraction/cieTrade_export_20260807_183800/deep diagnosis.md` → copied to `/Users/ib-mac/IB-Odoo_19 (LOCAL)/IB-Odoo_19/Current Work - IGNORE/CieTrade Data Extraction/cieTrade_export_20260807_181433_live/diagnostics/q4_deep_diagnosis.md`
+Source: `/Users/ib-mac/IB-Odoo_19 (LOCAL)/IB-Odoo_19/Current Work - IGNORE/Legacy ERP Data Extraction/legacy_erp_export_20260807_183800/deep diagnosis.md` → copied to `/Users/ib-mac/IB-Odoo_19 (LOCAL)/IB-Odoo_19/Current Work - IGNORE/Legacy ERP Data Extraction/legacy_erp_export_20260807_181433_live/diagnostics/q4_deep_diagnosis.md`
 Integrity: ACCEPT
 
 ## Identity
-- DB: `cieTrade_SM_EXPORT`
+- DB: `LEGACY_ERP_SM_EXPORT`
 - Login: `UCSINC\\ibeylin`
 
 ## Value distributions

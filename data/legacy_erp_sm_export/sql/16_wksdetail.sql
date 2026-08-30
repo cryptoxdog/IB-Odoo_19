@@ -1,7 +1,7 @@
 SET NOCOUNT ON;
 /* WKSDetail — worksheet lines (buy/sell). No CREATE TABLE.
-   DB: cieTrade_SM_EXPORT (not cieTrade_SM, not master).
-   Toolbar must show cieTrade_SM_EXPORT. */
+   DB: LEGACY_ERP_SM_EXPORT (not LEGACY_ERP_SM, not master).
+   Toolbar must show LEGACY_ERP_SM_EXPORT. */
 SELECT
   DetailID,
   RTRIM(BuySellNo) AS BuySellNo,

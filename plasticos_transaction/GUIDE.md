@@ -7,7 +7,7 @@ Reference guide for the **plasticos_transaction** module (Odoo 19). Use this whe
 ## 1. Overview
 
 - **Model:** `plasticos.transaction` — core deal/trade record (supplier, buyer, product, weights, state).
-- **Lines:** `plasticos.transaction.line` — line items (cieTrade WksDetail); one transaction has many lines.
+- **Lines:** `plasticos.transaction.line` — line items (ERP WksDetail); one transaction has many lines.
 - **Wizards:** Bulk Update (state), Bulk Assign (supplier/buyer), **CSV Import** (historical WksDetail upload).
 
 ---
@@ -35,15 +35,15 @@ Reference guide for the **plasticos_transaction** module (Odoo 19). Use this whe
 |--------|---------|----------------|
 | **Bulk Update Status** | Change state of selected transactions | Transaction list → Action → "Bulk Update Status" |
 | **Bulk Assign Partners** | Set supplier and/or buyer on selected transactions | Transaction list → Action → "Bulk Assign Partners" |
-| **Import Transactions (CSV)** | Upload historical transactions from cieTrade WksDetail CSV | PlasticOS menu → "Import Transactions (CSV)" |
+| **Import Transactions (CSV)** | Upload historical transactions from ERP WksDetail CSV | PlasticOS menu → "Import Transactions (CSV)" |
 
 ---
 
-## 4. CSV Import (cieTrade WksDetail)
+## 4. CSV Import (ERP WksDetail)
 
 ### 4.1 Default file
 
-- **Path:** `plasticos_transaction/cieTrade.WksDetail.csv`
+- **Path:** `plasticos_transaction/ERP.WksDetail.csv`
 - **Format:** CSV with header row; rows are **line items** grouped by transaction reference.
 
 ### 4.2 How it works
@@ -81,7 +81,7 @@ Reference guide for the **plasticos_transaction** module (Odoo 19). Use this whe
 
 1. Go to **PlasticOS** menu → **Import Transactions (CSV)**.
 2. **Options:**
-   - **Use Default CSV File** — use `plasticos_transaction/cieTrade.WksDetail.csv`.
+   - **Use Default CSV File** — use `plasticos_transaction/ERP.WksDetail.csv`.
    - **Custom file** — uncheck and upload your own CSV.
    - **Dry Run** — preview only (no create).
    - **Skip Existing Transactions** — do not create duplicates (match on `name` = `BuySellNo`).
@@ -129,7 +129,7 @@ Reference guide for the **plasticos_transaction** module (Odoo 19). Use this whe
 | `wizards/transaction_import_wizard.py` | CSV import wizard |
 | `wizards/transaction_bulk_update_wizard.py` | Bulk state update |
 | `wizards/transaction_bulk_assign_wizard.py` | Bulk supplier/buyer assign |
-| `cieTrade.WksDetail.csv` | Default CSV for import |
+| `ERP.WksDetail.csv` | Default CSV for import |
 | `views/transaction_import_wizard_views.xml` | Import wizard UI + menu |
 
 ---

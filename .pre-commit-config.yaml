@@ -38,15 +38,15 @@ repos:
         exclude: '^plasticos_enrichment/knowledge_base/.*\.yaml$|buyer_matching_rag\.yaml$|^docs/'
 
       - id: end-of-file-fixer
-        exclude: ^docs/|^data/cietrade_sm_export/
+        exclude: ^docs/|^data/legacy_erp_sm_export/
 
       - id: trailing-whitespace
-        exclude: ^docs/|^data/cietrade_sm_export/
+        exclude: ^docs/|^data/legacy_erp_sm_export/
 
       - id: check-added-large-files
         args: ['--maxkb=1000']
-        # Golden cieTrade CSVs are multi-MB extract fixtures (largest ~7MB).
-        exclude: ^data/cietrade_sm_export/
+        # Golden legacy ERP CSVs are multi-MB extract fixtures (largest ~7MB).
+        exclude: ^data/legacy_erp_sm_export/
 
       - id: check-merge-conflict
 
@@ -99,6 +99,13 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
+
+      - id: banned-identifier
+        name: BAN001 legacy vendor identifier prohibition
+        entry: python3 ci/check_banned_identifier.py
+        language: system
+        pass_filenames: false
+        always_run: true
 
       - id: circular-deps
         name: Circular dependency check

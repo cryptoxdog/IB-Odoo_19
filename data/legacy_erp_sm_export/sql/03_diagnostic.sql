@@ -1,5 +1,5 @@
 SET NOCOUNT ON;
-/* cieTrade_SM_EXPORT — deep field diagnostic (one run)
+/* LEGACY_ERP_SM_EXPORT — deep field diagnostic (one run)
    Result sets:
      1) identity
      2) columns + nullability/defaults/lengths

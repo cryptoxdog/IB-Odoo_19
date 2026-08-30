@@ -16,20 +16,20 @@ class ResConfigSettings(models.TransientModel):
         help="Optional absolute path on the server. Empty = module default CSV.",
     )
 
-    def action_plasticos_partner_import_run_cietrade(self):
+    def action_plasticos_partner_import_run_default(self):
         self.ensure_one()
         self.set_values()
         try:
-            counts = self.env["plasticos.partner.import.service"].run_cietrade_default_import()
+            counts = self.env["plasticos.partner.import.service"].run_default_csv_import()
         except Exception as exc:
             if isinstance(exc, UserError):
                 raise
-            raise UserError(_("cieTrade partner import failed: %s") % exc) from exc
+            raise UserError(_("Legacy ERP partner import failed: %s") % exc) from exc
         return {
             "type": "ir.actions.client",
             "tag": "display_notification",
             "params": {
-                "title": _("cieTrade Partner Import"),
+                "title": _("Legacy ERP Partner Import"),
                 "message": _(
                     "Import finished: %(corporates)s corporates, %(facilities)s facilities, %(contacts)s contacts"
                 )

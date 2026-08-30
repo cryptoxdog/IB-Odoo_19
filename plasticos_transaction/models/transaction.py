@@ -336,7 +336,7 @@ class PlasticosTransaction(models.Model):
     #     help="QC cases, chargebacks, and penalty claims linked to this transaction.",
     # )
 
-    # Historical line items from cieTrade import
+    # Historical line items from legacy ERP import
     line_ids = fields.One2many(
         "plasticos.transaction.line",
         "transaction_id",

@@ -10,8 +10,8 @@
                 <group invisible="state != 'draft'">
                     <div class="alert alert-warning" role="alert">
                         <strong>Deprecated menu path:</strong>
-                        cieTrade partner CSV import is Settings-only.
-                        Use <strong>Settings → PlasticOS Partner Import → Run cieTrade Partner Import</strong>
+                        Legacy ERP partner CSV import is Settings-only.
+                        Use <strong>Settings → PlasticOS Partner Import → Run Legacy ERP Partner Import</strong>
                         (server CSV paths; no browser upload).
                         This wizard has no Contacts / PlasticOS menu entry — emergency Technical access only.
                     </div>

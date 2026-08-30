@@ -7,7 +7,7 @@
         <field name="arch" type="xml">
             <xpath expr="//form" position="inside">
                 <app string="PlasticOS Partner Import" name="plasticos_partner_import" groups="base.group_system">
-                    <block title="cieTrade Partner CSV">
+                    <block title="Legacy ERP Partner CSV">
                         <setting id="plasticos_partner_import_corporate_csv_setting"
                                  string="Corporate CSV Path"
                                  help="Optional absolute path on the server. Empty = module default CSV bundled with plasticos_partner_import.">
@@ -20,12 +20,12 @@
                             <field name="plasticos_partner_import_facility_csv"
                                      placeholder="/path/on/server/facility.csv"/>
                         </setting>
-                        <setting id="plasticos_partner_import_run_cietrade_setting"
-                                 string="Run cieTrade Partner Import"
+                        <setting id="plasticos_partner_import_run_default_setting"
+                                 string="Run Legacy ERP Partner Import"
                                  help="One-shot server-side import from the resolved CSV paths above (or module defaults). No browser upload — files must already exist on the Odoo server.">
-                            <button name="action_plasticos_partner_import_run_cietrade"
+                            <button name="action_plasticos_partner_import_run_default"
                                     type="object"
-                                    string="Run cieTrade Partner Import"
+                                    string="Run Legacy ERP Partner Import"
                                     class="btn-secondary"
                                     groups="base.group_system"/>
                         </setting>

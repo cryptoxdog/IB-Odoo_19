@@ -8,7 +8,7 @@
 
 ## Purpose
 
-Provides bulk **partner** import tooling (cieTrade / broker CSVs) for `res.partner` and facility data. **cieTrade partner import is Settings-only** (one-shot server CSV paths via **Settings → PlasticOS Partner Import → Run cieTrade Partner Import**); Contacts / PlasticOS banner menus for the partner wizard are removed — the wizard remains for emergency Technical access only. VanillaSoft **CRM lead** load is API-first via `plasticos_crm_sync` (**Settings → PlasticOS CRM Sync → Run VanillaSoft API Sync**). The CRM lead CSV wizard likewise has no CRM/PlasticOS menu entries (emergency Technical access only).
+Provides bulk **partner** import tooling (legacy ERP / broker CSVs) for `res.partner` and facility data. **Legacy ERP partner import is Settings-only** (one-shot server CSV paths via **Settings → PlasticOS Partner Import → Run Legacy ERP Partner Import**); Contacts / PlasticOS banner menus for the partner wizard are removed — the wizard remains for emergency Technical access only. VanillaSoft **CRM lead** load is API-first via `plasticos_crm_sync` (**Settings → PlasticOS CRM Sync → Run VanillaSoft API Sync**). The CRM lead CSV wizard likewise has no CRM/PlasticOS menu entries (emergency Technical access only).
 
 ---
 

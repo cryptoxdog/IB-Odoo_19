@@ -2,7 +2,7 @@ SET NOCOUNT ON;
 /*
   Remaining / optional grids only (batches, roles, delivery, docs, prepay).
   One Execute → 7 result grids. Copy each with headers.
-  DB: cieTrade_SM_EXPORT
+  DB: LEGACY_ERP_SM_EXPORT
 */
 
 -- ===== 1) ContactRoleAssignment.csv =====

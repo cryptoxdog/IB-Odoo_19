@@ -46,7 +46,7 @@ Contacts list API allows `modified_after` **≤ 31 days**. v1 does rolling catch
 
 ## CSV deprecation
 
-CRM / PlasticOS menus for “Import CRM Leads (VanillaSoft)” are **removed**. Prefer **Settings → PlasticOS CRM Sync → Run VanillaSoft API Sync**. The CSV wizard remains only for emergency Technical access (no menu). cieTrade partner CSV import is unchanged (ADR-003).
+CRM / PlasticOS menus for “Import CRM Leads (VanillaSoft)” are **removed**. Prefer **Settings → PlasticOS CRM Sync → Run VanillaSoft API Sync**. The CSV wizard remains only for emergency Technical access (no menu). Legacy ERP partner CSV import is unchanged (ADR-003).
 
 ## UI fallback
 

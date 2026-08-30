@@ -1,5 +1,5 @@
 SET NOCOUNT ON;
-/* Exact row counts (cieTrade_SM_EXPORT) */
+/* Exact row counts (LEGACY_ERP_SM_EXPORT) */
 SELECT 'CounterParty_active' AS metric, COUNT(*) AS n
 FROM dbo.CounterParty
 WHERE ActiveStatus = 'A'
