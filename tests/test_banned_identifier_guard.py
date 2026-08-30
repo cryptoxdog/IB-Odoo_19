@@ -39,7 +39,17 @@ def repo(tmp_path):
 
 
 def run_guard(repo):
-    return subprocess.run([sys.executable, GUARD], cwd=repo, capture_output=True, text=True)
+    """Invoke the guard as a black box, without coverage instrumentation.
+
+    pytest-cov propagates COV_CORE_* / COVERAGE_PROCESS_START into children. The
+    guard runs with cwd outside this repository, so it would miss
+    `[tool.coverage.run] branch = true` and write statement-only data that
+    coverage then refuses to combine with the parent's branch data, failing the
+    whole run with DataError after every test has passed. We assert on the
+    guard's exit status, not on its coverage, so the child opts out.
+    """
+    env = {k: v for k, v in os.environ.items() if not k.startswith("COV_CORE_") and k != "COVERAGE_PROCESS_START"}
+    return subprocess.run([sys.executable, GUARD], cwd=repo, capture_output=True, text=True, env=env)
 
 
 def test_guard_is_itself_clean():
