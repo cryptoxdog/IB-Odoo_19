@@ -1,19 +1,19 @@
-# cieTrade `SM_EXPORT` — extract runbook
+# Legacy ERP `SM_EXPORT` — extract runbook
 
 **Status (2026-08-07):** P0 data on Mac as CSVs. PlasticOS import not wired.
 **SSOT** — re-run extracts with zero chat context.
 
 | | |
 |--|--|
-| Server | `UCSCIETRADE` |
-| Database | **`cieTrade_SM_EXPORT`** (not `cieTrade_SM`) |
+| Server | `LEGACY_ERP_SQL_HOST` |
+| Database | **`LEGACY_ERP_SM_EXPORT`** (not `LEGACY_ERP_SM`) |
 | Login | `UCSINC\ibeylin` (Windows auth in SSMS) |
 | Client | SSMS on **Windows App → IB-PC** |
 | Mac SQL | No `sqlcmd`; `:1433` unreachable from Mac |
-| Tracked pack | `data/cietrade_sm_export/` |
-| SQL (canonical) | `data/cietrade_sm_export/sql/` — see §3 |
-| Golden CSVs | `data/cietrade_sm_export/bulk/*.csv` |
-| WIP land / Excel | gitignored `Current Work - IGNORE/CieTrade Data Extraction/excel files/` |
+| Tracked pack | `data/legacy_erp_sm_export/` |
+| SQL (canonical) | `data/legacy_erp_sm_export/sql/` — see §3 |
+| Golden CSVs | `data/legacy_erp_sm_export/bulk/*.csv` |
+| WIP land / Excel | gitignored `Current Work - IGNORE/Legacy ERP Data Extraction/excel files/` |
 | Control plane | `~/.cursor-governance/tools/l9_agent_ui_control` |
 | Odoo partner import | [README_plasticos_partner_import.md](./README_plasticos_partner_import.md) — different CSV shape |
 
@@ -23,10 +23,10 @@
 
 ```bash
 REPO="${CURSOR_PROJECT_DIR:-$HOME/IB-Odoo_19 (LOCAL)/IB-Odoo_19}"
-LIVE="$REPO/data/cietrade_sm_export"
+LIVE="$REPO/data/legacy_erp_sm_export"
 SQL="$LIVE/sql"
 BULK="$LIVE/bulk"
-EXTRACT="$REPO/Current Work - IGNORE/CieTrade Data Extraction"  # WIP Excel land only
+EXTRACT="$REPO/Current Work - IGNORE/Legacy ERP Data Extraction"  # WIP Excel land only
 PACK="$HOME/.cursor-governance/tools/l9_agent_ui_control"
 PY="$HOME/.cursor-governance/.venv/bin/python"
 [ -x "$PY" ] || PY="$(command -v python3)"
@@ -36,7 +36,7 @@ PY="$HOME/.cursor-governance/.venv/bin/python"
 
 ## 2. Hard rules
 
-1. Toolbar DB = **`cieTrade_SM_EXPORT`**. Results to **Grid** only.
+1. Toolbar DB = **`LEGACY_ERP_SM_EXPORT`**. Results to **Grid** only.
 2. **Never** Windows App drag / Save Results `.rpt` → Mac (null-byte files).
 3. **Do** Copy with Headers (`Ctrl+Shift+C`) → Mac file, **or** Excel `.xlsx` on IB-PC → copy bytes to Mac → convert (§6).
 4. Accept only if `size > 0` **and** `nonzero_bytes > 0` **and** row 1 is a real header.
@@ -69,8 +69,8 @@ PY="$HOME/.cursor-governance/.venv/bin/python"
 ## 4. Re-run procedure
 
 ```text
-1. Windows App → IB-PC → SSMS → UCSCIETRADE
-2. New query → toolbar DB = cieTrade_SM_EXPORT → Results to Grid
+1. Windows App → IB-PC → SSMS → LEGACY_ERP_SQL_HOST
+2. New query → toolbar DB = LEGACY_ERP_SM_EXPORT → Results to Grid
 3. Mac: pbcopy < "$SQL/<file>.sql"
 4. Paste into SSMS (replace all) → Execute
 5. Transfer each grid:
@@ -82,7 +82,7 @@ PY="$HOME/.cursor-governance/.venv/bin/python"
 ### Full reload (preferred)
 
 ```bash
-pbcopy < "$SQL/00_probe.sql"           # expect cieTrade_SM_EXPORT
+pbcopy < "$SQL/00_probe.sql"           # expect LEGACY_ERP_SM_EXPORT
 pbcopy < "$SQL/05_extract_all.sql"     # 14 grids
 # Each tab → Copy with Headers → $BULK/<name from SQL comment>.csv
 "$PY" "$PACK/integrity_check.py" "$BULK"
@@ -162,7 +162,7 @@ Join keys: **`CpID`** (partners) · **`BuySellNo`** (trade/payment lines).
 
 **Reject:**
 
-- `$EXTRACT/cieTrade_export_20260807_183800/` (null CSVs)
+- `$EXTRACT/legacy_erp_export_20260807_183800/` (null CSVs)
 - `$EXTRACT/8-7-26*.rpt` (all `\x00`)
 - Any file with `nonzero_bytes == 0`
 
@@ -247,7 +247,7 @@ PY
 
 | Step | Action |
 |------|--------|
-| 1 | Golden CSVs live under `$BULK/` (`data/cietrade_sm_export/bulk/`) |
+| 1 | Golden CSVs live under `$BULK/` (`data/legacy_erp_sm_export/bulk/`) |
 | 2 | Transform offline: `CounterParty`+`Address`+`Contact` → shape for `plasticos.partner.import.service` (`CpID` → `ref`) |
 | 3 | Headless load via shell / ICP — not Contacts wizard UI |
 | 4 | Payables / Receipt / WKS need a **new** staging path |

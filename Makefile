@@ -2,7 +2,7 @@
 # Usage: make <target>
 
 .DEFAULT_GOAL := help
-.PHONY: help \
+.PHONY: help ban-check \
         install-extensions \
         lint format format-fix check \
         audit audit-quick audit-baseline advisory-checks \
@@ -231,6 +231,12 @@ no-local-intelligence:
 name-check:
 	@echo "→ _name string literal enforcement..."
 	python3 ci/check_name_literal.py
+
+# INVARIANTS.md invariant 20 (BAN001). Same script CI and pre-commit run —
+# one canonical implementation, no exclusions.
+ban-check:
+	@echo "→ BAN001 legacy vendor identifier prohibition..."
+	python3 ci/check_banned_identifier.py
 
 # Manifest field validation (restored 2026-07 from deleted module-check.yml) —
 # checks required fields beyond bare syntax via scripts/validate_manifest.py.

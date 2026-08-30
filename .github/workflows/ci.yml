@@ -187,6 +187,10 @@ jobs:
           run_check "State guard bypass"      python3 ci/check_state_guard_bypass.py
           run_check "Weak test detection"     python3 ci/weak_test_fixer.py
 
+          # INVARIANTS.md invariant 20 (BAN001). Blocking, no exclusions. This is the
+          # SAME script `make ban-check` and the pre-commit hook run — one implementation.
+          run_check "Banned legacy identifier (BAN001)" python3 ci/check_banned_identifier.py
+
           # Advisory checks (restored 2026-07 — non-blocking, matching the
           # deleted workflows' own continue-on-error / warn-only semantics)
           run_advisory "mypy type check" mypy . --config-file=pyproject.toml

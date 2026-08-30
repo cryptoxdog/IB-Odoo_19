@@ -1,8 +1,8 @@
-# cieTrade `SM_EXPORT` — tracked extract pack
+# Legacy ERP `SM_EXPORT` — tracked extract pack
 
-**Runbook (SSOT):** [`docs/cietrade_sm_export_research.md`](../../docs/cietrade_sm_export_research.md)
+**Runbook (SSOT):** [`docs/legacy_erp_sm_export_research.md`](../../docs/legacy_erp_sm_export_research.md)
 
-Golden CSVs + SELECT-only SQL from `cieTrade_SM_EXPORT` @ `UCSCIETRADE` (2026-08-07 live extract). PlasticOS import for this dump is not wired yet.
+Golden CSVs + SELECT-only SQL from `LEGACY_ERP_SM_EXPORT` @ `LEGACY_ERP_SQL_HOST` (2026-08-07 live extract). PlasticOS import for this dump is not wired yet.
 
 | Path | Contents |
 |------|----------|

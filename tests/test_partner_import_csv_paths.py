@@ -1,4 +1,4 @@
-"""Settings / ICP path resolution for plasticos_partner_import cieTrade import."""
+"""Settings / ICP path resolution for plasticos_partner_import legacy ERP import."""
 
 import os
 import tempfile
@@ -67,11 +67,11 @@ class TestPartnerImportCsvPaths(PlasticosTestCase):
             self.svc.resolve_default_csv_path("corporate")
         self.assertIn("does not exist", str(ctx.exception))
 
-    def test_run_cietrade_missing_configured_path_raises(self):
+    def test_run_default_missing_configured_path_raises(self):
         self.icp.set_param(CONFIG_CORPORATE, "/nonexistent/path/corporate.csv")
         self.icp.set_param(CONFIG_FACILITY, "")
         with self.assertRaises(UserError):
-            self.svc.run_cietrade_default_import()
+            self.svc.run_default_csv_import()
 
     def test_settings_action_missing_path_raises(self):
         settings = self.env["res.config.settings"].create(
@@ -81,4 +81,4 @@ class TestPartnerImportCsvPaths(PlasticosTestCase):
             }
         )
         with self.assertRaises(UserError):
-            settings.action_plasticos_partner_import_run_cietrade()
+            settings.action_plasticos_partner_import_run_default()

@@ -1,4 +1,4 @@
-# cieTrade extract SQL (canonical)
+# Legacy ERP extract SQL (canonical)
 
 | # | File | Use |
 |---|------|-----|
@@ -11,4 +11,4 @@
 | 06 | `06_extract_remaining.sql` | Batches / roles / delivery / docs only |
 | 10–17 | `10_counterparty.sql` … `17_prepayledger.sql` | Single-table full extracts |
 
-Playbook: [`docs/cietrade_sm_export_research.md`](../../../docs/cietrade_sm_export_research.md)
+Playbook: [`docs/legacy_erp_sm_export_research.md`](../../../docs/legacy_erp_sm_export_research.md)

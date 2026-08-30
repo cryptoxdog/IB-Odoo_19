@@ -1,6 +1,6 @@
-# Live extract pack — `data/cietrade_sm_export`
+# Live extract pack — `data/legacy_erp_sm_export`
 
-**Playbook (SSOT):** [`docs/cietrade_sm_export_research.md`](../../docs/cietrade_sm_export_research.md)
+**Playbook (SSOT):** [`docs/legacy_erp_sm_export_research.md`](../../docs/legacy_erp_sm_export_research.md)
 
 | Path | Contents |
 |------|----------|
@@ -11,7 +11,7 @@
 | `meta/` | `p0_columns.csv`, census / count probes |
 | `scripts/` | Optional Windows probe helpers |
 
-DB: **`cieTrade_SM_EXPORT`** @ `UCSCIETRADE`.
+DB: **`LEGACY_ERP_SM_EXPORT`** @ `LEGACY_ERP_SQL_HOST`.
 
 **Reload:** `pbcopy < sql/05_extract_all.sql` → SSMS Execute → Copy with Headers each grid → `bulk/`.
 
@@ -20,5 +20,5 @@ DB: **`cieTrade_SM_EXPORT`** @ `UCSCIETRADE`.
 - Legacy `sql/archive/` explore chunks
 - Duplicate `Transactions.csv` (same shape as `WKSDetail.csv`)
 - Duplicate `counterparty_full_from_file1.csv`
-- Corrupt extract `cieTrade_export_20260807_183800/`
+- Corrupt extract `legacy_erp_export_20260807_183800/`
 - Excel land path / `.rpt` null dumps

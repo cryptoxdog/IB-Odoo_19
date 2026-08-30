@@ -25,7 +25,7 @@
                         Use <strong>Settings → PlasticOS CRM Sync → Run VanillaSoft API Sync</strong>
                         (or CRM → CRM Sync → Connections → Sync Now).
                         This wizard has no menu entry — emergency Technical access only.
-                        cieTrade partner CSV import is Settings-only (Settings → PlasticOS Partner Import).
+                        Legacy ERP partner CSV import is Settings-only (Settings → PlasticOS Partner Import).
                     </div>
                     <div class="alert alert-info" role="alert">
                         <strong>Default File:</strong>

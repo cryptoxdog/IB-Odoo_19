@@ -21,5 +21,5 @@ Checklist + status: [`memory-bank/tasks.md`](tasks.md) § "OPEN — Track B".
 
 ## Recent local commits (this branch)
 
-- `4e9437f` — track cieTrade extract under `data/cietrade_sm_export/`
+- `4e9437f` — track legacy ERP extract under `data/legacy_erp_sm_export/`
 - `444ccb4` — IDE/rules, L9 skill adapters, `config/odoo.conf`

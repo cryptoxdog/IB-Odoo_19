@@ -23,7 +23,7 @@ modules:
     purpose: Central transaction lifecycle (sale→purchase→invoice→close)
     models:
       - plasticos.transaction        # Main spine record
-      - plasticos.transaction.line   # cieTrade historical line items
+      - plasticos.transaction.line   # legacy ERP historical line items
       - plasticos.audit.cron         # Monthly audit job
     key_fields:
       transaction:
@@ -38,7 +38,7 @@ modules:
         - commission_rule_id         # M2O plasticos.commission.rule
         - state                      # draft→active→closed
       transaction_line:
-        - detail_id                  # cieTrade DetailID
+        - detail_id                  # legacy ERP DetailID
         - grade_id                   # Material grade code
         - sale_weight / purchase_weight
         - sale_amount / purchase_amount
@@ -174,8 +174,8 @@ modules:
 # ============================================================================
 
 data_sources:
-  cieTrade_WksDetail:
-    path: plasticos_transaction/cieTrade.WksDetail.csv
+  ERP_WksDetail:
+    path: plasticos_transaction/ERP.WksDetail.csv
     rows: ~20000
     purpose: Historical transaction line items
     key_columns:
@@ -314,7 +314,7 @@ quick_ref:
 
   import_transactions: |
     env["plasticos.transaction.import.service"].run_csv_import(
-        "/path/to/cieTrade.WksDetail.csv",
+        "/path/to/ERP.WksDetail.csv",
         dry_run=False
     )
 

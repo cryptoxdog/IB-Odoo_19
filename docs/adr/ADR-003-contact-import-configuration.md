@@ -1,13 +1,13 @@
 # ADR-003: Contact Import Configuration
 
-**Status:** Accepted  
-**Date:** 2026-03-13  
-**Deciders:** Igor Beylin  
+**Status:** Accepted
+**Date:** 2026-03-13
+**Deciders:** Igor Beylin
 **Scope:** `plasticos_partner_import`, `plasticos_base`
 
 ## Context
 
-PlasticOS imports counterparties from a legacy system (cieTrade) via two CSV files. The import must create a hierarchical partner structure that maps to Odoo's native `res.partner` model while preserving business relationships (corporate → facility → contact) and leveraging Odoo's built-in address selection for invoicing and delivery.
+PlasticOS imports counterparties from a legacy ERP system via two CSV files. The import must create a hierarchical partner structure that maps to Odoo's native `res.partner` model while preserving business relationships (corporate → facility → contact) and leveraging Odoo's built-in address selection for invoicing and delivery.
 
 ## Decision
 

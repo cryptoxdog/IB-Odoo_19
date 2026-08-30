@@ -1,8 +1,8 @@
 SET NOCOUNT ON;
 /*
-  cieTrade_SM_EXPORT — ALL P0 extracts in ONE Execute (many result grids).
+  LEGACY_ERP_SM_EXPORT — ALL P0 extracts in ONE Execute (many result grids).
 
-  Toolbar DB must be: cieTrade_SM_EXPORT
+  Toolbar DB must be: LEGACY_ERP_SM_EXPORT
   Output: Results to Grid
 
   After Execute: for EACH results tab (Results, Results1, …):

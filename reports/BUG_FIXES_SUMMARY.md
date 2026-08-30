@@ -454,10 +454,10 @@ pre-commit run ruff --all-files
 
 **New Wizard:** `plasticos.transaction.import.wizard`
 
-**Purpose:** Import historical transactions from cieTrade WksDetail CSV export.
+**Purpose:** Import historical transactions from ERP WksDetail CSV export.
 
 **Features:**
-- Uses default `cieTrade.WksDetail.csv` file in module or upload custom CSV
+- Uses default `ERP.WksDetail.csv` file in module or upload custom CSV
 - Groups line items by `BuySellNo` to create parent transactions
 - Creates `plasticos.transaction.line` records for each detail row
 - Dry-run preview mode before actual import

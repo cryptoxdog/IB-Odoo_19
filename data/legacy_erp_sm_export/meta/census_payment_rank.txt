@@ -1,5 +1,5 @@
 db_name	login_name	server_name
-cieTrade_SM_EXPORT	UCSINC\ibeylin	UCSCIETRADE
+LEGACY_ERP_SM_EXPORT	UCSINC\ibeylin	LEGACY_ERP_SQL_HOST
 
 schema_name	table_name	approx_row_count
 dbo	WksDocument	80114

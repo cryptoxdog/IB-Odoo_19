@@ -64,7 +64,7 @@ class PlasticosPartnerImportService(models.AbstractModel):
         raise UserError(f"Configured {which} CSV path does not exist or is not a file: {custom}")
 
     @api.model
-    def run_cietrade_default_import(self):
+    def run_default_csv_import(self):
         """One-shot server-side import from resolved default CSV paths."""
         corporate = self.resolve_default_csv_path("corporate")
         facility = self.resolve_default_csv_path("facility")

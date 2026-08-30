@@ -87,9 +87,9 @@ Every won deal has a transaction. Transactions drive gross margin reporting, com
 
 ## Import Wizard
 
-`wizards/transaction_import_wizard.py` — imports historical transaction data from a CIETrade CSV export.
+`wizards/transaction_import_wizard.py` — imports historical transaction data from a legacy ERP CSV export.
 
-**Default file:** `cieTrade.WksDetail.Test.csv` at the **repo root** (51-line test file). The production file (`cieTrade.WksDetail.csv`, 16,417+ rows) is excluded from the default path.
+**Default file:** `ERP.WksDetail.Test.csv` at the **repo root** (51-line test file). The production file (`ERP.WksDetail.csv`, 16,417+ rows) is excluded from the default path.
 
 Path resolution: `os.path.join(module_path, os.pardir, DEFAULT_CSV)` — looks one level up from the module directory (repo root).
 
