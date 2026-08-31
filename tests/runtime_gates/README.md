@@ -6,8 +6,8 @@ under `TransactionCase` there is one cursor and one snapshot, `cr.commit()` is
 neutered, and `registry.cursor()` returns the test cursor — a green result
 there would prove nothing about any of these invariants.
 
-Setup (no Docker required): [`docs/runbooks/C1_C6_LOCAL_RUNTIME.md`](../../../docs/runbooks/C1_C6_LOCAL_RUNTIME.md).
-Gate definitions and status: [`docs/runbooks/LAUNCH_GATES.md`](../../../docs/runbooks/LAUNCH_GATES.md).
+Setup (no Docker required): [`docs/runbooks/C1_C6_LOCAL_RUNTIME.md`](../../docs/runbooks/C1_C6_LOCAL_RUNTIME.md).
+Gate definitions and status: [`docs/runbooks/LAUNCH_GATES.md`](../../docs/runbooks/LAUNCH_GATES.md).
 
 | Script | Gates |
 |---|---|
@@ -17,7 +17,7 @@ Gate definitions and status: [`docs/runbooks/LAUNCH_GATES.md`](../../../docs/run
 | `run_c7_c8_enrichment_failures.py` | C7 Gate disabled · C8 Gate transport failure — durability across RPC rollback, partner untouched, caller budget honoured |
 
 ```bash
-for f in plasticos_crm_sync/tests/runtime_gates/run_*.py; do
+for f in tests/runtime_gates/run_*.py; do
   /opt/odoo-venv/bin/python "$f" || echo "FAILED: $f"
 done
 ```

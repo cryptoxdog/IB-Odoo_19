@@ -4,7 +4,7 @@ Not a pytest module and deliberately not collected: it needs a live Odoo 19
 registry and a live PostgreSQL server. Setup is in
 docs/runbooks/C1_C6_LOCAL_RUNTIME.md. Run it directly::
 
-    /opt/odoo-venv/bin/python plasticos_crm_sync/tests/runtime_gates/run_c1_c2_c4_c5.py
+    /opt/odoo-venv/bin/python tests/runtime_gates/run_c1_c2_c4_c5.py
 
 Every assertion is read over a psycopg2 connection Odoo does not own, so no
 result here is read out of the transaction under test.

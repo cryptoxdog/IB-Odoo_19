@@ -106,7 +106,7 @@ configuration, **C6** for replay. Do not reuse a retired label.
 | T1 | Configured VanillaSoft and Gate endpoints are both `https://` | production service URL is plaintext HTTP | operator check at deploy |
 
 C1–C8 are executable without Docker; see `C1_C6_LOCAL_RUNTIME.md` for the
-harness and `plasticos_crm_sync/tests/runtime_gates/` for the scripts. Any lock
+harness and `tests/runtime_gates/` for the scripts. Any lock
 wait, disappearing failure record, or incorrect watermark is NO-GO.
 
 **A fixture caveat that cost a false failure.** `_sync_contacts` clamps
