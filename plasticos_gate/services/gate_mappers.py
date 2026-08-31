@@ -130,7 +130,9 @@ def map_match_response(payload: dict[str, Any]) -> MatchResponse:
     )
     return MatchResponse(
         status=payload.get("status"),
-        match_direction=payload.get("direction"),
+        # Graph publishes "match_direction"; "direction" is the pre-normalisation
+        # spelling kept only for the migration window.
+        match_direction=payload.get("match_direction") or payload.get("direction"),
         top_n=payload.get("top_n"),
         results=results,
         unresolved=unresolved,

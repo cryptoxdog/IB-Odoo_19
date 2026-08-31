@@ -196,6 +196,54 @@ def get_enrichment_action(env) -> str:
     return (icp.get_param("plasticos.gate.enrichment_action") or "converge").strip().lower()
 
 
+# ── Independent kill switches ────────────────────────────────────
+# Each rail is switchable on its own so an incident in one does not force the
+# operator to stop everything. All default OFF: commissioning turns them on one
+# at a time (ADR-129), no redeployment required to stop a rail.
+
+GRAPH_PROJECTION_ICP_KEY = "plasticos.gate.graph_projection_enabled"
+GRAPH_OUTBOX_WORKER_ICP_KEY = "plasticos.gate.graph_outbox_worker_enabled"
+ENRICHMENT_SCHEDULER_ICP_KEY = "plasticos.gate.enrichment_scheduler_enabled"
+
+
+def _icp_flag(env, key: str, default: str = "0") -> bool:
+    icp = env["ir.config_parameter"].sudo()
+    return (icp.get_param(key, default) or "").strip() in _TRUTHY
+
+
+def graph_projection_enabled(env) -> bool:
+    """Return True when committed Odoo writes should enqueue a Graph projection.
+
+    OFF by default. Turning this off stops new projection work from being
+    created; it does not discard rows already in the outbox.
+    """
+    return _icp_flag(env, GRAPH_PROJECTION_ICP_KEY)
+
+
+def graph_outbox_worker_enabled(env) -> bool:
+    """Return True when the outbox drain worker may send to Gate.
+
+    OFF by default. Turning this off parks pending projections durably instead
+    of dropping them — the outbox is the retry budget, not a queue to purge.
+    """
+    return _icp_flag(env, GRAPH_OUTBOX_WORKER_ICP_KEY)
+
+
+def enrichment_scheduler_enabled(env) -> bool:
+    """Return True when the enrichment scheduler may claim and execute runs.
+
+    OFF by default. Independent of ``plasticos.gate.enrichment_enabled`` so an
+    operator can stop autonomous scheduling while leaving manual execute alive.
+    """
+    return _icp_flag(env, ENRICHMENT_SCHEDULER_ICP_KEY)
+
+
+def get_graph_sync_action(env) -> str:
+    """Return the Gate action name used to publish a Graph projection."""
+    icp = env["ir.config_parameter"].sudo()
+    return (icp.get_param("plasticos.gate.graph_sync_action") or "sync").strip().lower()
+
+
 def build_gate_client_config(env) -> GateClientConfig:
     """Build SDK config — call only after gate_matching_enabled() passes."""
     from constellation_node_sdk import GateClientConfig

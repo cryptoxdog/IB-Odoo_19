@@ -31,8 +31,9 @@ class OdooContext:
 class ConvergeRequest:
     """EIE EnrichRequest-shaped converge request (entity/object_type/objective/max_variations).
 
-    Odoo identifiers ride in ``entity["_odoo_entity_id"]`` and the ``odoo``
-    context metadata — never as Gate-level transforms.
+    Canonical Odoo identity rides in ``entity["id"]`` — the field EIE resolves
+    entity identity from. ``entity["_odoo_entity_id"]`` is dual-populated for one
+    migration window only. Identity is never expressed as a Gate-level transform.
     """
 
     entity: dict[str, Any] = field(default_factory=dict)
@@ -93,17 +94,55 @@ class ConvergeResponse:
     raw: dict[str, Any] = field(default_factory=dict)
 
 
+# ── Canonical Graph match directions ─────────────────────────────
+# PlasticOS Graph recognises exactly these two directions. Anything else is
+# rejected by the Graph handler, so Odoo must never emit a private spelling.
+MATCH_DIRECTION_SUPPLY_TO_BUYER = "supply_opportunity_to_buyer_facility"
+MATCH_DIRECTION_BUYER_TO_SUPPLY = "buyer_demand_to_supply_opportunity"
+
+CANONICAL_MATCH_DIRECTIONS = frozenset(
+    {
+        MATCH_DIRECTION_SUPPLY_TO_BUYER,
+        MATCH_DIRECTION_BUYER_TO_SUPPLY,
+    }
+)
+
+#: Odoo-local legacy spellings mapped onto the canonical Graph direction.
+#: ``intake_to_buyer`` was an Odoo-side invention Graph never accepted; it is
+#: normalised here for one migration window rather than silently forwarded.
+LEGACY_MATCH_DIRECTIONS = {
+    "intake_to_buyer": MATCH_DIRECTION_SUPPLY_TO_BUYER,
+    "buyer_to_intake": MATCH_DIRECTION_BUYER_TO_SUPPLY,
+}
+
+
+def normalize_match_direction(direction: str | None) -> str:
+    """Return the canonical Graph match direction for ``direction``.
+
+    Canonical values pass through. Known legacy Odoo spellings are translated.
+    Anything else raises: an unknown direction must fail closed here rather than
+    reach Graph, which rejects it after a full round trip.
+    """
+    value = (direction or "").strip()
+    if value in CANONICAL_MATCH_DIRECTIONS:
+        return value
+    mapped = LEGACY_MATCH_DIRECTIONS.get(value)
+    if mapped is not None:
+        return mapped
+    raise ValueError(f"unknown match_direction {direction!r}; expected one of {sorted(CANONICAL_MATCH_DIRECTIONS)}")
+
+
 @dataclass(slots=True)
 class MatchRequest:
     query: dict[str, Any]
-    match_direction: str = "intake_to_buyer"
+    match_direction: str = MATCH_DIRECTION_SUPPLY_TO_BUYER
     top_n: int = 20
     odoo: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
             "query": self.query,
-            "match_direction": self.match_direction,
+            "match_direction": normalize_match_direction(self.match_direction),
             "top_n": self.top_n,
         }
         if self.odoo:

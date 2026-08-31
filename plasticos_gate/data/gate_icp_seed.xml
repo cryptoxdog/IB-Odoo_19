@@ -56,5 +56,24 @@
         <field name="value">0</field>
     </record>
 
-</odoo>
+    <!-- Independent rail kill switches (ADR-129). Each rail stops on its own so
+         an incident in one does not force the operator to shut down the others.
+         All seeded OFF: commissioning enables them one at a time. -->
+    <record id="param_gate_graph_projection_enabled" model="ir.config_parameter">
+        <field name="key">plasticos.gate.graph_projection_enabled</field>
+        <field name="value">0</field>
+    </record>
+    <record id="param_gate_graph_outbox_worker_enabled" model="ir.config_parameter">
+        <field name="key">plasticos.gate.graph_outbox_worker_enabled</field>
+        <field name="value">0</field>
+    </record>
+    <record id="param_gate_enrichment_scheduler_enabled" model="ir.config_parameter">
+        <field name="key">plasticos.gate.enrichment_scheduler_enabled</field>
+        <field name="value">0</field>
+    </record>
+    <record id="param_gate_graph_sync_action" model="ir.config_parameter">
+        <field name="key">plasticos.gate.graph_sync_action</field>
+        <field name="value">sync</field>
+    </record>
 
+</odoo>

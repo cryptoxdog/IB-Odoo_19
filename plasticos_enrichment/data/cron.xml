@@ -12,6 +12,21 @@
         <field name="active">False</field>
     <field name="user_id" ref="plasticos_base.user_system_cron" /></record>
 
+    <!-- Autonomous Gate enrichment scheduler.
+         Shipped INACTIVE: commissioning enables the ICP kill switch
+         (plasticos.gate.enrichment_scheduler_enabled) and this cron
+         deliberately, after the cross-repo fault tests pass (ADR-129). -->
+    <record id="cron_gate_enrichment_scheduler" model="ir.cron">
+        <field name="name">PlasticOS: Gate Enrichment Scheduler</field>
+        <field name="model_id" ref="plasticos_enrichment.model_plasticos_enrichment_run" />
+        <field name="state">code</field>
+        <field name="code">model.action_cron_gate_enrichment_scheduler()</field>
+        <field name="interval_number">10</field>
+        <field name="interval_type">minutes</field>
+        <field name="active">False</field>
+        <field name="user_id" ref="plasticos_base.user_system_cron" />
+    </record>
+
     <record id="cron_inference_standalone" model="ir.cron">
         <field name="name">Material Profile Inference — Retired (M4)</field>
         <field name="model_id" ref="plasticos_enrichment.model_plasticos_enrichment_run" />

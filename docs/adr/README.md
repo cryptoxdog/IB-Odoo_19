@@ -29,6 +29,7 @@ Former copies under `reports/adr/` were consolidated here (2026-06-04). Do not a
 | [ADR-018](ADR-018-human-brokerage-checkpoints.md) | Human brokerage checkpoints (intake → match → offer) | Accepted |
 | [ADR-019](ADR-019-documentation-convergence-supersession.md) | Documentation convergence & supersession map | Accepted |
 | [ADR-003 (single)](ADR-003-single-external-intelligence-authority.md) | Single external intelligence authority (Gate → CEG/EIE) | Accepted |
+| [ADR-129](ADR-129-odoo-authoritative-graph-projection.md) | Odoo is authoritative; Graph receives a post-commit projection (outbox, canonical identity, canonical match direction) | Accepted |
 
 **Session index (historical):** [PROPOSED-ADR-BACKLOG-2026-08-architecture-convergence.md](PROPOSED-ADR-BACKLOG-2026-08-architecture-convergence.md) — drafts for ADR-010…019; decisions now live in the Accepted files above (see ADR-019 §4).
 

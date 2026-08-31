@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo noupdate="1">
+
+    <!-- Graph projection outbox drain.
+         Shipped INACTIVE: commissioning enables the ICP kill switch
+         (plasticos.gate.graph_outbox_worker_enabled) and this cron
+         deliberately, one rail at a time (ADR-129). -->
+    <record id="cron_gate_outbox_drain" model="ir.cron">
+        <field name="name">PlasticOS Gate: Drain Graph Projection Outbox</field>
+        <field name="model_id" ref="plasticos_gate.model_plasticos_gate_outbox" />
+        <field name="state">code</field>
+        <field name="code">model.action_cron_drain_outbox()</field>
+        <field name="interval_number">5</field>
+        <field name="interval_type">minutes</field>
+        <field name="active">False</field>
+        <field name="user_id" ref="plasticos_base.user_system_cron" />
+    </record>
+
+</odoo>

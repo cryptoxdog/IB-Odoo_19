@@ -11,6 +11,7 @@ from .gate_config import (
     GateIntegrationError,
     build_gate_client_config,
     get_enrichment_action,
+    get_graph_sync_action,
     get_matching_action,
     resolve_tenant,
 )
@@ -185,4 +186,25 @@ def send_converge_action(
         payload=payload,
         correlation_id=correlation_id,
         compliance_tags=("ERP", "ENRICHMENT"),
+    )
+
+
+def send_graph_sync_action(
+    env,
+    *,
+    payload: dict[str, Any],
+    correlation_id: str | None = None,
+) -> dict[str, Any]:
+    """Publish an authoritative Odoo -> Graph projection through Gate.
+
+    Single-shot like every other sender here: durable retry belongs to the
+    outbox record, not to the transport.
+    """
+    action = get_graph_sync_action(env)
+    return send_action(
+        env,
+        action=action,
+        payload=payload,
+        correlation_id=correlation_id,
+        compliance_tags=("ERP", "PROJECTION"),
     )
