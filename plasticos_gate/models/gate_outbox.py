@@ -20,6 +20,15 @@ _logger = logging.getLogger(__name__)
 
 OUTBOX_WORKER_LOCK = "gate.outbox.drain"
 
+# sudo() justification (repo rule: no unjustified sudo).
+# The outbox is infrastructure bookkeeping, not user-owned business data. Its ACL
+# grants read-only to base.group_user precisely so ordinary users cannot mutate
+# delivery state by hand. Every write in this model is made by the system on its
+# own queue — enqueued from inside an already-authorised business transaction, or
+# by the cron worker — so it must not depend on the acting user's rights. Nothing
+# here reads or writes a business record; the projection payload was built and
+# validated before it arrived.
+
 #: A row still 'sending' after this many minutes lost its worker (process kill,
 #: container replacement) and is returned to the retry pool.
 SENDING_STALE_MINUTES = 30

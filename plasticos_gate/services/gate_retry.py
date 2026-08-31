@@ -15,11 +15,15 @@ from __future__ import annotations
 import secrets
 from datetime import datetime, timedelta
 
-#: Delay before attempt N+1, indexed by the number of attempts already made.
+#: Delay before each retry. ``RETRY_BACKOFF_SECONDS[0]`` is the wait after the
+#: FIRST failed attempt, so callers index it by failed attempts minus one.
 RETRY_BACKOFF_SECONDS: tuple[int, ...] = (60, 300, 900, 3600, 21600, 21600)
 
-#: Attempts allowed before an operation is terminally failed.
-MAX_ATTEMPTS: int = len(RETRY_BACKOFF_SECONDS)
+#: Retries allowed after the initial attempt.
+MAX_RETRIES: int = len(RETRY_BACKOFF_SECONDS)
+
+#: Total attempts allowed: the initial one plus every retry.
+MAX_ATTEMPTS: int = MAX_RETRIES + 1
 
 #: Fraction of the base delay used as symmetric jitter (+/-), to stop a batch
 #: of operations failed by one outage from retrying in lockstep.
@@ -40,41 +44,42 @@ def _jitter_seconds(base_seconds: int, jitter_ratio: float) -> float:
 
 
 def next_retry_delay_seconds(
-    attempt_count: int,
+    failed_attempts: int,
     *,
     jitter_ratio: float = JITTER_RATIO,
     apply_jitter: bool = True,
 ) -> float | None:
     """Return the delay before the next attempt, or ``None`` when exhausted.
 
-    ``attempt_count`` is the number of attempts already made. ``None`` means the
-    operation has spent its budget and must be marked terminally failed rather
-    than retried forever.
+    ``failed_attempts`` counts attempts that have already failed, so a value of
+    1 (the first failure) yields the first entry of the schedule — one minute.
+    ``None`` means the budget is spent and the operation must be marked
+    terminally failed rather than retried forever.
     """
-    if attempt_count < 0:
-        attempt_count = 0
-    if attempt_count >= MAX_ATTEMPTS:
+    if failed_attempts < 1:
+        failed_attempts = 1
+    if failed_attempts > MAX_RETRIES:
         return None
-    base = RETRY_BACKOFF_SECONDS[attempt_count]
+    base = RETRY_BACKOFF_SECONDS[failed_attempts - 1]
     if not apply_jitter:
         return float(base)
     return max(1.0, base + _jitter_seconds(base, jitter_ratio))
 
 
 def next_attempt_at(
-    attempt_count: int,
+    failed_attempts: int,
     *,
     now: datetime,
     jitter_ratio: float = JITTER_RATIO,
     apply_jitter: bool = True,
 ) -> datetime | None:
     """Return the absolute next-attempt timestamp, or ``None`` when exhausted."""
-    delay = next_retry_delay_seconds(attempt_count, jitter_ratio=jitter_ratio, apply_jitter=apply_jitter)
+    delay = next_retry_delay_seconds(failed_attempts, jitter_ratio=jitter_ratio, apply_jitter=apply_jitter)
     if delay is None:
         return None
     return now + timedelta(seconds=delay)
 
 
-def attempts_exhausted(attempt_count: int) -> bool:
-    """Return True when ``attempt_count`` attempts have spent the retry budget."""
-    return attempt_count >= MAX_ATTEMPTS
+def attempts_exhausted(failed_attempts: int) -> bool:
+    """Return True when ``failed_attempts`` failures have spent the retry budget."""
+    return failed_attempts >= MAX_ATTEMPTS

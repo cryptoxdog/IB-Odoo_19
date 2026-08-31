@@ -46,6 +46,7 @@ from plasticos_gate.services.gate_projection import (  # noqa: E402
 )
 from plasticos_gate.services.gate_retry import (  # noqa: E402
     MAX_ATTEMPTS,
+    MAX_RETRIES,
     RETRY_BACKOFF_SECONDS,
     attempts_exhausted,
     next_retry_delay_seconds,
@@ -339,19 +340,32 @@ def test_facility_id_uses_the_declared_stable_id_policy():
 # ── Retry policy ─────────────────────────────────────────────────
 
 
+def test_first_failure_waits_the_first_published_delay():
+    """Callers pass failed-attempt counts, so 1 failure must map to 1 minute.
+
+    Indexing the schedule by the raw attempt counter instead would make the
+    published one-minute step unreachable and end the budget a retry early.
+    """
+    assert next_retry_delay_seconds(1, apply_jitter=False) == 60.0
+
+
 def test_backoff_progresses_through_the_published_schedule():
-    delays = [next_retry_delay_seconds(n, apply_jitter=False) for n in range(MAX_ATTEMPTS)]
+    delays = [next_retry_delay_seconds(n, apply_jitter=False) for n in range(1, MAX_RETRIES + 1)]
     assert delays == [float(x) for x in RETRY_BACKOFF_SECONDS]
 
 
 def test_backoff_is_exhausted_rather_than_infinite():
-    assert next_retry_delay_seconds(MAX_ATTEMPTS, apply_jitter=False) is None
+    assert next_retry_delay_seconds(MAX_RETRIES + 1, apply_jitter=False) is None
     assert attempts_exhausted(MAX_ATTEMPTS) is True
     assert attempts_exhausted(MAX_ATTEMPTS - 1) is False
+
+
+def test_budget_is_the_initial_attempt_plus_every_retry():
+    assert MAX_ATTEMPTS == MAX_RETRIES + 1
 
 
 def test_jitter_stays_within_the_declared_band():
     base = RETRY_BACKOFF_SECONDS[0]
     for _ in range(50):
-        delay = next_retry_delay_seconds(0)
+        delay = next_retry_delay_seconds(1)
         assert 0.8 * base <= delay <= 1.2 * base
