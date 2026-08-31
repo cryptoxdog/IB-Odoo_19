@@ -305,6 +305,48 @@ def test_failure_writer_never_writes_a_counter():
     assert not (written & set(COUNTERS)), f"failure writer must not touch counters, writes: {written}"
 
 
+def test_ambient_transaction_gets_a_snapshot_that_can_see_the_run_row():
+    """Guards a defect only a real PostgreSQL run could expose.
+
+    Odoo runs cursors at REPEATABLE READ. `run_connection` takes the ambient
+    transaction's snapshot with the advisory-lock SELECT, then creates the
+    sync-run row on a SECOND cursor. Without ending the ambient transaction in
+    between, `browse(run_id)` is not in that snapshot: `.exists()` is False and
+    every write to it is an `UPDATE ... WHERE id=N` matching zero rows —
+    silently. The first page's counter was lost exactly that way.
+
+    Required order: create the row, commit (new snapshot), then browse.
+    Verified on real Odoo 19 + PostgreSQL 16, gate C2.
+    """
+    node = _function("run_connection")
+    events: list[tuple[int, str]] = []
+    for child in ast.walk(node):
+        if isinstance(child, ast.Call):
+            ref, parts = child.func, []
+            while isinstance(ref, ast.Attribute):
+                parts.append(ref.attr)
+                ref = ref.value
+            if isinstance(ref, ast.Name):
+                parts.append(ref.id)
+            name = ".".join(reversed(parts))
+            if name.endswith("_create_sync_run_durable"):
+                events.append((child.lineno, "create"))
+            elif name == "self.env.cr.commit":
+                events.append((child.lineno, "commit"))
+            elif name == "browse" or name.endswith(".browse"):
+                events.append((child.lineno, "browse"))
+    ordered = [kind for _, kind in sorted(events)]
+    assert "create" in ordered, "run_connection must create the durable run row"
+    create_at = ordered.index("create")
+    after = ordered[create_at + 1 :]
+    assert after and after[0] == "commit", (
+        "the ambient transaction must be committed immediately after the durable "
+        f"run row is created, so its snapshot can see that row; got {ordered}"
+    )
+    assert "browse" in after, "the run row is browsed after the snapshot refresh"
+    assert after.index("commit") < after.index("browse")
+
+
 @pytest.mark.parametrize("func", ["_sync_contacts", "_sync_calls"])
 def test_counter_assignment_precedes_the_commit_in_the_page_loop(func):
     """Ordering guard: `run.<counter> = ...` then `cr.commit()`, never the reverse."""

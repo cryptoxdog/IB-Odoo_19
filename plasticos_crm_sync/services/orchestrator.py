@@ -69,6 +69,16 @@ class SyncOrchestrator:
             # remote work it describes, so create it on an owned cursor that
             # commits before the first adapter call.
             run_id = self._create_sync_run_durable(connection_id)
+            # That row was created and committed on a SECOND cursor. Odoo runs
+            # cursors at REPEATABLE READ, and this transaction's snapshot was
+            # taken by the advisory-lock SELECT above — before the row existed.
+            # Without ending the transaction here, browse(run_id) is not in this
+            # snapshot: .exists() is False and every write to it is an
+            # "UPDATE ... WHERE id=N" matching zero rows, silently. Committing
+            # starts a new transaction whose snapshot includes the row.
+            # pg_try_advisory_lock is SESSION-scoped, so the lock survives this
+            # commit exactly as it survives the page commits below (I5).
+            self.env.cr.commit()
             run = self.env["plasticos.crm.sync.run"].browse(run_id)
             try:
                 adapter = self._build_adapter(connection)
