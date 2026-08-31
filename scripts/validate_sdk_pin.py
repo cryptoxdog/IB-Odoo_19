@@ -12,6 +12,8 @@ for rel in ["pyproject.toml", "requirements.txt", "poetry.lock"]:
     if not path.exists():
         continue
     text = path.read_text()
+    if "Gate_SDK" not in text and "constellation-node-sdk" not in text:
+        continue
     if "Quantum-L9/Gate_SDK" not in text:
         errors.append(f"{rel}: missing Quantum-L9")
     if PIN not in text:
