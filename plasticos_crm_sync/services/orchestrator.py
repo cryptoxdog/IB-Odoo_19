@@ -147,6 +147,13 @@ class SyncOrchestrator:
 
         Must be called only after the failed transaction has been rolled back —
         otherwise this cursor blocks on rows transaction A still holds.
+
+        Writes only the fields a failure changes. The counters are deliberately
+        absent: `_sync_contacts`/`_sync_calls` already committed the true
+        committed-work totals inside each page transaction, and the primitives
+        available here describe the attempt, not what landed. Adding a counter
+        to this dict would overwrite a correct durable value with a stale or
+        zero one — the exact undercount this path is meant to preserve.
         """
         from odoo import api
 
@@ -212,26 +219,42 @@ class SyncOrchestrator:
         if parsed and parsed < floor:
             modified_after = _iso_z(floor)
 
-        upserted = 0
+        # `committed` counts rows this method has durably landed; `pending`
+        # counts rows written into the still-open transaction. The sync-run
+        # counter must describe committed work, so it is written INTO the page
+        # transaction (before its commit) and `committed` only advances once
+        # that commit has returned. A later page's failure rolls back `pending`
+        # and the ambient counter write with it, leaving the last committed
+        # value on the row — which is the number that is actually true.
+        committed = 0
+        pending = 0
         last_batch_end = None
         for leads, batch_end, _partial in adapter.iter_contacts(
             modified_after=modified_after,
             limit=CONTACT_PAGE_SIZE,
         ):
+            page_n = 0
             for dto in leads:
                 lead = self._upsert_lead(connection, dto)
                 if not dto.deleted:
                     self._sync_tables_for_lead(connection, adapter, dto.external_id, lead)
-                upserted += 1
+                page_n += 1
+            pending += page_n
             if batch_end:
                 last_batch_end = batch_end
                 connection.contact_watermark_utc = batch_end
-                self.env.cr.commit()  # watermark after successful page
+                if run:
+                    run.contacts_upserted = committed + pending
+                self.env.cr.commit()  # records + watermark + counter, one page
+                committed += pending
+                pending = 0
         if last_batch_end:
             connection.contact_watermark_utc = last_batch_end
         if run:
-            run.contacts_upserted = upserted
-        return upserted
+            # Any trailing `pending` is committed by run_connection's success
+            # commit; on the failure path this write is rolled back with it.
+            run.contacts_upserted = committed + pending
+        return committed + pending
 
     def _sync_calls(self, connection, adapter, run) -> int:
         now = datetime.now(UTC)
@@ -244,7 +267,10 @@ class SyncOrchestrator:
             start = now - timedelta(days=7)
 
         # Window size: 1 day chunks to keep batches manageable
-        upserted = 0
+        # Same committed-vs-attempted split as _sync_contacts: the counter is
+        # written into the batch transaction, and `committed` advances only
+        # after that commit returns.
+        committed = 0
         cursor = start
         while cursor < end:
             window_end = min(cursor + timedelta(days=1), end)
@@ -253,14 +279,17 @@ class SyncOrchestrator:
                 end=_iso_z(window_end),
                 limit=CALL_BATCH_SIZE,
             ):
-                upserted += self._upsert_calls(connection, batch, run)
+                batch_n = self._upsert_calls(connection, batch, run)
+                if run:
+                    run.calls_upserted = committed + batch_n
                 self.env.cr.commit()  # batch commit
+                committed += batch_n
             connection.call_watermark_utc = _iso_z(window_end)
             self.env.cr.commit()  # watermark advance
             cursor = window_end
         if run:
-            run.calls_upserted = upserted
-        return upserted
+            run.calls_upserted = committed
+        return committed
 
     def _upsert_lead(self, connection, dto: CanonicalLead):
         Lead = self.env[CRM_LEAD]
