@@ -33,6 +33,15 @@ NON_TEST_FILES = frozenset(
         "conftest.py",
         "common.py",
         "README.md",
+        # tests/runtime_gates/ — launch gates that need a live Odoo registry and
+        # a live PostgreSQL server (see that directory's README). They are named
+        # run_*.py precisely so pytest does not collect them: under
+        # TransactionCase there is one cursor and one snapshot, so collecting
+        # them would turn a real proof into a vacuous pass.
+        "run_c1_c2_c4_c5.py",
+        "run_c3_failure_writer_lock.py",
+        "run_c6_replay_checkpoint.py",
+        "run_c7_c8_enrichment_failures.py",
     }
 )
 

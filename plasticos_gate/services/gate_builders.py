@@ -40,6 +40,12 @@ def build_odoo_context(env, *, model: str, record_id: int) -> OdooContext:
     )
 
 
+# 32 hex characters = 128 bits of the SHA-256 digest. Widening this changes
+# every future key; it does not invalidate any stored state, because the key is
+# a transport header consumed per request and never persisted as an identity.
+IDEMPOTENCY_DIGEST_HEX_CHARS = 32
+
+
 def build_idempotency_key(payload: dict[str, Any], odoo_ctx: dict[str, Any]) -> str | None:
     """Deterministic transport idempotency key for one converge attempt.
 
@@ -54,6 +60,13 @@ def build_idempotency_key(payload: dict[str, Any], odoo_ctx: dict[str, Any]) -> 
       run identity alone would label those the same operation and could replay a
       stale answer for changed input; the digest keeps them distinct.
 
+    The digest is 32 hex characters (128 bits) of SHA-256. The narrower 16-char
+    (64-bit) prefix used previously was not wrong here — the key is already
+    namespaced by database, model and record id, so a collision would have to
+    land inside one run — but a replay key is exactly where a birthday
+    collision is expensive (Gate could serve a stale answer for a genuinely
+    different payload) and the extra 16 characters cost nothing.
+
     Returns None when the run identity is unknown — an unidentifiable request is
     left un-keyed rather than given a guessed one.
     """
@@ -62,7 +75,8 @@ def build_idempotency_key(payload: dict[str, Any], odoo_ctx: dict[str, Any]) -> 
     if not model or not record_id:
         return None
     db_name = odoo_ctx.get("db_name") or "db"
-    digest = hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode("utf-8")).hexdigest()[:16]
+    canonical = json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
+    digest = hashlib.sha256(canonical).hexdigest()[:IDEMPOTENCY_DIGEST_HEX_CHARS]
     return f"odoo:{db_name}:{model}:{record_id}:{digest}"
 
 

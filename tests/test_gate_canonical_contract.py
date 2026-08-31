@@ -17,6 +17,8 @@ specific way the contract previously drifted, or could drift back.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import sys
 from pathlib import Path
 
@@ -26,9 +28,16 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from plasticos_gate.services.gate_builders import (  # noqa: E402
+    IDEMPOTENCY_DIGEST_HEX_CHARS,
     build_converge_request,
     build_idempotency_key,
     build_odoo_context,
+)
+from plasticos_gate.services.gate_config import (  # noqa: E402
+    DEFAULT_GATE_TIMEOUT_SECONDS,
+    MAX_GATE_TIMEOUT_SECONDS,
+    GateIntegrationError,
+    resolve_gate_timeout_seconds,
 )
 from plasticos_gate.services.gate_mappers import (  # noqa: E402
     map_converge_response,
@@ -271,6 +280,36 @@ def test_idempotency_key_is_not_in_the_business_payload():
     assert "idempotency_key" not in _payload()
 
 
+def test_idempotency_digest_is_128_bits_of_lowercase_hex():
+    """32 hex chars = 128 bits. Narrower is a needless birthday risk on a replay key."""
+    digest = build_idempotency_key(_payload(), _ctx()).rsplit(":", 1)[1]
+    assert len(digest) == IDEMPOTENCY_DIGEST_HEX_CHARS == 32
+    assert digest == digest.lower()
+    assert all(c in "0123456789abcdef" for c in digest)
+
+
+def test_idempotency_digest_is_a_sha256_prefix():
+    """Pins the algorithm, so a future edit cannot quietly swap in a weaker hash."""
+    payload = _payload()
+    expected = hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode("utf-8")).hexdigest()
+    assert build_idempotency_key(payload, _ctx()).endswith(expected[:32])
+
+
+def test_idempotency_key_keeps_its_namespaced_prefix():
+    """Widening the digest must not change the logical key's components."""
+    key = build_idempotency_key(_payload(), _ctx())
+    prefix, digest = key.rsplit(":", 1)
+    assert prefix == f"odoo:plasticos:plasticos.enrichment.run:{RUN_ID}"
+    assert len(digest) == 32
+
+
+def test_idempotency_key_ignores_dict_insertion_order():
+    """Canonical serialization sorts keys, so key order is not part of identity."""
+    a = {"entity": {"id": ENTITY_REF, "name": "Acme"}, "object_type": "plasticos"}
+    b = {"object_type": "plasticos", "entity": {"name": "Acme", "id": ENTITY_REF}}
+    assert build_idempotency_key(a, _ctx()) == build_idempotency_key(b, _ctx())
+
+
 # ── PATCH 10 — Gate_SDK owns the packet ───────────────────────────────────
 
 
@@ -304,12 +343,131 @@ def test_packet_is_built_by_the_sdk_with_the_canonical_action():
     assert packet.payload["entity"]["id"] == ENTITY_REF
 
 
-# ── PATCH 5 — the caller budget is one value, not two ─────────────────────
+# ── PATCH 5 — the caller budget is one value, and it has a ceiling ────────
 
 
-def test_caller_budget_default_is_thirty_seconds():
+class _FakeIcp:
+    """Minimal ir.config_parameter stand-in: sudo() -> self, get_param -> dict."""
+
+    def __init__(self, params: dict[str, str]):
+        self._params = params
+
+    def sudo(self):
+        return self
+
+    def get_param(self, key, default=None):
+        return self._params.get(key, default)
+
+
+class _TimeoutEnv:
+    def __init__(self, raw=None):
+        params = {} if raw is None else {"plasticos.gate.timeout_seconds": raw}
+        self._icp = _FakeIcp(params)
+
+    def __getitem__(self, model):
+        assert model == "ir.config_parameter"
+        return self._icp
+
+
+def test_caller_budget_falls_back_to_thirty_seconds_when_unset():
+    assert resolve_gate_timeout_seconds(_TimeoutEnv()) == DEFAULT_GATE_TIMEOUT_SECONDS
+    assert DEFAULT_GATE_TIMEOUT_SECONDS == 30.0
+
+
+def test_caller_budget_accepts_the_seeded_default():
+    assert resolve_gate_timeout_seconds(_TimeoutEnv("30")) == 30.0
+
+
+def test_caller_budget_accepts_the_ceiling_exactly():
+    assert resolve_gate_timeout_seconds(_TimeoutEnv(str(MAX_GATE_TIMEOUT_SECONDS))) == MAX_GATE_TIMEOUT_SECONDS
+
+
+def test_caller_budget_accepts_a_shorter_budget():
+    """Configuration may tighten the budget; only widening it is an error."""
+    assert resolve_gate_timeout_seconds(_TimeoutEnv("5.5")) == 5.5
+
+
+@pytest.mark.parametrize("raw", ["30.001", "31", "120", "3600"])
+def test_caller_budget_rejects_anything_above_the_ceiling(raw):
+    """Rejected, not clamped: min(configured, 30) would be configuration fiction."""
+    with pytest.raises(GateIntegrationError) as excinfo:
+        resolve_gate_timeout_seconds(_TimeoutEnv(raw))
+    assert "30" in str(excinfo.value)
+    assert excinfo.value.failure_class == "permanent"
+
+
+@pytest.mark.parametrize("raw", ["0", "0.0", "-1", "-30"])
+def test_caller_budget_rejects_non_positive_values(raw):
+    with pytest.raises(GateIntegrationError):
+        resolve_gate_timeout_seconds(_TimeoutEnv(raw))
+
+
+@pytest.mark.parametrize("raw", ["thirty", "30s", "", "  "])
+def test_caller_budget_rejects_or_defaults_unparseable_values(raw):
+    """Blank falls back to the default; a non-numeric string is a config error."""
+    if raw.strip():
+        with pytest.raises(GateIntegrationError):
+            resolve_gate_timeout_seconds(_TimeoutEnv(raw))
+    else:
+        assert resolve_gate_timeout_seconds(_TimeoutEnv(raw)) == DEFAULT_GATE_TIMEOUT_SECONDS
+
+
+@pytest.mark.parametrize("raw", ["inf", "Infinity", "-inf", "nan", "NaN"])
+def test_caller_budget_rejects_non_finite_values(raw):
+    """float() parses these; `nan > 30` is False, so an explicit isfinite check is required."""
+    with pytest.raises(GateIntegrationError):
+        resolve_gate_timeout_seconds(_TimeoutEnv(raw))
+
+
+def test_packet_budget_is_derived_from_the_same_validated_value():
+    """The HTTP budget and the advertised packet budget read one config object.
+
+    `send_action` builds the config once and uses `config.timeout_seconds` for
+    both `GateClient(config)` and `timeout_ms`; there is no second parse and no
+    literal, so the two cannot diverge through the supported builder path.
+    """
+    src = (ROOT / "plasticos_gate" / "services" / "gate_client.py").read_text(encoding="utf-8")
+    assert "timeout_ms=int(float(config.timeout_seconds) * 1000)" in src
+    assert "GateClient(config)" in src
+    # No second, unvalidated read of the ICP timeout anywhere in the client.
+    assert "plasticos.gate.timeout_seconds" not in src
+
+
+# ── transport failures must stay diagnosable ──────────────────────────────
+
+
+def test_empty_transport_failure_message_falls_back_to_the_exception_type():
+    """A timeout stringifies to "" — the durable record must not be blank.
+
+    Measured on a real Gate transport: an exhausted caller budget raises httpx
+    `ConnectTimeout` with `str(exc) == ""`, so the operator saw
+    "Gate enrichment failed (retryable): " and the enrichment run stored
+    validation_issues=[""]. Right classification, no reason.
+    """
+    src = (ROOT / "plasticos_gate" / "services" / "gate_client.py").read_text(encoding="utf-8")
+    assert "detail = str(exc) or type(exc).__name__" in src
+    assert "raise GateIntegrationError(detail," in src
+    assert "raise GateIntegrationError(str(exc)," not in src
+
+
+@pytest.mark.parametrize(
+    ("exc", "expected"),
+    [
+        (TimeoutError(), "TimeoutError"),
+        (ConnectionError(), "ConnectionError"),
+        (ValueError("a real message"), "a real message"),
+    ],
+)
+def test_failure_detail_is_never_blank(exc, expected):
+    """The fallback rule itself: type name when blank, the message otherwise."""
+    assert (str(exc) or type(exc).__name__) == expected
+
+
+def test_the_ceiling_is_a_single_named_constant():
+    """One place to change the budget, so config and packet cannot drift apart."""
     src = (ROOT / "plasticos_gate" / "services" / "gate_config.py").read_text(encoding="utf-8")
-    assert 'icp.get_param("plasticos.gate.timeout_seconds") or "30"' in src
+    assert src.count("MAX_GATE_TIMEOUT_SECONDS = ") == 1
+    assert MAX_GATE_TIMEOUT_SECONDS == 30.0
 
 
 def test_packet_timeout_header_is_derived_from_the_same_config():
