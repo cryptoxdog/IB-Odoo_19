@@ -16,6 +16,15 @@ CONTACT_PAGE_SIZE = 200
 CALL_BATCH_SIZE = 500
 
 
+class CrmSyncLockedError(CrmAdapterError):
+    """Another synchronization already holds this connection's advisory lock."""
+
+
+def advisory_lock_key(connection_id: int) -> str:
+    """Session advisory-lock key for one connection (shared by cron and UI)."""
+    return f"plasticos_crm_sync.connection.{connection_id}"
+
+
 def _parse_utc(value: str | None) -> datetime | None:
     if not value:
         return None
@@ -46,61 +55,135 @@ class SyncOrchestrator:
 
     def run_connection(self, connection) -> Any:
         connection.ensure_one()
-        Run = self.env["plasticos.crm.sync.run"]
-        run = Run.create(
-            {
-                "connection_id": connection.id,
-                "status": "running",
-                "started_at": datetime.now(UTC).replace(tzinfo=None),
-            }
-        )
+        connection_id = connection.id
+        # I5 — session advisory lock at the single choke point, so the cron and
+        # the manual `action_sync_now` button exclude each other. Session locks
+        # survive the page commits below (they are not transaction-scoped) and
+        # are re-entrant within one backend session, so the cron's own outer
+        # lock nests harmlessly.
+        lock_key = advisory_lock_key(connection_id)
+        if not self._try_advisory_lock(lock_key):
+            raise CrmSyncLockedError(f"CRM sync already running for connection {connection_id}")
         try:
-            adapter = self._build_adapter(connection)
-            ensure_live_or_raise(adapter)
-            adapter.healthcheck()
-            contacts_n = self._sync_contacts(connection, adapter, run)
-            calls_n = self._sync_calls(connection, adapter, run)
-            resolved = self._resolve_orphans(connection, adapter, run)
-            run.write(
-                {
-                    "status": "success",
-                    "finished_at": datetime.now(UTC).replace(tzinfo=None),
-                    "contacts_upserted": contacts_n,
-                    "calls_upserted": calls_n,
-                    "orphans_resolved": resolved,
-                }
-            )
-            connection.write(
-                {
-                    "last_error": False,
-                    "last_success_at": datetime.now(UTC).replace(tzinfo=None),
-                }
-            )
-        except (CrmAdapterStubError, CrmAdapterError, Exception) as exc:
-            excerpt = str(exc)[:2000]
-            _logger.exception("CRM sync failed connection=%s", connection.id)
-            # Prior page loops may have cr.commit()'d watermarks; persist failure
-            # outside the current request txn so UserError rollback cannot erase it.
-            self._persist_sync_failure(connection, run, excerpt)
-            raise
-        return run
+            # I2 — the audit record must exist independently of the fallible
+            # remote work it describes, so create it on an owned cursor that
+            # commits before the first adapter call.
+            run_id = self._create_sync_run_durable(connection_id)
+            # That row was created and committed on a SECOND cursor. Odoo runs
+            # cursors at REPEATABLE READ, and this transaction's snapshot was
+            # taken by the advisory-lock SELECT above — before the row existed.
+            # Without ending the transaction here, browse(run_id) is not in this
+            # snapshot: .exists() is False and every write to it is an
+            # "UPDATE ... WHERE id=N" matching zero rows, silently. Committing
+            # starts a new transaction whose snapshot includes the row.
+            # pg_try_advisory_lock is SESSION-scoped, so the lock survives this
+            # commit exactly as it survives the page commits below (I5).
+            self.env.cr.commit()
+            run = self.env["plasticos.crm.sync.run"].browse(run_id)
+            try:
+                adapter = self._build_adapter(connection)
+                ensure_live_or_raise(adapter)
+                adapter.healthcheck()
+                contacts_n = self._sync_contacts(connection, adapter, run)
+                calls_n = self._sync_calls(connection, adapter, run)
+                resolved = self._resolve_orphans(connection, adapter, run)
+                run.write(
+                    {
+                        "status": "success",
+                        "finished_at": datetime.now(UTC).replace(tzinfo=None),
+                        "contacts_upserted": contacts_n,
+                        "calls_upserted": calls_n,
+                        "orphans_resolved": resolved,
+                    }
+                )
+                connection.write(
+                    {
+                        "last_error": False,
+                        "last_success_at": datetime.now(UTC).replace(tzinfo=None),
+                    }
+                )
+                # Land this connection's outcome before the caller (cron) moves
+                # to the next one: a later connection's rollback must not erase
+                # a successful run that already happened.
+                self.env.cr.commit()
+            except (CrmAdapterStubError, CrmAdapterError, Exception) as exc:
+                # I3 — capture primitives, then release every row this
+                # transaction still holds BEFORE opening the failure cursor.
+                # `_sync_contacts`/`_sync_calls` may leave an uncommitted write
+                # on the sync-run row; a second cursor updating that same row
+                # would wait on transaction A and hang the RPC.
+                excerpt = str(exc)[:2000]
+                _logger.exception("CRM sync failed connection=%s", connection_id)
+                self.env.cr.rollback()
+                # Recordset state from before the rollback is not trustworthy —
+                # the durable write below re-browses from primitive ids only.
+                self._persist_sync_failure_durable(connection_id, run_id, excerpt)
+                raise
+        finally:
+            self._advisory_unlock(lock_key)
+        return self.env["plasticos.crm.sync.run"].browse(run_id)
 
-    def _persist_sync_failure(self, connection, run, excerpt: str) -> None:
-        """Write failed run + last_error in a separate cursor (survives UserError)."""
+    def _try_advisory_lock(self, lock_key: str) -> bool:
+        self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", [lock_key])
+        row = self.env.cr.fetchone()
+        return bool(row and row[0])
+
+    def _advisory_unlock(self, lock_key: str) -> None:
+        self.env.cr.execute("SELECT pg_advisory_unlock(hashtext(%s))", [lock_key])
+
+    def _create_sync_run_durable(self, connection_id: int) -> int:
+        """Create the sync-run audit row on an owned cursor and commit it.
+
+        Committing the ambient RPC cursor is unsafe (Odoo owns it), so the
+        durable audit state gets its own transaction. Returns the primitive id.
+        """
+        from odoo import api
+
+        with self.env.registry.cursor() as cr:
+            env = api.Environment(cr, self.env.uid, dict(self.env.context))
+            run = env["plasticos.crm.sync.run"].create(
+                {
+                    "connection_id": connection_id,
+                    "status": "running",
+                    "started_at": datetime.now(UTC).replace(tzinfo=None),
+                }
+            )
+            run_id = run.id
+            cr.commit()
+        return run_id
+
+    def _persist_sync_failure_durable(self, connection_id: int, run_id: int | None, excerpt: str) -> None:
+        """Write failed run + last_error on a clean owned cursor.
+
+        Must be called only after the failed transaction has been rolled back —
+        otherwise this cursor blocks on rows transaction A still holds.
+
+        Writes only the fields a failure changes. The counters are deliberately
+        absent: `_sync_contacts`/`_sync_calls` already committed the true
+        committed-work totals inside each page transaction, and the primitives
+        available here describe the attempt, not what landed. Adding a counter
+        to this dict would overwrite a correct durable value with a stale or
+        zero one — the exact undercount this path is meant to preserve.
+        """
         from odoo import api
 
         finished = datetime.now(UTC).replace(tzinfo=None)
         with self.env.registry.cursor() as cr:
             env = api.Environment(cr, self.env.uid, dict(self.env.context))
-            if run:
-                env["plasticos.crm.sync.run"].browse(run.ids).write(
-                    {
-                        "status": "failed",
-                        "finished_at": finished,
-                        "error_excerpt": excerpt,
-                    }
-                )
-            env["plasticos.crm.connection"].browse(connection.ids).write({"last_error": excerpt})
+            if run_id:
+                run = env["plasticos.crm.sync.run"].browse(run_id).exists()
+                if run:
+                    run.write(
+                        {
+                            "status": "failed",
+                            "finished_at": finished,
+                            "error_excerpt": excerpt,
+                        }
+                    )
+            connection = env["plasticos.crm.connection"].browse(connection_id).exists()
+            if connection:
+                connection.write({"last_error": excerpt})
+            cr.commit()
 
     def upsert_contact_external_id(self, connection, external_id: str) -> Any:
         """Single-contact path: contact + call history + custom tables."""
@@ -146,26 +229,42 @@ class SyncOrchestrator:
         if parsed and parsed < floor:
             modified_after = _iso_z(floor)
 
-        upserted = 0
+        # `committed` counts rows this method has durably landed; `pending`
+        # counts rows written into the still-open transaction. The sync-run
+        # counter must describe committed work, so it is written INTO the page
+        # transaction (before its commit) and `committed` only advances once
+        # that commit has returned. A later page's failure rolls back `pending`
+        # and the ambient counter write with it, leaving the last committed
+        # value on the row — which is the number that is actually true.
+        committed = 0
+        pending = 0
         last_batch_end = None
         for leads, batch_end, _partial in adapter.iter_contacts(
             modified_after=modified_after,
             limit=CONTACT_PAGE_SIZE,
         ):
+            page_n = 0
             for dto in leads:
                 lead = self._upsert_lead(connection, dto)
                 if not dto.deleted:
                     self._sync_tables_for_lead(connection, adapter, dto.external_id, lead)
-                upserted += 1
+                page_n += 1
+            pending += page_n
             if batch_end:
                 last_batch_end = batch_end
                 connection.contact_watermark_utc = batch_end
-                self.env.cr.commit()  # watermark after successful page
+                if run:
+                    run.contacts_upserted = committed + pending
+                self.env.cr.commit()  # records + watermark + counter, one page
+                committed += pending
+                pending = 0
         if last_batch_end:
             connection.contact_watermark_utc = last_batch_end
         if run:
-            run.contacts_upserted = upserted
-        return upserted
+            # Any trailing `pending` is committed by run_connection's success
+            # commit; on the failure path this write is rolled back with it.
+            run.contacts_upserted = committed + pending
+        return committed + pending
 
     def _sync_calls(self, connection, adapter, run) -> int:
         now = datetime.now(UTC)
@@ -178,7 +277,10 @@ class SyncOrchestrator:
             start = now - timedelta(days=7)
 
         # Window size: 1 day chunks to keep batches manageable
-        upserted = 0
+        # Same committed-vs-attempted split as _sync_contacts: the counter is
+        # written into the batch transaction, and `committed` advances only
+        # after that commit returns.
+        committed = 0
         cursor = start
         while cursor < end:
             window_end = min(cursor + timedelta(days=1), end)
@@ -187,14 +289,17 @@ class SyncOrchestrator:
                 end=_iso_z(window_end),
                 limit=CALL_BATCH_SIZE,
             ):
-                upserted += self._upsert_calls(connection, batch, run)
+                batch_n = self._upsert_calls(connection, batch, run)
+                if run:
+                    run.calls_upserted = committed + batch_n
                 self.env.cr.commit()  # batch commit
+                committed += batch_n
             connection.call_watermark_utc = _iso_z(window_end)
             self.env.cr.commit()  # watermark advance
             cursor = window_end
         if run:
-            run.calls_upserted = upserted
-        return upserted
+            run.calls_upserted = committed
+        return committed
 
     def _upsert_lead(self, connection, dto: CanonicalLead):
         Lead = self.env[CRM_LEAD]

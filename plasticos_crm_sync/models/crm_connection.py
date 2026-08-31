@@ -127,12 +127,14 @@ class PlasticosCrmConnection(models.Model):
     def action_sync_now(self):
         self.ensure_one()
         from ..adapters.base import CrmAdapterError, CrmAdapterStubError
-        from ..services.orchestrator import SyncOrchestrator
+        from ..services.orchestrator import CrmSyncLockedError, SyncOrchestrator
 
         try:
             SyncOrchestrator(self.env).run_connection(self)
         except CrmAdapterStubError as exc:
             raise UserError(str(exc)) from exc
+        except CrmSyncLockedError as exc:
+            raise UserError(_("A sync is already running for this connection: %s") % exc) from exc
         except CrmAdapterError as exc:
             raise UserError(_("Sync failed: %s") % exc) from exc
         return {
@@ -148,27 +150,27 @@ class PlasticosCrmConnection(models.Model):
 
     @api.model
     def _cron_sync_all(self):
-        """Cron entry: sync all enabled connections under advisory lock per connection."""
+        """Cron entry: sync all enabled connections.
+
+        Concurrency exclusion lives in ``SyncOrchestrator.run_connection`` (one
+        session advisory lock per connection), so the cron and the manual
+        ``action_sync_now`` button share a single critical section instead of
+        each guarding only itself.
+        """
+        from ..services.orchestrator import CrmSyncLockedError, SyncOrchestrator
+
         connections = self.search(
             [("enabled", "=", True), ("active", "=", True)],
             order="id asc",
             limit=100,
         )
         for conn in connections:
-            lock_key = f"plasticos_crm_sync.connection.{conn.id}"
-            self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", [lock_key])
-            locked = self.env.cr.fetchone()[0]
-            if not locked:
-                _logger.info("CRM sync skipped (lock held) connection=%s", conn.id)
-                continue
             try:
-                from ..services.orchestrator import SyncOrchestrator
-
                 SyncOrchestrator(self.env).run_connection(conn)
+            except CrmSyncLockedError:
+                _logger.info("CRM sync skipped (lock held) connection=%s", conn.id)
             except Exception:  # noqa: BLE001
                 _logger.exception("CRM sync cron failed connection=%s", conn.id)
-            finally:
-                self.env.cr.execute("SELECT pg_advisory_unlock(hashtext(%s))", [lock_key])
 
     def default_contact_modified_after(self) -> str:
         """Rolling ≤31-day window start (API max)."""

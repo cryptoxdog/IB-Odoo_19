@@ -142,7 +142,10 @@ class EnrichmentRun(models.Model):
         or empty allowlist (caller fails closed / no local fallback on M4).
         """
         self.ensure_one()
-        from odoo.addons.plasticos_gate.services.gate_builders import build_converge_request
+        from odoo.addons.plasticos_gate.services.gate_builders import (
+            build_converge_request,
+            build_idempotency_key,
+        )
         from odoo.addons.plasticos_gate.services.gate_client import send_converge_action
         from odoo.addons.plasticos_gate.services.gate_config import gate_auto_writeback_enabled
         from odoo.addons.plasticos_gate.services.gate_mappers import (
@@ -152,10 +155,14 @@ class EnrichmentRun(models.Model):
         )
 
         request = build_converge_request(self.env, self)
+        payload = request.to_dict()
         result = send_converge_action(
             self.env,
-            payload=request.to_dict(),
+            payload=payload,
             correlation_id=request.odoo.get("correlation_id") if request.odoo else None,
+            # Transport-header key only. The business payload stays a plain
+            # EnrichRequest — EIE derives its own payload-level key downstream.
+            idempotency_key=build_idempotency_key(payload, request.odoo or {}),
         )
         resp = map_converge_response(result["payload"])
         audit = extract_audit_metadata(result["packet"])
@@ -255,18 +262,37 @@ class EnrichmentRun(models.Model):
             )
         return len(to_write)
 
-    def _persist_operator_state(self, vals):
-        """Write operator-visible run state in a separate cursor.
+    def _rollback_then_persist_operator_state(self, run_id, vals):
+        """Roll the failed transaction back, then persist run state durably.
 
-        ``UserError`` in an HTTP/RPC request rolls back the request transaction.
-        Failure classification (degraded/failed/retryable) must survive that
-        rollback so operators can see why Gate failed and use Retry.
+        ``UserError`` in an HTTP/RPC request rolls back the request transaction,
+        so failure classification (degraded/failed/retryable) must be written on
+        an independently committed cursor to survive it (I2).
+
+        Ordering is the whole point (I3). ``action_execute`` writes to this run
+        before calling Gate, so at the moment of failure transaction A still
+        holds an uncommitted row lock on it. Flushing here — as this method used
+        to — guarantees that lock, and the second cursor's ``UPDATE`` on the same
+        row then waits on transaction A until the request times out. Rolling
+        back first releases the row, so the durable write always proceeds.
+
+        ``run_id`` is a primitive on purpose: recordset state captured before the
+        rollback is not trustworthy afterwards.
         """
-        self.ensure_one()
-        self.flush_recordset()
+        self.env.cr.rollback()
+        self._persist_operator_state_durable(run_id, vals)
+
+    def _persist_operator_state_durable(self, run_id, vals):
+        """Write operator-visible run state on a clean owned cursor and commit.
+
+        Only safe once the transaction that failed has been rolled back.
+        """
         with self.pool.cursor() as cr:
             env = api.Environment(cr, self.env.uid, dict(self.env.context))
-            env[self._name].browse(self.ids).write(vals)
+            run = env[self._name].browse(run_id).exists()
+            if run:
+                run.write(vals)
+            cr.commit()
 
     def action_execute(self):
         """Gate-only converge (M4). Never falls back to local crawl/extract/inference.
@@ -282,6 +308,7 @@ class EnrichmentRun(models.Model):
             gate_enrichment_enabled,
         )
 
+        run_id = self.id
         availability = classify_gate_availability(self.env, capability=GateCapability.ENRICHMENT)
         self.write(
             {
@@ -293,14 +320,15 @@ class EnrichmentRun(models.Model):
 
         if not gate_enrichment_enabled(self.env):
             reasons = "; ".join(availability.reasons) or "Gate enrichment unavailable"
-            self._persist_operator_state(
+            self._rollback_then_persist_operator_state(
+                run_id,
                 {
                     "engine_used": "gate",
                     "state": "failed",
                     "failure_class": "permanent",
                     "validation_issues": [reasons],
                     "availability_status": availability.status,
-                }
+                },
             )
             raise UserError(
                 _("Gate enrichment is not enabled (%(status)s): %(reasons)s")
@@ -311,7 +339,8 @@ class EnrichmentRun(models.Model):
             if self._run_gate_converge():
                 return
             # Gate returned non-applicable result (non-ok / empty allowlist) — fail closed
-            self._persist_operator_state(
+            self._rollback_then_persist_operator_state(
+                run_id,
                 {
                     "engine_used": "gate",
                     "state": "degraded",
@@ -319,7 +348,8 @@ class EnrichmentRun(models.Model):
                     "validation_issues": [
                         "Gate converge produced no injectable allowlisted fields.",
                     ],
-                }
+                    "availability_status": availability.status,
+                },
             )
             raise UserError(_("Gate enrichment degraded: no injectable fields from converge response."))
         except UserError:
@@ -327,28 +357,34 @@ class EnrichmentRun(models.Model):
         except GateIntegrationError as exc:
             failure = getattr(exc, "failure_class", None) or classify_transport_failure(exc).value
             state = "retryable" if failure == "retryable" else ("failed" if failure == "permanent" else "degraded")
-            self._persist_operator_state(
+            message = str(exc)
+            self._rollback_then_persist_operator_state(
+                run_id,
                 {
                     "engine_used": "gate",
                     "state": state,
                     "failure_class": failure,
-                    "validation_issues": [str(exc)],
-                }
+                    "validation_issues": [message],
+                    "availability_status": availability.status,
+                },
             )
-            raise UserError(_("Gate enrichment failed (%s): %s") % (failure, exc)) from exc
+            raise UserError(_("Gate enrichment failed (%s): %s") % (failure, message)) from exc
         except Exception as exc:  # noqa: BLE001 — boundary: classify then fail closed
             failure = classify_transport_failure(exc).value
             state = "retryable" if failure == "retryable" else ("failed" if failure == "permanent" else "degraded")
-            self._persist_operator_state(
+            message = str(exc)
+            self._rollback_then_persist_operator_state(
+                run_id,
                 {
                     "engine_used": "gate",
                     "state": state,
                     "failure_class": failure,
-                    "validation_issues": [str(exc)],
-                }
+                    "validation_issues": [message],
+                    "availability_status": availability.status,
+                },
             )
-            _logger.exception("Gate enrichment unexpected error for run %s", self.id)
-            raise UserError(_("Gate enrichment failed (%s): %s") % (failure, exc)) from exc
+            _logger.exception("Gate enrichment unexpected error for run %s", run_id)
+            raise UserError(_("Gate enrichment failed (%s): %s") % (failure, message)) from exc
 
     def action_retry_enrichment(self):
         """Operator retry — Gate-only; never local crawl/inference."""

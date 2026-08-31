@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
@@ -68,6 +69,13 @@ class GateAvailabilityVerdict:
 
 _TRUTHY = {"1", "true", "True", "yes", "on"}
 _FALSY = {"0", "false", "False", "no", "off"}
+
+# The synchronous caller budget is an architectural invariant, not a preference:
+# an Odoo RPC worker blocks for its whole duration, and the downstream contract
+# is sized against it (EIE completes a converge inside 25 s). Configuration may
+# shorten the budget; it may not widen it past what the rail was designed for.
+MAX_GATE_TIMEOUT_SECONDS = 30.0
+DEFAULT_GATE_TIMEOUT_SECONDS = 30.0
 
 
 def _gate_url_usable(icp) -> bool:
@@ -196,15 +204,63 @@ def get_enrichment_action(env) -> str:
     return (icp.get_param("plasticos.gate.enrichment_action") or "converge").strip().lower()
 
 
+def resolve_gate_timeout_seconds(env) -> float:
+    """Return the validated synchronous Gate caller budget in seconds.
+
+    The invariant is ``0 < timeout <= MAX_GATE_TIMEOUT_SECONDS``. An out-of-range
+    or unparseable value raises rather than being clamped: an operator who sets
+    ``120`` has configured something this architecture cannot honour, and
+    silently serving them ``30`` would turn that into configuration fiction that
+    only surfaces as an unexplained timeout under load.
+
+    Non-finite values are rejected explicitly — ``float("inf")`` and
+    ``float("nan")`` both parse successfully and would otherwise slip past a
+    naive ``> MAX`` comparison (``nan`` compares False against everything).
+    """
+    icp = env["ir.config_parameter"].sudo()
+    raw = (icp.get_param("plasticos.gate.timeout_seconds") or "").strip()
+    if not raw:
+        return DEFAULT_GATE_TIMEOUT_SECONDS
+    try:
+        timeout = float(raw)
+    except (TypeError, ValueError) as exc:
+        raise GateIntegrationError(
+            f"plasticos.gate.timeout_seconds is not a number: {raw!r}",
+            failure_class="permanent",
+        ) from exc
+    if not math.isfinite(timeout):
+        raise GateIntegrationError(
+            f"plasticos.gate.timeout_seconds must be finite, got {raw!r}",
+            failure_class="permanent",
+        )
+    if timeout <= 0:
+        raise GateIntegrationError(
+            f"plasticos.gate.timeout_seconds must be greater than 0, got {timeout}",
+            failure_class="permanent",
+        )
+    if timeout > MAX_GATE_TIMEOUT_SECONDS:
+        raise GateIntegrationError(
+            f"plasticos.gate.timeout_seconds must not exceed the "
+            f"{MAX_GATE_TIMEOUT_SECONDS:g}s caller budget, got {timeout}",
+            failure_class="permanent",
+        )
+    return timeout
+
+
 def build_gate_client_config(env) -> GateClientConfig:
-    """Build SDK config — call only after gate_matching_enabled() passes."""
+    """Build SDK config — call only after gate_matching_enabled() passes.
+
+    ``timeout_seconds`` is the single validated budget. Everything downstream —
+    the HTTP call and the packet's advertised ``timeout_ms`` — reads it off this
+    object, so the two cannot diverge through the supported builder path.
+    """
     from constellation_node_sdk import GateClientConfig
 
     icp = env["ir.config_parameter"].sudo()
     return GateClientConfig(
         gate_url=(icp.get_param("plasticos.gate.url") or "").strip(),
         local_node=(icp.get_param("plasticos.gate.local_node") or "odoo").strip().lower(),
-        timeout_seconds=float(icp.get_param("plasticos.gate.timeout_seconds") or "30"),
+        timeout_seconds=resolve_gate_timeout_seconds(env),
         allowed_gate_destination="gate",
     )
 

@@ -116,6 +116,7 @@ def send_action(
     payload: dict[str, Any],
     correlation_id: str | None = None,
     compliance_tags: tuple[str, ...] = (),
+    idempotency_key: str | None = None,
 ) -> dict[str, Any]:
     """Send a TransportPacket to Gate and return packet + payload dicts."""
     _require_sdk()
@@ -142,12 +143,29 @@ def send_action(
         correlation_id=correlation_id,
         classification="internal",
         compliance_tags=compliance_tags,
+        idempotency_key=idempotency_key,
+        # `send_to_gate` bounds the real HTTP call with config.timeout_seconds;
+        # `timeout_ms` is the budget advertised downstream. Deriving both from
+        # one config value stops the header promising 30 s while this caller
+        # actually waits for something else (the SDK default is a fixed 30000).
+        timeout_ms=int(float(config.timeout_seconds) * 1000),
     )
     try:
         response_packet = _run_async(client.send_to_gate(packet))
     except Exception as exc:
         failure = classify_transport_failure(exc)
-        raise GateIntegrationError(str(exc), failure_class=failure.value) from exc
+        # Timeout exceptions stringify to nothing: measured against a real Gate
+        # transport, an exhausted caller budget raises httpx `ConnectTimeout`
+        # with `str(exc) == ""` (asyncio.TimeoutError and builtin TimeoutError
+        # behave the same). A timeout is the most likely real Gate failure and
+        # the caller budget makes it an expected outcome, yet the operator saw
+        # "Gate enrichment failed (retryable): " and the run stored
+        # validation_issues=[""] — the classification was right and the reason
+        # was blank. classify_transport_failure already reads the type name;
+        # carrying it into the message keeps the durable record diagnosable
+        # without changing classification.
+        detail = str(exc) or type(exc).__name__
+        raise GateIntegrationError(detail, failure_class=failure.value) from exc
     packet_k, payload_k, failure_k = "packet", "payload", "failure_class"
     return {
         packet_k: response_packet,
@@ -177,6 +195,7 @@ def send_converge_action(
     *,
     payload: dict[str, Any],
     correlation_id: str | None = None,
+    idempotency_key: str | None = None,
 ) -> dict[str, Any]:
     action = get_enrichment_action(env)
     return send_action(
@@ -185,4 +204,5 @@ def send_converge_action(
         payload=payload,
         correlation_id=correlation_id,
         compliance_tags=("ERP", "ENRICHMENT"),
+        idempotency_key=idempotency_key,
     )

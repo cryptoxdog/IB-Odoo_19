@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 from .gate_allowlists import INTAKE_SNAPSHOT_FIELD_MAP, PARTNER_SNAPSHOT_FIELD_MAP, WEB_LEAD_SEED_FIELD_MAP
@@ -38,6 +40,46 @@ def build_odoo_context(env, *, model: str, record_id: int) -> OdooContext:
     )
 
 
+# 32 hex characters = 128 bits of the SHA-256 digest. Widening this changes
+# every future key; it does not invalidate any stored state, because the key is
+# a transport header consumed per request and never persisted as an identity.
+IDEMPOTENCY_DIGEST_HEX_CHARS = 32
+
+
+def build_idempotency_key(payload: dict[str, Any], odoo_ctx: dict[str, Any]) -> str | None:
+    """Deterministic transport idempotency key for one converge attempt.
+
+    Keyed on the run's stable identity AND a digest of the exact payload, which
+    is what makes it correct rather than merely stable:
+
+    * a true replay of one attempt (network retry, double-submitted RPC) sends
+      byte-identical payload -> identical key -> Gate may safely dedupe it;
+    * ``action_retry_enrichment`` re-runs converge on the SAME run, and
+      ``build_converge_request`` re-reads the partner live each time, so a retry
+      after the partner was edited is a materially different request. Keying on
+      run identity alone would label those the same operation and could replay a
+      stale answer for changed input; the digest keeps them distinct.
+
+    The digest is 32 hex characters (128 bits) of SHA-256. The narrower 16-char
+    (64-bit) prefix used previously was not wrong here — the key is already
+    namespaced by database, model and record id, so a collision would have to
+    land inside one run — but a replay key is exactly where a birthday
+    collision is expensive (Gate could serve a stale answer for a genuinely
+    different payload) and the extra 16 characters cost nothing.
+
+    Returns None when the run identity is unknown — an unidentifiable request is
+    left un-keyed rather than given a guessed one.
+    """
+    model = odoo_ctx.get("model")
+    record_id = odoo_ctx.get("record_id")
+    if not model or not record_id:
+        return None
+    db_name = odoo_ctx.get("db_name") or "db"
+    canonical = json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
+    digest = hashlib.sha256(canonical).hexdigest()[:IDEMPOTENCY_DIGEST_HEX_CHARS]
+    return f"odoo:{db_name}:{model}:{record_id}:{digest}"
+
+
 _MIN_VARIATIONS = 1
 _MAX_VARIATIONS = 10
 _DEFAULT_OBJECTIVE = "Full entity enrichment and inference"
@@ -59,8 +101,8 @@ def build_converge_request(
 
     The partner snapshot becomes EIE ``entity``; ``object_type`` derives from
     the Odoo domain; ``max_passes`` maps to clamped ``max_variations``. The
-    Odoo entity id is preserved inside entity context (metadata), not as a
-    Gate-level transform.
+    Odoo entity id is carried on the entity itself (canonical ``id`` plus the
+    ``_odoo_entity_id`` compatibility alias), not as a Gate-level transform.
     """
     partner = run_rec.partner_id
     snapshot: dict[str, Any] = {}
@@ -74,12 +116,23 @@ def build_converge_request(
             snapshot["source_urls"] = urls
     odoo = build_odoo_context(env, model=run_rec._name, record_id=run_rec.id).to_dict()
     entity = dict(snapshot)
-    entity.setdefault("_odoo_entity_id", f"res.partner:{partner.id}")
+    # I6 — canonical cross-service identity is ``entity.id``. ``_odoo_entity_id``
+    # stays for compatibility with consumers that already read it; both carry
+    # the same value, and neither is a new identity scheme.
+    entity_id = f"res.partner:{partner.id}"
+    entity["id"] = entity_id
+    entity["_odoo_entity_id"] = entity_id
     return ConvergeRequest(
         entity=entity,
         object_type=str(domain) if domain else "Account",
         objective=_DEFAULT_OBJECTIVE,
         max_variations=_clamp_variations(max_passes),
+        # EIE resolves the KB domain from `domain_id` -> `domain` -> `kb_context`
+        # -> `object_type`. Leaving this unset made the domain resolve only
+        # because `object_type` happens to carry it, which is the last fallback
+        # and coincidence rather than contract. `kb_context` is the
+        # EnrichRequest field for exactly this, so state it.
+        kb_context=str(domain) if domain else None,
         odoo=odoo,
     )
 
