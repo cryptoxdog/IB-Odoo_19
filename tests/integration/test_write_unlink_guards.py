@@ -72,7 +72,7 @@ class TestIntakeWriteGuards(PlasticosTestCase):
     def test_action_match_to_buyers_raises_without_engine(self):
         """Base stub raises UserError (engine not installed)."""
         intake = self._make_intake()
-        # If buyer_match_engine is installed, it overrides this.
+        # plasticos_matching may override this.
         # We test the base behavior.
         try:
             intake.action_match_to_buyers()

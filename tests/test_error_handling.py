@@ -35,19 +35,11 @@ from odoo.tests.common import tagged
 class TestAPIFailures(PlasticosTestCase):
     """Tests for graceful handling of external API failures."""
 
-    def test_neo4j_unavailable_graceful(self):
-        if "plasticos.graph.service" not in self.env:
-            self.skipTest("Graph service not installed")
-        svc = self.env["plasticos.graph.service"]
-        result = svc._execute_cypher("RETURN 1")
-        self.assertEqual(result, [], "Should return empty list when Neo4j unavailable")
-
-    def test_neo4j_execute_cypher_query_raises_usererror(self):
-        if "plasticos.graph.service" not in self.env:
-            self.skipTest("Graph service not installed")
-        svc = self.env["plasticos.graph.service"]
-        with self.assertRaises(UserError):
-            svc.execute_cypher_query("RETURN 1")
+    # Neo4j failure handling was covered here via plasticos.graph.service. That model is
+    # in the mothball DISCARDABLE_CATALOG (scripts/migrations/mothball_local_intelligence.py):
+    # "Local Neo4j graph helper (CEG owns graph)". Graph egress is now Gate-only —
+    # covered by tests/contracts/test_no_local_intelligence.py, test_gate_single_egress.py
+    # and tests/contracts/test_external_intelligence_authority.py.
 
     def test_enrichment_api_failure_caught(self):
         if "plasticos.enrichment.run" not in self.env:
@@ -158,10 +150,9 @@ class TestInvalidData(PlasticosTestCase):
             self.skipTest("Offer not installed")
         partner = self._create_partner()
         Offer = self.env["plasticos.offer"]
-        if "price_per_lb" in Offer._fields:
-            with self.assertRaises((ValidationError, IntegrityError)):
-                with self.env.cr.savepoint():
-                    Offer.create({"buyer_partner_id": partner.id, "price_per_lb": -1.0})
+        with self.assertRaises((ValidationError, IntegrityError)):
+            with self.env.cr.savepoint():
+                Offer.create({"buyer_id": partner.id, "price_per_lb": -1.0})
 
     def test_load_cancel_from_delivered_rejected(self):
         if "plasticos.load" not in self.env:
@@ -220,14 +211,10 @@ class TestPermissionDenied(PlasticosTestCase):
 class TestConcurrentEdits(PlasticosTestCase):
     """Tests for concurrent edit handling and idempotency."""
 
-    def test_advisory_lock_prevents_double_cron(self):
-        """Advisory lock pattern prevents concurrent cron runs."""
-        if "plasticos.graph.service" not in self.env:
-            self.skipTest("Graph service not installed")
-        svc = self.env["plasticos.graph.service"]
-        with patch.object(self.env.cr, "execute"), patch.object(self.env.cr, "fetchone", return_value=(False,)):
-            result = svc._cron_nightly_graph_sync()
-            self.assertIn("Skipped", result)
+    # test_advisory_lock_prevents_double_cron exercised
+    # plasticos.graph.service._cron_nightly_graph_sync — mothballed with the local graph
+    # helper (scripts/migrations/mothball_local_intelligence.py DISCARDABLE_CATALOG).
+    # Cron idempotency is covered by tests/integration/test_cron_idempotency.py.
 
     def test_idempotent_web_lead_creation(self):
         if "plasticos.web.lead" not in self.env:
