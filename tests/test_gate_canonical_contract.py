@@ -104,6 +104,40 @@ def test_odoo_context_travels_as_metadata():
     assert odoo["correlation_id"] == f"plasticos.enrichment.run:{RUN_ID}"
 
 
+def test_kb_context_declares_the_domain_explicitly():
+    """EIE resolves the KB domain `domain_id` -> `domain` -> `kb_context` ->
+    `object_type`. Relying on object_type is the last fallback and works only
+    because Odoo happens to carry the domain there; kb_context states it."""
+    payload = _payload()
+    assert payload["kb_context"] == "plasticos"
+    assert payload["kb_context"] == payload["object_type"]
+
+
+def test_payload_validates_as_a_canonical_enrich_request():
+    """EIE's canonical branch does `EnrichRequest.model_validate(payload)`, so
+    the payload must carry only EnrichRequest-legal keys plus the odoo context."""
+    enrich_request_fields = {
+        "entity",
+        "object_type",
+        "objective",
+        "max_variations",
+        "kb_context",
+        "idempotency_key",
+        "schema",
+    }
+    extra = set(_payload()) - enrich_request_fields - {"odoo"}
+    assert not extra, f"payload carries non-EnrichRequest keys: {sorted(extra)}"
+
+
+def test_mapper_keeps_fields_eie_no_longer_truncates():
+    """The canonical branch returns EnrichResponse untruncated — the old adapter
+    clipped `fields` to the eight partner keys. Odoo keeps the full set for
+    audit and enforces its allowlist only at the writeback boundary."""
+    resp = map_converge_response(_eie_response(fields={"website": "https://a.example", "polymer_type": "HDPE"}))
+    assert resp.final_fields == {"website": "https://a.example", "polymer_type": "HDPE"}
+    assert partner_writeback_from_converge(resp) == {"website": "https://a.example"}
+
+
 # ── PATCH 11 — negative: no drift into the alternate adapter dialect ───────
 
 

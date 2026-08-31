@@ -113,6 +113,12 @@ def build_converge_request(
         object_type=str(domain) if domain else "Account",
         objective=_DEFAULT_OBJECTIVE,
         max_variations=_clamp_variations(max_passes),
+        # EIE resolves the KB domain from `domain_id` -> `domain` -> `kb_context`
+        # -> `object_type`. Leaving this unset made the domain resolve only
+        # because `object_type` happens to carry it, which is the last fallback
+        # and coincidence rather than contract. `kb_context` is the
+        # EnrichRequest field for exactly this, so state it.
+        kb_context=str(domain) if domain else None,
         odoo=odoo,
     )
 
