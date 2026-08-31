@@ -62,35 +62,64 @@ Gate caller budget is 30 s (`plasticos.gate.timeout_seconds`, default `"30"`),
 or Neo4j call anywhere in `plasticos_gate`, `plasticos_enrichment`, or
 `plasticos_matching`.
 
-## Unverified — real-runtime deployment gates
+## Real-runtime deployment gates — executed
 
 These depend on separate PostgreSQL sessions, row locks, real commits and
 rollbacks, and advisory-lock lifetime. Odoo's `TransactionCase` runs in test
 mode, where `cr.commit()` is neutered and `registry.cursor()` hands back the
-same test cursor — a green result there would prove nothing. The tests in this
-repo assert the *ordering contract* over the AST (rollback precedes the second
-cursor; no flush in between), which is what silently regresses when the failure
-handler is refactored. **Actual behavior must be exercised against a disposable
-real Odoo + PostgreSQL before enabling the connection:**
+same test cursor — a green result there proves nothing. The collected tests in
+this repo assert the *ordering contract* over the AST (rollback precedes the
+second cursor; no flush in between), which is what silently regresses when a
+failure handler is refactored; they are a guard, not the proof.
 
-| Gate | Assertion | Rollback trigger if it fails |
-|------|-----------|------------------------------|
-| C1 | Healthcheck fails before any sync → sync-run row is visible from an independent DB transaction with `status=failed` | failure records disappear after RPC rollback |
-| C2 | Page 1 commits, page 2 fails → page-1 records and watermark survive; page 2 absent; failure state durable | watermark advances across rejected source data |
-| C3 | Enrichment fails after the run row was mutated → `retryable`/`degraded`/`failed` persists, RPC returns promptly, no row-lock wait | sync/enrichment RPC hangs on failure |
-| C4 | Two concurrent `run_connection` calls in separate sessions → the second raises `CrmSyncLockedError` and does no work | concurrent connection runs overlap |
-| C5 | Advisory lock still held after a page `commit()` | concurrency exclusion lost mid-run |
-| C6 | Configured VanillaSoft and Gate endpoints are both `https://` | production service URL is plaintext HTTP |
+**These gates have now been run against a real Odoo 19 + PostgreSQL 16.** That
+was not ceremony: C2 failed on its first execution and exposed a REPEATABLE
+READ defect — the sync-run row is created on a second cursor after the ambient
+snapshot is fixed, so every write to it from the first transaction was an
+`UPDATE` matching zero rows, silently. No collected test could see it. Re-run
+the gates on any change to a failure handler, a commit point, or the advisory
+lock, and re-run them before enabling a connection in a new environment.
 
-Run C1–C5 with `make test-odoo` against a disposable database, or on an Odoo.sh
-dev branch. Any lock wait, disappearing failure record, or incorrect watermark
-is NO-GO.
+Gate labels are **stable identifiers**, not an ordering. `C6` previously named
+two different things — an HTTPS configuration check here and replay/checkpoint
+integrity in the execution brief. They are separate concerns with separate
+failure modes, so they now have separate labels: **T1** for transport
+configuration, **C6** for replay. Do not reuse a retired label.
+
+### Runtime gates (real Odoo + PostgreSQL)
+
+| Gate | Assertion | Rollback trigger if it fails | Status |
+|------|-----------|------------------------------|--------|
+| C1 | Healthcheck fails before any sync → sync-run row is visible from an independent DB transaction with `status=failed` | failure records disappear after RPC rollback | **PASS** |
+| C2 | Page 1 commits, page 2 fails → page-1 records, watermark **and committed counter** survive; page 2 absent; failure state durable | watermark advances across rejected source data | **PASS** |
+| C3 | Failure after the ambient transaction dirtied and flushed the run row → state persists, RPC returns promptly, no row-lock wait | sync/enrichment RPC hangs on failure | **PASS** |
+| C4 | Two concurrent `run_connection` calls in separate sessions → the second raises `CrmSyncLockedError` and does no work | concurrent connection runs overlap | **PASS** |
+| C5 | Advisory lock still held after a page `commit()` | concurrency exclusion lost mid-run | **PASS** |
+| C6 | Replay after a partial failure resumes from the last durable watermark, adds no duplicates, processes the previously failed portion, advances the watermark forward only, and reports only its own committed work | replay loses or duplicates source data | **PASS** |
+| C7 | Gate **disabled** → failure/degraded operator state and `availability_status` survive the outer RPC rollback; partner business fields unchanged; no second-cursor lock wait | operator loses the reason enrichment did not run | **PASS** |
+| C8 | Gate **transport failure** → same durability assertions, and the call returns inside the configured caller budget | a stalled Gate blocks an RPC worker past its budget | **PASS** |
+
+### Transport / configuration gates (no runtime required)
+
+| Gate | Assertion | Rollback trigger if it fails | Status |
+|------|-----------|------------------------------|--------|
+| T1 | Configured VanillaSoft and Gate endpoints are both `https://` | production service URL is plaintext HTTP | operator check at deploy |
+
+C1–C8 are executable without Docker; see `C1_C6_LOCAL_RUNTIME.md` for the
+harness and `plasticos_crm_sync/tests/runtime_gates/` for the scripts. Any lock
+wait, disappearing failure record, or incorrect watermark is NO-GO.
+
+**A fixture caveat that cost a false failure.** `_sync_contacts` clamps
+`modified_after` to the source API's 31-day maximum (`now - 30d`). A replay
+fixture whose watermarks predate that floor tests the clamp, not the
+checkpoint: the adapter is handed the floor and the resume assertion fails for
+the wrong reason. Keep C6 watermarks inside the window.
 
 ## Canary order
 
 1. Gate A — the five patch areas landed, no architecture expansion.
 2. Gate B — CI green (`ruff`, static checks, pure-python tests, audit baseline).
-3. Gate C — C1–C5 above on real Odoo/PostgreSQL.
+3. Gate C — C1–C8 above on real Odoo/PostgreSQL, plus T1 at deploy.
 4. Gate D — EIE bounds (owned by the EIE repo, not this one).
 5. Gate E — manual VanillaSoft canary with the cron **off**; run twice and require
    no duplicates, no lost records, no watermark regression. Then enable the cron.
