@@ -249,6 +249,24 @@ def test_every_enrichment_failure_path_uses_the_rollback_first_helper():
     assert src.count("self._rollback_then_persist_operator_state(") == 4
 
 
+def test_durable_failure_record_keeps_the_availability_state():
+    """The ambient write of availability_status is rolled back, so every durable
+    record must carry it or the operator sees a failure with no stated cause."""
+    fn = _function(ENRICHMENT_RUN, "action_execute")
+    durable_writes = [
+        node.args[1]
+        for node in ast.walk(fn)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "_rollback_then_persist_operator_state"
+    ]
+    assert len(durable_writes) == 4, "every failure path must persist durably"
+    for vals in durable_writes:
+        keys = {k.value for k in vals.keys if isinstance(k, ast.Constant)}
+        assert "state" in keys and "failure_class" in keys
+        assert "availability_status" in keys, f"durable record missing cause: {sorted(keys)}"
+
+
 # ── I5 — concurrency exclusion covers every sync entry point ────────────────
 
 

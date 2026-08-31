@@ -341,6 +341,7 @@ class EnrichmentRun(models.Model):
                     "validation_issues": [
                         "Gate converge produced no injectable allowlisted fields.",
                     ],
+                    "availability_status": availability.status,
                 },
             )
             raise UserError(_("Gate enrichment degraded: no injectable fields from converge response."))
@@ -357,6 +358,7 @@ class EnrichmentRun(models.Model):
                     "state": state,
                     "failure_class": failure,
                     "validation_issues": [message],
+                    "availability_status": availability.status,
                 },
             )
             raise UserError(_("Gate enrichment failed (%s): %s") % (failure, message)) from exc
@@ -371,6 +373,7 @@ class EnrichmentRun(models.Model):
                     "state": state,
                     "failure_class": failure,
                     "validation_issues": [message],
+                    "availability_status": availability.status,
                 },
             )
             _logger.exception("Gate enrichment unexpected error for run %s", run_id)
