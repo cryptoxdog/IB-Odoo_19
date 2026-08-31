@@ -335,36 +335,13 @@ def test_consumer_does_not_derive_a_second_operation_identity():
 
 
 # ── PATCH 10 — Gate_SDK owns the packet ───────────────────────────────────
-
-
-def test_packet_is_built_by_the_sdk_with_the_canonical_action():
-    """Observable behaviour through the SDK-facing adapter; no SDK internals here."""
-    sdk = pytest.importorskip(
-        "constellation_node_sdk",
-        reason="Gate SDK is an Odoo.sh runtime dependency; absent from the pure-Python tier",
-    )
-    payload = _payload()
-    ctx = _ctx()
-    packet = sdk.create_transport_packet(
-        action="converge",
-        payload=payload,
-        tenant={"actor": "plasticos", "org_id": "plasticos"},
-        source_node="odoo",
-        destination_node="gate",
-        reply_to="odoo",
-        correlation_id=ctx["correlation_id"],
-        classification="internal",
-        compliance_tags=("ERP", "ENRICHMENT"),
-        idempotency_key=build_idempotency_key(payload, ctx),
-        timeout_ms=30_000,
-    )
-    header = packet.model_dump()["header"]
-    assert header["action"] == "converge"
-    assert header["correlation_id"] == f"plasticos.enrichment.run:{RUN_ID}"
-    assert header["timeout_ms"] == 30_000
-    assert header["idempotency_key"].startswith("odoo:plasticos:plasticos.enrichment.run:7:")
-    # The domain payload rides unchanged; Gate is transport, not a translator.
-    assert packet.payload["entity"]["id"] == ENTITY_REF
+#
+# The real SDK-invocation proof (Odoo domain call -> installed Gate_SDK ->
+# packet/client boundary, network seam patched only) lives in
+# tests/test_gate_sdk_invocation.py. An earlier test here reconstructed the
+# create_transport_packet argument list by hand, which asserted nothing about
+# the adapter: it duplicated the adapter's own code and so could not detect the
+# adapter drifting away from it.
 
 
 # ── PATCH 5 — the caller budget is one value, and it has a ceiling ────────
