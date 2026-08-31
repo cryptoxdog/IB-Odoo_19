@@ -80,10 +80,63 @@ def test_availability_insecure_http_blocked():
     assert verdict.available is False
 
 
-def test_transport_failure_classification():
+class _FakeResponse:
+    def __init__(self, status_code: int) -> None:
+        self.status_code = status_code
+
+
+class _FakeHttpStatusError(Exception):
+    """Stand-in for an exception carrying an HTTP response (httpx.HTTPStatusError)."""
+
+    def __init__(self, status_code: int) -> None:
+        super().__init__("")  # httpx status errors can stringify to very little
+        self.response = _FakeResponse(status_code)
+
+
+def test_transport_failure_classification_is_structural_not_string_based():
+    """Pack ADR-003/ADR-016 — Odoo maps transport failures to UI categories by
+    TYPE and HTTP STATUS, never by scanning the exception message.
+
+    This replaces an assertion that ``RuntimeError("401 unauthorized")``
+    classified PERMANENT, which only held because the old implementation
+    searched ``str(exc)`` for the token "401". That approach misclassified any
+    message merely mentioning a code, and silently failed for the most likely
+    real failure — an httpx timeout, which stringifies to empty. A bare
+    RuntimeError carries no transport information, so UNKNOWN is the honest
+    answer; UNKNOWN is a fail-closed degraded state, never a silent local
+    substitution (repo ADR-013).
+    """
+    # Timeouts and connection faults -> retryable.
     assert classify_transport_failure(TimeoutError("timed out")) is TransportFailureClass.RETRYABLE
-    assert classify_transport_failure(RuntimeError("401 unauthorized")) is TransportFailureClass.PERMANENT
+    assert classify_transport_failure(ConnectionError()) is TransportFailureClass.RETRYABLE
+
+    # HTTP status drives the decision, even with an empty message.
+    for status in (408, 429, 500, 502, 503, 504):
+        assert classify_transport_failure(_FakeHttpStatusError(status)) is TransportFailureClass.RETRYABLE
+    for status in (400, 401, 403, 404, 422, 501, 505):
+        assert classify_transport_failure(_FakeHttpStatusError(status)) is TransportFailureClass.PERMANENT
+
+    # Contract failures raised before/after the wire.
+    assert classify_transport_failure(ValueError("destination must be gate")) is TransportFailureClass.PERMANENT
+
+    # A message that merely mentions a code is NOT evidence of a transport fact.
+    assert classify_transport_failure(RuntimeError("401 unauthorized")) is TransportFailureClass.UNKNOWN
     assert classify_transport_failure(RuntimeError("weird boom")) is TransportFailureClass.UNKNOWN
+
+
+def test_transport_classifier_reads_no_exception_message():
+    """Structural guarantee: the classifier body must not stringify the exception."""
+    import inspect
+
+    from plasticos_gate.services import gate_client
+
+    body = inspect.getsource(gate_client.classify_transport_failure)
+    body = body.split('"""')[2] if body.count('"""') >= 2 else body
+    for forbidden in ("str(exc)", 'f"{exc}', ".lower()", "in text"):
+        assert forbidden not in body, (
+            f"classify_transport_failure inspects the exception message ({forbidden!r}); "
+            "transport truth is the SDK's, not Odoo's to re-derive from strings."
+        )
 
 
 @pytest.mark.parametrize(
