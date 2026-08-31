@@ -19,15 +19,37 @@ DEFAULT_TIMEOUT = 60
 MAX_RETRIES = 3
 RETRY_STATUSES = {429, 500, 502, 503, 504}
 
+# I16 — every request carries the API key in an Authorization header, so a
+# cleartext endpoint leaks the credential on the wire. Loopback is the only
+# accommodation: it is how the stall/timeout tests point at a local stub, and it
+# never leaves the host.
+_LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+
+
+def require_secure_endpoint(url: str) -> None:
+    """Reject a credential-bearing endpoint that is not HTTPS (loopback aside)."""
+    parts = urllib.parse.urlsplit(url)
+    scheme = (parts.scheme or "").lower()
+    if scheme == "https":
+        return
+    host = (parts.hostname or "").lower()
+    if scheme == "http" and host in _LOOPBACK_HOSTS:
+        return
+    raise CrmAdapterError(
+        f"VanillaSoft endpoint must use https (got {scheme or '<none>'}://{host or '<no host>'}); "
+        "plaintext http is accepted only for loopback test endpoints"
+    )
+
 
 def normalize_api_base(root_endpoint: str) -> str:
-    """Normalize root URL to …/WSPubAPI without trailing slash."""
+    """Normalize root URL to …/WSPubAPI without trailing slash (HTTPS enforced)."""
     raw = (root_endpoint or "").strip()
     if not raw:
         raise CrmAdapterError("VanillaSoft root endpoint is empty")
     if "://" not in raw:
         raw = "https://" + raw
     raw = raw.rstrip("/")
+    require_secure_endpoint(raw)
     if raw.endswith("/WSPubAPI"):
         return raw
     return raw + "/WSPubAPI"
@@ -65,8 +87,7 @@ class VanillaSoftClient:
             cleaned = {k: v for k, v in params.items() if v is not None and v != ""}
             query = "?" + urllib.parse.urlencode(cleaned)
         url = f"{self.base_url}{path if path.startswith('/') else '/' + path}{query}"
-        if not url.startswith(("https://", "http://")):
-            raise CrmAdapterError(f"VanillaSoft URL scheme not allowed: {url[:32]}")
+        require_secure_endpoint(url)
         last_err: Exception | None = None
         for attempt in range(MAX_RETRIES):
             req = urllib.request.Request(url, method=method, headers=self._headers())  # noqa: S310
