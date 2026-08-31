@@ -399,6 +399,36 @@ def test_packet_budget_is_derived_from_the_same_validated_value():
     assert "plasticos.gate.timeout_seconds" not in src
 
 
+# ── transport failures must stay diagnosable ──────────────────────────────
+
+
+def test_empty_transport_failure_message_falls_back_to_the_exception_type():
+    """A timeout stringifies to "" — the durable record must not be blank.
+
+    Measured on a real Gate transport: an exhausted caller budget raises httpx
+    `ConnectTimeout` with `str(exc) == ""`, so the operator saw
+    "Gate enrichment failed (retryable): " and the enrichment run stored
+    validation_issues=[""]. Right classification, no reason.
+    """
+    src = (ROOT / "plasticos_gate" / "services" / "gate_client.py").read_text(encoding="utf-8")
+    assert "detail = str(exc) or type(exc).__name__" in src
+    assert "raise GateIntegrationError(detail," in src
+    assert "raise GateIntegrationError(str(exc)," not in src
+
+
+@pytest.mark.parametrize(
+    ("exc", "expected"),
+    [
+        (TimeoutError(), "TimeoutError"),
+        (ConnectionError(), "ConnectionError"),
+        (ValueError("a real message"), "a real message"),
+    ],
+)
+def test_failure_detail_is_never_blank(exc, expected):
+    """The fallback rule itself: type name when blank, the message otherwise."""
+    assert (str(exc) or type(exc).__name__) == expected
+
+
 def test_the_ceiling_is_a_single_named_constant():
     """One place to change the budget, so config and packet cannot drift apart."""
     src = (ROOT / "plasticos_gate" / "services" / "gate_config.py").read_text(encoding="utf-8")

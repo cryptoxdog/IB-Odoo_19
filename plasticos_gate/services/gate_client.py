@@ -154,7 +154,18 @@ def send_action(
         response_packet = _run_async(client.send_to_gate(packet))
     except Exception as exc:
         failure = classify_transport_failure(exc)
-        raise GateIntegrationError(str(exc), failure_class=failure.value) from exc
+        # Timeout exceptions stringify to nothing: measured against a real Gate
+        # transport, an exhausted caller budget raises httpx `ConnectTimeout`
+        # with `str(exc) == ""` (asyncio.TimeoutError and builtin TimeoutError
+        # behave the same). A timeout is the most likely real Gate failure and
+        # the caller budget makes it an expected outcome, yet the operator saw
+        # "Gate enrichment failed (retryable): " and the run stored
+        # validation_issues=[""] — the classification was right and the reason
+        # was blank. classify_transport_failure already reads the type name;
+        # carrying it into the message keeps the durable record diagnosable
+        # without changing classification.
+        detail = str(exc) or type(exc).__name__
+        raise GateIntegrationError(detail, failure_class=failure.value) from exc
     packet_k, payload_k, failure_k = "packet", "payload", "failure_class"
     return {
         packet_k: response_packet,
