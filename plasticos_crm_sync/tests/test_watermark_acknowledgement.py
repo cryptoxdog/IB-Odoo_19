@@ -151,6 +151,48 @@ class TestWatermarkAcknowledgement(TransactionCase):
             self.orch._sync_calls(self.connection, adapter, None)
         self.assertEqual(self.connection.call_watermark_utc, W0)
 
+    def test_call_pagination_failure_leaves_the_window_watermark_untouched(self):
+        """The blocker this guards: a full page that cannot be paginated past
+        used to end the iterator normally, and _sync_calls reads normal
+        completion as permission to advance the whole window."""
+        adapter = _StubAdapter(
+            call_batches=[
+                [_call("wm-call-3")],
+                CrmAdapterError("Call pagination failed to advance: '...' -> '...' (500 rows at the page limit)"),
+            ]
+        )
+        with self.assertRaises(CrmAdapterError):
+            self.orch._sync_calls(self.connection, adapter, None)
+        self.assertEqual(self.connection.call_watermark_utc, W0)
+
+    def test_calls_from_a_failed_window_are_still_persisted_and_replayable(self):
+        """Yielded batches stay committed; the unchanged watermark makes the
+        next run re-read the window and upsert them idempotently (I4)."""
+        adapter = _StubAdapter(
+            call_batches=[
+                [_call("wm-call-4")],
+                CrmAdapterError("Full call-history page has no usable pagination timestamp"),
+            ]
+        )
+        with self.assertRaises(CrmAdapterError):
+            self.orch._sync_calls(self.connection, adapter, None)
+        self.assertEqual(self.connection.call_watermark_utc, W0)
+        self.orch._upsert_calls(self.connection, [_call("wm-call-4")], None)
+        events = self.env["plasticos.crm.call.event"].search(
+            [("provider", "=", "vanillasoft"), ("external_id", "=", "wm-call-4")]
+        )
+        self.assertEqual(len(events), 1)
+
+    def test_partial_contact_page_without_cursor_leaves_watermark_untouched(self):
+        adapter = _StubAdapter(
+            contact_pages=[
+                CrmAdapterError("VanillaSoft reported partial contact fulfillment without a batch_end cursor"),
+            ]
+        )
+        with self.assertRaises(CrmAdapterError):
+            self.orch._sync_contacts(self.connection, adapter, None)
+        self.assertEqual(self.connection.contact_watermark_utc, W0)
+
     def test_replayed_calls_create_no_duplicate_call_event(self):
         batch = [_call("wm-call-2")]
         self.orch._upsert_calls(self.connection, batch, None)

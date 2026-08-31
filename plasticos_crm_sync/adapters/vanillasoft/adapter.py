@@ -207,28 +207,36 @@ class VanillaSoftAdapter:
                 if not isinstance(row, dict):
                     raise CrmAdapterError(f"Contact row {index} is {type(row).__name__}, expected object")
                 leads.append(contact_to_canonical(row))
-            batch_end = None
+            api_cursor = None
             partial = False
             if isinstance(payload, dict):
-                batch_end = payload.get("batch_end") or payload.get("BatchEnd")
+                raw_cursor = payload.get("batch_end") or payload.get("BatchEnd")
+                api_cursor = str(raw_cursor) if raw_cursor else None
                 partial = bool(payload.get("partial_fulfillment") or payload.get("PartialFulfillment"))
-            if not batch_end and leads:
+            # A partial response promises more contacts than it returned. Only an
+            # API-supplied `batch_end` is a trustworthy place to resume from: the
+            # last row's `modified_date_time_utc` is not documented as a lossless
+            # cursor, and contacts sharing one timestamp would be skipped by it.
+            # Raise before yielding, so nothing on this page is acknowledged.
+            if partial and api_cursor is None:
+                raise CrmAdapterError(
+                    f"VanillaSoft reported partial contact fulfillment without a batch_end "
+                    f"cursor at {cursor!r}; refusing to infer one from row timestamps"
+                )
+            # On a complete page the synthesized value is a watermark, not a
+            # continuation cursor: it names the last contact actually persisted.
+            batch_end = api_cursor
+            if batch_end is None and leads:
                 batch_end = leads[-1].modified_utc or None
             yield leads, str(batch_end) if batch_end else None, partial
             if not rows or not partial:
                 break
-            if not batch_end:
-                # Partial fulfilment with no cursor: stop rather than refetch the
-                # same page forever. The committed watermark is still honest —
-                # it names only what was persisted — so the next run resumes here.
-                _logger.warning("VanillaSoft reported partial fulfillment without batch_end at cursor %r", cursor)
-                break
-            # `batch_end` is an ordered ISO-8601 UTC timestamp, so forward
+            # `api_cursor` is an ordered ISO-8601 UTC timestamp, so forward
             # progress is checkable directly; a non-advancing partial page would
             # otherwise loop forever re-reading the same rows.
-            if str(batch_end) <= str(cursor):
-                raise CrmAdapterError(f"Contact pagination failed to advance: {cursor!r} -> {batch_end!r}")
-            cursor = str(batch_end)
+            if api_cursor <= str(cursor):
+                raise CrmAdapterError(f"Contact pagination failed to advance: {cursor!r} -> {api_cursor!r}")
+            cursor = api_cursor
 
     def get_contact(self, external_id: str) -> CanonicalLead | None:
         payload = self.client.get_contact(external_id, custom_fields=True, phone_numbers=True)
@@ -275,15 +283,31 @@ class VanillaSoftAdapter:
             if batch:
                 yield batch
             if not rows or len(rows) < page_limit:
+                # Short page — the window is genuinely exhausted. This is the
+                # only exit that lets `_sync_calls` advance the window
+                # watermark, because normal iterator completion is exactly what
+                # it reads as "the whole window was consumed".
                 break
-            # Advance cursor past the latest call in this page (ISO Z timestamps).
+            # A full page means more calls may exist past it, so ending here
+            # would let the caller acknowledge the entire window on the strength
+            # of a page we could not paginate past (I1). Fail the window instead.
             last_ts = None
             for call in batch:
                 ts = call.call_datetime_utc
                 if ts and (last_ts is None or str(ts) > str(last_ts)):
                     last_ts = ts
-            if not last_ts or str(last_ts) <= str(cursor_start):
-                break
+            if not last_ts:
+                raise CrmAdapterError(
+                    f"Full call-history page ({len(rows)} rows) has no usable pagination "
+                    f"timestamp; cannot prove the window from {cursor_start!r} was consumed"
+                )
+            if str(last_ts) <= str(cursor_start):
+                # Deliberately no epsilon: calls share timestamps, so nudging the
+                # cursor forward would skip every other call at that instant.
+                raise CrmAdapterError(
+                    f"Call pagination failed to advance: {cursor_start!r} -> {last_ts!r} "
+                    f"({len(rows)} rows at the page limit)"
+                )
             cursor_start = str(last_ts)
 
     def iter_calls_for_contact(self, contact_external_id: str) -> Iterator[list[CanonicalCall]]:

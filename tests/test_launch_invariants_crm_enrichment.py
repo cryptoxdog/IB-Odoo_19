@@ -166,6 +166,108 @@ def test_advancing_partial_cursor_keeps_paginating():
     assert [b for _leads, b, _p in pages] == ["2026-07-02T00:00:00Z", "2026-07-03T00:00:00Z"]
 
 
+# ── I1 — a full call page may end pagination only when progress is proven ───
+#
+# `_sync_calls` advances the ENTIRE window watermark once `iter_calls` returns
+# normally, so "ran out of things to yield" and "the window was fully consumed"
+# are the same signal to the caller. A full page that cannot be paginated past
+# must therefore raise, never break.
+
+
+def _full_call_page(rows):
+    client = MagicMock()
+    client.get_call_history_batch.return_value = {"call_histories": rows}
+    return VanillaSoftAdapter(client, 139705)
+
+
+def _call_row(call_id, contact_id="42", ts="2026-08-01T12:00:00Z"):
+    return {"call_history_id": call_id, "contact_id": contact_id, "call_date_time_utc": ts}
+
+
+def test_full_call_page_without_usable_timestamp_raises():
+    """500 calls, none with a timestamp: call 501 would be lost silently."""
+    rows = [{"call_history_id": i, "contact_id": "42"} for i in range(1, 501)]
+    with pytest.raises(CrmAdapterError, match="no usable pagination timestamp"):
+        list(_full_call_page(rows).iter_calls(start="2026-08-01T00:00:00Z", end="2026-08-02T00:00:00Z", limit=500))
+
+
+def test_full_call_page_with_non_advancing_timestamp_raises():
+    """Every call at exactly the cursor instant — the cursor cannot move."""
+    rows = [_call_row(i, ts="2026-08-01T00:00:00Z") for i in range(1, 501)]
+    with pytest.raises(CrmAdapterError, match="failed to advance"):
+        list(_full_call_page(rows).iter_calls(start="2026-08-01T00:00:00Z", end="2026-08-02T00:00:00Z", limit=500))
+
+
+def test_full_call_page_with_backwards_timestamp_raises():
+    rows = [_call_row(i, ts="2026-07-30T00:00:00Z") for i in range(1, 501)]
+    with pytest.raises(CrmAdapterError, match="failed to advance"):
+        list(_full_call_page(rows).iter_calls(start="2026-08-01T00:00:00Z", end="2026-08-02T00:00:00Z", limit=500))
+
+
+def test_short_call_page_ends_pagination_normally():
+    """The one exit that legitimately lets the caller advance the watermark."""
+    adapter = _full_call_page([_call_row(1), _call_row(2)])
+    batches = list(adapter.iter_calls(start="2026-08-01T00:00:00Z", end="2026-08-02T00:00:00Z", limit=500))
+    assert [c.external_id for c in batches[0]] == ["1", "2"]
+
+
+def test_full_call_page_with_advancing_timestamp_keeps_paginating():
+    client = MagicMock()
+    client.get_call_history_batch.side_effect = [
+        {"call_histories": [_call_row(i, ts="2026-08-01T06:00:00Z") for i in range(1, 501)]},
+        {"call_histories": [_call_row(501, ts="2026-08-01T07:00:00Z")]},
+    ]
+    adapter = VanillaSoftAdapter(client, 139705)
+    batches = list(adapter.iter_calls(start="2026-08-01T00:00:00Z", end="2026-08-02T00:00:00Z", limit=500))
+    assert [len(b) for b in batches] == [500, 1]
+    # Second request resumed from the first page's last timestamp, not the start.
+    assert client.get_call_history_batch.call_args_list[1].args[0] == "2026-08-01T06:00:00Z"
+
+
+# ── I1 — partial contacts need a real API continuation cursor ───────────────
+
+
+def test_partial_contacts_without_api_cursor_raises():
+    """partial_fulfillment=true with no batch_end is a contract violation."""
+    client = MagicMock()
+    client.get_contacts.return_value = {
+        "contacts": [{"contact_id": 1, "modified_date_time_utc": "2026-08-01T10:00:00Z"}],
+        "partial_fulfillment": True,
+    }
+    adapter = VanillaSoftAdapter(client, 139705)
+    with pytest.raises(CrmAdapterError, match="without a batch_end"):
+        list(adapter.iter_contacts(modified_after="2026-07-01T00:00:00Z", limit=50))
+
+
+def test_partial_contacts_never_infer_a_cursor_from_row_timestamps():
+    """The refusal must happen before the page is yielded, so nothing is
+    acknowledged on the strength of an inferred cursor."""
+    client = MagicMock()
+    client.get_contacts.return_value = {
+        "contacts": [{"contact_id": 1, "modified_date_time_utc": "2026-09-01T10:00:00Z"}],
+        "partial_fulfillment": True,
+    }
+    adapter = VanillaSoftAdapter(client, 139705)
+    pages = adapter.iter_contacts(modified_after="2026-07-01T00:00:00Z", limit=50)
+    with pytest.raises(CrmAdapterError):
+        next(pages)
+    assert client.get_contacts.call_count == 1
+
+
+def test_complete_contact_page_may_still_synthesize_its_watermark():
+    """A non-partial page names the last contact persisted — that is a
+    watermark, not a continuation cursor, and stays supported."""
+    client = MagicMock()
+    client.get_contacts.return_value = {
+        "contacts": [{"contact_id": 1, "modified_date_time_utc": "2026-08-01T10:00:00Z"}],
+        "partial_fulfillment": False,
+    }
+    adapter = VanillaSoftAdapter(client, 139705)
+    pages = list(adapter.iter_contacts(modified_after="2026-07-01T00:00:00Z", limit=50))
+    assert pages[0][1] == "2026-08-01T10:00:00Z"
+    assert pages[0][2] is False
+
+
 # ── I15 — optional data may degrade; required data may never be skipped ─────
 
 

@@ -28,6 +28,31 @@ remains the only scheduler.
 | I15 | Optional data may degrade; required data is never silently skipped | `adapter.CUSTOM_TABLES_REQUIRED` | `test_launch_invariants_crm_enrichment.py` |
 | I16 | Credential-bearing production endpoints use TLS | `client.require_secure_endpoint`, `gate_config._gate_url_usable` | `test_launch_invariants_crm_enrichment.py` |
 
+### Pagination fails closed, and that can stop a sync
+
+Both paginators end normally only when end-of-collection is *proven*:
+
+| Source | Safe termination | Anything else |
+|---|---|---|
+| Contacts | `partial_fulfillment` is false | partial with no API `batch_end`, or a `batch_end` that does not advance → raise |
+| Calls | page shorter than the limit | full page with no usable timestamp, or a timestamp that does not advance → raise |
+
+This matters because `_sync_calls` advances the **entire** window watermark once
+`iter_calls` returns normally — "ran out of things to yield" and "the window was
+fully consumed" are the same signal to the caller. A full page that cannot be
+paginated past must therefore raise, never break.
+
+No epsilon is added to a call cursor: calls share timestamps, so nudging it
+forward would skip every other call at that instant. A contact continuation
+cursor is never inferred from `modified_date_time_utc` — that field is not
+documented as a lossless cursor, and this repository has no evidence that it is.
+
+**Operational consequence:** more than one page-limit of calls sharing a single
+timestamp, or an API that reports partial fulfilment without a cursor, will halt
+that window and hold the watermark. That is the locked trade-off — visible
+stoppage over silent permanent omission — and the failure names the cursor and
+row count so an operator can widen the window or raise the page limit.
+
 I8–I13 (EIE provider deadline, retry ownership, SDK `max_retries=0`, blocking
 provider I/O, zero Graph calls on the canonical path) are **not implemented in
 this repository** — EIE and its Perplexity client live in the external
