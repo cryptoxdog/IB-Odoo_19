@@ -13,6 +13,17 @@ _logger = logging.getLogger(__name__)
 
 PROVIDER = "vanillasoft"
 
+# Explicit launch classification for VanillaSoft custom-table rows.
+#
+# There is no third state where custom-table data is operationally required but
+# the implementation treats a fetch failure as optional. For launch these rows
+# are supplementary enrichment attached to a contact — the CRM record itself is
+# already complete without them — so they are OPTIONAL: a fetch failure is
+# logged and the contact page still acknowledges (I15). Flip this to True the
+# moment product treats a custom table as required launch CRM data; the fetch
+# failure then propagates and the page's watermark does not advance (I1).
+CUSTOM_TABLES_REQUIRED = False
+
 
 def _cf_map(raw: Any) -> dict[str, str]:
     out: dict[str, str] = {}
@@ -111,11 +122,19 @@ def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
     )
 
 
-def call_to_canonical(raw: dict[str, Any]) -> CanonicalCall | None:
+def call_to_canonical(raw: dict[str, Any]) -> CanonicalCall:
+    """Map a raw call row to a canonical DTO.
+
+    I1 — a call without a stable identity cannot be persisted or de-duplicated,
+    so it fails the current call window rather than being dropped while the
+    window watermark advances past it.
+    """
     call_id = raw.get("call_history_id") or raw.get("CallHistoryID") or raw.get("id")
     contact_id = raw.get("contact_id") or raw.get("ContactID")
-    if call_id is None or contact_id is None:
-        return None
+    if call_id is None:
+        raise CrmAdapterError("Call payload missing call_history_id")
+    if contact_id is None:
+        raise CrmAdapterError(f"Call {call_id} payload missing contact_id")
     return CanonicalCall(
         provider=PROVIDER,
         external_id=str(call_id),
@@ -180,13 +199,14 @@ class VanillaSoftAdapter:
                 phone_numbers=True,
             )
             rows = _extract_list(payload, "contacts", "Contacts", "data", "results")
+            # I1 — every required row is transformed or the page fails. A
+            # malformed contact must never be logged-and-skipped while the
+            # watermark advances past it: that is permanent silent omission.
             leads: list[CanonicalLead] = []
-            for row in rows:
-                if isinstance(row, dict):
-                    try:
-                        leads.append(contact_to_canonical(row))
-                    except CrmAdapterError:
-                        _logger.warning("Skipping malformed VanillaSoft contact", exc_info=True)
+            for index, row in enumerate(rows):
+                if not isinstance(row, dict):
+                    raise CrmAdapterError(f"Contact row {index} is {type(row).__name__}, expected object")
+                leads.append(contact_to_canonical(row))
             batch_end = None
             partial = False
             if isinstance(payload, dict):
@@ -198,7 +218,16 @@ class VanillaSoftAdapter:
             if not rows or not partial:
                 break
             if not batch_end:
+                # Partial fulfilment with no cursor: stop rather than refetch the
+                # same page forever. The committed watermark is still honest —
+                # it names only what was persisted — so the next run resumes here.
+                _logger.warning("VanillaSoft reported partial fulfillment without batch_end at cursor %r", cursor)
                 break
+            # `batch_end` is an ordered ISO-8601 UTC timestamp, so forward
+            # progress is checkable directly; a non-advancing partial page would
+            # otherwise loop forever re-reading the same rows.
+            if str(batch_end) <= str(cursor):
+                raise CrmAdapterError(f"Contact pagination failed to advance: {cursor!r} -> {batch_end!r}")
             cursor = str(batch_end)
 
     def get_contact(self, external_id: str) -> CanonicalLead | None:
@@ -239,12 +268,10 @@ class VanillaSoftAdapter:
             )
             rows = _extract_list(payload, "call_histories", "call_history", "CallHistory", "calls", "data", "results")
             batch: list[CanonicalCall] = []
-            for row in rows:
+            for index, row in enumerate(rows):
                 if not isinstance(row, dict):
-                    continue
-                call = call_to_canonical(row)
-                if call:
-                    batch.append(call)
+                    raise CrmAdapterError(f"Call row {index} is {type(row).__name__}, expected object")
+                batch.append(call_to_canonical(row))
             if batch:
                 yield batch
             if not rows or len(rows) < page_limit:
@@ -266,12 +293,10 @@ class VanillaSoftAdapter:
         if isinstance(payload, list):
             rows = payload
         batch: list[CanonicalCall] = []
-        for row in rows:
+        for index, row in enumerate(rows):
             if not isinstance(row, dict):
-                continue
-            call = call_to_canonical(row)
-            if call:
-                batch.append(call)
+                raise CrmAdapterError(f"Call row {index} is {type(row).__name__}, expected object")
+            batch.append(call_to_canonical(row))
         if batch:
             yield batch
 
@@ -279,6 +304,8 @@ class VanillaSoftAdapter:
         try:
             tables_payload = self.client.get_custom_tables_list(self.project_id)
         except CrmAdapterError:
+            if CUSTOM_TABLES_REQUIRED:
+                raise
             _logger.warning("Custom tables list failed for project %s", self.project_id)
             return
         tables = _extract_list(tables_payload, "custom_tables", "CustomTables", "tables", "data")
@@ -287,6 +314,8 @@ class VanillaSoftAdapter:
             try:
                 data = self.client.get_custom_table_data(contact_external_id)
             except CrmAdapterError:
+                if CUSTOM_TABLES_REQUIRED:
+                    raise
                 return
             yield from self._rows_from_payload(contact_external_id, "0", "default", data)
             return
@@ -300,6 +329,8 @@ class VanillaSoftAdapter:
             try:
                 data = self.client.get_custom_table_data(contact_external_id, table_id=tid)
             except CrmAdapterError:
+                if CUSTOM_TABLES_REQUIRED:
+                    raise
                 _logger.warning(
                     "Custom table fetch failed contact=%s table=%s",
                     contact_external_id,
