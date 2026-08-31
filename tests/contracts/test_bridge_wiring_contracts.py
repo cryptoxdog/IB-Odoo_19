@@ -19,11 +19,17 @@ class TestIntakeBridgeWiring(PlasticosTestCase):
         cls.fields = cls.env["plasticos.intake"]._fields
 
     def test_normalizer_fields_present(self):
-        """plasticos_intake_normalizer adds these via intake_normalizer.py."""
+        """plasticos_intake_normalizer adds these via intake_normalizer.py.
+
+        match_status was previously contributed by plasticos_buyer_match_engine's
+        intake_extension.py; that module was retired in M7 / TASK-051 and the
+        normalizer now owns the field.
+        """
         normalizer_fields = [
             "normalized",
             "normalized_date",
             "normalizer_config_id",
+            "match_status",
         ]
         for fname in normalizer_fields:
             self.assertIn(
@@ -45,16 +51,6 @@ class TestIntakeBridgeWiring(PlasticosTestCase):
             self.fields,
             "offer_ids missing — is plasticos_offer installed?",
         )
-
-    def test_match_engine_fields_present(self):
-        """plasticos_buyer_match_engine adds fields via intake_extension.py."""
-        engine_fields = ["match_status"]
-        for fname in engine_fields:
-            self.assertIn(
-                fname,
-                self.fields,
-                f"Match engine field missing: {fname}. Is plasticos_buyer_match_engine installed?",
-            )
 
 
 @tagged("post_install", "-at_install", "contract")

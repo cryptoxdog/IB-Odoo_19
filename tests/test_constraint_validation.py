@@ -119,29 +119,31 @@ class TestConstraintValidation(PlasticosTestCase):
     def test_match_exclusion_same_partner_rejected(self):
         """Excluding a partner from itself raises ValidationError."""
         if "plasticos.match.exclusion" not in self.env:
-            return
+            self.skipTest("plasticos.match.exclusion not installed")
         Exclusion = self.env["plasticos.match.exclusion"]
-        with self.assertRaises((ValidationError, Exception)):
+        with self.assertRaises(ValidationError):
             Exclusion.create(
                 {
                     "supplier_partner_id": self.partner_a.id,
                     "buyer_partner_id": self.partner_a.id,
                     "exclusion_type": "permanent",
-                    "reason": "self-exclusion attempt",
+                    "reason": "other",
+                    "reason_notes": "self-exclusion attempt",
                 }
             )
 
     def test_match_exclusion_different_partners_accepted(self):
         """Different supplier/buyer is valid."""
         if "plasticos.match.exclusion" not in self.env:
-            return
+            self.skipTest("plasticos.match.exclusion not installed")
         Exclusion = self.env["plasticos.match.exclusion"]
         exc = Exclusion.create(
             {
                 "supplier_partner_id": self.partner_a.id,
                 "buyer_partner_id": self.partner_b.id,
                 "exclusion_type": "permanent",
-                "reason": "quality issues",
+                "reason": "qc_dispute",
+                "reason_notes": "quality issues",
             }
         )
         self.assertTrue(exc.id)

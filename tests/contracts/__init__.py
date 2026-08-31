@@ -1,20 +1,18 @@
 # Contract tests package. Imports are optional so pure-Python parity tests can
 # collect without an Odoo runtime (CI / local harness).
+#
+# Discovery is by filesystem scan rather than a hardcoded list: the previous
+# _MODULES list omitted every pure-Python contract module added since it was
+# written (test_no_local_intelligence, test_external_intelligence_authority,
+# test_external_intelligence_contract_parity, test_field_family_cutover_contract,
+# test_odoo_dual_write_contract).
 
 from __future__ import annotations
 
 import importlib
+import os
 
-_MODULES = [
-    "test_intake_contracts",
-    "test_transaction_contracts",
-    "test_partner_contracts",
-    "test_crm_lead_contracts",
-    "test_selection_contracts",
-    "test_bridge_wiring_contracts",
-    "test_api_signature_contracts",
-    "test_computed_field_deps",
-]
+_HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def _try_import(name: str) -> None:
@@ -24,5 +22,5 @@ def _try_import(name: str) -> None:
         return
 
 
-for _mod in _MODULES:
+for _mod in sorted(n[:-3] for n in os.listdir(_HERE) if n.startswith("test_") and n.endswith(".py")):
     _try_import(_mod)

@@ -1,49 +1,33 @@
-# Central test pack for cross-module integration tests
+# Central test pack for cross-module integration tests.
 #
-# NOTE: Imports are wrapped in try/except to allow pure Python tests
-# to run without Odoo installed (e.g., in CI without Odoo runtime).
+# Odoo imports the package when the test pack is loaded; a plain `pytest` run does
+# not (tests/conftest.py collect-ignores every Odoo-importing module instead). Both
+# paths must tolerate a missing Odoo runtime, so imports are soft.
+#
+# Module discovery is by filesystem scan, NOT a hand-maintained list. The previous
+# hardcoded _ODOO_TEST_MODULES / _PURE_PYTHON_MODULES pair had drifted badly: it
+# named 24 of the 47 modules actually present, and listed one file
+# (test_gate_matcher_fallback) that no longer exists. A list that must be edited
+# whenever a test is added will drift again; a scan cannot.
 
 import importlib
-import sys
+import os
 
-# List of test modules - only imported if odoo is available
-_ODOO_TEST_MODULES = [
-    "test_action_methods",
-    "test_bridge_contracts",
-    "test_bridge_models",
-    "test_constraint_validation",
-    "test_constraints_material_profile",
-    "test_constraints_onchanges",
-    "test_cron_batch_normalize",
-    "test_cron_plasticos_base",
-    "test_cron_runtime",
-    # test_depends_transaction_claims_bridge: deferred - plasticos.transaction.claim bridge not implemented
-    "test_error_handling",
-    "test_golden_flows",
-    "test_integration_flows",
-    "test_onchange_purchase_order_line_plasticos",
-    "test_onchange_sale_order_line_plasticos",
-    "test_performance",
-    "test_security_acl",
-    "test_state_machines",
-]
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_SUBPACKAGES = ("contracts", "integration")
 
-# Pure Python tests (no Odoo dependency)
-_PURE_PYTHON_MODULES = [
-    "test_cron_invariants",
-    "test_cypher_schema_alignment",
-    "test_odoo19_compat",
-    "test_odoo_test_setup_validity",
-    "test_phantom_enum_values",
-    "test_process_enum_alignment",
-]
+
+def _module_names() -> list[str]:
+    """Every test_*.py directly in this package, sorted."""
+    return sorted(name[:-3] for name in os.listdir(_HERE) if name.startswith("test_") and name.endswith(".py"))
 
 
 def _try_import(module_name: str) -> bool:
-    """Try to import a module, return True if successful.
+    """Import a submodule, returning False when its dependencies are unavailable.
 
-    Catches ImportError (missing deps), NameError (undefined symbols),
-    and AttributeError (missing attributes in imported modules).
+    Odoo-backed test modules raise ImportError under a pure-Python harness; that is
+    expected and non-fatal. NameError/AttributeError are also swallowed because a
+    partially-loaded Odoo registry can surface either.
     """
     try:
         importlib.import_module(f".{module_name}", __name__)
@@ -52,14 +36,8 @@ def _try_import(module_name: str) -> bool:
         return False
 
 
-# Always import pure Python tests
-for _mod in _PURE_PYTHON_MODULES:
+for _mod in _module_names():
     _try_import(_mod)
 
-# Only import Odoo tests if odoo is available
-if "odoo" in sys.modules or _try_import("test_action_methods"):
-    for _mod in _ODOO_TEST_MODULES[1:]:  # Skip first, already tried
-        _try_import(_mod)
-    # Import subpackages
-    _try_import("contracts")
-    _try_import("integration")
+for _pkg in _SUBPACKAGES:
+    _try_import(_pkg)

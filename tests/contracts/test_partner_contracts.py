@@ -9,7 +9,6 @@ res.partner is inherited by 8+ PlastOS modules:
   - plasticos_automation (contract_end_date, contract_alert_sent)
   - plasticos_intake (res_partner_intake.py)
   - plasticos_transaction (partner_bridge.py)
-  - plasticos_buyer_match_engine (facility_profile_graph_hooks.py)
 """
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase

@@ -70,8 +70,8 @@ class TestLoadStateMachineConsolidated(PlasticosTestCase):
         return self.env["plasticos.load"].create(
             {
                 "transaction_id": self.tx.id,
-                "origin_partner_id": self.supplier.id,
-                "destination_partner_id": self.buyer.id,
+                "pickup_partner_id": self.supplier.id,
+                "delivery_partner_id": self.buyer.id,
             }
         )
 
@@ -356,8 +356,8 @@ class TestClaimStateMachineConsolidated(PlasticosTestCase):
         return self.env["plasticos.claim"].create(
             {
                 "transaction_id": self.tx.id,
-                "case_type": "quality",
-                "summary": "SM Test Claim",
+                "case_type": "buyer_claim",
+                "description": "SM Test Claim",
             }
         )
 
