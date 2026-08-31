@@ -59,8 +59,8 @@ def build_converge_request(
 
     The partner snapshot becomes EIE ``entity``; ``object_type`` derives from
     the Odoo domain; ``max_passes`` maps to clamped ``max_variations``. The
-    Odoo entity id is preserved inside entity context (metadata), not as a
-    Gate-level transform.
+    Odoo entity id is carried on the entity itself (canonical ``id`` plus the
+    ``_odoo_entity_id`` compatibility alias), not as a Gate-level transform.
     """
     partner = run_rec.partner_id
     snapshot: dict[str, Any] = {}
@@ -74,7 +74,12 @@ def build_converge_request(
             snapshot["source_urls"] = urls
     odoo = build_odoo_context(env, model=run_rec._name, record_id=run_rec.id).to_dict()
     entity = dict(snapshot)
-    entity.setdefault("_odoo_entity_id", f"res.partner:{partner.id}")
+    # I6 — canonical cross-service identity is ``entity.id``. ``_odoo_entity_id``
+    # stays for compatibility with consumers that already read it; both carry
+    # the same value, and neither is a new identity scheme.
+    entity_id = f"res.partner:{partner.id}"
+    entity["id"] = entity_id
+    entity["_odoo_entity_id"] = entity_id
     return ConvergeRequest(
         entity=entity,
         object_type=str(domain) if domain else "Account",

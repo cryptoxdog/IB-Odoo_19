@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Gate Client",
-    "version": "19.0.1.2.0",
+    "version": "19.0.1.3.0",
     "category": "Plasticos/Integration",
     "summary": "Constellation Gate TransportPacket client seam for Odoo intelligence routing.",
     "author": "Igor Beylin",
