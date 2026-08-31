@@ -8,7 +8,7 @@ Golden flows represent the critical business paths that must always work:
 1. Lead → Intake → Offer → Transaction → Load → Delivery (full sales cycle)
 2. HOT web lead → AI triage → intake (automated lead processing)
 3. Transaction → claim → investigation → resolution (quality management)
-4. Offer → transaction → commission (revenue recognition)
+4. Transaction margin → commission → close-time lock (revenue recognition)
 """
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
@@ -285,86 +285,84 @@ class TestGoldenTransactionWithClaim(PlasticosTestCase):
 
 @tagged("post_install", "-at_install", "plasticos", "golden", "commission")
 class TestGoldenCommissionCalculation(PlasticosTestCase):
-    """Offer → transaction → commission record.
+    """Transaction → commission lock (revenue recognition).
 
-    This flow validates revenue recognition:
-    - Accepted offers create transactions
-    - Transactions generate commission records
-    - Commission amounts are calculated correctly
+    Architecture note (2026-08 reconciliation): this class previously targeted a
+    standalone ``plasticos.commission`` record model reached via ``offer.transaction_id``.
+    Neither exists. Commission is recorded ON the transaction — ``plasticos_commission/
+    models/transaction_commission.py`` (``_inherit = "plasticos.transaction"``) adds
+    ``commission_rule_id``, ``commission_locked``, ``commission_locked_amount``,
+    ``commission_override_pct`` and ``commission_payout_state``; per-rep aggregation
+    lives in ``plasticos.commission.payout``. ``plasticos.offer`` carries no
+    ``transaction_id``, so no offer→transaction assertion is made here.
 
-    NOTE: Deferred - plasticos.commission record model not yet implemented.
-    Currently only plasticos.commission.rule and plasticos.commission.service exist.
+    The flow validated: margin → commission computed by ``plasticos.commission.service``
+    → frozen at close by ``_apply_close``.
     """
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # Skip entire class - plasticos.commission model doesn't exist yet
-        # Only commission.rule and commission.service are implemented
-        raise cls.skipTest(cls, "plasticos.commission record model not implemented")
-        cls._skip_if_model_missing("plasticos.offer", "plasticos.commission")
-        cls.Offer = cls.env["plasticos.offer"]
-        cls.Comm = cls.env["plasticos.commission"]
-        cls.partner = cls._create_partner("Commission Buyer", customer_rank=1)
+        cls._skip_if_model_missing("plasticos.transaction", "plasticos.commission.service")
+        cls.Tx = cls.env["plasticos.transaction"]
+        cls.CommService = cls.env["plasticos.commission.service"]
+        cls.supplier = cls._create_partner("Commission Supplier", supplier_rank=1)
+        cls.buyer = cls._create_partner("Commission Buyer", customer_rank=1)
 
-    def test_commission_created_for_closed_deal(self):
-        """Accepted offer should generate commission record with positive amount."""
-        offer = self.Offer.create(
+    def _profitable_tx(self, revenue=10000.0, cost=8000.0):
+        return self.Tx.create(
             {
-                "buyer_partner_id": self.partner.id,
-                "price_per_lb": 0.25,
-                "total_lbs": 40000,
+                "supplier_id": self.supplier.id,
+                "buyer_id": self.buyer.id,
+                "revenue_total": revenue,
+                "purchase_cost_total": cost,
             }
         )
 
-        # Progress through offer lifecycle
-        if hasattr(offer, "action_send"):
-            offer.action_send()
-        if hasattr(offer, "action_accept"):
-            offer.action_accept()
+    def test_commission_fields_live_on_transaction(self):
+        """The commission contract is carried by plasticos.transaction itself."""
+        for fname in (
+            "commission_rule_id",
+            "commission_locked",
+            "commission_locked_amount",
+            "commission_override_pct",
+            "commission_payout_state",
+            "commission_amount",
+        ):
+            self.assertIn(fname, self.Tx._fields, f"plasticos.transaction missing {fname}")
 
-        tx = offer.transaction_id if hasattr(offer, "transaction_id") else None
-        self.assertTrue(tx, "Accepted offer should create a transaction")
+    def test_commission_positive_on_profitable_deal(self):
+        """A transaction with positive gross margin earns a positive commission."""
+        tx = self._profitable_tx()
+        self.assertGreater(tx.gross_margin, 0.0)
+        self.assertGreater(tx.commission_amount, 0.0, "Profitable deal should earn commission")
 
-        # Find commission records
-        domain = []
-        if "transaction_id" in self.Comm._fields:
-            domain.append(("transaction_id", "=", tx.id))
-        elif "offer_id" in self.Comm._fields:
-            domain.append(("offer_id", "=", offer.id))
+    def test_commission_never_exceeds_gross_margin(self):
+        """Commission is a share of margin, never larger than the margin itself."""
+        tx = self._profitable_tx()
+        self.assertLessEqual(tx.commission_amount, tx.gross_margin)
+        self.assertAlmostEqual(tx.net_margin, tx.gross_margin - tx.commission_amount, places=2)
 
-        commissions = self.Comm.search(domain) if domain else self.Comm.browse()
-        self.assertTrue(commissions, "Closed deal should produce commission record")
+    def test_no_commission_on_non_positive_margin(self):
+        """Zero or negative gross margin earns zero commission."""
+        tx = self._profitable_tx(revenue=5000.0, cost=5000.0)
+        self.assertLessEqual(tx.gross_margin, 0.0)
+        self.assertEqual(tx.commission_amount, 0.0)
 
-        for comm in commissions:
-            if "amount" in comm._fields:
-                self.assertGreater(comm.amount, 0.0, "Commission amount should be positive")
+    def test_close_freezes_commission_at_locked_amount(self):
+        """_apply_close locks commission; later margin changes do not move it."""
+        tx = self._profitable_tx()
+        expected = self.CommService.compute_commission(tx)
 
-    def test_commission_calculation_accuracy(self):
-        """Commission amount should be calculated based on deal value."""
-        offer = self.Offer.create(
-            {
-                "buyer_partner_id": self.partner.id,
-                "price_per_lb": 0.50,
-                "total_lbs": 20000,  # $10,000 deal value
-            }
+        self.Tx._apply_close(tx)
+        self.assertTrue(tx.commission_locked)
+        self.assertAlmostEqual(tx.commission_locked_amount, expected, places=2)
+        self.assertAlmostEqual(tx.commission_amount, expected, places=2)
+
+        tx.with_context(bypass_state_guard=True).write({"revenue_total": 99000.0})
+        self.assertAlmostEqual(
+            tx.commission_amount,
+            expected,
+            places=2,
+            msg="Locked commission must not recompute after close",
         )
-
-        if hasattr(offer, "action_send"):
-            offer.action_send()
-        if hasattr(offer, "action_accept"):
-            offer.action_accept()
-
-        tx = offer.transaction_id if hasattr(offer, "transaction_id") else None
-        if not tx:
-            self.skipTest("Transaction not created from offer")
-
-        # Verify commission exists and is reasonable
-        domain = [("transaction_id", "=", tx.id)] if "transaction_id" in self.Comm._fields else []
-        commissions = self.Comm.search(domain) if domain else self.Comm.browse()
-
-        if commissions and "amount" in self.Comm._fields:
-            total_commission = sum(c.amount for c in commissions)
-            # Commission should be some percentage of deal value (sanity check)
-            deal_value = 0.50 * 20000  # $10,000
-            self.assertLess(total_commission, deal_value, "Commission should be less than deal value")

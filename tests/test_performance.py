@@ -2,7 +2,6 @@
 
 Covers:
     - Bulk import (100+ records)
-    - Graph sync large batches
     - Cron execution time
     - Complex domain search performance
 
@@ -80,27 +79,12 @@ class TestBulkImportPerformance(PlasticosTestCase):
         self.assertLess(elapsed, 10.0)
 
 
-@tagged("post_install", "-at_install", "plasticos", "performance", "graph")
-class TestGraphSyncPerformance(PlasticosTestCase):
-    """Neo4j graph sync benchmarks."""
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls._skip_if_model_missing("plasticos.graph.service")
-        cls.GraphSvc = cls.env["plasticos.graph.service"]
-
-    def test_build_facility_payloads_under_5s(self):
-        start = time.time()
-        self.GraphSvc._build_facility_payloads()
-        elapsed = time.time() - start
-        self.assertLess(elapsed, 5.0, f"Payload build took {elapsed:.1f}s > 5s limit")
-
-    def test_build_material_payloads_under_5s(self):
-        start = time.time()
-        self.GraphSvc._build_material_payloads()
-        elapsed = time.time() - start
-        self.assertLess(elapsed, 5.0)
+# TestGraphSyncPerformance benchmarked plasticos.graph.service payload builders.
+# That model is in the mothball DISCARDABLE_CATALOG
+# (scripts/migrations/mothball_local_intelligence.py): the local Neo4j helper was
+# retired because CEG owns the graph. Odoo no longer builds graph payloads, so there
+# is no in-repo work left to benchmark — Gate egress latency is measured on the Gate
+# side, not here.
 
 
 class TestCronPerformance(PlasticosTestCase):

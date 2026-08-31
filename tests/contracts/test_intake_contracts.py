@@ -3,7 +3,7 @@
 Modules that inherit plasticos.intake:
   - plasticos_transaction (intake_bridge.py)
   - plasticos_offer (intake_offers_bridge.py)
-  - plasticos_buyer_match_engine (intake_graph_hooks.py, intake_extension.py)
+  - plasticos_matching (intake_extension.py — action_match_to_buyers override)
   - plasticos_intake_normalizer (intake_normalizer.py)
   - plasticos_geolocalize (intake_geo.py)
   - plasticos_web_leads (web_lead_bridge.py)
@@ -43,15 +43,15 @@ class TestIntakeFieldContract(PlasticosTestCase):
         self.assertIn("contact_id", self.fields)
         self.assertEqual(self.fields["contact_id"].comodel_name, "res.partner")
 
-    # ── Material fields (used by buyer_match_engine, normalizer) ──
+    # ── Material fields (used by plasticos_matching, normalizer) ──
     def test_polymer_id_exists(self):
         f = self.fields.get("polymer_id")
-        self.assertIsNotNone(f, "polymer_id missing — buyer_match_engine depends on it")
+        self.assertIsNotNone(f, "polymer_id missing — plasticos_matching depends on it")
         self.assertEqual(f.comodel_name, "plasticos.polymer")
 
     def test_form_id_exists(self):
         f = self.fields.get("form_id")
-        self.assertIsNotNone(f, "form_id missing — buyer_match_engine depends on it")
+        self.assertIsNotNone(f, "form_id missing — plasticos_matching depends on it")
         self.assertEqual(f.comodel_name, "plasticos.material.form")
 
     def test_color_id_exists(self):
@@ -212,7 +212,7 @@ class TestIntakeMethodContract(PlasticosTestCase):
     def test_action_reset_to_draft_exists(self):
         self.assertTrue(callable(getattr(self.Intake, "action_reset_to_draft", None)))
 
-    # ── Buyer matching (buyer_match_engine overrides this) ──
+    # ── Buyer matching (plasticos_matching overrides this) ──
     def test_action_match_to_buyers_exists(self):
         self.assertTrue(callable(getattr(self.Intake, "action_match_to_buyers", None)))
 
@@ -239,7 +239,7 @@ class TestIntakeMethodContract(PlasticosTestCase):
                 f"Missing navigation method: {method}",
             )
 
-    # ── Internal helpers (buyer_match_engine calls these) ──
+    # ── Internal helpers (plasticos_matching calls these) ──
     def test_create_material_profile_from_intake_exists(self):
         self.assertTrue(callable(getattr(self.Intake, "_create_material_profile_from_intake", None)))
 

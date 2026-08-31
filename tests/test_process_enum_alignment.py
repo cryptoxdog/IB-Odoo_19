@@ -5,7 +5,6 @@ Ensures all layers referencing process types stay in sync:
   2. facility_profile.py     (Odoo Selection field)
   3. material_profile.py     (Odoo Selection field)
   4. matcher.py              (Gate 9 MFI compatibility)
-  5. graph_service.py        (Cypher process-type scoring)
 
 Pattern follows test_form_enum_alignment.py from PR #23.
 """

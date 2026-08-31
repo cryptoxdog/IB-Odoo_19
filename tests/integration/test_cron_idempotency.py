@@ -20,7 +20,6 @@ Tested crons (from cron XML files in repo):
   - plasticos_claims: claim_cron
   - plasticos_logistics: cron
   - plasticos_enrichment: cron
-  - plasticos_buyer_match_engine: ir_cron_graph_sync
   - plasticos_transaction: audit_cron, cron_missing_docs
 """
 
@@ -86,9 +85,10 @@ class TestCronIdempotency(PlasticosTestCase):
     def test_enrichment_cron_idempotent(self):
         self._run_twice("plasticos.enrichment.run", "cron_run_enrichment")
 
-    # ── plasticos_buyer_match_engine ─────────────────────────
-    def test_graph_sync_cron_idempotent(self):
-        self._run_twice("plasticos.graph.sync.log", "cron_process_sync_queue")
+    # plasticos_buyer_match_engine's ir_cron_graph_sync (plasticos.graph.sync.log,
+    # cron_process_sync_queue) was retired with the module in M7 / TASK-051; the model
+    # is in the mothball DISCARDABLE_CATALOG. There is no local graph-sync cron left
+    # to prove idempotent — CEG owns the graph.
 
     # ── plasticos_transaction ────────────────────────────────
     def test_audit_cron_idempotent(self):
