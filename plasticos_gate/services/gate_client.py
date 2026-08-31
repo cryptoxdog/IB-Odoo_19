@@ -116,6 +116,7 @@ def send_action(
     payload: dict[str, Any],
     correlation_id: str | None = None,
     compliance_tags: tuple[str, ...] = (),
+    idempotency_key: str | None = None,
 ) -> dict[str, Any]:
     """Send a TransportPacket to Gate and return packet + payload dicts."""
     _require_sdk()
@@ -142,6 +143,12 @@ def send_action(
         correlation_id=correlation_id,
         classification="internal",
         compliance_tags=compliance_tags,
+        idempotency_key=idempotency_key,
+        # `send_to_gate` bounds the real HTTP call with config.timeout_seconds;
+        # `timeout_ms` is the budget advertised downstream. Deriving both from
+        # one config value stops the header promising 30 s while this caller
+        # actually waits for something else (the SDK default is a fixed 30000).
+        timeout_ms=int(float(config.timeout_seconds) * 1000),
     )
     try:
         response_packet = _run_async(client.send_to_gate(packet))
@@ -177,6 +184,7 @@ def send_converge_action(
     *,
     payload: dict[str, Any],
     correlation_id: str | None = None,
+    idempotency_key: str | None = None,
 ) -> dict[str, Any]:
     action = get_enrichment_action(env)
     return send_action(
@@ -185,4 +193,5 @@ def send_converge_action(
         payload=payload,
         correlation_id=correlation_id,
         compliance_tags=("ERP", "ENRICHMENT"),
+        idempotency_key=idempotency_key,
     )

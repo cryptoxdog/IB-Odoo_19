@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 from .gate_allowlists import INTAKE_SNAPSHOT_FIELD_MAP, PARTNER_SNAPSHOT_FIELD_MAP, WEB_LEAD_SEED_FIELD_MAP
@@ -36,6 +38,32 @@ def build_odoo_context(env, *, model: str, record_id: int) -> OdooContext:
         db_name=getattr(env.cr, "dbname", None),
         correlation_id=f"{model}:{record_id}",
     )
+
+
+def build_idempotency_key(payload: dict[str, Any], odoo_ctx: dict[str, Any]) -> str | None:
+    """Deterministic transport idempotency key for one converge attempt.
+
+    Keyed on the run's stable identity AND a digest of the exact payload, which
+    is what makes it correct rather than merely stable:
+
+    * a true replay of one attempt (network retry, double-submitted RPC) sends
+      byte-identical payload -> identical key -> Gate may safely dedupe it;
+    * ``action_retry_enrichment`` re-runs converge on the SAME run, and
+      ``build_converge_request`` re-reads the partner live each time, so a retry
+      after the partner was edited is a materially different request. Keying on
+      run identity alone would label those the same operation and could replay a
+      stale answer for changed input; the digest keeps them distinct.
+
+    Returns None when the run identity is unknown — an unidentifiable request is
+    left un-keyed rather than given a guessed one.
+    """
+    model = odoo_ctx.get("model")
+    record_id = odoo_ctx.get("record_id")
+    if not model or not record_id:
+        return None
+    db_name = odoo_ctx.get("db_name") or "db"
+    digest = hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode("utf-8")).hexdigest()[:16]
+    return f"odoo:{db_name}:{model}:{record_id}:{digest}"
 
 
 _MIN_VARIATIONS = 1
