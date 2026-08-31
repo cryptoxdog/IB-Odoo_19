@@ -41,8 +41,7 @@ from odoo.tests.common import tagged
 # plasticos.intake is inherited by 7 modules:
 #   - plasticos_transaction.models.intake_bridge (transaction_ids, transaction_count)
 #   - plasticos_offer.models.intake_offers_bridge (offer_ids, offer_count)
-#   - plasticos_buyer_match_engine.models.intake_graph_hooks (write override)
-#   - plasticos_buyer_match_engine.models.intake_extension (match_mode field)
+#   - plasticos_matching.models.intake_extension (action_match_to_buyers override)
 #   - plasticos_intake_normalizer.models.intake_normalizer (normalized, match_status, packet fields)
 #   - plasticos_geolocalize.models.intake_geo (lat, lon)
 #   - plasticos_matching (match_result_ids)

@@ -101,14 +101,17 @@ class TestIntakeToMatchToOffer(PlasticosTestCase):
         # Create offer from match
         if "plasticos.offer" in self.env:
             Offer = self.env["plasticos.offer"]
+            # NOTE: plasticos.offer carries no match_result_id — the field is disabled
+            # in plasticos_offer/models/offer.py (matching is an external Gate service),
+            # so the offer is linked to the match only through the shared intake.
             offer = Offer.create(
                 {
-                    "buyer_partner_id": self.buyer.id,
-                    "intake_id": intake.id if "intake_id" in Offer._fields else False,
-                    "match_result_id": mr.id if "match_result_id" in Offer._fields else False,
+                    "buyer_id": self.buyer.id,
+                    "intake_id": intake.id,
                 }
             )
             self.assertTrue(offer.exists())
+            self.assertEqual(offer.intake_id.id, mr.intake_id.id)
 
 
 # ═══════════════════════════════════════════════════════════════

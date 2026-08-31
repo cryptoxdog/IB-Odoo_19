@@ -130,9 +130,10 @@ class TestIntakeMaterialProfilePrefill(PlasticosTestCase):
             return
         MP = cls.env["plasticos.material.profile"]
         if cls.polymer and cls.form:
+            # No "name" key: plasticos.material.profile has no name field — its
+            # _rec_name is the computed display_name ("<polymer> <form>").
             cls.profile = MP.create(
                 {
-                    "name": "Test Profile",
                     "partner_id": cls.partner.id,
                     "polymer_id": cls.polymer.id,
                     "form_id": cls.form.id,

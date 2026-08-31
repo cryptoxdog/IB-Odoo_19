@@ -109,7 +109,7 @@ pytest tests/test_phantom_enum_values.py -v
 pytest tests/test_repo_dependency_integrity.py -v
 
 # Meta tests (validate test suite structure)
-pytest tests/tests_init.py -v
+pytest tests/test_suite_structure.py -v
 ```
 
 ---
