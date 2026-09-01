@@ -43,6 +43,8 @@ Webhook fetches the full contact via API, upserts `crm.lead`, and pulls custom t
 
 ## Initial population — manual full import (Odoo shell)
 
+> End-to-end test procedure before you run this against real data: [`CRM_SYNC_FULL_IMPORT_E2E.md`](CRM_SYNC_FULL_IMPORT_E2E.md).
+
 `run_connection` is a rolling catch-up: contacts are clamped to the list API's
 30-day lookback and calls to a 7-day window. On a fresh database that produces a
 partial CRM, not a populated one. `SyncOrchestrator.run_full_import` is the
