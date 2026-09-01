@@ -14,6 +14,19 @@ class CrmLeadSync(models.Model):
         "lead_id",
         string="CRM Custom Table Rows",
     )
+    vanillasoft_sync_archived = fields.Boolean(
+        string="Archived by VanillaSoft Sync",
+        default=False,
+        copy=False,
+        index=True,
+        help=(
+            "Provenance flag: set when CRM sync archived this lead because VanillaSoft "
+            "reported the contact deleted. Only a lead carrying this flag is reactivated "
+            "when VanillaSoft later reports the contact active again — a lead an Odoo user "
+            "archived for their own reasons never carries it, so sync never reopens it. "
+            "Existing rows get the conservative default False on upgrade."
+        ),
+    )
     crm_call_event_count = fields.Integer(compute="_compute_crm_sync_counts")
     crm_table_row_count = fields.Integer(compute="_compute_crm_sync_counts")
 
