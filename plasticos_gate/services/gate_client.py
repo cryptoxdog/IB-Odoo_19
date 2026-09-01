@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import threading
 from enum import StrEnum
 from typing import Any
@@ -15,16 +16,46 @@ from .gate_config import (
     resolve_tenant,
 )
 
+_logger = logging.getLogger(__name__)
+
 # The SDK is optional at import time (Odoo.sh installs it via requirements.txt;
-# bare dev environments may lack it). Bind the two entry points as `Any` so the
+# bare dev environments may lack it). Bind the entry point as `Any` so the
 # guard assignments below are type-safe under mypy.
 GateClient: Any = None
-create_transport_packet: Any = None
 _SDK_IMPORT_ERROR: Exception | None = None
 try:
-    from constellation_node_sdk import GateClient, create_transport_packet  # type: ignore[no-redef]  # noqa: F811
+    from constellation_node_sdk import GateClient  # type: ignore[no-redef]  # noqa: F811
 except Exception as exc:  # pragma: no cover
     _SDK_IMPORT_ERROR = exc
+
+# Typed transport failures, feature-detected on purpose: an SDK predating the
+# taxonomy leaves these tuples empty and classification falls back to the token
+# classifier below. That fallback is precisely why the token classifier stays —
+# it also still covers non-SDK exceptions (httpx, asyncio) that reach us raw.
+_RETRYABLE_SDK_ERRORS: tuple[type[BaseException], ...] = ()
+_PERMANENT_SDK_ERRORS: tuple[type[BaseException], ...] = ()
+_GateHTTPError: Any = None
+try:
+    from constellation_node_sdk import (
+        GateConfigurationError,
+        GateConnectionError,
+        GateHTTPError,
+        GatePolicyError,
+        GateResponseError,
+        GateSecurityError,
+        GateTimeoutError,
+    )
+
+    _RETRYABLE_SDK_ERRORS = (GateTimeoutError, GateConnectionError)
+    _PERMANENT_SDK_ERRORS = (
+        GateConfigurationError,
+        GatePolicyError,
+        GateResponseError,
+        GateSecurityError,
+    )
+    _GateHTTPError = GateHTTPError
+except Exception as exc:  # pragma: no cover - SDK without the typed taxonomy
+    _logger.debug("constellation_node_sdk typed error taxonomy unavailable: %s", exc)
 
 
 class TransportFailureClass(StrEnum):
@@ -77,16 +108,48 @@ def classify_transport_failure(exc: BaseException) -> TransportFailureClass:
     return TransportFailureClass.UNKNOWN
 
 
+def classify_gate_failure(exc: BaseException) -> TransportFailureClass:
+    """Classify a Gate failure: SDK typed errors first, token heuristics second.
+
+    The SDK owns the transport, so it knows what failed better than any string
+    match can. `classify_transport_failure` stays as the fallback for two live
+    cases: an SDK predating the typed taxonomy, and non-SDK exceptions that
+    reach us raw (httpx, asyncio) before the SDK can wrap them.
+    """
+    if _RETRYABLE_SDK_ERRORS and isinstance(exc, _RETRYABLE_SDK_ERRORS):
+        return TransportFailureClass.RETRYABLE
+    if _GateHTTPError is not None and isinstance(exc, _GateHTTPError):
+        # `is_client_error` / `is_server_error` are properties, not methods.
+        if exc.is_server_error:
+            return TransportFailureClass.RETRYABLE
+        if exc.is_client_error:
+            return TransportFailureClass.PERMANENT
+        return TransportFailureClass.UNKNOWN
+    if _PERMANENT_SDK_ERRORS and isinstance(exc, _PERMANENT_SDK_ERRORS):
+        return TransportFailureClass.PERMANENT
+    return classify_transport_failure(exc)
+
+
 def _require_sdk() -> None:
-    if GateClient is None or create_transport_packet is None:
+    if GateClient is None:
         raise GateIntegrationError(
             f"constellation_node_sdk not installed: {_SDK_IMPORT_ERROR}",
+            failure_class=TransportFailureClass.PERMANENT.value,
+        )
+    if not hasattr(GateClient, "execute"):
+        # Fail closed and legibly rather than as an AttributeError deep in the
+        # call: this bridge requires the SDK release where GateClient owns
+        # TransportPacket construction.
+        raise GateIntegrationError(
+            "constellation_node_sdk is too old: GateClient.execute() is required "
+            "(the SDK owns TransportPacket construction). Bump the "
+            "constellation-node-sdk pin in requirements.txt.",
             failure_class=TransportFailureClass.PERMANENT.value,
         )
 
 
 def _run_async(coro):
-    """Bridge async GateClient.send_to_gate for synchronous Odoo workers."""
+    """Bridge async GateClient.execute for synchronous Odoo workers."""
     try:
         asyncio.get_running_loop()
     except RuntimeError:
@@ -118,7 +181,11 @@ def send_action(
     compliance_tags: tuple[str, ...] = (),
     idempotency_key: str | None = None,
 ) -> dict[str, Any]:
-    """Send a TransportPacket to Gate and return packet + payload dicts."""
+    """Execute one action through Gate and return response packet + payload dicts.
+
+    Odoo supplies business inputs only. The SDK builds and owns the
+    TransportPacket; this bridge never constructs one.
+    """
     _require_sdk()
     config = build_gate_client_config(env)
     client = GateClient(config)
@@ -133,27 +200,28 @@ def send_action(
         "org_id": tenant,
         "user_id": str(user.id) if user and user.id else None,
     }
-    packet = create_transport_packet(
-        action=action,
-        payload=payload,
-        tenant=tenant_ctx,
-        source_node=local_node,
-        destination_node="gate",
-        reply_to=local_node,
-        correlation_id=correlation_id,
-        classification="internal",
-        compliance_tags=compliance_tags,
-        idempotency_key=idempotency_key,
-        # `send_to_gate` bounds the real HTTP call with config.timeout_seconds;
-        # `timeout_ms` is the budget advertised downstream. Deriving both from
-        # one config value stops the header promising 30 s while this caller
-        # actually waits for something else (the SDK default is a fixed 30000).
-        timeout_ms=int(float(config.timeout_seconds) * 1000),
-    )
     try:
-        response_packet = _run_async(client.send_to_gate(packet))
+        # Odoo names the intent and hands over the domain payload; the SDK owns
+        # every transport mechanic — root packet, Gate destination, source and
+        # reply-to identity (from config.local_node), deadline translation,
+        # signing, HTTP, and response validation. Odoo never names a destination.
+        response_packet = _run_async(
+            client.execute(
+                action=action,
+                payload=payload,
+                tenant=tenant_ctx,
+                correlation_id=correlation_id,
+                classification="internal",
+                compliance_tags=compliance_tags,
+                idempotency_key=idempotency_key,
+                # One validated budget, one config object: `execute` writes this
+                # into the packet header AND derives the network deadline from
+                # that same header, so advertised and actual cannot diverge.
+                timeout_ms=int(float(config.timeout_seconds) * 1000),
+            )
+        )
     except Exception as exc:
-        failure = classify_transport_failure(exc)
+        failure = classify_gate_failure(exc)
         # Timeout exceptions stringify to nothing: measured against a real Gate
         # transport, an exhausted caller budget raises httpx `ConnectTimeout`
         # with `str(exc) == ""` (asyncio.TimeoutError and builtin TimeoutError
@@ -161,9 +229,9 @@ def send_action(
         # the caller budget makes it an expected outcome, yet the operator saw
         # "Gate enrichment failed (retryable): " and the run stored
         # validation_issues=[""] — the classification was right and the reason
-        # was blank. classify_transport_failure already reads the type name;
-        # carrying it into the message keeps the durable record diagnosable
-        # without changing classification.
+        # was blank. classify_gate_failure already reads the type name (via the
+        # typed taxonomy, or the token fallback); carrying it into the message
+        # keeps the durable record diagnosable without changing classification.
         detail = str(exc) or type(exc).__name__
         raise GateIntegrationError(detail, failure_class=failure.value) from exc
     packet_k, payload_k, failure_k = "packet", "payload", "failure_class"

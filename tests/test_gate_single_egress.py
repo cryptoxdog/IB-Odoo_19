@@ -7,8 +7,12 @@ second egress path is introduced anywhere in the addon tree:
 1. ``constellation_node_sdk`` imported outside ``plasticos_gate``.
 2. ``plasticos.gate.url`` read outside ``plasticos_gate`` (a direct HTTP
    client pointed at the Gate would need the URL).
-3. SDK transport primitives (``GateClient(``, ``create_transport_packet(``,
-   ``send_to_gate``) referenced outside the canonical bridge module.
+3. SDK transport primitives (``GateClient(``, ``send_to_gate``) referenced
+   outside the canonical bridge module.
+4. ``create_transport_packet(`` referenced ANYWHERE in the addon tree,
+   including the bridge. Since the SDK grew ``GateClient.execute()``, packet
+   construction belongs to the SDK; Odoo supplies an action and a payload and
+   never builds a TransportPacket itself.
 """
 
 from __future__ import annotations
@@ -28,7 +32,9 @@ _BRIDGE_CONFIG = _BRIDGE_DIR / "services" / "gate_config.py"
 
 _SDK_IMPORT_RE = re.compile(r"^\s*(?:from|import)\s+constellation_node_sdk\b", re.MULTILINE)
 _GATE_URL_RE = re.compile(r"plasticos\.gate\.url")
-_TRANSPORT_RE = re.compile(r"GateClient\(|create_transport_packet\(|send_to_gate")
+_TRANSPORT_RE = re.compile(r"GateClient\(|send_to_gate")
+# Packet construction is the SDK's, everywhere — the bridge included.
+_PACKET_BUILD_RE = re.compile(r"create_transport_packet\(")
 
 
 def _py_files(base: Path):
@@ -77,8 +83,27 @@ def test_transport_primitives_only_in_gate_client():
             if _TRANSPORT_RE.search(path.read_text(encoding="utf-8", errors="replace")):
                 offenders.append(_rel(path))
     assert not offenders, (
-        "Gate transport primitives (GateClient/create_transport_packet/send_to_gate) "
+        "Gate transport primitives (GateClient/send_to_gate) "
         f"used outside the canonical bridge — single-egress violation in: {offenders}."
+    )
+
+
+def test_odoo_never_builds_a_transport_packet():
+    """TransportPacket construction is the SDK's, including inside the bridge.
+
+    The bridge calls ``GateClient.execute(action=..., payload=...)``; the SDK
+    builds the root packet, forces the Gate destination, and owns the deadline.
+    A reappearance of ``create_transport_packet(`` anywhere in the addon tree
+    means Odoo has taken transport ownership back.
+    """
+    offenders = []
+    for module_dir in _SCAN_DIRS:
+        for path in _py_files(module_dir):
+            if _PACKET_BUILD_RE.search(path.read_text(encoding="utf-8", errors="replace")):
+                offenders.append(_rel(path))
+    assert not offenders, (
+        "create_transport_packet( found in the addon tree — Odoo must not build "
+        f"TransportPackets; call GateClient.execute() instead. Offenders: {offenders}."
     )
 
 

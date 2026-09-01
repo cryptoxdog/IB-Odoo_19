@@ -3,7 +3,8 @@
 The rail this pins:
 
     Odoo build_converge_request
-      -> Gate_SDK create_transport_packet (action="converge")
+      -> Gate_SDK GateClient.execute(action="converge", payload=...)
+         (the SDK builds the TransportPacket; Odoo never does)
       -> Constellation.Gate
       -> EIE canonical EnrichRequest handler
       -> EnrichResponse
@@ -17,6 +18,7 @@ specific way the contract previously drifted, or could drift back.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import sys
@@ -175,8 +177,18 @@ def test_gate_client_holds_no_eie_peer_address():
 
 
 def test_destination_node_is_gate():
+    """Gate is the only destination — now enforced by NOT naming one at all.
+
+    Before the SDK owned packet construction, Odoo passed
+    ``destination_node="gate"`` explicitly and this asserted that literal. The
+    invariant is stronger post-migration: the bridge names no destination
+    whatsoever (it cannot address a peer even by mistake), and the config pins
+    the only destination the SDK will accept.
+    """
     src = (ROOT / "plasticos_gate" / "services" / "gate_client.py").read_text(encoding="utf-8")
-    assert 'destination_node="gate"' in src
+    assert "destination_node" not in src, "the bridge must not name a destination; Gate routing is the SDK's"
+    config_src = (ROOT / "plasticos_gate" / "services" / "gate_config.py").read_text(encoding="utf-8")
+    assert 'allowed_gate_destination="gate"' in config_src
 
 
 # ── PATCH 9 — canonical EnrichResponse consumption ────────────────────────
@@ -314,27 +326,53 @@ def test_idempotency_key_ignores_dict_insertion_order():
 
 
 def test_packet_is_built_by_the_sdk_with_the_canonical_action():
-    """Observable behaviour through the SDK-facing adapter; no SDK internals here."""
+    """The SDK builds the packet from business inputs; Odoo supplies no transport.
+
+    Previously this test called ``create_transport_packet`` itself, which meant
+    it asserted a packet Odoo built. Odoo no longer builds one: the contract is
+    now that ``GateClient.execute(action=..., payload=...)`` produces the same
+    canonical header from business inputs alone. We capture the packet the SDK
+    constructs by stubbing the one transport method underneath ``execute``.
+    """
     sdk = pytest.importorskip(
         "constellation_node_sdk",
         reason="Gate SDK is an Odoo.sh runtime dependency; absent from the pure-Python tier",
     )
+    if not hasattr(sdk.GateClient, "execute"):
+        pytest.skip(
+            "installed constellation_node_sdk predates GateClient.execute(); "
+            "bump the constellation-node-sdk pin in requirements.txt"
+        )
     payload = _payload()
     ctx = _ctx()
-    packet = sdk.create_transport_packet(
-        action="converge",
-        payload=payload,
-        tenant={"actor": "plasticos", "org_id": "plasticos"},
-        source_node="odoo",
-        destination_node="gate",
-        reply_to="odoo",
-        correlation_id=ctx["correlation_id"],
-        classification="internal",
-        compliance_tags=("ERP", "ENRICHMENT"),
-        idempotency_key=build_idempotency_key(payload, ctx),
-        timeout_ms=30_000,
+
+    captured = {}
+
+    async def _capture(self, packet):
+        captured["packet"] = packet
+        return packet
+
+    client = sdk.GateClient(sdk.GateClientConfig(gate_url="https://gate.invalid", local_node="odoo"))
+    # Stub the single transport method `execute` delegates to. Everything above
+    # it — packet construction, destination, identity, deadline — still runs.
+    client.send_to_gate = _capture.__get__(client, type(client))
+    asyncio.run(
+        client.execute(
+            action="converge",
+            payload=payload,
+            tenant={"actor": "plasticos", "org_id": "plasticos"},
+            correlation_id=ctx["correlation_id"],
+            classification="internal",
+            compliance_tags=("ERP", "ENRICHMENT"),
+            idempotency_key=build_idempotency_key(payload, ctx),
+            timeout_ms=30_000,
+        )
     )
+    packet = captured["packet"]
     header = packet.model_dump()["header"]
+    # The SDK, not Odoo, chose these: Gate is the only destination it will emit.
+    assert header["destination_node"] == "gate"
+    assert header["source_node"] == "odoo"
     assert header["action"] == "converge"
     assert header["correlation_id"] == f"plasticos.enrichment.run:{RUN_ID}"
     assert header["timeout_ms"] == 30_000
@@ -423,12 +461,17 @@ def test_packet_budget_is_derived_from_the_same_validated_value():
     """The HTTP budget and the advertised packet budget read one config object.
 
     `send_action` builds the config once and uses `config.timeout_seconds` for
-    both `GateClient(config)` and `timeout_ms`; there is no second parse and no
-    literal, so the two cannot diverge through the supported builder path.
+    both `GateClient(config)` and the `timeout_ms` passed to `execute`; there is
+    no second parse and no literal, so the two cannot diverge through the
+    supported builder path. Post-migration the SDK tightens this further: it
+    derives the network deadline from the same header value it advertises.
     """
     src = (ROOT / "plasticos_gate" / "services" / "gate_client.py").read_text(encoding="utf-8")
     assert "timeout_ms=int(float(config.timeout_seconds) * 1000)" in src
     assert "GateClient(config)" in src
+    # The budget is handed to the SDK entry point, not to a hand-built packet.
+    assert "client.execute(" in src
+    assert "create_transport_packet" not in src
     # No second, unvalidated read of the ICP timeout anywhere in the client.
     assert "plasticos.gate.timeout_seconds" not in src
 
