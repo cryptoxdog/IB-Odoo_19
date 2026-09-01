@@ -15,6 +15,7 @@ Gate definitions and status: [`docs/runbooks/LAUNCH_GATES.md`](../../docs/runboo
 | `run_c3_failure_writer_lock.py` | C3 failure writer cannot self-block (includes a hazard check proving the lock is real) |
 | `run_c6_replay_checkpoint.py` | C6 replay resumes from the durable watermark, no duplicates, monotonic watermark, per-run counters |
 | `run_c7_c8_enrichment_failures.py` | C7 Gate disabled · C8 Gate transport failure — durability across RPC rollback, partner untouched, caller budget honoured |
+| `run_f1_f3_full_import.py` | F1 full import → incremental handoff, no duplicate identities · F2 census verdict and fail-closed floors · F3 delete/restore provenance |
 
 ```bash
 for f in tests/runtime_gates/run_*.py; do

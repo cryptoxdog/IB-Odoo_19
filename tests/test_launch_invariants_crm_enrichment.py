@@ -378,6 +378,52 @@ def test_run_connection_owns_the_advisory_lock():
     assert "self._advisory_unlock" in calls
 
 
+# ── I2 / I3 / I5 apply to the full import's envelope too ───────────────────
+#
+# `run_full_import` carries its own copy of the envelope rather than wrapping
+# `run_connection`, because the ordering asserted above is the property that
+# silently regresses when someone factors the two together. So it is asserted
+# on both.
+
+
+def test_full_import_creates_the_audit_row_before_the_first_adapter_call():
+    calls = _calls(_function(ORCHESTRATOR, "run_full_import"))
+    assert calls.index("self._create_sync_run_durable") < calls.index("adapter.healthcheck")
+
+
+def test_full_import_rolls_back_before_opening_the_failure_cursor():
+    calls = _calls(_function(ORCHESTRATOR, "run_full_import"))
+    assert "self.env.cr.rollback" in calls
+    assert calls.index("self.env.cr.rollback") < calls.index("self._persist_sync_failure_durable")
+
+
+def test_full_import_does_not_flush_before_the_failure_cursor():
+    src = ast.dump(_function(ORCHESTRATOR, "run_full_import"))
+    for forbidden in ("flush_recordset", "flush_model", "'flush'"):
+        assert forbidden not in src, f"{forbidden} re-creates the row lock the rollback just released"
+
+
+def test_full_import_owns_the_advisory_lock():
+    calls = _calls(_function(ORCHESTRATOR, "run_full_import"))
+    assert "self._try_advisory_lock" in calls
+    assert "self._advisory_unlock" in calls
+
+
+def test_full_import_validates_every_bound_before_taking_the_lock():
+    """An unusable floor must not leave a lock, an audit row or a partial run
+    behind for an operator to interpret."""
+    calls = _calls(_function(ORCHESTRATOR, "run_full_import"))
+    assert calls.index("self._require_utc_bound") < calls.index("self._try_advisory_lock")
+
+
+def test_full_import_captures_the_boundary_before_enumerating_contacts():
+    """A boundary taken after enumeration would leave the bootstrap's own
+    duration uncovered by either phase."""
+    fn = _function(ORCHESTRATOR, "run_full_import")
+    src = ast.unparse(fn)
+    assert src.index("boundary = datetime.now(UTC)") < src.index("bootstrap_contacts = self._sync_contacts")
+
+
 def test_cron_no_longer_carries_its_own_duplicate_lock():
     """One critical section, so cron and the manual button exclude each other."""
     src = CONNECTION.read_text(encoding="utf-8")
