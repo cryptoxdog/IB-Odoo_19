@@ -86,3 +86,159 @@ def test_bridge_module_exists():
     """Guard the guard: the canonical bridge file must exist where documented."""
     assert _BRIDGE_CLIENT.is_file(), "plasticos_gate/services/gate_client.py missing"
     assert _BRIDGE_CONFIG.is_file(), "plasticos_gate/services/gate_config.py missing"
+
+
+# ── ADR-014 — architecture boundary guards are release gates ──────────────
+#
+# The tests above prove Gate traffic has ONE egress module. These prove that
+# module is an SDK *consumer* rather than a second Gate SDK: no Odoo-owned
+# HTTP, hashing, signing, transport validation, retry, or peer routing anywhere
+# in production code (pack ADR-001/ADR-013/ADR-016).
+
+# Transport primitives Gate_SDK owns. Odoo must not implement or call these:
+# hashing, signing, packet validation, hop/lineage construction.
+_SDK_OWNED_TRANSPORT_RE = re.compile(
+    r"\b("
+    r"compute_transport_hash|compute_payload_hash|recompute_transport_core|"
+    r"sign_transport_packet|verify_transport_packet_signature|"
+    r"validate_transport_packet|validate_derived_transport_packet|"
+    r"validate_outbound_gate_packet|canonical_json|"
+    r"TransportHop\(|TransportLineage\(|TransportSecurity\(|TransportHeader\("
+    r")"
+)
+
+# Direct HTTP *to Gate*. `/v1/execute` is Gate's own ingress path; an Odoo
+# module naming it is by construction a second transport.
+#
+# Scope note: this deliberately does NOT forbid outbound HTTP generally. Odoo
+# legitimately calls third parties that are not constellation nodes (the
+# VanillaSoft CRM adapter, an LLM endpoint, lead image fetches). The contract
+# prohibits a second *Gate* transport and any peer-worker address — not every
+# socket Odoo opens. Widening this guard to all HTTP would fail on unrelated
+# CRM modules and push the scope of a shadow-SDK removal into places it does
+# not belong.
+_GATE_INGRESS_RE = re.compile(r"/v1/(?:execute|health)\b")
+_ANY_HTTP_RE = re.compile(
+    r"(httpx\.(?:post|get|request|stream|AsyncClient|Client)|"
+    r"requests\.(?:post|get|request|Session)|urllib\.request|http\.client)"
+)
+
+# Peer worker addresses. Odoo may know Gate; it must never know EIE (ADR-002).
+_PEER_ADDRESS_RE = re.compile(
+    r"(enrichment\.inference|eie_url|eie_endpoint|eie_host|worker_url|EIE_URL|EIE_HOST)",
+    re.IGNORECASE,
+)
+
+# Retry/backoff machinery wrapped around a Gate call (ADR-008).
+_RETRY_RE = re.compile(
+    r"\b(tenacity|backoff\.on_exception|@retry\b|max_retries|retry_count|for _ in range\(\s*\d+\s*\):\s*#\s*retry)"
+)
+
+
+def _scan(pattern: re.Pattern[str], *, allow: tuple[Path, ...] = ()) -> list[str]:
+    """Return `path:line` hits for a pattern across production addon code."""
+    offenders: list[str] = []
+    for module_dir in _SCAN_DIRS:
+        for path in _py_files(module_dir):
+            if path in allow or "/tests/" in path.as_posix():
+                continue
+            for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+                stripped = line.strip()
+                # Comments and docstring prose may name a prohibited concept in
+                # order to explain why it is prohibited; code may not.
+                if stripped.startswith("#"):
+                    continue
+                if pattern.search(line):
+                    offenders.append(f"{_rel(path)}:{lineno}")
+    return offenders
+
+
+def test_odoo_implements_no_sdk_owned_transport_primitive():
+    """ADR-001 — hashing, signing, and packet validation belong to Gate_SDK."""
+    offenders = _scan(_SDK_OWNED_TRANSPORT_RE)
+    assert not offenders, (
+        "Odoo production code touches an SDK-owned transport primitive "
+        f"(hashing/signing/validation/hop/lineage) at: {offenders}. "
+        "Gate_SDK is the sole transport authority (pack ADR-001)."
+    )
+
+
+def test_no_odoo_module_names_the_gate_ingress_path():
+    """ADR-001/ADR-016 — `/v1/execute` is Gate_SDK's to call, never Odoo's."""
+    offenders = _scan(_GATE_INGRESS_RE)
+    assert not offenders, (
+        f"Odoo production code names a Gate ingress path at: {offenders}. "
+        "All Gate traffic goes through GateClient.send_to_gate (pack ADR-001)."
+    )
+
+
+def test_the_gate_boundary_module_opens_no_socket_of_its_own():
+    """ADR-001 — the bridge invokes the SDK; it never performs HTTP itself.
+
+    Scoped to `plasticos_gate/` because that is the module whose job is Gate
+    transport, and therefore the only place a hand-rolled Gate HTTP client
+    could plausibly be mistaken for correct.
+    """
+    offenders = []
+    for path in _py_files(_BRIDGE_DIR):
+        if "/tests/" in path.as_posix():
+            continue
+        for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            if line.strip().startswith("#"):
+                continue
+            if _ANY_HTTP_RE.search(line):
+                offenders.append(f"{_rel(path)}:{lineno}")
+    assert not offenders, (
+        f"plasticos_gate performs its own HTTP at: {offenders}. The bridge is "
+        "an SDK consumer, not a Gate client (pack ADR-001/ADR-016)."
+    )
+
+
+def test_odoo_knows_no_peer_worker_address():
+    """ADR-002 — Odoo addresses Gate; Gate resolves the worker."""
+    offenders = _scan(_PEER_ADDRESS_RE)
+    assert not offenders, (
+        f"Odoo production code references a peer worker address at: {offenders}. "
+        "Gate-only egress is release-blocking (INV-ODOO-GATE-ONLY-EGRESS)."
+    )
+
+
+def test_odoo_wraps_gate_in_no_retry_layer():
+    """ADR-008 — retry belongs to EIE, Gate, and Gate_SDK; never to Odoo."""
+    offenders = _scan(_RETRY_RE, allow=(ROOT / "plasticos_gate" / "services" / "gate_config.py",))
+    assert not offenders, (
+        f"Odoo production code adds a transport retry layer at: {offenders}. "
+        "Odoo must not automatically replay a Gate operation "
+        "(INV-ODOO-NO-TRANSPORT-RETRY)."
+    )
+
+
+def test_only_one_module_builds_gate_packets():
+    """ADR-007 — one SDK invocation surface, not a packet builder per consumer."""
+    builders = []
+    for module_dir in _SCAN_DIRS:
+        for path in _py_files(module_dir):
+            if "/tests/" in path.as_posix():
+                continue
+            if "create_transport_packet(" in path.read_text(encoding="utf-8", errors="replace"):
+                builders.append(_rel(path))
+    assert builders == [_rel(_BRIDGE_CLIENT)], (
+        f"Gate packets are built in {builders}; exactly one invocation surface is permitted (pack ADR-007)."
+    )
+
+
+def test_gate_consumers_share_one_invocation_surface():
+    """Matching and enrichment must not grow separate transport implementations.
+
+    Contract §15: different domain payloads and actions are expected; different
+    transport implementations are not.
+    """
+    client_src = _BRIDGE_CLIENT.read_text(encoding="utf-8")
+    # Every public send_* helper must delegate to the single send_action core.
+    helpers = re.findall(r"^def (send_\w+_action)\(", client_src, re.MULTILINE)
+    assert set(helpers) >= {"send_match_action", "send_converge_action"}, helpers
+    for helper in helpers:
+        body = client_src.split(f"def {helper}(", 1)[1]
+        assert "return send_action(" in body.split("\ndef ", 1)[0], (
+            f"{helper} does not delegate to send_action — a second transport path is forming (pack ADR-007)."
+        )

@@ -142,10 +142,7 @@ class EnrichmentRun(models.Model):
         or empty allowlist (caller fails closed / no local fallback on M4).
         """
         self.ensure_one()
-        from odoo.addons.plasticos_gate.services.gate_builders import (
-            build_converge_request,
-            build_idempotency_key,
-        )
+        from odoo.addons.plasticos_gate.services.gate_builders import build_converge_request
         from odoo.addons.plasticos_gate.services.gate_client import send_converge_action
         from odoo.addons.plasticos_gate.services.gate_config import gate_auto_writeback_enabled
         from odoo.addons.plasticos_gate.services.gate_mappers import (
@@ -160,9 +157,13 @@ class EnrichmentRun(models.Model):
             self.env,
             payload=payload,
             correlation_id=request.odoo.get("correlation_id") if request.odoo else None,
-            # Transport-header key only. The business payload stays a plain
-            # EnrichRequest — EIE derives its own payload-level key downstream.
-            idempotency_key=build_idempotency_key(payload, request.odoo or {}),
+            # ADR-006 — ONE logical operation identity. It is generated once by
+            # build_converge_request and already rides in the EnrichRequest
+            # payload; the same value is handed to the transport header here.
+            # Domain persistence idempotency (EIE) and transport replay
+            # prevention (Gate_SDK) stay separate mechanisms that now agree on
+            # which operation they are talking about.
+            idempotency_key=request.idempotency_key,
         )
         resp = map_converge_response(result["payload"])
         audit = extract_audit_metadata(result["packet"])
