@@ -30,6 +30,15 @@ Former copies under `reports/adr/` were consolidated here (2026-06-04). Do not a
 | [ADR-019](ADR-019-documentation-convergence-supersession.md) | Documentation convergence & supersession map | Accepted |
 | [ADR-003 (single)](ADR-003-single-external-intelligence-authority.md) | Single external intelligence authority (Gate → CEG/EIE) | Accepted |
 
+## Namespaced ADR packs
+
+| Pack | Scope | Status |
+|------|-------|--------|
+| [`gate-integration/`](gate-integration/README.md) | Odoo ↔ Gate_SDK ↔ Constellation.Gate ↔ EIE transport and enrichment boundary (ADR-001…ADR-016, namespaced to that directory) | LOCKED |
+
+A pack keeps its own `ADR-0NN` numbering inside its directory. Root ADR numbers
+above always mean `docs/adr/ADR-0NN-*.md`.
+
 **Session index (historical):** [PROPOSED-ADR-BACKLOG-2026-08-architecture-convergence.md](PROPOSED-ADR-BACKLOG-2026-08-architecture-convergence.md) — drafts for ADR-010…019; decisions now live in the Accepted files above (see ADR-019 §4).
 
 ## When to write an ADR
