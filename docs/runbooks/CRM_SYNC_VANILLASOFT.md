@@ -58,9 +58,7 @@ odoo shell -d <database>            # or: docker compose exec web odoo shell -d 
 ```python
 from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator
 
-connection = env["plasticos.crm.connection"].search(
-    [("provider", "=", "vanillasoft")], limit=1
-)
+connection = env["plasticos.crm.connection"].get_or_create_vanillasoft_connection()
 
 # One full import. Both floors are explicit — there is no safe default, so an
 # absent, unparseable or future value fails BEFORE any import work begins.

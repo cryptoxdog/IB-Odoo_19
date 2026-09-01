@@ -196,7 +196,7 @@ class SyncOrchestrator:
         call_floor = self._require_utc_bound(call_history_floor, "call_history_floor")
         contact_floor_dt = (
             self._require_utc_bound(contact_modified_floor, "contact_modified_floor")
-            if contact_modified_floor
+            if contact_modified_floor is not None
             else call_floor
         )
         contact_floor = _iso_z(contact_floor_dt)

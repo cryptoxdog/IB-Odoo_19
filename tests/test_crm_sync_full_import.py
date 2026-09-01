@@ -421,6 +421,18 @@ def test_full_import_does_not_substitute_the_short_default_history_window():
     assert first_start < NOW - timedelta(days=15)
 
 
+@pytest.mark.parametrize("blank", ["", "   "])
+def test_an_explicit_blank_contact_floor_is_refused_not_defaulted(blank):
+    """An operator who passed contact_modified_floor='' meant a bound, not omit."""
+    orch, connection, _env = _harness(_Adapter())
+    with pytest.raises(CrmFullImportArgumentError, match="contact_modified_floor is required"):
+        orch.run_full_import(
+            connection,
+            call_history_floor=CALL_FLOOR_Z,
+            contact_modified_floor=blank,
+        )
+
+
 @pytest.mark.parametrize("missing", [None, "", "   "])
 def test_a_missing_call_history_floor_names_the_parameter(missing):
     """A blank floor is refused as *required*, not as an unparseable date — the
