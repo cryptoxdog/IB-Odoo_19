@@ -1,4 +1,4 @@
-"""Structural contract tests for the CieTrade import service.
+"""Structural contract tests for the LegacyErp import service.
 
 The service itself needs an Odoo runtime, which the ``pure-python-tests`` CI
 tier does not have. These tests assert the properties that must hold *by
@@ -16,9 +16,9 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "plasticos_transaction"))
 
-SERVICE = ROOT / "plasticos_transaction" / "models" / "cietrade_import_service.py"
-RUNNER = ROOT / "plasticos_transaction" / "scripts" / "run_cietrade_import.py"
-CIETRADE_PKG = ROOT / "plasticos_transaction" / "cietrade"
+SERVICE = ROOT / "plasticos_transaction" / "models" / "legacy_erp_import_service.py"
+RUNNER = ROOT / "plasticos_transaction" / "scripts" / "run_legacy_erp_import.py"
+LEGACY_ERP_PKG = ROOT / "plasticos_transaction" / "legacy_erp"
 
 
 @pytest.fixture(scope="module")
@@ -43,8 +43,8 @@ def _function(tree: ast.Module, name: str) -> ast.FunctionDef:
 # ---------------------------------------------------------------------------
 def test_service_is_wired_into_the_module(service_source):
     init = (ROOT / "plasticos_transaction" / "models" / "__init__.py").read_text(encoding="utf-8")
-    assert "from . import cietrade_import_service" in init
-    assert '_name = "plasticos.cietrade.import"' in service_source
+    assert "from . import legacy_erp_import_service" in init
+    assert '_name = "plasticos.legacy_erp.import"' in service_source
 
 
 def test_service_declares_an_abstract_model(service_source):
@@ -79,7 +79,7 @@ def test_import_does_not_depend_on_the_retired_csv_architecture(service_source):
 
 def test_source_layer_imports_no_odoo_symbol():
     """The source layer must stay runnable in the pure-Python CI tier."""
-    for path in sorted(CIETRADE_PKG.glob("*.py")):
+    for path in sorted(LEGACY_ERP_PKG.glob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
@@ -92,7 +92,7 @@ def test_source_layer_is_not_imported_at_addon_load_time(service_source):
     """Odoo-free helpers load lazily, inside functions (cross-addon import fence)."""
     tree = ast.parse(service_source)
     for node in tree.body:  # module level only
-        assert not isinstance(node, ast.ImportFrom) or "cietrade" not in (node.module or "")
+        assert not isinstance(node, ast.ImportFrom) or "legacy_erp" not in (node.module or "")
 
 
 def test_identity_is_never_a_name_email_or_database_id(service_source):
@@ -108,7 +108,7 @@ def test_identity_is_never_a_name_email_or_database_id(service_source):
         # Every identity is a literal or an f-string over a source key.
         assert isinstance(xml_id, (ast.Constant, ast.JoinedStr))
         rendered = ast.dump(xml_id)
-        assert "cietrade_" in rendered
+        assert "legacy_erp_" in rendered
 
 
 # ---------------------------------------------------------------------------

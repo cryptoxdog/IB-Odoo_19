@@ -1,4 +1,4 @@
-"""CieTrade source-layer contract tests (no Odoo runtime required).
+"""LegacyErp source-layer contract tests (no Odoo runtime required).
 
 These run against the **real** tracked payload at
 ``data/legacy_erp_sm_export/``, so a source-shape regression or a vocabulary
@@ -18,13 +18,13 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "plasticos_transaction"))
 
-from cietrade import header_forensics, mapping, reader, source_index  # noqa: E402
+from legacy_erp import header_forensics, mapping, reader, source_index  # noqa: E402
 
 PAYLOAD_ROOT = ROOT / "data" / "legacy_erp_sm_export"
 
 pytestmark = pytest.mark.skipif(
     not (PAYLOAD_ROOT / "bulk").is_dir(),
-    reason="CieTrade extract pack is not present in this checkout",
+    reason="LegacyErp extract pack is not present in this checkout",
 )
 
 
@@ -182,7 +182,7 @@ def test_children_of_unexported_counterparties_are_reported_not_orphaned(index):
 
 def test_multiple_roles_per_contact_survive(index):
     multi = [c for c, roles in index.roles_by_contact.items() if len(roles) > 1]
-    assert len(multi) >= 500, "contacts with several CieTrade roles must keep all of them"
+    assert len(multi) >= 500, "contacts with several LegacyErp roles must keep all of them"
 
 
 # ---------------------------------------------------------------------------
@@ -315,7 +315,7 @@ def test_complete_transactions_carry_both_parties_and_a_date(headers):
 # ---------------------------------------------------------------------------
 def test_every_counterparty_role_in_the_payload_is_mapped(index):
     codes = {(row.get("Role") or "").strip().upper() for row in index.counterparties.values()}
-    assert codes == set(mapping.COMPANY_ROLE_BY_CIETRADE_ROLE)
+    assert codes == set(mapping.COMPANY_ROLE_BY_LEGACY_ERP_ROLE)
 
 
 def test_unknown_role_is_reported_not_defaulted():

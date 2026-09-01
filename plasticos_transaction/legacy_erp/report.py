@@ -1,4 +1,4 @@
-"""Result accounting for one CieTrade import run.
+"""Result accounting for one LegacyErp import run.
 
 Odoo-free: the report is a plain record of what the import did, so it is built
 and asserted in the pure-Python CI tier alongside the rest of the source layer.

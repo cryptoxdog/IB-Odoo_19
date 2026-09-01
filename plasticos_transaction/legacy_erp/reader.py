@@ -1,8 +1,8 @@
-"""Minimal exact-format reader for the tracked CieTrade export.
+"""Minimal exact-format reader for the tracked LegacyErp export.
 
 Scope
 -----
-Turn the authoritative CieTrade source files into Python records. Nothing else.
+Turn the authoritative LegacyErp source files into Python records. Nothing else.
 This module performs **no** Odoo mapping, **no** fuzzy identity matching, and
 **no** silent coercion of unknown values: a malformed payload raises
 :class:`SourcePayloadError` rather than yielding a partial table.
@@ -57,7 +57,7 @@ __all__ = [
 DEFAULT_PAYLOAD_ROOT = Path("data/legacy_erp_sm_export")
 
 # Source tables this importer consumes, and the extract file that carries each.
-# Keys are the CieTrade table names; they are the only names mappers may use.
+# Keys are the LegacyErp table names; they are the only names mappers may use.
 SOURCE_TABLES: dict[str, str] = {
     "CounterParty": "CounterParty.csv",
     "Address": "Address.csv",
@@ -86,7 +86,7 @@ _INSERT_RE = re.compile(
 
 
 class SourcePayloadError(RuntimeError):
-    """The CieTrade payload is absent, incomplete, or malformed."""
+    """The LegacyErp payload is absent, incomplete, or malformed."""
 
 
 class PayloadKind(StrEnum):
@@ -98,7 +98,7 @@ class PayloadKind(StrEnum):
 
 @dataclass(frozen=True)
 class SourcePayload:
-    """Reconstructed source rows, grouped by CieTrade table name."""
+    """Reconstructed source rows, grouped by LegacyErp table name."""
 
     kind: PayloadKind
     root: Path
@@ -122,7 +122,7 @@ def payload_root(repo_root: Path | str | None = None) -> Path:
     running inside Odoo do not have to know the checkout layout.
     """
     if repo_root is None:
-        # plasticos_transaction/cietrade/reader.py -> repository root
+        # plasticos_transaction/legacy_erp/reader.py -> repository root
         repo_root = Path(__file__).resolve().parents[2]
     return Path(repo_root) / DEFAULT_PAYLOAD_ROOT
 
@@ -136,7 +136,7 @@ def load_payload(root: Path | str | None = None) -> SourcePayload:
     """
     base = Path(root) if root is not None else payload_root()
     if not base.is_dir():
-        raise SourcePayloadError(f"CieTrade payload root not found: {base}")
+        raise SourcePayloadError(f"LegacyErp payload root not found: {base}")
 
     tables = _read_statement_payload(base)
     kind = PayloadKind.STATEMENTS

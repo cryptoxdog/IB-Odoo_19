@@ -1,4 +1,4 @@
-"""Source-value normalization and CieTrade -> PlasticOS vocabulary maps.
+"""Source-value normalization and LegacyErp -> PlasticOS vocabulary maps.
 
 Odoo-free on purpose: every rule here is exercised by the pure-Python CI tier
 against the real payload, so a vocabulary drift in a future extract fails a test
@@ -23,7 +23,7 @@ __all__ = [
     "ADDRESS_TYPE_KIND",
     "ODOO_ADDRESS_TYPE",
     "PRIMARY_CONTACT_ROLE",
-    "COMPANY_ROLE_BY_CIETRADE_ROLE",
+    "COMPANY_ROLE_BY_LEGACY_ERP_ROLE",
     "UNIT_TYPE_MAP",
     "WEIGHT_UOM",
     "address_kind",
@@ -59,7 +59,7 @@ __all__ = [
 # counterparty. The multi-role truth is carried by Odoo's native
 # ``supplier_rank`` / ``customer_rank`` (see :func:`trade_ranks`), which is the
 # repository's designated mechanism for this (CLAUDE.md, "Partner Hierarchy").
-COMPANY_ROLE_BY_CIETRADE_ROLE: dict[str, str] = {
+COMPANY_ROLE_BY_LEGACY_ERP_ROLE: dict[str, str] = {
     "V": "supplier",
     "S": "supplier",
     "D": "carrier",
@@ -110,7 +110,7 @@ ODOO_ADDRESS_TYPE: dict[str, str] = {
 # ---------------------------------------------------------------------------
 # ContactRoleAssignment.RoleNm
 # ---------------------------------------------------------------------------
-# The CieTrade role naming the main contact for a counterparty. It is the most
+# The LegacyErp role naming the main contact for a counterparty. It is the most
 # common value in the payload (1680 of 3091 assignments) and is the one that
 # fills ``res.partner.function`` when a contact holds several roles.
 PRIMARY_CONTACT_ROLE = "Primary"
@@ -174,12 +174,12 @@ def company_role(raw_role: str | None) -> tuple[str | None, str | None]:
     """``CounterParty.Role`` -> ``res.partner.company_role``.
 
     Returns ``(role, anomaly)``. An unknown code maps to nothing and is
-    reported, so a new CieTrade role code surfaces instead of being absorbed.
+    reported, so a new LegacyErp role code surfaces instead of being absorbed.
     """
     code = _clean(raw_role).upper()
     if not code:
         return None, "blank CounterParty.Role"
-    mapped = COMPANY_ROLE_BY_CIETRADE_ROLE.get(code)
+    mapped = COMPANY_ROLE_BY_LEGACY_ERP_ROLE.get(code)
     if mapped is None:
         return None, f"unmapped CounterParty.Role {code!r}"
     return mapped, None

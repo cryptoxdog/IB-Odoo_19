@@ -1,12 +1,12 @@
-# CieTrade → PlasticOS import: mapping audit
+# LegacyErp → PlasticOS import: mapping audit
 
-Definitive field-level matrix for the CieTrade historical import.
+Definitive field-level matrix for the LegacyErp historical import.
 
 - **Source pack** — `data/legacy_erp_sm_export/` (live extract of 2026-08-07)
-- **Source layer** — `plasticos_transaction/cietrade/` (Odoo-free, CI-tested)
-- **Import service** — `plasticos_transaction/models/cietrade_import_service.py`
-- **Entrypoint** — `plasticos_transaction/scripts/run_cietrade_import.py`
-- **Tests** — `tests/test_cietrade_source_layer.py`, `tests/test_cietrade_import_contract.py`
+- **Source layer** — `plasticos_transaction/legacy_erp/` (Odoo-free, CI-tested)
+- **Import service** — `plasticos_transaction/models/legacy_erp_import_service.py`
+- **Entrypoint** — `plasticos_transaction/scripts/run_legacy_erp_import.py`
+- **Tests** — `tests/test_legacy_erp_source_layer.py`, `tests/test_legacy_erp_import_contract.py`
 
 Every count below was measured on the tracked payload, not estimated.
 
@@ -52,12 +52,12 @@ All primary keys verified unique and non-blank across the whole payload.
 
 | Source key | Rows | Odoo target | `ir.model.data` name |
 |---|---|---|---|
-| `CounterParty.CpID` | 1290 | `res.partner` (company) | `plasticos_transaction.cietrade_cp_<CpID>` |
-| `Address.AddressID` | 2950 | `res.partner` (child) | `cietrade_address_<AddressID>` |
-| `Contact.CT_ID` | 4058 | `res.partner` (person) | `cietrade_contact_<CT_ID>` |
+| `CounterParty.CpID` | 1290 | `res.partner` (company) | `plasticos_transaction.legacy_erp_cp_<CpID>` |
+| `Address.AddressID` | 2950 | `res.partner` (child) | `legacy_erp_address_<AddressID>` |
+| `Contact.CT_ID` | 4058 | `res.partner` (person) | `legacy_erp_contact_<CT_ID>` |
 | `ContactRoleAssignment.CRA_ID` | 3091 | `res.partner.category` link | set-valued (see §5) |
-| `WKSDetail.BuySellNo` | 8257 | `plasticos.transaction` | `cietrade_transaction_<BuySellNo>` |
-| `WKSDetail.DetailID` | 11303 | `plasticos.transaction.line` | `cietrade_detail_<DetailID>` |
+| `WKSDetail.BuySellNo` | 8257 | `plasticos.transaction` | `legacy_erp_transaction_<BuySellNo>` |
+| `WKSDetail.DetailID` | 11303 | `plasticos.transaction.line` | `legacy_erp_detail_<DetailID>` |
 
 `Address`'s declared database PK is the composite `(CpID, Type)`; `AddressID`
 was verified unique (2950/2950) and is used as the surrogate identity, which
@@ -216,7 +216,7 @@ exact: it resolves for 3495 of 3534 non-blank contacts (98.9%). Contacts whose
 **Contact roles use the existing partner-tag mechanism.** 14 distinct role
 names, 510 contacts holding more than one. `res.partner.category` is this
 repository's multi-valued partner classification, so roles become tags under a
-`CieTrade Contact Role` parent, and the primary role also fills `function`. No
+`LegacyErp Contact Role` parent, and the primary role also fills `function`. No
 roles subsystem is introduced. `CRA_ID` needs no standalone record because tag
 membership is set semantics — replaying an assignment is inherently
 idempotent, which is exactly the replay-safety `CRA_ID` requires.
@@ -358,7 +358,7 @@ instance:
 Run it with:
 
 ```python
-from plasticos_transaction.scripts.run_cietrade_import import run
+from plasticos_transaction.scripts.run_legacy_erp_import import run
 run(env, dry_run=True)   # resolve and map, persist nothing
 run(env)                 # full import
 run(env)                 # again — must report created=0 across the board

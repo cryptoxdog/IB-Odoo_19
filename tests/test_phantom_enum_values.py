@@ -1104,7 +1104,7 @@ def _discover_plasticos_modules():
 # (foreign table names, legacy type labels, source boolean spellings) can never
 # resolve to an Odoo enum, so scanning them yields only false positives.
 # Each is asserted Odoo-import-free by its own contract test.
-NON_ODOO_VOCABULARY_DIRS = frozenset({"cietrade"})
+NON_ODOO_VOCABULARY_DIRS = frozenset({"legacy_erp"})
 
 
 def _iter_python_files(module_dir: Path):

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Non-interactive entrypoint for the CieTrade historical import.
+"""Non-interactive entrypoint for the LegacyErp historical import.
 
 One deterministic entrypoint, no UI, no wizard, no cron. Run it from an Odoo
 shell against the target database::
 
-    from plasticos_transaction.scripts.run_cietrade_import import run
+    from plasticos_transaction.scripts.run_legacy_erp_import import run
     run(env)                                   # full import
     run(env, dry_run=True)                     # resolve + map, persist nothing
     run(env, limit=50)                         # first 50 transactions only
@@ -17,7 +17,7 @@ transaction and no stale identity marker, so a re-run reprocesses it.
 
 The import is idempotent: running it twice creates no duplicate counterparty,
 location, contact, contact-role, transaction, or transaction line, because every
-record is addressed by its stable CieTrade source key.
+record is addressed by its stable LegacyErp source key.
 """
 
 import json
@@ -31,7 +31,7 @@ def run(
     dry_run: bool = False,
     verbose: bool = True,
 ) -> dict:
-    """Execute the CieTrade import and print an accounting report.
+    """Execute the LegacyErp import and print an accounting report.
 
     Args:
         env: Odoo environment.
@@ -42,9 +42,9 @@ def run(
         verbose: Print the human-readable summary.
 
     Returns:
-        The import report produced by ``plasticos.cietrade.import``.
+        The import report produced by ``plasticos.legacy_erp.import``.
     """
-    result = env["plasticos.cietrade.import"].run(
+    result = env["plasticos.legacy_erp.import"].run(
         payload_root=payload_root,
         limit=limit,
         commit=commit,
@@ -57,7 +57,7 @@ def run(
 
 
 def _print_report(result: dict, dry_run: bool) -> None:
-    print(f"\n=== CIETRADE IMPORT ({'DRY RUN' if dry_run else 'APPLIED'}) ===")
+    print(f"\n=== LEGACY_ERP IMPORT ({'DRY RUN' if dry_run else 'APPLIED'}) ===")
     print(f"payload kind : {result['payload_kind']}")
     print(f"source counts: {json.dumps(result['source_counts'], sort_keys=True)}")
 

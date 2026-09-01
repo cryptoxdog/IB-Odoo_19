@@ -1,4 +1,4 @@
-"""Deterministic source indexes keyed by stable CieTrade identifiers.
+"""Deterministic source indexes keyed by stable LegacyErp identifiers.
 
 Every mapper consumes source rows through this layer, never through raw file
 order, so the whole import is replay-safe: the same source key always resolves
@@ -60,7 +60,7 @@ def _key(row: dict[str, str | None], column: str) -> str:
 
 @dataclass
 class SourceIndex:
-    """Source rows addressed by CieTrade identity."""
+    """Source rows addressed by LegacyErp identity."""
 
     counterparties: dict[str, dict[str, str | None]] = field(default_factory=dict)
     addresses: dict[str, dict[str, str | None]] = field(default_factory=dict)
