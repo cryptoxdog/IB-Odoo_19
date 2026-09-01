@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from typing import Any
 
 from .gate_allowlists import INTAKE_SNAPSHOT_FIELD_MAP, PARTNER_SNAPSHOT_FIELD_MAP, WEB_LEAD_SEED_FIELD_MAP
@@ -40,44 +38,48 @@ def build_odoo_context(env, *, model: str, record_id: int) -> OdooContext:
     )
 
 
-# 32 hex characters = 128 bits of the SHA-256 digest. Widening this changes
-# every future key; it does not invalidate any stored state, because the key is
-# a transport header consumed per request and never persisted as an identity.
-IDEMPOTENCY_DIGEST_HEX_CHARS = 32
+# Operation-identity family for enrichment converge runs. The family plus the
+# database, model and record id fully name one durable Odoo execution.
+ENRICHMENT_OPERATION_FAMILY = "enrichment"
 
 
-def build_idempotency_key(payload: dict[str, Any], odoo_ctx: dict[str, Any]) -> str | None:
-    """Deterministic transport idempotency key for one converge attempt.
+def build_operation_id(odoo_ctx: dict[str, Any], *, family: str = ENRICHMENT_OPERATION_FAMILY) -> str | None:
+    """One stable logical operation identity for a durable Odoo run (ADR-006).
 
-    Keyed on the run's stable identity AND a digest of the exact payload, which
-    is what makes it correct rather than merely stable:
+    Semantic form ``odoo:<family>:<db>:<model>:<record-id>``. The database,
+    model and record id are the scoping that makes the ADR's preferred
+    ``odoo:enrichment:<durable-run-id>`` form unambiguous across databases.
 
-    * a true replay of one attempt (network retry, double-submitted RPC) sends
-      byte-identical payload -> identical key -> Gate may safely dedupe it;
-    * ``action_retry_enrichment`` re-runs converge on the SAME run, and
-      ``build_converge_request`` re-reads the partner live each time, so a retry
-      after the partner was edited is a materially different request. Keying on
-      run identity alone would label those the same operation and could replay a
-      stale answer for changed input; the digest keeps them distinct.
+    Generated ONCE per run and reused at both replay boundaries: the
+    EnrichRequest domain idempotency field and the TransportPacket header.
+    Those remain different mechanisms owned by EIE and Gate_SDK respectively —
+    they share a logical identity, they do not become one subsystem.
 
-    The digest is 32 hex characters (128 bits) of SHA-256. The narrower 16-char
-    (64-bit) prefix used previously was not wrong here — the key is already
-    namespaced by database, model and record id, so a collision would have to
-    land inside one run — but a replay key is exactly where a birthday
-    collision is expensive (Gate could serve a stale answer for a genuinely
-    different payload) and the extra 16 characters cost nothing.
+    Identity is derived only from durable run identity. It carries no payload
+    digest, timestamp, or randomness, so:
 
-    Returns None when the run identity is unknown — an unidentifiable request is
-    left un-keyed rather than given a guessed one.
+    * retrying the same durable run yields the same id — which is what "the
+      same operation" means once a run is the unit of business identity;
+    * a new run over the same partner yields a different id;
+    * a different partner yields a different id.
+
+    A previous implementation mixed a SHA-256 digest of the serialized payload
+    into the key. That made a retry of one run after the partner was edited a
+    *different* logical operation, which is ADR-006's rejected Option B: it
+    makes "same operation" a serialization fact rather than a business fact,
+    and leaves the transport key uncorrelatable with the durable run. An
+    operator who needs a materially new request creates a new run — that is the
+    business act meaning "ask again".
+
+    Returns None when run identity is unknown; an unidentifiable request is left
+    un-keyed rather than given a guessed identity.
     """
     model = odoo_ctx.get("model")
     record_id = odoo_ctx.get("record_id")
     if not model or not record_id:
         return None
     db_name = odoo_ctx.get("db_name") or "db"
-    canonical = json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
-    digest = hashlib.sha256(canonical).hexdigest()[:IDEMPOTENCY_DIGEST_HEX_CHARS]
-    return f"odoo:{db_name}:{model}:{record_id}:{digest}"
+    return f"odoo:{family}:{db_name}:{model}:{record_id}"
 
 
 _MIN_VARIATIONS = 1
@@ -133,6 +135,11 @@ def build_converge_request(
         # and coincidence rather than contract. `kb_context` is the
         # EnrichRequest field for exactly this, so state it.
         kb_context=str(domain) if domain else None,
+        # ADR-006: generated once here and carried on the request, so the caller
+        # hands the SAME logical value to the transport header rather than
+        # deriving a second, unrelated one. EnrichRequest.idempotency_key is a
+        # canonical EIE field, so this is domain propagation, not a new dialect.
+        idempotency_key=build_operation_id(odoo),
         odoo=odoo,
     )
 
