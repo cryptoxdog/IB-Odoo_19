@@ -343,7 +343,9 @@ class PlasticosLegacyErpImport(models.AbstractModel):
         if role in tag_cache:
             return tag_cache[role]
         Category = self.env[PARTNER_CATEGORY].with_context(**IMPORT_CONTEXT)
-        parent = self._upsert(Category, "legacy_erp_contact_role_root", {"name": "LegacyErp Contact Role"}, report, None)
+        parent = self._upsert(
+            Category, "legacy_erp_contact_role_root", {"name": "LegacyErp Contact Role"}, report, None
+        )
         tag = self._upsert(
             Category,
             f"legacy_erp_contact_role_tag_{_slug(role)}",
