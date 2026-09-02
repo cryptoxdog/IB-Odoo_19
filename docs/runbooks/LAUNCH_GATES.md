@@ -131,13 +131,21 @@ returns. That is the same split already used for I2/I3.
 
 Added with the manual `run_full_import` bootstrap. Script:
 `tests/runtime_gates/run_f1_f3_full_import.py`. Procedure:
-[`CRM_SYNC_FULL_IMPORT_E2E.md`](CRM_SYNC_FULL_IMPORT_E2E.md).
+[`CRM_SYNC_FULL_IMPORT_E2E.md`](CRM_SYNC_FULL_IMPORT_E2E.md). Run with
+`make runtime-gates`.
+
+These were recorded **NOT RUN** because they needed a live runtime that took a
+hand-typed setup to obtain. They now execute — all 26 assertions pass. The gate
+was additionally unrunnable by construction: it applied `addons_path` only when
+`F1_ADDONS_PATH` was exported, and nothing exported it, so a plain invocation
+died on `No module named odoo.addons.plasticos_crm_sync` before reaching an
+assertion.
 
 | Gate | Assertion | Rollback trigger if it fails | Status |
 |------|-----------|------------------------------|--------|
-| F1 | Full import asks for the operator's floor unclamped, lands a contact older than the rolling window and historical calls from the explicit floor, and hands watermarks to `run_connection` — whose immediate replay adds no duplicate lead, ref or call, and never rewinds the watermark | full import duplicates identities, or its replay re-consumes history | **NOT RUN** — needs a live runtime |
-| F2 | An unproven contact census is recorded `partial` with the reason durable on the run row and the connection; a proven one is `success`; an unusable floor raises before any run row exists and holds no advisory lock | a full import reports `success` over a silently clamped window | **NOT RUN** |
-| F3 | Provider deletion archives with provenance, restore reactivates and clears it, a user's archive is never reopened, and the archived lead is matched rather than duplicated | sync reopens leads an Odoo user archived | **NOT RUN** |
+| F1 | Full import asks for the operator's floor unclamped, lands a contact older than the rolling window and historical calls from the explicit floor, and hands watermarks to `run_connection` — whose immediate replay adds no duplicate lead, ref or call, and never rewinds the watermark | full import duplicates identities, or its replay re-consumes history | **PASS** |
+| F2 | An unproven contact census is recorded `partial` with the reason durable on the run row and the connection; a proven one is `success`; an unusable floor raises before any run row exists and holds no advisory lock | a full import reports `success` over a silently clamped window | **PASS** |
+| F3 | Provider deletion archives with provenance, restore reactivates and clears it, a user's archive is never reopened, and the archived lead is matched rather than duplicated | sync reopens leads an Odoo user archived | **PASS** |
 
 C1–C8 still apply to the full import unchanged: it shares `_sync_contacts`,
 `_sync_calls`, `_upsert_lead` and the advisory lock with `run_connection`.

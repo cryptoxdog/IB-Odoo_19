@@ -22,6 +22,21 @@ serves the same source and is the supported channel.
 
 ## Setup
 
+**The commands below are now executable** — `scripts/setup_local_runtime.sh` is
+this section, idempotent, so a warm machine reaches "ready" in seconds:
+
+```bash
+make setup-local-runtime     # build (or top up) the runtime
+make check-local-runtime     # verify only, no mutation
+make runtime-gates           # run every gate in tests/runtime_gates/
+```
+
+To have a Claude Code remote environment arrive with the runtime already built,
+paste [`ENVIRONMENT_SETUP_SCRIPT.sh`](ENVIRONMENT_SETUP_SCRIPT.sh) into that
+environment's setup-script field. The prose below remains the reference for what
+the script does and why, and for adapting it to a different host.
+
+
 ```bash
 # 1. PostgreSQL 16 cluster (initdb refuses to run as root)
 mkdir -p /var/lib/postgresql/c1c6 && chown -R postgres:postgres /var/lib/postgresql/c1c6

@@ -796,3 +796,84 @@ roadmap-sync:
 
 roadmap-list:
 	@python3 scripts/roadmap.py list
+
+# ---------------------------------------------------------------------------
+# Local (no-Docker) Odoo runtime + real-runtime launch gates
+#
+# `make test-odoo` above is the Docker backend and stays the default where a
+# daemon, registry egress and bridge networking are all available. These targets
+# are the second backend, for the environments where they are not — a sandbox
+# with no daemon, blocked registry pulls, or IPv4 forwarding disabled. Both run
+# the same Odoo, against the same addons, on a real PostgreSQL.
+#
+# `test-odoo` is deliberately NOT rewritten to auto-detect: the Makefile is
+# append-only in this repo (see AGENTS.md), so the backends are named targets
+# and the choice stays explicit and greppable.
+# ---------------------------------------------------------------------------
+L9_ODOO_VENV        ?= /opt/odoo-venv
+L9_PG_HOST          ?= /tmp
+L9_PG_PORT          ?= 5433
+L9_PG_USER          ?= odoo
+L9_ODOO_TEMPLATE_DB ?= plasticos_template
+
+# Build (or verify) the no-Docker Odoo 19 + PostgreSQL 16 runtime. Idempotent:
+# a warm machine returns in seconds, so this is safe as a session setup step.
+setup-local-runtime:
+	@bash scripts/setup_local_runtime.sh
+
+# Verify the runtime without mutating anything (exit non-zero when incomplete).
+check-local-runtime:
+	@bash scripts/setup_local_runtime.sh --check
+
+# Real-runtime launch gates (tests/runtime_gates/README.md). NOT pytest: under
+# TransactionCase there is one cursor and one snapshot, cr.commit() is neutered
+# and registry.cursor() returns the test cursor, so collecting these would turn
+# a real proof into a vacuous pass. Each script exits non-zero on failure.
+L9_GATE_DB ?= c1c6_test
+
+# The C/F gates drive one shared database (SEAM_DB); the S gates build their own.
+# Cloning the template is seconds, versus minutes to install modules again.
+gate-db:
+	@psql -h "$(L9_PG_HOST)" -p "$(L9_PG_PORT)" -U "$(L9_PG_USER)" -lqt \
+		| cut -d'|' -f1 | grep -qw "$(L9_GATE_DB)" \
+		|| createdb -h "$(L9_PG_HOST)" -p "$(L9_PG_PORT)" -U "$(L9_PG_USER)" \
+			-T "$(L9_ODOO_TEMPLATE_DB)" "$(L9_GATE_DB)"
+
+# Exit 77 from a gate means "cannot run in this environment" (a documented,
+# narrow precondition such as a private SDK), and is reported as SKIPPED. It is
+# never counted as a pass: a gate that did not run must not read green.
+runtime-gates: check-local-runtime gate-db
+	@fail=0; passed=0; skipped=0; failed=""; \
+	for f in tests/runtime_gates/run_*.py; do \
+		echo "==> $$f"; \
+		SEAM_DB="$(L9_GATE_DB)" SEAM_PG_HOST="$(L9_PG_HOST)" SEAM_PG_PORT="$(L9_PG_PORT)" \
+		SEAM_PG_USER="$(L9_PG_USER)" \
+			"$(L9_ODOO_VENV)/bin/python" "$$f"; \
+		rc=$$?; \
+		if [ $$rc -eq 0 ]; then passed=$$((passed+1)); \
+		elif [ $$rc -eq 77 ]; then skipped=$$((skipped+1)); \
+		else failed="$$failed $$(basename $$f)"; fail=1; fi; \
+	done; \
+	echo ""; \
+	echo "runtime gates: $$passed passed, $$skipped skipped, $$(echo $$failed | wc -w) failed"; \
+	[ -n "$$failed" ] && echo "  failed:$$failed"; \
+	exit $$fail
+
+# One gate script: make runtime-gate g=run_s1_s3_pristine_seams.py
+runtime-gate: check-local-runtime
+	@test -n "$(g)" || { echo "usage: make runtime-gate g=run_s1_s3_pristine_seams.py"; exit 2; }
+	@SEAM_PG_HOST="$(L9_PG_HOST)" SEAM_PG_PORT="$(L9_PG_PORT)" SEAM_PG_USER="$(L9_PG_USER)" \
+		"$(L9_ODOO_VENV)/bin/python" "tests/runtime_gates/$(g)"
+
+# Odoo's own module test suite on the local runtime — the no-Docker counterpart
+# of `make test-odoo`. Runs on a throwaway clone of the template database so a
+# failed run never leaves the template dirty.
+test-odoo-local: check-local-runtime
+	@set -e; db="odoo_test_$$$$"; \
+	createdb -h "$(L9_PG_HOST)" -p "$(L9_PG_PORT)" -U "$(L9_PG_USER)" -T "$(L9_ODOO_TEMPLATE_DB)" "$$db"; \
+	trap "dropdb -h '$(L9_PG_HOST)' -p '$(L9_PG_PORT)' -U '$(L9_PG_USER)' --if-exists '$$db'" EXIT; \
+	src=$$(ls -d /opt/odoo-src/odoo-19.0* | sort | tail -1); \
+	"$(L9_ODOO_VENV)/bin/odoo" -d "$$db" \
+		--db_host="$(L9_PG_HOST)" --db_port="$(L9_PG_PORT)" --db_user="$(L9_PG_USER)" \
+		--addons-path="$$src/odoo/addons,$(CURDIR)" \
+		-u $(if $(m),$(m),plasticos_crm_sync) --test-enable --stop-after-init --log-level=test
