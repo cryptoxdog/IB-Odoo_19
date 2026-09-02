@@ -43,12 +43,23 @@ def build_odoo_context(env, *, model: str, record_id: int) -> OdooContext:
 ENRICHMENT_OPERATION_FAMILY = "enrichment"
 
 
-def build_operation_id(odoo_ctx: dict[str, Any], *, family: str = ENRICHMENT_OPERATION_FAMILY) -> str | None:
+def build_operation_id(
+    odoo_ctx: dict[str, Any], *, family: str = ENRICHMENT_OPERATION_FAMILY, attempt: int = 1
+) -> str | None:
     """One stable logical operation identity for a durable Odoo run (ADR-006).
 
-    Semantic form ``odoo:<family>:<db>:<model>:<record-id>``. The database,
-    model and record id are the scoping that makes the ADR's preferred
-    ``odoo:enrichment:<durable-run-id>`` form unambiguous across databases.
+    Semantic form ``odoo:<family>:<db>:<model>:<record-id>`` for the first
+    attempt and ``odoo:<family>:<db>:<model>:<record-id>:attempt-<n>`` for an
+    operator retry. The database, model and record id are the scoping that
+    makes the ADR's preferred ``odoo:enrichment:<durable-run-id>`` form
+    unambiguous across databases.
+
+    ``attempt`` exists because Gate caches the response to a logical operation
+    under this identity — including an EIE domain failure (``state="failed"``).
+    An operator retry that reused the identity received the cached failure for
+    the lifetime of the Gate process and could never reach EIE again. A retry
+    is the business act meaning "ask again", so it is a new logical operation:
+    same durable run, new attempt number, new identity.
 
     Generated ONCE per run and reused at both replay boundaries: the
     EnrichRequest domain idempotency field and the TransportPacket header.
@@ -79,7 +90,14 @@ def build_operation_id(odoo_ctx: dict[str, Any], *, family: str = ENRICHMENT_OPE
     if not model or not record_id:
         return None
     db_name = odoo_ctx.get("db_name") or "db"
-    return f"odoo:{family}:{db_name}:{model}:{record_id}"
+    base = f"odoo:{family}:{db_name}:{model}:{record_id}"
+    try:
+        attempt_no = int(attempt)
+    except (TypeError, ValueError):
+        attempt_no = 1
+    if attempt_no > 1:
+        return f"{base}:attempt-{attempt_no}"
+    return base
 
 
 _MIN_VARIATIONS = 1
@@ -139,9 +157,19 @@ def build_converge_request(
         # hands the SAME logical value to the transport header rather than
         # deriving a second, unrelated one. EnrichRequest.idempotency_key is a
         # canonical EIE field, so this is domain propagation, not a new dialect.
-        idempotency_key=build_operation_id(odoo),
+        # The run's attempt counter makes an operator retry a new operation.
+        idempotency_key=build_operation_id(odoo, attempt=_run_attempt(run_rec)),
         odoo=odoo,
     )
+
+
+def _run_attempt(run_rec) -> int:
+    """Read the run's Gate attempt counter; absent or malformed means attempt 1."""
+    try:
+        value = int(getattr(run_rec, "gate_attempt", 1) or 1)
+    except (TypeError, ValueError):
+        return 1
+    return max(1, value)
 
 
 def build_match_request(env, *, intake=None, supplier=None, top_n: int = 20, mode: str = "strict") -> MatchRequest:

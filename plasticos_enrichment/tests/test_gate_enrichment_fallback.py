@@ -36,10 +36,39 @@ def _available_verdict() -> GateAvailabilityVerdict:
     )
 
 
-def _fake_gate_result(packet_id="pkt-conv-1", correlation_id="corr-conv-1", final_fields=None, status="ok"):
+def _fake_gate_result(
+    packet_id="pkt-conv-1",
+    correlation_id="corr-conv-1",
+    final_fields=None,
+    state="completed",
+    failure_reason=None,
+):
+    """The exact EIE EnrichResponse shape Gate relays (mapped by map_converge_response).
+
+    ``state="completed"`` with no ``failure_reason`` is the only usable result;
+    the previous fixture used a ``status``/``final_fields`` shape EIE never
+    emits, so these tests passed against a payload production never sees.
+    """
     packet = SimpleNamespace(header=SimpleNamespace(packet_id=packet_id, correlation_id=correlation_id))
-    payload = {"status": status, "final_fields": final_fields or {"website": "https://enriched.example"}}
+    payload = {
+        "state": state,
+        "failure_reason": failure_reason,
+        "fields": final_fields if final_fields is not None else {"website": "https://enriched.example"},
+        "confidence": 0.91,
+        "tokens_used": 1840,
+        "pass_count": 2,
+        "variation_count": 8,
+        "inference_version": "v3.0.0-convergence",
+        "kb_content_hash": "a3f9b2c1",
+    }
     return {"packet": packet, "payload": payload}
+
+
+def _set_auto_writeback(test, value):
+    icp = test.env["ir.config_parameter"].sudo()
+    previous = icp.get_param("plasticos.gate.auto_writeback") or "0"
+    icp.set_param("plasticos.gate.auto_writeback", value)
+    test.addCleanup(icp.set_param, "plasticos.gate.auto_writeback", previous)
 
 
 @tagged("post_install", "-at_install", "plasticos", "enrichment", "gate")
@@ -60,7 +89,8 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
         return self.env["plasticos.enrichment.run"].create({"partner_id": partner.id})
 
     def test_gate_converge_live_writeback_applies_fields(self):
-        """Default (auto_writeback ON): allowlisted fields are written live."""
+        """auto_writeback=1 (opt-in; the seed default is 0): allowlisted fields are written live."""
+        _set_auto_writeback(self, "1")
         partner = self._new_partner()
         run = self._new_run(partner)
         self.assertFalse(partner.website)
@@ -81,12 +111,14 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
         self.assertEqual(run.gate_packet_id, "pkt-conv-1")
         self.assertEqual(partner.website, "https://enriched.example")
         self.assertEqual(partner.city, "Raleigh")
+        self.assertEqual(run.gate_attempt, 1)
+        provenance = run.gate_proposal.get("eie_provenance") or {}
+        self.assertEqual(provenance.get("confidence"), 0.91)
+        self.assertEqual(provenance.get("tokens_used"), 1840)
 
     def test_gate_converge_review_only_when_autowriteback_disabled(self):
-        """auto_writeback=0: proposal stored for review, partner not written."""
-        icp = self.env["ir.config_parameter"].sudo()
-        icp.set_param("plasticos.gate.auto_writeback", "0")
-        self.addCleanup(icp.set_param, "plasticos.gate.auto_writeback", "1")
+        """auto_writeback=0 (the seed default): proposal stored for review, partner not written."""
+        _set_auto_writeback(self, "0")
         partner = self._new_partner()
         run = self._new_run(partner)
         with (
@@ -113,7 +145,8 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
             patch(
                 _SEND,
                 return_value=_fake_gate_result(
-                    status="error",
+                    state="failed",
+                    failure_reason="no_valid_responses",
                     final_fields={"website": "https://x.example"},
                 ),
             ),
@@ -125,7 +158,8 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
         self.assertNotEqual(run.state, "injected")
 
     def test_gate_converge_empty_fields_fails_closed(self):
-        """status ok but no writable allowlisted fields -> degraded across txn boundary."""
+        """state completed but no writable allowlisted fields -> degraded in BOTH modes."""
+        _set_auto_writeback(self, "0")
         partner = self._new_partner()
         run = self._new_run(partner)
         with (
@@ -141,6 +175,36 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
         run.invalidate_recordset()
         self.assertEqual(run.state, "degraded")
         self.assertNotEqual(run.state, "injected")
+
+    def test_operator_retry_advances_the_operation_attempt(self):
+        """A retry is a new logical operation: Gate caches per identity, failures included."""
+        partner = self._new_partner()
+        run = self._new_run(partner)
+        with (
+            patch(_CLASSIFY, return_value=_available_verdict()),
+            patch(_ENABLED, return_value=True),
+            patch(_SEND, return_value=_fake_gate_result(state="failed", failure_reason="no_valid_responses")),
+        ):
+            with self.assertRaises(UserError):
+                run.action_execute()
+        run.invalidate_recordset()
+        self.assertEqual(run.state, "degraded")
+        self.assertEqual(run.gate_attempt, 1)
+        sent_keys = []
+
+        def _capture(env, **kwargs):
+            sent_keys.append(kwargs.get("idempotency_key"))
+            return _fake_gate_result(final_fields={"website": "https://enriched.example"})
+
+        with (
+            patch(_CLASSIFY, return_value=_available_verdict()),
+            patch(_ENABLED, return_value=True),
+            patch(_SEND, side_effect=_capture),
+        ):
+            run.action_retry_enrichment()
+        self.assertEqual(run.gate_attempt, 2)
+        self.assertEqual(len(sent_keys), 1)
+        self.assertTrue(sent_keys[0].endswith(":attempt-2"), sent_keys[0])
 
     def test_gate_disabled_raises(self):
         """Gate enrichment disabled -> failed UserError (M4: no local crawl fallback)."""

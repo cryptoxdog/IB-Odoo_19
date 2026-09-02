@@ -257,6 +257,39 @@ jobs:
             -p no:randomly \
             --cov=. --cov-report=term-missing:skip-covered
 
+  # ── PHASE 1 (parallel — no needs:): Gate SDK bridge tests ────────────────
+  # The pure-Python tier deliberately has no constellation-node-sdk, so
+  # tests/test_gate_sdk_invocation.py skipped there and the Odoo -> Gate bridge
+  # (plasticos_gate/services) had NO CI coverage against the SDK it pins: the
+  # requirements.txt pin drifted to a commit without GateClient.execute() and
+  # nothing in CI noticed. This job installs exactly the pinned SDK and runs
+  # the bridge tests against it. No Odoo runtime is needed.
+  gate-sdk-tests:
+    name: Gate SDK Bridge Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the pinned constellation-node-sdk and test tooling
+        run: |
+          pip install pytest==8.3.5 pytest-timeout==2.4.0
+          # Install exactly the SDK line from requirements.txt (single source of the pin).
+          SDK_REQ="$(grep -E '^constellation-node-sdk @ ' requirements.txt)"
+          test -n "$SDK_REQ"
+          pip install "$SDK_REQ"
+          python -c "from constellation_node_sdk.gate import GateClient; assert hasattr(GateClient, 'execute')"
+
+      - name: Run the Gate bridge tests against the pinned SDK
+        run: |
+          python3 -m pytest tests/test_gate_sdk_invocation.py tests/test_gate_single_egress.py \
+            tests/test_gate_canonical_contract.py \
+            -v --tb=short --no-header -p no:randomly -rs
+
   # ── PHASE 1 (parallel — no needs:): comprehensive audit baseline regression ─
   # Restored 2026-07 from deleted odoo-audit.yml. scripts/audit/odoo_audit.py and
   # run_all_audits.py are NOT duplicated by static-checks above — they cover
@@ -377,7 +410,7 @@ jobs:
   ci-gate-result:
     name: CI Gate Result
     if: always()
-    needs: [lint, static-checks, pure-python-tests, secret-scan, audit-baseline]
+    needs: [lint, static-checks, pure-python-tests, gate-sdk-tests, secret-scan, audit-baseline]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
@@ -386,11 +419,13 @@ jobs:
           echo "lint:              ${{ needs.lint.result }}"
           echo "static-checks:      ${{ needs.static-checks.result }}"
           echo "pure-python-tests:  ${{ needs.pure-python-tests.result }}"
+          echo "gate-sdk-tests:     ${{ needs.gate-sdk-tests.result }}"
           echo "secret-scan:        ${{ needs.secret-scan.result }}"
           echo "audit-baseline:     ${{ needs.audit-baseline.result }}"
           if [ "${{ needs.lint.result }}" != "success" ] || \
              [ "${{ needs.static-checks.result }}" != "success" ] || \
              [ "${{ needs.pure-python-tests.result }}" != "success" ] || \
+             [ "${{ needs.gate-sdk-tests.result }}" != "success" ] || \
              [ "${{ needs.secret-scan.result }}" != "success" ] || \
              [ "${{ needs.audit-baseline.result }}" != "success" ]; then
             echo "::error::One or more CI Gate jobs failed — see the job that reported ❌ above."
