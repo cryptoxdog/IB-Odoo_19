@@ -70,6 +70,7 @@ odoo.modules.module.initialize_sys_path()
 WEBHOOK_TOKEN = "s2-webhook-token-not-a-real-secret"
 PROJECT_ID = "139705"
 S2_CONTACT_ID = "770001"
+COMPANY_NAME = "Seam Test Counterparty"
 HTTP_PORT = int(os.environ.get("SEAM_ODOO_HTTP_PORT", "8169"))
 
 
@@ -185,6 +186,11 @@ def make_pristine() -> None:
     execute("delete from plasticos_crm_sync_orphan")
     execute("delete from plasticos_crm_external_ref")
     execute("delete from plasticos_crm_connection")
+    # The lead too. `_upsert_lead` falls back to matching on `vanillasoft_id`
+    # when no external ref exists, so a lead left behind by an earlier run is
+    # silently reused and every count below would describe an upsert rather
+    # than the first-run create this gate claims to exercise.
+    execute("delete from crm_lead where vanillasoft_id = %s", (S2_CONTACT_ID,))
 
 
 # ----------------------------------------------------------------------
@@ -408,7 +414,9 @@ def gate_s3() -> bool:
         partner_model = env["res.partner"]
         registry_has_mobile = "mobile" in partner_model._fields
 
-        company = partner_model.create({"name": "Seam Test Counterparty", "is_company": True})
+        company = partner_model.search([("name", "=", COMPANY_NAME), ("is_company", "=", True)], limit=1)
+        if not company:
+            company = partner_model.create({"name": COMPANY_NAME, "is_company": True})
         index = source_index.SourceIndex()
         index.contacts = {
             contact_id: {
@@ -447,16 +455,25 @@ def gate_s3() -> bool:
         print(f"S3: expected exactly one imported partner, got {len(rows)}")
         return False
 
-    _, phone, comment = rows[0]
+    partner_id, phone, comment = rows[0]
     comment_text = comment or ""
     business_preserved = phone == business_phone
-    mobile_retained = registry_has_mobile or mobile_phone in comment_text
+    # Assert the number actually landed, in whichever home the registry offers.
+    # Short-circuiting on `registry_has_mobile` would leave the branch this
+    # fix exists to serve — a deployment that restores the field — unproven.
+    if registry_has_mobile:
+        stored = query("select mobile from res_partner where id = %s", (partner_id,))[0][0]
+        mobile_retained = stored == mobile_phone
+        where = f"res_partner.mobile={stored!r}"
+    else:
+        mobile_retained = mobile_phone in comment_text
+        where = "comment"
     # The business number must never be displaced by the mobile one.
     not_overwritten = phone != mobile_phone
 
     print(
         f"S3: registry_has_mobile={registry_has_mobile} phone={phone!r} "
-        f"mobile_retained={mobile_retained} business_preserved={business_preserved} "
+        f"mobile_retained={mobile_retained} (in {where}) business_preserved={business_preserved} "
         f"partners={len(rows)}"
     )
     return bool(business_preserved and mobile_retained and not_overwritten)

@@ -22,13 +22,13 @@ remains the only scheduler.
 | I3 | Transaction B never updates a row transaction A still holds | `run_connection`, `enrichment_run._rollback_then_persist_operator_state` | structural (AST) only — see **Unverified** |
 | I4 | CRM sync is idempotent by stable external reference | `orchestrator._upsert_lead` / `_upsert_calls` | `test_watermark_acknowledgement.py` replay tests |
 | I5 | Session advisory lock excludes concurrent sync across page commits | `run_connection` | structural only — see **Unverified** |
-| I17 | A row an independently owned transaction references is durable before that transaction opens | `orchestrator.run_connection` | `tests/runtime_gates/run_s1_s3_pristine_seams.py` (S1) + `tests/test_pristine_runtime_seams.py` |
-| I18 | No write names a model field that the installed registry does not have | `legacy_erp_import_service._partner_mobile_field` | `tests/runtime_gates/run_s1_s3_pristine_seams.py` (S3) + `tests/test_pristine_runtime_seams.py` |
 | I6 | Cross-service identity is `entity.id = "res.partner:N"` | `gate_builders.build_converge_request` | `test_launch_invariants_crm_enrichment.py` |
 | I7 | Gate is mandatory and fail-closed | `gate_config.classify_gate_availability` | pre-existing `tests/test_gate_single_egress.py` |
 | I14 | Writeback is allowlisted and merge-not-overwrite | `enrichment_run._apply_converge_writeback` | pre-existing `tests/test_enrichment_gate_writeback.py` |
 | I15 | Optional data may degrade; required data is never silently skipped | `adapter.CUSTOM_TABLES_REQUIRED` | `test_launch_invariants_crm_enrichment.py` |
 | I16 | Credential-bearing production endpoints use TLS | `client.require_secure_endpoint`, `gate_config._gate_url_usable` | `test_launch_invariants_crm_enrichment.py` |
+| I17 | A row an independently owned transaction references is durable before that transaction opens | `orchestrator._ensure_caller_state_durable` (`run_connection`, `run_full_import`) | `tests/runtime_gates/run_s1_s3_pristine_seams.py` (S1) + `tests/test_pristine_runtime_seams.py` |
+| I18 | No write names a model field that the installed registry does not have | `legacy_erp_import_service._partner_mobile_field` | `tests/runtime_gates/run_s1_s3_pristine_seams.py` (S3) + `tests/test_pristine_runtime_seams.py` |
 
 ### Pagination fails closed, and that can stop a sync
 

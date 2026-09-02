@@ -13,6 +13,7 @@ this module extends it to S1/S2/S3.
 """
 
 import ast
+import re
 from pathlib import Path
 
 import pytest
@@ -38,52 +39,58 @@ def _function(tree: ast.Module, name: str) -> ast.FunctionDef:
 # ----------------------------------------------------------------------
 # S1 — the connection must be durable before the owned cursor references it
 # ----------------------------------------------------------------------
-def test_run_connection_commits_before_creating_the_durable_run():
+def _call_lines(tree: ast.AST, attr: str) -> list[int]:
+    return [
+        node.lineno
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == attr
+    ]
+
+
+# Both public entrypoints open the same owned cursor for the same FK-bearing
+# audit row, so both carry the same precondition.
+DURABLE_CURSOR_ENTRYPOINTS = ["run_connection", "run_full_import"]
+
+
+@pytest.mark.parametrize("entrypoint", DURABLE_CURSOR_ENTRYPOINTS)
+def test_entrypoint_makes_caller_state_durable_before_its_owned_cursor(entrypoint):
     """`_create_sync_run_durable` INSERTs a row whose FK points at the connection.
 
     That INSERT happens on a cursor of its own, so a connection the caller has
     not committed is invisible to it and the FK fails — the first-run Settings
-    path. The commit must therefore precede the call, not follow it.
+    path. The boundary must therefore precede the call, not follow it.
     """
-    run_connection = _function(_tree(ORCHESTRATOR), "run_connection")
+    func = _function(_tree(ORCHESTRATOR), entrypoint)
+    boundary_lines = _call_lines(func, "_ensure_caller_state_durable")
+    durable_create_lines = _call_lines(func, "_create_sync_run_durable")
 
-    commit_lines = [
-        node.lineno
-        for node in ast.walk(run_connection)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "commit"
-    ]
-    durable_create_lines = [
-        node.lineno
-        for node in ast.walk(run_connection)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr == "_create_sync_run_durable"
-    ]
-
-    assert durable_create_lines, "run_connection no longer creates the durable sync run"
-    assert commit_lines, "run_connection performs no commit"
-    assert min(commit_lines) < min(durable_create_lines), (
-        "run_connection must commit the caller's transaction BEFORE "
+    assert durable_create_lines, f"{entrypoint} no longer creates the durable sync run"
+    assert boundary_lines, f"{entrypoint} does not establish the durability boundary"
+    assert min(boundary_lines) < min(durable_create_lines), (
+        f"{entrypoint} must make the caller's state durable BEFORE "
         "_create_sync_run_durable opens its own cursor, or a freshly created "
         "connection is invisible to that cursor and the foreign key fails"
     )
 
 
-def test_flush_is_not_used_as_a_cross_transaction_boundary():
+def test_the_durability_boundary_actually_commits():
+    """The boundary is only real if it commits; a rename must not hollow it out."""
+    boundary = _function(_tree(ORCHESTRATOR), "_ensure_caller_state_durable")
+    assert _call_lines(boundary, "commit"), "_ensure_caller_state_durable performs no commit"
+
+
+@pytest.mark.parametrize("scope", [*DURABLE_CURSOR_ENTRYPOINTS, "_ensure_caller_state_durable"])
+def test_flush_is_not_used_as_a_cross_transaction_boundary(scope):
     """A flush writes inside the caller's transaction; it commits nothing.
 
-    Substituting one for the commit above reintroduces the defect while looking
-    like a fix, so the shape is guarded explicitly.
+    Substituting one for the commit reintroduces the defect while looking like
+    a fix, so the shape is guarded explicitly.
     """
-    run_connection = _function(_tree(ORCHESTRATOR), "run_connection")
-    flushes = [
-        node
-        for node in ast.walk(run_connection)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr in {"flush", "flush_recordset", "flush_model"}
-    ]
-    assert not flushes, "flush() does not make a row visible to another transaction; commit does"
+    func = _function(_tree(ORCHESTRATOR), scope)
+    for attr in ("flush", "flush_recordset", "flush_model"):
+        assert not _call_lines(func, attr), (
+            f"{scope}: flush() does not make a row visible to another transaction; commit does"
+        )
 
 
 # ----------------------------------------------------------------------
@@ -93,9 +100,10 @@ def test_webhook_never_calls_sudo_on_an_environment():
     """`sudo()` is a recordset method. `Environment` has no such attribute."""
     source = WEBHOOK.read_text(encoding="utf-8")
     assert "request.env.sudo()" not in source, "Environment has no sudo(); use request.env(su=True)"
-    assert "request.env.su" not in source.replace("request.env.sudo()", ""), (
-        "env.su is a boolean state flag, not an Environment"
-    )
+    # `env.su` is a boolean state flag, not an Environment. The negative
+    # lookahead keeps this from re-matching the `sudo()` spelling above, and
+    # `env(su=True)` is a call so it never matches this attribute access.
+    assert not re.search(r"request\.env\.su(?!do)\b", source), "env.su is a boolean state flag, not an Environment"
 
 
 def test_webhook_elevates_with_env_su_true():
