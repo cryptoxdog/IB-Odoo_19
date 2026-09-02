@@ -189,8 +189,12 @@ def send_action(
     _require_sdk()
     config = build_gate_client_config(env)
     client = GateClient(config)
-    icp = env["ir.config_parameter"].sudo()
-    local_node = (icp.get_param("plasticos.gate.local_node") or "odoo").strip().lower()
+    # Node identity has exactly one owner now: the config object the SDK reads
+    # `source_node` / `reply_to` from. Re-reading plasticos.gate.local_node here
+    # would be a second, independently-normalized source that can drift from the
+    # identity actually on the wire — the same failure the timeout budget avoids
+    # by deriving from one validated config value.
+    local_node = config.local_node
     tenant = resolve_tenant(env)
     user = env.user
     tenant_ctx = {

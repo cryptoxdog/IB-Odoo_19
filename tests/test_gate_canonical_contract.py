@@ -476,6 +476,21 @@ def test_packet_budget_is_derived_from_the_same_validated_value():
     assert "plasticos.gate.timeout_seconds" not in src
 
 
+def test_node_identity_has_a_single_source():
+    """`local_node` comes off the config the SDK uses, not a second ICP read.
+
+    The SDK derives `source_node` and `reply_to` from `config.local_node`. If
+    the bridge also read `plasticos.gate.local_node` from ir.config_parameter
+    and normalized it independently, the originator Odoo reports in the tenant
+    context could drift from the identity actually on the wire.
+    """
+    src = (ROOT / "plasticos_gate" / "services" / "gate_client.py").read_text(encoding="utf-8")
+    assert "local_node = config.local_node" in src
+    # The *read* must be absent, not every mention — the rationale comment names
+    # the parameter on purpose.
+    assert 'get_param("plasticos.gate.local_node")' not in src
+
+
 # ── transport failures must stay diagnosable ──────────────────────────────
 
 
