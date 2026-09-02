@@ -112,7 +112,7 @@ observed to FAIL against the unpatched sources before it was accepted.
 |------|-----------|------------------------------|--------|
 | S1 | On a database with no CRM connection, the Settings "Run VanillaSoft sync" button creates the connection and completes a sync: the audit row created on the orchestrator's own cursor resolves its foreign key, and a second press reuses the connection instead of duplicating it | the operator's first sync dies on `plasticos_crm_sync_run_connection_id_fkey` | **PASS** |
 | S2 | Over real HTTP through Odoo's dispatcher: an unauthenticated or wrongly-tokened POST is 401, a tokenless-contact POST is 400, and an authenticated POST reaches the orchestrator through a valid elevated `Environment`, returns 200, lands exactly one lead, and lands no second lead on replay | the webhook 500s on every authenticated call | **PASS** |
-| S3 | A CieTrade contact carrying both `PhoneBusiness` and `PhoneMobile` imports against the installed registry: the business phone is preserved, the mobile number is retained rather than dropped or written over the business phone, and no value names a field `res.partner` does not have | the first historical import aborts, or silently discards mobile numbers | **PASS** |
+| S3 | A LegacyErp contact carrying both `PhoneBusiness` and `PhoneMobile` imports against the installed registry: the business phone is preserved, the mobile number is retained rather than dropped or written over the business phone, and no value names a field `res.partner` does not have | the first historical import aborts, or silently discards mobile numbers | **PASS** |
 
 **Why the collected suite could not see any of the three.** S1's settings test
 patches `action_sync_now`, so no second cursor is ever opened — and under

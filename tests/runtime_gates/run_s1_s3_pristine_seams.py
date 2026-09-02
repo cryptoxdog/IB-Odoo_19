@@ -11,7 +11,7 @@ operator actually crosses on a database that has never synced before:
 
     S1  Settings -> "Run VanillaSoft sync" with no connection yet
     S2  authenticated webhook -> elevated environment -> orchestrator
-    S3  CieTrade contact import -> res.partner against the installed registry
+    S3  LegacyErp contact import -> res.partner against the installed registry
 
 Each of the three defects these gates cover is invisible to the collected
 suite by construction, and the reason differs per gate -- see the docstring on
@@ -369,7 +369,7 @@ def gate_s2(stub: StubCrm, log_path: str) -> bool:
 
 
 # ----------------------------------------------------------------------
-# S3 - CieTrade contact import against the installed res.partner registry
+# S3 - LegacyErp contact import against the installed res.partner registry
 # ----------------------------------------------------------------------
 def gate_s3() -> bool:
     """Import a contact carrying both a business and a mobile number.
