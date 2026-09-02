@@ -9,6 +9,7 @@ partner's business fields are untouched, and that the call returns promptly
 without a second-cursor lock wait.
 """
 
+import os
 import socket
 import sys
 import threading
@@ -21,11 +22,13 @@ import odoo.modules.module
 from odoo.api import Environment
 from odoo.tools import config
 
-DB = "c1c6_test"
-config["db_host"] = "/tmp"
-config["db_port"] = 5433
-config["db_user"] = "odoo"
-config["addons_path"] = "/opt/odoo-src/odoo-19.0.post20260831/odoo/addons,/home/user/IB-Odoo_19"
+# Runtime binding is shared: these four facts were hardcoded in every gate,
+# which pinned an Odoo build number that later rebuilds no longer matched.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _runtime_env import DB, PG_HOST, PG_PORT, PG_USER, bind_config  # noqa: E402
+
+bind_config(config)
+
 odoo.modules.module.initialize_sys_path()
 from odoo.exceptions import UserError  # noqa: E402
 
@@ -39,8 +42,45 @@ PARTNER_VALS = {
 }
 
 
+# Skip contract (rules/95): C7 and C8 drive `plasticos.enrichment.run`, which
+# lives in `plasticos_enrichment` -> `plasticos_gate`, and that module declares
+# the PRIVATE `constellation_node_sdk` in external_dependencies. Where the SDK
+# is absent the module cannot install, so the model does not exist and this gate
+# has nothing to drive.
+#
+#   Condition:  'plasticos.enrichment.run' absent from the registry.
+#   Why not a fixture: the gate's whole subject is real Gate transport failure
+#     against the real enrichment model. A stub for the model under test would
+#     assert nothing (see this directory's README, rule 1).
+#   Removal trigger: install constellation_node_sdk, then -i plasticos_enrichment.
+#     C1-C6, F1-F3 and S1-S3 need no SDK and still run, so an unrelated failure
+#     cannot hide behind this skip.
+#
+# Exit 77 (the autotools "skipped" convention) so `make runtime-gates` counts it
+# as SKIPPED rather than PASSED -- a gate that did not run must never read green.
+SKIP_EXIT = 77
+
+
+def require_enrichment_model() -> None:
+    with odoo.modules.registry.Registry(DB).cursor() as cr:
+        env = Environment(cr, odoo.SUPERUSER_ID, {})
+        if "plasticos.enrichment.run" in env:
+            return
+    print(
+        "SKIPPED  C7/C8 — 'plasticos.enrichment.run' is not in this registry.\n"
+        "         plasticos_enrichment -> plasticos_gate requires the private\n"
+        "         constellation_node_sdk (external_dependencies). Install it and\n"
+        "         `-i plasticos_enrichment`, then re-run. See\n"
+        "         docs/runbooks/C1_C6_LOCAL_RUNTIME.md."
+    )
+    sys.exit(SKIP_EXIT)
+
+
+require_enrichment_model()
+
+
 def indep(sql, args=()):
-    c = psycopg2.connect(host="/tmp", port=5433, user="odoo", dbname=DB)
+    c = psycopg2.connect(host=PG_HOST, port=PG_PORT, user=PG_USER, dbname=DB)
     c.set_session(autocommit=True)
     with c.cursor() as cur:
         cur.execute(sql, args)

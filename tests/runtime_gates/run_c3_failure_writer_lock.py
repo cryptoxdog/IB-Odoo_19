@@ -10,6 +10,7 @@ Two parts, because a timing assertion with no teeth proves nothing:
                             failure write proceeds and the RPC returns promptly
 """
 
+import os
 import sys
 import time
 
@@ -20,12 +21,14 @@ import odoo.modules.module
 from odoo.api import Environment
 from odoo.tools import config
 
-DB = "c1c6_test"
-config["db_host"] = "/tmp"
-config["db_port"] = 5433
-config["db_user"] = "odoo"
-config["addons_path"] = "/opt/odoo-src/odoo-19.0.post20260831/odoo/addons,/home/user/IB-Odoo_19"
 # Must run before any odoo.addons.* import, or the addon is not importable.
+# Runtime binding is shared: these four facts were hardcoded in every gate,
+# which pinned an Odoo build number that later rebuilds no longer matched.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _runtime_env import DB, PG_HOST, PG_PORT, PG_USER, bind_config  # noqa: E402
+
+bind_config(config)
+
 odoo.modules.module.initialize_sys_path()
 
 from odoo.addons.plasticos_crm_sync.adapters.base import (  # noqa: E402
@@ -36,7 +39,7 @@ from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrato
 
 
 def indep(sql, args=()):
-    c = psycopg2.connect(host="/tmp", port=5433, user="odoo", dbname=DB)
+    c = psycopg2.connect(host=PG_HOST, port=PG_PORT, user=PG_USER, dbname=DB)
     c.set_session(autocommit=True)
     with c.cursor() as cur:
         cur.execute(sql, args)
@@ -77,7 +80,7 @@ with odoo.modules.registry.Registry(DB).cursor() as cr:
     run.contacts_upserted = 7
     env.flush_all()  # row is now locked by THIS transaction, uncommitted
     blocked = None
-    c2 = psycopg2.connect(host="/tmp", port=5433, user="odoo", dbname=DB)
+    c2 = psycopg2.connect(host=PG_HOST, port=PG_PORT, user=PG_USER, dbname=DB)
     with c2.cursor() as cur:
         cur.execute("set statement_timeout = 3000")
         try:

@@ -12,6 +12,7 @@ result here is read out of the transaction under test.
 
 from __future__ import annotations
 
+import os
 import sys
 
 import psycopg2
@@ -21,19 +22,14 @@ import odoo.modules.module
 from odoo.api import Environment
 from odoo.tools import config
 
-DB = "c1c6_test"
-PG_HOST = "/tmp"
-PG_PORT = 5433
-PG_USER = "odoo"
-ODOO_ADDONS = "/opt/odoo-src/odoo-19.0.post20260831/odoo/addons"
-REPO = "/home/user/IB-Odoo_19"
-
-config["db_host"] = PG_HOST
-config["db_port"] = PG_PORT
-config["db_user"] = PG_USER
-config["addons_path"] = f"{ODOO_ADDONS},{REPO}"
-
 # Must run before any odoo.addons.* import, or the addon is not importable.
+# Runtime binding is shared: these four facts were hardcoded in every gate,
+# which pinned an Odoo build number that later rebuilds no longer matched.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _runtime_env import DB, PG_HOST, PG_PORT, PG_USER, bind_config  # noqa: E402
+
+bind_config(config)
+
 odoo.modules.module.initialize_sys_path()
 
 from odoo.addons.plasticos_crm_sync.adapters.base import (  # noqa: E402
