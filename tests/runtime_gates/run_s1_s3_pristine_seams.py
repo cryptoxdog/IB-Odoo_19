@@ -45,24 +45,24 @@ import odoo.modules.module
 from odoo.api import Environment
 from odoo.tools import config
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _runtime_env import (  # noqa: E402
-    PG_HOST,
-    PG_PORT,
-    PG_USER,
-    REPO,
-    bind_config,
-    odoo_addons,
-    odoo_source,
-)
-
-# These gates build their own database rather than driving a shared one, so the
-# default differs from the other scripts; everything else is the shared binding.
 DB = os.environ.get("SEAM_DB", "seam_test")
-ODOO_SRC = odoo_source()
-ODOO_ADDONS = odoo_addons()
+PG_HOST = os.environ.get("SEAM_PG_HOST", "/tmp")
+PG_PORT = int(os.environ.get("SEAM_PG_PORT", "5433"))
+PG_USER = os.environ.get("SEAM_PG_USER", "odoo")
+ODOO_SRC = os.environ.get("SEAM_ODOO_SRC") or ""
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-bind_config(config)
+if not ODOO_SRC:
+    import glob
+
+    matches = sorted(glob.glob("/opt/odoo-src/odoo-19.0*"))
+    ODOO_SRC = matches[-1] if matches else ""
+ODOO_ADDONS = os.path.join(ODOO_SRC, "odoo", "addons")
+
+config["db_host"] = PG_HOST
+config["db_port"] = PG_PORT
+config["db_user"] = PG_USER
+config["addons_path"] = f"{ODOO_ADDONS},{REPO}"
 
 # Must run before any odoo.addons.* import, or the addon is not importable.
 odoo.modules.module.initialize_sys_path()

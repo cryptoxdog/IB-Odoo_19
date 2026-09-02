@@ -33,20 +33,17 @@ import odoo.modules.module
 from odoo.api import Environment
 from odoo.tools import config
 
-# Shared runtime binding. `F1_*` still wins where set, so any existing
-# invocation is unchanged. Previously `addons_path` was applied ONLY when
-# F1_ADDONS_PATH was exported, and nothing in the run loop exported it — so a
-# plain run of this gate died on `No module named odoo.addons.plasticos_crm_sync`
-# before reaching an assertion.
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _runtime_env import DB, PG_HOST, PG_PORT, PG_USER, addons_path  # noqa: E402
-
-ADDONS = os.environ.get("F1_ADDONS_PATH") or addons_path()
+DB = os.environ.get("F1_DB", "c1c6_test")
+PG_HOST = os.environ.get("F1_PG_HOST", "/tmp")
+PG_PORT = int(os.environ.get("F1_PG_PORT", "5433"))
+PG_USER = os.environ.get("F1_PG_USER", "odoo")
+ADDONS = os.environ.get("F1_ADDONS_PATH", "")
 
 config["db_host"] = PG_HOST
 config["db_port"] = PG_PORT
 config["db_user"] = PG_USER
-config["addons_path"] = ADDONS
+if ADDONS:
+    config["addons_path"] = ADDONS
 odoo.modules.module.initialize_sys_path()
 
 from odoo.addons.plasticos_crm_sync.adapters.base import (  # noqa: E402
