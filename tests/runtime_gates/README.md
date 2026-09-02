@@ -19,10 +19,19 @@ Gate definitions and status: [`docs/runbooks/LAUNCH_GATES.md`](../../docs/runboo
 | `run_s1_s3_pristine_seams.py` | S1 first-run Settings sync across the orchestrator's owned cursor · S2 authenticated webhook → elevated `Environment` → orchestrator, over real HTTP · S3 legacy contact import against the installed `res.partner` registry |
 
 ```bash
-for f in tests/runtime_gates/run_*.py; do
-  /opt/odoo-venv/bin/python "$f" || echo "FAILED: $f"
-done
+make runtime-gates                                   # all of them
+make runtime-gate g=run_s1_s3_pristine_seams.py      # just one
 ```
+
+`make setup-local-runtime` builds the runtime these need (Odoo 19 +
+PostgreSQL 16, no Docker); `make runtime-gates` depends on the check, so it
+refuses to run against a half-built one rather than failing obscurely.
+
+A gate that exits **77** is reported SKIPPED, never passed: the environment
+cannot satisfy a documented precondition. C7/C8 does this when
+`plasticos_enrichment` is absent, which requires the private
+`constellation_node_sdk`. Every other gate runs without it, so a real failure
+cannot hide behind that skip.
 
 Each script exits non-zero if any assertion fails, and prints a PASS/FAIL table.
 
