@@ -22,6 +22,8 @@ remains the only scheduler.
 | I3 | Transaction B never updates a row transaction A still holds | `run_connection`, `enrichment_run._rollback_then_persist_operator_state` | structural (AST) only — see **Unverified** |
 | I4 | CRM sync is idempotent by stable external reference | `orchestrator._upsert_lead` / `_upsert_calls` | `test_watermark_acknowledgement.py` replay tests |
 | I5 | Session advisory lock excludes concurrent sync across page commits | `run_connection` | structural only — see **Unverified** |
+| I17 | A row an independently owned transaction references is durable before that transaction opens | `orchestrator.run_connection` | `tests/runtime_gates/run_s1_s3_pristine_seams.py` (S1) + `tests/test_pristine_runtime_seams.py` |
+| I18 | No write names a model field that the installed registry does not have | `legacy_erp_import_service._partner_mobile_field` | `tests/runtime_gates/run_s1_s3_pristine_seams.py` (S3) + `tests/test_pristine_runtime_seams.py` |
 | I6 | Cross-service identity is `entity.id = "res.partner:N"` | `gate_builders.build_converge_request` | `test_launch_invariants_crm_enrichment.py` |
 | I7 | Gate is mandatory and fail-closed | `gate_config.classify_gate_availability` | pre-existing `tests/test_gate_single_egress.py` |
 | I14 | Writeback is allowlisted and merge-not-overwrite | `enrichment_run._apply_converge_writeback` | pre-existing `tests/test_enrichment_gate_writeback.py` |
@@ -98,6 +100,32 @@ configuration, **C6** for replay. Do not reuse a retired label.
 | C6 | Replay after a partial failure resumes from the last durable watermark, adds no duplicates, processes the previously failed portion, advances the watermark forward only, and reports only its own committed work | replay loses or duplicates source data | **PASS** |
 | C7 | Gate **disabled** → failure/degraded operator state and `availability_status` survive the outer RPC rollback; partner business fields unchanged; no second-cursor lock wait | operator loses the reason enrichment did not run | **PASS** |
 | C8 | Gate **transport failure** → same durability assertions, and the call returns inside the configured caller budget | a stalled Gate blocks an RPC worker past its budget | **PASS** |
+
+### Pristine operator-seam gates (real Odoo + PostgreSQL)
+
+Added after three P1 defects reached a pristine database while every collected
+test stayed green. Script: `tests/runtime_gates/run_s1_s3_pristine_seams.py`.
+Each gate drives the entrypoint an operator actually touches, and each was
+observed to FAIL against the unpatched sources before it was accepted.
+
+| Gate | Assertion | Rollback trigger if it fails | Status |
+|------|-----------|------------------------------|--------|
+| S1 | On a database with no CRM connection, the Settings "Run VanillaSoft sync" button creates the connection and completes a sync: the audit row created on the orchestrator's own cursor resolves its foreign key, and a second press reuses the connection instead of duplicating it | the operator's first sync dies on `plasticos_crm_sync_run_connection_id_fkey` | **PASS** |
+| S2 | Over real HTTP through Odoo's dispatcher: an unauthenticated or wrongly-tokened POST is 401, a tokenless-contact POST is 400, and an authenticated POST reaches the orchestrator through a valid elevated `Environment`, returns 200, lands exactly one lead, and lands no second lead on replay | the webhook 500s on every authenticated call | **PASS** |
+| S3 | A CieTrade contact carrying both `PhoneBusiness` and `PhoneMobile` imports against the installed registry: the business phone is preserved, the mobile number is retained rather than dropped or written over the business phone, and no value names a field `res.partner` does not have | the first historical import aborts, or silently discards mobile numbers | **PASS** |
+
+**Why the collected suite could not see any of the three.** S1's settings test
+patches `action_sync_now`, so no second cursor is ever opened — and under
+`TransactionCase` it could not fail even unpatched, because `registry.cursor()`
+returns the test cursor. S2 had no test at all. S3's contract tests parse the
+importer with `ast` and never build a registry, and `_upsert` routes an existing
+record to `write()`, where `_differs` drops an unknown field silently — so only
+a *create*, on a *pristine* database, against a registry without
+`res.partner.mobile`, raises.
+
+`tests/test_pristine_runtime_seams.py` is the CI-tier half: it cannot prove the
+seams work, but it fails when the specific construction behind each defect
+returns. That is the same split already used for I2/I3.
 
 ### Full-import gates (real Odoo + PostgreSQL)
 

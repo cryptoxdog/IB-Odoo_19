@@ -92,6 +92,25 @@ class SyncOrchestrator:
     def run_connection(self, connection) -> Any:
         connection.ensure_one()
         connection_id = connection.id
+        # I17 — every durable row this method creates lives on a cursor of its
+        # own (`_create_sync_run_durable`), and `plasticos_crm_sync_run` carries
+        # a foreign key to this connection. PostgreSQL cannot see a row the
+        # caller's transaction has not committed, so a connection created by the
+        # caller and handed straight here makes that INSERT fail the FK — the
+        # first-run Settings path, where the operator's very first sync creates
+        # the connection and syncs it in one RPC.
+        #
+        # `flush()` cannot fix this: it writes the INSERT inside the caller's
+        # transaction, where a second connection still cannot read it. Only a
+        # commit makes the row visible to a transaction this process does not
+        # own. `Cursor.commit()` flushes first, so the pending INSERT lands.
+        #
+        # The boundary belongs here rather than in each caller: this is the
+        # method that opens the independent cursor, so it is the method that
+        # owns the precondition. Callers that reach this point have finished the
+        # work they wanted durable — the Settings action has already run
+        # `set_values()`, and the cron holds nothing pending.
+        self.env.cr.commit()
         # I5 — session advisory lock at the single choke point, so the cron and
         # the manual `action_sync_now` button exclude each other. Session locks
         # survive the page commits below (they are not transaction-scoped) and
