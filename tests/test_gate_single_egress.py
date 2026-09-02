@@ -7,8 +7,12 @@ second egress path is introduced anywhere in the addon tree:
 1. ``constellation_node_sdk`` imported outside ``plasticos_gate``.
 2. ``plasticos.gate.url`` read outside ``plasticos_gate`` (a direct HTTP
    client pointed at the Gate would need the URL).
-3. SDK transport primitives (``GateClient(``, ``create_transport_packet(``,
-   ``send_to_gate``) referenced outside the canonical bridge module.
+3. SDK transport primitives (``GateClient(``, ``send_to_gate``) referenced
+   outside the canonical bridge module.
+4. ``create_transport_packet(`` referenced ANYWHERE in the addon tree,
+   including the bridge. Since the SDK grew ``GateClient.execute()``, packet
+   construction belongs to the SDK; Odoo supplies an action and a payload and
+   never builds a TransportPacket itself.
 """
 
 from __future__ import annotations
@@ -28,7 +32,12 @@ _BRIDGE_CONFIG = _BRIDGE_DIR / "services" / "gate_config.py"
 
 _SDK_IMPORT_RE = re.compile(r"^\s*(?:from|import)\s+constellation_node_sdk\b", re.MULTILINE)
 _GATE_URL_RE = re.compile(r"plasticos\.gate\.url")
-_TRANSPORT_RE = re.compile(r"GateClient\(|create_transport_packet\(|send_to_gate")
+_TRANSPORT_RE = re.compile(r"GateClient\(|send_to_gate")
+# Packet construction is the SDK's, everywhere — the bridge included.
+_PACKET_BUILD_RE = re.compile(r"create_transport_packet\(")
+# The single SDK invocation surface (ADR-007). Anchored to the Gate client
+# handle so it cannot collide with `cr.execute(` SQL calls.
+_SDK_INVOKE_RE = re.compile(r"\bclient\.execute\(")
 
 
 def _py_files(base: Path):
@@ -77,8 +86,27 @@ def test_transport_primitives_only_in_gate_client():
             if _TRANSPORT_RE.search(path.read_text(encoding="utf-8", errors="replace")):
                 offenders.append(_rel(path))
     assert not offenders, (
-        "Gate transport primitives (GateClient/create_transport_packet/send_to_gate) "
+        "Gate transport primitives (GateClient/send_to_gate) "
         f"used outside the canonical bridge — single-egress violation in: {offenders}."
+    )
+
+
+def test_odoo_never_builds_a_transport_packet():
+    """TransportPacket construction is the SDK's, including inside the bridge.
+
+    The bridge calls ``GateClient.execute(action=..., payload=...)``; the SDK
+    builds the root packet, forces the Gate destination, and owns the deadline.
+    A reappearance of ``create_transport_packet(`` anywhere in the addon tree
+    means Odoo has taken transport ownership back.
+    """
+    offenders = []
+    for module_dir in _SCAN_DIRS:
+        for path in _py_files(module_dir):
+            if _PACKET_BUILD_RE.search(path.read_text(encoding="utf-8", errors="replace")):
+                offenders.append(_rel(path))
+    assert not offenders, (
+        "create_transport_packet( found in the addon tree — Odoo must not build "
+        f"TransportPackets; call GateClient.execute() instead. Offenders: {offenders}."
     )
 
 
@@ -213,17 +241,29 @@ def test_odoo_wraps_gate_in_no_retry_layer():
     )
 
 
-def test_only_one_module_builds_gate_packets():
-    """ADR-007 — one SDK invocation surface, not a packet builder per consumer."""
-    builders = []
+def test_only_one_module_invokes_the_gate_sdk():
+    """ADR-007 — one SDK invocation surface, not a caller per consumer.
+
+    This previously asserted exactly one module *builds a packet*
+    (``create_transport_packet(``), because SDK-GAP-1 forced Odoo to construct
+    one. That gap is closed: ``GateClient.execute()`` takes business inputs and
+    builds the packet itself, so the count of packet builders is now zero and
+    an equality assertion against the bridge would fossilize the leak ADR-016
+    exists to remove. The invariant ADR-007 actually states — one invocation
+    surface — is asserted directly instead, and ``test_odoo_never_builds_a_
+    transport_packet`` holds the zero-builders half.
+    """
+    callers = []
     for module_dir in _SCAN_DIRS:
         for path in _py_files(module_dir):
             if "/tests/" in path.as_posix():
                 continue
-            if "create_transport_packet(" in path.read_text(encoding="utf-8", errors="replace"):
-                builders.append(_rel(path))
-    assert builders == [_rel(_BRIDGE_CLIENT)], (
-        f"Gate packets are built in {builders}; exactly one invocation surface is permitted (pack ADR-007)."
+            # Anchored to the Gate client handle on purpose: a bare `.execute(`
+            # matches every `cr.execute(` SQL call in the addon tree.
+            if _SDK_INVOKE_RE.search(path.read_text(encoding="utf-8", errors="replace")):
+                callers.append(_rel(path))
+    assert callers == [_rel(_BRIDGE_CLIENT)], (
+        f"The Gate SDK is invoked from {callers}; exactly one invocation surface is permitted (pack ADR-007)."
     )
 
 

@@ -16,10 +16,9 @@ from .gate_config import (
 )
 
 # The SDK is optional at import time (Odoo.sh installs it via requirements.txt;
-# bare dev environments may lack it). Bind the two entry points as `Any` so the
+# bare dev environments may lack it). Bind the entry point as `Any` so the
 # guard assignments below are type-safe under mypy.
 GateClient: Any = None
-create_transport_packet: Any = None
 _SDK_IMPORT_ERROR: Exception | None = None
 # SDK-typed transport errors. `TransportError` is the root of the SDK's
 # validation/integrity/authentication/authorization/expiry family — every one of
@@ -29,20 +28,21 @@ try:
     from constellation_node_sdk import (  # type: ignore[no-redef]  # noqa: F811
         GateClient,
         TransportError,
-        create_transport_packet,
     )
 
     _SDK_TRANSPORT_ERRORS = (TransportError,)
 except Exception as exc:  # pragma: no cover
     _SDK_IMPORT_ERROR = exc
 
-# httpx is a hard Gate_SDK dependency (`httpx>=0.27.0` in its pyproject), and
-# `GateClient.send_to_gate` propagates httpx exceptions to its caller unwrapped.
-# Naming those types is how this bridge classifies a connection fault WITHOUT
-# reading exception strings; it is not an Odoo HTTP client and issues no
-# request. That the SDK leaks its HTTP library's exceptions instead of raising
-# its own typed transport errors is recorded as a Gate_SDK capability gap
-# (SDK-GAP-2) — see FINAL_FINDINGS.md.
+# httpx is a hard Gate_SDK dependency (`httpx>=0.27.0` in its pyproject).
+# SDK-GAP-2 (the SDK leaking its HTTP library's exceptions instead of raising
+# its own typed transport errors — see FINAL_FINDINGS.md) is CLOSED by the
+# release that added `GateClient.execute`: it raises GateTimeoutError /
+# GateConnectionError / GateHTTPError instead. These types are retained as
+# defense in depth — they cost nothing, and they keep classification correct if
+# any path ever surfaces a raw httpx error again. Naming types is how this
+# bridge classifies a connection fault WITHOUT reading exception strings; it is
+# not an Odoo HTTP client and issues no request.
 _HTTP_TRANSIENT_ERRORS: tuple[type[BaseException], ...] = ()
 _HTTP_CONFIG_ERRORS: tuple[type[BaseException], ...] = ()
 _HTTPX_IMPORT_ERROR: Exception | None = None
@@ -124,15 +124,24 @@ def classify_transport_failure(exc: BaseException) -> TransportFailureClass:
 
 
 def _require_sdk() -> None:
-    if GateClient is None or create_transport_packet is None:
+    if GateClient is None:
         raise GateIntegrationError(
             f"constellation_node_sdk not installed: {_SDK_IMPORT_ERROR}",
+            failure_class=TransportFailureClass.PERMANENT.value,
+        )
+    if not hasattr(GateClient, "execute"):
+        # Fail closed and legibly rather than as an AttributeError deep in the
+        # call: this bridge requires the SDK release that closed SDK-GAP-1.
+        raise GateIntegrationError(
+            "constellation_node_sdk is too old: GateClient.execute() is required "
+            "(the SDK owns TransportPacket construction). Bump the "
+            "constellation-node-sdk pin in requirements.txt.",
             failure_class=TransportFailureClass.PERMANENT.value,
         )
 
 
 def _run_async(coro):
-    """Bridge async GateClient.send_to_gate for synchronous Odoo workers."""
+    """Bridge async GateClient.execute for synchronous Odoo workers."""
     try:
         asyncio.get_running_loop()
     except RuntimeError:
@@ -164,12 +173,18 @@ def send_action(
     compliance_tags: tuple[str, ...] = (),
     idempotency_key: str | None = None,
 ) -> dict[str, Any]:
-    """Send a TransportPacket to Gate and return packet + payload dicts."""
+    """Execute one action through Gate and return response packet + payload dicts.
+
+    Odoo supplies business inputs only. The SDK builds and owns the
+    TransportPacket; this bridge never constructs one.
+    """
     _require_sdk()
     config = build_gate_client_config(env)
     client = GateClient(config)
-    icp = env["ir.config_parameter"].sudo()
-    local_node = (icp.get_param("plasticos.gate.local_node") or "odoo").strip().lower()
+    # Node identity has one owner: the config object the SDK reads source_node
+    # and reply_to from. A second, independently-normalized read of the ICP
+    # parameter here could drift from the identity actually on the wire.
+    local_node = config.local_node
     tenant = resolve_tenant(env)
     user = env.user
     tenant_ctx = {
@@ -179,40 +194,38 @@ def send_action(
         "org_id": tenant,
         "user_id": str(user.id) if user and user.id else None,
     }
-    # SDK-GAP-1: Gate_SDK exposes no application-facing execute(action, payload,
-    # operation_id, timeout) — `GateClient.send_to_gate` requires a caller-built
-    # packet — so this call cannot be deleted from Odoo. It is held to the
-    # minimum the SDK forces: every argument below is either a business input
-    # Odoo legitimately owns (action, payload, tenant, correlation, compliance
-    # tags, operation identity) or local node identity read from Odoo config.
+    # SDK-GAP-1 CLOSED: Gate_SDK now exposes an application-facing
+    # `GateClient.execute(action, payload, ...)`, so Odoo no longer builds a
+    # TransportPacket. Every argument below is a business input Odoo
+    # legitimately owns; the SDK owns the root packet, source and reply-to
+    # identity (from GateClientConfig.local_node), signing, HTTP, and response
+    # validation (pack ADR-007 — one SDK invocation surface).
     #
-    # Transport POLICY is left to the SDK deliberately:
-    #   destination_node -> SDK default "gate"; GateClientConfig
+    # Transport POLICY stays the SDK's, as before:
+    #   destination_node -> SDK forces "gate"; GateClientConfig
     #                       (allowed_gate_destination="gate") enforces it and
-    #                       validate_outbound_gate_packet rejects anything else,
-    #                       so Odoo naming the destination was redundant routing
-    #                       policy in domain code (pack ADR-002 / ADR-016).
+    #                       validate_outbound_gate_packet rejects anything else
+    #                       (pack ADR-002 / ADR-016).
     #   classification   -> SDK default "internal".
     #   priority,        -> SDK defaults; Odoo has no basis to override them.
     #   retention_days
-    packet = create_transport_packet(
-        action=action,
-        payload=payload,
-        tenant=tenant_ctx,
-        source_node=local_node,
-        reply_to=local_node,
-        correlation_id=correlation_id,
-        compliance_tags=compliance_tags,
-        idempotency_key=idempotency_key,
-        # SDK-GAP-3: the SDK does not derive the packet's advertised budget from
-        # GateClientConfig.timeout_seconds (it hardcodes 30000), so the caller
-        # must restate it or the header promises a budget this caller does not
-        # honour. Both values come from the one validated config object, which
-        # is what keeps them from drifting (pack ADR-009).
-        timeout_ms=int(float(config.timeout_seconds) * 1000),
-    )
     try:
-        response_packet = _run_async(client.send_to_gate(packet))
+        response_packet = _run_async(
+            client.execute(
+                action=action,
+                payload=payload,
+                tenant=tenant_ctx,
+                correlation_id=correlation_id,
+                compliance_tags=compliance_tags,
+                idempotency_key=idempotency_key,
+                # SDK-GAP-3 CLOSED: `execute` writes this budget into the packet
+                # header AND derives the network deadline from that same header,
+                # so the advertised and actual budgets can no longer diverge.
+                # Passing it explicitly keeps the caller's validated config the
+                # single source of the budget (pack ADR-009).
+                timeout_ms=int(float(config.timeout_seconds) * 1000),
+            )
+        )
     except Exception as exc:
         failure = classify_transport_failure(exc)
         # Timeout exceptions stringify to nothing: measured against a real Gate
