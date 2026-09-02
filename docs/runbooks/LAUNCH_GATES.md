@@ -27,6 +27,8 @@ remains the only scheduler.
 | I14 | Writeback is allowlisted and merge-not-overwrite | `enrichment_run._apply_converge_writeback` | pre-existing `tests/test_enrichment_gate_writeback.py` |
 | I15 | Optional data may degrade; required data is never silently skipped | `adapter.CUSTOM_TABLES_REQUIRED` | `test_launch_invariants_crm_enrichment.py` |
 | I16 | Credential-bearing production endpoints use TLS | `client.require_secure_endpoint`, `gate_config._gate_url_usable` | `test_launch_invariants_crm_enrichment.py` |
+| I17 | A row an independently owned transaction references is durable before that transaction opens | `orchestrator._ensure_caller_state_durable` (`run_connection`, `run_full_import`) | `tests/runtime_gates/run_s1_s3_pristine_seams.py` (S1) + `tests/test_pristine_runtime_seams.py` |
+| I18 | No write names a model field that the installed registry does not have | `legacy_erp_import_service._partner_mobile_field` | `tests/runtime_gates/run_s1_s3_pristine_seams.py` (S3) + `tests/test_pristine_runtime_seams.py` |
 
 ### Pagination fails closed, and that can stop a sync
 
@@ -99,17 +101,51 @@ configuration, **C6** for replay. Do not reuse a retired label.
 | C7 | Gate **disabled** → failure/degraded operator state and `availability_status` survive the outer RPC rollback; partner business fields unchanged; no second-cursor lock wait | operator loses the reason enrichment did not run | **PASS** |
 | C8 | Gate **transport failure** → same durability assertions, and the call returns inside the configured caller budget | a stalled Gate blocks an RPC worker past its budget | **PASS** |
 
+### Pristine operator-seam gates (real Odoo + PostgreSQL)
+
+Added after three P1 defects reached a pristine database while every collected
+test stayed green. Script: `tests/runtime_gates/run_s1_s3_pristine_seams.py`.
+Each gate drives the entrypoint an operator actually touches, and each was
+observed to FAIL against the unpatched sources before it was accepted.
+
+| Gate | Assertion | Rollback trigger if it fails | Status |
+|------|-----------|------------------------------|--------|
+| S1 | On a database with no CRM connection, the Settings "Run VanillaSoft sync" button creates the connection and completes a sync: the audit row created on the orchestrator's own cursor resolves its foreign key, and a second press reuses the connection instead of duplicating it | the operator's first sync dies on `plasticos_crm_sync_run_connection_id_fkey` | **PASS** |
+| S2 | Over real HTTP through Odoo's dispatcher: an unauthenticated or wrongly-tokened POST is 401, a tokenless-contact POST is 400, and an authenticated POST reaches the orchestrator through a valid elevated `Environment`, returns 200, lands exactly one lead, and lands no second lead on replay | the webhook 500s on every authenticated call | **PASS** |
+| S3 | A LegacyErp contact carrying both `PhoneBusiness` and `PhoneMobile` imports against the installed registry: the business phone is preserved, the mobile number is retained rather than dropped or written over the business phone, and no value names a field `res.partner` does not have | the first historical import aborts, or silently discards mobile numbers | **PASS** |
+
+**Why the collected suite could not see any of the three.** S1's settings test
+patches `action_sync_now`, so no second cursor is ever opened — and under
+`TransactionCase` it could not fail even unpatched, because `registry.cursor()`
+returns the test cursor. S2 had no test at all. S3's contract tests parse the
+importer with `ast` and never build a registry, and `_upsert` routes an existing
+record to `write()`, where `_differs` drops an unknown field silently — so only
+a *create*, on a *pristine* database, against a registry without
+`res.partner.mobile`, raises.
+
+`tests/test_pristine_runtime_seams.py` is the CI-tier half: it cannot prove the
+seams work, but it fails when the specific construction behind each defect
+returns. That is the same split already used for I2/I3.
+
 ### Full-import gates (real Odoo + PostgreSQL)
 
 Added with the manual `run_full_import` bootstrap. Script:
 `tests/runtime_gates/run_f1_f3_full_import.py`. Procedure:
-[`CRM_SYNC_FULL_IMPORT_E2E.md`](CRM_SYNC_FULL_IMPORT_E2E.md).
+[`CRM_SYNC_FULL_IMPORT_E2E.md`](CRM_SYNC_FULL_IMPORT_E2E.md). Run with
+`make runtime-gates`.
+
+These were recorded **NOT RUN** because they needed a live runtime that took a
+hand-typed setup to obtain. They now execute — all 26 assertions pass. The gate
+was additionally unrunnable by construction: it applied `addons_path` only when
+`F1_ADDONS_PATH` was exported, and nothing exported it, so a plain invocation
+died on `No module named odoo.addons.plasticos_crm_sync` before reaching an
+assertion.
 
 | Gate | Assertion | Rollback trigger if it fails | Status |
 |------|-----------|------------------------------|--------|
-| F1 | Full import asks for the operator's floor unclamped, lands a contact older than the rolling window and historical calls from the explicit floor, and hands watermarks to `run_connection` — whose immediate replay adds no duplicate lead, ref or call, and never rewinds the watermark | full import duplicates identities, or its replay re-consumes history | **NOT RUN** — needs a live runtime |
-| F2 | An unproven contact census is recorded `partial` with the reason durable on the run row and the connection; a proven one is `success`; an unusable floor raises before any run row exists and holds no advisory lock | a full import reports `success` over a silently clamped window | **NOT RUN** |
-| F3 | Provider deletion archives with provenance, restore reactivates and clears it, a user's archive is never reopened, and the archived lead is matched rather than duplicated | sync reopens leads an Odoo user archived | **NOT RUN** |
+| F1 | Full import asks for the operator's floor unclamped, lands a contact older than the rolling window and historical calls from the explicit floor, and hands watermarks to `run_connection` — whose immediate replay adds no duplicate lead, ref or call, and never rewinds the watermark | full import duplicates identities, or its replay re-consumes history | **PASS** |
+| F2 | An unproven contact census is recorded `partial` with the reason durable on the run row and the connection; a proven one is `success`; an unusable floor raises before any run row exists and holds no advisory lock | a full import reports `success` over a silently clamped window | **PASS** |
+| F3 | Provider deletion archives with provenance, restore reactivates and clears it, a user's archive is never reopened, and the archived lead is matched rather than duplicated | sync reopens leads an Odoo user archived | **PASS** |
 
 C1–C8 still apply to the full import unchanged: it shares `_sync_contacts`,
 `_sync_calls`, `_upsert_lead` and the advisory lock with `run_connection`.

@@ -19,11 +19,13 @@ import odoo.modules.module
 from odoo.api import Environment
 from odoo.tools import config
 
-DB = "c1c6_test"
-config["db_host"] = "/tmp"
-config["db_port"] = 5433
-config["db_user"] = "odoo"
-config["addons_path"] = "/opt/odoo-src/odoo-19.0.post20260831/odoo/addons,/home/user/IB-Odoo_19"
+# Runtime binding is shared: these four facts were hardcoded in every gate,
+# which pinned an Odoo build number that later rebuilds no longer matched.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _runtime_env import DB, PG_HOST, PG_PORT, PG_USER, bind_config  # noqa: E402
+
+bind_config(config)
+
 odoo.modules.module.initialize_sys_path()
 # _sync_contacts clamps modified_after to the source API's 31-day maximum
 # (now - 30d). Watermarks older than that floor are legitimately rewritten to
@@ -52,7 +54,7 @@ seen_modified_after = []
 
 
 def indep(sql, args=()):
-    c = psycopg2.connect(host="/tmp", port=5433, user="odoo", dbname=DB)
+    c = psycopg2.connect(host=PG_HOST, port=PG_PORT, user=PG_USER, dbname=DB)
     c.set_session(autocommit=True)
     with c.cursor() as cur:
         cur.execute(sql, args)
@@ -164,8 +166,16 @@ results["run 2 resumed from the last durable watermark"] = (
     len(seen_modified_after) == 2 and seen_modified_after[1] == W1
 )
 results["no duplicate committed records"] = leads2 == distinct2 == 75
+# PAGE_B is indices 50..74, so these are its first and last contact. The ids
+# must carry TAG: this assertion kept the pre-namespace literal prefix ('rq-50')
+# when per-execution namespacing was introduced, so it queried ids that can no
+# longer exist and was false on every run, whatever the code did.
 results["previously failed portion was processed"] = (
-    indep("select count(*) from crm_lead where vanillasoft_id in ('rq-50','rq-74')")[0][0] == 2
+    indep(
+        "select count(*) from crm_lead where vanillasoft_id in (%s, %s)",
+        (f"{TAG}-50", f"{TAG}-74"),
+    )[0][0]
+    == 2
 )
 results["watermark advanced monotonically"] = wm2 == W2 and wm2 > wm1
 results["run 2 reports only its own committed work"] = bool(run2_row and run2_row[0][2] == 25)

@@ -278,8 +278,15 @@ class PlasticosLegacyErpImport(models.AbstractModel):
                 }
                 _set_if(values, "email", _text(row, "Email"))
                 _set_if(values, "phone", _text(row, "PhoneBusiness"))
-                _set_if(values, "mobile", _text(row, "PhoneMobile"))
-                _set_if(values, "comment", _contact_comment(row))
+                # `mobile` is not a res.partner field in Odoo 19 (base defines
+                # `phone` only). Resolve against the registry actually installed
+                # rather than an assumed schema, and never fall back to `phone`:
+                # that column carries PhoneBusiness and overwriting it would
+                # destroy a distinct business number.
+                mobile_field = _partner_mobile_field(Partner)
+                if mobile_field:
+                    _set_if(values, mobile_field, _text(row, "PhoneMobile"))
+                _set_if(values, "comment", _contact_comment(row, keep_mobile=not mobile_field))
 
                 roles = self._contact_roles(index, contact_id)
                 if roles:
@@ -536,12 +543,31 @@ def _address_name(row, cp_id: str, address_id: str) -> str:
     return f"LegacyErp address {address_id} ({cp_id})"
 
 
-def _contact_comment(row) -> str:
-    """Preserve notes and the third phone number, which has no Odoo field."""
+def _partner_mobile_field(partner_model) -> str | None:
+    """Name of the res.partner field that stores a mobile number, or None.
+
+    Odoo 19 dropped `mobile` from res.partner. A deployment may restore it (an
+    OCA addon, or a future plasticos module), so the field is resolved from the
+    live registry instead of assumed present or assumed absent.
+    """
+    return "mobile" if "mobile" in partner_model._fields else None
+
+
+def _contact_comment(row, keep_mobile: bool = False) -> str:
+    """Preserve notes and the phone numbers that have no Odoo field.
+
+    `PhoneOther` never had one. `PhoneMobile` joins it whenever the installed
+    registry has no mobile field, so the number is retained and labelled rather
+    than dropped or written over the business phone.
+    """
     parts = []
     notes = _text(row, "Notes")
     if notes:
         parts.append(notes)
+    if keep_mobile:
+        mobile = _text(row, "PhoneMobile")
+        if mobile:
+            parts.append(f"Mobile: {mobile}")
     other_phone = _text(row, "PhoneOther")
     if other_phone:
         parts.append(f"Other phone: {other_phone}")

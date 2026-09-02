@@ -201,7 +201,7 @@ carries no facility-specialization data, and guessing one would be invention.
 | `ContactNm` | `name` | mapped |
 | `Email` | `email` | mapped |
 | `PhoneBusiness` | `phone` | mapped |
-| `PhoneMobile` | `mobile` | mapped |
+| `PhoneMobile` | `mobile` if the installed registry has it, else `comment` | mapped — Odoo 19 base has no `res.partner.mobile` |
 | `PhoneOther` | `comment` | mapped — Odoo has no third phone field |
 | `IsActive` | `active` | mapped (`Y`/`N`, never compared to int) |
 | `Notes` | `comment` | mapped |

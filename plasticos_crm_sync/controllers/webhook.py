@@ -40,14 +40,17 @@ class PlasticosCrmSyncWebhook(http.Controller):
             _logger.warning("CRM webhook missing ContactID")
             return Response("Missing ContactID", status=400, mimetype="text/plain")
 
-        # sudo after token validation — public route has no CRM ACL
-        connection = request.env["plasticos.crm.connection"].sudo().get_or_create_vanillasoft_connection()
+        # Elevation happens only after the token gate above. `Environment` has no
+        # `sudo()` — that is a recordset method — so the elevated environment is
+        # built with `env(su=True)`, and the connection is resolved through it so
+        # one environment carries the whole privileged path.
+        env = request.env(su=True)
+        connection = env["plasticos.crm.connection"].get_or_create_vanillasoft_connection()
 
         try:
             from ..services.orchestrator import SyncOrchestrator
 
-            # sudo env: public user has no CRM ACL after token gate
-            SyncOrchestrator(request.env.sudo()).upsert_contact_external_id(connection, contact_id)
+            SyncOrchestrator(env).upsert_contact_external_id(connection, contact_id)
         except Exception:  # noqa: BLE001
             _logger.exception("CRM webhook sync failed contact=%s", contact_id)
             return Response("Error", status=500, mimetype="text/plain")

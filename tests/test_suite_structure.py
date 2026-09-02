@@ -43,6 +43,8 @@ NON_TEST_FILES = frozenset(
         "run_c6_replay_checkpoint.py",
         "run_c7_c8_enrichment_failures.py",
         "run_f1_f3_full_import.py",
+        "run_s1_s3_pristine_seams.py",
+        "_runtime_env.py",
     }
 )
 
