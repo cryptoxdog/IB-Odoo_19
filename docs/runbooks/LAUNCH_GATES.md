@@ -29,6 +29,7 @@ remains the only scheduler.
 | I16 | Credential-bearing production endpoints use TLS | `client.require_secure_endpoint`, `gate_config._gate_url_usable` | `test_launch_invariants_crm_enrichment.py` |
 | I17 | A row an independently owned transaction references is durable before that transaction opens | `orchestrator._ensure_caller_state_durable` (`run_connection`, `run_full_import`) | `tests/runtime_gates/run_s1_s3_pristine_seams.py` (S1) + `tests/test_pristine_runtime_seams.py` |
 | I18 | No write names a model field that the installed registry does not have | `legacy_erp_import_service._partner_mobile_field` | `tests/runtime_gates/run_s1_s3_pristine_seams.py` (S3) + `tests/test_pristine_runtime_seams.py` |
+| I19 | An operation rejected before it starts publishes no caller state: deterministic validation precedes execution ownership, and execution ownership precedes the durability commit | `orchestrator.run_connection`, `orchestrator.run_full_import` | `tests/runtime_gates/run_t1_t2_rejection_no_commit.py` (T1/T2/T3) + `tests/test_pristine_runtime_seams.py` |
 
 ### Pagination fails closed, and that can stop a sync
 

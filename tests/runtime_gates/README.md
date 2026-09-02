@@ -17,6 +17,7 @@ Gate definitions and status: [`docs/runbooks/LAUNCH_GATES.md`](../../docs/runboo
 | `run_c7_c8_enrichment_failures.py` | C7 Gate disabled · C8 Gate transport failure — durability across RPC rollback, partner untouched, caller budget honoured |
 | `run_f1_f3_full_import.py` | F1 full import → incremental handoff, no duplicate identities · F2 census verdict and fail-closed floors · F3 delete/restore provenance |
 | `run_s1_s3_pristine_seams.py` | S1 first-run Settings sync across the orchestrator's owned cursor · S2 authenticated webhook → elevated `Environment` → orchestrator, over real HTTP · S3 legacy contact import against the installed `res.partner` registry |
+| `run_t1_t2_rejection_no_commit.py` | T1 a run refused for want of the advisory lock publishes no caller state · T2 an invocation refused by bound validation publishes none either · T3 the session advisory lock survives the durability commit |
 
 ```bash
 for f in tests/runtime_gates/run_*.py; do

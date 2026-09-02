@@ -165,7 +165,15 @@ results["run 2 resumed from the last durable watermark"] = (
 )
 results["no duplicate committed records"] = leads2 == distinct2 == 75
 results["previously failed portion was processed"] = (
-    indep("select count(*) from crm_lead where vanillasoft_id in ('rq-50','rq-74')")[0][0] == 2
+    # The ids are TAG-scoped per run (`rq<pid>x<epoch>-N`), so the boundary
+    # records of the page that failed in run 1 have to be named through TAG.
+    # Two bare literals here could never match and made this assertion
+    # unfalsifiable — it reported FAIL on every run, on every commit.
+    indep(
+        "select count(*) from crm_lead where vanillasoft_id in (%s, %s)",
+        (f"{TAG}-50", f"{TAG}-74"),
+    )[0][0]
+    == 2
 )
 results["watermark advanced monotonically"] = wm2 == W2 and wm2 > wm1
 results["run 2 reports only its own committed work"] = bool(run2_row and run2_row[0][2] == 25)

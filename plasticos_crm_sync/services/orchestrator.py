@@ -92,16 +92,23 @@ class SyncOrchestrator:
     def run_connection(self, connection) -> Any:
         connection.ensure_one()
         connection_id = connection.id
-        self._ensure_caller_state_durable()
         # I5 — session advisory lock at the single choke point, so the cron and
         # the manual `action_sync_now` button exclude each other. Session locks
-        # survive the page commits below (they are not transaction-scoped) and
-        # are re-entrant within one backend session, so the cron's own outer
-        # lock nests harmlessly.
+        # survive the durability commit and the page commits below (they are not
+        # transaction-scoped) and are re-entrant within one backend session, so
+        # the cron's own outer lock nests harmlessly.
+        #
+        # I19 — the lock is acquired BEFORE the durability commit, not after. A
+        # caller that loses the race is rejected before this method has started
+        # doing anything, and a rejected operation must not publish the caller's
+        # uncommitted state as a side effect of being refused.
         lock_key = advisory_lock_key(connection_id)
         if not self._try_advisory_lock(lock_key):
             raise CrmSyncLockedError(f"CRM sync already running for connection {connection_id}")
         try:
+            # I17 — execution ownership is held, so the caller's prerequisites
+            # may now become durable for the owned cursor opened just below.
+            self._ensure_caller_state_durable()
             # I2 — the audit record must exist independently of the fallible
             # remote work it describes, so create it on an owned cursor that
             # commits before the first adapter call.
@@ -191,10 +198,11 @@ class SyncOrchestrator:
         Completeness is verified, not assumed: see `_contact_enumeration_gap`.
         """
         connection.ensure_one()
-        self._ensure_caller_state_durable()
         connection_id = connection.id
-        # Validate every bound BEFORE any lock, audit row or remote call — an
-        # unusable floor must not leave a half-run behind to interpret.
+        # Validate every bound BEFORE any commit, lock, audit row or remote call
+        # — an unusable floor must not leave a half-run behind to interpret, and
+        # an invocation this method refuses outright must not publish the
+        # caller's uncommitted state as a side effect of being refused (I19).
         call_floor = self._require_utc_bound(call_history_floor, "call_history_floor")
         contact_floor_dt = (
             self._require_utc_bound(contact_modified_floor, "contact_modified_floor")
@@ -207,6 +215,9 @@ class SyncOrchestrator:
         if not self._try_advisory_lock(lock_key):
             raise CrmSyncLockedError(f"CRM sync already running for connection {connection_id}")
         try:
+            # Same I17/I19 ordering as run_connection: execution ownership is
+            # held before the caller's state is published.
+            self._ensure_caller_state_durable()
             # Same I2 ordering as run_connection: the audit row is durable on an
             # owned cursor before the first fallible remote call.
             run_id = self._create_sync_run_durable(connection_id)
@@ -386,6 +397,17 @@ class SyncOrchestrator:
         Callers that reach this point have finished the work they wanted
         durable: the Settings action has already run `set_values()`, and the
         cron holds nothing pending.
+
+        I19 — **where** each entrypoint calls this is part of the contract, not
+        an implementation detail. Committing the caller's transaction publishes
+        everything it had pending, so it must not happen on a path that then
+        refuses the call: an invocation rejected by argument validation or by a
+        held advisory lock has started no work, and must leave the caller's
+        state exactly as unpublished as it found it. Both entrypoints therefore
+        call this only after deterministic validation has passed and execution
+        ownership has been acquired. `pg_try_advisory_lock` is session-scoped,
+        so holding the lock across this commit is sound — that is the same
+        property the page commits below already depend on (I5).
         """
         self.env.cr.commit()
 

@@ -79,6 +79,72 @@ def test_the_durability_boundary_actually_commits():
     assert _call_lines(boundary, "commit"), "_ensure_caller_state_durable performs no commit"
 
 
+@pytest.mark.parametrize("entrypoint", DURABLE_CURSOR_ENTRYPOINTS)
+def test_entrypoint_acquires_the_advisory_lock_before_it_commits(entrypoint):
+    """I19 — a call refused for want of the lock must publish nothing.
+
+    `_ensure_caller_state_durable` commits the caller's transaction, so it
+    makes everything the caller had pending visible to every other session.
+    Doing that before the lock is taken means a caller that loses the race has
+    its state published and *then* is told the operation will not run: a
+    rejected operation would have committed on the caller's behalf.
+    """
+    func = _function(_tree(ORCHESTRATOR), entrypoint)
+    lock_lines = _call_lines(func, "_try_advisory_lock")
+    boundary_lines = _call_lines(func, "_ensure_caller_state_durable")
+
+    assert lock_lines, f"{entrypoint} no longer takes the advisory lock"
+    assert boundary_lines, f"{entrypoint} does not establish the durability boundary"
+    assert max(lock_lines) < min(boundary_lines), (
+        f"{entrypoint} must acquire the advisory lock BEFORE committing the "
+        "caller's transaction, or a call rejected with CrmSyncLockedError has "
+        "already published caller state it never got to use"
+    )
+
+
+def test_full_import_validates_every_bound_before_it_commits():
+    """I19 — a call refused by argument validation must publish nothing.
+
+    `_require_utc_bound` raises `CrmFullImportArgumentError` on a missing,
+    unparseable, or future bound. That rejection is deterministic and decided
+    entirely from the arguments, so it must be reached before any commit, lock
+    or audit row exists.
+    """
+    func = _function(_tree(ORCHESTRATOR), "run_full_import")
+    validation_lines = _call_lines(func, "_require_utc_bound")
+    lock_lines = _call_lines(func, "_try_advisory_lock")
+    boundary_lines = _call_lines(func, "_ensure_caller_state_durable")
+
+    assert validation_lines, "run_full_import no longer validates its bounds"
+    assert lock_lines and boundary_lines, "run_full_import lost the lock or the durability boundary"
+    assert max(validation_lines) < min(lock_lines), (
+        "every deterministic bound check must complete before the advisory lock "
+        "is taken — an unusable invocation must not contend for execution ownership"
+    )
+    assert max(validation_lines) < min(boundary_lines), (
+        "every deterministic bound check must complete before the caller's "
+        "transaction is committed, or an invocation rejected with "
+        "CrmFullImportArgumentError has already published caller state"
+    )
+
+
+@pytest.mark.parametrize("entrypoint", DURABLE_CURSOR_ENTRYPOINTS)
+def test_durability_commit_happens_inside_the_lock_hold(entrypoint):
+    """The session lock must still be held across the commit, not re-taken after.
+
+    `pg_try_advisory_lock` is session-scoped, so it survives `cr.commit()`;
+    that property is what lets the boundary sit inside the guarded region at
+    all. The commit must land between the acquisition and the release, so the
+    whole durable prologue is covered by one uninterrupted ownership window.
+    """
+    func = _function(_tree(ORCHESTRATOR), entrypoint)
+    boundary_lines = _call_lines(func, "_ensure_caller_state_durable")
+    unlock_lines = _call_lines(func, "_advisory_unlock")
+
+    assert unlock_lines, f"{entrypoint} no longer releases the advisory lock"
+    assert max(boundary_lines) < min(unlock_lines), f"{entrypoint} must commit while it still holds the advisory lock"
+
+
 @pytest.mark.parametrize("scope", [*DURABLE_CURSOR_ENTRYPOINTS, "_ensure_caller_state_durable"])
 def test_flush_is_not_used_as_a_cross_transaction_boundary(scope):
     """A flush writes inside the caller's transaction; it commits nothing.
@@ -106,13 +172,29 @@ def test_webhook_never_calls_sudo_on_an_environment():
     assert not re.search(r"request\.env\.su(?!do)\b", source), "env.su is a boolean state flag, not an Environment"
 
 
-def test_webhook_elevates_with_env_su_true():
-    tree = _tree(WEBHOOK)
-    handler = _function(tree, "vanillasoft_weblead")
-    elevated = [
-        node for node in ast.walk(handler) if isinstance(node, ast.Call) and any(kw.arg == "su" for kw in node.keywords)
+def _su_true_calls(tree: ast.AST) -> list[int]:
+    """Calls passing a literal `su=True`.
+
+    The keyword's *value* is what elevates. `env(su=False)` carries a keyword
+    named `su` and elevates nothing, so a guard that only looks for the name
+    passes on the exact regression it exists to catch.
+    """
+    return [
+        node.lineno
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and any(
+            kw.arg == "su" and isinstance(kw.value, ast.Constant) and kw.value.value is True for kw in node.keywords
+        )
     ]
-    assert elevated, "the webhook must build its elevated environment with env(su=True)"
+
+
+def test_webhook_elevates_with_env_su_true():
+    handler = _function(_tree(WEBHOOK), "vanillasoft_weblead")
+    assert _su_true_calls(handler), (
+        "the webhook must build its elevated environment with a literal env(su=True) — "
+        "a `su` keyword whose value is anything else elevates nothing"
+    )
 
 
 def test_webhook_authenticates_before_it_elevates():
@@ -124,11 +206,7 @@ def test_webhook_authenticates_before_it_elevates():
         for node in ast.walk(handler)
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "compare_digest"
     ]
-    elevation_lines = [
-        node.lineno
-        for node in ast.walk(handler)
-        if isinstance(node, ast.Call) and any(kw.arg == "su" for kw in node.keywords)
-    ]
+    elevation_lines = _su_true_calls(handler)
     assert compare_digest_lines, "the webhook no longer compares the token"
     assert elevation_lines, "the webhook no longer elevates"
     assert max(compare_digest_lines) < min(elevation_lines), (
