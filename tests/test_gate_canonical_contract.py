@@ -3,8 +3,7 @@
 The rail this pins:
 
     Odoo build_converge_request
-      -> Gate_SDK GateClient.execute(action="converge", payload=...)
-         (the SDK builds the TransportPacket; Odoo never does)
+      -> Gate_SDK create_transport_packet (action="converge")
       -> Constellation.Gate
       -> EIE canonical EnrichRequest handler
       -> EnrichResponse
@@ -18,9 +17,6 @@ specific way the contract previously drifted, or could drift back.
 
 from __future__ import annotations
 
-import asyncio
-import hashlib
-import json
 import sys
 from pathlib import Path
 
@@ -30,10 +26,9 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from plasticos_gate.services.gate_builders import (  # noqa: E402
-    IDEMPOTENCY_DIGEST_HEX_CHARS,
     build_converge_request,
-    build_idempotency_key,
     build_odoo_context,
+    build_operation_id,
 )
 from plasticos_gate.services.gate_config import (  # noqa: E402
     DEFAULT_GATE_TIMEOUT_SECONDS,
@@ -176,19 +171,37 @@ def test_gate_client_holds_no_eie_peer_address():
             assert probe not in lowered, f"{name} addresses a peer directly: {probe}"
 
 
-def test_destination_node_is_gate():
-    """Gate is the only destination — now enforced by NOT naming one at all.
+def test_gate_destination_is_sdk_owned_not_set_in_odoo():
+    """Pack ADR-002/ADR-016 — Gate-only egress is enforced by the SDK, not by Odoo.
 
-    Before the SDK owned packet construction, Odoo passed
-    ``destination_node="gate"`` explicitly and this asserted that literal. The
-    invariant is stronger post-migration: the bridge names no destination
-    whatsoever (it cannot address a peer even by mistake), and the config pins
-    the only destination the SDK will accept.
+    This replaces an earlier assertion that Odoo *sets* ``destination_node="gate"``
+    on the packet. That test fossilized the abstraction leak: it made
+    Odoo-side routing policy a requirement. The SDK already defaults
+    ``destination_node`` to ``"gate"``, and ``validate_outbound_gate_packet``
+    rejects any other destination using ``GateClientConfig.allowed_gate_destination``.
+    So the correct assertion is the inverse — Odoo must NOT name the
+    destination, and the config must pin it.
     """
     src = (ROOT / "plasticos_gate" / "services" / "gate_client.py").read_text(encoding="utf-8")
-    assert "destination_node" not in src, "the bridge must not name a destination; Gate routing is the SDK's"
+    assert "destination_node=" not in src, (
+        "gate_client.py names a packet destination — routing is Gate_SDK's "
+        "authority (pack ADR-002). Let the SDK default apply."
+    )
     config_src = (ROOT / "plasticos_gate" / "services" / "gate_config.py").read_text(encoding="utf-8")
-    assert 'allowed_gate_destination="gate"' in config_src
+    assert 'allowed_gate_destination="gate"' in config_src, (
+        "GateClientConfig must pin allowed_gate_destination='gate' so the SDK "
+        "enforces Gate-only egress on Odoo's behalf."
+    )
+
+
+def test_odoo_does_not_restate_sdk_transport_defaults():
+    """Pack ADR-007 — the adapter supplies business inputs, not transport policy."""
+    src = (ROOT / "plasticos_gate" / "services" / "gate_client.py").read_text(encoding="utf-8")
+    for policy_arg in ("classification=", "priority=", "retention_days=", "expires_at="):
+        assert policy_arg not in src, (
+            f"gate_client.py sets transport policy {policy_arg!r}; Gate_SDK owns "
+            "packet defaults (pack ADR-001/ADR-007)."
+        )
 
 
 # ── PATCH 9 — canonical EnrichResponse consumption ────────────────────────
@@ -245,140 +258,90 @@ def test_writeback_proposal_drops_empty_values():
     assert partner_writeback_from_converge(resp) == {"city": "NC"}
 
 
-# ── PATCH 4 — deterministic transport idempotency key ─────────────────────
+# ── ADR-006 — one logical operation identity across replay boundaries ─────
 
 
 def _ctx(record_id: int = RUN_ID, db_name: str = "plasticos"):
     return build_odoo_context(_FakeEnv(db_name), model="plasticos.enrichment.run", record_id=record_id).to_dict()
 
 
-def test_idempotency_key_is_stable_for_a_true_replay():
-    payload = _payload()
-    assert build_idempotency_key(payload, _ctx()) == build_idempotency_key(payload, _ctx())
+def test_operation_id_is_stable_for_a_retry_of_the_same_run():
+    """ADR-006 required behavior: same durable run + retry -> same operation ID."""
+    assert build_operation_id(_ctx()) == build_operation_id(_ctx())
 
 
-def test_idempotency_key_differs_across_runs():
-    payload = _payload()
-    assert build_idempotency_key(payload, _ctx(7)) != build_idempotency_key(payload, _ctx(8))
+def test_operation_id_does_not_depend_on_the_payload():
+    """The identity is the RUN, not a serialization of its payload.
+
+    This replaces earlier tests asserting the opposite — that editing the
+    partner, or reordering dict keys, changed the key. That was ADR-006's
+    rejected Option B: keying on a payload digest makes "same operation" a
+    serialization fact rather than a business fact, and leaves the transport
+    key uncorrelatable with the durable run it belongs to. ``build_operation_id``
+    accepts no payload at all, which makes the property structural rather than
+    merely observed.
+    """
+    import inspect
+
+    from plasticos_gate.services.gate_builders import build_operation_id as _fn
+
+    assert "payload" not in set(inspect.signature(_fn).parameters)
 
 
-def test_idempotency_key_differs_when_the_payload_changed():
-    """An operator retry after the partner was edited is a different request."""
-    a = _payload()
-    b = _payload()
-    b["entity"]["name"] = "Acme Recycling Ltd"
-    assert build_idempotency_key(a, _ctx()) != build_idempotency_key(b, _ctx())
+def test_operation_id_differs_across_runs():
+    assert build_operation_id(_ctx(7)) != build_operation_id(_ctx(8))
 
 
-def test_idempotency_key_is_database_scoped():
-    payload = _payload()
-    assert build_idempotency_key(payload, _ctx(db_name="prod")) != build_idempotency_key(
-        payload, _ctx(db_name="staging")
+def test_operation_id_is_database_scoped():
+    assert build_operation_id(_ctx(db_name="prod")) != build_operation_id(_ctx(db_name="staging"))
+
+
+def test_operation_id_carries_no_timestamp_or_randomness():
+    assert len({build_operation_id(_ctx()) for _ in range(5)}) == 1
+
+
+def test_operation_id_is_none_without_run_identity():
+    assert build_operation_id({}) is None
+
+
+def test_operation_id_uses_the_adr_006_semantic_form():
+    """odoo:<family>:<db>:<model>:<record-id> — no digest segment."""
+    key = build_operation_id(_ctx())
+    assert key == f"odoo:enrichment:plasticos:plasticos.enrichment.run:{RUN_ID}"
+
+
+def test_one_identity_reaches_both_replay_boundaries():
+    """ADR-006 — the domain field and the transport header carry the SAME value.
+
+    The request builder generates it once; the consumer hands
+    ``request.idempotency_key`` to the transport rather than deriving a second
+    value. ``EnrichRequest.idempotency_key`` is a canonical EIE field, so
+    carrying it in the payload is domain propagation, not a new dialect.
+    """
+    request = _request()
+    expected = build_operation_id(request.odoo)
+    assert expected is not None
+    assert request.idempotency_key == expected
+    assert request.to_dict()["idempotency_key"] == expected
+
+
+def test_consumer_does_not_derive_a_second_operation_identity():
+    """The enrichment consumer must reuse request.idempotency_key, not recompute one."""
+    src = (ROOT / "plasticos_enrichment" / "models" / "enrichment_run.py").read_text(encoding="utf-8")
+    assert "idempotency_key=request.idempotency_key" in src
+    assert "build_idempotency_key" not in src, (
+        "the payload-digest key builder is retired; one identity is generated by build_converge_request (ADR-006)"
     )
-
-
-def test_idempotency_key_carries_no_timestamp_or_randomness():
-    payload = _payload()
-    keys = {build_idempotency_key(payload, _ctx()) for _ in range(5)}
-    assert len(keys) == 1
-
-
-def test_idempotency_key_is_none_without_run_identity():
-    assert build_idempotency_key(_payload(), {}) is None
-
-
-def test_idempotency_key_is_not_in_the_business_payload():
-    """It is a transport header. The payload stays a plain EnrichRequest."""
-    assert "idempotency_key" not in _payload()
-
-
-def test_idempotency_digest_is_128_bits_of_lowercase_hex():
-    """32 hex chars = 128 bits. Narrower is a needless birthday risk on a replay key."""
-    digest = build_idempotency_key(_payload(), _ctx()).rsplit(":", 1)[1]
-    assert len(digest) == IDEMPOTENCY_DIGEST_HEX_CHARS == 32
-    assert digest == digest.lower()
-    assert all(c in "0123456789abcdef" for c in digest)
-
-
-def test_idempotency_digest_is_a_sha256_prefix():
-    """Pins the algorithm, so a future edit cannot quietly swap in a weaker hash."""
-    payload = _payload()
-    expected = hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode("utf-8")).hexdigest()
-    assert build_idempotency_key(payload, _ctx()).endswith(expected[:32])
-
-
-def test_idempotency_key_keeps_its_namespaced_prefix():
-    """Widening the digest must not change the logical key's components."""
-    key = build_idempotency_key(_payload(), _ctx())
-    prefix, digest = key.rsplit(":", 1)
-    assert prefix == f"odoo:plasticos:plasticos.enrichment.run:{RUN_ID}"
-    assert len(digest) == 32
-
-
-def test_idempotency_key_ignores_dict_insertion_order():
-    """Canonical serialization sorts keys, so key order is not part of identity."""
-    a = {"entity": {"id": ENTITY_REF, "name": "Acme"}, "object_type": "plasticos"}
-    b = {"object_type": "plasticos", "entity": {"name": "Acme", "id": ENTITY_REF}}
-    assert build_idempotency_key(a, _ctx()) == build_idempotency_key(b, _ctx())
 
 
 # ── PATCH 10 — Gate_SDK owns the packet ───────────────────────────────────
-
-
-def test_packet_is_built_by_the_sdk_with_the_canonical_action():
-    """The SDK builds the packet from business inputs; Odoo supplies no transport.
-
-    Previously this test called ``create_transport_packet`` itself, which meant
-    it asserted a packet Odoo built. Odoo no longer builds one: the contract is
-    now that ``GateClient.execute(action=..., payload=...)`` produces the same
-    canonical header from business inputs alone. We capture the packet the SDK
-    constructs by stubbing the one transport method underneath ``execute``.
-    """
-    sdk = pytest.importorskip(
-        "constellation_node_sdk",
-        reason="Gate SDK is an Odoo.sh runtime dependency; absent from the pure-Python tier",
-    )
-    if not hasattr(sdk.GateClient, "execute"):
-        pytest.skip(
-            "installed constellation_node_sdk predates GateClient.execute(); "
-            "bump the constellation-node-sdk pin in requirements.txt"
-        )
-    payload = _payload()
-    ctx = _ctx()
-
-    captured = {}
-
-    async def _capture(self, packet):
-        captured["packet"] = packet
-        return packet
-
-    client = sdk.GateClient(sdk.GateClientConfig(gate_url="https://gate.invalid", local_node="odoo"))
-    # Stub the single transport method `execute` delegates to. Everything above
-    # it — packet construction, destination, identity, deadline — still runs.
-    client.send_to_gate = _capture.__get__(client, type(client))
-    asyncio.run(
-        client.execute(
-            action="converge",
-            payload=payload,
-            tenant={"actor": "plasticos", "org_id": "plasticos"},
-            correlation_id=ctx["correlation_id"],
-            classification="internal",
-            compliance_tags=("ERP", "ENRICHMENT"),
-            idempotency_key=build_idempotency_key(payload, ctx),
-            timeout_ms=30_000,
-        )
-    )
-    packet = captured["packet"]
-    header = packet.model_dump()["header"]
-    # The SDK, not Odoo, chose these: Gate is the only destination it will emit.
-    assert header["destination_node"] == "gate"
-    assert header["source_node"] == "odoo"
-    assert header["action"] == "converge"
-    assert header["correlation_id"] == f"plasticos.enrichment.run:{RUN_ID}"
-    assert header["timeout_ms"] == 30_000
-    assert header["idempotency_key"].startswith("odoo:plasticos:plasticos.enrichment.run:7:")
-    # The domain payload rides unchanged; Gate is transport, not a translator.
-    assert packet.payload["entity"]["id"] == ENTITY_REF
+#
+# The real SDK-invocation proof (Odoo domain call -> installed Gate_SDK ->
+# packet/client boundary, network seam patched only) lives in
+# tests/test_gate_sdk_invocation.py. An earlier test here reconstructed the
+# create_transport_packet argument list by hand, which asserted nothing about
+# the adapter: it duplicated the adapter's own code and so could not detect the
+# adapter drifting away from it.
 
 
 # ── PATCH 5 — the caller budget is one value, and it has a ceiling ────────
@@ -461,34 +424,14 @@ def test_packet_budget_is_derived_from_the_same_validated_value():
     """The HTTP budget and the advertised packet budget read one config object.
 
     `send_action` builds the config once and uses `config.timeout_seconds` for
-    both `GateClient(config)` and the `timeout_ms` passed to `execute`; there is
-    no second parse and no literal, so the two cannot diverge through the
-    supported builder path. Post-migration the SDK tightens this further: it
-    derives the network deadline from the same header value it advertises.
+    both `GateClient(config)` and `timeout_ms`; there is no second parse and no
+    literal, so the two cannot diverge through the supported builder path.
     """
     src = (ROOT / "plasticos_gate" / "services" / "gate_client.py").read_text(encoding="utf-8")
     assert "timeout_ms=int(float(config.timeout_seconds) * 1000)" in src
     assert "GateClient(config)" in src
-    # The budget is handed to the SDK entry point, not to a hand-built packet.
-    assert "client.execute(" in src
-    assert "create_transport_packet" not in src
     # No second, unvalidated read of the ICP timeout anywhere in the client.
     assert "plasticos.gate.timeout_seconds" not in src
-
-
-def test_node_identity_has_a_single_source():
-    """`local_node` comes off the config the SDK uses, not a second ICP read.
-
-    The SDK derives `source_node` and `reply_to` from `config.local_node`. If
-    the bridge also read `plasticos.gate.local_node` from ir.config_parameter
-    and normalized it independently, the originator Odoo reports in the tenant
-    context could drift from the identity actually on the wire.
-    """
-    src = (ROOT / "plasticos_gate" / "services" / "gate_client.py").read_text(encoding="utf-8")
-    assert "local_node = config.local_node" in src
-    # The *read* must be absent, not every mention — the rationale comment names
-    # the parameter on purpose.
-    assert 'get_param("plasticos.gate.local_node")' not in src
 
 
 # ── transport failures must stay diagnosable ──────────────────────────────

@@ -25,6 +25,51 @@ PROVIDER = "vanillasoft"
 CUSTOM_TABLES_REQUIRED = False
 
 
+# VanillaSoft renders JSON booleans inconsistently across endpoints: a native
+# JSON boolean on some payloads, the integers 1/0 on others, and the quoted
+# strings "true"/"false"/"1"/"0" on form-style posts. Python truthiness reads
+# the string "false" as True, which silently inverts every negative flag — a
+# live contact archived as deleted, an enabled phone number dropped as
+# disabled. The accepted spellings below are exactly those representations;
+# nothing is added on speculation, so an unrecognised value fails loudly rather
+# than defaulting to True.
+_VS_TRUE = frozenset({"true", "1"})
+_VS_FALSE = frozenset({"false", "0", ""})
+
+
+def vs_bool(value: Any, *, field: str) -> bool:
+    """Coerce a VanillaSoft payload boolean strictly.
+
+    Absent (``None``) is False — the provider omits a flag it does not set.
+    An unknown non-empty representation raises: guessing True there is the
+    exact silent corruption this parser exists to prevent.
+    """
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        if value in (0, 1):
+            return bool(value)
+        raise CrmAdapterError(f"VanillaSoft {field}: unsupported boolean integer {value!r}")
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in _VS_TRUE:
+            return True
+        if text in _VS_FALSE:
+            return False
+        raise CrmAdapterError(f"VanillaSoft {field}: unsupported boolean string {value!r}")
+    raise CrmAdapterError(f"VanillaSoft {field}: unsupported boolean type {type(value).__name__}")
+
+
+def _first_present(raw: dict[str, Any], *keys: str) -> Any:
+    """First key actually present in the payload — absence, not falsiness."""
+    for key in keys:
+        if key in raw:
+            return raw[key]
+    return None
+
+
 def _cf_map(raw: Any) -> dict[str, str]:
     out: dict[str, str] = {}
     if not raw:
@@ -55,7 +100,7 @@ def _phone_from_list(phones: Any, preferred: tuple[str, ...]) -> str:
     for p in phones:
         if not isinstance(p, dict):
             continue
-        if p.get("disabled"):
+        if vs_bool(_first_present(p, "disabled", "Disabled"), field="phone_numbers[].disabled"):
             continue
         name = str(p.get("name") or "").strip().lower()
         number = str(p.get("number") or "").strip()
@@ -91,7 +136,7 @@ def contact_to_canonical(raw: dict[str, Any]) -> CanonicalLead:
         raw.get("user_name") or raw.get("owner") or raw.get("Contact Owner") or ""
     )
 
-    deleted = bool(raw.get("deleted") or raw.get("Deleted") or False)
+    deleted = vs_bool(_first_present(raw, "deleted", "Deleted"), field="deleted")
     modified = str(
         raw.get("modified_date_time_utc") or raw.get("modified_datetime_utc") or raw.get("ModifiedDateTimeUTC") or ""
     )
@@ -378,8 +423,25 @@ class VanillaSoftAdapter:
         for idx, row in enumerate(rows):
             if not isinstance(row, dict):
                 continue
-            rid = row.get("data_id") or row.get("id") or row.get("DataID") or idx
-            fields = {k: str(v) for k, v in row.items() if v is not None and k not in ("data_id", "id")}
+            # The row's canonical identity is `(provider, table_id,
+            # external_row_id)` and it is persisted under a unique constraint.
+            # Falling back to `idx` manufactured that identity from list
+            # position, so row 0 of contact A and row 0 of contact B collided on
+            # one durable key and each import overwrote the other's enrichment.
+            # Custom-table rows are OPTIONAL launch data (CUSTOM_TABLES_REQUIRED
+            # above): skipping one loses nothing the CRM record needs, whereas
+            # persisting it under an invented key corrupts a different contact.
+            rid = _first_present(row, "data_id", "id", "DataID")
+            if rid is None or not str(rid).strip():
+                _logger.warning(
+                    "Skipping custom-table row without a stable source id: contact=%s table=%s position=%s keys=%s",
+                    contact_external_id,
+                    table_id,
+                    idx,
+                    sorted(row.keys()),
+                )
+                continue
+            fields = {k: str(v) for k, v in row.items() if v is not None and k not in ("data_id", "id", "DataID")}
             yield CanonicalTableRow(
                 provider=PROVIDER,
                 contact_external_id=str(contact_external_id),

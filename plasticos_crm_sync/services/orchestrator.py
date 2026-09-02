@@ -15,9 +15,26 @@ CRM_LEAD = "crm.lead"
 CONTACT_PAGE_SIZE = 200
 CALL_BATCH_SIZE = 500
 
+# The Contacts list endpoint accepts `modified_after` only within this lookback
+# (docs/runbooks/CRM_SYNC_VANILLASOFT.md). Incremental runs clamp to it; the
+# full import deliberately does not, and instead verifies at runtime that the
+# older floor it asked for was actually honoured — see `run_full_import`.
+CONTACT_LOOKBACK_MAX_DAYS = 31
+INCREMENTAL_CONTACT_LOOKBACK_DAYS = 30
+
+# Bootstrap and catch-up overlap on the call timeline rather than abutting, so a
+# call written while the bootstrap was running cannot fall through a seam left
+# by clock skew between Odoo and VanillaSoft. Calls carry a provider-stable
+# `call_history_id`, so the re-read is idempotent.
+CATCHUP_OVERLAP = timedelta(minutes=5)
+
 
 class CrmSyncLockedError(CrmAdapterError):
     """Another synchronization already holds this connection's advisory lock."""
+
+
+class CrmFullImportArgumentError(CrmAdapterError):
+    """`run_full_import` was given a missing or unusable historical bound."""
 
 
 def advisory_lock_key(connection_id: int) -> str:
@@ -49,9 +66,28 @@ def _iso_z(dt: datetime) -> str:
     return dt.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _forward_only(current: str | None, candidate: str) -> str | None:
+    """Return `candidate`, or None when writing it would rewind `current`.
+
+    A full import replays history the incremental path already consumed, so its
+    per-page watermark writes are older than what the connection already holds.
+    Letting them land would reset a valid watermark and make the next
+    `run_connection` re-read months of source data. Unparseable values fall
+    through to the caller's write, preserving the pre-existing behaviour.
+    """
+    cur = _parse_utc(current)
+    new_dt = _parse_utc(candidate)
+    if cur and new_dt and new_dt <= cur:
+        return None
+    return candidate
+
+
 class SyncOrchestrator:
     def __init__(self, env):
         self.env = env
+        # Reset by every `_sync_contacts` pass; read by `run_full_import` as the
+        # evidence that the requested historical floor was actually served.
+        self.oldest_contact_modified_seen: datetime | None = None
 
     def run_connection(self, connection) -> Any:
         connection.ensure_one()
@@ -122,6 +158,202 @@ class SyncOrchestrator:
         finally:
             self._advisory_unlock(lock_key)
         return self.env["plasticos.crm.sync.run"].browse(run_id)
+
+    def run_full_import(
+        self,
+        connection,
+        call_history_floor: str,
+        contact_modified_floor: str | None = None,
+    ) -> Any:
+        """Manual one-shot bootstrap, then hand off to the incremental path.
+
+        `run_connection` is a rolling catch-up: it clamps contacts to the list
+        endpoint's 30-day lookback and calls to a 7-day window, so on an empty
+        database it produces a partial CRM, not a populated one. This method is
+        the explicit "populate it once" operation an operator runs from the Odoo
+        shell before switching to `run_connection`.
+
+        Three phases inside one advisory lock and one sync-run audit row:
+
+        1. contacts from `contact_modified_floor` (defaults to the call floor),
+           with no rolling clamp;
+        2. call history from `call_history_floor` to a UTC boundary captured
+           BEFORE phase 1 started;
+        3. the ordinary incremental logic, unchanged, which closes the window
+           between that boundary and now — so a contact or call mutated while
+           phase 1 was running cannot fall into a gap.
+
+        On success the connection's watermarks are left exactly where an
+        immediate `run_connection(connection)` continues from, and every write
+        is keyed on provider identity, so the replay creates no duplicates.
+
+        Completeness is verified, not assumed: see `_contact_enumeration_gap`.
+        """
+        connection.ensure_one()
+        connection_id = connection.id
+        # Validate every bound BEFORE any lock, audit row or remote call — an
+        # unusable floor must not leave a half-run behind to interpret.
+        call_floor = self._require_utc_bound(call_history_floor, "call_history_floor")
+        contact_floor_dt = (
+            self._require_utc_bound(contact_modified_floor, "contact_modified_floor")
+            if contact_modified_floor is not None
+            else call_floor
+        )
+        contact_floor = _iso_z(contact_floor_dt)
+
+        lock_key = advisory_lock_key(connection_id)
+        if not self._try_advisory_lock(lock_key):
+            raise CrmSyncLockedError(f"CRM sync already running for connection {connection_id}")
+        try:
+            # Same I2 ordering as run_connection: the audit row is durable on an
+            # owned cursor before the first fallible remote call.
+            run_id = self._create_sync_run_durable(connection_id)
+            self.env.cr.commit()
+            run = self.env["plasticos.crm.sync.run"].browse(run_id)
+            try:
+                adapter = self._build_adapter(connection)
+                ensure_live_or_raise(adapter)
+                adapter.healthcheck()
+
+                # Captured before enumeration: everything after this instant is
+                # phase 3's responsibility, so a mutation racing the bootstrap
+                # is covered by one phase or the other, never by neither.
+                boundary = datetime.now(UTC)
+
+                bootstrap_contacts = self._sync_contacts(
+                    connection,
+                    adapter,
+                    run,
+                    modified_after_override=contact_floor,
+                )
+                gap = self._contact_enumeration_gap(contact_floor_dt, boundary)
+                # Capture before the catch-up pass resets it — this is the
+                # bootstrap's evidence, and the only one that means anything.
+                oldest_seen = self.oldest_contact_modified_seen
+
+                bootstrap_calls = self._sync_calls(
+                    connection,
+                    adapter,
+                    run,
+                    start_override=call_floor,
+                    end_override=boundary,
+                )
+
+                catchup_contacts = self._sync_contacts(
+                    connection,
+                    adapter,
+                    run,
+                    counter_base=bootstrap_contacts,
+                )
+                catchup_calls = self._sync_calls(
+                    connection,
+                    adapter,
+                    run,
+                    start_override=boundary - CATCHUP_OVERLAP,
+                    counter_base=bootstrap_calls,
+                )
+                resolved = self._resolve_orphans(connection, adapter, run)
+
+                run.write(
+                    {
+                        "status": "partial" if gap else "success",
+                        "finished_at": datetime.now(UTC).replace(tzinfo=None),
+                        "contacts_upserted": bootstrap_contacts + catchup_contacts,
+                        "calls_upserted": bootstrap_calls + catchup_calls,
+                        "orphans_resolved": resolved,
+                        "error_excerpt": gap or False,
+                    }
+                )
+                connection.write(
+                    {
+                        "last_error": gap or False,
+                        "last_success_at": datetime.now(UTC).replace(tzinfo=None),
+                    }
+                )
+                self.env.cr.commit()
+                _logger.info(
+                    "CRM full import connection=%s contacts=%s calls=%s status=%s "
+                    "contact_floor=%s call_floor=%s boundary=%s oldest_contact_modified=%s",
+                    connection_id,
+                    bootstrap_contacts + catchup_contacts,
+                    bootstrap_calls + catchup_calls,
+                    "partial" if gap else "success",
+                    contact_floor,
+                    _iso_z(call_floor),
+                    _iso_z(boundary),
+                    _iso_z(oldest_seen) if oldest_seen else "none",
+                )
+            except (CrmAdapterStubError, CrmAdapterError, Exception) as exc:
+                # I3 — identical ordering to run_connection: roll back this
+                # transaction's rows before the failure cursor touches them.
+                excerpt = str(exc)[:2000]
+                _logger.exception("CRM full import failed connection=%s", connection_id)
+                self.env.cr.rollback()
+                self._persist_sync_failure_durable(connection_id, run_id, excerpt)
+                raise
+        finally:
+            self._advisory_unlock(lock_key)
+        return self.env["plasticos.crm.sync.run"].browse(run_id)
+
+    @staticmethod
+    def _require_utc_bound(value: Any, name: str) -> datetime:
+        """Parse a required historical bound, or refuse to start.
+
+        A full import that silently fell back to the rolling default would
+        report success over a fraction of the history the operator asked for,
+        which is worse than not running: the watermarks would then declare that
+        history consumed.
+        """
+        if value is None or (isinstance(value, str) and not value.strip()):
+            raise CrmFullImportArgumentError(
+                f"{name} is required for a full import — pass an explicit ISO-8601 UTC "
+                "instant (e.g. '2019-01-01T00:00:00Z'); there is no safe default"
+            )
+        if isinstance(value, datetime):
+            parsed = value if value.tzinfo else value.replace(tzinfo=UTC)
+            parsed = parsed.astimezone(UTC)
+        else:
+            parsed = _parse_utc(str(value))
+        if parsed is None:
+            raise CrmFullImportArgumentError(f"{name} is not a parseable ISO-8601 datetime: {value!r}")
+        if parsed > datetime.now(UTC):
+            raise CrmFullImportArgumentError(f"{name} is in the future: {value!r}")
+        return parsed
+
+    def _contact_enumeration_gap(self, contact_floor: datetime, boundary: datetime) -> str | None:
+        """Return why the contact census is unproven, or None when it is proven.
+
+        The list endpoint documents a 31-day maximum on `modified_after`
+        (docs/runbooks/CRM_SYNC_VANILLASOFT.md). The full import asks for an
+        older floor anyway, because the two failure modes differ sharply:
+
+        * the provider rejects the out-of-range bound — a `CrmAdapterError`,
+          the run fails, no watermark moves, nothing is claimed;
+        * the provider silently clamps it — the run "succeeds" over the last
+          31 days while reporting a full census. That is the one outcome
+          this method exists to prevent.
+
+        Seeing at least one contact modified before the lookback horizon proves
+        the older floor was served. Seeing none is genuinely ambiguous — the
+        dataset may simply have no contact that old — so the run is reported
+        `partial` with the ambiguity named, never `success`.
+        """
+        if contact_floor >= boundary - timedelta(days=CONTACT_LOOKBACK_MAX_DAYS):
+            # Floor inside the documented lookback: nothing to prove.
+            return None
+        oldest = self.oldest_contact_modified_seen
+        horizon = boundary - timedelta(days=CONTACT_LOOKBACK_MAX_DAYS)
+        if oldest is not None and oldest < horizon:
+            return None
+        return (
+            "Contact census unproven: requested modified_after "
+            f"{_iso_z(contact_floor)}, which is older than the {CONTACT_LOOKBACK_MAX_DAYS}-day "
+            f"Contacts lookback (horizon {_iso_z(horizon)}), and no returned contact was modified "
+            f"before that horizon (oldest seen: {_iso_z(oldest) if oldest else 'none'}). "
+            "The provider may have silently clamped the floor, so contacts untouched since "
+            f"{_iso_z(horizon)} may be missing. Reconcile the imported lead count against "
+            "VanillaSoft's own project contact count before treating this import as complete."
+        )
 
     def _try_advisory_lock(self, lock_key: str) -> bool:
         self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", [lock_key])
@@ -221,13 +453,28 @@ class SyncOrchestrator:
             project_id=int(project or 0),
         )
 
-    def _sync_contacts(self, connection, adapter, run) -> int:
-        modified_after = connection.default_contact_modified_after()
-        # Clamp to 31-day API max
-        floor = datetime.now(UTC) - timedelta(days=30)
-        parsed = _parse_utc(modified_after)
-        if parsed and parsed < floor:
-            modified_after = _iso_z(floor)
+    def _sync_contacts(
+        self,
+        connection,
+        adapter,
+        run,
+        modified_after_override: str | None = None,
+        counter_base: int = 0,
+    ) -> int:
+        if modified_after_override:
+            # Full import: the operator named this floor explicitly, so the
+            # rolling clamp below must not silently shorten it back to 30 days.
+            # `oldest_contact_modified_seen` is what proves afterwards whether
+            # the provider honoured it (see `run_full_import`).
+            modified_after = modified_after_override
+        else:
+            modified_after = connection.default_contact_modified_after()
+            # Clamp to 31-day API max
+            floor = datetime.now(UTC) - timedelta(days=INCREMENTAL_CONTACT_LOOKBACK_DAYS)
+            parsed = _parse_utc(modified_after)
+            if parsed and parsed < floor:
+                modified_after = _iso_z(floor)
+        self.oldest_contact_modified_seen = None
 
         # `committed` counts rows this method has durably landed; `pending`
         # counts rows written into the still-open transaction. The sync-run
@@ -248,28 +495,59 @@ class SyncOrchestrator:
                 lead = self._upsert_lead(connection, dto)
                 if not dto.deleted:
                     self._sync_tables_for_lead(connection, adapter, dto.external_id, lead)
+                self._observe_contact_modified(dto)
                 page_n += 1
             pending += page_n
             if batch_end:
                 last_batch_end = batch_end
-                connection.contact_watermark_utc = batch_end
+                forward = _forward_only(connection.contact_watermark_utc, batch_end)
+                if forward:
+                    connection.contact_watermark_utc = forward
                 if run:
-                    run.contacts_upserted = committed + pending
+                    run.contacts_upserted = counter_base + committed + pending
                 self.env.cr.commit()  # records + watermark + counter, one page
                 committed += pending
                 pending = 0
         if last_batch_end:
-            connection.contact_watermark_utc = last_batch_end
+            forward = _forward_only(connection.contact_watermark_utc, last_batch_end)
+            if forward:
+                connection.contact_watermark_utc = forward
         if run:
             # Any trailing `pending` is committed by run_connection's success
             # commit; on the failure path this write is rolled back with it.
-            run.contacts_upserted = committed + pending
+            run.contacts_upserted = counter_base + committed + pending
         return committed + pending
 
-    def _sync_calls(self, connection, adapter, run) -> int:
+    def _observe_contact_modified(self, dto: CanonicalLead) -> None:
+        """Track the oldest source `modified` timestamp this pass actually saw.
+
+        A full import claims to have reached back to its floor. That claim is
+        only evidence if some contact older than the list endpoint's own
+        lookback came back — see `run_full_import`.
+        """
+        modified = _parse_utc(dto.modified_utc)
+        if not modified:
+            return
+        current = self.oldest_contact_modified_seen
+        if current is None or modified < current:
+            self.oldest_contact_modified_seen = modified
+
+    def _sync_calls(
+        self,
+        connection,
+        adapter,
+        run,
+        start_override: datetime | None = None,
+        end_override: datetime | None = None,
+        counter_base: int = 0,
+    ) -> int:
         now = datetime.now(UTC)
-        end = now
-        if connection.call_watermark_utc:
+        end = end_override or now
+        if start_override is not None:
+            # Full import: an explicit, already-validated historical floor. The
+            # short rolling defaults below must not silently replace it.
+            start = start_override
+        elif connection.call_watermark_utc:
             start = _parse_utc(connection.call_watermark_utc) or (now - timedelta(days=7))
         elif connection.call_backfill_floor_utc:
             start = _parse_utc(connection.call_backfill_floor_utc) or (now - timedelta(days=30))
@@ -291,14 +569,16 @@ class SyncOrchestrator:
             ):
                 batch_n = self._upsert_calls(connection, batch, run)
                 if run:
-                    run.calls_upserted = committed + batch_n
+                    run.calls_upserted = counter_base + committed + batch_n
                 self.env.cr.commit()  # batch commit
                 committed += batch_n
-            connection.call_watermark_utc = _iso_z(window_end)
+            forward = _forward_only(connection.call_watermark_utc, _iso_z(window_end))
+            if forward:
+                connection.call_watermark_utc = forward
             self.env.cr.commit()  # watermark advance
             cursor = window_end
         if run:
-            run.calls_upserted = committed
+            run.calls_upserted = counter_base + committed
         return committed
 
     def _upsert_lead(self, connection, dto: CanonicalLead):
@@ -313,12 +593,28 @@ class SyncOrchestrator:
             limit=1,
         )
         lead = Lead.browse(ref.res_id) if ref else Lead.browse()
+        # `active_test=False`: a lead this sync archived for a provider deletion
+        # is invisible to a default search, so the fallback would miss it and
+        # create a duplicate the moment VanillaSoft restored the contact.
         if not lead:
-            lead = Lead.search([("vanillasoft_id", "=", dto.external_id)], limit=1)
+            lead = Lead.with_context(active_test=False).search(
+                [("vanillasoft_id", "=", dto.external_id)],
+                limit=1,
+            )
 
         vals = self._lead_vals_from_dto(dto)
+        # Archival provenance, not a mirror of the provider flag. `active` is
+        # shared state: Odoo users archive leads for their own reasons, and
+        # `deleted=false` is the provider's steady state for every live contact,
+        # so mirroring it would silently reopen every lead a user ever archived.
+        # Reactivation is therefore conditional on THIS sync having been the one
+        # that archived the lead.
         if dto.deleted:
             vals["active"] = False
+            vals["vanillasoft_sync_archived"] = True
+        elif lead and lead.vanillasoft_sync_archived:
+            vals["active"] = True
+            vals["vanillasoft_sync_archived"] = False
 
         if lead:
             lead.write(vals)
@@ -590,4 +886,11 @@ class SyncOrchestrator:
             lead = self.env[CRM_LEAD].browse(ref.res_id)
             if lead.exists():
                 return lead
-        return self.env[CRM_LEAD].search([("vanillasoft_id", "=", contact_external_id)], limit=1)
+        # active_test=False for the same reason as `_upsert_lead`: a call or
+        # custom-table row belonging to a sync-archived lead must attach to that
+        # lead, not be buffered as an orphan that never resolves.
+        return (
+            self.env[CRM_LEAD]
+            .with_context(active_test=False)
+            .search([("vanillasoft_id", "=", contact_external_id)], limit=1)
+        )

@@ -1099,11 +1099,21 @@ def _discover_plasticos_modules():
     )
 
 
+# Odoo-free packages inside a plasticos module that hold **external** source-
+# system vocabulary rather than Odoo Selection values. Their string literals
+# (foreign table names, legacy type labels, source boolean spellings) can never
+# resolve to an Odoo enum, so scanning them yields only false positives.
+# Each is asserted Odoo-import-free by its own contract test.
+NON_ODOO_VOCABULARY_DIRS = frozenset({"legacy_erp"})
+
+
 def _iter_python_files(module_dir: Path):
     """Yield (relative_path, contents) for all .py files in a module.
-    Skips docs/ and any directory named docs."""
+
+    Skips docs/ and any Odoo-free external-vocabulary package."""
     for dirpath, _, filenames in os.walk(module_dir):
-        if "docs" in Path(dirpath).parts:
+        parts = Path(dirpath).parts
+        if "docs" in parts or NON_ODOO_VOCABULARY_DIRS & set(parts):
             continue
         for fname in sorted(filenames):
             if fname.endswith(".py") and fname != "__pycache__":
