@@ -33,6 +33,23 @@
         <field name="key">plasticos.gate.enrichment_action</field>
         <field name="value">converge</field>
     </record>
+    <!-- Packet signing (Odoo -> Gate). Key id + algorithm are configuration; the key
+         material is the PLASTICOS_GATE_SIGNING_KEY environment variable, never an ICP.
+         In a signed topology Gate signs its responses too, and the SDK verifies every
+         signature it receives, so PLASTICOS_GATE_VERIFYING_KEYS_JSON must carry Gate's
+         key id -> key (a response signed with an unknown key id is refused as permanent). -->
+    <record id="param_gate_signing_key_id" model="ir.config_parameter">
+        <field name="key">plasticos.gate.signing_key_id</field>
+        <field name="value"></field>
+    </record>
+    <record id="param_gate_signing_algorithm" model="ir.config_parameter">
+        <field name="key">plasticos.gate.signing_algorithm</field>
+        <field name="value">hmac-sha256</field>
+    </record>
+    <record id="param_gate_verify_response_signatures" model="ir.config_parameter">
+        <field name="key">plasticos.gate.verify_response_signatures</field>
+        <field name="value">0</field>
+    </record>
     <record id="param_gate_auto_writeback" model="ir.config_parameter">
         <field name="key">plasticos.gate.auto_writeback</field>
         <field name="value">0</field>
@@ -57,4 +74,3 @@
     </record>
 
 </odoo>
-

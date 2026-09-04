@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import math
+import os
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
@@ -247,12 +249,103 @@ def resolve_gate_timeout_seconds(env) -> float:
     return timeout
 
 
+# Packet-signing identity. The KEY IDENTIFIER and ALGORITHM are ordinary
+# configuration (ICP); the KEY MATERIAL is a secret and is read from the
+# process environment only — it is never stored in ir.config_parameter, never
+# logged, and never echoed in an error message.
+ICP_SIGNING_KEY_ID = "plasticos.gate.signing_key_id"
+ICP_SIGNING_ALGORITHM = "plasticos.gate.signing_algorithm"
+ICP_VERIFY_RESPONSE_SIGNATURES = "plasticos.gate.verify_response_signatures"
+ENV_SIGNING_KEY = "PLASTICOS_GATE_SIGNING_KEY"
+ENV_VERIFYING_KEYS_JSON = "PLASTICOS_GATE_VERIFYING_KEYS_JSON"
+DEFAULT_SIGNING_ALGORITHM = "hmac-sha256"
+
+
+def resolve_gate_signing(env) -> dict[str, Any]:
+    """Resolve the Odoo->Gate signing posture, failing closed on a half-configured one.
+
+    Returns the keyword arguments for ``GateClientConfig``. Three coherent
+    states exist:
+
+    * unsigned (no key id, no key): the deployment relies on a declared
+      network trust boundary at Gate (``L9_TRUSTED_INGRESS_BOUNDARY=network``);
+    * signed: ``plasticos.gate.signing_key_id`` names the key Gate verifies
+      with, and ``PLASTICOS_GATE_SIGNING_KEY`` carries the material;
+    * signed + verifying: additionally ``plasticos.gate.verify_response_signatures=1``
+      requires Gate's answer to be signed by a key in
+      ``PLASTICOS_GATE_VERIFYING_KEYS_JSON`` (or the same shared key).
+
+    A key id without material, material without a key id, or response
+    verification without any verifying key is refused here rather than at the
+    first request, so a misconfigured deployment cannot silently run unsigned.
+    """
+    icp = env["ir.config_parameter"].sudo()
+    key_id = (icp.get_param(ICP_SIGNING_KEY_ID) or "").strip() or None
+    algorithm = (icp.get_param(ICP_SIGNING_ALGORITHM) or DEFAULT_SIGNING_ALGORITHM).strip().lower()
+    key_material = (os.environ.get(ENV_SIGNING_KEY) or "").strip() or None
+    verify_responses = (icp.get_param(ICP_VERIFY_RESPONSE_SIGNATURES) or "").strip() in _TRUTHY
+
+    raw_keys = (os.environ.get(ENV_VERIFYING_KEYS_JSON) or "").strip()
+    verifying_keys: dict[str, str] = {}
+    if raw_keys:
+        try:
+            parsed = json.loads(raw_keys)
+        except json.JSONDecodeError as exc:
+            raise GateIntegrationError(
+                f"{ENV_VERIFYING_KEYS_JSON} is not valid JSON", failure_class="permanent"
+            ) from exc
+        if not isinstance(parsed, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) and k.strip() and v.strip() for k, v in parsed.items()
+        ):
+            raise GateIntegrationError(
+                f"{ENV_VERIFYING_KEYS_JSON} must be a JSON object of non-blank string keys and values",
+                failure_class="permanent",
+            )
+        verifying_keys = {k.strip(): v.strip() for k, v in parsed.items()}
+
+    if key_id and not key_material:
+        raise GateIntegrationError(
+            f"{ICP_SIGNING_KEY_ID} is set but {ENV_SIGNING_KEY} is not present in the environment",
+            failure_class="permanent",
+        )
+    if key_material and not key_id:
+        raise GateIntegrationError(
+            f"{ENV_SIGNING_KEY} is present but {ICP_SIGNING_KEY_ID} is empty",
+            failure_class="permanent",
+        )
+    if verify_responses and not (verifying_keys or key_material):
+        raise GateIntegrationError(
+            f"{ICP_VERIFY_RESPONSE_SIGNATURES} is on but no verifying key is configured "
+            f"({ENV_VERIFYING_KEYS_JSON} or {ENV_SIGNING_KEY})",
+            failure_class="permanent",
+        )
+
+    signed = bool(key_id and key_material)
+    return {
+        "signing_key": key_material if signed else None,
+        "signing_key_id": key_id if signed else None,
+        "signing_algorithm": algorithm if signed else None,
+        "require_signature": signed,
+        "verify_response_signatures": verify_responses,
+        "verifying_keys": verifying_keys,
+    }
+
+
+def gate_signing_configured(env) -> bool:
+    """True when Odoo signs its Gate packets (never raises)."""
+    try:
+        return bool(resolve_gate_signing(env)["signing_key"])
+    except GateIntegrationError:
+        return False
+
+
 def build_gate_client_config(env) -> GateClientConfig:
     """Build SDK config — call only after gate_matching_enabled() passes.
 
     ``timeout_seconds`` is the single validated budget. Everything downstream —
     the HTTP call and the packet's advertised ``timeout_ms`` — reads it off this
     object, so the two cannot diverge through the supported builder path.
+    Signing posture comes from :func:`resolve_gate_signing`.
     """
     from constellation_node_sdk import GateClientConfig
 
@@ -262,6 +355,7 @@ def build_gate_client_config(env) -> GateClientConfig:
         local_node=(icp.get_param("plasticos.gate.local_node") or "odoo").strip().lower(),
         timeout_seconds=resolve_gate_timeout_seconds(env),
         allowed_gate_destination="gate",
+        **resolve_gate_signing(env),
     )
 
 

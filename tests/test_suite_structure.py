@@ -39,6 +39,10 @@ NON_TEST_FILES = frozenset(
         # TransactionCase there is one cursor and one snapshot, so collecting
         # them would turn a real proof into a vacuous pass.
         "run_c1_c2_c4_c5.py",
+        # tests/e2e/four_repo/ — drives the real Gate bridge against a live
+        # Constellation.Gate + EIE; needs those services, so it is run by hand
+        # (see its README) and named run_*.py so pytest never collects it.
+        "run_odoo_driver.py",
         "run_c3_failure_writer_lock.py",
         "run_c6_replay_checkpoint.py",
         "run_c7_c8_enrichment_failures.py",

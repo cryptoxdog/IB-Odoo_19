@@ -24,13 +24,40 @@ _SDK_IMPORT_ERROR: Exception | None = None
 # validation/integrity/authentication/authorization/expiry family — every one of
 # them is a contract failure, never a transient.
 _SDK_TRANSPORT_ERRORS: tuple[type[BaseException], ...] = ()
+# Gate_SDK client taxonomy (release 1.1.0). Classification is by TYPE, never by
+# message text. `GateHTTPError` carries the status on `.status_code` (it has no
+# `.response`), so it is read explicitly rather than through the duck-typed
+# `.response.status_code` probe below — that probe only ever matched raw httpx
+# exceptions, which the SDK no longer lets escape.
+_SDK_RETRYABLE_ERRORS: tuple[type[BaseException], ...] = ()
+_SDK_PERMANENT_ERRORS: tuple[type[BaseException], ...] = ()
+_SDK_HTTP_ERRORS: tuple[type[BaseException], ...] = ()
 try:
     from constellation_node_sdk import (  # type: ignore[no-redef]  # noqa: F811
         GateClient,
+        GateConfigurationError,
+        GateConnectionError,
+        GateHTTPError,
+        GatePolicyError,
+        GateResponseError,
+        GateSecurityError,
+        GateTimeoutError,
         TransportError,
     )
 
     _SDK_TRANSPORT_ERRORS = (TransportError,)
+    # Gate not reached, or deadline elapsed: Gate may or may not have executed,
+    # and a retry under the same idempotency key is the designed recovery.
+    _SDK_RETRYABLE_ERRORS = (GateConnectionError, GateTimeoutError)
+    # Local misconfiguration, routing-policy rejection, an untrusted or
+    # non-canonical answer: retrying the same call cannot succeed.
+    _SDK_PERMANENT_ERRORS = (
+        GateConfigurationError,
+        GatePolicyError,
+        GateResponseError,
+        GateSecurityError,
+    )
+    _SDK_HTTP_ERRORS = (GateHTTPError,)
 except Exception as exc:  # pragma: no cover
     _SDK_IMPORT_ERROR = exc
 
@@ -95,11 +122,20 @@ def classify_transport_failure(exc: BaseException) -> TransportFailureClass:
     silently failed for exceptions that stringify to empty (httpx timeouts do).
     """
     status = _http_status(exc)
+    if status is None and _SDK_HTTP_ERRORS and isinstance(exc, _SDK_HTTP_ERRORS):
+        status = getattr(exc, "status_code", None)
+        status = status if isinstance(status, int) else None
     if status is not None:
         if status in _RETRYABLE_STATUS:
             return TransportFailureClass.RETRYABLE
         if 500 <= status <= 599 and status not in _PERMANENT_5XX_STATUS:
             return TransportFailureClass.RETRYABLE
+        return TransportFailureClass.PERMANENT
+
+    # SDK-typed transport outcomes carry their retryability in the type.
+    if _SDK_RETRYABLE_ERRORS and isinstance(exc, _SDK_RETRYABLE_ERRORS):
+        return TransportFailureClass.RETRYABLE
+    if _SDK_PERMANENT_ERRORS and isinstance(exc, _SDK_PERMANENT_ERRORS):
         return TransportFailureClass.PERMANENT
 
     # Misconfigured endpoint/proxy/scheme: retrying cannot fix it.

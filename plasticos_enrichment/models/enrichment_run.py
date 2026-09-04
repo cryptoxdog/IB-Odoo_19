@@ -88,6 +88,15 @@ class EnrichmentRun(models.Model):
         readonly=True,
         help="Structured Gate availability status at execute time.",
     )
+    gate_attempt = fields.Integer(
+        readonly=True,
+        default=1,
+        help=(
+            "Gate converge attempt counter. Each operator retry increments it, so a retry is a "
+            "new logical operation identity (ADR-006) and can never be served Gate's cached "
+            "response to the failed attempt."
+        ),
+    )
 
     @api.depends(
         "extraction_ids.confidence",
@@ -179,16 +188,42 @@ class EnrichmentRun(models.Model):
             return False
 
         proposed = partner_writeback_from_converge(resp)
+        # EIE provenance travels with the proposal so the audit trail on the run
+        # records what EIE actually reported (confidence, tokens, KB hash,
+        # inference version), not a value Odoo made up at writeback time.
+        eie_provenance = {
+            "confidence": resp.confidence,
+            "tokens_used": resp.tokens_used,
+            "kb_content_hash": resp.kb_content_hash,
+            "inference_version": resp.inference_version,
+            "pass_count": resp.pass_count,
+            "variation_count": resp.variation_count,
+            "processing_time_ms": resp.processing_time_ms,
+            "quality_tier": resp.quality_tier,
+            "uncertainty_score": resp.uncertainty_score,
+            "kb_fragment_ids": list(resp.kb_fragment_ids or []),
+        }
 
         base_vals = {
             "engine_used": "gate",
             "gate_proposal": {
                 "final_fields": resp.final_fields,
                 "proposed_partner_fields": proposed,
+                "eie_provenance": eie_provenance,
             },
             "gate_packet_id": audit.get("gate_packet_id"),
             "gate_correlation_id": audit.get("gate_correlation_id"),
         }
+
+        if not proposed:
+            # Nothing allowlisted came back. In review mode this used to
+            # produce a `review` run with nothing to approve; the caller now
+            # records it as degraded in both modes.
+            _logger.info(
+                "Gate converge returned no writable allowlisted fields (packet %s).",
+                audit.get("gate_packet_id"),
+            )
+            return False
 
         if not gate_auto_writeback_enabled(self.env):
             self.write(
@@ -209,14 +244,7 @@ class EnrichmentRun(models.Model):
             )
             return True
 
-        if not proposed:
-            _logger.info(
-                "Gate converge returned no writable allowlisted fields (packet %s); falling back to local.",
-                audit.get("gate_packet_id"),
-            )
-            return False
-
-        written = self._apply_converge_writeback(proposed, audit)
+        written = self._apply_converge_writeback(proposed, audit, confidence=resp.confidence)
         self.write(
             {
                 **base_vals,
@@ -232,8 +260,14 @@ class EnrichmentRun(models.Model):
         )
         return True
 
-    def _apply_converge_writeback(self, proposed, audit):
-        """Backfill allowlisted partner fields (merge-not-overwrite) with provenance."""
+    def _apply_converge_writeback(self, proposed, audit, confidence=None):
+        """Backfill allowlisted partner fields (merge-not-overwrite) with provenance.
+
+        ``confidence`` is EIE's reported aggregate confidence for the result the
+        proposal came from. When the caller has none (an approval of a stored
+        proposal), it is read back from ``gate_proposal.eie_provenance``; only
+        if neither exists does the provenance row fall back to 1.0.
+        """
         partner = self.partner_id
         to_write = {}
         for field_name, value in (proposed or {}).items():
@@ -246,6 +280,13 @@ class EnrichmentRun(models.Model):
             return 0
         partner.write(to_write)
         packet_id = audit.get("gate_packet_id") or ""
+        if confidence is None:
+            proposal = self.gate_proposal if isinstance(self.gate_proposal, dict) else {}
+            confidence = (proposal.get("eie_provenance") or {}).get("confidence")
+        try:
+            row_confidence = float(confidence) if confidence is not None else 1.0
+        except (TypeError, ValueError):
+            row_confidence = 1.0
         for field_name, value in to_write.items():
             self.env[PROVENANCE_MODEL].create(
                 {
@@ -256,7 +297,7 @@ class EnrichmentRun(models.Model):
                     "value_written": str(value),
                     "previous_value": "",
                     "source_sentence": f"gate_converge:{packet_id}",
-                    "confidence": 1.0,
+                    "confidence": row_confidence,
                     "inference_type": "explicit",
                     "status": "written",
                 }
@@ -392,8 +433,19 @@ class EnrichmentRun(models.Model):
         self.ensure_one()
         if self.state not in ("retryable", "failed", "degraded"):
             raise UserError(_("Run %s is not in a retryable/failed/degraded state.") % self.name)
-        # Reset to draft for a clean Gate attempt while preserving audit via chatter
-        self.write({"state": "draft", "validation_issues": False, "failure_class": False})
+        # Reset to draft for a clean Gate attempt while preserving audit via chatter.
+        # The attempt counter advances so the retry carries a NEW logical
+        # operation identity: Gate caches responses per identity — including an
+        # EIE domain failure — and a retry under the failed attempt's identity
+        # would be answered from that cache without ever reaching EIE (ADR-006).
+        self.write(
+            {
+                "state": "draft",
+                "validation_issues": False,
+                "failure_class": False,
+                "gate_attempt": (self.gate_attempt or 1) + 1,
+            }
+        )
         return self.action_execute()
 
     def action_inject(self):
