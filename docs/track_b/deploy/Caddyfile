@@ -1,0 +1,10 @@
+# Edge for the PlasticOS intelligence seam on box EIE-CEG-GATE.
+# Only the Gate hub is public; CEG/EIE stay internal on the `seam` network.
+{
+	email admin@quantumaipartners.com
+}
+
+{$GATE_HOST} {
+	encode zstd gzip
+	reverse_proxy gate:9000
+}
