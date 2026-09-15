@@ -1,0 +1,203 @@
+# PlasticOS external intelligence seam — single-box deploy (L9-Memory reimage).
+# Contract source of truth: Constellation.Gate node_registry.yaml
+#   converge -> enrichment-engine (EIE) :8000 /api/v1/health
+#   match/sync/outcomes/resolve -> graph (CEG) :8000 /v1/health
+#   gate listens on :9000; only Caddy is published (80/443).
+#
+# All four sides run signatures-ON (HMAC-sha256) with ${SEAM_HMAC_SECRET}.
+# Build on-box (arm64). Rebuild @v1 layers with:  docker compose build --pull --no-cache gate graph enrichment-engine
+#
+# Layout on box (/opt/seam):
+#   Constellation.Gate/  Cognitive.Engine.Graphs/  Enrichment.Inference.Engine/
+#   docker-compose.yml  Caddyfile  .env
+
+services:
+
+  # ── Gate hub (sole TransportPacket router) ───────────────
+  gate:
+    build:
+      context: ./Constellation.Gate/constellation-gate
+      dockerfile: Dockerfile
+    environment:
+      L9_ENVIRONMENT: production
+      GATE_LOCAL_NODE: gate
+      HOST: 0.0.0.0
+      PORT: "9000"
+      L9_DEV_MODE: "false"
+      L9_REQUIRE_SIGNATURE: "true"
+      L9_SIGNING_ALGORITHM: hmac-sha256
+      L9_SIGNING_KEY: ${SEAM_HMAC_SECRET}
+      L9_SIGNING_KEY_ID: gate-v1
+      L9_VERIFYING_KEYS_JSON: '{"graph-engine-v1":"${SEAM_HMAC_SECRET}","enrichment-engine-v1":"${SEAM_HMAC_SECRET}","odoo-v1":"${SEAM_HMAC_SECRET}"}'
+      L9_VERIFY_HOP_SIGNATURES: "false"
+      L9_ALLOWED_PACKET_TYPES: request,command,delegation,replay_request
+      GATE_ADMIN_TOKEN: ${GATE_ADMIN_TOKEN}
+    expose: ["9000"]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import httpx,sys; sys.exit(0 if httpx.get('http://localhost:9000/v1/health').status_code==200 else 1)\" || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks: [seam]
+
+  # ── CEG: graph engine (action=match/sync/outcomes/resolve) ─
+  graph:
+    build:
+      context: ./Cognitive.Engine.Graphs
+      dockerfile: Dockerfile
+    environment:
+      L9_LIFECYCLE_HOOK: engine.boot:GraphLifecycle
+      L9_CHASSIS: sdk
+      L9_NODE_NAME: graph
+      L9_NODE_SPEC_PATH: engine/spec.yaml
+      L9_ENVIRONMENT: production
+      L9_SERVICE_NAME: graph-engine
+      L9_SERVICE_VERSION: 1.1.0
+      HOST: 0.0.0.0
+      GATE_URL: http://gate:9000          # override: worker default is :8080
+      GATE_ADMIN_TOKEN: ${GATE_ADMIN_TOKEN}
+      GATE_REGISTRATION_ENABLED: "true"
+      L9_ENFORCE_GATE_ONLY_INGRESS: "true"
+      L9_GATE_NODE_NAME: gate
+      L9_REQUIRE_SIGNATURE: "true"
+      L9_SIGNING_ALGORITHM: hmac-sha256
+      L9_SIGNING_KEY: ${SEAM_HMAC_SECRET}
+      L9_SIGNING_KEY_ID: graph-engine-v1
+      L9_VERIFYING_KEYS_JSON: '{"gate-v1":"${SEAM_HMAC_SECRET}"}'
+      L9_ALLOWED_ACTIONS: match,sync,admin,outcomes,resolve,health,healthcheck
+      L9_MAX_ATTACHMENTS: "0"
+      L9_MAX_ATTACHMENT_SIZE_BYTES: "0"
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USERNAME: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD}
+      NEO4J_POOL_SIZE: "20"
+      REDIS_URL: redis://redis-graph:6379/0
+      API_KEY: ${CEG_API_KEY}
+      LOG_LEVEL: info
+      DOMAINS_ROOT: domains
+      POSTGRES_DSN: postgresql://l9_engine:${POSTGRES_PASSWORD}@postgres-graph:5432/l9_graph
+      PACKET_STORE_ENABLED: "true"
+      PACKET_STORE_DSN: postgresql://l9_engine:${POSTGRES_PASSWORD}@postgres-graph:5432/l9_graph
+    depends_on:
+      neo4j: {condition: service_healthy}
+      redis-graph: {condition: service_healthy}
+      postgres-graph: {condition: service_healthy}
+      gate: {condition: service_healthy}
+    restart: unless-stopped
+    networks: [seam]
+
+  neo4j:
+    image: neo4j:5-enterprise
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
+      NEO4J_ACCEPT_LICENSE_AGREEMENT: "yes"
+      NEO4J_PLUGINS: '["apoc","graph-data-science"]'
+      NEO4J_dbms_security_procedures_unrestricted: apoc.*,gds.*
+      NEO4J_dbms_security_procedures_allowlist: apoc.*,gds.*
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_plugins:/plugins
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p ${NEO4J_PASSWORD} 'RETURN 1' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 40s
+    restart: unless-stopped
+    networks: [seam]
+
+  redis-graph:
+    image: redis:7-alpine
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    healthcheck: {test: ["CMD","redis-cli","ping"], interval: 5s, timeout: 3s, retries: 5}
+    restart: unless-stopped
+    networks: [seam]
+
+  postgres-graph:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: l9_engine
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: l9_graph
+    volumes:
+      - postgres_graph_data:/var/lib/postgresql/data
+      - ./Cognitive.Engine.Graphs/engine/packet/packet_store.sql:/docker-entrypoint-initdb.d/01_packet_store.sql:ro
+    healthcheck: {test: ["CMD-SHELL","pg_isready -U l9_engine -d l9_graph"], interval: 5s, timeout: 3s, retries: 10, start_period: 10s}
+    restart: unless-stopped
+    networks: [seam]
+
+  # ── EIE: enrichment engine (action=converge) ─────────────
+  enrichment-engine:
+    build:
+      context: ./Enrichment.Inference.Engine
+      dockerfile: Dockerfile
+    environment:
+      L9_NODE_NAME: enrichment-engine
+      L9_ENVIRONMENT: production
+      APP_PORT: "8000"
+      GATE_URL: http://gate:9000          # override: worker default is :8080
+      GATE_INTERNAL_URL: http://enrichment-engine:8000
+      GATE_REGISTRATION_ENABLED: "true"
+      GATE_ADMIN_TOKEN: ${GATE_ADMIN_TOKEN}
+      L9_REQUIRE_SIGNATURE: "true"
+      L9_SIGNING_ALGORITHM: hmac-sha256
+      L9_SIGNING_KEY: ${SEAM_HMAC_SECRET}
+      L9_SIGNING_KEY_ID: enrichment-engine-v1
+      L9_VERIFYING_KEYS_JSON: '{"gate-v1":"${SEAM_HMAC_SECRET}"}'
+      REDIS_URL: redis://redis-eie:6379/0
+      API_KEY_HASH: ${EIE_API_KEY_HASH}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: enrichment-engine
+    depends_on:
+      redis-eie: {condition: service_healthy}
+      otel-collector: {condition: service_started}
+      gate: {condition: service_healthy}
+    deploy: {resources: {limits: {memory: 2G}}}
+    restart: unless-stopped
+    networks: [seam]
+
+  redis-eie:
+    image: redis:7-alpine
+    healthcheck: {test: ["CMD","redis-cli","ping"], interval: 10s, timeout: 3s, retries: 5}
+    restart: unless-stopped
+    networks: [seam]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes:
+      - ./Enrichment.Inference.Engine/monitoring/otel/otel-collector-config.yaml:/etc/otel/config.yaml:ro
+    restart: unless-stopped
+    networks: [seam]
+
+  # ── Edge: Caddy (auto Let's Encrypt for the Gate host) ────
+  caddy:
+    image: caddy:2-alpine
+    ports: ["80:80", "443:443"]
+    environment:
+      GATE_HOST: ${GATE_HOST}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      gate: {condition: service_healthy}
+    restart: unless-stopped
+    networks: [seam]
+
+volumes:
+  neo4j_data: {}
+  neo4j_logs: {}
+  neo4j_plugins: {}
+  postgres_graph_data: {}
+  caddy_data: {}
+  caddy_config: {}
+
+networks:
+  seam: {driver: bridge}
