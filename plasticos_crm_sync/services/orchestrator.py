@@ -129,7 +129,7 @@ def _differs(record, field_name: str, value) -> bool:
     Tolerant of plain-object fakes in the pure-python tier: records without a
     ``_fields`` registry are compared attribute-wise.
     """
-    fields = getattr(record, "_fields", None)
+    fields = getattr(record, "_fields", None) or None
     if fields is not None and field_name not in fields:
         return False
     try:
@@ -785,7 +785,7 @@ class SyncOrchestrator:
                         "lead_id": lead.id,
                     }
                 )
-            elif ref.res_id != lead.id or ref.lead_id.id != lead.id:
+            elif ref.res_id != lead.id or (getattr(ref.lead_id, "id", ref.lead_id) or False) != lead.id:
                 ref.write({"res_id": lead.id, "lead_id": lead.id})
         return lead
 
