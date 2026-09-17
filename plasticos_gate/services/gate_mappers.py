@@ -92,12 +92,18 @@ def map_match_response(payload: dict[str, Any]) -> MatchResponse:
         except UnresolvableBuyerRef as exc:
             unresolved.append({"entity_ref": entity_ref, "reason": str(exc)})
             continue
-        # CEG hard-gate failures set eligible=false — never surface as selectable matches.
-        if cand.get("eligible") is False:
+        # CEG eligibility must be explicit: hard-gate failures (eligible=false)
+        # AND missing/non-True eligibility both fail closed — never surface as
+        # selectable matches.
+        if cand.get("eligible") is not True:
             unresolved.append(
                 {
                     "entity_ref": entity_ref,
-                    "reason": "candidate not eligible (hard gates failed)",
+                    "reason": (
+                        "candidate not eligible (hard gates failed)"
+                        if cand.get("eligible") is False
+                        else "candidate eligibility missing or not explicit True"
+                    ),
                     "failed_gates": list(cand.get("failed_gates") or [])
                     if not isinstance(cand.get("failed_gates"), int)
                     else [],
