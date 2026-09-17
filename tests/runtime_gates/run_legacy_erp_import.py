@@ -62,7 +62,6 @@ bind_config(config)
 odoo.modules.module.initialize_sys_path()
 
 PAYLOAD_ROOT = os.path.join(REPO, "data", "legacy_erp_sm_export")
-CORRUPT_CPID = "G4CORRUPT"
 
 
 def _conn(dbname: str):
@@ -156,10 +155,10 @@ def gate_g1_first_import_reconciles() -> bool:
     # Sampled identity: the marker exists exactly once and points at a partner.
     sample = query(
         SCRATCH_DB,
-        "select res_id from ir_model_data where module = 'plasticos_transaction' and name = 'legacy_erp_cp_1121'",
+        "select res_id from ir_model_data where module = 'plasticos_transaction' and name = 'legacy_erp_cp_1004'",
     )
     if not sample:
-        print("G1 sampled CpID marker (legacy_erp_cp_1121) missing")
+        print("G1 sampled CpID marker (legacy_erp_cp_1004) missing")
         return False
     if summary["final_status"] not in ("success", "partial"):
         print(f"G1 unexpected final_status: {summary['final_status']}")
@@ -184,7 +183,7 @@ def gate_g2_repeat_is_idempotent() -> bool:
     dup = query(
         SCRATCH_DB,
         "select count(*) from res_partner where id in "
-        "(select res_id from ir_model_data where module = 'plasticos_transaction' and name = 'legacy_erp_cp_1121')",
+        "(select res_id from ir_model_data where module = 'plasticos_transaction' and name = 'legacy_erp_cp_1004')",
     )
     if int(dup[0][0]) != 1:
         print(f"G2 sampled CpID resolves to {dup[0][0]} partners")
@@ -208,18 +207,18 @@ def _mutate_payload(tmp: str, cpid: str, suffix: str) -> str:
 
 def gate_g3_changed_source_updates() -> bool:
     with tempfile.TemporaryDirectory() as tmp:
-        _mutate_payload(tmp, "1121", " [changed]")
+        _mutate_payload(tmp, "1004", " [changed]")
         result = import_once(payload_root=tmp)
     summary = result["summary"]
     name_row = query(
         SCRATCH_DB,
         "select p.name from res_partner p join ir_model_data d on d.res_id = p.id "
-        "where d.module = 'plasticos_transaction' and d.name = 'legacy_erp_cp_1121'",
+        "where d.module = 'plasticos_transaction' and d.name = 'legacy_erp_cp_1004'",
     )
     if not name_row or "[changed]" not in str(name_row[0][0]):
         print(f"G3 changed name not applied: {name_row}")
         return False
-    dup = marker_count(SCRATCH_DB, "legacy_erp_cp_1121")
+    dup = marker_count(SCRATCH_DB, "legacy_erp_cp_1004")
     if dup != 1:
         print(f"G3 changed record duplicated: {dup} markers")
         return False
