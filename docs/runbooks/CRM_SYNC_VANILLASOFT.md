@@ -118,7 +118,7 @@ it states. Call history is windowed by `start`/`end` and is fully backfillable.
 
 ## CSV deprecation
 
-CRM / PlasticOS menus for “Import CRM Leads (VanillaSoft)” are **removed**. Prefer **Settings → PlasticOS CRM Sync → Run VanillaSoft API Sync**. The CSV wizard remains only for emergency Technical access (no menu). Legacy ERP partner CSV import is unchanged (ADR-003).
+CRM / PlasticOS menus for “Import CRM Leads (VanillaSoft)” are **removed**. Prefer **Settings → PlasticOS CRM Sync → Run VanillaSoft API Sync**. The manual VanillaSoft CRM-lead CSV wizard was removed in plasticos_partner_import 19.0.2.8.0 — the API orchestrator is the single authoritative path. Legacy ERP partner CSV import is unchanged (ADR-003).
 
 ## UI fallback
 
