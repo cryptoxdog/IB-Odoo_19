@@ -329,8 +329,6 @@ results["F3 sync never reopens a lead a user archived"] = untouched_active is Fa
 results["F3 the archived lead was matched, not duplicated"] = n_life == 2
 
 
-
-
 # ── F4 / F5 — repeat-run and changed-record classification (odoo-intent-1) ──
 
 f4_cid = make_connection("repeat")

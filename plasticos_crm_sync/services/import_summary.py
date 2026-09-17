@@ -47,11 +47,7 @@ def build_run_summary(
     calls_seen = run.calls_seen or 0
     seen = contacts_seen + calls_seen
 
-    rejected = (
-        (run.contacts_duplicate_rejected or 0)
-        + (run.contacts_failed or 0)
-        + (run.calls_failed or 0)
-    )
+    rejected = (run.contacts_duplicate_rejected or 0) + (run.contacts_failed or 0) + (run.calls_failed or 0)
     created = (run.contacts_created or 0) + (run.calls_created or 0)
     updated = (run.contacts_updated or 0) + (run.calls_updated or 0)
     unchanged = (run.contacts_unchanged or 0) + (run.calls_unchanged or 0)

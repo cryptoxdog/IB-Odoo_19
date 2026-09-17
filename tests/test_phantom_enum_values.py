@@ -702,11 +702,8 @@ GLOBAL_ALLOWLIST = frozenset(
         # persisted as counters on plasticos.crm.sync.run / the legacy_erp
         # report, not Odoo Selection values (odoo-intent-1 ingestion milestone)
         # ─────────────────────────────────────────────────────────────────────
-        "created",
-        "updated",
         "unchanged",
         "duplicate_rejected",
-        "failed",
         "table_rows",
         "error_rows",
         "one",

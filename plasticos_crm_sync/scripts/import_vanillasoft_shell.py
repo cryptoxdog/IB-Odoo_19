@@ -82,8 +82,7 @@ def main() -> int:
     print("=== VANILLASOFT IMPORT SUMMARY ===")
     print(f"status      : {summary['final_status']}")
     print(
-        f"seen/valid  : {summary['records_seen']} / {summary['records_valid']} "
-        f"(rejected {summary['records_rejected']})"
+        f"seen/valid  : {summary['records_seen']} / {summary['records_valid']} (rejected {summary['records_rejected']})"
     )
     print(
         "created/updated/unchanged: "

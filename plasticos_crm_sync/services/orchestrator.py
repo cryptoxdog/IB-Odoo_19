@@ -737,7 +737,9 @@ class SyncOrchestrator:
                 [("vanillasoft_id", "=", dto.external_id)],
             )
             if len(matches) > 1:
-                self._record_outcome(outcomes, "duplicate_rejected", dto.external_id, "multiple leads carry the source id")
+                self._record_outcome(
+                    outcomes, "duplicate_rejected", dto.external_id, "multiple leads carry the source id"
+                )
                 return lead
         if ref and ref.res_id and lead.id != ref.res_id:
             self._record_outcome(outcomes, "duplicate_rejected", dto.external_id, "external ref and fallback disagree")

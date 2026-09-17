@@ -109,7 +109,9 @@ class _Orchestrator(SyncOrchestrator):
 
 
 def _lead(external_id: str, email: str = "a@example.com") -> CanonicalLead:
-    return CanonicalLead(provider="vanillasoft", external_id=external_id, company="Co", first_name="A", last_name="L", email=email)
+    return CanonicalLead(
+        provider="vanillasoft", external_id=external_id, company="Co", first_name="A", last_name="L", email=email
+    )
 
 
 def _harness():
@@ -207,7 +209,15 @@ def test_deleted_dto_archives_with_classification():
     orch, connection, leads, refs = _harness()
     outcomes = _outcomes(orch)
     record = orch._upsert_lead(connection, _lead("arch"))
-    deleted = CanonicalLead(provider="vanillasoft", external_id="arch", company="Co", first_name="A", last_name="L", email="a@example.com", deleted=True)
+    deleted = CanonicalLead(
+        provider="vanillasoft",
+        external_id="arch",
+        company="Co",
+        first_name="A",
+        last_name="L",
+        email="a@example.com",
+        deleted=True,
+    )
     orch._upsert_lead(connection, deleted)
     assert outcomes["updated"] == 1
     assert record.active is False
