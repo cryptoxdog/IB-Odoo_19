@@ -45,6 +45,11 @@ make push pr=1                            # push, then open PR into Staging
 docker-compose up -d                      # Start Odoo + PostgreSQL + Redis
 docker-compose exec web odoo -u plasticos_base --stop-after-init  # Update module
 
+# Data imports (canonical commands — odoo-intent-1 ingestion milestone)
+make import-legacy-erp                    # LegacyErp import: preflight + reconciliation + summary (DRY=1 preview)
+make import-vanillasoft                   # VanillaSoft full import: preflight + reconciliation + summary
+python3 scripts/validate_import_summary.py .l9/pr/import-*-summary.json  # validate machine summaries
+
 # Tests (requires running Odoo instance)
 python -m pytest tests/ -v                # All tests
 python -m pytest tests/contracts/ -v      # Contract tests
@@ -543,14 +548,16 @@ from running silently. Always run `pre-commit run --all-files` locally before pu
 
 ## Formatter ownership
 
-Workspace class: `biome_default` — Default for every governed workspace: Biome owns JS/TS/JSON, Ruff owns Python.
+Workspace class: `biome_default` — Default for every governed workspace: Biome owns JS/TS/JSON, VS Code JSON language features owns JSONC (the Biome extension cannot format jsonc), Ruff owns Python, Prettier owns Markdown (format-on-save off so governance docs do not churn).
 
 Exactly one formatter owns each language. Do not reformat a file with a tool other than its owner, and do not add config for a competing formatter: the result is a diff that churns on every save.
 
 | Languages | Owner | Note |
 |---|---|---|
-| `javascript`, `javascriptreact`, `typescript`, `typescriptreact`, `json`, `jsonc` | **biome** | bound by the governed IDE profile |
+| `javascript`, `javascriptreact`, `typescript`, `typescriptreact`, `json` | **biome** | bound by the governed IDE profile |
+| `jsonc` | **vscode-json** | bound by the governed IDE profile |
 | `python` | **ruff** | bound by the governed IDE profile |
+| `markdown` | **prettier** | bound by the governed IDE profile |
 
 Generated from `environment/ide/policy.json` in the governance clone by `ops/scripts/adapters/agentdocs.sh`. Edit the policy, not this block.
 
