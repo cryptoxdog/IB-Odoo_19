@@ -42,10 +42,10 @@ None. The import reads only the tracked payload and Odoo seed data.
 
 ```bash
 make import-legacy-erp                        # full import (applied)
-make import-legacy-erp DRY=1                  # resolve + map, persist nothing
-make import-legacy-erp LIMIT=100              # first 100 transactions (diagnostics)
-make import-legacy-erp PAYLOAD_ROOT=/abs/path # non-default source payload
-make import-legacy-erp REPORT_PATH=/abs/summary.json
+make import-legacy-erp LEGACY_ERP_DRY=1                  # resolve + map, persist nothing
+make import-legacy-erp LEGACY_ERP_LIMIT=100              # first 100 transactions (diagnostics)
+make import-legacy-erp LEGACY_ERP_PAYLOAD_ROOT=/abs/path # non-default source payload
+make import-legacy-erp LEGACY_ERP_REPORT_PATH=/abs/summary.json
 ```
 
 Default machine summary: `.l9/pr/import-legacy-erp-summary.json`
