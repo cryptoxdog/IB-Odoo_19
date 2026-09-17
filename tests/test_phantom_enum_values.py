@@ -697,6 +697,18 @@ GLOBAL_ALLOWLIST = frozenset(
         "truck",
         "container",
         "load",
+        # ─────────────────────────────────────────────────────────────────────
+        # IMPORT RUN CLASSIFICATION OUTCOMES — per-record outcome vocabulary
+        # persisted as counters on plasticos.crm.sync.run / the legacy_erp
+        # report, not Odoo Selection values (odoo-intent-1 ingestion milestone)
+        # ─────────────────────────────────────────────────────────────────────
+        "created",
+        "updated",
+        "unchanged",
+        "duplicate_rejected",
+        "failed",
+        "table_rows",
+        "error_rows",
         "one",
         "two",
         "three",

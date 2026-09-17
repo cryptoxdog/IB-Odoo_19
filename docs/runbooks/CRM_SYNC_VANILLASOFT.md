@@ -123,3 +123,53 @@ CRM / PlasticOS menus for “Import CRM Leads (VanillaSoft)” are **removed**. 
 ## UI fallback
 
 If VerifyKey returns 401/403 after endpoint normalization, use `l9-ui-operator` / Playwright only to recover Admin key access — API remains the primary path.
+
+## Canonical command — `make import-vanillasoft`
+
+The repository-supported operator command (odoo-intent-1 ingestion milestone):
+
+```bash
+make import-vanillasoft                                        # full import (30-day call floor default)
+make import-vanillasoft VANILLASOFT_CALL_FLOOR=2026-01-01T00:00:00Z
+make import-vanillasoft VANILLASOFT_CONTACT_FLOOR=2026-01-01T00:00:00Z
+make import-vanillasoft VANILLASOFT_REPORT_PATH=/abs/summary.json
+```
+
+Preflight is fail-closed: missing API key or a non-HTTPS endpoint exits 2
+before any write. The machine summary (shared `import-run-summary` contract,
+default `.l9/pr/import-vanillasoft-summary.json`) validates with
+`python3 scripts/validate_import_summary.py <file>`; the command exits nonzero
+on material failure. Safe to repeat: identity is `plasticos.crm.external.ref`
+(unique provider+external_id+res_model) with the `vanillasoft_id` fallback as
+migration/backfill input only, watermarks are forward-only, and every record
+is classified.
+
+## Field mapping status
+
+Source = VanillaSoft Contact API → `CanonicalLead` (adapter) →
+`_lead_vals_from_dto` → `crm.lead`. Statuses follow the legacy_erp vocabulary
+(`VERIFIED` / `NEEDS_CORRECTION` / `UNMAPPED_INTENTIONALLY` / `UNKNOWN`);
+`tests/test_crm_sync_mapping_status.py` pins this table against the code.
+
+| Source field | Target | Transformation | Status |
+|---|---|---|---|
+| (constant) | `type` | always `"lead"` — the sync only creates leads | VERIFIED |
+| `ContactID` / `id` | `crm.lead.vanillasoft_id` + `plasticos.crm.external.ref` | identity (external.ref is the canonical runtime match path) | VERIFIED |
+| `Company` | `partner_name` | joined into `name` (`Company — Contact`) | VERIFIED |
+| `FirstName`, `LastName` | `contact_name` / `name` | joined, whitespace-normalized | VERIFIED |
+| `Email` | `email_from` | direct | VERIFIED |
+| `Phone` | `phone` | direct | VERIFIED |
+| `PhoneMobile` / `MobilePhone` | `mobile` | direct | VERIFIED |
+| `Street` / `Street2` | `street` / `street2` | direct | VERIFIED |
+| `City` | `city` | direct | VERIFIED |
+| `State` | `state_id` | lookup by code/name in country; never created | VERIFIED |
+| `Zip` | `zip` | direct | VERIFIED |
+| `Country` | `country_id` | lookup by code; never created | VERIFIED |
+| Lead status (custom field) | `stage_id` | `STAGE_MAPPING` (crm_bridge); fallback `stage_new` | VERIFIED |
+| Lead source (custom field) | `source_id` | `LEAD_SOURCE_MAPPING` (facility_profile) → `utm.source` by name | VERIFIED |
+| Owner | `user_id` | `res.users` name ilike; never created | VERIFIED |
+| `Deleted` | `active` + `vanillasoft_sync_archived` | provenance-gated archive/reactivate (never reopens user archives) | VERIFIED |
+| `ModifiedDateTimeUTC` | connection watermark | forward-only incremental marker; not a lead field | VERIFIED |
+| Custom table rows | `plasticos.crm.external.table.row` | identity `(provider, table_id, external_row_id)`; unstable rows skipped with warning (I15) | VERIFIED |
+| Call history | `plasticos.crm.call.event` | unique `(provider, external_id)`; unattachable calls buffered as orphans | VERIFIED |
+| Provider-specific fields not listed | — | none silently discarded; see adapter `contact_to_canonical` for the complete DTO | VERIFIED |

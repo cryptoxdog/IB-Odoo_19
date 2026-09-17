@@ -82,12 +82,76 @@ def _forward_only(current: str | None, candidate: str) -> str | None:
     return candidate
 
 
+# Per-record outcome classification (odoo-intent-1 ingestion milestone).
+# Every source record is deterministically classified; failures are recorded
+# per record (never silent loss) and persisted on plasticos.crm.sync.run.
+OUTCOME_FIELDS = ("created", "updated", "unchanged", "duplicate_rejected", "failed")
+
+
+def _new_outcomes() -> dict[str, int]:
+    return {"seen": 0, "table_rows": 0, **{key: 0 for key in OUTCOME_FIELDS}}
+
+
+def _merge_outcomes(target: dict[str, int], source: dict[str, int] | None) -> dict[str, int]:
+    if not source:
+        return target
+    for key, value in source.items():
+        if isinstance(value, int):
+            target[key] = target.get(key, 0) + value
+    return target
+
+
+def _write_contact_counters(run, seen: int, outcomes: dict[str, int], base: dict[str, int] | None = None) -> None:
+    """Persist contact classification counters (called inside the page
+    transaction, so a page rollback reverts these writes with the records)."""
+    run.contacts_seen = (base.get("seen", 0) if base else 0) + seen
+    run.contacts_created = (base.get("created", 0) if base else 0) + outcomes["created"]
+    run.contacts_updated = (base.get("updated", 0) if base else 0) + outcomes["updated"]
+    run.contacts_unchanged = (base.get("unchanged", 0) if base else 0) + outcomes["unchanged"]
+    run.contacts_duplicate_rejected = (base.get("duplicate_rejected", 0) if base else 0) + outcomes[
+        "duplicate_rejected"
+    ]
+    run.contacts_failed = (base.get("failed", 0) if base else 0) + outcomes["failed"]
+    run.table_rows_upserted = (base.get("table_rows", 0) if base else 0) + outcomes["table_rows"]
+
+
+def _write_call_counters(run, seen: int, outcomes: dict[str, int], base: dict[str, int] | None = None) -> None:
+    run.calls_seen = (base.get("seen", 0) if base else 0) + seen
+    run.calls_created = (base.get("created", 0) if base else 0) + outcomes["created"]
+    run.calls_updated = (base.get("updated", 0) if base else 0) + outcomes["updated"]
+    run.calls_unchanged = (base.get("unchanged", 0) if base else 0) + outcomes["unchanged"]
+    run.calls_failed = (base.get("failed", 0) if base else 0) + outcomes["failed"]
+
+
+def _differs(record, field_name: str, value) -> bool:
+    """True when writing ``value`` would actually change ``record``.
+
+    Tolerant of plain-object fakes in the pure-python tier: records without a
+    ``_fields`` registry are compared attribute-wise.
+    """
+    fields = getattr(record, "_fields", None)
+    if fields is not None and field_name not in fields:
+        return False
+    try:
+        current = record[field_name]
+    except (KeyError, TypeError):
+        current = getattr(record, field_name, None)
+    if hasattr(current, "id"):
+        current = current.id or False
+    return current != (value if value is not None else False)
+
+
 class SyncOrchestrator:
     def __init__(self, env):
         self.env = env
         # Reset by every `_sync_contacts` pass; read by `run_full_import` as the
         # evidence that the requested historical floor was actually served.
         self.oldest_contact_modified_seen: datetime | None = None
+        # Per-record classification accumulator, open only while a sync pass is
+        # processing a page; per-record duplicate/failed details collected
+        # during a run feed the shared import-run-summary errors.
+        self.outcomes: dict[str, int] | None = None
+        self.error_rows: list[dict[str, str]] = []
 
     def run_connection(self, connection) -> Any:
         connection.ensure_one()
@@ -244,6 +308,7 @@ class SyncOrchestrator:
                     adapter,
                     run,
                     counter_base=bootstrap_contacts,
+                    outcome_base=self._contact_outcomes,
                 )
                 catchup_calls = self._sync_calls(
                     connection,
@@ -251,6 +316,7 @@ class SyncOrchestrator:
                     run,
                     start_override=boundary - CATCHUP_OVERLAP,
                     counter_base=bootstrap_calls,
+                    outcome_base=self._call_outcomes,
                 )
                 resolved = self._resolve_orphans(connection, adapter, run)
 
@@ -483,6 +549,7 @@ class SyncOrchestrator:
         run,
         modified_after_override: str | None = None,
         counter_base: int = 0,
+        outcome_base: dict[str, int] | None = None,
     ) -> int:
         if modified_after_override:
             # Full import: the operator named this floor explicitly, so the
@@ -508,18 +575,21 @@ class SyncOrchestrator:
         # value on the row — which is the number that is actually true.
         committed = 0
         pending = 0
+        committed_outcomes = _new_outcomes()
         last_batch_end = None
         for leads, batch_end, _partial in adapter.iter_contacts(
             modified_after=modified_after,
             limit=CONTACT_PAGE_SIZE,
         ):
             page_n = 0
+            self.outcomes = _new_outcomes()
             for dto in leads:
                 lead = self._upsert_lead(connection, dto)
                 if not dto.deleted:
                     self._sync_tables_for_lead(connection, adapter, dto.external_id, lead)
                 self._observe_contact_modified(dto)
                 page_n += 1
+            self.outcomes["seen"] = len(leads)
             pending += page_n
             if batch_end:
                 last_batch_end = batch_end
@@ -528,9 +598,15 @@ class SyncOrchestrator:
                     connection.contact_watermark_utc = forward
                 if run:
                     run.contacts_upserted = counter_base + committed + pending
-                self.env.cr.commit()  # records + watermark + counter, one page
+                    totals = _merge_outcomes(_merge_outcomes(_new_outcomes(), committed_outcomes), self.outcomes)
+                    _write_contact_counters(run, totals["seen"], totals, base=outcome_base)
+                self.env.cr.commit()  # records + watermark + counters, one page
                 committed += pending
                 pending = 0
+                _merge_outcomes(committed_outcomes, self.outcomes)
+                self.outcomes = _new_outcomes()
+        totals = _merge_outcomes(_merge_outcomes(_new_outcomes(), committed_outcomes), self.outcomes)
+        self.outcomes = None
         if last_batch_end:
             forward = _forward_only(connection.contact_watermark_utc, last_batch_end)
             if forward:
@@ -539,6 +615,8 @@ class SyncOrchestrator:
             # Any trailing `pending` is committed by run_connection's success
             # commit; on the failure path this write is rolled back with it.
             run.contacts_upserted = counter_base + committed + pending
+            _write_contact_counters(run, totals["seen"], totals, base=outcome_base)
+        self._contact_outcomes = totals
         return committed + pending
 
     def _observe_contact_modified(self, dto: CanonicalLead) -> None:
@@ -563,6 +641,7 @@ class SyncOrchestrator:
         start_override: datetime | None = None,
         end_override: datetime | None = None,
         counter_base: int = 0,
+        outcome_base: dict[str, int] | None = None,
     ) -> int:
         now = datetime.now(UTC)
         end = end_override or now
@@ -582,6 +661,7 @@ class SyncOrchestrator:
         # written into the batch transaction, and `committed` advances only
         # after that commit returns.
         committed = 0
+        committed_outcomes = _new_outcomes()
         cursor = start
         while cursor < end:
             window_end = min(cursor + timedelta(days=1), end)
@@ -590,21 +670,48 @@ class SyncOrchestrator:
                 end=_iso_z(window_end),
                 limit=CALL_BATCH_SIZE,
             ):
+                self.outcomes = _new_outcomes()
+                self.outcomes["seen"] = len(batch)
                 batch_n = self._upsert_calls(connection, batch, run)
                 if run:
                     run.calls_upserted = counter_base + committed + batch_n
+                    totals = _merge_outcomes(_merge_outcomes(_new_outcomes(), committed_outcomes), self.outcomes)
+                    _write_call_counters(run, totals["seen"], totals, base=outcome_base)
                 self.env.cr.commit()  # batch commit
                 committed += batch_n
+                _merge_outcomes(committed_outcomes, self.outcomes)
+                self.outcomes = _new_outcomes()
             forward = _forward_only(connection.call_watermark_utc, _iso_z(window_end))
             if forward:
                 connection.call_watermark_utc = forward
             self.env.cr.commit()  # watermark advance
             cursor = window_end
+        totals = _merge_outcomes(_merge_outcomes(_new_outcomes(), committed_outcomes), self.outcomes)
+        self.outcomes = None
         if run:
             run.calls_upserted = counter_base + committed
+            _write_call_counters(run, totals["seen"], totals, base=outcome_base)
+        self._call_outcomes = totals
         return committed
 
     def _upsert_lead(self, connection, dto: CanonicalLead):
+        """Identity-resolved lead upsert with deterministic classification.
+
+        Returns the lead recordset (pinned contract for direct callers). When
+        the caller opened an outcome accumulator (``self.outcomes``), this
+        record is classified exactly one of
+        ``created | updated | unchanged | duplicate_rejected | failed`` there:
+
+        * ``unchanged`` — the normalized values already match; nothing written.
+        * ``duplicate_rejected`` — the Odoo side holds conflicting identities
+          for one source id (an external ref pointing at a different lead than
+          the ``vanillasoft_id`` fallback finds, or several fallback matches).
+          Refusing is the only honest choice: writing either would silently
+          repoint identity, and creating would duplicate.
+        * ``failed`` — the write raised; the record is reported, never silently
+          dropped.
+        """
+        outcomes = getattr(self, "outcomes", None)
         Lead = self.env[CRM_LEAD]
         Ref = self.env["plasticos.crm.external.ref"]
         ref = Ref.search(
@@ -624,6 +731,17 @@ class SyncOrchestrator:
                 [("vanillasoft_id", "=", dto.external_id)],
                 limit=1,
             )
+            # Identity-conflict detection: more than one lead carrying the same
+            # source id is a duplicate to refuse, never to guess between.
+            matches = Lead.with_context(active_test=False).search(
+                [("vanillasoft_id", "=", dto.external_id)],
+            )
+            if len(matches) > 1:
+                self._record_outcome(outcomes, "duplicate_rejected", dto.external_id, "multiple leads carry the source id")
+                return lead
+        if ref and ref.res_id and lead.id != ref.res_id:
+            self._record_outcome(outcomes, "duplicate_rejected", dto.external_id, "external ref and fallback disagree")
+            return lead
 
         vals = self._lead_vals_from_dto(dto)
         # Archival provenance, not a mirror of the provider flag. `active` is
@@ -639,24 +757,44 @@ class SyncOrchestrator:
             vals["active"] = True
             vals["vanillasoft_sync_archived"] = False
 
-        if lead:
-            lead.write(vals)
-        else:
-            lead = Lead.create(vals)
+        try:
+            if lead:
+                changed = {k: v for k, v in vals.items() if _differs(lead, k, v)}
+                if changed:
+                    lead.write(changed)
+                    outcome = "updated"
+                else:
+                    outcome = "unchanged"
+            else:
+                lead = Lead.create(vals)
+                outcome = "created"
+        except Exception as exc:  # noqa: BLE001 - per-record failure is recorded, never silent loss
+            self._record_outcome(outcomes, "failed", dto.external_id, str(exc))
+            return lead
 
-        if not ref:
-            Ref.create(
-                {
-                    "provider": dto.provider,
-                    "external_id": dto.external_id,
-                    "res_model": CRM_LEAD,
-                    "res_id": lead.id,
-                    "lead_id": lead.id,
-                }
-            )
-        elif ref.res_id != lead.id or ref.lead_id.id != lead.id:
-            ref.write({"res_id": lead.id, "lead_id": lead.id})
+        if outcomes is not None:
+            outcomes[outcome] += 1
+        if outcome in ("created", "updated", "unchanged"):
+            if not ref:
+                Ref.create(
+                    {
+                        "provider": dto.provider,
+                        "external_id": dto.external_id,
+                        "res_model": CRM_LEAD,
+                        "res_id": lead.id,
+                        "lead_id": lead.id,
+                    }
+                )
+            elif ref.res_id != lead.id or ref.lead_id.id != lead.id:
+                ref.write({"res_id": lead.id, "lead_id": lead.id})
         return lead
+
+    def _record_outcome(self, outcomes: dict[str, int] | None, outcome: str, record_ref: str, message: str) -> None:
+        """Record a classified outcome + error detail (duplicate/failed rows)."""
+        if outcomes is None:
+            return
+        outcomes[outcome] += 1
+        self.error_rows.append({"record_ref": record_ref, "message": message})
 
     def _lead_vals_from_dto(self, dto: CanonicalLead) -> dict[str, Any]:
         # Lazy import mapping SSOT from crm_bridge
@@ -728,10 +866,17 @@ class SyncOrchestrator:
         }
 
     def _upsert_calls(self, connection, batch: list[CanonicalCall], run) -> int:
+        """Upsert one call batch, classifying each row created|updated|unchanged|failed.
+
+        Returns created+updated (the pinned counter contract). Classification
+        is recorded into ``self.outcomes`` when the caller opened one.
+        """
+        outcomes = getattr(self, "outcomes", None)
         Call = self.env["plasticos.crm.call.event"]
         Orphan = self.env["plasticos.crm.sync.orphan"]
         Ref = self.env["plasticos.crm.external.ref"]
         created = 0
+        updated = 0
         orphans = 0
         for dto in batch:
             existing = Call.search(
@@ -750,40 +895,55 @@ class SyncOrchestrator:
                 "comment": dto.comment or False,
                 "lead_id": lead.id if lead else False,
             }
-            if existing:
-                existing.write(vals)
-            elif not lead:
-                Orphan.create(
-                    {
-                        "connection_id": connection.id,
-                        "provider": dto.provider,
-                        "kind": "call",
-                        "contact_external_id": dto.contact_external_id,
-                        "external_id": dto.external_id,
-                        "payload_json": {
+            try:
+                if existing:
+                    changed = {k: v for k, v in vals.items() if _differs(existing, k, v)}
+                    if changed:
+                        existing.write(changed)
+                        updated += 1
+                        if outcomes is not None:
+                            outcomes["updated"] += 1
+                    elif outcomes is not None:
+                        outcomes["unchanged"] += 1
+                elif not lead:
+                    Orphan.create(
+                        {
+                            "connection_id": connection.id,
                             "provider": dto.provider,
-                            "external_id": dto.external_id,
+                            "kind": "call",
                             "contact_external_id": dto.contact_external_id,
-                            "call_datetime_utc": dto.call_datetime_utc,
-                            "duration_seconds": dto.duration_seconds,
-                            "user_name": dto.user_name,
-                            "result_code": dto.result_code,
-                            "comment": dto.comment,
-                        },
-                    }
-                )
-                orphans += 1
-            else:
-                Call.create(vals)
-                created += 1
+                            "external_id": dto.external_id,
+                            "payload_json": {
+                                "provider": dto.provider,
+                                "external_id": dto.external_id,
+                                "contact_external_id": dto.contact_external_id,
+                                "call_datetime_utc": dto.call_datetime_utc,
+                                "duration_seconds": dto.duration_seconds,
+                                "user_name": dto.user_name,
+                                "result_code": dto.result_code,
+                                "comment": dto.comment,
+                            },
+                        }
+                    )
+                    orphans += 1
+                    # Deferred, not classified: the orphan buffer is the
+                    # no-loss mechanism and orphans_buffered reports the count.
+                else:
+                    Call.create(vals)
+                    created += 1
+                    if outcomes is not None:
+                        outcomes["created"] += 1
+            except Exception as exc:  # noqa: BLE001 - per-record failure is recorded, never silent loss
+                self._record_outcome(outcomes, "failed", dto.external_id, str(exc))
         if run and orphans:
             run.orphans_buffered = (run.orphans_buffered or 0) + orphans
-        return created
+        return created + updated
 
     def _sync_tables_for_lead(self, connection, adapter, contact_external_id: str, lead=None):
         Ref = self.env["plasticos.crm.external.ref"]
         Row = self.env["plasticos.crm.external.table.row"]
         Orphan = self.env["plasticos.crm.sync.orphan"]
+        outcomes = getattr(self, "outcomes", None)
         if lead is None:
             lead = self._find_lead(connection.provider, contact_external_id, Ref)
         for dto in adapter.iter_table_rows(contact_external_id):
@@ -824,9 +984,15 @@ class SyncOrchestrator:
                 "fields_json": dto.fields,
             }
             if existing:
-                existing.write(vals)
+                changed = {k: v for k, v in vals.items() if _differs(existing, k, v)}
+                if changed:
+                    existing.write(changed)
+                    if outcomes is not None:
+                        outcomes["table_rows"] += 1
             else:
                 Row.create(vals)
+                if outcomes is not None:
+                    outcomes["table_rows"] += 1
 
     def _resolve_orphans(self, connection, adapter, run) -> int:
         Orphan = self.env["plasticos.crm.sync.orphan"]
