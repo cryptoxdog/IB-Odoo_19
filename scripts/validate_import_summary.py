@@ -64,43 +64,125 @@ def _walk_secrets(obj: object, path: str = "") -> list[str]:
     return hits
 
 
+# ---------------------------------------------------------------------------
+# Schema-driven validation (stdlib only).
+#
+# The contract file is the authority: every constraint it states is enforced
+# here by walking the schema, not by a hand-maintained copy of its rules. The
+# walker implements the JSON Schema keywords the contract uses and fails closed
+# on any other structural keyword, so a schema edit that this validator does not
+# understand is reported instead of silently ignored.
+# ---------------------------------------------------------------------------
+
+# Keywords carried as documentation only; they never change validation.
+_ANNOTATION_KEYWORDS = frozenset({"$schema", "$id", "title", "description", "x-publication-status"})
+_STRUCTURAL_KEYWORDS = frozenset(
+    {
+        "type",
+        "enum",
+        "required",
+        "properties",
+        "additionalProperties",
+        "items",
+        "maxItems",
+        "minimum",
+        "minLength",
+        "maxLength",
+        "format",
+    }
+)
+_SUPPORTED_FORMATS = frozenset({"date-time"})
+
+_schema_cache: dict | None = None
+
+
+def load_schema() -> dict:
+    """The shared contract, read once from SCHEMA_PATH."""
+    global _schema_cache
+    if _schema_cache is None:
+        _schema_cache = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    return _schema_cache
+
+
+def _type_matches(expected: str, value: object) -> bool:
+    if expected == "object":
+        return isinstance(value, dict)
+    if expected == "array":
+        return isinstance(value, list)
+    if expected == "string":
+        return isinstance(value, str)
+    if expected == "boolean":
+        return isinstance(value, bool)
+    if expected == "integer":
+        # JSON Schema: booleans are not integers.
+        return isinstance(value, int) and not isinstance(value, bool)
+    if expected == "number":
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if expected == "null":
+        return value is None
+    return False
+
+
+def _check(schema: dict, value: object, path: str, errors: list[str]) -> None:
+    """Validate ``value`` against ``schema`` at ``path``, appending to ``errors``."""
+    unsupported = sorted(k for k in schema if k not in _ANNOTATION_KEYWORDS and k not in _STRUCTURAL_KEYWORDS)
+    if unsupported:
+        errors.append(
+            f"{path}: schema uses unsupported keyword(s) {', '.join(unsupported)} (validator must be extended)"
+        )
+        return
+
+    expected = schema.get("type")
+    if expected is not None:
+        expected_types = expected if isinstance(expected, list) else [expected]
+        if not any(_type_matches(t, value) for t in expected_types):
+            errors.append(f"{path}: expected {' | '.join(expected_types)}, got {type(value).__name__}")
+            return
+
+    if "enum" in schema and value not in schema["enum"]:
+        errors.append(f"{path}: must be one of {' | '.join(map(str, schema['enum']))}")
+
+    if isinstance(value, str):
+        if "minLength" in schema and len(value) < schema["minLength"]:
+            errors.append(f"{path}: shorter than minLength {schema['minLength']}")
+        if "maxLength" in schema and len(value) > schema["maxLength"]:
+            errors.append(f"{path}: longer than maxLength {schema['maxLength']}")
+        fmt = schema.get("format")
+        if fmt is not None:
+            if fmt not in _SUPPORTED_FORMATS:
+                errors.append(f"{path}: schema uses unsupported format {fmt!r} (validator must be extended)")
+            elif fmt == "date-time" and not _valid_datetime(value):
+                errors.append(f"{path}: must be an ISO 8601 UTC datetime")
+
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if "minimum" in schema and value < schema["minimum"]:
+            errors.append(f"{path}: below minimum {schema['minimum']}")
+
+    if isinstance(value, dict):
+        properties = schema.get("properties", {})
+        for name in schema.get("required", []):
+            if name not in value:
+                errors.append(f"{path}: missing required field: {name}")
+        if schema.get("additionalProperties", True) is False:
+            for name in sorted(set(value) - set(properties)):
+                errors.append(f"{path}: unexpected field: {name}")
+        for name, subschema in properties.items():
+            if name in value:
+                _check(subschema, value[name], f"{path}.{name}", errors)
+
+    if isinstance(value, list):
+        if "maxItems" in schema and len(value) > schema["maxItems"]:
+            errors.append(f"{path}: more than maxItems {schema['maxItems']} entries")
+        items = schema.get("items")
+        if items is not None:
+            for idx, item in enumerate(value):
+                _check(items, item, f"{path}[{idx}]", errors)
+
+
 def validate_summary(summary: dict) -> list[str]:
+    """Every contract violation plus any secret marker, as human-readable strings."""
     errors: list[str] = []
-    for field in (
-        "source",
-        "start_time",
-        "completion_time",
-        "records_seen",
-        "records_valid",
-        "records_rejected",
-        "records_created",
-        "records_updated",
-        "records_unchanged",
-        "duplicates",
-        "errors",
-        "final_status",
-    ):
-        if field not in summary:
-            errors.append(f"missing required field: {field}")
-    for field in (
-        "records_seen",
-        "records_valid",
-        "records_rejected",
-        "records_created",
-        "records_updated",
-        "records_unchanged",
-        "duplicates",
-    ):
-        if field in summary and not isinstance(summary[field], int):
-            errors.append(f"{field} must be an integer")
-    if "start_time" in summary and not _valid_datetime(summary["start_time"]):
-        errors.append("start_time must be an ISO 8601 UTC datetime")
-    if "completion_time" in summary and not _valid_datetime(summary["completion_time"]):
-        errors.append("completion_time must be an ISO 8601 UTC datetime")
-    if "final_status" in summary and summary["final_status"] not in ("success", "partial", "failed"):
-        errors.append("final_status must be success | partial | failed")
-    if "errors" in summary and not isinstance(summary["errors"], list):
-        errors.append("errors must be a list")
+    _check(load_schema(), summary, "summary", errors)
     hits = _walk_secrets(summary)
     if hits:
         errors.append(f"secret markers found in summary: {', '.join(hits[:5])}")
