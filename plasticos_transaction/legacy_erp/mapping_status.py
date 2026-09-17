@@ -1009,7 +1009,7 @@ class MappingStatusRow:
 
     source_table: str
     source_field: str
-    source_type: str
+    source_sql_type: str
     target_model: str
     target_field: str
     transformation: str
@@ -1052,7 +1052,7 @@ def _disposition(table: str, column: str, sql_type: str) -> dict:
         return {
             "source_table": table,
             "source_field": column,
-            "source_type": sql_type or "unknown",
+            "source_sql_type": sql_type or "unknown",
             "target_model": "",
             "target_field": "",
             "transformation": "",
@@ -1065,7 +1065,7 @@ def _disposition(table: str, column: str, sql_type: str) -> dict:
     return {
         "source_table": table,
         "source_field": column,
-        "source_type": sql_type or "unknown",
+        "source_sql_type": sql_type or "unknown",
         "target_model": record.get("target_model", ""),
         "target_field": record.get("target_field", ""),
         "transformation": record.get("transformation", ""),
@@ -1108,7 +1108,7 @@ def build_mapping_status(repo_root: Path | str | None = None) -> MappingStatus:
                 {
                     "source_table": table,
                     "source_field": column,
-                    "source_type": sql_types.get(table, {}).get(column, ""),
+                    "source_sql_type": sql_types.get(table, {}).get(column, ""),
                     "target_model": "",
                     "target_field": "",
                     "transformation": "",

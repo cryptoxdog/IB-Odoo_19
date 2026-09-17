@@ -96,7 +96,9 @@ def test_source_native_identities_are_marked(status):
 
 
 def test_sql_types_joined_for_consumed_tables(status):
-    typed = {row["source_table"] for row in status.rows if row["source_type"] and row["source_table"] in SOURCE_TABLES}
+    typed = {
+        row["source_table"] for row in status.rows if row["source_sql_type"] and row["source_table"] in SOURCE_TABLES
+    }
     assert typed == set(SOURCE_TABLES), f"tables missing SQL types: {set(SOURCE_TABLES) - typed}"
 
 
