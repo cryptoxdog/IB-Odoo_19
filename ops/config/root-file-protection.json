@@ -19,7 +19,7 @@
   },
   "tiers": {
     "canonical": "Build, dependency, CI-gate and environment-modifying surface. rule=additive_only.",
-    "managed": "Living/operational docs and infrastructure files gated for human review. rule=managed.",
+    "managed": "Living/operational docs, tool configs and infrastructure files gated for human review. rule=managed.",
     "regenerable": "Machine-generated artifact. rule=regenerable."
   },
   "protected_files": [
@@ -28,14 +28,32 @@
     { "path": "pyproject.toml", "tier": "canonical", "rule": "additive_only" },
     { "path": "requirements.txt", "tier": "canonical", "rule": "additive_only" },
     { "path": "requirements-dev.txt", "tier": "canonical", "rule": "additive_only" },
-    { "path": "conftest.py", "tier": "canonical", "rule": "additive_only" },
+    { "path": "requirements-ci.txt", "tier": "canonical", "rule": "additive_only" },
     { "path": ".pre-commit-config.yaml", "tier": "canonical", "rule": "additive_only" },
+    { "path": ".gitleaks.toml", "tier": "canonical", "rule": "additive_only" },
+    { "path": "constraints.txt", "tier": "regenerable", "rule": "regenerable" },
     { "path": "CLAUDE.md", "tier": "managed", "rule": "managed" },
     { "path": "ARCHITECTURE.md", "tier": "managed", "rule": "managed" },
     { "path": "INVARIANTS.md", "tier": "managed", "rule": "managed" },
-    { "path": "README.md", "tier": "managed", "rule": "managed" },
+    { "path": "ROADMAP.md", "tier": "managed", "rule": "managed" },
+    { "path": "TODO.md", "tier": "managed", "rule": "managed" },
+    { "path": "FINAL_FINDINGS.md", "tier": "managed", "rule": "managed" },
+    { "path": "filetree.md", "tier": "managed", "rule": "managed" },
     { "path": "workflow_state.md", "tier": "managed", "rule": "managed" },
     { "path": "docker-compose.yml", "tier": "managed", "rule": "managed" },
-    { "path": ".gitignore", "tier": "managed", "rule": "managed" }
+    { "path": "Dockerfile", "tier": "managed", "rule": "managed" },
+    { "path": ".gitignore", "tier": "managed", "rule": "managed" },
+    { "path": ".gitattributes", "tier": "managed", "rule": "managed" },
+    { "path": ".env.example", "tier": "managed", "rule": "managed" },
+    { "path": ".envrc", "tier": "managed", "rule": "managed" },
+    { "path": ".commitlintrc.json", "tier": "managed", "rule": "managed" },
+    { "path": ".cz.toml", "tier": "managed", "rule": "managed" },
+    { "path": ".cursorignore", "tier": "managed", "rule": "managed" },
+    { "path": ".coderabbit.yaml", "tier": "managed", "rule": "managed" },
+    { "path": ".coderabbit.debt-sweep.yaml", "tier": "managed", "rule": "managed" },
+    { "path": ".sonarcloud.properties", "tier": "managed", "rule": "managed" },
+    { "path": "sonar-project.properties", "tier": "managed", "rule": "managed" },
+    { "path": "odools.toml", "tier": "managed", "rule": "managed" },
+    { "path": "ERP.WksDetail.Test.csv", "tier": "managed", "rule": "managed" }
   ]
 }
