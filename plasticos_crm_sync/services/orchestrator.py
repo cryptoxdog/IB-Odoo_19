@@ -85,7 +85,17 @@ def _forward_only(current: str | None, candidate: str) -> str | None:
 # Per-record outcome classification (odoo-intent-1 ingestion milestone).
 # Every source record is deterministically classified; failures are recorded
 # per record (never silent loss) and persisted on plasticos.crm.sync.run.
-OUTCOME_FIELDS = ("created", "updated", "unchanged", "duplicate_rejected", "failed")
+# ``deferred`` is the call-only outcome for a row buffered as an orphan (its
+# lead is not imported yet): the durable orphan record keeps the row, the
+# run's ``orphans_buffered`` counter persists the count, and the shared
+# summary reports it as not-yet-landed — so every seen row is accounted
+# exactly once and never mistaken for a successful write.
+OUTCOME_FIELDS = ("created", "updated", "unchanged", "duplicate_rejected", "failed", "deferred")
+# Outcomes after which a lead is admitted: identity resolved without conflict
+# and the row landed (or already matched). Only these may receive dependent
+# writes (custom-table rows, calls). ``duplicate_rejected`` and ``failed``
+# must produce zero child-table side effects.
+ADMITTED_OUTCOMES = ("created", "updated", "unchanged")
 
 
 def _new_outcomes() -> dict[str, int]:
@@ -152,6 +162,11 @@ class SyncOrchestrator:
         # during a run feed the shared import-run-summary errors.
         self.outcomes: dict[str, int] | None = None
         self.error_rows: list[dict[str, str]] = []
+        # Classification of the most recent `_upsert_lead` call. `_upsert_lead`
+        # returns a lead recordset for admitted AND rejected outcomes (pinned
+        # contract), so callers gate dependent writes on this, never on the
+        # returned record.
+        self.last_lead_outcome: str | None = None
 
     def run_connection(self, connection) -> Any:
         connection.ensure_one()
@@ -515,10 +530,19 @@ class SyncOrchestrator:
             raise CrmAdapterError(f"Contact {external_id} not found")
         lead = self._upsert_lead(connection, lead_dto)
         calls_n = 0
-        if hasattr(adapter, "iter_calls_for_contact"):
-            for batch in adapter.iter_calls_for_contact(str(external_id)):
-                calls_n += self._upsert_calls(connection, batch, None)
-        self._sync_tables_for_lead(connection, adapter, lead_dto.external_id, lead)
+        if self.last_lead_outcome in ADMITTED_OUTCOMES:
+            if hasattr(adapter, "iter_calls_for_contact"):
+                for batch in adapter.iter_calls_for_contact(str(external_id)):
+                    calls_n += self._upsert_calls(connection, batch, None)
+            self._sync_tables_for_lead(connection, adapter, lead_dto.external_id, lead)
+        else:
+            # Identity conflict or write failure: no dependent writes may hang
+            # off an unadmitted lead (they would attach to an arbitrary match).
+            _logger.warning(
+                "Single-contact sync skipped dependent writes external_id=%s outcome=%s",
+                external_id,
+                self.last_lead_outcome,
+            )
         self._resolve_orphans(connection, adapter, None)
         _logger.info(
             "Single-contact sync done external_id=%s lead_id=%s calls=%s",
@@ -585,7 +609,9 @@ class SyncOrchestrator:
             self.outcomes = _new_outcomes()
             for dto in leads:
                 lead = self._upsert_lead(connection, dto)
-                if not dto.deleted:
+                # Dependent table rows only after unambiguous admission: a
+                # duplicate_rejected or failed contact gets no child writes.
+                if self.last_lead_outcome in ADMITTED_OUTCOMES and not dto.deleted:
                     self._sync_tables_for_lead(connection, adapter, dto.external_id, lead)
                 self._observe_contact_modified(dto)
                 page_n += 1
@@ -710,8 +736,14 @@ class SyncOrchestrator:
           repoint identity, and creating would duplicate.
         * ``failed`` — the write raised; the record is reported, never silently
           dropped.
+
+        The classification is also left in ``self.last_lead_outcome`` so a
+        caller can tell an admitted lead from a rejected one: the returned
+        recordset alone cannot, because a rejected identity still returns the
+        (ambiguous) match it found.
         """
         outcomes = getattr(self, "outcomes", None)
+        self.last_lead_outcome = None
         Lead = self.env[CRM_LEAD]
         Ref = self.env["plasticos.crm.external.ref"]
         ref = Ref.search(
@@ -740,9 +772,11 @@ class SyncOrchestrator:
                 self._record_outcome(
                     outcomes, "duplicate_rejected", dto.external_id, "multiple leads carry the source id"
                 )
+                self.last_lead_outcome = "duplicate_rejected"
                 return lead
         if ref and ref.res_id and lead.id != ref.res_id:
             self._record_outcome(outcomes, "duplicate_rejected", dto.external_id, "external ref and fallback disagree")
+            self.last_lead_outcome = "duplicate_rejected"
             return lead
 
         vals = self._lead_vals_from_dto(dto)
@@ -772,11 +806,13 @@ class SyncOrchestrator:
                 outcome = "created"
         except Exception as exc:  # noqa: BLE001 - per-record failure is recorded, never silent loss
             self._record_outcome(outcomes, "failed", dto.external_id, str(exc))
+            self.last_lead_outcome = "failed"
             return lead
 
         if outcomes is not None:
             outcomes[outcome] += 1
-        if outcome in ("created", "updated", "unchanged"):
+        self.last_lead_outcome = outcome
+        if outcome in ADMITTED_OUTCOMES:
             if not ref:
                 Ref.create(
                     {
@@ -928,8 +964,12 @@ class SyncOrchestrator:
                         }
                     )
                     orphans += 1
-                    # Deferred, not classified: the orphan buffer is the
-                    # no-loss mechanism and orphans_buffered reports the count.
+                    # Deferred: the orphan buffer is the no-loss mechanism,
+                    # `orphans_buffered` persists the count, and the row is
+                    # classified here so seen == sum(outcomes) holds. It is
+                    # not created/updated/unchanged: nothing landed yet.
+                    if outcomes is not None:
+                        outcomes["deferred"] = outcomes.get("deferred", 0) + 1
                 else:
                     Call.create(vals)
                     created += 1
