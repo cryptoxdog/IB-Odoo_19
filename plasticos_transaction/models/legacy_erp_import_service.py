@@ -121,7 +121,7 @@ class PlasticosLegacyErpImport(models.AbstractModel):
             name = _text(row, "CompanyNm")
             if not name:
                 report.anomaly("CounterParty", cp_id, "blank CompanyNm")
-                report.skip("counterparties")
+                report.reject("counterparties")
                 continue
 
             role, role_anomaly = mapping.company_role(row.get("Role"))
@@ -262,7 +262,7 @@ class PlasticosLegacyErpImport(models.AbstractModel):
                 name = _text(row, "ContactNm")
                 if not name:
                     report.anomaly("Contact", contact_id, "blank ContactNm")
-                    report.skip("contacts")
+                    report.reject("contacts")
                     continue
 
                 # Location is the Address composite key (CpID, Type), so this is
