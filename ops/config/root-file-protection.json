@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.1.0",
+  "description": "Append-only protection contract for repository-root files in cryptoxdog/IB-Odoo_19. Read by the governed publish path (validate_root_file_protection.py). The mechanical guarantee is the gate plus the ALLOW-ROOT-DELETION marker; purely additive changes and brand-new files pass.",
+  "rules": {
+    "additive_only": "Strict. A PR may only add lines. Any removal or in-place rewrite of an existing line (or whole-file deletion) fails the gate unless a matching ALLOW-ROOT-DELETION justification marker is present in the PR's commit messages.",
+    "managed": "Human-edited operational file. Edits are allowed without a marker but the file is routed for human review.",
+    "regenerable": "Machine-generated artifact rewritten wholesale by tooling; exempt from the additive check."
+  },
+  "justification": {
+    "marker": "ALLOW-ROOT-DELETION",
+    "format": "ALLOW-ROOT-DELETION: <root-relative-path> — <reason with proof of necessity>",
+    "recorded_in": "any commit message in the PR range (base..head)",
+    "applies_to": "additive_only files only"
+  },
+  "pr_template": {
+    "path": ".github/pull_request_template.md",
+    "stamp": "<!-- L9_PROTECTED_ROOT_PR -->",
+    "required_when": "any additive_only protected_files path is in the PR diff"
+  },
+  "tiers": {
+    "canonical": "Build, dependency, CI-gate and environment-modifying surface. rule=additive_only.",
+    "managed": "Living/operational docs and infrastructure files gated for human review. rule=managed.",
+    "regenerable": "Machine-generated artifact. rule=regenerable."
+  },
+  "protected_files": [
+    { "path": "AGENTS.md", "tier": "canonical", "rule": "additive_only" },
+    { "path": "Makefile", "tier": "canonical", "rule": "additive_only" },
+    { "path": "pyproject.toml", "tier": "canonical", "rule": "additive_only" },
+    { "path": "requirements.txt", "tier": "canonical", "rule": "additive_only" },
+    { "path": "requirements-dev.txt", "tier": "canonical", "rule": "additive_only" },
+    { "path": "conftest.py", "tier": "canonical", "rule": "additive_only" },
+    { "path": ".pre-commit-config.yaml", "tier": "canonical", "rule": "additive_only" },
+    { "path": "CLAUDE.md", "tier": "managed", "rule": "managed" },
+    { "path": "ARCHITECTURE.md", "tier": "managed", "rule": "managed" },
+    { "path": "INVARIANTS.md", "tier": "managed", "rule": "managed" },
+    { "path": "README.md", "tier": "managed", "rule": "managed" },
+    { "path": "workflow_state.md", "tier": "managed", "rule": "managed" },
+    { "path": "docker-compose.yml", "tier": "managed", "rule": "managed" },
+    { "path": ".gitignore", "tier": "managed", "rule": "managed" }
+  ]
+}
