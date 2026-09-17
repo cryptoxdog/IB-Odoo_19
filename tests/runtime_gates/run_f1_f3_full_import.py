@@ -91,11 +91,11 @@ def indep(sql, args=()):
     return rows
 
 
-def lead(suffix, modified=RECENT_MODIFIED, deleted=False):
+def lead(suffix, modified=RECENT_MODIFIED, deleted=False, company=None):
     return CanonicalLead(
         provider="vanillasoft",
         external_id=f"{TAG}-{suffix}",
-        company=f"Co {suffix}",
+        company=company if company is not None else f"Co {suffix}",
         first_name="A",
         last_name="L",
         lead_status_raw="New",
@@ -327,6 +327,54 @@ results["F3 a restored contact reactivates the sync-archived lead"] = restored_a
 results["F3 restoring clears the provenance flag"] = restored_flag is False
 results["F3 sync never reopens a lead a user archived"] = untouched_active is False
 results["F3 the archived lead was matched, not duplicated"] = n_life == 2
+
+
+
+
+# ── F4 / F5 — repeat-run and changed-record classification (odoo-intent-1) ──
+
+f4_cid = make_connection("repeat")
+f4_pages = [
+    [([lead("again")], RECENT_MODIFIED, False)],  # bootstrap
+]
+f4_adapter = Adapter([f4_pages[0], f4_pages[0]], [])
+f4_run = drive(
+    f4_cid, f4_adapter, "run_full_import", call_history_floor=CALL_FLOOR, contact_modified_floor=CONTACT_FLOOR
+)
+f4_status, f4_contacts, _, _ = run_row(f4_run)
+f4_created = indep("select contacts_created from plasticos_crm_sync_run where id=%s", (f4_run,))[0][0]
+f4_updated = indep("select contacts_updated from plasticos_crm_sync_run where id=%s", (f4_run,))[0][0]
+f4_unchanged = indep("select contacts_unchanged from plasticos_crm_sync_run where id=%s", (f4_run,))[0][0]
+f4_seen = indep("select contacts_seen from plasticos_crm_sync_run where id=%s", (f4_run,))[0][0]
+n_again = indep("select count(*) from crm_lead where vanillasoft_id=%s", (f"{TAG}-again",))[0][0]
+print(
+    f"F4  status={f4_status} created={f4_created} updated={f4_updated} unchanged={f4_unchanged} seen={f4_seen} leads={n_again}"
+)
+
+results["F4 the repeat pass created nothing and recorded unchanged"] = (
+    f4_contacts == 1 and f4_created == 1 and f4_updated == 0 and f4_unchanged == 1 and n_again == 1
+)
+
+f5_cid = make_connection("changed record")
+f5_adapter = Adapter(
+    [
+        [([lead("change")], RECENT_MODIFIED, False)],  # bootstrap: fresh record
+        [([lead("change", company="Changed Co")], RECENT_MODIFIED, False)],  # catch-up: same id, changed value
+    ],
+    [],
+)
+f5_run = drive(
+    f5_cid, f5_adapter, "run_full_import", call_history_floor=CALL_FLOOR, contact_modified_floor=CONTACT_FLOOR
+)
+f5_created = indep("select contacts_created from plasticos_crm_sync_run where id=%s", (f5_run,))[0][0]
+f5_updated = indep("select contacts_updated from plasticos_crm_sync_run where id=%s", (f5_run,))[0][0]
+f5_name = indep("select partner_name from crm_lead where vanillasoft_id=%s", (f"{TAG}-change",))[0][0]
+n_change = indep("select count(*) from crm_lead where vanillasoft_id=%s", (f"{TAG}-change",))[0][0]
+print(f"F5  created={f5_created} updated={f5_updated} partner_name={f5_name} leads={n_change}")
+
+results["F5 the changed source record updated exactly one lead"] = (
+    f5_created == 1 and f5_updated == 1 and f5_name == "Changed Co" and n_change == 1
+)
 
 
 print("\n" + "=" * 72)
