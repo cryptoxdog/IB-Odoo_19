@@ -465,6 +465,7 @@ class EnrichmentRun(models.Model):
         True. A Gate run never falls through to local material-profile
         extraction from ``extraction_ids``.
         """
+        self.ensure_one()
         if self.state != "review":
             raise UserError(_("Gate runs can only be manually injected from review (current state: %s).") % self.state)
         proposal = self.gate_proposal if isinstance(self.gate_proposal, dict) else {}
