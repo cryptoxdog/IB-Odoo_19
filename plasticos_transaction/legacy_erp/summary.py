@@ -9,6 +9,9 @@ Counter semantics (documented, honest accounting):
 * ``records_seen`` — every source row the payload carried.
 * ``records_rejected`` — rows refused (blank required values) plus unresolved
   source references and failed transactions: nothing that did not reach the DB.
+  Every unresolved entry is exactly one source row (the importer records a
+  parent failure once per suppressed child row, never once per parent), so
+  ``len(unresolved)`` is a row count and the reconciliation below holds.
 * ``records_unchanged`` — identity-resolved rows that needed no write on replay
   (including set-semantics buckets: contact roles, transaction lines).
 * ``records_created`` / ``records_updated`` — identity-resolved rows written.
