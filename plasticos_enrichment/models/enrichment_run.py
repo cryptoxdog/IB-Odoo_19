@@ -469,9 +469,11 @@ class EnrichmentRun(models.Model):
             raise UserError(_("Gate runs can only be manually injected from review (current state: %s).") % self.state)
         proposal = self.gate_proposal if isinstance(self.gate_proposal, dict) else {}
         proposed = proposal.get("proposed_partner_fields") or {}
-        # Revalidate the stored proposal: drop empty/falsy fields before the
-        # write boundary applies the allowlist.
-        proposed = {k: v for k, v in proposed.items() if k and v not in (None, False, "")}
+        # Revalidate the stored proposal: keep only named, scalar, non-empty
+        # values before the write boundary applies the allowlist.
+        proposed = {
+            k: v for k, v in proposed.items() if k and isinstance(v, (str, int, float)) and v not in (None, False, "")
+        }
         if not proposed:
             raise UserError(_("Gate proposal has no writable partner fields to inject."))
         audit = {
