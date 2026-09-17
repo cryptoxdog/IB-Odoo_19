@@ -61,9 +61,9 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "status": VERIFIED,
             "target_model": "res.partner",
             "target_field": "name",
-            "transformation": "strip; blank -> anomaly + skip",
+            "transformation": "strip; blank -> anomaly + reject",
             "required": True,
-            "null_behavior": "blank -> anomaly, row skipped",
+            "null_behavior": "blank -> anomaly, row rejected (counted in records_rejected)",
             "identity_role": "none",
         },
         "Role": {
@@ -354,9 +354,9 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "status": VERIFIED,
             "target_model": "res.partner",
             "target_field": "name",
-            "transformation": "strip; blank -> anomaly + skip",
+            "transformation": "strip; blank -> anomaly + reject",
             "required": True,
-            "null_behavior": "blank -> anomaly, row skipped",
+            "null_behavior": "blank -> anomaly, row rejected (counted in records_rejected)",
             "identity_role": "none",
         },
         "Email": {
