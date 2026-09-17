@@ -891,16 +891,29 @@ test-odoo-local: check-local-runtime
 
 .PHONY: import-legacy-erp import-vanillasoft
 
-LEGACY_ERP_DRY ?=
-LEGACY_ERP_LIMIT ?=
-LEGACY_ERP_PAYLOAD_ROOT ?=
-LEGACY_ERP_REPORT_PATH ?= .l9/pr/import-legacy-erp-summary.json
-VANILLASOFT_FLOORS ?=
+# Public overrides (DRY / LIMIT / PAYLOAD_ROOT / REPORT_PATH, as advertised in
+# the help text above) bridge onto the LEGACY_ERP_* names the shell driver
+# reads (plasticos_transaction/scripts/import_legacy_erp_shell.py). Either
+# spelling works; an explicit LEGACY_ERP_* value wins.
+LEGACY_ERP_DRY ?= $(DRY)
+LEGACY_ERP_LIMIT ?= $(LIMIT)
+LEGACY_ERP_PAYLOAD_ROOT ?= $(PAYLOAD_ROOT)
+LEGACY_ERP_REPORT_PATH ?= $(or $(REPORT_PATH),.l9/pr/import-legacy-erp-summary.json)
+# The VanillaSoft driver reads two floors (plasticos_crm_sync/scripts/
+# import_vanillasoft_shell.py); both are forwarded verbatim.
+VANILLASOFT_CALL_FLOOR ?=
+VANILLASOFT_CONTACT_FLOOR ?=
 VANILLASOFT_REPORT_PATH ?= .l9/pr/import-vanillasoft-summary.json
 
 # Prefers the docker runtime; falls back to the no-Docker local harness
 # (L9_ODOO_VENV, see scripts/setup_local_runtime.sh). Fails closed when
 # neither runtime exists or the import reports material errors.
+#
+# Docker: the image is odoo:19, whose entrypoint execs an unknown first
+# argument directly, so the command override must start with `odoo` to reach
+# the Odoo CLI (`odoo shell`), not the bare subcommand.
+# Local: the venv has no odoo.conf, so the connection and addons arguments are
+# passed explicitly, exactly as `test-odoo-local` does.
 import-legacy-erp:
 	@test -d data/legacy_erp_sm_export/bulk || { echo "❌ Preflight failed: tracked payload missing (data/legacy_erp_sm_export/bulk)"; exit 1; }
 	@echo "→ LegacyErp import on database $(ODOO_DB_NAME) $(if $(LEGACY_ERP_DRY),[DRY RUN],)…"
@@ -910,11 +923,15 @@ import-legacy-erp:
 			-e LEGACY_ERP_LIMIT="$(LEGACY_ERP_LIMIT)" \
 			-e LEGACY_ERP_PAYLOAD_ROOT="$(LEGACY_ERP_PAYLOAD_ROOT)" \
 			-e LEGACY_ERP_REPORT_PATH="$(LEGACY_ERP_REPORT_PATH)" \
-			odoo shell -d $(ODOO_DB_NAME) --no-http < plasticos_transaction/scripts/import_legacy_erp_shell.py; \
+			odoo odoo shell -d $(ODOO_DB_NAME) --no-http < plasticos_transaction/scripts/import_legacy_erp_shell.py; \
 	elif [ -x "$(L9_ODOO_VENV)/bin/odoo" ]; then \
+		src=$$(ls -d /opt/odoo-src/odoo-19.0* | sort | tail -1); \
 		LEGACY_ERP_DRY="$(LEGACY_ERP_DRY)" LEGACY_ERP_LIMIT="$(LEGACY_ERP_LIMIT)" \
 		LEGACY_ERP_PAYLOAD_ROOT="$(LEGACY_ERP_PAYLOAD_ROOT)" LEGACY_ERP_REPORT_PATH="$(LEGACY_ERP_REPORT_PATH)" \
-		"$(L9_ODOO_VENV)/bin/odoo" shell -d $(ODOO_DB_NAME) --no-http < plasticos_transaction/scripts/import_legacy_erp_shell.py; \
+		"$(L9_ODOO_VENV)/bin/odoo" shell -d $(ODOO_DB_NAME) --no-http \
+			--db_host="$(L9_PG_HOST)" --db_port="$(L9_PG_PORT)" --db_user="$(L9_PG_USER)" \
+			--addons-path="$$src/odoo/addons,$(CURDIR)" \
+			< plasticos_transaction/scripts/import_legacy_erp_shell.py; \
 	else \
 		echo "❌ No Odoo runtime: start Docker Desktop or run scripts/setup_local_runtime.sh"; exit 1; \
 	fi
@@ -926,12 +943,18 @@ import-vanillasoft:
 	@echo "→ VanillaSoft full import on database $(ODOO_DB_NAME)…"
 	@if docker info >/dev/null 2>&1; then \
 		docker compose run --rm \
-			-e VANILLASOFT_FLOORS="$(VANILLASOFT_FLOORS)" \
+			-e VANILLASOFT_CALL_FLOOR="$(VANILLASOFT_CALL_FLOOR)" \
+			-e VANILLASOFT_CONTACT_FLOOR="$(VANILLASOFT_CONTACT_FLOOR)" \
 			-e VANILLASOFT_REPORT_PATH="$(VANILLASOFT_REPORT_PATH)" \
-			odoo shell -d $(ODOO_DB_NAME) --no-http < plasticos_crm_sync/scripts/import_vanillasoft_shell.py; \
+			odoo odoo shell -d $(ODOO_DB_NAME) --no-http < plasticos_crm_sync/scripts/import_vanillasoft_shell.py; \
 	elif [ -x "$(L9_ODOO_VENV)/bin/odoo" ]; then \
-		VANILLASOFT_FLOORS="$(VANILLASOFT_FLOORS)" VANILLASOFT_REPORT_PATH="$(VANILLASOFT_REPORT_PATH)" \
-		"$(L9_ODOO_VENV)/bin/odoo" shell -d $(ODOO_DB_NAME) --no-http < plasticos_crm_sync/scripts/import_vanillasoft_shell.py; \
+		src=$$(ls -d /opt/odoo-src/odoo-19.0* | sort | tail -1); \
+		VANILLASOFT_CALL_FLOOR="$(VANILLASOFT_CALL_FLOOR)" VANILLASOFT_CONTACT_FLOOR="$(VANILLASOFT_CONTACT_FLOOR)" \
+		VANILLASOFT_REPORT_PATH="$(VANILLASOFT_REPORT_PATH)" \
+		"$(L9_ODOO_VENV)/bin/odoo" shell -d $(ODOO_DB_NAME) --no-http \
+			--db_host="$(L9_PG_HOST)" --db_port="$(L9_PG_PORT)" --db_user="$(L9_PG_USER)" \
+			--addons-path="$$src/odoo/addons,$(CURDIR)" \
+			< plasticos_crm_sync/scripts/import_vanillasoft_shell.py; \
 	else \
 		echo "❌ No Odoo runtime: start Docker Desktop or run scripts/setup_local_runtime.sh"; exit 1; \
 	fi
