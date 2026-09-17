@@ -6,8 +6,8 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from ..adapters.base import CanonicalCall, CanonicalLead, CrmAdapterError, CrmAdapterStubError
-from ..adapters.registry import ensure_live_or_raise, get_adapter
+from ..adapters.base import CanonicalCall, CanonicalLead, CrmAdapterError
+from ..adapters.registry import get_adapter
 
 _logger = logging.getLogger(__name__)
 
@@ -119,7 +119,6 @@ class SyncOrchestrator:
             run = self.env["plasticos.crm.sync.run"].browse(run_id)
             try:
                 adapter = self._build_adapter(connection)
-                ensure_live_or_raise(adapter)
                 adapter.healthcheck()
                 contacts_n = self._sync_contacts(connection, adapter, run)
                 calls_n = self._sync_calls(connection, adapter, run)
@@ -143,7 +142,7 @@ class SyncOrchestrator:
                 # to the next one: a later connection's rollback must not erase
                 # a successful run that already happened.
                 self.env.cr.commit()
-            except (CrmAdapterStubError, CrmAdapterError, Exception) as exc:
+            except (CrmAdapterError, Exception) as exc:
                 # I3 — capture primitives, then release every row this
                 # transaction still holds BEFORE opening the failure cursor.
                 # `_sync_contacts`/`_sync_calls` may leave an uncommitted write
@@ -214,7 +213,6 @@ class SyncOrchestrator:
             run = self.env["plasticos.crm.sync.run"].browse(run_id)
             try:
                 adapter = self._build_adapter(connection)
-                ensure_live_or_raise(adapter)
                 adapter.healthcheck()
 
                 # Captured before enumeration: everything after this instant is
@@ -285,7 +283,7 @@ class SyncOrchestrator:
                     _iso_z(boundary),
                     _iso_z(oldest_seen) if oldest_seen else "none",
                 )
-            except (CrmAdapterStubError, CrmAdapterError, Exception) as exc:
+            except (CrmAdapterError, Exception) as exc:
                 # I3 — identical ordering to run_connection: roll back this
                 # transaction's rows before the failure cursor touches them.
                 excerpt = str(exc)[:2000]
@@ -446,7 +444,6 @@ class SyncOrchestrator:
     def upsert_contact_external_id(self, connection, external_id: str) -> Any:
         """Single-contact path: contact + call history + custom tables."""
         adapter = self._build_adapter(connection)
-        ensure_live_or_raise(adapter)
         lead_dto = adapter.get_contact(str(external_id))
         if not lead_dto:
             raise CrmAdapterError(f"Contact {external_id} not found")

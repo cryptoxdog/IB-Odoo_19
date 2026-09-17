@@ -1,4 +1,4 @@
-"""Pure-Python tests for VanillaSoft client, adapter mapping, and stub registry."""
+"""Pure-Python tests for VanillaSoft client, adapter mapping, and the registry."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from plasticos_crm_sync.adapters.base import CrmAdapterError, CrmAdapterStubError  # noqa: E402
-from plasticos_crm_sync.adapters.registry import ensure_live_or_raise, get_adapter  # noqa: E402
+from plasticos_crm_sync.adapters.base import CrmAdapterError  # noqa: E402
+from plasticos_crm_sync.adapters.registry import LIVE_PROVIDERS, get_adapter  # noqa: E402
 from plasticos_crm_sync.adapters.vanillasoft.adapter import (  # noqa: E402
     VanillaSoftAdapter,
     call_to_canonical,
@@ -136,14 +136,15 @@ def test_call_to_canonical():
     assert call.contact_external_id == "42"
 
 
-def test_stub_adapters_raise():
+def test_unknown_providers_fail_closed():
+    """No stub adapters exist: an unimplemented provider is an unknown one."""
     for provider in ("hubspot", "salesforce", "zoho"):
-        adapter = get_adapter(provider)
-        assert adapter.live is False
-        with pytest.raises(CrmAdapterStubError):
-            adapter.healthcheck()
-        with pytest.raises(CrmAdapterStubError):
-            ensure_live_or_raise(adapter)
+        with pytest.raises(CrmAdapterError):
+            get_adapter(provider)
+
+
+def test_only_vanillasoft_is_live():
+    assert LIVE_PROVIDERS == {"vanillasoft"}
 
 
 def test_vanillasoft_adapter_is_live():
@@ -156,7 +157,6 @@ def test_vanillasoft_adapter_is_live():
         project_id=139705,
     )
     assert adapter.live is True
-    ensure_live_or_raise(adapter)
     # Replace client for healthcheck
     adapter.client = client
     adapter.healthcheck()

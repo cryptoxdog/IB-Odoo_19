@@ -14,9 +14,6 @@ ICP_PROJECT = "plasticos_crm_sync.vanillasoft_project_id"
 # Inline Selection — same values as adapters.registry.PROVIDER_SELECTION
 PROVIDER_SELECTION = [
     ("vanillasoft", "VanillaSoft"),
-    ("hubspot", "HubSpot (stub)"),
-    ("salesforce", "Salesforce (stub)"),
-    ("zoho", "Zoho (stub)"),
 ]
 
 
@@ -30,7 +27,7 @@ class PlasticosCrmConnection(models.Model):
         PROVIDER_SELECTION,
         required=True,
         default="vanillasoft",
-        help="CRM provider. Only VanillaSoft is live in v1; others are stubs.",
+        help="CRM provider. Only VanillaSoft is implemented; see docs/runbooks/CRM_ADAPTER_ROADMAP.md.",
     )
     project_id = fields.Char(
         string="External Project ID",
