@@ -222,3 +222,83 @@ def test_deleted_dto_archives_with_classification():
     assert outcomes["updated"] == 1
     assert record.active is False
     assert record.vanillasoft_sync_archived is True
+
+
+# ── admission gate: dependent writes only after an admitted lead ─────────────
+#
+# `_upsert_lead` returns a recordset for admitted AND rejected outcomes (pinned
+# contract), so the page loop must gate custom-table synchronization on the
+# classification, never on the returned record: a duplicate_rejected or failed
+# contact gets zero child-table side effects.
+
+
+class _Connection:
+    id = 1
+    contact_watermark_utc = None
+
+    def default_contact_modified_after(self):
+        return "2026-01-01T00:00:00Z"
+
+
+class _PageAdapter:
+    """One contact page; custom-table rows are irrelevant because the sync is spied."""
+
+    def __init__(self, leads):
+        self._leads = leads
+
+    def iter_contacts(self, *, modified_after, limit=200):
+        yield self._leads, None, False
+
+    def iter_table_rows(self, contact_external_id):
+        return iter(())
+
+
+class _TableSpyOrchestrator(_Orchestrator):
+    def __init__(self, env):
+        super().__init__(env)
+        self.table_sync_for: list[str] = []
+
+    def _sync_tables_for_lead(self, connection, adapter, contact_external_id, lead=None):
+        self.table_sync_for.append(contact_external_id)
+
+
+def test_multiple_fallback_matches_get_no_dependent_table_writes():
+    leads = _Model()
+    orch = _TableSpyOrchestrator(_Env(leads, _Model()))
+    # Two leads carry the same source id and no external ref exists: ambiguous.
+    leads.create({"vanillasoft_id": "dup", "name": "First", "active": True})
+    leads.create({"vanillasoft_id": "dup", "name": "Second", "active": True})
+
+    orch._sync_contacts(_Connection(), _PageAdapter([_lead("dup"), _lead("ok")]), None)
+
+    assert orch._contact_outcomes["duplicate_rejected"] == 1
+    assert orch._contact_outcomes["created"] == 1
+    assert orch.table_sync_for == ["ok"], "table sync must run for the admitted contact only, never the rejected one"
+
+
+def test_a_failed_lead_write_gets_no_dependent_table_writes():
+    leads = _Model()
+    orch = _TableSpyOrchestrator(_Env(leads, _Model()))
+    record = leads.create({"vanillasoft_id": "boom"})
+
+    def boom(vals):
+        raise RuntimeError("column broken")
+
+    record.write = boom
+    orch._sync_contacts(_Connection(), _PageAdapter([_lead("boom")]), None)
+
+    assert orch._contact_outcomes["failed"] == 1
+    assert orch.table_sync_for == []
+
+
+def test_upsert_lead_exposes_its_classification_beside_the_pinned_return():
+    orch, connection, leads, refs = _harness()
+    _outcomes(orch)
+    orch._upsert_lead(connection, _lead("x1"))
+    assert orch.last_lead_outcome == "created"
+
+    leads.create({"vanillasoft_id": "dup2", "active": True})
+    leads.create({"vanillasoft_id": "dup2", "active": True})
+    result = orch._upsert_lead(connection, _lead("dup2"))
+    assert result.id in leads.rows, "the pinned return contract still yields a recordset on rejection"
+    assert orch.last_lead_outcome == "duplicate_rejected"
