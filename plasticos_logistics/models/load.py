@@ -38,6 +38,11 @@ class PlasticosLoad(models.Model):
         readonly=True,
         tracking=True,
     )
+    actual_freight_cost = fields.Monetary(currency_field="actual_freight_currency_id", tracking=True)
+    actual_freight_currency_id = fields.Many2one(
+        "res.currency", string="Actual Freight Currency", ondelete="restrict", tracking=True
+    )
+    actual_freight_recorded_at = fields.Datetime(readonly=True, tracking=True)
     freight_context_fingerprint = fields.Char(string="Freight Context Fingerprint", index=True, readonly=True)
     freight_context_version = fields.Char(string="Freight Context Version", readonly=True)
     sal_source_load_id = fields.Many2one(
@@ -403,6 +408,16 @@ class PlasticosLoad(models.Model):
             rec.message_post(
                 body=f"Manual-only freight RFQ episode {request.name} created; no outbound carrier send was performed."
             )
+            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+
+            record_freight_event(
+                rec.env,
+                event_type="rfq_request_created",
+                outcome_code="manual_only",
+                load=rec,
+                facts={"request_id": request.id},
+                unknowns=["recipient_policy_unapproved", "outbound_delivery_unavailable"],
+            )
         return True
 
     def action_request_freight_estimate(self):
@@ -412,6 +427,10 @@ class PlasticosLoad(models.Model):
             build_freight_context,
         )
         from odoo.addons.plasticos_logistics.services.freight_geometry import FreightCoordinateError, haversine_miles
+        from odoo.addons.plasticos_logistics.services.freight_history import (
+            bounded_evidence_payload,
+            recent_executed_lane_evidence,
+        )
 
         estimate_model = self.env["plasticos.freight.estimate"]
         for rec in self:
@@ -439,14 +458,8 @@ class PlasticosLoad(models.Model):
             )
             if not company:
                 raise UserError("Load company is required before an estimate can be recorded.")
-            history = self.env[PLASTICOS_LOAD].search_count(
-                [
-                    ("pickup_partner_id", "=", rec.pickup_partner_id.id),
-                    ("delivery_partner_id", "=", rec.delivery_partner_id.id),
-                    ("rate_amount", ">", 0),
-                    ("state", "in", ["picked_up", "delivered", "closed"]),
-                ]
-            )
+            history_records = recent_executed_lane_evidence(rec.env, rec)
+            history = len(history_records)
             request_fingerprint = hashlib.sha256(
                 f"estimate:{context.fingerprint}:{history}:{miles if miles is not None else 'unavailable'}".encode()
             ).hexdigest()
@@ -463,7 +476,11 @@ class PlasticosLoad(models.Model):
                     "expected_weight_lbs": rec.reference_weight,
                     "haversine_miles": miles if miles is not None else False,
                     "geometry_status": geometry_status,
-                    "evidence_summary": {"exact_lane_executed_count": history, "coordinate_quality": status},
+                    "evidence_summary": {
+                        "exact_lane_executed_count": history,
+                        "coordinate_quality": status,
+                        "executed_evidence": bounded_evidence_payload(history_records),
+                    },
                     "failure_code": failure_code,
                     "status": status,
                 }
@@ -473,6 +490,16 @@ class PlasticosLoad(models.Model):
                     f"Freight estimate {estimate.name} recorded as {status}. "
                     "No price was fabricated because the external estimate action is not admitted."
                 )
+            )
+            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+
+            record_freight_event(
+                rec.env,
+                event_type="freight_estimate_rejected" if status == "failed" else "freight_estimate_persisted",
+                outcome_code=failure_code,
+                load=rec,
+                facts={"estimate_id": estimate.id, "exact_lane_evidence_count": history},
+                unknowns=["gate_estimate_action_unadmitted"] if status == "failed" else [],
             )
         return True
 
@@ -484,6 +511,63 @@ class PlasticosLoad(models.Model):
         action["domain"] = [("load_id", "in", self.ids)]
         action["context"] = {"default_load_id": self.id if len(self) == 1 else False}
         return action
+
+    def action_record_actual_freight_cost(self):
+        """Persist a non-mutating calibration observation from a verified actual cost."""
+        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+
+        calibration_model = self.env["plasticos.freight.calibration.observation"]
+        estimate_model = self.env["plasticos.freight.estimate"]
+        for rec in self:
+            context = build_freight_context(rec)
+            if not context or rec.actual_freight_cost is None or rec.actual_freight_cost < 0:
+                raise UserError("A current freight context and non-negative actual freight cost are required.")
+            currency = rec.actual_freight_currency_id or rec.rate_currency_id
+            if not currency:
+                raise UserError("Actual freight currency is required.")
+            existing = calibration_model.search([("load_id", "=", rec.id)], limit=1)
+            if existing:
+                raise UserError("Actual freight calibration evidence already exists for this load.")
+            estimate = estimate_model.search(
+                [
+                    ("source_model", "=", PLASTICOS_LOAD),
+                    ("source_record_id", "=", rec.id),
+                    ("context_fingerprint", "=", context.fingerprint),
+                    ("status", "=", "succeeded"),
+                    ("currency_id", "=", currency.id),
+                ],
+                order="generated_at desc, id desc",
+                limit=1,
+            )
+            calibration_model.create(
+                {
+                    "company_id": (getattr(rec, "company_id", False) or rec.sale_order_id.company_id).id,
+                    "load_id": rec.id,
+                    "estimate_id": estimate.id if estimate else False,
+                    "selected_quote_id": rec.selected_freight_quote_id.id if rec.selected_freight_quote_id else False,
+                    "currency_id": currency.id,
+                    "estimate_amount": estimate.estimate_target if estimate else False,
+                    "booked_rate_amount": rec.rate_amount if rec.rate_currency_id == currency else False,
+                    "actual_cost_amount": rec.actual_freight_cost,
+                    "estimate_to_actual_variance": (
+                        rec.actual_freight_cost - estimate.estimate_target if estimate else False
+                    ),
+                    "booked_to_actual_variance": (
+                        rec.actual_freight_cost - rec.rate_amount if rec.rate_currency_id == currency else False
+                    ),
+                    "context_fingerprint": context.fingerprint,
+                }
+            )
+            rec.write({"actual_freight_recorded_at": fields.Datetime.now()})
+            record_freight_event(
+                rec.env,
+                event_type="freight_actual_recorded",
+                outcome_code="recorded",
+                load=rec,
+                facts={"currency_id": currency.id},
+            )
+        return True
 
     def action_view_freight_estimates(self):
         action_record = self.env.ref("plasticos_logistics.action_freight_estimate", raise_if_not_found=False)
@@ -560,6 +644,15 @@ class PlasticosLoad(models.Model):
             else:
                 rec.write(values)
                 rec.message_post(body=f"SAL {decision.decision}: {decision.reason or 'no qualifying history'}.")
+                from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+
+                record_freight_event(
+                    rec.env,
+                    event_type="sal_miss" if decision.decision == "miss" else "sal_not_eligible",
+                    outcome_code=decision.reason or decision.decision,
+                    load=rec,
+                    facts={"context_fingerprint": decision.context_fingerprint},
+                )
         return True
 
     def _confirm_freight_rate(
@@ -617,6 +710,19 @@ class PlasticosLoad(models.Model):
             }
             rec.write(values)
             rec._transition("rate_confirmed")
+            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+
+            record_freight_event(
+                rec.env,
+                event_type="freight_rate_confirmed",
+                outcome_code=resolution_method,
+                load=rec,
+                facts={
+                    "carrier_id": carrier.id,
+                    "currency_id": currency.id,
+                    "sal_source_load_id": sal_source_load.id if sal_source_load else None,
+                },
+            )
 
     def action_schedule(self, pickup_dt, delivery_dt):
         for rec in self:
@@ -685,17 +791,11 @@ class PlasticosLoad(models.Model):
             _logger.info("Load %s state transition: %s -> %s (correlation: %s)", rec.id, old, new_state, correlation_id)
 
     def _store_rate_memory(self):
-        if "plasticos.rate.memory" not in self.env:
-            _logger.warning("plasticos.rate.memory model not found; skipping rate memory storage.")
-            return
-        self.env["plasticos.rate.memory"].create(
-            {
-                "carrier_id": self.carrier_id.id,
-                "lane_key": self._lane_key(),
-                "rate_amount": self.rate_amount,
-                "rate_date": fields.Date.today(),
-            }
+        """Deprecated compatibility hook; legacy cache writes are permanently frozen."""
+        _logger.warning(
+            "Legacy rate-memory write skipped for load %s; canonical freight history owns new evidence.", self.id
         )
+        return False
 
     def _lane_key(self):
         so = self.sale_order_id

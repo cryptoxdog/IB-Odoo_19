@@ -28,4 +28,19 @@
         <field name="model_id" ref="model_plasticos_freight_estimate"/>
         <field name="domain_force">[('company_id', 'in', company_ids)]</field>
     </record>
+    <record id="rule_freight_event_company" model="ir.rule">
+        <field name="name">Freight event company isolation</field>
+        <field name="model_id" ref="model_plasticos_freight_event"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_freight_calibration_company" model="ir.rule">
+        <field name="name">Freight calibration company isolation</field>
+        <field name="model_id" ref="model_plasticos_freight_calibration_observation"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_rate_memory_reconciliation_company" model="ir.rule">
+        <field name="name">Rate-memory reconciliation company isolation</field>
+        <field name="model_id" ref="model_plasticos_rate_memory_reconciliation"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
 </odoo>

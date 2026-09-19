@@ -1,21 +1,13 @@
-from datetime import timedelta
+import logging
 
-from odoo import fields
+_logger = logging.getLogger(__name__)
 
 
 def get_recent_lane_rate(env, carrier_id, lane_key):
-    cutoff = fields.Date.today() - timedelta(days=30)
-
-    rec = env["plasticos.rate.memory"].search(
-        [
-            ("carrier_id", "=", carrier_id),
-            ("lane_key", "=", lane_key),
-            ("rate_date", ">=", cutoff),
-        ],
-        order="rate_date desc",
-        limit=1,
+    """Compatibility shim after cache retirement; never read legacy cache evidence."""
+    _logger.warning(
+        "Legacy rate-memory lookup requested for carrier %s and lane %s; canonical freight history is required.",
+        carrier_id,
+        lane_key,
     )
-
-    if rec:
-        return rec.rate_amount
     return None
