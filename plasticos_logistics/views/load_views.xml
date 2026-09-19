@@ -164,6 +164,7 @@
         <field name="arch" type="xml">
             <form>
                 <header>
+                    <button name="action_resolve_freight" string="Resolve Freight" type="object" class="btn-primary" invisible="state != 'ready_confirmed'"/>
                     <button name="action_dispatch" string="Dispatch" type="object" class="btn-primary" invisible="state != 'scheduled'"/>
                     <button name="action_close" string="Close Load" type="object" class="btn-success" invisible="state != 'delivered'"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,rate_confirmed,scheduled,dispatched,picked_up,delivered,closed"/>
@@ -197,6 +198,8 @@
                             <field name="sale_order_id"/>
                             <field name="carrier_id"/>
                             <field name="rate_amount"/>
+                            <field name="rate_currency_id"/>
+                            <field name="rate_resolution_method" readonly="1"/>
                             <field name="rate_confirmed_at" readonly="1"/>
                             <field name="rate_auto_reused" readonly="1"/>
                         </group>
@@ -221,6 +224,14 @@
                             <field name="dispatch_sent"/>
                             <field name="dispatch_acknowledged"/>
                         </group>
+                    </group>
+
+                    <group string="Freight Resolution">
+                        <field name="sal_decision" readonly="1"/>
+                        <field name="sal_miss_reason" readonly="1"/>
+                        <field name="sal_source_load_id" readonly="1"/>
+                        <field name="sal_evaluated_at" readonly="1"/>
+                        <field name="freight_context_fingerprint" readonly="1"/>
                     </group>
 
                     <notebook>

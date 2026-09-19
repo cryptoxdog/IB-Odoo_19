@@ -24,6 +24,53 @@ class PlasticosLoad(models.Model):
     rate_amount = fields.Float(string="Rate Amount")
     rate_confirmed_at = fields.Datetime()
     rate_auto_reused = fields.Boolean(default=False)
+    rate_currency_id = fields.Many2one(
+        "res.currency",
+        string="Rate Currency",
+        default=lambda self: self.env.company.currency_id,
+        ondelete="restrict",
+        help="Explicit currency for booked freight; required before a rate can qualify for SAL reuse.",
+    )
+    rate_resolution_method = fields.Selection(
+        [("manual", "Manual"), ("sal", "Same As Last"), ("live_quote", "Live Quote")],
+        string="Rate Resolution Method",
+        readonly=True,
+        tracking=True,
+    )
+    freight_context_fingerprint = fields.Char(string="Freight Context Fingerprint", index=True, readonly=True)
+    freight_context_version = fields.Char(string="Freight Context Version", readonly=True)
+    sal_source_load_id = fields.Many2one(
+        "plasticos.load",
+        string="SAL Source Load",
+        readonly=True,
+        ondelete="restrict",
+    )
+    sal_evaluated_at = fields.Datetime(string="SAL Evaluated At", readonly=True)
+    sal_decision = fields.Selection(
+        [
+            ("not_evaluated", "Not Evaluated"),
+            ("hit", "Hit"),
+            ("miss", "Miss"),
+            ("not_eligible", "Not Eligible"),
+        ],
+        string="SAL Decision",
+        default="not_evaluated",
+        readonly=True,
+    )
+    sal_miss_reason = fields.Selection(
+        [
+            ("not_ready_confirmed", "Load Not Ready Confirmed"),
+            ("missing_lane_identity", "Missing Lane or Repeat Stream"),
+            ("already_rate_confirmed", "Rate Already Confirmed"),
+            ("no_prior_movement", "No Prior Movement"),
+            ("prior_movement_too_old", "Prior Movement Too Old"),
+            ("prior_rate_missing", "Prior Rate or Currency Missing"),
+            ("prior_carrier_inactive", "Prior Carrier Inactive"),
+            ("prior_record_ambiguous", "Prior Record Ambiguous"),
+        ],
+        string="SAL Miss Reason",
+        readonly=True,
+    )
 
     ready_confirmed_by = fields.Char()
     ready_confirmed_at = fields.Datetime()
@@ -289,13 +336,15 @@ class PlasticosLoad(models.Model):
             rec.ready_confirmed_at = fields.Datetime.now()
             rec._transition("ready_confirmed")
 
-    def action_confirm_rate(self, rate):
-        """Confirm carrier rate. Only stores rate memory if lane key is valid."""
+    def action_confirm_rate(self, rate=None):
+        """Confirm a manually supplied rate through the canonical rate path."""
         for rec in self:
-            rec.rate_amount = rate
-            rec.rate_confirmed_at = fields.Datetime.now()
-            rec.rate_auto_reused = False
-            rec._transition("rate_confirmed")
+            rec._confirm_freight_rate(
+                rate=rate if rate is not None else rec.rate_amount,
+                carrier=rec.carrier_id,
+                currency=rec.rate_currency_id or rec.env.company.currency_id,
+                resolution_method="manual",
+            )
             if rec.sale_order_id and rec.carrier_id:
                 ship = rec.sale_order_id.partner_shipping_id.id
                 inv = rec.sale_order_id.partner_invoice_id.id
@@ -308,8 +357,85 @@ class PlasticosLoad(models.Model):
                         rec.sale_order_id.name,
                     )
 
+    def action_resolve_freight(self):
+        """Resolve Same As Last deterministically; never creates an RFQ on a miss.
+
+        The live RFQ workflow is intentionally unavailable until its recipient
+        policy and delivery contract are accepted. A miss is persisted as a
+        useful operator-visible outcome rather than silently falling back.
+        """
+        from odoo.addons.plasticos_logistics.services.freight_context import FREIGHT_CONTEXT_VERSION
+        from odoo.addons.plasticos_logistics.services.sal_resolver import resolve_sal
+
+        for rec in self:
+            rec.env.cr.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.sal:{rec.id}"])
+            rec.invalidate_recordset()
+            decision = resolve_sal(rec)
+            values = {
+                "freight_context_fingerprint": decision.context_fingerprint,
+                "freight_context_version": FREIGHT_CONTEXT_VERSION if decision.context_fingerprint else False,
+                "sal_decision": decision.decision,
+                "sal_evaluated_at": fields.Datetime.now(),
+                "sal_miss_reason": decision.reason if decision.decision != "hit" else False,
+            }
+            if decision.decision == "hit":
+                source = self.browse(decision.source_load_id).exists()
+                rec._confirm_freight_rate(
+                    rate=source.rate_amount,
+                    carrier=source.carrier_id,
+                    currency=source.rate_currency_id,
+                    resolution_method="sal",
+                    context_fingerprint=decision.context_fingerprint,
+                    sal_source_load=source,
+                )
+                rec.message_post(
+                    body=(
+                        f"SAL applied from load {source.name}: reused the current eligible carrier and booked rate. "
+                        "No carrier RFQ was created."
+                    )
+                )
+            else:
+                rec.write(values)
+                rec.message_post(body=f"SAL {decision.decision}: {decision.reason or 'no qualifying history'}.")
+        return True
+
+    def _confirm_freight_rate(
+        self,
+        rate,
+        carrier,
+        currency,
+        resolution_method,
+        context_fingerprint=None,
+        sal_source_load=None,
+    ):
+        """Single state-machine convergence point for manual and SAL rates."""
+        for rec in self:
+            if rec.state != "ready_confirmed":
+                raise UserError("Freight rate confirmation requires a Ready Confirmed load.")
+            if resolution_method == "sal" and (
+                not carrier or not currency or not sal_source_load or not context_fingerprint
+            ):
+                raise ValidationError("SAL confirmation requires carrier, currency, source load, and freight context.")
+            values = {
+                "carrier_id": carrier.id if carrier else False,
+                "freight_context_fingerprint": context_fingerprint or False,
+                "freight_context_version": "freight_context_v2" if context_fingerprint else False,
+                "rate_amount": rate or 0.0,
+                "rate_auto_reused": resolution_method == "sal",
+                "rate_confirmed_at": fields.Datetime.now(),
+                "rate_currency_id": currency.id if currency else False,
+                "rate_resolution_method": resolution_method,
+                "sal_decision": "hit" if resolution_method == "sal" else rec.sal_decision,
+                "sal_evaluated_at": fields.Datetime.now() if resolution_method == "sal" else rec.sal_evaluated_at,
+                "sal_miss_reason": False if resolution_method == "sal" else rec.sal_miss_reason,
+                "sal_source_load_id": sal_source_load.id if sal_source_load else False,
+            }
+            rec.write(values)
+            rec._transition("rate_confirmed")
+
     def action_schedule(self, pickup_dt, delivery_dt):
         for rec in self:
+            rec._ensure_sal_context_current()
             rec.pickup_datetime = pickup_dt
             rec.delivery_datetime = delivery_dt
             rec._transition("scheduled")
@@ -317,6 +443,7 @@ class PlasticosLoad(models.Model):
     def action_dispatch(self):
         """Dispatch load to carrier. Validates required fields before dispatch."""
         for rec in self:
+            rec._ensure_sal_context_current()
             if rec.state != "scheduled":
                 raise UserError(f"Load {rec.name} must be in Scheduled state before dispatch.")
             if not rec.carrier_id:
@@ -328,6 +455,20 @@ class PlasticosLoad(models.Model):
             if not rec.pickup_datetime:
                 raise UserError(f"Load {rec.name}: Pickup date/time is required before dispatch.")
             rec._transition("dispatched")
+
+    def _ensure_sal_context_current(self):
+        """Fail closed when a confirmed SAL lane has materially changed."""
+        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+
+        for rec in self:
+            if rec.rate_resolution_method != "sal" or not rec.freight_context_fingerprint:
+                continue
+            current_context = build_freight_context(rec)
+            if not current_context or current_context.fingerprint != rec.freight_context_fingerprint:
+                raise UserError(
+                    "Freight context changed after SAL confirmation. Scheduling and dispatch are blocked until an "
+                    "approved logistics recovery action resolves the exception."
+                )
 
     def action_close(self):
         for rec in self:
