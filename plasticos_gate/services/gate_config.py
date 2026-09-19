@@ -194,11 +194,18 @@ def gate_auto_writeback_enabled(env) -> bool:
 
     OFF by default (review-only): the converge proposal is stored with
     state='review' and no partner writes happen until the operator explicitly
-    sets ``plasticos.gate.auto_writeback=1``, which then backfills allowlisted
-    fields (merge-not-overwrite) with provenance.
+    enables BOTH switches — ``plasticos.gate.auto_writeback=1`` and
+    ``plasticos.gate.auto_writeback_operator_approved=1`` — which then
+    backfills allowlisted fields (merge-not-overwrite) with provenance.
+
+    The operator-approval key is seeded 0 and defaults false when missing, so
+    an old database with only the single flag set can never re-enable
+    automatic partner writes.
     """
     icp = env["ir.config_parameter"].sudo()
-    return (icp.get_param("plasticos.gate.auto_writeback", "0") or "").strip() in _TRUTHY
+    auto_writeback = (icp.get_param("plasticos.gate.auto_writeback", "0") or "").strip() in _TRUTHY
+    operator_approved = (icp.get_param("plasticos.gate.auto_writeback_operator_approved", "0") or "").strip() in _TRUTHY
+    return auto_writeback and operator_approved
 
 
 def get_enrichment_action(env) -> str:

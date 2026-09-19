@@ -201,7 +201,7 @@ def test_map_match_response_missing_candidates_key_raises():
 def test_map_match_response_unresolvable_refs_fail_safe():
     payload = {
         "candidates": [
-            {"entity_ref": "res.partner:102"},  # ok
+            {"entity_ref": "res.partner:102", "eligible": True},  # ok
             {"entity_ref": "product.product:9"},  # foreign namespace -> skip
             {"entity_ref": 102},  # bare integer -> skip
             {"entity_ref": "res.partner:not-an-int"},  # non-integer id -> skip
@@ -217,9 +217,9 @@ def test_map_match_response_unresolvable_refs_fail_safe():
 def test_map_match_response_sorts_by_normalized_score_descending():
     payload = {
         "candidates": [
-            {"entity_ref": "res.partner:1", "score": 40, "score_scale": "0_to_100"},
-            {"entity_ref": "res.partner:2", "score": 0.95, "score_scale": "0_to_1"},
-            {"entity_ref": "res.partner:3", "score": 10, "score_scale": "0_to_100"},
+            {"entity_ref": "res.partner:1", "eligible": True, "score": 40, "score_scale": "0_to_100"},
+            {"entity_ref": "res.partner:2", "eligible": True, "score": 0.95, "score_scale": "0_to_1"},
+            {"entity_ref": "res.partner:3", "eligible": True, "score": 10, "score_scale": "0_to_100"},
         ]
     }
     mapped = map_match_response(payload)
@@ -289,10 +289,19 @@ def test_gate_auto_writeback_enabled_default_off():
     assert gate_auto_writeback_enabled(_MockEnv()) is False
 
 
-def test_gate_auto_writeback_enabled_on_when_flag_one():
-    # Explicit opt-in re-enables live application
-    env = _MockEnv({"plasticos.gate.auto_writeback": "1"})
-    assert gate_auto_writeback_enabled(env) is True
+def test_gate_auto_writeback_requires_both_switches():
+    # Dual-switch: automatic partner writes need BOTH flags explicitly on.
+    single_flag = _MockEnv({"plasticos.gate.auto_writeback": "1"})
+    assert gate_auto_writeback_enabled(single_flag) is False
+    approval_only = _MockEnv({"plasticos.gate.auto_writeback_operator_approved": "1"})
+    assert gate_auto_writeback_enabled(approval_only) is False
+    both_on = _MockEnv(
+        {
+            "plasticos.gate.auto_writeback": "1",
+            "plasticos.gate.auto_writeback_operator_approved": "1",
+        }
+    )
+    assert gate_auto_writeback_enabled(both_on) is True
 
 
 def test_gate_auto_writeback_enabled_off_when_flag_zero():
@@ -305,6 +314,14 @@ def test_gate_icp_seed_auto_writeback_review_only():
     seed = Path(__file__).resolve().parents[1] / "plasticos_gate/data/gate_icp_seed.xml"
     text = seed.read_text(encoding="utf-8")
     block = text.split('id="param_gate_auto_writeback"', 1)[1].split("</record>", 1)[0]
+    assert '<field name="value">0</field>' in block
+
+
+def test_gate_icp_seed_operator_approved_default_off():
+    # VAL-003: the operator-approval seed must exist and default off (0)
+    seed = Path(__file__).resolve().parents[1] / "plasticos_gate/data/gate_icp_seed.xml"
+    text = seed.read_text(encoding="utf-8")
+    block = text.split('id="param_gate_auto_writeback_operator_approved"', 1)[1].split("</record>", 1)[0]
     assert '<field name="value">0</field>' in block
 
 
@@ -419,6 +436,22 @@ def test_map_match_response_skips_ineligible_candidates():
                 "score": 50,
                 "score_scale": "0_to_100",
             },
+        ]
+    }
+    mapped = map_match_response(payload)
+    assert [c.buyer_partner_id for c in mapped.results] == [8]
+    assert any(u.get("entity_ref") == "res.partner:7" for u in mapped.unresolved)
+    rows = map_match_response_to_matcher_dicts(mapped)
+    assert [r["buyer_id"] for r in rows] == [8]
+
+
+def test_map_match_response_skips_missing_eligible():
+    # Non-explicit CEG eligibility fails closed: a missing eligible key is
+    # never actionable, never surfaced as a selectable match.
+    payload = {
+        "candidates": [
+            {"entity_ref": "res.partner:7", "score": 90, "score_scale": "0_to_100"},
+            {"entity_ref": "res.partner:8", "eligible": True, "score": 50, "score_scale": "0_to_100"},
         ]
     }
     mapped = map_match_response(payload)
