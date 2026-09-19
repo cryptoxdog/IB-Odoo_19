@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from datetime import timedelta
 
@@ -71,6 +72,11 @@ class PlasticosLoad(models.Model):
         string="SAL Miss Reason",
         readonly=True,
     )
+    freight_quote_request_ids = fields.One2many(
+        "plasticos.freight.quote.request", "load_id", string="Freight Quote Requests"
+    )
+    freight_quote_request_count = fields.Integer(compute="_compute_freight_evidence_counts")
+    freight_estimate_count = fields.Integer(compute="_compute_freight_evidence_counts")
 
     ready_confirmed_by = fields.Char()
     ready_confirmed_at = fields.Datetime()
@@ -231,6 +237,15 @@ class PlasticosLoad(models.Model):
                     tx.load_id = rec.id
         return records
 
+    def _compute_freight_evidence_counts(self):
+        request_model = self.env["plasticos.freight.quote.request"]
+        estimate_model = self.env["plasticos.freight.estimate"]
+        for rec in self:
+            rec.freight_quote_request_count = request_model.search_count([("load_id", "=", rec.id)])
+            rec.freight_estimate_count = estimate_model.search_count(
+                [("source_model", "=", PLASTICOS_LOAD), ("source_record_id", "=", rec.id)]
+            )
+
     def write(self, vals):
         """Guard against unauthorized modifications after dispatch.
 
@@ -335,6 +350,135 @@ class PlasticosLoad(models.Model):
             rec.ready_confirmed_by = self.env.user.name
             rec.ready_confirmed_at = fields.Datetime.now()
             rec._transition("ready_confirmed")
+
+    def action_create_freight_quote_request(self):
+        """Create one manual-only RFQ episode after a current SAL miss.
+
+        This persists a recipient/evidence workflow but deliberately performs no
+        outbound delivery until an approved channel and RFQ terms exist.
+        """
+        from odoo.addons.plasticos_logistics.services.freight_context import (
+            FREIGHT_CONTEXT_VERSION,
+            build_freight_context,
+        )
+
+        request_model = self.env["plasticos.freight.quote.request"]
+        for rec in self:
+            if rec.state != "ready_confirmed" or rec.sal_decision not in ("miss", "not_eligible"):
+                raise UserError(
+                    "A current SAL miss or not-eligible decision is required before creating an RFQ episode."
+                )
+            context = build_freight_context(rec)
+            if not context:
+                raise UserError("A complete freight context is required before creating an RFQ episode.")
+            if rec.freight_context_fingerprint != context.fingerprint:
+                raise UserError("Freight context changed. Re-run freight resolution before creating an RFQ episode.")
+            rec.env.cr.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.rfq:{rec.id}"])
+            key = hashlib.sha256(f"rfq:{rec.id}:{context.fingerprint}".encode()).hexdigest()
+            existing = request_model.search([("idempotency_key", "=", key)], limit=1)
+            if existing:
+                continue
+            company = rec.sale_order_id.company_id if rec.sale_order_id else False
+            if not company or not rec.transaction_id:
+                raise UserError("Load company and transaction are required before creating an RFQ episode.")
+            request = request_model.create(
+                {
+                    "company_id": company.id,
+                    "context_fingerprint": context.fingerprint,
+                    "fingerprint_version": FREIGHT_CONTEXT_VERSION,
+                    "idempotency_key": key,
+                    "load_id": rec.id,
+                    "origin_partner_id": rec.pickup_partner_id.id,
+                    "destination_partner_id": rec.delivery_partner_id.id,
+                    "sal_decision": rec.sal_decision,
+                    "sal_miss_reason": rec.sal_miss_reason or "not_eligible",
+                    "transaction_id": rec.transaction_id.id,
+                }
+            )
+            rec.message_post(
+                body=f"Manual-only freight RFQ episode {request.name} created; no outbound carrier send was performed."
+            )
+        return True
+
+    def action_request_freight_estimate(self):
+        """Persist deterministic geometry/evidence and explicit external-route unavailability."""
+        from odoo.addons.plasticos_logistics.services.freight_context import (
+            FREIGHT_CONTEXT_VERSION,
+            build_freight_context,
+        )
+        from odoo.addons.plasticos_logistics.services.freight_geometry import FreightCoordinateError, haversine_miles
+
+        estimate_model = self.env["plasticos.freight.estimate"]
+        for rec in self:
+            context = build_freight_context(rec)
+            if not context:
+                raise UserError("A complete freight context is required before an estimate can be requested.")
+            try:
+                miles = haversine_miles(
+                    rec.pickup_partner_id.partner_latitude,
+                    rec.pickup_partner_id.partner_longitude,
+                    rec.delivery_partner_id.partner_latitude,
+                    rec.delivery_partner_id.partner_longitude,
+                )
+            except FreightCoordinateError as exc:
+                miles = 0.0
+                failure_code = f"coordinate_evidence_gap:{exc}"
+                status = "insufficient_evidence"
+            else:
+                failure_code = "gate_estimate_action_unadmitted"
+                status = "failed"
+            history = self.env[PLASTICOS_LOAD].search_count(
+                [
+                    ("pickup_partner_id", "=", rec.pickup_partner_id.id),
+                    ("delivery_partner_id", "=", rec.delivery_partner_id.id),
+                    ("rate_amount", ">", 0),
+                    ("state", "in", ["picked_up", "delivered", "closed"]),
+                ]
+            )
+            request_fingerprint = hashlib.sha256(
+                f"estimate:{context.fingerprint}:{history}:{miles:.6f}".encode()
+            ).hexdigest()
+            estimate = estimate_model.create(
+                {
+                    "company_id": rec.sale_order_id.company_id.id,
+                    "context_fingerprint": context.fingerprint,
+                    "request_fingerprint": request_fingerprint,
+                    "fingerprint_version": FREIGHT_CONTEXT_VERSION,
+                    "source_model": PLASTICOS_LOAD,
+                    "source_record_id": rec.id,
+                    "origin_partner_id": rec.pickup_partner_id.id,
+                    "destination_partner_id": rec.delivery_partner_id.id,
+                    "expected_weight_lbs": rec.reference_weight,
+                    "haversine_miles": miles,
+                    "evidence_summary": {"exact_lane_executed_count": history, "coordinate_quality": status},
+                    "failure_code": failure_code,
+                    "status": status,
+                }
+            )
+            rec.message_post(
+                body=(
+                    f"Freight estimate {estimate.name} recorded as {status}. "
+                    "No price was fabricated because the external estimate action is not admitted."
+                )
+            )
+        return True
+
+    def action_view_freight_quote_requests(self):
+        action_record = self.env.ref("plasticos_logistics.action_freight_quote_request", raise_if_not_found=False)
+        if not action_record:
+            raise UserError("Freight quote request action is unavailable; upgrade plasticos_logistics.")
+        action = action_record.read()[0]
+        action["domain"] = [("load_id", "in", self.ids)]
+        action["context"] = {"default_load_id": self.id if len(self) == 1 else False}
+        return action
+
+    def action_view_freight_estimates(self):
+        action_record = self.env.ref("plasticos_logistics.action_freight_estimate", raise_if_not_found=False)
+        if not action_record:
+            raise UserError("Freight estimate action is unavailable; upgrade plasticos_logistics.")
+        action = action_record.read()[0]
+        action["domain"] = [("source_model", "=", PLASTICOS_LOAD), ("source_record_id", "in", self.ids)]
+        return action
 
     def action_confirm_rate(self, rate=None):
         """Confirm a manually supplied rate through the canonical rate path."""

@@ -8,4 +8,24 @@
        Upgrade note: xml ids keep the same local name
        (rule_load_dashboard_*), but ir_model_data.module is reassigned to
        plasticos_security_base in migrations/19.0.1.2.9/post-migrate.py. -->
+    <record id="rule_freight_quote_request_company" model="ir.rule">
+        <field name="name">Freight quote request company isolation</field>
+        <field name="model_id" ref="model_plasticos_freight_quote_request"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_freight_quote_recipient_company" model="ir.rule">
+        <field name="name">Freight quote recipient company isolation</field>
+        <field name="model_id" ref="model_plasticos_freight_quote_recipient"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_freight_quote_company" model="ir.rule">
+        <field name="name">Freight quote company isolation</field>
+        <field name="model_id" ref="model_plasticos_freight_quote"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_freight_estimate_company" model="ir.rule">
+        <field name="name">Freight estimate company isolation</field>
+        <field name="model_id" ref="model_plasticos_freight_estimate"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
 </odoo>

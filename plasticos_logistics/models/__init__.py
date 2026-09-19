@@ -1,4 +1,6 @@
 from . import dispatch
+from . import freight_estimate
+from . import freight_quote
 from . import load
 from . import transaction_inherit
 from . import sale_order_inherit
