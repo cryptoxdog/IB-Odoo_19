@@ -2,7 +2,7 @@
 
 **Runbook (SSOT):** [`docs/legacy_erp_sm_export_research.md`](../../docs/legacy_erp_sm_export_research.md)
 
-Golden CSVs + SELECT-only SQL from `LEGACY_ERP_SM_EXPORT` @ `LEGACY_ERP_SQL_HOST` (2026-08-07 live extract). PlasticOS import for this dump is not wired yet.
+Golden CSVs + SELECT-only SQL from `LEGACY_ERP_SM_EXPORT` @ `LEGACY_ERP_SQL_HOST` (2026-08-07 live extract). Import is wired: `plasticos_transaction/legacy_erp/` (source layer) + `plasticos_transaction/models/legacy_erp_import_service.py` (Odoo upsert), driven by `make import-legacy-erp` — see [`docs/legacy_erp_import_mapping.md`](../../docs/legacy_erp_import_mapping.md) and [`docs/runbooks/LEGACY_ERP_IMPORT.md`](../../docs/runbooks/LEGACY_ERP_IMPORT.md).
 
 | Path | Contents |
 |------|----------|
