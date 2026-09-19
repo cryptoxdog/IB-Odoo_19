@@ -10,7 +10,9 @@ from odoo.exceptions import UserError, ValidationError
 
 
 def _company_for_load(load):
-    return load.sale_order_id.company_id if load.sale_order_id and load.sale_order_id.company_id else None
+    return getattr(load, "company_id", False) or (
+        load.sale_order_id.company_id if load.sale_order_id and load.sale_order_id.company_id else None
+    )
 
 
 def _source_fingerprint(values):
@@ -65,6 +67,15 @@ class PlasticosFreightQuoteRequest(models.Model):
         "Only one logical request may exist for a load and freight context.",
     )
 
+    _REQUEST_TRANSITIONS = {
+        "draft": {"sent", "collecting", "cancelled"},
+        "sent": {"collecting", "failed", "cancelled"},
+        "collecting": {"resolved", "failed", "cancelled"},
+        "resolved": set(),
+        "cancelled": set(),
+        "failed": set(),
+    }
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -87,8 +98,11 @@ class PlasticosFreightQuoteRequest(models.Model):
                 raise ValidationError("Freight quote request lane must match the load lane at creation.")
 
     def _ensure_current_context(self):
+        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+
         for rec in self:
-            if rec.load_id.freight_context_fingerprint != rec.context_fingerprint:
+            current_context = build_freight_context(rec.load_id)
+            if not current_context or current_context.fingerprint != rec.context_fingerprint:
                 if rec.state not in ("resolved", "cancelled", "failed"):
                     rec.write(
                         {
@@ -99,8 +113,40 @@ class PlasticosFreightQuoteRequest(models.Model):
                     )
                 raise UserError("Freight context changed; the quote request was cancelled and cannot be used.")
 
+    def write(self, vals):
+        protected = {
+            "company_id",
+            "load_id",
+            "transaction_id",
+            "origin_partner_id",
+            "destination_partner_id",
+            "context_fingerprint",
+            "fingerprint_version",
+            "idempotency_key",
+            "sal_decision",
+            "sal_miss_reason",
+        }
+        if protected.intersection(vals):
+            raise UserError("Freight quote request identity is immutable after creation.")
+        if "state" in vals:
+            for rec in self:
+                if vals["state"] != rec.state and vals["state"] not in self._REQUEST_TRANSITIONS[rec.state]:
+                    raise UserError("Freight quote request transition is not permitted.")
+        return super().write(vals)
+
+    def unlink(self):
+        raise UserError("Freight quote requests are audit evidence and cannot be deleted.")
+
     def action_select_quote(self):
         for rec in self:
+            rec.env.cr.execute(
+                "SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.rfq-select:{rec.id}"]
+            )
+            rec.invalidate_recordset()
+            if rec.state not in ("draft", "sent", "collecting"):
+                raise UserError("Only an active freight quote request can be resolved.")
+            if rec.state == "draft":
+                rec.write({"state": "collecting"})
             rec._ensure_current_context()
             quote = rec.quote_ids.filtered(lambda item: item.selected)
             if len(quote) != 1:
@@ -115,6 +161,7 @@ class PlasticosFreightQuoteRequest(models.Model):
                 context_fingerprint=rec.context_fingerprint,
             )
             rec.write({"selected_quote_id": selected.id, "resolved_at": fields.Datetime.now(), "state": "resolved"})
+            rec.load_id.write({"selected_freight_quote_id": selected.id})
             rec.message_post(
                 body=f"Freight quote {selected.name} selected and confirmed through the canonical load rate path."
             )
@@ -166,6 +213,28 @@ class PlasticosFreightQuoteRecipient(models.Model):
             if rec.request_id.company_id != rec.company_id:
                 raise ValidationError("Recipient company must match its freight quote request.")
 
+    @api.constrains("state", "attempt_count", "sent_at", "response_at", "delivery_error_class")
+    def _check_recipient_state_evidence(self):
+        for rec in self:
+            if rec.state in ("sent", "responded") and (rec.attempt_count < 1 or not rec.sent_at):
+                raise ValidationError(
+                    "Sent or responded recipients require a successful delivery attempt and sent time."
+                )
+            if rec.state == "responded" and not rec.response_at:
+                raise ValidationError("Responded recipients require a response timestamp.")
+            if rec.state == "delivery_failed" and (rec.attempt_count < 1 or not rec.delivery_error_class):
+                raise ValidationError("Delivery failures require an attempt and error classification.")
+
+    def write(self, vals):
+        if "destination_snapshot" in vals:
+            for rec in self:
+                if rec.sent_at:
+                    raise UserError("Recipient destination evidence cannot change after a send attempt.")
+        return super().write(vals)
+
+    def unlink(self):
+        raise UserError("Freight quote recipients are audit evidence and cannot be deleted.")
+
 
 class PlasticosFreightQuote(models.Model):
     _name = "plasticos.freight.quote"
@@ -213,17 +282,31 @@ class PlasticosFreightQuote(models.Model):
         for vals in vals_list:
             if vals.get("name", "New") == "New":
                 vals["name"] = self.env["ir.sequence"].next_by_code("plasticos.freight.quote") or "New"
+            recipient = self.env["plasticos.freight.quote.recipient"].browse(vals.get("recipient_id")).exists()
+            if recipient and not vals.get("carrier_id"):
+                vals["carrier_id"] = recipient.carrier_id.id
             if not vals.get("source_fingerprint"):
                 vals["source_fingerprint"] = _source_fingerprint(
                     {
                         "carrier_id": vals.get("carrier_id"),
                         "message_id": vals.get("source_message_id") or "",
                         "request_id": vals.get("request_id"),
-                        "responded_at": str(vals.get("responded_at") or ""),
                         "source_channel": vals.get("source_channel", "manual"),
                     }
                 )
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        for rec in records:
+            if rec.recipient_id.state not in ("cancelled", "responded"):
+                rec.recipient_id.write(
+                    {
+                        "attempt_count": max(1, rec.recipient_id.attempt_count),
+                        "last_attempt_at": rec.responded_at,
+                        "response_at": rec.responded_at,
+                        "sent_at": rec.recipient_id.sent_at or rec.responded_at,
+                        "state": "responded",
+                    }
+                )
+        return records
 
     @api.constrains("company_id", "request_id", "recipient_id", "carrier_id")
     def _check_quote_relationships(self):
@@ -246,6 +329,10 @@ class PlasticosFreightQuote(models.Model):
 
     def write(self, vals):
         protected = {
+            "company_id",
+            "request_id",
+            "recipient_id",
+            "carrier_id",
             "response_kind",
             "responded_at",
             "source_channel",
@@ -254,10 +341,15 @@ class PlasticosFreightQuote(models.Model):
             "quoted_amount",
             "currency_id",
             "conditions",
+            "valid_until",
+            "supersedes_quote_id",
         }
         if protected.intersection(vals):
             raise UserError("Carrier response evidence is immutable; create a superseding quote instead.")
         return super().write(vals)
+
+    def unlink(self):
+        raise UserError("Carrier response evidence cannot be deleted.")
 
     def _check_selectable(self):
         for rec in self:
@@ -273,6 +365,12 @@ class PlasticosFreightQuote(models.Model):
 
     def action_select(self):
         for rec in self:
+            rec.env.cr.execute(
+                "SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.rfq-select:{rec.request_id.id}"]
+            )
+            rec.invalidate_recordset()
+            if rec.request_id.state in ("resolved", "cancelled", "failed"):
+                raise UserError("Quotes cannot be changed after the request is terminal.")
             rec._check_selectable()
             rec.request_id._ensure_current_context()
             (rec.request_id.quote_ids - rec).filtered("selected").write({"selected": False})

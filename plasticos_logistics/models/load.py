@@ -72,6 +72,11 @@ class PlasticosLoad(models.Model):
         string="SAL Miss Reason",
         readonly=True,
     )
+    sal_execution_failed = fields.Boolean(readonly=True, default=False)
+    sal_execution_failure_reason = fields.Text(readonly=True)
+    selected_freight_quote_id = fields.Many2one(
+        "plasticos.freight.quote", string="Selected Freight Quote", readonly=True, ondelete="restrict"
+    )
     freight_quote_request_ids = fields.One2many(
         "plasticos.freight.quote.request", "load_id", string="Freight Quote Requests"
     )
@@ -421,12 +426,19 @@ class PlasticosLoad(models.Model):
                     rec.delivery_partner_id.partner_longitude,
                 )
             except FreightCoordinateError as exc:
-                miles = 0.0
+                miles = None
                 failure_code = f"coordinate_evidence_gap:{exc}"
                 status = "insufficient_evidence"
+                geometry_status = "missing_or_invalid"
             else:
                 failure_code = "gate_estimate_action_unadmitted"
                 status = "failed"
+                geometry_status = "available"
+            company = getattr(rec, "company_id", False) or (
+                rec.sale_order_id.company_id if rec.sale_order_id else False
+            )
+            if not company:
+                raise UserError("Load company is required before an estimate can be recorded.")
             history = self.env[PLASTICOS_LOAD].search_count(
                 [
                     ("pickup_partner_id", "=", rec.pickup_partner_id.id),
@@ -436,11 +448,11 @@ class PlasticosLoad(models.Model):
                 ]
             )
             request_fingerprint = hashlib.sha256(
-                f"estimate:{context.fingerprint}:{history}:{miles:.6f}".encode()
+                f"estimate:{context.fingerprint}:{history}:{miles if miles is not None else 'unavailable'}".encode()
             ).hexdigest()
             estimate = estimate_model.create(
                 {
-                    "company_id": rec.sale_order_id.company_id.id,
+                    "company_id": company.id,
                     "context_fingerprint": context.fingerprint,
                     "request_fingerprint": request_fingerprint,
                     "fingerprint_version": FREIGHT_CONTEXT_VERSION,
@@ -449,7 +461,8 @@ class PlasticosLoad(models.Model):
                     "origin_partner_id": rec.pickup_partner_id.id,
                     "destination_partner_id": rec.delivery_partner_id.id,
                     "expected_weight_lbs": rec.reference_weight,
-                    "haversine_miles": miles,
+                    "haversine_miles": miles if miles is not None else False,
+                    "geometry_status": geometry_status,
                     "evidence_summary": {"exact_lane_executed_count": history, "coordinate_quality": status},
                     "failure_code": failure_code,
                     "status": status,
@@ -482,24 +495,19 @@ class PlasticosLoad(models.Model):
 
     def action_confirm_rate(self, rate=None):
         """Confirm a manually supplied rate through the canonical rate path."""
+        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+
         for rec in self:
+            context = build_freight_context(rec)
+            if not context:
+                raise UserError("A complete freight context is required before confirming a manual rate.")
             rec._confirm_freight_rate(
                 rate=rate if rate is not None else rec.rate_amount,
                 carrier=rec.carrier_id,
-                currency=rec.rate_currency_id or rec.env.company.currency_id,
+                currency=rec.rate_currency_id,
                 resolution_method="manual",
+                context_fingerprint=context.fingerprint,
             )
-            if rec.sale_order_id and rec.carrier_id:
-                ship = rec.sale_order_id.partner_shipping_id.id
-                inv = rec.sale_order_id.partner_invoice_id.id
-                if ship and inv:
-                    rec._store_rate_memory()
-                else:
-                    _logger.warning(
-                        "Load %s: rate memory skipped — SO %s has no shipping/invoice partner.",
-                        rec.id,
-                        rec.sale_order_id.name,
-                    )
 
     def action_resolve_freight(self):
         """Resolve Same As Last deterministically; never creates an RFQ on a miss.
@@ -508,12 +516,23 @@ class PlasticosLoad(models.Model):
         policy and delivery contract are accepted. A miss is persisted as a
         useful operator-visible outcome rather than silently falling back.
         """
-        from odoo.addons.plasticos_logistics.services.freight_context import FREIGHT_CONTEXT_VERSION
+        from odoo.addons.plasticos_logistics.services.freight_context import (
+            FREIGHT_CONTEXT_VERSION,
+            build_freight_context,
+        )
         from odoo.addons.plasticos_logistics.services.sal_resolver import resolve_sal
 
         for rec in self:
             rec.env.cr.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.sal:{rec.id}"])
             rec.invalidate_recordset()
+            current_context = build_freight_context(rec)
+            if (
+                rec.state == "rate_confirmed"
+                and rec.rate_resolution_method == "sal"
+                and current_context
+                and rec.freight_context_fingerprint == current_context.fingerprint
+            ):
+                continue
             decision = resolve_sal(rec)
             values = {
                 "freight_context_fingerprint": decision.context_fingerprint,
@@ -552,19 +571,41 @@ class PlasticosLoad(models.Model):
         context_fingerprint=None,
         sal_source_load=None,
     ):
-        """Single state-machine convergence point for manual and SAL rates."""
+        """Single serialized state-machine convergence point for all freight rates."""
+        from odoo.addons.plasticos_logistics.services.freight_context import (
+            FREIGHT_CONTEXT_VERSION,
+            build_freight_context,
+        )
+
         for rec in self:
+            rec.env.cr.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.rate:{rec.id}"])
+            rec.invalidate_recordset()
             if rec.state != "ready_confirmed":
                 raise UserError("Freight rate confirmation requires a Ready Confirmed load.")
-            if resolution_method == "sal" and (
-                not carrier or not currency or not sal_source_load or not context_fingerprint
-            ):
-                raise ValidationError("SAL confirmation requires carrier, currency, source load, and freight context.")
+            if resolution_method not in {"manual", "sal", "live_quote"}:
+                raise ValidationError("Freight resolution method is not supported.")
+            if not rate or rate <= 0:
+                raise ValidationError("Confirmed freight rate must be positive.")
+            if not carrier or not currency:
+                raise ValidationError("Confirmed freight requires an eligible carrier and explicit currency.")
+            if not carrier.active or getattr(carrier, "entity_status", None) == "blocked":
+                raise ValidationError("Confirmed freight carrier is inactive or blocked.")
+            company = getattr(rec, "company_id", False) or (
+                rec.sale_order_id.company_id if rec.sale_order_id else False
+            )
+            carrier_company = getattr(carrier, "company_id", False)
+            if carrier_company and company and carrier_company != company:
+                raise ValidationError("Confirmed freight carrier belongs to a different company.")
+            current_context = build_freight_context(rec)
+            if not current_context or not context_fingerprint or current_context.fingerprint != context_fingerprint:
+                raise ValidationError("Freight context changed or is incomplete; rate confirmation is blocked.")
+            if resolution_method == "sal" and not sal_source_load:
+                raise ValidationError("SAL confirmation requires a qualifying source load.")
             values = {
                 "carrier_id": carrier.id if carrier else False,
-                "freight_context_fingerprint": context_fingerprint or False,
-                "freight_context_version": "freight_context_v2" if context_fingerprint else False,
-                "rate_amount": rate or 0.0,
+                "freight_context_fingerprint": context_fingerprint,
+                "freight_context_version": FREIGHT_CONTEXT_VERSION,
+                "rate_amount": rate,
                 "rate_auto_reused": resolution_method == "sal",
                 "rate_confirmed_at": fields.Datetime.now(),
                 "rate_currency_id": currency.id if currency else False,
@@ -601,16 +642,16 @@ class PlasticosLoad(models.Model):
             rec._transition("dispatched")
 
     def _ensure_sal_context_current(self):
-        """Fail closed when a confirmed SAL lane has materially changed."""
+        """Fail closed when any confirmed freight lane has materially changed."""
         from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
 
         for rec in self:
-            if rec.rate_resolution_method != "sal" or not rec.freight_context_fingerprint:
+            if not rec.rate_resolution_method or not rec.freight_context_fingerprint:
                 continue
             current_context = build_freight_context(rec)
             if not current_context or current_context.fingerprint != rec.freight_context_fingerprint:
                 raise UserError(
-                    "Freight context changed after SAL confirmation. Scheduling and dispatch are blocked until an "
+                    "Freight context changed after rate confirmation. Scheduling and dispatch are blocked until an "
                     "approved logistics recovery action resolves the exception."
                 )
 

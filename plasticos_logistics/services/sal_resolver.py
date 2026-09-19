@@ -56,8 +56,6 @@ def resolve_sal(load) -> SalDecision:
             ("pickup_partner_id", "=", load.pickup_partner_id.id),
             ("delivery_partner_id", "=", load.delivery_partner_id.id),
             ("state", "in", QUALIFYING_STATES),
-            ("carrier_id", "!=", False),
-            ("rate_amount", ">", 0),
         ],
         order="delivered_at desc, dispatched_at desc, id desc",
     )
@@ -68,7 +66,7 @@ def resolve_sal(load) -> SalDecision:
     for candidate in candidates:
         if _company_for(candidate) != company:
             continue
-        if not candidate.transaction_id or candidate.transaction_id.intake_id != context.repeat_stream_id:
+        if not candidate.transaction_id or candidate.transaction_id.intake_id.id != context.repeat_stream_id:
             continue
         candidate_context = build_freight_context(candidate)
         if not candidate_context or candidate_context.fingerprint != context.fingerprint:
@@ -80,7 +78,10 @@ def resolve_sal(load) -> SalDecision:
         if moved_at < cutoff:
             saw_old_movement = True
             continue
-        if not candidate.rate_amount or not candidate.rate_currency_id:
+        if not candidate.carrier_id:
+            saw_inactive_carrier = True
+            continue
+        if not candidate.rate_amount or candidate.rate_amount <= 0 or not candidate.rate_currency_id:
             saw_missing_rate = True
             continue
         if not candidate.carrier_id.active:

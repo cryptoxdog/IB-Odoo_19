@@ -38,6 +38,8 @@ def _location_snapshot(partner) -> tuple[str, str]:
         "address": partner.contact_address_complete or "",
         "city": partner.city or "",
         "country_id": partner.country_id.id or None,
+        "latitude": getattr(partner, "partner_latitude", None),
+        "longitude": getattr(partner, "partner_longitude", None),
         "partner_id": partner.id,
         "state_id": partner.state_id.id or None,
         "street": partner.street or "",

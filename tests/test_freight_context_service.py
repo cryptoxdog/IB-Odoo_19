@@ -15,7 +15,7 @@ sys.modules[SPEC.name] = freight_context
 SPEC.loader.exec_module(freight_context)
 
 
-def _partner(identifier: int, street: str):
+def _partner(identifier: int, street: str, latitude=29.7604, longitude=-95.3698):
     return SimpleNamespace(
         id=identifier,
         contact_address_complete=street,
@@ -25,6 +25,8 @@ def _partner(identifier: int, street: str):
         street=street,
         street2=False,
         zip="77001",
+        partner_latitude=latitude,
+        partner_longitude=longitude,
     )
 
 
@@ -63,6 +65,16 @@ def test_context_changes_when_weight_changes():
     assert (
         freight_context.build_freight_context(_load()).fingerprint
         != freight_context.build_freight_context(_load(weight=41000.0)).fingerprint
+    )
+
+
+def test_context_changes_when_physical_geocode_changes():
+    baseline = _load()
+    corrected = _load()
+    corrected.pickup_partner_id.partner_latitude = 29.7605
+    assert (
+        freight_context.build_freight_context(baseline).fingerprint
+        != freight_context.build_freight_context(corrected).fingerprint
     )
 
 

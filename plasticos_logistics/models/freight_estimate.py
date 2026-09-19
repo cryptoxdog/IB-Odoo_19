@@ -24,6 +24,12 @@ class PlasticosFreightEstimate(models.Model):
     fingerprint_version = fields.Char(required=True, readonly=True)
     expected_weight_lbs = fields.Float()
     haversine_miles = fields.Float(readonly=True)
+    geometry_status = fields.Selection(
+        [("available", "Available"), ("missing_or_invalid", "Missing or Invalid")],
+        required=True,
+        default="missing_or_invalid",
+        readonly=True,
+    )
     estimate_floor = fields.Monetary(currency_field="currency_id", readonly=True)
     estimate_target = fields.Monetary(currency_field="currency_id", readonly=True)
     estimate_ceiling = fields.Monetary(currency_field="currency_id", readonly=True)
@@ -104,8 +110,14 @@ class PlasticosFreightEstimate(models.Model):
         immutable = {
             "context_fingerprint",
             "request_fingerprint",
+            "fingerprint_version",
+            "source_model",
+            "source_record_id",
+            "origin_partner_id",
+            "destination_partner_id",
             "expected_weight_lbs",
             "haversine_miles",
+            "geometry_status",
             "estimate_floor",
             "estimate_target",
             "estimate_ceiling",
@@ -117,6 +129,16 @@ class PlasticosFreightEstimate(models.Model):
             "policy_version",
             "evidence_summary",
             "reasoning_summary",
+            "gate_packet_id",
+            "gate_correlation_id",
+            "gate_operation_id",
+            "logical_request_id",
+            "attempt",
+            "status",
+            "failure_code",
+            "generated_at",
+            "valid_until",
+            "supersedes_estimate_id",
         }
         if immutable.intersection(vals):
             raise UserError("Freight estimates are immutable observations; create a superseding estimate instead.")
