@@ -54,6 +54,10 @@
         <field name="key">plasticos.gate.auto_writeback</field>
         <field name="value">0</field>
     </record>
+    <record id="param_gate_auto_writeback_operator_approved" model="ir.config_parameter">
+        <field name="key">plasticos.gate.auto_writeback_operator_approved</field>
+        <field name="value">0</field>
+    </record>
 
     <record id="param_gate_dual_write_enabled" model="ir.config_parameter">
         <field name="key">plasticos.gate.dual_write_enabled</field>

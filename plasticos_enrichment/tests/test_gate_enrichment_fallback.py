@@ -71,6 +71,13 @@ def _set_auto_writeback(test, value):
     test.addCleanup(icp.set_param, "plasticos.gate.auto_writeback", previous)
 
 
+def _set_auto_writeback_operator_approved(test, value):
+    icp = test.env["ir.config_parameter"].sudo()
+    previous = icp.get_param("plasticos.gate.auto_writeback_operator_approved") or "0"
+    icp.set_param("plasticos.gate.auto_writeback_operator_approved", value)
+    test.addCleanup(icp.set_param, "plasticos.gate.auto_writeback_operator_approved", previous)
+
+
 @tagged("post_install", "-at_install", "plasticos", "enrichment", "gate")
 class TestGateEnrichmentFallback(PlasticosTestCase):
     """Verify Gate converge live writeback and fail-closed degrade paths."""
@@ -89,8 +96,9 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
         return self.env["plasticos.enrichment.run"].create({"partner_id": partner.id})
 
     def test_gate_converge_live_writeback_applies_fields(self):
-        """auto_writeback=1 (opt-in; the seed default is 0): allowlisted fields are written live."""
+        """auto_writeback=1 AND operator_approved=1 (dual-switch opt-in; seed defaults 0): live writes."""
         _set_auto_writeback(self, "1")
+        _set_auto_writeback_operator_approved(self, "1")
         partner = self._new_partner()
         run = self._new_run(partner)
         self.assertFalse(partner.website)
@@ -228,3 +236,65 @@ class TestGateEnrichmentFallback(PlasticosTestCase):
                 run.action_execute()
         run.invalidate_recordset()
         self.assertEqual(run.state, "failed")
+
+    def test_gate_converge_review_only_when_operator_approval_missing(self):
+        """auto_writeback=1 alone is not enough: missing operator approval stays review-only."""
+        _set_auto_writeback(self, "1")
+        _set_auto_writeback_operator_approved(self, "0")
+        partner = self._new_partner()
+        run = self._new_run(partner)
+        with (
+            patch(_CLASSIFY, return_value=_available_verdict()),
+            patch(_ENABLED, return_value=True),
+            patch(_SEND, return_value=_fake_gate_result(final_fields={"website": "https://enriched.example"})),
+        ):
+            run.action_execute()
+        self.assertEqual(run.state, "review")
+        self.assertFalse(partner.website)
+
+    def _review_gate_run(self, partner, proposed):
+        run = self._new_run(partner)
+        run.write(
+            {
+                "engine_used": "gate",
+                "state": "review",
+                "gate_proposal": {
+                    "final_fields": proposed,
+                    "proposed_partner_fields": proposed,
+                },
+                "gate_packet_id": "pkt-manual-1",
+                "gate_correlation_id": "corr-manual-1",
+            }
+        )
+        return run
+
+    def test_gate_review_run_manual_inject_applies_allowlisted_fields(self):
+        """Review-to-Inject: the Inject action applies the stored allowlisted proposal only."""
+        _set_auto_writeback(self, "0")
+        partner = self._new_partner()
+        run = self._review_gate_run(
+            partner,
+            {"website": "https://enriched.example", "comment": "should never land"},
+        )
+        run.action_inject()
+        self.assertEqual(run.state, "injected")
+        self.assertEqual(run.engine_used, "gate")
+        self.assertEqual(run.fields_written, 1)
+        self.assertEqual(partner.website, "https://enriched.example")
+        self.assertFalse(partner.comment)  # non-allowlisted: write boundary refused it
+
+    def test_gate_review_run_inject_outside_review_raises(self):
+        """A gate run in a non-review state can never be manually injected."""
+        partner = self._new_partner()
+        run = self._new_run(partner)
+        run.write({"engine_used": "gate", "state": "validated"})
+        with self.assertRaises(UserError):
+            run.action_inject()
+
+    def test_gate_review_run_inject_empty_proposal_raises(self):
+        """A gate review run with no writable proposal fails closed on Inject."""
+        partner = self._new_partner()
+        run = self._new_run(partner)
+        run.write({"engine_used": "gate", "state": "review", "gate_proposal": {}})
+        with self.assertRaises(UserError):
+            run.action_inject()
