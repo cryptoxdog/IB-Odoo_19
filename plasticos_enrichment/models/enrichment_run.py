@@ -263,14 +263,23 @@ class EnrichmentRun(models.Model):
     def _apply_converge_writeback(self, proposed, audit, confidence=None):
         """Backfill allowlisted partner fields (merge-not-overwrite) with provenance.
 
+        The write boundary re-enforces the allowlist: any proposed field not in
+        ``PARTNER_WRITEBACK_FIELD_ALLOWLIST`` (e.g. ``comment``) is skipped
+        before the merge-not-overwrite checks, so a stored proposal can never
+        write a non-allowlisted partner field.
+
         ``confidence`` is EIE's reported aggregate confidence for the result the
         proposal came from. When the caller has none (an approval of a stored
         proposal), it is read back from ``gate_proposal.eie_provenance``; only
         if neither exists does the provenance row fall back to 1.0.
         """
+        from odoo.addons.plasticos_gate.services.gate_allowlists import PARTNER_WRITEBACK_FIELD_ALLOWLIST
+
         partner = self.partner_id
         to_write = {}
         for field_name, value in (proposed or {}).items():
+            if field_name not in PARTNER_WRITEBACK_FIELD_ALLOWLIST:
+                continue
             if field_name not in partner._fields:
                 continue
             if partner[field_name]:  # merge-not-overwrite: never clobber existing values
@@ -448,21 +457,69 @@ class EnrichmentRun(models.Model):
         )
         return self.action_execute()
 
+    def _inject_gate_proposal(self):
+        """Manually approve a stored Gate converge proposal from review.
+
+        Requires review state and a non-empty revalidated proposal; writes
+        allowlisted partner fields via _apply_converge_writeback and returns
+        True. A Gate run never falls through to local material-profile
+        extraction from ``extraction_ids``.
+        """
+        self.ensure_one()
+        if self.state != "review":
+            raise UserError(_("Gate runs can only be manually injected from review (current state: %s).") % self.state)
+        proposal = self.gate_proposal if isinstance(self.gate_proposal, dict) else {}
+        proposed = proposal.get("proposed_partner_fields") or {}
+        # Revalidate the stored proposal: keep only named, scalar, non-empty
+        # values before the write boundary applies the allowlist.
+        proposed = {
+            k: v for k, v in proposed.items() if k and isinstance(v, (str, int, float)) and v not in (None, False, "")
+        }
+        if not proposed:
+            raise UserError(_("Gate proposal has no writable partner fields to inject."))
+        audit = {
+            "gate_packet_id": self.gate_packet_id,
+            "gate_correlation_id": self.gate_correlation_id,
+        }
+        gate_written = self._apply_converge_writeback(proposed, audit)
+        if not gate_written:
+            raise UserError(_("Gate proposal has no writable partner fields after allowlist filtering."))
+        self.write(
+            {
+                "state": "injected",
+                "injected_at": fields.Datetime.now(),
+                "fields_written": gate_written,
+                "validation_issues": False,
+            }
+        )
+        self.message_post(
+            body=(
+                f"Gate converge proposal approved: {gate_written} partner "
+                f"field(s) applied (packet {self.gate_packet_id})."
+            ),
+            subtype_xmlid=SUBTYPE_NOTE,
+        )
+        return True
+
     def action_inject(self):
         """Write validated enrichment into plasticos.material.profile.
 
         Merge-not-overwrite: existing field values are never
         clobbered. Only empty/falsy fields are populated.
 
-        Gate review-only runs store ``gate_proposal.proposed_partner_fields``.
-        Approving those applies the allowlisted partner writeback before any
-        material-profile inject from ``extraction_ids``.
+        Gate review-only runs store ``gate_proposal.proposed_partner_fields``
+        and inject through the dedicated Gate branch: approve the stored
+        proposal from review, never fall through to local extraction.
         """
         self.ensure_one()
         if self.state not in ("validated", "review"):
             raise UserError(
                 "Run must be validated or manually approved from review.",
             )
+
+        # Gate review runs inject only their stored proposal.
+        if self.engine_used == "gate":
+            return self._inject_gate_proposal()
 
         gate_written = 0
         proposal = self.gate_proposal if isinstance(self.gate_proposal, dict) else {}
