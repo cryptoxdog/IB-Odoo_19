@@ -92,7 +92,7 @@ def _current_load(searcher: _LoadSearch, *, rate_amount=0.0, carrier=None):
     )
 
 
-def test_search_qualifies_intake_and_cutoff_without_a_row_cap():
+def test_search_qualifies_intake_without_a_row_cap_or_sql_cutoff():
     searcher = _LoadSearch()
     load = _current_load(searcher)
     decision = sal_resolver.resolve_sal(load)
@@ -101,8 +101,7 @@ def test_search_qualifies_intake_and_cutoff_without_a_row_cap():
     assert searcher.last_kwargs.get("limit") is None
     domain = searcher.last_domain
     assert ("transaction_id.intake_id", "=", 73) in domain
-    assert any(term[0] == "delivered_at" and term[1] == ">=" for term in domain if isinstance(term, tuple))
-    assert any(term[0] == "dispatched_at" and term[1] == ">=" for term in domain if isinstance(term, tuple))
+    assert not any(term[0] in {"delivered_at", "dispatched_at"} for term in domain if isinstance(term, tuple))
 
 
 def test_candidate_uses_persisted_fingerprint_not_live_partner_rebuild():
@@ -153,3 +152,28 @@ def test_candidate_without_booking_fingerprint_is_not_rebuilt_from_live_address(
     decision = sal_resolver.resolve_sal(load)
     assert decision.decision == "miss"
     assert decision.reason == "no_prior_movement"
+
+
+def test_expired_matching_movement_keeps_prior_movement_too_old():
+    searcher = _LoadSearch()
+    load = _current_load(searcher)
+    current = freight_context.build_freight_context(load)
+    candidate = SimpleNamespace(
+        id=4,
+        state="delivered",
+        company_id=load.company_id,
+        sale_order_id=None,
+        transaction_id=SimpleNamespace(intake_id=SimpleNamespace(id=73)),
+        pickup_partner_id=load.pickup_partner_id,
+        delivery_partner_id=load.delivery_partner_id,
+        freight_context_fingerprint=current.fingerprint,
+        delivered_at=datetime.now(UTC) - timedelta(days=45),
+        dispatched_at=None,
+        carrier_id=_partner(50),
+        rate_amount=1850.0,
+        rate_currency_id=SimpleNamespace(id=1),
+    )
+    searcher.results = [candidate]
+    decision = sal_resolver.resolve_sal(load)
+    assert decision.decision == "miss"
+    assert decision.reason == "prior_movement_too_old"

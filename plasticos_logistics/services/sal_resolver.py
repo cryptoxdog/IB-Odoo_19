@@ -52,9 +52,9 @@ def resolve_sal(load) -> SalDecision:
         return SalDecision("not_eligible", "missing_lane_identity")
 
     cutoff = fields.Datetime.now() - SAL_WINDOW
-    # Qualify in the database: same company, same partners, same intake, and a
-    # movement timestamp inside the 30-day window. Do not cap the scan — a
-    # busy lane must not hide an eligible same-intake movement.
+    # Qualify lane/intake in SQL without a row cap. Apply the 30-day cutoff in
+    # the loop so expired matching movements still produce prior_movement_too_old
+    # instead of a false no_prior_movement.
     candidates = load.env["plasticos.load"].search(
         [
             ("id", "!=", load.id),
@@ -63,13 +63,6 @@ def resolve_sal(load) -> SalDecision:
             ("delivery_partner_id", "=", load.delivery_partner_id.id),
             ("transaction_id.intake_id", "=", context.repeat_stream_id),
             ("state", "in", QUALIFYING_STATES),
-            "|",
-            "&",
-            ("state", "in", ("delivered", "closed")),
-            ("delivered_at", ">=", cutoff),
-            "&",
-            ("state", "=", "picked_up"),
-            ("dispatched_at", ">=", cutoff),
         ],
         order="delivered_at desc, dispatched_at desc, id desc",
     )
