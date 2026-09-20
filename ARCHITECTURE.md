@@ -77,7 +77,7 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 | 21 | `plasticos_documents` | 4 | Production | Document validation matrices, compliance tracking |
 | 22 | `plasticos_documents_native` | 4 | Beta | Bridge to Odoo Enterprise Documents with AI auto-sort |
 | 23 | `plasticos_transaction` | 5 | Production | Transaction spine + commission engine |
-| 24 | `plasticos_logistics` | 5 | Production | Load management, BOL generation, dispatch |
+| 24 | `plasticos_logistics` | 5 | Production | Load management, BOL generation, dispatch, Odoo-local freight evidence (SAL, manual-only RFQ, estimates, calibration) |
 | 25 | `plasticos_claims` | 5 | Production | QC cases, claims, chargebacks, compliance workflows |
 | 26 | `plasticos_website` | UI | Disabled | Website extensions (`installable: False`) |
 | 27 | `plasticos_odoo_standard_apps` | Meta | Production | Auto-install bundle of standard Odoo CE apps |
@@ -186,10 +186,15 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 ### Layer 5: Transaction Spine
 
 **plasticos_logistics**
-- **Depends**: `sale_management`, `stock`, `mail`
-- **Provides**: Load management, BOL generation, dispatch
+- **Depends**: `plasticos_base`, `plasticos_transaction`, `sale_management`, `stock`, `mail`
+- **Provides**: Load management, BOL generation, dispatch, and Odoo-local deterministic freight evidence — Same As Last (SAL) resolution, manual-only RFQ episodes, nonbinding local estimates, recommendation-only quote ranking, append-only calibration. No Gate/CEG/EIE, carrier, or outbound delivery call is made (see `plasticos_logistics/README.md`; external intelligence authority is unchanged per ADR-003)
 - **Models**:
   - `plasticos.load`
+  - `plasticos.dispatch`
+  - `plasticos.load.dashboard`
+  - `plasticos.freight.quote.request`, `plasticos.freight.quote.recipient`, `plasticos.freight.quote`
+  - `plasticos.freight.estimate`, `plasticos.freight.event`, `plasticos.freight.calibration.observation`
+  - `plasticos.rate.memory` (frozen legacy cache), `plasticos.rate.memory.reconciliation`
 - **Reports**:
   - BOL Pickup
   - BOL Delivery
