@@ -1,7 +1,7 @@
 {
     "name": "Plasticos Partner Import",
-    "version": "19.0.2.7.4",
-    "summary": "Deterministic partner import with wizard UI; VS CRM CSV unlinked (use plasticos_crm_sync API)",
+    "version": "19.0.2.8.0",
+    "summary": "Deterministic partner import with wizard UI; manual VS CRM CSV import removed (use plasticos_crm_sync API)",
     "author": "Igor Beylin",
     "license": "LGPL-3",
     "depends": [
@@ -20,7 +20,6 @@
         "security/ir.model.access.csv",
         "views/partner_import_wizard_views.xml",
         "views/partner_bulk_update_wizard_views.xml",
-        "views/crm_lead_import_wizard_views.xml",
         "views/res_config_settings_views.xml",
     ],
     "pre_init_hook": "pre_init_hook",

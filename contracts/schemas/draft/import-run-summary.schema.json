@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:l9:plasticos:contracts:payload:import-run-summary:1.0.0-draft",
+  "title": "PlasticOS Import Run Summary",
+  "description": "Shared machine-readable execution summary for deterministic import workflows (legacy_erp, VanillaSoft CRM). Odoo remains authority; this contract only reports.",
+  "x-publication-status": "draft-unpublished",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source",
+    "start_time",
+    "completion_time",
+    "records_seen",
+    "records_valid",
+    "records_rejected",
+    "records_created",
+    "records_updated",
+    "records_unchanged",
+    "duplicates",
+    "errors",
+    "final_status"
+  ],
+  "properties": {
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Canonical source name, e.g. legacy_erp or vanillasoft."
+    },
+    "start_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC import start."
+    },
+    "completion_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC import completion (or abort)."
+    },
+    "records_seen": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "records_valid": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "records_rejected": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "records_created": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "records_updated": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "records_unchanged": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duplicates": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "errors": {
+      "type": "array",
+      "description": "Error entries; must never contain secrets or credential material. Cap at 1000 entries.",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["record_ref", "message"],
+        "properties": {
+          "record_ref": {
+            "type": "string",
+            "description": "Source-native record identifier (never a secret)."
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      }
+    },
+    "final_status": {
+      "type": "string",
+      "enum": ["success", "partial", "failed"],
+      "description": "success = complete; partial = some records failed explicitly; failed = material error, nonzero exit."
+    }
+  }
+}

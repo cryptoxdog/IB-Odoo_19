@@ -41,11 +41,14 @@ from plasticos_crm_sync.adapters.base import (  # noqa: E402
     CanonicalTableRow,
     CrmAdapterError,
 )
+from plasticos_crm_sync.services.import_summary import build_run_summary  # noqa: E402
 from plasticos_crm_sync.services.orchestrator import (  # noqa: E402
     CONTACT_LOOKBACK_MAX_DAYS,
     CrmFullImportArgumentError,
     SyncOrchestrator,
+    _new_outcomes,
 )
+from scripts.validate_import_summary import validate_summary  # noqa: E402
 
 NOW = datetime.now(UTC)
 # Comfortably outside the Contacts lookback, so the clamp the full import must
@@ -698,3 +701,72 @@ def test_calls_attach_to_a_sync_archived_lead_instead_of_buffering_as_orphans():
     assert len(events) == 1
     assert events[0].lead_id.id == lead.id
     assert env["plasticos.crm.sync.orphan"].search([("external_id", "=", "d5-call")]) == []
+
+
+# ── orphan-call accounting reconciles with the shared summary ────────────────
+#
+# A call whose contact is never imported is buffered as a durable orphan. That
+# row must land in exactly one accounting outcome (deferred), the orphan record
+# must survive, and the shared import-run summary must still satisfy
+# seen == created + updated + unchanged + rejected without the buffered call
+# ever being reported as a successful write.
+
+
+def test_orphaned_calls_are_accounted_once_and_the_summary_reconciles():
+    adapter = _Adapter(
+        contact_passes=[_one_page([_lead("c1", modified=ANCIENT_Z)], ANCIENT_Z), []],
+        # k1 attaches to c1; k2 and k3 belong to a contact that is never imported.
+        call_passes=[[[_call("k1", "c1"), _call("k2", "ghost"), _call("k3", "ghost")]], [[]]],
+    )
+    orch, connection, env = _harness(adapter)
+    run = env["plasticos.crm.sync.run"].browse(
+        orch.run_full_import(connection, call_history_floor=CALL_FLOOR_Z, contact_modified_floor=ANCIENT_Z).id
+    )
+
+    orphans = env["plasticos.crm.sync.orphan"].search([("resolved", "=", False)])
+    assert {o.external_id for o in orphans} == {"k2", "k3"}, "the durable orphan records are kept"
+    assert run.orphans_buffered == 2
+    assert run.calls_seen == 3 and run.calls_created == 1
+
+    summary = build_run_summary(run, error_rows=orch.error_rows)
+    assert validate_summary(summary) == []
+    assert (
+        summary["records_created"]
+        + summary["records_updated"]
+        + summary["records_unchanged"]
+        + summary["records_rejected"]
+        == summary["records_seen"]
+    )
+    assert summary["records_rejected"] == 2, "each deferred call is counted exactly once, as not landed"
+    assert summary["records_created"] == 2, "c1 and k1 landed; the deferred calls are not successes"
+    assert summary["final_status"] == "partial"
+
+
+def test_one_call_batch_classifies_deferred_beside_created():
+    orch, connection, env = _harness(_Adapter())
+    orch._upsert_lead(connection, _lead("c1"))
+    run = env["plasticos.crm.sync.run"].create({"connection_id": 1, "status": "running"})
+    orch.outcomes = _new_outcomes()
+    batch = [_call("k4", "ghost"), _call("k5", "ghost"), _call("k6", "c1")]
+    orch.outcomes["seen"] = len(batch)
+
+    assert orch._upsert_calls(connection, batch, run) == 1
+
+    outcomes = orch.outcomes
+    assert outcomes["deferred"] == 2 and outcomes["created"] == 1
+    assert outcomes["seen"] == sum(outcomes[k] for k in ("created", "updated", "unchanged", "failed", "deferred"))
+    assert run.orphans_buffered == 2
+
+
+def test_a_run_without_orphans_still_reports_success():
+    adapter = _Adapter(
+        contact_passes=[_one_page([_lead("c9", modified=ANCIENT_Z)], ANCIENT_Z), []],
+        call_passes=[[[_call("q1", "c9")]], [[]]],
+    )
+    orch, connection, env = _harness(adapter)
+    run = env["plasticos.crm.sync.run"].browse(
+        orch.run_full_import(connection, call_history_floor=CALL_FLOOR_Z, contact_modified_floor=ANCIENT_Z).id
+    )
+    summary = build_run_summary(run)
+    assert summary["final_status"] == "success"
+    assert summary["records_rejected"] == 0

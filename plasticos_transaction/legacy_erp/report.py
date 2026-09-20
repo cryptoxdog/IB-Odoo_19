@@ -25,7 +25,7 @@ class ImportReport:
         self.payload_kind: str = ""
         self.source_counts: dict[str, int] = {}
         self.counts: dict[str, dict[str, int]] = {
-            bucket: {"created": 0, "updated": 0, "skipped": 0} for bucket in self.BUCKETS
+            bucket: {"created": 0, "updated": 0, "skipped": 0, "rejected": 0} for bucket in self.BUCKETS
         }
         self.unresolved: list[dict[str, str]] = []
         self.anomalies: list[dict[str, str]] = []
@@ -35,7 +35,12 @@ class ImportReport:
         self.counts[bucket][outcome] += amount
 
     def skip(self, bucket: str, amount: int = 1) -> None:
+        """Record a no-write replay (unchanged record or dry-run preview)."""
         self.bump(bucket, "skipped", amount)
+
+    def reject(self, bucket: str, amount: int = 1) -> None:
+        """Record a source row that was refused (invalid, not silently lost)."""
+        self.bump(bucket, "rejected", amount)
 
     def unresolved_ref(self, table: str, kind: str, key: str, detail: str) -> None:
         """Record a source reference that could not be resolved."""
