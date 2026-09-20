@@ -14,6 +14,7 @@ EVENT_TYPES = [
     ("rfq_request_created", "RFQ Request Created"),
     ("rfq_request_cancelled_context_change", "RFQ Request Cancelled: Context Change"),
     ("carrier_response_recorded", "Carrier Response Recorded"),
+    ("freight_quote_ranked", "Freight Quote Ranked"),
     ("freight_quote_selected", "Freight Quote Selected"),
     ("freight_rate_confirmed", "Freight Rate Confirmed"),
     ("freight_estimate_requested", "Freight Estimate Requested"),

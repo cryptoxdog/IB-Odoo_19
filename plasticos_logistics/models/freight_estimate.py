@@ -49,6 +49,8 @@ class PlasticosFreightEstimate(models.Model):
     policy_version = fields.Char(readonly=True)
     evidence_summary = fields.Json(readonly=True)
     reasoning_summary = fields.Json(readonly=True)
+    # Retained only for non-destructive compatibility with earlier observations.
+    # Linda's current deterministic path neither reads nor writes this provenance.
     gate_packet_id = fields.Char(readonly=True)
     gate_correlation_id = fields.Char(readonly=True)
     gate_operation_id = fields.Char(readonly=True)

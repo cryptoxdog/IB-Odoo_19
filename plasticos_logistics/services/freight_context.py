@@ -1,7 +1,7 @@
 """Deterministic freight-context construction for governed logistics decisions.
 
 This service owns canonical serialization and SHA-256 identities only. It never
-contacts a carrier, an external model, or Gate.
+contacts a carrier or performs a commercial action.
 """
 
 from __future__ import annotations

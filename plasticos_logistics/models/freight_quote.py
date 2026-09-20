@@ -8,6 +8,13 @@ import json
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
+RANKING_STATUS = [
+    ("not_evaluated", "Not Evaluated"),
+    ("eligible", "Eligible"),
+    ("recommended", "Recommended"),
+    ("ineligible", "Ineligible"),
+]
+
 
 def _company_for_load(load):
     return getattr(load, "company_id", False) or (
@@ -59,6 +66,9 @@ class PlasticosFreightQuoteRequest(models.Model):
     cancellation_reason = fields.Text(readonly=True)
     failure_code = fields.Char(readonly=True)
     selected_quote_id = fields.Many2one("plasticos.freight.quote", readonly=True, ondelete="restrict")
+    recommended_quote_id = fields.Many2one("plasticos.freight.quote", readonly=True, ondelete="restrict")
+    ranking_policy_version = fields.Char(readonly=True)
+    ranked_at = fields.Datetime(readonly=True)
     recipient_ids = fields.One2many("plasticos.freight.quote.recipient", "request_id", string="Recipients")
     quote_ids = fields.One2many("plasticos.freight.quote", "request_id", string="Carrier Responses")
 
@@ -112,6 +122,107 @@ class PlasticosFreightQuoteRequest(models.Model):
                         }
                     )
                 raise UserError("Freight context changed; the quote request was cancelled and cannot be used.")
+
+    @api.constrains("recommended_quote_id")
+    def _check_recommended_quote_relationship(self):
+        for rec in self:
+            if rec.recommended_quote_id and rec.recommended_quote_id.request_id != rec:
+                raise ValidationError("A recommended quote must belong to its freight quote request.")
+
+    def action_rank_quotes(self):
+        """Rank current eligible quotes for operator review; this never selects or awards a quote."""
+        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+        from odoo.addons.plasticos_logistics.services.freight_history import (
+            local_estimation_evidence,
+            recent_comparable_executed_evidence,
+            recent_executed_lane_evidence,
+        )
+        from odoo.addons.plasticos_logistics.services.freight_quote_ranking import (
+            RANKING_POLICY_VERSION,
+            LaneOutcome,
+            QuoteCandidate,
+            rank_quotes,
+        )
+
+        for rec in self:
+            rec.env.cr.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.rfq-rank:{rec.id}"])
+            rec.invalidate_recordset()
+            if rec.state in ("resolved", "cancelled", "failed"):
+                raise UserError("Terminal freight quote requests cannot be ranked.")
+            rec._ensure_current_context()
+            if not rec.load_id.rate_currency_id:
+                raise UserError("An explicit load freight currency is required before quote ranking.")
+            exact_history = recent_executed_lane_evidence(rec.env, rec.load_id)
+            exact_ids = exact_history.ids
+            comparable_history = recent_comparable_executed_evidence(rec.env, rec.load_id).filtered(
+                lambda candidate, exact_ids=exact_ids: candidate.id not in exact_ids
+            )
+            evidence = local_estimation_evidence(exact_history + comparable_history)
+            outcomes = [
+                LaneOutcome(
+                    carrier_id=item.carrier_id,
+                    amount=item.amount,
+                    currency_id=item.currency_id,
+                    occurred_at=item.occurred_at,
+                )
+                for item in evidence
+            ]
+            rankings = rank_quotes(
+                quotes=[
+                    QuoteCandidate(
+                        quote_id=quote.id,
+                        carrier_id=quote.carrier_id.id,
+                        amount=quote.quoted_amount,
+                        currency_id=quote.currency_id.id if quote.currency_id else None,
+                        response_kind=quote.response_kind,
+                        lifecycle_state=quote.lifecycle_state,
+                        valid_until=quote.valid_until,
+                        responded_at=quote.responded_at,
+                        timeliness=quote.timeliness,
+                        context_current=True,
+                        carrier_active=quote.carrier_id.active,
+                        carrier_blocked=getattr(quote.carrier_id, "entity_status", None) == "blocked",
+                    )
+                    for quote in rec.quote_ids
+                ],
+                lane_outcomes=outcomes,
+                required_currency_id=rec.load_id.rate_currency_id.id,
+            )
+            recommended_id = next((ranking.quote_id for ranking in rankings if ranking.eligible), False)
+            eligible_rank = 0
+            by_id = {ranking.quote_id: ranking for ranking in rankings}
+            for quote in rec.quote_ids:
+                ranking = by_id[quote.id]
+                if ranking.eligible:
+                    eligible_rank += 1
+                    status = "recommended" if quote.id == recommended_id else "eligible"
+                else:
+                    status = "ineligible"
+                quote.write(
+                    {
+                        "ranking_status": status,
+                        "ranking_score": ranking.score if ranking.eligible else False,
+                        "ranking_rank": eligible_rank if ranking.eligible else False,
+                        "ranking_policy_version": RANKING_POLICY_VERSION,
+                        "ranking_reasoning": ranking.as_dict(),
+                        "ranked_at": fields.Datetime.now(),
+                    }
+                )
+            rec.write(
+                {
+                    "recommended_quote_id": recommended_id,
+                    "ranking_policy_version": RANKING_POLICY_VERSION,
+                    "ranked_at": fields.Datetime.now(),
+                }
+            )
+            record_freight_event(
+                rec.env,
+                event_type="freight_quote_ranked",
+                outcome_code="recommended" if recommended_id else "no_eligible_quote",
+                load=rec.load_id,
+                facts={"request_id": rec.id, "recommended_quote_id": recommended_id, "policy": RANKING_POLICY_VERSION},
+            )
+        return True
 
     def write(self, vals):
         protected = {
@@ -272,6 +383,12 @@ class PlasticosFreightQuote(models.Model):
     conditions = fields.Text()
     selected = fields.Boolean(default=False, tracking=True)
     supersedes_quote_id = fields.Many2one("plasticos.freight.quote", ondelete="restrict")
+    ranking_status = fields.Selection(RANKING_STATUS, required=True, default="not_evaluated", readonly=True)
+    ranking_score = fields.Float(readonly=True)
+    ranking_rank = fields.Integer(readonly=True)
+    ranking_policy_version = fields.Char(readonly=True)
+    ranking_reasoning = fields.Json(readonly=True)
+    ranked_at = fields.Datetime(readonly=True)
 
     _source_unique = models.Constraint(
         "unique(request_id, source_fingerprint)", "Carrier response source is already recorded for this request."

@@ -421,14 +421,21 @@ class PlasticosLoad(models.Model):
         return True
 
     def action_request_freight_estimate(self):
-        """Persist deterministic geometry/evidence and explicit external-route unavailability."""
+        """Persist a nonbinding local Haversine-curve estimate from canonical evidence."""
         from odoo.addons.plasticos_logistics.services.freight_context import (
             FREIGHT_CONTEXT_VERSION,
             build_freight_context,
         )
-        from odoo.addons.plasticos_logistics.services.freight_geometry import FreightCoordinateError, haversine_miles
+        from odoo.addons.plasticos_logistics.services.freight_estimation import (
+            ESTIMATOR_MODEL_VERSION,
+            ESTIMATOR_POLICY_VERSION,
+            estimate_haversine_curve,
+        )
+        from odoo.addons.plasticos_logistics.services.freight_geometry import FreightCoordinateError
         from odoo.addons.plasticos_logistics.services.freight_history import (
             bounded_evidence_payload,
+            local_estimation_evidence,
+            recent_comparable_executed_evidence,
             recent_executed_lane_evidence,
         )
 
@@ -437,32 +444,56 @@ class PlasticosLoad(models.Model):
             context = build_freight_context(rec)
             if not context:
                 raise UserError("A complete freight context is required before an estimate can be requested.")
-            try:
-                miles = haversine_miles(
-                    rec.pickup_partner_id.partner_latitude,
-                    rec.pickup_partner_id.partner_longitude,
-                    rec.delivery_partner_id.partner_latitude,
-                    rec.delivery_partner_id.partner_longitude,
-                )
-            except FreightCoordinateError as exc:
-                miles = None
-                failure_code = f"coordinate_evidence_gap:{exc}"
-                status = "insufficient_evidence"
-                geometry_status = "missing_or_invalid"
-            else:
-                failure_code = "gate_estimate_action_unadmitted"
-                status = "failed"
-                geometry_status = "available"
+            currency = rec.rate_currency_id
+            if not currency:
+                raise UserError("An explicit freight currency is required before an estimate can be requested.")
             company = getattr(rec, "company_id", False) or (
                 rec.sale_order_id.company_id if rec.sale_order_id else False
             )
             if not company:
                 raise UserError("Load company is required before an estimate can be recorded.")
-            history_records = recent_executed_lane_evidence(rec.env, rec)
+            exact_history = recent_executed_lane_evidence(rec.env, rec)
+            exact_ids = exact_history.ids
+            comparable_history = recent_comparable_executed_evidence(rec.env, rec).filtered(
+                lambda candidate, exact_ids=exact_ids: candidate.id not in exact_ids
+            )
+            history_records = exact_history + comparable_history
+            try:
+                proposal = estimate_haversine_curve(
+                    origin_latitude=rec.pickup_partner_id.partner_latitude,
+                    origin_longitude=rec.pickup_partner_id.partner_longitude,
+                    destination_latitude=rec.delivery_partner_id.partner_latitude,
+                    destination_longitude=rec.delivery_partner_id.partner_longitude,
+                    currency_id=currency.id,
+                    evidence=local_estimation_evidence(history_records),
+                )
+            except FreightCoordinateError as exc:
+                proposal = None
+                failure_code = f"coordinate_evidence_gap:{exc}"
             history = len(history_records)
-            request_fingerprint = hashlib.sha256(
-                f"estimate:{context.fingerprint}:{history}:{miles if miles is not None else 'unavailable'}".encode()
-            ).hexdigest()
+            if proposal:
+                status = proposal.status
+                failure_code = proposal.failure_code
+                geometry_status = "available"
+                request_fingerprint = proposal.request_fingerprint
+                evidence_summary = {
+                    **proposal.evidence_summary,
+                    "executed_evidence": bounded_evidence_payload(history_records),
+                }
+                reasoning_summary = proposal.reasoning_summary
+            else:
+                status = "insufficient_evidence"
+                geometry_status = "missing_or_invalid"
+                request_fingerprint = hashlib.sha256(
+                    f"estimate:{context.fingerprint}:{history}:{failure_code}".encode()
+                ).hexdigest()
+                evidence_summary = {
+                    "estimator": ESTIMATOR_MODEL_VERSION,
+                    "coordinate_quality": "missing_or_invalid",
+                    "exact_lane_executed_count": history,
+                    "executed_evidence": bounded_evidence_payload(history_records),
+                }
+                reasoning_summary = {"formula": "haversine", "reason": failure_code}
             estimate = estimate_model.create(
                 {
                     "company_id": company.id,
@@ -474,32 +505,38 @@ class PlasticosLoad(models.Model):
                     "origin_partner_id": rec.pickup_partner_id.id,
                     "destination_partner_id": rec.delivery_partner_id.id,
                     "expected_weight_lbs": rec.reference_weight,
-                    "haversine_miles": miles if miles is not None else False,
+                    "haversine_miles": proposal.haversine_miles if proposal else False,
                     "geometry_status": geometry_status,
-                    "evidence_summary": {
-                        "exact_lane_executed_count": history,
-                        "coordinate_quality": status,
-                        "executed_evidence": bounded_evidence_payload(history_records),
-                    },
+                    "estimate_floor": proposal.estimate_floor if proposal else False,
+                    "estimate_target": proposal.estimate_target if proposal else False,
+                    "estimate_ceiling": proposal.estimate_ceiling if proposal else False,
+                    "pricing_assumption": proposal.pricing_assumption if proposal else False,
+                    "currency_id": proposal.currency_id if proposal else False,
+                    "confidence": proposal.confidence if proposal else False,
+                    "method": proposal.method if proposal else False,
+                    "model_version": ESTIMATOR_MODEL_VERSION,
+                    "policy_version": ESTIMATOR_POLICY_VERSION,
+                    "evidence_summary": evidence_summary,
+                    "reasoning_summary": reasoning_summary,
                     "failure_code": failure_code,
                     "status": status,
                 }
             )
             rec.message_post(
                 body=(
-                    f"Freight estimate {estimate.name} recorded as {status}. "
-                    "No price was fabricated because the external estimate action is not admitted."
+                    f"Freight estimate {estimate.name} recorded as {status} using the local Haversine-curve policy. "
+                    "It is nonbinding and does not assign a carrier or confirm a rate."
                 )
             )
             from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
 
             record_freight_event(
                 rec.env,
-                event_type="freight_estimate_rejected" if status == "failed" else "freight_estimate_persisted",
-                outcome_code=failure_code,
+                event_type="freight_estimate_persisted" if status == "succeeded" else "freight_estimate_rejected",
+                outcome_code=failure_code or "local_haversine_curve",
                 load=rec,
                 facts={"estimate_id": estimate.id, "exact_lane_evidence_count": history},
-                unknowns=["gate_estimate_action_unadmitted"] if status == "failed" else [],
+                unknowns=[] if status == "succeeded" else [failure_code],
             )
         return True
 
