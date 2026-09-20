@@ -11,7 +11,6 @@ from .freight_context import build_freight_context
 
 SAL_WINDOW = timedelta(days=30)
 QUALIFYING_STATES = ("picked_up", "delivered", "closed")
-SAL_HISTORY_LIMIT = 200
 
 
 @dataclass(frozen=True)
@@ -53,16 +52,19 @@ def resolve_sal(load) -> SalDecision:
         return SalDecision("not_eligible", "missing_lane_identity")
 
     cutoff = fields.Datetime.now() - SAL_WINDOW
+    # Qualify lane/intake in SQL without a row cap. Apply the 30-day cutoff in
+    # the loop so expired matching movements still produce prior_movement_too_old
+    # instead of a false no_prior_movement.
     candidates = load.env["plasticos.load"].search(
         [
             ("id", "!=", load.id),
             ("company_id", "=", company.id),
             ("pickup_partner_id", "=", load.pickup_partner_id.id),
             ("delivery_partner_id", "=", load.delivery_partner_id.id),
+            ("transaction_id.intake_id", "=", context.repeat_stream_id),
             ("state", "in", QUALIFYING_STATES),
         ],
         order="delivered_at desc, dispatched_at desc, id desc",
-        limit=SAL_HISTORY_LIMIT,
     )
     saw_movement = False
     saw_old_movement = False
@@ -71,13 +73,18 @@ def resolve_sal(load) -> SalDecision:
     for candidate in candidates:
         if _company_for(candidate) != company:
             continue
-        if not candidate.transaction_id or candidate.transaction_id.intake_id.id != context.repeat_stream_id:
-            continue
-        candidate_context = build_freight_context(candidate)
-        if not candidate_context or candidate_context.fingerprint != context.fingerprint:
-            continue
         moved_at = _movement_at(candidate)
         if not moved_at:
+            continue
+        # Use the booking-time fingerprint persisted on the candidate. Rebuilding
+        # context from the live partner would treat a later facility move as the
+        # same lane and reuse an obsolete rate.
+        booked_fingerprint = getattr(candidate, "freight_context_fingerprint", None)
+        if not booked_fingerprint or booked_fingerprint != context.fingerprint:
+            if moved_at >= cutoff:
+                saw_movement = True
+            else:
+                saw_old_movement = True
             continue
         saw_movement = True
         if moved_at < cutoff:

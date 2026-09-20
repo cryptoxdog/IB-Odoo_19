@@ -280,12 +280,19 @@
 ./tests/integration/test_intake_onchange_cascade.py:149:    def test_material_profile_prefills_polymer(self):
 ./tests/integration/test_intake_onchange_cascade.py:158:    def test_material_profile_prefills_form(self):
 ./tests/integration/test_intake_onchange_cascade.py:167:    def test_material_profile_prefills_quality_numerics(self):
-./tests/integration/test_linda_freight_models.py:9:class TestLindaFreightModels(PlasticosTestCase):
-./tests/integration/test_linda_freight_models.py:104:    def test_load_provenance_and_state_bypass_is_rejected(self):
-./tests/integration/test_linda_freight_models.py:111:    def test_quote_selection_requires_locked_canonical_workflow(self):
-./tests/integration/test_linda_freight_models.py:137:    def test_calibration_is_append_only_and_corrections_are_attributed(self):
-./tests/integration/test_linda_freight_models.py:164:    def test_event_correlation_and_legacy_cache_retirement_are_enforced(self):
-./tests/integration/test_linda_freight_models.py:179:    def test_non_logistics_user_cannot_execute_freight_command(self):
+./tests/integration/test_linda_freight_models.py:12:class TestLindaFreightModels(PlasticosTestCase):
+./tests/integration/test_linda_freight_models.py:131:    def test_manual_response_records_provenance_without_fabricating_send_evidence(self):
+./tests/integration/test_linda_freight_models.py:146:    def test_recipient_send_evidence_stays_internally_consistent(self):
+./tests/integration/test_linda_freight_models.py:157:    def test_request_and_recipient_evidence_reject_direct_writes(self):
+./tests/integration/test_linda_freight_models.py:192:    def test_supersession_enforces_same_request_carrier_company_lineage(self):
+./tests/integration/test_linda_freight_models.py:235:    def test_logistics_user_can_create_reconciliation_evidence_but_cannot_mutate_it(self):
+./tests/integration/test_linda_freight_models.py:281:    def test_load_provenance_and_state_bypass_is_rejected(self):
+./tests/integration/test_linda_freight_models.py:288:    def test_quote_selection_requires_locked_canonical_workflow(self):
+./tests/integration/test_linda_freight_models.py:314:    def test_calibration_is_append_only_and_corrections_are_attributed(self):
+./tests/integration/test_linda_freight_models.py:341:    def test_event_correlation_and_legacy_cache_retirement_are_enforced(self):
+./tests/integration/test_linda_freight_models.py:356:    def test_non_logistics_user_cannot_execute_freight_command(self):
+./tests/integration/test_linda_freight_models.py:362:    def test_sal_provenance_fields_exist_with_safe_defaults(self):
+./tests/integration/test_linda_freight_models.py:371:    def test_confirmed_sal_booking_terms_reject_direct_edits(self):
 ./tests/integration/test_match_result_guards.py:21:class TestMatchResultStateMachine(PlasticosTestCase):
 ./tests/integration/test_match_result_guards.py:82:    def test_accept_from_pending_succeeds(self):
 ./tests/integration/test_match_result_guards.py:89:    def test_accept_sets_reviewer_and_date(self):
@@ -648,39 +655,57 @@
 ./tests/test_constraints_onchanges.py:212:    def test_discrepancy_within_threshold(self):
 ./tests/test_constraints_onchanges.py:216:    def test_light_weight_deduction_below_min(self):
 ./tests/test_constraints_onchanges.py:221:    def test_light_weight_deduction_above_min(self):
-./tests/test_crm_sync_full_import.py:369:def test_fresh_database_imports_a_contact_older_than_the_rolling_window():
-./tests/test_crm_sync_full_import.py:385:def test_incremental_run_still_clamps_to_the_rolling_window():
-./tests/test_crm_sync_full_import.py:397:def test_full_import_processes_the_explicit_call_history_floor():
-./tests/test_crm_sync_full_import.py:413:def test_full_import_does_not_substitute_the_short_default_history_window():
-./tests/test_crm_sync_full_import.py:425:def test_an_explicit_blank_contact_floor_is_refused_not_defaulted(blank):
-./tests/test_crm_sync_full_import.py:437:def test_a_missing_call_history_floor_names_the_parameter(missing):
-./tests/test_crm_sync_full_import.py:446:def test_invalid_call_history_floor_fails_closed(bad):
-./tests/test_crm_sync_full_import.py:458:def test_a_future_call_history_floor_fails_closed():
-./tests/test_crm_sync_full_import.py:468:def test_bootstrap_catchup_does_not_miss_a_contact_modified_during_the_import():
-./tests/test_crm_sync_full_import.py:485:def test_the_catchup_call_window_overlaps_the_bootstrap_boundary():
-./tests/test_crm_sync_full_import.py:500:def test_successful_full_import_leaves_valid_forward_watermarks():
-./tests/test_crm_sync_full_import.py:513:def test_full_import_then_incremental_replay_creates_no_duplicate_leads():
-./tests/test_crm_sync_full_import.py:527:def test_full_import_then_incremental_replay_creates_no_duplicate_calls():
-./tests/test_crm_sync_full_import.py:537:def test_full_import_does_not_rewind_an_already_newer_watermark():
-./tests/test_crm_sync_full_import.py:555:def test_an_unproven_census_is_reported_partial_not_success():
-./tests/test_crm_sync_full_import.py:566:def test_a_contact_older_than_the_lookback_proves_the_census():
-./tests/test_crm_sync_full_import.py:576:def test_a_floor_inside_the_lookback_has_nothing_to_prove():
-./tests/test_crm_sync_full_import.py:587:def test_a_failed_bootstrap_page_leaves_the_watermark_untouched_and_releases_the_lock():
-./tests/test_crm_sync_full_import.py:598:def test_counters_accumulate_across_bootstrap_and_catchup():
-./tests/test_crm_sync_full_import.py:614:def test_table_rows_are_attached_during_the_bootstrap():
-./tests/test_crm_sync_full_import.py:649:def test_a_deleted_contact_archives_the_lead_and_records_the_provenance():
-./tests/test_crm_sync_full_import.py:657:def test_a_restored_contact_reactivates_a_sync_archived_lead():
-./tests/test_crm_sync_full_import.py:667:def test_a_manually_archived_lead_is_not_reactivated_without_sync_provenance():
-./tests/test_crm_sync_full_import.py:679:def test_a_sync_archived_lead_is_matched_by_the_fallback_not_duplicated():
-./tests/test_crm_sync_full_import.py:690:def test_calls_attach_to_a_sync_archived_lead_instead_of_buffering_as_orphans():
+./tests/test_crm_sync_classification.py:139:def test_first_upsert_is_created():
+./tests/test_crm_sync_classification.py:156:def test_identical_repeat_is_unchanged_and_not_written():
+./tests/test_crm_sync_classification.py:168:def test_changed_value_is_updated():
+./tests/test_crm_sync_classification.py:180:def test_duplicate_identity_is_rejected_not_repointed():
+./tests/test_crm_sync_classification.py:194:def test_write_failure_is_recorded_not_silent():
+./tests/test_crm_sync_classification.py:208:def test_deleted_dto_archives_with_classification():
+./tests/test_crm_sync_classification.py:265:def test_multiple_fallback_matches_get_no_dependent_table_writes():
+./tests/test_crm_sync_classification.py:279:def test_a_failed_lead_write_gets_no_dependent_table_writes():
+./tests/test_crm_sync_classification.py:294:def test_upsert_lead_exposes_its_classification_beside_the_pinned_return():
+./tests/test_crm_sync_full_import.py:372:def test_fresh_database_imports_a_contact_older_than_the_rolling_window():
+./tests/test_crm_sync_full_import.py:388:def test_incremental_run_still_clamps_to_the_rolling_window():
+./tests/test_crm_sync_full_import.py:400:def test_full_import_processes_the_explicit_call_history_floor():
+./tests/test_crm_sync_full_import.py:416:def test_full_import_does_not_substitute_the_short_default_history_window():
+./tests/test_crm_sync_full_import.py:428:def test_an_explicit_blank_contact_floor_is_refused_not_defaulted(blank):
+./tests/test_crm_sync_full_import.py:440:def test_a_missing_call_history_floor_names_the_parameter(missing):
+./tests/test_crm_sync_full_import.py:449:def test_invalid_call_history_floor_fails_closed(bad):
+./tests/test_crm_sync_full_import.py:461:def test_a_future_call_history_floor_fails_closed():
+./tests/test_crm_sync_full_import.py:471:def test_bootstrap_catchup_does_not_miss_a_contact_modified_during_the_import():
+./tests/test_crm_sync_full_import.py:488:def test_the_catchup_call_window_overlaps_the_bootstrap_boundary():
+./tests/test_crm_sync_full_import.py:503:def test_successful_full_import_leaves_valid_forward_watermarks():
+./tests/test_crm_sync_full_import.py:516:def test_full_import_then_incremental_replay_creates_no_duplicate_leads():
+./tests/test_crm_sync_full_import.py:530:def test_full_import_then_incremental_replay_creates_no_duplicate_calls():
+./tests/test_crm_sync_full_import.py:540:def test_full_import_does_not_rewind_an_already_newer_watermark():
+./tests/test_crm_sync_full_import.py:558:def test_an_unproven_census_is_reported_partial_not_success():
+./tests/test_crm_sync_full_import.py:569:def test_a_contact_older_than_the_lookback_proves_the_census():
+./tests/test_crm_sync_full_import.py:579:def test_a_floor_inside_the_lookback_has_nothing_to_prove():
+./tests/test_crm_sync_full_import.py:590:def test_a_failed_bootstrap_page_leaves_the_watermark_untouched_and_releases_the_lock():
+./tests/test_crm_sync_full_import.py:601:def test_counters_accumulate_across_bootstrap_and_catchup():
+./tests/test_crm_sync_full_import.py:617:def test_table_rows_are_attached_during_the_bootstrap():
+./tests/test_crm_sync_full_import.py:652:def test_a_deleted_contact_archives_the_lead_and_records_the_provenance():
+./tests/test_crm_sync_full_import.py:660:def test_a_restored_contact_reactivates_a_sync_archived_lead():
+./tests/test_crm_sync_full_import.py:670:def test_a_manually_archived_lead_is_not_reactivated_without_sync_provenance():
+./tests/test_crm_sync_full_import.py:682:def test_a_sync_archived_lead_is_matched_by_the_fallback_not_duplicated():
+./tests/test_crm_sync_full_import.py:693:def test_calls_attach_to_a_sync_archived_lead_instead_of_buffering_as_orphans():
+./tests/test_crm_sync_full_import.py:715:def test_orphaned_calls_are_accounted_once_and_the_summary_reconciles():
+./tests/test_crm_sync_full_import.py:745:def test_one_call_batch_classifies_deferred_beside_created():
+./tests/test_crm_sync_full_import.py:761:def test_a_run_without_orphans_still_reports_success():
+./tests/test_crm_sync_mapping_status.py:45:def test_every_lead_vals_key_is_documented():
+./tests/test_crm_sync_mapping_status.py:54:def test_upsert_classification_vocabulary_is_pinned():
+./tests/test_crm_sync_mapping_status.py:63:def test_unchanged_records_are_not_written():
+./tests/test_crm_sync_mapping_status.py:72:def test_runbook_declares_the_status_vocabulary():
+./tests/test_crm_sync_mapping_status.py:78:def test_summary_projection_uses_the_shared_schema():
 ./tests/test_crm_sync_vanillasoft_client.py:30:def test_normalize_api_base_appends_wspubapi():
 ./tests/test_crm_sync_vanillasoft_client.py:37:def test_normalize_api_base_empty():
 ./tests/test_crm_sync_vanillasoft_client.py:57:def test_verify_key_success():
 ./tests/test_crm_sync_vanillasoft_client.py:68:def test_get_contacts_page():
 ./tests/test_crm_sync_vanillasoft_client.py:90:def test_contact_to_canonical_and_adapter_iter():
 ./tests/test_crm_sync_vanillasoft_client.py:122:def test_call_to_canonical():
-./tests/test_crm_sync_vanillasoft_client.py:139:def test_stub_adapters_raise():
-./tests/test_crm_sync_vanillasoft_client.py:149:def test_vanillasoft_adapter_is_live():
+./tests/test_crm_sync_vanillasoft_client.py:139:def test_unknown_providers_fail_closed():
+./tests/test_crm_sync_vanillasoft_client.py:146:def test_only_vanillasoft_is_live():
+./tests/test_crm_sync_vanillasoft_client.py:150:def test_vanillasoft_adapter_is_live():
 ./tests/test_crm_sync_vanillasoft_client.py:165:def test_auth_failure_no_watermark_semantics():
 ./tests/test_crm_sync_vanillasoft_client.py:194:def test_boolean_true_representations(value):
 ./tests/test_crm_sync_vanillasoft_client.py:199:def test_boolean_false_representations(value):
@@ -964,6 +989,18 @@
 ./tests/test_golden_flows.py:340:    def test_commission_never_exceeds_gross_margin(self):
 ./tests/test_golden_flows.py:346:    def test_no_commission_on_non_positive_margin(self):
 ./tests/test_golden_flows.py:352:    def test_close_freezes_commission_at_locked_amount(self):
+./tests/test_import_summary_schema.py:40:def test_schema_exists_and_is_json():
+./tests/test_import_summary_schema.py:47:def test_schema_requires_all_report_fields():
+./tests/test_import_summary_schema.py:66:def test_valid_summary_passes():
+./tests/test_import_summary_schema.py:71:def test_missing_field_fails(field):
+./tests/test_import_summary_schema.py:77:def test_bad_final_status_fails():
+./tests/test_import_summary_schema.py:82:def test_non_integer_counter_fails():
+./tests/test_import_summary_schema.py:87:def test_bad_datetime_fails():
+./tests/test_import_summary_schema.py:92:def test_secret_key_fails():
+./tests/test_import_summary_schema.py:98:def test_secret_value_marker_fails():
+./tests/test_import_summary_schema.py:103:def test_partial_status_allowed():
+./tests/test_import_summary_schema.py:108:def test_cli_roundtrip(tmp_path):
+./tests/test_import_summary_schema.py:130:def test_secret_markers_registered():
 ./tests/test_integration_flows.py:23:class TestLeadToIntakeToTransaction(PlasticosTestCase):
 ./tests/test_integration_flows.py:32:    def test_full_lead_to_transaction_flow(self):
 ./tests/test_integration_flows.py:53:    def test_lead_creates_partner_when_missing(self):
@@ -1037,6 +1074,14 @@
 ./tests/test_legacy_erp_import_contract.py:217:def test_no_new_field_is_declared_by_the_import(service_source):
 ./tests/test_legacy_erp_import_contract.py:221:def test_optional_targets_are_capability_checked(service_source):
 ./tests/test_legacy_erp_import_contract.py:229:def test_related_records_are_looked_up_never_created(service_tree):
+./tests/test_legacy_erp_mapping_status.py:45:def test_every_consumed_table_column_has_a_disposition(rows_by_key):
+./tests/test_legacy_erp_mapping_status.py:50:def test_no_unknown_columns_for_consumed_tables(status):
+./tests/test_legacy_erp_mapping_status.py:59:def test_unconsumed_tables_are_all_intentional(status):
+./tests/test_legacy_erp_mapping_status.py:68:def test_every_intentional_drop_has_a_reason(status):
+./tests/test_legacy_erp_mapping_status.py:77:def test_status_vocabulary_closed(status):
+./tests/test_legacy_erp_mapping_status.py:82:def test_source_native_identities_are_marked(status):
+./tests/test_legacy_erp_mapping_status.py:98:def test_sql_types_joined_for_consumed_tables(status):
+./tests/test_legacy_erp_mapping_status.py:105:def test_needs_correction_rows_are_explicit(status):
 ./tests/test_legacy_erp_source_layer.py:49:def test_payload_loads_every_required_source_table(payload):
 ./tests/test_legacy_erp_source_layer.py:54:def test_payload_row_counts_are_stable(payload):
 ./tests/test_legacy_erp_source_layer.py:71:def test_sql_null_and_empty_string_stay_distinct(payload):
@@ -1078,6 +1123,12 @@
 ./tests/test_legacy_erp_source_layer.py:395:def test_billing_flags_are_honoured_beyond_the_free_text_label():
 ./tests/test_legacy_erp_source_layer.py:403:def test_billing_address_population_matches_the_payload(index):
 ./tests/test_legacy_erp_source_layer.py:423:def test_contact_location_resolves_to_an_address_composite_key(index):
+./tests/test_legacy_erp_summary.py:33:def test_success_projection_validates():
+./tests/test_legacy_erp_summary.py:45:def test_rejection_and_unresolved_count_as_rejected():
+./tests/test_legacy_erp_summary.py:61:def test_partial_when_only_rejections():
+./tests/test_legacy_erp_summary.py:71:def test_reconciliation_closes():
+./tests/test_legacy_erp_summary.py:88:def test_timestamps_pass_through():
+./tests/test_legacy_erp_summary.py:98:def test_no_secret_keys():
 ./tests/test_linda_local_ownership.py:15:def test_linda_manifest_has_no_external_intelligence_module_dependency():
 ./tests/test_linda_local_ownership.py:22:def test_linda_has_no_direct_external_intelligence_import_or_action_call():
 ./tests/test_linda_local_ownership.py:30:def test_local_estimator_and_ranking_are_explicitly_versioned_services():
@@ -1195,32 +1246,32 @@
 ./tests/test_performance.py:111:class TestSearchPerformance(PlasticosTestCase):
 ./tests/test_performance.py:119:    def test_partner_search_under_1s(self):
 ./tests/test_performance.py:131:    def test_intake_complex_domain_under_2s(self):
-./tests/test_phantom_enum_values.py:1252:class TestRegistrySanity:
-./tests/test_phantom_enum_values.py:1255:    def test_selection_fields_found(self):
-./tests/test_phantom_enum_values.py:1258:    def test_xml_names_found(self):
-./tests/test_phantom_enum_values.py:1261:    def test_known_polymers_in_registry(self):
-./tests/test_phantom_enum_values.py:1266:    def test_known_forms_in_registry(self):
-./tests/test_phantom_enum_values.py:1270:    def test_known_selection_keys_in_registry(self):
-./tests/test_phantom_enum_values.py:1281:    def test_application_class_options(self):
-./tests/test_phantom_enum_values.py:1286:    def test_process_type_options(self):
-./tests/test_phantom_enum_values.py:1329:    def test_feedstock_type_options(self):
-./tests/test_phantom_enum_values.py:1340:class TestSelectionComparisons:
-./tests/test_phantom_enum_values.py:1345:    def test_domain_values_match_selection_options(self):
-./tests/test_phantom_enum_values.py:1371:class TestPhantomEnumValues:
-./tests/test_phantom_enum_values.py:1375:    def test_no_phantom_comparison_values(self):
-./tests/test_phantom_enum_values.py:1392:    def test_no_phantom_domain_values(self):
-./tests/test_phantom_enum_values.py:1409:    def test_no_phantom_in_list_values(self):
-./tests/test_phantom_enum_values.py:1431:class TestPerModulePhantomAudit:
-./tests/test_phantom_enum_values.py:1435:    def test_module_has_no_phantom_enums(self, module_name):
-./tests/test_phantom_enum_values.py:1452:class TestSelectionFieldConsistency:
-./tests/test_phantom_enum_values.py:1472:    def test_shared_selection_fields_are_compatible(self):
-./tests/test_phantom_enum_values.py:1500:class TestXmlSelectionAlignment:
-./tests/test_phantom_enum_values.py:1504:    def test_xml_colors_are_canonical(self):
-./tests/test_phantom_enum_values.py:1514:    def test_xml_polymer_names_are_uppercase(self):
-./tests/test_phantom_enum_values.py:1621:class TestEquipmentCodeAlignment:
-./tests/test_phantom_enum_values.py:1625:    def test_equipment_codes_in_compute_match_seed_data(self):
-./tests/test_phantom_enum_values.py:1677:class TestPhantomAuditReport:
-./tests/test_phantom_enum_values.py:1681:    def test_print_phantom_summary(self, capsys):
+./tests/test_phantom_enum_values.py:1261:class TestRegistrySanity:
+./tests/test_phantom_enum_values.py:1264:    def test_selection_fields_found(self):
+./tests/test_phantom_enum_values.py:1267:    def test_xml_names_found(self):
+./tests/test_phantom_enum_values.py:1270:    def test_known_polymers_in_registry(self):
+./tests/test_phantom_enum_values.py:1275:    def test_known_forms_in_registry(self):
+./tests/test_phantom_enum_values.py:1279:    def test_known_selection_keys_in_registry(self):
+./tests/test_phantom_enum_values.py:1290:    def test_application_class_options(self):
+./tests/test_phantom_enum_values.py:1295:    def test_process_type_options(self):
+./tests/test_phantom_enum_values.py:1338:    def test_feedstock_type_options(self):
+./tests/test_phantom_enum_values.py:1349:class TestSelectionComparisons:
+./tests/test_phantom_enum_values.py:1354:    def test_domain_values_match_selection_options(self):
+./tests/test_phantom_enum_values.py:1380:class TestPhantomEnumValues:
+./tests/test_phantom_enum_values.py:1384:    def test_no_phantom_comparison_values(self):
+./tests/test_phantom_enum_values.py:1401:    def test_no_phantom_domain_values(self):
+./tests/test_phantom_enum_values.py:1418:    def test_no_phantom_in_list_values(self):
+./tests/test_phantom_enum_values.py:1440:class TestPerModulePhantomAudit:
+./tests/test_phantom_enum_values.py:1444:    def test_module_has_no_phantom_enums(self, module_name):
+./tests/test_phantom_enum_values.py:1461:class TestSelectionFieldConsistency:
+./tests/test_phantom_enum_values.py:1481:    def test_shared_selection_fields_are_compatible(self):
+./tests/test_phantom_enum_values.py:1509:class TestXmlSelectionAlignment:
+./tests/test_phantom_enum_values.py:1513:    def test_xml_colors_are_canonical(self):
+./tests/test_phantom_enum_values.py:1523:    def test_xml_polymer_names_are_uppercase(self):
+./tests/test_phantom_enum_values.py:1630:class TestEquipmentCodeAlignment:
+./tests/test_phantom_enum_values.py:1634:    def test_equipment_codes_in_compute_match_seed_data(self):
+./tests/test_phantom_enum_values.py:1686:class TestPhantomAuditReport:
+./tests/test_phantom_enum_values.py:1690:    def test_print_phantom_summary(self, capsys):
 ./tests/test_pristine_runtime_seams.py:56:def test_entrypoint_makes_caller_state_durable_before_its_owned_cursor(entrypoint):
 ./tests/test_pristine_runtime_seams.py:76:def test_the_durability_boundary_actually_commits():
 ./tests/test_pristine_runtime_seams.py:83:def test_flush_is_not_used_as_a_cross_transaction_boundary(scope):
@@ -1258,6 +1309,9 @@
 ./tests/test_repo_dependency_integrity.py:116:def test_no_phantom_plasticos_dependencies():
 ./tests/test_repo_dependency_integrity.py:131:def test_no_unknown_non_plasticos_dependencies():
 ./tests/test_repo_dependency_integrity.py:149:def test_retired_modules_absent_from_every_depends():
+./tests/test_sal_resolver_service.py:95:def test_search_qualifies_intake_and_cutoff_without_a_row_cap():
+./tests/test_sal_resolver_service.py:108:def test_candidate_uses_persisted_fingerprint_not_live_partner_rebuild():
+./tests/test_sal_resolver_service.py:134:def test_candidate_without_booking_fingerprint_is_not_rebuilt_from_live_address():
 ./tests/test_security_acl.py:13:class TestTransactionACL(PlasticosTestCase):
 ./tests/test_security_acl.py:44:    def test_base_user_can_read(self):
 ./tests/test_security_acl.py:50:    def test_base_user_can_create(self):
@@ -1363,17 +1417,17 @@
 ./tests/test_state_machines.py:517:    def test_cancel_accepted_raises(self):
 ./tests/test_state_machines.py:524:    def test_reject_accepted_raises(self):
 ./tests/test_state_machines.py:531:    def test_accept_records_metadata(self):
-./tests/test_suite_structure.py:87:class TestSuiteStructure:
-./tests/test_suite_structure.py:90:    def test_all_test_files_parse(self):
-./tests/test_suite_structure.py:101:    def test_every_test_module_is_collectable_by_pytest(self):
-./tests/test_suite_structure.py:130:    def test_pure_python_tests_have_no_module_level_odoo_import(self):
-./tests/test_suite_structure.py:155:    def test_odoo_tests_declare_a_recognised_base(self):
-./tests/test_suite_structure.py:169:    def test_no_duplicate_test_class_names(self):
-./tests/test_suite_structure.py:190:class TestTestFileNaming:
-./tests/test_suite_structure.py:193:    def test_test_files_start_with_test(self):
-./tests/test_suite_structure.py:204:    def test_non_test_files_are_not_test_named(self):
-./tests/test_suite_structure.py:210:class TestTestContent:
-./tests/test_suite_structure.py:213:    def test_test_methods_contain_assertions(self):
+./tests/test_suite_structure.py:88:class TestSuiteStructure:
+./tests/test_suite_structure.py:91:    def test_all_test_files_parse(self):
+./tests/test_suite_structure.py:102:    def test_every_test_module_is_collectable_by_pytest(self):
+./tests/test_suite_structure.py:131:    def test_pure_python_tests_have_no_module_level_odoo_import(self):
+./tests/test_suite_structure.py:156:    def test_odoo_tests_declare_a_recognised_base(self):
+./tests/test_suite_structure.py:170:    def test_no_duplicate_test_class_names(self):
+./tests/test_suite_structure.py:191:class TestTestFileNaming:
+./tests/test_suite_structure.py:194:    def test_test_files_start_with_test(self):
+./tests/test_suite_structure.py:205:    def test_non_test_files_are_not_test_named(self):
+./tests/test_suite_structure.py:211:class TestTestContent:
+./tests/test_suite_structure.py:214:    def test_test_methods_contain_assertions(self):
 ./tests/test_triage_pipeline.py:61:class TestParseWeightLbs:
 ./tests/test_triage_pipeline.py:62:    def test_none_returns_zero(self):
 ./tests/test_triage_pipeline.py:67:    def test_empty_string_returns_zero(self):

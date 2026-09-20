@@ -109,7 +109,7 @@
 ./plasticos_crm_sync/adapters/vanillasoft/adapter.py:449:                table_name=table_name,
 ./plasticos_crm_sync/models/crm_call_event.py:5:    _name = "plasticos.crm.call.event"
 ./plasticos_crm_sync/models/crm_call_event.py:20:    user_name = fields.Char()
-./plasticos_crm_sync/models/crm_connection.py:24:    _name = "plasticos.crm.connection"
+./plasticos_crm_sync/models/crm_connection.py:21:    _name = "plasticos.crm.connection"
 ./plasticos_crm_sync/models/crm_external_ref.py:5:    _name = "plasticos.crm.external.ref"
 ./plasticos_crm_sync/models/crm_external_table_row.py:5:    _name = "plasticos.crm.external.table.row"
 ./plasticos_crm_sync/models/crm_external_table_row.py:18:    table_name = fields.Char()
@@ -117,8 +117,8 @@
 ./plasticos_crm_sync/models/crm_sync_orphan.py:5:    _name = "plasticos.crm.sync.orphan"
 ./plasticos_crm_sync/models/crm_sync_run.py:5:    _name = "plasticos.crm.sync.run"
 ./plasticos_crm_sync/models/res_config_settings.py:8:    _inherit = "res.config.settings"
-./plasticos_crm_sync/services/orchestrator.py:669:        contact_name = " ".join(filter(None, [dto.first_name, dto.last_name])).strip()
-./plasticos_crm_sync/services/orchestrator.py:684:            utm_name = LEAD_SOURCE_MAPPING.get(dto.lead_source_raw.strip(), "Other")
+./plasticos_crm_sync/services/orchestrator.py:842:        contact_name = " ".join(filter(None, [dto.first_name, dto.last_name])).strip()
+./plasticos_crm_sync/services/orchestrator.py:857:            utm_name = LEAD_SOURCE_MAPPING.get(dto.lead_source_raw.strip(), "Other")
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:24:        first_name="Ada",
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:25:        last_name="Lovelace",
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:30:            first_name="Ada",
@@ -200,13 +200,13 @@
 ./plasticos_intake_normalizer/models/normalizer_config.py:47:    _name = "plasticos.normalizer.config"
 ./plasticos_logistics/models/dispatch.py:10:    _name = "plasticos.dispatch"
 ./plasticos_logistics/models/freight_estimate.py:10:    _name = "plasticos.freight.estimate"
-./plasticos_logistics/models/freight_governance.py:40:    _name = "plasticos.freight.event"
-./plasticos_logistics/models/freight_governance.py:77:    _name = "plasticos.freight.calibration.observation"
-./plasticos_logistics/models/freight_governance.py:157:    _name = "plasticos.rate.memory.reconciliation"
+./plasticos_logistics/models/freight_governance.py:30:    _name = "plasticos.freight.event"
+./plasticos_logistics/models/freight_governance.py:67:    _name = "plasticos.freight.calibration.observation"
+./plasticos_logistics/models/freight_governance.py:149:    _name = "plasticos.rate.memory.reconciliation"
 ./plasticos_logistics/models/freight_quote.py:36:    _name = "plasticos.freight.quote.request"
 ./plasticos_logistics/models/freight_quote.py:38:    _inherit = ["mail.thread", "mail.activity.mixin"]
-./plasticos_logistics/models/freight_quote.py:356:    _name = "plasticos.freight.quote.recipient"
-./plasticos_logistics/models/freight_quote.py:437:    _name = "plasticos.freight.quote"
+./plasticos_logistics/models/freight_quote.py:374:    _name = "plasticos.freight.quote.recipient"
+./plasticos_logistics/models/freight_quote.py:491:    _name = "plasticos.freight.quote"
 ./plasticos_logistics/models/load.py:36:    _name = "plasticos.load"
 ./plasticos_logistics/models/load.py:38:    _inherit = ["mail.thread", "mail.activity.mixin"]
 ./plasticos_logistics/models/load.py:191:    pickup_contact_name = fields.Char(string="Pickup Contact")
@@ -281,16 +281,12 @@
 ./plasticos_partner_import/__init__.py:120:        WHERE table_name = 'plasticos_load'
 ./plasticos_partner_import/migrations/19.0.1.1.0/pre-migrate.py:21:        WHERE table_name = 'plasticos_partner_bulk_update_wizard'
 ./plasticos_partner_import/migrations/19.0.1.1.0/pre-migrate.py:22:          AND column_name = 'x_private'
-./plasticos_partner_import/models/crm_lead_import_service.py:23:    _name = "plasticos.crm.lead.import.service"
-./plasticos_partner_import/models/crm_lead_import_service.py:49:        utm_name = LEAD_SOURCE_MAPPING.get(raw_source.strip(), "Other")
-./plasticos_partner_import/models/crm_lead_import_service.py:204:        contact_name = " ".join(filter(None, [first, last]))
 ./plasticos_partner_import/models/partner_import_service.py:32:    _name = "plasticos.partner.import.service"
 ./plasticos_partner_import/models/partner_import_service.py:404:        partner_name = row.get("partner_id", "").strip()
 ./plasticos_partner_import/models/partner_import_service.py:419:        facility_name = alias if alias and alias != "INVOICE" else f"{partner_name} - {facility_type}"
 ./plasticos_partner_import/models/partner_import_service.py:470:        contact_name = row.get("Contact", "").strip()
 ./plasticos_partner_import/models/res_config_settings.py:6:    _inherit = "res.config.settings"
 ./plasticos_partner_import/models/validation.py:10:    _name = "plasticos.partner.import.validation"
-./plasticos_partner_import/wizards/crm_lead_import_wizard.py:19:    _name = "plasticos.crm.lead.import.wizard"
 ./plasticos_partner_import/wizards/partner_bulk_update_wizard.py:11:    _name = "plasticos.partner.bulk.update.wizard"
 ./plasticos_partner_import/wizards/partner_import_wizard.py:16:    _name = "plasticos.partner.import.wizard"
 ./plasticos_product/models/product_template.py:18:    _inherit = "product.template"
@@ -412,13 +408,19 @@
 ./tests/runtime_gates/run_c6_replay_checkpoint.py:72:        last_name="L",
 ./tests/runtime_gates/run_f1_f3_full_import.py:99:        first_name="A",
 ./tests/runtime_gates/run_f1_f3_full_import.py:100:        last_name="L",
+./tests/runtime_gates/run_f1_f3_full_import.py:369:f5_name = indep("select partner_name from crm_lead where vanillasoft_id=%s", (f"{TAG}-change",))[0][0]
+./tests/runtime_gates/run_f1_f3_full_import.py:371:print(f"F5  created={f5_created} updated={f5_updated} partner_name={f5_name} leads={n_change}")
+./tests/runtime_gates/run_f1_f3_full_import.py:374:    f5_created == 1 and f5_updated == 1 and f5_name == "Changed Co" and n_change == 1
 ./tests/test_action_methods.py:104:        intake = self._make_intake(partner_id=False, pending_company_name="Match Test")
 ./tests/test_action_methods.py:474:        lead = self._make_lead(partner_id=False, partner_name="New Auto Co")
 ./tests/test_committed_sync_metrics.py:44:        first_name="Ada",
 ./tests/test_committed_sync_metrics.py:45:        last_name="Lovelace",
-./tests/test_crm_sync_full_import.py:70:        first_name="Ada",
-./tests/test_crm_sync_full_import.py:71:        last_name="Lovelace",
-./tests/test_crm_sync_full_import.py:619:        table_name="Grades",
+./tests/test_crm_sync_classification.py:113:        provider="vanillasoft", external_id=external_id, company="Co", first_name="A", last_name="L", email=email
+./tests/test_crm_sync_classification.py:216:        first_name="A",
+./tests/test_crm_sync_classification.py:217:        last_name="L",
+./tests/test_crm_sync_full_import.py:73:        first_name="Ada",
+./tests/test_crm_sync_full_import.py:74:        last_name="Lovelace",
+./tests/test_crm_sync_full_import.py:622:        table_name="Grades",
 ./tests/test_depends_transaction_claims_bridge.py:7:and ``transaction_claims_bridge.py``, both ``_inherit = "plasticos.transaction"``).
 ./tests/test_gap_fixes.py:305:        view_name = "plasticos_rep_performance"
 ./tests/test_gate_canonical_contract.py:57:    _name = "plasticos.enrichment.run"
@@ -435,9 +437,9 @@
 ./tests/test_odoo_test_setup_validity.py:103:        var_name = match.group(2)
 ./tests/test_odoo_test_setup_validity.py:199:                    model_name = subscript.slice.value
 ./tests/test_phantom_enum_values.py:656:        # e.g. assert method_name == '_reverse_tx' — not selection enum values
-./tests/test_phantom_enum_values.py:840:    # Pattern: field_name = fields.Selection([(key, label), ...], ...)
-./tests/test_phantom_enum_values.py:855:        field_name = target.id
-./tests/test_phantom_enum_values.py:1014:                    field_name = field_node.value
-./tests/test_phantom_enum_values.py:1018:                    field_name = field_node.value
-./tests/test_phantom_enum_values.py:1351:            field_name = usage.context[7:-1]  # strip "domain[" and "]"
-./tests/test_phantom_enum_values.py:1399:                field_name = usage.context[7:-1]
+./tests/test_phantom_enum_values.py:849:    # Pattern: field_name = fields.Selection([(key, label), ...], ...)
+./tests/test_phantom_enum_values.py:864:        field_name = target.id
+./tests/test_phantom_enum_values.py:1023:                    field_name = field_node.value
+./tests/test_phantom_enum_values.py:1027:                    field_name = field_node.value
+./tests/test_phantom_enum_values.py:1360:            field_name = usage.context[7:-1]  # strip "domain[" and "]"
+./tests/test_phantom_enum_values.py:1408:                field_name = usage.context[7:-1]
