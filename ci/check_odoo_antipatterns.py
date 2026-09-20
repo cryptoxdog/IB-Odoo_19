@@ -248,21 +248,22 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
     def visit_Compare(self, node: ast.Compare) -> None:
         """Check comparisons for anti-patterns."""
         # Check for 'record is None' or 'record is not None'
-        for op, comparator in zip(node.ops, node.comparators):
-            if isinstance(op, (ast.Is, ast.IsNot)):
-                if isinstance(comparator, ast.Constant) and comparator.value is None:
-                    if self._looks_like_recordset(node.left):
-                        self.issues.append(
-                            AntiPatternIssue(
-                                file=self.filepath,
-                                line=node.lineno,
-                                code="ODOO006",
-                                pattern="record is None",
-                                message="Don't compare recordsets with 'is None'",
-                                fix="Use 'if not record:' (empty recordset is falsy)",
-                                severity="HIGH",
+        if self.in_model_class:
+            for op, comparator in zip(node.ops, node.comparators):
+                if isinstance(op, (ast.Is, ast.IsNot)):
+                    if isinstance(comparator, ast.Constant) and comparator.value is None:
+                        if self._looks_like_recordset(node.left):
+                            self.issues.append(
+                                AntiPatternIssue(
+                                    file=self.filepath,
+                                    line=node.lineno,
+                                    code="ODOO006",
+                                    pattern="record is None",
+                                    message="Don't compare recordsets with 'is None'",
+                                    fix="Use 'if not record:' (empty recordset is falsy)",
+                                    severity="HIGH",
+                                )
                             )
-                        )
 
         self.generic_visit(node)
 

@@ -72,6 +72,20 @@ class OdooAudit:
         }
     )
 
+    VIEW_METADATA_FIELDS = frozenset(
+        {
+            "arch",
+            "context",
+            "help",
+            "inherit_id",
+            "model",
+            "priority",
+            "res_model",
+            "search_view_id",
+            "view_mode",
+        }
+    )
+
     ODOO_CORE_MODELS = frozenset(
         {
             "res.partner",
@@ -115,7 +129,7 @@ class OdooAudit:
                 inherited_model = inherit_match.group(1)
                 for match in re.finditer(
                     r"(\w+)\s*=\s*fields\.(Char|Integer|Float|Boolean|Date|Datetime|"
-                    r"Many2one|One2many|Many2many|Selection|Text|Html|Binary|Monetary|Reference|Image)",
+                    r"Many2one|One2many|Many2many|Selection|Text|Html|Binary|Json|Monetary|Reference|Image)",
                     content,
                 ):
                     field_name = match.group(1)
@@ -133,7 +147,7 @@ class OdooAudit:
 
             for match in re.finditer(
                 r"(\w+)\s*=\s*fields\.(Char|Integer|Float|Boolean|Date|Datetime|"
-                r"Many2one|One2many|Many2many|Selection|Text|Html|Binary|Monetary|Reference|Image)",
+                r"Many2one|One2many|Many2many|Selection|Text|Html|Binary|Json|Monetary|Reference|Image)",
                 content,
             ):
                 field_name = match.group(1)
@@ -188,7 +202,7 @@ class OdooAudit:
                 continue
             if field in self.model_fields[model]:
                 continue
-            if field in ("id", "create_uid", "create_date", "write_uid", "write_date"):
+            if field in self.MAGIC_FIELDS or field in self.VIEW_METADATA_FIELDS:
                 continue
 
             suggestions = []

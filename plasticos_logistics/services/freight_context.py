@@ -1,7 +1,7 @@
 """Deterministic freight-context construction for governed logistics decisions.
 
 This service owns canonical serialization and SHA-256 identities only. It never
-contacts a carrier, an external model, or Gate.
+contacts a carrier or performs a commercial action.
 """
 
 from __future__ import annotations
@@ -11,8 +11,8 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-FREIGHT_CONTEXT_VERSION = "freight_context_v2"
-FREIGHT_CONTEXT_SCHEMA_VERSION = "2.1"
+FREIGHT_CONTEXT_VERSION = "freight_context_v3"
+FREIGHT_CONTEXT_SCHEMA_VERSION = "3.0"
 
 
 @dataclass(frozen=True)
@@ -35,14 +35,15 @@ def _canonical_hash(value: dict[str, Any]) -> tuple[str, str]:
 def _location_snapshot(partner) -> tuple[str, str]:
     """Hash a stable physical-location snapshot rather than partner ID alone."""
     snapshot = {
-        "address": partner.contact_address_complete or "",
-        "city": partner.city or "",
-        "country_id": partner.country_id.id or None,
+        "city": getattr(partner, "city", None) or "",
+        "country_id": getattr(getattr(partner, "country_id", None), "id", None) or None,
+        "latitude": getattr(partner, "partner_latitude", None),
+        "longitude": getattr(partner, "partner_longitude", None),
         "partner_id": partner.id,
-        "state_id": partner.state_id.id or None,
-        "street": partner.street or "",
-        "street2": partner.street2 or "",
-        "zip": partner.zip or "",
+        "state_id": getattr(getattr(partner, "state_id", None), "id", None) or None,
+        "street": getattr(partner, "street", None) or "",
+        "street2": getattr(partner, "street2", None) or "",
+        "zip": getattr(partner, "zip", None) or "",
     }
     return _canonical_hash(snapshot)
 
