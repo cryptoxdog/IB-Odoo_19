@@ -121,7 +121,7 @@ class PlasticosLegacyErpImport(models.AbstractModel):
             name = _text(row, "CompanyNm")
             if not name:
                 report.anomaly("CounterParty", cp_id, "blank CompanyNm")
-                report.skip("counterparties")
+                report.reject("counterparties")
                 continue
 
             role, role_anomaly = mapping.company_role(row.get("Role"))
@@ -194,7 +194,14 @@ class PlasticosLegacyErpImport(models.AbstractModel):
         for cp_id in sorted(index.addresses_by_cp):
             parent_id = partner_by_cp.get(cp_id)
             if not parent_id and not dry_run:
-                report.unresolved_ref("Address", "parent_not_imported", cp_id, "counterparty partner was not created")
+                # The parent failure suppresses every address row under this
+                # CpID. Account for each source row (one unresolved entry per
+                # AddressID) so ``seen == created + updated + unchanged +
+                # rejected`` still closes in the shared summary.
+                for address_id in index.addresses_by_cp[cp_id]:
+                    report.unresolved_ref(
+                        "Address", "parent_not_imported", address_id, f"counterparty {cp_id} partner was not created"
+                    )
                 continue
 
             for address_id in index.addresses_by_cp[cp_id]:
@@ -254,7 +261,14 @@ class PlasticosLegacyErpImport(models.AbstractModel):
         for cp_id in sorted(index.contacts_by_cp):
             company_partner_id = partner_by_cp.get(cp_id)
             if not company_partner_id and not dry_run:
-                report.unresolved_ref("Contact", "parent_not_imported", cp_id, "counterparty partner was not created")
+                # The parent failure suppresses every contact row under this
+                # CpID. Account for each source row (one unresolved entry per
+                # CT_ID) so ``seen == created + updated + unchanged + rejected``
+                # still closes in the shared summary.
+                for contact_id in index.contacts_by_cp[cp_id]:
+                    report.unresolved_ref(
+                        "Contact", "parent_not_imported", contact_id, f"counterparty {cp_id} partner was not created"
+                    )
                 continue
 
             for contact_id in index.contacts_by_cp[cp_id]:
@@ -262,7 +276,7 @@ class PlasticosLegacyErpImport(models.AbstractModel):
                 name = _text(row, "ContactNm")
                 if not name:
                     report.anomaly("Contact", contact_id, "blank ContactNm")
-                    report.skip("contacts")
+                    report.reject("contacts")
                     continue
 
                 # Location is the Address composite key (CpID, Type), so this is

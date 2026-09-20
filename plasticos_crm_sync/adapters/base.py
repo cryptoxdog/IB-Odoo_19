@@ -7,10 +7,6 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 
-class CrmAdapterStubError(Exception):
-    """Raised by stub adapters that are not implemented in v1."""
-
-
 class CrmAdapterError(Exception):
     """Adapter/client failure (HTTP, auth, parse)."""
 
@@ -85,33 +81,3 @@ class CrmAdapter(Protocol):
     ) -> Iterator[list[CanonicalCall]]: ...
 
     def iter_table_rows(self, contact_external_id: str) -> Iterator[CanonicalTableRow]: ...
-
-
-class StubCrmAdapter:
-    """Shared stub behavior for non-VanillaSoft providers."""
-
-    provider: str = "stub"
-    live: bool = False
-
-    def _raise(self) -> None:
-        raise CrmAdapterStubError(f"{self.provider} adapter is a stub — not implemented in v1")
-
-    def healthcheck(self) -> dict[str, Any]:
-        self._raise()
-        return {}
-
-    def iter_contacts(self, *, modified_after: str, limit: int = 200):
-        self._raise()
-        yield from ()
-
-    def get_contact(self, external_id: str) -> CanonicalLead | None:
-        self._raise()
-        return None
-
-    def iter_calls(self, *, start: str, end: str, limit: int = 500):
-        self._raise()
-        yield from ()
-
-    def iter_table_rows(self, contact_external_id: str):
-        self._raise()
-        yield from ()
