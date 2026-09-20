@@ -45,6 +45,11 @@ make push pr=1                            # push, then open PR into Staging
 docker-compose up -d                      # Start Odoo + PostgreSQL + Redis
 docker-compose exec web odoo -u plasticos_base --stop-after-init  # Update module
 
+# Data imports (canonical commands — odoo-intent-1 ingestion milestone)
+make import-legacy-erp                    # LegacyErp import: preflight + reconciliation + summary (DRY=1 preview)
+make import-vanillasoft                   # VanillaSoft full import: preflight + reconciliation + summary
+python3 scripts/validate_import_summary.py .l9/pr/import-*-summary.json  # validate machine summaries
+
 # Tests (requires running Odoo instance)
 python -m pytest tests/ -v                # All tests
 python -m pytest tests/contracts/ -v      # Contract tests

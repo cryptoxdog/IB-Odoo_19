@@ -21,6 +21,9 @@ record is addressed by its stable LegacyErp source key.
 """
 
 import json
+import os
+
+from ..legacy_erp import summary as import_summary
 
 
 def run(
@@ -30,8 +33,10 @@ def run(
     commit: bool = False,
     dry_run: bool = False,
     verbose: bool = True,
+    report_path: str | None = None,
 ) -> dict:
-    """Execute the LegacyErp import and print an accounting report.
+    """Execute the LegacyErp import, print an accounting report, and emit the
+    shared import-run summary (``contracts/schemas/draft/import-run-summary``).
 
     Args:
         env: Odoo environment.
@@ -40,10 +45,14 @@ def run(
         commit: Commit between complete transactions.
         dry_run: Resolve and map everything without persisting.
         verbose: Print the human-readable summary.
+        report_path: When set, write the machine-readable summary JSON here.
 
     Returns:
-        The import report produced by ``plasticos.legacy_erp.import``.
+        The import report produced by ``plasticos.legacy_erp.import`` with a
+        ``summary`` key carrying the shared import-run summary (applied runs
+        only; dry runs emit no summary).
     """
+    start_time = import_summary.utc_now()
     result = env["plasticos.legacy_erp.import"].run(
         payload_root=payload_root,
         limit=limit,
@@ -51,9 +60,40 @@ def run(
         dry_run=dry_run,
     )
 
-    if verbose:
-        _print_report(result, dry_run=dry_run)
+    if not dry_run:
+        summary = import_summary.import_run_summary(
+            result,
+            start_time=start_time,
+        )
+        result["summary"] = summary
+        if report_path:
+            parent = os.path.dirname(os.path.abspath(report_path))
+            os.makedirs(parent, exist_ok=True)
+            with open(report_path, "w", encoding="utf-8") as handle:
+                json.dump(summary, handle, indent=2, sort_keys=True)
+                handle.write("\n")
+        if verbose:
+            _print_summary(summary)
+    elif verbose:
+        _print_report(result, dry_run=True)
     return result
+
+
+def _print_summary(summary: dict) -> None:
+    print("\n=== LEGACY_ERP IMPORT SUMMARY ===")
+    print(f"status      : {summary['final_status']}")
+    print(
+        f"seen/valid  : {summary['records_seen']} / {summary['records_valid']} (rejected {summary['records_rejected']})"
+    )
+    print(
+        "created     : {created}  updated: {updated}  unchanged: {unchanged}  duplicates: {duplicates}".format(
+            **summary
+        )
+    )
+    if summary["errors"]:
+        print(f"errors      : {len(summary['errors'])} (first 10 below)")
+        for row in summary["errors"][:10]:
+            print(f"  - {row['record_ref']}: {row['message'][:160]}")
 
 
 def _print_report(result: dict, dry_run: bool) -> None:
