@@ -1,5 +1,6 @@
-./plasticos_web_leads/controllers/web_lead_api.py:71:    @http.route(
-./plasticos_web_leads/controllers/web_lead_api.py:148:    @http.route(
-./plasticos_web_leads/controllers/web_lead_api.py:219:    @http.route(
-./scripts/audit/security_audit.py:23:                # Find @http.route decorators
-./scripts/audit/security_audit.py:37:                                "fix": "Add auth='user' or auth='public' to @http.route",
+./plasticos_crm_sync/controllers/webhook.py:19:    @http.route(
+./plasticos_web_leads/controllers/web_lead_api.py:116:    @http.route(
+./plasticos_web_leads/controllers/web_lead_api.py:193:    @http.route(
+./plasticos_web_leads/controllers/web_lead_api.py:264:    @http.route(
+./scripts/audit/security_audit.py:27:                # Find @http.route decorators
+./scripts/audit/security_audit.py:41:                                "fix": "Add auth='user' or auth='public' to @http.route",

@@ -121,17 +121,24 @@ def bounded_evidence_payload(records):
 def local_estimation_evidence(records):
     """Normalize executed outcomes for local Haversine-curve estimation.
 
-    Actual freight cost is preferred when it is currency-bearing. A confirmed
-    booked rate remains usable where actual cost has not yet been recorded.
+    The latest immutable calibration observation is preferred over mutable load
+    display fields. A confirmed booked rate remains usable when calibration
+    evidence does not exist.
     """
     from odoo.addons.plasticos_logistics.services.freight_estimation import FreightEvidence
 
+    observations = records.env["plasticos.freight.calibration.observation"].search(
+        [("load_id", "in", records.ids)], order="observed_at desc, id desc"
+    )
+    latest_observation_by_load = {}
+    for observation in observations:
+        latest_observation_by_load.setdefault(observation.load_id.id, observation)
     output = []
     for record in records:
-        actual_currency = record.actual_freight_currency_id
-        if record.actual_freight_recorded_at and actual_currency:
-            amount = record.actual_freight_cost
-            currency = actual_currency
+        observation = latest_observation_by_load.get(record.id)
+        if observation:
+            amount = observation.actual_cost_amount
+            currency = observation.currency_id
             source_type = "executed_actual"
         elif record.rate_amount and record.rate_currency_id:
             amount = record.rate_amount
@@ -160,12 +167,32 @@ def _load_company(load):
     return getattr(load, "company_id", False) or (load.sale_order_id.company_id if load.sale_order_id else False)
 
 
-def legacy_lane_candidates(env, legacy_row):
-    """Return only candidate loads whose historical lane key exactly matches a cache row."""
+def legacy_lane_candidates(env, legacy_row, *, scan_limit=200):
+    """Return bounded exact candidates and a conservative truncation signal.
+
+    Legacy cache rows have no durable company owner. The query is therefore
+    constrained to the actor's allowed companies and bounded at ``scan_limit``;
+    a truncated scan is never classified as an exact historical match.
+    """
+    if not legacy_row.rate_date:
+        return env[PLASTICOS_LOAD].browse(), False
+    start = fields.Datetime.to_datetime(legacy_row.rate_date)
+    end = start + timedelta(days=1)
     candidates = env[PLASTICOS_LOAD].search(
-        [("state", "in", ("rate_confirmed", "scheduled", "dispatched", "picked_up", "delivered", "closed"))],
+        [
+            ("company_id", "in", env.companies.ids),
+            ("carrier_id", "=", legacy_row.carrier_id.id),
+            ("rate_amount", "=", legacy_row.rate_amount),
+            ("rate_confirmed_at", ">=", start),
+            ("rate_confirmed_at", "<", end),
+            ("state", "in", ("rate_confirmed", "scheduled", "dispatched", "picked_up", "delivered", "closed")),
+        ],
         order="rate_confirmed_at desc, id desc",
+        limit=scan_limit + 1,
     )
+    truncated = len(candidates) > scan_limit
+    if truncated:
+        candidates = candidates[:scan_limit]
     return candidates.filtered(
         lambda load: (
             load.carrier_id == legacy_row.carrier_id
@@ -174,7 +201,7 @@ def legacy_lane_candidates(env, legacy_row):
             and fields.Date.to_date(load.rate_confirmed_at) == legacy_row.rate_date
             and _legacy_lane_key(load) == legacy_row.lane_key
         )
-    )
+    ), truncated
 
 
 def _legacy_lane_key(load):

@@ -8,6 +8,11 @@ import json
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
+_RFQ_INTERNAL_WRITE = "plasticos_logistics_internal_rfq_write"
+_RFQ_INTERNAL_SELECTION = "plasticos_logistics_internal_rfq_selection"
+_RFQ_INTERNAL_WRITE_TOKEN = object()
+_RFQ_INTERNAL_SELECTION_TOKEN = object()
+
 RANKING_STATUS = [
     ("not_evaluated", "Not Evaluated"),
     ("eligible", "Eligible"),
@@ -88,10 +93,66 @@ class PlasticosFreightQuoteRequest(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        from odoo.addons.plasticos_logistics.services.freight_context import (
+            FREIGHT_CONTEXT_VERSION,
+            build_freight_context,
+        )
+
+        load_ids = [values["load_id"] for values in vals_list if values.get("load_id")]
+        loads = self.env["plasticos.load"].browse(load_ids).exists()
+        loads._require_freight_operator()
         for vals in vals_list:
+            load = loads.filtered(lambda candidate, values=vals: candidate.id == values.get("load_id"))
+            if not load or load.state != "ready_confirmed" or load.sal_decision not in ("miss", "not_eligible"):
+                raise UserError(
+                    "A current SAL miss or not-eligible decision is required before creating an RFQ episode."
+                )
+            context = build_freight_context(load)
+            if not context or load.freight_context_fingerprint != context.fingerprint:
+                raise UserError("A complete current freight context is required before creating an RFQ episode.")
+            company = _company_for_load(load)
+            if not company or not load.transaction_id:
+                raise UserError("Load company and transaction are required before creating an RFQ episode.")
+            idempotency_key = hashlib.sha256(f"rfq:{load.id}:{context.fingerprint}".encode()).hexdigest()
+            vals.update(
+                {
+                    "company_id": company.id,
+                    "transaction_id": load.transaction_id.id,
+                    "origin_partner_id": load.pickup_partner_id.id,
+                    "destination_partner_id": load.delivery_partner_id.id,
+                    "context_fingerprint": context.fingerprint,
+                    "fingerprint_version": FREIGHT_CONTEXT_VERSION,
+                    "idempotency_key": idempotency_key,
+                    "sal_decision": load.sal_decision,
+                    "sal_miss_reason": load.sal_miss_reason or "not_eligible",
+                }
+            )
+            if self.search([("idempotency_key", "=", idempotency_key)], limit=1):
+                raise UserError("A freight quote request already exists for the current load context.")
             if vals.get("name", "New") == "New":
                 vals["name"] = self.env["ir.sequence"].next_by_code("plasticos.freight.quote.request") or "New"
         return super().create(vals_list)
+
+    def _rfq_write(self, values):
+        return self.with_context(**{_RFQ_INTERNAL_WRITE: _RFQ_INTERNAL_WRITE_TOKEN}).write(values)
+
+    def _require_operator(self):
+        self.mapped("load_id")._require_freight_operator()
+
+    def _lock_decision(self):
+        for rec in self:
+            # Advisory lock justification: serializes RFQ ranking and selection across workers.
+            rec.env.cr.execute(
+                "SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.rfq-decision:{rec.id}"]
+            )
+
+    def _ensure_active_for_child_evidence(self):
+        self._lock_decision()
+        for rec in self:
+            rec.invalidate_recordset()
+            if rec.state in ("resolved", "cancelled", "failed"):
+                raise UserError("Terminal freight quote requests cannot accept new evidence.")
+            rec._ensure_current_context()
 
     @api.constrains("company_id", "load_id", "transaction_id", "origin_partner_id", "destination_partner_id")
     def _check_request_company_and_lane(self):
@@ -114,7 +175,7 @@ class PlasticosFreightQuoteRequest(models.Model):
             current_context = build_freight_context(rec.load_id)
             if not current_context or current_context.fingerprint != rec.context_fingerprint:
                 if rec.state not in ("resolved", "cancelled", "failed"):
-                    rec.write(
+                    rec._rfq_write(
                         {
                             "state": "cancelled",
                             "cancelled_at": fields.Datetime.now(),
@@ -143,11 +204,12 @@ class PlasticosFreightQuoteRequest(models.Model):
             QuoteCandidate,
             rank_quotes,
         )
+        from odoo.addons.plasticos_logistics.services.state_machine import new_correlation_id
 
         for rec in self:
-            rec.env.cr.execute(
-                "SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.rfq-decision:{rec.id}"]
-            )
+            rec._require_operator()
+            correlation_id = new_correlation_id()
+            rec._lock_decision()
             rec.invalidate_recordset()
             if rec.state in ("resolved", "cancelled", "failed"):
                 raise UserError("Terminal freight quote requests cannot be ranked.")
@@ -202,7 +264,7 @@ class PlasticosFreightQuoteRequest(models.Model):
                     status = "recommended" if quote.id == recommended_id else "eligible"
                 else:
                     status = "ineligible"
-                quote.write(
+                quote.with_context(**{_RFQ_INTERNAL_WRITE: _RFQ_INTERNAL_WRITE_TOKEN}).write(
                     {
                         "ranking_status": status,
                         "ranking_score": ranking.score if ranking.eligible else False,
@@ -212,7 +274,7 @@ class PlasticosFreightQuoteRequest(models.Model):
                         "ranked_at": fields.Datetime.now(),
                     }
                 )
-            rec.write(
+            rec._rfq_write(
                 {
                     "recommended_quote_id": recommended_id,
                     "ranking_policy_version": RANKING_POLICY_VERSION,
@@ -225,6 +287,7 @@ class PlasticosFreightQuoteRequest(models.Model):
                 outcome_code="recommended" if recommended_id else "no_eligible_quote",
                 load=rec.load_id,
                 facts={"request_id": rec.id, "recommended_quote_id": recommended_id, "policy": RANKING_POLICY_VERSION},
+                correlation_id=correlation_id,
             )
         return True
 
@@ -245,8 +308,14 @@ class PlasticosFreightQuoteRequest(models.Model):
             raise UserError("Freight quote request identity is immutable after creation.")
         if "state" in vals:
             for rec in self:
+                if self.env.context.get(_RFQ_INTERNAL_WRITE) is not _RFQ_INTERNAL_WRITE_TOKEN:
+                    raise UserError("Freight quote request state changes require a validated freight command.")
                 if vals["state"] != rec.state and vals["state"] not in self._REQUEST_TRANSITIONS[rec.state]:
                     raise UserError("Freight quote request transition is not permitted.")
+        if {"recommended_quote_id", "ranking_policy_version", "ranked_at"}.intersection(vals) and self.env.context.get(
+            _RFQ_INTERNAL_WRITE
+        ) is not _RFQ_INTERNAL_WRITE_TOKEN:
+            raise UserError("Freight ranking provenance may only change through the ranking workflow.")
         return super().write(vals)
 
     def unlink(self):
@@ -254,14 +323,13 @@ class PlasticosFreightQuoteRequest(models.Model):
 
     def action_select_quote(self):
         for rec in self:
-            rec.env.cr.execute(
-                "SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.rfq-decision:{rec.id}"]
-            )
+            rec._require_operator()
+            rec._lock_decision()
             rec.invalidate_recordset()
             if rec.state not in ("draft", "sent", "collecting"):
                 raise UserError("Only an active freight quote request can be resolved.")
             if rec.state == "draft":
-                rec.write({"state": "collecting"})
+                rec._rfq_write({"state": "collecting"})
             rec._ensure_current_context()
             quote = rec.quote_ids.filtered(lambda item: item.selected)
             if len(quote) != 1:
@@ -275,8 +343,10 @@ class PlasticosFreightQuoteRequest(models.Model):
                 resolution_method="live_quote",
                 context_fingerprint=rec.context_fingerprint,
             )
-            rec.write({"selected_quote_id": selected.id, "resolved_at": fields.Datetime.now(), "state": "resolved"})
-            rec.load_id.write({"selected_freight_quote_id": selected.id})
+            rec._rfq_write(
+                {"selected_quote_id": selected.id, "resolved_at": fields.Datetime.now(), "state": "resolved"}
+            )
+            rec.load_id._freight_write({"selected_freight_quote_id": selected.id})
             rec.message_post(
                 body=f"Freight quote {selected.name} selected and confirmed through the canonical load rate path."
             )
@@ -322,6 +392,14 @@ class PlasticosFreightQuoteRecipient(models.Model):
         "Only one logical recipient may exist for each request, carrier, and channel.",
     )
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        request_ids = [values["request_id"] for values in vals_list if values.get("request_id")]
+        requests = self.env["plasticos.freight.quote.request"].browse(request_ids).exists()
+        requests._require_operator()
+        requests._ensure_active_for_child_evidence()
+        return super().create(vals_list)
+
     @api.constrains("company_id", "request_id")
     def _check_recipient_company(self):
         for rec in self:
@@ -344,6 +422,8 @@ class PlasticosFreightQuoteRecipient(models.Model):
         protected = {"company_id", "request_id", "carrier_id", "channel", "idempotency_key"}
         if protected.intersection(vals):
             raise UserError("Freight quote recipient identity is immutable after creation.")
+        if "state" in vals and self.env.context.get(_RFQ_INTERNAL_WRITE) is not _RFQ_INTERNAL_WRITE_TOKEN:
+            raise UserError("Recipient lifecycle changes require the validated freight response workflow.")
         if "destination_snapshot" in vals:
             for rec in self:
                 if rec.sent_at:
@@ -401,8 +481,25 @@ class PlasticosFreightQuote(models.Model):
         "unique(request_id, source_fingerprint)", "Carrier response source is already recorded for this request."
     )
 
+    def init(self):
+        """Enforce one selected quote per RFQ even under concurrent ORM commands."""
+        # Atomic partial-index creation is required; ORM constraints cannot express `WHERE selected`.
+        self.env.cr.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS plasticos_freight_quote_one_selected_per_request_idx
+            ON plasticos_freight_quote (request_id)
+            WHERE selected
+            """
+        )
+
     @api.model_create_multi
     def create(self, vals_list):
+        if any(values.get("selected") for values in vals_list):
+            raise UserError("Quote selection is only permitted through the locked selection workflow.")
+        request_ids = [values["request_id"] for values in vals_list if values.get("request_id")]
+        requests = self.env["plasticos.freight.quote.request"].browse(request_ids).exists()
+        requests._require_operator()
+        requests._ensure_active_for_child_evidence()
         recipient_ids = [vals["recipient_id"] for vals in vals_list if vals.get("recipient_id")]
         recipients = self.env["plasticos.freight.quote.recipient"].browse(recipient_ids).exists()
         recipients_by_id = {recipient.id: recipient for recipient in recipients}
@@ -424,7 +521,7 @@ class PlasticosFreightQuote(models.Model):
         records = super().create(vals_list)
         for rec in records:
             if rec.recipient_id.state not in ("cancelled", "responded"):
-                rec.recipient_id.write(
+                rec.recipient_id.with_context(**{_RFQ_INTERNAL_WRITE: _RFQ_INTERNAL_WRITE_TOKEN}).write(
                     {
                         "attempt_count": max(1, rec.recipient_id.attempt_count),
                         "last_attempt_at": rec.responded_at,
@@ -473,6 +570,23 @@ class PlasticosFreightQuote(models.Model):
         }
         if protected.intersection(vals):
             raise UserError("Carrier response evidence is immutable; create a superseding quote instead.")
+        if "selected" in vals and self.env.context.get(_RFQ_INTERNAL_SELECTION) is not _RFQ_INTERNAL_SELECTION_TOKEN:
+            raise UserError("Quote selection is only permitted through the locked selection workflow.")
+        if "lifecycle_state" in vals and self.env.context.get(_RFQ_INTERNAL_WRITE) is not _RFQ_INTERNAL_WRITE_TOKEN:
+            raise UserError("Quote lifecycle changes require a validated supersession workflow.")
+        ranking_fields = {
+            "ranking_status",
+            "ranking_score",
+            "ranking_rank",
+            "ranking_policy_version",
+            "ranking_reasoning",
+            "ranked_at",
+        }
+        if (
+            ranking_fields.intersection(vals)
+            and self.env.context.get(_RFQ_INTERNAL_WRITE) is not _RFQ_INTERNAL_WRITE_TOKEN
+        ):
+            raise UserError("Quote ranking provenance may only change through the ranking workflow.")
         return super().write(vals)
 
     def unlink(self):
@@ -491,16 +605,25 @@ class PlasticosFreightQuote(models.Model):
                 raise UserError("An expired quote cannot be selected.")
 
     def action_select(self):
+        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+        from odoo.addons.plasticos_logistics.services.state_machine import new_correlation_id
+
         for rec in self:
-            rec.env.cr.execute(
-                "SELECT pg_advisory_xact_lock(hashtext(%s))",
-                [f"plasticos_logistics.rfq-decision:{rec.request_id.id}"],
-            )
+            rec.request_id._require_operator()
+            correlation_id = new_correlation_id()
+            rec.request_id._ensure_active_for_child_evidence()
             rec.invalidate_recordset()
-            if rec.request_id.state in ("resolved", "cancelled", "failed"):
-                raise UserError("Quotes cannot be changed after the request is terminal.")
             rec._check_selectable()
-            rec.request_id._ensure_current_context()
-            (rec.request_id.quote_ids - rec).filtered("selected").write({"selected": False})
-            rec.write({"selected": True})
+            (rec.request_id.quote_ids - rec).filtered("selected").with_context(
+                **{_RFQ_INTERNAL_SELECTION: _RFQ_INTERNAL_SELECTION_TOKEN}
+            ).write({"selected": False})
+            rec.with_context(**{_RFQ_INTERNAL_SELECTION: _RFQ_INTERNAL_SELECTION_TOKEN}).write({"selected": True})
+            record_freight_event(
+                rec.env,
+                event_type="freight_quote_selected",
+                outcome_code="selected",
+                load=rec.request_id.load_id,
+                facts={"request_id": rec.request_id.id, "quote_id": rec.id},
+                correlation_id=correlation_id,
+            )
         return True

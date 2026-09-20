@@ -23,7 +23,6 @@
 ./plasticos_base/data/sales_reps.xml
 ./plasticos_base/data/service_user.xml
 ./plasticos_base/data/uom_defaults.xml
-./plasticos_buyer_match_engine/data/ir_cron_graph_sync.xml
 ./plasticos_claims/data/claim_cron.xml
 ./plasticos_claims/data/claim_sequence.xml
 ./plasticos_claims/data/email_templates.xml
@@ -36,6 +35,7 @@
 ./plasticos_crm_bridge/data/partner_category_data.xml
 ./plasticos_crm_bridge/data/utm_source_deactivate.xml
 ./plasticos_crm_bridge/security/crm_group_imply.xml
+./plasticos_crm_sync/data/ir_cron_data.xml
 ./plasticos_documents/data/cron.xml
 ./plasticos_documents/data/cron_missing_docs.xml
 ./plasticos_documents/data/document_tags_data.xml

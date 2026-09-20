@@ -2,14 +2,34 @@ import hashlib
 import logging
 from datetime import timedelta
 
-from odoo import api, fields, models
+from odoo import SUPERUSER_ID, api, fields, models
 from odoo.addons.plasticos_logistics.services.state_machine import VALID_TRANSITIONS, new_correlation_id
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 RES_PARTNER = "res.partner"
 PLASTICOS_TRANSACTION = "plasticos.transaction"
 PLASTICOS_LOAD = "plasticos.load"
 _logger = logging.getLogger(__name__)
+
+_FREIGHT_INTERNAL_WRITE = "plasticos_logistics_internal_freight_write"
+_FREIGHT_INTERNAL_WRITE_TOKEN = object()
+_FREIGHT_PROVENANCE_FIELDS = {
+    "freight_context_fingerprint",
+    "freight_context_version",
+    "rate_confirmed_at",
+    "rate_auto_reused",
+    "rate_resolution_method",
+    "sal_source_load_id",
+    "sal_evaluated_at",
+    "sal_decision",
+    "sal_miss_reason",
+    "sal_execution_failed",
+    "sal_execution_failure_reason",
+    "selected_freight_quote_id",
+    "actual_freight_recorded_at",
+}
+_FREIGHT_RATE_INPUT_FIELDS = {"carrier_id", "rate_amount", "rate_currency_id"}
+_FREIGHT_ACTUAL_INPUT_FIELDS = {"actual_freight_cost", "actual_freight_currency_id"}
 
 
 class PlasticosLoad(models.Model):
@@ -259,6 +279,19 @@ class PlasticosLoad(models.Model):
                 [("source_model", "=", PLASTICOS_LOAD), ("source_record_id", "=", rec.id)]
             )
 
+    def _require_freight_operator(self):
+        """Require the Logistics business role for freight command boundaries."""
+        if self.env.uid == SUPERUSER_ID:
+            return
+        if not self.env.user.has_group("plasticos_security_base.group_logistics"):
+            raise AccessError("Only Logistics users may execute freight commands.")
+        self.check_access_rights("write")
+        self.check_access_rule("write")
+
+    def _freight_write(self, values):
+        """Use the narrow internal capability after a canonical freight command validates."""
+        return self.with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write(values)
+
     def write(self, vals):
         """Guard against unauthorized modifications after dispatch.
 
@@ -270,6 +303,31 @@ class PlasticosLoad(models.Model):
         - Cron-managed fields (sla_breached)
         - Chatter fields (message_ids, message_follower_ids)
         """
+        freight_fields = set(vals)
+        internal_freight_write = self.env.context.get(_FREIGHT_INTERNAL_WRITE) is _FREIGHT_INTERNAL_WRITE_TOKEN
+        if not internal_freight_write:
+            if "state" in freight_fields:
+                raise UserError("Load state may only change through the validated transition workflow.")
+            protected = _FREIGHT_PROVENANCE_FIELDS.intersection(freight_fields)
+            if protected:
+                raise UserError(
+                    "Freight provenance may only change through a validated freight command: "
+                    f"{', '.join(sorted(protected))}"
+                )
+            if _FREIGHT_RATE_INPUT_FIELDS.intersection(freight_fields) or _FREIGHT_ACTUAL_INPUT_FIELDS.intersection(
+                freight_fields
+            ):
+                self._require_freight_operator()
+            for rec in self:
+                if _FREIGHT_RATE_INPUT_FIELDS.intersection(freight_fields) and rec.rate_confirmed_at:
+                    raise UserError(
+                        "Confirmed freight rate inputs are immutable; create a new freight resolution instead."
+                    )
+                if _FREIGHT_ACTUAL_INPUT_FIELDS.intersection(freight_fields) and rec.actual_freight_recorded_at:
+                    raise UserError(
+                        "Recorded actual freight is immutable; use the attributed calibration correction workflow."
+                    )
+
         for rec in self:
             if rec.state in ["dispatched", "picked_up", "delivered", "closed"]:
                 allowed = {
@@ -292,6 +350,8 @@ class PlasticosLoad(models.Model):
                     "delivery_term_override_reason",
                     "delivery_term_overridden",
                 }
+                if internal_freight_write:
+                    allowed.update(_FREIGHT_ACTUAL_INPUT_FIELDS | {"actual_freight_recorded_at"})
                 blocked = set(vals.keys()) - allowed
                 if blocked:
                     raise UserError(f"Load locked after dispatch. Cannot modify: {', '.join(sorted(blocked))}")
@@ -360,6 +420,7 @@ class PlasticosLoad(models.Model):
     def action_confirm_ready(self):
         """Confirm load is ready for pickup. Captures authenticated user."""
         for rec in self:
+            rec._require_freight_operator()
             rec.ready_confirmed_by = self.env.user.name
             rec.ready_confirmed_at = fields.Datetime.now()
             rec._transition("ready_confirmed")
@@ -377,6 +438,8 @@ class PlasticosLoad(models.Model):
 
         request_model = self.env["plasticos.freight.quote.request"]
         for rec in self:
+            rec._require_freight_operator()
+            correlation_id = new_correlation_id()
             if rec.state != "ready_confirmed" or rec.sal_decision not in ("miss", "not_eligible"):
                 raise UserError(
                     "A current SAL miss or not-eligible decision is required before creating an RFQ episode."
@@ -420,6 +483,7 @@ class PlasticosLoad(models.Model):
                 load=rec,
                 facts={"request_id": request.id},
                 unknowns=["recipient_policy_unapproved", "outbound_delivery_unavailable"],
+                correlation_id=correlation_id,
             )
         return True
 
@@ -444,6 +508,8 @@ class PlasticosLoad(models.Model):
 
         estimate_model = self.env["plasticos.freight.estimate"]
         for rec in self:
+            rec._require_freight_operator()
+            correlation_id = new_correlation_id()
             rec.env.cr.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.estimate:{rec.id}"])
             rec.invalidate_recordset()
             context = build_freight_context(rec)
@@ -452,10 +518,9 @@ class PlasticosLoad(models.Model):
             currency = rec.rate_currency_id
             if not currency:
                 raise UserError("An explicit freight currency is required before an estimate can be requested.")
-            company = getattr(rec, "company_id", False) or (
-                rec.sale_order_id.company_id if rec.sale_order_id else False
-            )
-            if not company:
+            if not (
+                getattr(rec, "company_id", False) or (rec.sale_order_id.company_id if rec.sale_order_id else False)
+            ):
                 raise UserError("Load company is required before an estimate can be recorded.")
             exact_history = recent_executed_lane_evidence(rec.env, rec)
             exact_ids = exact_history.ids
@@ -511,9 +576,12 @@ class PlasticosLoad(models.Model):
             )
             if existing:
                 continue
-            estimate = estimate_model.sudo().create(
+            from odoo.addons.plasticos_logistics.models.freight_governance import create_freight_evidence
+
+            estimate = create_freight_evidence(
+                rec.env,
+                "plasticos.freight.estimate",
                 {
-                    "company_id": company.id,
                     "context_fingerprint": context.fingerprint,
                     "request_fingerprint": request_fingerprint,
                     "fingerprint_version": FREIGHT_CONTEXT_VERSION,
@@ -537,7 +605,8 @@ class PlasticosLoad(models.Model):
                     "reasoning_summary": reasoning_summary,
                     "failure_code": failure_code,
                     "status": status,
-                }
+                },
+                load=rec,
             )
             rec.message_post(
                 body=(
@@ -563,6 +632,7 @@ class PlasticosLoad(models.Model):
                     "candidate_evidence_count": history_count,
                 },
                 unknowns=[] if status == "succeeded" else [failure_code],
+                correlation_id=correlation_id,
             )
         return True
 
@@ -583,6 +653,8 @@ class PlasticosLoad(models.Model):
         calibration_model = self.env["plasticos.freight.calibration.observation"]
         estimate_model = self.env["plasticos.freight.estimate"]
         for rec in self:
+            rec._require_freight_operator()
+            correlation_id = new_correlation_id()
             rec.env.cr.execute(
                 "SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.actual-cost:{rec.id}"]
             )
@@ -607,9 +679,12 @@ class PlasticosLoad(models.Model):
                 order="generated_at desc, id desc",
                 limit=1,
             )
-            calibration_model.sudo().create(
+            from odoo.addons.plasticos_logistics.models.freight_governance import create_freight_evidence
+
+            create_freight_evidence(
+                rec.env,
+                "plasticos.freight.calibration.observation",
                 {
-                    "company_id": (getattr(rec, "company_id", False) or rec.sale_order_id.company_id).id,
                     "load_id": rec.id,
                     "estimate_id": estimate.id if estimate else False,
                     "selected_quote_id": rec.selected_freight_quote_id.id if rec.selected_freight_quote_id else False,
@@ -624,17 +699,101 @@ class PlasticosLoad(models.Model):
                         rec.actual_freight_cost - rec.rate_amount if rec.rate_currency_id == currency else False
                     ),
                     "context_fingerprint": context.fingerprint,
-                }
+                },
+                load=rec,
             )
-            rec.write({"actual_freight_recorded_at": fields.Datetime.now()})
+            rec._freight_write({"actual_freight_recorded_at": fields.Datetime.now()})
             record_freight_event(
                 rec.env,
                 event_type="freight_actual_recorded",
                 outcome_code="recorded",
                 load=rec,
                 facts={"currency_id": currency.id},
+                correlation_id=correlation_id,
             )
         return True
+
+    def action_correct_actual_freight_cost(self, actual_cost, currency, reason):
+        """Append an attributed calibration correction without reopening prior evidence."""
+        from odoo.addons.plasticos_logistics.models.freight_governance import (
+            create_freight_evidence,
+            record_freight_event,
+        )
+        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+
+        if actual_cost is None or actual_cost < 0 or not currency or not reason:
+            raise ValidationError("Actual-cost corrections require a non-negative amount, currency, and reason.")
+        calibration_model = self.env["plasticos.freight.calibration.observation"]
+        for rec in self:
+            rec._require_freight_operator()
+            correlation_id = new_correlation_id()
+            rec.env.cr.execute(
+                "SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.actual-cost:{rec.id}"]
+            )
+            rec.invalidate_recordset()
+            prior = calibration_model.search([("load_id", "=", rec.id)], order="observed_at desc, id desc", limit=1)
+            if not prior:
+                raise UserError("Record the initial actual freight cost before creating a correction.")
+            context = build_freight_context(rec)
+            if not context:
+                raise UserError("A current freight context is required before correcting actual freight cost.")
+            create_freight_evidence(
+                rec.env,
+                "plasticos.freight.calibration.observation",
+                {
+                    "load_id": rec.id,
+                    "estimate_id": prior.estimate_id.id if prior.estimate_id else False,
+                    "selected_quote_id": rec.selected_freight_quote_id.id if rec.selected_freight_quote_id else False,
+                    "currency_id": currency.id,
+                    "estimate_amount": prior.estimate_amount if prior.currency_id == currency else False,
+                    "booked_rate_amount": rec.rate_amount if rec.rate_currency_id == currency else False,
+                    "actual_cost_amount": actual_cost,
+                    "estimate_to_actual_variance": (
+                        actual_cost - prior.estimate_amount
+                        if prior.estimate_id and prior.currency_id == currency
+                        else False
+                    ),
+                    "booked_to_actual_variance": (
+                        actual_cost - rec.rate_amount if rec.rate_currency_id == currency else False
+                    ),
+                    "context_fingerprint": context.fingerprint,
+                    "supersedes_observation_id": prior.id,
+                    "correction_reason": reason,
+                },
+                load=rec,
+            )
+            rec._freight_write(
+                {
+                    "actual_freight_cost": actual_cost,
+                    "actual_freight_currency_id": currency.id,
+                    "actual_freight_recorded_at": fields.Datetime.now(),
+                }
+            )
+            record_freight_event(
+                rec.env,
+                event_type="freight_actual_corrected",
+                outcome_code="superseded",
+                load=rec,
+                facts={"currency_id": currency.id, "supersedes_observation_id": prior.id},
+                correlation_id=correlation_id,
+            )
+        return True
+
+    def action_open_actual_freight_correction_wizard(self):
+        self.ensure_one()
+        self._require_freight_operator()
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Correct Actual Freight",
+            "res_model": "plasticos.freight.actual.correction.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_load_id": self.id,
+                "default_actual_cost": self.actual_freight_cost,
+                "default_currency_id": self.actual_freight_currency_id.id,
+            },
+        }
 
     def action_view_freight_estimates(self):
         action_record = self.env.ref("plasticos_logistics.action_freight_estimate", raise_if_not_found=False)
@@ -649,6 +808,7 @@ class PlasticosLoad(models.Model):
         from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
 
         for rec in self:
+            rec._require_freight_operator()
             context = build_freight_context(rec)
             if not context:
                 raise UserError("A complete freight context is required before confirming a manual rate.")
@@ -674,6 +834,8 @@ class PlasticosLoad(models.Model):
         from odoo.addons.plasticos_logistics.services.sal_resolver import resolve_sal
 
         for rec in self:
+            rec._require_freight_operator()
+            correlation_id = new_correlation_id()
             rec.env.cr.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.sal:{rec.id}"])
             rec.invalidate_recordset()
             current_context = build_freight_context(rec)
@@ -709,7 +871,7 @@ class PlasticosLoad(models.Model):
                     )
                 )
             else:
-                rec.write(values)
+                rec._freight_write(values)
                 rec.message_post(body=f"SAL {decision.decision}: {decision.reason or 'no qualifying history'}.")
                 from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
 
@@ -719,6 +881,7 @@ class PlasticosLoad(models.Model):
                     outcome_code=decision.reason or decision.decision,
                     load=rec,
                     facts={"context_fingerprint": decision.context_fingerprint},
+                    correlation_id=correlation_id,
                 )
         return True
 
@@ -738,6 +901,8 @@ class PlasticosLoad(models.Model):
         )
 
         for rec in self:
+            rec._require_freight_operator()
+            correlation_id = new_correlation_id()
             rec.env.cr.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.rate:{rec.id}"])
             rec.invalidate_recordset()
             if rec.state != "ready_confirmed":
@@ -775,8 +940,8 @@ class PlasticosLoad(models.Model):
                 "sal_miss_reason": False if resolution_method == "sal" else rec.sal_miss_reason,
                 "sal_source_load_id": sal_source_load.id if sal_source_load else False,
             }
-            rec.write(values)
-            rec._transition("rate_confirmed")
+            rec._freight_write(values)
+            rec._transition("rate_confirmed", correlation_id=correlation_id)
             from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
 
             record_freight_event(
@@ -789,10 +954,12 @@ class PlasticosLoad(models.Model):
                     "currency_id": currency.id,
                     "sal_source_load_id": sal_source_load.id if sal_source_load else None,
                 },
+                correlation_id=correlation_id,
             )
 
     def action_schedule(self, pickup_dt, delivery_dt):
         for rec in self:
+            rec._require_freight_operator()
             rec._ensure_sal_context_current()
             rec.pickup_datetime = pickup_dt
             rec.delivery_datetime = delivery_dt
@@ -801,6 +968,7 @@ class PlasticosLoad(models.Model):
     def action_dispatch(self):
         """Dispatch load to carrier. Validates required fields before dispatch."""
         for rec in self:
+            rec._require_freight_operator()
             rec._ensure_sal_context_current()
             if rec.state != "scheduled":
                 raise UserError(f"Load {rec.name} must be in Scheduled state before dispatch.")
@@ -830,11 +998,12 @@ class PlasticosLoad(models.Model):
 
     def action_close(self):
         for rec in self:
+            rec._require_freight_operator()
             if not rec.bol_pickup_attached or not rec.bol_delivery_attached:
                 raise UserError("BOL documents required.")
             rec._transition("closed")
 
-    def _transition(self, new_state):
+    def _transition(self, new_state, *, correlation_id=None):
         """Transition load to new state with validation.
 
         Enforces forward-only state machine defined in VALID_TRANSITIONS.
@@ -847,14 +1016,24 @@ class PlasticosLoad(models.Model):
                     f"Allowed: {allowed or ['none — terminal state']}."
                 )
 
-            correlation_id = new_correlation_id()
+            correlation_id = correlation_id or new_correlation_id()
             old = rec.state
             vals = {"state": new_state, "entered_state_at": fields.Datetime.now()}
             if new_state == "dispatched":
                 vals["dispatched_at"] = fields.Datetime.now()
             if new_state == "delivered":
                 vals["delivered_at"] = fields.Datetime.now()
-            rec.write(vals)
+            rec._freight_write(vals)
+            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+
+            record_freight_event(
+                rec.env,
+                event_type="freight_state_transition",
+                outcome_code=new_state,
+                load=rec,
+                facts={"from_state": old, "to_state": new_state},
+                correlation_id=correlation_id,
+            )
             _logger.info("Load %s state transition: %s -> %s (correlation: %s)", rec.id, old, new_state, correlation_id)
 
     def _store_rate_memory(self):

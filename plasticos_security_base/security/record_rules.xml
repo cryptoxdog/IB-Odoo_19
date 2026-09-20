@@ -117,6 +117,20 @@
         <field name="perm_unlink" eval="True"/>
     </record>
 
+    <!-- Company isolation is global because plasticos.load is the source
+         authority for all company-scoped freight evidence. Role rules narrow
+         access further; they must never permit a cross-company source load. -->
+    <record id="rule_load_company_isolation" model="ir.rule">
+        <field name="name">Plasticos: Load - Company Isolation</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_load"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        <field name="global" eval="True"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
 
   <!-- ══════════════════════════════════════════════════════════════════════
        Load Dashboard Record Rules

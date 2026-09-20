@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from odoo import api, fields, models
-from odoo.exceptions import UserError, ValidationError
+from odoo import SUPERUSER_ID, api, fields, models
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 EVENT_TYPES = [
     ("freight_resolution_started", "Freight Resolution Started"),
@@ -21,15 +21,8 @@ EVENT_TYPES = [
     ("freight_estimate_persisted", "Freight Estimate Persisted"),
     ("freight_estimate_rejected", "Freight Estimate Rejected"),
     ("freight_actual_recorded", "Freight Actual Recorded"),
-]
-
-RECONCILIATION_DISPOSITIONS = [
-    ("exact_single_match", "Exact Single Match"),
-    ("multiple_candidate_matches", "Multiple Candidate Matches"),
-    ("no_candidate_match", "No Candidate Match"),
-    ("invalid_lane_key", "Invalid Lane Key"),
-    ("rate_mismatch", "Rate Mismatch"),
-    ("missing_canonical_rate", "Missing Canonical Rate"),
+    ("freight_actual_corrected", "Freight Actual Corrected"),
+    ("freight_state_transition", "Freight State Transition"),
 ]
 
 
@@ -89,16 +82,41 @@ class PlasticosFreightCalibrationObservation(models.Model):
     booked_to_actual_variance = fields.Monetary(currency_field="currency_id", readonly=True)
     context_fingerprint = fields.Char(required=True, readonly=True, index=True)
     observed_at = fields.Datetime(required=True, default=fields.Datetime.now, readonly=True)
-
-    _load_unique = models.Constraint(
-        "unique(load_id)", "Only one immutable actual-cost calibration observation may exist per load."
+    supersedes_observation_id = fields.Many2one(
+        "plasticos.freight.calibration.observation", readonly=True, ondelete="restrict", index=True
     )
+    correction_reason = fields.Text(readonly=True)
+    recorded_by_id = fields.Many2one("res.users", required=True, readonly=True, ondelete="restrict")
+
+    def init(self):
+        """Preserve one initial observation and one direct successor per observation."""
+        # Atomic partial-index creation is required; ORM constraints cannot express this lifecycle invariant.
+        self.env.cr.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS plasticos_freight_calibration_initial_per_load_idx
+            ON plasticos_freight_calibration_observation (load_id)
+            WHERE supersedes_observation_id IS NULL
+            """
+        )
+        # Atomic partial-index creation prevents two corrections from superseding one immutable observation.
+        self.env.cr.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS plasticos_freight_calibration_one_successor_idx
+            ON plasticos_freight_calibration_observation (supersedes_observation_id)
+            WHERE supersedes_observation_id IS NOT NULL
+            """
+        )
 
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            if vals.get("load_id") and self.search([("load_id", "=", vals["load_id"])], limit=1):
-                raise ValidationError("Actual-cost calibration evidence already exists for this load.")
+            prior_id = vals.get("supersedes_observation_id")
+            if prior_id and not vals.get("correction_reason"):
+                raise ValidationError("A calibration correction requires an attributed reason.")
+            if not prior_id and self.search([("load_id", "=", vals.get("load_id"))], limit=1):
+                raise ValidationError("A later calibration must supersede the existing immutable observation.")
+            if not vals.get("recorded_by_id"):
+                vals["recorded_by_id"] = self.env.user.id
         return super().create(vals_list)
 
     @api.constrains("actual_cost_amount", "estimate_amount", "booked_rate_amount")
@@ -140,7 +158,19 @@ class PlasticosRateMemoryReconciliation(models.Model):
     lane_key = fields.Char(required=True, readonly=True)
     legacy_rate_amount = fields.Float(required=True, readonly=True)
     legacy_rate_date = fields.Date(required=True, readonly=True)
-    disposition = fields.Selection(RECONCILIATION_DISPOSITIONS, required=True, index=True)
+    disposition = fields.Selection(
+        [
+            ("exact_single_match", "Exact Single Match"),
+            ("multiple_candidate_matches", "Multiple Candidate Matches"),
+            ("no_candidate_match", "No Candidate Match"),
+            ("invalid_lane_key", "Invalid Lane Key"),
+            ("rate_mismatch", "Rate Mismatch"),
+            ("missing_canonical_rate", "Missing Canonical Rate"),
+            ("candidate_scan_truncated", "Candidate Scan Truncated"),
+        ],
+        required=True,
+        index=True,
+    )
     canonical_load_id = fields.Many2one("plasticos.load", ondelete="restrict")
     candidate_count = fields.Integer(required=True, readonly=True)
     reconciled_at = fields.Datetime(required=True, default=fields.Datetime.now, readonly=True)
@@ -179,24 +209,54 @@ class PlasticosRateMemoryReconciliation(models.Model):
         raise UserError("Rate-memory reconciliation evidence cannot be deleted.")
 
 
-def record_freight_event(env, *, event_type, outcome_code, load=None, facts=None, unknowns=None, correlation_id=None):
-    """Persist a structured event without writing secrets or raw carrier text."""
-    company = getattr(load, "company_id", False) or (
-        load.sale_order_id.company_id if load and load.sale_order_id else env.company
+def _load_company(load, fallback_company):
+    return getattr(load, "company_id", False) or (
+        load.sale_order_id.company_id if load and load.sale_order_id else fallback_company
     )
-    return (
-        env["plasticos.freight.event"]
-        .sudo()
-        .create(
-            {
-                "company_id": company.id,
-                "load_id": load.id if load else False,
-                "transaction_id": load.transaction_id.id if load and load.transaction_id else False,
-                "event_type": event_type,
-                "outcome_code": outcome_code,
-                "correlation_id": correlation_id or False,
-                "facts": facts or {},
-                "unknowns": unknowns or [],
-            }
-        )
+
+
+def _require_freight_evidence_authority(env, load):
+    """Validate actor and source access before narrowly elevating immutable writes."""
+    if not load:
+        raise AccessError("Immutable freight evidence requires a source load.")
+    company = _load_company(load, env.company)
+    if not company or company not in env.companies:
+        raise AccessError("Freight evidence cannot be created outside an allowed company.")
+    # The elevated create below is limited to immutable evidence rows. Source
+    # access is always checked first so sudo never becomes a cross-company or
+    # cross-role authorization bypass.
+    load.check_access_rights("read")
+    load.check_access_rule("read")
+    if env.uid != SUPERUSER_ID and not env.user.has_group("plasticos_security_base.group_logistics"):
+        raise AccessError("Only Logistics users may create immutable freight evidence.")
+    return company
+
+
+def create_freight_evidence(env, model_name, values, *, load):
+    """Create exactly one validated immutable evidence row with explained elevation.
+
+    Evidence models are intentionally read-only in ACLs. The helper verifies the
+    acting user, source-load rule, and allowed company before the narrow sudo
+    create required to preserve append-only evidence semantics.
+    """
+    company = _require_freight_evidence_authority(env, load)
+    values = {**values, "company_id": company.id}
+    return env[model_name].sudo().create(values)
+
+
+def record_freight_event(env, *, event_type, outcome_code, load=None, facts=None, unknowns=None, correlation_id=None):
+    """Persist structured, correlated event evidence without raw carrier content."""
+    return create_freight_evidence(
+        env,
+        "plasticos.freight.event",
+        {
+            "load_id": load.id if load else False,
+            "transaction_id": load.transaction_id.id if load and load.transaction_id else False,
+            "event_type": event_type,
+            "outcome_code": outcome_code,
+            "correlation_id": correlation_id or False,
+            "facts": facts or {},
+            "unknowns": unknowns or [],
+        },
+        load=load,
     )
