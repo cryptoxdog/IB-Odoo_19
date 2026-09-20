@@ -827,10 +827,7 @@ class PlasticosLoad(models.Model):
         policy and delivery contract are accepted. A miss is persisted as a
         useful operator-visible outcome rather than silently falling back.
         """
-        from odoo.addons.plasticos_logistics.services.freight_context import (
-            FREIGHT_CONTEXT_VERSION,
-            build_freight_context,
-        )
+        from odoo.addons.plasticos_logistics.services.freight_context import FREIGHT_CONTEXT_VERSION
         from odoo.addons.plasticos_logistics.services.sal_resolver import resolve_sal
 
         for rec in self:
@@ -838,13 +835,11 @@ class PlasticosLoad(models.Model):
             correlation_id = new_correlation_id()
             rec.env.cr.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.sal:{rec.id}"])
             rec.invalidate_recordset()
-            current_context = build_freight_context(rec)
-            if (
-                rec.state == "rate_confirmed"
-                and rec.rate_resolution_method == "sal"
-                and current_context
-                and rec.freight_context_fingerprint == current_context.fingerprint
-            ):
+            # After the lock, a concurrent Resolve Freight may already have
+            # confirmed this load. Keep that first result — do not reevaluate
+            # (resolve_sal would return not_eligible and the miss branch would
+            # overwrite SAL provenance while leaving the reused rate in place).
+            if rec.rate_confirmed_at or rec.state == "rate_confirmed":
                 continue
             decision = resolve_sal(rec)
             values = {

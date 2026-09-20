@@ -72,7 +72,6 @@
 ./plasticos_offer/views/offer_views.xml
 ./plasticos_order_lines/views/purchase_order_views.xml
 ./plasticos_order_lines/views/sale_order_views.xml
-./plasticos_partner_import/views/crm_lead_import_wizard_views.xml
 ./plasticos_partner_import/views/partner_bulk_update_wizard_views.xml
 ./plasticos_partner_import/views/partner_import_wizard_views.xml
 ./plasticos_partner_import/views/res_config_settings_views.xml

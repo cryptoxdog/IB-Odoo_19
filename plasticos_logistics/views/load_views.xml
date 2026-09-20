@@ -206,9 +206,9 @@
                     <group>
                         <group string="General">
                             <field name="sale_order_id"/>
-                            <field name="carrier_id"/>
-                            <field name="rate_amount"/>
-                            <field name="rate_currency_id"/>
+                            <field name="carrier_id" readonly="rate_confirmed_at"/>
+                            <field name="rate_amount" readonly="rate_confirmed_at"/>
+                            <field name="rate_currency_id" readonly="rate_confirmed_at"/>
                             <field name="rate_resolution_method" readonly="1"/>
                             <field name="rate_confirmed_at" readonly="1"/>
                             <field name="rate_auto_reused" readonly="1"/>

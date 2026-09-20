@@ -358,3 +358,30 @@ class TestLindaFreightModels(PlasticosTestCase):
         sales_user = self._user_with_groups("linda.sales.only", "plasticos_security_base.group_sales_rep")
         with self.assertRaises(AccessError):
             load.with_user(sales_user).action_request_freight_estimate()
+
+    def test_sal_provenance_fields_exist_with_safe_defaults(self):
+        load, _context = self._new_load()
+        self.assertIn("sal_decision", load._fields)
+        self.assertIn("sal_source_load_id", load._fields)
+        self.assertIn("freight_context_fingerprint", load._fields)
+        self.assertIn("rate_resolution_method", load._fields)
+        self.assertFalse(load.rate_confirmed_at)
+        self.assertFalse(load.sal_source_load_id)
+
+    def test_confirmed_sal_booking_terms_reject_direct_edits(self):
+        load, context = self._new_load()
+        load._freight_write(
+            {
+                "carrier_id": self.carrier.id,
+                "rate_amount": 1500.0,
+                "rate_currency_id": self.currency.id,
+                "rate_confirmed_at": fields.Datetime.now(),
+                "rate_resolution_method": "sal",
+                "freight_context_fingerprint": context.fingerprint,
+                "sal_decision": "hit",
+            }
+        )
+        with self.assertRaises(UserError):
+            load.write({"rate_amount": 1.0})
+        with self.assertRaises(UserError):
+            load.write({"carrier_id": False})

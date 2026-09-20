@@ -11,7 +11,6 @@ from .freight_context import build_freight_context
 
 SAL_WINDOW = timedelta(days=30)
 QUALIFYING_STATES = ("picked_up", "delivered", "closed")
-SAL_HISTORY_LIMIT = 200
 
 
 @dataclass(frozen=True)
@@ -53,16 +52,26 @@ def resolve_sal(load) -> SalDecision:
         return SalDecision("not_eligible", "missing_lane_identity")
 
     cutoff = fields.Datetime.now() - SAL_WINDOW
+    # Qualify in the database: same company, same partners, same intake, and a
+    # movement timestamp inside the 30-day window. Do not cap the scan — a
+    # busy lane must not hide an eligible same-intake movement.
     candidates = load.env["plasticos.load"].search(
         [
             ("id", "!=", load.id),
             ("company_id", "=", company.id),
             ("pickup_partner_id", "=", load.pickup_partner_id.id),
             ("delivery_partner_id", "=", load.delivery_partner_id.id),
+            ("transaction_id.intake_id", "=", context.repeat_stream_id),
             ("state", "in", QUALIFYING_STATES),
+            "|",
+            "&",
+            ("state", "in", ("delivered", "closed")),
+            ("delivered_at", ">=", cutoff),
+            "&",
+            ("state", "=", "picked_up"),
+            ("dispatched_at", ">=", cutoff),
         ],
         order="delivered_at desc, dispatched_at desc, id desc",
-        limit=SAL_HISTORY_LIMIT,
     )
     saw_movement = False
     saw_old_movement = False
@@ -71,10 +80,11 @@ def resolve_sal(load) -> SalDecision:
     for candidate in candidates:
         if _company_for(candidate) != company:
             continue
-        if not candidate.transaction_id or candidate.transaction_id.intake_id.id != context.repeat_stream_id:
-            continue
-        candidate_context = build_freight_context(candidate)
-        if not candidate_context or candidate_context.fingerprint != context.fingerprint:
+        # Use the booking-time fingerprint persisted on the candidate. Rebuilding
+        # context from the live partner would treat a later facility move as the
+        # same lane and reuse an obsolete rate.
+        booked_fingerprint = getattr(candidate, "freight_context_fingerprint", None)
+        if not booked_fingerprint or booked_fingerprint != context.fingerprint:
             continue
         moved_at = _movement_at(candidate)
         if not moved_at:
