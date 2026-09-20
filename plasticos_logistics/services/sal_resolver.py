@@ -11,6 +11,11 @@ from .freight_context import build_freight_context
 
 SAL_WINDOW = timedelta(days=30)
 QUALIFYING_STATES = ("picked_up", "delivered", "closed")
+# Deterministic bound on the candidate history scan. The query is ordered by
+# most recent movement first, so the newest same-lane records are always
+# considered; anything beyond the bound is older than the SAL window in any
+# realistic lane and is intentionally never scanned.
+SAL_HISTORY_LIMIT = 200
 
 
 @dataclass(frozen=True)
@@ -50,9 +55,13 @@ def resolve_sal(load) -> SalDecision:
         return SalDecision("not_eligible", "missing_lane_identity")
 
     cutoff = fields.Datetime.now() - SAL_WINDOW
+    # Company scope is enforced at query level (the load company is the
+    # sale-order company) and re-checked per candidate below, so cross-company
+    # history is never scanned, let alone reused.
     candidates = load.env["plasticos.load"].search(
         [
             ("id", "!=", load.id),
+            ("sale_order_id.company_id", "=", company.id),
             ("pickup_partner_id", "=", load.pickup_partner_id.id),
             ("delivery_partner_id", "=", load.delivery_partner_id.id),
             ("state", "in", QUALIFYING_STATES),
@@ -60,6 +69,7 @@ def resolve_sal(load) -> SalDecision:
             ("rate_amount", ">", 0),
         ],
         order="delivered_at desc, dispatched_at desc, id desc",
+        limit=SAL_HISTORY_LIMIT,
     )
     saw_movement = False
     saw_old_movement = False
@@ -68,7 +78,10 @@ def resolve_sal(load) -> SalDecision:
     for candidate in candidates:
         if _company_for(candidate) != company:
             continue
-        if not candidate.transaction_id or candidate.transaction_id.intake_id != context.repeat_stream_id:
+        # Compare scalar intake IDs: ``intake_id`` is a recordset while
+        # ``repeat_stream_id`` is the intake's integer ID.
+        candidate_intake_id = candidate.transaction_id.intake_id.id if candidate.transaction_id else None
+        if not candidate_intake_id or candidate_intake_id != context.repeat_stream_id:
             continue
         candidate_context = build_freight_context(candidate)
         if not candidate_context or candidate_context.fingerprint != context.fingerprint:
