@@ -13,7 +13,10 @@ SERVICE_DIR = Path(__file__).parents[1] / "plasticos_logistics" / "services"
 
 
 def _install_odoo_stub() -> None:
-    if "odoo.fields" in sys.modules:
+    if "odoo" in sys.modules:
+        return
+    spec = importlib.util.find_spec("odoo")
+    if spec is not None and spec.origin:
         return
     odoo_mod = types.ModuleType("odoo")
     fields_mod = types.ModuleType("odoo.fields")
@@ -151,7 +154,7 @@ def test_candidate_without_booking_fingerprint_is_not_rebuilt_from_live_address(
     searcher.results = [candidate]
     decision = sal_resolver.resolve_sal(load)
     assert decision.decision == "miss"
-    assert decision.reason == "no_prior_movement"
+    assert decision.reason == "prior_record_ambiguous"
 
 
 def test_expired_matching_movement_keeps_prior_movement_too_old():

@@ -73,14 +73,18 @@ def resolve_sal(load) -> SalDecision:
     for candidate in candidates:
         if _company_for(candidate) != company:
             continue
+        moved_at = _movement_at(candidate)
+        if not moved_at:
+            continue
         # Use the booking-time fingerprint persisted on the candidate. Rebuilding
         # context from the live partner would treat a later facility move as the
         # same lane and reuse an obsolete rate.
         booked_fingerprint = getattr(candidate, "freight_context_fingerprint", None)
         if not booked_fingerprint or booked_fingerprint != context.fingerprint:
-            continue
-        moved_at = _movement_at(candidate)
-        if not moved_at:
+            if moved_at >= cutoff:
+                saw_movement = True
+            else:
+                saw_old_movement = True
             continue
         saw_movement = True
         if moved_at < cutoff:
