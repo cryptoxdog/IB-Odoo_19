@@ -184,11 +184,17 @@ class PlasticosFreightQuoteRequest(models.Model):
                     )
                 raise UserError("Freight context changed; the quote request was cancelled and cannot be used.")
 
-    @api.constrains("recommended_quote_id")
+    @api.constrains("recommended_quote_id", "selected_quote_id")
     def _check_recommended_quote_relationship(self):
         for rec in self:
             if rec.recommended_quote_id and rec.recommended_quote_id.request_id != rec:
                 raise ValidationError("A recommended quote must belong to its freight quote request.")
+            if rec.selected_quote_id and (
+                rec.selected_quote_id.request_id != rec
+                or rec.selected_quote_id.company_id != rec.company_id
+                or not rec.selected_quote_id.selected
+            ):
+                raise ValidationError("A resolved freight quote request must reference its own selected quote.")
 
     def action_rank_quotes(self):
         """Rank current eligible quotes for operator review; this never selects or awards a quote."""
@@ -306,15 +312,26 @@ class PlasticosFreightQuoteRequest(models.Model):
         }
         if protected.intersection(vals):
             raise UserError("Freight quote request identity is immutable after creation.")
+        internal = self.env.context.get(_RFQ_INTERNAL_WRITE) is _RFQ_INTERNAL_WRITE_TOKEN
         if "state" in vals:
             for rec in self:
-                if self.env.context.get(_RFQ_INTERNAL_WRITE) is not _RFQ_INTERNAL_WRITE_TOKEN:
+                if not internal:
                     raise UserError("Freight quote request state changes require a validated freight command.")
                 if vals["state"] != rec.state and vals["state"] not in self._REQUEST_TRANSITIONS[rec.state]:
                     raise UserError("Freight quote request transition is not permitted.")
-        if {"recommended_quote_id", "ranking_policy_version", "ranked_at"}.intersection(vals) and self.env.context.get(
-            _RFQ_INTERNAL_WRITE
-        ) is not _RFQ_INTERNAL_WRITE_TOKEN:
+        # ``readonly=True`` is a UI hint only; lifecycle and selection evidence
+        # must be guarded server-side against direct ORM/RPC writes.
+        lifecycle_evidence = {
+            "sent_at",
+            "resolved_at",
+            "cancelled_at",
+            "cancellation_reason",
+            "failure_code",
+            "selected_quote_id",
+        }
+        if lifecycle_evidence.intersection(vals) and not internal:
+            raise UserError("Freight quote request lifecycle evidence may only change through a validated workflow.")
+        if {"recommended_quote_id", "ranking_policy_version", "ranked_at"}.intersection(vals) and not internal:
             raise UserError("Freight ranking provenance may only change through the ranking workflow.")
         return super().write(vals)
 
@@ -400,33 +417,69 @@ class PlasticosFreightQuoteRecipient(models.Model):
         requests._ensure_active_for_child_evidence()
         return super().create(vals_list)
 
+    def _rfq_write(self, values):
+        """Workflow-owned evidence write; only validated freight commands hold the token."""
+        return self.with_context(**{_RFQ_INTERNAL_WRITE: _RFQ_INTERNAL_WRITE_TOKEN}).write(values)
+
     @api.constrains("company_id", "request_id")
     def _check_recipient_company(self):
         for rec in self:
             if rec.request_id.company_id != rec.company_id:
                 raise ValidationError("Recipient company must match its freight quote request.")
 
-    @api.constrains("state", "attempt_count", "sent_at", "response_at", "delivery_error_class")
+    @api.constrains(
+        "state",
+        "attempt_count",
+        "last_attempt_at",
+        "sent_at",
+        "response_at",
+        "delivery_error_class",
+        "outbound_message_ref",
+    )
     def _check_recipient_state_evidence(self):
+        """Keep send evidence truthful.
+
+        Outbound delivery is not available in this slice; a carrier response is
+        manual/inbound evidence and must never imply that PlasticOS sent an RFQ.
+        Send facts are required only when an actual outbound attempt was recorded.
+        """
         for rec in self:
-            if rec.state in ("sent", "responded") and (rec.attempt_count < 1 or not rec.sent_at):
-                raise ValidationError(
-                    "Sent or responded recipients require a successful delivery attempt and sent time."
-                )
+            if rec.state == "sent" and (rec.attempt_count < 1 or not rec.sent_at):
+                raise ValidationError("Sent recipients require a successful delivery attempt and sent time.")
             if rec.state == "responded" and not rec.response_at:
                 raise ValidationError("Responded recipients require a response timestamp.")
             if rec.state == "delivery_failed" and (rec.attempt_count < 1 or not rec.delivery_error_class):
                 raise ValidationError("Delivery failures require an attempt and error classification.")
+            has_send_evidence = bool(rec.sent_at or rec.last_attempt_at or rec.outbound_message_ref)
+            if has_send_evidence and rec.attempt_count < 1:
+                raise ValidationError("Send evidence cannot exist without a recorded outbound attempt.")
+            if rec.attempt_count >= 1 and not rec.last_attempt_at:
+                raise ValidationError("A recorded outbound attempt requires an attempt timestamp.")
+            if rec.state == "pending" and has_send_evidence:
+                raise ValidationError("Pending recipients cannot carry send evidence.")
 
     def write(self, vals):
         protected = {"company_id", "request_id", "carrier_id", "channel", "idempotency_key"}
         if protected.intersection(vals):
             raise UserError("Freight quote recipient identity is immutable after creation.")
-        if "state" in vals and self.env.context.get(_RFQ_INTERNAL_WRITE) is not _RFQ_INTERNAL_WRITE_TOKEN:
+        internal = self.env.context.get(_RFQ_INTERNAL_WRITE) is _RFQ_INTERNAL_WRITE_TOKEN
+        if "state" in vals and not internal:
             raise UserError("Recipient lifecycle changes require the validated freight response workflow.")
+        # Delivery/response evidence is workflow-owned; ``readonly=True`` alone
+        # does not stop direct ORM/RPC writes.
+        delivery_evidence = {
+            "attempt_count",
+            "last_attempt_at",
+            "sent_at",
+            "response_at",
+            "delivery_error_class",
+            "outbound_message_ref",
+        }
+        if delivery_evidence.intersection(vals) and not internal:
+            raise UserError("Recipient delivery and response evidence may only change through a validated workflow.")
         if "destination_snapshot" in vals:
             for rec in self:
-                if rec.sent_at:
+                if rec.sent_at or rec.attempt_count:
                     raise UserError("Recipient destination evidence cannot change after a send attempt.")
         return super().write(vals)
 
@@ -520,15 +573,15 @@ class PlasticosFreightQuote(models.Model):
                 )
         records = super().create(vals_list)
         for rec in records:
-            if rec.recipient_id.state not in ("cancelled", "responded"):
-                rec.recipient_id.with_context(**{_RFQ_INTERNAL_WRITE: _RFQ_INTERNAL_WRITE_TOKEN}).write(
-                    {
-                        "attempt_count": max(1, rec.recipient_id.attempt_count),
-                        "last_attempt_at": rec.responded_at,
-                        "response_at": rec.responded_at,
-                        "sent_at": rec.recipient_id.sent_at or rec.responded_at,
-                        "state": "responded",
-                    }
+            recipient = rec.recipient_id
+            if recipient.state not in ("cancelled", "responded"):
+                # Record response provenance only. attempt_count, sent_at,
+                # last_attempt_at and outbound_message_ref stay as the outbound
+                # workflow left them (zero/unset while delivery is manual-only).
+                recipient._rfq_write({"response_at": rec.responded_at, "state": "responded"})
+            if rec.supersedes_quote_id:
+                rec.supersedes_quote_id.with_context(**{_RFQ_INTERNAL_WRITE: _RFQ_INTERNAL_WRITE_TOKEN}).write(
+                    {"lifecycle_state": "superseded"}
                 )
         return records
 
@@ -539,6 +592,25 @@ class PlasticosFreightQuote(models.Model):
                 raise ValidationError("Quote evidence must remain within its request company.")
             if rec.recipient_id.request_id != rec.request_id or rec.recipient_id.carrier_id != rec.carrier_id:
                 raise ValidationError("Quote recipient and carrier must match the quote request.")
+
+    @api.constrains("supersedes_quote_id", "request_id", "carrier_id", "company_id")
+    def _check_supersession_lineage(self):
+        for rec in self:
+            prior = rec.supersedes_quote_id
+            if not prior:
+                continue
+            if prior == rec:
+                raise ValidationError("A carrier response cannot supersede itself.")
+            if (
+                prior.request_id != rec.request_id
+                or prior.carrier_id != rec.carrier_id
+                or prior.company_id != rec.company_id
+            ):
+                raise ValidationError("A superseding response must belong to the same request, carrier, and company.")
+            if prior.selected:
+                raise ValidationError("A selected quote cannot be superseded; the request is already resolved.")
+            if self.search_count([("supersedes_quote_id", "=", prior.id), ("id", "!=", rec.id)]):
+                raise ValidationError("A carrier response may be superseded only once.")
 
     @api.constrains("response_kind", "quoted_amount", "currency_id", "selected", "lifecycle_state")
     def _check_amount_semantics(self):
@@ -567,6 +639,8 @@ class PlasticosFreightQuote(models.Model):
             "conditions",
             "valid_until",
             "supersedes_quote_id",
+            # Ranking input: mutable timeliness would silently change scores.
+            "timeliness",
         }
         if protected.intersection(vals):
             raise UserError("Carrier response evidence is immutable; create a superseding quote instead.")

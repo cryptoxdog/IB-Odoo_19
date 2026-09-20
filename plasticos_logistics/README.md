@@ -1,22 +1,23 @@
 ---
 component_id: "plasticos_logistics"
 component_name: "Plasticos Logistics"
-module_version: "19.0.1.7.0"
+module_version: "19.0.1.8.0"
 layer: "core"
 domain: "plasticos"
 type: "odoo_module"
 status: "active"
-purpose: "Load management, dispatch, and delivery tracking"
-summary: "Logistics coordination with trucker communications"
+purpose: "Load management, dispatch, delivery tracking, and Odoo-local deterministic freight evidence"
+summary: "Logistics coordination with trucker communications plus SAL, manual-only RFQ, estimate, and calibration evidence"
 ---
 
 # Plasticos Logistics
 
 ## Purpose
-Load management, dispatch, and delivery tracking
+Load management, dispatch, delivery tracking, and Odoo-local deterministic freight evidence
 
 ## Summary
-Logistics coordination with trucker communications
+Logistics coordination with trucker communications plus Same As Last (SAL) resolution, manual-only RFQ
+evidence, nonbinding local estimates, and append-only calibration observations
 
 ## Structure
 ```
@@ -28,6 +29,7 @@ README.rst
 __init__.py
 __manifest__.py
 data/
+migrations/
 models/
 report/
 security/
@@ -37,10 +39,21 @@ wizards/
 ```
 
 ## Dependencies
-sale_management, stock, mail
+plasticos_base, plasticos_transaction, sale_management, stock, mail
 
 ## Models
-plasticos.dispatch, plasticos.rate.memory, plasticos.load
+- `plasticos.load` — load spine, SAL provenance, freight context, recorded actuals
+- `plasticos.dispatch` — dispatch records
+- `plasticos.load.dashboard` — SQL-view dashboard (read-only)
+- `plasticos.freight.quote.request` — manual-only RFQ episode (immutable identity, workflow-owned lifecycle)
+- `plasticos.freight.quote.recipient` — recipient delivery/response ledger (workflow-owned evidence)
+- `plasticos.freight.quote` — immutable carrier response evidence; ranking is recommendation-only
+- `plasticos.freight.estimate` — immutable nonbinding local estimate evidence
+- `plasticos.freight.event` — immutable correlated freight event log
+- `plasticos.freight.calibration.observation` — append-only actual-cost calibration (one initial + one direct successor)
+- `plasticos.rate.memory` — legacy rate cache, frozen (read-only outside migration context)
+- `plasticos.rate.memory.reconciliation` — immutable legacy-cache reconciliation evidence
+- Transient: `plasticos.load.bulk.update.wizard`, `plasticos.freight.actual.correction.wizard`
 
 ## Tier
 core
