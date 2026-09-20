@@ -160,7 +160,11 @@ def _lane_history_score(quote: QuoteCandidate, outcomes: list[LaneOutcome], now:
 def _carrier_history_score(quote: QuoteCandidate, outcomes: list[LaneOutcome], now: datetime) -> float:
     if quote.amount is None:
         return 0.0
-    carrier_outcomes = [outcome for outcome in outcomes if outcome.carrier_id == quote.carrier_id]
+    carrier_outcomes = [
+        outcome
+        for outcome in outcomes
+        if outcome.carrier_id == quote.carrier_id and outcome.currency_id == quote.currency_id
+    ]
     if not carrier_outcomes:
         return 0.5
     max_support = 5

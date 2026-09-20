@@ -11,6 +11,7 @@ from .freight_context import build_freight_context
 
 SAL_WINDOW = timedelta(days=30)
 QUALIFYING_STATES = ("picked_up", "delivered", "closed")
+SAL_HISTORY_LIMIT = 200
 
 
 @dataclass(frozen=True)
@@ -26,7 +27,9 @@ class SalDecision:
 
 def _company_for(load):
     """Use the existing sale-order company; never infer cross-company ownership."""
-    return load.sale_order_id.company_id if load.sale_order_id and load.sale_order_id.company_id else None
+    return getattr(load, "company_id", False) or (
+        load.sale_order_id.company_id if load.sale_order_id and load.sale_order_id.company_id else None
+    )
 
 
 def _movement_at(load):
@@ -53,11 +56,13 @@ def resolve_sal(load) -> SalDecision:
     candidates = load.env["plasticos.load"].search(
         [
             ("id", "!=", load.id),
+            ("company_id", "=", company.id),
             ("pickup_partner_id", "=", load.pickup_partner_id.id),
             ("delivery_partner_id", "=", load.delivery_partner_id.id),
             ("state", "in", QUALIFYING_STATES),
         ],
         order="delivered_at desc, dispatched_at desc, id desc",
+        limit=SAL_HISTORY_LIMIT,
     )
     saw_movement = False
     saw_old_movement = False
@@ -84,7 +89,7 @@ def resolve_sal(load) -> SalDecision:
         if not candidate.rate_amount or candidate.rate_amount <= 0 or not candidate.rate_currency_id:
             saw_missing_rate = True
             continue
-        if not candidate.carrier_id.active:
+        if not candidate.carrier_id.active or getattr(candidate.carrier_id, "entity_status", None) == "blocked":
             saw_inactive_carrier = True
             continue
         age = (fields.Datetime.now() - moved_at).total_seconds()

@@ -23,6 +23,7 @@ def recent_executed_lane_evidence(env, load, *, limit=20, days=365):
         .search(
             [
                 ("id", "!=", load.id),
+                ("company_id", "=", company.id),
                 ("pickup_partner_id", "=", load.pickup_partner_id.id),
                 ("delivery_partner_id", "=", load.delivery_partner_id.id),
                 ("state", "in", ("delivered", "closed")),
@@ -50,6 +51,7 @@ def recent_comparable_executed_evidence(env, load, *, candidate_limit=200, resul
         .search(
             [
                 ("id", "!=", load.id),
+                ("company_id", "=", company.id),
                 ("state", "in", ("delivered", "closed")),
                 ("rate_amount", ">", 0),
                 ("rate_currency_id", "!=", False),
@@ -127,7 +129,7 @@ def local_estimation_evidence(records):
     output = []
     for record in records:
         actual_currency = record.actual_freight_currency_id
-        if record.actual_freight_cost and actual_currency:
+        if record.actual_freight_recorded_at and actual_currency:
             amount = record.actual_freight_cost
             currency = actual_currency
             source_type = "executed_actual"

@@ -22,12 +22,16 @@ class PlasticosRateMemory(models.Model):
         from odoo.addons.plasticos_logistics.services.freight_history import legacy_lane_candidates
 
         reconciliation_model = self.env["plasticos.rate.memory.reconciliation"]
+        existing_legacy_ids = set(
+            reconciliation_model.search([("legacy_rate_memory_id", "in", self.ids)]).mapped("legacy_rate_memory_id").ids
+        )
+        empty_loads = self.env["plasticos.load"].browse()
         for record in self:
-            if reconciliation_model.search_count([("legacy_rate_memory_id", "=", record.id)]):
+            if record.id in existing_legacy_ids:
                 continue
             if not record.lane_key or "-" not in record.lane_key:
                 disposition = "invalid_lane_key"
-                candidates = self.env["plasticos.load"].browse()
+                candidates = empty_loads
             else:
                 candidates = legacy_lane_candidates(self.env, record)
                 if len(candidates) == 1:
@@ -36,16 +40,25 @@ class PlasticosRateMemory(models.Model):
                     disposition = "multiple_candidate_matches"
                 else:
                     disposition = "no_candidate_match"
+            canonical_load = candidates if len(candidates) == 1 else empty_loads
+            company = getattr(canonical_load, "company_id", False) or (
+                canonical_load.sale_order_id.company_id if canonical_load and canonical_load.sale_order_id else False
+            )
+            if not company:
+                # Legacy rows have no durable company ownership.  Retain an
+                # ambiguous/no-match classification without creating an
+                # incorrectly company-scoped immutable record.
+                continue
             reconciliation_model.create(
                 {
-                    "company_id": self.env.company.id,
+                    "company_id": company.id,
                     "legacy_rate_memory_id": record.id,
                     "carrier_id": record.carrier_id.id,
                     "lane_key": record.lane_key,
                     "legacy_rate_amount": record.rate_amount,
                     "legacy_rate_date": record.rate_date,
                     "disposition": disposition,
-                    "canonical_load_id": candidates.id if len(candidates) == 1 else False,
+                    "canonical_load_id": canonical_load.id,
                     "candidate_count": len(candidates),
                 }
             )

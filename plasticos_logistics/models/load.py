@@ -21,6 +21,9 @@ class PlasticosLoad(models.Model):
         required=True, default=lambda self: self.env["ir.sequence"].next_by_code(PLASTICOS_LOAD) or "New"
     )
     sale_order_id = fields.Many2one("sale.order", ondelete="restrict")
+    company_id = fields.Many2one(
+        "res.company", related="sale_order_id.company_id", store=True, readonly=True, index=True, ondelete="restrict"
+    )
     carrier_id = fields.Many2one(RES_PARTNER, string="Carrier", ondelete="restrict")
     rate_amount = fields.Float(string="Rate Amount")
     rate_confirmed_at = fields.Datetime()
@@ -441,6 +444,8 @@ class PlasticosLoad(models.Model):
 
         estimate_model = self.env["plasticos.freight.estimate"]
         for rec in self:
+            rec.env.cr.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.estimate:{rec.id}"])
+            rec.invalidate_recordset()
             context = build_freight_context(rec)
             if not context:
                 raise UserError("A complete freight context is required before an estimate can be requested.")
@@ -470,7 +475,7 @@ class PlasticosLoad(models.Model):
             except FreightCoordinateError as exc:
                 proposal = None
                 failure_code = f"coordinate_evidence_gap:{exc}"
-            history = len(history_records)
+            history_count = len(history_records)
             if proposal:
                 status = proposal.status
                 failure_code = proposal.failure_code
@@ -485,16 +490,28 @@ class PlasticosLoad(models.Model):
                 status = "insufficient_evidence"
                 geometry_status = "missing_or_invalid"
                 request_fingerprint = hashlib.sha256(
-                    f"estimate:{context.fingerprint}:{history}:{failure_code}".encode()
+                    f"estimate:{context.fingerprint}:{history_count}:{failure_code}".encode()
                 ).hexdigest()
                 evidence_summary = {
                     "estimator": ESTIMATOR_MODEL_VERSION,
+                    "candidate_evidence_count": history_count,
                     "coordinate_quality": "missing_or_invalid",
-                    "exact_lane_executed_count": history,
+                    "exact_lane_executed_count": None,
                     "executed_evidence": bounded_evidence_payload(history_records),
                 }
                 reasoning_summary = {"formula": "haversine", "reason": failure_code}
-            estimate = estimate_model.create(
+            existing = estimate_model.search(
+                [
+                    ("source_model", "=", PLASTICOS_LOAD),
+                    ("source_record_id", "=", rec.id),
+                    ("context_fingerprint", "=", context.fingerprint),
+                    ("request_fingerprint", "=", request_fingerprint),
+                ],
+                limit=1,
+            )
+            if existing:
+                continue
+            estimate = estimate_model.sudo().create(
                 {
                     "company_id": company.id,
                     "context_fingerprint": context.fingerprint,
@@ -535,7 +552,16 @@ class PlasticosLoad(models.Model):
                 event_type="freight_estimate_persisted" if status == "succeeded" else "freight_estimate_rejected",
                 outcome_code=failure_code or "local_haversine_curve",
                 load=rec,
-                facts={"estimate_id": estimate.id, "exact_lane_evidence_count": history},
+                facts={
+                    "estimate_id": estimate.id,
+                    "exact_lane_evidence_count": (
+                        proposal.evidence_summary["exact_lane_executed_count"] if proposal else None
+                    ),
+                    "similar_lane_evidence_count": (
+                        proposal.evidence_summary["similar_lane_executed_count"] if proposal else None
+                    ),
+                    "candidate_evidence_count": history_count,
+                },
                 unknowns=[] if status == "succeeded" else [failure_code],
             )
         return True
@@ -557,6 +583,10 @@ class PlasticosLoad(models.Model):
         calibration_model = self.env["plasticos.freight.calibration.observation"]
         estimate_model = self.env["plasticos.freight.estimate"]
         for rec in self:
+            rec.env.cr.execute(
+                "SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.actual-cost:{rec.id}"]
+            )
+            rec.invalidate_recordset()
             context = build_freight_context(rec)
             if not context or rec.actual_freight_cost is None or rec.actual_freight_cost < 0:
                 raise UserError("A current freight context and non-negative actual freight cost are required.")
@@ -577,7 +607,7 @@ class PlasticosLoad(models.Model):
                 order="generated_at desc, id desc",
                 limit=1,
             )
-            calibration_model.create(
+            calibration_model.sudo().create(
                 {
                     "company_id": (getattr(rec, "company_id", False) or rec.sale_order_id.company_id).id,
                     "load_id": rec.id,

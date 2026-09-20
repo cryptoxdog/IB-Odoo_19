@@ -1,7 +1,7 @@
 ---
 component_id: "plasticos_logistics"
 component_name: "Plasticos Logistics"
-module_version: "19.0.1.6.0"
+module_version: "19.0.1.7.0"
 layer: "core"
 domain: "plasticos"
 type: "odoo_module"
@@ -68,13 +68,20 @@ embedded road multiplier, fixed dollar-per-mile rule, fuel factor, market coeffi
 conversion, or fabricated fallback value. Invalid geocodes and insufficient matching-currency
 evidence remain classified evidence gaps.
 
+Estimate identities are idempotent for the same source load, freight context, and evidence
+fingerprint. Canonical freight context v3 uses only declared structured location facts and current
+company-local history; formatted-address presentation fields do not affect the context identity.
+All estimate, calibration, and event evidence is server-created through authorized load actions,
+immutable after creation, and company-scoped.
+
 ### Recommendation-only quote ranking
 
 `plasticos_logistics.services.freight_quote_ranking` ranks only valid, active, current-context
 quotes. The documented score weights price (55%), lane-history fit (20%), carrier-history fit
 (15%), response recency (5%), and timeliness (5%). Invalid, expired, stale, inactive, or blocked
-carrier responses are excluded. Ranking never sets `selected`, confirms a load rate, changes a load
-state, or sends mail; a logistics operator retains those actions.
+carrier responses are excluded. Lane and carrier history use only the quote currency; no currency
+conversion or cross-company evidence is silently introduced. Ranking never sets `selected`, confirms
+a load rate, changes a load state, or sends mail; a logistics operator retains those actions.
 
 ### Deferred Gmail intake
 

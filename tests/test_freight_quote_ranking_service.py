@@ -87,6 +87,25 @@ def test_currency_mismatch_is_ineligible_without_silent_conversion():
     assert by_id[2].reasons == ["quote_currency_mismatch"]
 
 
+def test_foreign_currency_carrier_history_does_not_change_local_recommendation():
+    rankings = ranking_service.rank_quotes(
+        quotes=[_quote(1, 100.0), _quote(2, 120.0)],
+        lane_outcomes=[
+            _history(carrier_id=2, amount=1_000_000.0),
+            ranking_service.LaneOutcome(
+                carrier_id=1,
+                amount=100.0,
+                currency_id=2,
+                occurred_at=NOW - timedelta(days=1),
+            ),
+        ],
+        required_currency_id=1,
+        now=NOW,
+    )
+    by_id = {item.quote_id: item for item in rankings}
+    assert by_id[1].carrier_history_score == 0.5
+
+
 def test_ranking_never_changes_the_selected_or_award_state():
     ranking = ranking_service.rank_quotes(
         quotes=[_quote(1, 100.0)], lane_outcomes=[_history()], required_currency_id=1, now=NOW

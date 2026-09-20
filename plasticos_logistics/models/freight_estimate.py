@@ -72,9 +72,25 @@ class PlasticosFreightEstimate(models.Model):
     valid_until = fields.Datetime(readonly=True)
     supersedes_estimate_id = fields.Many2one("plasticos.freight.estimate", ondelete="restrict", readonly=True)
 
+    _request_identity_unique = models.Constraint(
+        "unique(source_model, source_record_id, context_fingerprint, request_fingerprint)",
+        "Only one deterministic estimate may exist for the same source, context, and evidence fingerprint.",
+    )
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            duplicate = self.search(
+                [
+                    ("source_model", "=", vals.get("source_model")),
+                    ("source_record_id", "=", vals.get("source_record_id")),
+                    ("context_fingerprint", "=", vals.get("context_fingerprint")),
+                    ("request_fingerprint", "=", vals.get("request_fingerprint")),
+                ],
+                limit=1,
+            )
+            if duplicate:
+                raise ValidationError("An identical freight estimate observation already exists.")
             if vals.get("name", "New") == "New":
                 vals["name"] = self.env["ir.sequence"].next_by_code("plasticos.freight.estimate") or "New"
         return super().create(vals_list)
@@ -110,7 +126,9 @@ class PlasticosFreightEstimate(models.Model):
 
     def write(self, vals):
         immutable = {
+            "company_id",
             "context_fingerprint",
+            "name",
             "request_fingerprint",
             "fingerprint_version",
             "source_model",
@@ -145,3 +163,6 @@ class PlasticosFreightEstimate(models.Model):
         if immutable.intersection(vals):
             raise UserError("Freight estimates are immutable observations; create a superseding estimate instead.")
         return super().write(vals)
+
+    def unlink(self):
+        raise UserError("Freight estimates cannot be deleted.")

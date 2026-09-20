@@ -145,7 +145,9 @@ class PlasticosFreightQuoteRequest(models.Model):
         )
 
         for rec in self:
-            rec.env.cr.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.rfq-rank:{rec.id}"])
+            rec.env.cr.execute(
+                "SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.rfq-decision:{rec.id}"]
+            )
             rec.invalidate_recordset()
             if rec.state in ("resolved", "cancelled", "failed"):
                 raise UserError("Terminal freight quote requests cannot be ranked.")
@@ -189,12 +191,14 @@ class PlasticosFreightQuoteRequest(models.Model):
                 required_currency_id=rec.load_id.rate_currency_id.id,
             )
             recommended_id = next((ranking.quote_id for ranking in rankings if ranking.eligible), False)
-            eligible_rank = 0
             by_id = {ranking.quote_id: ranking for ranking in rankings}
+            rank_by_id = {
+                ranking.quote_id: ordinal
+                for ordinal, ranking in enumerate((item for item in rankings if item.eligible), start=1)
+            }
             for quote in rec.quote_ids:
                 ranking = by_id[quote.id]
                 if ranking.eligible:
-                    eligible_rank += 1
                     status = "recommended" if quote.id == recommended_id else "eligible"
                 else:
                     status = "ineligible"
@@ -202,7 +206,7 @@ class PlasticosFreightQuoteRequest(models.Model):
                     {
                         "ranking_status": status,
                         "ranking_score": ranking.score if ranking.eligible else False,
-                        "ranking_rank": eligible_rank if ranking.eligible else False,
+                        "ranking_rank": rank_by_id.get(quote.id, False),
                         "ranking_policy_version": RANKING_POLICY_VERSION,
                         "ranking_reasoning": ranking.as_dict(),
                         "ranked_at": fields.Datetime.now(),
@@ -251,7 +255,7 @@ class PlasticosFreightQuoteRequest(models.Model):
     def action_select_quote(self):
         for rec in self:
             rec.env.cr.execute(
-                "SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.rfq-select:{rec.id}"]
+                "SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.rfq-decision:{rec.id}"]
             )
             rec.invalidate_recordset()
             if rec.state not in ("draft", "sent", "collecting"):
@@ -337,6 +341,9 @@ class PlasticosFreightQuoteRecipient(models.Model):
                 raise ValidationError("Delivery failures require an attempt and error classification.")
 
     def write(self, vals):
+        protected = {"company_id", "request_id", "carrier_id", "channel", "idempotency_key"}
+        if protected.intersection(vals):
+            raise UserError("Freight quote recipient identity is immutable after creation.")
         if "destination_snapshot" in vals:
             for rec in self:
                 if rec.sent_at:
@@ -396,10 +403,13 @@ class PlasticosFreightQuote(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        recipient_ids = [vals["recipient_id"] for vals in vals_list if vals.get("recipient_id")]
+        recipients = self.env["plasticos.freight.quote.recipient"].browse(recipient_ids).exists()
+        recipients_by_id = {recipient.id: recipient for recipient in recipients}
         for vals in vals_list:
             if vals.get("name", "New") == "New":
                 vals["name"] = self.env["ir.sequence"].next_by_code("plasticos.freight.quote") or "New"
-            recipient = self.env["plasticos.freight.quote.recipient"].browse(vals.get("recipient_id")).exists()
+            recipient = recipients_by_id.get(vals.get("recipient_id"))
             if recipient and not vals.get("carrier_id"):
                 vals["carrier_id"] = recipient.carrier_id.id
             if not vals.get("source_fingerprint"):
@@ -483,7 +493,8 @@ class PlasticosFreightQuote(models.Model):
     def action_select(self):
         for rec in self:
             rec.env.cr.execute(
-                "SELECT pg_advisory_xact_lock(hashtext(%s))", [f"plasticos_logistics.rfq-select:{rec.request_id.id}"]
+                "SELECT pg_advisory_xact_lock(hashtext(%s))",
+                [f"plasticos_logistics.rfq-decision:{rec.request_id.id}"],
             )
             rec.invalidate_recordset()
             if rec.request_id.state in ("resolved", "cancelled", "failed"):

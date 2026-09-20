@@ -167,7 +167,7 @@
                     <button name="action_resolve_freight" string="Resolve Freight" type="object" class="btn-primary" invisible="state != 'ready_confirmed'"/>
                     <button name="action_create_freight_quote_request" string="Create Manual RFQ" type="object" invisible="state != 'ready_confirmed'"/>
                     <button name="action_request_freight_estimate" string="Record Estimate Request" type="object" invisible="state in ('dispatched', 'picked_up', 'delivered', 'closed')"/>
-                    <button name="action_record_actual_freight_cost" string="Record Actual Freight" type="object" invisible="not actual_freight_cost or actual_freight_recorded_at"/>
+                    <button name="action_record_actual_freight_cost" string="Record Actual Freight" type="object" invisible="not actual_freight_currency_id or actual_freight_recorded_at"/>
                     <button name="action_dispatch" string="Dispatch" type="object" class="btn-primary" invisible="state != 'scheduled'"/>
                     <button name="action_close" string="Close Load" type="object" class="btn-success" invisible="state != 'delivered'"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,rate_confirmed,scheduled,dispatched,picked_up,delivered,closed"/>

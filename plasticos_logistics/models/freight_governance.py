@@ -90,11 +90,35 @@ class PlasticosFreightCalibrationObservation(models.Model):
     context_fingerprint = fields.Char(required=True, readonly=True, index=True)
     observed_at = fields.Datetime(required=True, default=fields.Datetime.now, readonly=True)
 
+    _load_unique = models.Constraint(
+        "unique(load_id)", "Only one immutable actual-cost calibration observation may exist per load."
+    )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get("load_id") and self.search([("load_id", "=", vals["load_id"])], limit=1):
+                raise ValidationError("Actual-cost calibration evidence already exists for this load.")
+        return super().create(vals_list)
+
     @api.constrains("actual_cost_amount", "estimate_amount", "booked_rate_amount")
     def _check_amounts(self):
         for record in self:
             if record.actual_cost_amount < 0:
                 raise ValidationError("Actual freight cost cannot be negative.")
+
+    @api.constrains("company_id", "load_id", "estimate_id", "selected_quote_id")
+    def _check_provenance_company(self):
+        for record in self:
+            load_company = getattr(record.load_id, "company_id", False) or (
+                record.load_id.sale_order_id.company_id if record.load_id.sale_order_id else False
+            )
+            if load_company != record.company_id:
+                raise ValidationError("Calibration evidence company must match its load company.")
+            if record.estimate_id and record.estimate_id.company_id != record.company_id:
+                raise ValidationError("Calibration estimate must belong to the load company.")
+            if record.selected_quote_id and record.selected_quote_id.company_id != record.company_id:
+                raise ValidationError("Calibration quote must belong to the load company.")
 
     def write(self, vals):
         raise UserError("Freight calibration observations are immutable evidence.")
@@ -137,6 +161,17 @@ class PlasticosRateMemoryReconciliation(models.Model):
             ):
                 raise ValidationError("Reconciliation snapshot must exactly preserve the legacy row.")
 
+    @api.constrains("company_id", "canonical_load_id")
+    def _check_canonical_load_company(self):
+        for record in self:
+            if not record.canonical_load_id:
+                continue
+            load_company = getattr(record.canonical_load_id, "company_id", False) or (
+                record.canonical_load_id.sale_order_id.company_id if record.canonical_load_id.sale_order_id else False
+            )
+            if load_company != record.company_id:
+                raise ValidationError("Canonical load must belong to the reconciliation company.")
+
     def write(self, vals):
         raise UserError("Rate-memory reconciliation evidence is immutable.")
 
@@ -149,15 +184,19 @@ def record_freight_event(env, *, event_type, outcome_code, load=None, facts=None
     company = getattr(load, "company_id", False) or (
         load.sale_order_id.company_id if load and load.sale_order_id else env.company
     )
-    return env["plasticos.freight.event"].create(
-        {
-            "company_id": company.id,
-            "load_id": load.id if load else False,
-            "transaction_id": load.transaction_id.id if load and load.transaction_id else False,
-            "event_type": event_type,
-            "outcome_code": outcome_code,
-            "correlation_id": correlation_id or False,
-            "facts": facts or {},
-            "unknowns": unknowns or [],
-        }
+    return (
+        env["plasticos.freight.event"]
+        .sudo()
+        .create(
+            {
+                "company_id": company.id,
+                "load_id": load.id if load else False,
+                "transaction_id": load.transaction_id.id if load and load.transaction_id else False,
+                "event_type": event_type,
+                "outcome_code": outcome_code,
+                "correlation_id": correlation_id or False,
+                "facts": facts or {},
+                "unknowns": unknowns or [],
+            }
+        )
     )

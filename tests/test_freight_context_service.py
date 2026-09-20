@@ -18,7 +18,6 @@ SPEC.loader.exec_module(freight_context)
 def _partner(identifier: int, street: str, latitude=29.7604, longitude=-95.3698):
     return SimpleNamespace(
         id=identifier,
-        contact_address_complete=street,
         city="Houston",
         country_id=SimpleNamespace(id=233),
         state_id=SimpleNamespace(id=48),
@@ -75,6 +74,16 @@ def test_context_changes_when_physical_geocode_changes():
     assert (
         freight_context.build_freight_context(baseline).fingerprint
         != freight_context.build_freight_context(corrected).fingerprint
+    )
+
+
+def test_context_does_not_require_a_presentation_only_partner_address_field():
+    baseline = _load()
+    changed_presentation = _load()
+    changed_presentation.pickup_partner_id.contact_address_complete = "Different presentation only"
+    assert (
+        freight_context.build_freight_context(baseline).fingerprint
+        == freight_context.build_freight_context(changed_presentation).fingerprint
     )
 
 

@@ -10,11 +10,11 @@ access_freight_quote_recipient_manager,plasticos.freight.quote.recipient.manager
 access_freight_quote_user,plasticos.freight.quote.user,model_plasticos_freight_quote,base.group_user,1,1,1,0
 access_freight_quote_manager,plasticos.freight.quote.manager,model_plasticos_freight_quote,base.group_system,1,1,1,1
 access_freight_estimate_user,plasticos.freight.estimate.user,model_plasticos_freight_estimate,base.group_user,1,0,0,0
-access_freight_estimate_manager,plasticos.freight.estimate.manager,model_plasticos_freight_estimate,base.group_system,1,1,1,1
-access_freight_event_user,plasticos.freight.event.user,model_plasticos_freight_event,base.group_user,1,0,1,0
-access_freight_event_manager,plasticos.freight.event.manager,model_plasticos_freight_event,base.group_system,1,0,1,0
-access_freight_calibration_user,plasticos.freight.calibration.observation.user,model_plasticos_freight_calibration_observation,base.group_user,1,0,1,0
-access_freight_calibration_manager,plasticos.freight.calibration.observation.manager,model_plasticos_freight_calibration_observation,base.group_system,1,0,1,0
+access_freight_estimate_manager,plasticos.freight.estimate.manager,model_plasticos_freight_estimate,base.group_system,1,1,0,0
+access_freight_event_user,plasticos.freight.event.user,model_plasticos_freight_event,base.group_user,1,0,0,0
+access_freight_event_manager,plasticos.freight.event.manager,model_plasticos_freight_event,base.group_system,1,0,0,0
+access_freight_calibration_user,plasticos.freight.calibration.observation.user,model_plasticos_freight_calibration_observation,base.group_user,1,0,0,0
+access_freight_calibration_manager,plasticos.freight.calibration.observation.manager,model_plasticos_freight_calibration_observation,base.group_system,1,0,0,0
 access_rate_memory_reconciliation_user,plasticos.rate.memory.reconciliation.user,model_plasticos_rate_memory_reconciliation,base.group_user,1,0,0,0
 access_rate_memory_reconciliation_manager,plasticos.rate.memory.reconciliation.manager,model_plasticos_rate_memory_reconciliation,base.group_system,1,0,1,0
 access_dispatch_user,plasticos.dispatch.user,plasticos_logistics.model_plasticos_dispatch,base.group_user,1,1,1,0

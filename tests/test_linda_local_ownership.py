@@ -32,3 +32,19 @@ def test_local_estimator_and_ranking_are_explicitly_versioned_services():
     ranking = (LOGISTICS / "services" / "freight_quote_ranking.py").read_text(encoding="utf-8")
     assert 'ESTIMATOR_MODEL_VERSION = "linda-haversine-curve-v1"' in estimator
     assert 'RANKING_POLICY_VERSION = "linda-quote-rank-v1"' in ranking
+
+
+def test_canonical_freight_context_uses_only_declared_structured_location_facts():
+    context = (LOGISTICS / "services" / "freight_context.py").read_text(encoding="utf-8")
+    assert "contact_address_complete" not in context
+    assert 'FREIGHT_CONTEXT_VERSION = "freight_context_v3"' in context
+
+
+def test_immutable_freight_evidence_is_not_directly_creatable_by_internal_users():
+    acl = (LOGISTICS / "security" / "ir.model.access.csv").read_text(encoding="utf-8")
+    event_user = next(line for line in acl.splitlines() if line.startswith("access_freight_event_user,"))
+    calibration_user = next(line for line in acl.splitlines() if line.startswith("access_freight_calibration_user,"))
+    estimate_user = next(line for line in acl.splitlines() if line.startswith("access_freight_estimate_user,"))
+    assert event_user.endswith(",1,0,0,0")
+    assert calibration_user.endswith(",1,0,0,0")
+    assert estimate_user.endswith(",1,0,0,0")
