@@ -838,12 +838,16 @@ class PlasticosLoad(models.Model):
                 context_fingerprint=context.fingerprint,
             )
 
-    def _cancel_stale_freight_quote_requests(self, current_fingerprint, correlation_id):
-        """Cancel active RFQ episodes whose freight context no longer matches the load.
+    def _cancel_stale_freight_quote_requests(self, current_fingerprint, correlation_id, reason="context_changed"):
+        """Cancel active RFQ episodes that can no longer be used for this load.
 
-        Called from a freight-resolution transaction that succeeds, so the
-        cancellation and its audit event persist. Request-level guards only refuse
-        stale requests; they never write, because their ``UserError`` rolls back.
+        With ``current_fingerprint`` set, only episodes whose freight context
+        differs are cancelled (``reason="context_changed"``). With ``None`` every
+        active episode is cancelled (used when the load is already rate-confirmed
+        and the episodes are orphaned). Called from a freight-resolution
+        transaction that succeeds, so the cancellation and its audit event
+        persist. Request-level guards only refuse stale requests; they never
+        write, because their ``UserError`` rolls back.
         """
         from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
 
@@ -859,14 +863,14 @@ class PlasticosLoad(models.Model):
                 {
                     "state": "cancelled",
                     "cancelled_at": fields.Datetime.now(),
-                    "cancellation_reason": "context_changed",
+                    "cancellation_reason": reason,
                 }
             )
             for request in stale:
                 record_freight_event(
                     rec.env,
                     event_type="rfq_request_cancelled_context_change",
-                    outcome_code="context_changed",
+                    outcome_code=reason,
                     load=rec,
                     facts={
                         "request_id": request.id,
@@ -896,6 +900,11 @@ class PlasticosLoad(models.Model):
             # (resolve_sal would return not_eligible and the miss branch would
             # overwrite SAL provenance while leaving the reused rate in place).
             if rec.rate_confirmed_at or rec.state == "rate_confirmed":
+                # A confirmed load cannot be re-resolved, so any RFQ episode still
+                # active on it is orphaned. Cancel it here, durably, so the
+                # request-level guard's advice ("re-run Resolve Freight") always
+                # leads to a persisted outcome whatever the load state.
+                rec._cancel_stale_freight_quote_requests(None, correlation_id, reason="load_rate_confirmed")
                 continue
             decision = resolve_sal(rec)
             # Persist the cancellation of RFQ episodes whose context no longer
