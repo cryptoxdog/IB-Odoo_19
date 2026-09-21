@@ -35,8 +35,8 @@
 ./ci/check_name_literal.py:43:        print('_name must be a string literal. Use: _name = "model.name"')
 ./ci/check_odoo19_hooks.py:115:                param_name = match.group(1)
 ./ci/check_odoo19_hooks.py:116:                if param_name == "cr":
-./ci/check_odoo_antipatterns.py:666:                var_name = direct_assign.group(1)
-./ci/check_odoo_antipatterns.py:667:                field_name = direct_assign.group(2)
+./ci/check_odoo_antipatterns.py:690:                var_name = direct_assign.group(1)
+./ci/check_odoo_antipatterns.py:691:                field_name = direct_assign.group(2)
 ./ci/check_orphan_model_refs.py:182:    # Pattern to match _name = "model.name" or _name = 'model.name'
 ./ci/check_orphan_model_refs.py:185:    # Also match _inherit = "model.name" (extends existing model)
 ./ci/check_orphan_model_refs.py:302:                    model_name = model_ref[6:].replace("_", ".")
@@ -200,13 +200,13 @@
 ./plasticos_intake_normalizer/models/normalizer_config.py:47:    _name = "plasticos.normalizer.config"
 ./plasticos_logistics/models/dispatch.py:10:    _name = "plasticos.dispatch"
 ./plasticos_logistics/models/freight_estimate.py:10:    _name = "plasticos.freight.estimate"
-./plasticos_logistics/models/freight_governance.py:30:    _name = "plasticos.freight.event"
-./plasticos_logistics/models/freight_governance.py:67:    _name = "plasticos.freight.calibration.observation"
-./plasticos_logistics/models/freight_governance.py:149:    _name = "plasticos.rate.memory.reconciliation"
+./plasticos_logistics/models/freight_governance.py:31:    _name = "plasticos.freight.event"
+./plasticos_logistics/models/freight_governance.py:68:    _name = "plasticos.freight.calibration.observation"
+./plasticos_logistics/models/freight_governance.py:150:    _name = "plasticos.rate.memory.reconciliation"
 ./plasticos_logistics/models/freight_quote.py:41:    _name = "plasticos.freight.quote.request"
 ./plasticos_logistics/models/freight_quote.py:43:    _inherit = ["mail.thread", "mail.activity.mixin"]
-./plasticos_logistics/models/freight_quote.py:383:    _name = "plasticos.freight.quote.recipient"
-./plasticos_logistics/models/freight_quote.py:507:    _name = "plasticos.freight.quote"
+./plasticos_logistics/models/freight_quote.py:384:    _name = "plasticos.freight.quote.recipient"
+./plasticos_logistics/models/freight_quote.py:508:    _name = "plasticos.freight.quote"
 ./plasticos_logistics/models/load.py:36:    _name = "plasticos.load"
 ./plasticos_logistics/models/load.py:38:    _inherit = ["mail.thread", "mail.activity.mixin"]
 ./plasticos_logistics/models/load.py:191:    pickup_contact_name = fields.Char(string="Pickup Contact")

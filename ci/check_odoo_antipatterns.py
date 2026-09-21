@@ -176,7 +176,11 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
         set operation between such expressions.
         """
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
-            if node.func.attr in self.RECORDSET_PRODUCERS:
+            # The method name alone is not evidence: ``re.search(...)`` or
+            # ``payload.create(...)`` are not recordsets. The receiver must be
+            # an Odoo model/recordset expression (``self``, ``env[...]``,
+            # ``x.env``, a tracked local, or another recordset expression).
+            if node.func.attr in self.RECORDSET_PRODUCERS and self._receiver_is_recordset(node.func.value):
                 return True
         if isinstance(node, ast.Subscript):
             base = node.value
@@ -193,11 +197,31 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
                     root = root.value
                 if isinstance(root, ast.Name) and root.id in self._recordset_locals:
                     return True
+                if isinstance(root, ast.Name) and root.id == "self" and self.in_model_class:
+                    return True
                 return self._is_recordset_expr(node.value)
             return False
         if isinstance(node, ast.BinOp) and isinstance(node.op, (ast.BitOr, ast.BitAnd, ast.Add, ast.Sub)):
             return self._is_recordset_expr(node.left) or self._is_recordset_expr(node.right)
         return False
+
+    def _receiver_is_recordset(self, receiver: ast.expr) -> bool:
+        """True when a method call's receiver is an Odoo model or recordset.
+
+        ``self`` (inside a model class), ``env[...]`` lookups, ``<x>.env``
+        (for ``env.ref``), tracked recordset locals, relational attributes of
+        those, and chained recordset calls qualify. A bare module or arbitrary
+        object (``re``, ``payload``) does not.
+        """
+        if isinstance(receiver, ast.Name):
+            if receiver.id == "self":
+                return self.in_model_class
+            if receiver.id == "env":
+                return True
+            return receiver.id in self._recordset_locals
+        if isinstance(receiver, ast.Attribute) and receiver.attr == "env":
+            return True
+        return self._is_recordset_expr(receiver)
 
     def _bind_assignment(self, targets: list[ast.expr], value: ast.expr | None) -> None:
         if value is None:

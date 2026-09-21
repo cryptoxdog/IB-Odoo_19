@@ -274,7 +274,9 @@ class PlasticosLoad(models.Model):
                     raise UserError(
                         "Loads are created in Draft; state may only change through the validated transition workflow."
                     )
-                protected = _FREIGHT_PROVENANCE_FIELDS.intersection(vals)
+                # Reject provenance by value, not key presence: an explicit
+                # False/None (e.g. a cleared duplicate) carries no provenance.
+                protected = {name for name in _FREIGHT_PROVENANCE_FIELDS.intersection(vals) if vals.get(name)}
                 if protected:
                     raise UserError(
                         "Freight provenance may only be set through a validated freight command: "
@@ -287,6 +289,18 @@ class PlasticosLoad(models.Model):
                 if tx and not tx.load_id and tx.supplier_id and tx.buyer_id:
                     tx.load_id = rec.id
         return records
+
+    def copy_data(self, default=None):
+        """A duplicated load starts in Draft with no freight provenance.
+
+        Odoo's Duplicate action copies stored fields by default; freight state and
+        provenance are workflow-owned and must never be inherited by a new load.
+        """
+        default = dict(default or {})
+        default.setdefault("state", "draft")
+        for name in _FREIGHT_PROVENANCE_FIELDS:
+            default.setdefault(name, False)
+        return super().copy_data(default=default)
 
     def _compute_freight_evidence_counts(self):
         request_model = self.env["plasticos.freight.quote.request"]
@@ -838,24 +852,36 @@ class PlasticosLoad(models.Model):
                 context_fingerprint=context.fingerprint,
             )
 
-    def _cancel_stale_freight_quote_requests(self, current_fingerprint, correlation_id, reason="context_changed"):
+    _RFQ_CANCEL_EVENT_TYPES = {
+        "context_changed": "rfq_request_cancelled_context_change",
+        "load_rate_confirmed": "rfq_request_cancelled_rate_confirmed",
+    }
+
+    def _cancel_stale_freight_quote_requests(
+        self, current_fingerprint, correlation_id, reason="context_changed", exclude_request_ids=()
+    ):
         """Cancel active RFQ episodes that can no longer be used for this load.
 
         With ``current_fingerprint`` set, only episodes whose freight context
         differs are cancelled (``reason="context_changed"``). With ``None`` every
-        active episode is cancelled (used when the load is already rate-confirmed
-        and the episodes are orphaned). Called from a freight-resolution
-        transaction that succeeds, so the cancellation and its audit event
-        persist. Request-level guards only refuse stale requests; they never
-        write, because their ``UserError`` rolls back.
+        active episode is cancelled (``reason="load_rate_confirmed"``: the load
+        has a confirmed rate, so any episode still active is orphaned).
+        ``exclude_request_ids`` keeps the episode that is itself being resolved.
+        Called from a transaction that succeeds (freight resolution or rate
+        confirmation), so the cancellation and its audit event persist.
+        Request-level guards only refuse stale requests; they never write,
+        because their ``UserError`` rolls back.
         """
         from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
 
+        event_type = self._RFQ_CANCEL_EVENT_TYPES[reason]
         request_model = self.env["plasticos.freight.quote.request"]
         for rec in self:
             domain = [("load_id", "=", rec.id), ("state", "in", ("draft", "sent", "collecting"))]
             if current_fingerprint:
                 domain.append(("context_fingerprint", "!=", current_fingerprint))
+            if exclude_request_ids:
+                domain.append(("id", "not in", list(exclude_request_ids)))
             stale = request_model.search(domain)
             if not stale:
                 continue
@@ -869,7 +895,7 @@ class PlasticosLoad(models.Model):
             for request in stale:
                 record_freight_event(
                     rec.env,
-                    event_type="rfq_request_cancelled_context_change",
+                    event_type=event_type,
                     outcome_code=reason,
                     load=rec,
                     facts={
@@ -957,8 +983,14 @@ class PlasticosLoad(models.Model):
         resolution_method,
         context_fingerprint=None,
         sal_source_load=None,
+        resolving_request=None,
     ):
-        """Single serialized state-machine convergence point for all freight rates."""
+        """Single serialized state-machine convergence point for all freight rates.
+
+        ``resolving_request`` is the RFQ episode whose selected quote produced this
+        confirmation; it is left for the caller to resolve while every other
+        active episode on the load is cancelled as orphaned.
+        """
         from odoo.addons.plasticos_logistics.services.freight_context import (
             FREIGHT_CONTEXT_VERSION,
             build_freight_context,
@@ -1006,6 +1038,16 @@ class PlasticosLoad(models.Model):
             }
             rec._freight_write(values)
             rec._transition("rate_confirmed", correlation_id=correlation_id)
+            # A confirmed rate makes every other active RFQ episode on this load
+            # orphaned; cancel them inside this successful transaction so the
+            # cleanup does not depend on an operator re-running Resolve Freight
+            # (whose button is hidden once the load leaves Ready Confirmed).
+            rec._cancel_stale_freight_quote_requests(
+                None,
+                correlation_id,
+                reason="load_rate_confirmed",
+                exclude_request_ids=resolving_request.ids if resolving_request else (),
+            )
             from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
 
             record_freight_event(

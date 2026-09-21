@@ -414,6 +414,47 @@ class TestLindaFreightModels(PlasticosTestCase):
         self.assertEqual(load.state, "draft")
         self.assertFalse(load.rate_confirmed_at)
 
+    def test_duplicated_load_starts_in_draft_without_provenance(self):
+        """Odoo's Duplicate action must not inherit workflow-owned state or provenance."""
+        load, context = self._new_load()
+        load._freight_write(
+            {
+                "carrier_id": self.carrier.id,
+                "rate_amount": 1500.0,
+                "rate_currency_id": self.currency.id,
+                "rate_confirmed_at": fields.Datetime.now(),
+                "rate_resolution_method": "manual",
+                "freight_context_fingerprint": context.fingerprint,
+                "sal_decision": "miss",
+            }
+        )
+        duplicate = load.copy()
+        self.assertEqual(duplicate.state, "draft")
+        self.assertFalse(duplicate.rate_confirmed_at)
+        self.assertFalse(duplicate.rate_resolution_method)
+        self.assertFalse(duplicate.sal_decision)
+        self.assertFalse(duplicate.freight_context_fingerprint)
+
+    def test_rate_confirmation_cancels_orphaned_rfq_episodes_durably(self):
+        """Confirming a rate through any path cancels other active episodes in the same transaction."""
+        load, context, request, _recipient = self._new_request()
+        load._confirm_freight_rate(
+            rate=1000.0,
+            carrier=self.carrier,
+            currency=self.currency,
+            resolution_method="manual",
+            context_fingerprint=context.fingerprint,
+        )
+        request.invalidate_recordset()
+        self.assertEqual(request.state, "cancelled")
+        self.assertEqual(request.cancellation_reason, "load_rate_confirmed")
+        event = self.env["plasticos.freight.event"].search(
+            [("load_id", "=", load.id), ("event_type", "=", "rfq_request_cancelled_rate_confirmed")],
+            limit=1,
+        )
+        self.assertTrue(event)
+        self.assertEqual(event.outcome_code, "load_rate_confirmed")
+
     def test_recipient_idempotency_key_is_derived_when_absent(self):
         """R4: operators add recipients through the request form without supplying a key."""
         from odoo.addons.plasticos_logistics.models.freight_quote import recipient_idempotency_key

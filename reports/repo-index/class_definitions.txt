@@ -130,12 +130,12 @@
 ./plasticos_intake_normalizer/models/normalizer_config.py:41:class PlasticosNormalizerConfig(models.Model):
 ./plasticos_logistics/models/dispatch.py:9:class PlasticosDispatch(models.Model):
 ./plasticos_logistics/models/freight_estimate.py:9:class PlasticosFreightEstimate(models.Model):
-./plasticos_logistics/models/freight_governance.py:29:class PlasticosFreightEvent(models.Model):
-./plasticos_logistics/models/freight_governance.py:66:class PlasticosFreightCalibrationObservation(models.Model):
-./plasticos_logistics/models/freight_governance.py:148:class PlasticosRateMemoryReconciliation(models.Model):
+./plasticos_logistics/models/freight_governance.py:30:class PlasticosFreightEvent(models.Model):
+./plasticos_logistics/models/freight_governance.py:67:class PlasticosFreightCalibrationObservation(models.Model):
+./plasticos_logistics/models/freight_governance.py:149:class PlasticosRateMemoryReconciliation(models.Model):
 ./plasticos_logistics/models/freight_quote.py:40:class PlasticosFreightQuoteRequest(models.Model):
-./plasticos_logistics/models/freight_quote.py:382:class PlasticosFreightQuoteRecipient(models.Model):
-./plasticos_logistics/models/freight_quote.py:506:class PlasticosFreightQuote(models.Model):
+./plasticos_logistics/models/freight_quote.py:383:class PlasticosFreightQuoteRecipient(models.Model):
+./plasticos_logistics/models/freight_quote.py:507:class PlasticosFreightQuote(models.Model):
 ./plasticos_logistics/models/load.py:35:class PlasticosLoad(models.Model):
 ./plasticos_logistics/models/load_dashboard.py:10:class PlasticosLoadDashboard(models.Model):
 ./plasticos_logistics/models/rate_memory.py:5:class PlasticosRateMemory(models.Model):

@@ -368,6 +368,7 @@ class PlasticosFreightQuoteRequest(models.Model):
                 currency=selected.currency_id,
                 resolution_method="live_quote",
                 context_fingerprint=rec.context_fingerprint,
+                resolving_request=rec,
             )
             rec._rfq_write(
                 {"selected_quote_id": selected.id, "resolved_at": fields.Datetime.now(), "state": "resolved"}

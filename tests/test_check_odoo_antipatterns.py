@@ -182,6 +182,54 @@ def test_model_class_plain_value_is_not_flagged():
     assert codes == []
 
 
+def test_method_name_alone_is_not_recordset_evidence():
+    """re.search()/payload.create() share method names with the ORM but are not recordsets."""
+    codes = _codes(
+        """
+        import re
+
+        def parse(text, client, payload):
+            match = re.search(r"\\d+", text)
+            if match is None:
+                return None
+            created = client.create(payload)
+            if created is None:
+                return None
+            if payload.search("x") is None:
+                return None
+            return match.group(0)
+        """
+    )
+    assert codes == []
+
+
+def test_tracked_model_variable_receiver_is_recordset_evidence():
+    codes = _codes(
+        """
+        def lookup(env):
+            request_model = env["plasticos.freight.quote.request"]
+            found = request_model.search([], limit=1)
+            if found is None:
+                return None
+            return found
+        """
+    )
+    assert codes == ["ODOO006"]
+
+
+def test_env_ref_receiver_is_recordset_evidence():
+    codes = _codes(
+        """
+        def group_for(env):
+            group = env.ref("plasticos_security_base.group_logistics", raise_if_not_found=False)
+            if group is None:
+                return None
+            return group
+        """
+    )
+    assert codes == ["ODOO006"]
+
+
 def test_checker_ignores_scalar_id_locals_outside_model_classes():
     codes = _codes(
         """
