@@ -106,21 +106,25 @@
 ./ci/check_odoo_antipatterns.py:109:    def __init__(
 ./ci/check_odoo_antipatterns.py:127:    def __str__(self) -> str:
 ./ci/check_odoo_antipatterns.py:134:    def __init__(self, filepath: str, source_lines: list[str]):
-./ci/check_odoo_antipatterns.py:143:    def visit_ClassDef(self, node: ast.ClassDef) -> None:
-./ci/check_odoo_antipatterns.py:159:    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-./ci/check_odoo_antipatterns.py:216:    def visit_Call(self, node: ast.Call) -> None:
-./ci/check_odoo_antipatterns.py:248:    def visit_Compare(self, node: ast.Compare) -> None:
-./ci/check_odoo_antipatterns.py:270:    def visit_Subscript(self, node: ast.Subscript) -> None:
-./ci/check_odoo_antipatterns.py:277:    def visit_For(self, node: ast.For) -> None:
-./ci/check_odoo_antipatterns.py:311:    def _annotation_is_dict(annotation: ast.expr) -> bool:
-./ci/check_odoo_antipatterns.py:321:    def _looks_like_recordset(self, node: ast.expr) -> bool:
-./ci/check_odoo_antipatterns.py:346:    def _looks_like_record(self, node: ast.expr) -> bool:
-./ci/check_odoo_antipatterns.py:360:def check_regex_patterns(filepath: str, content: str) -> list[AntiPatternIssue]:
-./ci/check_odoo_antipatterns.py:475:def scan_file(filepath: str) -> list[AntiPatternIssue]:
-./ci/check_odoo_antipatterns.py:502:def find_python_files() -> list[str]:
-./ci/check_odoo_antipatterns.py:520:def find_xml_files() -> list[str]:
-./ci/check_odoo_antipatterns.py:533:def check_xml_server_actions(filepath: str) -> list[AntiPatternIssue]:
-./ci/check_odoo_antipatterns.py:616:def main() -> int:
+./ci/check_odoo_antipatterns.py:170:    def _is_recordset_expr(self, node: ast.expr) -> bool:
+./ci/check_odoo_antipatterns.py:202:    def _bind_assignment(self, targets: list[ast.expr], value: ast.expr | None) -> None:
+./ci/check_odoo_antipatterns.py:214:    def visit_Assign(self, node: ast.Assign) -> None:
+./ci/check_odoo_antipatterns.py:219:    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+./ci/check_odoo_antipatterns.py:224:    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+./ci/check_odoo_antipatterns.py:240:    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+./ci/check_odoo_antipatterns.py:301:    def visit_Call(self, node: ast.Call) -> None:
+./ci/check_odoo_antipatterns.py:333:    def visit_Compare(self, node: ast.Compare) -> None:
+./ci/check_odoo_antipatterns.py:360:    def visit_Subscript(self, node: ast.Subscript) -> None:
+./ci/check_odoo_antipatterns.py:367:    def visit_For(self, node: ast.For) -> None:
+./ci/check_odoo_antipatterns.py:401:    def _annotation_is_dict(annotation: ast.expr) -> bool:
+./ci/check_odoo_antipatterns.py:411:    def _looks_like_recordset(self, node: ast.expr) -> bool:
+./ci/check_odoo_antipatterns.py:436:    def _looks_like_record(self, node: ast.expr) -> bool:
+./ci/check_odoo_antipatterns.py:450:def check_regex_patterns(filepath: str, content: str) -> list[AntiPatternIssue]:
+./ci/check_odoo_antipatterns.py:565:def scan_file(filepath: str) -> list[AntiPatternIssue]:
+./ci/check_odoo_antipatterns.py:592:def find_python_files() -> list[str]:
+./ci/check_odoo_antipatterns.py:610:def find_xml_files() -> list[str]:
+./ci/check_odoo_antipatterns.py:623:def check_xml_server_actions(filepath: str) -> list[AntiPatternIssue]:
+./ci/check_odoo_antipatterns.py:706:def main() -> int:
 ./ci/check_orm_integrity.py:56:    def __init__(self, filename: str):
 ./ci/check_orm_integrity.py:61:    def visit_Call(self, node: ast.Call) -> None:
 ./ci/check_orm_integrity.py:66:    def _check_env_ref(self, node: ast.Call) -> None:
@@ -800,72 +804,74 @@
 ./plasticos_logistics/models/freight_governance.py:247:def record_freight_event(env, *, event_type, outcome_code, load=None, facts=None, unknowns=None, correlation_id=None):
 ./plasticos_logistics/models/freight_quote.py:24:def _company_for_load(load):
 ./plasticos_logistics/models/freight_quote.py:30:def _source_fingerprint(values):
-./plasticos_logistics/models/freight_quote.py:95:    def create(self, vals_list):
-./plasticos_logistics/models/freight_quote.py:136:    def _rfq_write(self, values):
-./plasticos_logistics/models/freight_quote.py:139:    def _require_operator(self):
-./plasticos_logistics/models/freight_quote.py:142:    def _lock_decision(self):
-./plasticos_logistics/models/freight_quote.py:149:    def _ensure_active_for_child_evidence(self):
-./plasticos_logistics/models/freight_quote.py:158:    def _check_request_company_and_lane(self):
-./plasticos_logistics/models/freight_quote.py:171:    def _ensure_current_context(self):
-./plasticos_logistics/models/freight_quote.py:188:    def _check_recommended_quote_relationship(self):
-./plasticos_logistics/models/freight_quote.py:199:    def action_rank_quotes(self):
-./plasticos_logistics/models/freight_quote.py:300:    def write(self, vals):
-./plasticos_logistics/models/freight_quote.py:338:    def unlink(self):
-./plasticos_logistics/models/freight_quote.py:341:    def action_select_quote(self):
-./plasticos_logistics/models/freight_quote.py:413:    def create(self, vals_list):
-./plasticos_logistics/models/freight_quote.py:420:    def _rfq_write(self, values):
-./plasticos_logistics/models/freight_quote.py:425:    def _check_recipient_company(self):
-./plasticos_logistics/models/freight_quote.py:439:    def _check_recipient_state_evidence(self):
-./plasticos_logistics/models/freight_quote.py:461:    def write(self, vals):
-./plasticos_logistics/models/freight_quote.py:486:    def unlink(self):
-./plasticos_logistics/models/freight_quote.py:537:    def init(self):
-./plasticos_logistics/models/freight_quote.py:549:    def create(self, vals_list):
-./plasticos_logistics/models/freight_quote.py:589:    def _check_quote_relationships(self):
-./plasticos_logistics/models/freight_quote.py:597:    def _check_supersession_lineage(self):
-./plasticos_logistics/models/freight_quote.py:616:    def _check_amount_semantics(self):
-./plasticos_logistics/models/freight_quote.py:626:    def write(self, vals):
-./plasticos_logistics/models/freight_quote.py:666:    def unlink(self):
-./plasticos_logistics/models/freight_quote.py:669:    def _check_selectable(self):
-./plasticos_logistics/models/freight_quote.py:681:    def action_select(self):
+./plasticos_logistics/models/freight_quote.py:35:def recipient_idempotency_key(request_id, carrier_id, channel):
+./plasticos_logistics/models/freight_quote.py:100:    def create(self, vals_list):
+./plasticos_logistics/models/freight_quote.py:141:    def _rfq_write(self, values):
+./plasticos_logistics/models/freight_quote.py:144:    def _require_operator(self):
+./plasticos_logistics/models/freight_quote.py:147:    def _lock_decision(self):
+./plasticos_logistics/models/freight_quote.py:154:    def _ensure_active_for_child_evidence(self):
+./plasticos_logistics/models/freight_quote.py:163:    def _check_request_company_and_lane(self):
+./plasticos_logistics/models/freight_quote.py:176:    def _ensure_current_context(self):
+./plasticos_logistics/models/freight_quote.py:196:    def _check_recommended_quote_relationship(self):
+./plasticos_logistics/models/freight_quote.py:207:    def action_rank_quotes(self):
+./plasticos_logistics/models/freight_quote.py:308:    def write(self, vals):
+./plasticos_logistics/models/freight_quote.py:346:    def unlink(self):
+./plasticos_logistics/models/freight_quote.py:349:    def action_select_quote(self):
+./plasticos_logistics/models/freight_quote.py:422:    def create(self, vals_list):
+./plasticos_logistics/models/freight_quote.py:436:    def _rfq_write(self, values):
+./plasticos_logistics/models/freight_quote.py:441:    def _check_recipient_company(self):
+./plasticos_logistics/models/freight_quote.py:455:    def _check_recipient_state_evidence(self):
+./plasticos_logistics/models/freight_quote.py:477:    def write(self, vals):
+./plasticos_logistics/models/freight_quote.py:502:    def unlink(self):
+./plasticos_logistics/models/freight_quote.py:553:    def init(self):
+./plasticos_logistics/models/freight_quote.py:565:    def create(self, vals_list):
+./plasticos_logistics/models/freight_quote.py:605:    def _check_quote_relationships(self):
+./plasticos_logistics/models/freight_quote.py:613:    def _check_supersession_lineage(self):
+./plasticos_logistics/models/freight_quote.py:632:    def _check_amount_semantics(self):
+./plasticos_logistics/models/freight_quote.py:642:    def write(self, vals):
+./plasticos_logistics/models/freight_quote.py:682:    def unlink(self):
+./plasticos_logistics/models/freight_quote.py:685:    def _check_selectable(self):
+./plasticos_logistics/models/freight_quote.py:697:    def action_select(self):
 ./plasticos_logistics/models/load.py:258:    def create(self, vals_list):
-./plasticos_logistics/models/load.py:273:    def _compute_freight_evidence_counts(self):
-./plasticos_logistics/models/load.py:282:    def _require_freight_operator(self):
-./plasticos_logistics/models/load.py:291:    def _freight_write(self, values):
-./plasticos_logistics/models/load.py:295:    def write(self, vals):
-./plasticos_logistics/models/load.py:370:    def _compute_cycle_time(self):
-./plasticos_logistics/models/load.py:379:    def _compute_transaction_id(self):
-./plasticos_logistics/models/load.py:391:    def _get_default_delivery_term(self):
-./plasticos_logistics/models/load.py:401:    def _compute_delivery_term_overridden(self):
-./plasticos_logistics/models/load.py:412:    def _check_override_reason_required(self):
-./plasticos_logistics/models/load.py:420:    def action_confirm_ready(self):
-./plasticos_logistics/models/load.py:428:    def action_create_freight_quote_request(self):
-./plasticos_logistics/models/load.py:490:    def action_request_freight_estimate(self):
-./plasticos_logistics/models/load.py:639:    def action_view_freight_quote_requests(self):
-./plasticos_logistics/models/load.py:648:    def action_record_actual_freight_cost(self):
-./plasticos_logistics/models/load.py:716:    def action_correct_actual_freight_cost(self, actual_cost, currency, reason):
-./plasticos_logistics/models/load.py:782:    def action_open_actual_freight_correction_wizard(self):
-./plasticos_logistics/models/load.py:798:    def action_view_freight_estimates(self):
-./plasticos_logistics/models/load.py:806:    def action_confirm_rate(self, rate=None):
-./plasticos_logistics/models/load.py:823:    def action_resolve_freight(self):
-./plasticos_logistics/models/load.py:883:    def _confirm_freight_rate(
-./plasticos_logistics/models/load.py:955:    def action_schedule(self, pickup_dt, delivery_dt):
-./plasticos_logistics/models/load.py:963:    def action_dispatch(self):
-./plasticos_logistics/models/load.py:980:    def _ensure_sal_context_current(self):
-./plasticos_logistics/models/load.py:994:    def action_close(self):
-./plasticos_logistics/models/load.py:1001:    def _transition(self, new_state, *, correlation_id=None):
-./plasticos_logistics/models/load.py:1034:    def _store_rate_memory(self):
-./plasticos_logistics/models/load.py:1041:    def _lane_key(self):
-./plasticos_logistics/models/load.py:1046:    def _check_datetime_order(self):
-./plasticos_logistics/models/load.py:1054:    def _cron_escalation_check(self):
-./plasticos_logistics/models/load.py:1074:    def _cron_check_dispatch_acknowledgments(self):
-./plasticos_logistics/models/load.py:1127:    def action_send_delivery_order(self):
-./plasticos_logistics/models/load.py:1133:    def action_send_bol_pickup(self):
-./plasticos_logistics/models/load.py:1139:    def action_send_bol_delivery(self):
-./plasticos_logistics/models/load.py:1145:    def action_send_dispatch_packet(self):
-./plasticos_logistics/models/load.py:1151:    def action_send_dispatch_direct(self):
-./plasticos_logistics/models/load.py:1169:    def _get_email_template(self, template_name):
-./plasticos_logistics/models/load.py:1185:    def _open_mail_composer(self, template):
-./plasticos_logistics/models/load.py:1207:    def action_view_transaction(self):
+./plasticos_logistics/models/load.py:291:    def _compute_freight_evidence_counts(self):
+./plasticos_logistics/models/load.py:300:    def _require_freight_operator(self):
+./plasticos_logistics/models/load.py:309:    def _freight_write(self, values):
+./plasticos_logistics/models/load.py:313:    def write(self, vals):
+./plasticos_logistics/models/load.py:388:    def _compute_cycle_time(self):
+./plasticos_logistics/models/load.py:397:    def _compute_transaction_id(self):
+./plasticos_logistics/models/load.py:409:    def _get_default_delivery_term(self):
+./plasticos_logistics/models/load.py:419:    def _compute_delivery_term_overridden(self):
+./plasticos_logistics/models/load.py:430:    def _check_override_reason_required(self):
+./plasticos_logistics/models/load.py:438:    def action_confirm_ready(self):
+./plasticos_logistics/models/load.py:446:    def action_create_freight_quote_request(self):
+./plasticos_logistics/models/load.py:508:    def action_request_freight_estimate(self):
+./plasticos_logistics/models/load.py:657:    def action_view_freight_quote_requests(self):
+./plasticos_logistics/models/load.py:666:    def action_record_actual_freight_cost(self):
+./plasticos_logistics/models/load.py:734:    def action_correct_actual_freight_cost(self, actual_cost, currency, reason):
+./plasticos_logistics/models/load.py:800:    def action_open_actual_freight_correction_wizard(self):
+./plasticos_logistics/models/load.py:816:    def action_view_freight_estimates(self):
+./plasticos_logistics/models/load.py:824:    def action_confirm_rate(self, rate=None):
+./plasticos_logistics/models/load.py:841:    def _cancel_stale_freight_quote_requests(self, current_fingerprint, correlation_id):
+./plasticos_logistics/models/load.py:879:    def action_resolve_freight(self):
+./plasticos_logistics/models/load.py:943:    def _confirm_freight_rate(
+./plasticos_logistics/models/load.py:1015:    def action_schedule(self, pickup_dt, delivery_dt):
+./plasticos_logistics/models/load.py:1023:    def action_dispatch(self):
+./plasticos_logistics/models/load.py:1040:    def _ensure_sal_context_current(self):
+./plasticos_logistics/models/load.py:1054:    def action_close(self):
+./plasticos_logistics/models/load.py:1061:    def _transition(self, new_state, *, correlation_id=None):
+./plasticos_logistics/models/load.py:1094:    def _store_rate_memory(self):
+./plasticos_logistics/models/load.py:1101:    def _lane_key(self):
+./plasticos_logistics/models/load.py:1106:    def _check_datetime_order(self):
+./plasticos_logistics/models/load.py:1114:    def _cron_escalation_check(self):
+./plasticos_logistics/models/load.py:1134:    def _cron_check_dispatch_acknowledgments(self):
+./plasticos_logistics/models/load.py:1187:    def action_send_delivery_order(self):
+./plasticos_logistics/models/load.py:1193:    def action_send_bol_pickup(self):
+./plasticos_logistics/models/load.py:1199:    def action_send_bol_delivery(self):
+./plasticos_logistics/models/load.py:1205:    def action_send_dispatch_packet(self):
+./plasticos_logistics/models/load.py:1211:    def action_send_dispatch_direct(self):
+./plasticos_logistics/models/load.py:1229:    def _get_email_template(self, template_name):
+./plasticos_logistics/models/load.py:1245:    def _open_mail_composer(self, template):
+./plasticos_logistics/models/load.py:1267:    def action_view_transaction(self):
 ./plasticos_logistics/models/load_dashboard.py:73:    def init(self):
 ./plasticos_logistics/models/load_dashboard.py:161:    def action_view_load(self):
 ./plasticos_logistics/models/load_dashboard.py:175:    def action_view_transaction(self):
@@ -1911,22 +1917,25 @@
 ./tests/integration/test_intake_onchange_cascade.py:158:    def test_material_profile_prefills_form(self):
 ./tests/integration/test_intake_onchange_cascade.py:167:    def test_material_profile_prefills_quality_numerics(self):
 ./tests/integration/test_linda_freight_models.py:16:    def setUpClass(cls):
-./tests/integration/test_linda_freight_models.py:52:    def _user_with_groups(self, login, *group_xml_ids):
-./tests/integration/test_linda_freight_models.py:61:    def _new_load(self):
-./tests/integration/test_linda_freight_models.py:100:    def _new_request(self):
-./tests/integration/test_linda_freight_models.py:116:    def _quote_values(self, request, recipient, **overrides):
-./tests/integration/test_linda_freight_models.py:131:    def test_manual_response_records_provenance_without_fabricating_send_evidence(self):
-./tests/integration/test_linda_freight_models.py:146:    def test_recipient_send_evidence_stays_internally_consistent(self):
-./tests/integration/test_linda_freight_models.py:157:    def test_request_and_recipient_evidence_reject_direct_writes(self):
-./tests/integration/test_linda_freight_models.py:192:    def test_supersession_enforces_same_request_carrier_company_lineage(self):
-./tests/integration/test_linda_freight_models.py:235:    def test_logistics_user_can_create_reconciliation_evidence_but_cannot_mutate_it(self):
-./tests/integration/test_linda_freight_models.py:281:    def test_load_provenance_and_state_bypass_is_rejected(self):
-./tests/integration/test_linda_freight_models.py:288:    def test_quote_selection_requires_locked_canonical_workflow(self):
-./tests/integration/test_linda_freight_models.py:314:    def test_calibration_is_append_only_and_corrections_are_attributed(self):
-./tests/integration/test_linda_freight_models.py:341:    def test_event_correlation_and_legacy_cache_retirement_are_enforced(self):
-./tests/integration/test_linda_freight_models.py:356:    def test_non_logistics_user_cannot_execute_freight_command(self):
-./tests/integration/test_linda_freight_models.py:362:    def test_sal_provenance_fields_exist_with_safe_defaults(self):
-./tests/integration/test_linda_freight_models.py:371:    def test_confirmed_sal_booking_terms_reject_direct_edits(self):
+./tests/integration/test_linda_freight_models.py:56:    def _user_with_groups(self, login, *group_xml_ids):
+./tests/integration/test_linda_freight_models.py:65:    def _new_load(self):
+./tests/integration/test_linda_freight_models.py:104:    def _new_request(self):
+./tests/integration/test_linda_freight_models.py:120:    def _quote_values(self, request, recipient, **overrides):
+./tests/integration/test_linda_freight_models.py:135:    def test_manual_response_records_provenance_without_fabricating_send_evidence(self):
+./tests/integration/test_linda_freight_models.py:150:    def test_recipient_send_evidence_stays_internally_consistent(self):
+./tests/integration/test_linda_freight_models.py:161:    def test_request_and_recipient_evidence_reject_direct_writes(self):
+./tests/integration/test_linda_freight_models.py:196:    def test_supersession_enforces_same_request_carrier_company_lineage(self):
+./tests/integration/test_linda_freight_models.py:239:    def test_logistics_user_can_create_reconciliation_evidence_but_cannot_mutate_it(self):
+./tests/integration/test_linda_freight_models.py:285:    def test_load_provenance_and_state_bypass_is_rejected(self):
+./tests/integration/test_linda_freight_models.py:292:    def test_quote_selection_requires_locked_canonical_workflow(self):
+./tests/integration/test_linda_freight_models.py:318:    def test_calibration_is_append_only_and_corrections_are_attributed(self):
+./tests/integration/test_linda_freight_models.py:345:    def test_event_correlation_and_legacy_cache_retirement_are_enforced(self):
+./tests/integration/test_linda_freight_models.py:360:    def test_non_logistics_user_cannot_execute_freight_command(self):
+./tests/integration/test_linda_freight_models.py:366:    def test_sal_provenance_fields_exist_with_safe_defaults(self):
+./tests/integration/test_linda_freight_models.py:375:    def test_confirmed_sal_booking_terms_reject_direct_edits(self):
+./tests/integration/test_linda_freight_models.py:393:    def test_direct_load_create_cannot_bypass_state_or_provenance(self):
+./tests/integration/test_linda_freight_models.py:417:    def test_recipient_idempotency_key_is_derived_when_absent(self):
+./tests/integration/test_linda_freight_models.py:434:    def test_stale_context_guard_never_writes_and_resolution_cancels_durably(self):
 ./tests/integration/test_match_result_guards.py:25:    def setUpClass(cls):
 ./tests/integration/test_match_result_guards.py:66:    def _skip_check(self):
 ./tests/integration/test_match_result_guards.py:70:    def _make_match(self, **kw):
@@ -2340,6 +2349,31 @@
 ./tests/test_bridge_models.py:260:    def test_partner_has_material_profile_ids(self):
 ./tests/test_bridge_models.py:264:    def test_partner_supplier_rank_from_intake(self):
 ./tests/test_bridge_models.py:273:    def test_partner_intake_count_computed(self):
+./tests/test_check_odoo_antipatterns.py:24:def _codes(source: str) -> list[str]:
+./tests/test_check_odoo_antipatterns.py:32:def test_search_recordset_in_helper_function_is_caught():
+./tests/test_check_odoo_antipatterns.py:35:        def lookup(env, partner_id):
+./tests/test_check_odoo_antipatterns.py:45:def test_browse_recordset_in_service_function_is_caught():
+./tests/test_check_odoo_antipatterns.py:48:        def resolve(load):
+./tests/test_check_odoo_antipatterns.py:58:def test_env_model_lookup_compared_directly_is_caught():
+./tests/test_check_odoo_antipatterns.py:61:        def first_partner(env):
+./tests/test_check_odoo_antipatterns.py:70:def test_relational_attribute_of_tracked_local_is_caught():
+./tests/test_check_odoo_antipatterns.py:73:        def carrier_for(load):
+./tests/test_check_odoo_antipatterns.py:83:def test_dataclass_none_check_outside_model_class_is_not_flagged():
+./tests/test_check_odoo_antipatterns.py:92:        def build_freight_context(load):
+./tests/test_check_odoo_antipatterns.py:95:        def describe(load):
+./tests/test_check_odoo_antipatterns.py:108:def test_rebinding_a_tracked_local_to_a_plain_value_releases_it():
+./tests/test_check_odoo_antipatterns.py:111:        def summarize(env):
+./tests/test_check_odoo_antipatterns.py:122:def test_recordset_locals_do_not_leak_between_functions():
+./tests/test_check_odoo_antipatterns.py:125:        def first(env):
+./tests/test_check_odoo_antipatterns.py:129:        def second(payload):
+./tests/test_check_odoo_antipatterns.py:139:def test_model_class_relational_field_coverage_is_preserved():
+./tests/test_check_odoo_antipatterns.py:145:            def check(self):
+./tests/test_check_odoo_antipatterns.py:154:def test_model_class_search_local_coverage_is_preserved():
+./tests/test_check_odoo_antipatterns.py:160:            def check(self):
+./tests/test_check_odoo_antipatterns.py:170:def test_model_class_plain_value_is_not_flagged():
+./tests/test_check_odoo_antipatterns.py:176:            def check(self, weight):
+./tests/test_check_odoo_antipatterns.py:185:def test_checker_ignores_scalar_id_locals_outside_model_classes():
+./tests/test_check_odoo_antipatterns.py:188:        def resolve(matched_id):
 ./tests/test_ci_check_odoo19_xml.py:24:    def _create_temp_xml(self, content: str) -> Path:
 ./tests/test_ci_check_odoo19_xml.py:35:    def test_tree_tag_detected(self):
 ./tests/test_ci_check_odoo19_xml.py:63:    def test_tree_tag_not_detected_in_comment(self):
@@ -2677,12 +2711,12 @@
 ./tests/test_error_handling.py:131:    def test_claim_invalid_state_transition(self):
 ./tests/test_error_handling.py:147:    def test_offer_negative_price_rejected(self):
 ./tests/test_error_handling.py:157:    def test_load_cancel_from_delivered_rejected(self):
-./tests/test_error_handling.py:165:    def test_safe_int_helper_handles_garbage(self):
-./tests/test_error_handling.py:181:    def test_non_admin_cannot_write_config(self):
-./tests/test_error_handling.py:192:    def test_non_admin_cannot_delete_intake(self):
-./tests/test_error_handling.py:219:    def test_idempotent_web_lead_creation(self):
-./tests/test_error_handling.py:239:    def test_intake_creation_atomic(self):
-./tests/test_error_handling.py:255:    def test_web_lead_triage_error_state(self):
+./tests/test_error_handling.py:168:    def test_safe_int_helper_handles_garbage(self):
+./tests/test_error_handling.py:184:    def test_non_admin_cannot_write_config(self):
+./tests/test_error_handling.py:195:    def test_non_admin_cannot_delete_intake(self):
+./tests/test_error_handling.py:222:    def test_idempotent_web_lead_creation(self):
+./tests/test_error_handling.py:242:    def test_intake_creation_atomic(self):
+./tests/test_error_handling.py:258:    def test_web_lead_triage_error_state(self):
 ./tests/test_evidence_odoo_mapping_consumer.py:17:def test_consumer_contract_loads() -> None:
 ./tests/test_evidence_odoo_mapping_consumer.py:24:def test_allowlisted_evidence_proposes_review() -> None:
 ./tests/test_evidence_odoo_mapping_consumer.py:50:def test_human_approved_blocks() -> None:
@@ -3286,15 +3320,16 @@
 ./tests/test_repo_dependency_integrity.py:131:def test_no_unknown_non_plasticos_dependencies():
 ./tests/test_repo_dependency_integrity.py:149:def test_retired_modules_absent_from_every_depends():
 ./tests/test_sal_resolver_service.py:15:def _install_odoo_stub() -> None:
-./tests/test_sal_resolver_service.py:23:        def now():
-./tests/test_sal_resolver_service.py:32:def _load_service(module_name: str, filename: str):
-./tests/test_sal_resolver_service.py:52:    def __init__(self):
-./tests/test_sal_resolver_service.py:57:    def search(self, domain, **kwargs):
-./tests/test_sal_resolver_service.py:63:def _partner(identifier: int, street: str = "100 Origin Way"):
-./tests/test_sal_resolver_service.py:79:def _current_load(searcher: _LoadSearch, *, rate_amount=0.0, carrier=None):
-./tests/test_sal_resolver_service.py:95:def test_search_qualifies_intake_and_cutoff_without_a_row_cap():
-./tests/test_sal_resolver_service.py:108:def test_candidate_uses_persisted_fingerprint_not_live_partner_rebuild():
-./tests/test_sal_resolver_service.py:134:def test_candidate_without_booking_fingerprint_is_not_rebuilt_from_live_address():
+./tests/test_sal_resolver_service.py:26:        def now():
+./tests/test_sal_resolver_service.py:35:def _load_service(module_name: str, filename: str):
+./tests/test_sal_resolver_service.py:55:    def __init__(self):
+./tests/test_sal_resolver_service.py:60:    def search(self, domain, **kwargs):
+./tests/test_sal_resolver_service.py:66:def _partner(identifier: int, street: str = "100 Origin Way"):
+./tests/test_sal_resolver_service.py:82:def _current_load(searcher: _LoadSearch, *, rate_amount=0.0, carrier=None):
+./tests/test_sal_resolver_service.py:98:def test_search_qualifies_intake_without_a_row_cap_or_sql_cutoff():
+./tests/test_sal_resolver_service.py:110:def test_candidate_uses_persisted_fingerprint_not_live_partner_rebuild():
+./tests/test_sal_resolver_service.py:136:def test_candidate_without_booking_fingerprint_is_not_rebuilt_from_live_address():
+./tests/test_sal_resolver_service.py:160:def test_expired_matching_movement_keeps_prior_movement_too_old():
 ./tests/test_security_acl.py:17:    def setUpClass(cls):
 ./tests/test_security_acl.py:40:    def _create_tx(self, user=None):
 ./tests/test_security_acl.py:44:    def test_base_user_can_read(self):

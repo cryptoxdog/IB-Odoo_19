@@ -611,42 +611,43 @@
 ./plasticos_logistics/models/freight_quote.py:6:import json
 ./plasticos_logistics/models/freight_quote.py:8:from odoo import api, fields, models
 ./plasticos_logistics/models/freight_quote.py:9:from odoo.exceptions import UserError, ValidationError
-./plasticos_logistics/models/freight_quote.py:96:        from odoo.addons.plasticos_logistics.services.freight_context import (
-./plasticos_logistics/models/freight_quote.py:172:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
-./plasticos_logistics/models/freight_quote.py:201:        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/freight_quote.py:202:        from odoo.addons.plasticos_logistics.services.freight_history import (
-./plasticos_logistics/models/freight_quote.py:207:        from odoo.addons.plasticos_logistics.services.freight_quote_ranking import (
-./plasticos_logistics/models/freight_quote.py:213:        from odoo.addons.plasticos_logistics.services.state_machine import new_correlation_id
-./plasticos_logistics/models/freight_quote.py:682:        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/freight_quote.py:683:        from odoo.addons.plasticos_logistics.services.state_machine import new_correlation_id
+./plasticos_logistics/models/freight_quote.py:101:        from odoo.addons.plasticos_logistics.services.freight_context import (
+./plasticos_logistics/models/freight_quote.py:185:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+./plasticos_logistics/models/freight_quote.py:209:        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+./plasticos_logistics/models/freight_quote.py:210:        from odoo.addons.plasticos_logistics.services.freight_history import (
+./plasticos_logistics/models/freight_quote.py:215:        from odoo.addons.plasticos_logistics.services.freight_quote_ranking import (
+./plasticos_logistics/models/freight_quote.py:221:        from odoo.addons.plasticos_logistics.services.state_machine import new_correlation_id
+./plasticos_logistics/models/freight_quote.py:698:        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+./plasticos_logistics/models/freight_quote.py:699:        from odoo.addons.plasticos_logistics.services.state_machine import new_correlation_id
 ./plasticos_logistics/models/load.py:1:import hashlib
 ./plasticos_logistics/models/load.py:2:import logging
 ./plasticos_logistics/models/load.py:3:from datetime import timedelta
 ./plasticos_logistics/models/load.py:5:from odoo import SUPERUSER_ID, api, fields, models
 ./plasticos_logistics/models/load.py:6:from odoo.addons.plasticos_logistics.services.state_machine import VALID_TRANSITIONS, new_correlation_id
 ./plasticos_logistics/models/load.py:7:from odoo.exceptions import AccessError, UserError, ValidationError
-./plasticos_logistics/models/load.py:434:        from odoo.addons.plasticos_logistics.services.freight_context import (
-./plasticos_logistics/models/load.py:477:            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/load.py:492:        from odoo.addons.plasticos_logistics.services.freight_context import (
-./plasticos_logistics/models/load.py:496:        from odoo.addons.plasticos_logistics.services.freight_estimation import (
-./plasticos_logistics/models/load.py:501:        from odoo.addons.plasticos_logistics.services.freight_geometry import FreightCoordinateError
-./plasticos_logistics/models/load.py:502:        from odoo.addons.plasticos_logistics.services.freight_history import (
-./plasticos_logistics/models/load.py:579:            from odoo.addons.plasticos_logistics.models.freight_governance import create_freight_evidence
-./plasticos_logistics/models/load.py:617:            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/load.py:650:        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/load.py:651:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
-./plasticos_logistics/models/load.py:682:            from odoo.addons.plasticos_logistics.models.freight_governance import create_freight_evidence
-./plasticos_logistics/models/load.py:718:        from odoo.addons.plasticos_logistics.models.freight_governance import (
-./plasticos_logistics/models/load.py:722:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
-./plasticos_logistics/models/load.py:808:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
-./plasticos_logistics/models/load.py:830:        from odoo.addons.plasticos_logistics.services.freight_context import FREIGHT_CONTEXT_VERSION
-./plasticos_logistics/models/load.py:831:        from odoo.addons.plasticos_logistics.services.sal_resolver import resolve_sal
-./plasticos_logistics/models/load.py:871:                from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/load.py:893:        from odoo.addons.plasticos_logistics.services.freight_context import (
-./plasticos_logistics/models/load.py:940:            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/load.py:982:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
-./plasticos_logistics/models/load.py:1022:            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
-./plasticos_logistics/models/load.py:1063:                from odoo.addons.plasticos_logistics.services.escalation_engine import check_escalations
+./plasticos_logistics/models/load.py:452:        from odoo.addons.plasticos_logistics.services.freight_context import (
+./plasticos_logistics/models/load.py:495:            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+./plasticos_logistics/models/load.py:510:        from odoo.addons.plasticos_logistics.services.freight_context import (
+./plasticos_logistics/models/load.py:514:        from odoo.addons.plasticos_logistics.services.freight_estimation import (
+./plasticos_logistics/models/load.py:519:        from odoo.addons.plasticos_logistics.services.freight_geometry import FreightCoordinateError
+./plasticos_logistics/models/load.py:520:        from odoo.addons.plasticos_logistics.services.freight_history import (
+./plasticos_logistics/models/load.py:597:            from odoo.addons.plasticos_logistics.models.freight_governance import create_freight_evidence
+./plasticos_logistics/models/load.py:635:            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+./plasticos_logistics/models/load.py:668:        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+./plasticos_logistics/models/load.py:669:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+./plasticos_logistics/models/load.py:700:            from odoo.addons.plasticos_logistics.models.freight_governance import create_freight_evidence
+./plasticos_logistics/models/load.py:736:        from odoo.addons.plasticos_logistics.models.freight_governance import (
+./plasticos_logistics/models/load.py:740:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+./plasticos_logistics/models/load.py:826:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+./plasticos_logistics/models/load.py:848:        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+./plasticos_logistics/models/load.py:886:        from odoo.addons.plasticos_logistics.services.freight_context import FREIGHT_CONTEXT_VERSION
+./plasticos_logistics/models/load.py:887:        from odoo.addons.plasticos_logistics.services.sal_resolver import resolve_sal
+./plasticos_logistics/models/load.py:931:                from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+./plasticos_logistics/models/load.py:953:        from odoo.addons.plasticos_logistics.services.freight_context import (
+./plasticos_logistics/models/load.py:1000:            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+./plasticos_logistics/models/load.py:1042:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+./plasticos_logistics/models/load.py:1082:            from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+./plasticos_logistics/models/load.py:1123:                from odoo.addons.plasticos_logistics.services.escalation_engine import check_escalations
 ./plasticos_logistics/models/load_dashboard.py:1:import logging
 ./plasticos_logistics/models/load_dashboard.py:3:from odoo import fields, models, tools
 ./plasticos_logistics/models/rate_memory.py:1:from odoo import SUPERUSER_ID, api, fields, models
@@ -1383,7 +1384,8 @@
 ./tests/integration/test_linda_freight_models.py:4:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./tests/integration/test_linda_freight_models.py:5:from odoo.exceptions import AccessError, UserError, ValidationError
 ./tests/integration/test_linda_freight_models.py:6:from odoo.tests.common import tagged
-./tests/integration/test_linda_freight_models.py:86:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+./tests/integration/test_linda_freight_models.py:90:        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+./tests/integration/test_linda_freight_models.py:419:        from odoo.addons.plasticos_logistics.models.freight_quote import recipient_idempotency_key
 ./tests/integration/test_match_result_guards.py:15:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./tests/integration/test_match_result_guards.py:16:from odoo.exceptions import UserError, ValidationError
 ./tests/integration/test_match_result_guards.py:17:from odoo.tests.common import tagged
@@ -1511,6 +1513,13 @@
 ./tests/test_bridge_models.py:17:from odoo.tests.common import tagged
 ./tests/test_bridge_models.py:36:        from datetime import timedelta
 ./tests/test_bridge_models.py:38:        from odoo import fields
+./tests/test_check_odoo_antipatterns.py:8:from __future__ import annotations
+./tests/test_check_odoo_antipatterns.py:10:import ast
+./tests/test_check_odoo_antipatterns.py:11:import importlib.util
+./tests/test_check_odoo_antipatterns.py:12:import sys
+./tests/test_check_odoo_antipatterns.py:13:import textwrap
+./tests/test_check_odoo_antipatterns.py:14:from pathlib import Path
+./tests/test_check_odoo_antipatterns.py:86:        from dataclasses import dataclass
 ./tests/test_ci_check_odoo19_xml.py:7:import sys
 ./tests/test_ci_check_odoo19_xml.py:8:import tempfile
 ./tests/test_ci_check_odoo19_xml.py:9:import unittest
@@ -1599,8 +1608,8 @@
 ./tests/test_error_handling.py:26:    from psycopg2 import IntegrityError
 ./tests/test_error_handling.py:28:from odoo.tests.common import tagged
 ./tests/test_error_handling.py:71:        import uuid
-./tests/test_error_handling.py:166:        from odoo.addons.plasticos_web_leads.models.web_lead import _safe_int
-./tests/test_error_handling.py:259:        import uuid
+./tests/test_error_handling.py:169:        from odoo.addons.plasticos_web_leads.models.web_lead import _safe_int
+./tests/test_error_handling.py:262:        import uuid
 ./tests/test_evidence_odoo_mapping_consumer.py:3:from __future__ import annotations
 ./tests/test_evidence_odoo_mapping_consumer.py:5:from datetime import UTC, datetime
 ./tests/test_evidence_odoo_mapping_consumer.py:7:from plasticos_gate.services.evidence_mapping import (
@@ -1843,7 +1852,7 @@
 ./tests/test_sal_resolver_service.py:5:import importlib.util
 ./tests/test_sal_resolver_service.py:6:import sys
 ./tests/test_sal_resolver_service.py:7:import types
-./tests/test_sal_resolver_service.py:8:from datetime import datetime, timedelta
+./tests/test_sal_resolver_service.py:8:from datetime import UTC, datetime, timedelta
 ./tests/test_sal_resolver_service.py:9:from pathlib import Path
 ./tests/test_sal_resolver_service.py:10:from types import SimpleNamespace
 ./tests/test_security_acl.py:7:from odoo.addons.plasticos_base.test_common import PlasticosTestCase

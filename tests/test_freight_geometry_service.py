@@ -10,8 +10,8 @@ import pytest
 
 SERVICE_PATH = Path(__file__).parents[1] / "plasticos_logistics" / "services" / "freight_geometry.py"
 SPEC = importlib.util.spec_from_file_location("freight_geometry_service", SERVICE_PATH)
-freight_geometry = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
+freight_geometry = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = freight_geometry
 SPEC.loader.exec_module(freight_geometry)
 

@@ -9,8 +9,8 @@ from types import SimpleNamespace
 
 SERVICE_PATH = Path(__file__).parents[1] / "plasticos_logistics" / "services" / "freight_context.py"
 SPEC = importlib.util.spec_from_file_location("freight_context_service", SERVICE_PATH)
-freight_context = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
+freight_context = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = freight_context
 SPEC.loader.exec_module(freight_context)
 

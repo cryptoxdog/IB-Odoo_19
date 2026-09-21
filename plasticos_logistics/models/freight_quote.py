@@ -32,6 +32,11 @@ def _source_fingerprint(values):
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def recipient_idempotency_key(request_id, carrier_id, channel):
+    """Deterministic recipient identity: one logical recipient per request, carrier, and channel."""
+    return hashlib.sha256(f"recipient:{request_id}:{carrier_id}:{channel}".encode()).hexdigest()
+
+
 class PlasticosFreightQuoteRequest(models.Model):
     _name = "plasticos.freight.quote.request"
     _description = "Plasticos Freight Quote Request"
@@ -169,20 +174,23 @@ class PlasticosFreightQuoteRequest(models.Model):
                 raise ValidationError("Freight quote request lane must match the load lane at creation.")
 
     def _ensure_current_context(self):
+        """Refuse a request whose freight context no longer matches its load.
+
+        This guard performs no write. A ``UserError`` rolls the transaction back,
+        so a cancellation written here could never persist and every retry would
+        repeat the failure. The durable cancellation (plus its audit event) is
+        recorded by ``plasticos.load.action_resolve_freight``, which runs in a
+        transaction that succeeds.
+        """
         from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
 
         for rec in self:
             current_context = build_freight_context(rec.load_id)
             if not current_context or current_context.fingerprint != rec.context_fingerprint:
-                if rec.state not in ("resolved", "cancelled", "failed"):
-                    rec._rfq_write(
-                        {
-                            "state": "cancelled",
-                            "cancelled_at": fields.Datetime.now(),
-                            "cancellation_reason": "context_changed",
-                        }
-                    )
-                raise UserError("Freight context changed; the quote request was cancelled and cannot be used.")
+                raise UserError(
+                    "Freight context changed; this quote request is stale and cannot be used. "
+                    "Re-run Resolve Freight on the load to cancel it."
+                )
 
     @api.constrains("recommended_quote_id", "selected_quote_id")
     def _check_recommended_quote_relationship(self):
@@ -345,9 +353,10 @@ class PlasticosFreightQuoteRequest(models.Model):
             rec.invalidate_recordset()
             if rec.state not in ("draft", "sent", "collecting"):
                 raise UserError("Only an active freight quote request can be resolved.")
+            # Validate the context before any write so a stale request leaves no partial state.
+            rec._ensure_current_context()
             if rec.state == "draft":
                 rec._rfq_write({"state": "collecting"})
-            rec._ensure_current_context()
             quote = rec.quote_ids.filtered(lambda item: item.selected)
             if len(quote) != 1:
                 raise UserError("Select exactly one active, valid carrier quote before confirming freight.")
@@ -415,6 +424,13 @@ class PlasticosFreightQuoteRecipient(models.Model):
         requests = self.env["plasticos.freight.quote.request"].browse(request_ids).exists()
         requests._require_operator()
         requests._ensure_active_for_child_evidence()
+        for vals in vals_list:
+            # The request form collects carrier, channel and destination only;
+            # derive the required identity key so operators can add recipients.
+            if not vals.get("idempotency_key"):
+                vals["idempotency_key"] = recipient_idempotency_key(
+                    vals.get("request_id"), vals.get("carrier_id"), vals.get("channel")
+                )
         return super().create(vals_list)
 
     def _rfq_write(self, values):

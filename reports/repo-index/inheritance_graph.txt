@@ -35,8 +35,8 @@
 ./ci/check_name_literal.py:43:        print('_name must be a string literal. Use: _name = "model.name"')
 ./ci/check_odoo19_hooks.py:115:                param_name = match.group(1)
 ./ci/check_odoo19_hooks.py:116:                if param_name == "cr":
-./ci/check_odoo_antipatterns.py:576:                var_name = direct_assign.group(1)
-./ci/check_odoo_antipatterns.py:577:                field_name = direct_assign.group(2)
+./ci/check_odoo_antipatterns.py:666:                var_name = direct_assign.group(1)
+./ci/check_odoo_antipatterns.py:667:                field_name = direct_assign.group(2)
 ./ci/check_orphan_model_refs.py:182:    # Pattern to match _name = "model.name" or _name = 'model.name'
 ./ci/check_orphan_model_refs.py:185:    # Also match _inherit = "model.name" (extends existing model)
 ./ci/check_orphan_model_refs.py:302:                    model_name = model_ref[6:].replace("_", ".")
@@ -203,10 +203,10 @@
 ./plasticos_logistics/models/freight_governance.py:30:    _name = "plasticos.freight.event"
 ./plasticos_logistics/models/freight_governance.py:67:    _name = "plasticos.freight.calibration.observation"
 ./plasticos_logistics/models/freight_governance.py:149:    _name = "plasticos.rate.memory.reconciliation"
-./plasticos_logistics/models/freight_quote.py:36:    _name = "plasticos.freight.quote.request"
-./plasticos_logistics/models/freight_quote.py:38:    _inherit = ["mail.thread", "mail.activity.mixin"]
-./plasticos_logistics/models/freight_quote.py:374:    _name = "plasticos.freight.quote.recipient"
-./plasticos_logistics/models/freight_quote.py:491:    _name = "plasticos.freight.quote"
+./plasticos_logistics/models/freight_quote.py:41:    _name = "plasticos.freight.quote.request"
+./plasticos_logistics/models/freight_quote.py:43:    _inherit = ["mail.thread", "mail.activity.mixin"]
+./plasticos_logistics/models/freight_quote.py:383:    _name = "plasticos.freight.quote.recipient"
+./plasticos_logistics/models/freight_quote.py:507:    _name = "plasticos.freight.quote"
 ./plasticos_logistics/models/load.py:36:    _name = "plasticos.load"
 ./plasticos_logistics/models/load.py:38:    _inherit = ["mail.thread", "mail.activity.mixin"]
 ./plasticos_logistics/models/load.py:191:    pickup_contact_name = fields.Char(string="Pickup Contact")
@@ -413,6 +413,9 @@
 ./tests/runtime_gates/run_f1_f3_full_import.py:374:    f5_created == 1 and f5_updated == 1 and f5_name == "Changed Co" and n_change == 1
 ./tests/test_action_methods.py:104:        intake = self._make_intake(partner_id=False, pending_company_name="Match Test")
 ./tests/test_action_methods.py:474:        lead = self._make_lead(partner_id=False, partner_name="New Auto Co")
+./tests/test_check_odoo_antipatterns.py:143:            _name = "plasticos.load"
+./tests/test_check_odoo_antipatterns.py:158:            _name = "plasticos.load"
+./tests/test_check_odoo_antipatterns.py:174:            _name = "plasticos.load"
 ./tests/test_committed_sync_metrics.py:44:        first_name="Ada",
 ./tests/test_committed_sync_metrics.py:45:        last_name="Lovelace",
 ./tests/test_crm_sync_classification.py:113:        provider="vanillasoft", external_id=external_id, company="Co", first_name="A", last_name="L", email=email

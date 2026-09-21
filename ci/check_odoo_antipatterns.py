@@ -139,6 +139,87 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
         self.in_onchange = False
         self.current_decorators: list[str] = []
         self._dict_param_names: set[str] = set()
+        # Local names bound to recordset-producing expressions in the current
+        # function scope (search()/browse()/env[...]/...). This is what lets
+        # ODOO006 catch recordsets in helper/service functions outside model
+        # classes without flagging ordinary values or dataclasses.
+        self._recordset_locals: set[str] = set()
+
+    # Method calls whose result is a recordset (or a record) in Odoo.
+    RECORDSET_PRODUCERS = frozenset(
+        {
+            "search",
+            "search_fetch",
+            "browse",
+            "filtered",
+            "filtered_domain",
+            "sorted",
+            "exists",
+            "sudo",
+            "with_context",
+            "with_user",
+            "with_company",
+            "with_env",
+            "with_prefetch",
+            "create",
+            "ref",
+            "new",
+        }
+    )
+
+    def _is_recordset_expr(self, node: ast.expr) -> bool:
+        """True when ``node`` evaluates to a recordset by construction.
+
+        Unlike the name-based ``_looks_like_recordset`` heuristic this needs
+        positive evidence: a recordset-producing call, an ``env[...]`` model
+        lookup, a tracked recordset local, a relational attribute of one, or a
+        set operation between such expressions.
+        """
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            if node.func.attr in self.RECORDSET_PRODUCERS:
+                return True
+        if isinstance(node, ast.Subscript):
+            base = node.value
+            if isinstance(base, ast.Name) and base.id == "env":
+                return True
+            if isinstance(base, ast.Attribute) and base.attr == "env":
+                return True
+        if isinstance(node, ast.Name):
+            return node.id in self._recordset_locals
+        if isinstance(node, ast.Attribute):
+            if node.attr.endswith("_id") or node.attr.endswith("_ids"):
+                root = node.value
+                while isinstance(root, ast.Attribute):
+                    root = root.value
+                if isinstance(root, ast.Name) and root.id in self._recordset_locals:
+                    return True
+                return self._is_recordset_expr(node.value)
+            return False
+        if isinstance(node, ast.BinOp) and isinstance(node.op, (ast.BitOr, ast.BitAnd, ast.Add, ast.Sub)):
+            return self._is_recordset_expr(node.left) or self._is_recordset_expr(node.right)
+        return False
+
+    def _bind_assignment(self, targets: list[ast.expr], value: ast.expr | None) -> None:
+        if value is None:
+            return
+        is_recordset = self._is_recordset_expr(value)
+        for target in targets:
+            if isinstance(target, ast.Name):
+                if is_recordset:
+                    self._recordset_locals.add(target.id)
+                else:
+                    # Rebinding a tracked name to a non-recordset value releases it.
+                    self._recordset_locals.discard(target.id)
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        """Track locals bound to recordset-producing expressions."""
+        self._bind_assignment(node.targets, node.value)
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        """Track annotated locals bound to recordset-producing expressions."""
+        self._bind_assignment([node.target], node.value)
+        self.generic_visit(node)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         """Track if we're inside an Odoo model class."""
@@ -169,7 +250,7 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
         self.in_onchange = "onchange" in self.current_decorators
 
         # Track annotated dict parameters so dict(name) is not false-flagged (ODOO005).
-        prev_dict_params = getattr(self, "_dict_param_names", set())
+        prev_dict_params: set[str] = getattr(self, "_dict_param_names", set())
         dict_names = set(prev_dict_params)
         for arg in (*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs):
             if arg.annotation is not None and self._annotation_is_dict(arg.annotation):
@@ -194,8 +275,8 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
         for dec in node.decorator_list:
             if isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute):
                 if dec.func.attr == "depends":
-                    for arg in dec.args:
-                        if isinstance(arg, ast.Constant) and arg.value == "id":
+                    for depends_arg in dec.args:
+                        if isinstance(depends_arg, ast.Constant) and depends_arg.value == "id":
                             self.issues.append(
                                 AntiPatternIssue(
                                     file=self.filepath,
@@ -208,7 +289,11 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
                                 )
                             )
 
+        # Recordset locals are function-scoped.
+        prev_recordset_locals = self._recordset_locals
+        self._recordset_locals = set()
         self.generic_visit(node)
+        self._recordset_locals = prev_recordset_locals
         self._dict_param_names = prev_dict_params
         self.in_onchange = False
         self.current_decorators = []
@@ -247,23 +332,28 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
 
     def visit_Compare(self, node: ast.Compare) -> None:
         """Check comparisons for anti-patterns."""
-        # Check for 'record is None' or 'record is not None'
-        if self.in_model_class:
-            for op, comparator in zip(node.ops, node.comparators):
-                if isinstance(op, (ast.Is, ast.IsNot)):
-                    if isinstance(comparator, ast.Constant) and comparator.value is None:
-                        if self._looks_like_recordset(node.left):
-                            self.issues.append(
-                                AntiPatternIssue(
-                                    file=self.filepath,
-                                    line=node.lineno,
-                                    code="ODOO006",
-                                    pattern="record is None",
-                                    message="Don't compare recordsets with 'is None'",
-                                    fix="Use 'if not record:' (empty recordset is falsy)",
-                                    severity="HIGH",
-                                )
+        # Check for 'record is None' or 'record is not None'.
+        # Inside model classes the name-based heuristic applies (self.partner_id,
+        # records, *_ids). Outside them only positively-identified recordsets
+        # (search()/browse()/env[...] results and locals bound to them) are
+        # flagged, so ordinary values and dataclass None checks stay clean.
+        for op, comparator in zip(node.ops, node.comparators):
+            if isinstance(op, (ast.Is, ast.IsNot)):
+                if isinstance(comparator, ast.Constant) and comparator.value is None:
+                    if self._is_recordset_expr(node.left) or (
+                        self.in_model_class and self._looks_like_recordset(node.left)
+                    ):
+                        self.issues.append(
+                            AntiPatternIssue(
+                                file=self.filepath,
+                                line=node.lineno,
+                                code="ODOO006",
+                                pattern="record is None",
+                                message="Don't compare recordsets with 'is None'",
+                                fix="Use 'if not record:' (empty recordset is falsy)",
+                                severity="HIGH",
                             )
+                        )
 
         self.generic_visit(node)
 

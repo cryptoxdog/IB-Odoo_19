@@ -493,6 +493,13 @@ workflow: `ci/baselines/README.md`.
 | gitleaks | pre-commit hook (`gitleaks-commit`/`gitleaks-push`, unpinned local binary) | SHA-pinned action (`gitleaks/gitleaks-action@ff98106e...`, tag `v2`) | local `gitleaks` binary version, unpinned | n/a |
 | shellcheck | not yet a pre-commit hook | unpinned (`apt-get install -y shellcheck` = whatever Ubuntu ships) | unpinned (`brew install shellcheck`) | n/a |
 
+> **2026-09-21 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the Ruff row above is stale. The live pin is **`0.16.0`** — `pyproject.toml` has
+> `required-version = "==0.16.0"`, a PEP 440 specifier that makes any other ruff on PATH exit with an
+> error (observed 2026-09-20: `ruff 0.15.8` failed with `Required version ==0.16.0 does not match`).
+> Treat `0.16.0` as the lockstep value for the pre-commit hook, `ci.yml`, `make venv` and
+> `requirements-dev.txt` until the row is rewritten under a sanctioned root-file edit.
+
 Ruff is the only tool with a **hard version gate** (`required-version` in `pyproject.toml` — this is
 what caught the drift on 2026-07: a global `ruff==0.14.11` on PATH refused to run against a repo
 pinned to `0.15.5`, exactly as designed). This repo intentionally has **no `uv.lock`** — see

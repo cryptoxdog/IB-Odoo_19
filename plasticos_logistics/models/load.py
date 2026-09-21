@@ -261,7 +261,25 @@ class PlasticosLoad(models.Model):
         Auto-link only happens if the transaction has both supplier and buyer set.
         This enforces the workflow requirement that loads cannot be assigned until
         the transaction has complete partner information.
+
+        Freight state and provenance are workflow-owned at creation exactly as in
+        ``write()``: a caller cannot create a load already past Draft or carrying
+        freight provenance, which would bypass operator checks, transitions and
+        audit events.
         """
+        internal_freight_write = self.env.context.get(_FREIGHT_INTERNAL_WRITE) is _FREIGHT_INTERNAL_WRITE_TOKEN
+        if not internal_freight_write:
+            for vals in vals_list:
+                if vals.get("state") not in (None, False, "draft"):
+                    raise UserError(
+                        "Loads are created in Draft; state may only change through the validated transition workflow."
+                    )
+                protected = _FREIGHT_PROVENANCE_FIELDS.intersection(vals)
+                if protected:
+                    raise UserError(
+                        "Freight provenance may only be set through a validated freight command: "
+                        f"{', '.join(sorted(protected))}"
+                    )
         records = super().create(vals_list)
         for rec in records:
             if rec.sale_order_id:
@@ -820,6 +838,44 @@ class PlasticosLoad(models.Model):
                 context_fingerprint=context.fingerprint,
             )
 
+    def _cancel_stale_freight_quote_requests(self, current_fingerprint, correlation_id):
+        """Cancel active RFQ episodes whose freight context no longer matches the load.
+
+        Called from a freight-resolution transaction that succeeds, so the
+        cancellation and its audit event persist. Request-level guards only refuse
+        stale requests; they never write, because their ``UserError`` rolls back.
+        """
+        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+
+        request_model = self.env["plasticos.freight.quote.request"]
+        for rec in self:
+            domain = [("load_id", "=", rec.id), ("state", "in", ("draft", "sent", "collecting"))]
+            if current_fingerprint:
+                domain.append(("context_fingerprint", "!=", current_fingerprint))
+            stale = request_model.search(domain)
+            if not stale:
+                continue
+            stale._rfq_write(
+                {
+                    "state": "cancelled",
+                    "cancelled_at": fields.Datetime.now(),
+                    "cancellation_reason": "context_changed",
+                }
+            )
+            for request in stale:
+                record_freight_event(
+                    rec.env,
+                    event_type="rfq_request_cancelled_context_change",
+                    outcome_code="context_changed",
+                    load=rec,
+                    facts={
+                        "request_id": request.id,
+                        "stale_fingerprint": request.context_fingerprint,
+                        "current_fingerprint": current_fingerprint,
+                    },
+                    correlation_id=correlation_id,
+                )
+
     def action_resolve_freight(self):
         """Resolve Same As Last deterministically; never creates an RFQ on a miss.
 
@@ -842,6 +898,10 @@ class PlasticosLoad(models.Model):
             if rec.rate_confirmed_at or rec.state == "rate_confirmed":
                 continue
             decision = resolve_sal(rec)
+            # Persist the cancellation of RFQ episodes whose context no longer
+            # matches. This transaction succeeds, so unlike the request-level
+            # guard (which must raise) the cancellation is durable.
+            rec._cancel_stale_freight_quote_requests(decision.context_fingerprint, correlation_id)
             values = {
                 "freight_context_fingerprint": decision.context_fingerprint,
                 "freight_context_version": FREIGHT_CONTEXT_VERSION if decision.context_fingerprint else False,
