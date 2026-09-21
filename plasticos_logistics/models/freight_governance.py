@@ -13,6 +13,7 @@ EVENT_TYPES = [
     ("sal_execution_failed", "SAL Execution Failed"),
     ("rfq_request_created", "RFQ Request Created"),
     ("rfq_request_cancelled_context_change", "RFQ Request Cancelled: Context Change"),
+    ("rfq_request_cancelled_rate_confirmed", "RFQ Request Cancelled: Load Rate Confirmed"),
     ("carrier_response_recorded", "Carrier Response Recorded"),
     ("freight_quote_ranked", "Freight Quote Ranked"),
     ("freight_quote_selected", "Freight Quote Selected"),

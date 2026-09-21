@@ -130,12 +130,12 @@
 ./plasticos_intake_normalizer/models/normalizer_config.py:41:class PlasticosNormalizerConfig(models.Model):
 ./plasticos_logistics/models/dispatch.py:9:class PlasticosDispatch(models.Model):
 ./plasticos_logistics/models/freight_estimate.py:9:class PlasticosFreightEstimate(models.Model):
-./plasticos_logistics/models/freight_governance.py:29:class PlasticosFreightEvent(models.Model):
-./plasticos_logistics/models/freight_governance.py:66:class PlasticosFreightCalibrationObservation(models.Model):
-./plasticos_logistics/models/freight_governance.py:148:class PlasticosRateMemoryReconciliation(models.Model):
-./plasticos_logistics/models/freight_quote.py:35:class PlasticosFreightQuoteRequest(models.Model):
-./plasticos_logistics/models/freight_quote.py:373:class PlasticosFreightQuoteRecipient(models.Model):
-./plasticos_logistics/models/freight_quote.py:490:class PlasticosFreightQuote(models.Model):
+./plasticos_logistics/models/freight_governance.py:30:class PlasticosFreightEvent(models.Model):
+./plasticos_logistics/models/freight_governance.py:67:class PlasticosFreightCalibrationObservation(models.Model):
+./plasticos_logistics/models/freight_governance.py:149:class PlasticosRateMemoryReconciliation(models.Model):
+./plasticos_logistics/models/freight_quote.py:40:class PlasticosFreightQuoteRequest(models.Model):
+./plasticos_logistics/models/freight_quote.py:383:class PlasticosFreightQuoteRecipient(models.Model):
+./plasticos_logistics/models/freight_quote.py:507:class PlasticosFreightQuote(models.Model):
 ./plasticos_logistics/models/load.py:35:class PlasticosLoad(models.Model):
 ./plasticos_logistics/models/load_dashboard.py:10:class PlasticosLoadDashboard(models.Model):
 ./plasticos_logistics/models/rate_memory.py:5:class PlasticosRateMemory(models.Model):
@@ -340,6 +340,10 @@
 ./tests/test_bridge_models.py:191:class TestLoadDocsBridge(PlasticosTestCase):
 ./tests/test_bridge_models.py:215:class TestTransactionClaimsBridge(PlasticosTestCase):
 ./tests/test_bridge_models.py:245:class TestPartnerBridge(PlasticosTestCase):
+./tests/test_check_odoo_antipatterns.py:89:        class FreightContext:
+./tests/test_check_odoo_antipatterns.py:142:        class PlasticosLoad(models.Model):
+./tests/test_check_odoo_antipatterns.py:157:        class PlasticosLoad(models.Model):
+./tests/test_check_odoo_antipatterns.py:173:        class PlasticosLoad(models.Model):
 ./tests/test_ci_check_odoo19_xml.py:21:class TestCheckViewXmlFile(unittest.TestCase):
 ./tests/test_ci_check_odoo19_xml.py:374:class TestCheckDataXmlFile(unittest.TestCase):
 ./tests/test_ci_check_odoo19_xml.py:422:class TestCheckXmlPatterns(unittest.TestCase):
@@ -393,9 +397,9 @@
 ./tests/test_depends_transaction_claims_bridge.py:23:class TestTransactionClaimsBridgeDepends(PlasticosTestCase):
 ./tests/test_error_handling.py:35:class TestAPIFailures(PlasticosTestCase):
 ./tests/test_error_handling.py:95:class TestInvalidData(PlasticosTestCase):
-./tests/test_error_handling.py:178:class TestPermissionDenied(PlasticosTestCase):
-./tests/test_error_handling.py:211:class TestConcurrentEdits(PlasticosTestCase):
-./tests/test_error_handling.py:236:class TestRollbackScenarios(PlasticosTestCase):
+./tests/test_error_handling.py:181:class TestPermissionDenied(PlasticosTestCase):
+./tests/test_error_handling.py:214:class TestConcurrentEdits(PlasticosTestCase):
+./tests/test_error_handling.py:239:class TestRollbackScenarios(PlasticosTestCase):
 ./tests/test_gap_fixes.py:37:class TestSyncBatching:
 ./tests/test_gap_fixes.py:67:        class _FakeModel:
 ./tests/test_gap_fixes.py:142:class TestRemovedOnchangeStubs:
@@ -460,8 +464,8 @@
 ./tests/test_phantom_enum_values.py:1630:class TestEquipmentCodeAlignment:
 ./tests/test_phantom_enum_values.py:1686:class TestPhantomAuditReport:
 ./tests/test_process_enum_alignment.py:64:class TestProcessEnumAlignment:
-./tests/test_sal_resolver_service.py:21:    class Datetime:
-./tests/test_sal_resolver_service.py:51:class _LoadSearch:
+./tests/test_sal_resolver_service.py:24:    class Datetime:
+./tests/test_sal_resolver_service.py:54:class _LoadSearch:
 ./tests/test_security_acl.py:13:class TestTransactionACL(PlasticosTestCase):
 ./tests/test_security_acl.py:97:class TestClaimACL(PlasticosTestCase):
 ./tests/test_security_acl.py:160:class TestBillExclusivity(PlasticosTestCase):

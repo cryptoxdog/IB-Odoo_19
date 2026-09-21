@@ -15,7 +15,10 @@ class TestLindaFreightModels(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls._skip_if_model_missing(
+        # These models are the contract under test. A runtime that lacks one has
+        # not installed plasticos_logistics correctly, so fail instead of skipping:
+        # a skipped suite would let a broken install or upgrade look green.
+        for model in (
             "plasticos.intake",
             "plasticos.transaction",
             "plasticos.load",
@@ -27,7 +30,8 @@ class TestLindaFreightModels(PlasticosTestCase):
             "plasticos.freight.calibration.observation",
             "plasticos.rate.memory",
             "plasticos.rate.memory.reconciliation",
-        )
+        ):
+            assert model in cls.env, f"{model} is not in the registry; plasticos_logistics install/upgrade is broken"
         cls.origin = cls.env["res.partner"].create(
             {
                 "name": "Linda Origin",
@@ -385,3 +389,111 @@ class TestLindaFreightModels(PlasticosTestCase):
             load.write({"rate_amount": 1.0})
         with self.assertRaises(UserError):
             load.write({"carrier_id": False})
+
+    def test_direct_load_create_cannot_bypass_state_or_provenance(self):
+        """R3: create() is guarded like write(); a caller cannot start past Draft or with provenance."""
+        sale = self.env["sale.order"].create({"partner_id": self.destination.id})
+        base = {
+            "sale_order_id": sale.id,
+            "pickup_partner_id": self.origin.id,
+            "delivery_partner_id": self.destination.id,
+            "reference_weight": 40000,
+            "rate_currency_id": self.currency.id,
+        }
+        load_model = self.env["plasticos.load"]
+        for forged in (
+            {"state": "rate_confirmed"},
+            {"state": "delivered"},
+            {"rate_confirmed_at": fields.Datetime.now()},
+            {"rate_resolution_method": "manual"},
+            {"sal_decision": "hit"},
+        ):
+            with self.assertRaises(UserError, msg=f"load create must be rejected: {forged}"):
+                load_model.create({**base, **forged})
+        load = load_model.create(base)
+        self.assertEqual(load.state, "draft")
+        self.assertFalse(load.rate_confirmed_at)
+
+    def test_duplicated_load_starts_in_draft_without_provenance(self):
+        """Odoo's Duplicate action must not inherit workflow-owned state or provenance."""
+        load, context = self._new_load()
+        load._freight_write(
+            {
+                "carrier_id": self.carrier.id,
+                "rate_amount": 1500.0,
+                "rate_currency_id": self.currency.id,
+                "rate_confirmed_at": fields.Datetime.now(),
+                "rate_resolution_method": "manual",
+                "freight_context_fingerprint": context.fingerprint,
+                "sal_decision": "miss",
+            }
+        )
+        duplicate = load.copy()
+        self.assertEqual(duplicate.state, "draft")
+        self.assertFalse(duplicate.rate_confirmed_at)
+        self.assertFalse(duplicate.rate_resolution_method)
+        self.assertFalse(duplicate.sal_decision)
+        self.assertFalse(duplicate.freight_context_fingerprint)
+
+    def test_rate_confirmation_cancels_orphaned_rfq_episodes_durably(self):
+        """Confirming a rate through any path cancels other active episodes in the same transaction."""
+        load, context, request, _recipient = self._new_request()
+        load._confirm_freight_rate(
+            rate=1000.0,
+            carrier=self.carrier,
+            currency=self.currency,
+            resolution_method="manual",
+            context_fingerprint=context.fingerprint,
+        )
+        request.invalidate_recordset()
+        self.assertEqual(request.state, "cancelled")
+        self.assertEqual(request.cancellation_reason, "load_rate_confirmed")
+        event = self.env["plasticos.freight.event"].search(
+            [("load_id", "=", load.id), ("event_type", "=", "rfq_request_cancelled_rate_confirmed")],
+            limit=1,
+        )
+        self.assertTrue(event)
+        self.assertEqual(event.outcome_code, "load_rate_confirmed")
+
+    def test_recipient_idempotency_key_is_derived_when_absent(self):
+        """R4: operators add recipients through the request form without supplying a key."""
+        from odoo.addons.plasticos_logistics.models.freight_quote import recipient_idempotency_key
+
+        load, _context = self._new_load()
+        request = self.env["plasticos.freight.quote.request"].create({"load_id": load.id})
+        recipient = self.env["plasticos.freight.quote.recipient"].create(
+            {
+                "company_id": load.company_id.id,
+                "request_id": request.id,
+                "carrier_id": self.carrier.id,
+                "channel": "manual",
+                "destination_snapshot": "operator-entered",
+            }
+        )
+        self.assertEqual(recipient.idempotency_key, recipient_idempotency_key(request.id, self.carrier.id, "manual"))
+
+    def test_stale_context_guard_never_writes_and_resolution_cancels_durably(self):
+        """R5: the request guard raises without writing; load resolution persists the cancellation."""
+        load, _context, request, _recipient = self._new_request()
+        load.write({"reference_weight": 41000})
+        # A plain try/except (no savepoint) so a write by the guard would remain visible.
+        try:
+            request.action_rank_quotes()
+        except UserError:
+            pass
+        else:
+            self.fail("a stale freight quote request must be refused")
+        request.invalidate_recordset()
+        self.assertEqual(request.state, "draft")
+        self.assertFalse(request.cancelled_at)
+        load.action_resolve_freight()
+        request.invalidate_recordset()
+        self.assertEqual(request.state, "cancelled")
+        self.assertEqual(request.cancellation_reason, "context_changed")
+        self.assertTrue(request.cancelled_at)
+        event = self.env["plasticos.freight.event"].search(
+            [("load_id", "=", load.id), ("event_type", "=", "rfq_request_cancelled_context_change")],
+            limit=1,
+        )
+        self.assertTrue(event)
+        self.assertEqual(event.facts.get("request_id"), request.id)
