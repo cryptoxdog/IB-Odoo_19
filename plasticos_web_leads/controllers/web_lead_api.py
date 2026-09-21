@@ -1,3 +1,4 @@
+import hmac
 import json
 import logging
 
@@ -90,7 +91,7 @@ class WebLeadController(http.Controller):
         matched_id = None
         for row_id, stored in rows:
             stored_key = (stored or "").strip()
-            if stored_key and token == stored_key:
+            if stored_key and hmac.compare_digest(token, stored_key):
                 matched_id = row_id
                 break
 

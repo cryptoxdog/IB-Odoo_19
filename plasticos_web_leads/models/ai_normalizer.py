@@ -16,10 +16,11 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
+from .ai_client import call_json_with_retry
+from .quantity_normalizer import QuantityEvidence
 from .triage_helpers import coerce_bool, parse_weight_lbs, safe_float
 
 _logger = logging.getLogger(__name__)
@@ -29,10 +30,18 @@ _logger = logging.getLogger(__name__)
 # Keep in sync with the actual form field IDs.
 # ─────────────────────────────────────────────────────────────────────────────
 _FIELD_MAP: dict[str, str] = {
+    "company_name": "Company",
     "YourBusinessCompanyName": "Company",
+    "material_description": "Material description",
     "DescribeYourMaterial": "Material description",
+    "material_composition_text": "Material composition",
+    "source_description": "Source description",
+    "quantity_text": "Quantity / current inventory",
     "WhatIsTheQuantity": "Quantity / volume",
+    "weight_per_load_text": "Weight per load",
+    "frequency_text": "Frequency",
     "HowOften": "Frequency",
+    "pickup_location_text": "Location / city / state",
     "WhereIsItLocated": "Location / city / state",
     "WhatIsYourRole": "Role at company",
     "AdditionalComments": "Additional notes",
@@ -67,6 +76,9 @@ Rules:
 - DO NOT set is_commercial_source=true based on email domain alone
 - If the Quantity field contains unit counts (pallets, gaylords, truckloads), \
   set estimated_lbs_per_load to null — the deterministic parser handles unit-count conversion
+- Current inventory, per-load weight, and recurring cadence are separate facts.
+- Cadence requires explicit time-basis language; unknown is null, never zero.
+- Do not infer a polymer from weak context or visual appearance.
 - Polymer codes: HDPE, LDPE, LLDPE, PP, PET, PS, ABS, PVC, PC, POM, PA (Nylon), EVA
 - post_industrial = manufacturing scrap, trim, runners, off-spec
 - post_consumer = used products, bottles, film, packaging after consumer use
@@ -212,6 +224,7 @@ def normalize_lead(
     *,
     model: str = "gpt-4o-mini",
     temperature: float = 0.0,
+    quantity_evidence: QuantityEvidence | None = None,
 ) -> dict[str, Any]:
     """
     Full normalization pipeline for a web lead.
@@ -227,13 +240,20 @@ def normalize_lead(
     """
     # Step 1 — deterministic weight
     qty_raw = form_data.get("WhatIsTheQuantity") or ""
-    det_lbs, det_source = parse_weight_lbs(qty_raw)
+    if quantity_evidence is None:
+        det_lbs, det_source = parse_weight_lbs(qty_raw)
+        deterministic_lbs = det_lbs if det_lbs > 0 else None
+    else:
+        deterministic_lbs = quantity_evidence.load_weight_lbs
+        det_source = quantity_evidence.weight_source
 
     base: dict[str, Any] = {
         "raw_form_data": form_data,
-        "estimated_lbs_per_load": det_lbs if det_lbs > 0 else None,
+        "estimated_lbs_per_load": deterministic_lbs,
         "weight_source": det_source,
     }
+    if quantity_evidence is not None:
+        base["loads_per_month"] = quantity_evidence.loads_per_month
 
     if openai_client is None:
         base["_inferred_fields"] = []
@@ -242,17 +262,16 @@ def normalize_lead(
     # Step 2 — AI extraction
     try:
         user_prompt = build_user_prompt(form_data)
-        response = openai_client.chat.completions.create(
+        ai_raw, metadata = call_json_with_retry(
+            client=openai_client,
             model=model,
             temperature=temperature,
-            response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": _SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
             ],
         )
-        raw_json = response.choices[0].message.content or "{}"
-        ai_raw: dict[str, Any] = json.loads(raw_json)
+        base["_ai_call_metadata"] = metadata
     except Exception as exc:
         _logger.warning("normalize_lead: AI extraction failed: %s", exc)
         base["_inferred_fields"] = []
@@ -293,6 +312,7 @@ def normalize_with_fallback(
     providers: list[dict[str, Any]],
     *,
     temperature: float = 0.0,
+    quantity_evidence: QuantityEvidence | None = None,
 ) -> dict[str, Any]:
     """
     Run normalize_lead across an ordered list of LLM providers with fallback.
@@ -315,7 +335,10 @@ def normalize_with_fallback(
     form_data = raw_payload or {}
 
     if not providers:
-        result = normalize_lead(form_data, None, temperature=temperature)
+        if quantity_evidence is None:
+            result = normalize_lead(form_data, None, temperature=temperature)
+        else:
+            result = normalize_lead(form_data, None, temperature=temperature, quantity_evidence=quantity_evidence)
         result["_provider_used"] = "none"
         result["error"] = "no_llm_provider_configured"
         return result
@@ -328,12 +351,13 @@ def normalize_with_fallback(
             # Same import/key failure would affect every provider — stop early.
             last_error = "openai_client_unavailable"
             break
-        result = normalize_lead(
-            form_data,
-            client,
-            model=prov.get("model") or "gpt-4o-mini",
-            temperature=temperature,
-        )
+        kwargs: dict[str, Any] = {
+            "model": prov.get("model") or "gpt-4o-mini",
+            "temperature": temperature,
+        }
+        if quantity_evidence is not None:
+            kwargs["quantity_evidence"] = quantity_evidence
+        result = normalize_lead(form_data, client, **kwargs)
         ai_error = result.get("_ai_error")
         if not ai_error:
             result["_provider_used"] = slug
@@ -341,7 +365,10 @@ def normalize_with_fallback(
         last_error = ai_error
         _logger.warning("normalize_with_fallback: provider %s failed — %s", slug, ai_error)
 
-    result = normalize_lead(form_data, None, temperature=temperature)
+    if quantity_evidence is None:
+        result = normalize_lead(form_data, None, temperature=temperature)
+    else:
+        result = normalize_lead(form_data, None, temperature=temperature, quantity_evidence=quantity_evidence)
     result["_provider_used"] = "none"
     result["error"] = last_error or "all_llm_providers_failed"
     return result

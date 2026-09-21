@@ -80,7 +80,7 @@ class TestAPIFailures(PlasticosTestCase):
             }
         )
         with patch(
-            "odoo.addons.plasticos_web_leads.models.ai_normalizer.normalize_with_llm",
+            "odoo.addons.plasticos_web_leads.models.web_lead.classify_lead",
             side_effect=Exception("API error"),
         ):
             lead._run_triage_pipeline()

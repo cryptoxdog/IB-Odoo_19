@@ -1,48 +1,43 @@
 ---
 component_id: "plasticos_web_leads"
-component_name: "Plasticos Web Leads"
-module_version: "19.0.2.0.0"
+component_name: "PlasticOS Web Leads"
+module_version: "19.0.2.6.3"
 layer: "integration"
 domain: "plasticos"
 type: "odoo_module"
 status: "active"
-purpose: "Web lead capture and routing"
-summary: "Inbound lead processing"
+purpose: "Provider-neutral inbound web-lead triage"
+summary: "Cognito admission, deterministic evidence, and human-reviewed HOT intake handoff"
 ---
 
-# Plasticos Web Leads
+# PlasticOS Web Leads
 
 ## Purpose
-Web lead capture and routing
 
-## Summary
-Inbound lead processing
+This module captures inbound seller submissions and routes them through local Odoo Phase-1 triage. Cognito Forms is the current internal adapter. The module preserves raw provider payloads, creates a provider-neutral immutable packet for retries, acquires attachment evidence into Odoo storage, and delegates HOT/COLD decisions to the existing deterministic classifier.
 
-## Structure
-```
-README.md
-README.rst
-__init__.py
-__manifest__.py
-controllers/
-data/
-models/
-security/
-views/
-wizards/
-```
+## Boundaries
+
+`plasticos.web.lead` remains the durable state owner. The adapter layer is pure Python and does not make commercial decisions. `classification_engine.py` remains the only HOT/COLD authority. A HOT result creates an intake without a partner and schedules human review; it does not auto-create a partner, call Gate, or send an offer.
+
+## Durable audit data
+
+Packet-backed leads persist `provider_key`, `provider_external_id`, `canonical_payload`, and `evidence_bundle`. The raw payload remains provider provenance. The canonical packet is used for retry without reparsing a provider-specific submission. Attachment evidence records both source identity and content SHA-256; PDFs are stored with explicit unsupported-analysis evidence in V1.
+
+## Quantity semantics
+
+The canonical path keeps per-load mass, current inventory counts, and cadence separate. Explicit pounds, kilograms, and tons are deterministic mass evidence. Unit counts such as loads, pallets, gaylords, and bales are never converted into assumed pounds. Unknown cadence remains unknown rather than being silently represented as zero.
 
 ## Dependencies
-base, mail, plasticos_intake, plasticos_material_profile, purchase
 
-## Models
-plasticos.web.lead.config, plasticos.web.lead
+`base`, `mail`, `utm`, `plasticos_facility_profile`, `plasticos_intake`, `plasticos_material_profile`, and `purchase`.
 
-## Tier
-integration
+## Public API compatibility
 
+The existing endpoints remain unchanged:
 
-## Related Documentation
+- `POST /api/v1/cognito-webhook`
+- `POST /api/v1/web-lead`
+- `GET /api/v1/web-lead/health`
 
-- `ARCHITECTURE.md` — # ARCHITECTURE.md — PlasticOS System Architecture  **Repository**: cryptoxdog/IB...
-- `DEPLOYMENT.md` — # DEPLOYMENT.md — PlasticOS Deployment Guide  **Repository**: cryptoxdog/IB-Odoo...
+Inbound API key comparison uses a timing-safe comparison. Credentials and signed attachment URLs must never be committed or placed in routine logs.

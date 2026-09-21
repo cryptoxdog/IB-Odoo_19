@@ -11,7 +11,10 @@ Golden flows represent the critical business paths that must always work:
 4. Transaction margin → commission → close-time lock (revenue recognition)
 """
 
+from unittest.mock import MagicMock, patch
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.addons.plasticos_web_leads.models.classification_engine import classify_lead
 from odoo.tests.common import tagged
 
 
@@ -158,36 +161,28 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
         cls._skip_if_model_missing("plasticos.web.lead", "plasticos.intake")
         cls.WebLead = cls.env["plasticos.web.lead"]
         cls.Intake = cls.env["plasticos.intake"]
+        # This golden path exercises deterministic packet admission and
+        # classification. External AI/vision calls are separately unit-tested
+        # with mocks and must not make the Odoo runtime suite nondeterministic.
+        cls.env["plasticos.web.lead.config"].sudo().get_config().write({"ai_enabled": False, "vision_enabled": False})
 
-    def _make_hot_lead_payload(self, lead_id="GOLD-HOT-001"):
-        """Create a standard HOT lead payload for testing."""
+    def _make_hot_lead_payload(self, external_id="GOLD-HOT-001"):
+        """Create a standard HOT Cognito packet input for testing."""
         return {
-            "lead_id": lead_id,
-            "source": "cognito_form",
-            "decision": "Hot",
-            "decision_reasons": ["monthly_lbs >= 10000"],
-            "raw_payload": {
-                "YourBusinessCompanyName": "HOT Co",
-                "DescribeYourMaterial": "HDPE pellets",
-                "WhatIsTheQuantity": "40000 lbs per load",
-            },
-            "ai_analysis": {
-                "quantity": {
-                    "per_load_lbs": 40000,
-                    "loads_per_month": 2,
-                },
-                "frequency": {"frequency": "ongoing"},
-                "material": {
-                    "polymer": "hdpe",
-                    "form": "pellet",
-                },
-            },
+            "Entry": {"Number": external_id},
+            "YourBusinessCompanyName": "HOT Co",
+            "DescribeYourMaterial": "HDPE pellets",
+            "WhatIsTheSourceOfThisMaterial": "Manufacturing production scrap",
+            "WhatIsTheQuantity": "2 loads per month",
+            "WeightPerLoad": "40000 lbs",
+            "AreThereAnyContaminants": "none",
+            "UploadPhotosOfYourScrapUpTo10": [],
         }
 
     def test_hot_lead_creates_intake_without_partner(self):
         """HOT leads should create intake without partner (deferred to buyer match)."""
         payload = self._make_hot_lead_payload()
-        lead = self.WebLead.create_from_agent(payload)
+        lead = self.WebLead.create_from_cognito(payload)
 
         self.assertEqual(lead.decision, "hot", "Decision should be normalized to lowercase")
         self.assertTrue(lead.intake_id, "HOT lead should create intake")
@@ -195,26 +190,82 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
         intake = lead.intake_id
         self.assertFalse(intake.partner_id, "Intake should not have partner yet")
         self.assertEqual(intake.pending_company_name, "HOT Co", "Company name should be stored")
+        self.assertTrue(intake.activity_ids, "HOT intake should have a human-review activity")
         self.assertEqual(lead.state, "intake_created", "Lead state should be intake_created")
+        self.assertEqual(lead.provider_key, "cognito")
+        self.assertTrue(lead.canonical_payload)
+        self.assertTrue(lead.evidence_bundle)
 
     def test_duplicate_lead_id_is_idempotent(self):
         """Submitting same lead_id twice should return same record."""
         payload = self._make_hot_lead_payload("GOLD-IDEMP-001")
-        lead1 = self.WebLead.create_from_agent(payload)
-        lead2 = self.WebLead.create_from_agent(payload)
+        lead1 = self.WebLead.create_from_cognito(payload)
+        lead2 = self.WebLead.create_from_cognito(payload)
 
         self.assertEqual(lead1.id, lead2.id, "Same lead_id should return same record")
 
-    def test_hot_lead_ai_analysis_fields_populated(self):
-        """AI analysis data should populate intake fields."""
+    def test_hot_lead_quantity_evidence_populates_intake_fields(self):
+        """Canonical quantity evidence should populate intake fields."""
         payload = self._make_hot_lead_payload("GOLD-AI-001")
-        lead = self.WebLead.create_from_agent(payload)
+        lead = self.WebLead.create_from_cognito(payload)
         intake = lead.intake_id
 
         if hasattr(intake, "quantity_per_load_lbs"):
             self.assertEqual(intake.quantity_per_load_lbs, 40000, "Quantity should be extracted")
         if hasattr(intake, "loads_per_month"):
             self.assertEqual(intake.loads_per_month, 2, "Loads per month should be extracted")
+        self.assertEqual(lead.evidence_bundle["quantity"]["weight_source"], "explicit_lbs")
+
+    def test_canonical_classifier_receives_explicit_evidence_inputs(self):
+        """Packet triage forwards canonical evidence to the existing classifier."""
+        with patch(
+            "odoo.addons.plasticos_web_leads.models.web_lead.classify_lead",
+            wraps=classify_lead,
+        ) as classifier:
+            self.WebLead.create_from_cognito(self._make_hot_lead_payload("GOLD-CLASSIFIER-001"))
+
+        kwargs = classifier.call_args.kwargs
+        self.assertEqual(kwargs["weight_source"], "explicit_lbs")
+        self.assertIsNone(kwargs["is_plastic_hint"])
+        self.assertIsNone(kwargs["is_commercial_hint"])
+
+    def test_legacy_hot_lead_preserves_attachment_handoff(self):
+        """Legacy agent leads retain the HOT-only image attachment behavior."""
+        image_url = "https://files.example.test/legacy-material.jpg"
+        response = MagicMock()
+        response.content = b"legacy-image"
+        response.headers = {"Content-Type": "image/jpeg"}
+        response.raise_for_status.return_value = None
+        response.iter_content.return_value = [b"legacy-image"]
+        payload = {
+            "lead_id": "GOLD-LEGACY-ATTACHMENT-001",
+            "decision": "Hot",
+            "raw_payload": {
+                "YourBusinessCompanyName": "Legacy HOT Co",
+                "DescribeYourMaterial": "HDPE regrind",
+                "WhatIsTheSourceOfThisMaterial": "Manufacturing production scrap",
+                "WhatIsTheQuantity": "30",
+                "UploadPhotos": [{"File": image_url}],
+            },
+        }
+
+        with patch(
+            "odoo.addons.plasticos_web_leads.models.attachment_processor.requests.get",
+            return_value=response,
+        ) as download:
+            lead = self.WebLead.create_from_agent(payload)
+
+        self.assertEqual(lead.state, "intake_created")
+        download.assert_called_once_with(image_url, timeout=30, stream=True)
+        Attachment = self.env["ir.attachment"]
+        self.assertEqual(
+            Attachment.search_count([("res_model", "=", "plasticos.web.lead"), ("res_id", "=", lead.id)]),
+            1,
+        )
+        self.assertEqual(
+            Attachment.search_count([("res_model", "=", "plasticos.intake"), ("res_id", "=", lead.intake_id.id)]),
+            1,
+        )
 
 
 @tagged("post_install", "-at_install", "plasticos", "golden", "claims")

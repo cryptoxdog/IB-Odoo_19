@@ -137,6 +137,18 @@
                                 <field name="raw_payload" widget="json"/>
                             </group>
                         </page>
+                        <page string="Provider Audit" name="provider_audit_page">
+                            <group string="Provider Identity">
+                                <field name="provider_key" readonly="1"/>
+                                <field name="provider_external_id" readonly="1"/>
+                            </group>
+                            <group string="Canonical Packet">
+                                <field name="canonical_payload" widget="json" readonly="1"/>
+                            </group>
+                            <group string="Evidence Bundle">
+                                <field name="evidence_bundle" widget="json" readonly="1"/>
+                            </group>
+                        </page>
                         <page string="Error" name="error_page" invisible="state != 'error'">
                             <group>
                                 <field name="error_message"/>

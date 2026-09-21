@@ -19,8 +19,13 @@ import requests as http_requests
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 
+from ..adapters.base import PACKET_SCHEMA_VERSION, WebLeadPacket, packet_to_dict
+from ..adapters.registry import get_adapter
 from . import ai_normalizer, image_analyzer
+from .attachment_processor import copy_successful_attachments_to_intake, process_attachments
 from .classification_engine import classify_lead
+from .evidence_reconciler import reconcile_evidence
+from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
 
 _logger = logging.getLogger(__name__)
 
@@ -221,6 +226,24 @@ class PlasticosWebLead(models.Model):
         readonly=True,
         help="Complete raw form submission from Cognito.",
     )
+    provider_key = fields.Char(
+        readonly=True,
+        index=True,
+        help="Inbound provider key used to construct this lead's canonical packet.",
+    )
+    provider_external_id = fields.Char(
+        readonly=True,
+        index=True,
+        help="Stable provider submission identity used alongside the historical lead ID.",
+    )
+    canonical_payload = fields.Json(
+        readonly=True,
+        help="Versioned provider-neutral seller evidence retained for packet-backed retries.",
+    )
+    evidence_bundle = fields.Json(
+        readonly=True,
+        help="Versioned deterministic, AI, and attachment evidence produced during triage.",
+    )
     ai_analysis = fields.Json(
         readonly=True,
         help="AI analysis output (merged from LLM + Vision).",
@@ -370,87 +393,57 @@ class PlasticosWebLead(models.Model):
 
     @api.model
     def create_from_cognito(self, raw_payload: dict[str, Any]) -> PlasticosWebLead:
-        """Ingest a raw Cognito form submission and run full triage pipeline.
+        """Keep the public Cognito entrypoint while routing to the internal adapter."""
+        try:
+            return self.create_from_packet(get_adapter("cognito").to_packet(raw_payload))
+        except ValueError as exc:
+            raise UserError(str(exc)) from exc
 
-        Steps:
-          1. Extract Cognito entry ID and deduplicate
-          2. Generate sequence-based lead_id
-          3. Parse all form fields (name, email, phone, material, quantity)
-          4. Create web.lead record (decision=cold, state=received)
-          5. _run_triage_pipeline() — AI + vision + classify + intake
-        """
-        _entry = raw_payload.get("Entry") or {}
-        _raw_id = (
-            raw_payload.get("Id")
-            or str(_entry.get("Number") or "")
-            or raw_payload.get("EntryId")
-            or raw_payload.get("entry_id")
-            or ""
-        )
+    @api.model
+    def create_from_packet(self, packet: WebLeadPacket) -> PlasticosWebLead:
+        """Create a durable web lead from a validated provider-neutral packet."""
+        if packet.schema_version != PACKET_SCHEMA_VERSION:
+            raise UserError(f"Unsupported web-lead packet version: {packet.schema_version!r}")
 
-        # Deduplication — CG-{_raw_id} is the canonical ID for Cognito submissions.
-        # Assign it immediately so the stored lead_id matches the dedup search key,
-        # ensuring idempotency works on repeat submissions.
-        if _raw_id:
-            lead_id = f"CG-{_raw_id}"
+        lead_id = packet.idempotency_key
+        if lead_id:
             existing = self.search([("lead_id", "=", lead_id)], limit=1)
             if existing:
                 _logger.info(
-                    "Duplicate Cognito submission (source id=%s) — returning existing %s.",
-                    _raw_id,
-                    existing.lead_id,
+                    "Duplicate packet submission for provider=%s external_id=%s.",
+                    packet.provider,
+                    packet.provider_external_id,
                 )
                 return existing
         else:
             lead_id = self.env["ir.sequence"].next_by_code("plasticos.web.lead") or f"WL-{uuid.uuid4().hex[:5].upper()}"
 
-        company = (raw_payload.get("YourBusinessCompanyName", "") or raw_payload.get("CompanyName", "") or "").strip()
-
-        contact = _extract_cognito_name(raw_payload)
-        email = (raw_payload.get("Email", "") or raw_payload.get("EmailAddress", "") or "").strip()
-        phone = (raw_payload.get("Phone", "") or raw_payload.get("PhoneNumber", "") or "").strip()
-        material_desc = (
-            raw_payload.get("WhatIsIt", "")
-            or raw_payload.get("DescribeYourMaterial", "")
-            or raw_payload.get("WhatTypeOfPlastic", "")
-            or ""
-        ).strip()
-
-        # FIX: quantity_text — prefer numeric WeightPerLoad; fall back to
-        # WhatIsTheQuantity (unit count). WeightPerLoad="unknown" was silently
-        # winning and causing 0-lbs COLD misclassification.
-        _wpl = (raw_payload.get("WeightPerLoad") or "").strip()
-        _qty = (raw_payload.get("WhatIsTheQuantity") or "").strip()
-        quantity_text = (_wpl if _safe_int(_wpl) > 0 else _qty) or _wpl or _qty
-
-        contaminants = (raw_payload.get("AreThereAnyContaminants", "") or "").strip()
-
-        # Extract image URLs from known Cognito upload field names first,
-        # then fall back to general extraction for flexibility.
-        image_urls = self._extract_image_urls(raw_payload)
-
         web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
-
+        image_urls = [item.source_url for item in packet.attachments if item.content_type.startswith("image/")]
+        contaminants = packet.contaminants_text.strip()
+        negative_contaminant_values = {"", "no", "none", "n/a", "na", "clean"}
         vals = {
             "lead_id": str(lead_id),
             "source": "web_lead",
             "lead_source_id": web_lead_source.id if web_lead_source else False,
             "decision": "cold",
-            "raw_payload": raw_payload,
-            "company_name": company or "Unknown",
-            "contact_name": contact,
-            "contact_email": email,
-            "contact_phone": phone,
-            "material_description": material_desc,
-            "quantity_text": quantity_text,
-            "has_contaminants": bool(contaminants),
+            "raw_payload": dict(packet.raw_payload),
+            "provider_key": packet.provider,
+            "provider_external_id": packet.provider_external_id or False,
+            "canonical_payload": packet_to_dict(packet, omit_raw_payload=True),
+            "company_name": packet.company_name or "Unknown",
+            "contact_name": packet.contact_name,
+            "contact_email": packet.contact_email,
+            "contact_phone": packet.contact_phone,
+            "material_description": packet.material_description,
+            "quantity_text": packet.weight_per_load_text or packet.quantity_text,
+            "has_contaminants": contaminants.lower() not in negative_contaminant_values,
             "contaminant_notes": contaminants or False,
             "image_urls": image_urls,
             "state": "received",
         }
         lead = self.create(vals)
-        _logger.info("Web lead %s created from Cognito form.", lead_id)
-
+        _logger.info("Web lead %s created from provider packet %s.", lead.lead_id, packet.provider)
         lead._run_triage_pipeline()
         return lead
 
@@ -477,13 +470,12 @@ class PlasticosWebLead(models.Model):
         stored as external_decision for audit but does not bypass Odoo triage.
         """
         lead_id = payload.get("lead_id")
-        if lead_id:
-            existing = self.search([("lead_id", "=", lead_id)], limit=1)
-            if existing:
-                _logger.info("Web lead %s already exists, returning existing.", lead_id)
-                return existing
-        else:
-            lead_id = self.env["ir.sequence"].next_by_code("plasticos.web.lead") or f"WL-{uuid.uuid4().hex[:5].upper()}"
+        if not lead_id:
+            raise UserError("Missing required field: lead_id")
+        existing = self.search([("lead_id", "=", lead_id)], limit=1)
+        if existing:
+            _logger.info("Web lead %s already exists, returning existing.", lead_id)
+            return existing
 
         raw = payload.get("raw_payload") or {}
 
@@ -553,120 +545,161 @@ class PlasticosWebLead(models.Model):
         """
         self.ensure_one()
         config = self.env["plasticos.web.lead.config"].sudo().get_config()
-        log_lines: list[str] = []
+        run_id = uuid.uuid4().hex
+        log_lines = [f"[RUN] {run_id} started"]
 
         try:
-            # ── Step 1: AI Normalization ───────────────────────────────
+            canonical_payload = self.canonical_payload or {}
+            is_packet_path = bool(canonical_payload)
+            triage_input = canonical_payload if is_packet_path else self.raw_payload or {}
+            quantity_evidence: QuantityEvidence | None = None
+            attachment_evidence: list[dict[str, Any]] = []
+
+            if is_packet_path:
+                quantity_evidence = normalize_quantity_evidence(
+                    quantity_text=triage_input.get("quantity_text"),
+                    weight_per_load_text=triage_input.get("weight_per_load_text"),
+                    frequency_text=triage_input.get("frequency_text"),
+                )
+                log_lines.append(
+                    f"[QUANTITY] weight={quantity_evidence.load_weight_lbs} "
+                    f"source={quantity_evidence.weight_source} cadence={quantity_evidence.loads_per_month}"
+                )
+
             ai_data: dict[str, Any] = {}
             providers = config.get_llm_providers_ordered() if config.ai_enabled else []
             if providers:
-                log_lines.append("[AI] Running normalization...")
+                log_lines.append("[AI] Running normalization.")
                 ai_data = ai_normalizer.normalize_with_fallback(
-                    raw_payload=self.raw_payload or {},
+                    raw_payload=triage_input,
                     providers=providers,
+                    quantity_evidence=quantity_evidence,
                 )
                 provider_used = ai_data.pop("_provider_used", "unknown")
-                self.write({"ai_normalized": ai_data})
-                if ai_data.get("error"):
-                    log_lines.append(f"  WARNING: AI error — {ai_data['error']}")
-                else:
-                    log_lines.append(
-                        f"  OK ({provider_used}): polymer={ai_data.get('polymer')}, "
-                        f"form={ai_data.get('form')}, "
-                        f"lbs={ai_data.get('estimated_lbs_per_load')}"
-                    )
+                log_lines.append(f"[AI] provider={provider_used}")
             else:
                 log_lines.append("[AI] SKIPPED (disabled or no API keys).")
 
-            # ── Step 2: Image Analysis ─────────────────────────────────
             vision_results: list[dict[str, Any]] = []
-            urls = self.image_urls or []
             vision_prov = config.get_vision_provider() if config.vision_enabled else None
-            if vision_prov and urls:
-                log_lines.append(f"[VISION] Analyzing {len(urls)} image(s) via {vision_prov['provider']}...")
-                vision_results = image_analyzer.analyze_multiple_images(
-                    image_urls=urls,
-                    api_key=vision_prov["api_key"],
-                    model=vision_prov["model"],
-                    base_url=vision_prov.get("base_url"),
-                )
-                self.write({"ai_vision_results": vision_results})
-                for i, vr in enumerate(vision_results):
-                    if vr.get("error"):
-                        log_lines.append(f"  Image {i + 1}: ERROR — {vr['error']}")
-                    else:
-                        log_lines.append(
-                            f"  Image {i + 1}: form={vr.get('observed_form')}, "
-                            f"color={vr.get('observed_color')}, "
-                            f"confidence={vr.get('confidence', 0):.2f}"
+            if is_packet_path:
+                packet_attachments = triage_input.get("attachments") or []
+                analyzer = None
+                if vision_prov:
+                    try:
+                        from openai import OpenAI  # type: ignore[import-untyped]
+
+                        client_kwargs: dict[str, Any] = {"api_key": vision_prov["api_key"]}
+                        if vision_prov.get("base_url"):
+                            client_kwargs["base_url"] = vision_prov["base_url"]
+                        client = OpenAI(**client_kwargs)
+                        analyzer = lambda content, mimetype: image_analyzer.analyze_image_bytes(
+                            content,
+                            content_type=mimetype,
+                            client=client,
+                            model=vision_prov["model"],
                         )
+                    except Exception as exc:
+                        log_lines.append(f"[VISION] unavailable: {exc}")
+
+                log_lines.append(f"[ATTACHMENTS] processing={len(packet_attachments)}")
+                attachment_evidence = process_attachments(
+                    lead=self,
+                    attachments=packet_attachments,
+                    analyzer=analyzer,
+                    evidence_bundle=self.evidence_bundle,
+                )
+                vision_results = [
+                    row["analysis"]
+                    for row in attachment_evidence
+                    if row.get("analysis_type") == "image"
+                    and row.get("analysis_status") == "success"
+                    and row.get("analysis")
+                ]
             else:
-                log_lines.append("[VISION] SKIPPED.")
+                urls = self.image_urls or []
+                if vision_prov and urls:
+                    log_lines.append(f"[VISION] Analyzing {len(urls)} legacy image(s).")
+                    vision_results = image_analyzer.analyze_multiple_images(
+                        image_urls=urls,
+                        api_key=vision_prov["api_key"],
+                        model=vision_prov["model"],
+                        base_url=vision_prov.get("base_url"),
+                    )
+                else:
+                    log_lines.append("[VISION] SKIPPED.")
 
-            # ── Step 3: Merge AI + Vision (weight fallback cascade here) ──
-            merged = self._merge_ai_and_vision(ai_data, vision_results)
-            log_lines.append(
-                f"[MERGE] polymer={merged.get('polymer')}, "
-                f"form={merged.get('form')}, "
-                f"lbs={merged.get('estimated_lbs')} "
-                f"(source: {merged.get('lbs_source', 'unknown')})"
-            )
+            merged = self._merge_ai_and_vision(ai_data, vision_results, quantity_evidence=quantity_evidence)
+            evidence_bundle = None
+            if is_packet_path and quantity_evidence is not None:
+                evidence_bundle = reconcile_evidence(
+                    canonical_payload=canonical_payload,
+                    quantity=quantity_evidence,
+                    ai_normalized=ai_data,
+                    attachments=attachment_evidence,
+                    run_id=run_id,
+                )
+                log_lines.append(f"[RECONCILE] conflicts={len(evidence_bundle['conflicts'])}")
 
-            # ── Step 4: Deterministic Classification ───────────────────
-            log_lines.append("[CLASS] Running classification...")
+            log_lines.append("[CLASS] Running deterministic classification.")
             result = classify_lead(
                 polymer=merged.get("polymer"),
                 material_description=self.material_description,
                 estimated_lbs=merged.get("estimated_lbs", 0),
                 source_description=merged.get("source_description", ""),
                 source_type=merged.get("source_type"),
+                is_plastic_hint=merged.get("is_plastic"),
+                is_commercial_hint=merged.get("is_commercial_source"),
+                weight_source=merged.get("lbs_source", "none"),
                 reject_materials=config.get_reject_materials(),
                 reject_sources=config.get_reject_sources(),
                 hot_min_lbs=config.hot_min_lbs or 10_000,
                 cold_max_lbs=config.cold_max_lbs or 8_000,
             )
-            log_lines.append(f"  → {result.decision.upper()}")
-            for reason in result.reasons:
-                log_lines.append(f"  Reason: {reason}")
+            log_lines.append(f"[CLASS] decision={result.decision}")
 
-            # ── Step 5: Persist classification result ──────────────────
-            self.write(
-                {
-                    "decision": result.decision,
-                    "decision_reasons": {
-                        "reasons": result.reasons,
-                        "cold_gates": result.cold_gates_triggered,
-                        "hot_qualifiers": result.hot_qualifiers_met,
-                    },
-                    "ai_analysis": merged,
-                    "estimated_lbs_per_load": merged.get("estimated_lbs", 0),
-                    "estimated_loads_per_month": merged.get("loads_per_month", 0),
-                    "frequency": merged.get("frequency", ""),
-                }
-            )
+            values = {
+                "decision": result.decision,
+                "decision_reasons": {
+                    "reasons": result.reasons,
+                    "cold_gates": result.cold_gates_triggered,
+                    "hot_qualifiers": result.hot_qualifiers_met,
+                },
+                "ai_normalized": ai_data,
+                "ai_vision_results": vision_results,
+                "ai_analysis": merged,
+                "estimated_lbs_per_load": int(merged.get("estimated_lbs") or 0),
+                "estimated_loads_per_month": int(merged.get("loads_per_month") or 0),
+                "frequency": merged.get("frequency", ""),
+            }
+            if evidence_bundle is not None:
+                values["evidence_bundle"] = evidence_bundle
+            self.write(values)
 
-            # ── Step 6: HOT → intake / COLD → archive ──────────────────
             if result.decision == "hot":
-                log_lines.append("[HOT] Creating intake + scheduling review activity...")
+                log_lines.append("[HOT] Creating intake and scheduling human review.")
                 self._process_hot_lead_triage(merged, config)
-                log_lines.append("  Done: intake created.")
+                if evidence_bundle is not None:
+                    copy_successful_attachments_to_intake(
+                        lead=self, intake=self.intake_id, evidence_bundle=evidence_bundle
+                    )
+                elif self.image_urls:
+                    # Legacy agent leads do not have packet attachment evidence.
+                    # Preserve their established HOT-only URL attachment handoff.
+                    log_lines.append(f"[IMG] Fetching {len(self.image_urls)} legacy image(s).")
+                    self._fetch_and_attach_images(self.image_urls)
             else:
                 log_lines.append("[COLD] Archiving lead.")
                 self.write({"state": "skipped"})
-
-            # ── Step 7: Attach images (HOT only — avoid blocking on COLD) ──
-            if urls and result.decision == "hot":
-                log_lines.append(f"[IMG] Fetching {len(urls)} image(s)...")
-                self._fetch_and_attach_images(urls)
-                log_lines.append("  Done: images attached.")
-            elif urls:
-                log_lines.append("[IMG] SKIPPED (COLD lead — images not downloaded).")
+                if not is_packet_path and self.image_urls:
+                    log_lines.append("[IMG] SKIPPED legacy image download for COLD lead.")
 
         except Exception as exc:
             _logger.exception("Triage pipeline error for lead %s", self.lead_id)
             log_lines.append(f"[ERROR] {exc}")
             self.write({"state": "error", "error_message": str(exc)})
 
+        log_lines.append(f"[RUN] {run_id} finished")
         self.write({"triage_log": "\n".join(log_lines)})
 
     # ═══════════════════════════════════════════════════════════
@@ -677,6 +710,8 @@ class PlasticosWebLead(models.Model):
         self,
         ai_data: dict[str, Any],
         vision_results: list[dict[str, Any]],
+        *,
+        quantity_evidence: QuantityEvidence | None = None,
     ) -> dict[str, Any]:
         """Merge text AI normalization with vision analysis.
 
@@ -684,13 +719,15 @@ class PlasticosWebLead(models.Model):
         - Text AI: polymer, weight, source (form data knows the business context)
         - Vision: form, color, contamination (eyes on the material)
 
-        Weight fallback cascade (FIX — resolves WeightPerLoad="unknown" bug):
+        Legacy-path weight fallback cascade (FIX — resolves WeightPerLoad="unknown" bug):
           1. AI estimated_lbs_per_load (most reliable when AI ran)
           2. Vision estimated_lbs (any image gave a weight estimate)
           3. WhatIsTheQuantity × _LBS_PER_PALLET_ASSUMPTION (unit count fallback)
           4. 0 (classification will gate on cold_max_lbs)
 
-        lbs_source is logged so triage_log shows which path fired.
+        Canonical Packet path uses deterministic QuantityEvidence first, permits an
+        explicit AI per-load mass only as fallback, and never turns a unit count
+        into pounds.
         """
         merged: dict[str, Any] = {}
 
@@ -700,33 +737,55 @@ class PlasticosWebLead(models.Model):
         merged["color"] = (ai_data.get("color") or "").lower().strip() or None
         merged["source_type"] = _SOURCE_NORMALIZE.get((ai_data.get("source_type") or "").lower().strip(), None)
         merged["loads_per_month"] = _safe_int(ai_data.get("loads_per_month"), 0)
-        merged["is_plastic"] = ai_data.get("is_plastic", True)
-        merged["is_commercial_source"] = ai_data.get("is_commercial_source", False)
+        # Missing AI output is unknown evidence, never a negative fact. The
+        # classifier owns the distinct treatment of None versus explicit False.
+        merged["is_plastic"] = ai_data.get("is_plastic")
+        merged["is_commercial_source"] = ai_data.get("is_commercial_source")
         merged["material_summary"] = ai_data.get("material_summary", "")
         merged["contaminants_noted"] = ai_data.get("contaminants_noted")
         merged["confidence"] = ai_data.get("confidence", 0.5)
         merged["frequency"] = (ai_data.get("frequency") or "").lower().strip()
 
         raw = self.raw_payload or {}
-        merged["source_description"] = raw.get("WhatIsTheSourceOfThisMaterial", "") or raw.get("Source", "") or ""
+        canonical = self.canonical_payload or {}
+        merged["source_description"] = (
+            canonical.get("source_description")
+            if quantity_evidence is not None
+            else raw.get("WhatIsTheSourceOfThisMaterial", "") or raw.get("Source", "") or ""
+        ) or ""
 
         # ── Weight fallback cascade ────────────────────────────────────
-        lbs = _safe_int(ai_data.get("estimated_lbs_per_load"), 0)
-        lbs_source = "ai_text"
+        if quantity_evidence is not None:
+            lbs = quantity_evidence.load_weight_lbs or 0
+            lbs_source = quantity_evidence.weight_source
+            if not lbs:
+                ai_lbs = _safe_int(ai_data.get("estimated_lbs_per_load"), 0)
+                if ai_lbs > 0:
+                    lbs = ai_lbs
+                    lbs_source = "ai_text"
+            merged["loads_per_month"] = (
+                quantity_evidence.loads_per_month
+                if quantity_evidence.loads_per_month is not None
+                else _safe_int(ai_data.get("loads_per_month"), 0)
+            )
+            merged["frequency"] = quantity_evidence.supply_mode
+        else:
+            lbs = _safe_int(ai_data.get("estimated_lbs_per_load"), 0)
+            lbs_source = "ai_text"
 
-        if not lbs and vision_results:
-            for vr in vision_results:
-                v_lbs = _safe_int(vr.get("estimated_lbs"), 0)
-                if v_lbs > 0:
-                    lbs = v_lbs
-                    lbs_source = "vision"
-                    break
+            if not lbs and vision_results:
+                for vr in vision_results:
+                    v_lbs = _safe_int(vr.get("estimated_lbs"), 0)
+                    if v_lbs > 0:
+                        lbs = v_lbs
+                        lbs_source = "vision"
+                        break
 
-        if not lbs:
-            qty_count = _safe_int(raw.get("WhatIsTheQuantity"), 0)
-            if qty_count > 0:
-                lbs = qty_count * _LBS_PER_PALLET_ASSUMPTION
-                lbs_source = f"pallet_count({qty_count}×{_LBS_PER_PALLET_ASSUMPTION})"
+            if not lbs:
+                qty_count = _safe_int(raw.get("WhatIsTheQuantity"), 0)
+                if qty_count > 0:
+                    lbs = qty_count * _LBS_PER_PALLET_ASSUMPTION
+                    lbs_source = f"pallet_count({qty_count}×{_LBS_PER_PALLET_ASSUMPTION})"
 
         merged["estimated_lbs"] = lbs
         merged["lbs_source"] = lbs_source
@@ -969,8 +1028,7 @@ class PlasticosWebLead(models.Model):
 
             except Exception as exc:
                 _logger.warning(
-                    "Failed to fetch image %s for lead %s: %s",
-                    url[:80],
+                    "Failed to fetch an image for lead %s: %s",
                     self.lead_id,
                     exc,
                 )
@@ -1003,7 +1061,7 @@ class PlasticosWebLead(models.Model):
             if rec.intake_id:
                 raise UserError("Intake already exists for this lead.")
             config = rec.env["plasticos.web.lead.config"].sudo().get_config()
-            merged = rec.ai_normalized or rec.ai_analysis or {}
+            merged = rec.ai_analysis or rec.ai_normalized or {}
             rec._process_hot_lead_triage(merged, config)
 
     def action_force_hot(self):
@@ -1012,7 +1070,7 @@ class PlasticosWebLead(models.Model):
             if rec.intake_id:
                 raise UserError("Intake already exists for this lead.")
             config = rec.env["plasticos.web.lead.config"].sudo().get_config()
-            merged = rec.ai_normalized or rec.ai_analysis or {}
+            merged = rec.ai_analysis or rec.ai_normalized or {}
             rec.write(
                 {
                     "decision": "hot",

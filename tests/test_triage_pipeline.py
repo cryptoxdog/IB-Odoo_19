@@ -43,6 +43,12 @@ safe_int = _th.safe_int
 safe_float = _th.safe_float
 coerce_bool = _th.coerce_bool
 
+_ac = _load_module("ai_client")
+sys.modules["plasticos_web_leads.models"].ai_client = _ac
+
+_qn = _load_module("quantity_normalizer")
+sys.modules["plasticos_web_leads.models"].quantity_normalizer = _qn
+
 _ai = _load_module("ai_normalizer")
 validate_ai_output = _ai.validate_ai_output
 normalize_with_fallback = _ai.normalize_with_fallback
@@ -493,3 +499,35 @@ class TestMergeVisionResults:
         merged = merge_vision_results(results)
         assert merged["observed_form"] == "Bale"
         assert "error" not in merged
+
+
+class TestVisionBytePath:
+    def test_byte_path_preserves_distinct_visual_evidence(self):
+        response = types.SimpleNamespace(
+            choices=[
+                types.SimpleNamespace(
+                    message=types.SimpleNamespace(
+                        content=(
+                            '{"observed_form":"Film Rolls","commercial_color":"Mixed",'
+                            '"containment":"Gaylords","support_unit":"Pallets",'
+                            '"observed_polymer_hint":null,"confidence":0.9}'
+                        )
+                    )
+                )
+            ]
+        )
+        client = MagicMock()
+        client.chat.completions.create.return_value = response
+
+        result = _ia.analyze_image_bytes(
+            b"image-bytes",
+            content_type="image/jpeg",
+            client=client,
+            model="vision-test",
+        )
+
+        assert result["observed_form"] == "Film Rolls"
+        assert result["containment"] == "Gaylords"
+        assert result["support_unit"] == "Pallets"
+        assert result["commercial_color"] == "Mixed"
+        assert result["observed_polymer_hint"] is None

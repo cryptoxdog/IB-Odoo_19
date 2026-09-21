@@ -28,6 +28,10 @@ Analyse the image and return ONLY valid JSON with these fields (null if unknown)
   "observed_form": string | null,           // Bale | Pellet | Regrind | Flake | Film | Other
   "observed_color": string | null,          // dominant color(s)
   "observed_polymer_hint": string | null,   // HDPE | PP | PET | PS | PVC | LDPE | ABS | null
+  "material_form_observed": string | null,
+  "commercial_color": string | null,
+  "containment": string | null,
+  "support_unit": string | null,
   "contamination_visible": boolean | null,
   "contamination_notes": string | null,
   "cleanliness": string | null,             // Clean | Lightly Contaminated | Heavily Contaminated
@@ -39,6 +43,10 @@ Rules:
 - Do NOT guess polymer from colour alone; only identify if markings/shape are definitive
 - contamination_visible must be true if ANY contamination is apparent
 - confidence < 0.3 indicates image quality is too poor for reliable extraction
+- Material form, containment, and support unit are separate facts.
+- Do not treat pallet, container, floor, or background colour as material colour.
+- Mixed is a valid commercial material colour.
+- Do not invent exact lot weight from an image.
 """
 
 
@@ -87,6 +95,17 @@ def analyse_image(
     except Exception as exc:
         _logger.warning("analyse_image: failed: %s", exc)
         return {"error": str(exc)}
+
+
+def analyze_image_bytes(
+    image_bytes: bytes,
+    *,
+    content_type: str,
+    client: Any,
+    model: str,
+) -> dict[str, Any]:
+    """Analyze bytes already acquired by canonical attachment processing."""
+    return analyse_image(image_bytes, client, model=model, mime_type=content_type)
 
 
 def merge_vision_results(
@@ -168,14 +187,14 @@ def analyze_image(
         _logger.error("openai/httpx packages not installed — vision analysis unavailable.")
         return {"error": "openai or httpx package not installed"}
 
-    _logger.info("Analyzing image: %s", image_url[:120])
+    _logger.info("Analyzing an externally hosted web-lead image.")
     try:
         resp = httpx.get(image_url, timeout=30.0)
         resp.raise_for_status()
         image_bytes = resp.content
         content_type = resp.headers.get("content-type", "image/jpeg").split(";")[0].strip()
     except Exception as exc:
-        _logger.warning("Failed to fetch image URL %s: %s", image_url[:80], exc)
+        _logger.warning("Failed to fetch externally hosted web-lead image: %s", exc)
         return {"error": f"fetch failed: {exc}"}
 
     client_kwargs: dict[str, Any] = {"api_key": api_key}
