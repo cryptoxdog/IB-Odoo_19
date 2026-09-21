@@ -14,8 +14,8 @@ summary: "Triggers Gate action=converge; persists runs/provenance; allowlisted p
 
 ## Purpose
 
-Gate **orchestrator + CRM writeback shell** for partner enrichment (ADR-015).  
-Intelligence executes in Enrichment.Inference.Engine (EIE) via Gate (`action=converge`).  
+Gate **orchestrator + CRM writeback shell** for partner enrichment (ADR-015).
+Intelligence executes in Enrichment.Inference.Engine (EIE) via Gate (`action=converge`).
 **Which entities to enrich and in what order is not this module** — that ranking lives in CEG `engine/health/` (ADR-009).
 
 ## Summary
@@ -40,7 +40,7 @@ views/
 
 ## Dependencies
 
-`plasticos_base`, `plasticos_gate`, `base`, `mail`, `contacts`, `plasticos_material_profile`  
+`plasticos_base`, `plasticos_gate`, `base`, `mail`, `contacts`, `plasticos_material_profile`
 (Do **not** depend on retired `plasticos_inference_engine`.)
 
 ## Models

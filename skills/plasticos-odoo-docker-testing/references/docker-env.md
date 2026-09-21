@@ -38,6 +38,7 @@ docker compose -p odoo19 exec -T db pg_isready -U odoo -d odoo
 |----------|---------|
 | `POSTGRES_PASSWORD` | Required for smoke; from `.env` or compose |
 | `ODOO_ENTERPRISE_MODULES=none` | Skip enterprise `-i` list (faster custom-only) |
+| `ODOO_INSTALL_SMOKE_NETWORK=host` | Opt-in host-network fallback for restricted sandbox Docker bridges; defaults to Compose networking |
 | `ODOO_INSTALL_SMOKE_SCOPE=all` | default — ordered + remaining installable (minus excluded) |
 | `ODOO_INSTALL_SMOKE_SCOPE=ordered` | `default_install_order` only |
 | `ODOO_REBUILD_MODULES` | Override module CSV list entirely |

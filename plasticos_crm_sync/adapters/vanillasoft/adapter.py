@@ -252,7 +252,7 @@ class VanillaSoftAdapter:
                 if not isinstance(row, dict):
                     raise CrmAdapterError(f"Contact row {index} is {type(row).__name__}, expected object")
                 leads.append(contact_to_canonical(row))
-            api_cursor = None
+            api_cursor: str | None = None
             partial = False
             if isinstance(payload, dict):
                 raw_cursor = payload.get("batch_end") or payload.get("BatchEnd")
@@ -279,6 +279,8 @@ class VanillaSoftAdapter:
             # `api_cursor` is an ordered ISO-8601 UTC timestamp, so forward
             # progress is checkable directly; a non-advancing partial page would
             # otherwise loop forever re-reading the same rows.
+            if api_cursor is None:
+                raise CrmAdapterError("VanillaSoft partial contact fulfillment lost its batch_end cursor")
             if api_cursor <= str(cursor):
                 raise CrmAdapterError(f"Contact pagination failed to advance: {cursor!r} -> {api_cursor!r}")
             cursor = api_cursor
