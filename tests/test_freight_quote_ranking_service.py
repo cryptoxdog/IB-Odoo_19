@@ -9,8 +9,8 @@ from pathlib import Path
 
 SERVICE_PATH = Path(__file__).parents[1] / "plasticos_logistics" / "services" / "freight_quote_ranking.py"
 SPEC = importlib.util.spec_from_file_location("freight_quote_ranking_service", SERVICE_PATH)
-ranking_service = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
+ranking_service = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = ranking_service
 SPEC.loader.exec_module(ranking_service)
 

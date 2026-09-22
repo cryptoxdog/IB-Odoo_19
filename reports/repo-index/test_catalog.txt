@@ -281,18 +281,23 @@
 ./tests/integration/test_intake_onchange_cascade.py:158:    def test_material_profile_prefills_form(self):
 ./tests/integration/test_intake_onchange_cascade.py:167:    def test_material_profile_prefills_quality_numerics(self):
 ./tests/integration/test_linda_freight_models.py:12:class TestLindaFreightModels(PlasticosTestCase):
-./tests/integration/test_linda_freight_models.py:131:    def test_manual_response_records_provenance_without_fabricating_send_evidence(self):
-./tests/integration/test_linda_freight_models.py:146:    def test_recipient_send_evidence_stays_internally_consistent(self):
-./tests/integration/test_linda_freight_models.py:157:    def test_request_and_recipient_evidence_reject_direct_writes(self):
-./tests/integration/test_linda_freight_models.py:192:    def test_supersession_enforces_same_request_carrier_company_lineage(self):
-./tests/integration/test_linda_freight_models.py:235:    def test_logistics_user_can_create_reconciliation_evidence_but_cannot_mutate_it(self):
-./tests/integration/test_linda_freight_models.py:281:    def test_load_provenance_and_state_bypass_is_rejected(self):
-./tests/integration/test_linda_freight_models.py:288:    def test_quote_selection_requires_locked_canonical_workflow(self):
-./tests/integration/test_linda_freight_models.py:314:    def test_calibration_is_append_only_and_corrections_are_attributed(self):
-./tests/integration/test_linda_freight_models.py:341:    def test_event_correlation_and_legacy_cache_retirement_are_enforced(self):
-./tests/integration/test_linda_freight_models.py:356:    def test_non_logistics_user_cannot_execute_freight_command(self):
-./tests/integration/test_linda_freight_models.py:362:    def test_sal_provenance_fields_exist_with_safe_defaults(self):
-./tests/integration/test_linda_freight_models.py:371:    def test_confirmed_sal_booking_terms_reject_direct_edits(self):
+./tests/integration/test_linda_freight_models.py:135:    def test_manual_response_records_provenance_without_fabricating_send_evidence(self):
+./tests/integration/test_linda_freight_models.py:150:    def test_recipient_send_evidence_stays_internally_consistent(self):
+./tests/integration/test_linda_freight_models.py:161:    def test_request_and_recipient_evidence_reject_direct_writes(self):
+./tests/integration/test_linda_freight_models.py:196:    def test_supersession_enforces_same_request_carrier_company_lineage(self):
+./tests/integration/test_linda_freight_models.py:239:    def test_logistics_user_can_create_reconciliation_evidence_but_cannot_mutate_it(self):
+./tests/integration/test_linda_freight_models.py:285:    def test_load_provenance_and_state_bypass_is_rejected(self):
+./tests/integration/test_linda_freight_models.py:292:    def test_quote_selection_requires_locked_canonical_workflow(self):
+./tests/integration/test_linda_freight_models.py:318:    def test_calibration_is_append_only_and_corrections_are_attributed(self):
+./tests/integration/test_linda_freight_models.py:345:    def test_event_correlation_and_legacy_cache_retirement_are_enforced(self):
+./tests/integration/test_linda_freight_models.py:360:    def test_non_logistics_user_cannot_execute_freight_command(self):
+./tests/integration/test_linda_freight_models.py:366:    def test_sal_provenance_fields_exist_with_safe_defaults(self):
+./tests/integration/test_linda_freight_models.py:375:    def test_confirmed_sal_booking_terms_reject_direct_edits(self):
+./tests/integration/test_linda_freight_models.py:393:    def test_direct_load_create_cannot_bypass_state_or_provenance(self):
+./tests/integration/test_linda_freight_models.py:417:    def test_duplicated_load_starts_in_draft_without_provenance(self):
+./tests/integration/test_linda_freight_models.py:438:    def test_rate_confirmation_cancels_orphaned_rfq_episodes_durably(self):
+./tests/integration/test_linda_freight_models.py:458:    def test_recipient_idempotency_key_is_derived_when_absent(self):
+./tests/integration/test_linda_freight_models.py:475:    def test_stale_context_guard_never_writes_and_resolution_cancels_durably(self):
 ./tests/integration/test_match_result_guards.py:21:class TestMatchResultStateMachine(PlasticosTestCase):
 ./tests/integration/test_match_result_guards.py:82:    def test_accept_from_pending_succeeds(self):
 ./tests/integration/test_match_result_guards.py:89:    def test_accept_sets_reviewer_and_date(self):
@@ -572,6 +577,20 @@
 ./tests/test_bridge_models.py:260:    def test_partner_has_material_profile_ids(self):
 ./tests/test_bridge_models.py:264:    def test_partner_supplier_rank_from_intake(self):
 ./tests/test_bridge_models.py:273:    def test_partner_intake_count_computed(self):
+./tests/test_check_odoo_antipatterns.py:32:def test_search_recordset_in_helper_function_is_caught():
+./tests/test_check_odoo_antipatterns.py:45:def test_browse_recordset_in_service_function_is_caught():
+./tests/test_check_odoo_antipatterns.py:58:def test_env_model_lookup_compared_directly_is_caught():
+./tests/test_check_odoo_antipatterns.py:70:def test_relational_attribute_of_tracked_local_is_caught():
+./tests/test_check_odoo_antipatterns.py:83:def test_dataclass_none_check_outside_model_class_is_not_flagged():
+./tests/test_check_odoo_antipatterns.py:108:def test_rebinding_a_tracked_local_to_a_plain_value_releases_it():
+./tests/test_check_odoo_antipatterns.py:122:def test_recordset_locals_do_not_leak_between_functions():
+./tests/test_check_odoo_antipatterns.py:139:def test_model_class_relational_field_coverage_is_preserved():
+./tests/test_check_odoo_antipatterns.py:154:def test_model_class_search_local_coverage_is_preserved():
+./tests/test_check_odoo_antipatterns.py:170:def test_model_class_plain_value_is_not_flagged():
+./tests/test_check_odoo_antipatterns.py:185:def test_method_name_alone_is_not_recordset_evidence():
+./tests/test_check_odoo_antipatterns.py:206:def test_tracked_model_variable_receiver_is_recordset_evidence():
+./tests/test_check_odoo_antipatterns.py:220:def test_env_ref_receiver_is_recordset_evidence():
+./tests/test_check_odoo_antipatterns.py:233:def test_checker_ignores_scalar_id_locals_outside_model_classes():
 ./tests/test_ci_check_odoo19_xml.py:21:class TestCheckViewXmlFile(unittest.TestCase):
 ./tests/test_ci_check_odoo19_xml.py:35:    def test_tree_tag_detected(self):
 ./tests/test_ci_check_odoo19_xml.py:63:    def test_tree_tag_not_detected_in_comment(self):
@@ -801,15 +820,15 @@
 ./tests/test_error_handling.py:131:    def test_claim_invalid_state_transition(self):
 ./tests/test_error_handling.py:147:    def test_offer_negative_price_rejected(self):
 ./tests/test_error_handling.py:157:    def test_load_cancel_from_delivered_rejected(self):
-./tests/test_error_handling.py:165:    def test_safe_int_helper_handles_garbage(self):
-./tests/test_error_handling.py:178:class TestPermissionDenied(PlasticosTestCase):
-./tests/test_error_handling.py:181:    def test_non_admin_cannot_write_config(self):
-./tests/test_error_handling.py:192:    def test_non_admin_cannot_delete_intake(self):
-./tests/test_error_handling.py:211:class TestConcurrentEdits(PlasticosTestCase):
-./tests/test_error_handling.py:219:    def test_idempotent_web_lead_creation(self):
-./tests/test_error_handling.py:236:class TestRollbackScenarios(PlasticosTestCase):
-./tests/test_error_handling.py:239:    def test_intake_creation_atomic(self):
-./tests/test_error_handling.py:255:    def test_web_lead_triage_error_state(self):
+./tests/test_error_handling.py:168:    def test_safe_int_helper_handles_garbage(self):
+./tests/test_error_handling.py:181:class TestPermissionDenied(PlasticosTestCase):
+./tests/test_error_handling.py:184:    def test_non_admin_cannot_write_config(self):
+./tests/test_error_handling.py:195:    def test_non_admin_cannot_delete_intake(self):
+./tests/test_error_handling.py:214:class TestConcurrentEdits(PlasticosTestCase):
+./tests/test_error_handling.py:222:    def test_idempotent_web_lead_creation(self):
+./tests/test_error_handling.py:239:class TestRollbackScenarios(PlasticosTestCase):
+./tests/test_error_handling.py:242:    def test_intake_creation_atomic(self):
+./tests/test_error_handling.py:258:    def test_web_lead_triage_error_state(self):
 ./tests/test_evidence_odoo_mapping_consumer.py:17:def test_consumer_contract_loads() -> None:
 ./tests/test_evidence_odoo_mapping_consumer.py:24:def test_allowlisted_evidence_proposes_review() -> None:
 ./tests/test_evidence_odoo_mapping_consumer.py:50:def test_human_approved_blocks() -> None:
@@ -1309,9 +1328,10 @@
 ./tests/test_repo_dependency_integrity.py:116:def test_no_phantom_plasticos_dependencies():
 ./tests/test_repo_dependency_integrity.py:131:def test_no_unknown_non_plasticos_dependencies():
 ./tests/test_repo_dependency_integrity.py:149:def test_retired_modules_absent_from_every_depends():
-./tests/test_sal_resolver_service.py:95:def test_search_qualifies_intake_and_cutoff_without_a_row_cap():
-./tests/test_sal_resolver_service.py:108:def test_candidate_uses_persisted_fingerprint_not_live_partner_rebuild():
-./tests/test_sal_resolver_service.py:134:def test_candidate_without_booking_fingerprint_is_not_rebuilt_from_live_address():
+./tests/test_sal_resolver_service.py:98:def test_search_qualifies_intake_without_a_row_cap_or_sql_cutoff():
+./tests/test_sal_resolver_service.py:110:def test_candidate_uses_persisted_fingerprint_not_live_partner_rebuild():
+./tests/test_sal_resolver_service.py:136:def test_candidate_without_booking_fingerprint_is_not_rebuilt_from_live_address():
+./tests/test_sal_resolver_service.py:160:def test_expired_matching_movement_keeps_prior_movement_too_old():
 ./tests/test_security_acl.py:13:class TestTransactionACL(PlasticosTestCase):
 ./tests/test_security_acl.py:44:    def test_base_user_can_read(self):
 ./tests/test_security_acl.py:50:    def test_base_user_can_create(self):

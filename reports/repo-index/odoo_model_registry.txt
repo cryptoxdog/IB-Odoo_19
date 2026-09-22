@@ -75,12 +75,12 @@
 ./plasticos_intake_normalizer/models/normalizer_config.py:47:    _name = "plasticos.normalizer.config"
 ./plasticos_logistics/models/dispatch.py:10:    _name = "plasticos.dispatch"
 ./plasticos_logistics/models/freight_estimate.py:10:    _name = "plasticos.freight.estimate"
-./plasticos_logistics/models/freight_governance.py:30:    _name = "plasticos.freight.event"
-./plasticos_logistics/models/freight_governance.py:67:    _name = "plasticos.freight.calibration.observation"
-./plasticos_logistics/models/freight_governance.py:149:    _name = "plasticos.rate.memory.reconciliation"
-./plasticos_logistics/models/freight_quote.py:36:    _name = "plasticos.freight.quote.request"
-./plasticos_logistics/models/freight_quote.py:374:    _name = "plasticos.freight.quote.recipient"
-./plasticos_logistics/models/freight_quote.py:491:    _name = "plasticos.freight.quote"
+./plasticos_logistics/models/freight_governance.py:31:    _name = "plasticos.freight.event"
+./plasticos_logistics/models/freight_governance.py:68:    _name = "plasticos.freight.calibration.observation"
+./plasticos_logistics/models/freight_governance.py:150:    _name = "plasticos.rate.memory.reconciliation"
+./plasticos_logistics/models/freight_quote.py:41:    _name = "plasticos.freight.quote.request"
+./plasticos_logistics/models/freight_quote.py:384:    _name = "plasticos.freight.quote.recipient"
+./plasticos_logistics/models/freight_quote.py:508:    _name = "plasticos.freight.quote"
 ./plasticos_logistics/models/load.py:36:    _name = "plasticos.load"
 ./plasticos_logistics/models/load_dashboard.py:17:    _name = "plasticos.load.dashboard"
 ./plasticos_logistics/models/load_dashboard.py:20:    _rec_name = "load_ref"
@@ -169,6 +169,9 @@
 ./tests/runtime_gates/run_f1_f3_full_import.py:100:        last_name="L",
 ./tests/test_action_methods.py:104:        intake = self._make_intake(partner_id=False, pending_company_name="Match Test")
 ./tests/test_action_methods.py:474:        lead = self._make_lead(partner_id=False, partner_name="New Auto Co")
+./tests/test_check_odoo_antipatterns.py:143:            _name = "plasticos.load"
+./tests/test_check_odoo_antipatterns.py:158:            _name = "plasticos.load"
+./tests/test_check_odoo_antipatterns.py:174:            _name = "plasticos.load"
 ./tests/test_committed_sync_metrics.py:44:        first_name="Ada",
 ./tests/test_committed_sync_metrics.py:45:        last_name="Lovelace",
 ./tests/test_crm_sync_classification.py:113:        provider="vanillasoft", external_id=external_id, company="Co", first_name="A", last_name="L", email=email

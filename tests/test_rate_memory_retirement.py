@@ -8,8 +8,8 @@ from pathlib import Path
 
 SERVICE_PATH = Path(__file__).parents[1] / "plasticos_logistics" / "services" / "rate_engine.py"
 SPEC = importlib.util.spec_from_file_location("retired_rate_engine", SERVICE_PATH)
-rate_engine = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
+rate_engine = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = rate_engine
 SPEC.loader.exec_module(rate_engine)
 

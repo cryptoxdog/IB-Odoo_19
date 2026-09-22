@@ -1,7 +1,7 @@
 ---
 component_id: "plasticos_logistics"
 component_name: "Plasticos Logistics"
-module_version: "19.0.1.8.0"
+module_version: "19.0.1.10.0"
 layer: "core"
 domain: "plasticos"
 type: "odoo_module"

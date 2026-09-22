@@ -157,7 +157,10 @@ class TestInvalidData(PlasticosTestCase):
     def test_load_cancel_from_delivered_rejected(self):
         if "plasticos.load" not in self.env:
             self.skipTest("Load not installed")
-        load = self.env["plasticos.load"].create({"state": "delivered"})
+        # create() rejects a non-Draft state (workflow-owned); reach Delivered
+        # through the internal freight capability the way the workflow does.
+        load = self.env["plasticos.load"].create({})
+        load._freight_write({"state": "delivered"})
         if hasattr(load, "action_cancel"):
             with self.assertRaises(UserError):
                 load.action_cancel()
