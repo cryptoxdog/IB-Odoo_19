@@ -55,6 +55,17 @@ def _safe_note_text(value: object) -> str:
     return str(escape(str(value)))
 
 
+def _validated_intake_ids(values_list: list[dict]) -> list[int]:
+    """Validate create payload targets before performing one batch intake lookup."""
+    intake_ids: list[int] = []
+    for values in values_list:
+        intake_id = values.get("intake_id")
+        if not isinstance(intake_id, int) or isinstance(intake_id, bool):
+            raise ValidationError(_("Review target intake is required."))
+        intake_ids.append(intake_id)
+    return intake_ids
+
+
 class PlasticosMackInternalReview(models.Model):
     """One idempotent request for an internal Odoo review of a canonical intake."""
 
@@ -154,14 +165,11 @@ class PlasticosMackInternalReview(models.Model):
         tracking=True,
     )
 
-    _sql_constraints = [
-        ("mack_internal_review_name_unique", "unique(name)", "Review request reference must be unique."),
-        (
-            "mack_internal_review_idempotency_unique",
-            "unique(company_id, idempotency_key)",
-            "An internal review request already exists for this company and idempotency key.",
-        ),
-    ]
+    _unique_name = models.Constraint("unique(name)", "Review request reference must be unique.")
+    _unique_company_idempotency_key = models.Constraint(
+        "unique(company_id, idempotency_key)",
+        "An internal review request already exists for this company and idempotency key.",
+    )
 
     @api.constrains(
         "cwi_ref",
@@ -215,18 +223,17 @@ class PlasticosMackInternalReview(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         """Resolve one configured reviewer and create one activity per request."""
+        normalized_vals_list = [dict(values) for values in vals_list]
+        intake_ids = _validated_intake_ids(normalized_vals_list)
+        intakes_by_id = {intake.id: intake for intake in self.env["plasticos.intake"].browse(intake_ids).exists()}
         result = self.browse([])
-        for values in vals_list:
-            values = dict(values)
+        for values in normalized_vals_list:
             if values.get("name", "New") == "New":
                 values["name"] = self.env["ir.sequence"].next_by_code("plasticos.mack.internal.review") or "New"
             if values.get("reviewer_id"):
                 raise AccessError(_("Reviewer identity is resolved by Odoo routing policy, not the caller."))
             intake_id = values.get("intake_id")
-            if not isinstance(intake_id, int) or isinstance(intake_id, bool):
-                raise ValidationError(_("Review target intake is required."))
-            intake = self.env["plasticos.intake"].browse(intake_id).exists()
-            if not intake:
+            if intake_id not in intakes_by_id:
                 raise ValidationError(_("Review target intake does not exist."))
             config = self.env["plasticos.mack.workbench.config"].get_active_config(company=self.env.company)
             reviewer = config.internal_reviewer_id
@@ -339,29 +346,3 @@ class PlasticosMackInternalReview(models.Model):
                 raise ValidationError(
                     _("Idempotency key is already bound to different review request material (%s).") % field_name
                 )
-
-
-class PlasticosIntake(models.Model):
-    """Expose immutable Mack review records on their canonical intake."""
-
-    _inherit = "plasticos.intake"
-
-    mack_review_request_ids = fields.One2many(
-        "plasticos.mack.internal.review",
-        "intake_id",
-        string="Mack Internal Review Requests",
-        readonly=True,
-    )
-    mack_review_request_count = fields.Integer(compute="_compute_mack_review_request_count")
-
-    @api.depends("mack_review_request_ids")
-    def _compute_mack_review_request_count(self):
-        for intake in self:
-            intake.mack_review_request_count = len(intake.mack_review_request_ids)
-
-    def action_view_mack_review_requests(self):
-        self.ensure_one()
-        action = self.env.ref("plasticos_mack_workbench.action_mack_internal_review").read()[0]
-        action["domain"] = [("intake_id", "=", self.id)]
-        action["context"] = {"default_intake_id": self.id}
-        return action
