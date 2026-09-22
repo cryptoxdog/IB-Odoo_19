@@ -620,6 +620,9 @@ class PlasticosWebLead(models.Model):
                 estimated_lbs=merged.get("estimated_lbs", 0),
                 source_description=merged.get("source_description", ""),
                 source_type=merged.get("source_type"),
+                is_plastic_hint=merged.get("is_plastic"),
+                is_commercial_hint=merged.get("is_commercial_source"),
+                weight_source=merged.get("lbs_source", "none"),
                 reject_materials=config.get_reject_materials(),
                 reject_sources=config.get_reject_sources(),
                 hot_min_lbs=config.hot_min_lbs or 10_000,
@@ -700,8 +703,10 @@ class PlasticosWebLead(models.Model):
         merged["color"] = (ai_data.get("color") or "").lower().strip() or None
         merged["source_type"] = _SOURCE_NORMALIZE.get((ai_data.get("source_type") or "").lower().strip(), None)
         merged["loads_per_month"] = _safe_int(ai_data.get("loads_per_month"), 0)
-        merged["is_plastic"] = ai_data.get("is_plastic", True)
-        merged["is_commercial_source"] = ai_data.get("is_commercial_source", False)
+        # Preserve the classifier's three-valued evidence contract. Missing AI
+        # output is unknown, not a fabricated positive or negative fact.
+        merged["is_plastic"] = ai_data.get("is_plastic")
+        merged["is_commercial_source"] = ai_data.get("is_commercial_source")
         merged["material_summary"] = ai_data.get("material_summary", "")
         merged["contaminants_noted"] = ai_data.get("contaminants_noted")
         merged["confidence"] = ai_data.get("confidence", 0.5)

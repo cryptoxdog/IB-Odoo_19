@@ -11,7 +11,10 @@ Golden flows represent the critical business paths that must always work:
 4. Transaction margin → commission → close-time lock (revenue recognition)
 """
 
+from unittest.mock import patch
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.addons.plasticos_web_leads.models.classification_engine import classify_lead
 from odoo.tests.common import tagged
 
 
@@ -215,6 +218,75 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
             self.assertEqual(intake.quantity_per_load_lbs, 40000, "Quantity should be extracted")
         if hasattr(intake, "loads_per_month"):
             self.assertEqual(intake.loads_per_month, 2, "Loads per month should be extracted")
+
+    def test_raw_cognito_hot_route_preserves_classifier_provenance(self):
+        """A qualified raw Cognito lead reaches intake creation exactly once.
+
+        This is a call-boundary regression: merge derives all three facts used
+        by the classifier, and triage must preserve them rather than allowing
+        ``classify_lead`` to fall back to ``weight_source='none'``.
+        """
+        config = self.env["plasticos.web.lead.config"].sudo().get_config()
+        config.write(
+            {
+                "ai_enabled": True,
+                "openai_api_key": "test-key-not-used",
+                "vision_enabled": False,
+            }
+        )
+        raw_payload = {
+            "Id": "GOLD-COGNITO-PROVENANCE-001",
+            "YourBusinessCompanyName": "Cognito HOT Corp",
+            "YourName": "Triage Contact",
+            "Email": "triage@example.com",
+            "DescribeYourMaterial": "HDPE regrind",
+            "WhatIsTheQuantity": "1 truckload",
+            "WhatIsTheSourceOfThisMaterial": "Manufacturing plant",
+        }
+        normalized = {
+            "polymer": "hdpe",
+            "form": "regrind",
+            "source_type": "post_industrial",
+            "estimated_lbs_per_load": 42_000,
+            "loads_per_month": 2,
+            "is_plastic": True,
+            "is_commercial_source": True,
+            "frequency": "ongoing",
+            "material_summary": "HDPE regrind from a manufacturing plant",
+        }
+
+        with (
+            patch(
+                "odoo.addons.plasticos_web_leads.models.web_lead.ai_normalizer.normalize_with_fallback",
+                return_value=normalized,
+            ),
+            patch(
+                "odoo.addons.plasticos_web_leads.models.web_lead.classify_lead",
+                wraps=classify_lead,
+            ) as classify_mock,
+        ):
+            lead = self.WebLead.create_from_cognito(raw_payload)
+
+        self.assertEqual(lead.decision, "hot")
+        self.assertEqual(lead.state, "intake_created")
+        self.assertTrue(lead.intake_id, "Qualified Cognito lead should create an intake")
+        self.assertEqual(lead.intake_id.pending_company_name, "Cognito HOT Corp")
+        self.assertEqual(len(lead.intake_id.activity_ids), 1, "HOT intake should receive one review activity")
+
+        classifier_args = classify_mock.call_args.kwargs
+        self.assertEqual(classifier_args["weight_source"], "ai_text")
+        self.assertIs(classifier_args["is_plastic_hint"], True)
+        self.assertIs(classifier_args["is_commercial_hint"], True)
+
+        duplicate = self.WebLead.create_from_cognito(raw_payload)
+        self.assertEqual(duplicate.id, lead.id, "Repeated Cognito entry must be idempotent")
+        self.assertEqual(classify_mock.call_count, 1, "Duplicate submission must not re-run triage")
+        self.assertEqual(
+            self.Intake.search_count([("source_lead_id", "=", lead.id)]),
+            1,
+            "Duplicate submission must not create another intake",
+        )
+        self.assertEqual(len(lead.intake_id.activity_ids), 1, "Duplicate submission must not add an activity")
 
 
 @tagged("post_install", "-at_install", "plasticos", "golden", "claims")
