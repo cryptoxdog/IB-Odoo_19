@@ -12,7 +12,7 @@
 # CE-06 — HOT requires ≥ 2 independent qualifiers
 # CE-07 — ClassificationResult carries weight_source field
 # CE-08 — cold_gates_triggered is a structured list, not free text
-# CE-09 — is_commercial=None reduces effective HOT threshold to 80%
+# CE-09 — unknown commercial status never reduces a deterministic threshold
 # ═══════════════════════════════════════════════════════════════════════════════
 from __future__ import annotations
 
@@ -97,7 +97,9 @@ class ClassificationResult:
       is_plastic            : the is_plastic value used (None = unknown)
       is_commercial_source  : the commercial hint value used
       estimated_lbs         : the weight value used
-      effective_hot_min_lbs : the actual threshold applied (accounts for CE-09)
+      effective_hot_min_lbs : the actual threshold applied by deterministic policy
+      review_required       : whether a broker must resolve uncertainty before commercial work
+      review_reasons        : broker-visible uncertainty cues
     """
 
     decision: str
@@ -109,6 +111,8 @@ class ClassificationResult:
     is_commercial_source: bool | None = None
     estimated_lbs: float = 0.0
     effective_hot_min_lbs: float = 0.0
+    review_required: bool = False
+    review_reasons: list[str] = field(default_factory=list)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -130,13 +134,15 @@ def classify_lead(
     cold_max_lbs: float = 8_000.0,
     reject_materials: list[str] | None = None,
     reject_sources: list[str] | None = None,
+    economic_eligible: bool | None = None,
+    economic_policy_reasons: list[str] | None = None,
 ) -> ClassificationResult:
     """
     Classify a normalised lead as "hot" or "cold".
 
     HOT requires ALL of:
       1. No COLD gate has fired
-      2. Weight ≥ effective_hot_min_lbs (adjusted down 20% if commercial is unknown)
+      2. Weight ≥ effective_hot_min_lbs from an explicit material-class policy
       3. ≥ _MIN_HOT_QUALIFIERS independent positive signals
 
     COLD fires on the FIRST matching gate (evaluated in priority order).
@@ -221,17 +227,11 @@ def classify_lead(
         )
 
     # ─────────────────────────────────────────────────────────────────────────
-    # HOT threshold adjustment (FIX CE-09)
-    # If commercial status is unknown, require only 80% of hot_min_lbs.
+    # HOT threshold is selected by upstream deterministic material-class policy.
+    # Unknown commercial status is a broker-review concern, never a threshold
+    # discount. Degraded LLM evidence must not inflate HOT volume.
     # ─────────────────────────────────────────────────────────────────────────
-    if is_commercial_hint is None:
-        effective_hot_min = hot_min_lbs * 0.80
-        reasons.append(
-            f"Commercial source unknown — effective HOT threshold reduced to "
-            f"{effective_hot_min:,.0f} lbs (80% of {hot_min_lbs:,.0f})."
-        )
-    else:
-        effective_hot_min = hot_min_lbs
+    effective_hot_min = hot_min_lbs
 
     # ─────────────────────────────────────────────────────────────────────────
     # Weight gate: must clear HOT threshold
@@ -254,6 +254,11 @@ def classify_lead(
     # Weight passes — add qualifier
     hot_quals.append(f"weight:{weight_source}:{estimated_lbs:,.0f}lbs")
     reasons.append(f"Weight {estimated_lbs:,.0f} lbs ≥ HOT threshold {effective_hot_min:,.0f} lbs.")
+
+    if economic_eligible:
+        hot_quals.append("economic_policy:eligible")
+        for policy_reason in economic_policy_reasons or []:
+            reasons.append(f"Economic policy: {policy_reason}.")
 
     # ─────────────────────────────────────────────────────────────────────────
     # HOT QUALIFIER — confirmed polymer
@@ -288,6 +293,9 @@ def classify_lead(
     # Decision: HOT requires ≥ _MIN_HOT_QUALIFIERS independent signals (CE-06)
     # ─────────────────────────────────────────────────────────────────────────
     if len(hot_quals) >= _MIN_HOT_QUALIFIERS:
+        review_reasons = []
+        if is_commercial_hint is None:
+            review_reasons.append("Commercial source evidence is unknown; verify business origin before matching.")
         return ClassificationResult(
             decision="hot",
             reasons=reasons,
@@ -298,6 +306,8 @@ def classify_lead(
             is_commercial_source=is_commercial_hint,
             estimated_lbs=estimated_lbs,
             effective_hot_min_lbs=effective_hot_min,
+            review_required=bool(review_reasons),
+            review_reasons=review_reasons,
         )
 
     # Passed weight gate but insufficient qualifiers

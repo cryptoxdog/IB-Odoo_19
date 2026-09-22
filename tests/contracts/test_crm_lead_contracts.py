@@ -47,3 +47,18 @@ class TestCrmLeadContract(PlasticosTestCase):
     def test_material_profile_ids_on_lead(self):
         self._skip_if_no_crm()
         self.assertIn("material_profile_ids", self.fields)
+
+    def test_web_opportunity_provenance_and_profile_fields(self):
+        self._skip_if_no_crm()
+        self.assertIn("source_intake_id", self.fields)
+        self.assertIn("material_profile_id", self.fields)
+
+    def test_partner_creation_is_compatible_with_optional_mobile_field(self):
+        self._skip_if_no_crm()
+        Partner = self.env["res.partner"]
+        lead = self.Lead.create({"name": "Mobile compatibility contract", "type": "lead"})
+        partner = lead._find_or_create_partner_from_lead()
+
+        self.assertTrue(partner)
+        if "mobile" in Partner._fields:
+            self.assertEqual(partner.mobile, lead.mobile or False)

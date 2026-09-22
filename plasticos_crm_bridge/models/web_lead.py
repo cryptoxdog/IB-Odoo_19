@@ -32,6 +32,7 @@ class PlasticosWebLeadCRM(models.Model):
             "type": "lead",
             # Link to partner if already created
             "partner_id": self.partner_id.id if self.partner_id else False,
+            "source_intake_id": self.intake_id.id if self.intake_id else False,
         }
 
         lead = self.env["crm.lead"].create(vals)

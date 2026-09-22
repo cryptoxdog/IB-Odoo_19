@@ -15,6 +15,7 @@ from unittest.mock import MagicMock, patch
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.addons.plasticos_web_leads.models.classification_engine import classify_lead
+from odoo.exceptions import UserError
 from odoo.tests.common import tagged
 
 
@@ -195,6 +196,52 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
         self.assertEqual(lead.provider_key, "cognito")
         self.assertTrue(lead.canonical_payload)
         self.assertTrue(lead.evidence_bundle)
+        self.assertTrue(lead.crm_lead_id, "HOT lead should create a traceable CRM lead")
+        self.assertEqual(lead.crm_lead_id.source_intake_id, intake)
+
+    def test_hot_lead_crm_conversion_reuses_intake_and_assigns_profile(self):
+        """CRM tracking must not duplicate the web intake during qualification."""
+        lead = self.WebLead.create_from_cognito(self._make_hot_lead_payload("GOLD-CRM-PROFILE-001"))
+        crm_lead = lead.crm_lead_id
+
+        self.assertTrue(crm_lead)
+        action = crm_lead.action_convert_to_intake()
+
+        self.assertEqual(action["res_model"], "plasticos.intake")
+        self.assertEqual(action["res_id"], lead.intake_id.id, "Existing HOT intake must be reused")
+        self.assertTrue(crm_lead.partner_id, "CRM qualification should create or link a commercial identity")
+        self.assertEqual(lead.intake_id.crm_lead_id, crm_lead)
+        self.assertTrue(lead.intake_id.material_profile_id, "Qualified intake should receive a material profile")
+        self.assertEqual(crm_lead.material_profile_id, lead.intake_id.material_profile_id)
+
+    def test_broker_approval_requires_completed_economic_assessment(self):
+        lead = self.WebLead.create_from_cognito(self._make_hot_lead_payload("GOLD-BROKER-GATE-001"))
+        with self.assertRaises(UserError):
+            lead.action_approve_for_commercial_preparation()
+
+    def test_broker_approval_creates_immutable_snapshot(self):
+        """Commercial preparation must consume a durable broker-approved snapshot."""
+        with patch(
+            "odoo.addons.plasticos_web_leads.models.web_lead.evaluate_economic_opportunity",
+            return_value={
+                "status": "assessed",
+                "assessment": {"recommendation": "broker_review", "clarifications": []},
+            },
+        ):
+            lead = self.WebLead.create_from_cognito(self._make_hot_lead_payload("GOLD-BROKER-SNAPSHOT-001"))
+
+        self.assertEqual(lead.evidence_bundle["economic_assessment"]["status"], "assessed")
+        lead.write({"review_notes": "Commercial source verified against submitted form."})
+
+        action = lead.action_approve_for_commercial_preparation()
+        snapshot = self.env[action["res_model"]].browse(action["res_id"])
+
+        self.assertEqual(lead.review_status, "approved")
+        self.assertEqual(snapshot.web_lead_id, lead)
+        self.assertEqual(snapshot.intake_id, lead.intake_id)
+        self.assertTrue(snapshot.content_hash)
+        with self.assertRaises(UserError):
+            snapshot.write({"content_hash": "tamper"})
 
     def test_duplicate_lead_id_is_idempotent(self):
         """Submitting same lead_id twice should return same record."""

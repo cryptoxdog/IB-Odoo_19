@@ -20,6 +20,7 @@ import logging
 from typing import Any
 
 from .ai_client import call_json_with_retry
+from .inference_provider import InferenceProvider, call_structured_text, provider_audit_metadata, safe_provider_error
 from .quantity_normalizer import QuantityEvidence
 from .triage_helpers import coerce_bool, parse_weight_lbs, safe_float
 
@@ -287,6 +288,54 @@ def normalize_lead(
     return result
 
 
+def normalize_with_provider(
+    raw_payload: dict[str, Any],
+    provider: InferenceProvider,
+    *,
+    quantity_evidence: QuantityEvidence | None = None,
+) -> dict[str, Any]:
+    """Normalize with a configured role-selected provider profile.
+
+    Provider/model selection is configuration, not code. Deterministic quantity
+    evidence stays authoritative over the returned LLM extraction.
+    """
+    form_data = raw_payload or {}
+    if quantity_evidence is None:
+        det_lbs, det_source = parse_weight_lbs(form_data.get("WhatIsTheQuantity") or "")
+        deterministic_lbs = det_lbs if det_lbs > 0 else None
+    else:
+        deterministic_lbs = quantity_evidence.load_weight_lbs
+        det_source = quantity_evidence.weight_source
+
+    base: dict[str, Any] = {
+        "raw_form_data": form_data,
+        "estimated_lbs_per_load": deterministic_lbs,
+        "weight_source": det_source,
+    }
+    if quantity_evidence is not None:
+        base["loads_per_month"] = quantity_evidence.loads_per_month
+
+    try:
+        ai_raw, metadata = call_structured_text(
+            provider,
+            system_prompt=_SYSTEM_PROMPT,
+            user_prompt=build_user_prompt(form_data),
+        )
+    except Exception as exc:
+        error = safe_provider_error(exc, provider, role="text_normalization")
+        base["_inferred_fields"] = []
+        base["_ai_error"] = error["error"]
+        base["_provider_used"] = provider.provider
+        base["_provider_metadata"] = error["provider"]
+        return base
+
+    result = merge_ai_into_record(base, validate_ai_output(ai_raw), inferred_fields=set())
+    result["_provider_used"] = provider.provider
+    result["_provider_metadata"] = provider_audit_metadata(provider, role="text_normalization")
+    result["_ai_call_metadata"] = metadata
+    return result
+
+
 def _build_openai_client(api_key: str | None, base_url: str | None = None):
     """Construct an OpenAI-compatible client, or None if key/package is missing.
 
@@ -362,8 +411,8 @@ def normalize_with_fallback(
         if not ai_error:
             result["_provider_used"] = slug
             return result
-        last_error = ai_error
-        _logger.warning("normalize_with_fallback: provider %s failed — %s", slug, ai_error)
+        last_error = "provider_inference_failed"
+        _logger.warning("normalize_with_fallback: provider %s failed", slug)
 
     if quantity_evidence is None:
         result = normalize_lead(form_data, None, temperature=temperature)

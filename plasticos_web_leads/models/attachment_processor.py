@@ -19,6 +19,7 @@ CONNECT_TIMEOUT_SECONDS = 10
 READ_TIMEOUT_SECONDS = 30
 MAX_ACQUISITION_ATTEMPTS = 3
 ATTACHMENT_SIZE_LIMIT_ERROR = "attachment_size_limit_exceeded"
+SOURCE_ID_MARKER = "[web-lead-source-id:"
 
 
 def _error(code: str, message: str) -> dict[str, str]:
@@ -212,22 +213,32 @@ def process_attachments(
 
 
 def copy_successful_attachments_to_intake(*, lead: Any, intake: Any, evidence_bundle: Mapping[str, Any] | None) -> None:
-    """Copy already-stored lead attachments to a HOT intake without re-downloading."""
+    """Copy every source-distinct success to a HOT intake without re-downloading.
+
+    Provider source identity, not filename, is the idempotency key.  A source ID
+    marker in the copied attachment description preserves that identity without a
+    cross-module schema change to ``ir.attachment``. Distinct provider uploads
+    with identical user-facing filenames therefore both reach broker review.
+    """
+    Attachment = lead.env["ir.attachment"]
+    existing_descriptions = Attachment.search(
+        [
+            ("res_model", "=", "plasticos.intake"),
+            ("res_id", "=", intake.id),
+        ]
+    ).mapped("description")
     for row in _previous_successes(evidence_bundle).values():
+        source_id = str(row.get("source_id") or "")
+        if not source_id:
+            continue
+        marker = f"{SOURCE_ID_MARKER}{source_id}]"
+        if any(marker in (description or "") for description in existing_descriptions):
+            continue
         attachment_id = row.get("ir_attachment_id")
-        stored = lead.env["ir.attachment"].browse(attachment_id)
+        stored = Attachment.browse(attachment_id)
         if not stored.exists():
             continue
-        duplicate = lead.env["ir.attachment"].search_count(
-            [
-                ("res_model", "=", "plasticos.intake"),
-                ("res_id", "=", intake.id),
-                ("name", "=", stored.name),
-            ]
-        )
-        if duplicate:
-            continue
-        lead.env["ir.attachment"].create(
+        Attachment.create(
             {
                 "name": stored.name,
                 "type": "binary",
@@ -235,5 +246,7 @@ def copy_successful_attachments_to_intake(*, lead: Any, intake: Any, evidence_bu
                 "res_model": "plasticos.intake",
                 "res_id": intake.id,
                 "mimetype": stored.mimetype,
+                "description": marker,
             }
         )
+        existing_descriptions.append(marker)

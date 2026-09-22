@@ -54,6 +54,12 @@
                             <field name="llm_secondary_provider"/>
                             <field name="llm_tertiary_provider"/>
                         </group>
+                        <group string="Role Selection">
+                            <field name="text_inference_provider"/>
+                            <field name="vision_inference_provider"/>
+                            <field name="economic_inference_provider"/>
+                            <field name="inference_temperature"/>
+                        </group>
                         <group string="Feature Toggles">
                             <field name="ai_enabled"/>
                             <field name="vision_enabled"/>
@@ -69,6 +75,7 @@
                                 <group string="Models">
                                     <field name="openai_model"/>
                                     <field name="openai_vision_model"/>
+                                    <field name="openai_economic_model"/>
                                 </group>
                             </group>
                         </page>
@@ -79,6 +86,11 @@
                                 </group>
                                 <group string="Model">
                                     <field name="anthropic_model"/>
+                                    <field name="anthropic_vision_model"/>
+                                    <field name="anthropic_economic_model"/>
+                                    <field name="anthropic_transport"/>
+                                    <field name="anthropic_base_url"/>
+                                    <field name="anthropic_workspace_id"/>
                                 </group>
                             </group>
                         </page>
@@ -89,6 +101,9 @@
                                 </group>
                                 <group string="Model">
                                     <field name="mistral_model"/>
+                                    <field name="mistral_vision_model"/>
+                                    <field name="mistral_economic_model"/>
+                                    <field name="mistral_base_url"/>
                                 </group>
                             </group>
                         </page>
@@ -98,6 +113,8 @@
                         <group>
                             <field name="hot_min_lbs"/>
                             <field name="cold_max_lbs"/>
+                            <field name="reusable_item_hot_min_lbs"/>
+                            <field name="reusable_item_policy_codes" widget="text"/>
                         </group>
                     </group>
                     <group string="Reject Lists">

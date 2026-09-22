@@ -15,6 +15,10 @@
                 <field name="decision" widget="badge"
                        decoration-success="decision == 'hot'"
                        decoration-muted="decision == 'cold'"/>
+                <field name="review_status" widget="badge"
+                       decoration-success="review_status == 'approved'"
+                       decoration-warning="review_status == 'clarification_required'"
+                       decoration-muted="review_status == 'rejected'"/>
                 <field name="lead_source_id"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'received'"
@@ -62,6 +66,22 @@
                             class="btn-danger"
                             invisible="decision != 'cold' or intake_id"
                             confirm="Override COLD classification and create intake?"/>
+                    <button name="action_approve_for_commercial_preparation"
+                            string="Approve Snapshot"
+                            type="object"
+                            class="btn-primary"
+                            invisible="decision != 'hot' or not intake_id or review_status == 'approved'"
+                            confirm="Create an immutable broker-approved snapshot for downstream commercial preparation?"/>
+                    <button name="action_request_clarification"
+                            string="Request Clarification"
+                            type="object"
+                            class="btn-warning"
+                            invisible="decision != 'hot' or not intake_id or review_status == 'clarification_required'"/>
+                    <button name="action_reject_after_review"
+                            string="Reject After Review"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="decision != 'hot' or not intake_id or review_status == 'rejected'"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="received,intake_created"/>
                 </header>
@@ -74,11 +94,19 @@
                     <group>
                         <group string="Classification">
                             <field name="decision"/>
+                            <field name="review_status"/>
+                            <field name="review_required_reason" readonly="1"/>
                             <field name="lead_source_id"/>
                         </group>
                         <group string="Links" name="links">
                             <field name="partner_id"/>
                             <field name="intake_id"/>
+                            <button name="action_view_review_snapshots"
+                                    type="object"
+                                    class="oe_stat_button"
+                                    icon="fa-shield">
+                                <field name="review_snapshot_count" string="Approved Snapshots" widget="statinfo"/>
+                            </button>
                         </group>
                     </group>
 
@@ -147,6 +175,13 @@
                             </group>
                             <group string="Evidence Bundle">
                                 <field name="evidence_bundle" widget="json" readonly="1"/>
+                            </group>
+                        </page>
+                        <page string="Broker Review" name="broker_review_page">
+                            <group>
+                                <field name="review_status"/>
+                                <field name="review_notes" placeholder="Record the broker's decision rationale and required follow-up."/>
+                                <field name="review_required_reason" readonly="1"/>
                             </group>
                         </page>
                         <page string="Error" name="error_page" invisible="state != 'error'">

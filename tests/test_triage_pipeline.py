@@ -46,6 +46,12 @@ coerce_bool = _th.coerce_bool
 _ac = _load_module("ai_client")
 sys.modules["plasticos_web_leads.models"].ai_client = _ac
 
+_ip = _load_module("inference_provider")
+sys.modules["plasticos_web_leads.models"].inference_provider = _ip
+InferenceProvider = _ip.InferenceProvider
+provider_audit_metadata = _ip.provider_audit_metadata
+safe_provider_error = _ip.safe_provider_error
+
 _qn = _load_module("quantity_normalizer")
 sys.modules["plasticos_web_leads.models"].quantity_normalizer = _qn
 
@@ -59,6 +65,12 @@ merge_vision_results = _ia.merge_vision_results
 _ce = _load_module("classification_engine")
 classify_lead = _ce.classify_lead
 ClassificationResult = _ce.ClassificationResult
+
+_ep = _load_module("economic_policy")
+evaluate_economic_eligibility = _ep.evaluate_economic_eligibility
+
+_ee = _load_module("economic_evaluator")
+evaluate_economic_opportunity = _ee.evaluate_economic_opportunity
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -287,14 +299,39 @@ class TestClassifyLead:
         assert result.decision == "cold"
         assert "insufficient_qualifiers" in result.cold_gates_triggered
 
-    def test_hot_threshold_reduced_unknown_commercial(self):
+    def test_unknown_commercial_never_reduces_hot_threshold(self):
         result = classify_lead(
             polymer="PP",
             estimated_lbs=8_500.0,
             is_commercial_hint=None,
             weight_source="explicit_lbs",
         )
-        assert result.effective_hot_min_lbs == pytest.approx(8_000.0)
+        assert result.effective_hot_min_lbs == pytest.approx(10_000.0)
+        assert result.decision == "cold"
+
+    def test_policy_qualifier_can_support_hot_without_lowering_threshold(self):
+        result = classify_lead(
+            estimated_lbs=8_500.0,
+            is_commercial_hint=True,
+            weight_source="explicit_lbs",
+            hot_min_lbs=8_000.0,
+            economic_eligible=True,
+            economic_policy_reasons=["policy:reusable_item"],
+        )
+        assert result.decision == "hot"
+        assert "economic_policy:eligible" in result.hot_qualifiers_met
+
+    def test_hot_with_unknown_commercial_evidence_requires_broker_review(self):
+        result = classify_lead(
+            polymer="HDPE",
+            estimated_lbs=42_000.0,
+            is_commercial_hint=None,
+            weight_source="explicit_lbs",
+        )
+
+        assert result.decision == "hot"
+        assert result.review_required is True
+        assert any("Commercial source evidence is unknown" in reason for reason in result.review_reasons)
 
     def test_word_boundary_reject_material_no_false_positive(self):
         """'fiberglass' should NOT trigger 'glass' reject gate."""
@@ -318,6 +355,77 @@ class TestClassifyLead:
         )
         assert result.decision == "cold"
         assert "reject_source" in result.cold_gates_triggered
+
+
+class TestEconomicPolicy:
+    def test_ldpe_film_does_not_receive_reusable_item_threshold(self):
+        result = evaluate_economic_eligibility(
+            estimated_lbs=8_500.0,
+            standard_hot_min_lbs=10_000.0,
+            reusable_item_hot_min_lbs=8_000.0,
+            polymer_code="LDPE",
+            form_code="ROLLSTOCK",
+            reusable_item_policy_codes=frozenset({"PLASTIC_PALLETS", "PALLETS", "TOTES", "CRATES"}),
+        )
+
+        assert result.eligible is False
+        assert result.applicable_hot_min_lbs == 10_000.0
+        assert "polymer_only_no_lower_threshold" in result.reasons
+
+    @pytest.mark.parametrize("form_code", ["PALLETS", "TOTES", "CRATES"])
+    def test_only_approved_reusable_item_forms_receive_lower_threshold(self, form_code):
+        result = evaluate_economic_eligibility(
+            estimated_lbs=8_500.0,
+            standard_hot_min_lbs=10_000.0,
+            reusable_item_hot_min_lbs=8_000.0,
+            polymer_code=None,
+            form_code=form_code,
+            reusable_item_policy_codes=frozenset({"PLASTIC_PALLETS", "PALLETS", "TOTES", "CRATES"}),
+        )
+
+        assert result.eligible is True
+        assert result.policy_applied == "reusable_item"
+        assert result.applicable_hot_min_lbs == 8_000.0
+
+
+class TestEconomicEvaluator:
+    def test_missing_provider_requires_broker_review_instead_of_silent_decision(self):
+        assessment = evaluate_economic_opportunity(
+            provider=None,
+            canonical_payload={"material_description": "HDPE regrind", "contact_email": "private@example.test"},
+            evidence_bundle={"quantity": {"load_weight_lbs": 42_000.0}},
+            classification={"decision": "hot"},
+            eligibility={"eligible": True},
+        )
+
+        assert assessment["status"] == "unavailable"
+        assert assessment["reason"] == "no_economic_provider_configured"
+        assert "contact_email" not in assessment["context"]["seller_material_and_supply"]
+
+
+class TestInferenceProviderAudit:
+    def test_provider_audit_never_includes_credentials_or_base_url(self):
+        provider = InferenceProvider(
+            provider="anthropic",
+            transport="anthropic_messages",
+            api_key="secret-value",
+            model="claude-haiku-test",
+            base_url="https://private.gateway.test",
+            workspace_id="private-workspace",
+        )
+
+        metadata = provider_audit_metadata(provider, role="economic_evaluation")
+        error = safe_provider_error(RuntimeError("provider unavailable"), provider, role="economic_evaluation")
+
+        assert metadata == {
+            "role": "economic_evaluation",
+            "provider": "anthropic",
+            "transport": "anthropic_messages",
+            "model": "claude-haiku-test",
+        }
+        assert "secret-value" not in str(error)
+        assert "private.gateway.test" not in str(error)
+        assert "private-workspace" not in str(error)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -435,7 +543,7 @@ class TestNormalizeWithFallback:
         result = normalize_with_fallback({}, providers)
 
         assert result["_provider_used"] == "none"
-        assert result["error"] == "timeout"
+        assert result["error"] == "provider_inference_failed"
 
     @patch.object(_ai, "normalize_lead")
     @patch.object(_ai, "_build_openai_client")

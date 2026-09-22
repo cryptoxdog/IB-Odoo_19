@@ -15,7 +15,10 @@ package.__path__ = [str(PACKAGE_ROOT)]
 models_package = sys.modules.setdefault("plasticos_web_leads.models", types.ModuleType("plasticos_web_leads.models"))
 models_package.__path__ = [str(PACKAGE_ROOT / "models")]
 
-from plasticos_web_leads.models.attachment_processor import process_attachments  # noqa: E402
+from plasticos_web_leads.models.attachment_processor import (  # noqa: E402
+    copy_successful_attachments_to_intake,
+    process_attachments,
+)
 from plasticos_web_leads.models.evidence_reconciler import (  # noqa: E402
     EVIDENCE_SCHEMA_VERSION,
     reconcile_evidence,
@@ -29,6 +32,9 @@ class _StoredAttachment:
         self.name = values["name"]
         self.datas = values["datas"]
         self.mimetype = values["mimetype"]
+        self.res_model = values.get("res_model")
+        self.res_id = values.get("res_id")
+        self.description = values.get("description")
 
     def exists(self):
         return True
@@ -49,12 +55,32 @@ class _AttachmentModel:
     def search_count(self, _domain):
         return 0
 
+    def search(self, domain):
+        filters = dict((term[0], term[2]) for term in domain if len(term) == 3 and term[1] == "=")
+        return _RecordSet(
+            [
+                item
+                for item in self.created
+                if all(getattr(item, field) == expected for field, expected in filters.items())
+            ]
+        )
+
+
+class _RecordSet(list):
+    def mapped(self, field_name):
+        return [getattr(item, field_name) for item in self]
+
 
 class _Lead:
     def __init__(self):
         self.id = 17
         self.attachments = _AttachmentModel()
         self.env = {"ir.attachment": self.attachments}
+
+
+class _Intake:
+    def __init__(self, intake_id):
+        self.id = intake_id
 
 
 class _Response:
@@ -205,6 +231,31 @@ def test_same_content_can_remain_distinct_provider_evidence():
     assert [row["source_id"] for row in results] == ["provider-a", "provider-b"]
     assert results[0]["content_sha256"] == results[1]["content_sha256"]
     assert len(lead.attachments.created) == 2
+
+
+def test_intake_copy_is_idempotent_by_provider_source_id_not_filename():
+    lead = _Lead()
+    intake = _Intake(44)
+    first = _attachment(source_id="provider-a")
+    second = _attachment(source_id="provider-b")
+    second["attachment_index"] = 1
+
+    rows = process_attachments(
+        lead=lead,
+        attachments=[first, second],
+        http_get=lambda *_args, **_kwargs: _Response(b"same"),
+    )
+    evidence = {"attachments": rows}
+
+    copy_successful_attachments_to_intake(lead=lead, intake=intake, evidence_bundle=evidence)
+    copy_successful_attachments_to_intake(lead=lead, intake=intake, evidence_bundle=evidence)
+
+    copied = [item for item in lead.attachments.created if item.res_model == "plasticos.intake"]
+    assert len(copied) == 2
+    assert {item.description for item in copied} == {
+        "[web-lead-source-id:provider-a]",
+        "[web-lead-source-id:provider-b]",
+    }
 
 
 def test_successful_attachment_evidence_is_reused_without_redownload():

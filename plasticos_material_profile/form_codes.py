@@ -18,6 +18,8 @@ FORM_CODES: tuple[str, ...] = (
     "BOTTLES",
     "BUCKETS",
     "CHOPPED",
+    "CORRUGATED",
+    "CRATES",
     "DENSIFIED",
     "DRUMS",
     "FILM",
@@ -35,6 +37,7 @@ FORM_CODES: tuple[str, ...] = (
     "ROLLSTOCK",
     "SHEET",
     "SHRED",
+    "TOTES",
 )
 
 # ── Equipment-gated forms ────────────────────────────────────────────

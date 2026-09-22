@@ -17,6 +17,8 @@ import base64
 import logging
 from typing import Any
 
+from .inference_provider import InferenceProvider, call_structured_vision, provider_audit_metadata, safe_provider_error
+
 _logger = logging.getLogger(__name__)
 
 # Minimum result-level confidence for field-level acceptance (FIX IA-03)
@@ -106,6 +108,29 @@ def analyze_image_bytes(
 ) -> dict[str, Any]:
     """Analyze bytes already acquired by canonical attachment processing."""
     return analyse_image(image_bytes, client, model=model, mime_type=content_type)
+
+
+def analyze_image_with_provider(
+    image_bytes: bytes,
+    *,
+    content_type: str,
+    provider: InferenceProvider,
+) -> dict[str, Any]:
+    """Analyze admitted bytes using a configured native or compatible provider."""
+    try:
+        result, metadata = call_structured_vision(
+            provider,
+            system_prompt=_VISION_SYSTEM_PROMPT,
+            image_bytes=image_bytes,
+            content_type=content_type,
+            prompt="Analyse this plastic material image.",
+        )
+    except Exception as exc:
+        error = safe_provider_error(exc, provider, role="vision_analysis")
+        return {"error": error["error"], "provider": error["provider"]}
+    result["provider"] = provider_audit_metadata(provider, role="vision_analysis")
+    result["call_metadata"] = metadata
+    return result
 
 
 def merge_vision_results(
