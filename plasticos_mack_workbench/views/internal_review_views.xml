@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_mack_internal_review_tree" model="ir.ui.view">
+        <field name="name">plasticos.mack.internal.review.tree</field>
+        <field name="model">plasticos.mack.internal.review</field>
+        <field name="arch" type="xml">
+            <list create="false" delete="false">
+                <field name="name"/>
+                <field name="intake_id"/>
+                <field name="candidate_action"/>
+                <field name="reviewer_id" widget="many2one_avatar_user"/>
+                <field name="priority" widget="priority"/>
+                <field name="deadline"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mack_internal_review_form" model="ir.ui.view">
+        <field name="name">plasticos.mack.internal.review.form</field>
+        <field name="model">plasticos.mack.internal.review</field>
+        <field name="arch" type="xml">
+            <form create="false" delete="false">
+                <header>
+                    <field name="state" widget="statusbar" statusbar_visible="requested,cancelled"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Routing">
+                            <field name="company_id"/>
+                            <field name="intake_id"/>
+                            <field name="requester_id" widget="many2one_avatar_user"/>
+                            <field name="reviewer_id" widget="many2one_avatar_user"/>
+                            <field name="activity_id"/>
+                        </group>
+                        <group string="Governance Binding">
+                            <field name="candidate_action"/>
+                            <field name="cwi_ref"/>
+                            <field name="cwi_revision"/>
+                            <field name="decision_snapshot_hash"/>
+                            <field name="idempotency_key"/>
+                            <field name="priority" widget="priority"/>
+                            <field name="deadline"/>
+                        </group>
+                    </group>
+                    <group string="Review Evidence">
+                        <field name="reason"/>
+                        <field name="risk_codes" widget="json"/>
+                        <field name="evidence_refs" widget="json"/>
+                    </group>
+                    <group string="Delivery Boundary">
+                        <field name="route_policy_key"/>
+                        <field name="route_policy_revision"/>
+                        <field name="delivery_mode"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mack_internal_review" model="ir.actions.act_window">
+        <field name="name">Mack Internal Review Requests</field>
+        <field name="res_model">plasticos.mack.internal.review</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{}</field>
+    </record>
+
+    <record id="view_plasticos_intake_form_mack_internal_review" model="ir.ui.view">
+        <field name="name">plasticos.intake.form.mack.internal.review</field>
+        <field name="model">plasticos.intake</field>
+        <field name="inherit_id" ref="plasticos_intake.view_plasticos_intake_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_mack_review_requests"
+                        type="object"
+                        class="oe_stat_button"
+                        groups="plasticos_mack_workbench.group_mack_workbench_operator"
+                        icon="fa-user-shield">
+                    <field name="mack_review_request_count" widget="statinfo" string="Mack Reviews"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>
