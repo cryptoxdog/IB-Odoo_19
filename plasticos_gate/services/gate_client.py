@@ -289,6 +289,7 @@ def send_match_action(
     *,
     payload: dict[str, Any],
     correlation_id: str | None = None,
+    idempotency_key: str | None = None,
 ) -> dict[str, Any]:
     action = get_matching_action(env)
     return send_action(
@@ -297,6 +298,7 @@ def send_match_action(
         payload=payload,
         correlation_id=correlation_id,
         compliance_tags=("ERP", "MATCHING"),
+        idempotency_key=idempotency_key,
     )
 
 

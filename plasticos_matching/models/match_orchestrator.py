@@ -2,17 +2,35 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
-import uuid
 
 from odoo import _, api, models
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
 _RETRYABLE = "retryable"
 _PERMANENT = "permanent"
 _UNKNOWN = "unknown"
+
+
+def _canonical_digest(value):
+    """Return a deterministic SHA-256 digest of Gate request or response material."""
+    encoded = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _receipt_text(value):
+    """Allow only scalar text to cross from an untrusted Gate payload into an Odoo Char field."""
+    return value if isinstance(value, str) and value.strip() else False
 
 
 class PlasticosMatchOrchestrator(models.AbstractModel):
@@ -52,7 +70,10 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
                 % (intake.display_name,)
             )
 
-        from odoo.addons.plasticos_gate.services.gate_builders import build_match_request
+        from odoo.addons.plasticos_gate.services.gate_builders import (
+            build_match_request,
+            build_operation_id,
+        )
         from odoo.addons.plasticos_gate.services.gate_client import (
             classify_transport_failure,
             send_match_action,
@@ -78,6 +99,7 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             "state": "pending",
             "engine": "gate",
             "availability_status": availability.status,
+            "request_attempt": (retry_of.request_attempt + 1) if retry_of else 1,
         }
         if retry_of:
             vals["retry_of_id"] = retry_of.id
@@ -99,15 +121,46 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             )
 
         try:
-            request = build_match_request(self.env, intake=intake, top_n=max_results, mode=mode or "strict")
+            request = build_match_request(
+                self.env,
+                intake=intake,
+                match_run=run,
+                top_n=max_results,
+                mode=mode or "strict",
+            )
             correlation_id = request.odoo.get("correlation_id") if request.odoo else None
+            operation_id = build_operation_id(
+                request.odoo,
+                family="matching",
+                attempt=run.request_attempt,
+            )
+            if not operation_id:
+                raise ValidationError(_("Gate match request has no durable Odoo operation identity."))
+            request_payload = request.to_dict()
+            # Persist the exact Odoo request identity and material fingerprint before Gate dispatch.
+            run.write(
+                {
+                    "operation_id": operation_id,
+                    "request_fingerprint": _canonical_digest(request_payload),
+                }
+            )
             gate_result = send_match_action(
                 self.env,
-                payload=request.to_dict(),
+                payload=request_payload,
                 correlation_id=correlation_id,
+                idempotency_key=operation_id,
             )
-            mapped = map_match_response(gate_result["payload"])
             audit = extract_audit_metadata(gate_result["packet"])
+            response_payload = gate_result["payload"]
+            # Preserve Gate provenance before payload mapping. A zero-candidate response is still a receipt.
+            run.write(
+                {
+                    "gate_packet_id": audit["gate_packet_id"],
+                    "gate_correlation_id": audit["gate_correlation_id"],
+                    "gate_response_digest": _canonical_digest(response_payload),
+                }
+            )
+            mapped = map_match_response(response_payload)
             matches = map_match_response_to_matcher_dicts(mapped, audit_metadata=audit)
         except GateIntegrationError as exc:
             failure = getattr(exc, "failure_class", None) or classify_transport_failure(exc).value
@@ -120,7 +173,14 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             )
             _logger.warning("Gate-only match failed for intake %s: %s", intake.id, exc)
             raise UserError(_("Gate match failed (%s): %s") % (failure, exc)) from exc
-        except (UserError, ValidationError):
+        except (UserError, ValidationError) as exc:
+            run.write(
+                {
+                    "state": "failed",
+                    "failure_class": _PERMANENT,
+                    "error_message": str(exc),
+                }
+            )
             raise
         except Exception as exc:  # noqa: BLE001 — boundary: classify then fail closed
             failure = classify_transport_failure(exc).value
@@ -140,18 +200,14 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             matches = [m for m in matches if m.get("buyer_id") not in excluded]
 
         matches = matches[:max_results]
-        packet_id = None
-        corr = None
-        if matches:
-            packet_id = matches[0].get("gate_packet_id")
-            corr = matches[0].get("gate_correlation_id")
-
         run.write(
             {
                 "state": "ok",
                 "match_count": len(matches),
-                "gate_packet_id": packet_id,
-                "gate_correlation_id": corr,
+                "gate_query_id": _receipt_text(mapped.query_id),
+                "gate_contract_version": _receipt_text(mapped.contract_version),
+                "gate_domain_spec_version": _receipt_text(mapped.domain_spec_version),
+                "gate_model_version": _receipt_text(mapped.model_version),
                 "failure_class": False,
                 "error_message": False,
             }
@@ -219,11 +275,24 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
     @api.model
     def persist_review_results(self, intake, matches, run):
         """Persist UI lines + canonical match.result rows linked to the run."""
-        run_id = str(uuid.uuid4())
+        run.ensure_one()
+        # Canonical review rows are durable receipt projections. Persist them before
+        # transient intake display lines so a UI-only update cannot masquerade as a result.
+        try:
+            self.env["plasticos.match.result.writer"].persist_match_lines(
+                intake,
+                matches,
+                match_run=run,
+            )
+        except (AccessError, ValidationError) as exc:
+            run.write(
+                {
+                    "state": "failed",
+                    "failure_class": _PERMANENT,
+                    "error_message": str(exc),
+                }
+            )
+            raise
         intake.match_line_ids.unlink()
         self._create_intake_match_lines(self._build_intake_match_line_vals(intake, matches))
-        if "plasticos.match.result.writer" in self.env:
-            created = self.env["plasticos.match.result.writer"].persist_match_lines(intake, matches, run_id=run_id)
-            if created and run:
-                created.write({"match_run_id": run.id})
-        return run_id
+        return run.operation_id

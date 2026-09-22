@@ -1,0 +1,9 @@
+# Odoo-Owned Gate Match Receipts
+
+`plasticos_matching` owns the durable record of a matching request and result. Mack is not a matcher and must never import the Gate SDK, address Gate or CEG directly, construct a transport packet, or derive candidates locally. Mack may only request an Odoo-owned matching capability through a separately authenticated ingress, then consume an Odoo receipt/projection under its authorised context.
+
+Each `plasticos.match.run` now records the Odoo-created request attempt, operation identity, request fingerprint, Gate packet/correlation identifiers, Gate response digest, and available query/contract/domain-spec/model version fields. The operation identity is generated from the durable match run and passed as the Gate business idempotency key. Odoo writes request identity and fingerprint before dispatch, then records packet/correlation/digest before interpreting candidates. A valid zero-candidate response therefore remains a durable Gate receipt rather than a false absence of matching evidence.
+
+The Gate response mapper continues to fail closed on missing explicit eligibility or an unresolved non-`res.partner:<id>` identity. The canonical result writer accepts only those already-normalized Gate rows; it does not score, discover, rank, or select candidates. It validates receipt binding, the current caller's buyer read access, finite normalized scores, unique buyer identity, and exact idempotent replay material before creating `plasticos.match.result` records linked to the durable run.
+
+This slice is not an approval or commercial-execution capability. A pending match result cannot bind Scrap Management, create/confirm a PO or SO, send external email, dispatch freight, or give Mack authority. Match review outcome, mandate/term policy, commercial action receipts, an authenticated Mack-to-Odoo ingress, and live Gate integration evidence remain separate required capabilities.

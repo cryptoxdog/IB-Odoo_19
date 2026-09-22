@@ -56,8 +56,33 @@ class PlasticosMatchRun(models.Model):
         help="Structured Gate availability status at run time.",
     )
     error_message = fields.Text()
+    request_attempt = fields.Integer(
+        default=1,
+        required=True,
+        readonly=True,
+        help="Recorded Gate request attempt; an operator retry creates a new match run and attempt.",
+    )
+    operation_id = fields.Char(
+        readonly=True,
+        index=True,
+        help="Stable Gate business idempotency identity for this durable Odoo match run attempt.",
+    )
+    request_fingerprint = fields.Char(
+        readonly=True,
+        index=True,
+        help="SHA-256 fingerprint of the exact allowlisted Gate request material.",
+    )
     gate_packet_id = fields.Char(index=True)
     gate_correlation_id = fields.Char(index=True)
+    gate_query_id = fields.Char(index=True)
+    gate_contract_version = fields.Char()
+    gate_domain_spec_version = fields.Char()
+    gate_model_version = fields.Char()
+    gate_response_digest = fields.Char(
+        readonly=True,
+        index=True,
+        help="SHA-256 digest of the exact Gate response payload; raw response ownership remains with Gate.",
+    )
     match_count = fields.Integer(default=0)
     retry_of_id = fields.Many2one(
         "plasticos.match.run",
