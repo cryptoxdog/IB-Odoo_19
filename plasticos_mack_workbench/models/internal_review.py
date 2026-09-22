@@ -15,7 +15,7 @@ from markupsafe import escape
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, ValidationError
 
-_ROUTE_POLICY_KEY = "hot_web_lead_reviewer/v1"
+_ROUTE_POLICY_KEY = "mack_workbench_internal_reviewer/v1"
 _DELIVERY_MODE = "in_odoo_activity_only"
 _ALLOWED_CANDIDATE_ACTIONS = frozenset(
     {
@@ -56,7 +56,7 @@ def _safe_note_text(value: object) -> str:
 
 
 class PlasticosMackInternalReview(models.Model):
-    """One idempotent request for an internal Odoo review of a HOT intake."""
+    """One idempotent request for an internal Odoo review of a canonical intake."""
 
     _name = "plasticos.mack.internal.review"
     _description = "Mack Internal Review Request"
@@ -228,15 +228,8 @@ class PlasticosMackInternalReview(models.Model):
             intake = self.env["plasticos.intake"].browse(intake_id).exists()
             if not intake:
                 raise ValidationError(_("Review target intake does not exist."))
-            if not intake.source_lead_id:
-                raise ValidationError(_("Only an intake created from a HOT web lead is eligible for Mack review."))
-            web_lead = self.env["plasticos.web.lead"].browse(intake.source_lead_id).exists()
-            if not web_lead or web_lead.decision != "hot" or web_lead.intake_id != intake:
-                raise ValidationError(_("Review target must be the canonical intake of a HOT web lead."))
-            config = self.env["plasticos.web.lead.config"].get_config()
-            reviewer = config.hot_intake_reviewer_id
-            if not reviewer or reviewer.share or not reviewer.active:
-                raise ValidationError(_("HOT reviewer routing is not configured to an active internal user."))
+            config = self.env["plasticos.mack.workbench.config"].get_active_config(company=self.env.company)
+            reviewer = config.internal_reviewer_id
             values["reviewer_id"] = reviewer.id
             values["company_id"] = self.env.company.id
             values["requester_id"] = self.env.user.id
