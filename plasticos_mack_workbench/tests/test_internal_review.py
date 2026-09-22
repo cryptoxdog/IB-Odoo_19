@@ -75,6 +75,21 @@ class TestMackInternalReview(PlasticosTestCase):
         self.assertEqual(self.Review.search_count([("idempotency_key", "=", "mack-review-retry-key")]), 1)
         self.assertEqual(len(intake.activity_ids.filtered(lambda activity: activity.id == first.activity_id.id)), 1)
 
+    def test_batch_request_resolves_each_canonical_intake_once(self):
+        first_intake = self._canonical_intake()
+        second_intake = self._canonical_intake()
+
+        requests = self.Review.create(
+            [
+                self._request_values(first_intake, key="mack-review-batch-one"),
+                self._request_values(second_intake, key="mack-review-batch-two"),
+            ]
+        )
+
+        self.assertEqual(len(requests), 2)
+        self.assertEqual(set(requests.mapped("intake_id").ids), {first_intake.id, second_intake.id})
+        self.assertTrue(all(request.activity_id for request in requests))
+
     def test_replay_material_or_caller_reviewer_cannot_change_routing(self):
         intake = self._canonical_intake()
         values = self._request_values(intake, key="mack-review-bound-key")
