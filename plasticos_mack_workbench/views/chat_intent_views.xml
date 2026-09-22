@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_mack_chat_intent_receipt_tree" model="ir.ui.view">
+        <field name="name">plasticos.mack.chat.intent.receipt.tree</field>
+        <field name="model">plasticos.mack.chat.intent.receipt</field>
+        <field name="arch" type="xml">
+            <list create="false" delete="false">
+                <field name="name"/>
+                <field name="intake_id"/>
+                <field name="actor_user_id" widget="many2one_avatar_user"/>
+                <field name="intent_kind"/>
+                <field name="source_message_date"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mack_chat_intent_receipt_form" model="ir.ui.view">
+        <field name="name">plasticos.mack.chat.intent.receipt.form</field>
+        <field name="model">plasticos.mack.chat.intent.receipt</field>
+        <field name="arch" type="xml">
+            <form create="false" delete="false">
+                <header>
+                    <field name="state" widget="statusbar" statusbar_visible="recorded"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Server-Resolved Actor and Scope">
+                            <field name="company_id"/>
+                            <field name="actor_user_id" widget="many2one_avatar_user"/>
+                            <field name="actor_partner_id"/>
+                            <field name="intake_id"/>
+                        </group>
+                        <group string="Native Odoo Conversation Evidence">
+                            <field name="source_message_id"/>
+                            <field name="source_message_date"/>
+                            <field name="source_message_body_sha256"/>
+                            <field name="attachment_refs" widget="json"/>
+                        </group>
+                    </group>
+                    <group string="Intent Binding">
+                        <field name="intent_kind"/>
+                        <field name="canonical_write_date"/>
+                        <field name="idempotency_key"/>
+                    </group>
+                    <label string="This receipt records an authenticated Odoo conversation intent. It is not an approval, mandate, match, CWI mutation, commercial action, or external-message instruction."/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mack_chat_intent_receipt" model="ir.actions.act_window">
+        <field name="name">Mack Chat Intent Receipts</field>
+        <field name="res_model">plasticos.mack.chat.intent.receipt</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{}</field>
+    </record>
+
+    <record id="view_plasticos_intake_form_mack_chat_intent" model="ir.ui.view">
+        <field name="name">plasticos.intake.form.mack.chat.intent</field>
+        <field name="model">plasticos.intake</field>
+        <field name="inherit_id" ref="plasticos_intake.view_plasticos_intake_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_mack_chat_intent_receipts"
+                        type="object"
+                        class="oe_stat_button"
+                        groups="plasticos_mack_workbench.group_mack_workbench_operator"
+                        icon="fa-comments">
+                    <field name="mack_chat_intent_receipt_count" widget="statinfo" string="Mack Intents"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>
