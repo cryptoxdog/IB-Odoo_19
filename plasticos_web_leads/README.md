@@ -1,7 +1,7 @@
 ---
 component_id: "plasticos_web_leads"
 component_name: "PlasticOS Web Leads"
-module_version: "19.0.2.7.0"
+module_version: "19.0.2.7.1"
 layer: "integration"
 domain: "plasticos"
 type: "odoo_module"
@@ -41,6 +41,8 @@ The configuration singleton selects an independent provider, model, and transpor
 ## CRM and material-profile handoff
 
 The CRM bridge uses the originating HOT intake to create a single CRM lead, avoiding duplicate intakes during qualification. When a broker or salesperson converts that CRM lead into an opportunity and prepares the intake, the bridge reuses the original intake, creates or links the supplier identity, creates the canonical material profile from the intake if needed, and assigns that profile to the CRM record. This preserves a traceable route from web submission through opportunity preparation without implying that a match or offer was already approved.
+
+All admitted image evidence available at each commercial handoff is copied to both the CRM lead and its material profile. The synchronization reads the linked web lead, originating intake, and any offer already created for that intake. Cognito provider-source identity is preserved so separate uploads with identical bytes remain separate evidence, while legacy or manually added images are deduplicated by checksum. The **Images** smart button on the CRM lead is an idempotent reconciliation action for images added after the initial handoff; it does not re-download external files or expose attachment URLs.
 
 ## Dependencies
 

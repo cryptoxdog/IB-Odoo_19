@@ -66,6 +66,11 @@ class CrmLeadPlastOS(models.Model):
         ondelete="set null",
         help="Material profile created from the originating intake when the opportunity is qualified for matching.",
     )
+    commercial_image_count = fields.Integer(
+        string="Commercial Images",
+        compute="_compute_commercial_image_count",
+        help="Image evidence copied from the linked web lead, intake, and offer sources.",
+    )
 
     # ── Material Profile Summary (rolled up from partner) ──
     material_profile_count = fields.Integer(
@@ -97,6 +102,84 @@ class CrmLeadPlastOS(models.Model):
     def _compute_intake_count(self):
         for rec in self:
             rec.intake_count = len(rec.intake_ids)
+
+    @api.depends("web_lead_ids", "source_intake_id")
+    def _compute_commercial_image_count(self):
+        Attachment = self.env["ir.attachment"]
+        for rec in self:
+            rec.commercial_image_count = Attachment.search_count(
+                [
+                    ("res_model", "=", "crm.lead"),
+                    ("res_id", "=", rec.id),
+                    ("mimetype", "like", "image/"),
+                ]
+            )
+
+    def _commercial_image_sources(self):
+        """Return all source records available at the current commercial step."""
+        self.ensure_one()
+        sources = [("crm.lead", self.id)]
+        sources.extend(("plasticos.web.lead", web_lead.id) for web_lead in self.web_lead_ids)
+        if self.source_intake_id:
+            sources.append(("plasticos.intake", self.source_intake_id.id))
+            if "plasticos.offer" in self.env:
+                offers = self.env["plasticos.offer"].search([("intake_id", "=", self.source_intake_id.id)])
+                sources.extend(("plasticos.offer", offer.id) for offer in offers)
+        return sources
+
+    def _propagate_available_commercial_images(self, *, material_profile=None):
+        """Attach currently available web-lead evidence to CRM and its profile.
+
+        This is intentionally re-runnable: a later offer or manually added
+        intake image can be incorporated without repeating a provider download.
+        The web-lead attachment helper preserves distinct provider uploads and
+        collapses only non-provider duplicate image bytes.
+        """
+        self.ensure_one()
+        from odoo.addons.plasticos_web_leads.models.attachment_processor import copy_images_to_commercial_record
+
+        sources = self._commercial_image_sources()
+        crm_copied = copy_images_to_commercial_record(
+            env=self.env,
+            target_model="crm.lead",
+            target_id=self.id,
+            sources=sources,
+        )
+        profile = material_profile or self.material_profile_id
+        profile_copied = 0
+        if profile:
+            profile_copied = copy_images_to_commercial_record(
+                env=self.env,
+                target_model="plasticos.material.profile",
+                target_id=profile.id,
+                sources=sources,
+            )
+        if crm_copied or profile_copied:
+            self.message_post(
+                body=(
+                    f"Commercial image evidence synchronized: {crm_copied} image(s) to CRM; "
+                    f"{profile_copied} image(s) to material profile."
+                )
+            )
+        return {"crm": crm_copied, "material_profile": profile_copied}
+
+    def action_sync_commercial_images(self):
+        """Reconcile images currently available from linked commercial sources."""
+        self.ensure_one()
+        result = self._propagate_available_commercial_images()
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": "Commercial Images Synchronized",
+                "message": (
+                    f"Added {result['crm']} image(s) to CRM and "
+                    f"{result['material_profile']} image(s) to the material profile."
+                ),
+                "type": "success",
+                "sticky": False,
+            },
+        }
 
     @api.depends("partner_id", "partner_id.child_ids")
     def _compute_profile_summary(self):
@@ -202,6 +285,7 @@ class CrmLeadPlastOS(models.Model):
                 intake._create_material_profile_from_intake()
             if intake.material_profile_id:
                 self.material_profile_id = intake.material_profile_id
+                self._propagate_available_commercial_images(material_profile=intake.material_profile_id)
             self._move_to_active_supplier_stage()
             self.message_post(
                 body=(

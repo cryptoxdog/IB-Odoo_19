@@ -16,6 +16,7 @@ models_package = sys.modules.setdefault("plasticos_web_leads.models", types.Modu
 models_package.__path__ = [str(PACKAGE_ROOT / "models")]
 
 from plasticos_web_leads.models.attachment_processor import (  # noqa: E402
+    copy_images_to_commercial_record,
     copy_successful_attachments_to_intake,
     process_attachments,
 )
@@ -27,16 +28,36 @@ from plasticos_web_leads.models.quantity_normalizer import normalize_quantity_ev
 
 
 class _StoredAttachment:
-    def __init__(self, attachment_id, values):
+    def __init__(self, attachment_id, values, model):
         self.id = attachment_id
+        self._model = model
         self.name = values["name"]
         self.datas = values["datas"]
         self.mimetype = values["mimetype"]
         self.res_model = values.get("res_model")
         self.res_id = values.get("res_id")
         self.description = values.get("description")
+        self.checksum = values.get("checksum") or hashlib.sha1(str(self.datas).encode()).hexdigest()
 
     def exists(self):
+        return True
+
+    def copy(self, values):
+        copied_values = {
+            "name": self.name,
+            "datas": self.datas,
+            "mimetype": self.mimetype,
+            "res_model": self.res_model,
+            "res_id": self.res_id,
+            "description": self.description,
+            "checksum": self.checksum,
+        }
+        copied_values.update(values)
+        return self._model.create(copied_values)
+
+    def write(self, values):
+        for key, value in values.items():
+            setattr(self, key, value)
         return True
 
 
@@ -45,7 +66,7 @@ class _AttachmentModel:
         self.created = []
 
     def create(self, values):
-        stored = _StoredAttachment(len(self.created) + 1, values)
+        stored = _StoredAttachment(len(self.created) + 1, values, self)
         self.created.append(stored)
         return stored
 
@@ -57,11 +78,15 @@ class _AttachmentModel:
 
     def search(self, domain):
         filters = dict((term[0], term[2]) for term in domain if len(term) == 3 and term[1] == "=")
+        mimetype_prefixes = [
+            term[2] for term in domain if len(term) == 3 and term[0] == "mimetype" and term[1] == "like"
+        ]
         return _RecordSet(
             [
                 item
                 for item in self.created
                 if all(getattr(item, field) == expected for field, expected in filters.items())
+                and all((item.mimetype or "").startswith(prefix.rstrip("%")) for prefix in mimetype_prefixes)
             ]
         )
 
@@ -256,6 +281,92 @@ def test_intake_copy_is_idempotent_by_provider_source_id_not_filename():
         "[web-lead-source-id:provider-a]",
         "[web-lead-source-id:provider-b]",
     }
+
+
+def _stored_image(model, *, source_model, source_id, description=None, datas="c2FtZQ=="):
+    return model.create(
+        {
+            "name": "material.jpg",
+            "datas": datas,
+            "mimetype": "image/jpeg",
+            "res_model": source_model,
+            "res_id": source_id,
+            "description": description,
+        }
+    )
+
+
+def test_commercial_copy_preserves_distinct_provider_sources_with_same_bytes():
+    lead = _Lead()
+    attachments = lead.attachments
+    _stored_image(attachments, source_model="plasticos.web.lead", source_id=17)
+    _stored_image(
+        attachments,
+        source_model="plasticos.intake",
+        source_id=44,
+        description="[web-lead-source-id:provider-a]",
+    )
+    _stored_image(
+        attachments,
+        source_model="plasticos.intake",
+        source_id=44,
+        description="[web-lead-source-id:provider-b]",
+    )
+
+    sources = [("plasticos.web.lead", 17), ("plasticos.intake", 44)]
+    crm_copied = copy_images_to_commercial_record(
+        env=lead.env,
+        target_model="crm.lead",
+        target_id=88,
+        sources=sources,
+    )
+    profile_copied = copy_images_to_commercial_record(
+        env=lead.env,
+        target_model="plasticos.material.profile",
+        target_id=99,
+        sources=sources + [("crm.lead", 88)],
+    )
+
+    assert crm_copied == 2
+    assert profile_copied == 2
+    assert (
+        copy_images_to_commercial_record(
+            env=lead.env,
+            target_model="crm.lead",
+            target_id=88,
+            sources=sources,
+        )
+        == 0
+    )
+    crm_images = [item for item in attachments.created if item.res_model == "crm.lead"]
+    profile_images = [item for item in attachments.created if item.res_model == "plasticos.material.profile"]
+    assert {item.description for item in crm_images} == {
+        "[web-lead-source-id:provider-a]",
+        "[web-lead-source-id:provider-b]",
+    }
+    assert {item.description for item in profile_images} == {
+        "[web-lead-source-id:provider-a]",
+        "[web-lead-source-id:provider-b]",
+    }
+
+
+def test_commercial_copy_deduplicates_legacy_images_by_checksum():
+    lead = _Lead()
+    attachments = lead.attachments
+    _stored_image(attachments, source_model="plasticos.web.lead", source_id=17)
+    _stored_image(attachments, source_model="plasticos.intake", source_id=44)
+
+    copied = copy_images_to_commercial_record(
+        env=lead.env,
+        target_model="crm.lead",
+        target_id=88,
+        sources=[("plasticos.web.lead", 17), ("plasticos.intake", 44)],
+    )
+
+    crm_images = [item for item in attachments.created if item.res_model == "crm.lead"]
+    assert copied == 1
+    assert len(crm_images) == 1
+    assert "[commercial-image-checksum:" in crm_images[0].description
 
 
 def test_successful_attachment_evidence_is_reused_without_redownload():

@@ -795,6 +795,10 @@ class PlasticosWebLead(models.Model):
                     # Preserve their established HOT-only URL attachment handoff.
                     log_lines.append(f"[IMG] Fetching {len(self.image_urls)} legacy image(s).")
                     self._fetch_and_attach_images(self.image_urls)
+                crm_lead = getattr(self, "crm_lead_id", None)
+                synchronize_images = getattr(crm_lead, "_propagate_available_commercial_images", None)
+                if callable(synchronize_images):
+                    synchronize_images()
             else:
                 log_lines.append("[COLD] Archiving lead.")
                 self.write({"state": "skipped"})

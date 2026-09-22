@@ -52,6 +52,8 @@ class TestCrmLeadContract(PlasticosTestCase):
         self._skip_if_no_crm()
         self.assertIn("source_intake_id", self.fields)
         self.assertIn("material_profile_id", self.fields)
+        self.assertIn("commercial_image_count", self.fields)
+        self.assertTrue(callable(getattr(self.Lead, "action_sync_commercial_images", None)))
 
     def test_partner_creation_is_compatible_with_optional_mobile_field(self):
         self._skip_if_no_crm()

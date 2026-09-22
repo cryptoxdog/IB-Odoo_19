@@ -37,5 +37,8 @@ class PlasticosWebLeadCRM(models.Model):
 
         lead = self.env["crm.lead"].create(vals)
         self.crm_lead_id = lead
+        synchronize_images = getattr(lead, "_propagate_available_commercial_images", None)
+        if callable(synchronize_images):
+            synchronize_images()
         self.message_post(body=f"CRM Lead created: {lead.name}")
         return lead

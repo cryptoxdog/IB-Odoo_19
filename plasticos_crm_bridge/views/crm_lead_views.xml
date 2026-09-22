@@ -80,6 +80,17 @@
                            widget="statinfo"/>
                 </button>
 
+                <button name="action_sync_commercial_images"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-picture-o"
+                        invisible="not source_intake_id and web_lead_count == 0"
+                        title="Copy currently available web-lead, intake, and offer images to this CRM lead and its material profile.">
+                    <field name="commercial_image_count"
+                           string="Images"
+                           widget="statinfo"/>
+                </button>
+
             </xpath>
 
             <!-- ═══ LEAD VIEW: Add mobile, function, source below phone ═══ -->

@@ -214,6 +214,36 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
         self.assertTrue(lead.intake_id.material_profile_id, "Qualified intake should receive a material profile")
         self.assertEqual(crm_lead.material_profile_id, lead.intake_id.material_profile_id)
 
+    def test_hot_lead_images_reach_crm_and_material_profile_idempotently(self):
+        """Commercial records retain the submitted evidence photos exactly once."""
+        lead = self.WebLead.create_from_cognito(self._make_hot_lead_payload("GOLD-CRM-IMAGE-001"))
+        Attachment = self.env["ir.attachment"]
+        attachment_vals = {
+            "name": "submitted-material.jpg",
+            "type": "binary",
+            "datas": "aW1hZ2U=",
+            "mimetype": "image/jpeg",
+            "description": "[web-lead-source-id:gold-image-1]",
+        }
+        Attachment.create({**attachment_vals, "res_model": "plasticos.web.lead", "res_id": lead.id})
+        Attachment.create({**attachment_vals, "res_model": "plasticos.intake", "res_id": lead.intake_id.id})
+
+        crm_lead = lead.crm_lead_id
+        crm_lead.action_convert_to_intake()
+        profile = crm_lead.material_profile_id
+        crm_domain = [("res_model", "=", "crm.lead"), ("res_id", "=", crm_lead.id), ("mimetype", "like", "image/")]
+        profile_domain = [
+            ("res_model", "=", "plasticos.material.profile"),
+            ("res_id", "=", profile.id),
+            ("mimetype", "like", "image/"),
+        ]
+
+        self.assertEqual(Attachment.search_count(crm_domain), 1)
+        self.assertEqual(Attachment.search_count(profile_domain), 1)
+        crm_lead.action_sync_commercial_images()
+        self.assertEqual(Attachment.search_count(crm_domain), 1)
+        self.assertEqual(Attachment.search_count(profile_domain), 1)
+
     def test_broker_approval_requires_completed_economic_assessment(self):
         lead = self.WebLead.create_from_cognito(self._make_hot_lead_payload("GOLD-BROKER-GATE-001"))
         with self.assertRaises(UserError):

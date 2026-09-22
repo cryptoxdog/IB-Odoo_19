@@ -20,6 +20,8 @@ READ_TIMEOUT_SECONDS = 30
 MAX_ACQUISITION_ATTEMPTS = 3
 ATTACHMENT_SIZE_LIMIT_ERROR = "attachment_size_limit_exceeded"
 SOURCE_ID_MARKER = "[web-lead-source-id:"
+COMMERCIAL_IMAGE_CHECKSUM_MARKER = "[commercial-image-checksum:"
+COMMERCIAL_IMAGE_ORIGIN_MARKER = "[commercial-image-origin:"
 
 
 def _error(code: str, message: str) -> dict[str, str]:
@@ -250,3 +252,159 @@ def copy_successful_attachments_to_intake(*, lead: Any, intake: Any, evidence_bu
             }
         )
         existing_descriptions.append(marker)
+
+
+def _marker_from_description(description: Any, marker_prefix: str) -> str | None:
+    """Return one complete provenance marker from an attachment description."""
+    text = str(description or "")
+    start = text.find(marker_prefix)
+    if start < 0:
+        return None
+    end = text.find("]", start)
+    return text[start : end + 1] if end >= 0 else None
+
+
+def _provider_source_marker(attachment: Any) -> str | None:
+    return _marker_from_description(getattr(attachment, "description", None), SOURCE_ID_MARKER)
+
+
+def _attachment_checksum(attachment: Any) -> str | None:
+    checksum = str(getattr(attachment, "checksum", "") or "").strip()
+    return checksum or None
+
+
+def _image_identity(attachment: Any) -> tuple[str, str]:
+    """Choose provider source identity before a content checksum.
+
+    Separate Cognito uploads can contain identical bytes but remain distinct
+    submitted evidence. Legacy or manually attached images have no provider
+    source marker, so their checksum avoids repeated copies through the
+    web-lead → intake → offer → CRM → profile graph.
+    """
+    source_marker = _provider_source_marker(attachment)
+    if source_marker:
+        return ("provider_source", source_marker)
+    checksum = _attachment_checksum(attachment)
+    if checksum:
+        return ("checksum", checksum)
+    return (
+        "origin",
+        f"{getattr(attachment, 'res_model', '')}:{getattr(attachment, 'res_id', '')}:{getattr(attachment, 'id', '')}",
+    )
+
+
+def _commercial_copy_description(attachment: Any) -> str:
+    """Preserve source provenance or add a safe non-URL copy marker."""
+    description = str(getattr(attachment, "description", "") or "").strip()
+    if _provider_source_marker(attachment):
+        return description
+
+    checksum = _attachment_checksum(attachment)
+    marker = (
+        f"{COMMERCIAL_IMAGE_CHECKSUM_MARKER}{checksum}]"
+        if checksum
+        else (
+            f"{COMMERCIAL_IMAGE_ORIGIN_MARKER}{getattr(attachment, 'res_model', '')}:"
+            f"{getattr(attachment, 'res_id', '')}:{getattr(attachment, 'id', '')}]"
+        )
+    )
+    return description if marker in description else " ".join(part for part in (description, marker) if part)
+
+
+def _replace_with_provider_source_marker(attachment: Any, provider_marker: str) -> None:
+    """Upgrade an earlier checksum-only copy to durable provider provenance."""
+    description = str(getattr(attachment, "description", "") or "").strip()
+    if provider_marker not in description:
+        attachment.write({"description": " ".join(part for part in (description, provider_marker) if part)})
+
+
+def copy_images_to_commercial_record(
+    *,
+    env: Any,
+    target_model: str,
+    target_id: int,
+    sources: Iterable[tuple[str, int]],
+) -> int:
+    """Copy all available source images to a CRM or material-profile record.
+
+    This intentionally consumes the source records that exist *when called*:
+    web lead, originating intake, previously-created offers, and CRM entry.
+    Copying is idempotent. Provider source IDs dominate checksums, preserving
+    distinct form uploads with identical bytes while collapsing legacy or
+    manually copied duplicates along the commercial record graph.
+    """
+    Attachment = env["ir.attachment"]
+    target_images = Attachment.search(
+        [
+            ("res_model", "=", target_model),
+            ("res_id", "=", target_id),
+            ("mimetype", "like", "image/"),
+        ]
+    )
+    existing_by_identity = {_image_identity(image): image for image in target_images}
+    existing_generic_by_checksum = {
+        _attachment_checksum(image): image
+        for image in target_images
+        if not _provider_source_marker(image) and _attachment_checksum(image)
+    }
+
+    candidates: list[Any] = []
+    seen_source_records: set[tuple[str, int]] = set()
+    for source_model, source_id in sources:
+        source_key = (str(source_model), int(source_id or 0))
+        if not source_key[1] or source_key in seen_source_records or source_key == (target_model, target_id):
+            continue
+        seen_source_records.add(source_key)
+        candidates.extend(
+            Attachment.search(
+                [
+                    ("res_model", "=", source_key[0]),
+                    ("res_id", "=", source_key[1]),
+                    ("mimetype", "like", "image/"),
+                ]
+            )
+        )
+
+    provider_marker_checksums = {
+        checksum
+        for image in candidates
+        if _provider_source_marker(image)
+        for checksum in [_attachment_checksum(image)]
+        if checksum
+    }
+    copied = 0
+    for image in candidates:
+        identity = _image_identity(image)
+        provider_marker = _provider_source_marker(image)
+        checksum = _attachment_checksum(image)
+
+        # A canonical packet's web-lead attachment is copied before its intake
+        # copy has a provider marker. Prefer the intake's marked version when
+        # both refer to the same bytes.
+        if not provider_marker and checksum and checksum in provider_marker_checksums:
+            continue
+        if identity in existing_by_identity:
+            continue
+
+        # Replace an earlier checksum-only CRM/profile copy with the provider's
+        # source identity rather than storing the same image twice.
+        if provider_marker and checksum and checksum in existing_generic_by_checksum:
+            existing = existing_generic_by_checksum.pop(checksum)
+            _replace_with_provider_source_marker(existing, provider_marker)
+            existing_by_identity.pop(("checksum", checksum), None)
+            existing_by_identity[identity] = existing
+            continue
+
+        copied_image = image.copy(
+            {
+                "res_model": target_model,
+                "res_id": target_id,
+                "description": _commercial_copy_description(image),
+            }
+        )
+        existing_by_identity[identity] = copied_image
+        if not provider_marker and checksum:
+            existing_generic_by_checksum[checksum] = copied_image
+        copied += 1
+
+    return copied
