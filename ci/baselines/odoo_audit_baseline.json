@@ -863,6 +863,16 @@
       "model": "plasticos.match.exclusion",
       "field": "user_id",
       "message": "Field 'user_id' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "49364e683c55363c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_mack_workbench/views/internal_review_views.xml",
+      "line": 83,
+      "model": "plasticos.intake",
+      "field": "mack_review_request_count",
+      "message": "Field 'mack_review_request_count' not defined on model 'plasticos.intake'"
     }
   ]
 }
