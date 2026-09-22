@@ -79,6 +79,16 @@ class PlasticosWebLeadConfig(models.Model):
         help="Create plasticos.intake for HOT leads (without partner). "
         "Admin reviews intake before deciding to buyer-match or discard.",
     )
+    hot_intake_reviewer_id = fields.Many2one(
+        "res.users",
+        string="HOT Intake Reviewer",
+        domain="[('share', '=', False), ('active', '=', True)]",
+        help=(
+            "Internal Odoo user who receives the HOT web-lead review activity. "
+            "When unset, Odoo records the handoff as blocked rather than routing "
+            "it to the ingestion worker or an arbitrary user."
+        ),
+    )
 
     # ═══════════════════════════════════════════════════════════
     # LLM Provider Configuration (Multi-Provider with Fallback)

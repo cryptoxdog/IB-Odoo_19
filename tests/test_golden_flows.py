@@ -162,6 +162,10 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
         cls.WebLead = cls.env["plasticos.web.lead"]
         cls.Intake = cls.env["plasticos.intake"]
 
+    def setUp(self):
+        super().setUp()
+        self.env["plasticos.web.lead.config"].sudo().get_config().write({"hot_intake_reviewer_id": self.env.user.id})
+
     def _make_hot_lead_payload(self, lead_id="GOLD-HOT-001"):
         """Create a standard HOT lead payload for testing."""
         return {
@@ -199,6 +203,7 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
         self.assertFalse(intake.partner_id, "Intake should not have partner yet")
         self.assertEqual(intake.pending_company_name, "HOT Co", "Company name should be stored")
         self.assertEqual(lead.state, "intake_created", "Lead state should be intake_created")
+        self.assertEqual(lead.mack_review_state, "queued")
 
     def test_duplicate_lead_id_is_idempotent(self):
         """Submitting same lead_id twice should return same record."""
@@ -287,6 +292,17 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
             "Duplicate submission must not create another intake",
         )
         self.assertEqual(len(lead.intake_id.activity_ids), 1, "Duplicate submission must not add an activity")
+
+    def test_hot_lead_blocks_internal_review_when_no_reviewer_is_configured(self):
+        """HOT intake creation stays auditable when no human reviewer is configured."""
+        self.env["plasticos.web.lead.config"].sudo().get_config().write({"hot_intake_reviewer_id": False})
+
+        lead = self.WebLead.create_from_agent(self._make_hot_lead_payload("GOLD-HOT-NO-REVIEWER-001"))
+
+        self.assertTrue(lead.intake_id, "HOT lead still requires an intake for auditability")
+        self.assertEqual(lead.mack_review_state, "blocked")
+        self.assertIn("not configured", lead.mack_review_reason.lower())
+        self.assertFalse(lead.intake_id.activity_ids, "No arbitrary internal user may receive the activity")
 
 
 @tagged("post_install", "-at_install", "plasticos", "golden", "claims")

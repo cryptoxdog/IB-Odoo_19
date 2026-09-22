@@ -75,6 +75,8 @@
                         <group string="Classification">
                             <field name="decision"/>
                             <field name="lead_source_id"/>
+                            <field name="mack_review_state"/>
+                            <field name="mack_review_reason" invisible="mack_review_state == 'not_queued'"/>
                         </group>
                         <group string="Links" name="links">
                             <field name="partner_id"/>

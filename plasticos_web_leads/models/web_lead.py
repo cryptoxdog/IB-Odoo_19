@@ -305,6 +305,26 @@ class PlasticosWebLead(models.Model):
         index=True,
     )
     error_message = fields.Text(readonly=True)
+    mack_review_state = fields.Selection(
+        [
+            ("not_queued", "Not Queued"),
+            ("queued", "Queued for Internal Review"),
+            ("blocked", "Blocked: Reviewer Not Configured"),
+        ],
+        string="Mack Review Handoff",
+        default="not_queued",
+        readonly=True,
+        tracking=True,
+        help=(
+            "Internal review handoff state for a future Mack workbench. This field "
+            "does not call Mack, matching, Gate, or any commercial operation."
+        ),
+    )
+    mack_review_reason = fields.Text(
+        string="Mack Review Handoff Note",
+        readonly=True,
+        help="Administrative reason for a queued or blocked internal review handoff.",
+    )
 
     # ═══════════════════════════════════════════════════════════
     # Links
@@ -343,7 +363,9 @@ class PlasticosWebLead(models.Model):
         fields. Now only pure state/log/error transitions are allowed on
         intake_created leads — all other field modifications are blocked.
         """
-        _STATE_ONLY_FIELDS = frozenset({"state", "error_message", "triage_log"})
+        _STATE_ONLY_FIELDS = frozenset(
+            {"state", "error_message", "triage_log", "mack_review_state", "mack_review_reason"}
+        )
         non_state_fields = set(vals.keys()) - _STATE_ONLY_FIELDS
         if non_state_fields:
             for rec in self:
@@ -829,18 +851,55 @@ class PlasticosWebLead(models.Model):
         return self.env["plasticos.intake"].create(intake_vals)
 
     def _notify_admin_hot_intake(self, intake, config):
-        """Schedule review activity on the intake for the configured reviewer."""
-        reviewer_id = self.env.user.id
-        if hasattr(config, "intake_reviewer_id") and config.intake_reviewer_id:
-            reviewer_id = config.intake_reviewer_id.id
+        """Create one internal Odoo review activity or record a safe block.
+
+        This is an Odoo-native human handoff only. It must never use the webhook
+        worker/current user as an implicit reviewer, call Mack, invoke matching,
+        send email, or grant any commercial authority.
+        """
+        self.ensure_one()
+        reviewer = config.hot_intake_reviewer_id
+        if not reviewer:
+            self.write(
+                {
+                    "mack_review_state": "blocked",
+                    "mack_review_reason": "HOT Intake Reviewer is not configured.",
+                }
+            )
+            self.message_post(
+                body=(
+                    "HOT lead intake was created, but the internal Mack review handoff is blocked: "
+                    "configure a HOT Intake Reviewer in Web Lead Settings."
+                )
+            )
+            _logger.warning("HOT lead %s has no configured internal reviewer.", self.lead_id)
+            return
+
+        summary = f"Review HOT Web Lead: {self.lead_id}"
+        existing = self.env["mail.activity"].search_count(
+            [
+                ("res_model", "=", "plasticos.intake"),
+                ("res_id", "=", intake.id),
+                ("user_id", "=", reviewer.id),
+                ("summary", "=", summary),
+            ]
+        )
+        if existing:
+            self.write(
+                {
+                    "mack_review_state": "queued",
+                    "mack_review_reason": f"Internal review is assigned to {reviewer.name}.",
+                }
+            )
+            return
 
         polymer_name = intake.polymer_id.name if intake.polymer_id else "Unknown"
         form_name = intake.form_id.name if intake.form_id else "Unknown"
 
         intake.activity_schedule(
             "mail.mail_activity_data_todo",
-            user_id=reviewer_id,
-            summary=f"Review HOT Web Lead: {self.company_name or 'Unknown'}",
+            user_id=reviewer.id,
+            summary=summary,
             note=(
                 f"<p>New HOT lead from web form requires review:</p>"
                 f"<ul>"
@@ -852,6 +911,12 @@ class PlasticosWebLead(models.Model):
                 f"<p><b>Action:</b> Click 'Match to Buyers' to create partner and run "
                 f"matching, or delete/archive if not a valid lead.</p>"
             ),
+        )
+        self.write(
+            {
+                "mack_review_state": "queued",
+                "mack_review_reason": f"Internal review is assigned to {reviewer.name}.",
+            }
         )
 
     # ═══════════════════════════════════════════════════════════
