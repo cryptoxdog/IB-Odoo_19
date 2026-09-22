@@ -7,7 +7,6 @@
     "depends": [
         "mail",
         "plasticos_intake",
-        "plasticos_web_leads",
     ],
     "data": [
         "security/security.xml",
@@ -15,6 +14,7 @@
         "security/mack_workbench_rules.xml",
         "data/internal_review_sequence.xml",
         "views/internal_review_views.xml",
+        "views/workbench_config_views.xml",
     ],
     "installable": True,
     "application": False,
