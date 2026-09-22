@@ -873,6 +873,16 @@
       "model": "plasticos.intake",
       "field": "mack_review_request_count",
       "message": "Field 'mack_review_request_count' not defined on model 'plasticos.intake'"
+    },
+    {
+      "fingerprint": "fbeead088817d6ff",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_mack_workbench/views/chat_intent_views.xml",
+      "line": 74,
+      "model": "plasticos.intake",
+      "field": "mack_chat_intent_receipt_count",
+      "message": "Field 'mack_chat_intent_receipt_count' not defined on model 'plasticos.intake'"
     }
   ]
 }
