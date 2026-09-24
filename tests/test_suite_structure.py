@@ -51,6 +51,9 @@ NON_TEST_FILES = frozenset(
         "run_legacy_erp_import.py",
         "run_s1_s3_pristine_seams.py",
         "_runtime_env.py",
+        # Mack workbench one-winner gates (PR 190) and their shared session plumbing.
+        "run_mack_review_concurrency.py",
+        "_mack_runtime.py",
     }
 )
 

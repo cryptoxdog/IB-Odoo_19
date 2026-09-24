@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Mack Workbench",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.0.1",
     "summary": "Governed Odoo-native Mack internal review requests",
     "author": "Igor Beylin",
     "license": "LGPL-3",
