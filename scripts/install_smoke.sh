@@ -9,6 +9,7 @@
 # Usage:
 #   ./scripts/install_smoke.sh
 #   ODOO_ENTERPRISE_MODULES=none ./scripts/install_smoke.sh   # custom-only (faster)
+#   ODOO_INSTALL_SMOKE_NETWORK=host ./scripts/install_smoke.sh # sandbox bridge fallback
 #   make install-smoke
 #
 set -euo pipefail
@@ -26,9 +27,22 @@ export PATH="/usr/local/bin:/opt/homebrew/bin:${PATH}"
 
 POSTGRES_USER="${POSTGRES_USER:-odoo}"
 POSTGRES_DB="${POSTGRES_DB:-odoo}"
-ODOO_DB_HOST="${ODOO_DB_HOST:-db}"
-ODOO_DB_PORT="${ODOO_DB_PORT:-5432}"
 ODOO_COMPOSE_PROJECT="${ODOO_COMPOSE_PROJECT:-odoo19}"
+SMOKE_NETWORK_MODE="${ODOO_INSTALL_SMOKE_NETWORK:-compose}"
+case "$SMOKE_NETWORK_MODE" in
+  compose)
+    ODOO_DB_HOST="${ODOO_DB_HOST:-db}"
+    ODOO_DB_PORT="${ODOO_DB_PORT:-5432}"
+    ;;
+  host)
+    ODOO_DB_HOST="${ODOO_DB_HOST:-127.0.0.1}"
+    ODOO_DB_PORT="${ODOO_DB_PORT:-5433}"
+    ;;
+  *)
+    echo "❌ ODOO_INSTALL_SMOKE_NETWORK must be 'compose' or 'host' (got '$SMOKE_NETWORK_MODE')." >&2
+    exit 2
+    ;;
+esac
 SMOKE_DB="${ODOO_INSTALL_SMOKE_DB:-odoo_install_smoke}"
 LOG_DIR="${ODOO_INSTALL_SMOKE_LOG_DIR:-/tmp}"
 mkdir -p "$LOG_DIR"
@@ -60,19 +74,6 @@ if [ -z "${POSTGRES_PASSWORD:-}" ]; then
   exit 1
 fi
 
-# --- Enterprise mount -------------------------------------------------------
-if [ ! -e "$ROOT/odoo-enterprise" ]; then
-  CANDIDATE="${ODOO_ENTERPRISE_PATH:-$HOME/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise}"
-  if [ -d "$CANDIDATE" ]; then
-    ln -s "$CANDIDATE" "$ROOT/odoo-enterprise"
-    echo "→ Linked odoo-enterprise → $CANDIDATE"
-  else
-    echo "❌ odoo-enterprise missing. Symlink local enterprise addons:" >&2
-    echo "   ln -s \"\$HOME/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise\" odoo-enterprise" >&2
-    exit 1
-  fi
-fi
-
 # --- Module lists ------------------------------------------------------------
 # Default: ordered core + every other installable plasticos_* (minus excluded).
 # Override with ODOO_REBUILD_MODULES=... or ODOO_INSTALL_SMOKE_SCOPE=ordered.
@@ -91,6 +92,21 @@ fi
 _ENTERPRISE="$(python3 "$ROOT/scripts/get_odoo_module_order.py" --section docker_enterprise_modules 2>/dev/null || true)"
 ENTERPRISE_MODULES="${ODOO_ENTERPRISE_MODULES:-${_ENTERPRISE:-none}}"
 
+# The documented custom-only path must not require private Enterprise sources.
+# Full parity installs still fail closed until the local Enterprise mount exists.
+if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ] && [ ! -e "$ROOT/odoo-enterprise" ]; then
+  CANDIDATE="${ODOO_ENTERPRISE_PATH:-$HOME/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise}"
+  if [ -d "$CANDIDATE" ]; then
+    ln -s "$CANDIDATE" "$ROOT/odoo-enterprise"
+    echo "→ Linked odoo-enterprise → $CANDIDATE"
+  else
+    echo "❌ odoo-enterprise missing for Enterprise-parity install-smoke." >&2
+    echo "   Full parity: ln -s \"\$HOME/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise\" odoo-enterprise" >&2
+    echo "   Custom-only: ODOO_ENTERPRISE_MODULES=none make install-smoke" >&2
+    exit 1
+  fi
+fi
+
 if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ]; then
   ALL_MODULES="${ENTERPRISE_MODULES},${CUSTOM_MODULES}"
 else
@@ -101,6 +117,7 @@ echo "════════════════════════�
 echo " Odoo install-smoke"
 echo " DB:       $SMOKE_DB"
 echo " Modules:  $ALL_MODULES"
+echo " Network:  $SMOKE_NETWORK_MODE ($ODOO_DB_HOST:$ODOO_DB_PORT)"
 echo " Log:      $LOG_FILE"
 echo "════════════════════════════════════════════════════════"
 
@@ -131,6 +148,7 @@ fi
 # Rebuild image so xmlsec / requirements changes are present
 echo "→ Building Odoo image (xmlsec + requirements)..."
 docker compose -p "$ODOO_COMPOSE_PROJECT" build odoo-test
+SMOKE_IMAGE="${ODOO_SMOKE_IMAGE:-${ODOO_COMPOSE_PROJECT}-odoo-test:latest}"
 
 echo "→ Dropping smoke DB '$SMOKE_DB'..."
 docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d postgres \
@@ -141,17 +159,46 @@ docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d
 
 echo "→ Installing modules (--stop-after-init)..."
 set +e
-docker compose -p "$ODOO_COMPOSE_PROJECT" run --rm \
-  odoo-test \
-  -d "$SMOKE_DB" \
-  --db_host="$ODOO_DB_HOST" \
-  --db_port="$ODOO_DB_PORT" \
-  --db_user="$POSTGRES_USER" \
-  --db_password="$POSTGRES_PASSWORD" \
-  -i "$ALL_MODULES" \
-  --without-demo=all \
-  --log-level=info \
-  --stop-after-init 2>&1 | tee "$LOG_FILE"
+if [ "$SMOKE_NETWORK_MODE" = "host" ]; then
+  ADDONS_PATH="/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons"
+  # The official Odoo image entrypoint appends DB arguments after CLI input.
+  # Set its HOST/PORT/USER/PASSWORD contract so it preserves host-network values.
+  RUN_ARGS=(
+    docker run --rm --network host
+    -e "HOST=$ODOO_DB_HOST"
+    -e "PORT=$ODOO_DB_PORT"
+    -e "USER=$POSTGRES_USER"
+    -e "PASSWORD=$POSTGRES_PASSWORD"
+    -v "$ROOT:/mnt/extra-addons"
+  )
+  if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ]; then
+    ADDONS_PATH="/mnt/extra-addons,/mnt/enterprise,/usr/lib/python3/dist-packages/odoo/addons"
+    RUN_ARGS+=(-v "$ROOT/odoo-enterprise:/mnt/enterprise:ro")
+  fi
+  "${RUN_ARGS[@]}" "$SMOKE_IMAGE" \
+    --addons-path="$ADDONS_PATH" \
+    -d "$SMOKE_DB" \
+    --db_host="$ODOO_DB_HOST" \
+    --db_port="$ODOO_DB_PORT" \
+    --db_user="$POSTGRES_USER" \
+    --db_password="$POSTGRES_PASSWORD" \
+    -i "$ALL_MODULES" \
+    --without-demo=all \
+    --log-level=info \
+    --stop-after-init 2>&1 | tee "$LOG_FILE"
+else
+  docker compose -p "$ODOO_COMPOSE_PROJECT" run --rm \
+    odoo-test \
+    -d "$SMOKE_DB" \
+    --db_host="$ODOO_DB_HOST" \
+    --db_port="$ODOO_DB_PORT" \
+    --db_user="$POSTGRES_USER" \
+    --db_password="$POSTGRES_PASSWORD" \
+    -i "$ALL_MODULES" \
+    --without-demo=all \
+    --log-level=info \
+    --stop-after-init 2>&1 | tee "$LOG_FILE"
+fi
 EXIT_CODE=${PIPESTATUS[0]}
 set -e
 
@@ -212,7 +259,11 @@ fi
 
 # Prove xmlsec import inside the image (enterprise parity)
 echo "→ Proving xmlsec import in image..."
-docker compose -p "$ODOO_COMPOSE_PROJECT" run --rm --entrypoint python3 odoo-test -c "import xmlsec; print('xmlsec', xmlsec.__version__)"
+if [ "$SMOKE_NETWORK_MODE" = "host" ]; then
+  docker run --rm --network host --entrypoint python3 "$SMOKE_IMAGE" -c "import xmlsec; print('xmlsec', xmlsec.__version__)"
+else
+  docker compose -p "$ODOO_COMPOSE_PROJECT" run --rm --entrypoint python3 odoo-test -c "import xmlsec; print('xmlsec', xmlsec.__version__)"
+fi
 
 echo ""
 echo "✅ install-smoke PASSED — safe to push (modules load cleanly)"

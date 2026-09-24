@@ -91,12 +91,16 @@ class TestWebLeadAPIContract(PlasticosTestCase):
         self.assertIsNotNone(self.WebLead)
 
     def test_web_lead_has_create_from_agent(self):
-        """External AI agent calls create_from_agent to submit leads."""
+        """Legacy agent admission remains available beside packet admission."""
         if self.skip:
             self.skipTest("plasticos_web_leads not installed")
         self.assertTrue(
             callable(getattr(self.WebLead, "create_from_agent", None)),
             "create_from_agent method missing on plasticos.web.lead",
+        )
+        self.assertTrue(
+            callable(getattr(self.WebLead, "create_from_packet", None)),
+            "create_from_packet method missing on plasticos.web.lead",
         )
 
     def test_web_lead_has_classification_fields(self):
@@ -104,5 +108,13 @@ class TestWebLeadAPIContract(PlasticosTestCase):
         if self.skip:
             self.skipTest("plasticos_web_leads not installed")
         fields = self.WebLead._fields
-        for fname in ("raw_payload", "classification", "confidence_score"):
+        for fname in (
+            "raw_payload",
+            "provider_key",
+            "provider_external_id",
+            "canonical_payload",
+            "evidence_bundle",
+            "decision",
+            "decision_reasons",
+        ):
             self.assertIn(fname, fields, f"Missing web lead field: {fname}")

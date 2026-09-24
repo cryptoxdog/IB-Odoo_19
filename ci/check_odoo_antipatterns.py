@@ -274,8 +274,8 @@ class OdooAntiPatternChecker(ast.NodeVisitor):
         self.in_onchange = "onchange" in self.current_decorators
 
         # Track annotated dict parameters so dict(name) is not false-flagged (ODOO005).
-        prev_dict_params: set[str] = getattr(self, "_dict_param_names", set())
-        dict_names = set(prev_dict_params)
+        prev_dict_params: set[str] = self._dict_param_names
+        dict_names: set[str] = set(prev_dict_params)
         for arg in (*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs):
             if arg.annotation is not None and self._annotation_is_dict(arg.annotation):
                 dict_names.add(arg.arg)

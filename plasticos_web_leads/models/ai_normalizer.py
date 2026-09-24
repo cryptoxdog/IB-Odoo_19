@@ -16,10 +16,13 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
+from .ai_client import call_json_with_retry
+from .evidence_keys import KEY_ATTACHMENTS, KEY_RAW_PAYLOAD, scrub_attachment_rows
+from .inference_provider import InferenceProvider, call_structured_text, provider_audit_metadata, safe_provider_error
+from .quantity_normalizer import QuantityEvidence
 from .triage_helpers import coerce_bool, parse_weight_lbs, safe_float
 
 _logger = logging.getLogger(__name__)
@@ -29,10 +32,18 @@ _logger = logging.getLogger(__name__)
 # Keep in sync with the actual form field IDs.
 # ─────────────────────────────────────────────────────────────────────────────
 _FIELD_MAP: dict[str, str] = {
+    "company_name": "Company",
     "YourBusinessCompanyName": "Company",
+    "material_description": "Material description",
     "DescribeYourMaterial": "Material description",
+    "material_composition_text": "Material composition",
+    "source_description": "Source description",
+    "quantity_text": "Quantity / current inventory",
     "WhatIsTheQuantity": "Quantity / volume",
+    "weight_per_load_text": "Weight per load",
+    "frequency_text": "Frequency",
     "HowOften": "Frequency",
+    "pickup_location_text": "Location / city / state",
     "WhereIsItLocated": "Location / city / state",
     "WhatIsYourRole": "Role at company",
     "AdditionalComments": "Additional notes",
@@ -67,6 +78,9 @@ Rules:
 - DO NOT set is_commercial_source=true based on email domain alone
 - If the Quantity field contains unit counts (pallets, gaylords, truckloads), \
   set estimated_lbs_per_load to null — the deterministic parser handles unit-count conversion
+- Current inventory, per-load weight, and recurring cadence are separate facts.
+- Cadence requires explicit time-basis language; unknown is null, never zero.
+- Do not infer a polymer from weak context or visual appearance.
 - Polymer codes: HDPE, LDPE, LLDPE, PP, PET, PS, ABS, PVC, PC, POM, PA (Nylon), EVA
 - post_industrial = manufacturing scrap, trim, runners, off-spec
 - post_consumer = used products, bottles, film, packaging after consumer use
@@ -136,13 +150,52 @@ def validate_ai_output(raw: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+# Packet keys that are transport/identity metadata or acquisition material, never
+# seller facts. They are excluded from the prompt; attachments are rendered as a
+# URL-free summary instead.
+_PROMPT_EXCLUDED_KEYS = frozenset(
+    {KEY_RAW_PAYLOAD, KEY_ATTACHMENTS, "schema_version", "provider", "provider_external_id", "idempotency_key"}
+)
+
+
+def _scalar_prompt_text(value: Any) -> str:
+    """Only scalar seller text reaches the prompt; nested structures are not form facts."""
+    if value is None or isinstance(value, bool):
+        return ""
+    if isinstance(value, (str, int, float)):
+        return str(value).strip()
+    return ""
+
+
+def _attachment_summary(rows: Any) -> str:
+    """Describe submitted files without any acquisition URL or signed token."""
+    if not isinstance(rows, list):
+        return ""
+    parts: list[str] = []
+    for row in scrub_attachment_rows(rows):
+        filename = str(row.get("filename") or "attachment").strip()
+        content_type = str(row.get("content_type") or "unknown").strip()
+        size = row.get("size_bytes")
+        detail = (
+            f"{content_type}, {int(size)} bytes"
+            if isinstance(size, int) and not isinstance(size, bool)
+            else content_type
+        )
+        parts.append(f"{filename} ({detail})")
+    if not parts:
+        return ""
+    return f"Attachments: {len(parts)} file(s): " + "; ".join(parts)
+
+
 def build_user_prompt(form_data: dict[str, Any]) -> str:
     """
     Build the user-turn prompt from raw form data. (FIX AN-03)
 
     - Maps known Typeform field IDs to human labels
     - Skips empty strings and values ≤ 2 characters
-    - Appends unmapped fields as "Extra" lines (values > 2 chars only)
+    - Appends unmapped scalar fields as "Extra" lines (values > 2 chars only)
+    - Never serializes attachment rows or nested payloads: signed acquisition
+      URLs are not seller facts and must not reach an external provider
     """
     if not form_data:
         return "No form data provided."
@@ -152,19 +205,22 @@ def build_user_prompt(form_data: dict[str, Any]) -> str:
 
     # Mapped fields first, in defined order
     for field_id, label in _FIELD_MAP.items():
-        val = form_data.get(field_id)
-        val_str = str(val).strip() if val is not None else ""
+        val_str = _scalar_prompt_text(form_data.get(field_id))
         if len(val_str) > 2:
             lines.append(f"{label}: {val_str}")
             seen_keys.add(field_id)
 
-    # Extra / unmapped fields
+    # Extra / unmapped scalar fields
     for k, v in form_data.items():
-        if k in seen_keys:
+        if k in seen_keys or k in _PROMPT_EXCLUDED_KEYS:
             continue
-        val_str = str(v).strip() if v is not None else ""
+        val_str = _scalar_prompt_text(v)
         if len(val_str) > 2:
             lines.append(f"Extra — {k}: {val_str}")
+
+    summary = _attachment_summary(form_data.get(KEY_ATTACHMENTS))
+    if summary:
+        lines.append(summary)
 
     if len(lines) == 1:
         return "No form data provided."
@@ -212,6 +268,7 @@ def normalize_lead(
     *,
     model: str = "gpt-4o-mini",
     temperature: float = 0.0,
+    quantity_evidence: QuantityEvidence | None = None,
 ) -> dict[str, Any]:
     """
     Full normalization pipeline for a web lead.
@@ -227,13 +284,20 @@ def normalize_lead(
     """
     # Step 1 — deterministic weight
     qty_raw = form_data.get("WhatIsTheQuantity") or ""
-    det_lbs, det_source = parse_weight_lbs(qty_raw)
+    if quantity_evidence is None:
+        det_lbs, det_source = parse_weight_lbs(qty_raw)
+        deterministic_lbs = det_lbs if det_lbs > 0 else None
+    else:
+        deterministic_lbs = quantity_evidence.load_weight_lbs
+        det_source = quantity_evidence.weight_source
 
     base: dict[str, Any] = {
         "raw_form_data": form_data,
-        "estimated_lbs_per_load": det_lbs if det_lbs > 0 else None,
+        "estimated_lbs_per_load": deterministic_lbs,
         "weight_source": det_source,
     }
+    if quantity_evidence is not None:
+        base["loads_per_month"] = quantity_evidence.loads_per_month
 
     if openai_client is None:
         base["_inferred_fields"] = []
@@ -242,17 +306,16 @@ def normalize_lead(
     # Step 2 — AI extraction
     try:
         user_prompt = build_user_prompt(form_data)
-        response = openai_client.chat.completions.create(
+        ai_raw, metadata = call_json_with_retry(
+            client=openai_client,
             model=model,
             temperature=temperature,
-            response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": _SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
             ],
         )
-        raw_json = response.choices[0].message.content or "{}"
-        ai_raw: dict[str, Any] = json.loads(raw_json)
+        base["_ai_call_metadata"] = metadata
     except Exception as exc:
         _logger.warning("normalize_lead: AI extraction failed: %s", exc)
         base["_inferred_fields"] = []
@@ -265,6 +328,54 @@ def normalize_lead(
     # Step 4+5 — merge with audit trail
     inferred: set[str] = set()
     result = merge_ai_into_record(base, ai_validated, inferred_fields=inferred)
+    return result
+
+
+def normalize_with_provider(
+    raw_payload: dict[str, Any],
+    provider: InferenceProvider,
+    *,
+    quantity_evidence: QuantityEvidence | None = None,
+) -> dict[str, Any]:
+    """Normalize with a configured role-selected provider profile.
+
+    Provider/model selection is configuration, not code. Deterministic quantity
+    evidence stays authoritative over the returned LLM extraction.
+    """
+    form_data = raw_payload or {}
+    if quantity_evidence is None:
+        det_lbs, det_source = parse_weight_lbs(form_data.get("WhatIsTheQuantity") or "")
+        deterministic_lbs = det_lbs if det_lbs > 0 else None
+    else:
+        deterministic_lbs = quantity_evidence.load_weight_lbs
+        det_source = quantity_evidence.weight_source
+
+    base: dict[str, Any] = {
+        "raw_form_data": form_data,
+        "estimated_lbs_per_load": deterministic_lbs,
+        "weight_source": det_source,
+    }
+    if quantity_evidence is not None:
+        base["loads_per_month"] = quantity_evidence.loads_per_month
+
+    try:
+        ai_raw, metadata = call_structured_text(
+            provider,
+            system_prompt=_SYSTEM_PROMPT,
+            user_prompt=build_user_prompt(form_data),
+        )
+    except Exception as exc:
+        error = safe_provider_error(exc, provider, role="text_normalization")
+        base["_inferred_fields"] = []
+        base["_ai_error"] = error["error"]
+        base["_provider_used"] = provider.provider
+        base["_provider_metadata"] = error["provider"]
+        return base
+
+    result = merge_ai_into_record(base, validate_ai_output(ai_raw), inferred_fields=set())
+    result["_provider_used"] = provider.provider
+    result["_provider_metadata"] = provider_audit_metadata(provider, role="text_normalization")
+    result["_ai_call_metadata"] = metadata
     return result
 
 
@@ -293,6 +404,7 @@ def normalize_with_fallback(
     providers: list[dict[str, Any]],
     *,
     temperature: float = 0.0,
+    quantity_evidence: QuantityEvidence | None = None,
 ) -> dict[str, Any]:
     """
     Run normalize_lead across an ordered list of LLM providers with fallback.
@@ -315,7 +427,10 @@ def normalize_with_fallback(
     form_data = raw_payload or {}
 
     if not providers:
-        result = normalize_lead(form_data, None, temperature=temperature)
+        if quantity_evidence is None:
+            result = normalize_lead(form_data, None, temperature=temperature)
+        else:
+            result = normalize_lead(form_data, None, temperature=temperature, quantity_evidence=quantity_evidence)
         result["_provider_used"] = "none"
         result["error"] = "no_llm_provider_configured"
         return result
@@ -328,20 +443,24 @@ def normalize_with_fallback(
             # Same import/key failure would affect every provider — stop early.
             last_error = "openai_client_unavailable"
             break
-        result = normalize_lead(
-            form_data,
-            client,
-            model=prov.get("model") or "gpt-4o-mini",
-            temperature=temperature,
-        )
+        kwargs: dict[str, Any] = {
+            "model": prov.get("model") or "gpt-4o-mini",
+            "temperature": temperature,
+        }
+        if quantity_evidence is not None:
+            kwargs["quantity_evidence"] = quantity_evidence
+        result = normalize_lead(form_data, client, **kwargs)
         ai_error = result.get("_ai_error")
         if not ai_error:
             result["_provider_used"] = slug
             return result
-        last_error = ai_error
-        _logger.warning("normalize_with_fallback: provider %s failed — %s", slug, ai_error)
+        last_error = "provider_inference_failed"
+        _logger.warning("normalize_with_fallback: provider %s failed", slug)
 
-    result = normalize_lead(form_data, None, temperature=temperature)
+    if quantity_evidence is None:
+        result = normalize_lead(form_data, None, temperature=temperature)
+    else:
+        result = normalize_lead(form_data, None, temperature=temperature, quantity_evidence=quantity_evidence)
     result["_provider_used"] = "none"
     result["error"] = last_error or "all_llm_providers_failed"
     return result

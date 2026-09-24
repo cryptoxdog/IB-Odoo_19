@@ -52,6 +52,25 @@ class CrmLeadPlastOS(models.Model):
     intake_count = fields.Integer(
         compute="_compute_intake_count",
     )
+    source_intake_id = fields.Many2one(
+        "plasticos.intake",
+        string="Originating Intake",
+        index=True,
+        ondelete="set null",
+        help="The pre-existing web or CRM intake from which this commercial opportunity originated.",
+    )
+    material_profile_id = fields.Many2one(
+        "plasticos.material.profile",
+        string="Opportunity Material Profile",
+        index=True,
+        ondelete="set null",
+        help="Material profile created from the originating intake when the opportunity is qualified for matching.",
+    )
+    commercial_image_count = fields.Integer(
+        string="Commercial Images",
+        compute="_compute_commercial_image_count",
+        help="Image evidence copied from the linked web lead, intake, and offer sources.",
+    )
 
     # ── Material Profile Summary (rolled up from partner) ──
     material_profile_count = fields.Integer(
@@ -83,6 +102,84 @@ class CrmLeadPlastOS(models.Model):
     def _compute_intake_count(self):
         for rec in self:
             rec.intake_count = len(rec.intake_ids)
+
+    @api.depends("web_lead_ids", "source_intake_id")
+    def _compute_commercial_image_count(self):
+        Attachment = self.env["ir.attachment"]
+        for rec in self:
+            rec.commercial_image_count = Attachment.search_count(
+                [
+                    ("res_model", "=", "crm.lead"),
+                    ("res_id", "=", rec.id),
+                    ("mimetype", "like", "image/"),
+                ]
+            )
+
+    def _commercial_image_sources(self):
+        """Return all source records available at the current commercial step."""
+        self.ensure_one()
+        sources = [("crm.lead", self.id)]
+        sources.extend(("plasticos.web.lead", web_lead.id) for web_lead in self.web_lead_ids)
+        if self.source_intake_id:
+            sources.append(("plasticos.intake", self.source_intake_id.id))
+            if "plasticos.offer" in self.env:
+                offers = self.env["plasticos.offer"].search([("intake_id", "=", self.source_intake_id.id)])
+                sources.extend(("plasticos.offer", offer.id) for offer in offers)
+        return sources
+
+    def _propagate_available_commercial_images(self, *, material_profile=None):
+        """Attach currently available web-lead evidence to CRM and its profile.
+
+        This is intentionally re-runnable: a later offer or manually added
+        intake image can be incorporated without repeating a provider download.
+        The web-lead attachment helper preserves distinct provider uploads and
+        collapses only non-provider duplicate image bytes.
+        """
+        self.ensure_one()
+        from odoo.addons.plasticos_web_leads.models.attachment_processor import copy_images_to_commercial_record
+
+        sources = self._commercial_image_sources()
+        crm_copied = copy_images_to_commercial_record(
+            env=self.env,
+            target_model="crm.lead",
+            target_id=self.id,
+            sources=sources,
+        )
+        profile = material_profile or self.material_profile_id
+        profile_copied = 0
+        if profile:
+            profile_copied = copy_images_to_commercial_record(
+                env=self.env,
+                target_model="plasticos.material.profile",
+                target_id=profile.id,
+                sources=sources,
+            )
+        if crm_copied or profile_copied:
+            self.message_post(
+                body=(
+                    f"Commercial image evidence synchronized: {crm_copied} image(s) to CRM; "
+                    f"{profile_copied} image(s) to material profile."
+                )
+            )
+        return {"crm": crm_copied, "material_profile": profile_copied}
+
+    def action_sync_commercial_images(self):
+        """Reconcile images currently available from linked commercial sources."""
+        self.ensure_one()
+        result = self._propagate_available_commercial_images()
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": "Commercial Images Synchronized",
+                "message": (
+                    f"Added {result['crm']} image(s) to CRM and "
+                    f"{result['material_profile']} image(s) to the material profile."
+                ),
+                "type": "success",
+                "sticky": False,
+            },
+        }
 
     @api.depends("partner_id", "partner_id.child_ids")
     def _compute_profile_summary(self):
@@ -157,12 +254,54 @@ class CrmLeadPlastOS(models.Model):
         """
         self.ensure_one()
 
-        # 1. Ensure partner exists
-        if not self.partner_id:
+        # 1. Reuse a source-intake partner before performing CRM name matching.
+        # This prevents a web intake that was already qualified from creating a
+        # duplicate commercial identity during CRM conversion.
+        if self.source_intake_id and self.source_intake_id.partner_id and not self.partner_id:
+            partner = self.source_intake_id.partner_id
+            self.partner_id = partner
+        elif not self.partner_id:
             partner = self._find_or_create_partner_from_lead()
             self.partner_id = partner
         else:
             partner = self.partner_id
+
+        # A HOT web lead already owns an intake. Reuse it rather than creating a
+        # duplicate, associate it with the CRM lead, and create its canonical
+        # material profile only after a partner/facility exists.
+        if self.source_intake_id:
+            intake = self.source_intake_id
+            if not intake.partner_id:
+                intake.write(
+                    {
+                        "partner_id": partner.id,
+                        "pending_company_name": False,
+                        "crm_lead_id": self.id,
+                    }
+                )
+            elif intake.crm_lead_id != self:
+                intake.write({"crm_lead_id": self.id})
+            if not intake.material_profile_id:
+                intake._create_material_profile_from_intake()
+            if intake.material_profile_id:
+                self.material_profile_id = intake.material_profile_id
+                self._propagate_available_commercial_images(material_profile=intake.material_profile_id)
+            self._move_to_active_supplier_stage()
+            self.message_post(
+                body=(
+                    f'Reused originating intake: <a href="#" '
+                    f'data-oe-model="plasticos.intake" data-oe-id="{intake.id}">'
+                    f"{intake.name or 'Web Intake'}</a>"
+                )
+            )
+            return {
+                "type": "ir.actions.act_window",
+                "name": f"Intake — {partner.name}",
+                "res_model": "plasticos.intake",
+                "res_id": intake.id,
+                "view_mode": "form",
+                "target": "current",
+            }
 
         # 2. Create intake
         intake_vals = {
@@ -191,12 +330,7 @@ class CrmLeadPlastOS(models.Model):
         intake = self.env["plasticos.intake"].create(intake_vals)
 
         # 3. Move lead to Active Supplier stage
-        won_stage = self.env.ref(
-            "plasticos_crm_bridge.stage_active_supplier",
-            raise_if_not_found=False,
-        )
-        if won_stage:
-            self.stage_id = won_stage
+        self._move_to_active_supplier_stage()
 
         self.message_post(
             body=f'Intake created: <a href="#" '
@@ -213,6 +347,16 @@ class CrmLeadPlastOS(models.Model):
             "view_mode": "form",
             "target": "current",
         }
+
+    def _move_to_active_supplier_stage(self):
+        """Move a converted CRM lead to the configured supplier stage."""
+        self.ensure_one()
+        won_stage = self.env.ref(
+            "plasticos_crm_bridge.stage_active_supplier",
+            raise_if_not_found=False,
+        )
+        if won_stage:
+            self.stage_id = won_stage
 
     def _find_or_create_partner_from_lead(self):
         """Find existing partner by name or create new one from lead data."""
@@ -238,7 +382,6 @@ class CrmLeadPlastOS(models.Model):
             "is_company": True,
             "email": self.email_from,
             "phone": self.phone,
-            "mobile": self.mobile or False,
             "street": self.street,
             "city": self.city,
             "state_id": self.state_id.id if self.state_id else False,
@@ -246,6 +389,8 @@ class CrmLeadPlastOS(models.Model):
             "country_id": self.country_id.id if self.country_id else False,
             "supplier_rank": 1,
         }
+        if "mobile" in Partner._fields:
+            vals["mobile"] = self.mobile or False
 
         # Set lead source from CRM source_id
         if self.source_id:

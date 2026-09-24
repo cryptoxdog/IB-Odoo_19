@@ -1,7 +1,9 @@
+import hmac
 import json
 import logging
 
 from odoo import http
+from odoo.exceptions import UserError, ValidationError
 from odoo.http import Response, request
 
 _logger = logging.getLogger(__name__)
@@ -90,7 +92,7 @@ class WebLeadController(http.Controller):
         matched_id = None
         for row_id, stored in rows:
             stored_key = (stored or "").strip()
-            if stored_key and token == stored_key:
+            if stored_key and hmac.compare_digest(token, stored_key):
                 matched_id = row_id
                 break
 
@@ -113,12 +115,18 @@ class WebLeadController(http.Controller):
     # POST /api/v1/web-lead (Legacy Agent Endpoint)
     # ═══════════════════════════════════════════════════════════
 
+    # readonly=False on both POST routes: Odoo 19 defaults auth="none" routes to a
+    # read-only cursor and only retries read/write when ReadOnlySqlTransaction
+    # escapes the controller. These handlers translate exceptions into JSON
+    # responses, so without the explicit declaration every admission would fail
+    # with "cannot execute INSERT in a read-only transaction" as a 500.
     @http.route(
         "/api/v1/web-lead",
         type="http",
         auth="none",
         methods=["POST"],
         csrf=False,
+        readonly=False,
     )
     def receive_web_lead(self, **kwargs):
         """Receive a lead from the lead_intake agent (pre-processed).
@@ -126,7 +134,7 @@ class WebLeadController(http.Controller):
         Expected JSON body::
 
             {
-                "lead_id": "WL-00001",
+                "lead_id": "WL-00001",        # optional: server generates one when absent
                 "source": "api",
                 "decision": "Hot",
                 "decision_reasons": [...],
@@ -144,6 +152,9 @@ class WebLeadController(http.Controller):
                 "partner_id": 5,
                 "state": "intake_created"
             }
+
+        Invalid payload shapes are deterministic 4xx responses; a 500 is
+        reserved for genuine server faults.
         """
         try:
             body = json.loads(request.httprequest.data or b"{}")
@@ -152,6 +163,8 @@ class WebLeadController(http.Controller):
 
         if not body:
             return self._json_error(400, "Empty request body.")
+        if not isinstance(body, dict):
+            return self._json_error(400, "Request body must be a JSON object.")
 
         ok, result = self._authenticate(request)
         if not ok:
@@ -161,6 +174,12 @@ class WebLeadController(http.Controller):
         decision = body.get("decision")
         if not decision:
             return self._json_error(422, "Missing required field: decision")
+        lead_id = body.get("lead_id")
+        if lead_id is not None and (not isinstance(lead_id, str) or not lead_id.strip()):
+            return self._json_error(422, "Field lead_id must be a non-empty string when provided.")
+        raw_payload = body.get("raw_payload")
+        if raw_payload is not None and not isinstance(raw_payload, dict):
+            return self._json_error(422, "Field raw_payload must be a JSON object when provided.")
 
         try:
             # sudo() used after token validation — auth gate is _authenticate() above
@@ -182,6 +201,9 @@ class WebLeadController(http.Controller):
             _logger.info("Web lead %s processed: state=%s", lead.lead_id, lead.state)
             return self._json_response(200, response_data)
 
+        except (UserError, ValidationError) as exc:
+            _logger.warning("Web lead payload rejected: %s", exc)
+            return self._json_error(422, str(exc))
         except Exception:
             _logger.exception("Unhandled error processing web lead from agent endpoint")
             return self._json_error(500, "Internal server error. Please try again later.")
@@ -196,6 +218,7 @@ class WebLeadController(http.Controller):
         auth="none",
         methods=["POST"],
         csrf=False,
+        readonly=False,
     )
     def receive_cognito_webhook(self, **kwargs):
         """Receive a raw Cognito form submission and run AI triage.
@@ -221,6 +244,8 @@ class WebLeadController(http.Controller):
 
         if not body:
             return self._json_error(400, "Empty request body.")
+        if not isinstance(body, dict):
+            return self._json_error(400, "Request body must be a JSON object.")
 
         ok, result = self._authenticate(request)
         if not ok:
@@ -253,6 +278,9 @@ class WebLeadController(http.Controller):
             )
             return self._json_response(200, response_data)
 
+        except (UserError, ValidationError) as exc:
+            _logger.warning("Cognito webhook payload rejected: %s", exc)
+            return self._json_error(422, str(exc))
         except Exception:
             _logger.exception("Unhandled error in Cognito webhook")
             return self._json_error(500, "Internal server error. Please try again later.")

@@ -24,7 +24,7 @@
                         class="btn btn-success"
                         data-hotkey="i"
                         title="PlasticOS: Creates a material intake record from this lead, starting the plastics brokerage pipeline (Intake &#8594; Matching &#8594; Offer &#8594; Transaction)."
-                        invisible="type == 'opportunity' or not active"/>
+                        invisible="not active or (type == 'opportunity' and not source_intake_id)"/>
             </xpath>
 
             <!-- ═══ Smart Buttons ═══ -->
@@ -77,6 +77,17 @@
                         invisible="intake_count == 0">
                     <field name="intake_count"
                            string="Intakes"
+                           widget="statinfo"/>
+                </button>
+
+                <button name="action_sync_commercial_images"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-picture-o"
+                        invisible="not source_intake_id and web_lead_count == 0"
+                        title="Copy currently available web-lead, intake, and offer images to this CRM lead and its material profile.">
+                    <field name="commercial_image_count"
+                           string="Images"
                            widget="statinfo"/>
                 </button>
 
@@ -165,6 +176,11 @@
 
                     <group string="Delivery Preferences">
                         <field name="delivery_term"/>
+                    </group>
+
+                    <group string="Commercial Material Context">
+                        <field name="source_intake_id" readonly="1"/>
+                        <field name="material_profile_id" readonly="1"/>
                     </group>
 
                     <group string="Pipeline Summary">

@@ -14,7 +14,7 @@ summary: "Triggers Gate action=match; persists runs/results for human review —
 
 ## Purpose
 
-Gate **orchestrator + result store** for intake→buyer matching (ADR-015).  
+Gate **orchestrator + result store** for intake→buyer matching (ADR-015).
 Does **not** score buyers locally — Cognitive.Engine.Graphs (CEG) scores via Constellation Gate (`action=match`).
 
 ## Summary

@@ -17,6 +17,7 @@ Gate definitions and status: [`docs/runbooks/LAUNCH_GATES.md`](../../docs/runboo
 | `run_c7_c8_enrichment_failures.py` | C7 Gate disabled · C8 Gate transport failure — durability across RPC rollback, partner untouched, caller budget honoured |
 | `run_f1_f3_full_import.py` | F1 full import → incremental handoff, no duplicate identities · F2 census verdict and fail-closed floors · F3 delete/restore provenance |
 | `run_s1_s3_pristine_seams.py` | S1 first-run Settings sync across the orchestrator's owned cursor · S2 authenticated webhook → elevated `Environment` → orchestrator, over real HTTP · S3 legacy contact import against the installed `res.partner` registry |
+| `run_web_lead_concurrent_admission.py` | W1 two concurrent identical Cognito admissions (two registry cursors, barrier-forced pre-check miss) converge to one committed web lead; the loser recovers from the `unique(lead_id)` violation and returns the prior receipt (F187-07) |
 
 ```bash
 make runtime-gates                                   # all of them

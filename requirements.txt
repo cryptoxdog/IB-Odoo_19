@@ -4,6 +4,9 @@
 
 # Required for plasticos_web_leads AI triage
 openai>=1.0.0
+# Native Claude Messages API transport for swappable text, vision, and advisory
+# economic-assessment roles. OpenAI SDK compatibility remains optional only.
+anthropic>=0.49.0
 
 # requests is typically pre-installed but declared for completeness
 # (matches external_dependencies in plasticos_web_leads/__manifest__.py)

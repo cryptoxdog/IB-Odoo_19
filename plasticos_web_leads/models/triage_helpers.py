@@ -180,6 +180,26 @@ def parse_weight_lbs(raw: str | None) -> tuple[float, str]:
     return 0.0, "none"
 
 
+def parse_explicit_weight_lbs(raw: str | None) -> tuple[float | None, str]:
+    """Parse only seller-stated mass; never infer mass from unit counts.
+
+    The legacy ``parse_weight_lbs`` deliberately supports unit-count and bare
+    number assumptions for older lead paths. Canonical packet ingestion must
+    keep inventory counts and unsupported bare numbers separate from mass.
+    """
+    if raw is None or not str(raw).strip():
+        return None, "none"
+
+    text = str(raw).strip()
+    for pattern, multiplier, tag in _COMPILED_MASS:
+        match = pattern.search(text)
+        if match:
+            quantity = _strip_commas(match.group(1))
+            if quantity >= 0:
+                return round(quantity * multiplier, 2), tag
+    return None, "none"
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Boolean coercion (shared by ai_normalizer.validate_ai_output)
 # ─────────────────────────────────────────────────────────────────────────────
