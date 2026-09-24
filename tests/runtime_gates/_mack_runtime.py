@@ -169,6 +169,28 @@ class Contender(threading.Thread):
             self.elapsed = time.monotonic() - started
 
 
+def hold_open(started: threading.Event, other_started: threading.Event, hold_seconds: float = 1.5):
+    """Winner-side ``before_commit`` hook: publish that the row is in, wait for the loser, then hold."""
+
+    def _hold():
+        started.set()
+        other_started.wait(30)
+        time.sleep(hold_seconds)
+
+    return _hold
+
+
+def wait_then_announce(other_started: threading.Event, mine: threading.Event):
+    """Loser-side ``before_start`` hook: no cursor until the winner's row is in (uncommitted)."""
+
+    def _wait():
+        if not other_started.wait(30):
+            raise RuntimeError("winner never announced its uncommitted insert")
+        mine.set()
+
+    return _wait
+
+
 def race(winner: Contender, loser: Contender, timeout: float = 60.0) -> None:
     winner.start()
     loser.start()
