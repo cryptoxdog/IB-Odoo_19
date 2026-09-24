@@ -14,15 +14,23 @@ import logging
 import uuid
 from typing import Any
 
+import psycopg2
+import psycopg2.errorcodes
 import requests as http_requests
 
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import ConcurrencyError, UserError
 
-from ..adapters.base import PACKET_SCHEMA_VERSION, WebLeadPacket, packet_to_dict
+from ..adapters.base import PACKET_SCHEMA_VERSION, WebLeadPacket, acquisition_rows, packet_to_dict
 from ..adapters.registry import get_adapter
 from . import ai_normalizer, image_analyzer
-from .attachment_processor import copy_successful_attachments_to_intake, process_attachments
+from .attachment_processor import (
+    MAX_FILE_BYTES,
+    AttachmentDestinationError,
+    copy_successful_attachments_to_intake,
+    fetch_attachment,
+    process_attachments,
+)
 from .classification_engine import classify_lead
 from .economic_evaluator import evaluate_economic_opportunity
 from .economic_policy import evaluate_economic_eligibility
@@ -41,9 +49,12 @@ from .evidence_keys import (
 from .evidence_reconciler import reconcile_evidence
 from .inference_provider import InferenceProvider
 from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
-from .review_snapshot import build_snapshot_payload, snapshot_content_hash
 
 _logger = logging.getLogger(__name__)
+
+# Legacy agent payloads are Cognito form submissions, so their image URLs are
+# held to the Cognito adapter's destination policy.
+_LEGACY_ATTACHMENT_PROVIDER = "cognito"
 
 # ── Pallet weight assumption when no lbs given ───────────────────────────────
 _LBS_PER_PALLET_ASSUMPTION = 1_500  # conservative: typical plastic pallet
@@ -183,6 +194,16 @@ def _extract_cognito_name(raw_payload: dict[str, Any]) -> str:
     if isinstance(_name_val, str):
         return _name_val.strip()
     return (raw_payload.get("YourName") or "").strip()
+
+
+def _is_lead_identity_collision(exc: Exception) -> bool:
+    """True for a PostgreSQL unique violation on the web-lead identity constraint."""
+    if not isinstance(exc, psycopg2.IntegrityError):
+        return False
+    if getattr(exc, "pgcode", None) != psycopg2.errorcodes.UNIQUE_VIOLATION:
+        return False
+    constraint = str(getattr(getattr(exc, "diag", None), "constraint_name", "") or "")
+    return "lead_id" in constraint
 
 
 class PlasticosWebLead(models.Model):
@@ -378,6 +399,29 @@ class PlasticosWebLead(models.Model):
         index=True,
     )
     error_message = fields.Text(readonly=True)
+    mack_review_state = fields.Selection(
+        [
+            ("not_queued", "Not Queued"),
+            ("queued", "Queued for Internal Review"),
+            ("blocked", "Blocked: Reviewer Not Configured"),
+        ],
+        string="Mack Review Handoff",
+        default="not_queued",
+        readonly=True,
+        tracking=True,
+        index=True,
+        help=(
+            "Internal human-review handoff state for a HOT intake. 'Blocked' is a "
+            "durable, visible state meaning no eligible reviewer is configured; the "
+            "handoff is never silently assigned to the ingestion worker. This field "
+            "does not call Mack, matching, Gate, or any commercial operation."
+        ),
+    )
+    mack_review_reason = fields.Text(
+        string="Mack Review Handoff Note",
+        readonly=True,
+        help="Administrative reason for a queued or blocked internal review handoff.",
+    )
 
     # ═══════════════════════════════════════════════════════════
     # Links
@@ -431,6 +475,8 @@ class PlasticosWebLead(models.Model):
                 "review_required_reason",
                 "review_snapshot_ids",
                 "crm_lead_id",
+                "mack_review_state",
+                "mack_review_reason",
             }
         )
         non_state_fields = set(vals.keys()) - _STATE_ONLY_FIELDS
@@ -465,16 +511,87 @@ class PlasticosWebLead(models.Model):
         except ValueError as exc:
             raise UserError(str(exc)) from exc
 
+    # ═══════════════════════════════════════════════════════════
+    # Identity and idempotent admission
+    # ═══════════════════════════════════════════════════════════
+
+    @api.model
+    def _next_lead_identity(self) -> str:
+        """Server-generated identity for submissions that carry none."""
+        return self.env["ir.sequence"].next_by_code("plasticos.web.lead") or f"WL-{uuid.uuid4().hex[:5].upper()}"
+
+    @api.model
+    def _find_existing_lead(self, lead_id: str) -> PlasticosWebLead:
+        """Locate a prior admission by identity (a separate method so tests can race it)."""
+        return self.search([("lead_id", "=", lead_id)], limit=1)
+
+    @api.model
+    def _assert_equivalent_packet_replay(self, existing: PlasticosWebLead, packet: WebLeadPacket) -> None:
+        """A replay must describe the same provider submission as the prior receipt."""
+        if existing.provider_key and existing.provider_key != packet.provider:
+            raise UserError(
+                f"Web lead {existing.lead_id} was admitted from provider {existing.provider_key!r}; "
+                f"a {packet.provider!r} submission cannot reuse that identity."
+            )
+        if (
+            existing.provider_external_id
+            and packet.provider_external_id
+            and existing.provider_external_id != packet.provider_external_id
+        ):
+            raise UserError(
+                f"Web lead {existing.lead_id} is bound to provider submission "
+                f"{existing.provider_external_id!r}, not {packet.provider_external_id!r}."
+            )
+
+    @api.model
+    def _create_or_replay(self, vals: dict[str, Any]) -> tuple[PlasticosWebLead, bool]:
+        """Create inside a savepoint; a unique collision on ``lead_id`` is a concurrent replay.
+
+        Two retries of the same provider submission can both miss the pre-check
+        search. The loser then hits the ``unique(lead_id)`` constraint at flush.
+        That is not a failure of admission: the savepoint is rolled back and the
+        committed winner is re-queried so the caller returns that prior receipt.
+
+        Odoo cursors run at REPEATABLE READ, so when this transaction's snapshot
+        predates the winner's commit the winner is invisible here and no query in
+        this transaction can ever return it. The only correct recovery is a fresh
+        transaction: ``ConcurrencyError`` is the contract the HTTP and RPC
+        dispatchers honour (``odoo.service.model.retrying`` rolls back and replays
+        the request), and the replayed admission finds the winner in its
+        pre-check and returns the prior receipt.
+        """
+        try:
+            with self.env.cr.savepoint():
+                return self.create(vals), True
+        except psycopg2.IntegrityError as exc:
+            if not _is_lead_identity_collision(exc):
+                raise
+        existing = self._find_existing_lead(str(vals["lead_id"]))
+        if not existing:
+            raise ConcurrencyError(
+                f"Web lead {vals['lead_id']!r} was admitted by a concurrent transaction that is not visible "
+                "in this snapshot; replay the admission in a fresh transaction."
+            )
+        _logger.info("Concurrent replay for web lead %s; returning the prior receipt.", existing.lead_id)
+        return existing, False
+
     @api.model
     def create_from_packet(self, packet: WebLeadPacket) -> PlasticosWebLead:
-        """Create a durable web lead from a validated provider-neutral packet."""
+        """Create a durable web lead from a validated provider-neutral packet.
+
+        Admission is idempotent on the packet's idempotency key, including under
+        concurrent retries: a replay returns the prior lead without re-running
+        triage. Signed attachment URLs travel only on the in-memory ``packet``;
+        the stored canonical payload never retains them.
+        """
         if packet.schema_version != PACKET_SCHEMA_VERSION:
             raise UserError(f"Unsupported web-lead packet version: {packet.schema_version!r}")
 
         lead_id = packet.idempotency_key
         if lead_id:
-            existing = self.search([("lead_id", "=", lead_id)], limit=1)
+            existing = self._find_existing_lead(lead_id)
             if existing:
+                self._assert_equivalent_packet_replay(existing, packet)
                 _logger.info(
                     "Duplicate packet submission for provider=%s external_id=%s.",
                     packet.provider,
@@ -482,7 +599,7 @@ class PlasticosWebLead(models.Model):
                 )
                 return existing
         else:
-            lead_id = self.env["ir.sequence"].next_by_code("plasticos.web.lead") or f"WL-{uuid.uuid4().hex[:5].upper()}"
+            lead_id = self._next_lead_identity()
 
         web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
         image_urls = [item.source_url for item in packet.attachments if item.content_type.startswith("image/")]
@@ -508,9 +625,12 @@ class PlasticosWebLead(models.Model):
             "image_urls": image_urls,
             "state": "received",
         }
-        lead = self.create(vals)
+        lead, created = self._create_or_replay(vals)
+        if not created:
+            self._assert_equivalent_packet_replay(lead, packet)
+            return lead
         _logger.info("Web lead %s created from provider packet %s.", lead.lead_id, packet.provider)
-        lead._run_triage_pipeline()
+        lead._run_triage_pipeline(packet=packet)
         return lead
 
     # ═══════════════════════════════════════════════════════════
@@ -534,16 +654,28 @@ class PlasticosWebLead(models.Model):
 
         NOTE: Odoo re-runs its own classification — the agent's decision is
         stored as external_decision for audit but does not bypass Odoo triage.
-        """
-        lead_id = payload.get("lead_id")
-        if not lead_id:
-            raise UserError("Missing required field: lead_id")
-        existing = self.search([("lead_id", "=", lead_id)], limit=1)
-        if existing:
-            _logger.info("Web lead %s already exists, returning existing.", lead_id)
-            return existing
 
+        ``lead_id`` is optional: the accepted legacy client shape omits it and
+        relies on a server-generated sequence identity. A supplied ``lead_id``
+        is the idempotency key (same id → same record, also under concurrency).
+        """
+        if not isinstance(payload, dict):
+            raise UserError("Agent payload must be a JSON object.")
+        lead_id = payload.get("lead_id")
+        if lead_id is not None and (not isinstance(lead_id, str) or not lead_id.strip()):
+            raise UserError("Field lead_id must be a non-empty string when provided.")
         raw = payload.get("raw_payload") or {}
+        if not isinstance(raw, dict):
+            raise UserError("Field raw_payload must be a JSON object when provided.")
+
+        if lead_id:
+            lead_id = lead_id.strip()
+            existing = self._find_existing_lead(lead_id)
+            if existing:
+                _logger.info("Web lead %s already exists, returning existing.", lead_id)
+                return existing
+        else:
+            lead_id = self._next_lead_identity()
 
         # FIX: use same name extraction as create_from_cognito — handles dict Name
         contact = _extract_cognito_name(raw) or raw.get("YourName", "").strip()
@@ -582,7 +714,9 @@ class PlasticosWebLead(models.Model):
             "state": "received",
         }
 
-        lead = self.create(vals)
+        lead, created = self._create_or_replay(vals)
+        if not created:
+            return lead
         _logger.info(
             "Web lead %s created from agent (external_decision=%s). Running Odoo triage.",
             lead_id,
@@ -597,7 +731,16 @@ class PlasticosWebLead(models.Model):
     # AI Triage Pipeline
     # ═══════════════════════════════════════════════════════════
 
-    def _run_triage_pipeline(self):
+    def _attachment_allowed_hosts(self, config: Any) -> tuple[str, ...]:
+        """Provider destination policy for this lead: adapter default plus operator additions."""
+        provider_key = self.provider_key or _LEGACY_ATTACHMENT_PROVIDER
+        try:
+            provider_hosts = tuple(getattr(get_adapter(provider_key), "attachment_allowed_hosts", ()))
+        except ValueError:
+            provider_hosts = ()
+        return config.get_attachment_allowed_hosts(provider_hosts)
+
+    def _run_triage_pipeline(self, packet: WebLeadPacket | None = None):
         """Execute the full AI triage pipeline on this web lead.
 
         Steps:
@@ -608,6 +751,10 @@ class PlasticosWebLead(models.Model):
           [WRITE]  5. Persist classification result
           [HOT]    6. Create intake + notify admin
           [IMG]    7. Attach images (HOT only — skip blocking download for COLD)
+
+        ``packet`` is the in-memory admission packet and the only carrier of
+        signed attachment URLs. A later re-triage has no packet: it reuses prior
+        successful acquisitions and records the rest as unavailable.
         """
         self.ensure_one()
         config = self.env["plasticos.web.lead.config"].sudo().get_config()
@@ -650,7 +797,9 @@ class PlasticosWebLead(models.Model):
             vision_results: list[dict[str, Any]] = []
             vision_provider_spec = config.get_inference_provider("vision_analysis") if config.vision_enabled else None
             if is_packet_path:
-                packet_attachments = triage_input.get("attachments") or []
+                packet_attachments = (
+                    acquisition_rows(packet) if packet is not None else list(triage_input.get("attachments") or [])
+                )
                 analyzer = None
                 if vision_provider_spec:
                     vision_provider = InferenceProvider(**vision_provider_spec)
@@ -667,6 +816,7 @@ class PlasticosWebLead(models.Model):
                     attachments=packet_attachments,
                     analyzer=analyzer,
                     evidence_bundle=self.evidence_bundle,
+                    allowed_hosts=self._attachment_allowed_hosts(config),
                 )
                 vision_results = [
                     row["analysis"]
@@ -1023,19 +1173,66 @@ class PlasticosWebLead(models.Model):
 
         return self.env["plasticos.intake"].create(intake_vals)
 
+    @staticmethod
+    def _eligible_reviewer(config):
+        """The configured reviewer, only while an active internal user; otherwise empty."""
+        reviewer = getattr(config, "hot_intake_reviewer_id", None)
+        if not reviewer or not reviewer.exists() or not reviewer.active or reviewer.share:
+            return None
+        return reviewer
+
     def _notify_admin_hot_intake(self, intake, config):
-        """Schedule review activity on the intake for the configured reviewer."""
-        reviewer_id = self.env.user.id
-        if hasattr(config, "intake_reviewer_id") and config.intake_reviewer_id:
-            reviewer_id = config.intake_reviewer_id.id
+        """Create one internal Odoo review activity or record a durable blocked handoff.
+
+        This is an Odoo-native human handoff only. The reviewer is exclusively
+        the explicitly configured internal user: the webhook worker / current
+        user is never an implicit fallback (it runs under sudo after token
+        auth, so it is a technical actor, not a broker). It never calls Mack,
+        matching, email, or any commercial operation.
+        """
+        self.ensure_one()
+        reviewer = self._eligible_reviewer(config)
+        if reviewer is None:
+            self.write(
+                {
+                    "mack_review_state": "blocked",
+                    "mack_review_reason": "HOT Intake Reviewer is not configured.",
+                }
+            )
+            self.message_post(
+                body=(
+                    "HOT lead intake was created, but the internal review handoff is blocked: "
+                    "configure a HOT Intake Reviewer in Web Lead Settings, then use Route Review."
+                )
+            )
+            _logger.warning("HOT lead %s has no configured internal reviewer.", self.lead_id)
+            return
+
+        summary = f"Review HOT Web Lead: {self.lead_id}"
+        existing = self.env["mail.activity"].search_count(
+            [
+                ("res_model", "=", "plasticos.intake"),
+                ("res_id", "=", intake.id),
+                ("user_id", "=", reviewer.id),
+                ("summary", "=", summary),
+            ]
+        )
+        if existing:
+            self.write(
+                {
+                    "mack_review_state": "queued",
+                    "mack_review_reason": f"Internal review is assigned to {reviewer.name}.",
+                }
+            )
+            return
 
         polymer_name = intake.polymer_id.name if intake.polymer_id else "Unknown"
         form_name = intake.form_id.name if intake.form_id else "Unknown"
 
         intake.activity_schedule(
             "mail.mail_activity_data_todo",
-            user_id=reviewer_id,
-            summary=f"Review HOT Web Lead: {self.company_name or 'Unknown'}",
+            user_id=reviewer.id,
+            summary=summary,
             note=(
                 f"<p>New HOT lead from web form requires review:</p>"
                 f"<ul>"
@@ -1048,34 +1245,34 @@ class PlasticosWebLead(models.Model):
                 f"matching, or delete/archive if not a valid lead.</p>"
             ),
         )
+        self.write(
+            {
+                "mack_review_state": "queued",
+                "mack_review_reason": f"Internal review is assigned to {reviewer.name}.",
+            }
+        )
+
+    def action_route_hot_review(self):
+        """Re-attempt a blocked human handoff after a reviewer has been configured."""
+        config = self.env["plasticos.web.lead.config"].sudo().get_config()
+        for rec in self:
+            if not rec.intake_id:
+                raise UserError("Only a lead with an intake has a review handoff to route.")
+            rec._notify_admin_hot_intake(rec.intake_id, config)
+        return True
 
     def action_approve_for_commercial_preparation(self):
-        """Create an immutable broker-approved snapshot for later commercial work."""
+        """Record a broker approval as an immutable server-derived snapshot.
+
+        The snapshot model's ``_record_broker_approval`` is the only path that
+        can mint a snapshot: it derives approver, time, revision, lead/intake
+        binding, payload and hash itself, so no caller can supply provenance.
+        """
         self.ensure_one()
-        if self.decision != "hot" or not self.intake_id:
-            raise UserError("Only a HOT lead with an intake can be approved for commercial preparation.")
-        assessment = (self.evidence_bundle or {}).get(KEY_ECONOMIC_ASSESSMENT) or {}
-        if assessment.get(KEY_STATUS) != ASSESSMENT_STATUS_ASSESSED:
-            raise UserError(
-                "A completed economic-opportunity assessment is required before broker approval. "
-                "Configure the selected economic evaluation provider and re-run triage."
-            )
         if self.review_status == "approved" and self.review_snapshot_ids:
             return self.action_view_review_snapshots()
 
-        next_revision = max(self.review_snapshot_ids.mapped("revision"), default=0) + 1
-        payload = build_snapshot_payload(lead=self, intake=self.intake_id, review_notes=self.review_notes)
-        snapshot = self.env["plasticos.web.lead.review.snapshot"].create(
-            {
-                "name": f"{self.lead_id} / Broker Snapshot v{next_revision}",
-                "web_lead_id": self.id,
-                "intake_id": self.intake_id.id,
-                "revision": next_revision,
-                "approved_by_id": self.env.user.id,
-                "snapshot_payload": payload,
-                "content_hash": snapshot_content_hash(payload),
-            }
-        )
+        snapshot = self.env["plasticos.web.lead.review.snapshot"]._record_broker_approval(self)
         self.write({"review_status": "approved"})
         self.message_post(
             body=(
@@ -1193,19 +1390,25 @@ class PlasticosWebLead(models.Model):
         NOTE: this method is synchronous and blocks the Odoo worker thread.
         For future improvement: enqueue via queue_job or ir.actions.server.
         Currently only called for HOT leads to limit blast radius.
+
+        Every URL is held to the same provider destination policy as packet
+        acquisition (allowlisted public host, HTTPS, revalidated redirects); a
+        rejected destination is logged and skipped, never fetched.
         """
         self.ensure_one()
         Attachment = self.env["ir.attachment"]
+        config = self.env["plasticos.web.lead.config"].sudo().get_config()
+        allowed_hosts = self._attachment_allowed_hosts(config)
 
         for i, url in enumerate(urls[:10]):
             try:
-                resp = http_requests.get(url, timeout=30, stream=True)
-                resp.raise_for_status()
-                content = resp.content
-                if not content:
-                    continue
-
-                content_type = resp.headers.get("Content-Type", "image/jpeg")
+                content, header_type = fetch_attachment(
+                    url,
+                    allowed_hosts=allowed_hosts,
+                    http_get=http_requests.get,
+                    remaining_bytes=MAX_FILE_BYTES,
+                )
+                content_type = header_type or "image/jpeg"
                 ext_map = {"png": ".png", "webp": ".webp", "gif": ".gif"}
                 ext = next((v for k, v in ext_map.items() if k in content_type), ".jpg")
                 fname = f"web_lead_{self.lead_id}_img_{i + 1}{ext}"
@@ -1236,6 +1439,13 @@ class PlasticosWebLead(models.Model):
 
                 _logger.info("Attached %s to web lead %s.", fname, self.lead_id)
 
+            except AttachmentDestinationError as exc:
+                _logger.warning(
+                    "Legacy image %s for lead %s rejected by destination policy (%s).",
+                    i + 1,
+                    self.lead_id,
+                    exc.code,
+                )
             except Exception as exc:
                 _logger.warning(
                     "Failed to fetch an image for lead %s: %s",

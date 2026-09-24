@@ -65,7 +65,8 @@ class TestAPIFailures(PlasticosTestCase):
         self.assertTrue(partner.exists())
         self.assertEqual(partner.city, "Test")
 
-    def test_ai_normalize_failure_sets_error_state(self):
+    def test_classification_failure_sets_error_state(self):
+        """A failure raised inside classify_lead() lands the lead in state=error."""
         if "plasticos.web.lead" not in self.env:
             self.skipTest("Web leads not installed")
         import uuid
@@ -122,11 +123,23 @@ class TestInvalidData(PlasticosTestCase):
                     }
                 )
 
-    def test_web_lead_create_from_agent_missing_lead_id(self):
+    def test_web_lead_create_from_agent_generates_lead_id_when_missing(self):
+        """Legacy agent contract (F187-04): a missing lead_id gets a server identity, not an error."""
         if "plasticos.web.lead" not in self.env:
             self.skipTest("Web leads not installed")
+        lead = self.env["plasticos.web.lead"].create_from_agent({"decision": "cold", "raw_payload": {}})
+        self.assertTrue(lead.lead_id)
+        self.assertTrue(lead.lead_id.startswith("WL-"))
+
+    def test_web_lead_create_from_agent_rejects_malformed_identity(self):
+        """Genuinely invalid payload shapes stay deterministic UserErrors (4xx at the API)."""
+        if "plasticos.web.lead" not in self.env:
+            self.skipTest("Web leads not installed")
+        WebLead = self.env["plasticos.web.lead"]
         with self.assertRaises(UserError):
-            self.env["plasticos.web.lead"].create_from_agent({})
+            WebLead.create_from_agent({"lead_id": "   ", "decision": "cold"})
+        with self.assertRaises(UserError):
+            WebLead.create_from_agent({"decision": "cold", "raw_payload": ["not", "an", "object"]})
 
     def test_claim_invalid_state_transition(self):
         if "plasticos.claim" not in self.env:

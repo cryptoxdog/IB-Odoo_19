@@ -82,6 +82,11 @@
                             type="object"
                             class="btn-secondary"
                             invisible="decision != 'hot' or not intake_id or review_status == 'rejected'"/>
+                    <button name="action_route_hot_review"
+                            string="Route Review"
+                            type="object"
+                            class="btn-warning"
+                            invisible="not intake_id or mack_review_state != 'blocked'"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="received,intake_created"/>
                 </header>
@@ -97,6 +102,8 @@
                             <field name="review_status"/>
                             <field name="review_required_reason" readonly="1"/>
                             <field name="lead_source_id"/>
+                            <field name="mack_review_state"/>
+                            <field name="mack_review_reason" invisible="mack_review_state == 'not_queued'"/>
                         </group>
                         <group string="Links" name="links">
                             <field name="partner_id"/>

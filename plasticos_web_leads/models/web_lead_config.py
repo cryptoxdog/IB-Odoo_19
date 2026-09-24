@@ -94,6 +94,36 @@ class PlasticosWebLeadConfig(models.Model):
         help="Create plasticos.intake for HOT leads (without partner). "
         "Admin reviews intake before deciding to buyer-match or discard.",
     )
+    hot_intake_reviewer_id = fields.Many2one(
+        "res.users",
+        string="HOT Intake Reviewer",
+        ondelete="set null",
+        domain="[('share', '=', False), ('active', '=', True)]",
+        help=(
+            "Internal Odoo user who receives the HOT web-lead review activity. "
+            "When unset, Odoo records the handoff as blocked rather than routing "
+            "it to the ingestion worker or an arbitrary user. ondelete='set null' "
+            "is deliberate: deleting the reviewer must not cascade into deleting "
+            "the configuration, and the resulting empty value is caught by the "
+            "same blocked-handoff state, so a HOT lead is never silently assigned "
+            "to a technical actor."
+        ),
+    )
+
+    # ═══════════════════════════════════════════════════════════
+    # Attachment Acquisition Policy
+    # ═══════════════════════════════════════════════════════════
+
+    attachment_allowed_hosts = fields.Text(
+        string="Additional Attachment Hosts",
+        help=(
+            "Pipe-delimited hostnames the worker may fetch inbound attachments from, "
+            "in addition to the provider adapter's built-in destination (for Cognito: "
+            "cognitoforms.com and its subdomains). Subdomains of a listed host are "
+            "accepted. Every fetch is HTTPS-only, must resolve to a public address, "
+            "and each redirect hop is revalidated against this policy."
+        ),
+    )
 
     # ═══════════════════════════════════════════════════════════
     # Inference Role Selection
@@ -346,6 +376,16 @@ class PlasticosWebLeadConfig(models.Model):
         if not raw:
             return frozenset()
         return frozenset(code.strip().upper() for code in raw.split("|") if code.strip())
+
+    def get_attachment_allowed_hosts(self, provider_hosts=()):
+        """Return the attachment destination allowlist: adapter default plus operator additions."""
+        hosts = [str(host).strip().lower() for host in (provider_hosts or ()) if str(host).strip()]
+        raw = (self.attachment_allowed_hosts or "").strip() if self else ""
+        for entry in raw.split("|"):
+            host = entry.strip().lower()
+            if host and host not in hosts:
+                hosts.append(host)
+        return tuple(hosts)
 
     # ═══════════════════════════════════════════════════════════
     # LLM Provider Resolution (Fallback Chain)

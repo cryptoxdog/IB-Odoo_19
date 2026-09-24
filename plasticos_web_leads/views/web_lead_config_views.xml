@@ -19,7 +19,12 @@
                         </group>
                         <group>
                             <field name="default_source_type"/>
+                            <field name="hot_intake_reviewer_id"/>
                         </group>
+                    </group>
+                    <group string="Attachment Acquisition Policy">
+                        <field name="attachment_allowed_hosts" widget="text"
+                               placeholder="files.example.com|cdn.example.com"/>
                     </group>
                     <group string="API Authentication (Inbound Webhook)">
                         <group>

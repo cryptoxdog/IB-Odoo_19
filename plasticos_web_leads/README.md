@@ -56,4 +56,34 @@ The existing endpoints remain unchanged:
 - `POST /api/v1/web-lead`
 - `GET /api/v1/web-lead/health`
 
+`POST /api/v1/web-lead` keeps its legacy shape: `lead_id` is optional and the
+server generates a sequence identity (`WL-00001`, ...) when it is absent; a
+supplied `lead_id` is the idempotency key. Malformed payloads (non-object body,
+empty `lead_id`, non-object `raw_payload`, missing `decision`) return a
+deterministic `400`/`422`; `500` is reserved for genuine server faults. Both
+POST endpoints are idempotent under concurrent retries: a replay of the same
+provider submission returns the prior receipt instead of a constraint error.
+
 Inbound API key comparison uses a timing-safe comparison. Credentials and signed attachment URLs must never be committed or placed in routine logs.
+
+## Attachment acquisition and data minimization
+
+Inbound attachments are fetched only from the provider's allowlisted
+destination (for Cognito, `cognitoforms.com` and its subdomains, extendable in
+Web Lead Settings) over HTTPS on the default port. Every target must resolve to
+a public address; loopback, private, link-local, multicast and reserved
+addresses are refused, and each redirect hop is revalidated before it is
+followed. The signed acquisition URL is consumed once, in-request: it is not
+stored in the canonical payload, never rendered into an LLM prompt, and never
+copied into a broker-approved snapshot. Durable attachment evidence is limited
+to provider source id, local attachment id, checksum, MIME type and acquisition
+status. A vision result shaped like an error is recorded as failed analysis
+(the stored file is kept) and routes the lead to human review.
+
+## HOT review handoff
+
+A HOT intake's review activity goes only to the **HOT Intake Reviewer**
+configured in Web Lead Settings. When none is configured, the lead records a
+durable `Blocked: Reviewer Not Configured` handoff state instead of assigning
+the activity to the ingestion worker; **Route Review** re-attempts the handoff
+once a reviewer is set.
