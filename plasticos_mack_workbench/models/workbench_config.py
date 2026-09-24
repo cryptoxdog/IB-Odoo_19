@@ -38,6 +38,18 @@ class PlasticosMackWorkbenchConfig(models.Model):
     )
     active = fields.Boolean(default=True)
 
+    # PostgreSQL is the authority for one-active-route-per-company. A partial
+    # unique index serialises concurrent activations at the row level: the second
+    # of two simultaneous activations blocks on the index until the first
+    # commits and is then refused, whereas the Python constraint below (which
+    # only counts rows visible to its own snapshot) let both commit (F190-02).
+    # The constraint is kept for its early, friendly message in the sequential
+    # case; the index is what makes the property hold.
+    _unique_active_route_per_company = models.UniqueIndex(
+        "(company_id) WHERE (active IS TRUE)",
+        "Only one active Mack Workbench configuration is allowed per company.",
+    )
+
     @api.constrains("active", "company_id")
     def _check_one_active_configuration_per_company(self):
         for record in self:
