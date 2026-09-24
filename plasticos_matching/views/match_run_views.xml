@@ -17,6 +17,7 @@
                 <field name="match_count"/>
                 <field name="failure_class"/>
                 <field name="availability_status"/>
+                <field name="operation_id" optional="hide"/>
                 <field name="gate_packet_id"/>
                 <field name="retry_of_id"/>
             </list>
@@ -44,6 +45,9 @@
                             <field name="mode"/>
                             <field name="engine"/>
                             <field name="retry_of_id" readonly="1"/>
+                            <field name="request_attempt"/>
+                            <field name="operation_id"/>
+                            <field name="request_fingerprint"/>
                         </group>
                         <group>
                             <field name="match_count"/>
@@ -51,6 +55,11 @@
                             <field name="availability_status"/>
                             <field name="gate_packet_id"/>
                             <field name="gate_correlation_id"/>
+                            <field name="gate_query_id"/>
+                            <field name="gate_contract_version"/>
+                            <field name="gate_domain_spec_version"/>
+                            <field name="gate_model_version"/>
+                            <field name="gate_response_digest"/>
                         </group>
                     </group>
                     <group string="Error" invisible="not error_message">

@@ -100,6 +100,8 @@ configuration, **C6** for replay. Do not reuse a retired label.
 | C6 | Replay after a partial failure resumes from the last durable watermark, adds no duplicates, processes the previously failed portion, advances the watermark forward only, and reports only its own committed work | replay loses or duplicates source data | **PASS** |
 | C7 | Gate **disabled** → failure/degraded operator state and `availability_status` survive the outer RPC rollback; partner business fields unchanged; no second-cursor lock wait | operator loses the reason enrichment did not run | **PASS** |
 | C8 | Gate **transport failure** → same durability assertions, and the call returns inside the configured caller budget | a stalled Gate blocks an RPC worker past its budget | **PASS** |
+| C9 | Gate **matching disabled** → driven through the intake's own match action, the classified `plasticos.match.run` failure receipt (state, failure class, availability status, attempt) and the operator note on the intake survive the outer RPC rollback; no `plasticos.match.result` or intake match line is written; intake status, match counters and partner ranks unchanged; an operator retry records a new attempt bound to the prior run; no second-cursor lock wait | operator loses the reason matching did not run, or a failed request leaves scoring/commercial residue | **PASS** |
+| C10 | Gate **matching transport failure** → same durability assertions; the durable run carries the exact `operation_id` and request fingerprint Gate received and no response digest; the call returns inside the configured caller budget | a stalled Gate blocks an RPC worker past its budget, or the request receipt is lost with the rollback | **PASS** |
 
 ### Pristine operator-seam gates (real Odoo + PostgreSQL)
 
@@ -156,8 +158,10 @@ C1–C8 still apply to the full import unchanged: it shares `_sync_contacts`,
 |------|-----------|------------------------------|--------|
 | T1 | Configured VanillaSoft and Gate endpoints are both `https://` | production service URL is plaintext HTTP | operator check at deploy |
 
-C1–C8 are executable without Docker; see `C1_C6_LOCAL_RUNTIME.md` for the
-harness and `tests/runtime_gates/` for the scripts. Any lock
+C1–C10 are executable without Docker; see `C1_C6_LOCAL_RUNTIME.md` for the
+harness and `tests/runtime_gates/` for the scripts (C9/C10:
+`run_c9_c10_matching_failures.py`, skipped with exit 77 only when
+`plasticos_matching` is not installed). Any lock
 wait, disappearing failure record, or incorrect watermark is NO-GO.
 
 **A fixture caveat that cost a false failure.** `_sync_contacts` clamps
@@ -170,7 +174,7 @@ the wrong reason. Keep C6 watermarks inside the window.
 
 1. Gate A — the five patch areas landed, no architecture expansion.
 2. Gate B — CI green (`ruff`, static checks, pure-python tests, audit baseline).
-3. Gate C — C1–C8 above on real Odoo/PostgreSQL, plus T1 at deploy.
+3. Gate C — C1–C10 above on real Odoo/PostgreSQL, plus T1 at deploy.
 4. Gate D — EIE bounds (owned by the EIE repo, not this one).
 5. Gate E — manual VanillaSoft canary with the cron **off**; run twice and require
    no duplicates, no lost records, no watermark regression. Then enable the cron.

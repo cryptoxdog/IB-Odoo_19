@@ -19,13 +19,11 @@ class PlasticosIntakeGateMatch(models.Model):
                     max_results=20,
                     mode=getattr(record, "match_mode", None) or "strict",
                 )
-            except UserError as exc:
-                # Failure already audited on plasticos.match.run — surface to operator.
-                record.message_post(
-                    body=_("Gate match degraded/failed: %s") % exc,
-                    message_type="notification",
-                    subtype_xmlid="mail.mt_note",
-                )
+            except UserError:
+                # The orchestrator already persisted the classified failure run
+                # AND the operator note on this intake through an owned,
+                # committed cursor. Anything posted here would ride the request
+                # transaction the re-raise rolls back, so nothing is written.
                 raise
             run_id = orchestrator.persist_review_results(record, matches, run)
             if matches:

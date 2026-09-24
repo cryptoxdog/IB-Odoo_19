@@ -172,7 +172,9 @@ def _run_attempt(run_rec) -> int:
     return max(1, value)
 
 
-def build_match_request(env, *, intake=None, supplier=None, top_n: int = 20, mode: str = "strict") -> MatchRequest:
+def build_match_request(
+    env, *, intake=None, supplier=None, match_run=None, top_n: int = 20, mode: str = "strict"
+) -> MatchRequest:
     query: dict[str, Any] = {}
     odoo: dict[str, Any] = {}
     if intake is not None:
@@ -188,7 +190,12 @@ def build_match_request(env, *, intake=None, supplier=None, top_n: int = 20, mod
                 query[dst] = value
         if "source_type_id" in intake._fields and intake.source_type_id:
             query["source_type"] = intake.source_type_id.code or intake.source_type_id.name
-        odoo = build_odoo_context(env, model=intake._name, record_id=intake.id).to_dict()
+        context_record = match_run or intake
+        odoo = build_odoo_context(
+            env,
+            model=context_record._name,
+            record_id=context_record.id,
+        ).to_dict()
         query["intake_id"] = intake.id
         if getattr(intake, "partner_id", False):
             query["supplier_partner_id"] = intake.partner_id.id
