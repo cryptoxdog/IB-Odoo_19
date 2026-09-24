@@ -9,11 +9,36 @@ import logging
 from odoo import _, api, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
+from .match_run import RECEIPT_WRITE_CONTEXT
+
 _logger = logging.getLogger(__name__)
 
 _RETRYABLE = "retryable"
 _PERMANENT = "permanent"
 _UNKNOWN = "unknown"
+
+# Match-run columns the durable failure record carries when a run that already
+# holds a Gate receipt fails later in the same request (result persistence).
+# Identity plus receipt evidence; the failure state is merged on top.
+_DURABLE_RUN_FIELDS = (
+    "intake_id",
+    "supplier_partner_id",
+    "mode",
+    "engine",
+    "availability_status",
+    "request_attempt",
+    "retry_of_id",
+    "operation_id",
+    "request_fingerprint",
+    "gate_packet_id",
+    "gate_correlation_id",
+    "gate_query_id",
+    "gate_contract_version",
+    "gate_domain_spec_version",
+    "gate_model_version",
+    "gate_response_digest",
+    "match_count",
+)
 
 
 def _canonical_digest(value):
@@ -36,10 +61,13 @@ def _receipt_text(value):
 class PlasticosMatchOrchestrator(models.AbstractModel):
     """Orchestrates buyer matching exclusively through Constellation Gate.
 
-    Hard rules (ADR-003-single / M2 / M3):
+    Hard rules (ADR-003-single / M2 / M3 / ADR-013):
     - No Neo4j / local Stage-1 candidate discovery in this addon
     - No silent fallback to plasticos.buyer.matcher local path
     - Gate failures are classified, audited on plasticos.match.run, and fail closed
+    - The failure receipt is persisted on an owned committed cursor AFTER the
+      request transaction is rolled back, so it survives the RPC rollback that
+      the raised UserError triggers (same I2/I3 pattern as enrichment runs)
     - Retryable failures expose operator retry; never substitute empty success
     """
 
@@ -55,11 +83,73 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
         return "degraded"
 
     @api.model
+    def _rollback_then_persist_failed_run_durable(self, run_id, vals):
+        """Roll the failed request transaction back, then persist the failure receipt durably.
+
+        Mirrors ``plasticos.enrichment.run._rollback_then_persist_operator_state``
+        (I2/I3). A ``UserError`` makes the RPC layer roll the request transaction
+        back, so a run written inside that transaction vanishes together with its
+        classified failure. Rolling back FIRST releases every row lock the ambient
+        transaction holds, so the owned cursor below never waits on it.
+
+        Matching differs from enrichment in one respect: the run is created inside
+        the request that fails, so the rollback discards the row itself. The
+        durable write therefore re-creates the run when ``run_id`` no longer
+        exists and updates it when a caller that owns its transaction committed
+        it beforehand. The re-created run carries the exact ``operation_id`` and
+        ``request_fingerprint`` Gate received; that identity names the ambient run
+        id the rollback discarded, which is the evidence, not a defect.
+
+        ``run_id`` and ``vals`` are primitives on purpose: recordset state captured
+        before the rollback is not trustworthy afterwards.
+        """
+        self.env.cr.rollback()
+        return self._persist_failed_run_durable(run_id, vals)
+
+    @api.model
+    def _persist_failed_run_durable(self, run_id, vals):
+        """Create or update the failure receipt on an owned cursor and commit it.
+
+        Only safe once the transaction that failed has been rolled back. The
+        operator note on the intake rides the same committed cursor, so the
+        reason and the retry entry point stay visible after the RPC rollback.
+        """
+        with self.pool.cursor() as cr:
+            env = api.Environment(cr, self.env.uid, dict(self.env.context))
+            MatchRun = env["plasticos.match.run"].with_context(**{RECEIPT_WRITE_CONTEXT: True})
+            run = MatchRun.browse(run_id).exists() if run_id else MatchRun.browse()
+            if run:
+                run.write(vals)
+            else:
+                run = MatchRun.create(vals)
+            env["plasticos.intake"].browse(vals["intake_id"]).message_post(
+                body=_(
+                    "Gate match %(state)s (%(failure)s): %(error)s — match run %(run)s. "
+                    "Fix the cause, then use Retry Gate Match; no local matching runs on failure.",
+                    state=vals.get("state"),
+                    failure=vals.get("failure_class") or _UNKNOWN,
+                    error=vals.get("error_message") or "",
+                    run=run.id,
+                ),
+                message_type="notification",
+                subtype_xmlid="mail.mt_note",
+            )
+            cr.commit()
+            return run.id
+
+    @api.model
+    def _durable_run_vals(self, run):
+        """Snapshot a run's identity and receipt as primitives before the ambient transaction is rolled back."""
+        data = run.read(list(_DURABLE_RUN_FIELDS), load=None)[0]
+        return {name: data[name] for name in _DURABLE_RUN_FIELDS}
+
+    @api.model
     def run_match_for_intake(self, intake, max_results=20, mode="strict", *, retry_of=None):
         """Execute Gate match for one intake; return (run, matches).
 
-        Raises UserError on classified failures after recording the run.
-        Does not invoke local matcher scoring under any failure class.
+        Every classified failure is recorded on a ``plasticos.match.run`` that
+        survives the request transaction, then ``UserError`` is raised. No local
+        matcher scoring runs under any failure class.
         """
         intake.ensure_one()
         if not intake.partner_id:
@@ -91,35 +181,44 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
         )
 
         availability = classify_gate_availability(self.env, capability=GateCapability.MATCHING)
-        MatchRun = self.env["plasticos.match.run"]
-        vals = {
+        # Primitives only: the failure path rolls the ambient transaction back,
+        # after which recordset caches are not trustworthy.
+        base_vals = {
             "intake_id": intake.id,
             "supplier_partner_id": intake.partner_id.id,
             "mode": mode or "strict",
-            "state": "pending",
             "engine": "gate",
             "availability_status": availability.status,
             "request_attempt": (retry_of.request_attempt + 1) if retry_of else 1,
+            "retry_of_id": retry_of.id if retry_of else False,
         }
-        if retry_of:
-            vals["retry_of_id"] = retry_of.id
-        run = MatchRun.create(vals)
 
         if not gate_matching_enabled(self.env):
             reasons = "; ".join(availability.reasons) or "Gate matching unavailable"
-            run.write(
+            run_id = self._rollback_then_persist_failed_run_durable(
+                None,
                 {
+                    **base_vals,
                     "state": "failed",
                     "failure_class": _PERMANENT,
                     "error_message": reasons,
-                    "availability_status": availability.status,
-                }
+                },
             )
             raise UserError(
-                _("Gate matching is not enabled (%(status)s): %(reasons)s")
-                % {"status": availability.status, "reasons": reasons}
+                _(
+                    "Gate matching is not enabled (%(status)s): %(reasons)s (match run %(run)s)",
+                    status=availability.status,
+                    reasons=reasons,
+                    run=run_id,
+                )
             )
 
+        MatchRun = self.env["plasticos.match.run"].with_context(**{RECEIPT_WRITE_CONTEXT: True})
+        run = MatchRun.create({**base_vals, "state": "pending"})
+        run_id = run.id
+        # Receipt material captured as primitives so the durable failure record
+        # carries exactly what Gate received, even after the rollback.
+        receipt = {}
         try:
             request = build_match_request(
                 self.env,
@@ -132,18 +231,19 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             operation_id = build_operation_id(
                 request.odoo,
                 family="matching",
-                attempt=run.request_attempt,
+                attempt=base_vals["request_attempt"],
             )
             if not operation_id:
                 raise ValidationError(_("Gate match request has no durable Odoo operation identity."))
             request_payload = request.to_dict()
-            # Persist the exact Odoo request identity and material fingerprint before Gate dispatch.
-            run.write(
+            receipt.update(
                 {
                     "operation_id": operation_id,
                     "request_fingerprint": _canonical_digest(request_payload),
                 }
             )
+            # Persist the exact Odoo request identity and material fingerprint before Gate dispatch.
+            run.write(dict(receipt))
             gate_result = send_match_action(
                 self.env,
                 payload=request_payload,
@@ -152,47 +252,81 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             )
             audit = extract_audit_metadata(gate_result["packet"])
             response_payload = gate_result["payload"]
+            response_receipt = {
+                "gate_packet_id": audit["gate_packet_id"],
+                "gate_correlation_id": audit["gate_correlation_id"],
+                "gate_response_digest": _canonical_digest(response_payload),
+            }
+            receipt.update(response_receipt)
             # Preserve Gate provenance before payload mapping. A zero-candidate response is still a receipt.
-            run.write(
-                {
-                    "gate_packet_id": audit["gate_packet_id"],
-                    "gate_correlation_id": audit["gate_correlation_id"],
-                    "gate_response_digest": _canonical_digest(response_payload),
-                }
-            )
+            run.write(response_receipt)
             mapped = map_match_response(response_payload)
             matches = map_match_response_to_matcher_dicts(mapped, audit_metadata=audit)
         except GateIntegrationError as exc:
             failure = getattr(exc, "failure_class", None) or classify_transport_failure(exc).value
-            run.write(
+            durable_id = self._rollback_then_persist_failed_run_durable(
+                run_id,
                 {
+                    **base_vals,
+                    **receipt,
                     "state": self._state_for_failure(failure),
                     "failure_class": failure,
                     "error_message": str(exc),
-                }
+                },
             )
-            _logger.warning("Gate-only match failed for intake %s: %s", intake.id, exc)
-            raise UserError(_("Gate match failed (%s): %s") % (failure, exc)) from exc
+            _logger.warning(
+                "Gate-only match failed for intake %s (run %s): %s", base_vals["intake_id"], durable_id, exc
+            )
+            raise UserError(
+                _(
+                    "Gate match failed (%(failure)s): %(error)s (match run %(run)s)",
+                    failure=failure,
+                    error=exc,
+                    run=durable_id,
+                )
+            ) from exc
         except (UserError, ValidationError) as exc:
-            run.write(
+            durable_id = self._rollback_then_persist_failed_run_durable(
+                run_id,
                 {
+                    **base_vals,
+                    **receipt,
                     "state": "failed",
                     "failure_class": _PERMANENT,
                     "error_message": str(exc),
-                }
+                },
             )
-            raise
+            raise UserError(
+                _(
+                    "Gate match failed (%(failure)s): %(error)s (match run %(run)s)",
+                    failure=_PERMANENT,
+                    error=exc,
+                    run=durable_id,
+                )
+            ) from exc
         except Exception as exc:  # noqa: BLE001 — boundary: classify then fail closed
             failure = classify_transport_failure(exc).value
-            run.write(
+            durable_id = self._rollback_then_persist_failed_run_durable(
+                run_id,
                 {
+                    **base_vals,
+                    **receipt,
                     "state": self._state_for_failure(failure),
                     "failure_class": failure,
-                    "error_message": str(exc),
-                }
+                    "error_message": str(exc) or type(exc).__name__,
+                },
             )
-            _logger.exception("Gate-only match unexpected error for intake %s", intake.id)
-            raise UserError(_("Gate match failed (%s): %s") % (failure, exc)) from exc
+            _logger.exception(
+                "Gate-only match unexpected error for intake %s (run %s)", base_vals["intake_id"], durable_id
+            )
+            raise UserError(
+                _(
+                    "Gate match failed (%(failure)s): %(error)s (match run %(run)s)",
+                    failure=failure,
+                    error=str(exc) or type(exc).__name__,
+                    run=durable_id,
+                )
+            ) from exc
 
         # Apply exclusion policy (identity: plasticos.match.exclusion)
         excluded = set(self.env["plasticos.match.exclusion"].get_excluded_buyer_ids(intake.partner_id.id))
@@ -285,12 +419,17 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
                 match_run=run,
             )
         except (AccessError, ValidationError) as exc:
-            run.write(
+            # Gate answered; Odoo could not persist. The receipt still happened,
+            # so the durable failure record keeps it and only the state changes.
+            snapshot = self._durable_run_vals(run)
+            self._rollback_then_persist_failed_run_durable(
+                run.id,
                 {
+                    **snapshot,
                     "state": "failed",
                     "failure_class": _PERMANENT,
                     "error_message": str(exc),
-                }
+                },
             )
             raise
         intake.match_line_ids.unlink()

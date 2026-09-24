@@ -15,6 +15,7 @@ Gate definitions and status: [`docs/runbooks/LAUNCH_GATES.md`](../../docs/runboo
 | `run_c3_failure_writer_lock.py` | C3 failure writer cannot self-block (includes a hazard check proving the lock is real) |
 | `run_c6_replay_checkpoint.py` | C6 replay resumes from the durable watermark, no duplicates, monotonic watermark, per-run counters |
 | `run_c7_c8_enrichment_failures.py` | C7 Gate disabled · C8 Gate transport failure — durability across RPC rollback, partner untouched, caller budget honoured |
+| `run_c9_c10_matching_failures.py` | C9 Gate matching disabled (+ operator retry) · C10 Gate matching transport failure — `plasticos.match.run` failure receipt and intake operator note survive the RPC rollback, no match result / intake match line / status / rank mutation, request receipt (operation identity + fingerprint) durable, caller budget honoured |
 | `run_f1_f3_full_import.py` | F1 full import → incremental handoff, no duplicate identities · F2 census verdict and fail-closed floors · F3 delete/restore provenance |
 | `run_s1_s3_pristine_seams.py` | S1 first-run Settings sync across the orchestrator's owned cursor · S2 authenticated webhook → elevated `Environment` → orchestrator, over real HTTP · S3 legacy contact import against the installed `res.partner` registry |
 
@@ -29,9 +30,9 @@ refuses to run against a half-built one rather than failing obscurely.
 
 A gate that exits **77** is reported SKIPPED, never passed: the environment
 cannot satisfy a documented precondition. C7/C8 does this when
-`plasticos_enrichment` is absent, which requires the private
-`constellation_node_sdk`. Every other gate runs without it, so a real failure
-cannot hide behind that skip.
+`plasticos_enrichment` is absent and C9/C10 when `plasticos_matching` is
+absent; both require the private `constellation_node_sdk`. Every other gate
+runs without it, so a real failure cannot hide behind that skip.
 
 Each script exits non-zero if any assertion fails, and prints a PASS/FAIL table.
 

@@ -1,6 +1,7 @@
 """Odoo database tests for canonical Gate match-result persistence."""
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.addons.plasticos_matching.models.match_run import RECEIPT_WRITE_CONTEXT
 from odoo.tests.common import tagged
 
 
@@ -16,7 +17,9 @@ class TestMatchResultWriter(PlasticosTestCase):
         )
         cls.intake = cls._create_intake()
         cls.buyer = cls._create_partner("Gate Match Buyer", customer_rank=1)
-        cls.Run = cls.env["plasticos.match.run"]
+        # Receipt fields are server-owned evidence: the fixture builds a run the way
+        # the orchestrator does, through the server write door.
+        cls.Run = cls.env["plasticos.match.run"].with_context(**{RECEIPT_WRITE_CONTEXT: True})
         cls.Writer = cls.env["plasticos.match.result.writer"]
 
     def _successful_run(self, operation_id="odoo:matching:test:plasticos.match.run:1"):
