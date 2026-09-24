@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_mack_workbench_config_list" model="ir.ui.view">
+        <field name="name">plasticos.mack.workbench.config.list</field>
+        <field name="model">plasticos.mack.workbench.config</field>
+        <field name="arch" type="xml">
+            <list create="true" delete="true">
+                <field name="name"/>
+                <field name="company_id"/>
+                <field name="internal_reviewer_id" widget="many2one_avatar_user"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mack_workbench_config_form" model="ir.ui.view">
+        <field name="name">plasticos.mack.workbench.config.form</field>
+        <field name="model">plasticos.mack.workbench.config</field>
+        <field name="arch" type="xml">
+            <form string="Mack Workbench Routing">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="company_id"/>
+                        <field name="internal_reviewer_id" widget="many2one_avatar_user"/>
+                        <field name="active"/>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        This company-scoped policy resolves the internal Odoo user who receives Mack review activities.
+                        Request callers cannot select a reviewer. A review activity is attention and audit only; it is
+                        not an approval, commercial authority grant, or execution retry.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mack_workbench_config" model="ir.actions.act_window">
+        <field name="name">Mack Workbench Routing</field>
+        <field name="res_model">plasticos.mack.workbench.config</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_mack_workbench_root"
+              name="Mack Workbench"
+              groups="plasticos_mack_workbench.group_mack_workbench_operator"
+              sequence="88"/>
+    <menuitem id="menu_mack_internal_review"
+              name="Internal Reviews"
+              parent="menu_mack_workbench_root"
+              action="action_mack_internal_review"
+              groups="plasticos_mack_workbench.group_mack_workbench_operator"
+              sequence="10"/>
+    <menuitem id="menu_mack_workbench_config"
+              name="Routing Configuration"
+              parent="menu_mack_workbench_root"
+              action="action_mack_workbench_config"
+              groups="plasticos_mack_workbench.group_mack_workbench_manager"
+              sequence="90"/>
+</odoo>
