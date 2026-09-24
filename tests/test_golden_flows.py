@@ -260,11 +260,16 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
             "material_summary": "HDPE regrind from a manufacturing plant",
         }
 
+        # Both the first admission and the replay run inside the same patch
+        # context: the mocks are the observation mechanism for "replay does not
+        # re-triage", so they must still be active when the duplicate arrives.
+        # A replay that re-entered the pipeline would call the (patched)
+        # normalizer and classifier a second time and be counted here.
         with (
             patch(
                 "odoo.addons.plasticos_web_leads.models.web_lead.ai_normalizer.normalize_with_fallback",
                 return_value=normalized,
-            ),
+            ) as normalize_mock,
             patch(
                 "odoo.addons.plasticos_web_leads.models.web_lead.classify_lead",
                 wraps=classify_lead,
@@ -272,19 +277,23 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
         ):
             lead = self.WebLead.create_from_cognito(raw_payload)
 
-        self.assertEqual(lead.decision, "hot")
-        self.assertEqual(lead.state, "intake_created")
-        self.assertTrue(lead.intake_id, "Qualified Cognito lead should create an intake")
-        self.assertEqual(lead.intake_id.pending_company_name, "Cognito HOT Corp")
-        self.assertEqual(len(lead.intake_id.activity_ids), 1, "HOT intake should receive one review activity")
+            self.assertEqual(lead.decision, "hot")
+            self.assertEqual(lead.state, "intake_created")
+            self.assertTrue(lead.intake_id, "Qualified Cognito lead should create an intake")
+            self.assertEqual(lead.intake_id.pending_company_name, "Cognito HOT Corp")
+            self.assertEqual(len(lead.intake_id.activity_ids), 1, "HOT intake should receive one review activity")
 
-        classifier_args = classify_mock.call_args.kwargs
-        self.assertEqual(classifier_args["weight_source"], "ai_text")
-        self.assertIs(classifier_args["is_plastic_hint"], True)
-        self.assertIs(classifier_args["is_commercial_hint"], True)
+            self.assertEqual(normalize_mock.call_count, 1, "First admission runs AI normalization once")
+            self.assertEqual(classify_mock.call_count, 1, "First admission runs the classifier once")
+            classifier_args = classify_mock.call_args.kwargs
+            self.assertEqual(classifier_args["weight_source"], "ai_text")
+            self.assertIs(classifier_args["is_plastic_hint"], True)
+            self.assertIs(classifier_args["is_commercial_hint"], True)
 
-        duplicate = self.WebLead.create_from_cognito(raw_payload)
+            duplicate = self.WebLead.create_from_cognito(raw_payload)
+
         self.assertEqual(duplicate.id, lead.id, "Repeated Cognito entry must be idempotent")
+        self.assertEqual(normalize_mock.call_count, 1, "Duplicate submission must not re-run AI normalization")
         self.assertEqual(classify_mock.call_count, 1, "Duplicate submission must not re-run triage")
         self.assertEqual(
             self.Intake.search_count([("source_lead_id", "=", lead.id)]),
