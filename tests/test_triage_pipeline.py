@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import sys
 import types
@@ -58,6 +59,7 @@ sys.modules["plasticos_web_leads.models"].quantity_normalizer = _qn
 _ai = _load_module("ai_normalizer")
 validate_ai_output = _ai.validate_ai_output
 normalize_with_fallback = _ai.normalize_with_fallback
+build_user_prompt = _ai.build_user_prompt
 
 _ia = _load_module("image_analyzer")
 merge_vision_results = _ia.merge_vision_results
@@ -431,6 +433,64 @@ class TestInferenceProviderAudit:
 # ═══════════════════════════════════════════════════════════════════════════════
 # validate_ai_output
 # ═══════════════════════════════════════════════════════════════════════════════
+_SIGNED_URL = "https://files.cognitoforms.com/material.jpg?sig=SECRET-TOKEN"
+
+
+class TestPromptDataMinimization:
+    """F187-03: signed acquisition URLs never reach an external provider."""
+
+    def _canonical(self):
+        return {
+            "schema_version": "web-lead-packet/v1",
+            "provider": "cognito",
+            "provider_external_id": "12345",
+            "idempotency_key": "CG-12345",
+            "company_name": "Acme Plastics",
+            "material_description": "HDPE regrind",
+            "quantity_text": "3 loads",
+            "attachments": [
+                {
+                    "source_id": "file-1",
+                    "attachment_index": 0,
+                    "filename": "material.jpg",
+                    "content_type": "image/jpeg",
+                    "size_bytes": 4,
+                    # Leads admitted before the scrub can still carry this durably.
+                    "source_url": _SIGNED_URL,
+                }
+            ],
+            "raw_payload": {"UploadPhotos": [{"File": _SIGNED_URL}]},
+        }
+
+    def test_prompt_contains_no_attachment_source_url(self):
+        prompt = build_user_prompt(self._canonical())
+        assert "SECRET-TOKEN" not in prompt
+        assert "cognitoforms.com" not in prompt
+        assert "Company: Acme Plastics" in prompt
+        assert "Attachments: 1 file(s): material.jpg (image/jpeg, 4 bytes)" in prompt
+        assert "idempotency_key" not in prompt
+
+    def test_legacy_raw_payload_upload_lists_are_not_serialized(self):
+        prompt = build_user_prompt(
+            {"DescribeYourMaterial": "PP purge", "UploadPhotos": [{"File": _SIGNED_URL}], "Name": {"First": "A"}}
+        )
+        assert "SECRET-TOKEN" not in prompt
+        assert "Material description: PP purge" in prompt
+
+    def test_economic_assessment_context_contains_no_attachment_source_url(self):
+        result = evaluate_economic_opportunity(
+            provider=None,
+            canonical_payload=self._canonical(),
+            evidence_bundle={"quantity": {}, "conflicts": [], "clarification_requests": [], "vision": []},
+            classification={"decision": "hot"},
+            eligibility={"eligible": True},
+        )
+        context = result["context"]
+        assert "SECRET-TOKEN" not in json.dumps(context)
+        assert context["seller_material_and_supply"]["attachments"][0]["filename"] == "material.jpg"
+        assert "raw_payload" not in context["seller_material_and_supply"]
+
+
 class TestValidateAiOutput:
     def test_clamps_lbs_above_max(self):
         result = validate_ai_output({"estimated_lbs_per_load": 999_999})

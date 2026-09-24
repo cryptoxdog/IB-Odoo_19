@@ -31,6 +31,7 @@ from .evidence_keys import (
     KEY_SELLER_MATERIAL_AND_SUPPLY,
     KEY_STATUS,
     KEY_VISION,
+    scrub_acquisition_secrets,
 )
 from .inference_provider import InferenceProvider, call_structured_text, provider_audit_metadata, safe_provider_error
 
@@ -78,9 +79,8 @@ def _assessment_context(
     classification: Mapping[str, Any],
     eligibility: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Construct a PII-minimized economic evidence package for the provider."""
-    canonical = dict(canonical_payload or {})
-    canonical.pop("raw_payload", None)
+    """Construct a PII-minimized, credential-free economic evidence package for the provider."""
+    canonical = scrub_acquisition_secrets(canonical_payload)
     for contact_key in ("contact_name", "contact_email", "contact_phone"):
         canonical.pop(contact_key, None)
     evidence = dict(evidence_bundle or {})

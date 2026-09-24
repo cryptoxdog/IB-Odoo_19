@@ -61,6 +61,37 @@ KEY_VISION = "vision"
 KEY_WORKSPACE_ID = "workspace_id"
 KEY_HOT_QUALIFIERS = "hot_qualifiers"
 KEY_CONTENT_SHA256 = "content_sha256"
+KEY_SOURCE_URL = "source_url"
+KEY_RAW_PAYLOAD = "raw_payload"
 
 ASSESSMENT_STATUS_ASSESSED = "assessed"
 ASSESSMENT_STATUS_UNAVAILABLE = "unavailable"
+
+# Attachment keys that are acquisition material (signed provider URLs), never
+# durable business evidence. They are scrubbed from every payload that reaches
+# an LLM prompt, an approved snapshot, or the stored canonical packet.
+ACQUISITION_SECRET_KEYS = frozenset({KEY_SOURCE_URL})
+
+
+def scrub_attachment_rows(rows):
+    """Return attachment rows without acquisition secrets; non-mappings are dropped."""
+    scrubbed = []
+    for row in rows or ():
+        if not hasattr(row, "items"):
+            continue
+        scrubbed.append({key: value for key, value in dict(row).items() if key not in ACQUISITION_SECRET_KEYS})
+    return scrubbed
+
+
+def scrub_acquisition_secrets(payload):
+    """Return a copy of a canonical packet with raw payload and attachment secrets removed.
+
+    Leads admitted before this scrub existed can still carry ``source_url`` in
+    their stored canonical payload; every durable/LLM consumer therefore scrubs
+    at read time as well as at write time.
+    """
+    canonical = dict(payload or {})
+    canonical.pop(KEY_RAW_PAYLOAD, None)
+    if KEY_ATTACHMENTS in canonical:
+        canonical[KEY_ATTACHMENTS] = scrub_attachment_rows(canonical.get(KEY_ATTACHMENTS))
+    return canonical

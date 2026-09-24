@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import ipaddress
 import logging
+import socket
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any
+from urllib.parse import urljoin, urlsplit
 
 import requests
 
@@ -18,14 +21,189 @@ MAX_AGGREGATE_BYTES = 50 * 1024 * 1024
 CONNECT_TIMEOUT_SECONDS = 10
 READ_TIMEOUT_SECONDS = 30
 MAX_ACQUISITION_ATTEMPTS = 3
+MAX_REDIRECT_HOPS = 3
 ATTACHMENT_SIZE_LIMIT_ERROR = "attachment_size_limit_exceeded"
 SOURCE_ID_MARKER = "[web-lead-source-id:"
 COMMERCIAL_IMAGE_CHECKSUM_MARKER = "[commercial-image-checksum:"
 COMMERCIAL_IMAGE_ORIGIN_MARKER = "[commercial-image-origin:"
+_REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
+_HTTPS_PORT = 443
+
+Resolver = Callable[[str], Iterable[str]]
 
 
 def _error(code: str, message: str) -> dict[str, str]:
     return {"code": code, "message": message}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Destination policy (SSRF containment)
+#
+# A provider payload or a valid webhook credential must never be able to point
+# the Odoo worker at an internal address. Every fetch therefore satisfies, on
+# every hop: HTTPS only, default port, a host inside the provider's allowlist,
+# and a DNS resolution whose every address is publicly routable. Redirects are
+# never followed automatically; each target is revalidated before the next hop.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class AttachmentDestinationError(ValueError):
+    """A fetch target failed the provider destination policy (never retried)."""
+
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+
+
+def normalize_allowed_hosts(hosts: Iterable[str] | None) -> tuple[str, ...]:
+    """Lower-case, strip wildcard/dot decoration, and drop empties."""
+    normalized: list[str] = []
+    for entry in hosts or ():
+        host = str(entry or "").strip().lower()
+        while host.startswith(("*.", ".")):
+            host = host[2:] if host.startswith("*.") else host[1:]
+        host = host.rstrip(".")
+        if host and host not in normalized:
+            normalized.append(host)
+    return tuple(normalized)
+
+
+def host_is_allowed(host: str, allowed_hosts: Iterable[str] | None) -> bool:
+    """True when ``host`` equals an allowlisted host or is one of its subdomains."""
+    candidate = str(host or "").strip().lower().rstrip(".")
+    if not candidate:
+        return False
+    for entry in normalize_allowed_hosts(allowed_hosts):
+        if candidate == entry or candidate.endswith("." + entry):
+            return True
+    return False
+
+
+def address_is_public(address: str) -> bool:
+    """Reject loopback, private, link-local, multicast, reserved, and unspecified targets."""
+    try:
+        ip = ipaddress.ip_address(str(address).strip().strip("[]"))
+    except ValueError:
+        return False
+    mapped = getattr(ip, "ipv4_mapped", None)
+    if mapped is not None:
+        ip = mapped
+    return bool(ip.is_global) and not (
+        ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved or ip.is_unspecified
+    )
+
+
+def resolve_host_addresses(host: str) -> list[str]:
+    """System DNS resolution for the HTTPS port; the default ``resolver``."""
+    infos = socket.getaddrinfo(host, _HTTPS_PORT, type=socket.SOCK_STREAM)
+    return sorted({str(info[4][0]) for info in infos})
+
+
+def validate_destination(
+    url: str,
+    *,
+    allowed_hosts: Iterable[str] | None,
+    resolver: Resolver | None = None,
+) -> dict[str, Any]:
+    """Validate one fetch target against the provider destination policy.
+
+    Returns ``{"host": ..., "addresses": [...]}`` or raises
+    :class:`AttachmentDestinationError` with a stable evidence code.
+    """
+    parts = urlsplit(str(url or "").strip())
+    if parts.scheme.lower() != "https":
+        raise AttachmentDestinationError("invalid_source_url", "Attachment URL must use HTTPS.")
+    if parts.username or parts.password:
+        raise AttachmentDestinationError("invalid_source_url", "Attachment URL must not embed credentials.")
+    host = (parts.hostname or "").strip().lower().rstrip(".")
+    if not host:
+        raise AttachmentDestinationError("invalid_source_url", "Attachment URL has no host.")
+    try:
+        port = parts.port
+    except ValueError as exc:
+        raise AttachmentDestinationError("invalid_source_url", "Attachment URL has an invalid port.") from exc
+    if port not in (None, _HTTPS_PORT):
+        raise AttachmentDestinationError("destination_port_rejected", "Attachment URL must use the default HTTPS port.")
+    if not host_is_allowed(host, allowed_hosts):
+        raise AttachmentDestinationError(
+            "destination_host_not_allowed", "Attachment host is not an allowed provider destination."
+        )
+
+    addresses: list[str]
+    try:
+        addresses = [str(ipaddress.ip_address(host))]
+    except ValueError:
+        resolve = resolver or resolve_host_addresses
+        try:
+            addresses = [str(item) for item in resolve(host)]
+        except Exception as exc:  # DNS failure is a policy failure, not a retry.
+            raise AttachmentDestinationError("dns_resolution_failed", "Attachment host could not be resolved.") from exc
+    if not addresses:
+        raise AttachmentDestinationError("dns_resolution_failed", "Attachment host resolved to no addresses.")
+    for address in addresses:
+        if not address_is_public(address):
+            raise AttachmentDestinationError(
+                "destination_address_rejected", "Attachment destination resolves to a non-public address."
+            )
+    return {"host": host, "addresses": addresses}
+
+
+def _redirect_location(response: Any) -> str:
+    headers = getattr(response, "headers", None) or {}
+    getter = getattr(headers, "get", None)
+    if not callable(getter):
+        return ""
+    return str(getter("Location") or getter("location") or "").strip()
+
+
+def _response_content_type(response: Any) -> str:
+    headers = getattr(response, "headers", None) or {}
+    getter = getattr(headers, "get", None)
+    if not callable(getter):
+        return ""
+    return str(getter("Content-Type") or getter("content-type") or "").split(";")[0].strip().lower()
+
+
+def fetch_attachment(
+    url: str,
+    *,
+    allowed_hosts: Iterable[str] | None,
+    http_get: Callable[..., Any],
+    remaining_bytes: int,
+    resolver: Resolver | None = None,
+    timeout: tuple[int, int] = (CONNECT_TIMEOUT_SECONDS, READ_TIMEOUT_SECONDS),
+) -> tuple[bytes, str]:
+    """Fetch ``(bytes, content_type)`` from an allowlisted public destination.
+
+    Automatic redirects are disabled; a bounded number of hops is followed by
+    hand and every target passes :func:`validate_destination` first.
+    """
+    current = str(url)
+    for _hop in range(MAX_REDIRECT_HOPS + 1):
+        validate_destination(current, allowed_hosts=allowed_hosts, resolver=resolver)
+        response = http_get(current, timeout=timeout, stream=True, allow_redirects=False)
+        status = int(getattr(response, "status_code", 200) or 200)
+        if status in _REDIRECT_STATUSES:
+            location = _redirect_location(response)
+            close = getattr(response, "close", None)
+            if callable(close):
+                close()
+            if not location:
+                raise AttachmentDestinationError("redirect_target_missing", "Redirect without a Location header.")
+            current = urljoin(current, location)
+            continue
+        response.raise_for_status()
+        content = _read_response_bytes(response, remaining_bytes=remaining_bytes)
+        if not content:
+            raise ValueError("empty_attachment")
+        return content, _response_content_type(response)
+    raise AttachmentDestinationError("redirect_limit_exceeded", "Attachment redirected too many times.")
+
+
+def fetch_attachment_bytes(url: str, **kwargs: Any) -> bytes:
+    """Bytes-only form of :func:`fetch_attachment`."""
+    return fetch_attachment(url, **kwargs)[0]
 
 
 def _base_result(attachment: Mapping[str, Any]) -> dict[str, Any]:
@@ -84,6 +262,11 @@ def _previous_successes(evidence_bundle: Mapping[str, Any] | None) -> dict[str, 
     }
 
 
+def _analysis_is_error_shaped(analysis: Any) -> bool:
+    """Provider helpers convert failures into ``{"error": ...}``; that is not evidence."""
+    return not isinstance(analysis, Mapping) or bool(analysis.get("error"))
+
+
 def process_attachments(
     *,
     lead: Any,
@@ -91,12 +274,18 @@ def process_attachments(
     analyzer: Callable[[bytes, str], dict[str, Any]] | None = None,
     evidence_bundle: Mapping[str, Any] | None = None,
     http_get: Callable[..., Any] | None = None,
+    allowed_hosts: Iterable[str] | None = None,
+    resolver: Resolver | None = None,
 ) -> list[dict[str, Any]]:
     """Acquire/store every admitted attachment and preserve local failures.
 
     ``lead`` is deliberately duck-typed so this module remains easy to unit-test
     and avoids owning an Odoo model. Successful retry rows are reused from the
     prior evidence bundle instead of downloading a signed provider URL again.
+
+    ``allowed_hosts`` is the provider destination policy; with none configured
+    every fetch is refused (fail closed). Result rows never carry the signed
+    ``source_url``: it is transient acquisition material, not evidence.
     """
     http_get = http_get or requests.get
     rows = list(attachments)
@@ -120,8 +309,14 @@ def process_attachments(
             result["error"] = _error("missing_source_id", "Provider attachment identity is missing.")
             results.append(result)
             continue
-        if not str(attachment.get("source_url") or "").startswith("https://"):
-            result["error"] = _error("invalid_source_url", "Attachment URL must use HTTPS.")
+        source_url = str(attachment.get("source_url") or "").strip()
+        if not source_url:
+            # The signed URL is consumed once at admission and never retained, so
+            # a later re-triage can only reuse a prior success.
+            result["error"] = _error(
+                "acquisition_source_unavailable",
+                "Acquisition URL is not retained after admission; the attachment cannot be re-acquired.",
+            )
             results.append(result)
             continue
         if declared_size is not None and int(declared_size) > MAX_FILE_BYTES:
@@ -139,21 +334,35 @@ def process_attachments(
 
         for _attempt in range(1, MAX_ACQUISITION_ATTEMPTS + 1):
             try:
-                response = http_get(
-                    str(attachment["source_url"]),
-                    timeout=(CONNECT_TIMEOUT_SECONDS, READ_TIMEOUT_SECONDS),
-                    stream=True,
+                content = fetch_attachment_bytes(
+                    source_url,
+                    allowed_hosts=allowed_hosts,
+                    http_get=http_get,
+                    remaining_bytes=remaining,
+                    resolver=resolver,
                 )
-                response.raise_for_status()
-                content = _read_response_bytes(response, remaining_bytes=remaining)
-                if not content:
-                    raise ValueError("empty_attachment")
+                break
+            except AttachmentDestinationError as exc:
+                # A policy rejection is deterministic: retrying would only repeat
+                # the probe against a forbidden destination.
+                last_error = exc
+                content = None
                 break
             except Exception as exc:  # Network/client exceptions are attachment-local.
                 last_error = exc
                 content = None
 
         if content is None:
+            if isinstance(last_error, AttachmentDestinationError):
+                _logger.warning(
+                    "Attachment %s for web lead %s rejected by destination policy (%s).",
+                    source_id,
+                    lead.id,
+                    last_error.code,
+                )
+                result["error"] = _error(last_error.code, last_error.message)
+                results.append(result)
+                continue
             code = "acquisition_failed"
             if isinstance(last_error, ValueError) and str(last_error) == ATTACHMENT_SIZE_LIMIT_ERROR:
                 code = ATTACHMENT_SIZE_LIMIT_ERROR
@@ -193,14 +402,30 @@ def process_attachments(
                 result["analysis_status"] = "not_run"
             else:
                 try:
-                    result["analysis"] = analyzer(content, mimetype)
-                    result["analysis_status"] = "success"
+                    analysis = analyzer(content, mimetype)
                 except Exception:
                     _logger.warning("Image analysis failed for web lead %s attachment %s.", lead.id, source_id)
                     result["analysis_status"] = "failed"
                     result["error"] = _error(
                         "image_analysis_failed", "Image analysis failed; stored evidence was preserved."
                     )
+                else:
+                    if _analysis_is_error_shaped(analysis):
+                        # A non-raising provider failure is still a failure: it must
+                        # never be persisted as successful visual evidence.
+                        _logger.warning(
+                            "Image analysis returned an error for web lead %s attachment %s.", lead.id, source_id
+                        )
+                        detail = str(analysis.get("error") if isinstance(analysis, Mapping) else "invalid_result")
+                        result["analysis"] = None
+                        result["analysis_status"] = "failed"
+                        result["error"] = _error(
+                            "image_analysis_error",
+                            f"Image analysis returned an error ({detail[:200]}); stored evidence was preserved.",
+                        )
+                    else:
+                        result["analysis"] = dict(analysis)
+                        result["analysis_status"] = "success"
         else:
             result["analysis_type"] = "document" if mimetype == "application/pdf" else "unsupported"
             result["analysis_status"] = "unsupported"

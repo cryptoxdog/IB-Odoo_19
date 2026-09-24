@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 import types
 from pathlib import Path
@@ -14,7 +15,7 @@ PACKAGE_ROOT = ROOT / "plasticos_web_leads"
 package = sys.modules.setdefault("plasticos_web_leads", types.ModuleType("plasticos_web_leads"))
 package.__path__ = [str(PACKAGE_ROOT)]
 
-from plasticos_web_leads.adapters.base import PACKET_SCHEMA_VERSION, packet_to_dict  # noqa: E402
+from plasticos_web_leads.adapters.base import PACKET_SCHEMA_VERSION, acquisition_rows, packet_to_dict  # noqa: E402
 from plasticos_web_leads.adapters.cognito import CognitoAdapter  # noqa: E402
 from plasticos_web_leads.adapters.registry import get_adapter  # noqa: E402
 
@@ -75,6 +76,27 @@ def test_packet_serialization_preserves_raw_payload_and_can_omit_it():
     assert serialized["raw_payload"]["WhatIsIt"] == "HDPE regrind"
     assert serialized["attachments"][0]["filename"] == "material.jpg"
     assert "raw_payload" not in canonical
+
+
+def test_serialized_packet_never_carries_the_signed_acquisition_url():
+    """The signed URL is transient acquisition material, not durable evidence (F187-03)."""
+    packet = CognitoAdapter().to_packet(_payload())
+
+    canonical = packet_to_dict(packet, omit_raw_payload=True)
+    serialized = packet_to_dict(packet)
+    transient = acquisition_rows(packet)
+
+    assert packet.attachments[0].source_url == "https://files.cognitoforms.com/material.jpg"
+    assert "source_url" not in canonical["attachments"][0]
+    assert "source_url" not in serialized["attachments"][0]
+    assert "cognitoforms.com/material.jpg" not in json.dumps(canonical)
+    assert transient[0]["source_url"] == "https://files.cognitoforms.com/material.jpg"
+    assert transient[0]["source_id"] == "file-1"
+
+
+def test_cognito_adapter_declares_its_attachment_destination_policy():
+    assert CognitoAdapter.attachment_allowed_hosts == ("cognitoforms.com",)
+    assert get_adapter("cognito").attachment_allowed_hosts == ("cognitoforms.com",)
 
 
 def test_adapter_accepts_no_attachments_and_compatibility_aliases():

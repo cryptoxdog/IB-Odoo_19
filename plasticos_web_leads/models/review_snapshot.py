@@ -40,6 +40,7 @@ from .evidence_keys import (
     KEY_SOURCE_ID,
     KEY_SOURCE_TYPE_CODE,
     KEY_SOURCE_TYPE_ID,
+    scrub_acquisition_secrets,
 )
 
 SNAPSHOT_SCHEMA_VERSION = "web-lead-broker-snapshot/v1"
@@ -51,10 +52,15 @@ def build_snapshot_payload(
     intake: Any,
     review_notes: str | None,
 ) -> dict[str, Any]:
-    """Build the factual, credential-free snapshot approved by a broker."""
+    """Build the factual, credential-free snapshot approved by a broker.
+
+    Attachment evidence is limited to provider source identity, local
+    attachment id, checksum and acquisition status; signed acquisition URLs are
+    scrubbed even from leads admitted before the canonical payload stopped
+    retaining them.
+    """
     evidence = dict(lead.evidence_bundle or {})
-    canonical = dict(lead.canonical_payload or {})
-    canonical.pop("raw_payload", None)
+    canonical = scrub_acquisition_secrets(lead.canonical_payload)
     return {
         KEY_SCHEMA_VERSION: SNAPSHOT_SCHEMA_VERSION,
         KEY_LEAD: {

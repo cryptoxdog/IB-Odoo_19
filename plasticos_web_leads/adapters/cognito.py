@@ -21,6 +21,10 @@ class CognitoAdapter:
     """Project the live Cognito webhook shape into a decision-free packet."""
 
     provider_key = "cognito"
+    # Cognito serves uploaded files from its own domain (``www.cognitoforms.com``
+    # and CDN subdomains). Only that destination may be fetched during
+    # acquisition; the operator can widen it in Web Lead Settings.
+    attachment_allowed_hosts: tuple[str, ...] = ("cognitoforms.com",)
 
     @staticmethod
     def _text(value: Any) -> str:

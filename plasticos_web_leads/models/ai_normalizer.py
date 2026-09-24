@@ -20,6 +20,7 @@ import logging
 from typing import Any
 
 from .ai_client import call_json_with_retry
+from .evidence_keys import KEY_ATTACHMENTS, KEY_RAW_PAYLOAD, scrub_attachment_rows
 from .inference_provider import InferenceProvider, call_structured_text, provider_audit_metadata, safe_provider_error
 from .quantity_normalizer import QuantityEvidence
 from .triage_helpers import coerce_bool, parse_weight_lbs, safe_float
@@ -149,13 +150,52 @@ def validate_ai_output(raw: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+# Packet keys that are transport/identity metadata or acquisition material, never
+# seller facts. They are excluded from the prompt; attachments are rendered as a
+# URL-free summary instead.
+_PROMPT_EXCLUDED_KEYS = frozenset(
+    {KEY_RAW_PAYLOAD, KEY_ATTACHMENTS, "schema_version", "provider", "provider_external_id", "idempotency_key"}
+)
+
+
+def _scalar_prompt_text(value: Any) -> str:
+    """Only scalar seller text reaches the prompt; nested structures are not form facts."""
+    if value is None or isinstance(value, bool):
+        return ""
+    if isinstance(value, (str, int, float)):
+        return str(value).strip()
+    return ""
+
+
+def _attachment_summary(rows: Any) -> str:
+    """Describe submitted files without any acquisition URL or signed token."""
+    if not isinstance(rows, list):
+        return ""
+    parts: list[str] = []
+    for row in scrub_attachment_rows(rows):
+        filename = str(row.get("filename") or "attachment").strip()
+        content_type = str(row.get("content_type") or "unknown").strip()
+        size = row.get("size_bytes")
+        detail = (
+            f"{content_type}, {int(size)} bytes"
+            if isinstance(size, int) and not isinstance(size, bool)
+            else content_type
+        )
+        parts.append(f"{filename} ({detail})")
+    if not parts:
+        return ""
+    return f"Attachments: {len(parts)} file(s): " + "; ".join(parts)
+
+
 def build_user_prompt(form_data: dict[str, Any]) -> str:
     """
     Build the user-turn prompt from raw form data. (FIX AN-03)
 
     - Maps known Typeform field IDs to human labels
     - Skips empty strings and values ≤ 2 characters
-    - Appends unmapped fields as "Extra" lines (values > 2 chars only)
+    - Appends unmapped scalar fields as "Extra" lines (values > 2 chars only)
+    - Never serializes attachment rows or nested payloads: signed acquisition
+      URLs are not seller facts and must not reach an external provider
     """
     if not form_data:
         return "No form data provided."
@@ -165,19 +205,22 @@ def build_user_prompt(form_data: dict[str, Any]) -> str:
 
     # Mapped fields first, in defined order
     for field_id, label in _FIELD_MAP.items():
-        val = form_data.get(field_id)
-        val_str = str(val).strip() if val is not None else ""
+        val_str = _scalar_prompt_text(form_data.get(field_id))
         if len(val_str) > 2:
             lines.append(f"{label}: {val_str}")
             seen_keys.add(field_id)
 
-    # Extra / unmapped fields
+    # Extra / unmapped scalar fields
     for k, v in form_data.items():
-        if k in seen_keys:
+        if k in seen_keys or k in _PROMPT_EXCLUDED_KEYS:
             continue
-        val_str = str(v).strip() if v is not None else ""
+        val_str = _scalar_prompt_text(v)
         if len(val_str) > 2:
             lines.append(f"Extra — {k}: {val_str}")
+
+    summary = _attachment_summary(form_data.get(KEY_ATTACHMENTS))
+    if summary:
+        lines.append(summary)
 
     if len(lines) == 1:
         return "No form data provided."
