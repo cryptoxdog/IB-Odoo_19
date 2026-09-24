@@ -268,6 +268,7 @@
 ./plasticos_crm_bridge/models/crm_lead.py:1:import re
 ./plasticos_crm_bridge/models/crm_lead.py:3:from odoo import api, fields, models
 ./plasticos_crm_bridge/models/crm_lead.py:4:from odoo.exceptions import ValidationError
+./plasticos_crm_bridge/models/crm_lead.py:139:        from odoo.addons.plasticos_web_leads.models.attachment_processor import copy_images_to_commercial_record
 ./plasticos_crm_bridge/models/crm_lead_vanillasoft.py:1:from odoo import fields, models
 ./plasticos_crm_bridge/models/material_profile.py:1:from odoo import api, fields, models
 ./plasticos_crm_bridge/models/web_lead.py:1:from odoo import fields, models
@@ -353,10 +354,10 @@
 ./plasticos_crm_sync/services/orchestrator.py:7:from typing import Any
 ./plasticos_crm_sync/services/orchestrator.py:9:from ..adapters.base import CanonicalCall, CanonicalLead, CrmAdapterError
 ./plasticos_crm_sync/services/orchestrator.py:10:from ..adapters.registry import get_adapter
-./plasticos_crm_sync/services/orchestrator.py:477:        from odoo import api
-./plasticos_crm_sync/services/orchestrator.py:505:        from odoo import api
-./plasticos_crm_sync/services/orchestrator.py:839:        from odoo.addons.plasticos_crm_bridge.models.crm_mapping import STAGE_MAPPING
-./plasticos_crm_sync/services/orchestrator.py:840:        from odoo.addons.plasticos_facility_profile.models.lead_source import LEAD_SOURCE_MAPPING
+./plasticos_crm_sync/services/orchestrator.py:478:        from odoo import api
+./plasticos_crm_sync/services/orchestrator.py:506:        from odoo import api
+./plasticos_crm_sync/services/orchestrator.py:840:        from odoo.addons.plasticos_crm_bridge.models.crm_mapping import STAGE_MAPPING
+./plasticos_crm_sync/services/orchestrator.py:841:        from odoo.addons.plasticos_facility_profile.models.lead_source import LEAD_SOURCE_MAPPING
 ./plasticos_crm_sync/tests/__init__.py:1:from . import test_lead_lifecycle
 ./plasticos_crm_sync/tests/__init__.py:2:from . import test_orchestrator_upsert
 ./plasticos_crm_sync/tests/__init__.py:3:from . import test_settings_import_action
@@ -713,28 +714,51 @@
 ./plasticos_matching/migrations/19.0.1.0.1/pre-migrate.py:12:from psycopg2 import sql
 ./plasticos_matching/models/__init__.py:1:from . import match_result
 ./plasticos_matching/models/__init__.py:2:from . import match_result_link
-./plasticos_matching/models/__init__.py:3:from . import match_run
-./plasticos_matching/models/__init__.py:4:from . import match_exclusion
-./plasticos_matching/models/__init__.py:5:from . import match_orchestrator
-./plasticos_matching/models/__init__.py:6:from . import intake_extension
+./plasticos_matching/models/__init__.py:3:from . import match_result_writer
+./plasticos_matching/models/__init__.py:4:from . import match_run
+./plasticos_matching/models/__init__.py:5:from . import match_exclusion
+./plasticos_matching/models/__init__.py:6:from . import match_orchestrator
+./plasticos_matching/models/__init__.py:7:from . import intake_extension
 ./plasticos_matching/models/intake_extension.py:3:from odoo import _, models
 ./plasticos_matching/models/intake_extension.py:4:from odoo.addons.plasticos_base.models.matching_engine_icp import matching_engine_require_enabled_for_ui
 ./plasticos_matching/models/intake_extension.py:5:from odoo.exceptions import UserError
 ./plasticos_matching/models/match_exclusion.py:6:from odoo import api, fields, models
 ./plasticos_matching/models/match_orchestrator.py:3:from __future__ import annotations
-./plasticos_matching/models/match_orchestrator.py:5:import logging
-./plasticos_matching/models/match_orchestrator.py:6:import uuid
-./plasticos_matching/models/match_orchestrator.py:8:from odoo import _, api, models
-./plasticos_matching/models/match_orchestrator.py:9:from odoo.exceptions import UserError, ValidationError
-./plasticos_matching/models/match_orchestrator.py:55:        from odoo.addons.plasticos_gate.services.gate_builders import build_match_request
-./plasticos_matching/models/match_orchestrator.py:56:        from odoo.addons.plasticos_gate.services.gate_client import (
-./plasticos_matching/models/match_orchestrator.py:60:        from odoo.addons.plasticos_gate.services.gate_config import (
-./plasticos_matching/models/match_orchestrator.py:66:        from odoo.addons.plasticos_gate.services.gate_mappers import (
+./plasticos_matching/models/match_orchestrator.py:5:import hashlib
+./plasticos_matching/models/match_orchestrator.py:6:import json
+./plasticos_matching/models/match_orchestrator.py:7:import logging
+./plasticos_matching/models/match_orchestrator.py:9:from odoo import _, api, models
+./plasticos_matching/models/match_orchestrator.py:10:from odoo.exceptions import AccessError, UserError, ValidationError
+./plasticos_matching/models/match_orchestrator.py:12:from .match_run import RECEIPT_WRITE_CONTEXT
+./plasticos_matching/models/match_orchestrator.py:163:        from odoo.addons.plasticos_gate.services.gate_builders import (
+./plasticos_matching/models/match_orchestrator.py:167:        from odoo.addons.plasticos_gate.services.gate_client import (
+./plasticos_matching/models/match_orchestrator.py:171:        from odoo.addons.plasticos_gate.services.gate_config import (
+./plasticos_matching/models/match_orchestrator.py:177:        from odoo.addons.plasticos_gate.services.gate_mappers import (
 ./plasticos_matching/models/match_result.py:1:import logging
 ./plasticos_matching/models/match_result.py:3:from odoo import api, fields, models
 ./plasticos_matching/models/match_result.py:4:from odoo.exceptions import UserError
 ./plasticos_matching/models/match_result_link.py:3:from odoo import fields, models
-./plasticos_matching/models/match_run.py:3:from odoo import api, fields, models
+./plasticos_matching/models/match_result_writer.py:3:from __future__ import annotations
+./plasticos_matching/models/match_result_writer.py:5:import math
+./plasticos_matching/models/match_result_writer.py:7:from odoo import _, api, fields, models
+./plasticos_matching/models/match_result_writer.py:8:from odoo.exceptions import AccessError, ValidationError
+./plasticos_matching/models/match_run.py:3:from odoo import _, api, fields, models
+./plasticos_matching/models/match_run.py:4:from odoo.exceptions import AccessError
+./plasticos_matching/tests/__init__.py:1:from . import test_match_result_writer
+./plasticos_matching/tests/__init__.py:2:from . import test_match_run_receipts
+./plasticos_matching/tests/test_match_result_writer.py:3:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+./plasticos_matching/tests/test_match_result_writer.py:4:from odoo.addons.plasticos_matching.models.match_run import RECEIPT_WRITE_CONTEXT
+./plasticos_matching/tests/test_match_result_writer.py:5:from odoo.tests.common import tagged
+./plasticos_matching/tests/test_match_run_receipts.py:26:from __future__ import annotations
+./plasticos_matching/tests/test_match_run_receipts.py:28:from contextlib import contextmanager
+./plasticos_matching/tests/test_match_run_receipts.py:29:from types import SimpleNamespace
+./plasticos_matching/tests/test_match_run_receipts.py:30:from unittest.mock import patch
+./plasticos_matching/tests/test_match_run_receipts.py:32:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+./plasticos_matching/tests/test_match_run_receipts.py:33:from odoo.addons.plasticos_gate.services.gate_config import (
+./plasticos_matching/tests/test_match_run_receipts.py:39:from odoo.addons.plasticos_matching.models.match_orchestrator import _canonical_digest
+./plasticos_matching/tests/test_match_run_receipts.py:40:from odoo.addons.plasticos_matching.models.match_run import RECEIPT_FIELDS, RECEIPT_WRITE_CONTEXT
+./plasticos_matching/tests/test_match_run_receipts.py:41:from odoo.exceptions import AccessError, UserError, ValidationError
+./plasticos_matching/tests/test_match_run_receipts.py:42:from odoo.tests.common import tagged
 ./plasticos_material_profile/__init__.py:1:from . import models
 ./plasticos_material_profile/intake_delta_bridge.py:3:from __future__ import annotations
 ./plasticos_material_profile/intake_delta_bridge.py:5:from .profile_features import compute_has_residue_feature
@@ -999,40 +1023,122 @@
 ./plasticos_transaction/wizards/transaction_import_wizard.py:13:from odoo.exceptions import UserError
 ./plasticos_transaction/wizards/transaction_import_wizard.py:70:        import odoo.modules.module as mod
 ./plasticos_transaction/wizards/transaction_import_wizard.py:79:        import os
-./plasticos_web_leads/__init__.py:1:from . import models
-./plasticos_web_leads/__init__.py:2:from . import wizards
-./plasticos_web_leads/__init__.py:3:from . import controllers
+./plasticos_web_leads/__init__.py:1:from . import adapters
+./plasticos_web_leads/__init__.py:2:from . import models
+./plasticos_web_leads/__init__.py:3:from . import wizards
+./plasticos_web_leads/__init__.py:4:from . import controllers
+./plasticos_web_leads/adapters/__init__.py:3:from . import base
+./plasticos_web_leads/adapters/__init__.py:4:from . import cognito
+./plasticos_web_leads/adapters/__init__.py:5:from . import registry
+./plasticos_web_leads/adapters/base.py:3:from __future__ import annotations
+./plasticos_web_leads/adapters/base.py:5:from collections.abc import Mapping
+./plasticos_web_leads/adapters/base.py:6:from copy import deepcopy
+./plasticos_web_leads/adapters/base.py:7:from dataclasses import asdict, dataclass
+./plasticos_web_leads/adapters/base.py:8:from typing import Any, Protocol
+./plasticos_web_leads/adapters/cognito.py:3:from __future__ import annotations
+./plasticos_web_leads/adapters/cognito.py:5:from collections.abc import Mapping
+./plasticos_web_leads/adapters/cognito.py:6:from copy import deepcopy
+./plasticos_web_leads/adapters/cognito.py:7:from typing import Any
+./plasticos_web_leads/adapters/cognito.py:9:from .base import PACKET_SCHEMA_VERSION, WebLeadAttachment, WebLeadPacket
+./plasticos_web_leads/adapters/registry.py:3:from __future__ import annotations
+./plasticos_web_leads/adapters/registry.py:5:from .base import WebLeadProviderAdapter
+./plasticos_web_leads/adapters/registry.py:6:from .cognito import CognitoAdapter
 ./plasticos_web_leads/controllers/__init__.py:1:from . import web_lead_api
-./plasticos_web_leads/controllers/web_lead_api.py:1:import json
-./plasticos_web_leads/controllers/web_lead_api.py:2:import logging
-./plasticos_web_leads/controllers/web_lead_api.py:4:from odoo import http
-./plasticos_web_leads/controllers/web_lead_api.py:5:from odoo.http import Response, request
+./plasticos_web_leads/controllers/web_lead_api.py:1:import hmac
+./plasticos_web_leads/controllers/web_lead_api.py:2:import json
+./plasticos_web_leads/controllers/web_lead_api.py:3:import logging
+./plasticos_web_leads/controllers/web_lead_api.py:5:from odoo import http
+./plasticos_web_leads/controllers/web_lead_api.py:6:from odoo.exceptions import UserError, ValidationError
+./plasticos_web_leads/controllers/web_lead_api.py:7:from odoo.http import Response, request
 ./plasticos_web_leads/migrations/19.0.1.5.0/post-migrate.py:12:from __future__ import annotations
 ./plasticos_web_leads/migrations/19.0.1.5.0/post-migrate.py:14:import logging
-./plasticos_web_leads/models/__init__.py:1:from . import ai_normalizer
-./plasticos_web_leads/models/__init__.py:2:from . import classification_engine
-./plasticos_web_leads/models/__init__.py:3:from . import image_analyzer
-./plasticos_web_leads/models/__init__.py:4:from . import triage_helpers
-./plasticos_web_leads/models/__init__.py:5:from . import web_lead
-./plasticos_web_leads/models/__init__.py:6:from . import web_lead_api_key_wizard
-./plasticos_web_leads/models/__init__.py:7:from . import web_lead_config
-./plasticos_web_leads/models/__init__.py:8:from . import web_lead_bridge
+./plasticos_web_leads/migrations/19.0.2.7.0/post-migrate.py:3:from __future__ import annotations
+./plasticos_web_leads/migrations/19.0.2.7.0/post-migrate.py:5:import logging
+./plasticos_web_leads/models/__init__.py:1:from . import ai_client
+./plasticos_web_leads/models/__init__.py:2:from . import ai_normalizer
+./plasticos_web_leads/models/__init__.py:3:from . import attachment_processor
+./plasticos_web_leads/models/__init__.py:4:from . import classification_engine
+./plasticos_web_leads/models/__init__.py:5:from . import economic_evaluator
+./plasticos_web_leads/models/__init__.py:6:from . import economic_policy
+./plasticos_web_leads/models/__init__.py:7:from . import evidence_keys
+./plasticos_web_leads/models/__init__.py:8:from . import evidence_reconciler
+./plasticos_web_leads/models/__init__.py:9:from . import image_analyzer
+./plasticos_web_leads/models/__init__.py:10:from . import inference_provider
+./plasticos_web_leads/models/__init__.py:11:from . import quantity_normalizer
+./plasticos_web_leads/models/__init__.py:12:from . import review_snapshot
+./plasticos_web_leads/models/__init__.py:13:from . import triage_helpers
+./plasticos_web_leads/models/__init__.py:14:from . import web_lead
+./plasticos_web_leads/models/__init__.py:15:from . import web_lead_api_key_wizard
+./plasticos_web_leads/models/__init__.py:16:from . import web_lead_config
+./plasticos_web_leads/models/__init__.py:17:from . import web_lead_bridge
+./plasticos_web_leads/models/__init__.py:18:from . import web_lead_review_snapshot
+./plasticos_web_leads/models/ai_client.py:3:from __future__ import annotations
+./plasticos_web_leads/models/ai_client.py:5:import json
+./plasticos_web_leads/models/ai_client.py:6:import time
+./plasticos_web_leads/models/ai_client.py:7:from typing import Any
 ./plasticos_web_leads/models/ai_normalizer.py:17:from __future__ import annotations
-./plasticos_web_leads/models/ai_normalizer.py:19:import json
-./plasticos_web_leads/models/ai_normalizer.py:20:import logging
-./plasticos_web_leads/models/ai_normalizer.py:21:from typing import Any
-./plasticos_web_leads/models/ai_normalizer.py:23:from .triage_helpers import coerce_bool, parse_weight_lbs, safe_float
-./plasticos_web_leads/models/ai_normalizer.py:281:        from openai import OpenAI  # type: ignore[import-untyped]
+./plasticos_web_leads/models/ai_normalizer.py:19:import logging
+./plasticos_web_leads/models/ai_normalizer.py:20:from typing import Any
+./plasticos_web_leads/models/ai_normalizer.py:22:from .ai_client import call_json_with_retry
+./plasticos_web_leads/models/ai_normalizer.py:23:from .evidence_keys import KEY_ATTACHMENTS, KEY_RAW_PAYLOAD, scrub_attachment_rows
+./plasticos_web_leads/models/ai_normalizer.py:24:from .inference_provider import InferenceProvider, call_structured_text, provider_audit_metadata, safe_provider_error
+./plasticos_web_leads/models/ai_normalizer.py:25:from .quantity_normalizer import QuantityEvidence
+./plasticos_web_leads/models/ai_normalizer.py:26:from .triage_helpers import coerce_bool, parse_weight_lbs, safe_float
+./plasticos_web_leads/models/ai_normalizer.py:392:        from openai import OpenAI  # type: ignore[import-untyped]
+./plasticos_web_leads/models/attachment_processor.py:3:from __future__ import annotations
+./plasticos_web_leads/models/attachment_processor.py:5:import base64
+./plasticos_web_leads/models/attachment_processor.py:6:import hashlib
+./plasticos_web_leads/models/attachment_processor.py:7:import ipaddress
+./plasticos_web_leads/models/attachment_processor.py:8:import logging
+./plasticos_web_leads/models/attachment_processor.py:9:import socket
+./plasticos_web_leads/models/attachment_processor.py:10:from collections.abc import Callable, Iterable, Mapping
+./plasticos_web_leads/models/attachment_processor.py:11:from typing import Any
+./plasticos_web_leads/models/attachment_processor.py:12:from urllib.parse import urljoin, urlsplit
+./plasticos_web_leads/models/attachment_processor.py:14:import requests
 ./plasticos_web_leads/models/classification_engine.py:17:from __future__ import annotations
 ./plasticos_web_leads/models/classification_engine.py:19:import re
 ./plasticos_web_leads/models/classification_engine.py:20:from dataclasses import dataclass, field
+./plasticos_web_leads/models/economic_evaluator.py:9:from __future__ import annotations
+./plasticos_web_leads/models/economic_evaluator.py:11:import json
+./plasticos_web_leads/models/economic_evaluator.py:12:from collections.abc import Mapping
+./plasticos_web_leads/models/economic_evaluator.py:13:from typing import Any
+./plasticos_web_leads/models/economic_evaluator.py:15:from .evidence_keys import (
+./plasticos_web_leads/models/economic_evaluator.py:36:from .inference_provider import InferenceProvider, call_structured_text, provider_audit_metadata, safe_provider_error
+./plasticos_web_leads/models/economic_policy.py:8:from __future__ import annotations
+./plasticos_web_leads/models/economic_policy.py:10:from dataclasses import dataclass, field
+./plasticos_web_leads/models/economic_policy.py:11:from typing import Any
+./plasticos_web_leads/models/evidence_reconciler.py:3:from __future__ import annotations
+./plasticos_web_leads/models/evidence_reconciler.py:5:import uuid
+./plasticos_web_leads/models/evidence_reconciler.py:6:from collections.abc import Mapping, Sequence
+./plasticos_web_leads/models/evidence_reconciler.py:7:from typing import Any
+./plasticos_web_leads/models/evidence_reconciler.py:9:from .quantity_normalizer import QuantityEvidence
 ./plasticos_web_leads/models/image_analyzer.py:14:from __future__ import annotations
 ./plasticos_web_leads/models/image_analyzer.py:16:import base64
 ./plasticos_web_leads/models/image_analyzer.py:17:import logging
 ./plasticos_web_leads/models/image_analyzer.py:18:from typing import Any
-./plasticos_web_leads/models/image_analyzer.py:60:        import json
-./plasticos_web_leads/models/image_analyzer.py:165:        import httpx
-./plasticos_web_leads/models/image_analyzer.py:166:        from openai import OpenAI  # type: ignore[import-untyped]
+./plasticos_web_leads/models/image_analyzer.py:20:from .inference_provider import InferenceProvider, call_structured_vision, provider_audit_metadata, safe_provider_error
+./plasticos_web_leads/models/image_analyzer.py:70:        import json
+./plasticos_web_leads/models/image_analyzer.py:209:        import httpx
+./plasticos_web_leads/models/image_analyzer.py:210:        from openai import OpenAI  # type: ignore[import-untyped]
+./plasticos_web_leads/models/inference_provider.py:8:from __future__ import annotations
+./plasticos_web_leads/models/inference_provider.py:10:import base64
+./plasticos_web_leads/models/inference_provider.py:11:import logging
+./plasticos_web_leads/models/inference_provider.py:12:from dataclasses import dataclass
+./plasticos_web_leads/models/inference_provider.py:13:from typing import Any
+./plasticos_web_leads/models/inference_provider.py:15:from .ai_client import call_json_with_retry, extract_json
+./plasticos_web_leads/models/inference_provider.py:16:from .evidence_keys import KEY_ERROR, KEY_ERROR_TYPE, KEY_MODEL, KEY_PROVIDER, KEY_ROLE, KEY_TRANSPORT
+./plasticos_web_leads/models/inference_provider.py:66:        from openai import OpenAI  # type: ignore[import-untyped]
+./plasticos_web_leads/models/inference_provider.py:80:        from anthropic import Anthropic  # type: ignore[import-untyped]
+./plasticos_web_leads/models/quantity_normalizer.py:3:from __future__ import annotations
+./plasticos_web_leads/models/quantity_normalizer.py:5:import re
+./plasticos_web_leads/models/quantity_normalizer.py:6:from dataclasses import asdict, dataclass
+./plasticos_web_leads/models/quantity_normalizer.py:8:from .triage_helpers import parse_explicit_weight_lbs
+./plasticos_web_leads/models/review_snapshot.py:3:from __future__ import annotations
+./plasticos_web_leads/models/review_snapshot.py:5:import hashlib
+./plasticos_web_leads/models/review_snapshot.py:6:import json
+./plasticos_web_leads/models/review_snapshot.py:7:from collections.abc import Mapping
+./plasticos_web_leads/models/review_snapshot.py:8:from typing import Any
+./plasticos_web_leads/models/review_snapshot.py:10:from .evidence_keys import (
 ./plasticos_web_leads/models/triage_helpers.py:15:from __future__ import annotations
 ./plasticos_web_leads/models/triage_helpers.py:17:import re
 ./plasticos_web_leads/models/web_lead.py:10:from __future__ import annotations
@@ -1040,16 +1146,45 @@
 ./plasticos_web_leads/models/web_lead.py:13:import logging
 ./plasticos_web_leads/models/web_lead.py:14:import uuid
 ./plasticos_web_leads/models/web_lead.py:15:from typing import Any
-./plasticos_web_leads/models/web_lead.py:17:import requests as http_requests
-./plasticos_web_leads/models/web_lead.py:19:from odoo import api, fields, models
-./plasticos_web_leads/models/web_lead.py:20:from odoo.exceptions import UserError
-./plasticos_web_leads/models/web_lead.py:22:from . import ai_normalizer, image_analyzer
-./plasticos_web_leads/models/web_lead.py:23:from .classification_engine import classify_lead
+./plasticos_web_leads/models/web_lead.py:17:import psycopg2
+./plasticos_web_leads/models/web_lead.py:18:import psycopg2.errorcodes
+./plasticos_web_leads/models/web_lead.py:19:import requests as http_requests
+./plasticos_web_leads/models/web_lead.py:21:from odoo import api, fields, models
+./plasticos_web_leads/models/web_lead.py:22:from odoo.exceptions import ConcurrencyError, UserError
+./plasticos_web_leads/models/web_lead.py:24:from ..adapters.base import PACKET_SCHEMA_VERSION, WebLeadPacket, acquisition_rows, packet_to_dict
+./plasticos_web_leads/models/web_lead.py:25:from ..adapters.registry import get_adapter
+./plasticos_web_leads/models/web_lead.py:26:from . import ai_normalizer, image_analyzer
+./plasticos_web_leads/models/web_lead.py:27:from .attachment_processor import (
+./plasticos_web_leads/models/web_lead.py:34:from .classification_engine import classify_lead
+./plasticos_web_leads/models/web_lead.py:35:from .economic_evaluator import evaluate_economic_opportunity
+./plasticos_web_leads/models/web_lead.py:36:from .economic_policy import evaluate_economic_eligibility
+./plasticos_web_leads/models/web_lead.py:37:from .evidence_keys import (
+./plasticos_web_leads/models/web_lead.py:49:from .evidence_reconciler import reconcile_evidence
+./plasticos_web_leads/models/web_lead.py:50:from .inference_provider import InferenceProvider
+./plasticos_web_leads/models/web_lead.py:51:from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
 ./plasticos_web_leads/models/web_lead_api_key_wizard.py:3:from odoo import fields, models
 ./plasticos_web_leads/models/web_lead_bridge.py:1:from odoo import models
 ./plasticos_web_leads/models/web_lead_config.py:1:import logging
 ./plasticos_web_leads/models/web_lead_config.py:2:import secrets
 ./plasticos_web_leads/models/web_lead_config.py:4:from odoo import api, fields, models
+./plasticos_web_leads/models/web_lead_config.py:6:from .evidence_keys import (
+./plasticos_web_leads/models/web_lead_review_snapshot.py:3:from __future__ import annotations
+./plasticos_web_leads/models/web_lead_review_snapshot.py:5:from odoo import api, fields, models
+./plasticos_web_leads/models/web_lead_review_snapshot.py:6:from odoo.exceptions import AccessError, UserError, ValidationError
+./plasticos_web_leads/models/web_lead_review_snapshot.py:8:from .evidence_keys import ASSESSMENT_STATUS_ASSESSED, KEY_ECONOMIC_ASSESSMENT, KEY_STATUS
+./plasticos_web_leads/models/web_lead_review_snapshot.py:9:from .review_snapshot import build_snapshot_payload, snapshot_content_hash
+./plasticos_web_leads/tests/__init__.py:1:from . import test_web_lead_hardening
+./plasticos_web_leads/tests/__init__.py:2:from . import test_web_lead_api_http
+./plasticos_web_leads/tests/test_web_lead_api_http.py:3:from __future__ import annotations
+./plasticos_web_leads/tests/test_web_lead_api_http.py:5:import json
+./plasticos_web_leads/tests/test_web_lead_api_http.py:7:from odoo.tests import HttpCase, tagged
+./plasticos_web_leads/tests/test_web_lead_hardening.py:9:from __future__ import annotations
+./plasticos_web_leads/tests/test_web_lead_hardening.py:11:import json
+./plasticos_web_leads/tests/test_web_lead_hardening.py:12:from unittest.mock import MagicMock, patch
+./plasticos_web_leads/tests/test_web_lead_hardening.py:14:from odoo.exceptions import AccessError, ConcurrencyError, UserError, ValidationError
+./plasticos_web_leads/tests/test_web_lead_hardening.py:15:from odoo.tests import TransactionCase, tagged
+./plasticos_web_leads/tests/test_web_lead_hardening.py:17:from ..models.review_snapshot import snapshot_content_hash
+./plasticos_web_leads/tests/test_web_lead_hardening.py:167:        from ..models import web_lead_review_snapshot as module
 ./plasticos_web_leads/wizards/__init__.py:1:from . import lead_bulk_action_wizard
 ./plasticos_web_leads/wizards/lead_bulk_action_wizard.py:6:from odoo import _, api, fields, models
 ./plasticos_web_leads/wizards/lead_bulk_action_wizard.py:7:from odoo.exceptions import UserError
@@ -1449,6 +1584,18 @@
 ./tests/runtime_gates/run_c7_c8_enrichment_failures.py:23:from odoo.tools import config
 ./tests/runtime_gates/run_c7_c8_enrichment_failures.py:28:from _runtime_env import DB, PG_HOST, PG_PORT, PG_USER, bind_config  # noqa: E402
 ./tests/runtime_gates/run_c7_c8_enrichment_failures.py:33:from odoo.exceptions import UserError  # noqa: E402
+./tests/runtime_gates/run_c9_c10_matching_failures.py:16:import os
+./tests/runtime_gates/run_c9_c10_matching_failures.py:17:import socket
+./tests/runtime_gates/run_c9_c10_matching_failures.py:18:import sys
+./tests/runtime_gates/run_c9_c10_matching_failures.py:19:import threading
+./tests/runtime_gates/run_c9_c10_matching_failures.py:20:import time
+./tests/runtime_gates/run_c9_c10_matching_failures.py:22:import psycopg2
+./tests/runtime_gates/run_c9_c10_matching_failures.py:24:import odoo
+./tests/runtime_gates/run_c9_c10_matching_failures.py:25:import odoo.modules.module
+./tests/runtime_gates/run_c9_c10_matching_failures.py:26:from odoo.api import Environment
+./tests/runtime_gates/run_c9_c10_matching_failures.py:27:from odoo.tools import config
+./tests/runtime_gates/run_c9_c10_matching_failures.py:30:from _runtime_env import DB, PG_HOST, PG_PORT, PG_USER, bind_config  # noqa: E402
+./tests/runtime_gates/run_c9_c10_matching_failures.py:35:from odoo.exceptions import UserError  # noqa: E402
 ./tests/runtime_gates/run_f1_f3_full_import.py:25:import os
 ./tests/runtime_gates/run_f1_f3_full_import.py:26:import sys
 ./tests/runtime_gates/run_f1_f3_full_import.py:27:from datetime import UTC, datetime, timedelta
@@ -1494,6 +1641,19 @@
 ./tests/runtime_gates/run_s1_s3_pristine_seams.py:49:from _runtime_env import (  # noqa: E402
 ./tests/runtime_gates/run_s1_s3_pristine_seams.py:390:    from odoo.addons.plasticos_transaction.legacy_erp import report as report_module
 ./tests/runtime_gates/run_s1_s3_pristine_seams.py:391:    from odoo.addons.plasticos_transaction.legacy_erp import source_index
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:24:import os
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:25:import sys
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:26:import threading
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:27:import time
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:28:import uuid
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:30:import psycopg2
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:32:import odoo
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:33:import odoo.modules.module
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:34:from odoo.api import Environment
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:35:from odoo.service.model import retrying
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:36:from odoo.tools import config
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:39:from _runtime_env import DB, PG_HOST, PG_PORT, PG_USER, bind_config  # noqa: E402
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:95:from odoo.addons.plasticos_web_leads.models.web_lead import PlasticosWebLead  # noqa: E402
 ./tests/test_action_methods.py:17:from unittest.mock import patch
 ./tests/test_action_methods.py:19:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./tests/test_action_methods.py:20:from odoo.exceptions import UserError, ValidationError
@@ -1608,9 +1768,9 @@
 ./tests/test_error_handling.py:24:    from psycopg.errors import IntegrityError
 ./tests/test_error_handling.py:26:    from psycopg2 import IntegrityError
 ./tests/test_error_handling.py:28:from odoo.tests.common import tagged
-./tests/test_error_handling.py:71:        import uuid
-./tests/test_error_handling.py:169:        from odoo.addons.plasticos_web_leads.models.web_lead import _safe_int
-./tests/test_error_handling.py:262:        import uuid
+./tests/test_error_handling.py:72:        import uuid
+./tests/test_error_handling.py:182:        from odoo.addons.plasticos_web_leads.models.web_lead import _safe_int
+./tests/test_error_handling.py:275:        import uuid
 ./tests/test_evidence_odoo_mapping_consumer.py:3:from __future__ import annotations
 ./tests/test_evidence_odoo_mapping_consumer.py:5:from datetime import UTC, datetime
 ./tests/test_evidence_odoo_mapping_consumer.py:7:from plasticos_gate.services.evidence_mapping import (
@@ -1672,6 +1832,13 @@
 ./tests/test_gate_match_contract.py:15:from plasticos_gate.services.gate_builders import build_converge_request, build_match_request  # noqa: E402
 ./tests/test_gate_match_contract.py:16:from plasticos_gate.services.gate_config import (  # noqa: E402
 ./tests/test_gate_match_contract.py:22:from plasticos_gate.services.gate_mappers import (  # noqa: E402
+./tests/test_gate_match_receipts.py:3:from __future__ import annotations
+./tests/test_gate_match_receipts.py:5:import ast
+./tests/test_gate_match_receipts.py:6:import hashlib
+./tests/test_gate_match_receipts.py:7:import json
+./tests/test_gate_match_receipts.py:8:import math
+./tests/test_gate_match_receipts.py:9:from pathlib import Path
+./tests/test_gate_match_receipts.py:11:import pytest
 ./tests/test_gate_sdk_invocation.py:14:from __future__ import annotations
 ./tests/test_gate_sdk_invocation.py:16:import sys
 ./tests/test_gate_sdk_invocation.py:17:from pathlib import Path
@@ -1699,8 +1866,11 @@
 ./tests/test_gate_single_egress.py:18:from __future__ import annotations
 ./tests/test_gate_single_egress.py:20:import re
 ./tests/test_gate_single_egress.py:21:from pathlib import Path
-./tests/test_golden_flows.py:14:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-./tests/test_golden_flows.py:15:from odoo.tests.common import tagged
+./tests/test_golden_flows.py:14:from unittest.mock import MagicMock, patch
+./tests/test_golden_flows.py:16:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+./tests/test_golden_flows.py:17:from odoo.addons.plasticos_web_leads.models.classification_engine import classify_lead
+./tests/test_golden_flows.py:18:from odoo.exceptions import UserError
+./tests/test_golden_flows.py:19:from odoo.tests.common import tagged
 ./tests/test_import_summary_schema.py:6:from __future__ import annotations
 ./tests/test_import_summary_schema.py:8:import json
 ./tests/test_import_summary_schema.py:9:import subprocess
@@ -1902,14 +2072,40 @@
 ./tests/test_state_machines.py:14:from odoo.tests.common import tagged
 ./tests/test_suite_structure.py:23:import ast
 ./tests/test_suite_structure.py:24:from pathlib import Path
-./tests/test_suite_structure.py:248:            import warnings
+./tests/test_suite_structure.py:250:            import warnings
 ./tests/test_triage_pipeline.py:6:from __future__ import annotations
 ./tests/test_triage_pipeline.py:8:import importlib.util
-./tests/test_triage_pipeline.py:9:import os
-./tests/test_triage_pipeline.py:10:import sys
-./tests/test_triage_pipeline.py:11:import types
-./tests/test_triage_pipeline.py:12:from unittest.mock import MagicMock, patch
-./tests/test_triage_pipeline.py:14:import pytest
+./tests/test_triage_pipeline.py:9:import json
+./tests/test_triage_pipeline.py:10:import os
+./tests/test_triage_pipeline.py:11:import sys
+./tests/test_triage_pipeline.py:12:import types
+./tests/test_triage_pipeline.py:13:from unittest.mock import MagicMock, patch
+./tests/test_triage_pipeline.py:15:import pytest
+./tests/test_web_lead_evidence.py:3:from __future__ import annotations
+./tests/test_web_lead_evidence.py:5:import hashlib
+./tests/test_web_lead_evidence.py:6:import sys
+./tests/test_web_lead_evidence.py:7:import types
+./tests/test_web_lead_evidence.py:8:from pathlib import Path
+./tests/test_web_lead_evidence.py:10:import pytest
+./tests/test_web_lead_evidence.py:20:from plasticos_web_leads.models.attachment_processor import (  # noqa: E402
+./tests/test_web_lead_evidence.py:29:from plasticos_web_leads.models.evidence_reconciler import (  # noqa: E402
+./tests/test_web_lead_evidence.py:33:from plasticos_web_leads.models.quantity_normalizer import normalize_quantity_evidence  # noqa: E402
+./tests/test_web_lead_packet.py:3:from __future__ import annotations
+./tests/test_web_lead_packet.py:5:import json
+./tests/test_web_lead_packet.py:6:import sys
+./tests/test_web_lead_packet.py:7:import types
+./tests/test_web_lead_packet.py:8:from pathlib import Path
+./tests/test_web_lead_packet.py:10:import pytest
+./tests/test_web_lead_packet.py:18:from plasticos_web_leads.adapters.base import PACKET_SCHEMA_VERSION, acquisition_rows, packet_to_dict  # noqa: E402
+./tests/test_web_lead_packet.py:19:from plasticos_web_leads.adapters.cognito import CognitoAdapter  # noqa: E402
+./tests/test_web_lead_packet.py:20:from plasticos_web_leads.adapters.registry import get_adapter  # noqa: E402
+./tests/test_web_lead_quantity_semantics.py:3:from __future__ import annotations
+./tests/test_web_lead_quantity_semantics.py:5:import sys
+./tests/test_web_lead_quantity_semantics.py:6:import types
+./tests/test_web_lead_quantity_semantics.py:7:from pathlib import Path
+./tests/test_web_lead_quantity_semantics.py:9:import pytest
+./tests/test_web_lead_quantity_semantics.py:19:from plasticos_web_leads.models.ai_client import call_json_with_retry, extract_json  # noqa: E402
+./tests/test_web_lead_quantity_semantics.py:20:from plasticos_web_leads.models.quantity_normalizer import normalize_quantity_evidence  # noqa: E402
 ./tests/test_xpath_field_refs.py:41:import re
 ./tests/test_xpath_field_refs.py:43:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 ./tests/test_xpath_field_refs.py:44:from odoo.tests import tagged

@@ -374,19 +374,24 @@
 ./plasticos_commission/models/transaction_commission.py:90:    def _validate_write_immutability(self, rec, vals):
 ./plasticos_commission/models/transaction_commission.py:100:    def _apply_close(self, rec):
 ./plasticos_crm_bridge/migrations/19.0.1.1.0/pre-migrate.py:11:def migrate(cr, version):
-./plasticos_crm_bridge/models/crm_lead.py:78:    def _compute_web_lead_count(self):
-./plasticos_crm_bridge/models/crm_lead.py:83:    def _compute_intake_count(self):
-./plasticos_crm_bridge/models/crm_lead.py:88:    def _compute_profile_summary(self):
-./plasticos_crm_bridge/models/crm_lead.py:115:    def _compute_mobile_sanitized(self):
-./plasticos_crm_bridge/models/crm_lead.py:123:    def _check_mobile_format(self):
-./plasticos_crm_bridge/models/crm_lead.py:133:    def _find_matching_partner(self):
-./plasticos_crm_bridge/models/crm_lead.py:149:    def action_convert_to_intake(self):
-./plasticos_crm_bridge/models/crm_lead.py:217:    def _find_or_create_partner_from_lead(self):
-./plasticos_crm_bridge/models/crm_lead.py:258:    def action_view_intakes(self):
-./plasticos_crm_bridge/models/crm_lead.py:272:    def action_view_web_leads(self):
-./plasticos_crm_bridge/models/crm_lead.py:282:    def action_view_material_profiles(self):
-./plasticos_crm_bridge/models/crm_lead.py:293:    def action_view_match_results(self):
-./plasticos_crm_bridge/models/crm_lead.py:310:    def action_view_transactions(self):
+./plasticos_crm_bridge/models/crm_lead.py:97:    def _compute_web_lead_count(self):
+./plasticos_crm_bridge/models/crm_lead.py:102:    def _compute_intake_count(self):
+./plasticos_crm_bridge/models/crm_lead.py:107:    def _compute_commercial_image_count(self):
+./plasticos_crm_bridge/models/crm_lead.py:118:    def _commercial_image_sources(self):
+./plasticos_crm_bridge/models/crm_lead.py:130:    def _propagate_available_commercial_images(self, *, material_profile=None):
+./plasticos_crm_bridge/models/crm_lead.py:166:    def action_sync_commercial_images(self):
+./plasticos_crm_bridge/models/crm_lead.py:185:    def _compute_profile_summary(self):
+./plasticos_crm_bridge/models/crm_lead.py:212:    def _compute_mobile_sanitized(self):
+./plasticos_crm_bridge/models/crm_lead.py:220:    def _check_mobile_format(self):
+./plasticos_crm_bridge/models/crm_lead.py:230:    def _find_matching_partner(self):
+./plasticos_crm_bridge/models/crm_lead.py:246:    def action_convert_to_intake(self):
+./plasticos_crm_bridge/models/crm_lead.py:351:    def _move_to_active_supplier_stage(self):
+./plasticos_crm_bridge/models/crm_lead.py:361:    def _find_or_create_partner_from_lead(self):
+./plasticos_crm_bridge/models/crm_lead.py:403:    def action_view_intakes(self):
+./plasticos_crm_bridge/models/crm_lead.py:417:    def action_view_web_leads(self):
+./plasticos_crm_bridge/models/crm_lead.py:427:    def action_view_material_profiles(self):
+./plasticos_crm_bridge/models/crm_lead.py:438:    def action_view_match_results(self):
+./plasticos_crm_bridge/models/crm_lead.py:455:    def action_view_transactions(self):
 ./plasticos_crm_bridge/models/material_profile.py:46:    def _compute_match_stats(self):
 ./plasticos_crm_bridge/models/material_profile.py:60:    def _compute_tx_stats(self):
 ./plasticos_crm_bridge/models/material_profile.py:91:    def action_view_match_results(self):
@@ -408,11 +413,11 @@
 ./plasticos_crm_sync/adapters/vanillasoft/adapter.py:211:    def __init__(self, client: VanillaSoftClient, project_id: int):
 ./plasticos_crm_sync/adapters/vanillasoft/adapter.py:215:    def healthcheck(self) -> dict[str, Any]:
 ./plasticos_crm_sync/adapters/vanillasoft/adapter.py:230:    def iter_contacts(
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:286:    def get_contact(self, external_id: str) -> CanonicalLead | None:
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:299:    def iter_calls(
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:358:    def iter_calls_for_contact(self, contact_external_id: str) -> Iterator[list[CanonicalCall]]:
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:372:    def iter_table_rows(self, contact_external_id: str) -> Iterator[CanonicalTableRow]:
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:411:    def _rows_from_payload(
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:288:    def get_contact(self, external_id: str) -> CanonicalLead | None:
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:301:    def iter_calls(
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:360:    def iter_calls_for_contact(self, contact_external_id: str) -> Iterator[list[CanonicalCall]]:
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:374:    def iter_table_rows(self, contact_external_id: str) -> Iterator[CanonicalTableRow]:
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:413:    def _rows_from_payload(
 ./plasticos_crm_sync/adapters/vanillasoft/client.py:29:def require_secure_endpoint(url: str) -> None:
 ./plasticos_crm_sync/adapters/vanillasoft/client.py:44:def normalize_api_base(root_endpoint: str) -> str:
 ./plasticos_crm_sync/adapters/vanillasoft/client.py:61:    def __init__(
@@ -458,24 +463,24 @@
 ./plasticos_crm_sync/services/orchestrator.py:171:    def run_connection(self, connection) -> Any:
 ./plasticos_crm_sync/services/orchestrator.py:241:    def run_full_import(
 ./plasticos_crm_sync/services/orchestrator.py:380:    def _require_utc_bound(value: Any, name: str) -> datetime:
-./plasticos_crm_sync/services/orchestrator.py:404:    def _contact_enumeration_gap(self, contact_floor: datetime, boundary: datetime) -> str | None:
-./plasticos_crm_sync/services/orchestrator.py:439:    def _try_advisory_lock(self, lock_key: str) -> bool:
-./plasticos_crm_sync/services/orchestrator.py:444:    def _advisory_unlock(self, lock_key: str) -> None:
-./plasticos_crm_sync/services/orchestrator.py:447:    def _ensure_caller_state_durable(self) -> None:
-./plasticos_crm_sync/services/orchestrator.py:471:    def _create_sync_run_durable(self, connection_id: int) -> int:
-./plasticos_crm_sync/services/orchestrator.py:492:    def _persist_sync_failure_durable(self, connection_id: int, run_id: int | None, excerpt: str) -> None:
-./plasticos_crm_sync/services/orchestrator.py:525:    def upsert_contact_external_id(self, connection, external_id: str) -> Any:
-./plasticos_crm_sync/services/orchestrator.py:555:    def _build_adapter(self, connection):
-./plasticos_crm_sync/services/orchestrator.py:569:    def _sync_contacts(
-./plasticos_crm_sync/services/orchestrator.py:648:    def _observe_contact_modified(self, dto: CanonicalLead) -> None:
-./plasticos_crm_sync/services/orchestrator.py:662:    def _sync_calls(
-./plasticos_crm_sync/services/orchestrator.py:723:    def _upsert_lead(self, connection, dto: CanonicalLead):
-./plasticos_crm_sync/services/orchestrator.py:830:    def _record_outcome(self, outcomes: dict[str, int] | None, outcome: str, record_ref: str, message: str) -> None:
-./plasticos_crm_sync/services/orchestrator.py:837:    def _lead_vals_from_dto(self, dto: CanonicalLead) -> dict[str, Any]:
-./plasticos_crm_sync/services/orchestrator.py:906:    def _upsert_calls(self, connection, batch: list[CanonicalCall], run) -> int:
-./plasticos_crm_sync/services/orchestrator.py:984:    def _sync_tables_for_lead(self, connection, adapter, contact_external_id: str, lead=None):
-./plasticos_crm_sync/services/orchestrator.py:1039:    def _resolve_orphans(self, connection, adapter, run) -> int:
-./plasticos_crm_sync/services/orchestrator.py:1107:    def _find_lead(self, provider: str, contact_external_id: str, Ref):
+./plasticos_crm_sync/services/orchestrator.py:405:    def _contact_enumeration_gap(self, contact_floor: datetime, boundary: datetime) -> str | None:
+./plasticos_crm_sync/services/orchestrator.py:440:    def _try_advisory_lock(self, lock_key: str) -> bool:
+./plasticos_crm_sync/services/orchestrator.py:445:    def _advisory_unlock(self, lock_key: str) -> None:
+./plasticos_crm_sync/services/orchestrator.py:448:    def _ensure_caller_state_durable(self) -> None:
+./plasticos_crm_sync/services/orchestrator.py:472:    def _create_sync_run_durable(self, connection_id: int) -> int:
+./plasticos_crm_sync/services/orchestrator.py:493:    def _persist_sync_failure_durable(self, connection_id: int, run_id: int | None, excerpt: str) -> None:
+./plasticos_crm_sync/services/orchestrator.py:526:    def upsert_contact_external_id(self, connection, external_id: str) -> Any:
+./plasticos_crm_sync/services/orchestrator.py:556:    def _build_adapter(self, connection):
+./plasticos_crm_sync/services/orchestrator.py:570:    def _sync_contacts(
+./plasticos_crm_sync/services/orchestrator.py:649:    def _observe_contact_modified(self, dto: CanonicalLead) -> None:
+./plasticos_crm_sync/services/orchestrator.py:663:    def _sync_calls(
+./plasticos_crm_sync/services/orchestrator.py:724:    def _upsert_lead(self, connection, dto: CanonicalLead):
+./plasticos_crm_sync/services/orchestrator.py:831:    def _record_outcome(self, outcomes: dict[str, int] | None, outcome: str, record_ref: str, message: str) -> None:
+./plasticos_crm_sync/services/orchestrator.py:838:    def _lead_vals_from_dto(self, dto: CanonicalLead) -> dict[str, Any]:
+./plasticos_crm_sync/services/orchestrator.py:907:    def _upsert_calls(self, connection, batch: list[CanonicalCall], run) -> int:
+./plasticos_crm_sync/services/orchestrator.py:985:    def _sync_tables_for_lead(self, connection, adapter, contact_external_id: str, lead=None):
+./plasticos_crm_sync/services/orchestrator.py:1040:    def _resolve_orphans(self, connection, adapter, run) -> int:
+./plasticos_crm_sync/services/orchestrator.py:1108:    def _find_lead(self, provider: str, contact_external_id: str, Ref):
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:19:def _lead(external_id, deleted=False):
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:34:    def setUpClass(cls):
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:45:    def setUp(self):
@@ -662,9 +667,9 @@
 ./plasticos_gate/services/gate_builders.py:108:def _clamp_variations(max_passes: Any) -> int:
 ./plasticos_gate/services/gate_builders.py:117:def build_converge_request(
 ./plasticos_gate/services/gate_builders.py:166:def _run_attempt(run_rec) -> int:
-./plasticos_gate/services/gate_builders.py:175:def build_match_request(env, *, intake=None, supplier=None, top_n: int = 20, mode: str = "strict") -> MatchRequest:
-./plasticos_gate/services/gate_builders.py:205:def build_web_lead_request(env, lead_rec, *, raw_payload: dict[str, Any] | None = None) -> ProcessWebLeadRequest:
-./plasticos_gate/services/gate_builders.py:226:def build_intake_request(env, intake_rec) -> ProcessIntakeRequest:
+./plasticos_gate/services/gate_builders.py:175:def build_match_request(
+./plasticos_gate/services/gate_builders.py:212:def build_web_lead_request(env, lead_rec, *, raw_payload: dict[str, Any] | None = None) -> ProcessWebLeadRequest:
+./plasticos_gate/services/gate_builders.py:233:def build_intake_request(env, intake_rec) -> ProcessIntakeRequest:
 ./plasticos_gate/services/gate_client.py:103:def _http_status(exc: BaseException) -> int | None:
 ./plasticos_gate/services/gate_client.py:113:def classify_transport_failure(exc: BaseException) -> TransportFailureClass:
 ./plasticos_gate/services/gate_client.py:162:def _require_sdk() -> None:
@@ -672,7 +677,7 @@
 ./plasticos_gate/services/gate_client.py:189:    def runner() -> None:
 ./plasticos_gate/services/gate_client.py:203:def send_action(
 ./plasticos_gate/services/gate_client.py:287:def send_match_action(
-./plasticos_gate/services/gate_client.py:303:def send_converge_action(
+./plasticos_gate/services/gate_client.py:305:def send_converge_action(
 ./plasticos_gate/services/gate_config.py:20:    def __init__(self, message: str, *, failure_class: str | None = None) -> None:
 ./plasticos_gate/services/gate_config.py:56:    def as_dict(self) -> dict[str, Any]:
 ./plasticos_gate/services/gate_config.py:83:def _gate_url_usable(icp) -> bool:
@@ -932,26 +937,65 @@
 ./plasticos_matching/migrations/19.0.3.0.0/post-migrate.py:4:def migrate(cr, version):
 ./plasticos_matching/migrations/19.0.3.0.0/pre-migrate.py:11:def migrate(cr, version):
 ./plasticos_matching/models/intake_extension.py:11:    def action_match_to_buyers(self):
-./plasticos_matching/models/intake_extension.py:58:    def action_open_latest_match_run(self):
-./plasticos_matching/models/intake_extension.py:75:    def action_retry_latest_match(self):
+./plasticos_matching/models/intake_extension.py:56:    def action_open_latest_match_run(self):
+./plasticos_matching/models/intake_extension.py:73:    def action_retry_latest_match(self):
 ./plasticos_matching/models/match_exclusion.py:91:    def _check_expiry_date(self):
 ./plasticos_matching/models/match_exclusion.py:97:    def _check_different_partners(self):
 ./plasticos_matching/models/match_exclusion.py:107:    def get_excluded_buyer_ids(self, supplier_partner_id):
 ./plasticos_matching/models/match_exclusion.py:130:    def is_pair_excluded(self, supplier_partner_id, buyer_partner_id):
 ./plasticos_matching/models/match_exclusion.py:161:    def _cron_expire_temporary_exclusions(self):
-./plasticos_matching/models/match_orchestrator.py:32:    def _state_for_failure(self, failure_class: str) -> str:
-./plasticos_matching/models/match_orchestrator.py:40:    def run_match_for_intake(self, intake, max_results=20, mode="strict", *, retry_of=None):
-./plasticos_matching/models/match_orchestrator.py:162:    def retry_match_run(self, prior_run):
-./plasticos_matching/models/match_orchestrator.py:194:    def _build_intake_match_line_vals(self, intake, matches):
-./plasticos_matching/models/match_orchestrator.py:213:    def _create_intake_match_lines(self, vals_list):
-./plasticos_matching/models/match_orchestrator.py:220:    def persist_review_results(self, intake, matches, run):
+./plasticos_matching/models/match_orchestrator.py:44:def _canonical_digest(value):
+./plasticos_matching/models/match_orchestrator.py:56:def _receipt_text(value):
+./plasticos_matching/models/match_orchestrator.py:78:    def _state_for_failure(self, failure_class: str) -> str:
+./plasticos_matching/models/match_orchestrator.py:86:    def _rollback_then_persist_failed_run_durable(self, run_id, vals):
+./plasticos_matching/models/match_orchestrator.py:110:    def _persist_failed_run_durable(self, run_id, vals):
+./plasticos_matching/models/match_orchestrator.py:141:    def _durable_run_vals(self, run):
+./plasticos_matching/models/match_orchestrator.py:147:    def run_match_for_intake(self, intake, max_results=20, mode="strict", *, retry_of=None):
+./plasticos_matching/models/match_orchestrator.py:352:    def retry_match_run(self, prior_run):
+./plasticos_matching/models/match_orchestrator.py:384:    def _build_intake_match_line_vals(self, intake, matches):
+./plasticos_matching/models/match_orchestrator.py:403:    def _create_intake_match_lines(self, vals_list):
+./plasticos_matching/models/match_orchestrator.py:410:    def persist_review_results(self, intake, matches, run):
 ./plasticos_matching/models/match_result.py:178:    def write(self, vals):
 ./plasticos_matching/models/match_result.py:189:    def unlink(self):
 ./plasticos_matching/models/match_result.py:204:    def _compute_display_name(self):
 ./plasticos_matching/models/match_result.py:214:    def action_accept(self):
 ./plasticos_matching/models/match_result.py:233:    def action_reject(self):
-./plasticos_matching/models/match_run.py:76:    def _compute_display_name(self):
-./plasticos_matching/models/match_run.py:81:    def action_retry_match(self):
+./plasticos_matching/models/match_result_writer.py:24:    def persist_match_lines(self, intake, matches, *, match_run):
+./plasticos_matching/models/match_result_writer.py:61:    def _validated_result_vals(self, intake, matches, match_run):
+./plasticos_matching/models/match_result_writer.py:121:    def _assert_idempotent_result(existing_result, vals):
+./plasticos_matching/models/match_run.py:147:    def _compute_display_name(self):
+./plasticos_matching/models/match_run.py:155:    def _receipt_vals(self, vals):
+./plasticos_matching/models/match_run.py:158:    def _check_receipt_write(self, vals):
+./plasticos_matching/models/match_run.py:178:    def create(self, vals_list):
+./plasticos_matching/models/match_run.py:183:    def write(self, vals):
+./plasticos_matching/models/match_run.py:187:    def action_retry_match(self):
+./plasticos_matching/tests/test_match_result_writer.py:11:    def setUpClass(cls):
+./plasticos_matching/tests/test_match_result_writer.py:25:    def _successful_run(self, operation_id="odoo:matching:test:plasticos.match.run:1"):
+./plasticos_matching/tests/test_match_result_writer.py:41:    def _eligible_match(self):
+./plasticos_matching/tests/test_match_result_writer.py:51:    def test_persists_exact_gate_result_once_and_links_the_durable_run(self):
+./plasticos_matching/tests/test_match_result_writer.py:72:    def test_zero_candidate_gate_receipt_creates_no_result_but_is_valid(self):
+./plasticos_matching/tests/test_match_run_receipts.py:52:def _available_verdict() -> GateAvailabilityVerdict:
+./plasticos_matching/tests/test_match_run_receipts.py:62:def _disabled_verdict() -> GateAvailabilityVerdict:
+./plasticos_matching/tests/test_match_run_receipts.py:72:def _fake_gate_result(candidates=None, packet_id="pkt-match-1", correlation_id="corr-match-1"):
+./plasticos_matching/tests/test_match_run_receipts.py:88:def _eligible_candidate(buyer, score=0.85):
+./plasticos_matching/tests/test_match_run_receipts.py:103:    def setUpClass(cls):
+./plasticos_matching/tests/test_match_run_receipts.py:133:    def _request_rollback(self):
+./plasticos_matching/tests/test_match_run_receipts.py:143:    def _raises(self, exc_type):
+./plasticos_matching/tests/test_match_run_receipts.py:153:    def _runs(self):
+./plasticos_matching/tests/test_match_run_receipts.py:156:    def _commercial_snapshot(self):
+./plasticos_matching/tests/test_match_run_receipts.py:169:    def _intake_note(self, run):
+./plasticos_matching/tests/test_match_run_receipts.py:178:    def _server_run(self, **extra):
+./plasticos_matching/tests/test_match_run_receipts.py:185:    def test_gate_disabled_failure_receipt_survives_the_request_rollback(self):
+./plasticos_matching/tests/test_match_run_receipts.py:208:    def test_transport_failure_is_retryable_receipt_bound_and_retry_advances_the_attempt(self):
+./plasticos_matching/tests/test_match_run_receipts.py:252:    def test_unexpected_transport_exception_is_classified_unknown_and_degraded(self):
+./plasticos_matching/tests/test_match_run_receipts.py:271:    def test_persistence_failure_after_a_gate_answer_keeps_the_gate_receipt_durably(self):
+./plasticos_matching/tests/test_match_run_receipts.py:300:    def test_zero_candidate_gate_response_is_a_valid_durable_ok_receipt(self):
+./plasticos_matching/tests/test_match_run_receipts.py:324:    def test_successful_match_persists_gate_originated_results_idempotently(self):
+./plasticos_matching/tests/test_match_run_receipts.py:348:    def test_receipt_fields_refuse_ordinary_and_sudo_writes(self):
+./plasticos_matching/tests/test_match_run_receipts.py:371:    def test_receipt_fields_are_write_once_even_through_the_server_door(self):
+./plasticos_matching/tests/test_match_run_receipts.py:387:    def test_receipt_create_requires_the_server_door(self):
+./plasticos_matching/tests/test_match_run_receipts.py:396:    def test_copy_never_carries_receipt_evidence(self):
+./plasticos_matching/tests/test_match_run_receipts.py:412:    def test_human_review_disposition_stays_mutable_while_the_receipt_does_not(self):
 ./plasticos_material_profile/intake_delta_bridge.py:49:def _m2o_id(record, field_name):
 ./plasticos_material_profile/intake_delta_bridge.py:54:def _attribute_codes(record) -> list[str]:
 ./plasticos_material_profile/intake_delta_bridge.py:63:def _source_type_label(record) -> str | None:
@@ -1324,62 +1368,192 @@
 ./plasticos_transaction/wizards/transaction_import_wizard.py:281:    def action_back(self):
 ./plasticos_transaction/wizards/transaction_import_wizard.py:287:    def action_close(self):
 ./plasticos_transaction/wizards/transaction_import_wizard.py:291:    def action_view_transactions(self):
-./plasticos_web_leads/controllers/web_lead_api.py:36:    def _extract_token(req):
-./plasticos_web_leads/controllers/web_lead_api.py:50:    def _authenticate(req):
-./plasticos_web_leads/controllers/web_lead_api.py:123:    def receive_web_lead(self, **kwargs):
-./plasticos_web_leads/controllers/web_lead_api.py:200:    def receive_cognito_webhook(self, **kwargs):
-./plasticos_web_leads/controllers/web_lead_api.py:271:    def health_check(self, **kwargs):
-./plasticos_web_leads/controllers/web_lead_api.py:294:    def _json_response(status_code, data):
-./plasticos_web_leads/controllers/web_lead_api.py:302:    def _json_error(status_code, message):
+./plasticos_web_leads/adapters/base.py:64:    def to_packet(self, payload: Mapping[str, Any]) -> WebLeadPacket:
+./plasticos_web_leads/adapters/base.py:68:def attachment_to_dict(attachment: WebLeadAttachment, *, include_acquisition_url: bool = False) -> dict[str, Any]:
+./plasticos_web_leads/adapters/base.py:81:def acquisition_rows(packet: WebLeadPacket) -> list[dict[str, Any]]:
+./plasticos_web_leads/adapters/base.py:86:def packet_to_dict(packet: WebLeadPacket, *, omit_raw_payload: bool = False) -> dict[str, Any]:
+./plasticos_web_leads/adapters/cognito.py:30:    def _text(value: Any) -> str:
+./plasticos_web_leads/adapters/cognito.py:34:    def _first_text(cls, payload: Mapping[str, Any], *keys: str) -> str:
+./plasticos_web_leads/adapters/cognito.py:42:    def _contact_name(cls, payload: Mapping[str, Any]) -> str:
+./plasticos_web_leads/adapters/cognito.py:56:    def _entry(cls, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+./plasticos_web_leads/adapters/cognito.py:61:    def _external_id(cls, payload: Mapping[str, Any]) -> str:
+./plasticos_web_leads/adapters/cognito.py:66:    def _attachment_items(cls, payload: Mapping[str, Any]) -> tuple[str, list[Any]]:
+./plasticos_web_leads/adapters/cognito.py:78:    def _attachments(cls, payload: Mapping[str, Any]) -> tuple[WebLeadAttachment, ...]:
+./plasticos_web_leads/adapters/cognito.py:126:    def to_packet(self, payload: Mapping[str, Any]) -> WebLeadPacket:
+./plasticos_web_leads/adapters/registry.py:13:def get_adapter(provider: str) -> WebLeadProviderAdapter:
+./plasticos_web_leads/controllers/web_lead_api.py:38:    def _extract_token(req):
+./plasticos_web_leads/controllers/web_lead_api.py:52:    def _authenticate(req):
+./plasticos_web_leads/controllers/web_lead_api.py:131:    def receive_web_lead(self, **kwargs):
+./plasticos_web_leads/controllers/web_lead_api.py:223:    def receive_cognito_webhook(self, **kwargs):
+./plasticos_web_leads/controllers/web_lead_api.py:299:    def health_check(self, **kwargs):
+./plasticos_web_leads/controllers/web_lead_api.py:322:    def _json_response(status_code, data):
+./plasticos_web_leads/controllers/web_lead_api.py:330:    def _json_error(status_code, message):
 ./plasticos_web_leads/migrations/19.0.1.5.0/post-migrate.py:22:def migrate(cr, version):
-./plasticos_web_leads/models/ai_normalizer.py:84:def validate_ai_output(raw: dict[str, Any]) -> dict[str, Any]:
-./plasticos_web_leads/models/ai_normalizer.py:139:def build_user_prompt(form_data: dict[str, Any]) -> str:
-./plasticos_web_leads/models/ai_normalizer.py:175:def merge_ai_into_record(
-./plasticos_web_leads/models/ai_normalizer.py:209:def normalize_lead(
-./plasticos_web_leads/models/ai_normalizer.py:271:def _build_openai_client(api_key: str | None, base_url: str | None = None):
-./plasticos_web_leads/models/ai_normalizer.py:291:def normalize_with_fallback(
-./plasticos_web_leads/models/classification_engine.py:119:def classify_lead(
-./plasticos_web_leads/models/image_analyzer.py:45:def _encode_image(image_bytes: bytes) -> str:
-./plasticos_web_leads/models/image_analyzer.py:49:def analyse_image(
-./plasticos_web_leads/models/image_analyzer.py:92:def merge_vision_results(
-./plasticos_web_leads/models/image_analyzer.py:157:def analyze_image(
-./plasticos_web_leads/models/image_analyzer.py:191:def analyze_multiple_images(
+./plasticos_web_leads/migrations/19.0.2.7.0/post-migrate.py:10:def migrate(cr, version):
+./plasticos_web_leads/models/ai_client.py:10:def extract_json(text: str) -> dict[str, Any]:
+./plasticos_web_leads/models/ai_client.py:34:def _usage_metadata(response: Any, *, attempts: int, model: str, elapsed_ms: int) -> dict[str, Any]:
+./plasticos_web_leads/models/ai_client.py:46:def call_json_with_retry(
+./plasticos_web_leads/models/ai_normalizer.py:98:def validate_ai_output(raw: dict[str, Any]) -> dict[str, Any]:
+./plasticos_web_leads/models/ai_normalizer.py:161:def _scalar_prompt_text(value: Any) -> str:
+./plasticos_web_leads/models/ai_normalizer.py:170:def _attachment_summary(rows: Any) -> str:
+./plasticos_web_leads/models/ai_normalizer.py:190:def build_user_prompt(form_data: dict[str, Any]) -> str:
+./plasticos_web_leads/models/ai_normalizer.py:231:def merge_ai_into_record(
+./plasticos_web_leads/models/ai_normalizer.py:265:def normalize_lead(
+./plasticos_web_leads/models/ai_normalizer.py:334:def normalize_with_provider(
+./plasticos_web_leads/models/ai_normalizer.py:382:def _build_openai_client(api_key: str | None, base_url: str | None = None):
+./plasticos_web_leads/models/ai_normalizer.py:402:def normalize_with_fallback(
+./plasticos_web_leads/models/attachment_processor.py:35:def _error(code: str, message: str) -> dict[str, str]:
+./plasticos_web_leads/models/attachment_processor.py:53:    def __init__(self, code: str, message: str):
+./plasticos_web_leads/models/attachment_processor.py:59:def normalize_allowed_hosts(hosts: Iterable[str] | None) -> tuple[str, ...]:
+./plasticos_web_leads/models/attachment_processor.py:72:def host_is_allowed(host: str, allowed_hosts: Iterable[str] | None) -> bool:
+./plasticos_web_leads/models/attachment_processor.py:83:def address_is_public(address: str) -> bool:
+./plasticos_web_leads/models/attachment_processor.py:97:def resolve_host_addresses(host: str) -> list[str]:
+./plasticos_web_leads/models/attachment_processor.py:103:def validate_destination(
+./plasticos_web_leads/models/attachment_processor.py:152:def _redirect_location(response: Any) -> str:
+./plasticos_web_leads/models/attachment_processor.py:160:def _response_content_type(response: Any) -> str:
+./plasticos_web_leads/models/attachment_processor.py:168:def fetch_attachment(
+./plasticos_web_leads/models/attachment_processor.py:204:def fetch_attachment_bytes(url: str, **kwargs: Any) -> bytes:
+./plasticos_web_leads/models/attachment_processor.py:209:def _base_result(attachment: Mapping[str, Any]) -> dict[str, Any]:
+./plasticos_web_leads/models/attachment_processor.py:228:def _read_response_bytes(response: Any, *, remaining_bytes: int) -> bytes:
+./plasticos_web_leads/models/attachment_processor.py:249:def _previous_successes(evidence_bundle: Mapping[str, Any] | None) -> dict[str, dict[str, Any]]:
+./plasticos_web_leads/models/attachment_processor.py:265:def _analysis_is_error_shaped(analysis: Any) -> bool:
+./plasticos_web_leads/models/attachment_processor.py:270:def process_attachments(
+./plasticos_web_leads/models/attachment_processor.py:442:def copy_successful_attachments_to_intake(*, lead: Any, intake: Any, evidence_bundle: Mapping[str, Any] | None) -> None:
+./plasticos_web_leads/models/attachment_processor.py:482:def _marker_from_description(description: Any, marker_prefix: str) -> str | None:
+./plasticos_web_leads/models/attachment_processor.py:492:def _provider_source_marker(attachment: Any) -> str | None:
+./plasticos_web_leads/models/attachment_processor.py:496:def _attachment_checksum(attachment: Any) -> str | None:
+./plasticos_web_leads/models/attachment_processor.py:501:def _image_identity(attachment: Any) -> tuple[str, str]:
+./plasticos_web_leads/models/attachment_processor.py:521:def _commercial_copy_description(attachment: Any) -> str:
+./plasticos_web_leads/models/attachment_processor.py:539:def _replace_with_provider_source_marker(attachment: Any, provider_marker: str) -> None:
+./plasticos_web_leads/models/attachment_processor.py:546:def copy_images_to_commercial_record(
+./plasticos_web_leads/models/classification_engine.py:123:def classify_lead(
+./plasticos_web_leads/models/economic_evaluator.py:62:def _bounded_string_list(value: Any, *, limit: int = 8) -> list[str]:
+./plasticos_web_leads/models/economic_evaluator.py:75:def _assessment_context(
+./plasticos_web_leads/models/economic_evaluator.py:102:def validate_economic_assessment(raw: Mapping[str, Any]) -> dict[str, Any]:
+./plasticos_web_leads/models/economic_evaluator.py:122:def evaluate_economic_opportunity(
+./plasticos_web_leads/models/economic_policy.py:27:    def to_dict(self) -> dict[str, Any]:
+./plasticos_web_leads/models/economic_policy.py:38:def evaluate_economic_eligibility(
+./plasticos_web_leads/models/evidence_keys.py:76:def scrub_attachment_rows(rows):
+./plasticos_web_leads/models/evidence_keys.py:86:def scrub_acquisition_secrets(payload):
+./plasticos_web_leads/models/evidence_reconciler.py:14:def _seller_says_no_contamination(value: str) -> bool:
+./plasticos_web_leads/models/evidence_reconciler.py:18:def _vision_rows(attachments: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+./plasticos_web_leads/models/evidence_reconciler.py:26:def reconcile_evidence(
+./plasticos_web_leads/models/image_analyzer.py:55:def _encode_image(image_bytes: bytes) -> str:
+./plasticos_web_leads/models/image_analyzer.py:59:def analyse_image(
+./plasticos_web_leads/models/image_analyzer.py:102:def analyze_image_bytes(
+./plasticos_web_leads/models/image_analyzer.py:113:def analyze_image_with_provider(
+./plasticos_web_leads/models/image_analyzer.py:136:def merge_vision_results(
+./plasticos_web_leads/models/image_analyzer.py:201:def analyze_image(
+./plasticos_web_leads/models/image_analyzer.py:235:def analyze_multiple_images(
+./plasticos_web_leads/models/inference_provider.py:50:    def audit_label(self) -> str:
+./plasticos_web_leads/models/inference_provider.py:54:def provider_audit_metadata(provider: InferenceProvider, *, role: str) -> dict[str, str]:
+./plasticos_web_leads/models/inference_provider.py:64:def _openai_client(provider: InferenceProvider) -> Any:
+./plasticos_web_leads/models/inference_provider.py:78:def _anthropic_client(provider: InferenceProvider) -> Any:
+./plasticos_web_leads/models/inference_provider.py:92:def _anthropic_text(response: Any) -> str:
+./plasticos_web_leads/models/inference_provider.py:99:def _anthropic_usage_metadata(response: Any, provider: InferenceProvider) -> dict[str, Any]:
+./plasticos_web_leads/models/inference_provider.py:110:def _call_anthropic_json(
+./plasticos_web_leads/models/inference_provider.py:128:def call_structured_text(
+./plasticos_web_leads/models/inference_provider.py:158:def call_structured_vision(
+./plasticos_web_leads/models/inference_provider.py:214:def safe_provider_error(exc: Exception, provider: InferenceProvider, *, role: str) -> dict[str, Any]:
+./plasticos_web_leads/models/quantity_normalizer.py:70:    def to_dict(self) -> dict[str, object]:
+./plasticos_web_leads/models/quantity_normalizer.py:75:def _normalize_period(period: str) -> str:
+./plasticos_web_leads/models/quantity_normalizer.py:79:def _monthly_count(count: float, period: str) -> float:
+./plasticos_web_leads/models/quantity_normalizer.py:86:def _supply_mode(*texts: str) -> str:
+./plasticos_web_leads/models/quantity_normalizer.py:99:def _cadence(text: str) -> tuple[float | None, str | None, float | None]:
+./plasticos_web_leads/models/quantity_normalizer.py:128:def _inventory(text: str, cadence_period: str | None) -> tuple[float | None, str | None]:
+./plasticos_web_leads/models/quantity_normalizer.py:137:def _weight_from_weight_field(raw: str) -> tuple[float | None, str]:
+./plasticos_web_leads/models/quantity_normalizer.py:150:def normalize_quantity_evidence(
+./plasticos_web_leads/models/review_snapshot.py:49:def build_snapshot_payload(
+./plasticos_web_leads/models/review_snapshot.py:108:def snapshot_content_hash(payload: Mapping[str, Any]) -> str:
 ./plasticos_web_leads/models/triage_helpers.py:66:def safe_int(value, *, default: int = 0) -> int:
 ./plasticos_web_leads/models/triage_helpers.py:76:def safe_float(value, *, default: float = 0.0) -> float:
 ./plasticos_web_leads/models/triage_helpers.py:126:def _strip_commas(s: str) -> float:
 ./plasticos_web_leads/models/triage_helpers.py:135:def parse_weight_lbs(raw: str | None) -> tuple[float, str]:
-./plasticos_web_leads/models/triage_helpers.py:190:def coerce_bool(value) -> bool | None:
-./plasticos_web_leads/models/web_lead.py:120:def _safe_int(val: Any, default: int = 0) -> int:
-./plasticos_web_leads/models/web_lead.py:142:def _extract_cognito_name(raw_payload: dict[str, Any]) -> str:
-./plasticos_web_leads/models/web_lead.py:339:    def write(self, vals):
-./plasticos_web_leads/models/web_lead.py:357:    def unlink(self):
-./plasticos_web_leads/models/web_lead.py:372:    def create_from_cognito(self, raw_payload: dict[str, Any]) -> PlasticosWebLead:
-./plasticos_web_leads/models/web_lead.py:462:    def create_from_agent(self, payload: dict[str, Any]) -> PlasticosWebLead:
-./plasticos_web_leads/models/web_lead.py:542:    def _run_triage_pipeline(self):
-./plasticos_web_leads/models/web_lead.py:676:    def _merge_ai_and_vision(
-./plasticos_web_leads/models/web_lead.py:756:    def _process_hot_lead_triage(self, merged: dict[str, Any], config: Any):
-./plasticos_web_leads/models/web_lead.py:776:    def _create_intake(self, merged: dict[str, Any], config: Any):
-./plasticos_web_leads/models/web_lead.py:793:        def _lookup(Model, code, fallback_code):
-./plasticos_web_leads/models/web_lead.py:826:    def _notify_admin_hot_intake(self, intake, config):
-./plasticos_web_leads/models/web_lead.py:856:    def _extract_image_urls(self, raw_payload: dict[str, Any]) -> list[str]:
-./plasticos_web_leads/models/web_lead.py:869:        def _add(url: str) -> None:
-./plasticos_web_leads/models/web_lead.py:911:    def _looks_like_image_url(url: str) -> bool:
-./plasticos_web_leads/models/web_lead.py:918:    def _fetch_and_attach_images(self, urls: list[str]):
-./plasticos_web_leads/models/web_lead.py:982:    def action_retry_triage(self):
-./plasticos_web_leads/models/web_lead.py:989:    def action_retry_processing(self):
-./plasticos_web_leads/models/web_lead.py:1000:    def action_force_create_intake(self):
-./plasticos_web_leads/models/web_lead.py:1009:    def action_force_hot(self):
-./plasticos_web_leads/models/web_lead.py:1028:    def action_view_intake(self):
-./plasticos_web_leads/models/web_lead.py:1041:    def action_view_partner(self):
+./plasticos_web_leads/models/triage_helpers.py:183:def parse_explicit_weight_lbs(raw: str | None) -> tuple[float | None, str]:
+./plasticos_web_leads/models/triage_helpers.py:210:def coerce_bool(value) -> bool | None:
+./plasticos_web_leads/models/web_lead.py:159:def _safe_int(val: Any, default: int = 0) -> int:
+./plasticos_web_leads/models/web_lead.py:181:def _extract_cognito_name(raw_payload: dict[str, Any]) -> str:
+./plasticos_web_leads/models/web_lead.py:199:def _is_lead_identity_collision(exc: Exception) -> bool:
+./plasticos_web_leads/models/web_lead.py:444:    def _compute_review_snapshot_count(self):
+./plasticos_web_leads/models/web_lead.py:461:    def write(self, vals):
+./plasticos_web_leads/models/web_lead.py:492:    def unlink(self):
+./plasticos_web_leads/models/web_lead.py:507:    def create_from_cognito(self, raw_payload: dict[str, Any]) -> PlasticosWebLead:
+./plasticos_web_leads/models/web_lead.py:519:    def _next_lead_identity(self) -> str:
+./plasticos_web_leads/models/web_lead.py:524:    def _find_existing_lead(self, lead_id: str) -> PlasticosWebLead:
+./plasticos_web_leads/models/web_lead.py:529:    def _assert_equivalent_packet_replay(self, existing: PlasticosWebLead, packet: WebLeadPacket) -> None:
+./plasticos_web_leads/models/web_lead.py:547:    def _create_or_replay(self, vals: dict[str, Any]) -> tuple[PlasticosWebLead, bool]:
+./plasticos_web_leads/models/web_lead.py:579:    def create_from_packet(self, packet: WebLeadPacket) -> PlasticosWebLead:
+./plasticos_web_leads/models/web_lead.py:641:    def create_from_agent(self, payload: dict[str, Any]) -> PlasticosWebLead:
+./plasticos_web_leads/models/web_lead.py:734:    def _attachment_allowed_hosts(self, config: Any) -> tuple[str, ...]:
+./plasticos_web_leads/models/web_lead.py:743:    def _run_triage_pipeline(self, packet: WebLeadPacket | None = None):
+./plasticos_web_leads/models/web_lead.py:970:    def _merge_ai_and_vision(
+./plasticos_web_leads/models/web_lead.py:1094:    def _process_hot_lead_triage(self, merged: dict[str, Any], config: Any):
+./plasticos_web_leads/models/web_lead.py:1114:    def _ensure_crm_lead_for_hot_intake(self):
+./plasticos_web_leads/models/web_lead.py:1126:    def _create_intake(self, merged: dict[str, Any], config: Any):
+./plasticos_web_leads/models/web_lead.py:1143:        def _lookup(Model, code, fallback_code):
+./plasticos_web_leads/models/web_lead.py:1177:    def _eligible_reviewer(config):
+./plasticos_web_leads/models/web_lead.py:1184:    def _notify_admin_hot_intake(self, intake, config):
+./plasticos_web_leads/models/web_lead.py:1255:    def action_route_hot_review(self):
+./plasticos_web_leads/models/web_lead.py:1264:    def action_approve_for_commercial_preparation(self):
+./plasticos_web_leads/models/web_lead.py:1292:    def action_request_clarification(self):
+./plasticos_web_leads/models/web_lead.py:1299:    def action_reject_after_review(self):
+./plasticos_web_leads/models/web_lead.py:1306:    def action_view_review_snapshots(self):
+./plasticos_web_leads/models/web_lead.py:1322:    def _extract_image_urls(self, raw_payload: dict[str, Any]) -> list[str]:
+./plasticos_web_leads/models/web_lead.py:1335:        def _add(url: str) -> None:
+./plasticos_web_leads/models/web_lead.py:1377:    def _looks_like_image_url(url: str) -> bool:
+./plasticos_web_leads/models/web_lead.py:1384:    def _fetch_and_attach_images(self, urls: list[str]):
+./plasticos_web_leads/models/web_lead.py:1460:    def action_retry_triage(self):
+./plasticos_web_leads/models/web_lead.py:1467:    def action_retry_processing(self):
+./plasticos_web_leads/models/web_lead.py:1478:    def action_force_create_intake(self):
+./plasticos_web_leads/models/web_lead.py:1487:    def action_force_hot(self):
+./plasticos_web_leads/models/web_lead.py:1506:    def action_view_intake(self):
+./plasticos_web_leads/models/web_lead.py:1519:    def action_view_partner(self):
 ./plasticos_web_leads/models/web_lead_bridge.py:9:    def action_view_intake(self):
-./plasticos_web_leads/models/web_lead_config.py:236:    def _compute_api_key_configured(self):
-./plasticos_web_leads/models/web_lead_config.py:241:    def get_config(self):
-./plasticos_web_leads/models/web_lead_config.py:260:    def get_reject_materials(self):
-./plasticos_web_leads/models/web_lead_config.py:267:    def get_reject_sources(self):
-./plasticos_web_leads/models/web_lead_config.py:278:    def get_llm_providers_ordered(self):
-./plasticos_web_leads/models/web_lead_config.py:301:    def get_vision_provider(self):
-./plasticos_web_leads/models/web_lead_config.py:316:    def _get_provider_info(self, provider):
-./plasticos_web_leads/models/web_lead_config.py:345:    def action_generate_api_key(self):
+./plasticos_web_leads/models/web_lead_config.py:335:    def _compute_api_key_configured(self):
+./plasticos_web_leads/models/web_lead_config.py:340:    def get_config(self):
+./plasticos_web_leads/models/web_lead_config.py:359:    def get_reject_materials(self):
+./plasticos_web_leads/models/web_lead_config.py:366:    def get_reject_sources(self):
+./plasticos_web_leads/models/web_lead_config.py:373:    def get_reusable_item_policy_codes(self):
+./plasticos_web_leads/models/web_lead_config.py:380:    def get_attachment_allowed_hosts(self, provider_hosts=()):
+./plasticos_web_leads/models/web_lead_config.py:394:    def get_llm_providers_ordered(self):
+./plasticos_web_leads/models/web_lead_config.py:417:    def get_vision_provider(self):
+./plasticos_web_leads/models/web_lead_config.py:421:    def get_inference_provider(self, role):
+./plasticos_web_leads/models/web_lead_config.py:482:    def _get_provider_info(self, provider):
+./plasticos_web_leads/models/web_lead_config.py:511:    def action_generate_api_key(self):
+./plasticos_web_leads/models/web_lead_review_snapshot.py:90:    def _record_broker_approval(self, lead):
+./plasticos_web_leads/models/web_lead_review_snapshot.py:141:    def create(self, vals_list):
+./plasticos_web_leads/models/web_lead_review_snapshot.py:153:    def write(self, vals):
+./plasticos_web_leads/models/web_lead_review_snapshot.py:158:    def unlink(self):
+./plasticos_web_leads/tests/test_web_lead_api_http.py:14:    def setUp(self):
+./plasticos_web_leads/tests/test_web_lead_api_http.py:27:    def _post(self, body, token=_API_KEY):
+./plasticos_web_leads/tests/test_web_lead_api_http.py:34:    def test_legacy_payload_without_lead_id_is_accepted_with_generated_identity(self):
+./plasticos_web_leads/tests/test_web_lead_api_http.py:50:    def test_supplied_lead_id_is_preserved_and_idempotent(self):
+./plasticos_web_leads/tests/test_web_lead_api_http.py:58:    def test_invalid_payload_shapes_are_deterministic_4xx_not_500(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:26:def _hot_payload(external_id, attachments=None):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:39:def _image_attachment(url=_SIGNED_URL, source_id="file-1"):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:43:def _image_response():
+./plasticos_web_leads/tests/test_web_lead_hardening.py:55:    def setUpClass(cls):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:80:    def _approved_hot_lead(self, external_id, attachments=None):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:97:    def _forged_vals(self, lead):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:110:    def test_ordinary_internal_user_cannot_create_snapshot(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:116:    def test_generic_create_with_forged_provenance_is_rejected_even_for_admin(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:128:    def test_approval_action_derives_every_provenance_fact_server_side(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:153:    def test_approval_requires_internal_user_with_write_access_and_hot_intake(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:163:    def test_hash_must_match_payload_even_on_the_server_path(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:178:    def test_signed_url_never_reaches_storage_prompt_or_snapshot_but_bytes_are_retained(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:181:        def _fake_structured_text(_provider, *, system_prompt, user_prompt, **_kwargs):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:214:    def test_private_destination_is_never_fetched_and_lead_is_still_admitted(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:240:    def test_redirect_to_private_target_is_rejected_after_public_first_hop(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:256:    def test_operator_allowlist_extends_provider_default(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:270:    def test_error_shaped_vision_result_is_failed_evidence_requiring_review(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:301:    def test_missing_reviewer_produces_blocked_handoff_not_technical_assignment(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:325:    def test_configured_reviewer_receives_the_activity_exactly_once(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:335:    def test_inactive_or_portal_reviewer_is_not_eligible(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:355:    def test_legacy_agent_payload_without_lead_id_gets_server_identity(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:361:    def test_legacy_agent_payload_identity_is_idempotent(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:367:    def test_unique_collision_is_treated_as_replay_and_returns_prior_receipt(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:384:    def test_invisible_winner_escalates_to_a_request_replay(self):
+./plasticos_web_leads/tests/test_web_lead_hardening.py:399:    def test_replay_with_different_provider_submission_is_rejected(self):
 ./plasticos_web_leads/wizards/lead_bulk_action_wizard.py:56:    def _compute_lead_count(self):
 ./plasticos_web_leads/wizards/lead_bulk_action_wizard.py:61:    def _compute_stats(self):
 ./plasticos_web_leads/wizards/lead_bulk_action_wizard.py:68:    def default_get(self, fields_list):
@@ -1684,7 +1858,7 @@
 ./tests/contracts/test_api_signature_contracts.py:80:    def setUpClass(cls):
 ./tests/contracts/test_api_signature_contracts.py:88:    def test_web_lead_model_exists(self):
 ./tests/contracts/test_api_signature_contracts.py:93:    def test_web_lead_has_create_from_agent(self):
-./tests/contracts/test_api_signature_contracts.py:102:    def test_web_lead_has_classification_fields(self):
+./tests/contracts/test_api_signature_contracts.py:106:    def test_web_lead_has_classification_fields(self):
 ./tests/contracts/test_bridge_wiring_contracts.py:17:    def setUpClass(cls):
 ./tests/contracts/test_bridge_wiring_contracts.py:21:    def test_normalizer_fields_present(self):
 ./tests/contracts/test_bridge_wiring_contracts.py:41:    def test_geo_fields_present(self):
@@ -1707,6 +1881,8 @@
 ./tests/contracts/test_crm_lead_contracts.py:35:    def test_intake_count_on_lead(self):
 ./tests/contracts/test_crm_lead_contracts.py:39:    def test_action_convert_to_intake_exists(self):
 ./tests/contracts/test_crm_lead_contracts.py:47:    def test_material_profile_ids_on_lead(self):
+./tests/contracts/test_crm_lead_contracts.py:51:    def test_web_opportunity_provenance_and_profile_fields(self):
+./tests/contracts/test_crm_lead_contracts.py:58:    def test_partner_creation_is_compatible_with_optional_mobile_field(self):
 ./tests/contracts/test_external_intelligence_authority.py:23:def test_mothball_adr_exists_and_declares_single_authority():
 ./tests/contracts/test_external_intelligence_authority.py:34:def test_contact_import_adr_preserved_under_filename_collision():
 ./tests/contracts/test_external_intelligence_authority.py:42:def test_adr_002_topology_still_present():
@@ -2066,6 +2242,19 @@
 ./tests/runtime_gates/run_c7_c8_enrichment_failures.py:115:def run_row(rid):
 ./tests/runtime_gates/run_c7_c8_enrichment_failures.py:122:def execute_expecting_userror(rid):
 ./tests/runtime_gates/run_c7_c8_enrichment_failures.py:167:def accept_and_never_reply():
+./tests/runtime_gates/run_c9_c10_matching_failures.py:67:def require_matching_model() -> None:
+./tests/runtime_gates/run_c9_c10_matching_failures.py:85:def indep(sql, args=()):
+./tests/runtime_gates/run_c9_c10_matching_failures.py:95:def set_icp(**params):
+./tests/runtime_gates/run_c9_c10_matching_failures.py:103:def _ref_or_create(env, model, code, name):
+./tests/runtime_gates/run_c9_c10_matching_failures.py:108:def make_intake(tag):
+./tests/runtime_gates/run_c9_c10_matching_failures.py:133:def partner_row(pid):
+./tests/runtime_gates/run_c9_c10_matching_failures.py:140:def intake_row(iid):
+./tests/runtime_gates/run_c9_c10_matching_failures.py:144:def run_rows(iid):
+./tests/runtime_gates/run_c9_c10_matching_failures.py:153:def projection_counts(iid):
+./tests/runtime_gates/run_c9_c10_matching_failures.py:159:def note_count(iid, run_id):
+./tests/runtime_gates/run_c9_c10_matching_failures.py:166:def drive_expecting_userror(iid, action):
+./tests/runtime_gates/run_c9_c10_matching_failures.py:181:def assert_no_scoring_or_commercial_mutation(prefix, iid, pid, vals):
+./tests/runtime_gates/run_c9_c10_matching_failures.py:254:def accept_and_never_reply():
 ./tests/runtime_gates/run_f1_f3_full_import.py:64:def _iso(dt):
 ./tests/runtime_gates/run_f1_f3_full_import.py:83:def indep(sql, args=()):
 ./tests/runtime_gates/run_f1_f3_full_import.py:94:def lead(suffix, modified=RECENT_MODIFIED, deleted=False, company=None):
@@ -2115,6 +2304,11 @@
 ./tests/runtime_gates/run_s1_s3_pristine_seams.py:380:def gate_s3() -> bool:
 ./tests/runtime_gates/run_s1_s3_pristine_seams.py:482:def attempt(name: str, fn, *args) -> bool:
 ./tests/runtime_gates/run_s1_s3_pristine_seams.py:497:def main() -> int:
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:48:def indep(sql, args=()):
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:58:def require_web_lead_model():
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:102:def _racing_find(self, lead_id):
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:120:def admit(tag):
+./tests/runtime_gates/run_web_lead_concurrent_admission.py:127:            def _once():
 ./tests/test_action_methods.py:32:    def setUpClass(cls):
 ./tests/test_action_methods.py:38:    def _make_intake(self, **kw):
 ./tests/test_action_methods.py:49:    def test_action_confirm_draft_to_confirmed(self):
@@ -2714,19 +2908,20 @@
 ./tests/test_enrichment_gate_writeback.py:19:def test_writeback_merge_not_overwrite_documented():
 ./tests/test_error_handling.py:44:    def test_enrichment_api_failure_caught(self):
 ./tests/test_error_handling.py:56:    def test_geo_backfill_api_timeout(self):
-./tests/test_error_handling.py:68:    def test_ai_normalize_failure_sets_error_state(self):
-./tests/test_error_handling.py:98:    def test_intake_missing_required_fields(self):
-./tests/test_error_handling.py:105:    def test_web_lead_duplicate_lead_id(self):
-./tests/test_error_handling.py:125:    def test_web_lead_create_from_agent_missing_lead_id(self):
-./tests/test_error_handling.py:131:    def test_claim_invalid_state_transition(self):
-./tests/test_error_handling.py:147:    def test_offer_negative_price_rejected(self):
-./tests/test_error_handling.py:157:    def test_load_cancel_from_delivered_rejected(self):
-./tests/test_error_handling.py:168:    def test_safe_int_helper_handles_garbage(self):
-./tests/test_error_handling.py:184:    def test_non_admin_cannot_write_config(self):
-./tests/test_error_handling.py:195:    def test_non_admin_cannot_delete_intake(self):
-./tests/test_error_handling.py:222:    def test_idempotent_web_lead_creation(self):
-./tests/test_error_handling.py:242:    def test_intake_creation_atomic(self):
-./tests/test_error_handling.py:258:    def test_web_lead_triage_error_state(self):
+./tests/test_error_handling.py:68:    def test_classification_failure_sets_error_state(self):
+./tests/test_error_handling.py:99:    def test_intake_missing_required_fields(self):
+./tests/test_error_handling.py:106:    def test_web_lead_duplicate_lead_id(self):
+./tests/test_error_handling.py:126:    def test_web_lead_create_from_agent_generates_lead_id_when_missing(self):
+./tests/test_error_handling.py:134:    def test_web_lead_create_from_agent_rejects_malformed_identity(self):
+./tests/test_error_handling.py:144:    def test_claim_invalid_state_transition(self):
+./tests/test_error_handling.py:160:    def test_offer_negative_price_rejected(self):
+./tests/test_error_handling.py:170:    def test_load_cancel_from_delivered_rejected(self):
+./tests/test_error_handling.py:181:    def test_safe_int_helper_handles_garbage(self):
+./tests/test_error_handling.py:197:    def test_non_admin_cannot_write_config(self):
+./tests/test_error_handling.py:208:    def test_non_admin_cannot_delete_intake(self):
+./tests/test_error_handling.py:235:    def test_idempotent_web_lead_creation(self):
+./tests/test_error_handling.py:255:    def test_intake_creation_atomic(self):
+./tests/test_error_handling.py:271:    def test_web_lead_triage_error_state(self):
 ./tests/test_evidence_odoo_mapping_consumer.py:17:def test_consumer_contract_loads() -> None:
 ./tests/test_evidence_odoo_mapping_consumer.py:24:def test_allowlisted_evidence_proposes_review() -> None:
 ./tests/test_evidence_odoo_mapping_consumer.py:50:def test_human_approved_blocks() -> None:
@@ -2893,6 +3088,21 @@
 ./tests/test_gate_match_contract.py:416:def test_map_converge_response_missing_state_is_not_ok():
 ./tests/test_gate_match_contract.py:423:def test_map_match_response_skips_ineligible_candidates():
 ./tests/test_gate_match_contract.py:448:def test_map_match_response_skips_missing_eligible():
+./tests/test_gate_match_receipts.py:21:def test_gate_match_run_has_durable_request_and_response_receipt_fields():
+./tests/test_gate_match_receipts.py:36:def test_orchestrator_records_receipt_before_mapping_and_preserves_zero_match_audit():
+./tests/test_gate_match_receipts.py:47:def test_canonical_result_writer_is_gate_only_and_receipt_bound():
+./tests/test_gate_match_receipts.py:57:def test_match_client_forwards_business_idempotency_to_single_gate_egress():
+./tests/test_gate_match_receipts.py:74:def _function(path: Path, name: str) -> ast.FunctionDef:
+./tests/test_gate_match_receipts.py:82:def _calls(node: ast.AST) -> list[str]:
+./tests/test_gate_match_receipts.py:99:def test_orchestrator_rolls_back_before_persisting_the_failure_receipt():
+./tests/test_gate_match_receipts.py:104:def test_durable_failure_write_uses_an_owned_committed_cursor_and_never_flushes():
+./tests/test_gate_match_receipts.py:116:def test_every_failure_path_persists_durably_with_its_cause():
+./tests/test_gate_match_receipts.py:135:def test_intake_action_writes_nothing_before_re_raising():
+./tests/test_gate_match_receipts.py:148:def _receipt_fields_declared() -> tuple[str, ...]:
+./tests/test_gate_match_receipts.py:159:def test_match_run_receipt_fields_are_guarded_readonly_and_never_copied():
+./tests/test_gate_match_receipts.py:200:def test_orchestrator_is_the_only_receipt_writer():
+./tests/test_gate_match_receipts.py:214:def _load_canonical_digest():
+./tests/test_gate_match_receipts.py:222:def test_canonical_digest_is_stable_over_normalized_input_and_rejects_nan():
 ./tests/test_gate_sdk_invocation.py:51:    def __init__(self, params: dict[str, str]) -> None:
 ./tests/test_gate_sdk_invocation.py:54:    def sudo(self):
 ./tests/test_gate_sdk_invocation.py:57:    def get_param(self, key, default=None):
@@ -2938,26 +3148,34 @@
 ./tests/test_gate_single_egress.py:234:def test_odoo_wraps_gate_in_no_retry_layer():
 ./tests/test_gate_single_egress.py:244:def test_only_one_module_invokes_the_gate_sdk():
 ./tests/test_gate_single_egress.py:270:def test_gate_consumers_share_one_invocation_surface():
-./tests/test_golden_flows.py:31:    def setUpClass(cls):
-./tests/test_golden_flows.py:51:    def test_lead_to_delivery_golden_flow(self):
-./tests/test_golden_flows.py:121:    def test_lead_conversion_creates_partner_when_missing(self):
-./tests/test_golden_flows.py:135:    def test_intake_confirmation_posts_message(self):
-./tests/test_golden_flows.py:156:    def setUpClass(cls):
-./tests/test_golden_flows.py:162:    def _make_hot_lead_payload(self, lead_id="GOLD-HOT-001"):
-./tests/test_golden_flows.py:187:    def test_hot_lead_creates_intake_without_partner(self):
-./tests/test_golden_flows.py:200:    def test_duplicate_lead_id_is_idempotent(self):
-./tests/test_golden_flows.py:208:    def test_hot_lead_ai_analysis_fields_populated(self):
-./tests/test_golden_flows.py:232:    def setUpClass(cls):
-./tests/test_golden_flows.py:238:    def test_transaction_claim_full_lifecycle(self):
-./tests/test_golden_flows.py:266:    def test_claim_reopen_from_resolved(self):
-./tests/test_golden_flows.py:275:    def test_claim_posts_messages_on_transitions(self):
-./tests/test_golden_flows.py:304:    def setUpClass(cls):
-./tests/test_golden_flows.py:312:    def _profitable_tx(self, revenue=10000.0, cost=8000.0):
-./tests/test_golden_flows.py:322:    def test_commission_fields_live_on_transaction(self):
-./tests/test_golden_flows.py:334:    def test_commission_positive_on_profitable_deal(self):
-./tests/test_golden_flows.py:340:    def test_commission_never_exceeds_gross_margin(self):
-./tests/test_golden_flows.py:346:    def test_no_commission_on_non_positive_margin(self):
-./tests/test_golden_flows.py:352:    def test_close_freezes_commission_at_locked_amount(self):
+./tests/test_golden_flows.py:35:    def setUpClass(cls):
+./tests/test_golden_flows.py:55:    def test_lead_to_delivery_golden_flow(self):
+./tests/test_golden_flows.py:125:    def test_lead_conversion_creates_partner_when_missing(self):
+./tests/test_golden_flows.py:139:    def test_intake_confirmation_posts_message(self):
+./tests/test_golden_flows.py:160:    def setUpClass(cls):
+./tests/test_golden_flows.py:170:    def setUp(self):
+./tests/test_golden_flows.py:177:    def _make_hot_lead_payload(self, external_id="GOLD-HOT-001"):
+./tests/test_golden_flows.py:190:    def test_hot_lead_creates_intake_without_partner(self):
+./tests/test_golden_flows.py:211:    def test_hot_lead_crm_conversion_reuses_intake_and_assigns_profile(self):
+./tests/test_golden_flows.py:226:    def test_hot_lead_images_reach_crm_and_material_profile_idempotently(self):
+./tests/test_golden_flows.py:256:    def test_broker_approval_requires_completed_economic_assessment(self):
+./tests/test_golden_flows.py:261:    def test_broker_approval_creates_immutable_snapshot(self):
+./tests/test_golden_flows.py:285:    def test_duplicate_lead_id_is_idempotent(self):
+./tests/test_golden_flows.py:293:    def test_hot_lead_blocks_internal_review_when_no_reviewer_is_configured(self):
+./tests/test_golden_flows.py:310:    def test_hot_lead_quantity_evidence_populates_intake_fields(self):
+./tests/test_golden_flows.py:322:    def test_canonical_classifier_receives_explicit_evidence_inputs(self):
+./tests/test_golden_flows.py:335:    def test_legacy_hot_lead_preserves_attachment_handoff(self):
+./tests/test_golden_flows.py:398:    def setUpClass(cls):
+./tests/test_golden_flows.py:404:    def test_transaction_claim_full_lifecycle(self):
+./tests/test_golden_flows.py:432:    def test_claim_reopen_from_resolved(self):
+./tests/test_golden_flows.py:441:    def test_claim_posts_messages_on_transitions(self):
+./tests/test_golden_flows.py:470:    def setUpClass(cls):
+./tests/test_golden_flows.py:478:    def _profitable_tx(self, revenue=10000.0, cost=8000.0):
+./tests/test_golden_flows.py:488:    def test_commission_fields_live_on_transaction(self):
+./tests/test_golden_flows.py:500:    def test_commission_positive_on_profitable_deal(self):
+./tests/test_golden_flows.py:506:    def test_commission_never_exceeds_gross_margin(self):
+./tests/test_golden_flows.py:512:    def test_no_commission_on_non_positive_margin(self):
+./tests/test_golden_flows.py:518:    def test_close_freezes_commission_at_locked_amount(self):
 ./tests/test_import_summary_schema.py:40:def test_schema_exists_and_is_json():
 ./tests/test_import_summary_schema.py:47:def test_schema_requires_all_report_fields():
 ./tests/test_import_summary_schema.py:66:def test_valid_summary_passes():
@@ -3467,75 +3685,155 @@
 ./tests/test_state_machines.py:517:    def test_cancel_accepted_raises(self):
 ./tests/test_state_machines.py:524:    def test_reject_accepted_raises(self):
 ./tests/test_state_machines.py:531:    def test_accept_records_metadata(self):
-./tests/test_suite_structure.py:62:def _test_files() -> list[Path]:
-./tests/test_suite_structure.py:67:def _imports_odoo_at_module_level(source: str) -> bool:
-./tests/test_suite_structure.py:91:    def test_all_test_files_parse(self):
-./tests/test_suite_structure.py:102:    def test_every_test_module_is_collectable_by_pytest(self):
-./tests/test_suite_structure.py:131:    def test_pure_python_tests_have_no_module_level_odoo_import(self):
-./tests/test_suite_structure.py:156:    def test_odoo_tests_declare_a_recognised_base(self):
-./tests/test_suite_structure.py:170:    def test_no_duplicate_test_class_names(self):
-./tests/test_suite_structure.py:194:    def test_test_files_start_with_test(self):
-./tests/test_suite_structure.py:205:    def test_non_test_files_are_not_test_named(self):
-./tests/test_suite_structure.py:214:    def test_test_methods_contain_assertions(self):
-./tests/test_triage_pipeline.py:19:def _load_module(name: str, package_prefix: str = "plasticos_web_leads.models"):
-./tests/test_triage_pipeline.py:62:    def test_none_returns_zero(self):
-./tests/test_triage_pipeline.py:67:    def test_empty_string_returns_zero(self):
-./tests/test_triage_pipeline.py:72:    def test_explicit_lbs(self):
-./tests/test_triage_pipeline.py:77:    def test_explicit_pounds(self):
-./tests/test_triage_pipeline.py:82:    def test_explicit_tons(self):
-./tests/test_triage_pipeline.py:87:    def test_explicit_metric_tons(self):
-./tests/test_triage_pipeline.py:92:    def test_explicit_kg(self):
-./tests/test_triage_pipeline.py:97:    def test_unit_count_pallets(self):
-./tests/test_triage_pipeline.py:102:    def test_unit_count_single_pallet(self):
-./tests/test_triage_pipeline.py:107:    def test_unit_count_gaylords(self):
-./tests/test_triage_pipeline.py:112:    def test_unit_count_truckload(self):
-./tests/test_triage_pipeline.py:117:    def test_unit_count_bales(self):
-./tests/test_triage_pipeline.py:122:    def test_word_number_one_truckload(self):
-./tests/test_triage_pipeline.py:127:    def test_word_number_two_pallets(self):
-./tests/test_triage_pipeline.py:132:    def test_bare_large_number_assumed_lbs(self):
-./tests/test_triage_pipeline.py:137:    def test_bare_small_number_below_threshold(self):
-./tests/test_triage_pipeline.py:142:    def test_commas_in_number(self):
-./tests/test_triage_pipeline.py:147:    def test_unknown_text_returns_zero(self):
-./tests/test_triage_pipeline.py:152:    def test_vague_text_returns_zero(self):
-./tests/test_triage_pipeline.py:162:    def test_safe_int_none(self):
-./tests/test_triage_pipeline.py:165:    def test_safe_int_string(self):
-./tests/test_triage_pipeline.py:168:    def test_safe_int_comma_number(self):
-./tests/test_triage_pipeline.py:171:    def test_safe_int_invalid(self):
-./tests/test_triage_pipeline.py:174:    def test_safe_float_none(self):
-./tests/test_triage_pipeline.py:177:    def test_safe_float_string(self):
-./tests/test_triage_pipeline.py:180:    def test_coerce_bool_true(self):
-./tests/test_triage_pipeline.py:185:    def test_coerce_bool_false(self):
-./tests/test_triage_pipeline.py:190:    def test_coerce_bool_none(self):
-./tests/test_triage_pipeline.py:200:    def test_hot_with_weight_and_polymer(self):
-./tests/test_triage_pipeline.py:214:    def test_cold_not_plastic(self):
-./tests/test_triage_pipeline.py:224:    def test_cold_not_commercial(self):
-./tests/test_triage_pipeline.py:235:    def test_cold_rejected_material(self):
-./tests/test_triage_pipeline.py:245:    def test_cold_rejected_source(self):
-./tests/test_triage_pipeline.py:256:    def test_cold_weight_unknown(self):
-./tests/test_triage_pipeline.py:265:    def test_cold_weight_below_floor(self):
-./tests/test_triage_pipeline.py:275:    def test_cold_insufficient_qualifiers(self):
-./tests/test_triage_pipeline.py:284:    def test_hot_threshold_reduced_unknown_commercial(self):
-./tests/test_triage_pipeline.py:293:    def test_word_boundary_reject_material_no_false_positive(self):
-./tests/test_triage_pipeline.py:305:    def test_drop_off_source_triggers_cold(self):
-./tests/test_triage_pipeline.py:321:    def test_clamps_lbs_above_max(self):
-./tests/test_triage_pipeline.py:325:    def test_clamps_lbs_below_min(self):
-./tests/test_triage_pipeline.py:329:    def test_valid_lbs_passes(self):
-./tests/test_triage_pipeline.py:333:    def test_negative_loads_nulled(self):
-./tests/test_triage_pipeline.py:337:    def test_confidence_clamped(self):
-./tests/test_triage_pipeline.py:341:    def test_empty_string_fields_nulled(self):
-./tests/test_triage_pipeline.py:346:    def test_boolean_fields_coerced(self):
-./tests/test_triage_pipeline.py:356:    def test_empty_providers_returns_configured_error(self):
-./tests/test_triage_pipeline.py:367:    def test_first_provider_success(self, mock_build, mock_normalize):
-./tests/test_triage_pipeline.py:400:    def test_fallback_to_second_provider(self, mock_build, mock_normalize):
-./tests/test_triage_pipeline.py:424:    def test_all_providers_fail_returns_last_error(self, mock_build, mock_normalize):
-./tests/test_triage_pipeline.py:436:    def test_client_unavailable_stops_early(self, mock_build, mock_normalize):
-./tests/test_triage_pipeline.py:452:    def test_empty_list_returns_none(self):
-./tests/test_triage_pipeline.py:455:    def test_all_errors_returns_none(self):
-./tests/test_triage_pipeline.py:458:    def test_highest_confidence_wins(self):
-./tests/test_triage_pipeline.py:466:    def test_contamination_any_positive_wins(self):
-./tests/test_triage_pipeline.py:474:    def test_contamination_notes_aggregated(self):
-./tests/test_triage_pipeline.py:483:    def test_low_confidence_nulls_polymer_hint(self):
-./tests/test_triage_pipeline.py:488:    def test_error_results_filtered(self):
+./tests/test_suite_structure.py:64:def _test_files() -> list[Path]:
+./tests/test_suite_structure.py:69:def _imports_odoo_at_module_level(source: str) -> bool:
+./tests/test_suite_structure.py:93:    def test_all_test_files_parse(self):
+./tests/test_suite_structure.py:104:    def test_every_test_module_is_collectable_by_pytest(self):
+./tests/test_suite_structure.py:133:    def test_pure_python_tests_have_no_module_level_odoo_import(self):
+./tests/test_suite_structure.py:158:    def test_odoo_tests_declare_a_recognised_base(self):
+./tests/test_suite_structure.py:172:    def test_no_duplicate_test_class_names(self):
+./tests/test_suite_structure.py:196:    def test_test_files_start_with_test(self):
+./tests/test_suite_structure.py:207:    def test_non_test_files_are_not_test_named(self):
+./tests/test_suite_structure.py:216:    def test_test_methods_contain_assertions(self):
+./tests/test_triage_pipeline.py:20:def _load_module(name: str, package_prefix: str = "plasticos_web_leads.models"):
+./tests/test_triage_pipeline.py:82:    def test_none_returns_zero(self):
+./tests/test_triage_pipeline.py:87:    def test_empty_string_returns_zero(self):
+./tests/test_triage_pipeline.py:92:    def test_explicit_lbs(self):
+./tests/test_triage_pipeline.py:97:    def test_explicit_pounds(self):
+./tests/test_triage_pipeline.py:102:    def test_explicit_tons(self):
+./tests/test_triage_pipeline.py:107:    def test_explicit_metric_tons(self):
+./tests/test_triage_pipeline.py:112:    def test_explicit_kg(self):
+./tests/test_triage_pipeline.py:117:    def test_unit_count_pallets(self):
+./tests/test_triage_pipeline.py:122:    def test_unit_count_single_pallet(self):
+./tests/test_triage_pipeline.py:127:    def test_unit_count_gaylords(self):
+./tests/test_triage_pipeline.py:132:    def test_unit_count_truckload(self):
+./tests/test_triage_pipeline.py:137:    def test_unit_count_bales(self):
+./tests/test_triage_pipeline.py:142:    def test_word_number_one_truckload(self):
+./tests/test_triage_pipeline.py:147:    def test_word_number_two_pallets(self):
+./tests/test_triage_pipeline.py:152:    def test_bare_large_number_assumed_lbs(self):
+./tests/test_triage_pipeline.py:157:    def test_bare_small_number_below_threshold(self):
+./tests/test_triage_pipeline.py:162:    def test_commas_in_number(self):
+./tests/test_triage_pipeline.py:167:    def test_unknown_text_returns_zero(self):
+./tests/test_triage_pipeline.py:172:    def test_vague_text_returns_zero(self):
+./tests/test_triage_pipeline.py:182:    def test_safe_int_none(self):
+./tests/test_triage_pipeline.py:185:    def test_safe_int_string(self):
+./tests/test_triage_pipeline.py:188:    def test_safe_int_comma_number(self):
+./tests/test_triage_pipeline.py:191:    def test_safe_int_invalid(self):
+./tests/test_triage_pipeline.py:194:    def test_safe_float_none(self):
+./tests/test_triage_pipeline.py:197:    def test_safe_float_string(self):
+./tests/test_triage_pipeline.py:200:    def test_coerce_bool_true(self):
+./tests/test_triage_pipeline.py:205:    def test_coerce_bool_false(self):
+./tests/test_triage_pipeline.py:210:    def test_coerce_bool_none(self):
+./tests/test_triage_pipeline.py:220:    def test_hot_with_weight_and_polymer(self):
+./tests/test_triage_pipeline.py:234:    def test_cold_not_plastic(self):
+./tests/test_triage_pipeline.py:244:    def test_cold_not_commercial(self):
+./tests/test_triage_pipeline.py:255:    def test_cold_rejected_material(self):
+./tests/test_triage_pipeline.py:265:    def test_cold_rejected_source(self):
+./tests/test_triage_pipeline.py:276:    def test_cold_weight_unknown(self):
+./tests/test_triage_pipeline.py:285:    def test_cold_weight_below_floor(self):
+./tests/test_triage_pipeline.py:295:    def test_cold_insufficient_qualifiers(self):
+./tests/test_triage_pipeline.py:304:    def test_unknown_commercial_never_reduces_hot_threshold(self):
+./tests/test_triage_pipeline.py:314:    def test_policy_qualifier_can_support_hot_without_lowering_threshold(self):
+./tests/test_triage_pipeline.py:326:    def test_hot_with_unknown_commercial_evidence_requires_broker_review(self):
+./tests/test_triage_pipeline.py:338:    def test_word_boundary_reject_material_no_false_positive(self):
+./tests/test_triage_pipeline.py:350:    def test_drop_off_source_triggers_cold(self):
+./tests/test_triage_pipeline.py:363:    def test_ldpe_film_does_not_receive_reusable_item_threshold(self):
+./tests/test_triage_pipeline.py:378:    def test_only_approved_reusable_item_forms_receive_lower_threshold(self, form_code):
+./tests/test_triage_pipeline.py:394:    def test_missing_provider_requires_broker_review_instead_of_silent_decision(self):
+./tests/test_triage_pipeline.py:409:    def test_provider_audit_never_includes_credentials_or_base_url(self):
+./tests/test_triage_pipeline.py:442:    def _canonical(self):
+./tests/test_triage_pipeline.py:465:    def test_prompt_contains_no_attachment_source_url(self):
+./tests/test_triage_pipeline.py:473:    def test_legacy_raw_payload_upload_lists_are_not_serialized(self):
+./tests/test_triage_pipeline.py:480:    def test_economic_assessment_context_contains_no_attachment_source_url(self):
+./tests/test_triage_pipeline.py:495:    def test_clamps_lbs_above_max(self):
+./tests/test_triage_pipeline.py:499:    def test_clamps_lbs_below_min(self):
+./tests/test_triage_pipeline.py:503:    def test_valid_lbs_passes(self):
+./tests/test_triage_pipeline.py:507:    def test_negative_loads_nulled(self):
+./tests/test_triage_pipeline.py:511:    def test_confidence_clamped(self):
+./tests/test_triage_pipeline.py:515:    def test_empty_string_fields_nulled(self):
+./tests/test_triage_pipeline.py:520:    def test_boolean_fields_coerced(self):
+./tests/test_triage_pipeline.py:530:    def test_empty_providers_returns_configured_error(self):
+./tests/test_triage_pipeline.py:541:    def test_first_provider_success(self, mock_build, mock_normalize):
+./tests/test_triage_pipeline.py:574:    def test_fallback_to_second_provider(self, mock_build, mock_normalize):
+./tests/test_triage_pipeline.py:598:    def test_all_providers_fail_returns_last_error(self, mock_build, mock_normalize):
+./tests/test_triage_pipeline.py:610:    def test_client_unavailable_stops_early(self, mock_build, mock_normalize):
+./tests/test_triage_pipeline.py:626:    def test_empty_list_returns_none(self):
+./tests/test_triage_pipeline.py:629:    def test_all_errors_returns_none(self):
+./tests/test_triage_pipeline.py:632:    def test_highest_confidence_wins(self):
+./tests/test_triage_pipeline.py:640:    def test_contamination_any_positive_wins(self):
+./tests/test_triage_pipeline.py:648:    def test_contamination_notes_aggregated(self):
+./tests/test_triage_pipeline.py:657:    def test_low_confidence_nulls_polymer_hint(self):
+./tests/test_triage_pipeline.py:662:    def test_error_results_filtered(self):
+./tests/test_triage_pipeline.py:673:    def test_byte_path_preserves_distinct_visual_evidence(self):
+./tests/test_web_lead_evidence.py:37:    def __init__(self, attachment_id, values, model):
+./tests/test_web_lead_evidence.py:48:    def exists(self):
+./tests/test_web_lead_evidence.py:51:    def copy(self, values):
+./tests/test_web_lead_evidence.py:64:    def write(self, values):
+./tests/test_web_lead_evidence.py:71:    def __init__(self):
+./tests/test_web_lead_evidence.py:74:    def create(self, values):
+./tests/test_web_lead_evidence.py:79:    def browse(self, attachment_id):
+./tests/test_web_lead_evidence.py:82:    def search_count(self, _domain):
+./tests/test_web_lead_evidence.py:85:    def search(self, domain):
+./tests/test_web_lead_evidence.py:101:    def mapped(self, field_name):
+./tests/test_web_lead_evidence.py:106:    def __init__(self):
+./tests/test_web_lead_evidence.py:113:    def __init__(self, intake_id):
+./tests/test_web_lead_evidence.py:118:    def __init__(self, content, content_type="image/jpeg", status_code=200, headers=None):
+./tests/test_web_lead_evidence.py:124:    def raise_for_status(self):
+./tests/test_web_lead_evidence.py:127:    def iter_content(self, chunk_size):
+./tests/test_web_lead_evidence.py:131:    def close(self):
+./tests/test_web_lead_evidence.py:141:def _public_resolver(_host):
+./tests/test_web_lead_evidence.py:145:def _attachment(source_id="source-1", content_type="image/jpeg", size=4, source_url=None):
+./tests/test_web_lead_evidence.py:156:def test_image_evidence_stores_hash_and_preserves_analysis_failure():
+./tests/test_web_lead_evidence.py:178:def test_pdf_is_stored_and_explicitly_unsupported_for_text_analysis():
+./tests/test_web_lead_evidence.py:197:def test_provider_mime_remains_authoritative_over_response_header():
+./tests/test_web_lead_evidence.py:216:def test_size_mismatch_produces_evidence_without_storing_bytes():
+./tests/test_web_lead_evidence.py:232:def test_network_failure_preserves_one_failed_result_after_bounded_retries():
+./tests/test_web_lead_evidence.py:236:    def _failing_get(*_args, **_kwargs):
+./tests/test_web_lead_evidence.py:256:def test_unsupported_binary_is_stored_with_explicit_evidence():
+./tests/test_web_lead_evidence.py:276:def test_same_content_can_remain_distinct_provider_evidence():
+./tests/test_web_lead_evidence.py:296:def test_intake_copy_is_idempotent_by_provider_source_id_not_filename():
+./tests/test_web_lead_evidence.py:323:def _stored_image(model, *, source_model, source_id, description=None, datas="c2FtZQ=="):
+./tests/test_web_lead_evidence.py:336:def test_commercial_copy_preserves_distinct_provider_sources_with_same_bytes():
+./tests/test_web_lead_evidence.py:390:def test_commercial_copy_deduplicates_legacy_images_by_checksum():
+./tests/test_web_lead_evidence.py:409:def test_successful_attachment_evidence_is_reused_without_redownload():
+./tests/test_web_lead_evidence.py:435:def test_reconciliation_preserves_seller_vision_conflict_and_unknown_weight():
+./tests/test_web_lead_evidence.py:463:def test_host_allowlist_matches_exact_and_subdomains_only():
+./tests/test_web_lead_evidence.py:481:def test_validate_destination_rejects_scheme_credentials_port_and_unlisted_hosts(url, code):
+./tests/test_web_lead_evidence.py:491:def test_direct_private_ip_literal_is_rejected_even_when_allowlisted(address):
+./tests/test_web_lead_evidence.py:498:def test_dns_resolved_private_target_is_rejected():
+./tests/test_web_lead_evidence.py:502:    def _never_called(*_args, **_kwargs):
+./tests/test_web_lead_evidence.py:521:def test_public_url_redirecting_to_private_target_is_rejected():
+./tests/test_web_lead_evidence.py:525:    def _redirecting_get(url, **_kwargs):
+./tests/test_web_lead_evidence.py:543:def test_redirect_to_allowlisted_public_target_is_followed_with_bounded_hops():
+./tests/test_web_lead_evidence.py:546:    def _get(url, **kwargs):
+./tests/test_web_lead_evidence.py:567:def test_redirect_loop_is_bounded():
+./tests/test_web_lead_evidence.py:568:    def _loop(url, **_kwargs):
+./tests/test_web_lead_evidence.py:582:def test_allowlisted_public_host_is_accepted_and_policy_rejection_is_not_retried():
+./tests/test_web_lead_evidence.py:586:    def _get(*_args, **_kwargs):
+./tests/test_web_lead_evidence.py:611:def test_no_allowlist_fails_closed():
+./tests/test_web_lead_evidence.py:627:def test_result_rows_never_carry_the_acquisition_url():
+./tests/test_web_lead_evidence.py:639:def test_retriage_without_acquisition_url_reuses_success_and_marks_rest_unavailable():
+./tests/test_web_lead_evidence.py:668:def test_error_shaped_analysis_result_is_failed_evidence_that_requests_review():
+./tests/test_web_lead_evidence.py:700:def test_non_mapping_analysis_result_is_failed_evidence():
+./tests/test_web_lead_packet.py:23:def _payload(**overrides):
+./tests/test_web_lead_packet.py:53:def test_cognito_adapter_maps_current_top_level_payload_without_decision():
+./tests/test_web_lead_packet.py:68:def test_packet_serialization_preserves_raw_payload_and_can_omit_it():
+./tests/test_web_lead_packet.py:81:def test_serialized_packet_never_carries_the_signed_acquisition_url():
+./tests/test_web_lead_packet.py:97:def test_cognito_adapter_declares_its_attachment_destination_policy():
+./tests/test_web_lead_packet.py:102:def test_adapter_accepts_no_attachments_and_compatibility_aliases():
+./tests/test_web_lead_packet.py:134:def test_adapter_rejects_invalid_attachment_metadata(attachments, message):
+./tests/test_web_lead_packet.py:139:def test_adapter_preserves_attachment_order_and_registry_fails_closed():
+./tests/test_web_lead_quantity_semantics.py:31:def test_explicit_mass_is_deterministic(weight, expected, source):
+./tests/test_web_lead_quantity_semantics.py:39:def test_inventory_units_never_become_assumed_weight(quantity):
+./tests/test_web_lead_quantity_semantics.py:59:def test_explicit_cadence_uses_deterministic_monthly_conversion(text, expected_period, expected_monthly):
+./tests/test_web_lead_quantity_semantics.py:67:def test_ongoing_and_unknown_cadence_remain_non_numeric_when_not_explicit():
+./tests/test_web_lead_quantity_semantics.py:79:    def __init__(self, content):
+./tests/test_web_lead_quantity_semantics.py:85:    def __init__(self, responses):
+./tests/test_web_lead_quantity_semantics.py:89:    def create(self, **_kwargs):
+./tests/test_web_lead_quantity_semantics.py:98:    def __init__(self, responses):
+./tests/test_web_lead_quantity_semantics.py:103:def test_extract_json_supports_raw_and_fenced_json():
+./tests/test_web_lead_quantity_semantics.py:108:def test_bounded_ai_retry_recovers_json_after_transient_failure():
+./tests/test_web_lead_quantity_semantics.py:122:def test_bounded_ai_retry_fails_after_configured_attempts():
 ./tests/test_xpath_field_refs.py:59:def _extract_xpath_field_names(arch_xml: str) -> list[tuple[str, str]]:
 ./tests/test_xpath_field_refs.py:75:    def setUpClass(cls):
 ./tests/test_xpath_field_refs.py:90:    def _is_plasticos_view(view) -> bool:
