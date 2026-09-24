@@ -14,10 +14,9 @@
 # Repo specifics vs siblings:
 #   - Integration branch is `Staging` (not `main`).
 #   - Only the pure-Python test tier runs here (tests/conftest.py auto-skips
-#     every Odoo-importing module when the Odoo framework is absent), so the
-#     dependency manifest is the minimal requirements-ci.txt (pytest trio).
-#   - Zero-debt adoption: 296 passed / 10 skipped at baseline; both ledgers
-#     are intentionally empty.
+#     every Odoo-importing module when the Odoo framework is absent), using the
+#     minimal requirements-ci.txt test manifest.
+#   - Both ledgers are intentionally empty at zero-debt adoption.
 #
 # Branch-protection check names exposed by the reusable workflow:
 #   Baseline Ratchet / Required Tests

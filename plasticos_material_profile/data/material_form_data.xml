@@ -142,6 +142,12 @@
       <field name="description">Injection molded crates (dairy, produce, etc.).</field>
       <field name="sequence">175</field>
     </record>
+    <record id="form_totes" model="plasticos.material.form">
+      <field name="name">Totes</field>
+      <field name="code">TOTES</field>
+      <field name="description">Reusable plastic totes, bins, and bulk containers.</field>
+      <field name="sequence">176</field>
+    </record>
     <record id="form_corrugated" model="plasticos.material.form">
       <field name="name">Corrugated</field>
       <field name="code">CORRUGATED</field>

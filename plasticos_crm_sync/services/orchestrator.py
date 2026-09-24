@@ -390,6 +390,7 @@ class SyncOrchestrator:
                 f"{name} is required for a full import — pass an explicit ISO-8601 UTC "
                 "instant (e.g. '2019-01-01T00:00:00Z'); there is no safe default"
             )
+        parsed: datetime | None
         if isinstance(value, datetime):
             parsed = value if value.tzinfo else value.replace(tzinfo=UTC)
             parsed = parsed.astimezone(UTC)
@@ -872,7 +873,7 @@ class SyncOrchestrator:
 
         state_id = False
         if dto.state_code:
-            domain = [("code", "=", dto.state_code.strip().upper())]
+            domain: list[tuple[str, str, Any]] = [("code", "=", dto.state_code.strip().upper())]
             if country_id:
                 domain.append(("country_id", "=", country_id))
             state = self.env["res.country.state"].search(domain, limit=1)

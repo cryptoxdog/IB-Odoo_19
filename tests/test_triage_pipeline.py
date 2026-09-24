@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import sys
 import types
@@ -43,9 +44,22 @@ safe_int = _th.safe_int
 safe_float = _th.safe_float
 coerce_bool = _th.coerce_bool
 
+_ac = _load_module("ai_client")
+sys.modules["plasticos_web_leads.models"].ai_client = _ac
+
+_ip = _load_module("inference_provider")
+sys.modules["plasticos_web_leads.models"].inference_provider = _ip
+InferenceProvider = _ip.InferenceProvider
+provider_audit_metadata = _ip.provider_audit_metadata
+safe_provider_error = _ip.safe_provider_error
+
+_qn = _load_module("quantity_normalizer")
+sys.modules["plasticos_web_leads.models"].quantity_normalizer = _qn
+
 _ai = _load_module("ai_normalizer")
 validate_ai_output = _ai.validate_ai_output
 normalize_with_fallback = _ai.normalize_with_fallback
+build_user_prompt = _ai.build_user_prompt
 
 _ia = _load_module("image_analyzer")
 merge_vision_results = _ia.merge_vision_results
@@ -53,6 +67,12 @@ merge_vision_results = _ia.merge_vision_results
 _ce = _load_module("classification_engine")
 classify_lead = _ce.classify_lead
 ClassificationResult = _ce.ClassificationResult
+
+_ep = _load_module("economic_policy")
+evaluate_economic_eligibility = _ep.evaluate_economic_eligibility
+
+_ee = _load_module("economic_evaluator")
+evaluate_economic_opportunity = _ee.evaluate_economic_opportunity
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -281,14 +301,39 @@ class TestClassifyLead:
         assert result.decision == "cold"
         assert "insufficient_qualifiers" in result.cold_gates_triggered
 
-    def test_hot_threshold_reduced_unknown_commercial(self):
+    def test_unknown_commercial_never_reduces_hot_threshold(self):
         result = classify_lead(
             polymer="PP",
             estimated_lbs=8_500.0,
             is_commercial_hint=None,
             weight_source="explicit_lbs",
         )
-        assert result.effective_hot_min_lbs == pytest.approx(8_000.0)
+        assert result.effective_hot_min_lbs == pytest.approx(10_000.0)
+        assert result.decision == "cold"
+
+    def test_policy_qualifier_can_support_hot_without_lowering_threshold(self):
+        result = classify_lead(
+            estimated_lbs=8_500.0,
+            is_commercial_hint=True,
+            weight_source="explicit_lbs",
+            hot_min_lbs=8_000.0,
+            economic_eligible=True,
+            economic_policy_reasons=["policy:reusable_item"],
+        )
+        assert result.decision == "hot"
+        assert "economic_policy:eligible" in result.hot_qualifiers_met
+
+    def test_hot_with_unknown_commercial_evidence_requires_broker_review(self):
+        result = classify_lead(
+            polymer="HDPE",
+            estimated_lbs=42_000.0,
+            is_commercial_hint=None,
+            weight_source="explicit_lbs",
+        )
+
+        assert result.decision == "hot"
+        assert result.review_required is True
+        assert any("Commercial source evidence is unknown" in reason for reason in result.review_reasons)
 
     def test_word_boundary_reject_material_no_false_positive(self):
         """'fiberglass' should NOT trigger 'glass' reject gate."""
@@ -314,9 +359,138 @@ class TestClassifyLead:
         assert "reject_source" in result.cold_gates_triggered
 
 
+class TestEconomicPolicy:
+    def test_ldpe_film_does_not_receive_reusable_item_threshold(self):
+        result = evaluate_economic_eligibility(
+            estimated_lbs=8_500.0,
+            standard_hot_min_lbs=10_000.0,
+            reusable_item_hot_min_lbs=8_000.0,
+            polymer_code="LDPE",
+            form_code="ROLLSTOCK",
+            reusable_item_policy_codes=frozenset({"PLASTIC_PALLETS", "PALLETS", "TOTES", "CRATES"}),
+        )
+
+        assert result.eligible is False
+        assert result.applicable_hot_min_lbs == 10_000.0
+        assert "polymer_only_no_lower_threshold" in result.reasons
+
+    @pytest.mark.parametrize("form_code", ["PALLETS", "TOTES", "CRATES"])
+    def test_only_approved_reusable_item_forms_receive_lower_threshold(self, form_code):
+        result = evaluate_economic_eligibility(
+            estimated_lbs=8_500.0,
+            standard_hot_min_lbs=10_000.0,
+            reusable_item_hot_min_lbs=8_000.0,
+            polymer_code=None,
+            form_code=form_code,
+            reusable_item_policy_codes=frozenset({"PLASTIC_PALLETS", "PALLETS", "TOTES", "CRATES"}),
+        )
+
+        assert result.eligible is True
+        assert result.policy_applied == "reusable_item"
+        assert result.applicable_hot_min_lbs == 8_000.0
+
+
+class TestEconomicEvaluator:
+    def test_missing_provider_requires_broker_review_instead_of_silent_decision(self):
+        assessment = evaluate_economic_opportunity(
+            provider=None,
+            canonical_payload={"material_description": "HDPE regrind", "contact_email": "private@example.test"},
+            evidence_bundle={"quantity": {"load_weight_lbs": 42_000.0}},
+            classification={"decision": "hot"},
+            eligibility={"eligible": True},
+        )
+
+        assert assessment["status"] == "unavailable"
+        assert assessment["reason"] == "no_economic_provider_configured"
+        assert "contact_email" not in assessment["context"]["seller_material_and_supply"]
+
+
+class TestInferenceProviderAudit:
+    def test_provider_audit_never_includes_credentials_or_base_url(self):
+        provider = InferenceProvider(
+            provider="anthropic",
+            transport="anthropic_messages",
+            api_key="secret-value",
+            model="claude-haiku-test",
+            base_url="https://private.gateway.test",
+            workspace_id="private-workspace",
+        )
+
+        metadata = provider_audit_metadata(provider, role="economic_evaluation")
+        error = safe_provider_error(RuntimeError("provider unavailable"), provider, role="economic_evaluation")
+
+        assert metadata == {
+            "role": "economic_evaluation",
+            "provider": "anthropic",
+            "transport": "anthropic_messages",
+            "model": "claude-haiku-test",
+        }
+        assert "secret-value" not in str(error)
+        assert "private.gateway.test" not in str(error)
+        assert "private-workspace" not in str(error)
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # validate_ai_output
 # ═══════════════════════════════════════════════════════════════════════════════
+_SIGNED_URL = "https://files.cognitoforms.com/material.jpg?sig=SECRET-TOKEN"
+
+
+class TestPromptDataMinimization:
+    """F187-03: signed acquisition URLs never reach an external provider."""
+
+    def _canonical(self):
+        return {
+            "schema_version": "web-lead-packet/v1",
+            "provider": "cognito",
+            "provider_external_id": "12345",
+            "idempotency_key": "CG-12345",
+            "company_name": "Acme Plastics",
+            "material_description": "HDPE regrind",
+            "quantity_text": "3 loads",
+            "attachments": [
+                {
+                    "source_id": "file-1",
+                    "attachment_index": 0,
+                    "filename": "material.jpg",
+                    "content_type": "image/jpeg",
+                    "size_bytes": 4,
+                    # Leads admitted before the scrub can still carry this durably.
+                    "source_url": _SIGNED_URL,
+                }
+            ],
+            "raw_payload": {"UploadPhotos": [{"File": _SIGNED_URL}]},
+        }
+
+    def test_prompt_contains_no_attachment_source_url(self):
+        prompt = build_user_prompt(self._canonical())
+        assert "SECRET-TOKEN" not in prompt
+        assert "cognitoforms.com" not in prompt
+        assert "Company: Acme Plastics" in prompt
+        assert "Attachments: 1 file(s): material.jpg (image/jpeg, 4 bytes)" in prompt
+        assert "idempotency_key" not in prompt
+
+    def test_legacy_raw_payload_upload_lists_are_not_serialized(self):
+        prompt = build_user_prompt(
+            {"DescribeYourMaterial": "PP purge", "UploadPhotos": [{"File": _SIGNED_URL}], "Name": {"First": "A"}}
+        )
+        assert "SECRET-TOKEN" not in prompt
+        assert "Material description: PP purge" in prompt
+
+    def test_economic_assessment_context_contains_no_attachment_source_url(self):
+        result = evaluate_economic_opportunity(
+            provider=None,
+            canonical_payload=self._canonical(),
+            evidence_bundle={"quantity": {}, "conflicts": [], "clarification_requests": [], "vision": []},
+            classification={"decision": "hot"},
+            eligibility={"eligible": True},
+        )
+        context = result["context"]
+        assert "SECRET-TOKEN" not in json.dumps(context)
+        assert context["seller_material_and_supply"]["attachments"][0]["filename"] == "material.jpg"
+        assert "raw_payload" not in context["seller_material_and_supply"]
+
+
 class TestValidateAiOutput:
     def test_clamps_lbs_above_max(self):
         result = validate_ai_output({"estimated_lbs_per_load": 999_999})
@@ -429,7 +603,7 @@ class TestNormalizeWithFallback:
         result = normalize_with_fallback({}, providers)
 
         assert result["_provider_used"] == "none"
-        assert result["error"] == "timeout"
+        assert result["error"] == "provider_inference_failed"
 
     @patch.object(_ai, "normalize_lead")
     @patch.object(_ai, "_build_openai_client")
@@ -493,3 +667,35 @@ class TestMergeVisionResults:
         merged = merge_vision_results(results)
         assert merged["observed_form"] == "Bale"
         assert "error" not in merged
+
+
+class TestVisionBytePath:
+    def test_byte_path_preserves_distinct_visual_evidence(self):
+        response = types.SimpleNamespace(
+            choices=[
+                types.SimpleNamespace(
+                    message=types.SimpleNamespace(
+                        content=(
+                            '{"observed_form":"Film Rolls","commercial_color":"Mixed",'
+                            '"containment":"Gaylords","support_unit":"Pallets",'
+                            '"observed_polymer_hint":null,"confidence":0.9}'
+                        )
+                    )
+                )
+            ]
+        )
+        client = MagicMock()
+        client.chat.completions.create.return_value = response
+
+        result = _ia.analyze_image_bytes(
+            b"image-bytes",
+            content_type="image/jpeg",
+            client=client,
+            model="vision-test",
+        )
+
+        assert result["observed_form"] == "Film Rolls"
+        assert result["containment"] == "Gaylords"
+        assert result["support_unit"] == "Pallets"
+        assert result["commercial_color"] == "Mixed"
+        assert result["observed_polymer_hint"] is None
