@@ -53,12 +53,14 @@ odoo.modules.module.initialize_sys_path()
 from _mack_runtime import (  # noqa: E402
     Contender,
     ensure_route,
+    hold_open,
     indep,
     make_intake,
     race,
     report,
     require_models,
     superuser_call,
+    wait_then_announce,
 )
 
 from odoo.exceptions import ValidationError  # noqa: E402
@@ -66,30 +68,7 @@ from odoo.exceptions import ValidationError  # noqa: E402
 require_models("plasticos.mack.internal.review", "plasticos.mack.workbench.config", "plasticos.intake")
 
 TAG = time.strftime("%Y%m%d%H%M%S") + f"-{os.getpid()}"
-HOLD_SECONDS = 1.5  # how long the winner keeps its transaction open once the loser has started
 results: dict[str, bool] = {}
-
-
-def hold_open(started: threading.Event, other_started: threading.Event):
-    """Winner-side hook: publish that the row is in, wait for the loser, then hold."""
-
-    def _hold():
-        started.set()
-        other_started.wait(30)
-        time.sleep(HOLD_SECONDS)
-
-    return _hold
-
-
-def wait_then_announce(other_started: threading.Event, mine: threading.Event):
-    """Loser-side hook: do not open a cursor until the winner's row is in (uncommitted)."""
-
-    def _wait():
-        if not other_started.wait(30):
-            raise RuntimeError("winner never announced its uncommitted insert")
-        mine.set()
-
-    return _wait
 
 
 # ── M1: identical review request from two sessions ──────────────────────────

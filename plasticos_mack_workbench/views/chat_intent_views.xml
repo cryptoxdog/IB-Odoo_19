@@ -46,7 +46,7 @@
                         <field name="canonical_write_date"/>
                         <field name="idempotency_key"/>
                     </group>
-                    <label string="This receipt records an authenticated Odoo conversation intent. It is not an approval, mandate, match, CWI mutation, commercial action, or external-message instruction."/>
+                    <div class="o_form_label text-muted">This receipt records an authenticated Odoo conversation intent. It is not an approval, mandate, match, CWI mutation, commercial action, or external-message instruction.</div>
                 </sheet>
                 <chatter/>
             </form>

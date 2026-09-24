@@ -4,13 +4,33 @@ from __future__ import annotations
 
 import hashlib
 
+import psycopg2.errors
+
 from odoo import _, api, fields, models
-from odoo.exceptions import AccessError, ValidationError
+from odoo.exceptions import AccessError, ConcurrencyError, ValidationError
 
 _ALLOWED_INTENT_KINDS = frozenset({"consult", "draft_edit", "prepare_request"})
 _MAX_ATTACHMENT_REFS = 32
 _MAX_MESSAGE_BODY_BYTES = 32_768
 _RECEIPT_STATE = "recorded"
+# Replay identity: the immutable source-message identity plus the verified
+# intent/attachment material. ``canonical_write_date`` is deliberately absent --
+# it is the intake snapshot observed at first recording, kept as historical
+# evidence, and re-comparing it would let any later intake edit break replay
+# of the exact same message (F191-01; README: "observation only").
+_REPLAY_FIELDS = (
+    "company_id",
+    "actor_user_id",
+    "actor_partner_id",
+    "intake_id",
+    "source_message_id",
+    "source_message_date",
+    "source_message_body_sha256",
+    "attachment_refs",
+    "intent_kind",
+    "idempotency_key",
+    "state",
+)
 
 
 def _sha256_text(value: str) -> str:
@@ -107,7 +127,16 @@ class PlasticosMackChatIntentReceipt(models.Model):
     )
     source_message_date = fields.Datetime(required=True, readonly=True, copy=False)
     source_message_body_sha256 = fields.Char(required=True, readonly=True, copy=False, index=True)
-    attachment_refs = fields.Json(string="Verified Attachment References", required=True, readonly=True, copy=False)
+    # Not ``required``: Odoo's Json column stores an empty list as SQL NULL (and
+    # reads it back as False), so a NOT NULL constraint made every intent without
+    # attachments fail at INSERT. "No verified attachments" is a legitimate,
+    # common receipt; the Python constraint below still enforces the shape.
+    attachment_refs = fields.Json(
+        string="Verified Attachment References",
+        readonly=True,
+        copy=False,
+        help="Verified (attachment_id, checksum) references from the source message; empty when it carried none.",
+    )
     intent_kind = fields.Selection(
         selection=[(kind, kind.replace("_", " ").title()) for kind in sorted(_ALLOWED_INTENT_KINDS)],
         required=True,
@@ -161,11 +190,12 @@ class PlasticosMackChatIntentReceipt(models.Model):
                 raise ValidationError(_("Source message digest must be a SHA-256 digest."))
             if not (receipt.idempotency_key or "").strip() or len(receipt.idempotency_key) > 256:
                 raise ValidationError(_("Idempotency key is required and must be at most 256 characters."))
-            if not isinstance(receipt.attachment_refs, list):
+            attachment_refs = receipt.attachment_refs or []  # SQL NULL reads back as False
+            if not isinstance(attachment_refs, list):
                 raise ValidationError(_("Verified attachment references must be a list."))
-            if len(receipt.attachment_refs) > _MAX_ATTACHMENT_REFS:
+            if len(attachment_refs) > _MAX_ATTACHMENT_REFS:
                 raise ValidationError(_("Verified attachment references exceed the maximum number of values."))
-            for attachment_ref in receipt.attachment_refs:
+            for attachment_ref in attachment_refs:
                 if not isinstance(attachment_ref, dict):
                     raise ValidationError(_("Each verified attachment reference must be an object."))
                 if set(attachment_ref) != {"attachment_id", "checksum"}:
@@ -202,7 +232,7 @@ class PlasticosMackChatIntentReceipt(models.Model):
         Odoo resolves the current actor, active company, native message, target access,
         message-thread binding, attachment evidence, and canonical read snapshot.
         """
-        self.check_access_rights("create")
+        self.check_access("create")
         if self.env.user.share:
             raise AccessError(_("Only internal Odoo users may record Mack chat intents."))
         if len(self.env.companies) != 1:
@@ -222,16 +252,15 @@ class PlasticosMackChatIntentReceipt(models.Model):
         intake = self.env["plasticos.intake"].browse(resolved_intake_id).exists()
         if not intake:
             raise ValidationError(_("Canonical intake does not exist."))
-        intake.check_access_rights("read")
-        intake.check_access_rule("read")
-        intake.check_access_rights("write")
-        intake.check_access_rule("write")
+        # Read is the whole authority this receipt needs: it never mutates the intake.
+        # Requiring write rejected authors whose workflow state had removed write
+        # authority while they could still read the thread they wrote in (F191-02).
+        intake.check_access("read")
 
         message = self.env["mail.message"].browse(resolved_message_id).exists()
         if not message:
             raise ValidationError(_("Source message does not exist."))
-        message.check_access_rights("read")
-        message.check_access_rule("read")
+        message.check_access("read")
         if message.model != "plasticos.intake" or message.res_id != intake.id:
             raise ValidationError(_("Source message is not part of the canonical intake thread."))
         if message.message_type != "comment":
@@ -251,8 +280,7 @@ class PlasticosMackChatIntentReceipt(models.Model):
             attachment = attachments_by_id.get(attachment_id)
             if not attachment:
                 raise ValidationError(_("Attachment is not linked to the verified source message."))
-            attachment.check_access_rights("read")
-            attachment.check_access_rule("read")
+            attachment.check_access("read")
             attachment_refs.append(
                 {
                     "attachment_id": attachment.id,
@@ -260,14 +288,6 @@ class PlasticosMackChatIntentReceipt(models.Model):
                 }
             )
 
-        idempotency_key = f"mack-chat-intent:v1:{self.env.company.id}:{message.id}"
-        existing = self.search(
-            [
-                ("company_id", "=", self.env.company.id),
-                ("source_message_id", "=", message.id),
-            ],
-            limit=1,
-        )
         values = {
             "company_id": self.env.company.id,
             "actor_user_id": self.env.user.id,
@@ -278,37 +298,70 @@ class PlasticosMackChatIntentReceipt(models.Model):
             "source_message_body_sha256": _sha256_text(message_body),
             "attachment_refs": attachment_refs,
             "intent_kind": intent_kind,
+            # Observation only (README): stored as evidence of the intake snapshot
+            # seen at first recording; never part of the replay comparison.
             "canonical_write_date": intake.write_date,
-            "idempotency_key": idempotency_key,
+            "idempotency_key": f"mack-chat-intent:v1:{self.env.company.id}:{message.id}",
             "state": _RECEIPT_STATE,
         }
+        existing = self._find_receipt(values["company_id"], values["source_message_id"])
         if existing:
             existing._assert_idempotent_replay(values)
             return existing._receipt_response()
+        return self._create_first_receipt(values)._receipt_response()
 
-        values["name"] = self.env["ir.sequence"].next_by_code("plasticos.mack.chat.intent.receipt") or "New"
-        receipt = super().create([values])
-        return receipt._receipt_response()
+    @api.model
+    def _find_receipt(self, company_id: int, source_message_id: int):
+        return self.search(
+            [("company_id", "=", company_id), ("source_message_id", "=", source_message_id)],
+            limit=1,
+        )
+
+    @api.model
+    def _create_first_receipt(self, values: dict[str, object]):
+        """Insert the receipt, converging on a concurrent winner for the same message.
+
+        The insert runs inside a savepoint. When a concurrent call for the same
+        (company, source_message) committed first, PostgreSQL raises the unique
+        violation here; the savepoint is rolled back and the stored winner is
+        re-queried and compared exactly like a sequential replay. Odoo cursors are
+        REPEATABLE READ, so a winner that committed *after* this transaction's
+        snapshot began is invisible to the re-query; that case raises
+        :class:`~odoo.exceptions.ConcurrencyError`, which the RPC layer
+        (``odoo.service.model.retrying``) answers by re-running the request on a
+        fresh snapshot, where the ordinary replay path returns the winner.
+        """
+        values = dict(values, name=self.env["ir.sequence"].next_by_code("plasticos.mack.chat.intent.receipt") or "New")
+        try:
+            with self.env.cr.savepoint():
+                return super().create([values])
+        except psycopg2.errors.UniqueViolation as exc:
+            winner = self._find_receipt(values["company_id"], values["source_message_id"])
+            if not winner:
+                raise ConcurrencyError(
+                    "concurrent chat intent receipt for the same source message committed first; "
+                    "retry on a fresh snapshot"
+                ) from exc
+            winner._assert_idempotent_replay(values)
+            return winner
 
     def _assert_idempotent_replay(self, values: dict[str, object]) -> None:
-        """Return an existing receipt only when all server-resolved material matches."""
+        """Return an existing receipt only when the replay material matches.
+
+        Compared: the immutable source-message identity and the verified
+        intent/attachment material (``_REPLAY_FIELDS``). Not compared: the
+        stored ``canonical_write_date``, which is historical evidence of the
+        intake snapshot at first recording; a later intake edit therefore
+        cannot invalidate a retry of the exact same message.
+        """
         self.ensure_one()
-        comparable = {
-            "company_id": self.company_id.id,
-            "actor_user_id": self.actor_user_id.id,
-            "actor_partner_id": self.actor_partner_id.id,
-            "intake_id": self.intake_id.id,
-            "source_message_id": self.source_message_id.id,
-            "source_message_date": self.source_message_date,
-            "source_message_body_sha256": self.source_message_body_sha256,
-            "attachment_refs": self.attachment_refs,
-            "intent_kind": self.intent_kind,
-            "canonical_write_date": self.canonical_write_date,
-            "idempotency_key": self.idempotency_key,
-            "state": self.state,
-        }
-        for field_name, existing_value in comparable.items():
-            if values.get(field_name) != existing_value:
+        stored = {field_name: self[field_name] for field_name in _REPLAY_FIELDS}
+        for relational in ("company_id", "actor_user_id", "actor_partner_id", "intake_id", "source_message_id"):
+            stored[relational] = self[relational].id
+        stored["attachment_refs"] = self.attachment_refs or []  # SQL NULL reads back as False
+        candidate = dict(values, attachment_refs=values.get("attachment_refs") or [])
+        for field_name in _REPLAY_FIELDS:
+            if candidate.get(field_name) != stored[field_name]:
                 raise ValidationError(
                     _("Source message is already bound to different chat intent material (%s).") % field_name
                 )

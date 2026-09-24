@@ -2,7 +2,7 @@
 
 `plasticos_mack_workbench` provides two narrow Odoo-native primitives for Mack 5.0: immutable chat-intent receipts and internal-review requests. It is not the whole workbench, a second CRM, a chat service, a KB, a matching engine, or an approval/execution engine.
 
-The primitive creates a durable, idempotent review request on a canonical `plasticos.intake`. The request is routed only through the active internal user selected by the company-scoped `plasticos.mack.workbench.config` policy. Request callers cannot choose the reviewer, company, policy key, or policy revision.
+The internal-review primitive creates a durable, idempotent review request on a canonical `plasticos.intake`. The request is routed only through the active internal user selected by the company-scoped `plasticos.mack.workbench.config` policy. Request callers cannot choose the reviewer, company, policy key, or policy revision. The chat-intent primitive is described in its own section below.
 
 ## Relationship to the locked workbench architecture
 
