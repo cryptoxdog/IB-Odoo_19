@@ -164,7 +164,13 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
 
     def setUp(self):
         super().setUp()
-        self.env["plasticos.web.lead.config"].sudo().get_config().write({"hot_intake_reviewer_id": self.env.user.id})
+        # The test environment user is OdooBot (archived technical user). It is
+        # exactly the kind of assignee the handoff must refuse, so the default
+        # reviewer is a dedicated active internal user, never self.env.user.
+        self.default_reviewer = self._create_reviewer("golden_default_reviewer")
+        self.env["plasticos.web.lead.config"].sudo().get_config().write(
+            {"hot_intake_reviewer_id": self.default_reviewer.id}
+        )
 
     def _make_hot_lead_payload(self, lead_id="GOLD-HOT-001"):
         """Create a standard HOT lead payload for testing."""
@@ -303,15 +309,118 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
         self.assertEqual(len(lead.intake_id.activity_ids), 1, "Duplicate submission must not add an activity")
 
     def test_hot_lead_blocks_internal_review_when_no_reviewer_is_configured(self):
-        """HOT intake creation stays auditable when no human reviewer is configured."""
+        """HOT intake creation stays auditable when no human reviewer is configured.
+
+        Routed through the raw Cognito path with deterministic normalization:
+        under the Odoo runtime the pre-processed agent path does not classify
+        this fixture HOT (see ``test_hot_lead_creates_intake_without_partner``),
+        so it cannot exercise the handoff at all.
+        """
         self.env["plasticos.web.lead.config"].sudo().get_config().write({"hot_intake_reviewer_id": False})
 
-        lead = self.WebLead.create_from_agent(self._make_hot_lead_payload("GOLD-HOT-NO-REVIEWER-001"))
+        lead = self._ingest_hot_cognito_lead("GOLD-HOT-NO-REVIEWER-001")
 
         self.assertTrue(lead.intake_id, "HOT lead still requires an intake for auditability")
+        self._assert_blocked_handoff(lead, "not configured")
+
+    # ── Reviewer deletion policy (F189-01) ─────────────────────────────
+
+    def _ingest_hot_cognito_lead(self, entry_id):
+        """Run a qualified raw Cognito submission through triage as a HOT lead.
+
+        AI normalization is patched to a deterministic HOT-qualifying result so
+        the test exercises the real merge → classify → intake → handoff path
+        without any provider call.
+        """
+        config = self.env["plasticos.web.lead.config"].sudo().get_config()
+        config.write({"ai_enabled": True, "openai_api_key": "test-key-not-used", "vision_enabled": False})
+        raw_payload = {
+            "Id": entry_id,
+            "YourBusinessCompanyName": f"Cognito HOT Corp {entry_id}",
+            "YourName": "Triage Contact",
+            "Email": "triage@example.com",
+            "DescribeYourMaterial": "HDPE regrind",
+            "WhatIsTheQuantity": "1 truckload",
+            "WhatIsTheSourceOfThisMaterial": "Manufacturing plant",
+        }
+        normalized = {
+            "polymer": "hdpe",
+            "form": "regrind",
+            "source_type": "post_industrial",
+            "estimated_lbs_per_load": 42_000,
+            "loads_per_month": 2,
+            "is_plastic": True,
+            "is_commercial_source": True,
+            "frequency": "ongoing",
+            "material_summary": "HDPE regrind from a manufacturing plant",
+        }
+        with patch(
+            "odoo.addons.plasticos_web_leads.models.web_lead.ai_normalizer.normalize_with_fallback",
+            return_value=normalized,
+        ):
+            lead = self.WebLead.create_from_cognito(raw_payload)
+        self.assertEqual(lead.decision, "hot", "Fixture must produce a HOT lead")
+        self.assertTrue(lead.intake_id, "HOT lead must create an intake")
+        return lead
+
+    def _create_reviewer(self, login):
+        return (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create({"name": f"Golden Reviewer {login}", "login": login, "email": f"{login}@example.com"})
+        )
+
+    def _assert_blocked_handoff(self, lead, reason_fragment):
         self.assertEqual(lead.mack_review_state, "blocked")
-        self.assertIn("not configured", lead.mack_review_reason.lower())
-        self.assertFalse(lead.intake_id.activity_ids, "No arbitrary internal user may receive the activity")
+        self.assertIn(reason_fragment, lead.mack_review_reason.lower())
+        self.assertFalse(lead.intake_id.activity_ids, "No activity may be scheduled without a usable reviewer")
+        self.assertEqual(
+            self.env["mail.activity"].search_count(
+                [("res_model", "=", "plasticos.intake"), ("res_id", "=", lead.intake_id.id)]
+            ),
+            0,
+            "No technical or fallback user may receive the review activity",
+        )
+
+    def test_hot_lead_blocks_internal_review_when_reviewer_is_deleted(self):
+        """Deleting the configured reviewer clears the route (ondelete='set null') and blocks the handoff."""
+        config = self.env["plasticos.web.lead.config"].sudo().get_config()
+        reviewer = self._create_reviewer("golden_reviewer_deleted")
+        config.write({"hot_intake_reviewer_id": reviewer.id})
+        self.assertEqual(config.hot_intake_reviewer_id, reviewer)
+
+        reviewer.unlink()
+        config.invalidate_recordset(["hot_intake_reviewer_id"])
+        self.assertFalse(config.hot_intake_reviewer_id, "FK ON DELETE SET NULL must clear the reviewer route")
+
+        lead = self._ingest_hot_cognito_lead("GOLD-HOT-DELETED-REVIEWER-001")
+
+        self._assert_blocked_handoff(lead, "not configured")
+
+    def test_hot_lead_blocks_internal_review_when_reviewer_is_archived(self):
+        """An archived reviewer is a dead route: the handoff blocks instead of targeting an inactive user."""
+        config = self.env["plasticos.web.lead.config"].sudo().get_config()
+        reviewer = self._create_reviewer("golden_reviewer_archived")
+        config.write({"hot_intake_reviewer_id": reviewer.id})
+        reviewer.action_archive()
+        self.assertFalse(reviewer.active)
+        self.assertEqual(config.hot_intake_reviewer_id, reviewer, "Archiving does not clear the stored route")
+
+        lead = self._ingest_hot_cognito_lead("GOLD-HOT-ARCHIVED-REVIEWER-001")
+
+        self._assert_blocked_handoff(lead, "archived")
+
+    def test_hot_lead_routes_to_configured_active_reviewer_only(self):
+        """Control: an active configured reviewer receives exactly one activity and the lead is queued."""
+        config = self.env["plasticos.web.lead.config"].sudo().get_config()
+        reviewer = self._create_reviewer("golden_reviewer_active")
+        config.write({"hot_intake_reviewer_id": reviewer.id})
+
+        lead = self._ingest_hot_cognito_lead("GOLD-HOT-ACTIVE-REVIEWER-001")
+
+        self.assertEqual(lead.mack_review_state, "queued")
+        self.assertEqual(len(lead.intake_id.activity_ids), 1)
+        self.assertEqual(lead.intake_id.activity_ids.user_id, reviewer, "Activity targets the configured reviewer only")
 
 
 @tagged("post_install", "-at_install", "plasticos", "golden", "claims")

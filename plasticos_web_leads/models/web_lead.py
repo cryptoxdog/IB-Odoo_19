@@ -858,21 +858,28 @@ class PlasticosWebLead(models.Model):
         send email, or grant any commercial authority.
         """
         self.ensure_one()
+        # A deleted reviewer arrives here as an empty record (the config FK is
+        # ON DELETE SET NULL); an archived reviewer arrives as an inactive user.
+        # Both are the durable "blocked" handoff, never a fallback assignee.
         reviewer = config.hot_intake_reviewer_id
-        if not reviewer:
+        if not reviewer or not reviewer.active:
+            if reviewer:
+                reason = f"HOT Intake Reviewer {reviewer.name} is archived."
+            else:
+                reason = "HOT Intake Reviewer is not configured."
             self.write(
                 {
                     "mack_review_state": "blocked",
-                    "mack_review_reason": "HOT Intake Reviewer is not configured.",
+                    "mack_review_reason": reason,
                 }
             )
             self.message_post(
                 body=(
                     "HOT lead intake was created, but the internal Mack review handoff is blocked: "
-                    "configure a HOT Intake Reviewer in Web Lead Settings."
+                    f"{reason} Configure an active HOT Intake Reviewer in Web Lead Settings."
                 )
             )
-            _logger.warning("HOT lead %s has no configured internal reviewer.", self.lead_id)
+            _logger.warning("HOT lead %s has no usable internal reviewer: %s", self.lead_id, reason)
             return
 
         summary = f"Review HOT Web Lead: {self.lead_id}"

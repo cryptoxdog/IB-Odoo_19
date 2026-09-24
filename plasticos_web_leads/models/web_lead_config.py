@@ -82,10 +82,18 @@ class PlasticosWebLeadConfig(models.Model):
     hot_intake_reviewer_id = fields.Many2one(
         "res.users",
         string="HOT Intake Reviewer",
+        # Deletion policy: a deleted reviewer clears the route (FK ON DELETE
+        # SET NULL). The next HOT lead then lands in the durable "blocked"
+        # handoff state instead of being routed to the ingestion worker or an
+        # arbitrary user (see PlasticosWebLead._notify_admin_hot_intake).
+        # "restrict" would let this config row block user deletion; "cascade"
+        # is meaningless for a singleton configuration record.
+        ondelete="set null",
         domain="[('share', '=', False), ('active', '=', True)]",
         help=(
             "Internal Odoo user who receives the HOT web-lead review activity. "
-            "When unset, Odoo records the handoff as blocked rather than routing "
+            "When unset, or when the configured user has been deleted or "
+            "archived, Odoo records the handoff as blocked rather than routing "
             "it to the ingestion worker or an arbitrary user."
         ),
     )
