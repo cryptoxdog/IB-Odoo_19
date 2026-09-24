@@ -106,7 +106,7 @@
 ./plasticos_crm_sync/adapters/vanillasoft/adapter.py:149:        last_name=str(raw.get("last_name") or raw.get("Last Name") or ""),
 ./plasticos_crm_sync/adapters/vanillasoft/adapter.py:163:        owner_name=owner,
 ./plasticos_crm_sync/adapters/vanillasoft/adapter.py:189:        user_name=str(raw.get("user_name") or raw.get("UserName") or ""),
-./plasticos_crm_sync/adapters/vanillasoft/adapter.py:449:                table_name=table_name,
+./plasticos_crm_sync/adapters/vanillasoft/adapter.py:451:                table_name=table_name,
 ./plasticos_crm_sync/models/crm_call_event.py:5:    _name = "plasticos.crm.call.event"
 ./plasticos_crm_sync/models/crm_call_event.py:20:    user_name = fields.Char()
 ./plasticos_crm_sync/models/crm_connection.py:21:    _name = "plasticos.crm.connection"
@@ -117,8 +117,8 @@
 ./plasticos_crm_sync/models/crm_sync_orphan.py:5:    _name = "plasticos.crm.sync.orphan"
 ./plasticos_crm_sync/models/crm_sync_run.py:5:    _name = "plasticos.crm.sync.run"
 ./plasticos_crm_sync/models/res_config_settings.py:8:    _inherit = "res.config.settings"
-./plasticos_crm_sync/services/orchestrator.py:842:        contact_name = " ".join(filter(None, [dto.first_name, dto.last_name])).strip()
-./plasticos_crm_sync/services/orchestrator.py:857:            utm_name = LEAD_SOURCE_MAPPING.get(dto.lead_source_raw.strip(), "Other")
+./plasticos_crm_sync/services/orchestrator.py:843:        contact_name = " ".join(filter(None, [dto.first_name, dto.last_name])).strip()
+./plasticos_crm_sync/services/orchestrator.py:858:            utm_name = LEAD_SOURCE_MAPPING.get(dto.lead_source_raw.strip(), "Other")
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:24:        first_name="Ada",
 ./plasticos_crm_sync/tests/test_lead_lifecycle.py:25:        last_name="Lovelace",
 ./plasticos_crm_sync/tests/test_orchestrator_upsert.py:30:            first_name="Ada",
@@ -228,18 +228,21 @@
 ./plasticos_matching/models/intake_extension.py:9:    _inherit = "plasticos.intake"
 ./plasticos_matching/models/match_exclusion.py:10:    _name = "plasticos.match.exclusion"
 ./plasticos_matching/models/match_exclusion.py:12:    _inherit = ["mail.thread"]
-./plasticos_matching/models/match_orchestrator.py:28:    _name = "plasticos.match.orchestrator"
+./plasticos_matching/models/match_orchestrator.py:74:    _name = "plasticos.match.orchestrator"
 ./plasticos_matching/models/match_result.py:17:    _name = "plasticos.match.result"
 ./plasticos_matching/models/match_result.py:19:    _inherit = ["mail.thread"]
 ./plasticos_matching/models/match_result.py:21:    _rec_name = "display_name"
 ./plasticos_matching/models/match_result.py:150:    display_name = fields.Char(
 ./plasticos_matching/models/match_result.py:208:            rec.display_name = f"{intake} → {buyer} ({rec.score:.0f}%)"
 ./plasticos_matching/models/match_result_link.py:7:    _inherit = "plasticos.match.result"
-./plasticos_matching/models/match_run.py:7:    _name = "plasticos.match.run"
-./plasticos_matching/models/match_run.py:9:    _inherit = ["mail.thread"]
-./plasticos_matching/models/match_run.py:11:    _rec_name = "display_name"
-./plasticos_matching/models/match_run.py:13:    display_name = fields.Char(compute="_compute_display_name", store=True)
-./plasticos_matching/models/match_run.py:79:            rec.display_name = f"Match run {rec.id or 'new'} [{rec.state}] / {intake}"
+./plasticos_matching/models/match_result_writer.py:20:    _name = "plasticos.match.result.writer"
+./plasticos_matching/models/match_run.py:32:    _name = "plasticos.match.run"
+./plasticos_matching/models/match_run.py:34:    _inherit = ["mail.thread"]
+./plasticos_matching/models/match_run.py:36:    _rec_name = "display_name"
+./plasticos_matching/models/match_run.py:38:    display_name = fields.Char(compute="_compute_display_name", store=True)
+./plasticos_matching/models/match_run.py:150:            rec.display_name = f"Match run {rec.id or 'new'} [{rec.state}] / {intake}"
+./plasticos_matching/tests/test_match_run_receipts.py:362:            tampered = 9 if field_name == "request_attempt" else "tampered"
+./plasticos_matching/tests/test_match_run_receipts.py:407:            if field_name == "request_attempt":
 ./plasticos_material_profile/models/filler_type.py:6:    _name = "plasticos.filler.type"
 ./plasticos_material_profile/models/grade_template.py:12:    _name = "plasticos.grade.template"
 ./plasticos_material_profile/models/material_attribute.py:17:    _name = "plasticos.material.attribute"
@@ -336,16 +339,22 @@
 ./plasticos_transaction/wizards/transaction_bulk_assign_wizard.py:11:    _name = "plasticos.transaction.bulk.assign.wizard"
 ./plasticos_transaction/wizards/transaction_bulk_update_wizard.py:11:    _name = "plasticos.tx.bulk.wizard"
 ./plasticos_transaction/wizards/transaction_import_wizard.py:22:    _name = "plasticos.transaction.import.wizard"
-./plasticos_web_leads/models/web_lead.py:178:    _name = "plasticos.web.lead"
-./plasticos_web_leads/models/web_lead.py:180:    _inherit = ["mail.thread"]
-./plasticos_web_leads/models/web_lead.py:182:    _rec_name = "lead_id"
-./plasticos_web_leads/models/web_lead.py:252:    company_name = fields.Char(string="Company")
-./plasticos_web_leads/models/web_lead.py:253:    contact_name = fields.Char(string="Contact Name")
-./plasticos_web_leads/models/web_lead.py:832:        polymer_name = intake.polymer_id.name if intake.polymer_id else "Unknown"
-./plasticos_web_leads/models/web_lead.py:833:        form_name = intake.form_id.name if intake.form_id else "Unknown"
+./plasticos_web_leads/adapters/cognito.py:43:        raw_name = payload.get("Name")
+./plasticos_web_leads/adapters/cognito.py:139:            company_name=self._first_text(payload, "YourBusinessCompanyName", "CompanyName"),
+./plasticos_web_leads/adapters/cognito.py:140:            contact_name=self._contact_name(payload),
+./plasticos_web_leads/models/web_lead.py:227:    _name = "plasticos.web.lead"
+./plasticos_web_leads/models/web_lead.py:229:    _inherit = ["mail.thread"]
+./plasticos_web_leads/models/web_lead.py:231:    _rec_name = "lead_id"
+./plasticos_web_leads/models/web_lead.py:346:    company_name = fields.Char(string="Company")
+./plasticos_web_leads/models/web_lead.py:347:    contact_name = fields.Char(string="Contact Name")
+./plasticos_web_leads/models/web_lead.py:1229:        polymer_name = intake.polymer_id.name if intake.polymer_id else "Unknown"
+./plasticos_web_leads/models/web_lead.py:1230:        form_name = intake.form_id.name if intake.form_id else "Unknown"
 ./plasticos_web_leads/models/web_lead_api_key_wizard.py:7:    _name = "plasticos.web.lead.api.key.wizard"
 ./plasticos_web_leads/models/web_lead_bridge.py:7:    _inherit = "plasticos.web.lead"
-./plasticos_web_leads/models/web_lead_config.py:26:    _name = "plasticos.web.lead.config"
+./plasticos_web_leads/models/web_lead_config.py:41:    _name = "plasticos.web.lead.config"
+./plasticos_web_leads/models/web_lead_review_snapshot.py:44:    _name = "plasticos.web.lead.review.snapshot"
+./plasticos_web_leads/models/web_lead_review_snapshot.py:46:    _inherit = ["mail.thread"]
+./plasticos_web_leads/models/web_lead_review_snapshot.py:48:    _rec_name = "name"
 ./plasticos_web_leads/wizards/lead_bulk_action_wizard.py:11:    _name = "plasticos.web.lead.bulk.action.wizard"
 ./scripts/audit/api_regression.py:36:                class_name = node.name
 ./scripts/audit/api_regression.py:79:                        class_name = node.name
@@ -431,8 +440,9 @@
 ./tests/test_gate_match_contract.py:67:    _name = "plasticos.intake"
 ./tests/test_gate_match_contract.py:243:    _name = "res.partner"
 ./tests/test_gate_match_contract.py:268:    _name = "plasticos.enrichment.run"
+./tests/test_gate_match_receipts.py:49:    assert '_name = "plasticos.match.result.writer"' in source
 ./tests/test_gate_sdk_invocation.py:166:    validate_outbound_gate_packet(packet, local_node="odoo", gate_node_name="gate")
-./tests/test_golden_flows.py:293:    models/transaction_commission.py`` (``_inherit = "plasticos.transaction"``) adds
+./tests/test_golden_flows.py:459:    models/transaction_commission.py`` (``_inherit = "plasticos.transaction"``) adds
 ./tests/test_launch_invariants_crm_enrichment.py:456:    _name = "plasticos.enrichment.run"
 ./tests/test_legacy_erp_import_contract.py:47:    assert '_name = "plasticos.legacy_erp.import"' in service_source
 ./tests/test_matching_gate_orchestrator.py:40:    assert '_name = "plasticos.match.exclusion"' in src
@@ -446,3 +456,5 @@
 ./tests/test_phantom_enum_values.py:1027:                    field_name = field_node.value
 ./tests/test_phantom_enum_values.py:1360:            field_name = usage.context[7:-1]  # strip "domain[" and "]"
 ./tests/test_phantom_enum_values.py:1408:                field_name = usage.context[7:-1]
+./tests/test_web_lead_packet.py:60:    assert packet.contact_name == "Alex Smith"
+./tests/test_web_lead_packet.py:115:    assert packet.company_name == "Legacy Co"
