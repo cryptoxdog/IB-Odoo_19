@@ -1,12 +1,18 @@
 # PlasticOS Mack Workbench
 
-`plasticos_mack_workbench` provides **one narrow Odoo-native internal-review primitive** for Mack 5.0. It is not the whole workbench, a second CRM, a chat service, a KB, a matching engine, or an approval/execution engine.
+`plasticos_mack_workbench` provides two narrow Odoo-native primitives for Mack 5.0: immutable chat-intent receipts and internal-review requests. It is not the whole workbench, a second CRM, a chat service, a KB, a matching engine, or an approval/execution engine.
 
-The primitive creates a durable, idempotent review request on a canonical `plasticos.intake`. The request is routed only through the active internal user selected by the company-scoped `plasticos.mack.workbench.config` policy. Request callers cannot choose the reviewer, company, policy key, or policy revision.
+The internal-review primitive creates a durable, idempotent review request on a canonical `plasticos.intake`. The request is routed only through the active internal user selected by the company-scoped `plasticos.mack.workbench.config` policy. Request callers cannot choose the reviewer, company, policy key, or policy revision. The chat-intent primitive is described in its own section below.
 
 ## Relationship to the locked workbench architecture
 
 Native Odoo Discuss and chatter remain the intended human workbench. A human must be able to ask Mack for cited knowledge and offer insight without delegating the offer; a CWI may be created or revised from chat, a web-lead handoff, an Odoo event, or a human work session. This module does not limit those flows to HOT leads and does not implement their chat adapter, KB retrieval, CWI persistence, matching request, or reasoning response.
+
+## Native chat-intent receipts
+
+An authenticated internal Odoo user may call `record_intent_from_source_message` for their own native chatter comment on a canonical intake. Odoo resolves the user, active company, intake access, source-message thread binding, optional message attachment references, and observed intake write timestamp on the server. It stores an immutable receipt and exposes a read-only intake smart button. It does not copy attachment bytes, post an additional message, schedule an activity, call Mack, invoke Gate/CEG, mutate a CWI, execute a commercial action, or send email.
+
+The current `plasticos.intake` model has no canonical company field. To avoid asserting a tenant boundary that the target cannot prove, this primitive rejects multi-company Odoo contexts until an explicit intake company scope and record rule exist. The captured `canonical_write_date` is an observation only; it is not a compare-and-set revision and cannot authorize a later mutation.
 
 A verified HOT web lead is one important **automatic ingress** to the larger workbench: Odoo triages it, creates the canonical intake, and may later invoke this generic review primitive. It is not the sole eligible source of human consultation or review. The Odoo HOT-routing module retains its own specialized reviewer behavior; this module does not borrow that configuration or rely on `plasticos_web_leads`.
 
