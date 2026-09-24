@@ -2,10 +2,13 @@
 
 from datetime import timedelta
 
+import psycopg2.errors
+
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import AccessError, ValidationError
 from odoo.tests.common import tagged
+from odoo.tools import mute_logger
 
 
 @tagged("post_install", "-at_install", "plasticos", "mack_workbench")
@@ -117,3 +120,154 @@ class TestMackInternalReview(PlasticosTestCase):
                 self.Review.create(self._request_values(intake, key="mack-review-no-route-key"))
         finally:
             self.config.write({"active": True})
+
+    def _second_internal_reviewer(self):
+        return self.env["res.users"].create(
+            {
+                "name": "Second Mack Reviewer",
+                "login": "mack-second-reviewer",
+                "email": "mack-second-reviewer@example.com",
+            }
+        )
+
+    def test_replay_after_routing_change_returns_stored_receipt_without_consulting_routing(self):
+        """F190-01: the stored receipt owns replay truth once routing config moves on."""
+        intake = self._canonical_intake()
+        values = self._request_values(intake, key="mack-review-policy-drift-key")
+        first = self.Review.create(values)
+        other_reviewer = self._second_internal_reviewer()
+
+        self.config.write({"internal_reviewer_id": other_reviewer.id})
+        replay = self.Review.create(values)
+
+        self.assertEqual(replay, first)
+        self.assertEqual(replay.reviewer_id, self.reviewer)
+        self.assertEqual(replay.route_policy_revision, first.route_policy_revision)
+        # Routing is not consulted at all on replay: with no active route the stored
+        # receipt still answers, while a first creation under the same conditions
+        # keeps failing closed.
+        self.config.write({"active": False})
+        try:
+            self.assertEqual(self.Review.create(values), first)
+            with self.assertRaises(ValidationError):
+                self.Review.create(self._request_values(intake, key="mack-review-policy-drift-unrouted-key"))
+        finally:
+            self.config.write({"active": True})
+        # A genuinely new request resolves the *current* routing policy.
+        fresh = self.Review.create(self._request_values(intake, key="mack-review-policy-drift-fresh-key"))
+        self.assertEqual(fresh.reviewer_id, other_reviewer)
+        self.assertEqual(self.Review.search_count([("idempotency_key", "=", "mack-review-policy-drift-key")]), 1)
+
+    def test_server_owned_provenance_cannot_be_supplied_by_the_caller(self):
+        intake = self._canonical_intake()
+        base = self._request_values(intake, key="mack-review-forged-provenance-key")
+        other_company = self.env["res.company"].create({"name": "Mack Forged Company"})
+        forgeries = (
+            {"reviewer_id": self.env.user.id},
+            {"requester_id": self.reviewer.id},
+            {"route_policy_key": "mack_workbench_internal_reviewer/v0"},
+            {"route_policy_revision": "caller-chosen"},
+            {"activity_id": False},
+            {"company_id": other_company.id},
+            {"state": "cancelled"},
+            {"delivery_mode": "email"},
+            {"name": "MIR/FORGED"},
+        )
+        for forged in forgeries:
+            with self.subTest(forged=forged), self.assertRaises(AccessError):
+                self.Review.create(dict(base, **forged))
+        self.assertEqual(self.Review.search_count([("idempotency_key", "=", base["idempotency_key"])]), 0)
+        # Echoing the server's own values is harmless; the receipt is still server-bound.
+        echoed = self.Review.create(dict(base, company_id=self.env.company.id, state="requested"))
+        self.assertEqual(echoed.company_id, self.env.company)
+        self.assertEqual(echoed.requester_id, self.env.user)
+
+    @mute_logger("odoo.sql_db")
+    def test_unique_collision_inside_create_converges_on_the_stored_receipt(self):
+        """F190-01: a session whose pre-check missed the row still gets the winner back."""
+        intake = self._canonical_intake()
+        values = self._request_values(intake, key="mack-review-collision-key")
+        first = self.Review.create(values)
+        activity_count = len(intake.activity_ids)
+        material = self.Review._caller_request_material(values)
+
+        # Drive the insert path directly, exactly as the loser of a two-session race
+        # does after its search missed: the INSERT takes the unique violation, the
+        # savepoint is rolled back, and the stored receipt is re-queried and compared.
+        winner = self.Review._create_first_receipt(self.env.company, material)
+
+        self.assertEqual(winner, first)
+        self.assertEqual(self.Review.search_count([("idempotency_key", "=", "mack-review-collision-key")]), 1)
+        self.assertEqual(len(intake.activity_ids), activity_count)
+        with self.assertRaises(ValidationError):
+            self.Review._create_first_receipt(self.env.company, dict(material, reason="Different material."))
+
+    @mute_logger("odoo.sql_db")
+    def test_database_refuses_a_second_active_route_when_the_python_constraint_is_bypassed(self):
+        """F190-02: PostgreSQL, not the Python constraint, is the one-active-route authority."""
+        company = self.env.company
+        shadow = self.Config.create(
+            {
+                "name": "Shadow Route",
+                "company_id": company.id,
+                "internal_reviewer_id": self.reviewer.id,
+                "active": False,
+            }
+        )
+        self.env.flush_all()
+        self.env.cr.execute(
+            "SELECT indexdef FROM pg_indexes WHERE indexname = %s",
+            ("plasticos_mack_workbench_config_unique_active_route_per_company",),
+        )
+        row = self.env.cr.fetchone()
+        self.assertTrue(row, "partial unique index on (company_id) WHERE active is not installed")
+        self.assertIn("WHERE (active IS TRUE)", row[0])
+
+        with self.assertRaises(psycopg2.errors.UniqueViolation), self.env.cr.savepoint():
+            # Raw SQL bypasses @api.constrains on purpose: only the index can refuse this.
+            self.env.cr.execute("UPDATE plasticos_mack_workbench_config SET active = TRUE WHERE id = %s", (shadow.id,))
+        self.assertEqual(self.Config.search_count([("company_id", "=", company.id), ("active", "=", True)]), 1)
+        self.assertEqual(self.Config.get_active_config(company=company), self.config)
+
+    def test_completing_and_deleting_the_linked_activity_keeps_the_receipt_immutable(self):
+        """U190-01: activity completion and deletion never route a write through the guard."""
+        intake = self._canonical_intake()
+        request = self.Review.create(self._request_values(intake, key="mack-review-activity-lifecycle-key"))
+        activity = request.activity_id
+        self.assertTrue(activity)
+
+        # Odoo 19 completes an activity by archiving it (mail.activity._action_done ->
+        # action_archive); the receipt keeps its link and receives no write.
+        activity.action_feedback(feedback="Reviewed in Odoo.")
+        self.assertTrue(activity.exists())
+        self.assertFalse(activity.active)
+        self.assertEqual(request.activity_id, activity)
+
+        # Deleting the activity is answered by the FK's ON DELETE SET NULL inside
+        # PostgreSQL, not by an ORM write against the immutable receipt.
+        activity.unlink()
+        request.invalidate_recordset(["activity_id"])
+        self.assertFalse(request.activity_id)
+        self.assertEqual(request.state, "requested")
+        with self.assertRaises(AccessError):
+            request.write({"reason": "Still immutable."})
+        with self.assertRaises(AccessError):
+            request.write({"activity_id": False})
+
+    def test_operator_group_user_can_create_a_request(self):
+        """The operator role (create + read, no write ACL) must be able to file a request."""
+        operator = self.env["res.users"].create(
+            {
+                "name": "Mack Operator",
+                "login": "mack-operator",
+                "email": "mack-operator@example.com",
+                "group_ids": [(4, self.env.ref("plasticos_mack_workbench.group_mack_workbench_operator").id)],
+            }
+        )
+        intake = self._canonical_intake()
+        request = self.Review.with_user(operator).create(self._request_values(intake, key="mack-review-operator-key"))
+        self.assertEqual(request.requester_id, operator)
+        self.assertEqual(request.reviewer_id, self.reviewer)
+        self.assertTrue(request.activity_id)
+        with self.assertRaises(AccessError):
+            request.with_user(operator).write({"reason": "Operators cannot edit receipts."})
