@@ -40,6 +40,9 @@ class ConvergeRequest:
     objective: str = "Full entity enrichment and inference"
     max_variations: int = 5
     kb_context: str | None = None
+    # EnrichRequest.schema: the fields EIE should fill ({name: type}). EIE
+    # targets ONLY these; without it EIE has nothing to enrich and echoes input.
+    schema: dict[str, str] | None = None
     idempotency_key: str | None = None
     odoo: dict[str, Any] = field(default_factory=dict)
 
@@ -52,6 +55,8 @@ class ConvergeRequest:
         }
         if self.kb_context is not None:
             data["kb_context"] = self.kb_context
+        if self.schema:
+            data["schema"] = self.schema
         if self.idempotency_key is not None:
             data["idempotency_key"] = self.idempotency_key
         if self.odoo:
@@ -96,7 +101,10 @@ class ConvergeResponse:
 @dataclass(slots=True)
 class MatchRequest:
     query: dict[str, Any]
-    match_direction: str = "intake_to_buyer"
+    # Must be a direction CEG's plasticos domain spec declares
+    # (domains/plasticos/spec.yaml matchdirection); CEG rejects any other with
+    # "No candidate entity for direction ...".
+    match_direction: str = "supply_opportunity_to_buyer_facility"
     top_n: int = 20
     odoo: dict[str, Any] = field(default_factory=dict)
 

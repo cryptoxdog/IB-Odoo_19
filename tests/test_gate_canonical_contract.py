@@ -483,3 +483,27 @@ def test_odoo_adds_no_retry_loop_around_gate():
     src = (ROOT / "plasticos_gate" / "services" / "gate_client.py").read_text(encoding="utf-8")
     assert "for attempt in range" not in src
     assert "while True" not in src
+
+
+# ── Target schema: EIE fills only the fields named in EnrichRequest.schema ──
+
+
+def test_payload_asks_eie_for_exactly_the_writeback_allowlist():
+    from plasticos_gate.services.gate_allowlists import PARTNER_WRITEBACK_FIELD_ALLOWLIST
+
+    schema = _payload()["schema"]
+    # Without a schema EIE has no target fields and echoes the input, so the
+    # review proposal carries nothing writable (Constellation rail O_B3).
+    assert set(schema) == PARTNER_WRITEBACK_FIELD_ALLOWLIST
+    assert set(schema.values()) == {"string"}  # EIE validation_engine TYPE_MAP key
+
+
+# ── Match direction must be one CEG's plasticos spec declares ────────────────
+
+
+def test_match_request_uses_the_direction_ceg_declares():
+    from plasticos_gate.services.gate_contracts import MatchRequest
+
+    # CEG domains/plasticos/spec.yaml: matchdirection supply_opportunity_to_buyer_facility.
+    # Any other value fails in CEG with "No candidate entity for direction ...".
+    assert MatchRequest(query={}).to_dict()["match_direction"] == "supply_opportunity_to_buyer_facility"

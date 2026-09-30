@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from .gate_allowlists import INTAKE_SNAPSHOT_FIELD_MAP, PARTNER_SNAPSHOT_FIELD_MAP, WEB_LEAD_SEED_FIELD_MAP
+from .gate_allowlists import (
+    INTAKE_SNAPSHOT_FIELD_MAP,
+    PARTNER_SNAPSHOT_FIELD_MAP,
+    PARTNER_WRITEBACK_FIELD_ALLOWLIST,
+    WEB_LEAD_SEED_FIELD_MAP,
+)
 from .gate_contracts import (
     ConvergeRequest,
     MatchRequest,
@@ -153,6 +158,9 @@ def build_converge_request(
         # and coincidence rather than contract. `kb_context` is the
         # EnrichRequest field for exactly this, so state it.
         kb_context=str(domain) if domain else None,
+        # Ask EIE for exactly the partner fields Odoo is allowed to write back
+        # (the writeback allowlist); "string" is EIE's canonical type token.
+        schema=dict.fromkeys(sorted(PARTNER_WRITEBACK_FIELD_ALLOWLIST), "string"),
         # ADR-006: generated once here and carried on the request, so the caller
         # hands the SAME logical value to the transport header rather than
         # deriving a second, unrelated one. EnrichRequest.idempotency_key is a
