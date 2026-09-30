@@ -97,6 +97,7 @@
 ./plasticos_web_leads/views/web_lead_api_key_wizard_views.xml
 ./plasticos_web_leads/views/web_lead_bridge_views.xml
 ./plasticos_web_leads/views/web_lead_config_views.xml
+./plasticos_web_leads/views/web_lead_review_snapshot_views.xml
 ./plasticos_web_leads/views/web_lead_ux.xml
 ./plasticos_web_leads/views/web_lead_views.xml
 ./plasticos_website/views/website_templates.xml

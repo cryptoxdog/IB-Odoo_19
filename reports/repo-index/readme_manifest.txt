@@ -41,7 +41,7 @@
 ./plasticos_security_base/README.md:13:# Plasticos Security Base
 ./plasticos_semantic_kernel/README.md:1:# plasticos_semantic_kernel
 ./plasticos_transaction/README.md:1:# plasticos_transaction
-./plasticos_web_leads/README.md:13:# Plasticos Web Leads
+./plasticos_web_leads/README.md:13:# PlasticOS Web Leads
 ./reports/README-PIPELINE-AUDIT-2026-02-24.md:1:# /readme Pipeline Audit — 2026-02-24
 ./reports/adr/README.md:1:# ADRs moved
 ./reports/repo-index/README_ODOO_INDEX.md:1:# Odoo 19 Repo Index
