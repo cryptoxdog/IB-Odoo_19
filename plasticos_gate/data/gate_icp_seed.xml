@@ -21,6 +21,10 @@
         <field name="key">plasticos.gate.timeout_seconds</field>
         <field name="value">30</field>
     </record>
+    <record id="param_gate_consensus_threshold" model="ir.config_parameter">
+        <field name="key">plasticos.gate.consensus_threshold</field>
+        <field name="value">0.80</field>
+    </record>
     <record id="param_gate_org_id" model="ir.config_parameter">
         <field name="key">plasticos.gate.org_id</field>
         <field name="value"></field>
