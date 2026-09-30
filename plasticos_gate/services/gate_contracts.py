@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from .gate_config import DEFAULT_CONSENSUS_THRESHOLD
+
 
 @dataclass(slots=True)
 class OdooContext:
@@ -39,6 +41,12 @@ class ConvergeRequest:
     object_type: str = "Account"
     objective: str = "Full entity enrichment and inference"
     max_variations: int = 5
+    # Consumer-owned. Enrichment uses this both to accept a field and to skip
+    # a later variation once the reply already clears it.
+    consensus_threshold: float = DEFAULT_CONSENSUS_THRESHOLD
+    # Per requested field. Absent means this request does not name field bars;
+    # a present map is what Enrichment uses, with no engine default per field.
+    field_thresholds: dict[str, float] | None = None
     kb_context: str | None = None
     # EnrichRequest.schema: the fields EIE should fill ({name: type}). EIE
     # targets ONLY these; without it EIE has nothing to enrich and echoes input.
@@ -52,7 +60,10 @@ class ConvergeRequest:
             "object_type": self.object_type,
             "objective": self.objective,
             "max_variations": self.max_variations,
+            "consensus_threshold": self.consensus_threshold,
         }
+        if self.field_thresholds:
+            data["field_thresholds"] = self.field_thresholds
         if self.kb_context is not None:
             data["kb_context"] = self.kb_context
         if self.schema:

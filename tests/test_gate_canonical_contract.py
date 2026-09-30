@@ -88,9 +88,16 @@ def _payload():
 
 def test_payload_is_enrich_request_shaped():
     payload = _payload()
-    assert set(payload) >= {"entity", "object_type", "objective", "max_variations"}
+    assert set(payload) >= {
+        "entity",
+        "object_type",
+        "objective",
+        "max_variations",
+        "consensus_threshold",
+    }
     assert isinstance(payload["entity"], dict)
     assert isinstance(payload["max_variations"], int)
+    assert payload["consensus_threshold"] == 0.80
 
 
 def test_canonical_identity_is_on_the_entity():
@@ -127,6 +134,8 @@ def test_payload_validates_as_a_canonical_enrich_request():
         "object_type",
         "objective",
         "max_variations",
+        "consensus_threshold",
+        "field_thresholds",
         "kb_context",
         "idempotency_key",
         "schema",
