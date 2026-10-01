@@ -198,21 +198,21 @@
 ./plasticos_base/migrations/19.0.1.1.3/post-migrate.py:11:from odoo.api import Environment
 ./plasticos_base/migrations/19.0.1.1.3/post-migrate.py:27:    from odoo.addons.plasticos_base import hooks
 ./plasticos_base/migrations/19.0.1.1.6/pre-migrate.py:8:import logging
+./plasticos_base/migrations/19.0.1.1.7/post-migrate.py:7:import logging
 ./plasticos_base/models/__init__.py:1:from . import matching_engine_icp
 ./plasticos_base/models/__init__.py:2:from . import ir_attachment
 ./plasticos_base/models/__init__.py:3:from . import midnight_recompute
-./plasticos_base/models/__init__.py:4:from . import res_config_settings
 ./plasticos_base/models/ir_attachment.py:1:import logging
 ./plasticos_base/models/ir_attachment.py:2:import os
 ./plasticos_base/models/ir_attachment.py:4:from odoo import api, models
 ./plasticos_base/models/ir_attachment.py:5:from odoo.tools import config
-./plasticos_base/models/matching_engine_icp.py:6:from __future__ import annotations
-./plasticos_base/models/matching_engine_icp.py:8:import logging
-./plasticos_base/models/matching_engine_icp.py:10:from odoo import _
-./plasticos_base/models/matching_engine_icp.py:11:from odoo.exceptions import UserError
+./plasticos_base/models/matching_engine_icp.py:8:from __future__ import annotations
+./plasticos_base/models/matching_engine_icp.py:10:import logging
+./plasticos_base/models/matching_engine_icp.py:11:import os
+./plasticos_base/models/matching_engine_icp.py:13:from odoo import _
+./plasticos_base/models/matching_engine_icp.py:14:from odoo.exceptions import UserError
 ./plasticos_base/models/midnight_recompute.py:16:import logging
 ./plasticos_base/models/midnight_recompute.py:18:from odoo import api, fields, models
-./plasticos_base/models/res_config_settings.py:1:from odoo import fields, models
 ./plasticos_base/test_common.py:7:from __future__ import annotations
 ./plasticos_base/test_common.py:14:    import odoo.tools.config as _odoo_config
 ./plasticos_base/test_common.py:21:    from odoo.tests.common import TransactionCase
@@ -441,8 +441,7 @@
 ./plasticos_enrichment/models/enrichment_run.py:156:        from odoo.addons.plasticos_gate.services.gate_config import gate_auto_writeback_enabled
 ./plasticos_enrichment/models/enrichment_run.py:157:        from odoo.addons.plasticos_gate.services.gate_mappers import (
 ./plasticos_enrichment/models/enrichment_run.py:276:        from odoo.addons.plasticos_gate.services.gate_allowlists import PARTNER_WRITEBACK_FIELD_ALLOWLIST
-./plasticos_enrichment/models/enrichment_run.py:354:        from odoo.addons.plasticos_gate.services.gate_client import classify_transport_failure
-./plasticos_enrichment/models/enrichment_run.py:355:        from odoo.addons.plasticos_gate.services.gate_config import (
+./plasticos_enrichment/models/enrichment_run.py:354:        from odoo.addons.plasticos_gate.services.gate_config import (
 ./plasticos_enrichment/models/enrichment_service.py:1:import logging
 ./plasticos_enrichment/models/enrichment_service.py:2:from pathlib import Path
 ./plasticos_enrichment/models/enrichment_service.py:3:from typing import TYPE_CHECKING
@@ -487,6 +486,7 @@
 ./plasticos_gate/__init__.py:1:from . import services
 ./plasticos_gate/__init__.py:2:from . import models
 ./plasticos_gate/migrations/19.0.1.2.0/post-migrate.py:8:import logging
+./plasticos_gate/migrations/19.0.1.9.3/post-migrate.py:7:import logging
 ./plasticos_gate/models/__init__.py:3:from . import dual_write_audit
 ./plasticos_gate/models/dual_write_audit.py:7:from __future__ import annotations
 ./plasticos_gate/services/__init__.py:1:from . import evidence_mapping
@@ -515,25 +515,24 @@
 ./plasticos_gate/services/gate_builders.py:7:from .gate_allowlists import (
 ./plasticos_gate/services/gate_builders.py:13:from .gate_config import gate_consensus_threshold
 ./plasticos_gate/services/gate_builders.py:14:from .gate_contracts import (
-./plasticos_gate/services/gate_client.py:3:from __future__ import annotations
-./plasticos_gate/services/gate_client.py:5:import asyncio
-./plasticos_gate/services/gate_client.py:6:import threading
-./plasticos_gate/services/gate_client.py:7:from enum import StrEnum
-./plasticos_gate/services/gate_client.py:8:from typing import Any
-./plasticos_gate/services/gate_client.py:10:from .gate_config import (
-./plasticos_gate/services/gate_client.py:36:    from constellation_node_sdk import (  # type: ignore[no-redef]  # noqa: F811
-./plasticos_gate/services/gate_client.py:77:    import httpx
-./plasticos_gate/services/gate_config.py:3:from __future__ import annotations
-./plasticos_gate/services/gate_config.py:5:import json
-./plasticos_gate/services/gate_config.py:6:import math
-./plasticos_gate/services/gate_config.py:7:import os
-./plasticos_gate/services/gate_config.py:8:from dataclasses import dataclass, field
-./plasticos_gate/services/gate_config.py:9:from enum import StrEnum
-./plasticos_gate/services/gate_config.py:10:from typing import TYPE_CHECKING, Any
-./plasticos_gate/services/gate_config.py:11:from urllib.parse import urlsplit
-./plasticos_gate/services/gate_config.py:14:    from constellation_node_sdk import GateClientConfig
-./plasticos_gate/services/gate_config.py:125:        import constellation_node_sdk  # noqa: F401
-./plasticos_gate/services/gate_config.py:386:    from constellation_node_sdk import GateClientConfig
+./plasticos_gate/services/gate_client.py:19:from __future__ import annotations
+./plasticos_gate/services/gate_client.py:21:import asyncio
+./plasticos_gate/services/gate_client.py:22:import logging
+./plasticos_gate/services/gate_client.py:23:import threading
+./plasticos_gate/services/gate_client.py:24:from enum import StrEnum
+./plasticos_gate/services/gate_client.py:25:from typing import Any
+./plasticos_gate/services/gate_client.py:27:from .gate_config import (
+./plasticos_gate/services/gate_client.py:54:    from constellation_node_sdk import (  # type: ignore[no-redef]  # noqa: F811
+./plasticos_gate/services/gate_config.py:17:from __future__ import annotations
+./plasticos_gate/services/gate_config.py:19:import math
+./plasticos_gate/services/gate_config.py:20:import os
+./plasticos_gate/services/gate_config.py:21:from dataclasses import dataclass, field
+./plasticos_gate/services/gate_config.py:22:from enum import StrEnum
+./plasticos_gate/services/gate_config.py:23:from typing import TYPE_CHECKING, Any
+./plasticos_gate/services/gate_config.py:24:from urllib.parse import urlsplit
+./plasticos_gate/services/gate_config.py:27:    from constellation_node_sdk import GateClientConfig
+./plasticos_gate/services/gate_config.py:155:        import constellation_node_sdk  # noqa: F401
+./plasticos_gate/services/gate_config.py:333:        from constellation_node_sdk import get_gate_client_config_from_env
 ./plasticos_gate/services/gate_contracts.py:3:from __future__ import annotations
 ./plasticos_gate/services/gate_contracts.py:5:from dataclasses import dataclass, field
 ./plasticos_gate/services/gate_contracts.py:6:from typing import Any
@@ -564,11 +563,11 @@
 ./plasticos_intake/models/__init__.py:3:from . import material_profile_intake
 ./plasticos_intake/models/__init__.py:4:from . import res_partner_intake
 ./plasticos_intake/models/intake.py:1:import logging
-./plasticos_intake/models/intake.py:3:from odoo import api, fields, models
-./plasticos_intake/models/intake.py:4:from odoo.addons.plasticos_base.models.matching_engine_icp import matching_engine_require_enabled_for_ui
+./plasticos_intake/models/intake.py:2:import os
+./plasticos_intake/models/intake.py:4:from odoo import api, fields, models
 ./plasticos_intake/models/intake.py:5:from odoo.exceptions import UserError, ValidationError
 ./plasticos_intake/models/intake.py:12:    from odoo.addons.plasticos_material_profile.process_codes import PROCESS_SELECTION
-./plasticos_intake/models/intake.py:805:        from odoo.addons.plasticos_material_profile.intake_delta_bridge import (
+./plasticos_intake/models/intake.py:802:        from odoo.addons.plasticos_material_profile.intake_delta_bridge import (
 ./plasticos_intake/models/intake_match.py:1:from odoo import api, fields, models
 ./plasticos_intake/models/material_profile_intake.py:8:from odoo import api, fields, models
 ./plasticos_intake/models/res_partner_intake.py:8:from odoo import api, fields, models
@@ -722,7 +721,7 @@
 ./plasticos_matching/models/__init__.py:6:from . import match_orchestrator
 ./plasticos_matching/models/__init__.py:7:from . import intake_extension
 ./plasticos_matching/models/intake_extension.py:3:from odoo import _, models
-./plasticos_matching/models/intake_extension.py:4:from odoo.addons.plasticos_base.models.matching_engine_icp import matching_engine_require_enabled_for_ui
+./plasticos_matching/models/intake_extension.py:4:from odoo.addons.plasticos_gate.services.gate_config import classify_gate_availability
 ./plasticos_matching/models/intake_extension.py:5:from odoo.exceptions import UserError
 ./plasticos_matching/models/match_exclusion.py:6:from odoo import api, fields, models
 ./plasticos_matching/models/match_orchestrator.py:3:from __future__ import annotations
@@ -733,9 +732,9 @@
 ./plasticos_matching/models/match_orchestrator.py:10:from odoo.exceptions import AccessError, UserError, ValidationError
 ./plasticos_matching/models/match_orchestrator.py:12:from .match_run import RECEIPT_WRITE_CONTEXT
 ./plasticos_matching/models/match_orchestrator.py:163:        from odoo.addons.plasticos_gate.services.gate_builders import (
-./plasticos_matching/models/match_orchestrator.py:167:        from odoo.addons.plasticos_gate.services.gate_client import (
-./plasticos_matching/models/match_orchestrator.py:171:        from odoo.addons.plasticos_gate.services.gate_config import (
-./plasticos_matching/models/match_orchestrator.py:177:        from odoo.addons.plasticos_gate.services.gate_mappers import (
+./plasticos_matching/models/match_orchestrator.py:167:        from odoo.addons.plasticos_gate.services.gate_client import send_match_action
+./plasticos_matching/models/match_orchestrator.py:168:        from odoo.addons.plasticos_gate.services.gate_config import (
+./plasticos_matching/models/match_orchestrator.py:174:        from odoo.addons.plasticos_gate.services.gate_mappers import (
 ./plasticos_matching/models/match_result.py:1:import logging
 ./plasticos_matching/models/match_result.py:3:from odoo import api, fields, models
 ./plasticos_matching/models/match_result.py:4:from odoo.exceptions import UserError
@@ -752,15 +751,16 @@
 ./plasticos_matching/tests/test_match_result_writer.py:4:from odoo.addons.plasticos_matching.models.match_run import RECEIPT_WRITE_CONTEXT
 ./plasticos_matching/tests/test_match_result_writer.py:5:from odoo.tests.common import tagged
 ./plasticos_matching/tests/test_match_run_receipts.py:26:from __future__ import annotations
-./plasticos_matching/tests/test_match_run_receipts.py:28:from contextlib import contextmanager
-./plasticos_matching/tests/test_match_run_receipts.py:29:from types import SimpleNamespace
-./plasticos_matching/tests/test_match_run_receipts.py:30:from unittest.mock import patch
-./plasticos_matching/tests/test_match_run_receipts.py:32:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-./plasticos_matching/tests/test_match_run_receipts.py:33:from odoo.addons.plasticos_gate.services.gate_config import (
-./plasticos_matching/tests/test_match_run_receipts.py:39:from odoo.addons.plasticos_matching.models.match_orchestrator import _canonical_digest
-./plasticos_matching/tests/test_match_run_receipts.py:40:from odoo.addons.plasticos_matching.models.match_run import RECEIPT_FIELDS, RECEIPT_WRITE_CONTEXT
-./plasticos_matching/tests/test_match_run_receipts.py:41:from odoo.exceptions import AccessError, UserError, ValidationError
-./plasticos_matching/tests/test_match_run_receipts.py:42:from odoo.tests.common import tagged
+./plasticos_matching/tests/test_match_run_receipts.py:28:import os
+./plasticos_matching/tests/test_match_run_receipts.py:29:from contextlib import contextmanager
+./plasticos_matching/tests/test_match_run_receipts.py:30:from types import SimpleNamespace
+./plasticos_matching/tests/test_match_run_receipts.py:31:from unittest.mock import patch
+./plasticos_matching/tests/test_match_run_receipts.py:33:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+./plasticos_matching/tests/test_match_run_receipts.py:34:from odoo.addons.plasticos_gate.services.gate_config import (
+./plasticos_matching/tests/test_match_run_receipts.py:40:from odoo.addons.plasticos_matching.models.match_orchestrator import _canonical_digest
+./plasticos_matching/tests/test_match_run_receipts.py:41:from odoo.addons.plasticos_matching.models.match_run import RECEIPT_FIELDS, RECEIPT_WRITE_CONTEXT
+./plasticos_matching/tests/test_match_run_receipts.py:42:from odoo.exceptions import AccessError, UserError, ValidationError
+./plasticos_matching/tests/test_match_run_receipts.py:43:from odoo.tests.common import tagged
 ./plasticos_material_profile/__init__.py:1:from . import models
 ./plasticos_material_profile/intake_delta_bridge.py:3:from __future__ import annotations
 ./plasticos_material_profile/intake_delta_bridge.py:5:from .profile_features import compute_has_residue_feature
@@ -1459,9 +1459,9 @@
 ./tests/contracts/test_external_intelligence_contract_parity.py:7:from pathlib import Path
 ./tests/contracts/test_external_intelligence_contract_parity.py:9:import pytest
 ./tests/contracts/test_external_intelligence_contract_parity.py:14:from plasticos_gate.services.gate_client import (  # noqa: E402
-./tests/contracts/test_external_intelligence_contract_parity.py:18:from plasticos_gate.services.gate_config import (  # noqa: E402
-./tests/contracts/test_external_intelligence_contract_parity.py:129:    import inspect
-./tests/contracts/test_external_intelligence_contract_parity.py:131:    from plasticos_gate.services import gate_client
+./tests/contracts/test_external_intelligence_contract_parity.py:19:from plasticos_gate.services.gate_config import (  # noqa: E402
+./tests/contracts/test_external_intelligence_contract_parity.py:135:    import inspect
+./tests/contracts/test_external_intelligence_contract_parity.py:137:    from plasticos_gate.services import gate_client
 ./tests/contracts/test_field_family_cutover_contract.py:3:from __future__ import annotations
 ./tests/contracts/test_field_family_cutover_contract.py:5:from pathlib import Path
 ./tests/contracts/test_intake_contracts.py:15:from odoo.addons.plasticos_base.test_common import PlasticosTestCase
@@ -1827,6 +1827,12 @@
 ./tests/test_gate_canonical_contract.py:295:    from plasticos_gate.services.gate_builders import build_operation_id as _fn
 ./tests/test_gate_canonical_contract.py:501:    from plasticos_gate.services.gate_allowlists import PARTNER_WRITEBACK_FIELD_ALLOWLIST
 ./tests/test_gate_canonical_contract.py:514:    from plasticos_gate.services.gate_contracts import MatchRequest
+./tests/test_gate_canonical_env.py:3:from __future__ import annotations
+./tests/test_gate_canonical_env.py:5:import ast
+./tests/test_gate_canonical_env.py:6:import sys
+./tests/test_gate_canonical_env.py:7:from pathlib import Path
+./tests/test_gate_canonical_env.py:12:from plasticos_gate.services.gate_client import _ODOO_REQUIRED_ACTIONS  # noqa: E402
+./tests/test_gate_canonical_env.py:13:from plasticos_gate.services.gate_config import (  # noqa: E402
 ./tests/test_gate_match_contract.py:3:from __future__ import annotations
 ./tests/test_gate_match_contract.py:5:import sys
 ./tests/test_gate_match_contract.py:6:from pathlib import Path
@@ -1843,30 +1849,34 @@
 ./tests/test_gate_match_receipts.py:8:import math
 ./tests/test_gate_match_receipts.py:9:from pathlib import Path
 ./tests/test_gate_match_receipts.py:11:import pytest
-./tests/test_gate_sdk_invocation.py:14:from __future__ import annotations
-./tests/test_gate_sdk_invocation.py:16:import sys
-./tests/test_gate_sdk_invocation.py:17:from pathlib import Path
-./tests/test_gate_sdk_invocation.py:19:import pytest
-./tests/test_gate_sdk_invocation.py:29:    import constellation_node_sdk  # noqa: F401
-./tests/test_gate_sdk_invocation.py:41:    from constellation_node_sdk.gate import GateClient as _SdkGateClient
-./tests/test_gate_sdk_invocation.py:43:    from plasticos_gate.services import gate_client as gc
-./tests/test_gate_sdk_invocation.py:44:    from plasticos_gate.services.gate_builders import build_operation_id
-./tests/test_gate_sdk_invocation.py:108:        import httpx
-./tests/test_gate_sdk_invocation.py:109:        from constellation_node_sdk import TransportPacket, create_transport_packet
-./tests/test_gate_sdk_invocation.py:150:    from constellation_node_sdk import TransportPacket
-./tests/test_gate_sdk_invocation.py:163:    from constellation_node_sdk import validate_outbound_gate_packet
-./tests/test_gate_sdk_invocation.py:216:    from constellation_node_sdk import compute_transport_hash
-./tests/test_gate_sdk_invocation.py:227:    import httpx
-./tests/test_gate_sdk_invocation.py:229:    from plasticos_gate.services.gate_config import GateIntegrationError
-./tests/test_gate_sdk_invocation.py:274:    from constellation_node_sdk.gate import GateHTTPError
-./tests/test_gate_sdk_invocation.py:281:    from constellation_node_sdk.gate import (
-./tests/test_gate_sdk_invocation.py:301:    import httpx
-./tests/test_gate_sdk_invocation.py:302:    from constellation_node_sdk.gate import GateHTTPError
-./tests/test_gate_sdk_invocation.py:304:    from plasticos_gate.services.gate_config import GateIntegrationError
-./tests/test_gate_sdk_invocation.py:345:    from plasticos_gate.services.gate_config import GateIntegrationError
-./tests/test_gate_sdk_invocation.py:356:    from plasticos_gate.services.gate_config import GateIntegrationError
-./tests/test_gate_sdk_invocation.py:366:    from plasticos_gate.services.gate_config import GateIntegrationError
-./tests/test_gate_sdk_invocation.py:376:    from plasticos_gate.services.gate_config import GateIntegrationError
+./tests/test_gate_sdk_invocation.py:25:from __future__ import annotations
+./tests/test_gate_sdk_invocation.py:27:import json
+./tests/test_gate_sdk_invocation.py:28:import sys
+./tests/test_gate_sdk_invocation.py:29:from pathlib import Path
+./tests/test_gate_sdk_invocation.py:31:import pytest
+./tests/test_gate_sdk_invocation.py:41:    import constellation_node_sdk  # noqa: F401
+./tests/test_gate_sdk_invocation.py:53:    import httpx
+./tests/test_gate_sdk_invocation.py:54:    from constellation_node_sdk.gate import GateClient as _SdkGateClient
+./tests/test_gate_sdk_invocation.py:55:    from constellation_node_sdk.gate.admission import ADMISSION_ACTION, ADMISSION_PATH, ADMISSION_SCHEMA
+./tests/test_gate_sdk_invocation.py:57:    from plasticos_gate.services import gate_client as gc
+./tests/test_gate_sdk_invocation.py:58:    from plasticos_gate.services.gate_builders import build_operation_id
+./tests/test_gate_sdk_invocation.py:59:    from plasticos_gate.services.gate_config import GateIntegrationError
+./tests/test_gate_sdk_invocation.py:130:        from constellation_node_sdk import create_transport_packet, sign_transport_packet
+./tests/test_gate_sdk_invocation.py:146:        from constellation_node_sdk import TransportPacket
+./tests/test_gate_sdk_invocation.py:232:    from constellation_node_sdk import TransportPacket
+./tests/test_gate_sdk_invocation.py:240:    from constellation_node_sdk import validate_outbound_gate_packet
+./tests/test_gate_sdk_invocation.py:292:    from constellation_node_sdk import compute_transport_hash
+./tests/test_gate_sdk_invocation.py:373:    from constellation_node_sdk.gate import GateConfigurationError
+./tests/test_gate_sdk_invocation.py:385:    from constellation_node_sdk.gate import GateConfigurationError
+./tests/test_gate_sdk_invocation.py:398:    from constellation_node_sdk.gate import GateConfigurationError
+./tests/test_gate_sdk_invocation.py:419:    from constellation_node_sdk.gate import GateSecurityError
+./tests/test_gate_sdk_invocation.py:466:    from constellation_node_sdk.gate import GateAuthorizationError
+./tests/test_gate_sdk_invocation.py:483:    from constellation_node_sdk.gate import GateAuthorizationError, GateHTTPError
+./tests/test_gate_sdk_invocation.py:506:    from constellation_node_sdk.gate import GateAuthorizationError
+./tests/test_gate_sdk_invocation.py:522:    from constellation_node_sdk.gate import (
+./tests/test_gate_sdk_invocation.py:552:    from constellation_node_sdk.gate import GateHTTPError
+./tests/test_gate_sdk_invocation.py:576:    from constellation_node_sdk.gate import GateTimeoutError
+./tests/test_gate_sdk_invocation.py:590:    from constellation_node_sdk.gate import GateHTTPError
 ./tests/test_gate_single_egress.py:18:from __future__ import annotations
 ./tests/test_gate_single_egress.py:20:import re
 ./tests/test_gate_single_egress.py:21:from pathlib import Path
@@ -1999,9 +2009,9 @@
 ./tests/test_phantom_enum_values.py:28:from pathlib import Path
 ./tests/test_phantom_enum_values.py:29:from typing import NamedTuple
 ./tests/test_phantom_enum_values.py:31:import pytest
-./tests/test_phantom_enum_values.py:1311:            import ast as _ast
-./tests/test_phantom_enum_values.py:1312:            import pathlib as _pathlib
-./tests/test_phantom_enum_values.py:1496:            import warnings
+./tests/test_phantom_enum_values.py:1313:            import ast as _ast
+./tests/test_phantom_enum_values.py:1314:            import pathlib as _pathlib
+./tests/test_phantom_enum_values.py:1498:            import warnings
 ./tests/test_pristine_runtime_seams.py:15:import ast
 ./tests/test_pristine_runtime_seams.py:16:import re
 ./tests/test_pristine_runtime_seams.py:17:from pathlib import Path

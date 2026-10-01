@@ -159,9 +159,9 @@
 ./scripts/projection_outcome_schemas.py:161:        entity_ref = _require_entity_ref(record.get("entity_ref"), field_name="entity_ref")
 ./scripts/projection_outcome_schemas.py:210:        match_result_ref = _require_entity_ref(item.get("match_result_ref"), field_name="match_result_ref")
 ./scripts/projection_outcome_schemas.py:211:        candidate_ref = _require_entity_ref(item.get("candidate_ref"), field_name="candidate_ref")
-./tests/e2e/four_repo/run_odoo_driver.py:118:    _name = "plasticos.enrichment.run"
-./tests/integration/test_gate_external_authority_e2e.py:82:    _name = "plasticos.intake"
-./tests/integration/test_gate_external_authority_e2e.py:148:        _name="plasticos.enrichment.run",
+./tests/e2e/four_repo/run_odoo_driver.py:116:    _name = "plasticos.enrichment.run"
+./tests/integration/test_gate_external_authority_e2e.py:81:    _name = "plasticos.intake"
+./tests/integration/test_gate_external_authority_e2e.py:147:        _name="plasticos.enrichment.run",
 ./tests/runtime_gates/run_c1_c2_c4_c5.py:69:        first_name="A",
 ./tests/runtime_gates/run_c1_c2_c4_c5.py:70:        last_name="L",
 ./tests/runtime_gates/run_c3_failure_writer_lock.py:56:        first_name="A",
@@ -187,10 +187,10 @@
 ./tests/test_gate_canonical_contract.py:57:    _name = "plasticos.enrichment.run"
 ./tests/test_gate_canonical_contract.py:305:    assert build_operation_id(_ctx(db_name="prod")) != build_operation_id(_ctx(db_name="staging"))
 ./tests/test_gate_match_contract.py:67:    _name = "plasticos.intake"
-./tests/test_gate_match_contract.py:243:    _name = "res.partner"
-./tests/test_gate_match_contract.py:268:    _name = "plasticos.enrichment.run"
+./tests/test_gate_match_contract.py:238:    _name = "res.partner"
+./tests/test_gate_match_contract.py:263:    _name = "plasticos.enrichment.run"
 ./tests/test_gate_match_receipts.py:49:    assert '_name = "plasticos.match.result.writer"' in source
-./tests/test_gate_sdk_invocation.py:166:    validate_outbound_gate_packet(packet, local_node="odoo", gate_node_name="gate")
+./tests/test_gate_sdk_invocation.py:243:    validate_outbound_gate_packet(packet, local_node="odoo", gate_node_name="gate")
 ./tests/test_launch_invariants_crm_enrichment.py:456:    _name = "plasticos.enrichment.run"
 ./tests/test_legacy_erp_import_contract.py:47:    assert '_name = "plasticos.legacy_erp.import"' in service_source
 ./tests/test_matching_gate_orchestrator.py:40:    assert '_name = "plasticos.match.exclusion"' in src

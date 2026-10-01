@@ -76,7 +76,6 @@
 ./plasticos_base/hooks.py:25:            WHERE table_name = 'utm_source'
 ./plasticos_base/models/ir_attachment.py:11:    _inherit = "ir.attachment"
 ./plasticos_base/models/midnight_recompute.py:31:    _name = "plasticos.midnight.recompute"
-./plasticos_base/models/res_config_settings.py:5:    _inherit = "res.config.settings"
 ./plasticos_claims/models/claim.py:8:    _name = "plasticos.claim"
 ./plasticos_claims/models/claim.py:10:    _inherit = ["mail.thread", "mail.activity.mixin"]
 ./plasticos_claims/models/claim.py:12:    _rec_name = "name"
@@ -189,7 +188,7 @@
 ./plasticos_intake/models/intake.py:468:                    rec.display_name = f"{parts[0]}-{parts[2]}"
 ./plasticos_intake/models/intake.py:470:                    rec.display_name = rec.name
 ./plasticos_intake/models/intake.py:472:                rec.display_name = f"INT-{rec.id or 'New'}"
-./plasticos_intake/models/intake.py:917:                    "Skipping match line %s — no buyer_id set (buyer_name=%s)",
+./plasticos_intake/models/intake.py:914:                    "Skipping match line %s — no buyer_id set (buyer_name=%s)",
 ./plasticos_intake/models/intake_match.py:11:    _name = "plasticos.intake.match"
 ./plasticos_intake/models/intake_match.py:30:    buyer_name = fields.Char(
 ./plasticos_intake/models/intake_match.py:84:                rec.display_name = f"{rec.buyer_id.name} ({rec.match_score:.0f}%)"
@@ -225,7 +224,7 @@
 ./plasticos_matching/migrations/19.0.1.0.1/pre-migrate.py:37:              AND column_name = %s
 ./plasticos_matching/migrations/19.0.1.0.1/pre-migrate.py:58:        WHERE table_name = 'plasticos_match_result'
 ./plasticos_matching/migrations/19.0.3.0.0/pre-migrate.py:18:                WHERE table_name = %s
-./plasticos_matching/models/intake_extension.py:9:    _inherit = "plasticos.intake"
+./plasticos_matching/models/intake_extension.py:17:    _inherit = "plasticos.intake"
 ./plasticos_matching/models/match_exclusion.py:10:    _name = "plasticos.match.exclusion"
 ./plasticos_matching/models/match_exclusion.py:12:    _inherit = ["mail.thread"]
 ./plasticos_matching/models/match_orchestrator.py:74:    _name = "plasticos.match.orchestrator"
@@ -241,8 +240,8 @@
 ./plasticos_matching/models/match_run.py:36:    _rec_name = "display_name"
 ./plasticos_matching/models/match_run.py:38:    display_name = fields.Char(compute="_compute_display_name", store=True)
 ./plasticos_matching/models/match_run.py:150:            rec.display_name = f"Match run {rec.id or 'new'} [{rec.state}] / {intake}"
-./plasticos_matching/tests/test_match_run_receipts.py:362:            tampered = 9 if field_name == "request_attempt" else "tampered"
-./plasticos_matching/tests/test_match_run_receipts.py:407:            if field_name == "request_attempt":
+./plasticos_matching/tests/test_match_run_receipts.py:372:            tampered = 9 if field_name == "request_attempt" else "tampered"
+./plasticos_matching/tests/test_match_run_receipts.py:417:            if field_name == "request_attempt":
 ./plasticos_material_profile/models/filler_type.py:6:    _name = "plasticos.filler.type"
 ./plasticos_material_profile/models/grade_template.py:12:    _name = "plasticos.grade.template"
 ./plasticos_material_profile/models/material_attribute.py:17:    _name = "plasticos.material.attribute"
@@ -406,9 +405,9 @@
 ./scripts/projection_outcome_schemas.py:180:                _require_entity_ref(ref, field_name=list_key)
 ./scripts/projection_outcome_schemas.py:210:        match_result_ref = _require_entity_ref(item.get("match_result_ref"), field_name="match_result_ref")
 ./scripts/projection_outcome_schemas.py:211:        candidate_ref = _require_entity_ref(item.get("candidate_ref"), field_name="candidate_ref")
-./tests/e2e/four_repo/run_odoo_driver.py:118:    _name = "plasticos.enrichment.run"
-./tests/integration/test_gate_external_authority_e2e.py:82:    _name = "plasticos.intake"
-./tests/integration/test_gate_external_authority_e2e.py:148:        _name="plasticos.enrichment.run",
+./tests/e2e/four_repo/run_odoo_driver.py:116:    _name = "plasticos.enrichment.run"
+./tests/integration/test_gate_external_authority_e2e.py:81:    _name = "plasticos.intake"
+./tests/integration/test_gate_external_authority_e2e.py:147:        _name="plasticos.enrichment.run",
 ./tests/runtime_gates/run_c1_c2_c4_c5.py:69:        first_name="A",
 ./tests/runtime_gates/run_c1_c2_c4_c5.py:70:        last_name="L",
 ./tests/runtime_gates/run_c3_failure_writer_lock.py:56:        first_name="A",
@@ -438,10 +437,10 @@
 ./tests/test_gate_canonical_contract.py:57:    _name = "plasticos.enrichment.run"
 ./tests/test_gate_canonical_contract.py:305:    assert build_operation_id(_ctx(db_name="prod")) != build_operation_id(_ctx(db_name="staging"))
 ./tests/test_gate_match_contract.py:67:    _name = "plasticos.intake"
-./tests/test_gate_match_contract.py:243:    _name = "res.partner"
-./tests/test_gate_match_contract.py:268:    _name = "plasticos.enrichment.run"
+./tests/test_gate_match_contract.py:238:    _name = "res.partner"
+./tests/test_gate_match_contract.py:263:    _name = "plasticos.enrichment.run"
 ./tests/test_gate_match_receipts.py:49:    assert '_name = "plasticos.match.result.writer"' in source
-./tests/test_gate_sdk_invocation.py:166:    validate_outbound_gate_packet(packet, local_node="odoo", gate_node_name="gate")
+./tests/test_gate_sdk_invocation.py:243:    validate_outbound_gate_packet(packet, local_node="odoo", gate_node_name="gate")
 ./tests/test_golden_flows.py:459:    models/transaction_commission.py`` (``_inherit = "plasticos.transaction"``) adds
 ./tests/test_launch_invariants_crm_enrichment.py:456:    _name = "plasticos.enrichment.run"
 ./tests/test_legacy_erp_import_contract.py:47:    assert '_name = "plasticos.legacy_erp.import"' in service_source
@@ -450,11 +449,11 @@
 ./tests/test_odoo_test_setup_validity.py:103:        var_name = match.group(2)
 ./tests/test_odoo_test_setup_validity.py:199:                    model_name = subscript.slice.value
 ./tests/test_phantom_enum_values.py:656:        # e.g. assert method_name == '_reverse_tx' — not selection enum values
-./tests/test_phantom_enum_values.py:849:    # Pattern: field_name = fields.Selection([(key, label), ...], ...)
-./tests/test_phantom_enum_values.py:864:        field_name = target.id
-./tests/test_phantom_enum_values.py:1023:                    field_name = field_node.value
-./tests/test_phantom_enum_values.py:1027:                    field_name = field_node.value
-./tests/test_phantom_enum_values.py:1360:            field_name = usage.context[7:-1]  # strip "domain[" and "]"
-./tests/test_phantom_enum_values.py:1408:                field_name = usage.context[7:-1]
+./tests/test_phantom_enum_values.py:851:    # Pattern: field_name = fields.Selection([(key, label), ...], ...)
+./tests/test_phantom_enum_values.py:866:        field_name = target.id
+./tests/test_phantom_enum_values.py:1025:                    field_name = field_node.value
+./tests/test_phantom_enum_values.py:1029:                    field_name = field_node.value
+./tests/test_phantom_enum_values.py:1362:            field_name = usage.context[7:-1]  # strip "domain[" and "]"
+./tests/test_phantom_enum_values.py:1410:                field_name = usage.context[7:-1]
 ./tests/test_web_lead_packet.py:60:    assert packet.contact_name == "Alex Smith"
 ./tests/test_web_lead_packet.py:115:    assert packet.company_name == "Legacy Co"
