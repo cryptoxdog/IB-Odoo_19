@@ -19,7 +19,7 @@ Usage:
     env:   E2E_RUN_ID (default 7) — the durable run id; a new id is a new
            logical operation, the same id replays Gate's cached answer.
            E2E_ATTEMPT (default 1) — operator retry counter (ADR-006).
-           PLASTICOS_GATE_SIGNING_KEY / PLASTICOS_GATE_SIGNING_KEY_ID — sign
+           L9_SIGNING_KEY / L9_SIGNING_KEY_ID — sign
            the packet (Gate must hold the same key under that id).
 """
 
@@ -80,18 +80,16 @@ class _Env:
     """What the bridge reads from ``odoo.api.Environment`` — nothing more."""
 
     def __init__(self, url, timeout):
+        os.environ["GATE_URL"] = url
+        os.environ.setdefault("L9_NODE_NAME", "odoo")
         self._icp = _Icp(
             {
-                "plasticos.gate.url": url,
                 "plasticos.gate.allow_insecure_http": "1",
                 "plasticos.gate.local_node": "odoo",
                 "plasticos.gate.org_id": "plasticos",
                 "plasticos.gate.timeout_seconds": timeout,
                 "plasticos.gate.enrichment_enabled": "1",
                 "plasticos.gate.enrichment_action": "converge" if MODE != "unknown_action" else "no-such-action",
-                "plasticos.gate.signing_key_id": os.environ.get("PLASTICOS_GATE_SIGNING_KEY_ID", ""),
-                "plasticos.gate.signing_algorithm": "hmac-sha256",
-                "plasticos.gate.verify_response_signatures": os.environ.get("PLASTICOS_GATE_VERIFY_RESPONSES", "0"),
             }
         )
         self.cr = type("Cr", (), {"dbname": "plasticos_e2e"})()

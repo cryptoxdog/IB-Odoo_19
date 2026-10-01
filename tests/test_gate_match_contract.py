@@ -95,41 +95,36 @@ class _IntakeStub:
         return getattr(self, key)
 
 
-def test_gate_matching_enabled_false_when_url_empty():
+def test_gate_matching_enabled_false_when_url_empty(monkeypatch):
+    monkeypatch.delenv("GATE_URL", raising=False)
     env = _MockEnv({"plasticos.gate.matching_enabled": "1"})
     assert gate_matching_enabled(env) is False
 
 
-def test_gate_url_rejects_plain_http_by_default():
+def test_gate_url_rejects_plain_http_by_default(monkeypatch):
     """Cleartext HTTP Gate URLs are rejected unless explicitly opted in (S5332)."""
-    env = _MockEnv({"plasticos.gate.url": "http://gate.example.com", "plasticos.gate.matching_enabled": "1"})
-    assert _gate_url_usable(env["ir.config_parameter"].sudo()) is False
+    monkeypatch.setenv("GATE_URL", "http://gate.example.com")
+    env = _MockEnv({"plasticos.gate.matching_enabled": "1"})
+    assert _gate_url_usable(env) is False
     assert gate_matching_enabled(env) is False
 
 
-def test_gate_url_allows_http_with_explicit_insecure_opt_in():
+def test_gate_url_allows_http_with_explicit_insecure_opt_in(monkeypatch):
     """Local-dev loopback deployments may opt in to plain HTTP explicitly."""
-    env = _MockEnv(
-        {
-            "plasticos.gate.url": "http://127.0.0.1:8080",
-            "plasticos.gate.allow_insecure_http": "1",
-        }
-    )
-    assert _gate_url_usable(env["ir.config_parameter"].sudo()) is True
+    monkeypatch.setenv("GATE_URL", "http://127.0.0.1:8080")
+    env = _MockEnv({"plasticos.gate.allow_insecure_http": "1"})
+    assert _gate_url_usable(env) is True
 
 
-def test_gate_url_accepts_https_without_opt_in():
-    env = _MockEnv({"plasticos.gate.url": "https://gate.example.com"})
-    assert _gate_url_usable(env["ir.config_parameter"].sudo()) is True
+def test_gate_url_accepts_https_without_opt_in(monkeypatch):
+    monkeypatch.setenv("GATE_URL", "https://gate.example.com")
+    env = _MockEnv()
+    assert _gate_url_usable(env) is True
 
 
-def test_gate_matching_enabled_false_when_flag_off():
-    env = _MockEnv(
-        {
-            "plasticos.gate.url": "https://gate.example.com",
-            "plasticos.gate.matching_enabled": "0",
-        }
-    )
+def test_gate_matching_enabled_false_when_flag_off(monkeypatch):
+    monkeypatch.setenv("GATE_URL", "https://gate.example.com")
+    env = _MockEnv({"plasticos.gate.matching_enabled": "0"})
     assert gate_matching_enabled(env) is False
 
 
@@ -273,14 +268,16 @@ class _RunStub:
         self.source_ids = [_SourceStub("https://acme.example/about")]
 
 
-def test_gate_enrichment_enabled_false_when_url_empty():
+def test_gate_enrichment_enabled_false_when_url_empty(monkeypatch):
+    monkeypatch.delenv("GATE_URL", raising=False)
     env = _MockEnv({"plasticos.gate.enrichment_enabled": "1"})
     assert gate_enrichment_enabled(env) is False
 
 
-def test_gate_enrichment_enabled_false_when_flag_off():
+def test_gate_enrichment_enabled_false_when_flag_off(monkeypatch):
     # Live-by-default, but an explicit "0" disables even with URL set
-    env = _MockEnv({"plasticos.gate.url": "https://gate.example.com", "plasticos.gate.enrichment_enabled": "0"})
+    monkeypatch.setenv("GATE_URL", "https://gate.example.com")
+    env = _MockEnv({"plasticos.gate.enrichment_enabled": "0"})
     assert gate_enrichment_enabled(env) is False
 
 

@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="1">
 
-    <record id="param_gate_url" model="ir.config_parameter">
-        <field name="key">plasticos.gate.url</field>
-        <field name="value"></field>
-    </record>
     <record id="param_gate_local_node" model="ir.config_parameter">
         <field name="key">plasticos.gate.local_node</field>
         <field name="value">odoo</field>
@@ -33,15 +29,9 @@
         <field name="key">plasticos.gate.enrichment_action</field>
         <field name="value">converge</field>
     </record>
-    <!-- Packet signing (Odoo -> Gate). Key id + algorithm are configuration; the key
-         material is the PLASTICOS_GATE_SIGNING_KEY environment variable, never an ICP.
-         In a signed topology Gate signs its responses too, and the SDK verifies every
-         signature it receives, so PLASTICOS_GATE_VERIFYING_KEYS_JSON must carry Gate's
-         key id -> key (a response signed with an unknown key id is refused as permanent). -->
-    <record id="param_gate_signing_key_id" model="ir.config_parameter">
-        <field name="key">plasticos.gate.signing_key_id</field>
-        <field name="value"></field>
-    </record>
+    <!-- Packet signing lives on GATE_URL + L9_* in the process environment
+         (L9_SIGNING_KEY, L9_SIGNING_KEY_ID, L9_VERIFYING_KEYS_JSON, L9_REQUIRE_SIGNATURE).
+         L9_VERIFYING_KEYS_JSON is Gate's key, not Odoo's. -->
     <record id="param_gate_signing_algorithm" model="ir.config_parameter">
         <field name="key">plasticos.gate.signing_algorithm</field>
         <field name="value">hmac-sha256</field>

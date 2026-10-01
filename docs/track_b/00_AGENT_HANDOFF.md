@@ -165,18 +165,21 @@ Some fields may be absent if the intake lacks them; treat all `query.*` as optio
 
 ## 4. Environment / config Odoo already exposes
 
-Set on the Odoo side once Gate is reachable (`ir.config_parameter`):
+Set on the Odoo side once Gate is reachable. Connection names are process env only; capability flags stay System Parameters.
 
-| Key | Default | Meaning for Track B |
+| Name | Default | Meaning for Track B |
 |-----|---------|---------------------|
-| `plasticos.gate.url` | *(empty)* | Where the SDK posts. Must point at the deployed Gate hub. |
-| `plasticos.gate.local_node` | `odoo` | `source_node` in packets. |
-| `plasticos.gate.matching_enabled` | `1` | Match attempted when URL set. |
+| `GATE_URL` | *(unset)* | Where the SDK posts. Must point at the deployed Gate hub. |
+| `L9_NODE_NAME` | `odoo` | Consumer node id; must match the Gate caller record. |
+| `L9_SIGNING_KEY` / `L9_SIGNING_KEY_ID` | *(unset)* | Odoo signing material and key id. |
+| `L9_VERIFYING_KEYS_JSON` | *(unset)* | Gate's key (not Odoo's). |
+| `L9_REQUIRE_SIGNATURE` | *(unset)* | Require signatures. |
+| `plasticos.gate.matching_enabled` | `1` | Match attempted when `GATE_URL` set. |
 | `plasticos.gate.matching_action` | `match` | Action string Gate routes to CEG. |
-| `plasticos.gate.enrichment_enabled` | `1` | Converge attempted when URL set (live by default). |
+| `plasticos.gate.enrichment_enabled` | `1` | Converge attempted when `GATE_URL` set (live by default). |
 | `plasticos.gate.enrichment_action` | `converge` | Action string Gate routes to EIE. |
-| `plasticos.gate.auto_writeback` | `1` | Apply converge fields to the partner live. `0` → review-only. |
-| `plasticos.gate.org_id` | *(empty → db name)* | Tenant id. |
+| `plasticos.gate.auto_writeback` | `0` | Apply converge fields to the partner live. Stay `0`. |
+| `plasticos.gate.org_id` | *(empty → db name)* | Tenant id — must match the Gate caller record. |
 | `plasticos.gate.timeout_seconds` | `30` | SDK client timeout — workers should respond within this. |
 
 SDK pinned in Odoo `requirements.txt`:
@@ -195,8 +198,9 @@ SDK pinned in Odoo `requirements.txt`:
 ## 6. Validation snippet (run from Odoo after each milestone)
 
 ```bash
-# In Odoo shell / staging, set the URL then trigger from UI:
-#   plasticos.gate.url = https://<gate-host>
+# On Odoo.sh / compose, set GATE_URL then trigger from UI:
+#   GATE_URL=https://<gate-host>
+#   L9_NODE_NAME=odoo  (must match the Gate caller record)
 #   Match to Buyers on an intake  -> expect match_source="gate"
 #   (EIE) run enrichment (enrichment_enabled=1 by default) -> engine_used="gate", state="injected", partner fields backfilled
 ```

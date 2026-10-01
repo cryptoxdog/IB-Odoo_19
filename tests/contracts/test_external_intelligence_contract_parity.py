@@ -66,15 +66,17 @@ def test_default_actions_are_match_and_converge():
     assert get_enrichment_action(env) == "converge"
 
 
-def test_availability_missing_url():
+def test_availability_missing_url(monkeypatch):
+    monkeypatch.delenv("GATE_URL", raising=False)
     env = _MockEnv({})
     verdict = classify_gate_availability(env, capability="matching")
     assert verdict.status == GateAvailability.MISSING_URL.value
     assert verdict.available is False
 
 
-def test_availability_insecure_http_blocked():
-    env = _MockEnv({"plasticos.gate.url": "http://127.0.0.1:9000"})
+def test_availability_insecure_http_blocked(monkeypatch):
+    monkeypatch.setenv("GATE_URL", "http://127.0.0.1:9000")
+    env = _MockEnv({})
     verdict = classify_gate_availability(env, capability="matching")
     assert verdict.status == GateAvailability.INSECURE_HTTP_BLOCKED.value
     assert verdict.available is False

@@ -71,11 +71,8 @@ class _Env:
 
     def __init__(self, **overrides: str) -> None:
         params = {
-            "plasticos.gate.url": GATE_URL,
             "plasticos.gate.local_node": "odoo",
             "plasticos.gate.org_id": "plasticos",
-            "plasticos.gate.signing_key_id": "",
-            "plasticos.gate.verify_response_signatures": "0",
         }
         params.update(overrides)
         self._icp = _Icp(params)
@@ -127,6 +124,12 @@ class _CapturingClient(_SdkGateClient if _SDK_AVAILABLE else object):
 
 @pytest.fixture
 def captured(monkeypatch):
+    monkeypatch.setenv("GATE_URL", GATE_URL)
+    monkeypatch.setenv("L9_NODE_NAME", "odoo")
+    monkeypatch.delenv("L9_SIGNING_KEY", raising=False)
+    monkeypatch.delenv("L9_SIGNING_KEY_ID", raising=False)
+    monkeypatch.delenv("L9_VERIFYING_KEYS_JSON", raising=False)
+    monkeypatch.delenv("L9_REQUIRE_SIGNATURE", raising=False)
     _CapturingClient.captured = {}
     monkeypatch.setattr(gc, "GateClient", _CapturingClient)
     return _CapturingClient.captured
@@ -327,9 +330,9 @@ def test_unsigned_by_default(captured):
 
 
 def test_signing_key_from_environment_signs_the_packet(captured, monkeypatch):
-    monkeypatch.setenv("PLASTICOS_GATE_SIGNING_KEY", "unit-test-key-material")
-    env = _Env(**{"plasticos.gate.signing_key_id": "odoo-k1"})
-    _, packet = _send(captured, env=env)
+    monkeypatch.setenv("L9_SIGNING_KEY", "unit-test-key-material")
+    monkeypatch.setenv("L9_SIGNING_KEY_ID", "odoo-k1")
+    _, packet = _send(captured)
     config = captured["config"]
     assert config.signing_key_id == "odoo-k1"
     assert config.signing_algorithm == "hmac-sha256"
@@ -344,20 +347,21 @@ def test_signing_key_from_environment_signs_the_packet(captured, monkeypatch):
 def test_key_id_without_material_fails_closed(captured, monkeypatch):
     from plasticos_gate.services.gate_config import GateIntegrationError
 
-    monkeypatch.delenv("PLASTICOS_GATE_SIGNING_KEY", raising=False)
-    env = _Env(**{"plasticos.gate.signing_key_id": "odoo-k1"})
+    monkeypatch.delenv("L9_SIGNING_KEY", raising=False)
+    monkeypatch.setenv("L9_SIGNING_KEY_ID", "odoo-k1")
     with pytest.raises(GateIntegrationError) as excinfo:
-        _send(captured, env=env)
+        _send(captured)
     assert excinfo.value.failure_class == "permanent"
-    assert "PLASTICOS_GATE_SIGNING_KEY" in str(excinfo.value)
+    assert "L9_SIGNING_KEY" in str(excinfo.value)
 
 
 def test_material_without_key_id_fails_closed(captured, monkeypatch):
     from plasticos_gate.services.gate_config import GateIntegrationError
 
-    monkeypatch.setenv("PLASTICOS_GATE_SIGNING_KEY", "unit-test-key-material")
+    monkeypatch.setenv("L9_SIGNING_KEY", "unit-test-key-material")
+    monkeypatch.delenv("L9_SIGNING_KEY_ID", raising=False)
     with pytest.raises(GateIntegrationError) as excinfo:
-        _send(captured, env=_Env())
+        _send(captured)
     assert excinfo.value.failure_class == "permanent"
     assert "unit-test-key-material" not in str(excinfo.value)
 
@@ -365,19 +369,19 @@ def test_material_without_key_id_fails_closed(captured, monkeypatch):
 def test_response_verification_without_keys_fails_closed(captured, monkeypatch):
     from plasticos_gate.services.gate_config import GateIntegrationError
 
-    monkeypatch.delenv("PLASTICOS_GATE_SIGNING_KEY", raising=False)
-    monkeypatch.delenv("PLASTICOS_GATE_VERIFYING_KEYS_JSON", raising=False)
-    env = _Env(**{"plasticos.gate.verify_response_signatures": "1"})
+    monkeypatch.delenv("L9_SIGNING_KEY", raising=False)
+    monkeypatch.delenv("L9_VERIFYING_KEYS_JSON", raising=False)
+    monkeypatch.setenv("L9_REQUIRE_SIGNATURE", "1")
     with pytest.raises(GateIntegrationError):
-        _send(captured, env=env)
+        _send(captured)
 
 
 def test_verifying_keys_json_is_validated(captured, monkeypatch):
     from plasticos_gate.services.gate_config import GateIntegrationError
 
-    monkeypatch.setenv("PLASTICOS_GATE_VERIFYING_KEYS_JSON", "not-json")
+    monkeypatch.setenv("L9_VERIFYING_KEYS_JSON", "not-json")
     with pytest.raises(GateIntegrationError):
-        _send(captured, env=_Env())
-    monkeypatch.setenv("PLASTICOS_GATE_VERIFYING_KEYS_JSON", '{"gate-k1": "gate-material"}')
-    _, _packet = _send(captured, env=_Env())
+        _send(captured)
+    monkeypatch.setenv("L9_VERIFYING_KEYS_JSON", '{"gate-k1": "gate-material"}')
+    _, _packet = _send(captured)
     assert captured["config"].verifying_keys == {"gate-k1": "gate-material"}

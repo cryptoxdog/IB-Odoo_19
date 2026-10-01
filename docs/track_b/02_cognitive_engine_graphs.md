@@ -37,7 +37,7 @@
 - **Why sixth:** Track A wraps the Gate call in try/except and falls back. A hang defeats fallback and stalls the broker UI. Build this once the happy path works.
 
 ### Step 7 — End-to-end test from Odoo
-- **Do:** With hub (01) live, set `plasticos.gate.url`, leave `matching_enabled=1`, run "Match to Buyers" on a seeded intake. Verify Odoo `plasticos.match.result.score_breakdown.match_source == "gate"`, `gate_packet_id` set, and candidates resolve to real partners.
+- **Do:** With hub (01) live, set `GATE_URL`, leave `matching_enabled=1`, run "Match to Buyers" on a seeded intake. Verify Odoo `plasticos.match.result.score_breakdown.match_source == "gate"`, `gate_packet_id` set, and candidates resolve to real partners.
 - **Why last:** This is the milestone that proves the Phase-1 primary path. Validate parity against the local matcher on a few intakes before enabling broadly.
 
 ---

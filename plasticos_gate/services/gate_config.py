@@ -1,4 +1,13 @@
-"""Gate ICP helpers and integration exceptions — no UserError on fallback path."""
+"""Gate env helpers and integration exceptions — no UserError on fallback path.
+
+Connection plane is process environment only (canonical Gate_SDK names):
+
+    GATE_URL, L9_NODE_NAME, L9_SIGNING_KEY, L9_SIGNING_KEY_ID,
+    L9_VERIFYING_KEYS_JSON, L9_REQUIRE_SIGNATURE
+
+Capability ICPs (matching_enabled / enrichment_enabled / auto_writeback) stay
+on System Parameters. They are not how the SDK finds Gate.
+"""
 
 from __future__ import annotations
 
@@ -12,6 +21,17 @@ from urllib.parse import urlsplit
 
 if TYPE_CHECKING:
     from constellation_node_sdk import GateClientConfig
+
+ENV_GATE_URL = "GATE_URL"
+ENV_NODE_NAME = "L9_NODE_NAME"
+ENV_SIGNING_KEY = "L9_SIGNING_KEY"
+ENV_SIGNING_KEY_ID = "L9_SIGNING_KEY_ID"
+ENV_SIGNING_ALGORITHM = "L9_SIGNING_ALGORITHM"
+ENV_VERIFYING_KEYS_JSON = "L9_VERIFYING_KEYS_JSON"
+ENV_REQUIRE_SIGNATURE = "L9_REQUIRE_SIGNATURE"
+
+# Odoo is a Gate consumer, never a worker. Must match the Gate caller record.
+ODOO_NODE_NAME = "odoo"
 
 
 class GateIntegrationError(Exception):
@@ -80,19 +100,31 @@ MAX_GATE_TIMEOUT_SECONDS = 30.0
 DEFAULT_GATE_TIMEOUT_SECONDS = 30.0
 
 
-def _gate_url_usable(icp) -> bool:
-    """Return True when the configured Gate URL is present and uses an accepted scheme.
+def resolve_gate_url() -> str:
+    """Return the configured Gate hub URL from the process environment only."""
+    return (os.environ.get(ENV_GATE_URL) or "").strip()
+
+
+def _insecure_http_allowed(env) -> bool:
+    """Local-dev opt-in for cleartext GATE_URL. Not a connection-authority key."""
+    if env is None:
+        return False
+    icp = env["ir.config_parameter"].sudo()
+    return (icp.get_param("plasticos.gate.allow_insecure_http") or "").strip() in _TRUTHY
+
+
+def _gate_url_usable(env=None) -> bool:
+    """Return True when GATE_URL is present and uses an accepted scheme.
 
     TLS (``https``) is required by default. The cleartext scheme is accepted only
     when the deployment explicitly opts in via ``plasticos.gate.allow_insecure_http=1``
     (intended for local development against a loopback Gate only).
     """
-    url = (icp.get_param("plasticos.gate.url") or "").strip()
+    url = resolve_gate_url()
     scheme = urlsplit(url).scheme.lower()
     if scheme == "https":
         return True
-    insecure_ok = (icp.get_param("plasticos.gate.allow_insecure_http") or "").strip() in _TRUTHY
-    return insecure_ok and scheme == "http"  # NOSONAR(S5332) explicit local-dev opt-in, off by default
+    return _insecure_http_allowed(env) and scheme == "http"  # NOSONAR(S5332) explicit local-dev opt-in
 
 
 def classify_gate_availability(
@@ -101,20 +133,20 @@ def classify_gate_availability(
     """Return a structured availability verdict for matching or enrichment.
 
     Never raises. Downstream degraded-mode UX consumes ``status`` + ``reasons``.
+    URL configured is ``GATE_URL`` only — never an ICP.
     """
     icp = env["ir.config_parameter"].sudo()
-    url = (icp.get_param("plasticos.gate.url") or "").strip()
+    url = resolve_gate_url()
     reasons: list[str] = []
     status = GateAvailability.AVAILABLE
 
     if not url:
         status = GateAvailability.MISSING_URL
-        reasons.append("plasticos.gate.url is empty")
+        reasons.append(f"{ENV_GATE_URL} is unset")
     else:
         scheme = urlsplit(url).scheme.lower()
         if scheme == "http":
-            insecure_ok = (icp.get_param("plasticos.gate.allow_insecure_http") or "").strip() in _TRUTHY
-            if not insecure_ok:
+            if not _insecure_http_allowed(env):
                 status = GateAvailability.INSECURE_HTTP_BLOCKED
                 reasons.append("http Gate URL blocked without allow_insecure_http")
         elif scheme != "https":
@@ -159,7 +191,7 @@ def gate_failure_categories() -> dict[str, str]:
     """Return structured Gate failure categories for degraded-mode UX/docs."""
     return {
         "retryable": "Transient transport/timeout — operator may retry",
-        "permanent": "Configuration or contract failure — fix ICP/URL/SDK",
+        "permanent": f"Configuration or contract failure — fix {ENV_GATE_URL}/L9_*/SDK",
         "unknown": "Unclassified failure — treat as degraded, do not substitute",
         "missing_url": GateAvailability.MISSING_URL.value,
         "insecure_http_blocked": GateAvailability.INSECURE_HTTP_BLOCKED.value,
@@ -182,7 +214,7 @@ def get_matching_action(env) -> str:
 def gate_enrichment_enabled(env) -> bool:
     """Return True when Gate enrichment (converge) should be attempted (never raises).
 
-    Live by default: enabled whenever a Gate URL is configured and the SDK is present
+    Live by default: enabled whenever ``GATE_URL`` is set and the SDK is present
     (seeded ``plasticos.gate.enrichment_enabled=1``). Set it to ``0`` to disable.
     """
     verdict = classify_gate_availability(env, capability=GateCapability.ENRICHMENT)
@@ -256,73 +288,60 @@ def resolve_gate_timeout_seconds(env) -> float:
     return timeout
 
 
-# Packet-signing identity. The KEY IDENTIFIER and ALGORITHM are ordinary
-# configuration (ICP); the KEY MATERIAL is a secret and is read from the
-# process environment only — it is never stored in ir.config_parameter, never
-# logged, and never echoed in an error message.
-ICP_SIGNING_KEY_ID = "plasticos.gate.signing_key_id"
-ICP_SIGNING_ALGORITHM = "plasticos.gate.signing_algorithm"
-ICP_VERIFY_RESPONSE_SIGNATURES = "plasticos.gate.verify_response_signatures"
-ENV_SIGNING_KEY = "PLASTICOS_GATE_SIGNING_KEY"
-ENV_VERIFYING_KEYS_JSON = "PLASTICOS_GATE_VERIFYING_KEYS_JSON"
-DEFAULT_SIGNING_ALGORITHM = "hmac-sha256"
+def _parse_verifying_keys(raw: str) -> dict[str, str]:
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise GateIntegrationError(f"{ENV_VERIFYING_KEYS_JSON} is not valid JSON", failure_class="permanent") from exc
+    if not isinstance(parsed, dict) or not all(
+        isinstance(k, str) and isinstance(v, str) and k.strip() and v.strip() for k, v in parsed.items()
+    ):
+        raise GateIntegrationError(
+            f"{ENV_VERIFYING_KEYS_JSON} must be a JSON object of non-blank string keys and values",
+            failure_class="permanent",
+        )
+    return {k.strip(): v.strip() for k, v in parsed.items()}
 
 
-def resolve_gate_signing(env) -> dict[str, Any]:
-    """Resolve the Odoo->Gate signing posture, failing closed on a half-configured one.
+def resolve_gate_signing(env=None) -> dict[str, Any]:
+    """Resolve the Odoo->Gate signing posture from ``L9_*`` env names only.
 
     Returns the keyword arguments for ``GateClientConfig``. Three coherent
     states exist:
 
     * unsigned (no key id, no key): the deployment relies on a declared
-      network trust boundary at Gate (``L9_TRUSTED_INGRESS_BOUNDARY=network``);
-    * signed: ``plasticos.gate.signing_key_id`` names the key Gate verifies
-      with, and ``PLASTICOS_GATE_SIGNING_KEY`` carries the material;
-    * signed + verifying: additionally ``plasticos.gate.verify_response_signatures=1``
-      requires Gate's answer to be signed by a key in
-      ``PLASTICOS_GATE_VERIFYING_KEYS_JSON`` (or the same shared key).
+      network trust boundary at Gate;
+    * signed: ``L9_SIGNING_KEY_ID`` names the key Gate verifies with, and
+      ``L9_SIGNING_KEY`` carries the material;
+    * signed + verifying: ``L9_REQUIRE_SIGNATURE`` requires Gate's answer to
+      be signed by a key in ``L9_VERIFYING_KEYS_JSON``.
 
     A key id without material, material without a key id, or response
     verification without any verifying key is refused here rather than at the
     first request, so a misconfigured deployment cannot silently run unsigned.
     """
-    icp = env["ir.config_parameter"].sudo()
-    key_id = (icp.get_param(ICP_SIGNING_KEY_ID) or "").strip() or None
-    algorithm = (icp.get_param(ICP_SIGNING_ALGORITHM) or DEFAULT_SIGNING_ALGORITHM).strip().lower()
+    del env  # signing is env-only; kept for call-site compatibility
+    key_id = (os.environ.get(ENV_SIGNING_KEY_ID) or "").strip() or None
+    algorithm = (os.environ.get(ENV_SIGNING_ALGORITHM) or "hmac-sha256").strip().lower()
     key_material = (os.environ.get(ENV_SIGNING_KEY) or "").strip() or None
-    verify_responses = (icp.get_param(ICP_VERIFY_RESPONSE_SIGNATURES) or "").strip() in _TRUTHY
-
-    raw_keys = (os.environ.get(ENV_VERIFYING_KEYS_JSON) or "").strip()
-    verifying_keys: dict[str, str] = {}
-    if raw_keys:
-        try:
-            parsed = json.loads(raw_keys)
-        except json.JSONDecodeError as exc:
-            raise GateIntegrationError(
-                f"{ENV_VERIFYING_KEYS_JSON} is not valid JSON", failure_class="permanent"
-            ) from exc
-        if not isinstance(parsed, dict) or not all(
-            isinstance(k, str) and isinstance(v, str) and k.strip() and v.strip() for k, v in parsed.items()
-        ):
-            raise GateIntegrationError(
-                f"{ENV_VERIFYING_KEYS_JSON} must be a JSON object of non-blank string keys and values",
-                failure_class="permanent",
-            )
-        verifying_keys = {k.strip(): v.strip() for k, v in parsed.items()}
+    require_signature = (os.environ.get(ENV_REQUIRE_SIGNATURE) or "").strip() in _TRUTHY
+    verifying_keys = _parse_verifying_keys((os.environ.get(ENV_VERIFYING_KEYS_JSON) or "").strip())
 
     if key_id and not key_material:
         raise GateIntegrationError(
-            f"{ICP_SIGNING_KEY_ID} is set but {ENV_SIGNING_KEY} is not present in the environment",
+            f"{ENV_SIGNING_KEY_ID} is set but {ENV_SIGNING_KEY} is not present in the environment",
             failure_class="permanent",
         )
     if key_material and not key_id:
         raise GateIntegrationError(
-            f"{ENV_SIGNING_KEY} is present but {ICP_SIGNING_KEY_ID} is empty",
+            f"{ENV_SIGNING_KEY} is present but {ENV_SIGNING_KEY_ID} is empty",
             failure_class="permanent",
         )
-    if verify_responses and not (verifying_keys or key_material):
+    if require_signature and not (verifying_keys or key_material):
         raise GateIntegrationError(
-            f"{ICP_VERIFY_RESPONSE_SIGNATURES} is on but no verifying key is configured "
+            f"{ENV_REQUIRE_SIGNATURE} is on but no verifying key is configured "
             f"({ENV_VERIFYING_KEYS_JSON} or {ENV_SIGNING_KEY})",
             failure_class="permanent",
         )
@@ -332,13 +351,13 @@ def resolve_gate_signing(env) -> dict[str, Any]:
         "signing_key": key_material if signed else None,
         "signing_key_id": key_id if signed else None,
         "signing_algorithm": algorithm if signed else None,
-        "require_signature": signed,
-        "verify_response_signatures": verify_responses,
+        "require_signature": signed or require_signature,
+        "verify_response_signatures": require_signature,
         "verifying_keys": verifying_keys,
     }
 
 
-def gate_signing_configured(env) -> bool:
+def gate_signing_configured(env=None) -> bool:
     """True when Odoo signs its Gate packets (never raises)."""
     try:
         return bool(resolve_gate_signing(env)["signing_key"])
@@ -346,27 +365,74 @@ def gate_signing_configured(env) -> bool:
         return False
 
 
-def build_gate_client_config(env) -> GateClientConfig:
-    """Build SDK config — call only after gate_matching_enabled() passes.
+def _sdk_config_from_env(**overrides: Any):
+    """Call the SDK env builder when present; otherwise assemble from L9_* only."""
+    env_builder = None
+    try:
+        from constellation_node_sdk import get_gate_client_config_from_env
 
-    ``timeout_seconds`` is the single validated budget. Everything downstream —
-    the HTTP call and the packet's advertised ``timeout_ms`` — reads it off this
-    object, so the two cannot diverge through the supported builder path.
-    Signing posture comes from :func:`resolve_gate_signing`.
-    """
+        env_builder = get_gate_client_config_from_env
+    except ImportError:
+        try:
+            from constellation_node_sdk.gate import get_gate_client_config_from_env
+
+            env_builder = get_gate_client_config_from_env
+        except ImportError:
+            env_builder = None
+    if env_builder is not None:
+        return env_builder(**overrides)
+
     from constellation_node_sdk import GateClientConfig
 
-    icp = env["ir.config_parameter"].sudo()
-    return GateClientConfig(
-        gate_url=(icp.get_param("plasticos.gate.url") or "").strip(),
-        local_node=(icp.get_param("plasticos.gate.local_node") or "odoo").strip().lower(),
-        timeout_seconds=resolve_gate_timeout_seconds(env),
-        allowed_gate_destination="gate",
-        **resolve_gate_signing(env),
-    )
+    url = (overrides.get("gate_url") or resolve_gate_url()).rstrip("/")
+    if not url:
+        raise ValueError(f"{ENV_GATE_URL} is required")
+    signing = resolve_gate_signing()
+    values = {
+        "gate_url": url,
+        "local_node": ODOO_NODE_NAME,
+        "timeout_seconds": DEFAULT_GATE_TIMEOUT_SECONDS,
+        "allowed_gate_destination": "gate",
+        **signing,
+    }
+    values.update(overrides)
+    return GateClientConfig(**values)
+
+
+def build_gate_client_config(env) -> GateClientConfig:
+    """Build SDK config from ``GATE_URL`` + ``L9_*`` only.
+
+    ``timeout_seconds`` is the single validated budget (ICP ceiling only).
+    No ICP URL and no legacy env aliases.
+    """
+    timeout = resolve_gate_timeout_seconds(env)
+    resolve_gate_signing()
+    overrides: dict[str, Any] = {
+        "local_node": ODOO_NODE_NAME,
+        "timeout_seconds": timeout,
+        "allowed_gate_destination": "gate",
+    }
+    try:
+        from constellation_node_sdk import GateClientConfig as _Cfg
+
+        if "max_timeout_ms" in getattr(_Cfg, "model_fields", {}):
+            overrides["max_timeout_ms"] = int(MAX_GATE_TIMEOUT_SECONDS * 1000)
+    except ImportError:
+        pass
+    if (os.environ.get(ENV_SIGNING_KEY) or "").strip() and not (os.environ.get(ENV_SIGNING_ALGORITHM) or "").strip():
+        overrides["signing_algorithm"] = "hmac-sha256"
+    try:
+        return _sdk_config_from_env(**overrides)
+    except ValueError as exc:
+        raise GateIntegrationError(str(exc) or f"{ENV_GATE_URL} is required", failure_class="permanent") from exc
 
 
 def resolve_tenant(env) -> str:
+    """Return the tenant string that must match the Gate caller record.
+
+    Staging ``plasticos.gate.org_id`` (or the database name when empty) must
+    equal the tenant on Gate's Odoo caller record or execute is refused.
+    """
     icp = env["ir.config_parameter"].sudo()
     org_id = (icp.get_param("plasticos.gate.org_id") or "").strip()
     return org_id or env.cr.dbname

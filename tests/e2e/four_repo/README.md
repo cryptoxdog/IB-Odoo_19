@@ -55,7 +55,7 @@ with `state="completed"` (Odoo fails closed as `degraded`).
 | Unknown action | `unknown_action` | `permanent` failure, Gate 404 |
 | Worker down | stop EIE, run `happy`, start EIE, wait one probe interval, rerun | first run `retryable`/504; second run OK without a Gate restart |
 | Timeout margin | `happy ... 2` (2 s budget) against a slow EIE | Gate's 504 arrives before the caller's socket deadline |
-| Signed topology | Odoo: `PLASTICOS_GATE_SIGNING_KEY=<k> PLASTICOS_GATE_SIGNING_KEY_ID=odoo-k1 PLASTICOS_GATE_VERIFYING_KEYS_JSON='{"gate-k1":"<k>"}'`; Gate: `L9_REQUIRE_SIGNATURE=true L9_SIGNING_KEY=<k> L9_SIGNING_KEY_ID=gate-k1 L9_VERIFYING_KEYS_JSON='{"odoo-k1":"<k>","eie-k1":"<k>"}'`; EIE: `L9_SIGNING_KEY=<k> L9_SIGNING_KEY_ID=eie-k1 L9_REQUIRE_SIGNATURE=true L9_VERIFYING_KEYS_JSON='{"gate-k1":"<k>"}'` | OK end to end; an unsigned or unknown-key run is rejected by Gate with 400. Odoo needs Gate's verifying key because the SDK verifies every signature it receives. |
+| Signed topology | Odoo: `L9_SIGNING_KEY=<k> L9_SIGNING_KEY_ID=odoo-k1 L9_VERIFYING_KEYS_JSON='{"gate-k1":"<k>"}'`; Gate: `L9_REQUIRE_SIGNATURE=true L9_SIGNING_KEY=<k> L9_SIGNING_KEY_ID=gate-k1 L9_VERIFYING_KEYS_JSON='{"odoo-k1":"<k>","eie-k1":"<k>"}'`; EIE: `L9_SIGNING_KEY=<k> L9_SIGNING_KEY_ID=eie-k1 L9_REQUIRE_SIGNATURE=true L9_VERIFYING_KEYS_JSON='{"gate-k1":"<k>"}'` | OK end to end; an unsigned or unknown-key run is rejected by Gate with 400. Odoo needs Gate's verifying key because the SDK verifies every signature it receives. |
 | Direct EIE bypass | point the driver at EIE's port | the SDK refuses (`GatePolicyError`/non-canonical response) — no direct path exists |
 
 The `NETWORK CONNECTS` line is the egress proof: only the Gate address may appear.

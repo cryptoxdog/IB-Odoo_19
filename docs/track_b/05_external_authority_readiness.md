@@ -25,8 +25,7 @@ python3 scripts/check_external_intelligence_readiness.py \
 pytest -q tests/contracts/test_external_intelligence_contract_parity.py
 
 # Live five-service stack (Gate :9000 + registered CEG/EIE workers):
-PLASTICOS_GATE_LIVE_URL=http://127.0.0.1:9000 \
-PLASTICOS_GATE_ALLOW_INSECURE_HTTP=1 \
+GATE_URL=http://127.0.0.1:9000 \
 pytest -q tests/integration/test_gate_external_authority_e2e.py
 ```
 

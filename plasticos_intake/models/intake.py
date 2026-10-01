@@ -1,7 +1,7 @@
 import logging
+import os
 
 from odoo import api, fields, models
-from odoo.addons.plasticos_base.models.matching_engine_icp import matching_engine_require_enabled_for_ui
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -763,10 +763,11 @@ class PlasticosIntake(models.Model):
     # ═════════════════════════════════════════════════════════
 
     def action_match_to_buyers(self):
-        """Run buyer matching via external microservice."""
+        """Run buyer matching via Gate (overridden by plasticos_matching when installed)."""
         self.ensure_one()
 
-        matching_engine_require_enabled_for_ui(self.env)
+        if not (os.environ.get("GATE_URL") or "").strip():
+            raise UserError("Gate is not configured (GATE_URL is unset).")
 
         if not self.partner_id and self.pending_company_name:
             self._create_partner_from_pending()
@@ -779,14 +780,10 @@ class PlasticosIntake(models.Model):
         if not self.material_profile_id:
             self._create_material_profile_from_intake()
 
-        icp = self.env["ir.config_parameter"].sudo()
-        base_url = icp.get_param("plasticos.matching_engine.url", "http://localhost:8001")
-
         _logger.info(
-            "Matching microservice call: intake=%s partner=%s url=%s",
+            "Matching request queued: intake=%s partner=%s",
             self.id,
             self.partner_id.id,
-            base_url,
         )
 
         return {
