@@ -351,7 +351,6 @@ class EnrichmentRun(models.Model):
         On Gate unavailable/failure: classify, audit on this run, raise UserError.
         """
         self.ensure_one()
-        from odoo.addons.plasticos_gate.services.gate_client import classify_transport_failure
         from odoo.addons.plasticos_gate.services.gate_config import (
             GateCapability,
             GateIntegrationError,
@@ -406,7 +405,10 @@ class EnrichmentRun(models.Model):
         except UserError:
             raise
         except GateIntegrationError as exc:
-            failure = getattr(exc, "failure_class", None) or classify_transport_failure(exc).value
+            # The Gate bridge delivers the Odoo-facing category (the SDK's
+            # retryability verdict projected onto retryable/permanent); this
+            # shell persists it and never reclassifies Gate transport itself.
+            failure = exc.failure_class or "unknown"
             state = "retryable" if failure == "retryable" else ("failed" if failure == "permanent" else "degraded")
             message = str(exc)
             self._rollback_then_persist_operator_state(
@@ -420,9 +422,9 @@ class EnrichmentRun(models.Model):
                 },
             )
             raise UserError(_("Gate enrichment failed (%s): %s") % (failure, message)) from exc
-        except Exception as exc:  # noqa: BLE001 — boundary: classify then fail closed
-            failure = classify_transport_failure(exc).value
-            state = "retryable" if failure == "retryable" else ("failed" if failure == "permanent" else "degraded")
+        except Exception as exc:  # noqa: BLE001 — boundary: not a Gate transport outcome; fail closed as degraded
+            failure = "unknown"
+            state = "degraded"
             message = str(exc)
             self._rollback_then_persist_operator_state(
                 run_id,

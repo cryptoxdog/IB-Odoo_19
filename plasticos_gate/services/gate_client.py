@@ -1,4 +1,20 @@
-"""Canonical Odoo -> Gate SDK bridge (sole constellation_node_sdk import site)."""
+"""Canonical Odoo -> Gate SDK bridge (sole constellation_node_sdk import site).
+
+Ownership at this boundary (ADR-003-single; gate-integration ADR-001/003/007):
+
+* Gate_SDK owns transport: packet construction, signing, HTTP, response
+  validation, the typed error taxonomy and its retryability verdict
+  (``GateClientError.retryable``), transport/signing environment parsing, and
+  the consumer admission probe (``GateClient.activate``).
+* Constellation.Gate owns authorization: Odoo asks, Gate answers.
+* Odoo owns domain intent (action + payload), the tenant, the synchronous
+  caller budget, the logical operation identity, and what a retryable or
+  permanent failure means to an operator (``TransportFailureClass`` -> durable
+  run state).
+
+This module therefore never imports ``httpx``, never reads an HTTP status, and
+never re-derives retryability from an exception type or message.
+"""
 
 from __future__ import annotations
 
@@ -20,210 +36,64 @@ _logger = logging.getLogger(__name__)
 
 # Odoo caller-policy record: match + converge only. Never request sync.
 _ODOO_REQUIRED_ACTIONS: tuple[str, ...] = ("match", "converge")
-_activate_logged = False
-_activated_ok = False
 
 # The SDK is optional at import time (Odoo.sh installs it via requirements.txt;
 # bare dev environments may lack it). Bind the entry point as `Any` so the
-# guard assignments below are type-safe under mypy.
+# guard assignments below are type-safe under mypy. `_require_sdk` refuses the
+# send when the SDK is absent or predates the Gate_SDK 1.2 surface this bridge
+# is written against (`GateClient.execute` / `activate`, `GateClientError`).
 GateClient: Any = None
 _SDK_IMPORT_ERROR: Exception | None = None
-# SDK-typed transport errors. `TransportError` is the root of the SDK's
-# validation/integrity/authentication/authorization/expiry family — every one of
-# them is a contract failure, never a transient.
-_SDK_TRANSPORT_ERRORS: tuple[type[BaseException], ...] = ()
-# Gate_SDK client taxonomy (release 1.1.0). Classification is by TYPE, never by
-# message text. `GateHTTPError` carries the status on `.status_code` (it has no
-# `.response`), so it is read explicitly rather than through the duck-typed
-# `.response.status_code` probe below — that probe only ever matched raw httpx
-# exceptions, which the SDK no longer lets escape.
-_SDK_RETRYABLE_ERRORS: tuple[type[BaseException], ...] = ()
-_SDK_PERMANENT_ERRORS: tuple[type[BaseException], ...] = ()
-_SDK_HTTP_ERRORS: tuple[type[BaseException], ...] = ()
-_SDK_AUTH_ERRORS: tuple[type[BaseException], ...] = ()
+# Root of the SDK's typed client failures. Every failure that leaves the Gate
+# client surface is one of these and carries its own `.retryable` verdict.
+_SDK_CLIENT_ERRORS: tuple[type[BaseException], ...] = ()
+# Gate refused the caller's authority: the admission receipt for that identity
+# can no longer be trusted and is dropped (see `_forget_admission`).
+_SDK_AUTHORIZATION_ERRORS: tuple[type[BaseException], ...] = ()
 try:
     from constellation_node_sdk import (  # type: ignore[no-redef]  # noqa: F811
+        GateAuthorizationError,
         GateClient,
-        GateConfigurationError,
-        GateConnectionError,
-        GateHTTPError,
-        GatePolicyError,
-        GateResponseError,
-        GateSecurityError,
-        GateTimeoutError,
-        TransportError,
+        GateClientError,
     )
 
-    _SDK_TRANSPORT_ERRORS = (TransportError,)
-    # Gate not reached, or deadline elapsed: Gate may or may not have executed,
-    # and a retry under the same idempotency key is the designed recovery.
-    _SDK_RETRYABLE_ERRORS = (GateConnectionError, GateTimeoutError)
-    # Local misconfiguration, routing-policy rejection, an untrusted or
-    # non-canonical answer: retrying the same call cannot succeed.
-    _SDK_PERMANENT_ERRORS = (
-        GateConfigurationError,
-        GatePolicyError,
-        GateResponseError,
-        GateSecurityError,
-    )
-    _SDK_HTTP_ERRORS = (GateHTTPError,)
-    try:
-        from constellation_node_sdk import GateAuthorizationError as _GateAuthErr
-
-        _SDK_AUTH_ERRORS = (_GateAuthErr,)
-        _SDK_PERMANENT_ERRORS = (*_SDK_PERMANENT_ERRORS, _GateAuthErr)
-    except ImportError:
-        try:
-            from constellation_node_sdk.gate import GateAuthorizationError as _GateAuthErr
-
-            _SDK_AUTH_ERRORS = (_GateAuthErr,)
-            _SDK_PERMANENT_ERRORS = (*_SDK_PERMANENT_ERRORS, _GateAuthErr)
-        except ImportError:
-            pass
+    _SDK_CLIENT_ERRORS = (GateClientError,)
+    _SDK_AUTHORIZATION_ERRORS = (GateAuthorizationError,)
 except Exception as exc:  # pragma: no cover
     _SDK_IMPORT_ERROR = exc
 
-# httpx is a hard Gate_SDK dependency (`httpx>=0.27.0` in its pyproject).
-# SDK-GAP-2 (the SDK leaking its HTTP library's exceptions instead of raising
-# its own typed transport errors — see FINAL_FINDINGS.md) is CLOSED by the
-# release that added `GateClient.execute`: it raises GateTimeoutError /
-# GateConnectionError / GateHTTPError instead. These types are retained as
-# defense in depth — they cost nothing, and they keep classification correct if
-# any path ever surfaces a raw httpx error again. Naming types is how this
-# bridge classifies a connection fault WITHOUT reading exception strings; it is
-# not an Odoo HTTP client and issues no request.
-_HTTP_TRANSIENT_ERRORS: tuple[type[BaseException], ...] = ()
-_HTTP_CONFIG_ERRORS: tuple[type[BaseException], ...] = ()
-_HTTPX_IMPORT_ERROR: Exception | None = None
-try:
-    import httpx
-
-    _HTTP_TRANSIENT_ERRORS = (httpx.TimeoutException, httpx.NetworkError, httpx.ProtocolError)
-    _HTTP_CONFIG_ERRORS = (httpx.UnsupportedProtocol, httpx.ProxyError, httpx.InvalidURL)
-except Exception as exc:  # pragma: no cover
-    # Absent only when the SDK itself is absent (httpx is an SDK dependency).
-    # Classification then falls back to SDK/stdlib types; it never fails closed
-    # on an import, because `_require_sdk` already refuses the send.
-    _HTTPX_IMPORT_ERROR = exc
-
 
 class TransportFailureClass(StrEnum):
-    """Operator-visible transport failure categories (no silent local substitution)."""
+    """Odoo-owned durable failure categories (operator-visible; no silent local substitution).
+
+    ``RETRYABLE`` and ``PERMANENT`` are projections of the SDK's ``retryable``
+    verdict. ``UNKNOWN`` is reserved for exceptions that are not Gate transport
+    outcomes at all (an unexpected programming error reaching the boundary);
+    the downstream persistence shells record those as ``degraded``.
+    """
 
     RETRYABLE = "retryable"
     PERMANENT = "permanent"
     UNKNOWN = "unknown"
 
 
-# 408/429 are the two 4xx codes that mean "come back later" rather than "your
-# request is wrong". 501 (not implemented) and 505 (version not supported) are
-# 5xx codes that will not change on a retry.
-_RETRYABLE_STATUS = frozenset({408, 429})
-_PERMANENT_5XX_STATUS = frozenset({501, 505})
+def failure_class_for(exc: BaseException) -> TransportFailureClass | None:
+    """Project an SDK transport failure onto Odoo's durable category.
 
-
-def _http_status(exc: BaseException) -> int | None:
-    """Read an HTTP status off an exception that carries a response, if any.
-
-    Duck-typed rather than keyed to one library: any exception exposing
-    ``.response.status_code`` is classified by that status.
+    The SDK owns whether a failure is retryable (``GateClientError.retryable``:
+    Gate unreachable or the deadline elapsed -> ``True``; authorization,
+    configuration, security, policy and non-canonical responses -> ``False``).
+    Odoo owns only what that verdict means to an operator. Returns ``None`` for
+    anything that is not an SDK client error: such an exception is not a Gate
+    transport outcome and stays subject to the caller's generic failure
+    handling instead of being labelled retryable or permanent here.
     """
-    status = getattr(getattr(exc, "response", None), "status_code", None)
-    return status if isinstance(status, int) else None
-
-
-def classify_transport_failure(exc: BaseException) -> TransportFailureClass:
-    """Classify a transport exception into an Odoo operator-visible category.
-
-    Classification is **structural** — HTTP status codes and exception types —
-    never substring matching on the exception message. Odoo owns the mapping
-    from transport failure to its own UI/retry-advice categories (contract
-    ADR-003); it does not own, and must not re-derive, transport truth. An
-    earlier implementation scanned ``str(exc)`` for tokens like "502" and
-    "timeout", which misclassified any message that merely mentioned one and
-    silently failed for exceptions that stringify to empty (httpx timeouts do).
-    """
-    code = getattr(exc, "code", None)
-    if code == "action_not_permitted" or (_SDK_AUTH_ERRORS and isinstance(exc, _SDK_AUTH_ERRORS)):
-        return TransportFailureClass.PERMANENT
-
-    status = _http_status(exc)
-    if status is None and _SDK_HTTP_ERRORS and isinstance(exc, _SDK_HTTP_ERRORS):
-        status = getattr(exc, "status_code", None)
-        status = status if isinstance(status, int) else None
-    if status is not None:
-        if status in _RETRYABLE_STATUS:
-            return TransportFailureClass.RETRYABLE
-        if 500 <= status <= 599 and status not in _PERMANENT_5XX_STATUS:
-            return TransportFailureClass.RETRYABLE
-        return TransportFailureClass.PERMANENT
-
-    # SDK-typed transport outcomes carry their retryability in the type.
-    if _SDK_RETRYABLE_ERRORS and isinstance(exc, _SDK_RETRYABLE_ERRORS):
-        return TransportFailureClass.RETRYABLE
-    if _SDK_PERMANENT_ERRORS and isinstance(exc, _SDK_PERMANENT_ERRORS):
-        return TransportFailureClass.PERMANENT
-
-    # Misconfigured endpoint/proxy/scheme: retrying cannot fix it.
-    if _HTTP_CONFIG_ERRORS and isinstance(exc, _HTTP_CONFIG_ERRORS):
-        return TransportFailureClass.PERMANENT
-
-    # SDK contract failures (validation, integrity, signature, authorization,
-    # expiry) are permanent by construction.
-    if _SDK_TRANSPORT_ERRORS and isinstance(exc, _SDK_TRANSPORT_ERRORS):
-        return TransportFailureClass.PERMANENT
-
-    if isinstance(exc, (*_HTTP_TRANSIENT_ERRORS, TimeoutError, ConnectionError)):
-        return TransportFailureClass.RETRYABLE
-
-    # Gate policy violations raised before the send (`validate_outbound_gate_packet`
-    # raises bare ValueError) and malformed canonical responses (pydantic
-    # ValidationError subclasses ValueError) are both contract failures.
-    if isinstance(exc, ValueError):
-        return TransportFailureClass.PERMANENT
-
-    return TransportFailureClass.UNKNOWN
-
-
-def _maybe_activate(client: Any, config: Any, tenant: str) -> None:
-    """Ask Gate whether this consumer is admitted for match+converge.
-
-    Skip (log once, no fake receipt) when the SDK has no ``activate``, the
-    config cannot prove identity, or the hub has not deployed ``/v1/admission``
-    (404). Caller-policy refusals (403 / action_not_permitted) are permanent.
-    Never requests ``sync``. Never calls the registry.
-    """
-    global _activate_logged, _activated_ok
-    if _activated_ok:
-        return
-    activate = getattr(client, "activate", None)
-    if not callable(activate):
-        if not _activate_logged:
-            _logger.info("Gate SDK has no activate(); skipping admission until the v1 channel moves")
-            _activate_logged = True
-        return
-    problems_fn = getattr(config, "admission_problems", None)
-    problems = list(problems_fn()) if callable(problems_fn) else []
-    if problems:
-        if not _activate_logged:
-            _logger.warning("Gate admission skipped; identity cannot be proven: %s", "; ".join(problems))
-            _activate_logged = True
-        return
-    try:
-        _run_async(activate(required_actions=_ODOO_REQUIRED_ACTIONS, tenant=tenant))
-        _activated_ok = True
-    except Exception as exc:
-        status = getattr(exc, "status_code", None)
-        if status is None:
-            status = getattr(getattr(exc, "response", None), "status_code", None)
-        if status == 404:
-            if not _activate_logged:
-                _logger.warning("Gate /v1/admission is not on this hub yet; skipping activate")
-                _activate_logged = True
-            return
-        failure = classify_transport_failure(exc)
-        detail = str(exc) or type(exc).__name__
-        raise GateIntegrationError(detail, failure_class=failure.value) from exc
+    if _SDK_CLIENT_ERRORS and isinstance(exc, _SDK_CLIENT_ERRORS):
+        # The isinstance guard proves `exc` is a GateClientError, which defines
+        # `.retryable`; mypy cannot narrow through the runtime-bound tuple.
+        retryable: bool = exc.retryable  # type: ignore[attr-defined]
+        return TransportFailureClass.RETRYABLE if retryable else TransportFailureClass.PERMANENT
+    return None
 
 
 def _require_sdk() -> None:
@@ -232,15 +102,67 @@ def _require_sdk() -> None:
             f"constellation_node_sdk not installed: {_SDK_IMPORT_ERROR}",
             failure_class=TransportFailureClass.PERMANENT.value,
         )
-    if not hasattr(GateClient, "execute"):
+    if not callable(getattr(GateClient, "execute", None)) or not callable(getattr(GateClient, "activate", None)):
         # Fail closed and legibly rather than as an AttributeError deep in the
-        # call: this bridge requires the SDK release that closed SDK-GAP-1.
+        # call: `execute` (the SDK owns TransportPacket construction) and
+        # `activate` (Gate owns admission) are both required surfaces of the
+        # supported Gate_SDK 1.2 release channel, not optional capabilities.
         raise GateIntegrationError(
-            "constellation_node_sdk is too old: GateClient.execute() is required "
-            "(the SDK owns TransportPacket construction). Bump the "
-            "constellation-node-sdk pin in requirements.txt.",
+            "constellation_node_sdk is too old: GateClient.execute() and GateClient.activate() "
+            "are required. Bump the constellation-node-sdk pin in requirements.txt.",
             failure_class=TransportFailureClass.PERMANENT.value,
         )
+
+
+# Admission receipts Gate issued, keyed by the exact identity Gate admitted. A
+# process-global boolean would let a receipt for one Gate/key/tenant vouch for
+# another; the key makes a change of GATE_URL, node, signing key id or tenant
+# ask Gate again. Receipts are dropped when Gate later refuses an execute for
+# the same identity, so a revoked grant is re-asked rather than assumed.
+_ADMISSION_RECEIPTS: dict[tuple[Any, ...], Any] = {}
+_ADMISSION_LOCK = threading.Lock()
+
+
+def _admission_key(config: Any, tenant: str) -> tuple[Any, ...]:
+    return (config.gate_url, config.local_node, config.signing_key_id, tenant, _ODOO_REQUIRED_ACTIONS)
+
+
+def _forget_admission(config: Any, tenant: str) -> None:
+    with _ADMISSION_LOCK:
+        _ADMISSION_RECEIPTS.pop(_admission_key(config, tenant), None)
+
+
+def ensure_admitted(client: Any, config: Any, tenant: str) -> Any:
+    """Ask Gate whether this consumer is admitted for match + converge; fail closed otherwise.
+
+    ``GateClient.activate`` and Gate's ``/v1/admission`` are supported surfaces
+    of the released stack: neither is feature-detected, and no outcome is
+    skipped. The SDK refuses up front when the configuration cannot prove an
+    identity (``GateConfigurationError``: no signing key, a key without an id,
+    no verifying key for Gate's receipt); Gate refuses a key it does not know
+    (400) and withholds any action it has not granted
+    (``GateAuthorizationError``, ``code == "action_not_permitted"``). Every
+    refusal is a permanent, operator-visible configuration/authority failure.
+    Never requests ``sync``. Never calls the registry.
+
+    Returns Gate's ``ConsumerAccessReceipt`` for this identity.
+    """
+    key = _admission_key(config, tenant)
+    with _ADMISSION_LOCK:
+        receipt = _ADMISSION_RECEIPTS.get(key)
+    if receipt is not None:
+        return receipt
+    try:
+        receipt = _run_async(client.activate(required_actions=_ODOO_REQUIRED_ACTIONS, tenant=tenant))
+    except Exception as exc:
+        failure = failure_class_for(exc)
+        if failure is None:
+            raise
+        detail = str(exc) or type(exc).__name__
+        raise GateIntegrationError(detail, failure_class=failure.value) from exc
+    with _ADMISSION_LOCK:
+        _ADMISSION_RECEIPTS[key] = receipt
+    return receipt
 
 
 def _run_async(coro):
@@ -288,7 +210,7 @@ def send_action(
     # and reply_to from. Forced to odoo so it matches the Gate caller record.
     local_node = config.local_node
     tenant = resolve_tenant(env)
-    _maybe_activate(client, config, tenant)
+    ensure_admitted(client, config, tenant)
     user = env.user
     tenant_ctx = {
         "actor": tenant,
@@ -297,14 +219,14 @@ def send_action(
         "org_id": tenant,
         "user_id": str(user.id) if user and user.id else None,
     }
-    # SDK-GAP-1 CLOSED: Gate_SDK now exposes an application-facing
-    # `GateClient.execute(action, payload, ...)`, so Odoo no longer builds a
-    # TransportPacket. Every argument below is a business input Odoo
-    # legitimately owns; the SDK owns the root packet, source and reply-to
-    # identity (from GateClientConfig.local_node), signing, HTTP, and response
-    # validation (pack ADR-007 — one SDK invocation surface).
+    # Gate_SDK exposes the application-facing `GateClient.execute(action,
+    # payload, ...)`, so Odoo never builds a TransportPacket. Every argument
+    # below is a business input Odoo legitimately owns; the SDK owns the root
+    # packet, source and reply-to identity (from GateClientConfig.local_node),
+    # signing, HTTP, and response validation (pack ADR-007 — one SDK
+    # invocation surface).
     #
-    # Transport POLICY stays the SDK's, as before:
+    # Transport POLICY stays the SDK's:
     #   destination_node -> SDK forces "gate"; GateClientConfig
     #                       (allowed_gate_destination="gate") enforces it and
     #                       validate_outbound_gate_packet rejects anything else
@@ -321,26 +243,32 @@ def send_action(
                 correlation_id=correlation_id,
                 compliance_tags=compliance_tags,
                 idempotency_key=idempotency_key,
-                # SDK-GAP-3 CLOSED: `execute` writes this budget into the packet
-                # header AND derives the network deadline from that same header,
-                # so the advertised and actual budgets can no longer diverge.
-                # Passing it explicitly keeps the caller's validated config the
-                # single source of the budget (pack ADR-009).
+                # `execute` writes this budget into the packet header AND
+                # derives the network deadline from that same header, so the
+                # advertised and actual budgets cannot diverge. Passing it
+                # explicitly keeps the caller's validated config the single
+                # source of the budget (pack ADR-009).
                 timeout_ms=int(float(config.timeout_seconds) * 1000),
             )
         )
     except Exception as exc:
-        failure = classify_transport_failure(exc)
+        failure = failure_class_for(exc)
+        if failure is None:
+            # Not a Gate transport outcome. A programming error reaching this
+            # boundary is neither retryable nor permanent in the transport
+            # sense; the caller's generic failure handling records it as
+            # unknown/degraded rather than this bridge mislabelling it.
+            raise
+        if _SDK_AUTHORIZATION_ERRORS and isinstance(exc, _SDK_AUTHORIZATION_ERRORS):
+            _forget_admission(config, tenant)
         # Timeout exceptions stringify to nothing: measured against a real Gate
-        # transport, an exhausted caller budget raises httpx `ConnectTimeout`
-        # with `str(exc) == ""` (asyncio.TimeoutError and builtin TimeoutError
-        # behave the same). A timeout is the most likely real Gate failure and
-        # the caller budget makes it an expected outcome, yet the operator saw
-        # "Gate enrichment failed (retryable): " and the run stored
-        # validation_issues=[""] — the classification was right and the reason
-        # was blank. Naming the exception type keeps the durable record
-        # diagnosable; a blank operator-visible reason is not a usable failure
-        # state (pack ADR-015).
+        # transport, an exhausted caller budget surfaced with `str(exc) == ""`.
+        # A timeout is the most likely real Gate failure and the caller budget
+        # makes it an expected outcome, yet the operator saw "Gate enrichment
+        # failed (retryable): " and the run stored validation_issues=[""] —
+        # the classification was right and the reason was blank. Naming the
+        # exception type keeps the durable record diagnosable; a blank
+        # operator-visible reason is not a usable failure state (pack ADR-015).
         detail = str(exc) or type(exc).__name__
         raise GateIntegrationError(detail, failure_class=failure.value) from exc
     packet_k, payload_k, failure_k = "packet", "payload", "failure_class"

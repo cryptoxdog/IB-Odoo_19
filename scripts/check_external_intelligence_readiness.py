@@ -93,10 +93,73 @@ def check_contract_symbols(mods: dict[str, Any]) -> list[str]:
     for name in required:
         if not hasattr(mods["gate_contracts"], name):
             errors.append(f"missing gate_contracts symbol: {name}")
-    if not hasattr(mods["gate_client"], "classify_transport_failure"):
-        errors.append("missing gate_client.classify_transport_failure")
+    if not hasattr(mods["gate_client"], "failure_class_for"):
+        errors.append("missing gate_client.failure_class_for (projection of the SDK retryability verdict)")
+    if not hasattr(mods["gate_client"], "ensure_admitted"):
+        errors.append("missing gate_client.ensure_admitted (Gate admission via GateClient.activate)")
+    if getattr(mods["gate_client"], "_ODOO_REQUIRED_ACTIONS", None) != ("match", "converge"):
+        errors.append("gate_client._ODOO_REQUIRED_ACTIONS must be exactly ('match', 'converge')")
     if not hasattr(mods["gate_config"], "classify_gate_availability"):
         errors.append("missing gate_config.classify_gate_availability")
+    return errors
+
+
+# Ownership boundary (GAR-ODOO-GATE-ALIGNMENT-001): Gate_SDK owns transport
+# truth, configuration parsing and admission; Odoo must not carry a shadow of
+# any of them. Static source checks only — this script is not a Gate client.
+_BOUNDARY_FORBIDDEN = {
+    "gate_client.py": (
+        "import httpx",
+        "classify_transport_failure",
+        "_activated_ok",
+        "_maybe_activate",
+        "status_code",
+        "TimeoutException",
+    ),
+    "gate_config.py": (
+        "resolve_gate_signing",
+        "_parse_verifying_keys",
+        "_copy_supported_overrides",
+        "_sdk_config_from_env",
+        "GateClientConfig(",
+        "model_copy(",
+    ),
+}
+_BOUNDARY_REQUIRED = {
+    "gate_client.py": (".retryable", "client.activate(required_actions=_ODOO_REQUIRED_ACTIONS"),
+    "gate_config.py": ("get_gate_client_config_from_env(",),
+}
+
+
+def _code_text(path: Path) -> str:
+    """Source with comments and docstrings stripped: prose may name a forbidden concept to explain it."""
+    lines: list[str] = []
+    in_doc = False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.count('"""') == 1:
+            in_doc = not in_doc
+            continue
+        if in_doc or stripped.startswith("#") or stripped.startswith('"""'):
+            continue
+        lines.append(line.split("#", 1)[0])
+    return "\n".join(lines)
+
+
+def check_ownership_boundary() -> list[str]:
+    errors: list[str] = []
+    services = ROOT / "plasticos_gate" / "services"
+    for name, forbidden in _BOUNDARY_FORBIDDEN.items():
+        code = _code_text(services / name)
+        for token in forbidden:
+            if token in code:
+                errors.append(f"{name} re-implements an SDK-owned concern: {token!r}")
+        for token in _BOUNDARY_REQUIRED[name]:
+            if token not in code:
+                errors.append(f"{name} does not consume the SDK-owned surface: {token!r}")
+    for rel in ("plasticos_matching/models/match_orchestrator.py", "plasticos_enrichment/models/enrichment_run.py"):
+        if "classify_transport_failure" in _code_text(ROOT / rel):
+            errors.append(f"{rel} reclassifies Gate transport instead of consuming the bridge category")
     return errors
 
 
@@ -145,6 +208,7 @@ def main(argv: list[str] | None = None) -> int:
     mods = _import_gate_modules()
     errors: list[str] = []
     errors.extend(check_contract_symbols(mods))
+    errors.extend(check_ownership_boundary())
     errors.extend(check_actions(mods))
     schema_errors, digests = check_owner_schemas(owner_roots)
     errors.extend(schema_errors)
