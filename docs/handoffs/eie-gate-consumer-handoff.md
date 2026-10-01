@@ -176,19 +176,26 @@ Connection plane is process environment only. Odoo.sh / compose set the same nam
        compliance_tags=("ERP", "ENRICHMENT") | ("ERP", "MATCHING"),
    )
    ```
-3. Sends via `GateClient(config).execute(...)` against `GATE_URL`.
-4. Returns `{"packet": response_packet, "payload": dict(response_packet.payload)}`.
-5. Raises `GateIntegrationError` (or wraps SDK errors) on transport failure so callers can fall back.
+3. Asks Gate for admission once per Gate/node/key/tenant identity:
+   `GateClient(config).activate(required_actions=("match", "converge"), tenant=<Odoo tenant>)`.
+   Gate's answer is authoritative; a denied or unprovable identity is a permanent failure. `sync` is never requested.
+4. Sends via `GateClient(config).execute(...)` against `GATE_URL`.
+5. Returns `{"packet": response_packet, "payload": dict(response_packet.payload)}`.
+6. Raises `GateIntegrationError` on SDK transport failure, with `failure_class` projected from the SDK's own
+   verdict (`GateClientError.retryable` → `retryable` / `permanent`). Odoo holds no HTTP-status or exception
+   taxonomy of its own and never imports `httpx` to classify a Gate failure. Callers fail closed (ADR-013).
 
 **Config must use** (`gate_config.build_gate_client_config`):
 
 ```python
 get_gate_client_config_from_env(
     local_node="odoo",
-    timeout_seconds=float(<plasticos.gate.timeout_seconds or 30>),
+    timeout_seconds=float(<plasticos.gate.timeout_seconds or 30>),  # validated ≤ 30 s
+    max_timeout_ms=30000,
     allowed_gate_destination="gate",
 )
-# GATE_URL + L9_* come from the process environment.
+# GATE_URL + L9_* (signing key, key id, algorithm, verifying keys, require-signature)
+# come from the process environment and are parsed by the SDK, never by Odoo.
 ```
 
 **Done when:** No Odoo code path posts to an EIE/CEG base URL; every intelligence call goes through `send_action` → Gate.

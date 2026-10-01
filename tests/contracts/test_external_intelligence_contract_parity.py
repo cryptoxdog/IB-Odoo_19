@@ -12,8 +12,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from plasticos_gate.services.gate_client import (  # noqa: E402
+    _ODOO_REQUIRED_ACTIONS,
     TransportFailureClass,
-    classify_transport_failure,
+    failure_class_for,
 )
 from plasticos_gate.services.gate_config import (  # noqa: E402
     GateAvailability,
@@ -88,57 +89,69 @@ class _FakeResponse:
 
 
 class _FakeHttpStatusError(Exception):
-    """Stand-in for an exception carrying an HTTP response (httpx.HTTPStatusError)."""
+    """Stand-in for a raw HTTP-library exception carrying a response (e.g. httpx.HTTPStatusError)."""
 
     def __init__(self, status_code: int) -> None:
-        super().__init__("")  # httpx status errors can stringify to very little
+        super().__init__("")
         self.response = _FakeResponse(status_code)
 
 
-def test_transport_failure_classification_is_structural_not_string_based():
-    """Pack ADR-003/ADR-016 — Odoo maps transport failures to UI categories by
-    TYPE and HTTP STATUS, never by scanning the exception message.
+def test_odoo_owns_the_durable_categories_but_not_transport_truth():
+    """Pack ADR-001/ADR-003 — Gate_SDK owns retryability (``GateClientError.retryable``);
+    Odoo owns only the operator-visible vocabulary it is projected onto.
 
-    This replaces an assertion that ``RuntimeError("401 unauthorized")``
-    classified PERMANENT, which only held because the old implementation
-    searched ``str(exc)`` for the token "401". That approach misclassified any
-    message merely mentioning a code, and silently failed for the most likely
-    real failure — an httpx timeout, which stringifies to empty. A bare
-    RuntimeError carries no transport information, so UNKNOWN is the honest
-    answer; UNKNOWN is a fail-closed degraded state, never a silent local
-    substitution (repo ADR-013).
+    This replaces a parity test that exercised an Odoo-side classifier over HTTP
+    status codes and raw exception types. That classifier duplicated the SDK's
+    transport taxonomy, so the parity it proved was Odoo agreeing with itself.
+    Odoo's durable vocabulary stays three-valued: ``retryable`` and ``permanent``
+    are the SDK's verdict; ``unknown`` is the fail-closed degraded state for an
+    exception that is not a Gate transport outcome at all (repo ADR-013).
     """
-    # Timeouts and connection faults -> retryable.
-    assert classify_transport_failure(TimeoutError("timed out")) is TransportFailureClass.RETRYABLE
-    assert classify_transport_failure(ConnectionError()) is TransportFailureClass.RETRYABLE
-
-    # HTTP status drives the decision, even with an empty message.
-    for status in (408, 429, 500, 502, 503, 504):
-        assert classify_transport_failure(_FakeHttpStatusError(status)) is TransportFailureClass.RETRYABLE
-    for status in (400, 401, 403, 404, 422, 501, 505):
-        assert classify_transport_failure(_FakeHttpStatusError(status)) is TransportFailureClass.PERMANENT
-
-    # Contract failures raised before/after the wire.
-    assert classify_transport_failure(ValueError("destination must be gate")) is TransportFailureClass.PERMANENT
-
-    # A message that merely mentions a code is NOT evidence of a transport fact.
-    assert classify_transport_failure(RuntimeError("401 unauthorized")) is TransportFailureClass.UNKNOWN
-    assert classify_transport_failure(RuntimeError("weird boom")) is TransportFailureClass.UNKNOWN
+    assert {c.value for c in TransportFailureClass} == {"retryable", "permanent", "unknown"}
+    assert _ODOO_REQUIRED_ACTIONS == ("match", "converge")
 
 
-def test_transport_classifier_reads_no_exception_message():
-    """Structural guarantee: the classifier body must not stringify the exception."""
+def test_non_sdk_exceptions_are_never_labelled_gate_transport_outcomes():
+    """A raw HTTP-library error, a builtin timeout, or a bare RuntimeError carries no SDK verdict.
+
+    Odoo must not re-derive one from a status code or a type: the projection
+    returns ``None`` and the caller's generic failure handling records the run
+    as ``unknown``/``degraded`` — never a silent local substitution.
+    """
+    for exc in (
+        _FakeHttpStatusError(503),
+        _FakeHttpStatusError(401),
+        TimeoutError("timed out"),
+        ConnectionError(),
+        ValueError("destination must be gate"),
+        RuntimeError("401 unauthorized"),
+        RuntimeError("weird boom"),
+    ):
+        assert failure_class_for(exc) is None, type(exc).__name__
+
+
+def test_the_projection_reads_only_the_sdk_verdict():
+    """Structural guarantee: no message scanning, no status tables, no exception grouping in the projection."""
     import inspect
 
     from plasticos_gate.services import gate_client
 
-    body = inspect.getsource(gate_client.classify_transport_failure)
+    body = inspect.getsource(gate_client.failure_class_for)
     body = body.split('"""')[2] if body.count('"""') >= 2 else body
-    for forbidden in ("str(exc)", 'f"{exc}', ".lower()", "in text"):
+    for forbidden in (
+        "str(exc)",
+        'f"{exc}',
+        ".lower()",
+        "in text",
+        "status",
+        "response",
+        "TimeoutError",
+        "ConnectionError",
+    ):
         assert forbidden not in body, (
-            f"classify_transport_failure inspects the exception message ({forbidden!r}); "
-            "transport truth is the SDK's, not Odoo's to re-derive from strings."
+            f"failure_class_for re-derives transport truth ({forbidden!r}); the SDK's .retryable is the only input."
         )
+    assert ".retryable" in body
 
 
 @pytest.mark.parametrize(

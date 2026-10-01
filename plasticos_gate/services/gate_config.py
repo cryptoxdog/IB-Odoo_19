@@ -3,7 +3,12 @@
 Connection plane is process environment only (canonical Gate_SDK names):
 
     GATE_URL, L9_NODE_NAME, L9_SIGNING_KEY, L9_SIGNING_KEY_ID,
-    L9_VERIFYING_KEYS_JSON, L9_REQUIRE_SIGNATURE
+    L9_SIGNING_ALGORITHM, L9_VERIFYING_KEYS_JSON, L9_REQUIRE_SIGNATURE
+
+Gate_SDK owns parsing and validating those values
+(``get_gate_client_config_from_env``); this module only hands the SDK the
+values Odoo owns (node identity, the validated caller budget, the 30 s ceiling
+and the Gate-only destination pin). No legacy aliases, no ICP Gate URL.
 
 Capability ICPs (matching_enabled / enrichment_enabled / auto_writeback) stay
 on System Parameters. They are not how the SDK finds Gate.
@@ -11,7 +16,6 @@ on System Parameters. They are not how the SDK finds Gate.
 
 from __future__ import annotations
 
-import json
 import math
 import os
 from dataclasses import dataclass, field
@@ -23,12 +27,6 @@ if TYPE_CHECKING:
     from constellation_node_sdk import GateClientConfig
 
 ENV_GATE_URL = "GATE_URL"
-ENV_NODE_NAME = "L9_NODE_NAME"
-ENV_SIGNING_KEY = "L9_SIGNING_KEY"
-ENV_SIGNING_KEY_ID = "L9_SIGNING_KEY_ID"
-ENV_SIGNING_ALGORITHM = "L9_SIGNING_ALGORITHM"
-ENV_VERIFYING_KEYS_JSON = "L9_VERIFYING_KEYS_JSON"
-ENV_REQUIRE_SIGNATURE = "L9_REQUIRE_SIGNATURE"
 
 # Odoo is a Gate consumer, never a worker. Must match the Gate caller record.
 ODOO_NODE_NAME = "odoo"
@@ -317,170 +315,31 @@ def gate_consensus_threshold(env) -> float:
     return value
 
 
-def _parse_verifying_keys(raw: str) -> dict[str, str]:
-    if not raw:
-        return {}
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise GateIntegrationError(f"{ENV_VERIFYING_KEYS_JSON} is not valid JSON", failure_class="permanent") from exc
-    if not isinstance(parsed, dict) or not all(
-        isinstance(k, str) and isinstance(v, str) and k.strip() and v.strip() for k, v in parsed.items()
-    ):
-        raise GateIntegrationError(
-            f"{ENV_VERIFYING_KEYS_JSON} must be a JSON object of non-blank string keys and values",
-            failure_class="permanent",
-        )
-    return {k.strip(): v.strip() for k, v in parsed.items()}
-
-
-def resolve_gate_signing(env=None) -> dict[str, Any]:
-    """Resolve the Odoo->Gate signing posture from ``L9_*`` env names only.
-
-    Returns the keyword arguments for ``GateClientConfig``. Three coherent
-    states exist:
-
-    * unsigned (no key id, no key): the deployment relies on a declared
-      network trust boundary at Gate;
-    * signed: ``L9_SIGNING_KEY_ID`` names the key Gate verifies with, and
-      ``L9_SIGNING_KEY`` carries the material;
-    * signed + verifying: ``L9_REQUIRE_SIGNATURE`` requires Gate's answer to
-      be signed by a key in ``L9_VERIFYING_KEYS_JSON``.
-
-    A key id without material, material without a key id, or response
-    verification without any verifying key is refused here rather than at the
-    first request, so a misconfigured deployment cannot silently run unsigned.
-    """
-    del env  # signing is env-only; kept for call-site compatibility
-    key_id = (os.environ.get(ENV_SIGNING_KEY_ID) or "").strip() or None
-    algorithm = (os.environ.get(ENV_SIGNING_ALGORITHM) or "hmac-sha256").strip().lower()
-    key_material = (os.environ.get(ENV_SIGNING_KEY) or "").strip() or None
-    require_signature = (os.environ.get(ENV_REQUIRE_SIGNATURE) or "").strip() in _TRUTHY
-    verifying_keys = _parse_verifying_keys((os.environ.get(ENV_VERIFYING_KEYS_JSON) or "").strip())
-
-    if key_id and not key_material:
-        raise GateIntegrationError(
-            f"{ENV_SIGNING_KEY_ID} is set but {ENV_SIGNING_KEY} is not present in the environment",
-            failure_class="permanent",
-        )
-    if key_material and not key_id:
-        raise GateIntegrationError(
-            f"{ENV_SIGNING_KEY} is present but {ENV_SIGNING_KEY_ID} is empty",
-            failure_class="permanent",
-        )
-    if require_signature and not (verifying_keys or key_material):
-        raise GateIntegrationError(
-            f"{ENV_REQUIRE_SIGNATURE} is on but no verifying key is configured "
-            f"({ENV_VERIFYING_KEYS_JSON} or {ENV_SIGNING_KEY})",
-            failure_class="permanent",
-        )
-
-    signed = bool(key_id and key_material)
-    return {
-        "signing_key": key_material if signed else None,
-        "signing_key_id": key_id if signed else None,
-        "signing_algorithm": algorithm if signed else None,
-        "require_signature": signed or require_signature,
-        "verify_response_signatures": require_signature,
-        "verifying_keys": verifying_keys,
-    }
-
-
-def gate_signing_configured(env=None) -> bool:
-    """True when Odoo signs its Gate packets (never raises)."""
-    try:
-        return bool(resolve_gate_signing(env)["signing_key"])
-    except GateIntegrationError:
-        return False
-
-
-def _copy_supported_overrides(config: Any, overrides: dict[str, Any]) -> Any:
-    """Apply Odoo overrides onto a config the zero-argument v1 builder returned."""
-    fields = getattr(type(config), "model_fields", None)
-    update = {key: value for key, value in overrides.items() if fields is None or key in fields}
-    if not update or not hasattr(config, "model_copy"):
-        return config
-    return config.model_copy(update=update)
-
-
-def _sdk_config_from_env(**overrides: Any):
-    """Call the SDK env builder when present; otherwise assemble from L9_* only.
-
-    Pinned ``constellation-node-sdk`` v1 exposes
-    ``get_gate_client_config_from_env()`` with no parameters. Passing overrides
-    into that function raises ``TypeError``. Call it bare, then copy the Odoo
-    budget, node name, destination pin, and signing posture onto the result.
-    """
-    env_builder = None
-    try:
-        from constellation_node_sdk import get_gate_client_config_from_env
-
-        env_builder = get_gate_client_config_from_env
-    except ImportError:
-        try:
-            from constellation_node_sdk.gate import get_gate_client_config_from_env
-
-            env_builder = get_gate_client_config_from_env
-        except ImportError:
-            env_builder = None
-    if env_builder is not None:
-        try:
-            return env_builder(**overrides)
-        except TypeError:
-            return _copy_supported_overrides(env_builder(), overrides)
-
-    from constellation_node_sdk import GateClientConfig
-
-    url = (overrides.get("gate_url") or resolve_gate_url()).rstrip("/")
-    if not url:
-        raise ValueError(f"{ENV_GATE_URL} is required")
-    signing = resolve_gate_signing()
-    values = {
-        "gate_url": url,
-        "local_node": ODOO_NODE_NAME,
-        "timeout_seconds": DEFAULT_GATE_TIMEOUT_SECONDS,
-        **signing,
-    }
-    values.update(overrides)
-    return GateClientConfig(
-        gate_url=values["gate_url"],
-        local_node=values["local_node"],
-        timeout_seconds=values["timeout_seconds"],
-        allowed_gate_destination="gate",
-        require_signature=bool(values.get("require_signature")),
-        signing_key=values.get("signing_key"),
-        signing_key_id=values.get("signing_key_id"),
-        signing_algorithm=values.get("signing_algorithm"),
-        verify_response_signatures=bool(values.get("verify_response_signatures")),
-        verifying_keys=values.get("verifying_keys") or {},
-    )
-
-
 def build_gate_client_config(env) -> GateClientConfig:
-    """Build SDK config from ``GATE_URL`` + ``L9_*`` only.
+    """Build the SDK client configuration from ``GATE_URL`` + ``L9_*`` through the SDK's own builder.
 
-    ``timeout_seconds`` is the single validated budget (ICP ceiling only).
-    No ICP URL and no legacy env aliases.
+    Gate_SDK owns parsing and validating the transport/signing environment
+    (``get_gate_client_config_from_env``): the signing key, key id and
+    algorithm, the require-signature posture and the verifying keyring are read
+    and validated there, never reconstructed here. Odoo supplies only the
+    values it owns: its node identity, the validated synchronous caller budget,
+    the 30 s ceiling and the Gate-only destination pin. A malformed environment
+    (missing ``GATE_URL``, invalid ``L9_VERIFYING_KEYS_JSON``) is the SDK's
+    ``ValueError`` and surfaces as a permanent configuration failure — never
+    silently unsigned, never clamped. No ICP URL and no legacy env aliases.
     """
     timeout = resolve_gate_timeout_seconds(env)
-    signing = resolve_gate_signing()
-    overrides: dict[str, Any] = {
-        "local_node": ODOO_NODE_NAME,
-        "timeout_seconds": timeout,
-        "allowed_gate_destination": "gate",
-        **signing,
-    }
     try:
-        from constellation_node_sdk import GateClientConfig as _Cfg
-
-        if "max_timeout_ms" in getattr(_Cfg, "model_fields", {}):
-            overrides["max_timeout_ms"] = int(MAX_GATE_TIMEOUT_SECONDS * 1000)
-    except ImportError:
-        pass
-    if (os.environ.get(ENV_SIGNING_KEY) or "").strip() and not (os.environ.get(ENV_SIGNING_ALGORITHM) or "").strip():
-        overrides["signing_algorithm"] = "hmac-sha256"
+        from constellation_node_sdk import get_gate_client_config_from_env
+    except ImportError as exc:
+        raise GateIntegrationError(f"constellation_node_sdk not installed: {exc}", failure_class="permanent") from exc
     try:
-        return _sdk_config_from_env(**overrides)
+        return get_gate_client_config_from_env(
+            local_node=ODOO_NODE_NAME,
+            timeout_seconds=timeout,
+            max_timeout_ms=int(MAX_GATE_TIMEOUT_SECONDS * 1000),
+            allowed_gate_destination="gate",
+        )
     except ValueError as exc:
         raise GateIntegrationError(str(exc) or f"{ENV_GATE_URL} is required", failure_class="permanent") from exc
 

@@ -164,10 +164,7 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             build_match_request,
             build_operation_id,
         )
-        from odoo.addons.plasticos_gate.services.gate_client import (
-            classify_transport_failure,
-            send_match_action,
-        )
+        from odoo.addons.plasticos_gate.services.gate_client import send_match_action
         from odoo.addons.plasticos_gate.services.gate_config import (
             GateCapability,
             GateIntegrationError,
@@ -263,7 +260,10 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             mapped = map_match_response(response_payload)
             matches = map_match_response_to_matcher_dicts(mapped, audit_metadata=audit)
         except GateIntegrationError as exc:
-            failure = getattr(exc, "failure_class", None) or classify_transport_failure(exc).value
+            # The Gate bridge delivers the Odoo-facing category (the SDK's
+            # retryability verdict projected onto retryable/permanent); this
+            # shell persists it and never reclassifies Gate transport itself.
+            failure = exc.failure_class or _UNKNOWN
             durable_id = self._rollback_then_persist_failed_run_durable(
                 run_id,
                 {
@@ -304,8 +304,8 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
                     run=durable_id,
                 )
             ) from exc
-        except Exception as exc:  # noqa: BLE001 — boundary: classify then fail closed
-            failure = classify_transport_failure(exc).value
+        except Exception as exc:  # noqa: BLE001 — boundary: not a Gate transport outcome; fail closed as degraded
+            failure = _UNKNOWN
             durable_id = self._rollback_then_persist_failed_run_durable(
                 run_id,
                 {
