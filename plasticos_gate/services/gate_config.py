@@ -288,6 +288,35 @@ def resolve_gate_timeout_seconds(env) -> float:
     return timeout
 
 
+# The consumer owns the bar for "this reply is good enough": accept the field
+# and do not spend another provider call. Enrichment reads the number off the
+# request packet. This default applies only when the operator has not set
+# plasticos.gate.consensus_threshold.
+ICP_CONSENSUS_THRESHOLD = "plasticos.gate.consensus_threshold"
+DEFAULT_CONSENSUS_THRESHOLD = 0.80
+
+
+def gate_consensus_threshold(env) -> float:
+    """Odoo's consensus bar for the converge packet, in [0, 1]."""
+    raw = ""
+    try:
+        icp = env["ir.config_parameter"].sudo()
+        raw = (icp.get_param(ICP_CONSENSUS_THRESHOLD) or "").strip()
+    except (AttributeError, KeyError, TypeError):
+        raw = ""
+    if not raw:
+        return DEFAULT_CONSENSUS_THRESHOLD
+    try:
+        value = float(raw)
+    except (TypeError, ValueError) as exc:
+        msg = f"{ICP_CONSENSUS_THRESHOLD} is not a number: {raw!r}"
+        raise GateIntegrationError(msg, failure_class="permanent") from exc
+    if not math.isfinite(value) or value < 0.0 or value > 1.0:
+        msg = f"{ICP_CONSENSUS_THRESHOLD} must be between 0 and 1, got {raw!r}"
+        raise GateIntegrationError(msg, failure_class="permanent")
+    return value
+
+
 def _parse_verifying_keys(raw: str) -> dict[str, str]:
     if not raw:
         return {}

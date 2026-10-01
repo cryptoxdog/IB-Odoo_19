@@ -10,6 +10,7 @@ from .gate_allowlists import (
     PARTNER_WRITEBACK_FIELD_ALLOWLIST,
     WEB_LEAD_SEED_FIELD_MAP,
 )
+from .gate_config import gate_consensus_threshold
 from .gate_contracts import (
     ConvergeRequest,
     MatchRequest,
@@ -120,7 +121,13 @@ def _clamp_variations(max_passes: Any) -> int:
 
 
 def build_converge_request(
-    env, run_rec, *, domain: str = "plasticos", max_passes: int | None = None
+    env,
+    run_rec,
+    *,
+    domain: str = "plasticos",
+    max_passes: int | None = None,
+    schema: dict[str, str] | None = None,
+    field_thresholds: dict[str, float] | None = None,
 ) -> ConvergeRequest:
     """Map an Odoo enrichment run into an EIE EnrichRequest-shaped request.
 
@@ -152,6 +159,8 @@ def build_converge_request(
         object_type=str(domain) if domain else "Account",
         objective=_DEFAULT_OBJECTIVE,
         max_variations=_clamp_variations(max_passes),
+        consensus_threshold=gate_consensus_threshold(env),
+        field_thresholds=field_thresholds,
         # EIE resolves the KB domain from `domain_id` -> `domain` -> `kb_context`
         # -> `object_type`. Leaving this unset made the domain resolve only
         # because `object_type` happens to carry it, which is the last fallback
@@ -160,7 +169,7 @@ def build_converge_request(
         kb_context=str(domain) if domain else None,
         # Ask EIE for exactly the partner fields Odoo is allowed to write back
         # (the writeback allowlist); "string" is EIE's canonical type token.
-        schema=dict.fromkeys(sorted(PARTNER_WRITEBACK_FIELD_ALLOWLIST), "string"),
+        schema=schema or dict.fromkeys(sorted(PARTNER_WRITEBACK_FIELD_ALLOWLIST), "string"),
         # ADR-006: generated once here and carried on the request, so the caller
         # hands the SAME logical value to the transport header rather than
         # deriving a second, unrelated one. EnrichRequest.idempotency_key is a

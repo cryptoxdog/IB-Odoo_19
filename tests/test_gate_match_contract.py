@@ -332,12 +332,41 @@ def test_build_converge_request_maps_partner_snapshot_to_eie_shape():
     assert request.entity["source_urls"] == ["https://acme.example/about"]
     assert request.object_type == "plasticos"
     assert request.objective == "Full entity enrichment and inference"
-    assert request.max_variations == 5  # max_passes None -> EIE default
+    assert request.max_variations == 5  # max_passes None -> consumer default
+    assert request.consensus_threshold == 0.80
     assert request.odoo["model"] == "plasticos.enrichment.run"
     assert request.odoo["record_id"] == 7
     wire = request.to_dict()
-    assert set(wire) >= {"entity", "object_type", "objective", "max_variations", "odoo"}
+    assert set(wire) >= {
+        "entity",
+        "object_type",
+        "objective",
+        "max_variations",
+        "consensus_threshold",
+        "odoo",
+    }
+    assert wire["consensus_threshold"] == 0.80
     assert "_odoo_entity_id" in wire["entity"]
+
+
+def test_build_converge_request_puts_each_field_threshold_on_the_packet():
+    env = _MockEnv()
+    request = build_converge_request(
+        env,
+        _RunStub(),
+        schema={"state": "string", "website": "string"},
+        field_thresholds={"state": 0.95, "website": 0.99},
+    )
+    wire = request.to_dict()
+    assert wire["schema"] == {"state": "string", "website": "string"}
+    assert wire["field_thresholds"] == {"state": 0.95, "website": 0.99}
+    assert "field_thresholds" not in build_converge_request(env, _RunStub()).to_dict()
+
+
+def test_build_converge_request_puts_operator_consensus_threshold_on_the_packet():
+    env = _MockEnv({"plasticos.gate.consensus_threshold": "0.9"})
+    request = build_converge_request(env, _RunStub())
+    assert request.to_dict()["consensus_threshold"] == 0.9
 
 
 def test_build_converge_request_clamps_max_passes():
