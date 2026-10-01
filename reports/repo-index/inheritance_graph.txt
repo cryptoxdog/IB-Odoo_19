@@ -173,10 +173,10 @@
 ./plasticos_facility_profile/models/partner_type.py:8:    _name = "plasticos.partner.type"
 ./plasticos_facility_profile/models/res_partner.py:6:    _inherit = "res.partner"
 ./plasticos_facility_profile/models/res_partner_delivery_term.py:7:    _inherit = "res.partner"
-./plasticos_gate/services/gate_builders.py:27:        if field_name == "state_id":
-./plasticos_gate/services/gate_builders.py:29:        if field_name == "country_id":
-./plasticos_gate/services/gate_builders.py:41:        db_name=getattr(env.cr, "dbname", None),
-./plasticos_gate/services/gate_builders.py:97:    db_name = odoo_ctx.get("db_name") or "db"
+./plasticos_gate/services/gate_builders.py:28:        if field_name == "state_id":
+./plasticos_gate/services/gate_builders.py:30:        if field_name == "country_id":
+./plasticos_gate/services/gate_builders.py:42:        db_name=getattr(env.cr, "dbname", None),
+./plasticos_gate/services/gate_builders.py:98:    db_name = odoo_ctx.get("db_name") or "db"
 ./plasticos_gate/services/semantic_payloads.py:177:    currency_name = getattr(currency, "name", None) if currency not in (None, False) else None
 ./plasticos_gate/services/semantic_payloads.py:256:    currency_name = getattr(currency, "name", None) if currency not in (None, False) else None
 ./plasticos_geolocalize/models/intake_geo.py:15:    _inherit = "plasticos.intake"
@@ -436,7 +436,7 @@
 ./tests/test_depends_transaction_claims_bridge.py:7:and ``transaction_claims_bridge.py``, both ``_inherit = "plasticos.transaction"``).
 ./tests/test_gap_fixes.py:305:        view_name = "plasticos_rep_performance"
 ./tests/test_gate_canonical_contract.py:57:    _name = "plasticos.enrichment.run"
-./tests/test_gate_canonical_contract.py:296:    assert build_operation_id(_ctx(db_name="prod")) != build_operation_id(_ctx(db_name="staging"))
+./tests/test_gate_canonical_contract.py:305:    assert build_operation_id(_ctx(db_name="prod")) != build_operation_id(_ctx(db_name="staging"))
 ./tests/test_gate_match_contract.py:67:    _name = "plasticos.intake"
 ./tests/test_gate_match_contract.py:243:    _name = "res.partner"
 ./tests/test_gate_match_contract.py:268:    _name = "plasticos.enrichment.run"
