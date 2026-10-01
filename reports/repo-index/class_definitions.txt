@@ -33,7 +33,6 @@
 ./plasticos_automation/models/stock_reorder_alert.py:8:class ProductProduct(models.Model):
 ./plasticos_base/models/ir_attachment.py:10:class IrAttachment(models.Model):
 ./plasticos_base/models/midnight_recompute.py:23:class PlasticosMidnightRecompute(models.AbstractModel):
-./plasticos_base/models/res_config_settings.py:4:class ResConfigSettings(models.TransientModel):
 ./plasticos_base/test_common.py:26:class PlastOSTestFactoryMixin:
 ./plasticos_base/test_common.py:183:class PlasticosTestCase(TransactionCase, PlastOSTestFactoryMixin):
 ./plasticos_claims/models/claim.py:7:class PlasticosClaim(models.Model):
@@ -103,11 +102,11 @@
 ./plasticos_gate/services/dual_write.py:19:class DualWriteDecision:
 ./plasticos_gate/services/dual_write.py:32:class DualWriteAuditEntry:
 ./plasticos_gate/services/field_family_cutover.py:39:class FieldFamilyCutoverDecision:
-./plasticos_gate/services/gate_client.py:88:class TransportFailureClass(StrEnum):
-./plasticos_gate/services/gate_config.py:17:class GateIntegrationError(Exception):
-./plasticos_gate/services/gate_config.py:25:class GateAvailability(StrEnum):
-./plasticos_gate/services/gate_config.py:37:class GateCapability(StrEnum):
-./plasticos_gate/services/gate_config.py:45:class GateAvailabilityVerdict:
+./plasticos_gate/services/gate_client.py:66:class TransportFailureClass(StrEnum):
+./plasticos_gate/services/gate_config.py:35:class GateIntegrationError(Exception):
+./plasticos_gate/services/gate_config.py:43:class GateAvailability(StrEnum):
+./plasticos_gate/services/gate_config.py:55:class GateCapability(StrEnum):
+./plasticos_gate/services/gate_config.py:63:class GateAvailabilityVerdict:
 ./plasticos_gate/services/gate_contracts.py:12:class OdooContext:
 ./plasticos_gate/services/gate_contracts.py:33:class ConvergeRequest:
 ./plasticos_gate/services/gate_contracts.py:79:class ConvergeResponse:
@@ -153,7 +152,7 @@
 ./plasticos_logistics/services/sal_resolver.py:17:class SalDecision:
 ./plasticos_logistics/wizards/freight_actual_correction_wizard.py:7:class PlasticosFreightActualCorrectionWizard(models.TransientModel):
 ./plasticos_logistics/wizards/load_bulk_update_wizard.py:10:class LoadBulkUpdateWizard(models.TransientModel):
-./plasticos_matching/models/intake_extension.py:8:class PlasticosIntakeGateMatch(models.Model):
+./plasticos_matching/models/intake_extension.py:16:class PlasticosIntakeGateMatch(models.Model):
 ./plasticos_matching/models/match_exclusion.py:9:class PlasticosMatchExclusion(models.Model):
 ./plasticos_matching/models/match_orchestrator.py:61:class PlasticosMatchOrchestrator(models.AbstractModel):
 ./plasticos_matching/models/match_result.py:9:class PlasticosMatchResult(models.Model):
@@ -161,7 +160,7 @@
 ./plasticos_matching/models/match_result_writer.py:11:class PlasticosMatchResultWriter(models.AbstractModel):
 ./plasticos_matching/models/match_run.py:31:class PlasticosMatchRun(models.Model):
 ./plasticos_matching/tests/test_match_result_writer.py:9:class TestMatchResultWriter(PlasticosTestCase):
-./plasticos_matching/tests/test_match_run_receipts.py:101:class TestMatchRunReceipts(PlasticosTestCase):
+./plasticos_matching/tests/test_match_run_receipts.py:102:class TestMatchRunReceipts(PlasticosTestCase):
 ./plasticos_material_profile/models/filler_type.py:5:class PlasticosFillerType(models.Model):
 ./plasticos_material_profile/models/grade_template.py:11:class PlasticosGradeTemplate(models.Model):
 ./plasticos_material_profile/models/material_attribute.py:5:class PlasticosMaterialAttribute(models.Model):
@@ -275,10 +274,10 @@
 ./tests/contracts/test_bridge_wiring_contracts.py:57:class TestTransactionBridgeWiring(PlasticosTestCase):
 ./tests/contracts/test_computed_field_deps.py:13:class TestIntakeComputedFieldDeps(PlasticosTestCase):
 ./tests/contracts/test_crm_lead_contracts.py:16:class TestCrmLeadContract(PlasticosTestCase):
-./tests/contracts/test_external_intelligence_contract_parity.py:26:class _MockICP:
-./tests/contracts/test_external_intelligence_contract_parity.py:34:class _MockEnv:
-./tests/contracts/test_external_intelligence_contract_parity.py:83:class _FakeResponse:
-./tests/contracts/test_external_intelligence_contract_parity.py:88:class _FakeHttpStatusError(Exception):
+./tests/contracts/test_external_intelligence_contract_parity.py:27:class _MockICP:
+./tests/contracts/test_external_intelligence_contract_parity.py:35:class _MockEnv:
+./tests/contracts/test_external_intelligence_contract_parity.py:86:class _FakeResponse:
+./tests/contracts/test_external_intelligence_contract_parity.py:91:class _FakeHttpStatusError(Exception):
 ./tests/contracts/test_intake_contracts.py:20:class TestIntakeFieldContract(PlasticosTestCase):
 ./tests/contracts/test_intake_contracts.py:188:class TestIntakeMethodContract(PlasticosTestCase):
 ./tests/contracts/test_intake_contracts.py:254:class TestIntakeMailMixin(PlasticosTestCase):
@@ -292,8 +291,8 @@
 ./tests/contracts/test_transaction_contracts.py:72:class TestTransactionMethodContract(PlasticosTestCase):
 ./tests/e2e/four_repo/run_odoo_driver.py:68:class _Icp:
 ./tests/e2e/four_repo/run_odoo_driver.py:79:class _Env:
-./tests/e2e/four_repo/run_odoo_driver.py:106:class _Partner:
-./tests/e2e/four_repo/run_odoo_driver.py:117:class _Run:
+./tests/e2e/four_repo/run_odoo_driver.py:104:class _Partner:
+./tests/e2e/four_repo/run_odoo_driver.py:115:class _Run:
 ./tests/integration/test_account_move_transaction_link.py:26:class TestAccountMoveTransactionLink(PlasticosTestCase):
 ./tests/integration/test_account_move_transaction_link.py:117:class TestAccountMoveCancelGuard(PlasticosTestCase):
 ./tests/integration/test_account_move_transaction_link.py:200:class TestAccountMoveUnlinkGuard(PlasticosTestCase):
@@ -306,10 +305,10 @@
 ./tests/integration/test_cron_idempotency.py:47:class TestCronIdempotency(PlasticosTestCase):
 ./tests/integration/test_cron_idempotency.py:116:class TestCronEmptyRecordset(PlasticosTestCase):
 ./tests/integration/test_gate_external_authority_e2e.py:39:class _ICP:
-./tests/integration/test_gate_external_authority_e2e.py:55:class _Env:
-./tests/integration/test_gate_external_authority_e2e.py:74:class _FieldProxy:
-./tests/integration/test_gate_external_authority_e2e.py:81:class _IntakeStub:
-./tests/integration/test_gate_external_authority_e2e.py:132:    class _Partner:
+./tests/integration/test_gate_external_authority_e2e.py:54:class _Env:
+./tests/integration/test_gate_external_authority_e2e.py:73:class _FieldProxy:
+./tests/integration/test_gate_external_authority_e2e.py:80:class _IntakeStub:
+./tests/integration/test_gate_external_authority_e2e.py:131:    class _Partner:
 ./tests/integration/test_intake_onchange_cascade.py:17:class TestIntakePartnerCascade(PlasticosTestCase):
 ./tests/integration/test_intake_onchange_cascade.py:106:class TestIntakeMaterialProfilePrefill(PlasticosTestCase):
 ./tests/integration/test_linda_freight_models.py:12:class TestLindaFreightModels(PlasticosTestCase):
@@ -429,20 +428,21 @@
 ./tests/test_gate_canonical_contract.py:65:class _FakeEnv:
 ./tests/test_gate_canonical_contract.py:359:class _FakeIcp:
 ./tests/test_gate_canonical_contract.py:372:class _TimeoutEnv:
+./tests/test_gate_canonical_env.py:19:class _MockICP:
+./tests/test_gate_canonical_env.py:27:class _MockEnv:
 ./tests/test_gate_match_contract.py:31:class _MockICP:
 ./tests/test_gate_match_contract.py:39:class _MockEnv:
 ./tests/test_gate_match_contract.py:59:class _FieldProxy:
 ./tests/test_gate_match_contract.py:66:class _IntakeStub:
-./tests/test_gate_match_contract.py:242:class _PartnerStub:
-./tests/test_gate_match_contract.py:262:class _SourceStub:
-./tests/test_gate_match_contract.py:267:class _RunStub:
-./tests/test_gate_sdk_invocation.py:50:class _Icp:
-./tests/test_gate_sdk_invocation.py:61:class _Cursor:
-./tests/test_gate_sdk_invocation.py:65:class _User:
-./tests/test_gate_sdk_invocation.py:69:class _Env:
-./tests/test_gate_sdk_invocation.py:90:class _CapturingClient(_SdkGateClient if _SDK_AVAILABLE else object):
-./tests/test_gate_sdk_invocation.py:231:    class _Failing(_CapturingClient):
-./tests/test_gate_sdk_invocation.py:306:    class _NotFound(_CapturingClient):
+./tests/test_gate_match_contract.py:237:class _PartnerStub:
+./tests/test_gate_match_contract.py:257:class _SourceStub:
+./tests/test_gate_match_contract.py:262:class _RunStub:
+./tests/test_gate_sdk_invocation.py:72:class _Icp:
+./tests/test_gate_sdk_invocation.py:83:class _Cursor:
+./tests/test_gate_sdk_invocation.py:87:class _User:
+./tests/test_gate_sdk_invocation.py:91:class _Env:
+./tests/test_gate_sdk_invocation.py:106:class _FakeGate:
+./tests/test_gate_sdk_invocation.py:201:    class _SeamClient(_SdkGateClient):
 ./tests/test_golden_flows.py:23:class TestGoldenLeadToDelivery(PlasticosTestCase):
 ./tests/test_golden_flows.py:149:class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
 ./tests/test_golden_flows.py:387:class TestGoldenTransactionWithClaim(PlasticosTestCase):
@@ -470,17 +470,17 @@
 ./tests/test_performance.py:20:class TestBulkImportPerformance(PlasticosTestCase):
 ./tests/test_performance.py:90:class TestCronPerformance(PlasticosTestCase):
 ./tests/test_performance.py:111:class TestSearchPerformance(PlasticosTestCase):
-./tests/test_phantom_enum_values.py:819:class EnumSource(NamedTuple):
-./tests/test_phantom_enum_values.py:827:class EnumUsage(NamedTuple):
-./tests/test_phantom_enum_values.py:950:class _EnumUsageVisitor(ast.NodeVisitor):
-./tests/test_phantom_enum_values.py:1261:class TestRegistrySanity:
-./tests/test_phantom_enum_values.py:1349:class TestSelectionComparisons:
-./tests/test_phantom_enum_values.py:1380:class TestPhantomEnumValues:
-./tests/test_phantom_enum_values.py:1440:class TestPerModulePhantomAudit:
-./tests/test_phantom_enum_values.py:1461:class TestSelectionFieldConsistency:
-./tests/test_phantom_enum_values.py:1509:class TestXmlSelectionAlignment:
-./tests/test_phantom_enum_values.py:1630:class TestEquipmentCodeAlignment:
-./tests/test_phantom_enum_values.py:1686:class TestPhantomAuditReport:
+./tests/test_phantom_enum_values.py:821:class EnumSource(NamedTuple):
+./tests/test_phantom_enum_values.py:829:class EnumUsage(NamedTuple):
+./tests/test_phantom_enum_values.py:952:class _EnumUsageVisitor(ast.NodeVisitor):
+./tests/test_phantom_enum_values.py:1263:class TestRegistrySanity:
+./tests/test_phantom_enum_values.py:1351:class TestSelectionComparisons:
+./tests/test_phantom_enum_values.py:1382:class TestPhantomEnumValues:
+./tests/test_phantom_enum_values.py:1442:class TestPerModulePhantomAudit:
+./tests/test_phantom_enum_values.py:1463:class TestSelectionFieldConsistency:
+./tests/test_phantom_enum_values.py:1511:class TestXmlSelectionAlignment:
+./tests/test_phantom_enum_values.py:1632:class TestEquipmentCodeAlignment:
+./tests/test_phantom_enum_values.py:1688:class TestPhantomAuditReport:
 ./tests/test_process_enum_alignment.py:64:class TestProcessEnumAlignment:
 ./tests/test_sal_resolver_service.py:24:    class Datetime:
 ./tests/test_sal_resolver_service.py:54:class _LoadSearch:

@@ -376,13 +376,13 @@
 ./plasticos_enrichment/models/enrichment_run.py:316:    def _rollback_then_persist_operator_state(self, run_id, vals):
 ./plasticos_enrichment/models/enrichment_run.py:336:    def _persist_operator_state_durable(self, run_id, vals):
 ./plasticos_enrichment/models/enrichment_run.py:348:    def action_execute(self):
-./plasticos_enrichment/models/enrichment_run.py:440:    def action_retry_enrichment(self):
-./plasticos_enrichment/models/enrichment_run.py:460:    def _inject_gate_proposal(self):
-./plasticos_enrichment/models/enrichment_run.py:504:    def action_inject(self):
-./plasticos_enrichment/models/enrichment_run.py:696:    def _record_provenance(
-./plasticos_enrichment/models/enrichment_run.py:733:    def action_run_inference(self):
-./plasticos_enrichment/models/enrichment_run.py:737:    def action_cron_enrich_pending(self, run_inference: bool = True):
-./plasticos_enrichment/models/enrichment_run.py:745:    def action_cron_inference_only(self):
+./plasticos_enrichment/models/enrichment_run.py:442:    def action_retry_enrichment(self):
+./plasticos_enrichment/models/enrichment_run.py:462:    def _inject_gate_proposal(self):
+./plasticos_enrichment/models/enrichment_run.py:506:    def action_inject(self):
+./plasticos_enrichment/models/enrichment_run.py:698:    def _record_provenance(
+./plasticos_enrichment/models/enrichment_run.py:735:    def action_run_inference(self):
+./plasticos_enrichment/models/enrichment_run.py:739:    def action_cron_enrich_pending(self, run_inference: bool = True):
+./plasticos_enrichment/models/enrichment_run.py:747:    def action_cron_inference_only(self):
 ./plasticos_enrichment/models/enrichment_service.py:199:    def _inference_stub_enabled(self):
 ./plasticos_enrichment/models/enrichment_service.py:209:    def _get_inference_engine(self):
 ./plasticos_enrichment/models/enrichment_service.py:265:    def run_inference(self, profile_vals: dict, entity_type: str = "supplier") -> dict:
@@ -438,9 +438,9 @@
 ./plasticos_gate/services/dual_write.py:27:    def as_dict(self) -> dict[str, Any]:
 ./plasticos_gate/services/dual_write.py:40:    def as_dict(self) -> dict[str, Any]:
 ./plasticos_gate/services/field_family_cutover.py:50:    def as_dict(self) -> dict[str, Any]:
-./plasticos_gate/services/gate_client.py:189:    def runner() -> None:
-./plasticos_gate/services/gate_config.py:20:    def __init__(self, message: str, *, failure_class: str | None = None) -> None:
-./plasticos_gate/services/gate_config.py:56:    def as_dict(self) -> dict[str, Any]:
+./plasticos_gate/services/gate_client.py:178:    def runner() -> None:
+./plasticos_gate/services/gate_config.py:38:    def __init__(self, message: str, *, failure_class: str | None = None) -> None:
+./plasticos_gate/services/gate_config.py:74:    def as_dict(self) -> dict[str, Any]:
 ./plasticos_gate/services/gate_contracts.py:20:    def to_dict(self) -> dict[str, Any]:
 ./plasticos_gate/services/gate_contracts.py:57:    def to_dict(self) -> dict[str, Any]:
 ./plasticos_gate/services/gate_contracts.py:122:    def to_dict(self) -> dict[str, Any]:
@@ -477,11 +477,11 @@
 ./plasticos_intake/models/intake.py:751:    def action_mark_lost(self):
 ./plasticos_intake/models/intake.py:756:    def action_mark_expired(self):
 ./plasticos_intake/models/intake.py:765:    def action_match_to_buyers(self):
-./plasticos_intake/models/intake.py:803:    def _create_material_profile_from_intake(self):
-./plasticos_intake/models/intake.py:835:    def _create_partner_from_pending(self):
-./plasticos_intake/models/intake.py:889:    def action_reset_to_draft(self):
-./plasticos_intake/models/intake.py:897:    def action_send_offers(self):
-./plasticos_intake/models/intake.py:957:    def action_make_po(self):
+./plasticos_intake/models/intake.py:800:    def _create_material_profile_from_intake(self):
+./plasticos_intake/models/intake.py:832:    def _create_partner_from_pending(self):
+./plasticos_intake/models/intake.py:886:    def action_reset_to_draft(self):
+./plasticos_intake/models/intake.py:894:    def action_send_offers(self):
+./plasticos_intake/models/intake.py:954:    def action_make_po(self):
 ./plasticos_intake/models/intake_match.py:81:    def _compute_display_name(self):
 ./plasticos_intake/models/material_profile_intake.py:23:    def _compute_intake_count(self):
 ./plasticos_intake/models/material_profile_intake.py:30:    def action_view_intakes(self):
@@ -609,9 +609,9 @@
 ./plasticos_logistics/wizards/load_bulk_update_wizard.py:49:    def _compute_load_count(self):
 ./plasticos_logistics/wizards/load_bulk_update_wizard.py:54:    def default_get(self, fields_list):
 ./plasticos_logistics/wizards/load_bulk_update_wizard.py:61:    def action_update_status(self):
-./plasticos_matching/models/intake_extension.py:11:    def action_match_to_buyers(self):
-./plasticos_matching/models/intake_extension.py:56:    def action_open_latest_match_run(self):
-./plasticos_matching/models/intake_extension.py:73:    def action_retry_latest_match(self):
+./plasticos_matching/models/intake_extension.py:19:    def action_match_to_buyers(self):
+./plasticos_matching/models/intake_extension.py:64:    def action_open_latest_match_run(self):
+./plasticos_matching/models/intake_extension.py:81:    def action_retry_latest_match(self):
 ./plasticos_matching/models/match_exclusion.py:91:    def _check_expiry_date(self):
 ./plasticos_matching/models/match_exclusion.py:97:    def _check_different_partners(self):
 ./plasticos_matching/models/match_exclusion.py:107:    def get_excluded_buyer_ids(self, supplier_partner_id):
@@ -645,24 +645,25 @@
 ./plasticos_matching/tests/test_match_result_writer.py:41:    def _eligible_match(self):
 ./plasticos_matching/tests/test_match_result_writer.py:51:    def test_persists_exact_gate_result_once_and_links_the_durable_run(self):
 ./plasticos_matching/tests/test_match_result_writer.py:72:    def test_zero_candidate_gate_receipt_creates_no_result_but_is_valid(self):
-./plasticos_matching/tests/test_match_run_receipts.py:103:    def setUpClass(cls):
-./plasticos_matching/tests/test_match_run_receipts.py:133:    def _request_rollback(self):
-./plasticos_matching/tests/test_match_run_receipts.py:143:    def _raises(self, exc_type):
-./plasticos_matching/tests/test_match_run_receipts.py:153:    def _runs(self):
-./plasticos_matching/tests/test_match_run_receipts.py:156:    def _commercial_snapshot(self):
-./plasticos_matching/tests/test_match_run_receipts.py:169:    def _intake_note(self, run):
-./plasticos_matching/tests/test_match_run_receipts.py:178:    def _server_run(self, **extra):
-./plasticos_matching/tests/test_match_run_receipts.py:185:    def test_gate_disabled_failure_receipt_survives_the_request_rollback(self):
-./plasticos_matching/tests/test_match_run_receipts.py:208:    def test_transport_failure_is_retryable_receipt_bound_and_retry_advances_the_attempt(self):
-./plasticos_matching/tests/test_match_run_receipts.py:252:    def test_unexpected_transport_exception_is_classified_unknown_and_degraded(self):
-./plasticos_matching/tests/test_match_run_receipts.py:271:    def test_persistence_failure_after_a_gate_answer_keeps_the_gate_receipt_durably(self):
-./plasticos_matching/tests/test_match_run_receipts.py:300:    def test_zero_candidate_gate_response_is_a_valid_durable_ok_receipt(self):
-./plasticos_matching/tests/test_match_run_receipts.py:324:    def test_successful_match_persists_gate_originated_results_idempotently(self):
-./plasticos_matching/tests/test_match_run_receipts.py:348:    def test_receipt_fields_refuse_ordinary_and_sudo_writes(self):
-./plasticos_matching/tests/test_match_run_receipts.py:371:    def test_receipt_fields_are_write_once_even_through_the_server_door(self):
-./plasticos_matching/tests/test_match_run_receipts.py:387:    def test_receipt_create_requires_the_server_door(self):
-./plasticos_matching/tests/test_match_run_receipts.py:396:    def test_copy_never_carries_receipt_evidence(self):
-./plasticos_matching/tests/test_match_run_receipts.py:412:    def test_human_review_disposition_stays_mutable_while_the_receipt_does_not(self):
+./plasticos_matching/tests/test_match_run_receipts.py:104:    def setUpClass(cls):
+./plasticos_matching/tests/test_match_run_receipts.py:119:    def tearDownClass(cls):
+./plasticos_matching/tests/test_match_run_receipts.py:143:    def _request_rollback(self):
+./plasticos_matching/tests/test_match_run_receipts.py:153:    def _raises(self, exc_type):
+./plasticos_matching/tests/test_match_run_receipts.py:163:    def _runs(self):
+./plasticos_matching/tests/test_match_run_receipts.py:166:    def _commercial_snapshot(self):
+./plasticos_matching/tests/test_match_run_receipts.py:179:    def _intake_note(self, run):
+./plasticos_matching/tests/test_match_run_receipts.py:188:    def _server_run(self, **extra):
+./plasticos_matching/tests/test_match_run_receipts.py:195:    def test_gate_disabled_failure_receipt_survives_the_request_rollback(self):
+./plasticos_matching/tests/test_match_run_receipts.py:218:    def test_transport_failure_is_retryable_receipt_bound_and_retry_advances_the_attempt(self):
+./plasticos_matching/tests/test_match_run_receipts.py:262:    def test_unexpected_transport_exception_is_classified_unknown_and_degraded(self):
+./plasticos_matching/tests/test_match_run_receipts.py:281:    def test_persistence_failure_after_a_gate_answer_keeps_the_gate_receipt_durably(self):
+./plasticos_matching/tests/test_match_run_receipts.py:310:    def test_zero_candidate_gate_response_is_a_valid_durable_ok_receipt(self):
+./plasticos_matching/tests/test_match_run_receipts.py:334:    def test_successful_match_persists_gate_originated_results_idempotently(self):
+./plasticos_matching/tests/test_match_run_receipts.py:358:    def test_receipt_fields_refuse_ordinary_and_sudo_writes(self):
+./plasticos_matching/tests/test_match_run_receipts.py:381:    def test_receipt_fields_are_write_once_even_through_the_server_door(self):
+./plasticos_matching/tests/test_match_run_receipts.py:397:    def test_receipt_create_requires_the_server_door(self):
+./plasticos_matching/tests/test_match_run_receipts.py:406:    def test_copy_never_carries_receipt_evidence(self):
+./plasticos_matching/tests/test_match_run_receipts.py:422:    def test_human_review_disposition_stays_mutable_while_the_receipt_does_not(self):
 ./plasticos_material_profile/models/filler_type.py:22:    def create(self, vals_list):
 ./plasticos_material_profile/models/filler_type.py:29:    def write(self, vals):
 ./plasticos_material_profile/models/grade_template.py:81:    def _name_search(self, name, domain=None, operator="ilike", limit=None, order=None):
@@ -1146,14 +1147,14 @@
 ./tests/contracts/test_crm_lead_contracts.py:47:    def test_material_profile_ids_on_lead(self):
 ./tests/contracts/test_crm_lead_contracts.py:51:    def test_web_opportunity_provenance_and_profile_fields(self):
 ./tests/contracts/test_crm_lead_contracts.py:58:    def test_partner_creation_is_compatible_with_optional_mobile_field(self):
-./tests/contracts/test_external_intelligence_contract_parity.py:27:    def __init__(self, params: dict[str, str]):
-./tests/contracts/test_external_intelligence_contract_parity.py:30:    def get_param(self, key: str, default=None):
-./tests/contracts/test_external_intelligence_contract_parity.py:35:    def __init__(self, params: dict[str, str] | None = None):
-./tests/contracts/test_external_intelligence_contract_parity.py:39:    def __getitem__(self, key: str):
-./tests/contracts/test_external_intelligence_contract_parity.py:44:    def sudo(self):
-./tests/contracts/test_external_intelligence_contract_parity.py:47:    def get_param(self, key: str, default=None):
-./tests/contracts/test_external_intelligence_contract_parity.py:84:    def __init__(self, status_code: int) -> None:
-./tests/contracts/test_external_intelligence_contract_parity.py:91:    def __init__(self, status_code: int) -> None:
+./tests/contracts/test_external_intelligence_contract_parity.py:28:    def __init__(self, params: dict[str, str]):
+./tests/contracts/test_external_intelligence_contract_parity.py:31:    def get_param(self, key: str, default=None):
+./tests/contracts/test_external_intelligence_contract_parity.py:36:    def __init__(self, params: dict[str, str] | None = None):
+./tests/contracts/test_external_intelligence_contract_parity.py:40:    def __getitem__(self, key: str):
+./tests/contracts/test_external_intelligence_contract_parity.py:45:    def sudo(self):
+./tests/contracts/test_external_intelligence_contract_parity.py:48:    def get_param(self, key: str, default=None):
+./tests/contracts/test_external_intelligence_contract_parity.py:87:    def __init__(self, status_code: int) -> None:
+./tests/contracts/test_external_intelligence_contract_parity.py:94:    def __init__(self, status_code: int) -> None:
 ./tests/contracts/test_intake_contracts.py:24:    def setUpClass(cls):
 ./tests/contracts/test_intake_contracts.py:30:    def test_name_field_exists_and_is_char(self):
 ./tests/contracts/test_intake_contracts.py:34:    def test_partner_id_exists_and_targets_res_partner(self):
@@ -1242,10 +1243,10 @@
 ./tests/e2e/four_repo/run_odoo_driver.py:72:    def sudo(self):
 ./tests/e2e/four_repo/run_odoo_driver.py:75:    def get_param(self, key, default=None):
 ./tests/e2e/four_repo/run_odoo_driver.py:82:    def __init__(self, url, timeout):
-./tests/e2e/four_repo/run_odoo_driver.py:101:    def __getitem__(self, model):
-./tests/e2e/four_repo/run_odoo_driver.py:109:    def __init__(self):
-./tests/e2e/four_repo/run_odoo_driver.py:113:    def __getitem__(self, field):
-./tests/e2e/four_repo/run_odoo_driver.py:121:    def __init__(self):
+./tests/e2e/four_repo/run_odoo_driver.py:99:    def __getitem__(self, model):
+./tests/e2e/four_repo/run_odoo_driver.py:107:    def __init__(self):
+./tests/e2e/four_repo/run_odoo_driver.py:111:    def __getitem__(self, field):
+./tests/e2e/four_repo/run_odoo_driver.py:119:    def __init__(self):
 ./tests/integration/test_account_move_transaction_link.py:30:    def setUpClass(cls):
 ./tests/integration/test_account_move_transaction_link.py:57:    def _skip_if_missing(self):
 ./tests/integration/test_account_move_transaction_link.py:61:    def _create_invoice(self, move_type="out_invoice", origin=None):
@@ -1293,16 +1294,16 @@
 ./tests/integration/test_cron_idempotency.py:119:    def test_expire_offers_empty_db(self):
 ./tests/integration/test_cron_idempotency.py:136:    def test_batch_normalize_empty_db(self):
 ./tests/integration/test_gate_external_authority_e2e.py:40:    def __init__(self) -> None:
-./tests/integration/test_gate_external_authority_e2e.py:51:    def get_param(self, key: str, default=None):
-./tests/integration/test_gate_external_authority_e2e.py:56:    def __init__(self) -> None:
-./tests/integration/test_gate_external_authority_e2e.py:62:    def __getitem__(self, key: str):
-./tests/integration/test_gate_external_authority_e2e.py:67:    def sudo(self):
-./tests/integration/test_gate_external_authority_e2e.py:70:    def get_param(self, key: str, default=None):
-./tests/integration/test_gate_external_authority_e2e.py:75:    def __init__(self, *, code=None, name=None, record_id=None):
-./tests/integration/test_gate_external_authority_e2e.py:84:    def __init__(self) -> None:
-./tests/integration/test_gate_external_authority_e2e.py:109:    def __getitem__(self, key):
-./tests/integration/test_gate_external_authority_e2e.py:135:        def __init__(self) -> None:
-./tests/integration/test_gate_external_authority_e2e.py:143:        def __getitem__(self, key):
+./tests/integration/test_gate_external_authority_e2e.py:50:    def get_param(self, key: str, default=None):
+./tests/integration/test_gate_external_authority_e2e.py:55:    def __init__(self) -> None:
+./tests/integration/test_gate_external_authority_e2e.py:61:    def __getitem__(self, key: str):
+./tests/integration/test_gate_external_authority_e2e.py:66:    def sudo(self):
+./tests/integration/test_gate_external_authority_e2e.py:69:    def get_param(self, key: str, default=None):
+./tests/integration/test_gate_external_authority_e2e.py:74:    def __init__(self, *, code=None, name=None, record_id=None):
+./tests/integration/test_gate_external_authority_e2e.py:83:    def __init__(self) -> None:
+./tests/integration/test_gate_external_authority_e2e.py:108:    def __getitem__(self, key):
+./tests/integration/test_gate_external_authority_e2e.py:134:        def __init__(self) -> None:
+./tests/integration/test_gate_external_authority_e2e.py:142:        def __getitem__(self, key):
 ./tests/integration/test_intake_onchange_cascade.py:21:    def setUpClass(cls):
 ./tests/integration/test_intake_onchange_cascade.py:45:    def test_single_facility_auto_selected(self):
 ./tests/integration/test_intake_onchange_cascade.py:52:    def test_standalone_company_is_own_facility(self):
@@ -1928,6 +1929,12 @@
 ./tests/test_gate_canonical_contract.py:368:    def get_param(self, key, default=None):
 ./tests/test_gate_canonical_contract.py:373:    def __init__(self, raw=None):
 ./tests/test_gate_canonical_contract.py:377:    def __getitem__(self, model):
+./tests/test_gate_canonical_env.py:20:    def __init__(self, params: dict[str, str]):
+./tests/test_gate_canonical_env.py:23:    def get_param(self, key: str, default=None):
+./tests/test_gate_canonical_env.py:28:    def __init__(self, params: dict[str, str] | None = None):
+./tests/test_gate_canonical_env.py:32:    def __getitem__(self, key: str):
+./tests/test_gate_canonical_env.py:37:    def sudo(self):
+./tests/test_gate_canonical_env.py:40:    def get_param(self, key: str, default=None):
 ./tests/test_gate_match_contract.py:32:    def __init__(self, params: dict[str, str]):
 ./tests/test_gate_match_contract.py:35:    def get_param(self, key: str, default=None):
 ./tests/test_gate_match_contract.py:40:    def __init__(self, params: dict[str, str] | None = None):
@@ -1937,19 +1944,19 @@
 ./tests/test_gate_match_contract.py:60:    def __init__(self, *, code=None, name=None, record_id=None):
 ./tests/test_gate_match_contract.py:69:    def __init__(self):
 ./tests/test_gate_match_contract.py:94:    def __getitem__(self, key):
-./tests/test_gate_match_contract.py:245:    def __init__(self):
-./tests/test_gate_match_contract.py:258:    def __getitem__(self, key):
-./tests/test_gate_match_contract.py:263:    def __init__(self, url):
-./tests/test_gate_match_contract.py:270:    def __init__(self):
-./tests/test_gate_sdk_invocation.py:51:    def __init__(self, params: dict[str, str]) -> None:
-./tests/test_gate_sdk_invocation.py:54:    def sudo(self):
-./tests/test_gate_sdk_invocation.py:57:    def get_param(self, key, default=None):
-./tests/test_gate_sdk_invocation.py:72:    def __init__(self, **overrides: str) -> None:
-./tests/test_gate_sdk_invocation.py:85:    def __getitem__(self, model):
-./tests/test_gate_sdk_invocation.py:103:    def __init__(self, config):
-./tests/test_gate_sdk_invocation.py:107:    async def _post_json(self, *, url, json_body, timeout_seconds, headers=None, params=None):
-./tests/test_gate_sdk_invocation.py:232:        async def _post_json(self, **kwargs):
-./tests/test_gate_sdk_invocation.py:307:        async def _post_json(self, *, url, **kwargs):
+./tests/test_gate_match_contract.py:240:    def __init__(self):
+./tests/test_gate_match_contract.py:253:    def __getitem__(self, key):
+./tests/test_gate_match_contract.py:258:    def __init__(self, url):
+./tests/test_gate_match_contract.py:265:    def __init__(self):
+./tests/test_gate_sdk_invocation.py:73:    def __init__(self, params: dict[str, str]) -> None:
+./tests/test_gate_sdk_invocation.py:76:    def sudo(self):
+./tests/test_gate_sdk_invocation.py:79:    def get_param(self, key, default=None):
+./tests/test_gate_sdk_invocation.py:94:    def __init__(self, **overrides: str) -> None:
+./tests/test_gate_sdk_invocation.py:101:    def __getitem__(self, model):
+./tests/test_gate_sdk_invocation.py:118:    def __init__(self) -> None:
+./tests/test_gate_sdk_invocation.py:129:    def _reply(self, request, wire, payload):
+./tests/test_gate_sdk_invocation.py:145:    def _handle(self, request: httpx.Request) -> httpx.Response:
+./tests/test_gate_sdk_invocation.py:204:        def __init__(self, config, *, transport=None):
 ./tests/test_golden_flows.py:35:    def setUpClass(cls):
 ./tests/test_golden_flows.py:55:    def test_lead_to_delivery_golden_flow(self):
 ./tests/test_golden_flows.py:125:    def test_lead_conversion_creates_partner_when_missing(self):
@@ -2055,31 +2062,31 @@
 ./tests/test_performance.py:115:    def setUpClass(cls):
 ./tests/test_performance.py:119:    def test_partner_search_under_1s(self):
 ./tests/test_performance.py:131:    def test_intake_complex_domain_under_2s(self):
-./tests/test_phantom_enum_values.py:958:    def __init__(self, filepath):
-./tests/test_phantom_enum_values.py:963:    def _record(self, value, lineno, context):
-./tests/test_phantom_enum_values.py:992:    def visit_Compare(self, node):
-./tests/test_phantom_enum_values.py:1011:    def visit_Tuple(self, node):
-./tests/test_phantom_enum_values.py:1035:    def visit_Subscript(self, node):
-./tests/test_phantom_enum_values.py:1039:    def visit_Dict(self, node):
-./tests/test_phantom_enum_values.py:1264:    def test_selection_fields_found(self):
-./tests/test_phantom_enum_values.py:1267:    def test_xml_names_found(self):
-./tests/test_phantom_enum_values.py:1270:    def test_known_polymers_in_registry(self):
-./tests/test_phantom_enum_values.py:1275:    def test_known_forms_in_registry(self):
-./tests/test_phantom_enum_values.py:1279:    def test_known_selection_keys_in_registry(self):
-./tests/test_phantom_enum_values.py:1290:    def test_application_class_options(self):
-./tests/test_phantom_enum_values.py:1295:    def test_process_type_options(self):
-./tests/test_phantom_enum_values.py:1338:    def test_feedstock_type_options(self):
-./tests/test_phantom_enum_values.py:1354:    def test_domain_values_match_selection_options(self):
-./tests/test_phantom_enum_values.py:1384:    def test_no_phantom_comparison_values(self):
-./tests/test_phantom_enum_values.py:1401:    def test_no_phantom_domain_values(self):
-./tests/test_phantom_enum_values.py:1418:    def test_no_phantom_in_list_values(self):
-./tests/test_phantom_enum_values.py:1444:    def test_module_has_no_phantom_enums(self, module_name):
-./tests/test_phantom_enum_values.py:1466:    def _find_selection_collisions(self):
-./tests/test_phantom_enum_values.py:1481:    def test_shared_selection_fields_are_compatible(self):
-./tests/test_phantom_enum_values.py:1513:    def test_xml_colors_are_canonical(self):
-./tests/test_phantom_enum_values.py:1523:    def test_xml_polymer_names_are_uppercase(self):
-./tests/test_phantom_enum_values.py:1634:    def test_equipment_codes_in_compute_match_seed_data(self):
-./tests/test_phantom_enum_values.py:1690:    def test_print_phantom_summary(self, capsys):
+./tests/test_phantom_enum_values.py:960:    def __init__(self, filepath):
+./tests/test_phantom_enum_values.py:965:    def _record(self, value, lineno, context):
+./tests/test_phantom_enum_values.py:994:    def visit_Compare(self, node):
+./tests/test_phantom_enum_values.py:1013:    def visit_Tuple(self, node):
+./tests/test_phantom_enum_values.py:1037:    def visit_Subscript(self, node):
+./tests/test_phantom_enum_values.py:1041:    def visit_Dict(self, node):
+./tests/test_phantom_enum_values.py:1266:    def test_selection_fields_found(self):
+./tests/test_phantom_enum_values.py:1269:    def test_xml_names_found(self):
+./tests/test_phantom_enum_values.py:1272:    def test_known_polymers_in_registry(self):
+./tests/test_phantom_enum_values.py:1277:    def test_known_forms_in_registry(self):
+./tests/test_phantom_enum_values.py:1281:    def test_known_selection_keys_in_registry(self):
+./tests/test_phantom_enum_values.py:1292:    def test_application_class_options(self):
+./tests/test_phantom_enum_values.py:1297:    def test_process_type_options(self):
+./tests/test_phantom_enum_values.py:1340:    def test_feedstock_type_options(self):
+./tests/test_phantom_enum_values.py:1356:    def test_domain_values_match_selection_options(self):
+./tests/test_phantom_enum_values.py:1386:    def test_no_phantom_comparison_values(self):
+./tests/test_phantom_enum_values.py:1403:    def test_no_phantom_domain_values(self):
+./tests/test_phantom_enum_values.py:1420:    def test_no_phantom_in_list_values(self):
+./tests/test_phantom_enum_values.py:1446:    def test_module_has_no_phantom_enums(self, module_name):
+./tests/test_phantom_enum_values.py:1468:    def _find_selection_collisions(self):
+./tests/test_phantom_enum_values.py:1483:    def test_shared_selection_fields_are_compatible(self):
+./tests/test_phantom_enum_values.py:1515:    def test_xml_colors_are_canonical(self):
+./tests/test_phantom_enum_values.py:1525:    def test_xml_polymer_names_are_uppercase(self):
+./tests/test_phantom_enum_values.py:1636:    def test_equipment_codes_in_compute_match_seed_data(self):
+./tests/test_phantom_enum_values.py:1692:    def test_print_phantom_summary(self, capsys):
 ./tests/test_process_enum_alignment.py:67:    def test_registry_has_codes(self):
 ./tests/test_process_enum_alignment.py:73:    def test_mfi_ranges_cover_all_codes(self):
 ./tests/test_process_enum_alignment.py:80:    def test_facility_profile_imports_registry(self):
