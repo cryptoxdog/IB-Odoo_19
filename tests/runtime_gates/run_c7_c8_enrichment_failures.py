@@ -136,7 +136,8 @@ def execute_expecting_userror(rid):
 
 # ── Gate 2: enrichment disabled ─────────────────────────────────────────────
 print("Gate: enrichment DISABLED")
-set_icp(**{"plasticos.gate.enrichment_enabled": "0", "plasticos.gate.url": "https://gate.invalid"})
+os.environ["GATE_URL"] = os.environ.get("GATE_URL") or "https://gate.invalid"
+set_icp(**{"plasticos.gate.enrichment_enabled": "0"})
 rid, pid, vals = make_run("disabled")
 msg, elapsed = execute_expecting_userror(rid)
 state, fclass, avail, engine = run_row(rid)
@@ -176,10 +177,10 @@ def accept_and_never_reply():
 threading.Thread(target=accept_and_never_reply, daemon=True).start()
 
 # 2s budget: proves the validated timeout actually reaches the HTTP client.
+os.environ["GATE_URL"] = f"https://127.0.0.1:{port}"
 set_icp(
     **{
         "plasticos.gate.enrichment_enabled": "1",
-        "plasticos.gate.url": f"https://127.0.0.1:{port}",
         "plasticos.gate.timeout_seconds": "2",
     }
 )

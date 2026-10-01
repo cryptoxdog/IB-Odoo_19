@@ -1,10 +1,10 @@
 """Real Gate match/converge round-trip integration test (M0 / TASK-046).
 
 Requires a live local five-service stack. Set:
-  PLASTICOS_GATE_LIVE_URL=http://127.0.0.1:9000
-  PLASTICOS_GATE_ALLOW_INSECURE_HTTP=1
+  GATE_URL=http://127.0.0.1:9000
+  (optional ICP plasticos.gate.allow_insecure_http=1 for cleartext)
 
-Without those env vars the test is skipped (not marked xfail) so CI stays green
+Without GATE_URL the test is skipped (not marked xfail) so CI stays green
 while still providing an executable live proof harness for TASK-046 evidence.
 """
 
@@ -27,25 +27,24 @@ from plasticos_gate.services.gate_mappers import map_converge_response, map_matc
 
 
 def _live_enabled() -> bool:
-    return bool((os.environ.get("PLASTICOS_GATE_LIVE_URL") or "").strip())
+    return bool((os.environ.get("GATE_URL") or "").strip())
 
 
 pytestmark = pytest.mark.skipif(
     not _live_enabled(),
-    reason="Set PLASTICOS_GATE_LIVE_URL to exercise live Gate match/converge",
+    reason="Set GATE_URL to exercise live Gate match/converge",
 )
 
 
 class _ICP:
     def __init__(self) -> None:
         self._params = {
-            "plasticos.gate.url": os.environ["PLASTICOS_GATE_LIVE_URL"].strip(),
-            "plasticos.gate.allow_insecure_http": os.environ.get("PLASTICOS_GATE_ALLOW_INSECURE_HTTP", "1"),
+            "plasticos.gate.allow_insecure_http": "1",
             "plasticos.gate.matching_enabled": "1",
             "plasticos.gate.enrichment_enabled": "1",
             "plasticos.gate.local_node": "odoo",
             "plasticos.gate.org_id": "plasticos",
-            "plasticos.gate.timeout_seconds": os.environ.get("PLASTICOS_GATE_TIMEOUT", "30"),
+            "plasticos.gate.timeout_seconds": os.environ.get("GATE_CLIENT_TIMEOUT_SECONDS", "30"),
         }
 
     def get_param(self, key: str, default=None):

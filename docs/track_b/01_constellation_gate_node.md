@@ -35,7 +35,7 @@
 - **Why sixth:** ADR-002 makes Gate the single observability point. Track A's graceful fallback depends on receiving an error (or timeout) rather than a hang/crash.
 
 ### Step 7 — Deploy + connectivity smoke test
-- **Do:** Deploy to a reachable host. From Odoo staging set `plasticos.gate.url` and run a packet through with CEG stubbed (or a hub-level echo for `match`). Confirm a valid response packet returns and Odoo records `match_source="gate"`.
+- **Do:** Deploy to a reachable host. From Odoo staging set `GATE_URL` (and `L9_*`) and run a packet through with CEG stubbed (or a hub-level echo for `match`). Confirm a valid response packet returns and Odoo records `match_source="gate"`.
 - **Why last:** End-to-end reachability is the milestone that unblocks 02 integration. Do it before CEG real logic so failures are isolated to transport.
 
 ---

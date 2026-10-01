@@ -9,7 +9,7 @@ When Gate matching is unavailable or transport fails, Odoo **must not** substitu
 | Class | Run state | Operator action |
 |---|---|---|
 | `retryable` | `retryable` | Fix transient issue (timeout/network) → **Retry Gate Match** |
-| `permanent` | `failed` | Fix ICP (`plasticos.gate.url`, matching enabled, SDK install) |
+| `permanent` | `failed` | Fix `GATE_URL` / `L9_*`, matching enabled, SDK install, or Gate caller record |
 | `unknown` | `degraded` | Investigate; do **not** treat as empty success |
 
 Availability statuses from `classify_gate_availability` (e.g. `missing_url`, `sdk_missing`, `matching_disabled`) are stored on `availability_status`.

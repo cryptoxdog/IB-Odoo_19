@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import threading
 from enum import StrEnum
 from typing import Any
@@ -14,6 +15,13 @@ from .gate_config import (
     get_matching_action,
     resolve_tenant,
 )
+
+_logger = logging.getLogger(__name__)
+
+# Odoo caller-policy record: match + converge only. Never request sync.
+_ODOO_REQUIRED_ACTIONS: tuple[str, ...] = ("match", "converge")
+_activate_logged = False
+_activated_ok = False
 
 # The SDK is optional at import time (Odoo.sh installs it via requirements.txt;
 # bare dev environments may lack it). Bind the entry point as `Any` so the
@@ -32,6 +40,7 @@ _SDK_TRANSPORT_ERRORS: tuple[type[BaseException], ...] = ()
 _SDK_RETRYABLE_ERRORS: tuple[type[BaseException], ...] = ()
 _SDK_PERMANENT_ERRORS: tuple[type[BaseException], ...] = ()
 _SDK_HTTP_ERRORS: tuple[type[BaseException], ...] = ()
+_SDK_AUTH_ERRORS: tuple[type[BaseException], ...] = ()
 try:
     from constellation_node_sdk import (  # type: ignore[no-redef]  # noqa: F811
         GateClient,
@@ -58,6 +67,19 @@ try:
         GateSecurityError,
     )
     _SDK_HTTP_ERRORS = (GateHTTPError,)
+    try:
+        from constellation_node_sdk import GateAuthorizationError as _GateAuthErr
+
+        _SDK_AUTH_ERRORS = (_GateAuthErr,)
+        _SDK_PERMANENT_ERRORS = (*_SDK_PERMANENT_ERRORS, _GateAuthErr)
+    except ImportError:
+        try:
+            from constellation_node_sdk.gate import GateAuthorizationError as _GateAuthErr
+
+            _SDK_AUTH_ERRORS = (_GateAuthErr,)
+            _SDK_PERMANENT_ERRORS = (*_SDK_PERMANENT_ERRORS, _GateAuthErr)
+        except ImportError:
+            pass
 except Exception as exc:  # pragma: no cover
     _SDK_IMPORT_ERROR = exc
 
@@ -121,6 +143,10 @@ def classify_transport_failure(exc: BaseException) -> TransportFailureClass:
     "timeout", which misclassified any message that merely mentioned one and
     silently failed for exceptions that stringify to empty (httpx timeouts do).
     """
+    code = getattr(exc, "code", None)
+    if code == "action_not_permitted" or (_SDK_AUTH_ERRORS and isinstance(exc, _SDK_AUTH_ERRORS)):
+        return TransportFailureClass.PERMANENT
+
     status = _http_status(exc)
     if status is None and _SDK_HTTP_ERRORS and isinstance(exc, _SDK_HTTP_ERRORS):
         status = getattr(exc, "status_code", None)
@@ -157,6 +183,47 @@ def classify_transport_failure(exc: BaseException) -> TransportFailureClass:
         return TransportFailureClass.PERMANENT
 
     return TransportFailureClass.UNKNOWN
+
+
+def _maybe_activate(client: Any, config: Any, tenant: str) -> None:
+    """Ask Gate whether this consumer is admitted for match+converge.
+
+    Skip (log once, no fake receipt) when the SDK has no ``activate``, the
+    config cannot prove identity, or the hub has not deployed ``/v1/admission``
+    (404). Caller-policy refusals (403 / action_not_permitted) are permanent.
+    Never requests ``sync``. Never calls the registry.
+    """
+    global _activate_logged, _activated_ok
+    if _activated_ok:
+        return
+    activate = getattr(client, "activate", None)
+    if not callable(activate):
+        if not _activate_logged:
+            _logger.info("Gate SDK has no activate(); skipping admission until the v1 channel moves")
+            _activate_logged = True
+        return
+    problems_fn = getattr(config, "admission_problems", None)
+    problems = list(problems_fn()) if callable(problems_fn) else []
+    if problems:
+        if not _activate_logged:
+            _logger.warning("Gate admission skipped; identity cannot be proven: %s", "; ".join(problems))
+            _activate_logged = True
+        return
+    try:
+        _run_async(activate(required_actions=_ODOO_REQUIRED_ACTIONS, tenant=tenant))
+        _activated_ok = True
+    except Exception as exc:
+        status = getattr(exc, "status_code", None)
+        if status is None:
+            status = getattr(getattr(exc, "response", None), "status_code", None)
+        if status == 404:
+            if not _activate_logged:
+                _logger.warning("Gate /v1/admission is not on this hub yet; skipping activate")
+                _activate_logged = True
+            return
+        failure = classify_transport_failure(exc)
+        detail = str(exc) or type(exc).__name__
+        raise GateIntegrationError(detail, failure_class=failure.value) from exc
 
 
 def _require_sdk() -> None:
@@ -218,10 +285,10 @@ def send_action(
     config = build_gate_client_config(env)
     client = GateClient(config)
     # Node identity has one owner: the config object the SDK reads source_node
-    # and reply_to from. A second, independently-normalized read of the ICP
-    # parameter here could drift from the identity actually on the wire.
+    # and reply_to from. Forced to odoo so it matches the Gate caller record.
     local_node = config.local_node
     tenant = resolve_tenant(env)
+    _maybe_activate(client, config, tenant)
     user = env.user
     tenant_ctx = {
         "actor": tenant,

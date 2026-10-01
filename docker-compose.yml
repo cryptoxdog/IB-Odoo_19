@@ -57,6 +57,13 @@ services:
         condition: service_healthy
     ports:
       - "8069:8069"
+    environment:
+      GATE_URL: ${GATE_URL:-}
+      L9_NODE_NAME: ${L9_NODE_NAME:-odoo}
+      L9_SIGNING_KEY: ${L9_SIGNING_KEY:-}
+      L9_SIGNING_KEY_ID: ${L9_SIGNING_KEY_ID:-}
+      L9_VERIFYING_KEYS_JSON: ${L9_VERIFYING_KEYS_JSON:-}
+      L9_REQUIRE_SIGNATURE: ${L9_REQUIRE_SIGNATURE:-}
     volumes:
       - .:/mnt/extra-addons
       - ./odoo-enterprise:/mnt/enterprise:ro
@@ -87,6 +94,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    environment:
+      GATE_URL: ${GATE_URL:-}
+      L9_NODE_NAME: ${L9_NODE_NAME:-odoo}
+      L9_SIGNING_KEY: ${L9_SIGNING_KEY:-}
+      L9_SIGNING_KEY_ID: ${L9_SIGNING_KEY_ID:-}
+      L9_VERIFYING_KEYS_JSON: ${L9_VERIFYING_KEYS_JSON:-}
+      L9_REQUIRE_SIGNATURE: ${L9_REQUIRE_SIGNATURE:-}
     volumes:
       - .:/mnt/extra-addons
       - ./odoo-enterprise:/mnt/enterprise:ro
@@ -115,7 +129,13 @@ services:
       - .:/mnt/extra-addons
       - ./odoo-enterprise:/mnt/enterprise:ro
     environment:
-      - ODOO_DEMO=1
+      ODOO_DEMO: "1"
+      GATE_URL: ${GATE_URL:-}
+      L9_NODE_NAME: ${L9_NODE_NAME:-odoo}
+      L9_SIGNING_KEY: ${L9_SIGNING_KEY:-}
+      L9_SIGNING_KEY_ID: ${L9_SIGNING_KEY_ID:-}
+      L9_VERIFYING_KEYS_JSON: ${L9_VERIFYING_KEYS_JSON:-}
+      L9_REQUIRE_SIGNATURE: ${L9_REQUIRE_SIGNATURE:-}
     command: >
       --addons-path=/mnt/extra-addons,/mnt/enterprise,/usr/lib/python3/dist-packages/odoo/addons
       -d odoo_demo

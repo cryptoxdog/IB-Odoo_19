@@ -5,8 +5,8 @@ All Gate traffic must flow through ``plasticos_gate/services/gate_client.py``
 second egress path is introduced anywhere in the addon tree:
 
 1. ``constellation_node_sdk`` imported outside ``plasticos_gate``.
-2. ``plasticos.gate.url`` read outside ``plasticos_gate`` (a direct HTTP
-   client pointed at the Gate would need the URL).
+2. Legacy connection names (``GATE`` ICP URL / old env aliases) in runtime
+   Python — the SDK reads ``GATE_URL`` + ``L9_*`` only.
 3. SDK transport primitives (``GateClient(``, ``send_to_gate``) referenced
    outside the canonical bridge module.
 4. ``create_transport_packet(`` referenced ANYWHERE in the addon tree,
@@ -31,7 +31,8 @@ _BRIDGE_CLIENT = _BRIDGE_DIR / "services" / "gate_client.py"
 _BRIDGE_CONFIG = _BRIDGE_DIR / "services" / "gate_config.py"
 
 _SDK_IMPORT_RE = re.compile(r"^\s*(?:from|import)\s+constellation_node_sdk\b", re.MULTILINE)
-_GATE_URL_RE = re.compile(r"plasticos\.gate\.url")
+_LEGACY_CONN_RE = re.compile(r"plasticos\.gate\.url|PLASTICOS_GATE_")
+_REGISTRY_RE = re.compile(r"/v1/registry")
 _TRANSPORT_RE = re.compile(r"GateClient\(|send_to_gate")
 # Packet construction is the SDK's, everywhere — the bridge included.
 _PACKET_BUILD_RE = re.compile(r"create_transport_packet\(")
@@ -63,18 +64,31 @@ def test_sdk_imported_only_inside_plasticos_gate():
     )
 
 
-def test_gate_url_param_read_only_inside_plasticos_gate():
+def test_runtime_python_has_no_legacy_gate_connection_plane():
+    """Connection authority is GATE_URL + L9_* only. Tests may name the old keys as forbidden."""
     offenders = []
     for module_dir in _SCAN_DIRS:
         for path in _py_files(module_dir):
-            if path.is_relative_to(_BRIDGE_DIR):
+            if "/migrations/" in path.as_posix() or "/tests/" in path.as_posix():
                 continue
-            if _GATE_URL_RE.search(path.read_text(encoding="utf-8", errors="replace")):
-                offenders.append(_rel(path))
-    assert not offenders, (
-        "plasticos.gate.url read outside plasticos_gate — single-egress "
-        f"violation in: {offenders}. Only the canonical bridge may resolve the Gate URL."
-    )
+            text = path.read_text(encoding="utf-8", errors="replace")
+            for lineno, line in enumerate(text.splitlines(), 1):
+                stripped = line.strip()
+                if stripped.startswith("#"):
+                    continue
+                if _LEGACY_CONN_RE.search(line):
+                    offenders.append(f"{_rel(path)}:{lineno}")
+    assert not offenders, f"legacy Gate connection names in runtime Python (use GATE_URL + L9_*): {offenders}"
+
+
+def test_plasticos_gate_never_calls_the_registry():
+    offenders = []
+    for path in _py_files(_BRIDGE_DIR):
+        if "/tests/" in path.as_posix():
+            continue
+        if _REGISTRY_RE.search(path.read_text(encoding="utf-8", errors="replace")):
+            offenders.append(_rel(path))
+    assert not offenders, f"plasticos_gate names /v1/registry at {offenders}. Routing is action → Gate."
 
 
 def test_transport_primitives_only_in_gate_client():

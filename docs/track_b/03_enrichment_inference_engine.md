@@ -38,7 +38,7 @@
 - **Why sixth:** Track A wraps converge in try/except → local fallback. Long/hanging converge would stall the enrichment action. Decide sync-vs-async with the hub before going wide.
 
 ### Step 7 — End-to-end test from Odoo (live)
-- **Do:** With hub (01) live, set `plasticos.gate.url` (enrichment is on by default), run an enrichment run on a sample partner with sources. Verify Odoo run shows `engine_used="gate"`, `state="injected"`, `fields_written>0`, `gate_packet_id` set, and that the allowlisted fields are **live on the partner** with `plasticos.enrichment.provenance` rows (`target_model="res.partner"`). To validate review-only, set `plasticos.gate.auto_writeback=0` and confirm `state="review"` with no partner writes.
+- **Do:** With hub (01) live, set `GATE_URL` (enrichment is on by default), run an enrichment run on a sample partner with sources. Verify Odoo run shows `engine_used="gate"`, `state="injected"`, `fields_written>0`, `gate_packet_id` set, and that the allowlisted fields are **live on the partner** with `plasticos.enrichment.provenance` rows (`target_model="res.partner"`). To validate review-only, keep `plasticos.gate.auto_writeback=0` and confirm `state="review"` with no partner writes.
 - **Why last:** Confirms the live writeback path (and the review-only opt-out). EIE output lands directly in the CRM, so validate field quality on sample data before enabling in production.
 
 ---

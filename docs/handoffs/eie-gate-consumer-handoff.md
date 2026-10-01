@@ -61,7 +61,7 @@ Make IB-Odoo_19 a **correct Gate consumer**:
 
 1. Ensure `constellation-node-sdk` (Gate_SDK) is installed and pinned in the Odoo runtime.
 2. Ensure `plasticos_gate` is the **sole** SDK import seam and only talks to Constellation.Gate.
-3. Ensure enrichment (`action=converge`) and matching (`action=match`) call paths are operational when `plasticos.gate.url` is set.
+3. Ensure enrichment (`action=converge`) and matching (`action=match`) call paths are operational when `GATE_URL` is set.
 4. Align Odoo request builders / response mappers with **live worker contracts** (EIE for converge, CEG for match) — Odoo adapts if mismatched.
 5. Preserve try-Gate → local-fallback; never hang; never hard-break ERP flows when Gate is down.
 6. Do **not** redesign Gate_SDK, Constellation.Gate, or EIE from the Odoo repo.
@@ -104,19 +104,25 @@ EIE currently pins the **same SHA** (via `cryptoxdog/Gate_SDK` remote alias of t
 
 Enrichment path: try Gate converge → on exception fall back to local crawl/extract/inject (`enrichment_run.action_execute`).
 
-### 2.4 Seeded ICPs (`plasticos_gate/data/gate_icp_seed.xml`)
+### 2.4 Connection env (canonical Gate_SDK names) + capability ICPs
 
-| Key | Default | Meaning |
+Connection plane is process environment only. Odoo.sh / compose set the same names. `L9_NODE_NAME` and `plasticos.gate.org_id` (tenant) must match the Gate caller record. `L9_VERIFYING_KEYS_JSON` is Gate's key, not Odoo's.
+
+| Name | Default | Meaning |
 |-----|---------|---------|
-| `plasticos.gate.url` | `""` (empty) | **Must be set** to hub base URL or Gate stays off |
-| `plasticos.gate.local_node` | `odoo` | `source_node` / `reply_to` |
-| `plasticos.gate.matching_enabled` | `1` | Match via Gate when URL+SDK ok |
+| `GATE_URL` | *(unset)* | Hub base URL; unset ⇒ `missing_url` |
+| `L9_NODE_NAME` | `odoo` | Consumer node id; must match the caller record |
+| `L9_SIGNING_KEY` | *(unset)* | Odoo signing material |
+| `L9_SIGNING_KEY_ID` | *(unset)* | Odoo key id on the Gate caller record |
+| `L9_VERIFYING_KEYS_JSON` | *(unset)* | Keys used to verify Gate |
+| `L9_REQUIRE_SIGNATURE` | *(unset)* | Require signatures |
+| `plasticos.gate.matching_enabled` | `1` | Capability: match via Gate when URL+SDK ok |
 | `plasticos.gate.matching_action` | `match` | Packet `header.action` for matching |
-| `plasticos.gate.enrichment_enabled` | `1` | Converge via Gate when URL+SDK ok |
+| `plasticos.gate.enrichment_enabled` | `1` | Capability: converge via Gate when URL+SDK ok |
 | `plasticos.gate.enrichment_action` | `converge` | Packet `header.action` for enrichment |
-| `plasticos.gate.auto_writeback` | `1` | Live partner writeback (merge-not-overwrite) |
-| `plasticos.gate.timeout_seconds` | `30` | Client timeout |
-| `plasticos.gate.org_id` | `""` | Tenant org; falls back to `env.cr.dbname` |
+| `plasticos.gate.auto_writeback` | `0` | Live partner writeback (merge-not-overwrite) |
+| `plasticos.gate.timeout_seconds` | `30` | Client timeout ceiling |
+| `plasticos.gate.org_id` | `""` | Tenant; must match Gate caller record (else dbname) |
 
 ---
 
@@ -170,44 +176,45 @@ Enrichment path: try Gate converge → on exception fall back to local crawl/ext
        compliance_tags=("ERP", "ENRICHMENT") | ("ERP", "MATCHING"),
    )
    ```
-3. Sends via `GateClient(config).send_to_gate(packet)` against `plasticos.gate.url`.
+3. Sends via `GateClient(config).execute(...)` against `GATE_URL`.
 4. Returns `{"packet": response_packet, "payload": dict(response_packet.payload)}`.
 5. Raises `GateIntegrationError` (or wraps SDK errors) on transport failure so callers can fall back.
 
 **Config must use** (`gate_config.build_gate_client_config`):
 
 ```python
-GateClientConfig(
-    gate_url=<plasticos.gate.url>,
-    local_node=<plasticos.gate.local_node or "odoo">,
+get_gate_client_config_from_env(
+    local_node="odoo",
     timeout_seconds=float(<plasticos.gate.timeout_seconds or 30>),
     allowed_gate_destination="gate",
 )
+# GATE_URL + L9_* come from the process environment.
 ```
 
 **Done when:** No Odoo code path posts to an EIE/CEG base URL; every intelligence call goes through `send_action` → Gate.
 
 ---
 
-### Step 3 — Wire ICP + module install (staging)
+### Step 3 — Wire env + module install (staging)
 
 **Do:**
 1. Install/upgrade modules: `plasticos_gate`, `plasticos_enrichment` (and matcher modules that use Gate match).
 2. Set:
    ```text
-   plasticos.gate.url = https://<constellation-gate-host>
+   GATE_URL=https://<constellation-gate-host>
+   L9_NODE_NAME=odoo
    ```
-   (no trailing junk; must be `http://` or `https://`)
-3. Optionally set `plasticos.gate.org_id` to a stable tenant id.
+   (no trailing junk; must be `http://` or `https://`). Tenant (`plasticos.gate.org_id` or dbname) must match the Gate caller record.
+3. Optionally set `plasticos.gate.org_id` to that same tenant string.
 4. Leave defaults unless testing review-only:
    - `enrichment_enabled=1`
-   - `auto_writeback=1`
+   - `auto_writeback=0`
    - `timeout_seconds=30`
 5. Confirm enablement helpers:
-   - `gate_enrichment_enabled(env)` → True only when URL valid **and** SDK importable **and** flag truthy.
+   - `gate_enrichment_enabled(env)` → True only when `GATE_URL` valid **and** SDK importable **and** flag truthy.
    - Same pattern for matching.
 
-**Done when:** With URL set + SDK present, `_should_try_gate_converge()` / matcher Gate path returns True; with URL empty, returns False and local path is used.
+**Done when:** With `GATE_URL` set + SDK present, `_should_try_gate_converge()` / matcher Gate path returns True; with `GATE_URL` unset, returns False and local path is used.
 
 ---
 
@@ -345,7 +352,7 @@ Expected: SDK imports only under `plasticos_gate/services/gate_client.py` (plus 
 - Same Gate_SDK SHA across Odoo/Gate/EIE.
 
 **Odoo steps:**
-1. Set `plasticos.gate.url`.
+1. Set `GATE_URL` (and `L9_*`).
 2. Create `res.partner` with blank `website` and `city`, attach enrichment source URL(s).
 3. Create/run `plasticos.enrichment.run` → `action_execute`.
 4. Expect:
@@ -454,7 +461,7 @@ This allowlist is an **Odoo CRM policy**. EIE may return extra keys; Odoo drops 
 
 | Condition | Expected Odoo behavior |
 |-----------|------------------------|
-| `plasticos.gate.url` empty | Skip Gate; local path |
+| `GATE_URL` unset | Skip Gate; local path |
 | SDK not installed | Skip Gate; local path |
 | `enrichment_enabled=0` | Skip Gate converge; local path |
 | Gate connection error / timeout | Catch; local fallback; log warning |
@@ -473,7 +480,7 @@ Never block the Odoo HTTP worker indefinitely; honor `plasticos.gate.timeout_sec
 - [ ] `constellation-node-sdk` installs cleanly at the locked SHA in the Odoo runtime.
 - [ ] `plasticos_gate` is the sole SDK seam; `destination_node="gate"` only.
 - [ ] No direct Odoo→EIE or Odoo→CEG HTTP.
-- [ ] With hub+EIE live and `plasticos.gate.url` set, enrichment run uses Gate converge:
+- [ ] With hub+EIE live and `GATE_URL` set, enrichment run uses Gate converge:
   - `engine_used="gate"`
   - `state="injected"` (auto-writeback on)
   - `fields_written>0` on sample blank website/city
@@ -530,7 +537,7 @@ less plasticos_enrichment/models/enrichment_run.py
 
 | Team | Must provide |
 |------|----------------|
-| Gate hub | Reachable `plasticos.gate.url`; route `converge`→EIE, `match`→CEG; preserve correlation; ≤30s timeout errors |
+| Gate hub | Reachable `GATE_URL`; route `converge`→EIE, `match`→CEG; preserve correlation; ≤30s timeout errors |
 | EIE | Worker registered; `action=converge` on `/v1/execute`; payload/response per §4 |
 | Odoo (this agent) | SDK installed; ICP set; builders/mappers aligned; fallback preserved; no direct worker calls |
 | Shared | Gate_SDK SHA lockstep |

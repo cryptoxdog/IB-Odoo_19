@@ -25,6 +25,7 @@ and the operator note. Real cross-session durability is proven by
 
 from __future__ import annotations
 
+import os
 from contextlib import contextmanager
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -101,6 +102,7 @@ def _eligible_candidate(buyer, score=0.85):
 class TestMatchRunReceipts(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
+        cls._prior_gate_url = os.environ.get("GATE_URL")
         super().setUpClass()
         cls._skip_if_model_missing(
             "plasticos.match.orchestrator",
@@ -111,7 +113,15 @@ class TestMatchRunReceipts(PlasticosTestCase):
         # The orchestrator's durable failure write opens registry.cursor(); in
         # test mode that is a TestCursor over this test's connection.
         cls.registry_enter_test_mode_cls()
-        cls.env["ir.config_parameter"].sudo().set_param("plasticos.matching_engine.enabled", "1")
+        os.environ["GATE_URL"] = "https://gate.example.internal"
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls._prior_gate_url is None:
+            os.environ.pop("GATE_URL", None)
+        else:
+            os.environ["GATE_URL"] = cls._prior_gate_url
+        super().tearDownClass()
         cls.supplier = cls._create_partner("Gate Receipt Supplier", supplier_rank=1)
         cls.buyer = cls._create_partner("Gate Receipt Buyer", customer_rank=1)
         polymer = cls._get_or_create_polymer()

@@ -1,8 +1,16 @@
 """Intake match actions — Gate-only with explicit degraded/retry UX (M3)."""
 
 from odoo import _, models
-from odoo.addons.plasticos_base.models.matching_engine_icp import matching_engine_require_enabled_for_ui
+from odoo.addons.plasticos_gate.services.gate_config import classify_gate_availability
 from odoo.exceptions import UserError
+
+
+def _require_gate_for_ui(env) -> None:
+    verdict = classify_gate_availability(env)
+    if verdict.available:
+        return
+    reasons = "; ".join(verdict.reasons) or verdict.status
+    raise UserError(_("Gate matching is unavailable (%s).") % reasons)
 
 
 class PlasticosIntakeGateMatch(models.Model):
@@ -10,7 +18,7 @@ class PlasticosIntakeGateMatch(models.Model):
 
     def action_match_to_buyers(self):
         """Match buyers via Gate-only orchestrator (no local scoring fallback)."""
-        matching_engine_require_enabled_for_ui(self.env)
+        _require_gate_for_ui(self.env)
         orchestrator = self.env["plasticos.match.orchestrator"]
         for record in self:
             try:
@@ -73,7 +81,7 @@ class PlasticosIntakeGateMatch(models.Model):
     def action_retry_latest_match(self):
         """Retry the latest non-ok Gate match run for this intake."""
         self.ensure_one()
-        matching_engine_require_enabled_for_ui(self.env)
+        _require_gate_for_ui(self.env)
         run = self.env["plasticos.match.run"].search(
             [
                 ("intake_id", "=", self.id),

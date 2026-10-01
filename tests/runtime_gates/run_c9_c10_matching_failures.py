@@ -198,12 +198,11 @@ def assert_no_scoring_or_commercial_mutation(prefix, iid, pid, vals):
     )
 
 
-# The intake button is feature-gated separately from Gate availability.
-set_icp(**{"plasticos.matching_engine.enabled": "1"})
+os.environ["GATE_URL"] = os.environ.get("GATE_URL") or "https://gate.invalid"
 
 # ── Gate C9: matching disabled ──────────────────────────────────────────────
 print("Gate C9: matching DISABLED")
-set_icp(**{"plasticos.gate.matching_enabled": "0", "plasticos.gate.url": "https://gate.invalid"})
+set_icp(**{"plasticos.gate.matching_enabled": "0"})
 iid, pid, vals = make_intake("disabled")
 msg, elapsed = drive_expecting_userror(iid, "action_match_to_buyers")
 rows = run_rows(iid)
@@ -263,10 +262,10 @@ def accept_and_never_reply():
 threading.Thread(target=accept_and_never_reply, daemon=True).start()
 
 # 2s budget: proves the validated timeout actually reaches the HTTP client.
+os.environ["GATE_URL"] = f"https://127.0.0.1:{port}"
 set_icp(
     **{
         "plasticos.gate.matching_enabled": "1",
-        "plasticos.gate.url": f"https://127.0.0.1:{port}",
         "plasticos.gate.timeout_seconds": "2",
     }
 )

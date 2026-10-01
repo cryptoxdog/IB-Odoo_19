@@ -67,20 +67,18 @@ As of **ADR-003-single-external-intelligence-authority** (TASK-045 / PROMOTION_A
 | - try Gate → fallback local matcher + Neo4j `(ROAD-GATE-011)` | - Gate-only matcher (no fallback) `(ROAD-GATE-021)` |
 | - Match audit: `plasticos.match.result`, correlation IDs `(ROAD-GATE-012)` | - Auto-send offers `(ROAD-GATE-022)` |
 | - Optional: Gate `converge` for enrichment (with local fallback) `(ROAD-GATE-013)` | - `plasticos.gate.webleads_*` ICP `(ROAD-GATE-023)` |
-| - ICP: `plasticos.gate.url`, `plasticos.gate.matching_enabled` `(ROAD-GATE-014)` | - `plasticos.gate.auto_writeback=1` `(ROAD-GATE-024)` |
+| - Env: `GATE_URL` + `L9_*`; ICP: `plasticos.gate.matching_enabled` `(ROAD-GATE-014)` | - `plasticos.gate.auto_writeback=1` `(ROAD-GATE-024)` |
 | - `external_dependencies`: `constellation-node-sdk` (match module) `(ROAD-GATE-015)` | - Phase 3 autonomy flags `(ROAD-GATE-025)` |
 <!-- roadmap:gate-autonomy:phase1-scope:end -->
 
 ### Config parameters (Phase 1)
 
-| Key | Default | Purpose |
+| Name | Default | Purpose |
 |-----|---------|---------|
-| `plasticos.gate.url` | *(unset)* | Gate endpoint; unset → local matcher only |
-| `plasticos.gate.local_node` | `odoo` | Source node id in transport packets |
-| `plasticos.gate.matching_enabled` | `1` | When `1` and URL set, try Gate first |
+| `GATE_URL` | *(unset)* | Gate endpoint; unset → `missing_url` |
+| `L9_NODE_NAME` | `odoo` | Source node id; must match the Gate caller record |
+| `plasticos.gate.matching_enabled` | `1` | When `1` and `GATE_URL` set, try Gate |
 | `plasticos.gate.matching_action` | `match` | Gate action routed to CEG |
-| `plasticos.matching_engine.enabled` | *(existing)* | Master kill switch (unchanged) |
-| `plasticos.matching_engine.stubbed` | *(existing)* | Stub mode (unchanged) |
 
 ### Observability (required for graduation)
 
