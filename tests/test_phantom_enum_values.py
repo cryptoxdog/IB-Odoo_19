@@ -685,6 +685,8 @@ GLOBAL_ALLOWLIST = frozenset(
         "mistral",
         "gemini",
         "perplexity",
+        # Gate SDK error code compared in gate_client.py — not an Odoo Selection.
+        "action_not_permitted",
         # ─────────────────────────────────────────────────────────────────────
         # WEB LEAD PARSER DISPATCH KEYS — triage_helpers.py container/unit maps
         # These are natural language parsing keys, not Odoo selection values

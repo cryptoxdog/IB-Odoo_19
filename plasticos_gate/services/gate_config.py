@@ -394,8 +394,23 @@ def gate_signing_configured(env=None) -> bool:
         return False
 
 
+def _copy_supported_overrides(config: Any, overrides: dict[str, Any]) -> Any:
+    """Apply Odoo overrides onto a config the zero-argument v1 builder returned."""
+    fields = getattr(type(config), "model_fields", None)
+    update = {key: value for key, value in overrides.items() if fields is None or key in fields}
+    if not update or not hasattr(config, "model_copy"):
+        return config
+    return config.model_copy(update=update)
+
+
 def _sdk_config_from_env(**overrides: Any):
-    """Call the SDK env builder when present; otherwise assemble from L9_* only."""
+    """Call the SDK env builder when present; otherwise assemble from L9_* only.
+
+    Pinned ``constellation-node-sdk`` v1 exposes
+    ``get_gate_client_config_from_env()`` with no parameters. Passing overrides
+    into that function raises ``TypeError``. Call it bare, then copy the Odoo
+    budget, node name, destination pin, and signing posture onto the result.
+    """
     env_builder = None
     try:
         from constellation_node_sdk import get_gate_client_config_from_env
@@ -409,7 +424,10 @@ def _sdk_config_from_env(**overrides: Any):
         except ImportError:
             env_builder = None
     if env_builder is not None:
-        return env_builder(**overrides)
+        try:
+            return env_builder(**overrides)
+        except TypeError:
+            return _copy_supported_overrides(env_builder(), overrides)
 
     from constellation_node_sdk import GateClientConfig
 
@@ -421,11 +439,21 @@ def _sdk_config_from_env(**overrides: Any):
         "gate_url": url,
         "local_node": ODOO_NODE_NAME,
         "timeout_seconds": DEFAULT_GATE_TIMEOUT_SECONDS,
-        "allowed_gate_destination": "gate",
         **signing,
     }
     values.update(overrides)
-    return GateClientConfig(**values)
+    return GateClientConfig(
+        gate_url=values["gate_url"],
+        local_node=values["local_node"],
+        timeout_seconds=values["timeout_seconds"],
+        allowed_gate_destination="gate",
+        require_signature=bool(values.get("require_signature")),
+        signing_key=values.get("signing_key"),
+        signing_key_id=values.get("signing_key_id"),
+        signing_algorithm=values.get("signing_algorithm"),
+        verify_response_signatures=bool(values.get("verify_response_signatures")),
+        verifying_keys=values.get("verifying_keys") or {},
+    )
 
 
 def build_gate_client_config(env) -> GateClientConfig:
@@ -435,11 +463,12 @@ def build_gate_client_config(env) -> GateClientConfig:
     No ICP URL and no legacy env aliases.
     """
     timeout = resolve_gate_timeout_seconds(env)
-    resolve_gate_signing()
+    signing = resolve_gate_signing()
     overrides: dict[str, Any] = {
         "local_node": ODOO_NODE_NAME,
         "timeout_seconds": timeout,
         "allowed_gate_destination": "gate",
+        **signing,
     }
     try:
         from constellation_node_sdk import GateClientConfig as _Cfg
