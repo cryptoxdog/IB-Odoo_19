@@ -1,20 +1,22 @@
-"""LegacyErp -> PlasticOS historical import (one deterministic pipeline).
+"""ERP -> PlasticOS historical import (one deterministic pipeline).
 
-One-way import of the authoritative LegacyErp export tracked at
-``data/legacy_erp_sm_export/`` into the current Odoo models. No UI, no wizard,
+One-way import of the ERP SQL in
+``plasticos_partner_import/erp_extracted_data/`` into the current Odoo models.
+When that folder has no ``INSERT`` rows, the frozen grid extract is used.
+No UI, no wizard,
 no menu, no cron, no queue, no ETL framework: a single non-interactive
 entrypoint that calls already-tested source functions.
 
 Pipeline::
 
-    tracked LegacyErp export
-        -> legacy_erp.reader          (exact-format source rows)
-        -> legacy_erp.source_index    (CpID / AddressID / CT_ID / CRA_ID /
+    tracked ERP export
+        -> erp.reader          (exact-format source rows)
+        -> erp.source_index    (CpID / AddressID / CT_ID / CRA_ID /
                                      BuySellNo / DetailID)
-        -> legacy_erp.header_forensics(supplier / buyer / date / state)
+        -> erp.header_forensics(supplier / buyer / date / state)
         -> this service             (deterministic upsert into current models)
 
-Identity is always a stable LegacyErp key resolved through ``ir.model.data``.
+Identity is always a stable ERP key resolved through ``ir.model.data``.
 Company names, e-mail addresses, phone numbers, address text, and Odoo database
 ids are never identity.
 
@@ -38,7 +40,9 @@ PLASTICOS_TRANSACTION = "plasticos.transaction"
 PLASTICOS_TRANSACTION_LINE = "plasticos.transaction.line"
 PARTNER_CATEGORY = "res.partner.category"
 
-# ir.model.data namespace for LegacyErp source identity.
+# ir.model.data namespace for ERP source identity.
+# Markers were minted under plasticos_transaction. Keep that module name so a
+# re-import updates the same records instead of creating a second set.
 XMLID_MODULE = "plasticos_transaction"
 
 # Import context: historical rows must not fire validation, mail tracking, or
@@ -51,11 +55,11 @@ IMPORT_CONTEXT = {
 }
 
 
-class PlasticosLegacyErpImport(models.AbstractModel):
-    """Deterministic, replay-safe LegacyErp historical import."""
+class PlasticosErpImport(models.AbstractModel):
+    """Deterministic, replay-safe ERP historical import."""
 
-    _name = "plasticos.legacy_erp.import"
-    _description = "LegacyErp Historical Import"
+    _name = "plasticos.erp.import"
+    _description = "ERP Historical Import"
 
     # ------------------------------------------------------------------
     # Entrypoint
@@ -71,8 +75,9 @@ class PlasticosLegacyErpImport(models.AbstractModel):
         """Run the complete import and return an accounting report.
 
         Args:
-            payload_root: Override the tracked payload location. Defaults to
-                ``data/legacy_erp_sm_export`` in this checkout.
+            payload_root: Override the payload location. Defaults to SQL in
+                ``plasticos_partner_import/erp_extracted_data``, then the
+                frozen grid pack.
             limit: Process at most this many transactions (diagnostics only).
             commit: Commit between complete transactions. Never mid-transaction.
             dry_run: Resolve and map everything, persist nothing.
@@ -83,12 +88,12 @@ class PlasticosLegacyErpImport(models.AbstractModel):
         """
         # Lazy import: the source layer is Odoo-free and must not be imported
         # at addon load time.
-        from ..legacy_erp import header_forensics, reader, source_index
-        from ..legacy_erp import report as report_module
+        from ..erp import header_forensics, reader, source_index
+        from ..erp import report as report_module
 
         payload = reader.load_payload(payload_root)
         index = source_index.build_source_index(payload)
-        _logger.info("LegacyErp payload loaded (%s): %s", payload.kind.value, payload.row_counts())
+        _logger.info("ERP payload loaded (%s): %s", payload.kind.value, payload.row_counts())
 
         report = report_module.ImportReport()
         report.payload_kind = payload.kind.value
@@ -104,14 +109,14 @@ class PlasticosLegacyErpImport(models.AbstractModel):
         self._import_transactions(index, headers, report, partner_by_cp, limit, commit, dry_run)
 
         result = report.as_dict()
-        _logger.info("LegacyErp import finished: %s", result["counts"])
+        _logger.info("ERP import finished: %s", result["counts"])
         return result
 
     # ------------------------------------------------------------------
     # Stage 1 — counterparties
     # ------------------------------------------------------------------
     def _import_counterparties(self, index, report, dry_run: bool) -> dict:
-        from ..legacy_erp import mapping
+        from ..erp import mapping
 
         Partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT)
         partner_by_cp: dict[str, int] = {}
@@ -186,7 +191,7 @@ class PlasticosLegacyErpImport(models.AbstractModel):
     # Stage 2 — facilities / locations
     # ------------------------------------------------------------------
     def _import_addresses(self, index, report, partner_by_cp: dict, dry_run: bool) -> dict:
-        from ..legacy_erp import mapping
+        from ..erp import mapping
 
         Partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT)
         partner_by_address: dict[str, int] = {}
@@ -253,7 +258,7 @@ class PlasticosLegacyErpImport(models.AbstractModel):
     # Stage 3 — contacts and contact roles
     # ------------------------------------------------------------------
     def _import_contacts(self, index, report, partner_by_cp: dict, partner_by_address: dict, dry_run: bool) -> None:
-        from ..legacy_erp import mapping
+        from ..erp import mapping
 
         Partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT)
         tag_cache: dict[str, int] = {}
@@ -329,7 +334,7 @@ class PlasticosLegacyErpImport(models.AbstractModel):
 
     def _contact_roles(self, index, contact_id: str) -> list:
         """Ordered role names for a contact. ``Primary`` sorts first."""
-        from ..legacy_erp import mapping
+        from ..erp import mapping
 
         names = []
         for role_id in index.roles_by_contact.get(contact_id, []):
@@ -339,7 +344,7 @@ class PlasticosLegacyErpImport(models.AbstractModel):
         return mapping.sort_contact_roles(names)
 
     def _apply_contact_roles(self, partner, roles: list, tag_cache: dict, report) -> None:
-        """Carry LegacyErp contact roles on the existing partner-tag mechanism.
+        """Carry ERP contact roles on the existing partner-tag mechanism.
 
         ``res.partner.category`` is the repository's multi-valued partner
         classification. Tag membership is set semantics, so replaying an
@@ -364,9 +369,7 @@ class PlasticosLegacyErpImport(models.AbstractModel):
         if role in tag_cache:
             return tag_cache[role]
         Category = self.env[PARTNER_CATEGORY].with_context(**IMPORT_CONTEXT)
-        parent = self._upsert(
-            Category, "legacy_erp_contact_role_root", {"name": "LegacyErp Contact Role"}, report, None
-        )
+        parent = self._upsert(Category, "legacy_erp_contact_role_root", {"name": "ERP Contact Role"}, report, None)
         tag = self._upsert(
             Category,
             f"legacy_erp_contact_role_tag_{_slug(role)}",
@@ -404,7 +407,7 @@ class PlasticosLegacyErpImport(models.AbstractModel):
                     self._import_one_transaction(index, header, report, partner_by_cp)
             except Exception as exc:  # noqa: BLE001 - one bad unit must not abort the run
                 report.error(buysell_no, str(exc))
-                _logger.exception("LegacyErp transaction %s failed and was rolled back", buysell_no)
+                _logger.exception("ERP transaction %s failed and was rolled back", buysell_no)
                 continue
 
             if commit:
@@ -424,7 +427,7 @@ class PlasticosLegacyErpImport(models.AbstractModel):
 
         # The reconstructed trade date is written only where a semantically
         # correct field exists. No field is invented for it; see
-        # docs/legacy_erp_import_mapping.md, "Evidenced new-field candidate".
+        # docs/erp_import_mapping.md, "Evidenced new-field candidate".
         if header.trade_date and "transaction_date" in Transaction._fields:
             values["transaction_date"] = header.trade_date
 
@@ -434,7 +437,7 @@ class PlasticosLegacyErpImport(models.AbstractModel):
         self._import_lines(index, header, transaction, report)
 
     def _import_lines(self, index, header, transaction, report) -> None:
-        from ..legacy_erp import mapping
+        from ..erp import mapping
 
         Line = self.env[PLASTICOS_TRANSACTION_LINE].with_context(**IMPORT_CONTEXT)
 
@@ -554,7 +557,7 @@ def _address_name(row, cp_id: str, address_id: str) -> str:
         value = _text(row, column)
         if value:
             return value
-    return f"LegacyErp address {address_id} ({cp_id})"
+    return f"ERP address {address_id} ({cp_id})"
 
 
 def _partner_mobile_field(partner_model) -> str | None:

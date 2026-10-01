@@ -11,10 +11,10 @@
 | TODO | Status |
 |------|--------|
 | todo-01 baseline branch + probes | ✅ done (branch from origin/Staging@7572940; PV-04/PV-06 = no runtime / UNKNOWN) |
-| todo-02 LegacyErp mapping-status table | ✅ done (mapping_status.py + completeness test) |
+| todo-02 ERP mapping-status table | ✅ done (mapping_status.py + completeness test) |
 | todo-03 shared import-run summary contract | ✅ done (schema + validator + tests) |
-| todo-04 make import-legacy-erp | ✅ done (fail-closed preflight boundary verified) |
-| todo-05 LegacyErp runtime gate | ✅ shipped (exit 77; live run UNKNOWN) |
+| todo-04 make import-erp | ✅ done (fail-closed preflight boundary verified) |
+| todo-05 ERP runtime gate | ✅ shipped (exit 77; live run UNKNOWN) |
 | todo-06 CRM stub adapter removal | ✅ done (19.0.1.7.0 + fail-closed migration) |
 | todo-07 per-record classification | ✅ done (counters + summary + runbook table) |
 | todo-08 make import-vanillasoft | ✅ done (fail-closed preflight boundary verified) |
@@ -28,8 +28,8 @@
 
 ## Files in Scope
 
-plasticos_transaction/legacy_erp/**, plasticos_transaction/scripts/,
-plasticos_transaction/models/legacy_erp_import_service.py,
+plasticos_partner_import/erp/**, plasticos_partner_import/scripts/,
+plasticos_partner_import/models/erp_import_service.py,
 plasticos_crm_sync/** (adapters, orchestrator, run model, scripts),
 plasticos_partner_import/** (manual CRM-lead import removal), Makefile,
 contracts/schemas/draft/, scripts/validate_import_summary.py, tests/,
@@ -45,13 +45,13 @@ tests/runtime_gates/, docs/runbooks/, docs/adr/README.md, AGENTS.md.
 ## Recent Changes
 
 - [2026-09-17] [EXECUTE] Files: plasticos_crm_sync, plasticos_partner_import, tests | Action: GMP-129 ingestion milestone (classification, stub/manual-path removal, canonical commands) | Tests: 736 passed pure tier
-- [2026-09-17] [EXECUTE] Files: plasticos_transaction/legacy_erp, Makefile, docs/runbooks | Action: LegacyErp mapping-status + canonical command + runtime gate | Tests: 730 passed pure tier
+- [2026-09-17] [EXECUTE] Files: plasticos_partner_import/erp (moved from plasticos_transaction/legacy_erp), Makefile, docs/runbooks | Action: ERP mapping-status + canonical command + runtime gate | Tests: 730 passed pure tier
 
 ## Decision Log
 
-- Canonical LegacyErp command named `import-legacy-erp` — the vendor name is
+- Canonical ERP command named `import-erp` — the vendor name is
   a banned identifier (BAN001); deviation from the spec's conceptual name
-  recorded in docs/runbooks/LEGACY_ERP_IMPORT.md.
+  recorded in docs/runbooks/ERP_IMPORT.md.
 - `plasticos.crm.external.ref` remains the single CRM identity authority;
   `vanillasoft_id` is backfill input only.
 - Recovered v2 schemas: preserved as evidence, out of the import critical
@@ -70,7 +70,7 @@ tests/runtime_gates/, docs/runbooks/, docs/adr/README.md, AGENTS.md.
 
 1. Start a nonproduction runtime (Docker Desktop or
    `scripts/setup_local_runtime.sh`) and run
-   `make runtime-gate g=run_legacy_erp_import.py` and
+   `make runtime-gate g=run_erp_import.py` and
    `make runtime-gate g=run_f1_f3_full_import.py` to convert UNKNOWNs to
    evidence.
 2. Publish the branch via `PR_STACK= PR_REMEDIATE=0 l9 pr` into Staging.

@@ -1,35 +1,31 @@
-# LegacyErp → PlasticOS import: mapping audit
+# ERP → PlasticOS import: mapping audit
 
-Definitive field-level matrix for the LegacyErp historical import.
+Definitive field-level matrix for the ERP historical import.
 
-- **Source pack** — `data/legacy_erp_sm_export/` (live extract of 2026-08-07)
-- **Source layer** — `plasticos_transaction/legacy_erp/` (Odoo-free, CI-tested)
-- **Import service** — `plasticos_transaction/models/legacy_erp_import_service.py`
-- **Entrypoint** — `plasticos_transaction/scripts/run_legacy_erp_import.py`
-- **Tests** — `tests/test_legacy_erp_source_layer.py`, `tests/test_legacy_erp_import_contract.py`
+- **Source pack** — `plasticos_partner_import/erp_extracted_data/` (query definitions and frozen grids, 2026-08-07)
+- **Source layer** — `plasticos_partner_import/erp/` (Odoo-free, CI-tested)
+- **Import service** — `plasticos_partner_import/models/erp_import_service.py`
+- **Entrypoint** — `plasticos_partner_import/scripts/run_erp_import.py`
+- **Tests** — `tests/test_erp_source_layer.py`, `tests/test_erp_import_contract.py`
 
 Every count below was measured on the tracked payload, not estimated.
 
 ---
 
-## 0. Payload form — correction to the plan's premise
+## 0. Payload form
 
-The plan assumes "tracked SQL files containing the data to import". **This
-repository has no such file.** `data/legacy_erp_sm_export/sql/*.sql` are
-`SELECT`-only query definitions containing zero rows; the repo's own README
-states it: *"Golden CSVs + SELECT-only SQL"*, and the runbook's reload step is
-*SSMS Execute → Copy with Headers each grid → `bulk/`*.
+[ADR-021](adr/ADR-021-erp-sql-crm-api-import.md) is the contract: ERP rows
+import from SQL, CRM rows import from the VanillaSoft API, and CSV is legacy.
 
-The authoritative payload physically present is the **golden extract under
-`bulk/`** (13 files, 17 MB), which `README.md` marks `ACCEPT`.
+`plasticos_partner_import/erp_extracted_data/*.sql` are the `SELECT` definitions for the ERP
+extract. They do not yet contain the row payload. `reader.load_payload()`
+parses `INSERT INTO … VALUES …` in preference to a grid. That statement form
+is the ERP import. Do not add a new CSV mapping.
 
-The import therefore reads that pack. This is **not** the retired CSV
-architecture the plan prohibits — that prohibition is about the deprecated
-partner/transaction wizards with name-based identity and manual spreadsheet
-preparation, none of which is used here. To keep the premise satisfiable if a
-future extract lands as statements, `reader.load_payload()` parses
-`INSERT INTO … VALUES …` **in preference** to the grid extract, so no mapper
-changes when the payload form changes.
+`plasticos_partner_import/erp_extracted_data/bulk/` (13 files, 17 MB) is a frozen grid from
+2026-08-07. `make import-erp` can still read it until a SQL payload
+replaces that call. The counts below were measured on that frozen grid. They
+are not a reason to keep CSV as the architecture.
 
 | Source table | Rows |
 |---|---|
@@ -71,7 +67,7 @@ Never identity: company name, e-mail, phone, address text, Odoo database id.
 
 The export carries **no worksheet header table**, and `WKSDetail`'s full
 104-column inventory contains **no status-like column** — verified against
-`diagnostics/q4_columns.csv`. Parties, date, and state are reconstructed from
+`plasticos_partner_import/erp_extracted_data/diagnostics/q4_columns.csv`. Parties, date, and state are reconstructed from
 accounting relationships.
 
 | Fact | Source join | Coverage |
@@ -216,7 +212,7 @@ exact: it resolves for 3495 of 3534 non-blank contacts (98.9%). Contacts whose
 **Contact roles use the existing partner-tag mechanism.** 14 distinct role
 names, 510 contacts holding more than one. `res.partner.category` is this
 repository's multi-valued partner classification, so roles become tags under a
-`LegacyErp Contact Role` parent, and the primary role also fills `function`. No
+`ERP Contact Role` parent, and the primary role also fills `function`. No
 roles subsystem is introduced. `CRA_ID` needs no standalone record because tag
 membership is set semantics — replaying an assignment is inherently
 idempotent, which is exactly the replay-safety `CRA_ID` requires.
@@ -358,7 +354,7 @@ instance:
 Run it with:
 
 ```python
-from plasticos_transaction.scripts.run_legacy_erp_import import run
+from plasticos_partner_import.scripts.run_erp_import import run
 run(env, dry_run=True)   # resolve and map, persist nothing
 run(env)                 # full import
 run(env)                 # again — must report created=0 across the board

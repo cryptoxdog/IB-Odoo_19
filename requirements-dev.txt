@@ -15,6 +15,8 @@ pytest-cov==5.0.0
 # Directly imported by the pure web-lead attachment component; mirrors the
 # declaration in requirements.txt and the Odoo-free CI manifests.
 requests>=2.28.0
+# XML parse in tests/test_phantom_enum_values.py. Pin matches ci.yml pure-python-tests.
+defusedxml==0.7.1
 
 # Type checker (advisory in CI — pin matches .github/workflows/ci.yml static-checks job,
 # see [tool.mypy] in pyproject.toml). Unpinned before 2026-07; local mypy could silently

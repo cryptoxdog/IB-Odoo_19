@@ -23,11 +23,11 @@ Zero Odoo runtime. Pure AST + XML parsing.
 import ast
 import os
 import re
-import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
 from typing import NamedTuple
 
+import defusedxml.ElementTree as ET
 import pytest
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -701,7 +701,7 @@ GLOBAL_ALLOWLIST = frozenset(
         "load",
         # ─────────────────────────────────────────────────────────────────────
         # IMPORT RUN CLASSIFICATION OUTCOMES — per-record outcome vocabulary
-        # persisted as counters on plasticos.crm.sync.run / the legacy_erp
+        # persisted as counters on plasticos.crm.sync.run / the ERP import
         # report, not Odoo Selection values (odoo-intent-1 ingestion milestone)
         # ─────────────────────────────────────────────────────────────────────
         "unchanged",
@@ -916,7 +916,7 @@ def _extract_xml_enum_values(xml_path: str):
     sources: list[EnumSource] = []
 
     try:
-        tree = ET.parse(xml_path)  # nosec B314 - parsing trusted local Odoo XML
+        tree = ET.parse(xml_path)
     except ET.ParseError:
         return names, codes, ext_ids, sources
 
@@ -1115,7 +1115,7 @@ def _discover_plasticos_modules():
 # (foreign table names, legacy type labels, source boolean spellings) can never
 # resolve to an Odoo enum, so scanning them yields only false positives.
 # Each is asserted Odoo-import-free by its own contract test.
-NON_ODOO_VOCABULARY_DIRS = frozenset({"legacy_erp"})
+NON_ODOO_VOCABULARY_DIRS = frozenset({"erp"})
 
 
 def _iter_python_files(module_dir: Path):
@@ -1655,7 +1655,7 @@ class TestEquipmentCodeAlignment:
         for mod in MODULES:
             for xml_path in _iter_xml_data_files(REPO_ROOT / mod):
                 try:
-                    tree = ET.parse(xml_path)  # nosec B314 - parsing trusted local Odoo XML
+                    tree = ET.parse(xml_path)
                 except ET.ParseError:
                     continue
                 for record in tree.getroot().iter("record"):

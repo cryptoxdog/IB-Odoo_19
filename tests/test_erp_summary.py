@@ -1,4 +1,4 @@
-"""Shared-summary projection tests for the LegacyErp import report.
+"""Shared-summary projection tests for the ERP import report.
 
 Pure-python tier (no Odoo import) — see tests/conftest.py collection rules.
 """
@@ -9,11 +9,11 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "plasticos_transaction"))
+sys.path.insert(0, str(ROOT / "plasticos_partner_import"))
 sys.path.insert(0, str(ROOT))
 
-from legacy_erp import summary  # noqa: E402
-from legacy_erp.report import ImportReport  # noqa: E402
+from erp import summary  # noqa: E402
+from erp.report import ImportReport  # noqa: E402
 
 from scripts.validate_import_summary import validate_summary  # noqa: E402
 

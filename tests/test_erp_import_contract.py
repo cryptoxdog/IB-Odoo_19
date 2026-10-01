@@ -1,4 +1,4 @@
-"""Structural contract tests for the LegacyErp import service.
+"""Structural contract tests for the ERP import service.
 
 The service itself needs an Odoo runtime, which the ``pure-python-tests`` CI
 tier does not have. These tests assert the properties that must hold *by
@@ -14,11 +14,11 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "plasticos_transaction"))
+sys.path.insert(0, str(ROOT / "plasticos_partner_import"))
 
-SERVICE = ROOT / "plasticos_transaction" / "models" / "legacy_erp_import_service.py"
-RUNNER = ROOT / "plasticos_transaction" / "scripts" / "run_legacy_erp_import.py"
-LEGACY_ERP_PKG = ROOT / "plasticos_transaction" / "legacy_erp"
+SERVICE = ROOT / "plasticos_partner_import" / "models" / "erp_import_service.py"
+RUNNER = ROOT / "plasticos_partner_import" / "scripts" / "run_erp_import.py"
+ERP_PKG = ROOT / "plasticos_partner_import" / "erp"
 
 
 @pytest.fixture(scope="module")
@@ -42,9 +42,9 @@ def _function(tree: ast.Module, name: str) -> ast.FunctionDef:
 # Wiring
 # ---------------------------------------------------------------------------
 def test_service_is_wired_into_the_module(service_source):
-    init = (ROOT / "plasticos_transaction" / "models" / "__init__.py").read_text(encoding="utf-8")
-    assert "from . import legacy_erp_import_service" in init
-    assert '_name = "plasticos.legacy_erp.import"' in service_source
+    init = (ROOT / "plasticos_partner_import" / "models" / "__init__.py").read_text(encoding="utf-8")
+    assert "from . import erp_import_service" in init
+    assert '_name = "plasticos.erp.import"' in service_source
 
 
 def test_service_declares_an_abstract_model(service_source):
@@ -79,7 +79,7 @@ def test_import_does_not_depend_on_the_retired_csv_architecture(service_source):
 
 def test_source_layer_imports_no_odoo_symbol():
     """The source layer must stay runnable in the pure-Python CI tier."""
-    for path in sorted(LEGACY_ERP_PKG.glob("*.py")):
+    for path in sorted(ERP_PKG.glob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):

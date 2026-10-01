@@ -1,5 +1,4 @@
 from . import audit_cron
-from . import legacy_erp_import_service
 from . import res_users_inherit
 from . import sale_inherit
 from . import transaction

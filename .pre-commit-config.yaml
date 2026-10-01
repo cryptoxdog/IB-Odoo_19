@@ -38,15 +38,15 @@ repos:
         exclude: '^plasticos_enrichment/knowledge_base/.*\.yaml$|buyer_matching_rag\.yaml$|^docs/'
 
       - id: end-of-file-fixer
-        exclude: ^docs/|^data/legacy_erp_sm_export/
+        exclude: ^docs/|^plasticos_partner_import/erp_extracted_data/bulk/
 
       - id: trailing-whitespace
-        exclude: ^docs/|^data/legacy_erp_sm_export/
+        exclude: ^docs/|^plasticos_partner_import/erp_extracted_data/bulk/
 
       - id: check-added-large-files
         args: ['--maxkb=1000']
-        # Golden legacy ERP CSVs are multi-MB extract fixtures (largest ~7MB).
-        exclude: ^data/legacy_erp_sm_export/
+        # ERP extract grids are multi-MB fixtures (largest ~7MB).
+        exclude: ^plasticos_partner_import/erp_extracted_data/bulk/
 
       - id: check-merge-conflict
 

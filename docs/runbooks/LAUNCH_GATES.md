@@ -28,7 +28,7 @@ remains the only scheduler.
 | I15 | Optional data may degrade; required data is never silently skipped | `adapter.CUSTOM_TABLES_REQUIRED` | `test_launch_invariants_crm_enrichment.py` |
 | I16 | Credential-bearing production endpoints use TLS | `client.require_secure_endpoint`, `gate_config._gate_url_usable` | `test_launch_invariants_crm_enrichment.py` |
 | I17 | A row an independently owned transaction references is durable before that transaction opens | `orchestrator._ensure_caller_state_durable` (`run_connection`, `run_full_import`) | `tests/runtime_gates/run_s1_s3_pristine_seams.py` (S1) + `tests/test_pristine_runtime_seams.py` |
-| I18 | No write names a model field that the installed registry does not have | `legacy_erp_import_service._partner_mobile_field` | `tests/runtime_gates/run_s1_s3_pristine_seams.py` (S3) + `tests/test_pristine_runtime_seams.py` |
+| I18 | No write names a model field that the installed registry does not have | `erp_import_service._partner_mobile_field` | `tests/runtime_gates/run_s1_s3_pristine_seams.py` (S3) + `tests/test_pristine_runtime_seams.py` |
 
 ### Pagination fails closed, and that can stop a sync
 
@@ -114,7 +114,7 @@ observed to FAIL against the unpatched sources before it was accepted.
 |------|-----------|------------------------------|--------|
 | S1 | On a database with no CRM connection, the Settings "Run VanillaSoft sync" button creates the connection and completes a sync: the audit row created on the orchestrator's own cursor resolves its foreign key, and a second press reuses the connection instead of duplicating it | the operator's first sync dies on `plasticos_crm_sync_run_connection_id_fkey` | **PASS** |
 | S2 | Over real HTTP through Odoo's dispatcher: an unauthenticated or wrongly-tokened POST is 401, a tokenless-contact POST is 400, and an authenticated POST reaches the orchestrator through a valid elevated `Environment`, returns 200, lands exactly one lead, and lands no second lead on replay | the webhook 500s on every authenticated call | **PASS** |
-| S3 | A LegacyErp contact carrying both `PhoneBusiness` and `PhoneMobile` imports against the installed registry: the business phone is preserved, the mobile number is retained rather than dropped or written over the business phone, and no value names a field `res.partner` does not have | the first historical import aborts, or silently discards mobile numbers | **PASS** |
+| S3 | An ERP contact carrying both `PhoneBusiness` and `PhoneMobile` imports against the installed registry: the business phone is preserved, the mobile number is retained rather than dropped or written over the business phone, and no value names a field `res.partner` does not have | the first historical import aborts, or silently discards mobile numbers | **PASS** |
 
 **Why the collected suite could not see any of the three.** S1's settings test
 patches `action_sync_now`, so no second cursor is ever opened — and under

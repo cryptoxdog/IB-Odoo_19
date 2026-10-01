@@ -11,7 +11,7 @@ operator actually crosses on a database that has never synced before:
 
     S1  Settings -> "Run VanillaSoft sync" with no connection yet
     S2  authenticated webhook -> elevated environment -> orchestrator
-    S3  LegacyErp contact import -> res.partner against the installed registry
+    S3  ERP contact import -> res.partner against the installed registry
 
 Each of the three defects these gates cover is invisible to the collected
 suite by construction, and the reason differs per gate -- see the docstring on
@@ -375,20 +375,20 @@ def gate_s2(stub: StubCrm, log_path: str) -> bool:
 
 
 # ----------------------------------------------------------------------
-# S3 - LegacyErp contact import against the installed res.partner registry
+# S3 - ERP contact import against the installed res.partner registry
 # ----------------------------------------------------------------------
 def gate_s3() -> bool:
     """Import a contact carrying both a business and a mobile number.
 
-    Why the collected suite cannot see this: the LegacyErp contract tests parse
+    Why the collected suite cannot see this: the ERP contract tests parse
     the source with `ast` and never build a registry, and the `pure-python`
     CI tier has no Odoo at all. The `_upsert` update path silently drops a
     field missing from `_fields`, so only a *create* -- a first import --
     raises, and only against a registry where `res.partner.mobile` is absent,
     which is every stock Odoo 19.
     """
-    from odoo.addons.plasticos_transaction.legacy_erp import report as report_module
-    from odoo.addons.plasticos_transaction.legacy_erp import source_index
+    from odoo.addons.plasticos_partner_import.erp import report as report_module
+    from odoo.addons.plasticos_partner_import.erp import source_index
 
     business_phone = "+1-555-0111"
     mobile_phone = "+1-555-0222"
@@ -434,7 +434,7 @@ def gate_s3() -> bool:
         }
         index.contacts_by_cp = {cp_id: [contact_id]}
 
-        service = env["plasticos.legacy_erp.import"]
+        service = env["plasticos.erp.import"]
         report = report_module.ImportReport()
         # Real service method, real registry, real create().
         service._import_contacts(index, report, {cp_id: company.id}, {}, False)

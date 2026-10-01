@@ -1,28 +1,22 @@
-"""Minimal exact-format reader for the tracked LegacyErp export.
+"""Minimal exact-format reader for the tracked ERP export.
 
 Scope
 -----
-Turn the authoritative LegacyErp source files into Python records. Nothing else.
+Turn the authoritative ERP source files into Python records. Nothing else.
 This module performs **no** Odoo mapping, **no** fuzzy identity matching, and
 **no** silent coercion of unknown values: a malformed payload raises
 :class:`SourcePayloadError` rather than yielding a partial table.
 
 Payload form
 ------------
-The runbook that produced this pack (``docs/legacy_erp_sm_export_research.md``)
-runs ``SELECT``-only scripts against ``LEGACY_ERP_SM_EXPORT`` and lands each
-result grid as a golden delimited extract under ``bulk/``. The tracked
-``sql/*.sql`` files are therefore *query definitions* and carry no rows — see
-``data/legacy_erp_sm_export/README.md`` ("Golden CSVs + SELECT-only SQL").
-
-Both payload shapes are supported so the importer stays correct if a future
-extract lands as ``INSERT`` statements instead:
+Statement SQL lives in ``plasticos_partner_import/erp_extracted_data/``.
+The scripts checked in there today are ``SELECT`` definitions and carry no
+rows. :func:`load_payload` reads ``INSERT INTO … VALUES …`` from that folder
+first. When that folder has no statement rows, it falls back to the frozen
+grid extract under ``plasticos_partner_import/erp_extracted_data/bulk/``.
 
 * ``PayloadKind.STATEMENTS`` — ``INSERT INTO <table> (...) VALUES (...);``
 * ``PayloadKind.GRID`` — one delimited golden extract per source table
-
-:func:`load_payload` prefers a statement payload when one is present and falls
-back to the tracked grid extract, so callers never choose.
 
 Value fidelity
 --------------
@@ -45,6 +39,8 @@ from pathlib import Path
 
 __all__ = [
     "DEFAULT_PAYLOAD_ROOT",
+    "GRID_PAYLOAD_ROOT",
+    "SQL_PAYLOAD_ROOT",
     "SOURCE_TABLES",
     "PayloadKind",
     "SourcePayload",
@@ -53,11 +49,15 @@ __all__ = [
     "payload_root",
 ]
 
-# Repository-relative root of the tracked extract pack.
-DEFAULT_PAYLOAD_ROOT = Path("data/legacy_erp_sm_export")
+# INSERT statement files. The checked-in scripts are SELECT definitions.
+SQL_PAYLOAD_ROOT = Path("plasticos_partner_import/erp_extracted_data")
+# Frozen grid extract produced by those scripts (2026-08-07).
+GRID_PAYLOAD_ROOT = Path("plasticos_partner_import/erp_extracted_data")
+# Alias used by mapping-status tests that read the grid pack.
+DEFAULT_PAYLOAD_ROOT = GRID_PAYLOAD_ROOT
 
 # Source tables this importer consumes, and the extract file that carries each.
-# Keys are the LegacyErp table names; they are the only names mappers may use.
+# Keys are the ERP table names; they are the only names mappers may use.
 SOURCE_TABLES: dict[str, str] = {
     "CounterParty": "CounterParty.csv",
     "Address": "Address.csv",
@@ -86,7 +86,7 @@ _INSERT_RE = re.compile(
 
 
 class SourcePayloadError(RuntimeError):
-    """The LegacyErp payload is absent, incomplete, or malformed."""
+    """The ERP payload is absent, incomplete, or malformed."""
 
 
 class PayloadKind(StrEnum):
@@ -98,7 +98,7 @@ class PayloadKind(StrEnum):
 
 @dataclass(frozen=True)
 class SourcePayload:
-    """Reconstructed source rows, grouped by LegacyErp table name."""
+    """Reconstructed source rows, grouped by ERP table name."""
 
     kind: PayloadKind
     root: Path
@@ -115,39 +115,70 @@ class SourcePayload:
         return {name: len(rows) for name, rows in sorted(self.tables.items())}
 
 
+def _repo_root() -> Path:
+    # plasticos_partner_import/erp/reader.py -> repository root
+    return Path(__file__).resolve().parents[2]
+
+
 def payload_root(repo_root: Path | str | None = None) -> Path:
-    """Absolute path of the tracked extract pack.
+    """Absolute path of the frozen grid extract.
 
     ``repo_root`` defaults to the repository containing this file, so callers
     running inside Odoo do not have to know the checkout layout.
     """
     if repo_root is None:
-        # plasticos_transaction/legacy_erp/reader.py -> repository root
-        repo_root = Path(__file__).resolve().parents[2]
-    return Path(repo_root) / DEFAULT_PAYLOAD_ROOT
+        repo_root = _repo_root()
+    return Path(repo_root) / GRID_PAYLOAD_ROOT
+
+
+def sql_payload_root(repo_root: Path | str | None = None) -> Path:
+    """Absolute path of the SQL statement home."""
+    if repo_root is None:
+        repo_root = _repo_root()
+    return Path(repo_root) / SQL_PAYLOAD_ROOT
 
 
 def load_payload(root: Path | str | None = None) -> SourcePayload:
     """Load the authoritative payload, preferring statements over grid extracts.
 
+    With no ``root``, statement files are read from
+    ``plasticos_partner_import/erp_extracted_data``. An empty statement result
+    (the checked-in ``SELECT`` scripts) falls back to the frozen grid pack.
+    An explicit ``root`` is searched for both shapes, which is what tests and
+    ``ERP_PAYLOAD_ROOT`` use.
+
     Raises:
         SourcePayloadError: the pack is missing, or a required source table has
             no extract, or an extract is malformed.
     """
-    base = Path(root) if root is not None else payload_root()
+    if root is not None:
+        return _load_single_root(Path(root))
+
+    sql_base = sql_payload_root()
+    tables = _read_statement_payload(sql_base) if sql_base.is_dir() else {}
+    if tables:
+        _require_complete(sql_base, tables)
+        return SourcePayload(kind=PayloadKind.STATEMENTS, root=sql_base, tables=tables)
+    return _load_single_root(payload_root())
+
+
+def _load_single_root(base: Path) -> SourcePayload:
     if not base.is_dir():
-        raise SourcePayloadError(f"LegacyErp payload root not found: {base}")
+        raise SourcePayloadError(f"ERP payload root not found: {base}")
 
     tables = _read_statement_payload(base)
     kind = PayloadKind.STATEMENTS
     if not tables:
         tables = _read_grid_payload(base)
         kind = PayloadKind.GRID
+    _require_complete(base, tables)
+    return SourcePayload(kind=kind, root=base, tables=tables)
 
+
+def _require_complete(base: Path, tables: dict[str, list[dict[str, str | None]]]) -> None:
     missing = sorted(REQUIRED_TABLES - set(tables))
     if missing:
         raise SourcePayloadError(f"payload at {base} is incomplete; missing source tables: {', '.join(missing)}")
-    return SourcePayload(kind=kind, root=base, tables=tables)
 
 
 # ---------------------------------------------------------------------------
