@@ -5,12 +5,17 @@
 | Field | Value |
 |-------|-------|
 | **Contract** | GAR-ODOO-GATE-ALIGNMENT-001 |
+| **R1 correction** | GAR-ODOO-GATE-ALIGNMENT-001-R1 — exact SDK SHA, three manifest bumps, external-state refresh |
 | **Repository** | cryptoxdog/IB-Odoo_19 @ `Staging` |
 | **Observed baseline** | `2260f1e63e9b834e329ef3a05136d06a528d3c0e` (matches contract; `origin/Staging` had not moved at Phase 0) |
-| **Gate_SDK authority** | `Quantum-L9/Gate_SDK` tag `v1` → commit `7ec6cdf5e26c837057ca35b7324a88de4d499ea3`, `pyproject` version `1.2.0` |
-| **Constellation.Gate (read-only)** | HEAD `4f8baa5` (scratchpad clone, 2026-10-01) |
-| **Cognitive.Engine.Graphs (read-only)** | HEAD `ffa5ac1` (merge of PR #298) |
-| **Local code commit** | `a572a9a9338f87760925c188ef7be50eb1ca80c2` on `Staging` (not pushed) |
+| **Gate_SDK proven runtime revision** | `7ec6cdf5e26c837057ca35b7324a88de4d499ea3`, version `1.2.0` |
+| **Constellation.Gate main** | `cfeb81fa4d11eb8c106314fa27310f660a1dfad7` |
+| **Gate caller-policy landing** | PR #27 `69588a16a7d86b2269333c31568a3b37b97f4746` |
+| **Gate SDK-lock refresh** | PR #28 `cfeb81fa4d11eb8c106314fa27310f660a1dfad7` |
+| **Cognitive.Engine.Graphs main** | `7925c79080167913cbaafcfa36f71012fcbb9698` |
+| **CEG participation remediation landing** | PR #308 `7925c79080167913cbaafcfa36f71012fcbb9698` |
+| **Enrichment.Inference.Engine main** | `eab524cb812990149df0d6fccde36b0817a4af76` |
+| **Local code commit** | `a572a9a9338f87760925c188ef7be50eb1ca80c2` on `Staging` (not pushed at Phase 6) |
 | **Mode** | bounded realization of already-converged architecture; no redesign |
 
 ---
@@ -19,7 +24,7 @@
 
 ### Phase 0 — ground truth (T-001, no mutation)
 
-Verified against the SDK checkout at `7ec6cdf5` (the peeled commit behind `v1`):
+Verified against the SDK checkout at `7ec6cdf5` (Gate_SDK 1.2.0). Phase 0 also read Constellation.Gate at `4f8baa5` and Cognitive.Engine.Graphs at `ffa5ac1` (merge of PR #298). Those two heads are historical observations; the current coordinates are the header table above.
 
 | Required API | Location in Gate_SDK v1 | Status |
 |---|---|---|
@@ -32,9 +37,9 @@ Verified against the SDK checkout at `7ec6cdf5` (the peeled commit behind `v1`):
 | Top-level exports | `constellation_node_sdk.__init__`: `GateClient`, `GateClientError`, `GateAuthorizationError`, `get_gate_client_config_from_env` | present |
 
 Cross-repo facts bound (read-only):
-- Gate scopes keys through `L9_KEY_ALLOWED_ACTIONS_JSON`; an out-of-scope action is `403 action_not_permitted`; an unknown key or bad signature is `400 invalid_transport_packet` (Constellation.Gate `api/errors.py:39-162`, `boundary/ingress_validator.py`). Gate binds a key to actions only, never to a tenant.
+- Gate scopes keys through `L9_KEY_ALLOWED_ACTIONS_JSON`; an out-of-scope action is `403 action_not_permitted`; an unknown key or bad signature is `400 invalid_transport_packet` (Constellation.Gate `api/errors.py:39-162`, `boundary/ingress_validator.py`, observed at Phase 0 head `4f8baa5`). Current Gate caller policy (PR #27, `69588a16a7d86b2269333c31568a3b37b97f4746`) binds a verified key to node, kind, tenants, and actions. Odoo already supplies its resolved tenant to `GateClient.activate()` and business packets, so tenant ownership is not an architectural Unknown.
 - The CEG Odoo E2E rail asserts `activate(required_actions=("converge","match"))` → `admitted`, requiring `sync` → `GateAuthorizationError` with `retryable is False`, HMAC-SHA256 signing, and Gate replies verified via the Gate key (`tests/e2e/constellation_odoo/scripts/odoo_driver.py:614-676`). In SDK-participation mode it still applies `patches/{ceg,eie}-sdk-adoption.diff`.
-- No CEG reference to "PR #299" exists at `ffa5ac1`; its remediation state is **Unknown** to this run and out of scope.
+- The #299 participation remediation is reachable from CEG main through PR #308 (`7925c79080167913cbaafcfa36f71012fcbb9698`).
 
 `CODE_GRAPH_BASELINE: BLOCKED` — `code_graph_gmp_baseline.sh` exited 1 ("Index unhealthy — run code_graph_batch_index.sh"); the `code-graph-rag-mcp` binary is not installed in this container, so indexing cannot run. Substitute importer analysis by grep (full repo, excluding reports/docs):
 - `classify_transport_failure` / `TransportFailureClass` importers: `plasticos_matching/models/match_orchestrator.py`, `plasticos_enrichment/models/enrichment_run.py`, `scripts/check_external_intelligence_readiness.py`, `tests/test_gate_sdk_invocation.py`, `tests/contracts/test_external_intelligence_contract_parity.py`.
@@ -179,13 +184,18 @@ Phase 5 recursive verification of the committed tree against the locked plan:
 - Status: **VERIFIED** — no scope drift.
 
 Remaining Unknowns:
-- CEG PR #299 remediation state (no reference at CEG `ffa5ac1`).
-- Gate binds the Odoo key to actions, not to a tenant; tenant mismatch handling is Gate's, unobserved here.
-- Odoo-runtime behavior of the admission step against a live Gate is not exercised in this container.
+- Runtime compatibility of the final exact release set is unproven. That set is Gate_SDK `7ec6cdf5e26c837057ca35b7324a88de4d499ea3`, Constellation.Gate `cfeb81fa4d11eb8c106314fa27310f660a1dfad7`, Enrichment.Inference.Engine `eab524cb812990149df0d6fccde36b0817a4af76`, Cognitive.Engine.Graphs `7925c79080167913cbaafcfa36f71012fcbb9698`, and the IB-Odoo_19 SHA that lands from this PR. The proof is the downstream native-head constellation Odoo E2E rail.
 
 ## Downstream proof obligation (not part of this change)
 
-After (1) this Odoo alignment lands on `Staging` and (2) CEG PR #299 is remediated and merged, rerun the CEG Odoo cross-repo E2E rail (`Cognitive.Engine.Graphs/tests/e2e/constellation_odoo/`) against native repository heads. The final run must not depend on `patches/ceg-sdk-adoption.diff` or `patches/eie-sdk-adoption.diff` for behavior already native in those repositories, and its evidence must bind exact SHAs for IB-Odoo_19, Gate_SDK, Constellation.Gate, Enrichment.Inference.Engine and Cognitive.Engine.Graphs. This is a deployment-convergence gate, not part of this code-change scope.
+After this Odoo alignment lands on `Staging`, freeze that Odoo SHA together with Gate_SDK `7ec6cdf5e26c837057ca35b7324a88de4d499ea3`, Constellation.Gate `cfeb81fa4d11eb8c106314fa27310f660a1dfad7`, Enrichment.Inference.Engine `eab524cb812990149df0d6fccde36b0817a4af76`, and Cognitive.Engine.Graphs `7925c79080167913cbaafcfa36f71012fcbb9698`, then rerun the CEG Odoo cross-repo E2E rail (`Cognitive.Engine.Graphs/tests/e2e/constellation_odoo/`) against native repository heads. The #299 participation remediation is reachable from CEG main through PR #308. The final run must not depend on `patches/ceg-sdk-adoption.diff` or `patches/eie-sdk-adoption.diff` for behavior already native in those repositories. This is a deployment-convergence gate, not part of this code-change scope.
+
+## R1 remediation (GAR-ODOO-GATE-ALIGNMENT-001-R1)
+
+The Phase 5 must-not-modify probe below records the original contract: `requirements.txt` and `__manifest__.py` were untouched in `a572a9a`. R1 authorizes those files and only these corrections:
+
+- `requirements.txt` pins `constellation-node-sdk` to Gate_SDK `7ec6cdf5e26c837057ca35b7324a88de4d499ea3` (version 1.2.0). The floating `@v1` ref and the stale 1.1.0 pin comment are replaced.
+- Manifest patch bumps, with no migration directories: `plasticos_gate` `19.0.1.9.4` → `19.0.1.9.5`; `plasticos_matching` `19.0.3.1.1` → `19.0.3.1.2`; `plasticos_enrichment` `19.0.2.5.0` → `19.0.2.5.1`.
 
 ## DECLARATION
 
