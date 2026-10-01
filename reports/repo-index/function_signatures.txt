@@ -661,15 +661,15 @@
 ./plasticos_gate/services/field_family_cutover.py:123:def field_family_uses_gate_authority(env, family: str) -> bool:
 ./plasticos_gate/services/field_family_cutover.py:129:def assert_no_local_intelligence_restoration(decision: FieldFamilyCutoverDecision) -> None:
 ./plasticos_gate/services/field_family_cutover.py:137:def recovery_disable(env) -> FieldFamilyCutoverDecision:
-./plasticos_gate/services/gate_builders.py:22:def _get_relation_value(record, field_name: str) -> Any:
-./plasticos_gate/services/gate_builders.py:35:def build_odoo_context(env, *, model: str, record_id: int) -> OdooContext:
-./plasticos_gate/services/gate_builders.py:51:def build_operation_id(
-./plasticos_gate/services/gate_builders.py:113:def _clamp_variations(max_passes: Any) -> int:
-./plasticos_gate/services/gate_builders.py:122:def build_converge_request(
-./plasticos_gate/services/gate_builders.py:174:def _run_attempt(run_rec) -> int:
-./plasticos_gate/services/gate_builders.py:183:def build_match_request(
-./plasticos_gate/services/gate_builders.py:220:def build_web_lead_request(env, lead_rec, *, raw_payload: dict[str, Any] | None = None) -> ProcessWebLeadRequest:
-./plasticos_gate/services/gate_builders.py:241:def build_intake_request(env, intake_rec) -> ProcessIntakeRequest:
+./plasticos_gate/services/gate_builders.py:23:def _get_relation_value(record, field_name: str) -> Any:
+./plasticos_gate/services/gate_builders.py:36:def build_odoo_context(env, *, model: str, record_id: int) -> OdooContext:
+./plasticos_gate/services/gate_builders.py:52:def build_operation_id(
+./plasticos_gate/services/gate_builders.py:114:def _clamp_variations(max_passes: Any) -> int:
+./plasticos_gate/services/gate_builders.py:123:def build_converge_request(
+./plasticos_gate/services/gate_builders.py:183:def _run_attempt(run_rec) -> int:
+./plasticos_gate/services/gate_builders.py:192:def build_match_request(
+./plasticos_gate/services/gate_builders.py:229:def build_web_lead_request(env, lead_rec, *, raw_payload: dict[str, Any] | None = None) -> ProcessWebLeadRequest:
+./plasticos_gate/services/gate_builders.py:250:def build_intake_request(env, intake_rec) -> ProcessIntakeRequest:
 ./plasticos_gate/services/gate_client.py:103:def _http_status(exc: BaseException) -> int | None:
 ./plasticos_gate/services/gate_client.py:113:def classify_transport_failure(exc: BaseException) -> TransportFailureClass:
 ./plasticos_gate/services/gate_client.py:162:def _require_sdk() -> None:
@@ -689,15 +689,16 @@
 ./plasticos_gate/services/gate_config.py:192:def gate_auto_writeback_enabled(env) -> bool:
 ./plasticos_gate/services/gate_config.py:211:def get_enrichment_action(env) -> str:
 ./plasticos_gate/services/gate_config.py:216:def resolve_gate_timeout_seconds(env) -> float:
-./plasticos_gate/services/gate_config.py:271:def resolve_gate_signing(env) -> dict[str, Any]:
-./plasticos_gate/services/gate_config.py:341:def gate_signing_configured(env) -> bool:
-./plasticos_gate/services/gate_config.py:349:def build_gate_client_config(env) -> GateClientConfig:
-./plasticos_gate/services/gate_config.py:369:def resolve_tenant(env) -> str:
-./plasticos_gate/services/gate_contracts.py:18:    def to_dict(self) -> dict[str, Any]:
-./plasticos_gate/services/gate_contracts.py:49:    def to_dict(self) -> dict[str, Any]:
-./plasticos_gate/services/gate_contracts.py:111:    def to_dict(self) -> dict[str, Any]:
-./plasticos_gate/services/gate_contracts.py:169:    def to_dict(self) -> dict[str, Any]:
-./plasticos_gate/services/gate_contracts.py:199:    def to_dict(self) -> dict[str, Any]:
+./plasticos_gate/services/gate_config.py:267:def gate_consensus_threshold(env) -> float:
+./plasticos_gate/services/gate_config.py:300:def resolve_gate_signing(env) -> dict[str, Any]:
+./plasticos_gate/services/gate_config.py:370:def gate_signing_configured(env) -> bool:
+./plasticos_gate/services/gate_config.py:378:def build_gate_client_config(env) -> GateClientConfig:
+./plasticos_gate/services/gate_config.py:398:def resolve_tenant(env) -> str:
+./plasticos_gate/services/gate_contracts.py:20:    def to_dict(self) -> dict[str, Any]:
+./plasticos_gate/services/gate_contracts.py:57:    def to_dict(self) -> dict[str, Any]:
+./plasticos_gate/services/gate_contracts.py:122:    def to_dict(self) -> dict[str, Any]:
+./plasticos_gate/services/gate_contracts.py:180:    def to_dict(self) -> dict[str, Any]:
+./plasticos_gate/services/gate_contracts.py:210:    def to_dict(self) -> dict[str, Any]:
 ./plasticos_gate/services/gate_mappers.py:18:def extract_audit_metadata(response_packet) -> dict[str, Any]:
 ./plasticos_gate/services/gate_mappers.py:37:def resolve_buyer_partner_id(entity_ref: str | None) -> int:
 ./plasticos_gate/services/gate_mappers.py:57:def normalize_score(score: float | None, score_scale: str | None) -> float | None:
@@ -3001,56 +3002,56 @@
 ./tests/test_gate_canonical_contract.py:72:def _request():
 ./tests/test_gate_canonical_contract.py:76:def _payload():
 ./tests/test_gate_canonical_contract.py:89:def test_payload_is_enrich_request_shaped():
-./tests/test_gate_canonical_contract.py:96:def test_canonical_identity_is_on_the_entity():
-./tests/test_gate_canonical_contract.py:101:def test_compatibility_alias_carries_the_same_value():
-./tests/test_gate_canonical_contract.py:106:def test_odoo_context_travels_as_metadata():
-./tests/test_gate_canonical_contract.py:113:def test_kb_context_declares_the_domain_explicitly():
-./tests/test_gate_canonical_contract.py:122:def test_payload_validates_as_a_canonical_enrich_request():
-./tests/test_gate_canonical_contract.py:138:def test_mapper_keeps_fields_eie_no_longer_truncates():
-./tests/test_gate_canonical_contract.py:150:def test_request_does_not_emit_entity_snapshot():
-./tests/test_gate_canonical_contract.py:155:def test_request_does_not_emit_a_top_level_entity_id():
-./tests/test_gate_canonical_contract.py:160:def test_request_does_not_emit_response_side_keys():
-./tests/test_gate_canonical_contract.py:166:def test_gate_client_holds_no_eie_peer_address():
-./tests/test_gate_canonical_contract.py:174:def test_gate_destination_is_sdk_owned_not_set_in_odoo():
-./tests/test_gate_canonical_contract.py:197:def test_odoo_does_not_restate_sdk_transport_defaults():
-./tests/test_gate_canonical_contract.py:210:def _eie_response(**overrides):
-./tests/test_gate_canonical_contract.py:222:def test_mapper_accepts_canonical_state_fields_response():
-./tests/test_gate_canonical_contract.py:229:def test_mapper_does_not_require_status_final_fields_or_writeback():
-./tests/test_gate_canonical_contract.py:237:def test_mapper_fails_closed_without_an_explicit_completed_state():
-./tests/test_gate_canonical_contract.py:242:def test_mapper_reports_failure_reason_over_state():
-./tests/test_gate_canonical_contract.py:250:def test_writeback_proposal_is_allowlisted():
-./tests/test_gate_canonical_contract.py:256:def test_writeback_proposal_drops_empty_values():
-./tests/test_gate_canonical_contract.py:264:def _ctx(record_id: int = RUN_ID, db_name: str = "plasticos"):
-./tests/test_gate_canonical_contract.py:268:def test_operation_id_is_stable_for_a_retry_of_the_same_run():
-./tests/test_gate_canonical_contract.py:273:def test_operation_id_does_not_depend_on_the_payload():
-./tests/test_gate_canonical_contract.py:291:def test_operation_id_differs_across_runs():
-./tests/test_gate_canonical_contract.py:295:def test_operation_id_is_database_scoped():
-./tests/test_gate_canonical_contract.py:299:def test_operation_id_carries_no_timestamp_or_randomness():
-./tests/test_gate_canonical_contract.py:303:def test_operation_id_is_none_without_run_identity():
-./tests/test_gate_canonical_contract.py:307:def test_operation_id_uses_the_adr_006_semantic_form():
-./tests/test_gate_canonical_contract.py:313:def test_one_identity_reaches_both_replay_boundaries():
-./tests/test_gate_canonical_contract.py:328:def test_consumer_does_not_derive_a_second_operation_identity():
-./tests/test_gate_canonical_contract.py:353:    def __init__(self, params: dict[str, str]):
-./tests/test_gate_canonical_contract.py:356:    def sudo(self):
-./tests/test_gate_canonical_contract.py:359:    def get_param(self, key, default=None):
-./tests/test_gate_canonical_contract.py:364:    def __init__(self, raw=None):
-./tests/test_gate_canonical_contract.py:368:    def __getitem__(self, model):
-./tests/test_gate_canonical_contract.py:373:def test_caller_budget_falls_back_to_thirty_seconds_when_unset():
-./tests/test_gate_canonical_contract.py:378:def test_caller_budget_accepts_the_seeded_default():
-./tests/test_gate_canonical_contract.py:382:def test_caller_budget_accepts_the_ceiling_exactly():
-./tests/test_gate_canonical_contract.py:386:def test_caller_budget_accepts_a_shorter_budget():
-./tests/test_gate_canonical_contract.py:392:def test_caller_budget_rejects_anything_above_the_ceiling(raw):
-./tests/test_gate_canonical_contract.py:401:def test_caller_budget_rejects_non_positive_values(raw):
-./tests/test_gate_canonical_contract.py:407:def test_caller_budget_rejects_or_defaults_unparseable_values(raw):
-./tests/test_gate_canonical_contract.py:417:def test_caller_budget_rejects_non_finite_values(raw):
-./tests/test_gate_canonical_contract.py:423:def test_packet_budget_is_derived_from_the_same_validated_value():
-./tests/test_gate_canonical_contract.py:440:def test_empty_transport_failure_message_falls_back_to_the_exception_type():
-./tests/test_gate_canonical_contract.py:462:def test_failure_detail_is_never_blank(exc, expected):
-./tests/test_gate_canonical_contract.py:467:def test_the_ceiling_is_a_single_named_constant():
-./tests/test_gate_canonical_contract.py:474:def test_packet_timeout_header_is_derived_from_the_same_config():
-./tests/test_gate_canonical_contract.py:481:def test_odoo_adds_no_retry_loop_around_gate():
-./tests/test_gate_canonical_contract.py:491:def test_payload_asks_eie_for_exactly_the_writeback_allowlist():
-./tests/test_gate_canonical_contract.py:504:def test_match_request_uses_the_direction_ceg_declares():
+./tests/test_gate_canonical_contract.py:103:def test_canonical_identity_is_on_the_entity():
+./tests/test_gate_canonical_contract.py:108:def test_compatibility_alias_carries_the_same_value():
+./tests/test_gate_canonical_contract.py:113:def test_odoo_context_travels_as_metadata():
+./tests/test_gate_canonical_contract.py:120:def test_kb_context_declares_the_domain_explicitly():
+./tests/test_gate_canonical_contract.py:129:def test_payload_validates_as_a_canonical_enrich_request():
+./tests/test_gate_canonical_contract.py:147:def test_mapper_keeps_fields_eie_no_longer_truncates():
+./tests/test_gate_canonical_contract.py:159:def test_request_does_not_emit_entity_snapshot():
+./tests/test_gate_canonical_contract.py:164:def test_request_does_not_emit_a_top_level_entity_id():
+./tests/test_gate_canonical_contract.py:169:def test_request_does_not_emit_response_side_keys():
+./tests/test_gate_canonical_contract.py:175:def test_gate_client_holds_no_eie_peer_address():
+./tests/test_gate_canonical_contract.py:183:def test_gate_destination_is_sdk_owned_not_set_in_odoo():
+./tests/test_gate_canonical_contract.py:206:def test_odoo_does_not_restate_sdk_transport_defaults():
+./tests/test_gate_canonical_contract.py:219:def _eie_response(**overrides):
+./tests/test_gate_canonical_contract.py:231:def test_mapper_accepts_canonical_state_fields_response():
+./tests/test_gate_canonical_contract.py:238:def test_mapper_does_not_require_status_final_fields_or_writeback():
+./tests/test_gate_canonical_contract.py:246:def test_mapper_fails_closed_without_an_explicit_completed_state():
+./tests/test_gate_canonical_contract.py:251:def test_mapper_reports_failure_reason_over_state():
+./tests/test_gate_canonical_contract.py:259:def test_writeback_proposal_is_allowlisted():
+./tests/test_gate_canonical_contract.py:265:def test_writeback_proposal_drops_empty_values():
+./tests/test_gate_canonical_contract.py:273:def _ctx(record_id: int = RUN_ID, db_name: str = "plasticos"):
+./tests/test_gate_canonical_contract.py:277:def test_operation_id_is_stable_for_a_retry_of_the_same_run():
+./tests/test_gate_canonical_contract.py:282:def test_operation_id_does_not_depend_on_the_payload():
+./tests/test_gate_canonical_contract.py:300:def test_operation_id_differs_across_runs():
+./tests/test_gate_canonical_contract.py:304:def test_operation_id_is_database_scoped():
+./tests/test_gate_canonical_contract.py:308:def test_operation_id_carries_no_timestamp_or_randomness():
+./tests/test_gate_canonical_contract.py:312:def test_operation_id_is_none_without_run_identity():
+./tests/test_gate_canonical_contract.py:316:def test_operation_id_uses_the_adr_006_semantic_form():
+./tests/test_gate_canonical_contract.py:322:def test_one_identity_reaches_both_replay_boundaries():
+./tests/test_gate_canonical_contract.py:337:def test_consumer_does_not_derive_a_second_operation_identity():
+./tests/test_gate_canonical_contract.py:362:    def __init__(self, params: dict[str, str]):
+./tests/test_gate_canonical_contract.py:365:    def sudo(self):
+./tests/test_gate_canonical_contract.py:368:    def get_param(self, key, default=None):
+./tests/test_gate_canonical_contract.py:373:    def __init__(self, raw=None):
+./tests/test_gate_canonical_contract.py:377:    def __getitem__(self, model):
+./tests/test_gate_canonical_contract.py:382:def test_caller_budget_falls_back_to_thirty_seconds_when_unset():
+./tests/test_gate_canonical_contract.py:387:def test_caller_budget_accepts_the_seeded_default():
+./tests/test_gate_canonical_contract.py:391:def test_caller_budget_accepts_the_ceiling_exactly():
+./tests/test_gate_canonical_contract.py:395:def test_caller_budget_accepts_a_shorter_budget():
+./tests/test_gate_canonical_contract.py:401:def test_caller_budget_rejects_anything_above_the_ceiling(raw):
+./tests/test_gate_canonical_contract.py:410:def test_caller_budget_rejects_non_positive_values(raw):
+./tests/test_gate_canonical_contract.py:416:def test_caller_budget_rejects_or_defaults_unparseable_values(raw):
+./tests/test_gate_canonical_contract.py:426:def test_caller_budget_rejects_non_finite_values(raw):
+./tests/test_gate_canonical_contract.py:432:def test_packet_budget_is_derived_from_the_same_validated_value():
+./tests/test_gate_canonical_contract.py:449:def test_empty_transport_failure_message_falls_back_to_the_exception_type():
+./tests/test_gate_canonical_contract.py:471:def test_failure_detail_is_never_blank(exc, expected):
+./tests/test_gate_canonical_contract.py:476:def test_the_ceiling_is_a_single_named_constant():
+./tests/test_gate_canonical_contract.py:483:def test_packet_timeout_header_is_derived_from_the_same_config():
+./tests/test_gate_canonical_contract.py:490:def test_odoo_adds_no_retry_loop_around_gate():
+./tests/test_gate_canonical_contract.py:500:def test_payload_asks_eie_for_exactly_the_writeback_allowlist():
+./tests/test_gate_canonical_contract.py:513:def test_match_request_uses_the_direction_ceg_declares():
 ./tests/test_gate_match_contract.py:32:    def __init__(self, params: dict[str, str]):
 ./tests/test_gate_match_contract.py:35:    def get_param(self, key: str, default=None):
 ./tests/test_gate_match_contract.py:40:    def __init__(self, params: dict[str, str] | None = None):
@@ -3083,13 +3084,15 @@
 ./tests/test_gate_match_contract.py:312:def test_gate_icp_seed_auto_writeback_review_only():
 ./tests/test_gate_match_contract.py:320:def test_gate_icp_seed_operator_approved_default_off():
 ./tests/test_gate_match_contract.py:328:def test_build_converge_request_maps_partner_snapshot_to_eie_shape():
-./tests/test_gate_match_contract.py:346:def test_build_converge_request_clamps_max_passes():
-./tests/test_gate_match_contract.py:353:def test_partner_writeback_from_converge_allowlist_only():
-./tests/test_gate_match_contract.py:369:def test_map_converge_response_carries_eie_fields_without_fabrication():
-./tests/test_gate_match_contract.py:410:def test_map_converge_response_non_completed_is_not_ok():
-./tests/test_gate_match_contract.py:416:def test_map_converge_response_missing_state_is_not_ok():
-./tests/test_gate_match_contract.py:423:def test_map_match_response_skips_ineligible_candidates():
-./tests/test_gate_match_contract.py:448:def test_map_match_response_skips_missing_eligible():
+./tests/test_gate_match_contract.py:355:def test_build_converge_request_puts_each_field_threshold_on_the_packet():
+./tests/test_gate_match_contract.py:369:def test_build_converge_request_puts_operator_consensus_threshold_on_the_packet():
+./tests/test_gate_match_contract.py:375:def test_build_converge_request_clamps_max_passes():
+./tests/test_gate_match_contract.py:382:def test_partner_writeback_from_converge_allowlist_only():
+./tests/test_gate_match_contract.py:398:def test_map_converge_response_carries_eie_fields_without_fabrication():
+./tests/test_gate_match_contract.py:439:def test_map_converge_response_non_completed_is_not_ok():
+./tests/test_gate_match_contract.py:445:def test_map_converge_response_missing_state_is_not_ok():
+./tests/test_gate_match_contract.py:452:def test_map_match_response_skips_ineligible_candidates():
+./tests/test_gate_match_contract.py:477:def test_map_match_response_skips_missing_eligible():
 ./tests/test_gate_match_receipts.py:21:def test_gate_match_run_has_durable_request_and_response_receipt_fields():
 ./tests/test_gate_match_receipts.py:36:def test_orchestrator_records_receipt_before_mapping_and_preserves_zero_match_audit():
 ./tests/test_gate_match_receipts.py:47:def test_canonical_result_writer_is_gate_only_and_receipt_bound():

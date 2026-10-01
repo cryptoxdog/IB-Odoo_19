@@ -513,7 +513,8 @@
 ./plasticos_gate/services/gate_builders.py:3:from __future__ import annotations
 ./plasticos_gate/services/gate_builders.py:5:from typing import Any
 ./plasticos_gate/services/gate_builders.py:7:from .gate_allowlists import (
-./plasticos_gate/services/gate_builders.py:13:from .gate_contracts import (
+./plasticos_gate/services/gate_builders.py:13:from .gate_config import gate_consensus_threshold
+./plasticos_gate/services/gate_builders.py:14:from .gate_contracts import (
 ./plasticos_gate/services/gate_client.py:3:from __future__ import annotations
 ./plasticos_gate/services/gate_client.py:5:import asyncio
 ./plasticos_gate/services/gate_client.py:6:import threading
@@ -532,10 +533,11 @@
 ./plasticos_gate/services/gate_config.py:11:from urllib.parse import urlsplit
 ./plasticos_gate/services/gate_config.py:14:    from constellation_node_sdk import GateClientConfig
 ./plasticos_gate/services/gate_config.py:125:        import constellation_node_sdk  # noqa: F401
-./plasticos_gate/services/gate_config.py:357:    from constellation_node_sdk import GateClientConfig
+./plasticos_gate/services/gate_config.py:386:    from constellation_node_sdk import GateClientConfig
 ./plasticos_gate/services/gate_contracts.py:3:from __future__ import annotations
 ./plasticos_gate/services/gate_contracts.py:5:from dataclasses import dataclass, field
 ./plasticos_gate/services/gate_contracts.py:6:from typing import Any
+./plasticos_gate/services/gate_contracts.py:8:from .gate_config import DEFAULT_CONSENSUS_THRESHOLD
 ./plasticos_gate/services/gate_mappers.py:3:from __future__ import annotations
 ./plasticos_gate/services/gate_mappers.py:5:import re
 ./plasticos_gate/services/gate_mappers.py:6:from typing import Any
@@ -1821,10 +1823,10 @@
 ./tests/test_gate_canonical_contract.py:28:from plasticos_gate.services.gate_builders import (  # noqa: E402
 ./tests/test_gate_canonical_contract.py:33:from plasticos_gate.services.gate_config import (  # noqa: E402
 ./tests/test_gate_canonical_contract.py:39:from plasticos_gate.services.gate_mappers import (  # noqa: E402
-./tests/test_gate_canonical_contract.py:284:    import inspect
-./tests/test_gate_canonical_contract.py:286:    from plasticos_gate.services.gate_builders import build_operation_id as _fn
-./tests/test_gate_canonical_contract.py:492:    from plasticos_gate.services.gate_allowlists import PARTNER_WRITEBACK_FIELD_ALLOWLIST
-./tests/test_gate_canonical_contract.py:505:    from plasticos_gate.services.gate_contracts import MatchRequest
+./tests/test_gate_canonical_contract.py:293:    import inspect
+./tests/test_gate_canonical_contract.py:295:    from plasticos_gate.services.gate_builders import build_operation_id as _fn
+./tests/test_gate_canonical_contract.py:501:    from plasticos_gate.services.gate_allowlists import PARTNER_WRITEBACK_FIELD_ALLOWLIST
+./tests/test_gate_canonical_contract.py:514:    from plasticos_gate.services.gate_contracts import MatchRequest
 ./tests/test_gate_match_contract.py:3:from __future__ import annotations
 ./tests/test_gate_match_contract.py:5:import sys
 ./tests/test_gate_match_contract.py:6:from pathlib import Path

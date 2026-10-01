@@ -185,7 +185,7 @@
 ./tests/test_crm_sync_full_import.py:622:        table_name="Grades",
 ./tests/test_gap_fixes.py:305:        view_name = "plasticos_rep_performance"
 ./tests/test_gate_canonical_contract.py:57:    _name = "plasticos.enrichment.run"
-./tests/test_gate_canonical_contract.py:296:    assert build_operation_id(_ctx(db_name="prod")) != build_operation_id(_ctx(db_name="staging"))
+./tests/test_gate_canonical_contract.py:305:    assert build_operation_id(_ctx(db_name="prod")) != build_operation_id(_ctx(db_name="staging"))
 ./tests/test_gate_match_contract.py:67:    _name = "plasticos.intake"
 ./tests/test_gate_match_contract.py:243:    _name = "res.partner"
 ./tests/test_gate_match_contract.py:268:    _name = "plasticos.enrichment.run"
