@@ -898,6 +898,9 @@ ERP_DRY ?= $(DRY)
 ERP_LIMIT ?= $(LIMIT)
 ERP_PAYLOAD_ROOT ?= $(PAYLOAD_ROOT)
 ERP_REPORT_PATH ?= $(or $(REPORT_PATH),.l9/pr/import-erp-summary.json)
+# Applied imports refuse a database that already has business partners.
+# Set ERP_REQUIRE_EMPTY=0 only for a deliberate reload onto a populated database.
+ERP_REQUIRE_EMPTY ?= 1
 # The VanillaSoft driver reads two floors (plasticos_crm_sync/scripts/
 # import_vanillasoft_shell.py); both are forwarded verbatim.
 VANILLASOFT_CALL_FLOOR ?=
@@ -923,11 +926,13 @@ import-erp:
 			-e ERP_LIMIT="$(ERP_LIMIT)" \
 			-e ERP_PAYLOAD_ROOT="$(ERP_PAYLOAD_ROOT)" \
 			-e ERP_REPORT_PATH="$(ERP_REPORT_PATH)" \
+			-e ERP_REQUIRE_EMPTY="$(ERP_REQUIRE_EMPTY)" \
 			odoo odoo shell -d $(ODOO_DB_NAME) --no-http < plasticos_partner_import/scripts/import_erp_shell.py; \
 	elif [ -x "$(L9_ODOO_VENV)/bin/odoo" ]; then \
 		src=$$(ls -d /opt/odoo-src/odoo-19.0* | sort | tail -1); \
 		ERP_DRY="$(ERP_DRY)" ERP_LIMIT="$(ERP_LIMIT)" \
 		ERP_PAYLOAD_ROOT="$(ERP_PAYLOAD_ROOT)" ERP_REPORT_PATH="$(ERP_REPORT_PATH)" \
+		ERP_REQUIRE_EMPTY="$(ERP_REQUIRE_EMPTY)" \
 		"$(L9_ODOO_VENV)/bin/odoo" shell -d $(ODOO_DB_NAME) --no-http \
 			--db_host="$(L9_PG_HOST)" --db_port="$(L9_PG_PORT)" --db_user="$(L9_PG_USER)" \
 			--addons-path="$$src/odoo/addons,$(CURDIR)" \
