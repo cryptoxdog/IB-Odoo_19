@@ -35,6 +35,10 @@
             <xpath expr="//field[@name='company_registry']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
+            <!-- Language -->
+            <xpath expr="//field[@name='lang']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
         </field>
     </record>
 

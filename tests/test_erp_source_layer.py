@@ -389,6 +389,8 @@ def test_contact_active_flag_parses_the_char_spelling():
 def test_address_kind_falls_back_without_losing_the_label():
     assert mapping.address_kind({"Type": "INVOICE"}) == "invoice"
     assert mapping.address_kind({"Type": "PICK UP ADDRESS"}) == "delivery"
+    assert mapping.address_kind({"Type": "PICK UP"}) == "delivery"
+    assert mapping.address_kind({"Type": "HOUSTON TX - PICK UP"}) == "delivery"
     assert mapping.address_kind({"Type": "OMAHA, NE"}) == "other"
 
 
@@ -407,7 +409,7 @@ def test_billing_address_population_matches_the_payload(index):
         kinds[kind] = kinds.get(kind, 0) + 1
 
     assert sum(kinds.values()) == 2950
-    assert kinds == {"invoice": 1580, "other": 1273, "delivery": 53, "primary": 44}
+    assert kinds == {"invoice": 1580, "other": 1216, "delivery": 110, "primary": 44}
 
     # The free-text Type labels 1212 of them; the billing flags add 368 that
     # the label alone would have mis-filed as ordinary locations.

@@ -203,14 +203,19 @@ def address_kind(row) -> str:
     An unrecognised label is a location, not a loss: the raw text is preserved
     as the partner name.
     """
-    labelled = ADDRESS_TYPE_KIND.get(_clean(row.get("Type")).upper())
+    label = _clean(row.get("Type")).upper()
+    labelled = ADDRESS_TYPE_KIND.get(label)
     if labelled == "invoice":
         return "invoice"
     if parse_bool(row.get("InvoiceAddr")) or parse_bool(row.get("RemitToAddress")):
         return "invoice"
     if parse_bool(row.get("isBillingAddressOnly")):
         return "invoice"
-    return labelled or "other"
+    if labelled:
+        return labelled
+    if any(token in label for token in ("PICK-UP", "PICK UP", "PICKUP", "WAREHOUSE", "DELIVERY")):
+        return "delivery"
+    return "other"
 
 
 def weight_uom(sale_uom: str | None, purchase_uom: str | None) -> tuple[str | None, str | None]:

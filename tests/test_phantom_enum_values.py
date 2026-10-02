@@ -747,6 +747,13 @@ GLOBAL_ALLOWLIST = frozenset(
         "gif",
         "jpg",
         "jpeg",
+        # ─────────────────────────────────────────────────────────────────────
+        # ERP IMPORT SOURCE VOCABULARY — erp_import_service.py
+        # ISO country codes and ERP Address.Type words read from the bulk
+        # grids, not Odoo selection values
+        # ─────────────────────────────────────────────────────────────────────
+        "US",
+        "REMIT",
     }
 )
 

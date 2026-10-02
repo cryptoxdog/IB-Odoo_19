@@ -148,7 +148,7 @@ express; the multi-role truth is carried by native `supplier_rank` /
 | `TermsCode` | `property_supplier_payment_term_id` | looked up by name; never created |
 | `IndustryNm` | `industry_id` | looked up by name; never created |
 | `MasterAccountID` | — | **drop: 0 of 1290 populated.** No hierarchy exists to import |
-| `CustSvcRep` | — | **drop: 1289 of 1290 NULL** (single value `IB`) |
+| `CustSvcRep` | — | **drop: 1289 of 1290 NULL** (single value `IB`). Not Salesperson |
 | `PaymentDays` | — | **drop: 1279 zero, 11 NULL** — no signal |
 | `OnHold` | — | **drop: 1287 blank, 2 NULL, 1 `N`** — no signal |
 | `CurrCode` | — | **drop: 1289 USD, 1 EUR.** Single-currency payload |
@@ -165,10 +165,11 @@ Parent resolution is by `CpID` **only** — never by company name.
 |---|---|---|
 | `AddressID` | `ir.model.data` | identity |
 | `CpID` | `parent_id` | mapped (source key only) |
-| `Type` | `name`, `type` | mapped; unrecognised labels kept as the name |
-| `InvoiceAddr`, `RemitToAddress`, `isBillingAddressOnly` | `type='invoice'` | mapped |
-| `Addr1` | `street` | mapped |
-| `Addr2`, `Addr3` | `street2` | mapped (joined) |
+| `Type` | child `name` and `type` | site label or street. Pickup, warehouse, and delivery labels are `type='delivery'` |
+| `InvoiceAddr`, `RemitToAddress`, `isBillingAddressOnly` | company address, or `type='invoice'` | the company's own remit is written on the counterparty. A second billing street is an Invoice child |
+| `Addr1` | — on a child | the company name. Odoo already prefixes the company, so the child is not named with it |
+| `Addr2` | `street` | mapped |
+| `Addr3` | `street2` | mapped |
 | `City`, `Region`, `PostalCd`, `Country` | `city`, `state_id`, `zip`, `country_id` | mapped; country/state looked up, never created |
 | `Telephone`, `MobilePhone` | `phone` | mapped |
 | `Email`, `BillingEmail` | `email` | mapped |
@@ -178,12 +179,23 @@ Parent resolution is by `CpID` **only** — never by company name.
 as labels — so the billing flags carry signal the label does not: **289**
 addresses are `InvoiceAddr='Y'` with no invoice-like `Type`, and **88** more
 carry `RemitToAddress=1`. Resolved population: 1580 invoice (1212 by label +
-368 by flag), 1273 other, 53 delivery, 44 primary.
+368 by flag), 1216 other, 110 delivery, 44 primary. Pickup, warehouse, and
+delivery labels that are not an exact Type token are included in delivery.
 
-A billing address is `is_company=False` with `type='invoice'`; every other kind
-is a child company location, which makes `is_facility` true by its existing
-compute. `facility_role` and `partner_type_id` are left unset — the source
-carries no facility-specialization data, and guessing one would be invention.
+The company's own remit is written onto that counterparty: street, city, state,
+zip, country, phone, and email. An address with the same company name updates
+that partner and does not create another company. A further site is a child
+address, not a company, and it does not receive the remit. The person is a
+Contact under the company, so Odoo copies that address onto the person. The
+import does not write a street onto the person. When Country is blank and
+Region is a US state code, country is United States. `facility_role` and
+`partner_type_id` are left unset. Salesperson (`user_id`) is left unset: the
+rep is not in the `bulk/` grids, and the superseded corporate CSV sheet is not
+an import source.
+
+A Primary contact's email and phone fill the company when those company fields
+are still empty. The person remains a child contact. The company is the
+commercial partner.
 
 ---
 
@@ -192,9 +204,9 @@ carries no facility-specialization data, and guessing one would be invention.
 | Source column | Target | Disposition |
 |---|---|---|
 | `CT_ID` | `ir.model.data` | identity |
-| `CpID` | `parent_id` | mapped (source key only) |
-| `Location` | `parent_id` (facility) | mapped — exact `(CpID, Type)` join |
-| `ContactNm` | `name` | mapped |
+| `CpID` | `parent_id` | the company. A person is not parented to a site |
+| `Location` | — | the site join stays in the source. The person stays under the company |
+| `ContactNm` | `name` | one person per counterparty and normalized name |
 | `Email` | `email` | mapped |
 | `PhoneBusiness` | `phone` | mapped |
 | `PhoneMobile` | `mobile` if the installed registry has it, else `comment` | mapped — Odoo 19 base has no `res.partner.mobile` |
@@ -204,10 +216,10 @@ carries no facility-specialization data, and guessing one would be invention.
 | `RoleNm` | `category_id`, `function` | mapped |
 | `CompanyNm` | — | drop: duplicate of the parent company's name |
 
-**`Location` is not fuzzy matching.** It holds an `Address.Type` value, and
-`(CpID, Type)` is Address's declared database primary key, so the join is
-exact: it resolves for 3495 of 3534 non-blank contacts (98.9%). Contacts whose
-`Location` resolves are parented to the facility; the rest to the company.
+**One person per counterparty and name.** The same name, ignoring case and
+punctuation, is one `res.partner`. Different names stay two people. Every
+`CT_ID` external id points at that one person. Role tags are added. `function`
+holds Primary when that role is present, otherwise the first role.
 
 **Contact roles use the existing partner-tag mechanism.** 14 distinct role
 names, 510 contacts holding more than one. `res.partner.category` is this

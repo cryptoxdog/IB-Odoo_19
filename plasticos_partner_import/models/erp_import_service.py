@@ -209,61 +209,194 @@ class PlasticosErpImport(models.AbstractModel):
                     )
                 continue
 
-            parent_name = Partner.browse(parent_id).name if parent_id else ""
+            billing_rows = []
+            location_rows = []
             for address_id in index.addresses_by_cp[cp_id]:
                 row = index.addresses[address_id]
-                kind = mapping.address_kind(row)
-                # An invoice/remit address is an address, not a facility; every
-                # other kind is a physical child-company location. The remit
-                # (PO Box) stays on that invoice child and is never copied
-                # onto a facility.
-                is_billing = kind == "invoice"
-                values = {
-                    "name": _address_name(row, parent_name, address_id),
-                    "parent_id": parent_id,
-                    "is_company": not is_billing,
-                    "type": mapping.ODOO_ADDRESS_TYPE[kind],
-                }
-                # ERP: Addr1 is the company on the location, Addr2 is the
-                # street, Addr3 is the second street line. Type is only the
-                # location short name.
-                _set_if(values, "street", _text(row, "Addr2"))
-                _set_if(values, "street2", _text(row, "Addr3"))
-                _set_if(values, "city", _text(row, "City"))
-                _set_if(values, "zip", _text(row, "PostalCd"))
-                _set_if(values, "phone", _text(row, "Telephone") or _text(row, "MobilePhone"))
-                _set_if(values, "email", _text(row, "Email") or _text(row, "BillingEmail"))
+                if mapping.address_kind(row) == "invoice":
+                    billing_rows.append((address_id, row))
+                else:
+                    location_rows.append((address_id, row))
 
-                self._resolve_country_state(values, row)
-
+            # One company partner per counterparty. Its remit is written onto
+            # that partner. Another address is a location under it, never a
+            # second company with the same name.
+            canonical_id = _canonical_billing_id(billing_rows)
+            parent = Partner.browse(parent_id) if parent_id else Partner.browse()
+            parent_name = parent.name if parent else ""
+            ordered = []
+            if canonical_id:
+                ordered.append(next(pair for pair in billing_rows if pair[0] == canonical_id))
+            ordered.extend(pair for pair in (*billing_rows, *location_rows) if pair[0] != canonical_id)
+            for address_id, row in ordered:
                 if dry_run:
                     report.skip("locations")
                     continue
-
-                partner = self._upsert(Partner, f"legacy_erp_address_{address_id}", values, report, "locations")
-                partner_by_address[address_id] = partner.id
+                if parent and (address_id == canonical_id or _same_party_name(_text(row, "Addr1"), parent_name)):
+                    wrote = self._apply_billing_address(parent, row)
+                    company_street = (parent.street or "").casefold()
+                    row_street = _text(row, "Addr2").casefold()
+                    if row_street and company_street and row_street != company_street:
+                        self._create_location(
+                            Partner,
+                            row,
+                            address_id,
+                            parent.id,
+                            parent_name,
+                            partner_by_address,
+                            report,
+                            dry_run,
+                            child_name=_distinct_location_name(row, parent_name, address_id),
+                        )
+                    else:
+                        partner_by_address[address_id] = parent.id
+                        report.bump("locations", "updated" if wrote else "skipped")
+                    continue
+                self._create_location(
+                    Partner, row, address_id, parent_id, parent_name, partner_by_address, report, dry_run
+                )
 
         return partner_by_address
 
+    def _create_location(
+        self,
+        partner_model,
+        row,
+        address_id,
+        parent_id,
+        parent_name,
+        partner_by_address,
+        report,
+        dry_run,
+        child_name: str | None = None,
+    ) -> None:
+        """A further location under the company. Never another company partner."""
+        from ..erp import mapping
+
+        kind = mapping.address_kind(row)
+        values = {
+            "name": child_name or _distinct_location_name(row, parent_name, address_id),
+            "parent_id": parent_id,
+            "is_company": False,
+            "type": mapping.ODOO_ADDRESS_TYPE[kind],
+        }
+        self._address_values(values, row)
+        if dry_run:
+            report.skip("locations")
+            return
+        partner = self._upsert(partner_model, f"legacy_erp_address_{address_id}", values, report, "locations")
+        partner_by_address[address_id] = partner.id
+
+    def _apply_billing_address(self, partner, row) -> bool:
+        """Write the company's remit onto the company. Never a second partner.
+
+        Fills only blank fields, so a counterparty email already stored from
+        ``APEMail`` is kept. The remit is not copied onto facility children.
+        """
+        values = {}
+
+        def fill(field_name: str, value: str) -> None:
+            if value and field_name in partner._fields and not partner[field_name]:
+                values[field_name] = value
+
+        fill("street", _text(row, "Addr2"))
+        fill("street2", _text(row, "Addr3"))
+        fill("city", _text(row, "City"))
+        fill("zip", _text(row, "PostalCd"))
+        fill("phone", _text(row, "Telephone") or _text(row, "MobilePhone"))
+        fill("email", _text(row, "Email") or _text(row, "BillingEmail"))
+        geo: dict = {}
+        self._resolve_country_state(geo, row)
+        for field_name in ("country_id", "state_id"):
+            if geo.get(field_name) and not partner[field_name]:
+                values[field_name] = geo[field_name]
+        if not values:
+            return False
+        partner.write(values)
+        return True
+
+    def _fill_company_from_contact(self, index, cp_id: str, company_partner_id: int) -> None:
+        """Put the primary contact's phone and email on the company when it has none.
+
+        The ERP stores the number and the mailbox on the person. The company
+        is who we trade with, so those values also land on the company. A
+        value already taken from the counterparty or the remit is left as-is.
+        """
+        partner = self.env[RES_PARTNER].browse(company_partner_id)
+        if partner.email and partner.phone:
+            return
+        chosen = None
+        fallback = None
+        for contact_id in index.contacts_by_cp.get(cp_id, []):
+            row = index.contacts[contact_id]
+            if not _text(row, "Email") and not _text(row, "PhoneBusiness"):
+                continue
+            roles = [role.lower() for role in self._contact_roles(index, contact_id)]
+            if "primary" in roles:
+                chosen = row
+                break
+            if fallback is None:
+                fallback = row
+        row = chosen or fallback
+        if not row:
+            return
+        values = {}
+        if not partner.email and _text(row, "Email"):
+            values["email"] = _text(row, "Email")
+        if not partner.phone and _text(row, "PhoneBusiness"):
+            values["phone"] = _text(row, "PhoneBusiness")
+        if values:
+            partner.write(values)
+
+    def _address_values(self, values: dict, row) -> None:
+        """ERP: Addr2 is the street, Addr3 is the second street line."""
+        _set_if(values, "street", _text(row, "Addr2"))
+        _set_if(values, "street2", _text(row, "Addr3"))
+        _set_if(values, "city", _text(row, "City"))
+        _set_if(values, "zip", _text(row, "PostalCd"))
+        _set_if(values, "phone", _text(row, "Telephone") or _text(row, "MobilePhone"))
+        _set_if(values, "email", _text(row, "Email") or _text(row, "BillingEmail"))
+        self._resolve_country_state(values, row)
+
     def _resolve_country_state(self, values: dict, row) -> None:
-        """Resolve country/state to existing records only."""
+        """Resolve country/state to existing records only.
+
+        Most address rows leave Country blank and put a US state code in
+        Region. A blank country is resolved as United States when that code
+        matches a US state.
+        """
         code = _text(row, "Country").upper()
+        if code == "NULL":
+            code = ""
         country = self.env["res.country"].search([("code", "=", code)], limit=1) if len(code) == 2 else None
-        if country:
-            values["country_id"] = country.id
-            region = _text(row, "Region")
-            if region:
-                state = self.env["res.country.state"].search(
-                    ["|", ("code", "=", region), ("name", "=", region), ("country_id", "=", country.id)],
-                    limit=1,
-                )
-                if state:
-                    values["state_id"] = state.id
+        region = _text(row, "Region")
+        if not country and region:
+            state = self.env["res.country.state"].search(
+                [("code", "=", region), ("country_id.code", "=", "US")],
+                limit=1,
+            )
+            if state:
+                values["country_id"] = state.country_id.id
+                values["state_id"] = state.id
+                return
+        if not country:
+            return
+        values["country_id"] = country.id
+        if not region:
+            return
+        state = self.env["res.country.state"].search(
+            [("country_id", "=", country.id), "|", ("code", "=", region), ("name", "=", region)],
+            limit=1,
+        )
+        if state:
+            values["state_id"] = state.id
 
     # ------------------------------------------------------------------
     # Stage 3 — contacts and contact roles
     # ------------------------------------------------------------------
-    def _import_contacts(self, index, report, partner_by_cp: dict, partner_by_address: dict, dry_run: bool) -> None:
+    def _import_contacts(self, index, report, partner_by_cp: dict, _partner_by_address: dict, dry_run: bool) -> None:
+        # People are parented to the company. A Delivery or Invoice child is not
+        # a parent: a Contact child writes its address back onto that parent.
         from ..erp import mapping
 
         Partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT)
@@ -282,6 +415,11 @@ class PlasticosErpImport(models.AbstractModel):
                     )
                 continue
 
+            if company_partner_id and not dry_run:
+                self._fill_company_from_contact(index, cp_id, company_partner_id)
+
+            groups: dict[str, list] = {}
+            order: list[str] = []
             for contact_id in index.contacts_by_cp[cp_id]:
                 row = index.contacts[contact_id]
                 name = _text(row, "ContactNm")
@@ -289,54 +427,111 @@ class PlasticosErpImport(models.AbstractModel):
                     report.anomaly("Contact", contact_id, "blank ContactNm")
                     report.reject("contacts")
                     continue
+                key = _person_key(name)
+                if key not in groups:
+                    order.append(key)
+                    groups[key] = []
+                groups[key].append((contact_id, row))
 
-                # Location is the Address composite key (CpID, Type), so this is
-                # an exact join, never a fuzzy text match.
-                parent_id = self._contact_parent(index, row, cp_id, company_partner_id, partner_by_address)
-                active = mapping.parse_bool(row.get("IsActive"))
-                values = {
-                    "name": name,
-                    "parent_id": parent_id,
-                    "is_company": False,
-                    "type": "contact",
-                    "active": True if active is None else active,
-                }
-                _set_if(values, "email", _text(row, "Email"))
-                _set_if(values, "phone", _text(row, "PhoneBusiness"))
-                # `mobile` is not a res.partner field in Odoo 19 (base defines
-                # `phone` only). Resolve against the registry actually installed
-                # rather than an assumed schema, and never fall back to `phone`:
-                # that column carries PhoneBusiness and overwriting it would
-                # destroy a distinct business number.
-                mobile_field = _partner_mobile_field(Partner)
-                if mobile_field:
-                    _set_if(values, mobile_field, _text(row, "PhoneMobile"))
-                _set_if(values, "comment", _contact_comment(row, keep_mobile=not mobile_field))
+            for key in order:
+                self._import_person(
+                    Partner,
+                    index,
+                    groups[key],
+                    company_partner_id,
+                    tag_cache,
+                    report,
+                    dry_run,
+                    mapping,
+                )
 
-                roles = self._contact_roles(index, contact_id)
-                if roles:
-                    values["function"] = roles[0]
+    def _import_person(
+        self, partner_model, index, members, company_partner_id, tag_cache, report, dry_run, mapping
+    ) -> None:
+        """One person per counterparty and name. Every CT_ID points at that person.
 
-                if dry_run:
-                    report.skip("contacts")
-                    continue
+        The person is type Contact under the company. Odoo copies the company
+        address and Salesperson onto that person. Writing a street here would
+        push it back onto the company, so the address is left unset.
+        """
+        roles: list[str] = []
+        for contact_id, _row in members:
+            for role in self._contact_roles(index, contact_id):
+                if role not in roles:
+                    roles.append(role)
+        roles = mapping.sort_contact_roles(roles)
 
-                partner = self._upsert(Partner, f"legacy_erp_contact_{contact_id}", values, report, "contacts")
-                self._apply_contact_roles(partner, roles, tag_cache, report)
+        name = _text(members[0][1], "ContactNm")
+        active = any(_row_active(row, mapping) for _contact_id, row in members)
+        values = {
+            "name": name,
+            "parent_id": company_partner_id,
+            "is_company": False,
+            "type": "contact",
+            "active": active,
+        }
+        self._merge_person_channels(values, members, partner_model, report)
+        if roles:
+            values["function"] = roles[0]
 
-    def _contact_parent(
-        self, index, row, cp_id: str, company_partner_id: int | None, partner_by_address: dict
-    ) -> int | None:
-        """Facility partner when ``Location`` names one of this CpID's addresses."""
-        location = _text(row, "Location").upper()
-        if location:
-            for address_id in index.addresses_by_cp.get(cp_id, []):
-                address_row = index.addresses[address_id]
-                if _text(address_row, "Type").upper() == location:
-                    resolved = partner_by_address.get(address_id)
-                    if resolved:
-                        return resolved
-        return company_partner_id
+        if dry_run:
+            report.skip("contacts", len(members))
+            return
+
+        anchor = self._anchor_contact_id(partner_model, members)
+        partner = self._upsert(partner_model, f"legacy_erp_contact_{anchor}", values, report, "contacts")
+        for contact_id, _row in members:
+            if contact_id == anchor:
+                continue
+            self._alias_xmlid(partner_model, f"legacy_erp_contact_{contact_id}", partner, report, "contacts")
+        self._apply_contact_roles(partner, roles, tag_cache, report)
+
+    def _merge_person_channels(self, values: dict, members, partner_model, report) -> None:
+        """Keep the first email and phone. A later different value is logged."""
+        mobile_field = _partner_mobile_field(partner_model)
+        comments: list[str] = []
+        for contact_id, row in members:
+            _keep_first(values, "email", _text(row, "Email"), report, contact_id)
+            _keep_first(values, "phone", _text(row, "PhoneBusiness"), report, contact_id)
+            if mobile_field:
+                _keep_first(values, mobile_field, _text(row, "PhoneMobile"), report, contact_id)
+            comment = _contact_comment(row, keep_mobile=not mobile_field)
+            if comment and comment not in comments:
+                comments.append(comment)
+        if comments:
+            values["comment"] = "\n".join(comments)
+
+    def _anchor_contact_id(self, partner_model, members) -> str:
+        """Prefer a CT_ID that already points at a partner, so a replay updates it."""
+        for contact_id, _row in members:
+            if self._partner_by_xmlid(partner_model, f"legacy_erp_contact_{contact_id}"):
+                return contact_id
+        return members[0][0]
+
+    def _partner_by_xmlid(self, model, xml_id: str):
+        data = self.env["ir.model.data"].search(
+            [("module", "=", XMLID_MODULE), ("name", "=", xml_id), ("model", "=", model._name)],
+            limit=1,
+        )
+        if not data or not data.res_id:
+            return model.browse()
+        return model.browse(data.res_id).exists()
+
+    def _alias_xmlid(self, model, xml_id: str, record, report, bucket: str) -> None:
+        """Point another CT_ID at the one person. Does not create a second partner."""
+        data = self.env["ir.model.data"].search(
+            [("module", "=", XMLID_MODULE), ("name", "=", xml_id), ("model", "=", model._name)],
+            limit=1,
+        )
+        if data and data.res_id == record.id:
+            report.bump(bucket, "skipped")
+            return
+        if data:
+            data.write({"res_id": record.id, "model": model._name})
+            report.bump(bucket, "updated")
+            return
+        self._write_identity_marker(model, xml_id, record)
+        report.bump(bucket, "skipped")
 
     def _contact_roles(self, index, contact_id: str) -> list:
         """Ordered role names for a contact. ``Primary`` sorts first."""
@@ -522,6 +717,13 @@ class PlasticosErpImport(models.AbstractModel):
             data.unlink()
 
         record = model.create(values)
+        self._write_identity_marker(model, xml_id, record)
+        if bucket:
+            report.bump(bucket, "created")
+        return record
+
+    def _write_identity_marker(self, model, xml_id: str, record) -> None:
+        """Bind ``xml_id`` to an existing ``record`` in the ERP identity namespace."""
         self.env["ir.model.data"].create(
             {
                 "module": XMLID_MODULE,
@@ -531,9 +733,6 @@ class PlasticosErpImport(models.AbstractModel):
                 "noupdate": True,
             }
         )
-        if bucket:
-            report.bump(bucket, "created")
-        return record
 
     def _erp_lead_source_id(self) -> int | bool:
         """``utm.source`` named ERP. Missing seed leaves the field unset."""
@@ -565,6 +764,61 @@ def _differs(record, field_name: str, value) -> bool:
     if hasattr(current, "id"):
         current = current.id or False
     return current != (value if value is not None else False)
+
+
+def _same_party_name(left: str, right: str) -> bool:
+    """True when two labels are the same company once punctuation and spacing are ignored."""
+
+    def norm(value: str) -> str:
+        return "".join(ch for ch in (value or "").upper() if ch.isalnum())
+
+    a, b = norm(left), norm(right)
+    return not a or not b or a == b
+
+
+def _distinct_location_name(row, parent_name: str, address_id: str) -> str:
+    """Name a second site without repeating the company name."""
+    short = _text(row, "Type")
+    if short and not _same_party_name(short, parent_name):
+        return short
+    return _text(row, "Addr2") or _text(row, "City") or _address_name(row, parent_name, address_id)
+
+
+def _person_key(name: str) -> str:
+    """Identity of a person within one counterparty. Punctuation and case do not split them."""
+    key = "".join(char for char in name.upper() if char.isalnum())
+    return key or name.casefold()
+
+
+def _row_active(row, mapping) -> bool:
+    flag = mapping.parse_bool(row.get("IsActive"))
+    return True if flag is None else flag
+
+
+def _keep_first(values: dict, field_name: str, value: str, report, contact_id: str) -> None:
+    if not value:
+        return
+    current = values.get(field_name)
+    if not current:
+        values[field_name] = value
+    elif str(current).casefold() != value.casefold():
+        report.anomaly("Contact", contact_id, f"same person already has {field_name} {current!r}")
+
+
+def _canonical_billing_id(pairs: list) -> str | None:
+    """The company's own remit: Remit-to, then Invoice, then the first billing row."""
+    from ..erp import mapping
+
+    if not pairs:
+        return None
+
+    def rank(row) -> tuple:
+        remit = 0 if mapping.parse_bool(row.get("RemitToAddress")) else 1
+        invoice = 0 if mapping.parse_bool(row.get("InvoiceAddr")) else 1
+        label = 0 if _text(row, "Type").upper() in {"INVOICE", "REMIT"} else 1
+        return (remit, invoice, label)
+
+    return min(pairs, key=lambda pair: rank(pair[1]))[0]
 
 
 def _address_name(row, parent_name: str, address_id: str) -> str:
