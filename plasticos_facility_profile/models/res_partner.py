@@ -287,6 +287,34 @@ class ResPartner(models.Model):
         string="Source Address Label",
         help="ERP Address.Type. Tells a pickup from a ship-to on a broker or a carrier.",
     )
+    phone_line_ids = fields.One2many(
+        "plasticos.partner.phone",
+        "partner_id",
+        string="Other Phones",
+        help="Mobile, other, and fax numbers. The business number stays in Phone.",
+    )
+    location_child_ids = fields.Many2many(
+        "res.partner",
+        compute="_compute_location_child_ids",
+        string="Locations",
+        help="Child locations of this company.",
+    )
+    location_partner_ids = fields.Many2many(
+        "res.partner",
+        "plasticos_partner_location_rel",
+        "person_id",
+        "location_id",
+        string="Sites",
+        help="Locations this person works at.",
+    )
+    site_person_ids = fields.Many2many(
+        "res.partner",
+        "plasticos_partner_location_rel",
+        "location_id",
+        "person_id",
+        string="People",
+        help="People linked to this location.",
+    )
     address_type_meaning = fields.Char(
         string="Address Meaning",
         compute="_compute_address_type_meaning",
@@ -302,6 +330,11 @@ class ResPartner(models.Model):
                 company_role=partner.company_role,
                 source_label=partner.erp_address_label,
             )
+
+    @api.depends("child_ids", "child_ids.is_company")
+    def _compute_location_child_ids(self):
+        for partner in self:
+            partner.location_child_ids = partner.child_ids.filtered("is_company")
 
     def _avatar_get_placeholder_path(self):
         if self.is_company:

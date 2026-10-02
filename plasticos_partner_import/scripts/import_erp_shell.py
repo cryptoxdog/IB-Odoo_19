@@ -10,18 +10,24 @@ single file serves both the docker and the no-Docker harness paths:
 * ``ERP_REPORT_PATH`` — write the machine-readable summary JSON here
 * ``ERP_PARTNERS_ONLY`` — ``1`` imports only CounterParty, Address, Contact,
   and ContactRoleAssignment. Deal files are not opened.
+* ``ERP_LAYER`` — ``counterparties``, ``addresses``, ``contacts``, or ``roles``.
+  Only that file is opened, and only after the previous layer's validator
+  passes (``database`` before ``counterparties``). Unresolved placeholder rows
+  do not fail the process; the layer's own validator is the exit code.
 * ``ERP_REQUIRE_EMPTY`` — ``0`` allows a database that already has business
-  partners. Any other value (including unset) refuses the import unless the
-  only ``res.partner`` rows are the company and the login users.
+  partners. Any other value (including unset) refuses a full import or the
+  ``counterparties`` layer unless the only ``res.partner`` rows are the company
+  and the login users. Later layers are gated by the previous validator.
 
-Exit code: nonzero when the summary reports ``failed``, so the Makefile target
-fails closed on material import errors. Dry runs always exit 0.
+Exit code: nonzero when the summary reports ``failed`` or a layer validator
+fails, so the Makefile target fails closed. Dry runs always exit 0.
 """
 
 import os
 import sys
 
 from odoo.addons.plasticos_partner_import.scripts.run_erp_import import run
+from odoo.addons.plasticos_partner_import.scripts.validate_partner_layer import LAYER_BEFORE, validate
 
 
 def _setting(name: str) -> str:
@@ -73,19 +79,32 @@ def main() -> int:
     limit_raw = _setting("LIMIT").strip()
     limit = int(limit_raw) if limit_raw.isdigit() else None
     env = _odoo_env()
-    if not _flag("DRY"):
+    dry_run = _flag("DRY")
+    layer = _setting("LAYER").strip().lower() or None
+    if layer and layer not in LAYER_BEFORE:
+        raise SystemExit(f"ERP_LAYER must be one of {', '.join(LAYER_BEFORE)}")
+    if not dry_run and layer in (None, "counterparties"):
         _require_empty_partner_set(env)
+    if layer and not dry_run and validate(env, LAYER_BEFORE[layer]):
+        print(f"refusing layer {layer}: the {LAYER_BEFORE[layer]} validator did not pass")
+        return 1
 
     result = run(
         env,
         payload_root=_setting("PAYLOAD_ROOT") or None,
         limit=limit,
         commit=True,
-        dry_run=_flag("DRY"),
+        dry_run=dry_run,
         report_path=_setting("REPORT_PATH") or None,
-        partners_only=_flag("PARTNERS_ONLY"),
+        partners_only=_flag("PARTNERS_ONLY") or bool(layer),
+        layer=layer,
     )
     summary = result.get("summary") or {}
+    if layer:
+        if dry_run:
+            return 0
+        print(f"layer {layer} committed")
+        return validate(env, layer)
     if summary.get("final_status") == "failed":
         print("IMPORT FAILED: material errors — see summary errors list")
         return 1

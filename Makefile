@@ -888,16 +888,22 @@ test-odoo-local: check-local-runtime
 # make import-erp LIMIT=100      first 100 transactions (diagnostics)
 # make import-erp PAYLOAD_ROOT=/abs/path  non-default source payload
 # make import-erp REPORT_PATH=/abs/summary.json  override machine summary path
+# make import-erp PARTNERS_ONLY=1  partner files only, no deal files
+# make import-erp LAYER=counterparties  one partner file, in order
+#   counterparties → addresses → contacts → roles; each layer opens only after
+#   the previous layer's validator passes (scripts/validate_partner_layer.py)
 
 .PHONY: import-erp import-vanillasoft
 
-# Public overrides (DRY / LIMIT / PAYLOAD_ROOT / REPORT_PATH) bridge onto the
-# ERP_* names the shell driver reads
+# Public overrides (DRY / LIMIT / PAYLOAD_ROOT / REPORT_PATH / PARTNERS_ONLY /
+# LAYER) bridge onto the ERP_* names the shell driver reads
 # (plasticos_partner_import/scripts/import_erp_shell.py).
 ERP_DRY ?= $(DRY)
 ERP_LIMIT ?= $(LIMIT)
 ERP_PAYLOAD_ROOT ?= $(PAYLOAD_ROOT)
 ERP_REPORT_PATH ?= $(or $(REPORT_PATH),.l9/pr/import-erp-summary.json)
+ERP_PARTNERS_ONLY ?= $(PARTNERS_ONLY)
+ERP_LAYER ?= $(LAYER)
 # Applied imports refuse a database that already has business partners.
 # Set ERP_REQUIRE_EMPTY=0 only for a deliberate reload onto a populated database.
 ERP_REQUIRE_EMPTY ?= 1
@@ -927,12 +933,15 @@ import-erp:
 			-e ERP_PAYLOAD_ROOT="$(ERP_PAYLOAD_ROOT)" \
 			-e ERP_REPORT_PATH="$(ERP_REPORT_PATH)" \
 			-e ERP_REQUIRE_EMPTY="$(ERP_REQUIRE_EMPTY)" \
+			-e ERP_PARTNERS_ONLY="$(ERP_PARTNERS_ONLY)" \
+			-e ERP_LAYER="$(ERP_LAYER)" \
 			odoo odoo shell -d $(ODOO_DB_NAME) --no-http < plasticos_partner_import/scripts/import_erp_shell.py; \
 	elif [ -x "$(L9_ODOO_VENV)/bin/odoo" ]; then \
 		src=$$(ls -d /opt/odoo-src/odoo-19.0* | sort | tail -1); \
 		ERP_DRY="$(ERP_DRY)" ERP_LIMIT="$(ERP_LIMIT)" \
 		ERP_PAYLOAD_ROOT="$(ERP_PAYLOAD_ROOT)" ERP_REPORT_PATH="$(ERP_REPORT_PATH)" \
 		ERP_REQUIRE_EMPTY="$(ERP_REQUIRE_EMPTY)" \
+		ERP_PARTNERS_ONLY="$(ERP_PARTNERS_ONLY)" ERP_LAYER="$(ERP_LAYER)" \
 		"$(L9_ODOO_VENV)/bin/odoo" shell -d $(ODOO_DB_NAME) --no-http \
 			--db_host="$(L9_PG_HOST)" --db_port="$(L9_PG_PORT)" --db_user="$(L9_PG_USER)" \
 			--addons-path="$$src/odoo/addons,$(CURDIR)" \

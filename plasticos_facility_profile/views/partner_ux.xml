@@ -61,9 +61,12 @@
                        help="Internal broker notes: personality, communication style, rapport hooks, family context, hobbies, motivators. Never shared externally."/>
             </xpath>
 
-            <!-- ── Invoicing tab — hide for person contacts (managed on parent) -->
+            <!-- ── Invoicing and Sales & Purchase — companies only ─────── -->
             <xpath expr="//page[@name='accounting']" position="attributes">
-                <attribute name="invisible">parent_id</attribute>
+                <attribute name="invisible">not is_company</attribute>
+            </xpath>
+            <xpath expr="//page[@name='sales_purchases']" position="attributes">
+                <attribute name="invisible">not is_company</attribute>
             </xpath>
 
         </field>

@@ -35,6 +35,7 @@ def run(
     verbose: bool = True,
     report_path: str | None = None,
     partners_only: bool = False,
+    layer: str | None = None,
 ) -> dict:
     """Execute the ERP import, print an accounting report, and emit the
     shared import-run summary (``contracts/schemas/draft/import-run-summary``).
@@ -48,6 +49,8 @@ def run(
         verbose: Print the human-readable summary.
         report_path: When set, write the machine-readable summary JSON here.
         partners_only: Import only the four partner files. Do not open deal files.
+        layer: Import one partner file. ``counterparties``, ``addresses``,
+            ``contacts``, or ``roles``.
 
     Returns:
         The import report produced by ``plasticos.erp.import`` with a
@@ -61,6 +64,7 @@ def run(
         commit=commit,
         dry_run=dry_run,
         partners_only=partners_only,
+        layer=layer,
     )
 
     if not dry_run:

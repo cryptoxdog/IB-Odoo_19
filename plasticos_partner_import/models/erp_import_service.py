@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import logging
 
-from odoo import api, models
+from odoo import Command, api, models
 
 _logger = logging.getLogger(__name__)
 
@@ -45,8 +45,15 @@ PARTNER_CATEGORY = "res.partner.category"
 # re-import updates the same records instead of creating a second set.
 XMLID_MODULE = "plasticos_transaction"
 
-# Import context: historical rows must not fire validation, mail tracking, or
-# automation intended for live trades.
+# One partner file per invocation. The validator must pass before the next file.
+PARTNER_LAYERS = ("counterparties", "addresses", "contacts", "roles")
+LAYER_TABLE = {
+    "counterparties": "CounterParty",
+    "addresses": "Address",
+    "contacts": "Contact",
+    "roles": "ContactRoleAssignment",
+}
+PARTNER_COUNT_PARAM = "plasticos_partner_import.partner_count_after_contacts"
 IMPORT_CONTEXT = {
     "import_mode": True,
     "tracking_disable": True,
@@ -72,6 +79,7 @@ class PlasticosErpImport(models.AbstractModel):
         commit: bool = False,
         dry_run: bool = False,
         partners_only: bool = False,
+        layer: str | None = None,
     ) -> dict:
         """Run the complete import and return an accounting report.
 
@@ -85,6 +93,9 @@ class PlasticosErpImport(models.AbstractModel):
             dry_run: Resolve and map everything, persist nothing.
             partners_only: Read and write only CounterParty, Address, Contact,
                 and ContactRoleAssignment. Deal files are not opened.
+            layer: One of ``counterparties``, ``addresses``, ``contacts``,
+                ``roles``. Only that source file is opened. The parent records
+                are the partners already stored under their source keys.
 
         Returns:
             Per-entity created/updated/skipped counts plus every unresolved
@@ -95,7 +106,12 @@ class PlasticosErpImport(models.AbstractModel):
         from ..erp import header_forensics, reader, source_index
         from ..erp import report as report_module
 
-        only = reader.PARTNER_SOURCE_TABLES if partners_only else None
+        if layer and layer not in PARTNER_LAYERS:
+            raise ValueError(f"unknown partner layer {layer!r}")
+        if layer:
+            only = frozenset({LAYER_TABLE[layer]})
+        else:
+            only = reader.PARTNER_SOURCE_TABLES if partners_only else None
         payload = reader.load_payload(payload_root, only=only)
         index = source_index.build_source_index(payload)
         _logger.info("ERP payload loaded (%s): %s", payload.kind.value, payload.row_counts())
@@ -106,22 +122,37 @@ class PlasticosErpImport(models.AbstractModel):
         for violation in index.violations:
             report.unresolved.append(violation.as_dict())
 
-        partner_by_cp = self._import_counterparties(index, report, dry_run)
-        partner_by_address = self._import_addresses(index, report, partner_by_cp, dry_run)
-        self._import_contacts(index, report, partner_by_cp, partner_by_address, dry_run)
+        if layer == "counterparties":
+            self._import_counterparties(index, report, dry_run)
+        elif layer == "addresses":
+            partner_by_cp = self._partners_by_prefix("legacy_erp_cp_")
+            self._import_addresses(index, report, partner_by_cp, dry_run)
+        elif layer == "contacts":
+            partner_by_cp = self._partners_by_prefix("legacy_erp_cp_")
+            self._import_contacts(index, report, partner_by_cp, dry_run)
+            if not dry_run:
+                self._stamp_partner_count()
+        elif layer == "roles":
+            self._import_roles(index, report, dry_run)
+        else:
+            partner_by_cp = self._import_counterparties(index, report, dry_run)
+            self._import_addresses(index, report, partner_by_cp, dry_run)
+            self._import_contacts(index, report, partner_by_cp, dry_run)
+            if partners_only:
+                self._import_roles(index, report, dry_run)
+                if commit and not dry_run:
+                    self.env.cr.commit()
+                result = report.as_dict()
+                _logger.info("ERP import finished (partners only): %s", result["counts"])
+                return result
 
-        if partners_only:
-            if commit and not dry_run:
-                self.env.cr.commit()
-            result = report.as_dict()
-            _logger.info("ERP import finished (partners only): %s", result["counts"])
-            return result
+            headers = header_forensics.reconstruct_all_headers(index)
+            self._import_transactions(index, headers, report, partner_by_cp, limit, commit, dry_run)
 
-        headers = header_forensics.reconstruct_all_headers(index)
-        self._import_transactions(index, headers, report, partner_by_cp, limit, commit, dry_run)
-
+        if layer and commit and not dry_run:
+            self.env.cr.commit()
         result = report.as_dict()
-        _logger.info("ERP import finished: %s", result["counts"])
+        _logger.info("ERP import finished%s: %s", f" ({layer})" if layer else "", result["counts"])
         return result
 
     # ------------------------------------------------------------------
@@ -258,7 +289,7 @@ class PlasticosErpImport(models.AbstractModel):
                             partner_by_address,
                             report,
                             dry_run,
-                            child_name=_distinct_location_name(row, parent_name, address_id),
+                            child_name=_location_title(row, parent_name),
                         )
                     else:
                         partner_by_address[address_id] = parent.id
@@ -288,7 +319,7 @@ class PlasticosErpImport(models.AbstractModel):
         kind = mapping.address_kind(row)
         parent = partner_model.browse(parent_id) if parent_id else partner_model.browse()
         values = {
-            "name": child_name or _distinct_location_name(row, parent_name, address_id),
+            "name": child_name or _location_title(row, parent_name),
             "parent_id": parent_id,
             "is_company": True,
             "type": mapping.ODOO_ADDRESS_TYPE[kind],
@@ -302,6 +333,7 @@ class PlasticosErpImport(models.AbstractModel):
             return
         partner = self._upsert(partner_model, f"legacy_erp_address_{address_id}", values, report, "locations")
         partner_by_address[address_id] = partner.id
+        self._sync_address_phones(partner, row)
 
     def _apply_billing_address(self, partner, row) -> bool:
         """Write the company's remit onto the company. Never a second partner.
@@ -319,7 +351,7 @@ class PlasticosErpImport(models.AbstractModel):
         fill("street2", _text(row, "Addr3"))
         fill("city", _text(row, "City"))
         fill("zip", _text(row, "PostalCd"))
-        fill("phone", _text(row, "Telephone") or _text(row, "MobilePhone"))
+        fill("phone", _real_phone(row.get("Telephone")))
         fill("email", _text(row, "Email") or _text(row, "BillingEmail"))
         geo: dict = {}
         self._resolve_country_state(geo, row)
@@ -327,8 +359,10 @@ class PlasticosErpImport(models.AbstractModel):
             if geo.get(field_name) and not partner[field_name]:
                 values[field_name] = geo[field_name]
         if not values:
+            self._sync_address_phones(partner, row)
             return False
         partner.write(values)
+        self._sync_address_phones(partner, row)
         return True
 
     def _fill_company_from_contact(self, index, cp_id: str, company_partner_id: int) -> None:
@@ -370,7 +404,7 @@ class PlasticosErpImport(models.AbstractModel):
         _set_if(values, "street2", _text(row, "Addr3"))
         _set_if(values, "city", _text(row, "City"))
         _set_if(values, "zip", _text(row, "PostalCd"))
-        _set_if(values, "phone", _text(row, "Telephone") or _text(row, "MobilePhone"))
+        _set_if(values, "phone", _real_phone(row.get("Telephone")))
         _set_if(values, "email", _text(row, "Email") or _text(row, "BillingEmail"))
         self._resolve_country_state(values, row)
 
@@ -410,22 +444,21 @@ class PlasticosErpImport(models.AbstractModel):
     # ------------------------------------------------------------------
     # Stage 3 — contacts and contact roles
     # ------------------------------------------------------------------
-    def _import_contacts(self, index, report, partner_by_cp: dict, partner_by_address: dict, dry_run: bool) -> None:
-        # People are parented to the company. A Delivery or Invoice child is not
-        # a parent: a Contact child writes its address back onto that parent.
+    def _import_contacts(self, index, report, partner_by_cp: dict, dry_run: bool) -> None:
+        """One person per company and name, parented to the company.
+
+        A contact whose name is only a phone number is not a person. The
+        number and the email land on the company. Role tags are a later layer.
+        """
         from ..erp import mapping
 
-        Partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT)
-        tag_cache: dict[str, int] = {}
-        mailbox_keys = mapping.site_mailbox_keys(_mailbox_companies(index))
+        Partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT, active_test=False)
+        catalog = self._address_catalog()
+        mailbox_keys = mapping.site_mailbox_keys(_mailbox_companies_from(index, catalog))
 
         for cp_id in sorted(index.contacts_by_cp):
             company_partner_id = partner_by_cp.get(cp_id)
             if not company_partner_id and not dry_run:
-                # The parent failure suppresses every contact row under this
-                # CpID. Account for each source row (one unresolved entry per
-                # CT_ID) so ``seen == created + updated + unchanged + rejected``
-                # still closes in the shared summary.
                 for contact_id in index.contacts_by_cp[cp_id]:
                     report.unresolved_ref(
                         "Contact", "parent_not_imported", contact_id, f"counterparty {cp_id} partner was not created"
@@ -438,9 +471,11 @@ class PlasticosErpImport(models.AbstractModel):
             groups: dict[str, list] = {}
             order: list[str] = []
             addresses = [
-                (address_id, _text(index.addresses[address_id], "Type"))
-                for address_id in index.addresses_by_cp.get(cp_id, [])
+                (address_id, label) for item_cp, address_id, label, _partner_id in catalog if item_cp == cp_id and label
             ]
+            partner_by_address = {
+                address_id: partner_id for item_cp, address_id, _label, partner_id in catalog if item_cp == cp_id
+            }
             for contact_id in index.contacts_by_cp[cp_id]:
                 row = index.contacts[contact_id]
                 name = _text(row, "ContactNm")
@@ -448,49 +483,42 @@ class PlasticosErpImport(models.AbstractModel):
                     report.anomaly("Contact", contact_id, "blank ContactNm")
                     report.reject("contacts")
                     continue
+                if not mapping.is_person_name(name):
+                    if not dry_run and company_partner_id:
+                        self._apply_non_person(Partner.browse(company_partner_id), row)
+                    report.skip("contacts")
+                    continue
                 target = mapping.site_mailbox_target(name, addresses, _text(row, "Location"), mailbox_keys)
                 if target:
                     if not dry_run:
                         self._apply_site_mailbox(partner_by_address, target, row)
                     report.skip("contacts")
-                    role_count = len(index.roles_by_contact.get(contact_id, []))
-                    if role_count:
-                        report.skip("contact_roles", role_count)
                     continue
-                key = _person_key(name)
+                key = mapping.person_key(name)
                 if key not in groups:
                     order.append(key)
                     groups[key] = []
                 groups[key].append((contact_id, row))
 
+            label_to_partner = {
+                label: partner_id for item_cp, _address_id, label, partner_id in catalog if item_cp == cp_id and label
+            }
             for key in order:
                 self._import_person(
                     Partner,
-                    index,
                     groups[key],
                     company_partner_id,
-                    tag_cache,
+                    label_to_partner,
                     report,
                     dry_run,
                     mapping,
                 )
 
     def _import_person(
-        self, partner_model, index, members, company_partner_id, tag_cache, report, dry_run, mapping
+        self, partner_model, members, company_partner_id, label_to_partner, report, dry_run, mapping
     ) -> None:
-        """One person per counterparty and name. Every CT_ID points at that person.
-
-        The person is type Contact under the company. Odoo copies the company
-        address and Salesperson onto that person. Writing a street here would
-        push it back onto the company, so the address is left unset.
-        """
-        roles: list[str] = []
-        for contact_id, _row in members:
-            for role in self._contact_roles(index, contact_id):
-                if role not in roles:
-                    roles.append(role)
-        roles = mapping.sort_contact_roles(roles)
-
+        """One person per company plus first and last name. Every CT_ID aliases that person."""
+        members = sorted(members, key=_contact_sort_key)
         name = _text(members[0][1], "ContactNm")
         active = any(_row_active(row, mapping) for _contact_id, row in members)
         parent = partner_model.browse(company_partner_id) if company_partner_id else partner_model.browse()
@@ -502,9 +530,13 @@ class PlasticosErpImport(models.AbstractModel):
             "active": active,
         }
         values.update(self._copied_role(parent))
-        self._merge_person_channels(values, members, partner_model, report)
-        if roles:
-            values["function"] = roles[0]
+        phone_lines = self._merge_person_channels(values, members, report)
+        location_ids = []
+        for _contact_id, row in members:
+            loc = _text(row, "Location")
+            partner_id = label_to_partner.get(loc)
+            if partner_id and partner_id != company_partner_id and partner_id not in location_ids:
+                location_ids.append(partner_id)
 
         if dry_run:
             report.skip("contacts", len(members))
@@ -516,22 +548,179 @@ class PlasticosErpImport(models.AbstractModel):
             if contact_id == anchor:
                 continue
             self._alias_xmlid(partner_model, f"legacy_erp_contact_{contact_id}", partner, report, "contacts")
-        self._apply_contact_roles(partner, roles, tag_cache, report)
+        if "location_partner_ids" in partner._fields:
+            partner.write({"location_partner_ids": [(6, 0, location_ids)]})
+        self._sync_phone_lines(partner, phone_lines)
 
-    def _merge_person_channels(self, values: dict, members, partner_model, report) -> None:
-        """Keep the first email and phone. A later different value is logged."""
-        mobile_field = _partner_mobile_field(partner_model)
+    def _merge_person_channels(self, values: dict, members, report) -> list:
+        """Union emails and phones. The first business number stays in ``phone``."""
+        from ..erp import mapping
+
         comments: list[str] = []
+        business: list[str] = []
+        lines: list[tuple[str, str]] = []
         for contact_id, row in members:
             _keep_first(values, "email", _text(row, "Email"), report, contact_id)
-            _keep_first(values, "phone", _text(row, "PhoneBusiness"), report, contact_id)
-            if mobile_field:
-                _keep_first(values, mobile_field, _text(row, "PhoneMobile"), report, contact_id)
-            comment = _contact_comment(row, keep_mobile=not mobile_field)
-            if comment and comment not in comments:
-                comments.append(comment)
+            number = mapping.real_phone(row.get("PhoneBusiness"))
+            if number and number not in business:
+                business.append(number)
+            mobile = mapping.real_phone(row.get("PhoneMobile"))
+            if mobile:
+                lines.append(("mobile", mobile))
+            other = mapping.real_phone(row.get("PhoneOther"))
+            if other:
+                lines.append(("other", other))
+            fax = mapping.fax_from_notes(_text(row, "Notes"))
+            if fax:
+                lines.append(("fax", fax))
+            notes = _text(row, "Notes")
+            if notes and not notes.lower().startswith("fax:") and notes not in comments:
+                comments.append(notes)
+        if business:
+            values["phone"] = business[0]
+            lines.extend(("other", number) for number in business[1:])
         if comments:
             values["comment"] = "\n".join(comments)
+        return lines
+
+    def _apply_non_person(self, company, row) -> None:
+        """A phone-number contact title is not a person. Keep the channels on the company."""
+        from ..erp import mapping
+
+        values = {}
+        if not company.phone:
+            number = mapping.real_phone(row.get("PhoneBusiness"))
+            if number:
+                values["phone"] = number
+        if not company.email and _text(row, "Email"):
+            values["email"] = _text(row, "Email")
+        if values:
+            company.write(values)
+        lines = []
+        mobile = mapping.real_phone(row.get("PhoneMobile"))
+        if mobile:
+            lines.append(("mobile", mobile))
+        other = mapping.real_phone(row.get("PhoneOther"))
+        if other:
+            lines.append(("other", other))
+        fax = mapping.fax_from_notes(_text(row, "Notes"))
+        if fax:
+            lines.append(("fax", fax))
+        self._sync_phone_lines(company, lines)
+
+    def _import_roles(self, index, report, dry_run: bool) -> None:
+        """Tag the person already stored for each CT_ID. Create no partner."""
+        from ..erp import mapping
+
+        Partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT, active_test=False)
+        tag_cache: dict[str, int] = {}
+        grouped: dict[int, dict] = {}
+        unresolved_rr: list[str] = []
+        for role_id in sorted(index.contact_roles):
+            row = index.contact_roles[role_id]
+            contact_id = _text(row, "CT_ID")
+            partner = self._partner_by_xmlid(Partner, f"legacy_erp_contact_{contact_id}")
+            if not partner:
+                report.unresolved_ref(
+                    "ContactRoleAssignment",
+                    "unresolved_contact",
+                    role_id,
+                    f"CT_ID={contact_id} has no imported person",
+                )
+                continue
+            tag, reason = mapping.map_contact_role(row.get("RoleNm"))
+            if reason == "rr":
+                unresolved_rr.append(contact_id)
+                report.unresolved_ref("ContactRoleAssignment", "unresolved_rr", contact_id, "RR")
+                continue
+            if not tag:
+                report.anomaly("ContactRoleAssignment", role_id, f"unmapped role {row.get('RoleNm')!r}")
+                continue
+            bucket = grouped.setdefault(partner.id, {"partner": partner, "tags": []})
+            if tag not in bucket["tags"]:
+                bucket["tags"].append(tag)
+        if not dry_run:
+            self.env["ir.config_parameter"].set_param(
+                "plasticos_partner_import.unresolved_rr",
+                ",".join(sorted(set(unresolved_rr))),
+            )
+        if dry_run:
+            return
+        for bucket in grouped.values():
+            partner = bucket["partner"]
+            self._apply_contact_roles(partner, bucket["tags"], tag_cache, report)
+            if "Decision Maker" in bucket["tags"] and partner.function != "Decision Maker":
+                partner.write({"function": "Decision Maker"})
+
+    def _address_catalog(self) -> list[tuple[str, str, str, int]]:
+        """``(cp_id, address_id, Type label, partner_id)`` for every imported address."""
+        Partner = self.env[RES_PARTNER].with_context(active_test=False)
+        cp_by_partner = self._partners_by_prefix("legacy_erp_cp_")
+        partner_to_cp = {partner_id: cp_id for cp_id, partner_id in cp_by_partner.items()}
+        catalog = []
+        data = self.env["ir.model.data"].search(
+            [
+                ("module", "=", XMLID_MODULE),
+                ("model", "=", RES_PARTNER),
+                ("name", "=like", "legacy_erp_address_%"),
+            ]
+        )
+        for row in data:
+            address_id = row.name.removeprefix("legacy_erp_address_")
+            partner = Partner.browse(row.res_id).exists()
+            if not partner:
+                continue
+            company = partner.parent_id or partner
+            cp_id = partner_to_cp.get(company.id) or partner_to_cp.get(partner.id) or ""
+            catalog.append((cp_id, address_id, partner.erp_address_label or "", partner.id))
+        return catalog
+
+    def _partners_by_prefix(self, prefix: str) -> dict[str, int]:
+        """Source key to partner id for xmlids that start with ``prefix``."""
+        found: dict[str, int] = {}
+        data = self.env["ir.model.data"].search(
+            [
+                ("module", "=", XMLID_MODULE),
+                ("model", "=", RES_PARTNER),
+                ("name", "=like", prefix + "%"),
+            ]
+        )
+        for row in data:
+            key = row.name.removeprefix(prefix)
+            if key:
+                found[key] = row.res_id
+        return found
+
+    def _stamp_partner_count(self) -> None:
+        """Remember how many partners exist after the contact layer."""
+        self.env.cr.execute("SELECT count(*) FROM res_partner")
+        count = int(self.env.cr.fetchone()[0])
+        self.env["ir.config_parameter"].set_param(PARTNER_COUNT_PARAM, str(count))
+
+    def _sync_address_phones(self, partner, row) -> None:
+        from ..erp import mapping
+
+        self._sync_phone_lines(
+            partner,
+            [
+                ("mobile", mapping.real_phone(row.get("MobilePhone"))),
+                ("fax", mapping.real_phone(row.get("Fax"))),
+            ],
+        )
+
+    def _sync_phone_lines(self, partner, lines: list) -> None:
+        """Add labeled numbers that are not already on the partner."""
+        if "phone_line_ids" not in partner._fields:
+            return
+        present = {(line.label, line.number) for line in partner.phone_line_ids}
+        commands = []
+        for label, number in lines:
+            if not number or (label, number) in present:
+                continue
+            present.add((label, number))
+            commands.append(Command.create({"label": label, "number": number}))
+        if commands:
+            partner.with_context(**IMPORT_CONTEXT).write({"phone_line_ids": commands})
 
     def _anchor_contact_id(self, partner_model, members) -> str:
         """Prefer a CT_ID that already points at a partner, so a replay updates it."""
@@ -547,7 +736,7 @@ class PlasticosErpImport(models.AbstractModel):
         )
         if not data or not data.res_id:
             return model.browse()
-        return model.browse(data.res_id).exists()
+        return model.with_context(active_test=False).browse(data.res_id).exists()
 
     def _alias_xmlid(self, model, xml_id: str, record, report, bucket: str) -> None:
         """Point another CT_ID at the one person. Does not create a second partner."""
@@ -830,31 +1019,56 @@ def _same_party_name(left: str, right: str) -> bool:
     return not a or not b or a == b
 
 
-def _mailbox_companies(index) -> list[tuple[list[str], list[str]]]:
-    """Contact names and address Types for each counterparty."""
+def _mailbox_companies_from(index, catalog) -> list[tuple[list[str], list[str]]]:
+    """Contact names and stored address Types for each counterparty."""
+    from collections import defaultdict
+
+    labels: dict[str, list[str]] = defaultdict(list)
+    for cp_id, _address_id, label, _partner_id in catalog:
+        if label:
+            labels[cp_id].append(label)
     companies = []
-    cp_ids = set(index.contacts_by_cp) | set(index.addresses_by_cp)
+    cp_ids = set(index.contacts_by_cp) | set(labels) | set(index.addresses_by_cp)
     for cp_id in cp_ids:
         names = [_text(index.contacts[contact_id], "ContactNm") for contact_id in index.contacts_by_cp.get(cp_id, [])]
-        labels = [_text(index.addresses[address_id], "Type") for address_id in index.addresses_by_cp.get(cp_id, [])]
-        companies.append((names, labels))
+        site_labels = labels.get(cp_id) or [
+            _text(index.addresses[address_id], "Type") for address_id in index.addresses_by_cp.get(cp_id, [])
+        ]
+        companies.append((names, site_labels))
     return companies
 
 
-def _distinct_location_name(row, parent_name: str, address_id: str) -> str:
-    """Name a second site without repeating the company name or a kind word."""
+def _location_title(row, parent_name: str) -> str:
     from ..erp import mapping
 
-    short = _text(row, "Type")
-    if short and not _same_party_name(short, parent_name) and not mapping.is_kind_only_label(short):
-        return short
-    return _text(row, "Addr2") or _text(row, "City") or _address_name(row, parent_name, address_id)
+    return mapping.location_title(
+        _text(row, "Type"),
+        _text(row, "City"),
+        _text(row, "Addr2"),
+        _text(row, "Addr3"),
+        parent_name,
+    )
+
+
+def _real_phone(value) -> str:
+    from ..erp import mapping
+
+    return mapping.real_phone(value)
+
+
+def _contact_sort_key(item) -> tuple:
+    """Lowest CT_ID is the original row. String order puts 182850001 before 55450001."""
+    contact_id = str(item[0])
+    if contact_id.isdigit():
+        return (0, int(contact_id))
+    return (1, contact_id)
 
 
 def _person_key(name: str) -> str:
-    """Identity of a person within one counterparty. Punctuation and case do not split them."""
-    key = "".join(char for char in name.upper() if char.isalnum())
-    return key or name.casefold()
+    """Identity of a person within one counterparty. First and last word."""
+    from ..erp import mapping
+
+    return mapping.person_key(name)
 
 
 def _row_active(row, mapping) -> bool:

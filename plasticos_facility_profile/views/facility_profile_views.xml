@@ -162,6 +162,44 @@
         </div>
       </xpath>
 
+      <xpath expr="//div[hasclass('flex-column')]//field[@name='phone']/parent::div" position="after">
+        <field name="phone_line_ids" nolabel="1">
+          <list editable="bottom">
+            <field name="label"/>
+            <field name="number" widget="phone"/>
+          </list>
+        </field>
+      </xpath>
+
+      <xpath expr="//sheet/notebook" position="before">
+        <group string="Locations" invisible="not is_company">
+          <field name="location_child_ids" nolabel="1">
+            <list>
+              <field name="name"/>
+              <field name="type"/>
+              <field name="city"/>
+            </list>
+          </field>
+        </group>
+        <group string="Sites" invisible="is_company">
+          <field name="location_partner_ids" nolabel="1">
+            <list>
+              <field name="name"/>
+              <field name="city"/>
+            </list>
+          </field>
+        </group>
+        <group string="People" invisible="not is_company or not parent_id">
+          <field name="site_person_ids" nolabel="1">
+            <list>
+              <field name="name"/>
+              <field name="function"/>
+              <field name="phone"/>
+            </list>
+          </field>
+        </group>
+      </xpath>
+
       <!-- Add lead_source_id, delivery terms, salesperson to partner form (visible for companies) -->
       <xpath expr="//field[@name='category_id']" position="after">
         <field name="lead_source_id" widget="badge" invisible="not is_company"/>
