@@ -45,6 +45,7 @@ __all__ = [
     "PayloadKind",
     "SourcePayload",
     "SourcePayloadError",
+    "PARTNER_SOURCE_TABLES",
     "load_payload",
     "payload_root",
 ]
@@ -74,6 +75,10 @@ SOURCE_TABLES: dict[str, str] = {
 # Tables required for a complete import. A payload missing one of these cannot
 # reconstruct the partner or transaction graph, so loading fails loudly.
 REQUIRED_TABLES: frozenset[str] = frozenset(SOURCE_TABLES)
+
+# Partner proof. These four files are the company, its locations, its people,
+# and their role tags. Deal files are not part of that proof.
+PARTNER_SOURCE_TABLES: frozenset[str] = frozenset({"CounterParty", "Address", "Contact", "ContactRoleAssignment"})
 
 # The literal SQL Server emits for NULL in these grids. An empty cell is a real
 # empty string and is deliberately NOT folded into this.
@@ -138,7 +143,7 @@ def sql_payload_root(repo_root: Path | str | None = None) -> Path:
     return Path(repo_root) / SQL_PAYLOAD_ROOT
 
 
-def load_payload(root: Path | str | None = None) -> SourcePayload:
+def load_payload(root: Path | str | None = None, *, only: frozenset[str] | None = None) -> SourcePayload:
     """Load the authoritative payload, preferring statements over grid extracts.
 
     With no ``root``, statement files are read from
@@ -147,36 +152,40 @@ def load_payload(root: Path | str | None = None) -> SourcePayload:
     An explicit ``root`` is searched for both shapes, which is what tests and
     ``ERP_PAYLOAD_ROOT`` use.
 
+    ``only`` limits the read to those source tables. The partner proof passes
+    :data:`PARTNER_SOURCE_TABLES` so the deal files in ``bulk/`` are not opened.
+
     Raises:
         SourcePayloadError: the pack is missing, or a required source table has
             no extract, or an extract is malformed.
     """
+    required = only if only is not None else REQUIRED_TABLES
     if root is not None:
-        return _load_single_root(Path(root))
+        return _load_single_root(Path(root), required)
 
     sql_base = sql_payload_root()
-    tables = _read_statement_payload(sql_base) if sql_base.is_dir() else {}
+    tables = _read_statement_payload(sql_base, required) if sql_base.is_dir() else {}
     if tables:
-        _require_complete(sql_base, tables)
+        _require_complete(sql_base, tables, required)
         return SourcePayload(kind=PayloadKind.STATEMENTS, root=sql_base, tables=tables)
-    return _load_single_root(payload_root())
+    return _load_single_root(payload_root(), required)
 
 
-def _load_single_root(base: Path) -> SourcePayload:
+def _load_single_root(base: Path, required: frozenset[str]) -> SourcePayload:
     if not base.is_dir():
         raise SourcePayloadError(f"ERP payload root not found: {base}")
 
-    tables = _read_statement_payload(base)
+    tables = _read_statement_payload(base, required)
     kind = PayloadKind.STATEMENTS
     if not tables:
-        tables = _read_grid_payload(base)
+        tables = _read_grid_payload(base, required)
         kind = PayloadKind.GRID
-    _require_complete(base, tables)
+    _require_complete(base, tables, required)
     return SourcePayload(kind=kind, root=base, tables=tables)
 
 
-def _require_complete(base: Path, tables: dict[str, list[dict[str, str | None]]]) -> None:
-    missing = sorted(REQUIRED_TABLES - set(tables))
+def _require_complete(base: Path, tables: dict[str, list[dict[str, str | None]]], required: frozenset[str]) -> None:
+    missing = sorted(required - set(tables))
     if missing:
         raise SourcePayloadError(f"payload at {base} is incomplete; missing source tables: {', '.join(missing)}")
 
@@ -184,13 +193,15 @@ def _require_complete(base: Path, tables: dict[str, list[dict[str, str | None]]]
 # ---------------------------------------------------------------------------
 # Grid extracts (the form this repository actually tracks)
 # ---------------------------------------------------------------------------
-def _read_grid_payload(base: Path) -> dict[str, list[dict[str, str | None]]]:
+def _read_grid_payload(base: Path, required: frozenset[str]) -> dict[str, list[dict[str, str | None]]]:
     bulk = base / "bulk"
     if not bulk.is_dir():
         return {}
 
     tables: dict[str, list[dict[str, str | None]]] = {}
     for table, filename in SOURCE_TABLES.items():
+        if table not in required:
+            continue
         path = bulk / filename
         if not path.is_file():
             continue
@@ -229,13 +240,15 @@ def _normalize_cell(cell: str) -> str | None:
 # ---------------------------------------------------------------------------
 # Statement payload (supported so a future INSERT-bearing extract just works)
 # ---------------------------------------------------------------------------
-def _read_statement_payload(base: Path) -> dict[str, list[dict[str, str | None]]]:
+def _read_statement_payload(
+    base: Path, required: frozenset[str] = REQUIRED_TABLES
+) -> dict[str, list[dict[str, str | None]]]:
     tables: dict[str, list[dict[str, str | None]]] = {}
     for path in sorted(base.rglob("*.sql")):
         text = path.read_text(encoding="utf-8-sig", errors="strict")
         for match in _INSERT_RE.finditer(text):
             table = match.group("table")
-            if table not in SOURCE_TABLES:
+            if table not in required:
                 continue
             columns = [c.strip().strip("[]\"'") for c in match.group("cols").split(",")]
             for values in _split_value_tuples(match.group("rows"), path, table):

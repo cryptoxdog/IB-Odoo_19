@@ -8,6 +8,8 @@ single file serves both the docker and the no-Docker harness paths:
 * ``ERP_LIMIT`` — process at most N transactions (diagnostics)
 * ``ERP_PAYLOAD_ROOT`` — non-default payload directory
 * ``ERP_REPORT_PATH`` — write the machine-readable summary JSON here
+* ``ERP_PARTNERS_ONLY`` — ``1`` imports only CounterParty, Address, Contact,
+  and ContactRoleAssignment. Deal files are not opened.
 * ``ERP_REQUIRE_EMPTY`` — ``0`` allows a database that already has business
   partners. Any other value (including unset) refuses the import unless the
   only ``res.partner`` rows are the company and the login users.
@@ -81,6 +83,7 @@ def main() -> int:
         commit=True,
         dry_run=_flag("DRY"),
         report_path=_setting("REPORT_PATH") or None,
+        partners_only=_flag("PARTNERS_ONLY"),
     )
     summary = result.get("summary") or {}
     if summary.get("final_status") == "failed":
