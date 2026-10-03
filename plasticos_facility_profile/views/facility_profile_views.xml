@@ -200,12 +200,20 @@
         </group>
       </xpath>
 
-      <!-- Add lead_source_id, delivery terms, salesperson to partner form (visible for companies) -->
+      <!-- Company-itself card: lead source sits where Tax ID was, then delivery term, payment terms, salesperson. -->
+      <xpath expr="//field[@name='vat']" position="before">
+        <field name="lead_source_id" widget="badge" invisible="not is_company or type != 'contact'"/>
+        <field name="default_delivery_term" invisible="not is_company or type != 'contact'"/>
+        <field name="property_supplier_payment_term_id" string="Supplier Payment Terms" invisible="not is_company or type != 'contact' or not supplier_rank"/>
+        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" invisible="not is_company or type != 'contact'"/>
+      </xpath>
+
+      <!-- Other companies keep these fields after tags. The company-itself card uses the block above. -->
       <xpath expr="//field[@name='category_id']" position="after">
-        <field name="lead_source_id" widget="badge" invisible="not is_company"/>
-        <field name="default_delivery_term" invisible="not is_company"/>
-        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" invisible="not is_company"/>
-        <field name="property_supplier_payment_term_id" string="Supplier Payment Terms" invisible="not is_company or not supplier_rank"/>
+        <field name="lead_source_id" widget="badge" invisible="not is_company or type == 'contact'"/>
+        <field name="default_delivery_term" invisible="not is_company or type == 'contact'"/>
+        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" invisible="not is_company or type == 'contact'"/>
+        <field name="property_supplier_payment_term_id" string="Supplier Payment Terms" invisible="not is_company or type == 'contact' or not supplier_rank"/>
       </xpath>
 
       <xpath expr="//sheet/notebook" position="inside">
