@@ -100,7 +100,10 @@ def check_database(env, failures: list[str]) -> None:
     missing = [module for module in USA_MODULES if module not in installed]
     if missing:
         _fail(failures, f"USA modules not installed: {', '.join(missing)}")
-    form = env.ref("base.view_partner_form")
+    form = env.ref("base.view_partner_form", raise_if_not_found=False)
+    if not form:
+        _fail(failures, "contact form view is missing")
+        return
     arch = form.get_combined_arch() if hasattr(form, "get_combined_arch") else ""
     text = str(arch)
     if "phone_line_ids" not in text:
