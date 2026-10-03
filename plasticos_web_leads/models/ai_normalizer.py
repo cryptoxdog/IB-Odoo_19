@@ -382,7 +382,7 @@ def normalize_with_provider(
 def _build_openai_client(api_key: str | None, base_url: str | None = None):
     """Construct an OpenAI-compatible client, or None if key/package is missing.
 
-    Mirrors the construction pattern in image_analyzer.analyze_image so all
+    Mirrors the OpenAI client construction used by vision analysis so all
     providers (OpenAI, Anthropic, Mistral) are reached through the OpenAI SDK's
     compatibility layer via their respective base_url.
     """

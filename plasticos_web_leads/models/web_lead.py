@@ -1,7 +1,7 @@
 # ═══════════════════════════════════════════════════════════
 # Model : plasticos.web.lead
 # Purpose: Web lead ingestion with AI-powered triage pipeline:
-#          1. Receive raw Cognito payload OR pre-processed agent payload
+#          1. Receive a provider packet through the inbound adapter port
 #          2. AI normalization (1 LLM call)
 #          3. Image analysis (1 Vision call per image)
 #          4. Deterministic HOT/COLD classification
@@ -9,28 +9,28 @@
 # ═══════════════════════════════════════════════════════════
 from __future__ import annotations
 
-import base64
 import logging
 import uuid
+from collections.abc import Mapping
 from typing import Any
 
 import psycopg2
 import psycopg2.errorcodes
-import requests as http_requests
 
 from odoo import api, fields, models
 from odoo.exceptions import ConcurrencyError, UserError
 
-from ..adapters.base import PACKET_SCHEMA_VERSION, WebLeadPacket, acquisition_rows, packet_to_dict
+from ..adapters.base import (
+    EVENT_SUBMITTED,
+    PACKET_SCHEMA_VERSION,
+    InboundEvent,
+    WebLeadPacket,
+    acquisition_rows,
+    packet_to_dict,
+)
 from ..adapters.registry import get_adapter
 from . import ai_normalizer, image_analyzer
-from .attachment_processor import (
-    MAX_FILE_BYTES,
-    AttachmentDestinationError,
-    copy_successful_attachments_to_intake,
-    fetch_attachment,
-    process_attachments,
-)
+from .attachment_processor import copy_successful_attachments_to_intake, process_attachments
 from .classification_engine import classify_lead
 from .economic_evaluator import evaluate_economic_opportunity
 from .economic_policy import evaluate_economic_eligibility
@@ -51,10 +51,6 @@ from .inference_provider import InferenceProvider
 from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
 
 _logger = logging.getLogger(__name__)
-
-# Legacy agent payloads are Cognito form submissions, so their image URLs are
-# held to the Cognito adapter's destination policy.
-_LEGACY_ATTACHMENT_PROVIDER = "cognito"
 
 # ── Pallet weight assumption when no lbs given ───────────────────────────────
 _LBS_PER_PALLET_ASSUMPTION = 1_500  # conservative: typical plastic pallet
@@ -178,24 +174,6 @@ def _safe_int(val: Any, default: int = 0) -> int:
         return default
 
 
-def _extract_cognito_name(raw_payload: dict[str, Any]) -> str:
-    """Extract contact name from Cognito payload.
-
-    Cognito sends Name as a dict: {"First": ..., "Last": ..., "FirstAndLast": ...}
-    Handles dict, plain string, and legacy YourName field.
-    """
-    _name_val = raw_payload.get("Name")
-    if isinstance(_name_val, dict):
-        return (
-            (_name_val.get("FirstAndLast") or "").strip()
-            or f"{(_name_val.get('First') or '').strip()} {(_name_val.get('Last') or '').strip()}".strip()
-            or ""
-        )
-    if isinstance(_name_val, str):
-        return _name_val.strip()
-    return (raw_payload.get("YourName") or "").strip()
-
-
 def _is_lead_identity_collision(exc: Exception) -> bool:
     """True for a PostgreSQL unique violation on the web-lead identity constraint."""
     if not isinstance(exc, psycopg2.IntegrityError):
@@ -207,13 +185,13 @@ def _is_lead_identity_collision(exc: Exception) -> bool:
 
 
 class PlasticosWebLead(models.Model):
-    """Stores every inbound web lead from Cognito forms or external agents.
+    """Stores every inbound web lead admitted through the provider port.
 
     HOT leads automatically generate a plasticos.intake record.
     COLD leads are stored for reference but do not create downstream records.
 
-    Pipeline (create_from_cognito):
-      1. Parse + normalise Cognito fields
+    Pipeline (admit_inbound → create_from_packet):
+      1. Project the provider payload into a provider-neutral packet
       2. Create web.lead record (decision=cold, state=received)
       3. _run_triage_pipeline():
            a. AI normalization (LLM)
@@ -500,16 +478,50 @@ class PlasticosWebLead(models.Model):
         return super().unlink()
 
     # ═══════════════════════════════════════════════════════════
-    # Entry Point 1: Direct Cognito Ingestion (AI Triage)
+    # Inbound port admission
     # ═══════════════════════════════════════════════════════════
 
     @api.model
-    def create_from_cognito(self, raw_payload: dict[str, Any]) -> PlasticosWebLead:
-        """Keep the public Cognito entrypoint while routing to the internal adapter."""
+    def admit_inbound(self, provider_key: str, body: Mapping[str, Any]) -> tuple[InboundEvent, PlasticosWebLead]:
+        """Classify one provider payload and admit it only when it is a submission.
+
+        Non-submission events return an empty recordset and must not create or
+        mutate a lead. Adapter validation failures surface as ``UserError``.
+        """
         try:
-            return self.create_from_packet(get_adapter("cognito").to_packet(raw_payload))
+            adapter = get_adapter(provider_key)
+            event = adapter.classify_event(body)
         except ValueError as exc:
             raise UserError(str(exc)) from exc
+        if event.kind != EVENT_SUBMITTED:
+            return event, self.browse()
+        try:
+            packet = adapter.to_packet(body)
+        except ValueError as exc:
+            raise UserError(str(exc)) from exc
+        return event, self.create_from_packet(packet)
+
+    @api.model
+    def record_rejected_inbound(self, provider_key: str, body: Mapping[str, Any], reason: str) -> PlasticosWebLead:
+        """Store a permanently rejected submission without running triage."""
+        lead = self.create(
+            {
+                "lead_id": self._next_lead_identity(),
+                "source": "web_lead",
+                "provider_key": provider_key,
+                "raw_payload": dict(body),
+                "decision": "cold",
+                "state": "error",
+                "error_message": reason,
+            }
+        )
+        _logger.info("Web lead %s stored as a rejected inbound from provider %s.", lead.lead_id, provider_key)
+        return lead
+
+    @api.model
+    def create_from_cognito(self, raw_payload: dict[str, Any]) -> PlasticosWebLead:
+        """Compatibility shim. Cognito submissions enter through the inbound port."""
+        return self.admit_inbound("cognito", raw_payload)[1]
 
     # ═══════════════════════════════════════════════════════════
     # Identity and idempotent admission
@@ -634,106 +646,12 @@ class PlasticosWebLead(models.Model):
         return lead
 
     # ═══════════════════════════════════════════════════════════
-    # Entry Point 2: Pre-Processed Agent Payload (Legacy / n8n)
-    # ═══════════════════════════════════════════════════════════
-
-    @api.model
-    def create_from_agent(self, payload: dict[str, Any]) -> PlasticosWebLead:
-        """Create a web lead from a pre-processed agent payload (n8n legacy).
-
-        Expected payload structure::
-
-            {
-                "lead_id": "WL123",
-                "source": "cognito_form",
-                "decision": "Hot",
-                "decision_reasons": [...],
-                "raw_payload": { ... Cognito form fields ... },
-                "ai_analysis": { ... }
-            }
-
-        NOTE: Odoo re-runs its own classification — the agent's decision is
-        stored as external_decision for audit but does not bypass Odoo triage.
-
-        ``lead_id`` is optional: the accepted legacy client shape omits it and
-        relies on a server-generated sequence identity. A supplied ``lead_id``
-        is the idempotency key (same id → same record, also under concurrency).
-        """
-        if not isinstance(payload, dict):
-            raise UserError("Agent payload must be a JSON object.")
-        lead_id = payload.get("lead_id")
-        if lead_id is not None and (not isinstance(lead_id, str) or not lead_id.strip()):
-            raise UserError("Field lead_id must be a non-empty string when provided.")
-        raw = payload.get("raw_payload") or {}
-        if not isinstance(raw, dict):
-            raise UserError("Field raw_payload must be a JSON object when provided.")
-
-        if lead_id:
-            lead_id = lead_id.strip()
-            existing = self._find_existing_lead(lead_id)
-            if existing:
-                _logger.info("Web lead %s already exists, returning existing.", lead_id)
-                return existing
-        else:
-            lead_id = self._next_lead_identity()
-
-        # FIX: use same name extraction as create_from_cognito — handles dict Name
-        contact = _extract_cognito_name(raw) or raw.get("YourName", "").strip()
-        company = (raw.get("YourBusinessCompanyName", "") or raw.get("CompanyName", "") or "").strip()
-        email = (raw.get("Email", "") or raw.get("EmailAddress", "") or "").strip()
-        phone = (raw.get("Phone", "") or raw.get("PhoneNumber", "") or "").strip()
-        qty_text = (raw.get("WhatIsTheQuantity") or raw.get("WeightPerLoad") or "").strip()
-        contaminants = (raw.get("AreThereAnyContaminants", "") or "").strip()
-        material_desc = (
-            raw.get("WhatIsIt", "") or raw.get("DescribeYourMaterial", "") or raw.get("WhatTypeOfPlastic", "") or ""
-        ).strip()
-
-        image_urls = self._extract_image_urls(raw)
-        web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
-
-        # Store agent's pre-classified decision for audit; Odoo will re-classify
-        external_decision = (payload.get("decision") or "cold").lower()
-
-        vals = {
-            "lead_id": lead_id,
-            "source": payload.get("source", "api"),
-            "lead_source_id": web_lead_source.id if web_lead_source else False,
-            "decision": "cold",  # always start cold; triage will update
-            "decision_reasons": payload.get("decision_reasons"),
-            "raw_payload": raw,
-            "ai_analysis": payload.get("ai_analysis"),  # store for reference
-            "company_name": company or "Unknown",
-            "contact_name": contact,
-            "contact_email": email,
-            "contact_phone": phone,
-            "material_description": material_desc,
-            "quantity_text": qty_text,
-            "has_contaminants": bool(contaminants),
-            "contaminant_notes": contaminants or False,
-            "image_urls": image_urls,
-            "state": "received",
-        }
-
-        lead, created = self._create_or_replay(vals)
-        if not created:
-            return lead
-        _logger.info(
-            "Web lead %s created from agent (external_decision=%s). Running Odoo triage.",
-            lead_id,
-            external_decision,
-        )
-
-        # Always run Odoo's own triage — never blindly trust external decision
-        lead._run_triage_pipeline()
-        return lead
-
-    # ═══════════════════════════════════════════════════════════
     # AI Triage Pipeline
     # ═══════════════════════════════════════════════════════════
 
     def _attachment_allowed_hosts(self, config: Any) -> tuple[str, ...]:
         """Provider destination policy for this lead: adapter default plus operator additions."""
-        provider_key = self.provider_key or _LEGACY_ATTACHMENT_PROVIDER
+        provider_key = self.provider_key or (config.inbound_default_provider_key if config else "") or ""
         try:
             provider_hosts = tuple(getattr(get_adapter(provider_key), "attachment_allowed_hosts", ()))
         except ValueError:
@@ -940,11 +858,6 @@ class PlasticosWebLead(models.Model):
                     copy_successful_attachments_to_intake(
                         lead=self, intake=self.intake_id, evidence_bundle=evidence_bundle
                     )
-                elif self.image_urls:
-                    # Legacy agent leads do not have packet attachment evidence.
-                    # Preserve their established HOT-only URL attachment handoff.
-                    log_lines.append(f"[IMG] Fetching {len(self.image_urls)} legacy image(s).")
-                    self._fetch_and_attach_images(self.image_urls)
                 crm_lead = getattr(self, "crm_lead_id", None)
                 synchronize_images = getattr(crm_lead, "_propagate_available_commercial_images", None)
                 if callable(synchronize_images):
@@ -1314,144 +1227,6 @@ class PlasticosWebLead(models.Model):
             "domain": [("web_lead_id", "=", self.id)],
             "context": {"default_web_lead_id": self.id, "default_intake_id": self.intake_id.id},
         }
-
-    # ═══════════════════════════════════════════════════════════
-    # Image Handling
-    # ═══════════════════════════════════════════════════════════
-
-    def _extract_image_urls(self, raw_payload: dict[str, Any]) -> list[str]:
-        """Extract image URLs from a Cognito form payload.
-
-        Strategy:
-          1. Check known Cognito upload field names explicitly (fast, reliable)
-          2. Fall back to general dict crawl for unknown field names
-
-        Cognito tokenized URLs have no file extension — the cognitoforms.com
-        domain check handles these.
-        """
-        urls: list[str] = []
-        seen: set[str] = set()
-
-        def _add(url: str) -> None:
-            if url and url not in seen and url.startswith("http"):
-                seen.add(url)
-                urls.append(url)
-
-        # Pass 1: known Cognito upload field names
-        _COGNITO_UPLOAD_FIELDS = [
-            "UploadPhotosOfYourScrapUpTo10",
-            "UploadPhotos",
-            "Photos",
-            "Attachments",
-            "Files",
-        ]
-        for field_name in _COGNITO_UPLOAD_FIELDS:
-            items = raw_payload.get(field_name)
-            if isinstance(items, list):
-                for item in items:
-                    if isinstance(item, dict):
-                        url = item.get("File") or item.get("url") or item.get("Url") or ""
-                        if url and ("cognitoforms.com" in url or self._looks_like_image_url(url)):
-                            _add(url)
-                    elif isinstance(item, str):
-                        _add(item)
-
-        # Pass 2: general crawl for any remaining upload-like fields
-        for key, val in raw_payload.items():
-            if key in _COGNITO_UPLOAD_FIELDS:
-                continue  # already handled
-            if isinstance(val, str) and self._looks_like_image_url(val):
-                _add(val)
-            elif isinstance(val, list):
-                for item in val:
-                    if isinstance(item, str) and self._looks_like_image_url(item):
-                        _add(item)
-                    elif isinstance(item, dict):
-                        url = item.get("File") or item.get("url") or item.get("Url") or ""
-                        if url and (self._looks_like_image_url(url) or "cognitoforms.com" in url):
-                            _add(url)
-
-        return urls
-
-    @staticmethod
-    def _looks_like_image_url(url: str) -> bool:
-        """Heuristic: does this URL look like an image?"""
-        lower = url.lower()
-        return lower.startswith("http") and any(
-            ext in lower for ext in (".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".heic")
-        )
-
-    def _fetch_and_attach_images(self, urls: list[str]):
-        """Download images from URLs and create ir.attachment records.
-
-        FIX: images are encoded once and reused for both web.lead and intake
-        attachments, halving memory usage for large image sets.
-
-        NOTE: this method is synchronous and blocks the Odoo worker thread.
-        For future improvement: enqueue via queue_job or ir.actions.server.
-        Currently only called for HOT leads to limit blast radius.
-
-        Every URL is held to the same provider destination policy as packet
-        acquisition (allowlisted public host, HTTPS, revalidated redirects); a
-        rejected destination is logged and skipped, never fetched.
-        """
-        self.ensure_one()
-        Attachment = self.env["ir.attachment"]
-        config = self.env["plasticos.web.lead.config"].sudo().get_config()
-        allowed_hosts = self._attachment_allowed_hosts(config)
-
-        for i, url in enumerate(urls[:10]):
-            try:
-                content, header_type = fetch_attachment(
-                    url,
-                    allowed_hosts=allowed_hosts,
-                    http_get=http_requests.get,
-                    remaining_bytes=MAX_FILE_BYTES,
-                )
-                content_type = header_type or "image/jpeg"
-                ext_map = {"png": ".png", "webp": ".webp", "gif": ".gif"}
-                ext = next((v for k, v in ext_map.items() if k in content_type), ".jpg")
-                fname = f"web_lead_{self.lead_id}_img_{i + 1}{ext}"
-                datas = base64.b64encode(content).decode("ascii")  # encode once
-
-                Attachment.create(
-                    {
-                        "name": fname,
-                        "type": "binary",
-                        "datas": datas,
-                        "res_model": "plasticos.web.lead",
-                        "res_id": self.id,
-                        "mimetype": content_type,
-                    }
-                )
-
-                if self.intake_id:
-                    Attachment.create(
-                        {
-                            "name": fname,
-                            "type": "binary",
-                            "datas": datas,  # reuse — no second encode
-                            "res_model": "plasticos.intake",
-                            "res_id": self.intake_id.id,
-                            "mimetype": content_type,
-                        }
-                    )
-
-                _logger.info("Attached %s to web lead %s.", fname, self.lead_id)
-
-            except AttachmentDestinationError as exc:
-                _logger.warning(
-                    "Legacy image %s for lead %s rejected by destination policy (%s).",
-                    i + 1,
-                    self.lead_id,
-                    exc.code,
-                )
-            except Exception as exc:
-                _logger.warning(
-                    "Failed to fetch an image for lead %s: %s",
-                    self.lead_id,
-                    exc,
-                )
 
     # ═══════════════════════════════════════════════════════════
     # Manual Actions

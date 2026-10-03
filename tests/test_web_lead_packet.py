@@ -15,8 +15,16 @@ PACKAGE_ROOT = ROOT / "plasticos_web_leads"
 package = sys.modules.setdefault("plasticos_web_leads", types.ModuleType("plasticos_web_leads"))
 package.__path__ = [str(PACKAGE_ROOT)]
 
-from plasticos_web_leads.adapters.base import PACKET_SCHEMA_VERSION, acquisition_rows, packet_to_dict  # noqa: E402
-from plasticos_web_leads.adapters.cognito import CognitoAdapter  # noqa: E402
+from plasticos_web_leads.adapters.base import (  # noqa: E402
+    EVENT_DELETED,
+    EVENT_SUBMITTED,
+    EVENT_UNKNOWN,
+    EVENT_UPDATED,
+    PACKET_SCHEMA_VERSION,
+    acquisition_rows,
+    packet_to_dict,
+)
+from plasticos_web_leads.adapters.cognito import CognitoFormsAdapter  # noqa: E402
 from plasticos_web_leads.adapters.registry import get_adapter  # noqa: E402
 
 
@@ -51,7 +59,7 @@ def _payload(**overrides):
 
 
 def test_cognito_adapter_maps_current_top_level_payload_without_decision():
-    packet = CognitoAdapter().to_packet(_payload())
+    packet = CognitoFormsAdapter().to_packet(_payload())
 
     assert packet.schema_version == PACKET_SCHEMA_VERSION
     assert packet.provider == "cognito"
@@ -67,7 +75,7 @@ def test_cognito_adapter_maps_current_top_level_payload_without_decision():
 
 def test_packet_serialization_preserves_raw_payload_and_can_omit_it():
     raw_payload = _payload()
-    packet = CognitoAdapter().to_packet(raw_payload)
+    packet = CognitoFormsAdapter().to_packet(raw_payload)
     raw_payload["WhatIsIt"] = "mutated after admission"
 
     serialized = packet_to_dict(packet)
@@ -80,7 +88,7 @@ def test_packet_serialization_preserves_raw_payload_and_can_omit_it():
 
 def test_serialized_packet_never_carries_the_signed_acquisition_url():
     """The signed URL is transient acquisition material, not durable evidence (F187-03)."""
-    packet = CognitoAdapter().to_packet(_payload())
+    packet = CognitoFormsAdapter().to_packet(_payload())
 
     canonical = packet_to_dict(packet, omit_raw_payload=True)
     serialized = packet_to_dict(packet)
@@ -95,12 +103,12 @@ def test_serialized_packet_never_carries_the_signed_acquisition_url():
 
 
 def test_cognito_adapter_declares_its_attachment_destination_policy():
-    assert CognitoAdapter.attachment_allowed_hosts == ("cognitoforms.com",)
+    assert CognitoFormsAdapter.attachment_allowed_hosts == ("cognitoforms.com",)
     assert get_adapter("cognito").attachment_allowed_hosts == ("cognitoforms.com",)
 
 
 def test_adapter_accepts_no_attachments_and_compatibility_aliases():
-    packet = CognitoAdapter().to_packet(
+    packet = CognitoFormsAdapter().to_packet(
         {
             "EntryId": "legacy-id",
             "CompanyName": "Legacy Co",
@@ -133,7 +141,7 @@ def test_adapter_accepts_no_attachments_and_compatibility_aliases():
 )
 def test_adapter_rejects_invalid_attachment_metadata(attachments, message):
     with pytest.raises(ValueError, match=message):
-        CognitoAdapter().to_packet(_payload(UploadPhotosOfYourScrapUpTo10=attachments))
+        CognitoFormsAdapter().to_packet(_payload(UploadPhotosOfYourScrapUpTo10=attachments))
 
 
 def test_adapter_preserves_attachment_order_and_registry_fails_closed():
@@ -141,9 +149,29 @@ def test_adapter_preserves_attachment_order_and_registry_fails_closed():
         {"Id": "first", "Name": "one.jpg", "File": "https://x/one.jpg", "ContentType": "image/jpeg", "Size": 1},
         {"Id": "second", "Name": "two.pdf", "File": "https://x/two.pdf", "ContentType": "application/pdf", "Size": 2},
     ]
-    packet = CognitoAdapter().to_packet(_payload(UploadPhotosOfYourScrapUpTo10=attachments))
+    packet = CognitoFormsAdapter().to_packet(_payload(UploadPhotosOfYourScrapUpTo10=attachments))
 
     assert [item.source_id for item in packet.attachments] == ["first", "second"]
     assert get_adapter("cognito").provider_key == "cognito"
     with pytest.raises(ValueError, match="Unsupported"):
         get_adapter("unknown")
+
+
+@pytest.mark.parametrize(
+    "action, kind",
+    [
+        ("Update", EVENT_UPDATED),
+        ("Delete", EVENT_DELETED),
+        (None, EVENT_SUBMITTED),
+        ("garbage", EVENT_UNKNOWN),
+    ],
+)
+def test_cognito_classify_event(action, kind):
+    payload = _payload()
+    if action is None:
+        payload["Entry"].pop("Action", None)
+    else:
+        payload["Entry"]["Action"] = action
+    event = CognitoFormsAdapter().classify_event(payload)
+    assert event.kind == kind
+    assert event.provider_external_id == "12345"

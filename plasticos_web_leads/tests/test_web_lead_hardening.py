@@ -352,18 +352,6 @@ class TestHotReviewerRouting(_WebLeadCase):
 class TestIdentityAndIdempotency(_WebLeadCase):
     """F187-04 / F187-07 at the model level."""
 
-    def test_legacy_agent_payload_without_lead_id_gets_server_identity(self):
-        lead = self.WebLead.create_from_agent({"decision": "cold", "raw_payload": {"CompanyName": "Legacy Co"}})
-        self.assertTrue(lead.lead_id.startswith("WL-"))
-        self.assertEqual(lead.company_name, "Legacy Co")
-        self.assertNotEqual(lead.state, "error")
-
-    def test_legacy_agent_payload_identity_is_idempotent(self):
-        payload = {"lead_id": "HARD-AGENT-IDEMP-001", "decision": "cold", "raw_payload": {}}
-        first = self.WebLead.create_from_agent(payload)
-        second = self.WebLead.create_from_agent(payload)
-        self.assertEqual(first, second)
-
     def test_unique_collision_is_treated_as_replay_and_returns_prior_receipt(self):
         payload = _hot_payload("HARD-RACE-001")
         winner = self.WebLead.create_from_cognito(payload)

@@ -6,7 +6,21 @@ from collections.abc import Mapping
 from copy import deepcopy
 from typing import Any
 
-from .base import PACKET_SCHEMA_VERSION, WebLeadAttachment, WebLeadPacket
+from .base import (
+    EVENT_DELETED,
+    EVENT_SUBMITTED,
+    EVENT_UNKNOWN,
+    EVENT_UPDATED,
+    PACKET_SCHEMA_VERSION,
+    InboundEvent,
+    WebLeadAdapter,
+    WebLeadAttachment,
+    WebLeadPacket,
+)
+
+_COGNITO_ACTION_SUBMIT = "submit"
+_COGNITO_ACTION_UPDATE = "update"
+_COGNITO_ACTION_DELETE = "delete"
 
 _COGNITO_ATTACHMENT_FIELDS = (
     "UploadPhotosOfYourScrapUpTo10",
@@ -17,7 +31,7 @@ _COGNITO_ATTACHMENT_FIELDS = (
 )
 
 
-class CognitoAdapter:
+class CognitoFormsAdapter(WebLeadAdapter):
     """Project the live Cognito webhook shape into a decision-free packet."""
 
     provider_key = "cognito"
@@ -122,6 +136,54 @@ class CognitoAdapter:
                 )
             )
         return tuple(attachments)
+
+    def classify_event(self, payload: Mapping[str, Any]) -> InboundEvent:
+        """Map Cognito ``Entry.Action`` onto the port event kinds.
+
+        Payloads that omit ``Action`` are treated as submissions so existing
+        admission fixtures keep their meaning.
+        """
+        if not isinstance(payload, Mapping):
+            raise ValueError("Cognito payload must be a JSON object.")
+        action = self._text(self._entry(payload).get("Action")).lower()
+        if action == _COGNITO_ACTION_UPDATE:
+            kind = EVENT_UPDATED
+        elif action == _COGNITO_ACTION_DELETE:
+            kind = EVENT_DELETED
+        elif action in (_COGNITO_ACTION_SUBMIT, ""):
+            kind = EVENT_SUBMITTED
+        else:
+            kind = EVENT_UNKNOWN
+        return InboundEvent(
+            provider=self.provider_key,
+            kind=kind,
+            provider_external_id=self._external_id(payload),
+            payload=payload,
+        )
+
+    @classmethod
+    def sample_payload(cls) -> dict[str, Any]:
+        """Canonical submitted envelope used by the adapter conformance test."""
+        form = {"Id": "1", "Name": "Seller Intake"}
+        entry = {"Number": "12345", "Action": "Submit"}
+        entry["DateSubmitted"] = "2026-09-21T12:00:00Z"
+        name = {"FirstAndLast": "Alex Smith"}
+        name["First"] = "Alex"
+        name["Last"] = "Smith"
+        attachment = {"Id": "file-1", "Name": "material.jpg"}
+        attachment["File"] = "https://www.cognitoforms.com/fa/sample-material?token=sample"
+        attachment["ContentType"] = "image/jpeg"
+        attachment["Size"] = 4
+        return {
+            "Form": form,
+            "Entry": entry,
+            "YourBusinessCompanyName": "Acme Plastics",
+            "Name": name,
+            "Email": "alex@example.test",
+            "Phone": "555-0100",
+            "WhatIsIt": "HDPE regrind",
+            "UploadPhotosOfYourScrapUpTo10": [attachment],
+        }
 
     def to_packet(self, payload: Mapping[str, Any]) -> WebLeadPacket:
         """Map a current Cognito payload without inferring commercial facts."""
