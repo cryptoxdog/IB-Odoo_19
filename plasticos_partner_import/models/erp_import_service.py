@@ -658,6 +658,16 @@ class PlasticosErpImport(models.AbstractModel):
             if job and partner.function != job:
                 partner.write({"function": job})
 
+    def _user_ids_by_name(self, names: set[str]) -> dict[str, int | None]:
+        """One query for the named users. A name with two users maps to None."""
+        if not names:
+            return {}
+        users = self.env["res.users"].search([("name", "in", sorted(names))])
+        found: dict[str, list[int]] = {}
+        for user in users:
+            found.setdefault(user.name, []).append(user.id)
+        return {name: ids[0] if len(ids) == 1 else None for name, ids in found.items()}
+
     def _import_sales_reps(self, index, report, dry_run: bool) -> None:
         """Set each company's Salesperson from its ``IsDefault=1`` row. Create no user.
 
@@ -667,7 +677,7 @@ class PlasticosErpImport(models.AbstractModel):
         from ..erp import mapping
 
         Partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT, active_test=False)
-        user_by_name: dict[str, int | None] = {}
+        chosen: list[tuple[str, str, object]] = []
         for cp_id in sorted(index.sales_reps_by_cp):
             code, anomaly = mapping.default_sales_rep(index.sales_reps_by_cp[cp_id])
             if anomaly:
@@ -686,10 +696,10 @@ class PlasticosErpImport(models.AbstractModel):
             if not company:
                 report.unresolved_ref("SalesReps", "unresolved_counterparty", cp_id, f"CpID={cp_id} has no company")
                 continue
-            if name not in user_by_name:
-                users = self.env["res.users"].search([("name", "=", name)], limit=2)
-                user_by_name[name] = users.id if len(users) == 1 else None
-            user_id = user_by_name[name]
+            chosen.append((cp_id, name, company))
+        user_by_name = self._user_ids_by_name({name for _cp_id, name, _company in chosen})
+        for cp_id, name, company in chosen:
+            user_id = user_by_name.get(name)
             if not user_id:
                 report.unresolved_ref("SalesReps", "unresolved_user", cp_id, f"no single Odoo user named {name!r}")
                 continue
