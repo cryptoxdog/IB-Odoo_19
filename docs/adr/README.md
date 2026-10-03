@@ -28,6 +28,7 @@ Former copies under `reports/adr/` were consolidated here (2026-06-04). Do not a
 | [ADR-017](ADR-017-constellation-enrichment-feedback-channel.md) | Constellation enrichment feedback channel (CEG health → Gate → EIE) | Accepted |
 | [ADR-018](ADR-018-human-brokerage-checkpoints.md) | Human brokerage checkpoints (intake → match → offer) | Accepted |
 | [ADR-019](ADR-019-documentation-convergence-supersession.md) | Documentation convergence & supersession map | Accepted |
+| [ADR-020](ADR-020-web-lead-inbound-port.md) | Web-lead inbound port (provider-neutral admission) | Accepted |
 | [ADR-021](ADR-021-erp-sql-crm-api-import.md) | ERP imports from SQL; CRM imports from the API; CSV is legacy | Accepted |
 | [ADR-003 (single)](ADR-003-single-external-intelligence-authority.md) | Single external intelligence authority (Gate → CEG/EIE) | Accepted |
 

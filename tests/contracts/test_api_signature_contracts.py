@@ -90,18 +90,19 @@ class TestWebLeadAPIContract(PlasticosTestCase):
             self.skipTest("plasticos_web_leads not installed")
         self.assertIsNotNone(self.WebLead)
 
-    def test_web_lead_has_create_from_agent(self):
-        """Legacy agent admission remains available beside packet admission."""
+    def test_web_lead_admits_through_the_inbound_port(self):
+        """Admission is the provider-neutral port, not the retired agent payload."""
         if self.skip:
             self.skipTest("plasticos_web_leads not installed")
         self.assertTrue(
-            callable(getattr(self.WebLead, "create_from_agent", None)),
-            "create_from_agent method missing on plasticos.web.lead",
+            callable(getattr(self.WebLead, "admit_inbound", None)),
+            "admit_inbound method missing on plasticos.web.lead",
         )
         self.assertTrue(
             callable(getattr(self.WebLead, "create_from_packet", None)),
             "create_from_packet method missing on plasticos.web.lead",
         )
+        self.assertFalse(hasattr(self.WebLead, "create_from_agent"))
 
     def test_web_lead_has_classification_fields(self):
         """Classification engine expects these fields."""

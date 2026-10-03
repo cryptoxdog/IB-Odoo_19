@@ -11,7 +11,7 @@ Golden flows represent the critical business paths that must always work:
 4. Transaction margin → commission → close-time lock (revenue recognition)
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.addons.plasticos_web_leads.models.classification_engine import classify_lead
@@ -331,56 +331,6 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
         self.assertEqual(kwargs["weight_source"], "explicit_lbs")
         self.assertIsNone(kwargs["is_plastic_hint"])
         self.assertIsNone(kwargs["is_commercial_hint"])
-
-    def test_legacy_hot_lead_preserves_attachment_handoff(self):
-        """Legacy agent leads retain the HOT-only image attachment behavior.
-
-        The legacy URL path is held to the same provider destination policy as
-        packet acquisition: only an allowlisted public host is fetched, with
-        automatic redirects disabled (F187-02).
-        """
-        image_url = "https://www.cognitoforms.com/files/legacy-material.jpg"
-        response = MagicMock()
-        response.status_code = 200
-        response.content = b"legacy-image"
-        response.headers = {"Content-Type": "image/jpeg"}
-        response.raise_for_status.return_value = None
-        response.iter_content.return_value = [b"legacy-image"]
-        payload = {
-            "lead_id": "GOLD-LEGACY-ATTACHMENT-001",
-            "decision": "Hot",
-            "raw_payload": {
-                "YourBusinessCompanyName": "Legacy HOT Co",
-                "DescribeYourMaterial": "HDPE regrind",
-                "WhatIsTheSourceOfThisMaterial": "Manufacturing production scrap",
-                "WhatIsTheQuantity": "30",
-                "UploadPhotos": [{"File": image_url}, {"File": "https://10.0.0.8/internal.jpg"}],
-            },
-        }
-
-        with (
-            patch(
-                "odoo.addons.plasticos_web_leads.models.attachment_processor.requests.get",
-                return_value=response,
-            ) as download,
-            patch(
-                "odoo.addons.plasticos_web_leads.models.attachment_processor.resolve_host_addresses",
-                return_value=["93.184.216.34"],
-            ),
-        ):
-            lead = self.WebLead.create_from_agent(payload)
-
-        self.assertEqual(lead.state, "intake_created")
-        download.assert_called_once_with(image_url, timeout=(10, 30), stream=True, allow_redirects=False)
-        Attachment = self.env["ir.attachment"]
-        self.assertEqual(
-            Attachment.search_count([("res_model", "=", "plasticos.web.lead"), ("res_id", "=", lead.id)]),
-            1,
-        )
-        self.assertEqual(
-            Attachment.search_count([("res_model", "=", "plasticos.intake"), ("res_id", "=", lead.intake_id.id)]),
-            1,
-        )
 
 
 @tagged("post_install", "-at_install", "plasticos", "golden", "claims")

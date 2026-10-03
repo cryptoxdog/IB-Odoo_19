@@ -1,14 +1,14 @@
 # ═══════════════════════════════════════════════════════════
 # Module : plasticos_web_leads
 # Purpose: Web lead ingestion with AI-powered triage pipeline.
-#          Supports both pre-processed agent payloads and raw
-#          Cognito form submissions with LLM normalization,
-#          vision analysis, and deterministic classification.
+#          Admits provider-neutral inbound web leads (Cognito Forms is
+#          the current adapter) with LLM normalization, vision analysis,
+#          and deterministic classification.
 # ═══════════════════════════════════════════════════════════
 {
     "name": "PlasticOS Web Leads",
-    "version": "19.0.2.7.2",
-    "summary": "AI-powered web lead triage: Cognito → LLM/Vision → HOT/COLD → Intake",
+    "version": "19.0.2.8.1",
+    "summary": "AI-powered triage for provider-neutral inbound web leads",
     "license": "LGPL-3",
     "author": "Igor Beylin",
     "category": "Operations",
