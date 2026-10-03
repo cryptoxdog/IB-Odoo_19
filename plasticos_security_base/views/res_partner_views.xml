@@ -31,6 +31,10 @@
             <xpath expr="//field[@name='website']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
+            <!-- Company ID. The hint is the tax-id placeholder, and this brokerage does not use it. -->
+            <xpath expr="//field[@name='company_registry']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
         </field>
     </record>
 

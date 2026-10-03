@@ -137,6 +137,17 @@ Still to configure (ADR-020): the web-lead API key, Infisical
 Leave Cognito Update and Delete empty. After the test submission lands,
 retire n8n and the `N8N_*` Infisical names.
 
+## Gap — internal sales rep missing from the ERP extract
+
+The ERP shows an internal sales rep on the counterparty window. That person was not exported into the ERP grids, so the ERP import cannot fill Odoo Salesperson (`res.partner.user_id`).
+
+| File | Column | What it holds |
+|------|--------|----------------|
+| `plasticos_partner_import/1. Counterparties - Parent - CORPORATE-Ready To Import.csv` | `user_id` | The rep's name (Tiffany White, Ricardo Pereira, and the other Odoo users). This is the old corporate sheet, not the ERP extract. |
+| `plasticos_partner_import/erp_extracted_data/bulk/CounterParty.csv` | `CustSvcRep` | The only rep column in the ERP extract. 1,289 of 1,290 rows are NULL. The one value is the code `IB`, not a name. |
+
+`SalesTypeID` exists on the SQL Server `CounterParty` table and is not in this extract. `preferred_contact_id` is the customer's contact for intake, not the internal rep. Leave Salesperson empty until the ERP is exported again with the rep on each counterparty.
+
 ## Open Questions
 
 - Operator cutover: regenerate the web-lead API key, set Infisical
@@ -146,6 +157,7 @@ retire n8n and the `N8N_*` Infisical names.
   leave Update/Delete empty, submit one staging entry and record duration,
   then retire n8n and the `N8N_*` Infisical names. Checklist: ADR-020.
 - `install-smoke` cannot source `.env` until `COOLIFY_TOKEN` is quoted.
+- Internal sales rep was not exported from the ERP. See the gap section below. Do not invent Salesperson values from `CustSvcRep`.
 
 ## Next after these tests pass
 

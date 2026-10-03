@@ -209,20 +209,26 @@ class PlasticosErpImport(models.AbstractModel):
                     )
                 continue
 
+            parent_name = Partner.browse(parent_id).name if parent_id else ""
             for address_id in index.addresses_by_cp[cp_id]:
                 row = index.addresses[address_id]
                 kind = mapping.address_kind(row)
                 # An invoice/remit address is an address, not a facility; every
-                # other kind is a physical child-company location.
+                # other kind is a physical child-company location. The remit
+                # (PO Box) stays on that invoice child and is never copied
+                # onto a facility.
                 is_billing = kind == "invoice"
                 values = {
-                    "name": _address_name(row, cp_id, address_id),
+                    "name": _address_name(row, parent_name, address_id),
                     "parent_id": parent_id,
                     "is_company": not is_billing,
                     "type": mapping.ODOO_ADDRESS_TYPE[kind],
                 }
-                _set_if(values, "street", _text(row, "Addr1"))
-                _set_if(values, "street2", _joined(row, ("Addr2", "Addr3")))
+                # ERP: Addr1 is the company on the location, Addr2 is the
+                # street, Addr3 is the second street line. Type is only the
+                # location short name.
+                _set_if(values, "street", _text(row, "Addr2"))
+                _set_if(values, "street2", _text(row, "Addr3"))
                 _set_if(values, "city", _text(row, "City"))
                 _set_if(values, "zip", _text(row, "PostalCd"))
                 _set_if(values, "phone", _text(row, "Telephone") or _text(row, "MobilePhone"))
@@ -493,6 +499,11 @@ class PlasticosErpImport(models.AbstractModel):
         The identity marker is written in the same transaction as the record, so
         a rollback removes both and a retry re-creates them together.
         """
+        if model._name == RES_PARTNER:
+            source_id = self._erp_lead_source_id()
+            if source_id:
+                values["lead_source_id"] = source_id
+
         data = self.env["ir.model.data"].search(
             [("module", "=", XMLID_MODULE), ("name", "=", xml_id), ("model", "=", model._name)],
             limit=1,
@@ -524,6 +535,11 @@ class PlasticosErpImport(models.AbstractModel):
             report.bump(bucket, "created")
         return record
 
+    def _erp_lead_source_id(self) -> int | bool:
+        """``utm.source`` named ERP. Missing seed leaves the field unset."""
+        source = self.env.ref("plasticos_crm_bridge.utm_source_erp", raise_if_not_found=False)
+        return source.id if source else False
+
 
 # ---------------------------------------------------------------------------
 # Module-level helpers
@@ -551,13 +567,20 @@ def _differs(record, field_name: str, value) -> bool:
     return current != (value if value is not None else False)
 
 
-def _address_name(row, cp_id: str, address_id: str) -> str:
-    """Human label for a location. Never used as identity."""
-    for column in ("Type", "City", "Addr1"):
-        value = _text(row, column)
-        if value:
-            return value
-    return f"ERP address {address_id} ({cp_id})"
+def _address_name(row, parent_name: str, address_id: str) -> str:
+    """Form title for a location. Never the location short name or the street.
+
+    The ERP shows the counterparty at the top of a location window. In the
+    extract that company is ``Addr1``. ``Type`` is the location short name
+    (often the street, such as ``1600 STIEVE ROAD``) and must not become
+    ``res.partner.name``.
+    """
+    company = _text(row, "Addr1")
+    if company:
+        return company
+    if parent_name:
+        return parent_name
+    return f"ERP address {address_id}"
 
 
 def _partner_mobile_field(partner_model) -> str | None:

@@ -76,5 +76,9 @@
             <field name="name">Other</field>
         </record>
 
+        <record id="utm_source_erp" model="utm.source">
+            <field name="name">ERP</field>
+        </record>
+
     </data>
 </odoo>
