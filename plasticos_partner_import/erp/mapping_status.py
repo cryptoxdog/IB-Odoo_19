@@ -171,7 +171,7 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "status": VERIFIED,
             "target_model": "ir.model.data",
             "target_field": "legacy_erp_address_<AddressID>",
-            "transformation": "XML-ID key",
+            "transformation": "XML-ID key for a child location. The company's own remit has no child partner",
             "required": True,
             "null_behavior": "blank raises (source_index PRIMARY_KEYS)",
             "identity_role": "address identity",

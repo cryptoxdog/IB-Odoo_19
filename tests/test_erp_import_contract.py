@@ -160,19 +160,31 @@ def test_commit_never_happens_inside_a_transaction_unit(service_tree):
 def test_identity_marker_is_created_with_the_record_not_before(service_tree):
     """A marker written ahead of the record would survive a rollback as a lie."""
     upsert = _function(service_tree, "_upsert")
-    creates = [
+    calls = [
         node
         for node in ast.walk(upsert)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "create"
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in ("create", "_write_identity_marker")
     ]
-    assert len(creates) == 2, "the record and its identity marker"
+    assert len(calls) == 2, "the record and its identity marker"
 
-    record_create, marker_create = sorted(creates, key=lambda n: n.lineno)
+    record_create, marker_write = sorted(calls, key=lambda n: n.lineno)
     # The record is created first; the ir.model.data marker follows it.
+    assert record_create.func.attr == "create"
     assert isinstance(record_create.func.value, ast.Name)
     assert record_create.func.value.id == "model"
-    assert "ir.model.data" in ast.dump(marker_create.func.value)
-    assert record_create.lineno < marker_create.lineno
+    assert marker_write.func.attr == "_write_identity_marker"
+    assert record_create.lineno < marker_write.lineno
+
+    marker = _function(service_tree, "_write_identity_marker")
+    marker_creates = [
+        node
+        for node in ast.walk(marker)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "create"
+    ]
+    assert len(marker_creates) == 1
+    assert "ir.model.data" in ast.dump(marker_creates[0].func.value)
 
 
 def test_failed_transaction_is_recorded_and_the_run_continues(service_tree):
@@ -188,10 +200,14 @@ def test_failed_transaction_is_recorded_and_the_run_continues(service_tree):
 # Idempotency (gap G10)
 # ---------------------------------------------------------------------------
 def test_every_persisted_entity_goes_through_the_deterministic_upsert(service_tree):
-    """No mapper may call ``create`` directly and bypass identity resolution."""
-    upsert = _function(service_tree, "_upsert")
+    """No mapper may call ``create`` directly and bypass identity resolution.
+
+    ``_write_identity_marker`` only writes ``ir.model.data`` (pinned by the
+    marker-ordering test), so it is the one other allowed ``create`` site.
+    """
+    allowed = {_function(service_tree, "_upsert"), _function(service_tree, "_write_identity_marker")}
     for node in ast.walk(service_tree):
-        if not isinstance(node, ast.FunctionDef) or node is upsert:
+        if not isinstance(node, ast.FunctionDef) or node in allowed:
             continue
         for call in ast.walk(node):
             if isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute) and call.func.attr == "create":

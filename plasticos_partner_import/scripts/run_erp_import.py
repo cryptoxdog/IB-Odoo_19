@@ -86,9 +86,8 @@ def _print_summary(summary: dict) -> None:
         f"seen/valid  : {summary['records_seen']} / {summary['records_valid']} (rejected {summary['records_rejected']})"
     )
     print(
-        "created     : {created}  updated: {updated}  unchanged: {unchanged}  duplicates: {duplicates}".format(
-            **summary
-        )
+        "created     : {records_created}  updated: {records_updated}  "
+        "unchanged: {records_unchanged}  duplicates: {duplicates}".format(**summary)
     )
     if summary["errors"]:
         print(f"errors      : {len(summary['errors'])} (first 10 below)")
