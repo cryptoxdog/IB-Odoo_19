@@ -204,14 +204,19 @@ def test_every_persisted_entity_goes_through_the_deterministic_upsert(service_tr
 
     ``_write_identity_marker`` only writes ``ir.model.data`` (pinned by the
     marker-ordering test), so it is the one other allowed ``create`` site.
+    ``Command.create`` is a one2many child line written onto a record that
+    already went through ``_upsert``; it is not a standalone record.
     """
     allowed = {_function(service_tree, "_upsert"), _function(service_tree, "_write_identity_marker")}
     for node in ast.walk(service_tree):
         if not isinstance(node, ast.FunctionDef) or node in allowed:
             continue
         for call in ast.walk(node):
-            if isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute) and call.func.attr == "create":
-                raise AssertionError(f"{node.name} calls create() outside _upsert")
+            if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute) and call.func.attr == "create"):
+                continue
+            if isinstance(call.func.value, ast.Name) and call.func.value.id == "Command":
+                continue
+            raise AssertionError(f"{node.name} calls create() outside _upsert")
 
 
 def test_upsert_writes_only_what_actually_changed(service_tree):

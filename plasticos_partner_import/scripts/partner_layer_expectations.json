@@ -1,0 +1,56 @@
+{
+  "database": "erp_import_test",
+  "company_count": 1290,
+  "missing_counterparty": {
+    "cp_id": "1191",
+    "address_ids": ["402638", "403241", "403242"],
+    "contact_name": "Robert Sheperdson"
+  },
+  "abbott": {
+    "cp_id": "2521",
+    "name": "ABBOTT",
+    "street": "1342 Court St",
+    "park_name": "Abbott Park",
+    "park_street": "100 Abbott Park Rd"
+  },
+  "eddie": {
+    "cp_id": "1802",
+    "name": "Eddie Dyess",
+    "site": "JACKSONVILLE, FL  - SITE 314",
+    "excluded_site_word": "HAINES CITY",
+    "unmatched_site": "HAINES CITY, FL  - SITE 314"
+  },
+  "joshua": {
+    "cp_id": "1802",
+    "name": "Joshua Morse"
+  },
+  "forbidden_partner_names": ["Site425", "16098610383"],
+  "eli": {
+    "cp_id": "1672",
+    "name": "Eli Vogel",
+    "phone": "8458276255",
+    "mobile": "6466856966",
+    "other": "8456532630"
+  },
+  "tuckahoe": {
+    "cp_id": "1275",
+    "name": "TUCKAHOE NURSERIES INC",
+    "phone": "6098610533",
+    "forbidden_partner_name": "16098610383"
+  },
+  "decision_maker_tag": "Decision Maker",
+  "decision_makers": [
+    { "cp_id": "2521", "name": "Tyler Lumley" },
+    { "cp_id": "2255", "name": "Logan Payne" }
+  ],
+  "accounting": {
+    "cp_id": "2255",
+    "name": "accounting",
+    "tag": "AR/AP"
+  },
+  "unresolved_rr": {
+    "cp_id": "2255",
+    "name": "Lorraine Dodd",
+    "guessed_tags": ["Decision Maker", "AR/AP", "Logistics", "Admin", "Operations Manager", "Sales", "Assistant", "RR"]
+  }
+}

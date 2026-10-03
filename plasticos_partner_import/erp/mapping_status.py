@@ -189,9 +189,9 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "status": VERIFIED,
             "target_model": "res.partner",
             "target_field": "type",
-            "transformation": "ADDRESS_TYPE_KIND; location short name, never the form title",
+            "transformation": "PRIMARY is invoice; a place name is delivery; kind words are not the title",
             "required": False,
-            "null_behavior": "unrecognised -> kind 'other', label preserved",
+            "null_behavior": "blank or unrecognised -> delivery, label preserved",
             "identity_role": "none",
         },
         "Addr1": {

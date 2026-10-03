@@ -754,6 +754,19 @@ GLOBAL_ALLOWLIST = frozenset(
         # ─────────────────────────────────────────────────────────────────────
         "US",
         "REMIT",
+        # ERP partner layer names (erp_import_service.PARTNER_LAYERS, the shell
+        # driver, the layer validator), the ERP RR role code, and the contact
+        # role tag name the role mapping writes
+        "counterparties",
+        "addresses",
+        "roles",
+        "rr",
+        "Decision Maker",
+        # ─────────────────────────────────────────────────────────────────────
+        # CORE ODOO SELECTION VALUES — declared by Odoo, not by plasticos_*
+        # modules, so the scanner's Selection registry cannot see them
+        # ─────────────────────────────────────────────────────────────────────
+        "installed",  # ir.module.module.state
     }
 )
 

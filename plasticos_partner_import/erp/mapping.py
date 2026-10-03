@@ -88,14 +88,13 @@ _RANKS_BY_ROLE: dict[str, tuple[int, int]] = {
 # Address.Type -> address kind
 # ---------------------------------------------------------------------------
 # ``Address.Type`` is free text (the payload contains city names such as
-# "OMAHA, NE" used as a label). Only the recognised operational vocabulary is
-# mapped; anything else falls back to a generic location, which loses no data
-# because the raw label is preserved on the partner name.
+# "OMAHA, NE" used as a label). PRIMARY is the company's mailing address.
+# A place name is a delivery site. The raw label stays on the partner.
 ADDRESS_TYPE_KIND: dict[str, str] = {
     "INVOICE": "invoice",
     "REMIT": "invoice",
-    "PRIMARY": "primary",
-    "PRIMARY ADDRESS": "primary",
+    "PRIMARY": "invoice",
+    "PRIMARY ADDRESS": "invoice",
     "DELIVERY ADDRESS": "delivery",
     "PICK UP ADDRESS": "delivery",
     "PICK-UP ADDRESS": "delivery",
@@ -107,8 +106,8 @@ ADDRESS_TYPE_KIND: dict[str, str] = {
 ODOO_ADDRESS_TYPE: dict[str, str] = {
     "invoice": "invoice",
     "delivery": "delivery",
-    "primary": "other",
-    "other": "other",
+    "primary": "invoice",
+    "other": "delivery",
 }
 
 # ---------------------------------------------------------------------------
@@ -194,7 +193,7 @@ def trade_ranks(raw_role: str | None) -> tuple[int, int]:
     return _RANKS_BY_ROLE.get(_clean(raw_role).upper(), (0, 0))
 
 
-_KIND_BASES = ("INVOICE", "REMIT", "PICKUP", "DELIVERY", "WAREHOUSE")
+_KIND_BASES = ("INVOICE", "REMIT", "PRIMARY", "PICKUP", "DELIVERY", "WAREHOUSE")
 _ROLE_MAILBOX_WORDS = frozenset({"PRIMARY", "INVOICE"})
 
 
@@ -205,7 +204,7 @@ def _alnum(value: str | None) -> str:
 def is_kind_only_label(label: str | None) -> bool:
     """True when an ERP Type is only a kind word, not a place name.
 
-    ``INVOICE``, ``PICK UP LOCATION``, and ``DELIVERY ADDRESS`` are kind words.
+    ``INVOICE``, ``PRIMARY``, ``PICK UP LOCATION``, and ``DELIVERY ADDRESS`` are kind words.
     ``LINCOLN, IL`` and ``HOUSTON TX - PICK UP`` are place names.
     """
     key = _alnum(label)
@@ -283,8 +282,8 @@ def address_kind(row) -> str:
     address a billing address, which is what the invoice/remit/billing mapping
     requirement asks for.
 
-    An unrecognised label is a location, not a loss: the raw text is preserved
-    as the partner name.
+    PRIMARY and PRIMARY ADDRESS are the mailing address. An unrecognised place
+    name is a delivery site. The raw text is preserved as the partner name.
     """
     label = _clean(row.get("Type")).upper()
     labelled = ADDRESS_TYPE_KIND.get(label)
@@ -296,9 +295,7 @@ def address_kind(row) -> str:
         return "invoice"
     if labelled:
         return labelled
-    if any(token in label for token in ("PICK-UP", "PICK UP", "PICKUP", "WAREHOUSE", "DELIVERY")):
-        return "delivery"
-    return "other"
+    return "delivery"
 
 
 def weight_uom(sale_uom: str | None, purchase_uom: str | None) -> tuple[str | None, str | None]:
@@ -340,9 +337,126 @@ def unit_type(raw_unit_type: str | None) -> tuple[str | None, str | None]:
     return code, None
 
 
+# ERP role words that mean the same job collapse to one tag.
+# ``RR`` is not in this map: it stays unresolved.
+CONTACT_ROLE_TAGS: dict[str, str] = {
+    "primary": "Decision Maker",
+    "dm": "Decision Maker",
+    "pricing": "Decision Maker",
+    "owner": "Decision Maker",
+    "collections": "AR/AP",
+    "ar/ap": "AR/AP",
+    "billing": "AR/AP",
+    "ship / del appt": "Logistics",
+    "freight": "Logistics",
+    "admin:pics/docs": "Admin",
+    "operations mgr": "Operations Manager",
+    "sales": "Sales",
+    "dm assistant": "Assistant",
+}
+
+
 def normalize_contact_role(raw_role: str | None) -> str:
     """Normalize ``ContactRoleAssignment.RoleNm`` for deterministic tag keys."""
     return " ".join(_clean(raw_role).split())
+
+
+def map_contact_role(raw_role: str | None) -> tuple[str | None, str | None]:
+    """Map an ERP role word onto one tag.
+
+    Returns ``(tag, None)`` when the word is known. ``RR`` returns
+    ``(None, "rr")`` and is not guessed. Anything else returns
+    ``(None, "unmapped")``.
+    """
+    key = normalize_contact_role(raw_role).casefold()
+    if not key:
+        return None, "blank"
+    if key == "rr":
+        return None, "rr"
+    tag = CONTACT_ROLE_TAGS.get(key)
+    if not tag:
+        return None, "unmapped"
+    return tag, None
+
+
+def is_person_name(name: str | None) -> bool:
+    """A contact title needs a letter. A phone number is not a person."""
+    return any(char.isalpha() for char in (name or ""))
+
+
+def person_key(name: str | None) -> str:
+    """Identity of a person within one company.
+
+    The first word and the last word match, without case or punctuation.
+    A single word, or a cell that contains ``;`` or ``/``, stays one person
+    as written and is not split.
+    """
+    raw = (name or "").strip()
+    folded = _alnum(raw) or raw.casefold()
+    if not raw or ";" in raw or "/" in raw:
+        return folded
+    words = [word for word in raw.split() if word]
+    if len(words) < 2:
+        return folded
+    return f"{_alnum(words[0])}|{_alnum(words[-1])}"
+
+
+def real_phone(value: str | None) -> str:
+    """A dialable number. Blank, the word NULL, and short ids are empty."""
+    text = (value or "").strip()
+    if not text or text.upper() == "NULL":
+        return ""
+    digits = "".join(char for char in text if char.isdigit())
+    if len(digits) < 7:
+        return ""
+    return text
+
+
+def fax_from_notes(notes: str | None) -> str:
+    """A ``Fax:`` line in contact notes, when the remainder is a real number."""
+    for line in (notes or "").splitlines():
+        cleaned = line.strip()
+        if cleaned.lower().startswith("fax:"):
+            return real_phone(cleaned.split(":", 1)[1])
+    return ""
+
+
+def location_title(
+    type_label: str | None,
+    city: str | None,
+    street: str | None,
+    street2: str | None,
+    parent_name: str | None,
+) -> str:
+    """Title of a location. Never the street.
+
+    A place-name Type stays the title. A kind word, a Type that repeats the
+    company, or a Type that is itself a street uses the city.
+    """
+    label = (type_label or "").strip()
+    parent = (parent_name or "").strip()
+    if (
+        label
+        and _alnum(label) != _alnum(parent)
+        and not is_kind_only_label(label)
+        and not _label_is_street(label, street, street2)
+    ):
+        return label
+    place = (city or "").strip()
+    if place and place.upper() != "NULL":
+        return place
+    if parent:
+        return parent
+    return "Location"
+
+
+def _label_is_street(label: str, street: str | None, street2: str | None) -> bool:
+    folded = _alnum(label)
+    for raw in (street, street2):
+        road = _alnum(raw)
+        if road and len(road) >= 6 and (road == folded or road in folded):
+            return True
+    return bool(label[:1].isdigit())
 
 
 def sort_contact_roles(roles: list[str]) -> list[str]:

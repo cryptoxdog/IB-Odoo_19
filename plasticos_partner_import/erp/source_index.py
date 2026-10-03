@@ -130,17 +130,25 @@ def build_source_index(payload: SourcePayload) -> SourceIndex:
     """
     index = SourceIndex()
 
-    index.counterparties = _index_by_pk(payload, "CounterParty")
-    index.addresses = _index_by_pk(payload, "Address")
-    index.contacts = _index_by_pk(payload, "Contact")
-    index.contact_roles = _index_by_pk(payload, "ContactRoleAssignment")
+    if "CounterParty" in payload.tables:
+        index.counterparties = _index_by_pk(payload, "CounterParty")
+    if "Address" in payload.tables:
+        index.addresses = _index_by_pk(payload, "Address")
+    if "Contact" in payload.tables:
+        index.contacts = _index_by_pk(payload, "Contact")
+    if "ContactRoleAssignment" in payload.tables:
+        index.contact_roles = _index_by_pk(payload, "ContactRoleAssignment")
     if "WKSDetail" in payload.tables:
         index.lines = _index_by_pk(payload, "WKSDetail")
         _link_lines(index)
     if payload.tables.keys() & {"GPLedger", "Payables", "Receipt", "ReceiptBatch", "WksDelivery"}:
         _index_supporting_tables(payload, index)
 
-    _link_children(index)
+    _link_children(
+        index,
+        counterparties_loaded="CounterParty" in payload.tables,
+        contacts_loaded="Contact" in payload.tables,
+    )
     return index
 
 
@@ -157,15 +165,20 @@ def _index_by_pk(payload: SourcePayload, table: str) -> dict[str, dict[str, str 
     return indexed
 
 
-def _link_children(index: SourceIndex) -> None:
-    """Attach addresses and contacts to their counterparty by CpID only."""
+def _link_children(index: SourceIndex, *, counterparties_loaded: bool, contacts_loaded: bool) -> None:
+    """Attach addresses and contacts to their counterparty by CpID only.
+
+    A layer that does not include the parent file still groups the child rows.
+    The importer resolves that parent from the database. A parent file that is
+    present and does not contain the id stays unresolved.
+    """
     addresses: dict[str, list[str]] = defaultdict(list)
     for address_id in sorted(index.addresses):
         cp_id = _key(index.addresses[address_id], "CpID")
         if not cp_id:
             index.violations.append(IdentityViolation("Address", "missing_parent_key", address_id, "blank CpID"))
             continue
-        if cp_id not in index.counterparties:
+        if counterparties_loaded and cp_id not in index.counterparties:
             index.violations.append(
                 IdentityViolation(
                     "Address",
@@ -184,7 +197,7 @@ def _link_children(index: SourceIndex) -> None:
         if not cp_id:
             index.violations.append(IdentityViolation("Contact", "missing_parent_key", contact_id, "blank CpID"))
             continue
-        if cp_id not in index.counterparties:
+        if counterparties_loaded and cp_id not in index.counterparties:
             index.violations.append(
                 IdentityViolation(
                     "Contact",
@@ -205,7 +218,7 @@ def _link_children(index: SourceIndex) -> None:
                 IdentityViolation("ContactRoleAssignment", "missing_parent_key", role_id, "blank CT_ID")
             )
             continue
-        if contact_id not in index.contacts:
+        if contacts_loaded and contact_id not in index.contacts:
             index.violations.append(
                 IdentityViolation(
                     "ContactRoleAssignment",

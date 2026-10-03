@@ -55,7 +55,7 @@ def test_payload_row_counts_are_stable(payload):
     # Golden extract of 2026-08-07. A changed count means a re-extract landed
     # and every downstream expectation in this file must be re-proven.
     assert payload.row_counts() == {
-        "Address": 2950,
+        "Address": 2935,
         "Contact": 4058,
         "ContactRoleAssignment": 3091,
         "CounterParty": 1290,
@@ -123,7 +123,7 @@ def test_statement_payload_is_supported(tmp_path):
     ("attribute", "table", "expected"),
     [
         ("counterparties", "CounterParty", 1290),
-        ("addresses", "Address", 2950),
+        ("addresses", "Address", 2935),
         ("contacts", "Contact", 4058),
         ("contact_roles", "ContactRoleAssignment", 3091),
         ("lines", "WKSDetail", 11303),
@@ -391,7 +391,11 @@ def test_address_kind_falls_back_without_losing_the_label():
     assert mapping.address_kind({"Type": "PICK UP ADDRESS"}) == "delivery"
     assert mapping.address_kind({"Type": "PICK UP"}) == "delivery"
     assert mapping.address_kind({"Type": "HOUSTON TX - PICK UP"}) == "delivery"
-    assert mapping.address_kind({"Type": "OMAHA, NE"}) == "other"
+    assert mapping.address_kind({"Type": "OMAHA, NE"}) == "delivery"
+    assert mapping.address_kind({"Type": "LINCOLN, IL"}) == "delivery"
+    assert mapping.address_kind({"Type": "FAYETTEVILLE AR - SITE 425"}) == "delivery"
+    assert mapping.address_kind({"Type": "PRIMARY"}) == "invoice"
+    assert mapping.address_kind({"Type": "PRIMARY ADDRESS"}) == "invoice"
 
 
 def test_billing_flags_are_honoured_beyond_the_free_text_label():
@@ -399,7 +403,8 @@ def test_billing_flags_are_honoured_beyond_the_free_text_label():
     assert mapping.address_kind({"Type": "OMAHA, NE", "InvoiceAddr": "Y"}) == "invoice"
     assert mapping.address_kind({"Type": "WAREHOUSE", "RemitToAddress": "1"}) == "invoice"
     assert mapping.address_kind({"Type": "PRIMARY", "isBillingAddressOnly": "1"}) == "invoice"
-    assert mapping.address_kind({"Type": "PRIMARY", "InvoiceAddr": "N"}) == "primary"
+    assert mapping.address_kind({"Type": "PRIMARY", "InvoiceAddr": "N"}) == "invoice"
+    assert mapping.address_kind({"Type": "PRIMARY ADDRESS", "InvoiceAddr": "N"}) == "invoice"
 
 
 def test_address_type_meaning_follows_the_company_role():
@@ -426,6 +431,8 @@ def test_address_type_meaning_follows_the_company_role():
 
 def test_kind_word_is_not_a_location_title():
     assert mapping.is_kind_only_label("INVOICE")
+    assert mapping.is_kind_only_label("PRIMARY")
+    assert mapping.is_kind_only_label("PRIMARY ADDRESS")
     assert mapping.is_kind_only_label("PICK UP LOCATION")
     assert mapping.is_kind_only_label("PICK-UP ADDRESS")
     assert mapping.is_kind_only_label("DELIVERY ADDRESS")
@@ -446,6 +453,52 @@ def test_site425_is_a_mailbox_and_a_person_name_is_not():
     assert mapping.site_mailbox_target("Site425", other_company, "FAYETTEVILLE AR", keys) == "9"
 
 
+def test_location_title_uses_the_place_or_the_city_never_the_street():
+    assert mapping.location_title("LINCOLN, IL", "Lincoln", "100 Main St", "", "ACME") == "LINCOLN, IL"
+    assert mapping.location_title("INVOICE", "Abbott Park", "100 Abbott Park Rd", "", "ABBOTT") == "Abbott Park"
+    assert (
+        mapping.location_title("1600 STIEVE ROAD", "East Jordan", "1600 Stieve Road", "", "EAST JORDAN")
+        == "East Jordan"
+    )
+    assert mapping.location_title("PRIMARY ADDRESS", "Portsmouth", "1342 Court St", "", "ABBOTT") == "Portsmouth"
+    assert "Court" not in mapping.location_title(
+        "TUCKAHOE NURSERIES, INC", "Elmar", "148 Jefferson Rd.", "", "TUCKAHOE NURSERIES INC"
+    )
+
+
+def test_person_key_is_first_and_last_name_inside_one_company():
+    assert mapping.person_key("Robert Sheperdson") == mapping.person_key("robert sheperdson")
+    assert mapping.person_key("Daron A. Warren") == "DARON|WARREN"
+    assert mapping.person_key("accounting") == mapping._alnum("accounting")
+    assert ";" in "Linda Combs; Nicole Brown"
+    assert mapping.person_key("Linda Combs; Nicole Brown") == mapping._alnum("Linda Combs; Nicole Brown")
+    assert mapping.is_person_name("Eli Vogel")
+    assert not mapping.is_person_name("16098610383")
+    assert mapping.real_phone("1478") == ""
+    assert mapping.real_phone("NULL") == ""
+    assert mapping.real_phone("(609) 861-0533") == "(609) 861-0533"
+
+
+def test_contact_roles_collapse_and_rr_stays_unresolved():
+    assert mapping.map_contact_role("Primary") == ("Decision Maker", None)
+    assert mapping.map_contact_role("Collections") == ("AR/AP", None)
+    assert mapping.map_contact_role("Ship / Del Appt") == ("Logistics", None)
+    assert mapping.map_contact_role("Admin:Pics/Docs") == ("Admin", None)
+    assert mapping.map_contact_role("DM Assistant") == ("Assistant", None)
+    assert mapping.map_contact_role("RR") == (None, "rr")
+    assert mapping.map_contact_role("Something New") == (None, "unmapped")
+
+
+def test_address_layer_groups_rows_without_the_counterparty_file(payload):
+    tables = {"Address": payload.rows("Address")[:3]}
+    clone = reader.SourcePayload(kind=payload.kind, root=payload.root, tables=tables)
+    indexed = source_index.build_source_index(clone)
+    assert indexed.addresses
+    assert indexed.addresses_by_cp
+    assert not indexed.counterparties
+    assert not any(item.kind == "unresolved_counterparty" for item in indexed.violations)
+
+
 def test_partner_only_payload_does_not_open_deal_files():
     payload = reader.load_payload(PAYLOAD_ROOT, only=reader.PARTNER_SOURCE_TABLES)
     assert set(payload.tables) == set(reader.PARTNER_SOURCE_TABLES)
@@ -461,18 +514,17 @@ def test_billing_address_population_matches_the_payload(index):
         kind = mapping.address_kind(row)
         kinds[kind] = kinds.get(kind, 0) + 1
 
-    assert sum(kinds.values()) == 2950
-    assert kinds == {"invoice": 1580, "other": 1216, "delivery": 110, "primary": 44}
+    assert sum(kinds.values()) == 2935
+    assert kinds == {"invoice": 1618, "delivery": 1317}
 
-    # The free-text Type labels 1212 of them; the billing flags add 368 that
-    # the label alone would have mis-filed as ordinary locations.
+    # Invoice, remit, and primary labels. Billing flags add the rest.
     by_label = sum(
         1
         for row in index.addresses.values()
         if mapping.ADDRESS_TYPE_KIND.get((row.get("Type") or "").strip().upper()) == "invoice"
     )
-    assert by_label == 1212
-    assert kinds["invoice"] - by_label == 368
+    assert by_label == 1583
+    assert kinds["invoice"] - by_label == 35
 
 
 def test_contact_location_resolves_to_an_address_composite_key(index):
