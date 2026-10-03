@@ -10,6 +10,7 @@ Identity contract (source key -> imported entity)::
     AddressID  -> facility / location     (res.partner child company)
     CT_ID      -> contact                 (res.partner person)
     CRA_ID     -> contact role assignment
+    CpID       -> SalesReps rows          (res.partner.user_id on the company)
     BuySellNo  -> transaction             (plasticos.transaction)
     DetailID   -> transaction line        (plasticos.transaction.line)
 
@@ -72,6 +73,7 @@ class SourceIndex:
     addresses_by_cp: dict[str, list[str]] = field(default_factory=dict)
     contacts_by_cp: dict[str, list[str]] = field(default_factory=dict)
     roles_by_contact: dict[str, list[str]] = field(default_factory=dict)
+    sales_reps_by_cp: dict[str, list[dict[str, str | None]]] = field(default_factory=dict)
     lines_by_buysell: dict[str, list[str]] = field(default_factory=dict)
 
     # Supporting rows needed for transaction-header reconstruction
@@ -114,6 +116,7 @@ class SourceIndex:
             "addresses": len(self.addresses),
             "contacts": len(self.contacts),
             "contact_roles": len(self.contact_roles),
+            "sales_reps": sum(len(rows) for rows in self.sales_reps_by_cp.values()),
             "transactions": len(self.lines_by_buysell),
             "transaction_lines": len(self.lines),
             "violations": len(self.violations),
@@ -149,7 +152,34 @@ def build_source_index(payload: SourcePayload) -> SourceIndex:
         counterparties_loaded="CounterParty" in payload.tables,
         contacts_loaded="Contact" in payload.tables,
     )
+    if "SalesReps" in payload.tables:
+        _link_sales_reps(payload, index, counterparties_loaded="CounterParty" in payload.tables)
     return index
+
+
+def _link_sales_reps(payload: SourcePayload, index: SourceIndex, *, counterparties_loaded: bool) -> None:
+    """Group SalesReps rows by CpID. The file has no primary key of its own."""
+    grouped: dict[str, list[dict[str, str | None]]] = defaultdict(list)
+    for position, row in enumerate(payload.rows("SalesReps"), start=2):
+        cp_id = _key(row, "CpID")
+        rep = _key(row, "ReferrerNo")
+        if not cp_id:
+            index.violations.append(
+                IdentityViolation("SalesReps", "missing_parent_key", f"line {position}", "blank CpID")
+            )
+            continue
+        if counterparties_loaded and cp_id not in index.counterparties:
+            index.violations.append(
+                IdentityViolation(
+                    "SalesReps",
+                    "unresolved_counterparty",
+                    f"{cp_id}/{rep}",
+                    f"CpID={cp_id} not in exported (active) counterparties",
+                )
+            )
+            continue
+        grouped[cp_id].append(row)
+    index.sales_reps_by_cp = dict(grouped)
 
 
 def _index_by_pk(payload: SourcePayload, table: str) -> dict[str, dict[str, str | None]]:

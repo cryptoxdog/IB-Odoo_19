@@ -890,7 +890,7 @@ test-odoo-local: check-local-runtime
 # make import-erp REPORT_PATH=/abs/summary.json  override machine summary path
 # make import-erp PARTNERS_ONLY=1  partner files only, no deal files
 # make import-erp LAYER=counterparties  one partner file, in order
-#   counterparties → addresses → contacts → roles; each layer opens only after
+#   counterparties → addresses → contacts → roles → salesreps; each layer opens only after
 #   the previous layer's validator passes (scripts/validate_partner_layer.py)
 
 .PHONY: import-erp import-vanillasoft
@@ -927,7 +927,7 @@ import-erp:
 	@test -d plasticos_partner_import/erp_extracted_data/bulk || { echo "❌ Preflight failed: tracked payload missing (plasticos_partner_import/erp_extracted_data/bulk)"; exit 1; }
 	@echo "→ ERP import on database $(ODOO_DB_NAME) $(if $(ERP_DRY),[DRY RUN],)…"
 	@if docker info >/dev/null 2>&1; then \
-		docker compose run --rm \
+		docker compose run --rm -w /mnt/extra-addons \
 			-e ERP_DRY="$(ERP_DRY)" \
 			-e ERP_LIMIT="$(ERP_LIMIT)" \
 			-e ERP_PAYLOAD_ROOT="$(ERP_PAYLOAD_ROOT)" \

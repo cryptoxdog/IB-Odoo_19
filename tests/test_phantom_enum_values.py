@@ -760,6 +760,7 @@ GLOBAL_ALLOWLIST = frozenset(
         "counterparties",
         "addresses",
         "roles",
+        "salesreps",
         "rr",
         "Decision Maker",
         # ─────────────────────────────────────────────────────────────────────

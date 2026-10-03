@@ -63,6 +63,7 @@ def test_payload_row_counts_are_stable(payload):
         "Payables": 14453,
         "Receipt": 7425,
         "ReceiptBatch": 4545,
+        "SalesReps": 977,
         "WKSDetail": 11303,
         "WksDelivery": 8327,
     }
@@ -547,3 +548,46 @@ def test_contact_location_resolves_to_an_address_composite_key(index):
                 unmatched += 1
     assert matched > 3000
     assert unmatched < matched / 50
+
+
+# ---------------------------------------------------------------------------
+# SalesReps — company Salesperson
+# ---------------------------------------------------------------------------
+def test_sales_reps_link_to_loaded_counterparties(index):
+    assert len(index.sales_reps_by_cp) == 833
+    assert index.counts()["sales_reps"] == 835
+    orphans = [v for v in index.violations if v.table == "SalesReps"]
+    assert len(orphans) == 142
+    assert {v.kind for v in orphans} == {"unresolved_counterparty"}
+
+
+def test_every_default_sales_rep_has_a_name(index):
+    defaults = {}
+    for rows in index.sales_reps_by_cp.values():
+        code, anomaly = mapping.default_sales_rep(rows)
+        assert anomaly is None
+        if code:
+            defaults[code] = defaults.get(code, 0) + 1
+            assert mapping.sales_rep_name(code), code
+    assert defaults == {"AA": 107, "AB": 91, "DAVE": 1, "IB": 234, "LR": 59, "MM": 27, "RP": 127, "TF": 92}
+
+
+def test_default_sales_rep_reads_only_the_default_row():
+    assert mapping.default_sales_rep([{"ReferrerNo": "IB  ", "IsDefault": "0"}]) == (None, None)
+    assert mapping.default_sales_rep(
+        [{"ReferrerNo": "IB", "IsDefault": "1"}, {"ReferrerNo": "AA", "IsDefault": "0"}]
+    ) == (
+        "IB",
+        None,
+    )
+    code, anomaly = mapping.default_sales_rep(
+        [{"ReferrerNo": "IB", "IsDefault": "1"}, {"ReferrerNo": "AA", "IsDefault": "1"}]
+    )
+    assert code is None
+    assert anomaly == "more than one default rep: AA, IB"
+
+
+def test_sales_rep_name_matches_seeded_user_names():
+    assert mapping.sales_rep_name("mm ") == "Mack McMurray"
+    assert mapping.sales_rep_name("XX") is None
+    assert mapping.sales_rep_name(None) is None

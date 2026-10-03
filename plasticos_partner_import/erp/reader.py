@@ -64,6 +64,7 @@ SOURCE_TABLES: dict[str, str] = {
     "Address": "Address.csv",
     "Contact": "Contact.csv",
     "ContactRoleAssignment": "ContactRoleAssignment.csv",
+    "SalesReps": "SalesReps.csv",
     "WKSDetail": "WKSDetail.csv",
     "GPLedger": "GPLedger.csv",
     "Payables": "Payables.csv",
@@ -76,9 +77,11 @@ SOURCE_TABLES: dict[str, str] = {
 # reconstruct the partner or transaction graph, so loading fails loudly.
 REQUIRED_TABLES: frozenset[str] = frozenset(SOURCE_TABLES)
 
-# Partner proof. These four files are the company, its locations, its people,
-# and their role tags. Deal files are not part of that proof.
-PARTNER_SOURCE_TABLES: frozenset[str] = frozenset({"CounterParty", "Address", "Contact", "ContactRoleAssignment"})
+# Partner proof. These files are the company, its locations, its people, their
+# role tags, and the company's Salesperson. Deal files are not part of that proof.
+PARTNER_SOURCE_TABLES: frozenset[str] = frozenset(
+    {"CounterParty", "Address", "Contact", "ContactRoleAssignment", "SalesReps"}
+)
 
 # The literal SQL Server emits for NULL in these grids. An empty cell is a real
 # empty string and is deliberately NOT folded into this.

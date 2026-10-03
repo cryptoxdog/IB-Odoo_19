@@ -444,6 +444,38 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "identity_role": "none",
         },
     },
+    "SalesReps": {
+        "CpID": {
+            "status": VERIFIED,
+            "target_model": "res.partner",
+            "target_field": "company (legacy_erp_cp_<CpID>)",
+            "transformation": "source-key join only",
+            "required": True,
+            "null_behavior": "blank or not exported -> IdentityViolation",
+            "identity_role": "company link",
+        },
+        "ReferrerNo": {
+            "status": VERIFIED,
+            "target_model": "res.users",
+            "target_field": "res.partner.user_id",
+            "transformation": "strip padding; initials -> SALES_REP_NAMES -> existing user by name; never created",
+            "required": False,
+            "null_behavior": "unknown initials -> anomaly; no single user -> unresolved",
+            "identity_role": "none",
+        },
+        "IsDefault": {
+            "status": VERIFIED,
+            "target_model": "res.partner",
+            "target_field": "user_id",
+            "transformation": "only the IsDefault=1 row sets the Salesperson",
+            "required": False,
+            "null_behavior": "no default row -> no Salesperson",
+            "identity_role": "none",
+        },
+        "Rate": {"status": UNMAPPED, "reason": "commission rate; not a contact field", "identity_role": "none"},
+        "Charge": {"status": UNMAPPED, "reason": "commission charge; not a contact field", "identity_role": "none"},
+        "ChgPer": {"status": UNMAPPED, "reason": "commission basis; not a contact field", "identity_role": "none"},
+    },
     "WKSDetail": {
         "DetailID": {
             "status": VERIFIED,

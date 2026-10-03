@@ -17,6 +17,7 @@ class ImportReport:
         "locations",
         "contacts",
         "contact_roles",
+        "salespersons",
         "transactions",
         "transaction_lines",
     )

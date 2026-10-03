@@ -379,6 +379,38 @@ def map_contact_role(raw_role: str | None) -> tuple[str | None, str | None]:
     return tag, None
 
 
+# SalesReps.ReferrerNo initials -> the Odoo user name the Salesperson is matched by.
+SALES_REP_NAMES: dict[str, str] = {
+    "IB": "Igor Beylin",
+    "AA": "Arthur Akopyan",
+    "RP": "Ricardo Pereira",
+    "AB": "Arthur Buyanovskiy",
+    "TF": "Tiffany White",
+    "MM": "Mack McMurray",
+    "LR": "Lindsey Malyavko",
+    "DAVE": "David McLawhorn",
+}
+
+
+def default_sales_rep(rows) -> tuple[str | None, str | None]:
+    """The ``IsDefault=1`` rep initials for one company's SalesReps rows.
+
+    Returns ``(None, None)`` when no row is the default; that company gets no
+    Salesperson. Two different default reps return ``(None, reason)``.
+    """
+    codes = sorted({_clean(row.get("ReferrerNo")) for row in rows if _clean(row.get("IsDefault")) == "1"} - {""})
+    if not codes:
+        return None, None
+    if len(codes) > 1:
+        return None, f"more than one default rep: {', '.join(codes)}"
+    return codes[0], None
+
+
+def sales_rep_name(code: str | None) -> str | None:
+    """Odoo user name for rep initials, or ``None`` for unknown initials."""
+    return SALES_REP_NAMES.get(_clean(code).upper())
+
+
 def job_position(tags: list[str]) -> str:
     """One Job Position from the tags already mapped for this person.
 

@@ -139,9 +139,11 @@ retire n8n and the `N8N_*` Infisical names.
 
 ## Internal sales rep
 
-The ERP shows an internal sales rep on the counterparty window. That person is not in the ERP grids. `CustSvcRep` is empty on 1,289 of 1,290 rows and the one value is the code `IB`, not a name. It is not an Odoo field and it is not Salesperson.
+The ERP shows an internal sales rep on the counterparty window. `CustSvcRep` is empty on 1,289 of 1,290 rows and is not Salesperson. The rep now comes from `bulk/SalesReps.csv`, keyed by `CpID`. Salesperson is Odoo's own `res.partner.user_id`, so no new field is needed. The initials-to-name table and the coverage counts are in `docs/erp_import_mapping.md` §3a.
 
-The ERP import reads only `plasticos_partner_import/erp_extracted_data/bulk/`, so it leaves `res.partner.user_id` empty. The corporate CSV sheet is superseded and is not an import source. `preferred_contact_id` stays the customer's contact for intake.
+Confirmed names: `IB` Igor Beylin, `AA` Arthur Akopyan, `RP` Ricardo Pereira, `AB` Arthur Buyanovskiy, `TF` Tiffany White, `MM` Mack McMurray, `LR` Lindsey Malyavko, `DAVE` David McLawhorn. Former reps `JB`, `YK`, `WC`, `RF`, `GS`, `AK`, `IG` were reassigned to `MM` in `SalesReps.csv`, along with the 9 `AB` rows whose `CpID` is not in `CounterParty.csv`. That is 67 rows.
+
+The `salesreps` import layer reads `SalesReps.csv` after `roles` (`plasticos_partner_import` 19.0.2.10.0). The corporate CSV sheet is superseded and is not an import source. `preferred_contact_id` stays the customer's contact for intake.
 
 ## Open Questions
 
@@ -152,7 +154,8 @@ The ERP import reads only `plasticos_partner_import/erp_extracted_data/bulk/`, s
   leave Update/Delete empty, submit one staging entry and record duration,
   then retire n8n and the `N8N_*` Infisical names. Checklist: ADR-020.
 - `install-smoke` cannot source `.env` until `COOLIFY_TOKEN` is quoted.
-- Salesperson stays empty until the ERP extract carries the rep. Do not invent values from `CustSvcRep` or the superseded corporate sheet.
+- Salesperson (wired as the `salesreps` layer): `bulk/SalesReps.csv`. The `IsDefault=1` row sets `user_id`, and the rep is matched to an existing Odoo user by name. The 103 `CpID`s with only `IsDefault=0` rows get no Salesperson. The import never creates users. Mack McMurray is seeded in `plasticos_base/data/sales_reps.xml` (login `sales2@scrapmanagement.com`, `plasticos_base` 19.0.1.1.8). David McLawhorn is not seeded and must already exist. Do not take values from `CustSvcRep` or the superseded corporate sheet.
+- Revisit later — those 103 accounts are not truckers. None of the 95 that are in `CounterParty.csv` has the carrier role (`D`). They are mostly vendors (46 `V`), `A` (24), and `S` (16); the rest of those 95 are `P` 4, `X` 4, and `C` 1. The decision already applied stands: no Salesperson. The counts are written in `docs/erp_import_mapping.md` §3a. Look at the accounts again later.
 
 ## Next after these tests pass
 
@@ -186,6 +189,7 @@ Explicitly excluded:
 
 ## Recent Sessions
 
+- ⏸ 2026-10-03: Revisit the 103 `IsDefault=0` accounts later. They are not truckers (no carrier role on the 95 in `CounterParty.csv`). The no-Salesperson decision stays applied. Counts are in `docs/erp_import_mapping.md` §3a.
 - ⚠️ 2026-10-01: Cognito Forms → Odoo (no n8n) is unfinished until fields,
   secrets, and settings are configured and a test web-lead submission posts
   into the web-lead intake.

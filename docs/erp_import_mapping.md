@@ -148,12 +148,71 @@ express; the multi-role truth is carried by native `supplier_rank` /
 | `TermsCode` | `property_supplier_payment_term_id` | looked up by name; never created |
 | `IndustryNm` | `industry_id` | looked up by name; never created |
 | `MasterAccountID` | — | **drop: 0 of 1290 populated.** No hierarchy exists to import |
-| `CustSvcRep` | — | **drop: 1289 of 1290 NULL** (single value `IB`). Not Salesperson |
+| `CustSvcRep` | — | **drop: 1289 of 1290 NULL** (single value `IB`). Not Salesperson; Salesperson comes from `SalesReps.csv` (§3a) |
 | `PaymentDays` | — | **drop: 1279 zero, 11 NULL** — no signal |
 | `OnHold` | — | **drop: 1287 blank, 2 NULL, 1 `N`** — no signal |
 | `CurrCode` | — | **drop: 1289 USD, 1 EUR.** Single-currency payload |
 | `Terms` | — | drop: free-text twin of `TermsCode`, which is mapped |
 | `CpLastEdit` | — | drop: source audit metadata; Odoo keeps its own `write_date` |
+
+---
+
+## 3a. SalesReps → Salesperson (`res.partner.user_id`)
+
+Salesperson is Odoo's own `res.partner.user_id` field (a `res.users` link). No
+new field is added for it. The source is `bulk/SalesReps.csv`: one row per
+counterparty and rep, keyed by the same `CpID` as `CounterParty.csv`.
+
+| Source column | Target | Disposition |
+|---|---|---|
+| `CpID` | company `res.partner` | join on the counterparty source key only |
+| `ReferrerNo` | `user_id` | rep initials, padded with trailing spaces; strip, then map through the table below |
+| `IsDefault` | — | `1` marks the row that is the Salesperson |
+| `Rate`, `Charge`, `ChgPer` | — | drop for the partner import: commission terms, not partner data. `Charge` is 0 on every row |
+
+Rep initials:
+
+| `ReferrerNo` | Salesperson | Rows |
+|---|---|---|
+| `IB` | Igor Beylin | 292 |
+| `AA` | Arthur Akopyan | 169 |
+| `RP` | Ricardo Pereira | 165 |
+| `AB` | Arthur Buyanovskiy | 111 |
+| `TF` | Tiffany White | 94 |
+| `MM` | Mack McMurray | 85 |
+| `LR` | Lindsey Malyavko | 60 |
+| `DAVE` | David McLawhorn | 1 |
+
+`MM` also carries the accounts reassigned from former reps. In `SalesReps.csv`,
+every `JB`, `YK`, `WC`, `RF`, `GS`, `AK`, and `IG` row now reads `MM`. So do the
+9 `AB` rows whose `CpID` is missing from `CounterParty.csv`. That is 67 rows in
+total.
+
+Coverage: 977 rows on 975 `CpID`s. 833 of those `CpID`s are in
+`CounterParty.csv`, and 738 of the 1290 counterparties have an `IsDefault=1` row.
+The 142 `CpID`s missing from `CounterParty.csv` still have `Address.csv` rows
+(and 136 have contacts). Those companies are missing from the extract, so
+they cannot import yet.
+
+Rules:
+
+- A rep is matched to an existing `res.users` record by the name in the table
+  above. The import never creates users. A name with no matching user leaves
+  `user_id` empty and is reported.
+- Igor Beylin and Arthur Buyanovskiy are seeded in
+  `plasticos_base/data/admin_users.xml`. Lindsey Malyavko, Ricardo Pereira,
+  Arthur Akopyan, Tiffany White, and Mack McMurray (login
+  `sales2@scrapmanagement.com`) are seeded in `plasticos_base/data/sales_reps.xml`.
+  David McLawhorn is not seeded. He must already exist in the database.
+- 103 `CpID`s have only `IsDefault=0` rows. They get no Salesperson. 95 of them
+  are in `CounterParty.csv`, and none is a carrier (`D`). By role: 46 `V`, 24 `A`,
+  16 `S`, 4 `P`, 4 `X`, 1 `C`.
+
+The `salesreps` layer reads `SalesReps.csv` after `roles`
+(`make import-erp LAYER=salesreps`). A `CpID` with more than one `IsDefault=1`
+row, or with initials missing from the table, is reported and left without a
+Salesperson. `Rate`, `Charge`, and `ChgPer` are commission terms and are not
+imported.
 
 ---
 
@@ -189,9 +248,9 @@ address, not a company, and it does not receive the remit. The person is a
 Contact under the company, so Odoo copies that address onto the person. The
 import does not write a street onto the person. When Country is blank and
 Region is a US state code, country is United States. `facility_role` and
-`partner_type_id` are left unset. Salesperson (`user_id`) is left unset: the
-rep is not in the `bulk/` grids, and the superseded corporate CSV sheet is not
-an import source.
+`partner_type_id` are left unset. Salesperson (`user_id`) comes from
+`SalesReps.csv` (§3a), not from an address row. The superseded corporate CSV
+sheet is not an import source.
 
 A Primary contact's email and phone fill the company when those company fields
 are still empty. The person remains a child contact. The company is the

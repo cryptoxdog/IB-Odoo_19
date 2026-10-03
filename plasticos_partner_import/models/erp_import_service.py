@@ -46,12 +46,13 @@ PARTNER_CATEGORY = "res.partner.category"
 XMLID_MODULE = "plasticos_transaction"
 
 # One partner file per invocation. The validator must pass before the next file.
-PARTNER_LAYERS = ("counterparties", "addresses", "contacts", "roles")
+PARTNER_LAYERS = ("counterparties", "addresses", "contacts", "roles", "salesreps")
 LAYER_TABLE = {
     "counterparties": "CounterParty",
     "addresses": "Address",
     "contacts": "Contact",
     "roles": "ContactRoleAssignment",
+    "salesreps": "SalesReps",
 }
 PARTNER_COUNT_PARAM = "plasticos_partner_import.partner_count_after_contacts"
 IMPORT_CONTEXT = {
@@ -92,10 +93,11 @@ class PlasticosErpImport(models.AbstractModel):
                 A partners-only run commits once, after the people are written.
             dry_run: Resolve and map everything, persist nothing.
             partners_only: Read and write only CounterParty, Address, Contact,
-                and ContactRoleAssignment. Deal files are not opened.
+                ContactRoleAssignment, and SalesReps. Deal files are not opened.
             layer: One of ``counterparties``, ``addresses``, ``contacts``,
-                ``roles``. Only that source file is opened. The parent records
-                are the partners already stored under their source keys.
+                ``roles``, ``salesreps``. Only that source file is opened. The
+                parent records are the partners already stored under their
+                source keys.
 
         Returns:
             Per-entity created/updated/skipped counts plus every unresolved
@@ -134,12 +136,15 @@ class PlasticosErpImport(models.AbstractModel):
                 self._stamp_partner_count()
         elif layer == "roles":
             self._import_roles(index, report, dry_run)
+        elif layer == "salesreps":
+            self._import_sales_reps(index, report, dry_run)
         else:
             partner_by_cp = self._import_counterparties(index, report, dry_run)
             self._import_addresses(index, report, partner_by_cp, dry_run)
             self._import_contacts(index, report, partner_by_cp, dry_run)
             if partners_only:
                 self._import_roles(index, report, dry_run)
+                self._import_sales_reps(index, report, dry_run)
                 if commit and not dry_run:
                     self.env.cr.commit()
                 result = report.as_dict()
@@ -652,6 +657,47 @@ class PlasticosErpImport(models.AbstractModel):
             job = mapping.job_position(bucket["tags"])
             if job and partner.function != job:
                 partner.write({"function": job})
+
+    def _import_sales_reps(self, index, report, dry_run: bool) -> None:
+        """Set each company's Salesperson from its ``IsDefault=1`` row. Create no user.
+
+        The rep is matched to an existing ``res.users`` record by name. A
+        company with no default row keeps no Salesperson.
+        """
+        from ..erp import mapping
+
+        Partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT, active_test=False)
+        user_by_name: dict[str, int | None] = {}
+        for cp_id in sorted(index.sales_reps_by_cp):
+            code, anomaly = mapping.default_sales_rep(index.sales_reps_by_cp[cp_id])
+            if anomaly:
+                report.anomaly("SalesReps", cp_id, anomaly)
+                report.reject("salespersons")
+                continue
+            if not code:
+                report.skip("salespersons")
+                continue
+            name = mapping.sales_rep_name(code)
+            if not name:
+                report.anomaly("SalesReps", cp_id, f"unknown rep initials {code!r}")
+                report.reject("salespersons")
+                continue
+            company = self._partner_by_xmlid(Partner, f"legacy_erp_cp_{cp_id}")
+            if not company:
+                report.unresolved_ref("SalesReps", "unresolved_counterparty", cp_id, f"CpID={cp_id} has no company")
+                continue
+            if name not in user_by_name:
+                users = self.env["res.users"].search([("name", "=", name)], limit=2)
+                user_by_name[name] = users.id if len(users) == 1 else None
+            user_id = user_by_name[name]
+            if not user_id:
+                report.unresolved_ref("SalesReps", "unresolved_user", cp_id, f"no single Odoo user named {name!r}")
+                continue
+            if dry_run or company.user_id.id == user_id:
+                report.skip("salespersons")
+                continue
+            company.write({"user_id": user_id})
+            report.bump("salespersons", "updated")
 
     def _address_catalog(self) -> list[tuple[str, str, str, int]]:
         """``(cp_id, address_id, Type label, partner_id)`` for every imported address."""

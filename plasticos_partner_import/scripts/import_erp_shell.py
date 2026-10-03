@@ -9,8 +9,9 @@ single file serves both the docker and the no-Docker harness paths:
 * ``ERP_PAYLOAD_ROOT`` — non-default payload directory
 * ``ERP_REPORT_PATH`` — write the machine-readable summary JSON here
 * ``ERP_PARTNERS_ONLY`` — ``1`` imports only CounterParty, Address, Contact,
-  and ContactRoleAssignment. Deal files are not opened.
-* ``ERP_LAYER`` — ``counterparties``, ``addresses``, ``contacts``, or ``roles``.
+  ContactRoleAssignment, and SalesReps. Deal files are not opened.
+* ``ERP_LAYER`` — ``counterparties``, ``addresses``, ``contacts``, ``roles``,
+  or ``salesreps``.
   Only that file is opened, and only after the previous layer's validator
   passes (``database`` before ``counterparties``). Unresolved placeholder rows
   do not fail the process; the layer's own validator is the exit code.

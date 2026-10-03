@@ -38,6 +38,10 @@ def _addon_root() -> Path:
 
 
 def _bulk() -> Path:
+    """The grid files this import read: ``ERP_PAYLOAD_ROOT`` when set, else the tracked pack."""
+    root = _setting("PAYLOAD_ROOT").strip()
+    if root:
+        return Path(root) / "bulk"
     return _addon_root() / "erp_extracted_data" / "bulk"
 
 
@@ -52,6 +56,23 @@ def _rows(name: str) -> list[dict[str, str]]:
     path = _bulk() / name
     with path.open(newline="", encoding="utf-8-sig") as handle:
         return list(csv.DictReader(handle))
+
+
+@cache
+def _payload_cp_ids(name: str) -> frozenset[str]:
+    """CpIDs present in one grid file of this payload."""
+    return frozenset((row.get("CpID") or "").strip() for row in _rows(name))
+
+
+def _covers(cp_id: str) -> bool:
+    """A named sample is checked only when its company is in this payload."""
+    return cp_id in _payload_cp_ids("CounterParty.csv")
+
+
+def _expected_company_count() -> int:
+    if not _setting("PAYLOAD_ROOT").strip():
+        return _expect()["company_count"]
+    return sum(1 for row in _rows("CounterParty.csv") if (row.get("CompanyNm") or "").strip())
 
 
 def _digits(value: str) -> str:
@@ -114,7 +135,7 @@ def check_database(env, failures: list[str]) -> None:
 
 def check_counterparties(env, failures: list[str]) -> None:
     companies = _imported_companies(env)
-    expected = _expect()["company_count"]
+    expected = _expected_company_count()
     if len(companies) != expected:
         _fail(failures, f"imported companies {len(companies)}, expected {expected}")
     children = env["res.partner"].with_context(active_test=False).search([("parent_id", "in", companies.ids)])
@@ -173,6 +194,8 @@ def check_addresses(env, failures: list[str]) -> None:
         if _partner(env, f"legacy_erp_address_{address_id}"):
             _fail(failures, f"Address {address_id} for missing CpID {missing['cp_id']} was imported")
     want = _expect()["abbott"]
+    if not _covers(want["cp_id"]):
+        return
     abbott = _partner(env, f"legacy_erp_cp_{want['cp_id']}")
     if not abbott or abbott.name != want["name"] or want["street"] not in (abbott.street or ""):
         _fail(
@@ -195,32 +218,10 @@ def _people_under(env, cp_id: str, name: str):
     return company.child_ids.filtered(lambda partner: not partner.is_company and partner.name == name)
 
 
-def check_contacts(env, failures: list[str]) -> None:
-    from odoo.addons.plasticos_partner_import.erp import mapping
-
-    companies = _imported_companies(env)
-    grouped = defaultdict(list)
-    for person in (
-        env["res.partner"]
-        .with_context(active_test=False)
-        .search([("is_company", "=", False), ("parent_id", "in", companies.ids)])
-    ):
-        if person.name and not mapping.is_person_name(person.name):
-            _fail(failures, f"partner {person.id} name is only digits: {person.name}")
-            return
-        grouped[(person.parent_id.id, mapping.person_key(person.name))].append(person)
-    for (parent_id, key), rows in grouped.items():
-        if len(rows) > 1:
-            _fail(failures, f"duplicate {key} under partner {parent_id}: {[row.id for row in rows]}")
-            return
-    expect = _expect()
-    missing = expect["missing_counterparty"]
-    if env["res.partner"].with_context(active_test=False).search_count([("name", "=", missing["contact_name"])]):
-        _fail(
-            failures,
-            f"{missing['contact_name']} was imported without a CounterParty row for CpID {missing['cp_id']}",
-        )
+def _check_contact_sites(env, expect: dict, failures: list[str]) -> None:
     want = expect["eddie"]
+    if not _covers(want["cp_id"]):
+        return
     eddie = _people_under(env, want["cp_id"], want["name"])
     if len(eddie) != 1:
         _fail(failures, f"{want['name']} under {want['cp_id']} count {len(eddie)}")
@@ -257,6 +258,34 @@ def check_contacts(env, failures: list[str]) -> None:
         expected = {(row.get("Location") or "").strip() for row in joshua_rows} & address_types
         if linked != expected:
             _fail(failures, f"{want['name']} sites {sorted(linked)} expected {sorted(expected)}")
+
+
+def check_contacts(env, failures: list[str]) -> None:
+    from odoo.addons.plasticos_partner_import.erp import mapping
+
+    companies = _imported_companies(env)
+    grouped = defaultdict(list)
+    for person in (
+        env["res.partner"]
+        .with_context(active_test=False)
+        .search([("is_company", "=", False), ("parent_id", "in", companies.ids)])
+    ):
+        if person.name and not mapping.is_person_name(person.name):
+            _fail(failures, f"partner {person.id} name is only digits: {person.name}")
+            return
+        grouped[(person.parent_id.id, mapping.person_key(person.name))].append(person)
+    for (parent_id, key), rows in grouped.items():
+        if len(rows) > 1:
+            _fail(failures, f"duplicate {key} under partner {parent_id}: {[row.id for row in rows]}")
+            return
+    expect = _expect()
+    missing = expect["missing_counterparty"]
+    if env["res.partner"].with_context(active_test=False).search_count([("name", "=", missing["contact_name"])]):
+        _fail(
+            failures,
+            f"{missing['contact_name']} was imported without a CounterParty row for CpID {missing['cp_id']}",
+        )
+    _check_contact_sites(env, expect, failures)
     for forbidden in expect["forbidden_partner_names"]:
         if env["res.partner"].with_context(active_test=False).search_count([("name", "=", forbidden)]):
             _fail(failures, f"a partner is named {forbidden}")
@@ -266,9 +295,9 @@ def check_contacts(env, failures: list[str]) -> None:
         _fail(failures, f"{root.name} tags exist before the role file")
     want = expect["eli"]
     eli = _people_under(env, want["cp_id"], want["name"])
-    if len(eli) != 1:
+    if _covers(want["cp_id"]) and len(eli) != 1:
         _fail(failures, f"{want['name']} count {len(eli)}")
-    else:
+    elif len(eli) == 1:
         if want["phone"] not in _digits(eli.phone or ""):
             _fail(failures, f"{want['name']} phone is {eli.phone}")
         mobiles = {_digits(line.number) for line in eli.phone_line_ids if line.label == "mobile"}
@@ -281,6 +310,8 @@ def check_contacts(env, failures: list[str]) -> None:
             _fail(failures, f"{want['name']} mobile exists only in notes")
     want = expect["tuckahoe"]
     tuckahoe = _partner(env, f"legacy_erp_cp_{want['cp_id']}")
+    if not _covers(want["cp_id"]):
+        return
     if not tuckahoe or tuckahoe.name != want["name"]:
         _fail(failures, f"CpID {want['cp_id']} name is {tuckahoe.name if tuckahoe else 'missing'}")
     elif want["phone"] not in _digits(tuckahoe.phone or ""):
@@ -298,11 +329,11 @@ def check_roles(env, failures: list[str]) -> None:
     tag = expect["decision_maker_tag"]
     for want in expect["decision_makers"]:
         person = _people_under(env, want["cp_id"], want["name"])
-        if len(person) != 1 or not _has_tag(person, tag):
+        if _covers(want["cp_id"]) and (len(person) != 1 or not _has_tag(person, tag)):
             _fail(failures, f"{want['name']} is missing the {tag} tag")
     want = expect["accounting"]
     accounting = _people_under(env, want["cp_id"], want["name"])
-    if len(accounting) != 1 or not _has_tag(accounting, want["tag"]):
+    if _covers(want["cp_id"]) and (len(accounting) != 1 or not _has_tag(accounting, want["tag"])):
         _fail(failures, f"{want['name']} contact under {want['cp_id']} is missing {want['tag']}")
     want = expect["unresolved_rr"]
     rr_rows = [
@@ -310,9 +341,9 @@ def check_roles(env, failures: list[str]) -> None:
         for row in _rows("Contact.csv")
         if (row.get("ContactNm") or "").strip() == want["name"] and (row.get("CpID") or "").strip() == want["cp_id"]
     ]
-    if not rr_rows:
+    if _covers(want["cp_id"]) and not rr_rows:
         _fail(failures, f"{want['name']} is missing from Contact.csv")
-    else:
+    elif rr_rows:
         contact_id = (rr_rows[0].get("CT_ID") or "").strip()
         person = _partner(env, f"legacy_erp_contact_{contact_id}")
         guessed = set(want["guessed_tags"])
@@ -337,12 +368,40 @@ def check_roles(env, failures: list[str]) -> None:
         print(f"{expect['tuckahoe']['name']} has no partner named {forbidden}")
 
 
+def check_sales_reps(env, failures: list[str]) -> None:
+    """Each imported company carries the user named by its ``IsDefault=1`` row, or no Salesperson."""
+    from odoo.addons.plasticos_partner_import.erp import mapping
+
+    rows_by_cp = defaultdict(list)
+    for row in _rows("SalesReps.csv"):
+        rows_by_cp[(row.get("CpID") or "").strip()].append(row)
+    data = env["ir.model.data"].search(
+        [("module", "=", XMLID_MODULE), ("model", "=", "res.partner"), ("name", "=like", "legacy_erp_cp_%")]
+    )
+    for marker in data:
+        cp_id = marker.name.removeprefix("legacy_erp_cp_")
+        company = env["res.partner"].with_context(active_test=False).browse(marker.res_id).exists()
+        if not company:
+            continue
+        code, _anomaly = mapping.default_sales_rep(rows_by_cp.get(cp_id, []))
+        name = mapping.sales_rep_name(code)
+        users = env["res.users"].search([("name", "=", name)], limit=2) if name else env["res.users"]
+        expected = users if len(users) == 1 else env["res.users"]
+        if company.user_id != expected:
+            _fail(
+                failures,
+                f"CpID {cp_id} Salesperson is {company.user_id.name or 'empty'}, expected {expected.name or 'empty'}",
+            )
+            return
+
+
 CHECKS = {
     "database": check_database,
     "counterparties": check_counterparties,
     "addresses": check_addresses,
     "contacts": check_contacts,
     "roles": check_roles,
+    "salesreps": check_sales_reps,
 }
 
 # The check that must pass before each import layer may open its file.
@@ -351,6 +410,7 @@ LAYER_BEFORE = {
     "addresses": "counterparties",
     "contacts": "addresses",
     "roles": "contacts",
+    "salesreps": "roles",
 }
 
 
