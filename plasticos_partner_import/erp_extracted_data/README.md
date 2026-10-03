@@ -1,4 +1,4 @@
-# Legacy ERP extract SQL (canonical)
+# ERP extract SQL (canonical)
 
 | # | File | Use |
 |---|------|-----|
@@ -10,5 +10,8 @@
 | **05** | **`05_extract_all.sql`** | **Full reload — 14 result grids** |
 | 06 | `06_extract_remaining.sql` | Batches / roles / delivery / docs only |
 | 10–17 | `10_counterparty.sql` … `17_prepayledger.sql` | Single-table full extracts |
+| | `bulk/` | Row files from the 2026-08-07 grid extract |
+| | `meta/` | Column types, census, and row-count probes |
+| | `diagnostics/` | Full column inventory and role distribution |
 
-Playbook: [`docs/legacy_erp_sm_export_research.md`](../../../docs/legacy_erp_sm_export_research.md)
+Playbook: [`docs/erp_extract_research.md`](../../docs/erp_extract_research.md)

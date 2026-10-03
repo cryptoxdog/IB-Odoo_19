@@ -1,4 +1,4 @@
-# Legacy ERP `SM_EXPORT` — extract runbook
+# ERP `SM_EXPORT` — extract runbook
 
 **Status (2026-08-07):** P0 data on Mac as CSVs. PlasticOS import not wired.
 **SSOT** — re-run extracts with zero chat context.
@@ -10,9 +10,9 @@
 | Login | `UCSINC\ibeylin` (Windows auth in SSMS) |
 | Client | SSMS on **Windows App → IB-PC** |
 | Mac SQL | No `sqlcmd`; `:1433` unreachable from Mac |
-| Tracked pack | `data/legacy_erp_sm_export/` |
-| SQL (canonical) | `data/legacy_erp_sm_export/sql/` — see §3 |
-| Golden CSVs | `data/legacy_erp_sm_export/bulk/*.csv` |
+| Tracked pack | `data/erp_sm_export/` |
+| SQL (canonical) | `plasticos_partner_import/erp_extracted_data/` — see §3 |
+| Golden CSVs | `plasticos_partner_import/erp_extracted_data/bulk/*.csv` |
 | WIP land / Excel | gitignored `Current Work - IGNORE/Legacy ERP Data Extraction/excel files/` |
 | Control plane | `~/.cursor-governance/tools/l9_agent_ui_control` |
 | Odoo partner import | [README_plasticos_partner_import.md](./README_plasticos_partner_import.md) — different CSV shape |
@@ -23,9 +23,9 @@
 
 ```bash
 REPO="${CURSOR_PROJECT_DIR:-$HOME/IB-Odoo_19 (LOCAL)/IB-Odoo_19}"
-LIVE="$REPO/data/legacy_erp_sm_export"
-SQL="$LIVE/sql"
-BULK="$LIVE/bulk"
+LIVE="$REPO/data/erp_sm_export"
+SQL="$REPO/plasticos_partner_import/erp_extracted_data"
+BULK="$REPO/plasticos_partner_import/erp_extracted_data/bulk"
 EXTRACT="$REPO/Current Work - IGNORE/Legacy ERP Data Extraction"  # WIP Excel land only
 PACK="$HOME/.cursor-governance/tools/l9_agent_ui_control"
 PY="$HOME/.cursor-governance/.venv/bin/python"
@@ -247,7 +247,7 @@ PY
 
 | Step | Action |
 |------|--------|
-| 1 | Golden CSVs live under `$BULK/` (`data/legacy_erp_sm_export/bulk/`) |
+| 1 | Golden CSVs live under `$BULK/` (`plasticos_partner_import/erp_extracted_data/bulk/`) |
 | 2 | Transform offline: `CounterParty`+`Address`+`Contact` → shape for `plasticos.partner.import.service` (`CpID` → `ref`) |
 | 3 | Headless load via shell / ICP — not Contacts wizard UI |
 | 4 | Payables / Receipt / WKS need a **new** staging path |

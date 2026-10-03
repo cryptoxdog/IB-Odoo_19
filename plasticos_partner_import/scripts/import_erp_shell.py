@@ -1,13 +1,13 @@
-"""Odoo-shell driver for ``make import-legacy-erp``.
+"""Odoo-shell driver for ``make import-erp``.
 
 Executed inside ``odoo shell`` against the target database (Makefile pipes this
 file into the shell). Configuration arrives via environment variables so the
 single file serves both the docker and the no-Docker harness paths:
 
-* ``LEGACY_ERP_DRY`` — ``1`` for a resolve-and-map preview (nothing persisted)
-* ``LEGACY_ERP_LIMIT`` — process at most N transactions (diagnostics)
-* ``LEGACY_ERP_PAYLOAD_ROOT`` — non-default payload directory
-* ``LEGACY_ERP_REPORT_PATH`` — write the machine-readable summary JSON here
+* ``ERP_DRY`` — ``1`` for a resolve-and-map preview (nothing persisted)
+* ``ERP_LIMIT`` — process at most N transactions (diagnostics)
+* ``ERP_PAYLOAD_ROOT`` — non-default payload directory
+* ``ERP_REPORT_PATH`` — write the machine-readable summary JSON here
 
 Exit code: nonzero when the summary reports ``failed``, so the Makefile target
 fails closed on material import errors. Dry runs always exit 0.
@@ -16,11 +16,15 @@ fails closed on material import errors. Dry runs always exit 0.
 import os
 import sys
 
-from plasticos_transaction.scripts.run_legacy_erp_import import run
+from plasticos_partner_import.scripts.run_erp_import import run
+
+
+def _setting(name: str) -> str:
+    return os.environ.get(f"ERP_{name}") or ""
 
 
 def _flag(name: str) -> bool:
-    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "y"}
+    return _setting(name).strip().lower() in {"1", "true", "yes", "y"}
 
 
 def _odoo_env():
@@ -32,16 +36,16 @@ def _odoo_env():
 
 
 def main() -> int:
-    limit_raw = os.environ.get("LEGACY_ERP_LIMIT", "").strip()
+    limit_raw = _setting("LIMIT").strip()
     limit = int(limit_raw) if limit_raw.isdigit() else None
 
     result = run(
         _odoo_env(),
-        payload_root=os.environ.get("LEGACY_ERP_PAYLOAD_ROOT") or None,
+        payload_root=_setting("PAYLOAD_ROOT") or None,
         limit=limit,
         commit=True,
-        dry_run=_flag("LEGACY_ERP_DRY"),
-        report_path=os.environ.get("LEGACY_ERP_REPORT_PATH") or None,
+        dry_run=_flag("DRY"),
+        report_path=_setting("REPORT_PATH") or None,
     )
     summary = result.get("summary") or {}
     if summary.get("final_status") == "failed":

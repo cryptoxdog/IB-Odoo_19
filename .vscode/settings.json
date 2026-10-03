@@ -9,7 +9,11 @@
     "editor.defaultFormatter": "biomejs.biome"
   },
   "[jsonc]": {
-    "editor.defaultFormatter": "biomejs.biome"
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": false
   },
   "[python]": {
     "editor.codeActionsOnSave": {
@@ -24,11 +28,44 @@
   "[typescriptreact]": {
     "editor.defaultFormatter": "biomejs.biome"
   },
+  "cursorpyright.analysis.autoSearchPaths": false,
+  "cursorpyright.analysis.diagnosticMode": "openFilesOnly",
+  "cursorpyright.analysis.exclude": [
+    "**/WIP",
+    "**/current_work",
+    "**/C_GOV_FILES",
+    "**/.cursor-commands",
+    "**/.cursor",
+    "**/.claude",
+    "**/.venv",
+    "**/_archived",
+    "**/_archive",
+    "**/generated",
+    "**/node_modules",
+    "**/__pycache__"
+  ],
+  "cursorpyright.analysis.include": [
+    "conftest.py",
+    "ops",
+    "environment",
+    "skills",
+    "tools",
+    "workflows"
+  ],
   "cursorpyright.analysis.typeCheckingMode": "basic",
+  "cursorpyright.shouldImportPylanceSettings": "never",
   "editor.formatOnSave": true,
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
   "files.trimTrailingWhitespace": true,
+  "files.watcherExclude": {
+    "**/.cursor-commands/**": true,
+    "**/.ruff_cache/**": true,
+    "**/.venv/**": true,
+    "**/__pycache__/**": true,
+    "**/current_work/**": true,
+    "**/node_modules/**": true
+  },
   "python.analysis.diagnosticMode": "workspace",
   "python.analysis.extraPaths": [
     "${env:HOME}/dev/odoo-19",
@@ -36,7 +73,11 @@
   ],
   "python.analysis.typeCheckingMode": "basic",
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.terminal.useEnvFile": true,
+  "ruff.importStrategy": "fromEnvironment",
+  "ruff.nativeServer": "on",
   "search.exclude": {
+    "**/.cursor-commands": true,
     "**/.ruff_cache": true,
     "**/.venv": true,
     "**/__pycache__": true,

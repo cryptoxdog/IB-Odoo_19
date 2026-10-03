@@ -1,4 +1,4 @@
-"""Runtime gate — LegacyErp import: reconciliation, repeat-run, changed-record,
+"""Runtime gate — ERP import: reconciliation, repeat-run, changed-record,
 savepoint recovery — on a REAL Odoo runtime.
 
 Not a pytest module and deliberately not collected: it needs a live Odoo 19
@@ -7,7 +7,7 @@ registry, a live PostgreSQL server, and a template database with
 ``scripts/setup_local_runtime.sh`` (see docs/runbooks/C1_C6_LOCAL_RUNTIME.md).
 Run it directly::
 
-    /opt/odoo-venv/bin/python tests/runtime_gates/run_legacy_erp_import.py
+    /opt/odoo-venv/bin/python tests/runtime_gates/run_erp_import.py
 
 Exit codes: 0 = all gates PASS, 1 = a gate FAILED, 77 = SKIPPED (no local
 runtime / template database). This is the live-DB proof the import milestone
@@ -55,13 +55,13 @@ from _runtime_env import (  # noqa: E402
 ODOO_SRC = odoo_source()
 ODOO_ADDONS = odoo_addons()
 TEMPLATE_DB = os.environ.get("L9_ODOO_TEMPLATE_DB", "plasticos_template")
-SCRATCH_DB = "legacy_erp_gate"
+SCRATCH_DB = "erp_import_gate"
 
 bind_config(config)
 # Must run before any odoo.addons.* import, or the addon is not importable.
 odoo.modules.module.initialize_sys_path()
 
-PAYLOAD_ROOT = os.path.join(REPO, "data", "legacy_erp_sm_export")
+PAYLOAD_ROOT = os.path.join(REPO, "plasticos_partner_import", "erp_extracted_data")
 
 
 def _conn(dbname: str):
@@ -95,8 +95,12 @@ def create_scratch_db() -> bool:
         if not cur.fetchone():
             conn.close()
             return False
-        cur.execute(f'DROP DATABASE IF EXISTS "{SCRATCH_DB}"')
-        cur.execute(f'CREATE DATABASE "{SCRATCH_DB}" TEMPLATE "{TEMPLATE_DB}"')
+        if SCRATCH_DB != "erp_import_gate" or TEMPLATE_DB != "plasticos_template":
+            conn.close()
+            return False
+        # Identifiers cannot be bound parameters. These two names are fixed.
+        cur.execute('DROP DATABASE IF EXISTS "erp_import_gate"')
+        cur.execute('CREATE DATABASE "erp_import_gate" TEMPLATE "plasticos_template"')
     conn.close()
     return True
 
@@ -105,7 +109,10 @@ def drop_scratch_db() -> None:
     conn = psycopg2.connect(host=PG_HOST, port=PG_PORT, user=PG_USER, dbname="postgres")
     conn.set_session(autocommit=True)
     with conn.cursor() as cur:
-        cur.execute(f'DROP DATABASE IF EXISTS "{SCRATCH_DB}"')
+        if SCRATCH_DB != "erp_import_gate":
+            conn.close()
+            return
+        cur.execute('DROP DATABASE IF EXISTS "erp_import_gate"')
     conn.close()
 
 
@@ -114,7 +121,7 @@ def odoo_env():
 
 
 def import_once(payload_root: str | None = None) -> dict:
-    from odoo.addons.plasticos_transaction.scripts.run_legacy_erp_import import run
+    from odoo.addons.plasticos_partner_import.scripts.run_erp_import import run
 
     with odoo_env() as cr:
         env = Environment(cr, odoo.SUPERUSER_ID, {})

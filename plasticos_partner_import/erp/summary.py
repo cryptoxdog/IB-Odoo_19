@@ -1,4 +1,4 @@
-"""Map a LegacyErp import report onto the shared import-run summary contract.
+"""Map an ERP import report onto the shared import-run summary contract.
 
 Odoo-free: exercised by the pure-Python CI tier alongside the source layer.
 The shared contract is ``contracts/schemas/draft/import-run-summary.schema.json``;
@@ -31,7 +31,7 @@ from datetime import UTC, datetime
 
 __all__ = ["import_run_summary", "utc_now"]
 
-SUMMARY_SOURCE = "legacy_erp"
+SUMMARY_SOURCE = "erp"
 
 
 def utc_now() -> str:
@@ -45,7 +45,7 @@ def import_run_summary(
     start_time: str | None = None,
     completion_time: str | None = None,
 ) -> dict:
-    """Project a ``plasticos.legacy_erp.import`` report onto the shared contract."""
+    """Project a ``plasticos.erp.import`` report onto the shared contract."""
     counts = result.get("counts") or {}
     source_counts = result.get("source_counts") or {}
     unresolved = result.get("unresolved") or []

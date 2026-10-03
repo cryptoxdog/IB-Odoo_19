@@ -1,7 +1,7 @@
 """VanillaSoft mapping-status contract: the documented mapping must match the code.
 
 Pure-python tier (no Odoo import) — AST contract style, like
-tests/test_legacy_erp_import_contract.py. The runbook table
+tests/test_erp_import_contract.py. The runbook table
 (docs/runbooks/CRM_SYNC_VANILLASOFT.md, "Field mapping status") is the
 human-facing status SSOT; this test pins the code to it.
 """

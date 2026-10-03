@@ -1,11 +1,11 @@
-"""Machine-readable field-mapping status for the LegacyErp source payload.
+"""Machine-readable field-mapping status for the ERP source payload.
 
 Encodes the disposition of every source column of the tracked export
-(``data/legacy_erp_sm_export``) and emits the mapping-status table consumed by
+(``plasticos_partner_import/erp_extracted_data``) and emits the mapping-status table consumed by
 the canonical import command, the completeness test, and operator evidence.
 
 The dispositions below are verified against the mapping authority
-``docs/legacy_erp_import_mapping.md`` (identity contract, header
+``docs/erp_import_mapping.md`` (identity contract, header
 reconstruction, CounterParty/Address/Contact/WKSDetail mappings, drop
 decisions with measured evidence) and against the Odoo model schema as the
 import service probes it at runtime. Status vocabulary:
@@ -70,7 +70,7 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "status": VERIFIED,
             "target_model": "res.partner",
             "target_field": "company_role, supplier_rank, customer_rank",
-            "transformation": "COMPANY_ROLE_BY_LEGACY_ERP_ROLE + trade_ranks (behaviour-proven census)",
+            "transformation": "COMPANY_ROLE_BY_ERP_ROLE + trade_ranks (behaviour-proven census)",
             "required": False,
             "null_behavior": "blank -> anomaly, ranks default (0,0)",
             "identity_role": "none",
@@ -438,7 +438,7 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "status": VERIFIED,
             "target_model": "res.partner",
             "target_field": "category_id, function",
-            "transformation": "partner tags under 'LegacyErp Contact Role'; primary role fills function",
+            "transformation": "partner tags under 'ERP Contact Role'; primary role fills function",
             "required": False,
             "null_behavior": "blank -> no tags",
             "identity_role": "none",
@@ -593,7 +593,7 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "status": VERIFIED,
             "target_model": "plasticos.transaction.line",
             "target_field": "unit_type",
-            "transformation": "UNIT_TYPE_MAP (legacy '9' -> 'O'); unknown -> anomaly",
+            "transformation": "UNIT_TYPE_MAP (source code '9' -> 'O'); unknown -> anomaly",
             "required": False,
             "null_behavior": "blank -> None; unknown -> anomaly",
             "identity_role": "none",
@@ -1024,7 +1024,7 @@ class MappingStatusRow:
 class MappingStatus:
     """The full status table for one payload."""
 
-    source: str = "legacy_erp_sm_export"
+    source: str = "erp_extracted_data"
     rows: list[dict] = field(default_factory=list)
     unknowns: list[dict] = field(default_factory=list)
 
@@ -1125,7 +1125,7 @@ def build_mapping_status(repo_root: Path | str | None = None) -> MappingStatus:
 def as_dict(status: MappingStatus) -> dict:
     return {
         "source": status.source,
-        "mapping_authority": "docs/legacy_erp_import_mapping.md",
+        "mapping_authority": "docs/erp_import_mapping.md",
         "row_count": len(status.rows),
         "unknown_count": len(status.unknowns),
         "rows": status.rows,

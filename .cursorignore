@@ -2,6 +2,9 @@
 # Negation so they are NOT Cursor-ignored.
 !.cursor/
 !.cursor-commands/
+# Governance uv project is visible through this symlink. It is not an Odoo package file.
+.cursor-commands/pyproject.toml
+.cursor-commands/uv.lock
 plasticos_graph_3d_embedding/
 plasticos_graph_engine/
 plasticos_graph_integration/

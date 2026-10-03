@@ -22,7 +22,7 @@ from scripts.validate_import_summary import (  # noqa: E402
 )
 
 VALID_SUMMARY = {
-    "source": "legacy_erp",
+    "source": "erp",
     "start_time": "2026-09-17T10:00:00Z",
     "completion_time": "2026-09-17T10:05:00Z",
     "records_seen": 10,

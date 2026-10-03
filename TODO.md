@@ -107,6 +107,10 @@ When the external API bridge connection to inference and graph engines (L9/Sonar
 - [ ] **Financials Calculation:** Kept `amount_total` (accrual basis) for gross margin but added a dependency on `state` to ensure updates.
 - [ ] **Dual Supplier Profiles:** Left as-is to avoid breaking downstream views, but `supplier_profile_id` should be treated as the source of truth.
 - [ ] **Freight Bill Auto-Link:** Requires a more complex heuristic (matching carrier partner to active transactions) which was out of scope for this immediate fix. Manual linking is still available.
+- [ ] **Retire the legacy ERP CSV partner import** ([ADR-021](docs/adr/ADR-021-erp-sql-crm-api-import.md)). Methodically disable, then delete, the corporate/facility CSV path and `plasticos_partner_import/wizards/`. Do not replace it with another CSV. ERP partners load from `plasticos_partner_import/erp_extracted_data/` SQL. Leave historical `migrations/` files in place.
+  - CSVs: `plasticos_partner_import/1. Counterparties - Parent - CORPORATE-Ready To Import.csv`, `plasticos_partner_import/2. Counterparties - Child - FACILITY LOCATIONS.csv`
+  - Wizard: `plasticos_partner_import/wizards/partner_import_wizard.py` (loads those two files). `partner_bulk_update_wizard.py` does not read them; decide whether it stays when the wizard package is removed.
+  - Call sites to remove with the wizard: `models/partner_import_service.py` (`DEFAULT_CORPORATE_CSV`, `DEFAULT_FACILITY_CSV`, `run_csv_import`), `plasticos_partner_import/__init__.py` default paths, `views/partner_import_wizard_views.xml`, wizard rows in `security/ir.model.access.csv`, the wizard XML entry in `__manifest__.py`, `scripts/run_import.py`, `tests/test_partner_import_csv_paths.py`
 ===
 
 make new transaction file from sm
