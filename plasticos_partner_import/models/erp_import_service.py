@@ -71,6 +71,7 @@ class PlasticosErpImport(models.AbstractModel):
         limit: int | None = None,
         commit: bool = False,
         dry_run: bool = False,
+        partners_only: bool = False,
     ) -> dict:
         """Run the complete import and return an accounting report.
 
@@ -80,7 +81,10 @@ class PlasticosErpImport(models.AbstractModel):
                 frozen grid pack.
             limit: Process at most this many transactions (diagnostics only).
             commit: Commit between complete transactions. Never mid-transaction.
+                A partners-only run commits once, after the people are written.
             dry_run: Resolve and map everything, persist nothing.
+            partners_only: Read and write only CounterParty, Address, Contact,
+                and ContactRoleAssignment. Deal files are not opened.
 
         Returns:
             Per-entity created/updated/skipped counts plus every unresolved
@@ -91,7 +95,8 @@ class PlasticosErpImport(models.AbstractModel):
         from ..erp import header_forensics, reader, source_index
         from ..erp import report as report_module
 
-        payload = reader.load_payload(payload_root)
+        only = reader.PARTNER_SOURCE_TABLES if partners_only else None
+        payload = reader.load_payload(payload_root, only=only)
         index = source_index.build_source_index(payload)
         _logger.info("ERP payload loaded (%s): %s", payload.kind.value, payload.row_counts())
 
@@ -104,6 +109,13 @@ class PlasticosErpImport(models.AbstractModel):
         partner_by_cp = self._import_counterparties(index, report, dry_run)
         partner_by_address = self._import_addresses(index, report, partner_by_cp, dry_run)
         self._import_contacts(index, report, partner_by_cp, partner_by_address, dry_run)
+
+        if partners_only:
+            if commit and not dry_run:
+                self.env.cr.commit()
+            result = report.as_dict()
+            _logger.info("ERP import finished (partners only): %s", result["counts"])
+            return result
 
         headers = header_forensics.reconstruct_all_headers(index)
         self._import_transactions(index, headers, report, partner_by_cp, limit, commit, dry_run)
@@ -270,16 +282,20 @@ class PlasticosErpImport(models.AbstractModel):
         dry_run,
         child_name: str | None = None,
     ) -> None:
-        """A further location under the company. Never another company partner."""
+        """A location under the company. It is a company, not a second counterparty."""
         from ..erp import mapping
 
         kind = mapping.address_kind(row)
+        parent = partner_model.browse(parent_id) if parent_id else partner_model.browse()
         values = {
             "name": child_name or _distinct_location_name(row, parent_name, address_id),
             "parent_id": parent_id,
-            "is_company": False,
+            "is_company": True,
             "type": mapping.ODOO_ADDRESS_TYPE[kind],
         }
+        values.update(self._copied_role(parent))
+        if "erp_address_label" in partner_model._fields:
+            values["erp_address_label"] = _text(row, "Type")
         self._address_values(values, row)
         if dry_run:
             report.skip("locations")
@@ -394,13 +410,14 @@ class PlasticosErpImport(models.AbstractModel):
     # ------------------------------------------------------------------
     # Stage 3 — contacts and contact roles
     # ------------------------------------------------------------------
-    def _import_contacts(self, index, report, partner_by_cp: dict, _partner_by_address: dict, dry_run: bool) -> None:
+    def _import_contacts(self, index, report, partner_by_cp: dict, partner_by_address: dict, dry_run: bool) -> None:
         # People are parented to the company. A Delivery or Invoice child is not
         # a parent: a Contact child writes its address back onto that parent.
         from ..erp import mapping
 
         Partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT)
         tag_cache: dict[str, int] = {}
+        mailbox_keys = mapping.site_mailbox_keys(_mailbox_companies(index))
 
         for cp_id in sorted(index.contacts_by_cp):
             company_partner_id = partner_by_cp.get(cp_id)
@@ -420,12 +437,25 @@ class PlasticosErpImport(models.AbstractModel):
 
             groups: dict[str, list] = {}
             order: list[str] = []
+            addresses = [
+                (address_id, _text(index.addresses[address_id], "Type"))
+                for address_id in index.addresses_by_cp.get(cp_id, [])
+            ]
             for contact_id in index.contacts_by_cp[cp_id]:
                 row = index.contacts[contact_id]
                 name = _text(row, "ContactNm")
                 if not name:
                     report.anomaly("Contact", contact_id, "blank ContactNm")
                     report.reject("contacts")
+                    continue
+                target = mapping.site_mailbox_target(name, addresses, _text(row, "Location"), mailbox_keys)
+                if target:
+                    if not dry_run:
+                        self._apply_site_mailbox(partner_by_address, target, row)
+                    report.skip("contacts")
+                    role_count = len(index.roles_by_contact.get(contact_id, []))
+                    if role_count:
+                        report.skip("contact_roles", role_count)
                     continue
                 key = _person_key(name)
                 if key not in groups:
@@ -463,6 +493,7 @@ class PlasticosErpImport(models.AbstractModel):
 
         name = _text(members[0][1], "ContactNm")
         active = any(_row_active(row, mapping) for _contact_id, row in members)
+        parent = partner_model.browse(company_partner_id) if company_partner_id else partner_model.browse()
         values = {
             "name": name,
             "parent_id": company_partner_id,
@@ -470,6 +501,7 @@ class PlasticosErpImport(models.AbstractModel):
             "type": "contact",
             "active": active,
         }
+        values.update(self._copied_role(parent))
         self._merge_person_channels(values, members, partner_model, report)
         if roles:
             values["function"] = roles[0]
@@ -734,6 +766,28 @@ class PlasticosErpImport(models.AbstractModel):
             }
         )
 
+    def _copied_role(self, parent) -> dict:
+        """The child's Company Role and ranks are the parent's."""
+        if not parent:
+            return {}
+        values = {
+            "supplier_rank": parent.supplier_rank or 0,
+            "customer_rank": parent.customer_rank or 0,
+        }
+        if parent.company_role:
+            values["company_role"] = parent.company_role
+        return values
+
+    def _apply_site_mailbox(self, partner_by_address: dict, address_id: str, row) -> None:
+        """Put a site mailbox on the location when that location has no email yet."""
+        partner_id = partner_by_address.get(address_id)
+        if not partner_id:
+            return
+        partner = self.env[RES_PARTNER].browse(partner_id)
+        email = _text(row, "Email").split(";")[0].strip()
+        if email and not partner.email:
+            partner.write({"email": email})
+
     def _erp_lead_source_id(self) -> int | bool:
         """``utm.source`` named ERP. Missing seed leaves the field unset."""
         source = self.env.ref("plasticos_crm_bridge.utm_source_erp", raise_if_not_found=False)
@@ -776,10 +830,23 @@ def _same_party_name(left: str, right: str) -> bool:
     return not a or not b or a == b
 
 
+def _mailbox_companies(index) -> list[tuple[list[str], list[str]]]:
+    """Contact names and address Types for each counterparty."""
+    companies = []
+    cp_ids = set(index.contacts_by_cp) | set(index.addresses_by_cp)
+    for cp_id in cp_ids:
+        names = [_text(index.contacts[contact_id], "ContactNm") for contact_id in index.contacts_by_cp.get(cp_id, [])]
+        labels = [_text(index.addresses[address_id], "Type") for address_id in index.addresses_by_cp.get(cp_id, [])]
+        companies.append((names, labels))
+    return companies
+
+
 def _distinct_location_name(row, parent_name: str, address_id: str) -> str:
-    """Name a second site without repeating the company name."""
+    """Name a second site without repeating the company name or a kind word."""
+    from ..erp import mapping
+
     short = _text(row, "Type")
-    if short and not _same_party_name(short, parent_name):
+    if short and not _same_party_name(short, parent_name) and not mapping.is_kind_only_label(short):
         return short
     return _text(row, "Addr2") or _text(row, "City") or _address_name(row, parent_name, address_id)
 

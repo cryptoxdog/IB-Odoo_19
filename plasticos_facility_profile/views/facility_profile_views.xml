@@ -154,6 +154,14 @@
     <field name="inherit_id" ref="base.view_partner_form"/>
     <field name="arch" type="xml">
 
+      <xpath expr="//div[hasclass('flex-column')]/field[@name='company_type']" position="after">
+        <div class="d-flex align-items-baseline gap-2">
+          <span class="o_form_label">Address Type</span>
+          <field name="type" nolabel="1" readonly="1"/>
+          <field name="address_type_meaning" nolabel="1" readonly="1"/>
+        </div>
+      </xpath>
+
       <!-- Add lead_source_id, delivery terms, salesperson to partner form (visible for companies) -->
       <xpath expr="//field[@name='category_id']" position="after">
         <field name="lead_source_id" widget="badge" invisible="not is_company"/>

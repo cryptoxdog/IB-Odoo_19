@@ -134,11 +134,13 @@ def build_source_index(payload: SourcePayload) -> SourceIndex:
     index.addresses = _index_by_pk(payload, "Address")
     index.contacts = _index_by_pk(payload, "Contact")
     index.contact_roles = _index_by_pk(payload, "ContactRoleAssignment")
-    index.lines = _index_by_pk(payload, "WKSDetail")
+    if "WKSDetail" in payload.tables:
+        index.lines = _index_by_pk(payload, "WKSDetail")
+        _link_lines(index)
+    if payload.tables.keys() & {"GPLedger", "Payables", "Receipt", "ReceiptBatch", "WksDelivery"}:
+        _index_supporting_tables(payload, index)
 
     _link_children(index)
-    _link_lines(index)
-    _index_supporting_tables(payload, index)
     return index
 
 

@@ -402,6 +402,59 @@ def test_billing_flags_are_honoured_beyond_the_free_text_label():
     assert mapping.address_kind({"Type": "PRIMARY", "InvoiceAddr": "N"}) == "primary"
 
 
+def test_address_type_meaning_follows_the_company_role():
+    import importlib.util
+
+    path = ROOT / "plasticos_facility_profile" / "address_meaning.py"
+    spec = importlib.util.spec_from_file_location("address_meaning", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    meaning = module.address_type_meaning
+    assert (
+        meaning("contact", is_company=True, company_role="supplier", source_label=None)
+        == "This record is the company itself."
+    )
+    assert meaning("invoice", is_company=True, company_role="supplier", source_label="INVOICE") == "Mailing address"
+    assert meaning("delivery", is_company=True, company_role="supplier", source_label="PICK UP") == "Pickup address"
+    assert meaning("delivery", is_company=True, company_role="buyer", source_label="DELIVERY") == "Ship-to address"
+    assert (
+        meaning("delivery", is_company=True, company_role="broker", source_label="PICK UP LOCATION") == "Pickup address"
+    )
+    assert meaning("delivery", is_company=True, company_role="carrier", source_label="WAREHOUSE") == "Delivery"
+    assert "neither" in meaning("other", is_company=True, company_role="supplier", source_label="LINCOLN, IL").lower()
+
+
+def test_kind_word_is_not_a_location_title():
+    assert mapping.is_kind_only_label("INVOICE")
+    assert mapping.is_kind_only_label("PICK UP LOCATION")
+    assert mapping.is_kind_only_label("PICK-UP ADDRESS")
+    assert mapping.is_kind_only_label("DELIVERY ADDRESS")
+    assert not mapping.is_kind_only_label("HOUSTON TX - PICK UP")
+    assert not mapping.is_kind_only_label("LINCOLN, IL")
+    assert not mapping.is_kind_only_label("100 Abbott Park Rd")
+
+
+def test_site425_is_a_mailbox_and_a_person_name_is_not():
+    addresses = [("404235", "FAYETTEVILLE AR - SITE 425")]
+    keys = mapping.site_mailbox_keys([(["Site425", "Mike Reed", "PRIMARY"], ["FAYETTEVILLE AR - SITE 425"])])
+    assert keys == {"SITE425"}
+    assert mapping.site_mailbox_target("Site425", addresses, "FAYETTEVILLE AR", keys) == "404235"
+    assert mapping.site_mailbox_target("Mike Reed", addresses, "FAYETTEVILLE AR", keys) is None
+    assert mapping.site_mailbox_target("PRIMARY", [("1", "PRIMARY")], "PRIMARY", keys) is None
+    assert mapping.mailbox_key("AR") is None
+    other_company = [("9", "FAYETTEVILLE AR")]
+    assert mapping.site_mailbox_target("Site425", other_company, "FAYETTEVILLE AR", keys) == "9"
+
+
+def test_partner_only_payload_does_not_open_deal_files():
+    payload = reader.load_payload(PAYLOAD_ROOT, only=reader.PARTNER_SOURCE_TABLES)
+    assert set(payload.tables) == set(reader.PARTNER_SOURCE_TABLES)
+    partner_index = source_index.build_source_index(payload)
+    assert partner_index.counterparties
+    assert partner_index.addresses
+    assert not partner_index.lines
+
+
 def test_billing_address_population_matches_the_payload(index):
     kinds = {}
     for row in index.addresses.values():

@@ -28,6 +28,10 @@ __all__ = [
     "WEIGHT_UOM",
     "address_kind",
     "company_role",
+    "is_kind_only_label",
+    "mailbox_key",
+    "site_mailbox_keys",
+    "site_mailbox_target",
     "normalize_contact_role",
     "sort_contact_roles",
     "parse_bool",
@@ -188,6 +192,85 @@ def company_role(raw_role: str | None) -> tuple[str | None, str | None]:
 def trade_ranks(raw_role: str | None) -> tuple[int, int]:
     """``CounterParty.Role`` -> native ``(supplier_rank, customer_rank)``."""
     return _RANKS_BY_ROLE.get(_clean(raw_role).upper(), (0, 0))
+
+
+_KIND_BASES = ("INVOICE", "REMIT", "PICKUP", "DELIVERY", "WAREHOUSE")
+_ROLE_MAILBOX_WORDS = frozenset({"PRIMARY", "INVOICE"})
+
+
+def _alnum(value: str | None) -> str:
+    return "".join(ch for ch in (value or "").upper() if ch.isalnum())
+
+
+def is_kind_only_label(label: str | None) -> bool:
+    """True when an ERP Type is only a kind word, not a place name.
+
+    ``INVOICE``, ``PICK UP LOCATION``, and ``DELIVERY ADDRESS`` are kind words.
+    ``LINCOLN, IL`` and ``HOUSTON TX - PICK UP`` are place names.
+    """
+    key = _alnum(label)
+    if not key:
+        return False
+    return any(key in {base, base + "ADDRESS", base + "LOCATION"} for base in _KIND_BASES)
+
+
+def mailbox_key(name: str | None) -> str | None:
+    """Identity of a site mailbox. A person's name, or a role word, is not one.
+
+    A name with a space is a person. A name shorter than four characters is a
+    person, so ``AR`` is not treated as a mailbox just because those letters
+    occur inside ``PRIMARY ADDRESS``. ``PRIMARY`` and ``INVOICE`` stay people.
+    """
+    raw = (name or "").strip()
+    if not raw or " " in raw:
+        return None
+    key = _alnum(raw)
+    if len(key) < 4 or key in _ROLE_MAILBOX_WORDS:
+        return None
+    return key
+
+
+def site_mailbox_keys(companies: list[tuple[list[str], list[str]]]) -> set[str]:
+    """No-space names that occur inside an address Type for the same company.
+
+    ``companies`` is ``(contact names, address types)`` per counterparty. A key
+    found for one company is a mailbox everywhere that name appears.
+    """
+    found: set[str] = set()
+    for names, labels in companies:
+        folded = [_alnum(label) for label in labels]
+        for name in names:
+            key = mailbox_key(name)
+            if key and any(key in label for label in folded):
+                found.add(key)
+    return found
+
+
+def site_mailbox_target(
+    name: str | None,
+    addresses: list[tuple[str, str]],
+    location: str | None,
+    known_keys: set[str],
+) -> str | None:
+    """Address id that should carry this mailbox, or ``None`` when it is a person.
+
+    Prefer the address whose Type contains the name. Otherwise use the address
+    whose Type is the contact's Location, when that Type is a place and not a
+    kind word.
+    """
+    key = mailbox_key(name)
+    if not key or key not in known_keys:
+        return None
+    for address_id, label in addresses:
+        if key in _alnum(label):
+            return address_id
+    loc = _alnum(location)
+    if not loc:
+        return None
+    for address_id, label in addresses:
+        if _alnum(label) == loc and not is_kind_only_label(label):
+            return address_id
+    return None
 
 
 def address_kind(row) -> str:

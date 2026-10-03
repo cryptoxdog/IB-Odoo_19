@@ -1,5 +1,9 @@
-from odoo import api, fields, models
+import base64
+
+from odoo import api, fields, models, tools
 from odoo.exceptions import ValidationError
+
+from ..address_meaning import address_type_meaning
 
 
 class ResPartner(models.Model):
@@ -278,6 +282,56 @@ class ResPartner(models.Model):
         records = super().create(vals_list)
         records.filtered("company_role")._sync_rank_from_role()
         return records
+
+    erp_address_label = fields.Char(
+        string="Source Address Label",
+        help="ERP Address.Type. Tells a pickup from a ship-to on a broker or a carrier.",
+    )
+    address_type_meaning = fields.Char(
+        string="Address Meaning",
+        compute="_compute_address_type_meaning",
+        help="What Address Type means for this company.",
+    )
+
+    @api.depends("type", "is_company", "company_role", "erp_address_label")
+    def _compute_address_type_meaning(self):
+        for partner in self:
+            partner.address_type_meaning = address_type_meaning(
+                partner.type,
+                is_company=partner.is_company,
+                company_role=partner.company_role,
+                source_label=partner.erp_address_label,
+            )
+
+    def _avatar_get_placeholder_path(self):
+        if self.is_company:
+            if self.company_role == "carrier":
+                return "base/static/img/truck.png"
+            return "base/static/img/company_image.png"
+        return super()._avatar_get_placeholder_path()
+
+    def _compute_avatar(self, avatar_field, image_field):
+        """A company picture follows the company, not the Contact address type.
+
+        Odoo sends every Contact address to the initials picture before it
+        considers the company placeholder. A counterparty is type Contact, so
+        that path would leave a letter on a company. An uploaded photo still wins.
+        """
+        companies = self.filtered("is_company")
+        others = self - companies
+        if others:
+            super(ResPartner, others)._compute_avatar(avatar_field, image_field)
+        photographed = companies.filtered(lambda partner: partner[image_field])
+        for partner in photographed:
+            partner[avatar_field] = partner[image_field]
+        bare = companies - photographed
+        for _path, group in tools.groupby(bare, key=lambda partner: partner._avatar_get_placeholder_path()):
+            grouped = self.env["res.partner"].concat(*group)
+            grouped[avatar_field] = base64.b64encode(grouped[0]._avatar_get_placeholder())
+
+    @api.depends("name", "user_ids.share", "image_128", "is_company", "type", "company_role")
+    def _compute_avatar_128(self):
+        self._compute_avatar("avatar_128", "image_128")
 
     def write(self, vals):
         if "parent_id" in vals and not vals.get("parent_id"):
