@@ -61,7 +61,7 @@
                        help="Internal broker notes: personality, communication style, rapport hooks, family context, hobbies, motivators. Never shared externally."/>
             </xpath>
 
-            <!-- ── Invoicing and Sales & Purchase — companies only ─────── -->
+            <!-- ── Invoicing and Sales &amp; Purchase — companies only ─────── -->
             <xpath expr="//page[@name='accounting']" position="attributes">
                 <attribute name="invisible">not is_company</attribute>
             </xpath>
