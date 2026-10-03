@@ -487,6 +487,9 @@ def test_contact_roles_collapse_and_rr_stays_unresolved():
     assert mapping.map_contact_role("DM Assistant") == ("Assistant", None)
     assert mapping.map_contact_role("RR") == (None, "rr")
     assert mapping.map_contact_role("Something New") == (None, "unmapped")
+    assert mapping.job_position(["Decision Maker", "Logistics"]) == "Decision Maker"
+    assert mapping.job_position(["AR/AP"]) == "AR/AP"
+    assert mapping.job_position(["Logistics", "Admin"]) == ""
 
 
 def test_address_layer_groups_rows_without_the_counterparty_file(payload):

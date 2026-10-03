@@ -649,8 +649,9 @@ class PlasticosErpImport(models.AbstractModel):
         for bucket in grouped.values():
             partner = bucket["partner"]
             self._apply_contact_roles(partner, bucket["tags"], tag_cache, report)
-            if "Decision Maker" in bucket["tags"] and partner.function != "Decision Maker":
-                partner.write({"function": "Decision Maker"})
+            job = mapping.job_position(bucket["tags"])
+            if job and partner.function != job:
+                partner.write({"function": job})
 
     def _address_catalog(self) -> list[tuple[str, str, str, int]]:
         """``(cp_id, address_id, Type label, partner_id)`` for every imported address."""

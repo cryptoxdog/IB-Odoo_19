@@ -114,8 +114,8 @@ ODOO_ADDRESS_TYPE: dict[str, str] = {
 # ContactRoleAssignment.RoleNm
 # ---------------------------------------------------------------------------
 # The ERP role naming the main contact for a counterparty. It is the most
-# common value in the payload (1680 of 3091 assignments) and is the one that
-# fills ``res.partner.function`` when a contact holds several roles.
+# common value in the payload (1680 of 3091 assignments). Job Position is one
+# value: Decision Maker wins, otherwise a single other tag is written.
 PRIMARY_CONTACT_ROLE = "Primary"
 
 # ---------------------------------------------------------------------------
@@ -377,6 +377,21 @@ def map_contact_role(raw_role: str | None) -> tuple[str | None, str | None]:
     if not tag:
         return None, "unmapped"
     return tag, None
+
+
+def job_position(tags: list[str]) -> str:
+    """One Job Position from the tags already mapped for this person.
+
+    Decision Maker wins when that tag is present. Otherwise exactly one other
+    tag is written. Two or more other tags stay on the tags and return empty
+    so the caller leaves ``function`` unchanged.
+    """
+    if "Decision Maker" in tags:
+        return "Decision Maker"
+    others = [tag for tag in tags if tag and tag != "Decision Maker"]
+    if len(others) == 1:
+        return others[0]
+    return ""
 
 
 def is_person_name(name: str | None) -> bool:
