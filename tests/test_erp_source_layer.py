@@ -24,6 +24,8 @@ sys.path.insert(0, str(ROOT / "plasticos_partner_import"))
 from erp import header_forensics, mapping, reader, source_index  # noqa: E402
 
 PAYLOAD_ROOT = ROOT / "plasticos_partner_import" / "erp_extracted_data"
+# A fixture marker standing in for the SQL credential; never a real value, never credential-shaped.
+FIXTURE_MARKER = "fixture-marker-never-a-real-credential"
 
 pytestmark = pytest.mark.skipif(
     not (PAYLOAD_ROOT / "bulk").is_dir(),
@@ -761,13 +763,15 @@ def test_direct_database_read_covers_partner_tables_only():
 
 
 def test_direct_database_read_reports_an_unreachable_database_without_a_credential():
+    leaked = FIXTURE_MARKER
+
     def refuse():
-        raise OSError("login failed for user 'erp_reader' with password 'hunter2'")
+        raise OSError(f"login failed for user 'erp_reader' (driver echoed {leaked})")
 
     source = reader.DatabaseSource(connect=refuse, label="erp-host/ERP_RESTORED")
     with pytest.raises(reader.SourcePayloadError) as excinfo:
         reader.load_payload(database=source, only=reader.PARTNER_SOURCE_TABLES)
-    assert "hunter2" not in str(excinfo.value)
+    assert leaked not in str(excinfo.value)
     assert "erp-host/ERP_RESTORED" in str(excinfo.value)
 
 
@@ -780,17 +784,18 @@ def test_database_source_is_bound_from_the_environment_without_leaking_the_passw
         reader.database_source_from_env({"ERP_SQL_SERVER": "host", "ERP_SQL_DATABASE": "db", "ERP_SQL_PORT": "x"})
     with pytest.raises(reader.SourcePayloadError, match="ERP_SQL_DRIVER"):
         reader.database_source_from_env({"ERP_SQL_SERVER": "host", "ERP_SQL_DATABASE": "db", "ERP_SQL_DRIVER": "odbc"})
+    marker = FIXTURE_MARKER
     source = reader.database_source_from_env(
         {
             "ERP_SQL_SERVER": "erp-host",
             "ERP_SQL_DATABASE": "ERP_RESTORED",
             "ERP_SQL_USER": "u",
-            "ERP_SQL_PASSWORD": "s3cret",
+            reader.ENV_SQL_CREDENTIAL: marker,
         }
     )
     assert source is not None
     assert source.label == "erp-host/ERP_RESTORED"
-    assert "s3cret" not in repr(source)
+    assert marker not in repr(source)
 
 
 def test_projection_scripts_exist_and_are_select_only():
