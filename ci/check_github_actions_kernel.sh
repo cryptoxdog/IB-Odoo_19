@@ -113,17 +113,17 @@ sys.exit(0)
         pass "$base: third-party actions SHA-pinned or actions/* only"
     fi
 
-    # merge_gate_logic — ci.yml Phase 1 jobs (lint/static-checks/pure-python-tests)
-    # must run in parallel (no needs: between them, so one push surfaces every
-    # failing check at once); an aggregator job must gate on a superset of them
-    # with if: always() as the single fail-closed verdict.
+    # merge_gate_logic — every mandatory ci.yml Phase 1 job must exist and run in
+    # parallel (no needs:, so one push surfaces every failing check at once); an
+    # aggregator job must gate on ALL of them with if: always() as the single
+    # fail-closed verdict. Keep `required` equal to ci.yml's Phase 1 inventory.
     if [[ "$base" == "ci.yml" ]]; then
         if python3 -c "
 import sys, yaml
 from pathlib import Path
 data = yaml.safe_load(Path('$f').read_text())
 jobs = data.get('jobs') or {}
-required = {'lint', 'static-checks', 'pure-python-tests'}
+required = {'lint', 'static-checks', 'pure-python-tests', 'gate-sdk-tests', 'secret-scan', 'audit-baseline'}
 missing = required - jobs.keys()
 if missing:
     print(f'missing required jobs: {missing}', file=sys.stderr)
@@ -142,13 +142,13 @@ for job_id, job in jobs.items():
         aggregator = job_id
         break
 if not aggregator:
-    print('no aggregator job found (needs: superset of required jobs + if: always())', file=sys.stderr)
+    print(f'no aggregator job found (needs: must cover ALL of {sorted(required)} + if: always())', file=sys.stderr)
     sys.exit(1)
 sys.exit(0)
 "; then
             pass "$base: merge_gate_logic (fail-slow parallel Phase 1 + aggregator gate present)"
         else
-            fail "$base: ci.yml must run lint/static-checks/pure-python-tests in parallel (no needs:) with an aggregator job (needs: superset + if: always())"
+            fail "$base: ci.yml must run every Phase 1 job (lint/static-checks/pure-python-tests/gate-sdk-tests/secret-scan/audit-baseline) in parallel (no needs:) with an aggregator job (needs: all of them + if: always())"
         fi
     fi
 done

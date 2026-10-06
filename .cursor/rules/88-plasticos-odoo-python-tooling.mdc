@@ -12,11 +12,11 @@ alwaysApply: true
 | Concern | Owner | Notes |
 |---------|-------|-------|
 | Ruff lint/format policy | `pyproject.toml` `[tool.ruff]` | CI + pre-commit + `make lint` |
-| Pytest runner | `pyproject.toml` `[tool.pytest.ini_options]` | `make test` / CI Tier 3 |
-| Mypy (pre-commit only) | `pyproject.toml` `[tool.mypy]` | Not a CI gate |
+| Pytest runner | `pyproject.toml` `[tool.pytest.ini_options]` | Common defaults (`addopts`) owned here; `make test` / CI pass only caller-specific flags |
+| Mypy (advisory analysis) | `pyproject.toml` `[tool.mypy]` | Advisory everywhere: CI `run_advisory`, `make mypy-check`, pre-commit manual stage only — never a blocking merge gate; separate from editor Pyright |
 | Pyright mode/reporters | `pyproject.toml` `[tool.pyright]` | Editor-only; `typeCheckingMode = basic` |
 | Odoo import paths | `.vscode/settings.json` | `${env:HOME}/dev/odoo-19` extraPaths — same layout on every machine |
-| Dev venv | `make venv` + `.envrc` | ruff, pytest, semgrep — **no Odoo in venv** |
+| Dev venv | `make venv` + `.envrc` | pinned Python dev toolchain from `requirements-dev.txt` (ruff, pytest, semgrep, mypy), CI-aligned versions — **no Odoo in venv**; system tools (shellcheck, gitleaks) installed separately |
 | Runtime pip deps | `requirements.txt` | Odoo.sh installs this |
 | Dev/CI pip deps | `requirements-dev.txt` | Not Odoo.sh |
 

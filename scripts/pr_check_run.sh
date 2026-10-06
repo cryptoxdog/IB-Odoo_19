@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
-# Parallel local PR gate — same checks as before, CI-like wave scheduling.
+# Parallel LOCAL pre-push gate, scheduled in waves.
+#
+# This is not the GitHub CI job graph. GitHub CI (ci.yml) stays authoritative and
+# runs lanes this script does not reproduce (gate-sdk-tests against the pinned
+# SDK, gitleaks secret-scan). Secrets are scanned locally by the pre-commit
+# gitleaks-push hook at `git push` time, not here.
 #
 # Modes:
 #   fast  — audit-quick + pytest (local iteration; make pr)
-#   full  — audit + audit-baseline + pytest + install-smoke + remote (make pr-check / push)
+#   full  — local blocking static audit (make audit) + audit baseline +
+#           pure-Python tests + local Odoo install-smoke (when its load inputs
+#           changed) + remote PR feedback (when available) (make pr-check / push)
 #
 # Env:
 #   PR_CHECK_JOBS=N           parallel make jobs (default: 4)
@@ -121,16 +128,17 @@ case "$MODE" in
     ;;
   full | pr-check)
     log "════════════════════════════════════════════════════"
-    log " make pr-check — full gate (parallel waves, CI parity)"
+    log " make pr-check — full local pre-push gate (parallel waves)"
+    log " GitHub CI remains authoritative (gate-sdk-tests, secret-scan run there)"
     log "════════════════════════════════════════════════════"
-    # Wave 1 mirrors ci.yml fail-slow collectors (static + baseline + pytest).
+    # Wave 1: local counterparts of ci.yml's static/baseline/pytest collectors.
     run_wave audit audit-baseline test
     # Wave 2: local Odoo load (not in GHA). Cached when plasticos/load inputs unchanged.
     maybe_install_smoke
     # Wave 3: remote signals when a PR/token exists.
     maybe_remote
     log ""
-    log "✅ PR gate passed — safe to push"
+    log "✅ Local pre-push gate passed — GitHub CI is the merge verdict"
     ;;
   *)
     log "Usage: $0 {fast|full}" >&2

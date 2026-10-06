@@ -5,11 +5,7 @@
 
 exclude: |
   (?x)^(
-    odoo-enterprise/.*|
-    plasticos_graph_engine/.*|
-    plasticos_graph_integration/.*|
-    plasticos_graph_intelligence/.*|
-    plasticos_graph_3d_embedding/.*
+    odoo-enterprise/.*
   )$
 
 repos:
@@ -214,14 +210,14 @@ repos:
 
       - id: phantom-enum-values
         name: Phantom enum value check
-        entry: python3 -m pytest tests/test_phantom_enum_values.py -x -q --no-header --tb=short
+        entry: python3 -m pytest tests/test_phantom_enum_values.py -x -q
         language: system
         pass_filenames: false
         stages: [pre-push]
 
       - id: manifest-contract
         name: Manifest contract check (version, depends order)
-        entry: python3 -m pytest tests/test_repo_dependency_integrity.py -x -q --no-header --tb=short
+        entry: python3 -m pytest tests/test_repo_dependency_integrity.py -x -q
         language: system
         pass_filenames: false
         stages: [pre-push]
@@ -272,28 +268,19 @@ repos:
         stages: [pre-push]
         pass_filenames: false
 
-  # Python type checking
+  # Python type checking — ADVISORY, same as ci.yml (run_advisory) and
+  # `make mypy-check`. Manual stage only, so ordinary commit/push never blocks on
+  # it; run on demand: pre-commit run mypy --hook-stage manual
+  # Scope/excludes come from pyproject.toml [tool.mypy] (single SSOT): mypy
+  # discovers files from `.` itself, so its `exclude` applies (it would not to
+  # filenames passed explicitly) — identical invocation to CI.
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.14.0
     hooks:
       - id: mypy
-        args: [--config-file=pyproject.toml]
+        args: [--config-file=pyproject.toml, .]
         additional_dependencies: []
-        exclude: |
-          (?x)^(
-            tests-odoo/.*|
-            tests/.*|
-            addons/.*|
-            \.venv/.*|
-            venv/.*|
-            \.semgrep/.*|
-            .*/migrations/.*|
-            scripts/.*|
-            docs/.*|
-            plasticos_dev_tools/.*|
-            plasticos_inference_engine/.*|
-            plasticos_web_leads/.*|
-            plasticos_enrichment/.*|
-            plasticos_buyer_match_engine/.*|
-            tools/.*
-          )$
+        pass_filenames: false
+        always_run: true
+        verbose: true
+        stages: [manual]

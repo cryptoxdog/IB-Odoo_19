@@ -47,7 +47,7 @@ cd ~/dev/IB-Odoo_19   # adjust if your clone path differs
 make venv
 ```
 
-Installs (pinned): **ruff 0.15.5**, **pytest**, **semgrep**, **pr-repair** (+ deps). Does **not** install Odoo into `.venv`.
+Installs the pinned Python developer toolchain from `requirements-dev.txt` (single pin source, versions aligned with CI): **ruff 0.16.0**, **pytest** (+ timeout/cov plugins), **semgrep**, **mypy**, **pr-repair** (+ deps). Does **not** install Odoo into `.venv`, and does **not** install system tools (`shellcheck` and `gitleaks`, also used by CI; `xmllint`, used by `make xml-check`) — install those separately (e.g. `brew install shellcheck gitleaks`); `make audit` fails closed if `shellcheck` is missing.
 
 Activate automatically with direnv:
 
@@ -116,10 +116,10 @@ Optional pattern: maintain `.env.local.template` in repo (keys only, empty value
 make lint          # ruff check . — same scope as CI
 make check         # lint + format check
 make test          # pure-Python pytest tier (no Odoo runtime)
-make pr-check      # full pre-push gate (when ready to push)
+make pr-check      # full local pre-push gate (when ready to push) — GitHub CI remains the merge verdict
 ```
 
-Pyright/Pylance is **editor-only** (`typeCheckingMode = basic` in `pyproject.toml`). It is not run in CI.
+Pyright/Pylance is **editor-only** (`typeCheckingMode = basic` in `pyproject.toml`). It is not run in CI. Mypy is **advisory** (CI `run_advisory`, `make mypy-check`, `pre-commit run mypy --hook-stage manual`) and never blocks a commit, push, or merge.
 
 ---
 
