@@ -58,8 +58,8 @@ ssh "$ODOO_SH_STAGING_SSH" "odoo-bin shell -d cryptoxdog-ib-odoo-19-staging-${BI
 
 | Method | Path | Auth |
 |---|---|---|
-| `POST` | `/api/v1/web-lead` | Bearer token |
-| `POST` | `/api/v1/cognito-webhook` | Bearer token |
+| `POST` | `/api/v1/web-lead/inbound/<provider_key>` | `access_token` query, Bearer, or `X-API-Key` |
+| `POST` | `/api/v1/cognito-webhook` | Same auth; alias for provider `cognito` |
 | `GET` | `/api/v1/web-lead/health` | None |
 
 ## Deployment boundary

@@ -28,6 +28,7 @@
                     </group>
                     <group string="API Authentication (Inbound Webhook)">
                         <group>
+                            <field name="inbound_default_provider_key"/>
                             <field name="api_key_configured" readonly="1"/>
                             <field name="api_key" password="True"
                                      placeholder="Click Generate New API Key"/>
@@ -38,10 +39,11 @@
                                     confirm="This will invalidate the current key. External integrations will need the new key. Continue?"/>
                         </group>
                         <div class="alert alert-info" colspan="2" role="alert">
-                            Auth header: <code>Authorization: Bearer &lt;api_key&gt;</code>
-                            (or <code>X-API-Key: &lt;api_key&gt;</code>) on
-                            <code>POST /api/v1/cognito-webhook</code> /
-                            <code>POST /api/v1/web-lead</code>.
+                            Auth: <code>?access_token=&lt;api_key&gt;</code>,
+                            <code>Authorization: Bearer &lt;api_key&gt;</code>, or
+                            <code>X-API-Key: &lt;api_key&gt;</code> on
+                            <code>POST /api/v1/web-lead/inbound/&lt;provider_key&gt;</code>
+                            (Cognito alias: <code>POST /api/v1/cognito-webhook</code>).
                             Click the eye icon to reveal/copy. Regenerating replaces the stored value.
                         </div>
                     </group>
@@ -132,11 +134,11 @@
                     <div class="alert alert-info" role="alert">
                         <p><strong>Endpoints:</strong></p>
                         <ul>
-                            <li><code>POST /api/v1/web-lead</code> — Pre-processed agent payload (legacy)</li>
-                            <li><code>POST /api/v1/cognito-webhook</code> — Raw Cognito form (AI triage)</li>
+                            <li><code>POST /api/v1/web-lead/inbound/&lt;provider_key&gt;</code> — Provider-neutral admission</li>
+                            <li><code>POST /api/v1/cognito-webhook</code> — Alias for provider <code>cognito</code></li>
                             <li><code>GET /api/v1/web-lead/health</code> — Health check (no auth)</li>
                         </ul>
-                        <p><strong>Auth:</strong> <code>Authorization: Bearer &lt;api_key&gt;</code></p>
+                        <p><strong>Auth:</strong> query <code>access_token</code> or <code>Authorization: Bearer &lt;api_key&gt;</code></p>
                         <p>HOT leads create an intake (partner deferred until buyer-match).</p>
                     </div>
                 </sheet>

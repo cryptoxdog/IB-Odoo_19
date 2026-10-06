@@ -16,7 +16,6 @@
 ./plasticos_base/data/admin_users.xml
 ./plasticos_base/data/attachment_maintenance_cron.xml
 ./plasticos_base/data/company.xml
-./plasticos_base/data/feature_flags.xml
 ./plasticos_base/data/material_taxonomy.xml
 ./plasticos_base/data/midnight_recompute_cron.xml
 ./plasticos_base/data/partner_tags.xml

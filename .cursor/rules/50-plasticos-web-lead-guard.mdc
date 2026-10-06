@@ -27,23 +27,20 @@ Do not propose changes to `web_lead.py` without reading the existing tests first
 
 ## Pipeline Architecture
 
-`plasticos.web.lead` has two entry paths and one core processing pipeline.
+`plasticos.web.lead` has one entry path and one core processing pipeline.
 
-### Entry point 1: `create_from_cognito(raw_payload)`
+### Entry point: `admit_inbound(provider_key, body)`
 
-Primary ingestion path for raw Cognito submissions. It:
-- derives or constructs a stable `lead_id`
-- enforces idempotency by checking for an existing lead
-- extracts raw company/contact/material fields from the payload
-- extracts image URLs
+Primary ingestion path. The HTTP controller resolves a `WebLeadAdapter` from the registry and calls this method. It:
+- classifies the payload; only a submission is admitted
+- projects the payload through the adapter into a `WebLeadPacket`
+- enforces idempotency on the packet idempotency key
 - creates the `plasticos.web.lead` record in `received` state
 - invokes `_run_triage_pipeline()`
 
+`create_from_cognito()` is a compatibility shim to `admit_inbound("cognito", ...)`. Do not add a provider-specific admission path beside the port. A new tool is a new adapter file and one registry line.
+
 This is the high-complexity path. AI normalization, vision analysis, deterministic classification, and HOT-lead intake creation all happen here.
-
-### Entry point 2: `create_from_agent(payload)`
-
-Legacy/pre-processed path. Accepts a payload that already contains decision and AI-derived structure. Intentionally simpler. **Do not try to "unify" it with the Cognito path** unless you have explicit instruction and regression coverage.
 
 ## Core Triage Flow
 

@@ -116,7 +116,7 @@ help:
 	@echo "    make logs-error       follow logs filtered to ERROR/CRITICAL only"
 	@echo "    make shell            exec bash in Odoo container"
 	@echo "    make odoo-shell       Odoo Python shell (for data inspection)"
-	@echo "    make import-legacy-erp  canonical LegacyErp import (preflight + reconciliation + summary; DRY=1 for preview)"
+	@echo "    make import-erp       canonical ERP import (preflight + reconciliation + summary; DRY=1 for preview)"
 	@echo "    make import-vanillasoft canonical VanillaSoft full import (preflight + reconciliation + summary)"
 	@echo "    make update m=<mod>   -u <module> (e.g. make update m=plasticos_commission)"
 	@echo "    make update-all       -u all modules"
@@ -938,22 +938,40 @@ test-odoo-local: check-local-runtime
 # ---------------------------------------------------------------
 # Canonical data-import commands (odoo-intent-1 ingestion milestone)
 # ---------------------------------------------------------------
-# make import-legacy-erp                full LegacyErp import (applied)
-# make import-legacy-erp DRY=1          resolve + map, persist nothing
-# make import-legacy-erp LIMIT=100      first 100 transactions (diagnostics)
-# make import-legacy-erp PAYLOAD_ROOT=/abs/path  non-default source payload
-# make import-legacy-erp REPORT_PATH=/abs/summary.json  override machine summary path
+# make import-erp                full ERP import (applied)
+# make import-erp DRY=1          resolve + map, persist nothing
+# make import-erp LIMIT=100      first 100 transactions (diagnostics)
+# make import-erp PAYLOAD_ROOT=/abs/path  non-default source payload (statement or grid form)
+# make import-erp REPORT_PATH=/abs/summary.json  override machine summary path
+# make import-erp PARTNERS_ONLY=1  Concern 1: counterparties → addresses → contacts → roles → salespersons
+# make import-erp LAYER=counterparties  one partner table, in that order; a layer opens only after
+#   the previous layer's validator passes, and commits only after its own passes
+#   (plasticos_partner_import/scripts/validate_partner_layer.py)
+# make import-erp ERP_SQL_SERVER=host ERP_SQL_DATABASE=db [ERP_SQL_USER=.. ERP_SQL_PASSWORD=..]
+#   direct read of the restored ERP SQL Server database (ADR-021); wins over PAYLOAD_ROOT
 
-.PHONY: import-legacy-erp import-vanillasoft
+.PHONY: import-erp import-vanillasoft
 
-# Public overrides (DRY / LIMIT / PAYLOAD_ROOT / REPORT_PATH, as advertised in
-# the help text above) bridge onto the LEGACY_ERP_* names the shell driver
-# reads (plasticos_transaction/scripts/import_legacy_erp_shell.py). Either
-# spelling works; an explicit LEGACY_ERP_* value wins.
-LEGACY_ERP_DRY ?= $(DRY)
-LEGACY_ERP_LIMIT ?= $(LIMIT)
-LEGACY_ERP_PAYLOAD_ROOT ?= $(PAYLOAD_ROOT)
-LEGACY_ERP_REPORT_PATH ?= $(or $(REPORT_PATH),.l9/pr/import-legacy-erp-summary.json)
+# Public overrides (DRY / LIMIT / PAYLOAD_ROOT / REPORT_PATH / PARTNERS_ONLY /
+# LAYER) bridge onto the ERP_* names the shell driver reads
+# (plasticos_partner_import/scripts/import_erp_shell.py).
+ERP_DRY ?= $(DRY)
+ERP_LIMIT ?= $(LIMIT)
+ERP_PAYLOAD_ROOT ?= $(PAYLOAD_ROOT)
+ERP_REPORT_PATH ?= $(or $(REPORT_PATH),.l9/pr/import-erp-summary.json)
+ERP_PARTNERS_ONLY ?= $(PARTNERS_ONLY)
+ERP_LAYER ?= $(LAYER)
+# Applied imports refuse a database that already has business partners.
+# Set ERP_REQUIRE_EMPTY=0 only for a deliberate reload onto a populated database.
+ERP_REQUIRE_EMPTY ?= 1
+# Direct database read. The password travels only through the environment of
+# the odoo shell process; it is never echoed or written to the summary.
+ERP_SQL_SERVER ?=
+ERP_SQL_DATABASE ?=
+ERP_SQL_USER ?=
+ERP_SQL_PASSWORD ?=
+ERP_SQL_PORT ?=
+ERP_SQL_DRIVER ?=
 # The VanillaSoft driver reads two floors (plasticos_crm_sync/scripts/
 # import_vanillasoft_shell.py); both are forwarded verbatim.
 VANILLASOFT_CALL_FLOOR ?=
@@ -969,24 +987,40 @@ VANILLASOFT_REPORT_PATH ?= .l9/pr/import-vanillasoft-summary.json
 # the Odoo CLI (`odoo shell`), not the bare subcommand.
 # Local: the venv has no odoo.conf, so the connection and addons arguments are
 # passed explicitly, exactly as `test-odoo-local` does.
-import-legacy-erp:
-	@test -d data/legacy_erp_sm_export/bulk || { echo "❌ Preflight failed: tracked payload missing (data/legacy_erp_sm_export/bulk)"; exit 1; }
-	@echo "→ LegacyErp import on database $(ODOO_DB_NAME) $(if $(LEGACY_ERP_DRY),[DRY RUN],)…"
+import-erp:
+	@test -d plasticos_partner_import/erp_extracted_data || { echo "❌ Preflight failed: ERP projection scripts missing (plasticos_partner_import/erp_extracted_data)"; exit 1; }
+	@echo "→ ERP import on database $(ODOO_DB_NAME) $(if $(ERP_DRY),[DRY RUN],)$(if $(ERP_SQL_SERVER), [direct SQL read],)…"
 	@if docker info >/dev/null 2>&1; then \
-		docker compose run --rm \
-			-e LEGACY_ERP_DRY="$(LEGACY_ERP_DRY)" \
-			-e LEGACY_ERP_LIMIT="$(LEGACY_ERP_LIMIT)" \
-			-e LEGACY_ERP_PAYLOAD_ROOT="$(LEGACY_ERP_PAYLOAD_ROOT)" \
-			-e LEGACY_ERP_REPORT_PATH="$(LEGACY_ERP_REPORT_PATH)" \
-			odoo odoo shell -d $(ODOO_DB_NAME) --no-http < plasticos_transaction/scripts/import_legacy_erp_shell.py; \
+		docker compose run --rm -w /mnt/extra-addons \
+			-e ERP_DRY="$(ERP_DRY)" \
+			-e ERP_LIMIT="$(ERP_LIMIT)" \
+			-e ERP_PAYLOAD_ROOT="$(ERP_PAYLOAD_ROOT)" \
+			-e ERP_REPORT_PATH="$(ERP_REPORT_PATH)" \
+			-e ERP_REQUIRE_EMPTY="$(ERP_REQUIRE_EMPTY)" \
+			-e ERP_PARTNERS_ONLY="$(ERP_PARTNERS_ONLY)" \
+			-e ERP_LAYER="$(ERP_LAYER)" \
+			-e ERP_TARGET_DB="$(ODOO_DB_NAME)" \
+			-e ERP_SQL_SERVER="$(ERP_SQL_SERVER)" \
+			-e ERP_SQL_DATABASE="$(ERP_SQL_DATABASE)" \
+			-e ERP_SQL_USER="$(ERP_SQL_USER)" \
+			-e ERP_SQL_PASSWORD="$(ERP_SQL_PASSWORD)" \
+			-e ERP_SQL_PORT="$(ERP_SQL_PORT)" \
+			-e ERP_SQL_DRIVER="$(ERP_SQL_DRIVER)" \
+			odoo odoo shell -d $(ODOO_DB_NAME) --no-http < plasticos_partner_import/scripts/import_erp_shell.py; \
 	elif [ -x "$(L9_ODOO_VENV)/bin/odoo" ]; then \
 		src=$$(ls -d /opt/odoo-src/odoo-19.0* | sort | tail -1); \
-		LEGACY_ERP_DRY="$(LEGACY_ERP_DRY)" LEGACY_ERP_LIMIT="$(LEGACY_ERP_LIMIT)" \
-		LEGACY_ERP_PAYLOAD_ROOT="$(LEGACY_ERP_PAYLOAD_ROOT)" LEGACY_ERP_REPORT_PATH="$(LEGACY_ERP_REPORT_PATH)" \
+		ERP_DRY="$(ERP_DRY)" ERP_LIMIT="$(ERP_LIMIT)" \
+		ERP_PAYLOAD_ROOT="$(ERP_PAYLOAD_ROOT)" ERP_REPORT_PATH="$(ERP_REPORT_PATH)" \
+		ERP_REQUIRE_EMPTY="$(ERP_REQUIRE_EMPTY)" \
+		ERP_PARTNERS_ONLY="$(ERP_PARTNERS_ONLY)" ERP_LAYER="$(ERP_LAYER)" \
+		ERP_TARGET_DB="$(ODOO_DB_NAME)" \
+		ERP_SQL_SERVER="$(ERP_SQL_SERVER)" ERP_SQL_DATABASE="$(ERP_SQL_DATABASE)" \
+		ERP_SQL_USER="$(ERP_SQL_USER)" ERP_SQL_PASSWORD="$(ERP_SQL_PASSWORD)" \
+		ERP_SQL_PORT="$(ERP_SQL_PORT)" ERP_SQL_DRIVER="$(ERP_SQL_DRIVER)" \
 		"$(L9_ODOO_VENV)/bin/odoo" shell -d $(ODOO_DB_NAME) --no-http \
 			--db_host="$(L9_PG_HOST)" --db_port="$(L9_PG_PORT)" --db_user="$(L9_PG_USER)" \
 			--addons-path="$$src/odoo/addons,$(CURDIR)" \
-			< plasticos_transaction/scripts/import_legacy_erp_shell.py; \
+			< plasticos_partner_import/scripts/import_erp_shell.py; \
 	else \
 		echo "❌ No Odoo runtime: start Docker Desktop or run scripts/setup_local_runtime.sh"; exit 1; \
 	fi

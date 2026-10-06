@@ -1,6 +1,6 @@
 # ADR-003: Contact Import Configuration
 
-**Status:** Accepted
+**Status:** Accepted. CSV transport superseded by [ADR-021](ADR-021-erp-sql-crm-api-import.md). Hierarchy, ranks, and tags in this ADR still apply.
 **Date:** 2026-03-13
 **Deciders:** Igor Beylin
 **Scope:** `plasticos_partner_import`, `plasticos_base`

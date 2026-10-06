@@ -44,6 +44,7 @@ tests/runtime_gates/, docs/runbooks/, docs/adr/README.md, AGENTS.md.
 
 ## Recent Changes
 
+- [2026-10-06] [EXECUTE] Files: plasticos_partner_import (erp/, models/erp_import_service.py, scripts/), plasticos_facility_profile, plasticos_web_leads, Makefile, docs/runbooks/ERP_IMPORT.md | Action: GAR import convergence on post-#216 Staging — direct SQL read seam, full stage ordering, validate-before-commit, row accounting, replay-safe detector, web-lead auth/rejection fixes | Tests: 959 passed pure tier; 34 plasticos_web_leads Odoo tests; Concern 1 proof + idempotent replay on disposable DB (grid fixture)
 - [2026-09-17] [EXECUTE] Files: plasticos_crm_sync, plasticos_partner_import, tests | Action: GMP-129 ingestion milestone (classification, stub/manual-path removal, canonical commands) | Tests: 736 passed pure tier
 - [2026-09-17] [EXECUTE] Files: plasticos_transaction/legacy_erp, Makefile, docs/runbooks | Action: LegacyErp mapping-status + canonical command + runtime gate | Tests: 730 passed pure tier
 

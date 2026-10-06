@@ -3,7 +3,7 @@
 
 Repo-level validator for the PlasticOS import-run-summary contract
 (contracts/schemas/draft/import-run-summary.schema.json). Used by the
-canonical import commands (make import-legacy-erp / make import-vanillasoft)
+canonical import commands (make import-erp / make import-vanillasoft)
 and by CI/tests. Pure stdlib — no Odoo import, no third-party dependency.
 
 Usage:

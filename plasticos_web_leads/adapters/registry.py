@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
-from .base import WebLeadProviderAdapter
-from .cognito import CognitoAdapter
+from .base import WebLeadAdapter
+from .cognito import CognitoFormsAdapter
 
-_ADAPTERS: dict[str, WebLeadProviderAdapter] = {
-    "cognito": CognitoAdapter(),
+_ADAPTERS: dict[str, WebLeadAdapter] = {
+    "cognito": CognitoFormsAdapter(),
 }
 
 
-def get_adapter(provider: str) -> WebLeadProviderAdapter:
+def registered_provider_keys() -> tuple[str, ...]:
+    """Provider keys Odoo will accept on the generic inbound route."""
+    return tuple(_ADAPTERS)
+
+
+def get_adapter(provider: str) -> WebLeadAdapter:
     """Return a known adapter or fail closed for unsupported providers."""
     normalized = (provider or "").strip().lower()
     try:
