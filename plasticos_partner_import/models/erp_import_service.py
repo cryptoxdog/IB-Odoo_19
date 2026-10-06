@@ -593,7 +593,7 @@ class PlasticosErpImport(models.AbstractModel):
             if contact_id == anchor:
                 continue
             self._alias_xmlid(partner_model, f"legacy_erp_contact_{contact_id}", partner, report, "contacts")
-        if "location_partner_ids" in partner._fields:
+        if "location_partner_ids" in partner._fields and set(partner.location_partner_ids.ids) != set(location_ids):
             partner.write({"location_partner_ids": [(6, 0, location_ids)]})
         self._sync_phone_lines(partner, phone_lines)
 

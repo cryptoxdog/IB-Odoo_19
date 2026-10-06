@@ -133,6 +133,18 @@ def _fail(failures: list[str], message: str) -> None:
     failures.append(message)
 
 
+def _replaying(env) -> bool:
+    """True once a contacts stage has completed on this database.
+
+    The sequencing checks ("no children before addresses", "no people before
+    contacts", "no role tags before roles") describe the first load of an empty
+    partner table. On a replay the later stages' records already exist, so
+    those three checks are skipped; every identity, linkage, duplicate and
+    count check still runs.
+    """
+    return bool(env["ir.config_parameter"].get_param("plasticos_partner_import.partner_count_after_contacts"))
+
+
 def _imported_companies(env):
     data = env["ir.model.data"].search(
         [
@@ -189,7 +201,7 @@ def check_counterparties(env, failures: list[str]) -> None:
     if len(companies) != expected:
         _fail(failures, f"imported companies {len(companies)}, expected {expected}")
     children = env["res.partner"].with_context(active_test=False).search([("parent_id", "in", companies.ids)])
-    if children:
+    if children and not _replaying(env):
         _fail(failures, f"child partners exist before addresses: {children[:5].mapped('name')}")
     people = companies.filtered(lambda partner: not partner.is_company)
     if people:
@@ -210,7 +222,7 @@ def check_addresses(env, failures: list[str]) -> None:
         .search([("is_company", "=", False), ("parent_id", "!=", False)])
     )
     imported_people = people.filtered(lambda partner: partner.parent_id.id in _imported_companies(env).ids)
-    if imported_people:
+    if imported_people and not _replaying(env):
         _fail(failures, f"people exist before contacts: {imported_people[:5].mapped('name')}")
     for row in _rows("Address"):
         address_id = _cell(row, "AddressID")
@@ -344,7 +356,7 @@ def check_contacts(env, failures: list[str]) -> None:
             _fail(failures, f"a partner is named {forbidden}")
     root = _by_xmlid(env, "res.partner.category", "legacy_erp_contact_role_root")
     tags = env["res.partner.category"].search([("parent_id", "=", root.id)]) if root else root
-    if tags and env["res.partner"].search_count([("category_id", "in", tags.ids)]):
+    if tags and not _replaying(env) and env["res.partner"].search_count([("category_id", "in", tags.ids)]):
         _fail(failures, f"{root.name} tags exist before the role file")
     want = expect["eli"]
     eli = _people_under(env, want["cp_id"], want["name"])
