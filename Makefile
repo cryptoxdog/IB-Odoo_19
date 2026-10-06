@@ -547,10 +547,14 @@ odoo-shell:
 
 # make update m=plasticos_commission
 # make update m=plasticos_intake,plasticos_offer
+# One-shot upgrade. The odoo service is the long-running server; without
+# --stop-after-init this recipe never exits and cron runs inside the upgrade.
 update:
 	@if [ -z "$(m)" ]; then echo "Usage: make update m=<module>"; exit 1; fi
 	@echo "→ Upgrading module(s): $(m)..."
-	@docker compose run --rm odoo -u $(m) 2>&1 | tee /tmp/odoo-update-$$(date +%Y%m%d_%H%M%S).log; \
+	@LOG=/tmp/odoo-update-$$(date +%Y%m%d_%H%M%S).log; \
+	ln -sf "$$LOG" /tmp/odoo-update-last.log; \
+	docker compose run --rm odoo -u $(m) --stop-after-init --workers=0 --max-cron-threads=0 2>&1 | tee "$$LOG"; \
 	EXIT_CODE=$${PIPESTATUS[0]}; \
 	if [ $$EXIT_CODE -ne 0 ]; then \
 		echo ""; \
@@ -559,7 +563,7 @@ update:
 	fi
 	@echo ""
 	@echo "→ Checking logs for errors..."
-	@if tail -100 /tmp/odoo-update-*.log | grep -E "ERROR|CRITICAL|Traceback" | grep -v "test_" | head -5; then \
+	@if tail -100 /tmp/odoo-update-last.log | grep -E "ERROR|CRITICAL|Traceback" | grep -v "test_" | head -5; then \
 		echo ""; \
 		echo "⚠️  Errors detected in upgrade logs (see above)"; \
 		echo "Review full log: ls -t /tmp/odoo-update-*.log | head -1"; \
@@ -586,7 +590,7 @@ update:
 	@echo "✅ Module upgrade verified — $(m) is ready"
 
 update-all:
-	docker compose run --rm odoo -u all
+	docker compose run --rm odoo -u all --stop-after-init --workers=0 --max-cron-threads=0
 
 rebuild:
 	bash scripts/rebuild-odoo-no-demo.sh
