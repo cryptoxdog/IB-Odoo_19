@@ -10,6 +10,7 @@ the status) fails the first case.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -33,12 +34,18 @@ def _run_target_with_stub(tmp_path: Path, target: str, checker: str, exit_code: 
     stub = tmp_path / checker
     stub.parent.mkdir(parents=True, exist_ok=True)
     stub.write_text(f"import sys\nprint({STUB_MARKER!r})\nsys.exit({exit_code})\n", encoding="utf-8")
+    # The stubs are not code under test. Without this, pytest-cov's subprocess
+    # hook (COV_CORE_*) starts coverage inside them from tmp_path, where
+    # pyproject's branch=true is not found, and the statement-only data it
+    # writes into the parent run's data file breaks `--cov` combine.
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("COV_CORE_", "COVERAGE_"))}
     return subprocess.run(
         [make, "--no-print-directory", "-C", str(tmp_path), "-f", str(MAKEFILE), target],
         capture_output=True,
         text=True,
         check=False,
         timeout=60,
+        env=env,
     )
 
 
