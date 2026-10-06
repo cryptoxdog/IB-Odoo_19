@@ -9,3 +9,11 @@ name = "default"
 odoo_path = "${userHome}/dev/odoo-19"
 addons_paths = ["${userHome}/dev/odoo-19/addons", "$autoDetectAddons"]
 python_path = "${workspaceFolder}/.venv/bin/python"
+
+# Upstream source stays indexed. OdooLS diagnostics are published only for PlasticOS.
+[[config.diagnostic_filters]]
+paths = [
+    "${userHome}/dev/odoo-19/**",
+    "${userHome}/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise/**",
+]
+path_type = "in"
