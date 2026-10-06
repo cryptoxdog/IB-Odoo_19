@@ -64,8 +64,7 @@ __all__ = [
     "reconstruct_all_headers",
 ]
 
-# Historical states this reconstruction can emit, in settlement order. Every
-# value is a member of the plasticos.transaction ``state`` selection.
+# Historical states this reconstruction can emit, in settlement order.
 HISTORICAL_STATES = ("draft", "delivered", "invoiced", "closed")
 
 _DATE_FORMATS = ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d")

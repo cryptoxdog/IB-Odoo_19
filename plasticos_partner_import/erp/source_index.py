@@ -11,8 +11,8 @@ Identity contract (source key -> imported entity)::
     CT_ID      -> contact                 (res.partner person)
     CRA_ID     -> contact role assignment
     CpID       -> SalesReps rows          (res.partner.user_id on the company)
-    BuySellNo  -> transaction             (plasticos.transaction)
-    DetailID   -> transaction line        (plasticos.transaction.line)
+    BuySellNo  -> deal header
+    DetailID   -> deal line
 
 Company names, e-mail addresses, phone numbers, address text, and Odoo database
 ids are never identity. They are business data.

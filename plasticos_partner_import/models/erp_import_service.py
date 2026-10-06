@@ -13,8 +13,9 @@ Pipeline::
         -> erp.reader          (exact-format source rows)
         -> erp.source_index    (CpID / AddressID / CT_ID / CRA_ID /
                                      BuySellNo / DetailID)
-        -> erp.header_forensics(supplier / buyer / date / state)
-        -> this service             (deterministic upsert into current models)
+        -> erp.header_forensics(supplier / buyer / date / state; the deal
+           extension consumes this, the partner stages do not)
+        -> this service             (deterministic partner upsert)
 
 Identity is always a stable ERP key resolved through ``ir.model.data``.
 Company names, e-mail addresses, phone numbers, address text, and Odoo database
@@ -26,11 +27,9 @@ salespersons. An ``after_stage`` hook runs after each stage and before anything
 commits, so a stage whose validator fails is rolled back by the caller and
 never persists.
 
-Atomicity: one ``BuySellNo`` is one logical unit. Header, every line, and every
-identity marker are written inside a single savepoint, so a failing line leaves
-no partial transaction and no stale marker — a retry reprocesses it cleanly.
-This replaces ``transaction_import_service``, which committed every 100 records
-mid-transaction and created transactions with no buyer, supplier, or date.
+Deal rows are not written here. ``_extend_historical_import`` is the extension
+point a later module overrides after the partner stages. With no override, a
+full run still finishes the partner stages and persists no deal rows.
 """
 
 from __future__ import annotations
@@ -43,8 +42,6 @@ from odoo.tools import html2plaintext
 _logger = logging.getLogger(__name__)
 
 RES_PARTNER = "res.partner"
-PLASTICOS_TRANSACTION = "plasticos.transaction"
-PLASTICOS_TRANSACTION_LINE = "plasticos.transaction.line"
 PARTNER_CATEGORY = "res.partner.category"
 
 # ir.model.data namespace for ERP source identity.
@@ -53,7 +50,7 @@ PARTNER_CATEGORY = "res.partner.category"
 XMLID_MODULE = "plasticos_transaction"
 
 # Partner stages, in execution order. A full run executes every one of them
-# before transactions; ``layer`` selects exactly one.
+# before the historical-import extension; ``layer`` selects exactly one.
 PARTNER_LAYERS = ("counterparties", "addresses", "contacts", "roles", "salesreps")
 LAYER_TABLE = {
     "counterparties": "CounterParty",
@@ -101,7 +98,7 @@ class PlasticosErpImport(models.AbstractModel):
             payload_root: Override the payload location. Defaults to statement
                 SQL in ``plasticos_partner_import/erp_extracted_data``, then
                 the frozen grid pack.
-            limit: Process at most this many transactions (diagnostics only).
+            limit: Passed to the historical-import extension (diagnostics only).
             commit: Commit between complete transactions. Never mid-transaction.
                 A partners-only or single-layer run commits once, after every
                 stage has passed its ``after_stage`` hook.
@@ -125,7 +122,7 @@ class PlasticosErpImport(models.AbstractModel):
         """
         # Lazy import: the source layer is Odoo-free and must not be imported
         # at addon load time.
-        from ..erp import header_forensics, reader, source_index
+        from ..erp import reader, source_index
         from ..erp import report as report_module
 
         if layer and layer not in PARTNER_LAYERS:
@@ -149,6 +146,7 @@ class PlasticosErpImport(models.AbstractModel):
             if after_stage is not None and not dry_run:
                 after_stage(name, payload)
 
+        realized_downstream = False
         if layer:
             self._run_layer(layer, index, report, dry_run)
             stage_done(layer)
@@ -166,23 +164,22 @@ class PlasticosErpImport(models.AbstractModel):
             self._import_sales_reps(index, report, dry_run)
             stage_done("salesreps")
             if not partners_only:
-                # The transaction spine is a higher layer; this addon does not
-                # depend on it. A deal import needs it installed.
-                if PLASTICOS_TRANSACTION not in self.env:
-                    raise RuntimeError(
-                        "plasticos_transaction is not installed; run the import with partners_only "
-                        "or install the transaction module before importing deals"
-                    )
-                headers = header_forensics.reconstruct_all_headers(index)
-                self._import_transactions(index, headers, report, partner_by_cp, limit, commit, dry_run)
+                realized_downstream = bool(
+                    self._extend_historical_import(index, report, partner_by_cp, limit, commit, dry_run)
+                )
 
-        if (layer or partners_only) and commit and not dry_run:
-            # Every stage above has passed its hook; nothing was committed before this.
+        if commit and not dry_run and (layer or partners_only or not realized_downstream):
+            # Partner stages passed their hooks. A deal extension that returns
+            # true owns its own commits and must not be committed twice.
             self.env.cr.commit()
         result = report.as_dict()
         scope = f" ({layer})" if layer else " (partners only)" if partners_only else ""
         _logger.info("ERP import finished%s: %s", scope, result["counts"])
         return result
+
+    def _extend_historical_import(self, index, report, partner_by_cp, limit, commit, dry_run) -> bool:
+        """Extension point. This module does not realize records beyond partners."""
+        return False
 
     def _run_layer(self, layer: str, index, report, dry_run: bool) -> None:
         """Execute exactly one partner stage against the partners already stored."""
@@ -994,110 +991,6 @@ class PlasticosErpImport(models.AbstractModel):
         )
         tag_cache[role] = tag.id
         return tag.id
-
-    # ------------------------------------------------------------------
-    # Stage 4 — transactions and lines (atomic per BuySellNo)
-    # ------------------------------------------------------------------
-    def _import_transactions(
-        self, index, headers, report, partner_by_cp: dict, limit, commit: bool, dry_run: bool
-    ) -> None:
-        buysell_numbers = index.buysell_numbers()
-        if limit:
-            buysell_numbers = buysell_numbers[:limit]
-
-        for buysell_no in buysell_numbers:
-            header = headers[buysell_no]
-            for anomaly in header.anomalies:
-                report.anomaly("Transaction", buysell_no, anomaly)
-
-            if dry_run:
-                report.skip("transactions")
-                report.bump("transaction_lines", "skipped", len(header.detail_ids))
-                continue
-
-            try:
-                # One BuySellNo = one logical unit. Header, all lines, and all
-                # identity markers commit together or not at all.
-                with self.env.cr.savepoint():
-                    self._import_one_transaction(index, header, report, partner_by_cp)
-            except Exception as exc:  # noqa: BLE001 - one bad unit must not abort the run
-                report.error(buysell_no, str(exc))
-                _logger.exception("ERP transaction %s failed and was rolled back", buysell_no)
-                continue
-
-            if commit:
-                # Only ever between complete transactions.
-                self.env.cr.commit()
-
-    def _import_one_transaction(self, index, header, report, partner_by_cp: dict) -> None:
-        Transaction = self.env[PLASTICOS_TRANSACTION].with_context(**IMPORT_CONTEXT)
-
-        values = {"name": header.buysell_no, "state": header.state}
-        supplier_id = partner_by_cp.get(header.supplier_cp_id) if header.supplier_cp_id else None
-        buyer_id = partner_by_cp.get(header.buyer_cp_id) if header.buyer_cp_id else None
-        if supplier_id:
-            values["supplier_id"] = supplier_id
-        if buyer_id:
-            values["buyer_id"] = buyer_id
-
-        # The reconstructed trade date is written only where a semantically
-        # correct field exists. No field is invented for it; see
-        # docs/erp_import_mapping.md, "Evidenced new-field candidate".
-        if header.trade_date and "transaction_date" in Transaction._fields:
-            values["transaction_date"] = header.trade_date
-
-        transaction = self._upsert(
-            Transaction, f"legacy_erp_transaction_{header.buysell_no}", values, report, "transactions"
-        )
-        self._import_lines(index, header, transaction, report)
-
-    def _import_lines(self, index, header, transaction, report) -> None:
-        from ..erp import mapping
-
-        Line = self.env[PLASTICOS_TRANSACTION_LINE].with_context(**IMPORT_CONTEXT)
-
-        for detail_id in header.detail_ids:
-            row = index.lines[detail_id]
-            values = {
-                "transaction_id": transaction.id,
-                "detail_id": detail_id,
-                "units": mapping.parse_decimal(row.get("Units")) or 1.0,
-            }
-            _set_if(values, "grade_id", _text(row, "GradeID"))
-            _set_if(values, "description", _text(row, "InvoiceDesc"))
-            _set_if(values, "lot_no", _text(row, "LotNo"))
-            _set_if(values, "color", _text(row, "Color"))
-            _set_if(values, "sale_po", _text(row, "SPo"))
-            _set_if(values, "purchase_po", _text(row, "PPo"))
-            _set_if(values, "specifications", _text(row, "Comment"))
-
-            for target, column in (
-                ("sale_weight", "SWeight"),
-                ("purchase_weight", "PWeight"),
-                ("sale_price", "SPrice"),
-                ("purchase_price", "PPrice"),
-                ("sale_amount", "SAmount"),
-                ("purchase_amount", "PAmount"),
-            ):
-                parsed = mapping.parse_decimal(row.get(column))
-                if parsed is None and _text(row, column):
-                    report.anomaly("WKSDetail", detail_id, f"unparsable {column}={row.get(column)!r}")
-                elif parsed is not None:
-                    values[target] = parsed
-
-            uom, uom_anomaly = mapping.weight_uom(row.get("SWeightUOM"), row.get("PWeightUOM"))
-            if uom:
-                values["weight_uom"] = uom
-            elif uom_anomaly:
-                report.anomaly("WKSDetail", detail_id, uom_anomaly)
-
-            unit, unit_anomaly = mapping.unit_type(row.get("UnitType"))
-            if unit:
-                values["unit_type"] = unit
-            elif unit_anomaly:
-                report.anomaly("WKSDetail", detail_id, unit_anomaly)
-
-            self._upsert(Line, f"legacy_erp_detail_{detail_id}", values, report, "transaction_lines")
 
     # ------------------------------------------------------------------
     # Deterministic upsert through ir.model.data

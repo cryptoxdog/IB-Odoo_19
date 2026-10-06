@@ -16,7 +16,10 @@ package = sys.modules.setdefault("plasticos_web_leads", types.ModuleType("plasti
 package.__path__ = [str(PACKAGE_ROOT)]
 
 from plasticos_web_leads.adapters.base import (  # noqa: E402
+    EVENT_DELETED,
     EVENT_SUBMITTED,
+    EVENT_UNKNOWN,
+    EVENT_UPDATED,
     PACKET_SCHEMA_VERSION,
     InboundRequest,
     WebLeadAdapter,
@@ -194,6 +197,27 @@ def test_default_provider_migration_backfills_leads_and_config():
     assert "WHERE provider_key IS NULL" in source
     assert "UPDATE plasticos_web_lead_config" in source
     assert "COALESCE(NULLIF(inbound_default_provider_key, ''), 'cognito')" in source
+
+
+def _cognito_payload(action: str, **entry_fields: str) -> dict:
+    payload = CognitoFormsAdapter.sample_payload()
+    payload["Entry"]["Action"] = action
+    payload["Entry"].update(entry_fields)
+    return payload
+
+
+def test_cognito_submission_follows_the_entry_contract_not_the_button_label():
+    """A renamed submit action is still a submission. Update, Delete, and Incomplete are not."""
+    adapter = CognitoFormsAdapter()
+    assert adapter.classify_event(_cognito_payload("Submit")).kind == EVENT_SUBMITTED
+    assert adapter.classify_event(_cognito_payload("")).kind == EVENT_SUBMITTED
+    assert adapter.classify_event(_cognito_payload("Send Request")).kind == EVENT_SUBMITTED
+    assert adapter.classify_event(_cognito_payload("Update")).kind == EVENT_UPDATED
+    assert adapter.classify_event(_cognito_payload("Delete")).kind == EVENT_DELETED
+    incomplete = _cognito_payload("Approve", Status="Incomplete")
+    first = adapter.classify_event(incomplete).kind
+    assert first == EVENT_UNKNOWN
+    assert adapter.classify_event(incomplete).kind == first
 
 
 def test_attachment_policy_falls_back_to_the_configured_default_provider():

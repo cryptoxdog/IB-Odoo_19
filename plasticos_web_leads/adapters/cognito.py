@@ -138,22 +138,32 @@ class CognitoFormsAdapter(WebLeadAdapter):
         return tuple(attachments)
 
     def classify_event(self, payload: Mapping[str, Any]) -> InboundEvent:
-        """Map Cognito ``Entry.Action`` onto the port event kinds.
+        """Map a Cognito entry onto the port event kinds.
 
-        Payloads that omit ``Action`` are treated as submissions so existing
-        admission fixtures keep their meaning.
+        ADR-020 points this adapter at Cognito's Submit Entry Endpoint. The
+        ``Action`` string is that action's name, which the operator can rename,
+        so it is not the authority for ``submitted``. The stable non-submit
+        entry operations remain the literals ``Update`` and ``Delete``. A blank
+        ``Action`` stays a submission so existing admission fixtures keep their
+        meaning. ``Status`` ``Incomplete`` is Save & Resume and is ignored.
+        Any other completed entry action on this endpoint is a submission.
         """
         if not isinstance(payload, Mapping):
             raise ValueError("Cognito payload must be a JSON object.")
-        action = self._text(self._entry(payload).get("Action")).lower()
+        entry = self._entry(payload)
+        action = self._text(entry.get("Action")).lower()
+        status = self._text(entry.get("Status")).lower()
         if action == _COGNITO_ACTION_UPDATE:
             kind = EVENT_UPDATED
         elif action == _COGNITO_ACTION_DELETE:
             kind = EVENT_DELETED
         elif action in (_COGNITO_ACTION_SUBMIT, ""):
             kind = EVENT_SUBMITTED
-        else:
+        elif status == "incomplete":
             kind = EVENT_UNKNOWN
+        else:
+            # Renamed submit action on the Submit Entry Endpoint.
+            kind = EVENT_SUBMITTED
         return InboundEvent(
             provider=self.provider_key,
             kind=kind,

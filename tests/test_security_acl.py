@@ -191,3 +191,75 @@ class TestBillExclusivity(PlasticosTestCase):
         tx1.write({"freight_bill_ids": [(4, bill.id)]})
         with self.assertRaises(UserError):
             tx2.write({"freight_bill_ids": [(4, bill.id)]})
+
+
+@tagged("post_install", "-at_install", "plasticos", "security")
+class TestPartnerPhonePrivacy(PlasticosTestCase):
+    """plasticos.partner.phone follows the private-partner record rule."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        user_group = cls.env.ref("base.group_user")
+        sales = cls.env.ref("plasticos_security_base.group_sales_rep")
+        admin_group = cls.env.ref("base.group_system")
+        Users = cls.env["res.users"]
+        cls.owner = Users.create(
+            {
+                "name": "Phone Owner",
+                "login": "phone_owner_priv",
+                "group_ids": [(6, 0, [user_group.id, sales.id])],
+            }
+        )
+        cls.other = Users.create(
+            {
+                "name": "Phone Other",
+                "login": "phone_other_priv",
+                "group_ids": [(6, 0, [user_group.id, sales.id])],
+            }
+        )
+        cls.admin = Users.create(
+            {
+                "name": "Phone Admin",
+                "login": "phone_admin_priv",
+                "group_ids": [(6, 0, [user_group.id, admin_group.id])],
+            }
+        )
+        Partner = cls.env["res.partner"]
+        cls.private_partner = Partner.with_user(cls.owner).create({"name": "Private Phone Co", "is_company": True})
+        cls.private_partner.sudo().write({"is_private": True})
+        cls.public_partner = Partner.sudo().create({"name": "Public Phone Co", "is_company": True, "is_private": False})
+        Phone = cls.env["plasticos.partner.phone"].sudo()
+        cls.private_phone = Phone.create(
+            {"partner_id": cls.private_partner.id, "label": "mobile", "number": "555-0101"}
+        )
+        cls.public_phone = Phone.create({"partner_id": cls.public_partner.id, "label": "mobile", "number": "555-0102"})
+
+    def test_visible_parent_phone_is_readable(self):
+        data = self.public_phone.with_user(self.other).read(["number"])
+        self.assertEqual(data[0]["number"], "555-0102")
+
+    def test_private_parent_phone_is_hidden_from_another_sales_rep(self):
+        Phone = self.env["plasticos.partner.phone"].with_user(self.other)
+        self.assertFalse(Phone.search([("id", "=", self.private_phone.id)]))
+        with self.assertRaises(AccessError):
+            self.private_phone.with_user(self.other).read(["number"])
+
+    def test_owner_can_read_private_parent_phone(self):
+        data = self.private_phone.with_user(self.owner).read(["number"])
+        self.assertEqual(data[0]["number"], "555-0101")
+
+    def test_admin_can_read_private_parent_phone(self):
+        data = self.private_phone.with_user(self.admin).read(["number"])
+        self.assertEqual(data[0]["number"], "555-0101")
+
+    def test_sales_rep_cannot_unlink_phone_and_admin_can(self):
+        phone = (
+            self.env["plasticos.partner.phone"]
+            .sudo()
+            .create({"partner_id": self.public_partner.id, "label": "fax", "number": "555-0199"})
+        )
+        with self.assertRaises(AccessError):
+            phone.with_user(self.other).unlink()
+        phone.with_user(self.admin).unlink()
+        self.assertFalse(phone.exists())

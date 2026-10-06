@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "plasticos_partner_import"))
 
 SERVICE = ROOT / "plasticos_partner_import" / "models" / "erp_import_service.py"
+DEAL_SERVICE = ROOT / "plasticos_transaction" / "models" / "legacy_erp_import_service.py"
 RUNNER = ROOT / "plasticos_partner_import" / "scripts" / "run_erp_import.py"
 ERP_PKG = ROOT / "plasticos_partner_import" / "erp"
 
@@ -29,6 +30,16 @@ def service_source() -> str:
 @pytest.fixture(scope="module")
 def service_tree(service_source: str) -> ast.Module:
     return ast.parse(service_source)
+
+
+@pytest.fixture(scope="module")
+def deal_source() -> str:
+    return DEAL_SERVICE.read_text(encoding="utf-8")
+
+
+@pytest.fixture(scope="module")
+def deal_tree(deal_source: str) -> ast.Module:
+    return ast.parse(deal_source)
 
 
 def _function(tree: ast.Module, name: str) -> ast.FunctionDef:
@@ -114,8 +125,8 @@ def test_identity_is_never_a_name_email_or_database_id(service_source):
 # ---------------------------------------------------------------------------
 # Atomicity (gap G09)
 # ---------------------------------------------------------------------------
-def test_each_buysellno_is_wrapped_in_a_savepoint(service_tree):
-    loop = _function(service_tree, "_import_transactions")
+def test_each_buysellno_is_wrapped_in_a_savepoint(deal_tree):
+    loop = _function(deal_tree, "_import_transactions")
     savepoints = [
         node
         for node in ast.walk(loop)
@@ -138,8 +149,8 @@ def test_each_buysellno_is_wrapped_in_a_savepoint(service_tree):
     assert "_import_one_transaction" in called
 
 
-def test_commit_never_happens_inside_a_transaction_unit(service_tree):
-    loop = _function(service_tree, "_import_transactions")
+def test_commit_never_happens_inside_a_transaction_unit(deal_tree):
+    loop = _function(deal_tree, "_import_transactions")
     commits = [
         node
         for node in ast.walk(loop)
@@ -187,8 +198,8 @@ def test_identity_marker_is_created_with_the_record_not_before(service_tree):
     assert "ir.model.data" in ast.dump(marker_creates[0].func.value)
 
 
-def test_failed_transaction_is_recorded_and_the_run_continues(service_tree):
-    loop = _function(service_tree, "_import_transactions")
+def test_failed_transaction_is_recorded_and_the_run_continues(deal_tree):
+    loop = _function(deal_tree, "_import_transactions")
     handlers = [node for node in ast.walk(loop) if isinstance(node, ast.ExceptHandler)]
     assert handlers, "a failing BuySellNo must be recorded, not abort the run"
     handler_body = ast.dump(handlers[0])
@@ -247,12 +258,13 @@ def test_no_new_field_is_declared_by_the_import(service_source):
     assert "fields." not in service_source, "the import must add no field to any model"
 
 
-def test_optional_targets_are_capability_checked(service_source):
+def test_optional_targets_are_capability_checked(service_source, deal_source):
     """Fields that may not exist on this database are probed, never assumed."""
-    for field_name in ("credit_limit", "industry_id", "transaction_date"):
+    for field_name in ("credit_limit", "industry_id"):
         guarded = f'"{field_name}" in ' in service_source or f'"{field_name}" not in ' in service_source
         assert guarded, f"{field_name} is written without a _fields capability check"
     assert "_fields" in service_source
+    assert '"transaction_date" in ' in deal_source
 
 
 def test_related_records_are_looked_up_never_created(service_tree):
@@ -288,7 +300,7 @@ def test_full_run_executes_every_partner_stage_before_transactions(service_tree)
         "_import_contacts",
         "_import_roles",
         "_import_sales_reps",
-        "_import_transactions",
+        "_extend_historical_import",
     )
     order = _calls_in_order(run, stages)
     assert order == list(stages), f"full run calls stages in order {order}"
@@ -376,3 +388,34 @@ def test_brokerage_mailboxes_are_dropped_at_the_mapping_seam(service_source):
     assert "external_emails" in service_source
     for raw in ('_text(row, "Email")', '_text(row, "BillingEmail")'):
         assert raw not in service_source, f"{raw} bypasses the internal-mailbox filter"
+
+
+def test_partner_import_runtime_does_not_name_layer5_models():
+    """Partner import may keep source-disposition catalogs. It may not call Layer 5."""
+    runtime = ROOT / "plasticos_partner_import" / "models"
+    for path in runtime.rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        assert "plasticos.transaction" not in text, path.name
+    manifest = ast.literal_eval((ROOT / "plasticos_partner_import" / "__manifest__.py").read_text(encoding="utf-8"))
+    assert "plasticos_transaction" not in manifest["depends"]
+    assert "plasticos_crm_bridge" not in manifest["depends"]
+
+
+def test_deal_realization_extends_the_partner_importer(deal_source, deal_tree):
+    """Layer 5 consumes the Layer 3 importer. It does not own a second reader."""
+    manifest = ast.literal_eval((ROOT / "plasticos_transaction" / "__manifest__.py").read_text(encoding="utf-8"))
+    assert "plasticos_partner_import" in manifest["depends"]
+    assert '_inherit = "plasticos.erp.import"' in deal_source
+    assert '_name = "plasticos.' not in deal_source
+    init = (ROOT / "plasticos_transaction" / "models" / "__init__.py").read_text(encoding="utf-8")
+    assert "from . import legacy_erp_import_service" in init
+    extend = _function(deal_tree, "_extend_historical_import")
+    called = {
+        node.func.attr
+        for node in ast.walk(extend)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+    }
+    assert "_import_transactions" in called
+    assert "reconstruct_all_headers" in ast.dump(extend)
+    assert "import csv" not in deal_source
+    assert "run_csv_import" not in deal_source

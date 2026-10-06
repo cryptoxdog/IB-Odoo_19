@@ -11,8 +11,8 @@ Two hard rules govern this module:
   CSV service defaulted unknown weight UOMs to ``"L"`` — that is exactly the
   behaviour these functions replace.)
 * **Existing fields first.** Every target named here already exists on
-  ``res.partner``, ``plasticos.transaction``, or ``plasticos.transaction.line``.
-  This import adds no field to any model.
+  ``res.partner`` or on the deal header and line models. This import adds no
+  field to any model.
 """
 
 from __future__ import annotations
@@ -125,7 +125,7 @@ ODOO_ADDRESS_TYPE: dict[str, str] = {
 PRIMARY_CONTACT_ROLE = "Primary"
 
 # ---------------------------------------------------------------------------
-# WKSDetail UOM / unit type -> plasticos.transaction.line selections
+# WKSDetail UOM / unit type selections
 # ---------------------------------------------------------------------------
 # ``weight_uom`` selection is exactly L / S / E.
 WEIGHT_UOM: frozenset[str] = frozenset({"L", "S", "E"})
@@ -333,7 +333,7 @@ def weight_uom(sale_uom: str | None, purchase_uom: str | None) -> tuple[str | No
 
 
 def unit_type(raw_unit_type: str | None) -> tuple[str | None, str | None]:
-    """``WKSDetail.UnitType`` -> ``plasticos.transaction.line.unit_type``."""
+    """``WKSDetail.UnitType`` -> the ``unit_type`` selection."""
     code = _clean(raw_unit_type).upper()
     if not code:
         return None, None

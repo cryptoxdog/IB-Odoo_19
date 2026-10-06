@@ -85,4 +85,4 @@ docker compose -p odoo19 run --rm odoo \
 | Module | Notes |
 |---|---|
 | `plasticos_facility_profile` | Imported partners can be assigned facility profiles post-import |
-| `plasticos_crm_bridge` | CRM leads created from import can be bridged to the plasticos pipeline |
+| `plasticos_crm_bridge` | Optional. When installed, ERP partners take its UTM source; not a manifest dependency, so partner import does not pull the transaction spine |
