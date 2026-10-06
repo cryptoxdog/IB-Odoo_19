@@ -60,6 +60,15 @@ def test_registered_adapter_conforms_to_the_port(provider_key, adapter):
     assert not adapter.authenticate(_request(query={"access_token": secret}), secret="")
 
 
+@pytest.mark.parametrize("provider_key, adapter", list(_ADAPTERS.items()))
+def test_non_ascii_tokens_are_rejected_without_raising(provider_key, adapter):
+    """A stray non-ASCII token is a 401, never a TypeError from ``hmac.compare_digest``."""
+    secret = "port-contract-secret"
+    assert not adapter.authenticate(_request(query={"access_token": "é"}), secret=secret)
+    assert not adapter.authenticate(_request(headers={"Authorization": "Bearer café"}), secret=secret)
+    assert adapter.authenticate(_request(query={"access_token": "café"}), secret="café")
+
+
 def test_registry_lists_exactly_its_adapters_and_fails_closed():
     assert registered_provider_keys() == tuple(_ADAPTERS)
     with pytest.raises(ValueError, match="Unsupported"):

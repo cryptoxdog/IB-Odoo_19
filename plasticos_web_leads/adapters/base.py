@@ -174,7 +174,10 @@ class WebLeadAdapter(ABC):
         stored = (secret or "").strip()
         if not stored:
             return False
-        return any(hmac.compare_digest(token, stored) for token in self.presented_tokens(request))
+        # Compare bytes: ``compare_digest`` raises TypeError on non-ASCII ``str``
+        # input, which would turn a bad token into a 500 instead of a 401.
+        expected = stored.encode("utf-8")
+        return any(hmac.compare_digest(token.encode("utf-8"), expected) for token in self.presented_tokens(request))
 
 
 def attachment_to_dict(attachment: WebLeadAttachment, *, include_acquisition_url: bool = False) -> dict[str, Any]:

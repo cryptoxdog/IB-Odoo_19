@@ -15,7 +15,6 @@
         "plasticos_facility_profile",
         "plasticos_crm_bridge",
         "plasticos_intake",
-        "plasticos_transaction",
     ],
     "data": [
         "security/ir.model.access.csv",

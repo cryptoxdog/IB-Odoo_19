@@ -166,6 +166,13 @@ class PlasticosErpImport(models.AbstractModel):
             self._import_sales_reps(index, report, dry_run)
             stage_done("salesreps")
             if not partners_only:
+                # The transaction spine is a higher layer; this addon does not
+                # depend on it. A deal import needs it installed.
+                if PLASTICOS_TRANSACTION not in self.env:
+                    raise RuntimeError(
+                        "plasticos_transaction is not installed; run the import with partners_only "
+                        "or install the transaction module before importing deals"
+                    )
                 headers = header_forensics.reconstruct_all_headers(index)
                 self._import_transactions(index, headers, report, partner_by_cp, limit, commit, dry_run)
 
@@ -331,7 +338,12 @@ class PlasticosErpImport(models.AbstractModel):
                             child_name=_location_title(row, parent_name),
                         )
                     else:
+                        # The address folded into the company. Alias its AddressID
+                        # marker to the company so the contacts stage, which rebuilds
+                        # the address catalog from markers alone, and every replay
+                        # resolve this AddressID to the same partner.
                         partner_by_address[address_id] = parent.id
+                        self._ensure_identity_marker(Partner, f"legacy_erp_address_{address_id}", parent)
                         report.bump("locations", "updated" if wrote else "skipped")
                     continue
                 self._create_location(
@@ -1123,6 +1135,23 @@ class PlasticosErpImport(models.AbstractModel):
         if bucket:
             report.bump(bucket, "created")
         return record
+
+    def _ensure_identity_marker(self, model, xml_id: str, record) -> None:
+        """Bind ``xml_id`` to ``record`` unless the marker already names a live record.
+
+        An existing marker is kept, so an address that an earlier run stored as
+        its own location partner keeps that identity; only an unmarked
+        AddressID is aliased.
+        """
+        data = self.env["ir.model.data"].search(
+            [("module", "=", XMLID_MODULE), ("name", "=", xml_id), ("model", "=", model._name)],
+            limit=1,
+        )
+        if data and data.res_id and model.browse(data.res_id).exists():
+            return
+        if data:
+            data.unlink()
+        self._write_identity_marker(model, xml_id, record)
 
     def _write_identity_marker(self, model, xml_id: str, record) -> None:
         """Bind ``xml_id`` to an existing ``record`` in the ERP identity namespace."""
