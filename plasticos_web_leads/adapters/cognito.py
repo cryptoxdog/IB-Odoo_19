@@ -19,8 +19,10 @@ from .base import (
 )
 
 _COGNITO_ACTION_SUBMIT = "submit"
+_COGNITO_ACTION_SEND_REQUEST = "send request"
 _COGNITO_ACTION_UPDATE = "update"
 _COGNITO_ACTION_DELETE = "delete"
+_COGNITO_STATUS_INCOMPLETE = "incomplete"
 
 _COGNITO_ATTACHMENT_FIELDS = (
     "UploadPhotosOfYourScrapUpTo10",
@@ -141,12 +143,10 @@ class CognitoFormsAdapter(WebLeadAdapter):
         """Map a Cognito entry onto the port event kinds.
 
         ADR-020 points this adapter at Cognito's Submit Entry Endpoint. The
-        ``Action`` string is that action's name, which the operator can rename,
-        so it is not the authority for ``submitted``. The stable non-submit
-        entry operations remain the literals ``Update`` and ``Delete``. A blank
-        ``Action`` stays a submission so existing admission fixtures keep their
-        meaning. ``Status`` ``Incomplete`` is Save & Resume and is ignored.
-        Any other completed entry action on this endpoint is a submission.
+        button label is not the only submission: blank Action and the renamed
+        ``Send Request`` action are submissions too. ``Update`` and ``Delete``
+        stay those events. Save & Resume (incomplete status) and any other
+        action stay unknown, so a stray label cannot create a lead.
         """
         if not isinstance(payload, Mapping):
             raise ValueError("Cognito payload must be a JSON object.")
@@ -157,13 +157,12 @@ class CognitoFormsAdapter(WebLeadAdapter):
             kind = EVENT_UPDATED
         elif action == _COGNITO_ACTION_DELETE:
             kind = EVENT_DELETED
-        elif action in (_COGNITO_ACTION_SUBMIT, ""):
-            kind = EVENT_SUBMITTED
-        elif status == "incomplete":
+        elif status == _COGNITO_STATUS_INCOMPLETE:
             kind = EVENT_UNKNOWN
-        else:
-            # Renamed submit action on the Submit Entry Endpoint.
+        elif action in (_COGNITO_ACTION_SUBMIT, _COGNITO_ACTION_SEND_REQUEST, ""):
             kind = EVENT_SUBMITTED
+        else:
+            kind = EVENT_UNKNOWN
         return InboundEvent(
             provider=self.provider_key,
             kind=kind,
