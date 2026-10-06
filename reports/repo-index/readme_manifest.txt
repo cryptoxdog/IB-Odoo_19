@@ -2,8 +2,7 @@
 ./.github/governance/README.md:1:# L9 governed analysis pipeline — IB-Odoo_19 adoption
 ./ci/baselines/README.md:1:# Audit baselines — per-finding allowlist, not a count
 ./contracts/schemas/README.md:1:# Odoo PlasticOS payload schemas
-./data/legacy_erp_sm_export/README.md:1:# Legacy ERP `SM_EXPORT` — tracked extract pack
-./data/legacy_erp_sm_export/sql/README.md:1:# Legacy ERP extract SQL (canonical)
+./data/erp_sm_export/README.md:1:# ERP `SM_EXPORT` — tracked extract pack
 ./docs/README_INDEX.md:1:# PlasticOS IB-Odoo 19 — README Index
 ./docs/README_backup_github_actions.md:1:# PlasticOS Disaster Recovery — External Backup via GitHub Actions
 ./docs/README_backup_github_actions.md:44:# Add public key to: Odoo.sh Dashboard → Project → Settings → SSH Keys
@@ -37,6 +36,7 @@
 ./plasticos_material_profile/README.md:1:# plasticos_material_profile
 ./plasticos_offer/README.md:1:# plasticos_offer
 ./plasticos_partner_import/README.md:1:# plasticos_partner_import
+./plasticos_partner_import/erp_extracted_data/README.md:1:# ERP extract SQL (canonical)
 ./plasticos_product/README.md:13:# Plasticos Product
 ./plasticos_security_base/README.md:13:# Plasticos Security Base
 ./plasticos_semantic_kernel/README.md:1:# plasticos_semantic_kernel

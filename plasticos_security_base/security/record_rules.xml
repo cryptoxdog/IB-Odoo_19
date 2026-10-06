@@ -23,6 +23,29 @@
         <field name="perm_unlink" eval="True"/>
     </record>
 
+    <!-- 1b. Partner phone lines follow their partner's privacy.
+         plasticos.partner.phone grants model-wide access to internal users;
+         this rule scopes the rows to partners the user may see, mirroring
+         rule_partner_private through partner_id. -->
+    <record id="rule_partner_phone_private" model="ir.rule">
+        <field name="name">Plasticos: Partner Phone - Follows Partner Privacy</field>
+        <field name="model_id" ref="plasticos_facility_profile.model_plasticos_partner_phone"/>
+        <field name="domain_force">[
+            '|',
+            ('partner_id.is_private', '=', False),
+            ('partner_id.create_uid', '=', user.id)
+        ]</field>
+        <field name="groups" eval="[
+            (4, ref('plasticos_security_base.group_sales_rep')),
+            (4, ref('plasticos_security_base.group_logistics')),
+            (4, ref('plasticos_security_base.group_accounting')),
+        ]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
     <!-- 2. Transaction: Sales Rep sees own only
          user_id = user OR create_uid = user
          Logistics and Accounting are NOT in this rule's groups,

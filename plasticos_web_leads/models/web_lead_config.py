@@ -65,6 +65,15 @@ class PlasticosWebLeadConfig(models.Model):
         default=True,
         help="When disabled, endpoints return 503.",
     )
+    inbound_default_provider_key = fields.Char(
+        string="Default Inbound Provider",
+        default="cognito",
+        required=True,
+        help=(
+            "Provider key used for attachment destination policy when a lead has no "
+            "stored provider_key. New admissions record their own provider key."
+        ),
+    )
     default_source_type = fields.Selection(
         [
             ("post_consumer", "Post Consumer"),
@@ -118,8 +127,8 @@ class PlasticosWebLeadConfig(models.Model):
         string="Additional Attachment Hosts",
         help=(
             "Pipe-delimited hostnames the worker may fetch inbound attachments from, "
-            "in addition to the provider adapter's built-in destination (for Cognito: "
-            "cognitoforms.com and its subdomains). Subdomains of a listed host are "
+            "in addition to the configured provider adapter's built-in destination. "
+            "Subdomains of a listed host are "
             "accepted. Every fetch is HTTPS-only, must resolve to a public address, "
             "and each redirect hop is revalidated against this policy."
         ),
@@ -522,12 +531,12 @@ class PlasticosWebLeadConfig(models.Model):
         if self.id != target.id:
             self.write({"api_key": new_key})
             _logger.warning(
-                "Web Lead API key written to singleton config %s (form was orphan %s)",
+                "Web Lead singleton config %s updated from orphan form %s",
                 target.id,
                 self.id,
             )
         else:
-            _logger.info("Web Lead API key regenerated for config %s", target.id)
+            _logger.info("Web Lead singleton config %s rotated", target.id)
         wizard = self.env["plasticos.web.lead.api.key.wizard"].create(
             {
                 "config_id": target.id,

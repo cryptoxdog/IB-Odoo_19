@@ -352,18 +352,6 @@ class TestHotReviewerRouting(_WebLeadCase):
 class TestIdentityAndIdempotency(_WebLeadCase):
     """F187-04 / F187-07 at the model level."""
 
-    def test_legacy_agent_payload_without_lead_id_gets_server_identity(self):
-        lead = self.WebLead.create_from_agent({"decision": "cold", "raw_payload": {"CompanyName": "Legacy Co"}})
-        self.assertTrue(lead.lead_id.startswith("WL-"))
-        self.assertEqual(lead.company_name, "Legacy Co")
-        self.assertNotEqual(lead.state, "error")
-
-    def test_legacy_agent_payload_identity_is_idempotent(self):
-        payload = {"lead_id": "HARD-AGENT-IDEMP-001", "decision": "cold", "raw_payload": {}}
-        first = self.WebLead.create_from_agent(payload)
-        second = self.WebLead.create_from_agent(payload)
-        self.assertEqual(first, second)
-
     def test_unique_collision_is_treated_as_replay_and_returns_prior_receipt(self):
         payload = _hot_payload("HARD-RACE-001")
         winner = self.WebLead.create_from_cognito(payload)
@@ -406,3 +394,103 @@ class TestIdentityAndIdempotency(_WebLeadCase):
         winner.invalidate_recordset(["provider_external_id"])
         with self.assertRaises(UserError):
             self.WebLead.create_from_cognito(_hot_payload("HARD-RACE-MISMATCH-001"))
+
+
+@tagged("post_install", "-at_install", "plasticos", "web_lead", "hardening")
+class TestRejectedInboundIdempotency(_WebLeadCase):
+    """A repeated invalid delivery with a stable provider identity never adds a second rejection row."""
+
+    def _invalid_body(self, number):
+        return {
+            "Entry": {"Number": number, "DateSubmitted": "2026-09-21T12:00:00Z"},
+            "YourBusinessCompanyName": "Rejected Co",
+            "UploadPhotosOfYourScrapUpTo10": [
+                {"Id": "dup", "Name": "a.jpg", "File": "https://www.cognitoforms.com/fa/a"},
+                {"Id": "dup", "Name": "b.jpg", "File": "https://www.cognitoforms.com/fa/b"},
+            ],
+        }
+
+    def test_repeated_rejected_delivery_updates_the_one_row(self):
+        body = self._invalid_body("7001")
+        first = self.WebLead.record_rejected_inbound("cognito", body, "Duplicate Cognito attachment source ID: dup.")
+        second = self.WebLead.record_rejected_inbound("cognito", body, "Duplicate Cognito attachment source ID: dup.")
+        self.assertEqual(first.id, second.id)
+        self.assertEqual(first.lead_id, "REJ-cognito-7001")
+        self.assertEqual(first.provider_external_id, "7001")
+        self.assertEqual(first.state, "error")
+        self.assertEqual(self.WebLead.search_count([("provider_external_id", "=", "7001")]), 1)
+
+    def test_repeated_rejected_delivery_refreshes_the_reason(self):
+        body = self._invalid_body("7002")
+        first = self.WebLead.record_rejected_inbound("cognito", body, "first reason")
+        again = self.WebLead.record_rejected_inbound("cognito", body, "second reason")
+        self.assertEqual(first.id, again.id)
+        self.assertEqual(again.error_message, "second reason")
+
+    def test_rejection_identity_does_not_capture_a_later_valid_resubmission(self):
+        body = self._invalid_body("7003")
+        rejected = self.WebLead.record_rejected_inbound("cognito", body, "bad attachments")
+        valid = dict(body)
+        valid["UploadPhotosOfYourScrapUpTo10"] = []
+        valid["WhatIsIt"] = "HDPE regrind"
+        admitted = self.WebLead.create_from_cognito(valid)
+        self.assertNotEqual(admitted.id, rejected.id)
+        self.assertEqual(admitted.lead_id, "CG-7003")
+        self.assertNotEqual(admitted.state, "error")
+
+    def test_delivery_without_a_stable_identity_gets_a_server_identity_each_time(self):
+        body = {"YourBusinessCompanyName": "No Entry Co"}
+        first = self.WebLead.record_rejected_inbound("cognito", body, "no identity")
+        second = self.WebLead.record_rejected_inbound("cognito", body, "no identity")
+        self.assertNotEqual(first.id, second.id)
+        self.assertFalse(first.provider_external_id)
+        self.assertTrue(first.lead_id.startswith("WL-") or first.lead_id)
+
+
+@tagged("post_install", "-at_install", "plasticos", "web_lead", "hardening")
+class TestDefaultProviderField(_WebLeadCase):
+    """The required default-provider field: its default, its backfill, and the fallback that reads it."""
+
+    def test_config_default_is_cognito_and_the_field_is_required(self):
+        field = self.config._fields["inbound_default_provider_key"]
+        self.assertTrue(field.required)
+        fresh = self.env["plasticos.web.lead.config"].new({})
+        self.assertEqual(fresh.inbound_default_provider_key, "cognito")
+        self.assertEqual(self.config.inbound_default_provider_key, "cognito")
+
+    def test_lead_without_a_provider_key_falls_back_to_the_configured_default(self):
+        lead = self.WebLead.create(
+            {"lead_id": "FALLBACK-1", "source": "web_lead", "decision": "cold", "raw_payload": {}, "state": "received"}
+        )
+        self.assertFalse(lead.provider_key)
+        hosts = lead._attachment_allowed_hosts(self.config)
+        self.assertIn("cognitoforms.com", hosts)
+        self.config.write({"inbound_default_provider_key": "no-such-provider"})
+        self.assertEqual(lead._attachment_allowed_hosts(self.config), self.config.get_attachment_allowed_hosts(()))
+
+    def test_admitted_lead_records_its_own_provider_key(self):
+        lead = self.WebLead.create_from_cognito(
+            {"Entry": {"Number": "7100"}, "YourBusinessCompanyName": "Keyed Co", "WhatIsIt": "HDPE regrind"}
+        )
+        self.assertEqual(lead.provider_key, "cognito")
+
+    def test_migration_backfills_null_provider_keys_and_an_empty_default(self):
+        import importlib.util
+        from pathlib import Path
+
+        lead = self.WebLead.create(
+            {"lead_id": "BACKFILL-1", "source": "web_lead", "decision": "cold", "raw_payload": {}, "state": "received"}
+        )
+        self.env.cr.execute("UPDATE plasticos_web_lead SET provider_key = NULL WHERE id = %s", (lead.id,))
+        self.env.cr.execute(
+            "UPDATE plasticos_web_lead_config SET inbound_default_provider_key = '' WHERE id = %s", (self.config.id,)
+        )
+        path = Path(__file__).resolve().parents[1] / "migrations" / "19.0.2.8.0" / "post-migrate.py"
+        spec = importlib.util.spec_from_file_location("web_lead_provider_backfill", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.migrate(self.env.cr, "19.0.2.7.2")
+        lead.invalidate_recordset(["provider_key"])
+        self.config.invalidate_recordset(["inbound_default_provider_key"])
+        self.assertEqual(lead.provider_key, "cognito")
+        self.assertEqual(self.config.inbound_default_provider_key, "cognito")

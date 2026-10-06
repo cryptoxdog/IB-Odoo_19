@@ -67,5 +67,20 @@
       <field name="company_ids" eval="[(6, 0, [ref('base.main_company')])]"/>
     </record>
 
+    <record id="partner_sales_rep_mm" model="res.partner">
+      <field name="name">Mack McMurray</field>
+      <field name="email">sales2@scrapmanagement.com</field>
+      <field name="company_type">person</field>
+    </record>
+
+    <record id="user_sales_rep_mm" model="res.users">
+      <field name="name">Mack McMurray</field>
+      <field name="login">sales2@scrapmanagement.com</field>
+      <field name="email">sales2@scrapmanagement.com</field>
+      <field name="partner_id" ref="partner_sales_rep_mm"/>
+      <field name="company_id" ref="base.main_company"/>
+      <field name="company_ids" eval="[(6, 0, [ref('base.main_company')])]"/>
+    </record>
+
   </data>
 </odoo>

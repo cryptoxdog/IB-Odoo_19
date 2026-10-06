@@ -6,7 +6,6 @@
 ./plasticos_automation/views/sale_order_views.xml
 ./plasticos_automation/views/stock_picking_views.xml
 ./plasticos_base/views/menu.xml
-./plasticos_base/views/res_config_settings_views.xml
 ./plasticos_claims/views/claim_bulk_update_wizard_views.xml
 ./plasticos_claims/views/claim_menus.xml
 ./plasticos_claims/views/claim_ux.xml

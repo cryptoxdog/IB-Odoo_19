@@ -296,3 +296,59 @@ class TestOdoo19XMLCompat(unittest.TestCase):
                             violations.append(msg)
                         ids_seen[xml_id] = i
         self.assertEqual(violations, [], "Duplicate XML IDs:\n" + "\n".join(violations))
+
+
+class TestPartnerPhoneFollowsPartnerPrivacy(unittest.TestCase):
+    """Phone rows use the same privacy domain as their parent partner."""
+
+    def test_phone_rule_mirrors_the_private_partner_rule_and_keeps_unlink_acl(self):
+        import csv
+        import xml.etree.ElementTree as ET
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[1]
+        rules_path = root / "plasticos_security_base" / "security" / "record_rules.xml"
+        # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
+        rules = ET.parse(rules_path).getroot()  # nosec B314 - trusted local Odoo XML
+        by_id = {node.get("id"): node for node in rules.findall("record") if node.get("model") == "ir.rule"}
+        partner = by_id["rule_partner_private"]
+        phone = by_id["rule_partner_phone_private"]
+
+        def field_node(record, name):
+            for child in record:
+                if child.get("name") == name:
+                    return child
+            raise AssertionError(name)
+
+        def field_text(record, name):
+            return "".join(field_node(record, name).itertext())
+
+        partner_domain = field_text(partner, "domain_force")
+        phone_domain = field_text(phone, "domain_force")
+        self.assertIn("('is_private', '=', False)", partner_domain)
+        self.assertIn("('create_uid', '=', user.id)", partner_domain)
+        self.assertIn("('partner_id.is_private', '=', False)", phone_domain)
+        self.assertIn("('partner_id.create_uid', '=', user.id)", phone_domain)
+        partner_groups = field_node(partner, "groups").get("eval") or ""
+        phone_groups = field_node(phone, "groups").get("eval") or ""
+        self.assertEqual(phone_groups, partner_groups)
+        self.assertIn("plasticos_security_base.group_sales_rep", phone_groups)
+        self.assertIn("plasticos_security_base.group_logistics", phone_groups)
+        self.assertIn("plasticos_security_base.group_accounting", phone_groups)
+        self.assertNotIn("base.group_system", phone_groups)
+        self.assertEqual(
+            field_node(phone, "model_id").get("ref"),
+            "plasticos_facility_profile.model_plasticos_partner_phone",
+        )
+
+        acl_path = root / "plasticos_facility_profile" / "security" / "ir.model.access.csv"
+        with acl_path.open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+        user = next(row for row in rows if row["id"] == "access_plasticos_partner_phone_user")
+        admin = next(row for row in rows if row["id"] == "access_plasticos_partner_phone_admin")
+        self.assertEqual(user["perm_read"], "1")
+        self.assertEqual(user["perm_write"], "1")
+        self.assertEqual(user["perm_create"], "1")
+        self.assertEqual(user["perm_unlink"], "0")
+        self.assertEqual(admin["perm_unlink"], "1")
+        self.assertEqual(admin["group_id:id"], "base.group_system")
