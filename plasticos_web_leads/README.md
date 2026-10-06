@@ -1,7 +1,7 @@
 ---
 component_id: "plasticos_web_leads"
 component_name: "PlasticOS Web Leads"
-module_version: "19.0.2.7.1"
+module_version: "19.0.2.8.1"
 layer: "integration"
 domain: "plasticos"
 type: "odoo_module"
@@ -48,21 +48,17 @@ All admitted image evidence available at each commercial handoff is copied to bo
 
 `base`, `mail`, `utm`, `plasticos_facility_profile`, `plasticos_intake`, `plasticos_material_profile`, and `purchase`.
 
-## Public API compatibility
+## Public API
 
-The existing endpoints remain unchanged:
+- `POST /api/v1/web-lead/inbound/<provider_key>` — generic admission
+- `POST /api/v1/cognito-webhook` — alias that selects provider `cognito`
+- `GET /api/v1/web-lead/health` — no auth
 
-- `POST /api/v1/cognito-webhook`
-- `POST /api/v1/web-lead`
-- `GET /api/v1/web-lead/health`
+Auth is `?access_token=<api_key>`, `Authorization: Bearer <api_key>`, or `X-API-Key`. Cognito Forms cannot send headers, so its Submit Entry Endpoint uses the query token. A submission is idempotent on the adapter's idempotency key. An Update or Delete event is acknowledged and does not create or change a lead. A parseable submission that fails adapter validation is stored as `state=error` and answered with HTTP 200 so the sender does not retry it. Malformed JSON is HTTP 400. An unknown provider is HTTP 404. `500` is reserved for genuine server faults.
 
-`POST /api/v1/web-lead` keeps its legacy shape: `lead_id` is optional and the
-server generates a sequence identity (`WL-00001`, ...) when it is absent; a
-supplied `lead_id` is the idempotency key. Malformed payloads (non-object body,
-empty `lead_id`, non-object `raw_payload`, missing `decision`) return a
-deterministic `400`/`422`; `500` is reserved for genuine server faults. Both
-POST endpoints are idempotent under concurrent retries: a replay of the same
-provider submission returns the prior receipt instead of a constraint error.
+## Port contract
+
+`plasticos_web_leads/adapters/base.py` owns `WebLeadAdapter`, `WebLeadPacket`, `InboundEvent`, and `InboundRequest`. A new provider is a subclass plus one registry line. Odoo admission code imports only the port and `get_adapter`. `tests/test_web_lead_adapter_contract.py` fails the build when a registered adapter drifts from that contract.
 
 Inbound API key comparison uses a timing-safe comparison. Credentials and signed attachment URLs must never be committed or placed in routine logs.
 

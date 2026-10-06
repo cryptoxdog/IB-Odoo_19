@@ -123,24 +123,6 @@ class TestInvalidData(PlasticosTestCase):
                     }
                 )
 
-    def test_web_lead_create_from_agent_generates_lead_id_when_missing(self):
-        """Legacy agent contract (F187-04): a missing lead_id gets a server identity, not an error."""
-        if "plasticos.web.lead" not in self.env:
-            self.skipTest("Web leads not installed")
-        lead = self.env["plasticos.web.lead"].create_from_agent({"decision": "cold", "raw_payload": {}})
-        self.assertTrue(lead.lead_id)
-        self.assertTrue(lead.lead_id.startswith("WL-"))
-
-    def test_web_lead_create_from_agent_rejects_malformed_identity(self):
-        """Genuinely invalid payload shapes stay deterministic UserErrors (4xx at the API)."""
-        if "plasticos.web.lead" not in self.env:
-            self.skipTest("Web leads not installed")
-        WebLead = self.env["plasticos.web.lead"]
-        with self.assertRaises(UserError):
-            WebLead.create_from_agent({"lead_id": "   ", "decision": "cold"})
-        with self.assertRaises(UserError):
-            WebLead.create_from_agent({"decision": "cold", "raw_payload": ["not", "an", "object"]})
-
     def test_claim_invalid_state_transition(self):
         if "plasticos.claim" not in self.env:
             self.skipTest("Claims not installed")
@@ -236,12 +218,12 @@ class TestConcurrentEdits(PlasticosTestCase):
         if "plasticos.web.lead" not in self.env:
             self.skipTest("Web leads not installed")
         payload = {
-            "lead_id": "IDEMP-001",
-            "decision": "cold",
-            "raw_payload": {"test": True},
+            "Entry": {"Number": "IDEMP-001", "DateSubmitted": "2026-09-21T12:00:00Z"},
+            "YourBusinessCompanyName": "Idempotent Co",
+            "WhatIsIt": "HDPE regrind",
         }
-        lead1 = self.env["plasticos.web.lead"].create_from_agent(payload)
-        lead2 = self.env["plasticos.web.lead"].create_from_agent(payload)
+        lead1 = self.env["plasticos.web.lead"].create_from_cognito(payload)
+        lead2 = self.env["plasticos.web.lead"].create_from_cognito(payload)
         self.assertEqual(lead1.id, lead2.id, "Should return same record on duplicate")
 
 

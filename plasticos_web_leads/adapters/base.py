@@ -1,13 +1,27 @@
-"""Pure provider-neutral contracts for inbound web-lead admission."""
+"""Odoo-owned port for inbound web-lead admission.
+
+Changing any signature in this module is a port change: bump
+``PACKET_SCHEMA_VERSION`` when the packet contract changes, and update every
+adapter registered in ``registry.py`` in the same change.
+``tests/test_web_lead_adapter_contract.py`` enforces that contract.
+"""
 
 from __future__ import annotations
 
+import hmac
+from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import asdict, dataclass
-from typing import Any, Protocol
+from typing import Any, ClassVar
 
 PACKET_SCHEMA_VERSION = "web-lead-packet/v1"
+
+EVENT_SUBMITTED = "submitted"
+EVENT_UPDATED = "updated"
+EVENT_DELETED = "deleted"
+EVENT_UNKNOWN = "unknown"
+EVENT_KINDS = frozenset({EVENT_SUBMITTED, EVENT_UPDATED, EVENT_DELETED, EVENT_UNKNOWN})
 
 # ``source_url`` is acquisition material: a signed, expiring provider link. It is
 # consumed once by the transient acquisition path and never serialized into the
@@ -53,16 +67,114 @@ class WebLeadPacket:
     raw_payload: Mapping[str, Any]
 
 
-class WebLeadProviderAdapter(Protocol):
-    """Pure projection protocol implemented by a concrete inbound provider adapter."""
+@dataclass(frozen=True)
+class InboundRequest:
+    """Transport facts the port may use to authenticate one inbound HTTP call."""
 
-    provider_key: str
+    headers: Mapping[str, str]
+    query: Mapping[str, str]
+    raw_body: bytes
+    path_token: str | None = None
+
+
+@dataclass(frozen=True)
+class InboundEvent:
+    """Provider-neutral classification of one inbound delivery."""
+
+    provider: str
+    kind: str
+    provider_external_id: str
+    payload: Mapping[str, Any]
+
+
+def _mapping_text(mapping: Mapping[str, str], name: str) -> str:
+    """Read one mapping value, including case-insensitive header maps."""
+    getter = getattr(mapping, "get", None)
+    if callable(getter):
+        for candidate in (name, name.lower(), name.title()):
+            value = getter(candidate)
+            if value:
+                return str(value).strip()
+    target = name.lower()
+    for key, value in mapping.items():
+        if str(key).lower() == target and value:
+            return str(value).strip()
+    return ""
+
+
+def _strip_token(value: str) -> str:
+    return value.strip().strip('"').strip("'")
+
+
+class WebLeadAdapter(ABC):
+    """Odoo-owned inbound port. Tool adapters subclass this; Odoo never imports them.
+
+    ``provider_key`` and ``attachment_allowed_hosts`` must be non-empty on every
+    concrete subclass. An incomplete subclass fails when the class is created,
+    and the registry instantiates every adapter at import.
+    """
+
+    provider_key: ClassVar[str]
     # Destination policy for attachment acquisition: a host is accepted when it
     # equals an entry or is a subdomain of one. Empty means no host is trusted.
-    attachment_allowed_hosts: tuple[str, ...]
+    attachment_allowed_hosts: ClassVar[tuple[str, ...]]
 
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        if getattr(cls, "__abstractmethods__", None):
+            return
+        key = getattr(cls, "provider_key", "")
+        hosts = getattr(cls, "attachment_allowed_hosts", ())
+        hosts_ok = bool(hosts) and all(
+            isinstance(host, str) and host and host == host.lower() and "://" not in host for host in hosts
+        )
+        if not isinstance(key, str) or not key.strip():
+            raise TypeError(f"{cls.__name__} must declare a non-empty provider_key.")
+        if not hosts_ok:
+            raise TypeError(f"{cls.__name__} must declare lowercase attachment_allowed_hosts without a scheme.")
+
+    @abstractmethod
     def to_packet(self, payload: Mapping[str, Any]) -> WebLeadPacket:
         """Project a provider payload into the immutable inbound packet."""
+
+    @abstractmethod
+    def classify_event(self, payload: Mapping[str, Any]) -> InboundEvent:
+        """Classify one provider payload without admitting it."""
+
+    @classmethod
+    @abstractmethod
+    def sample_payload(cls) -> dict[str, Any]:
+        """Return one canonical submitted payload for the conformance test."""
+
+    def presented_tokens(self, request: InboundRequest) -> tuple[str, ...]:
+        """Tokens the caller presented, in header, query, then path order."""
+        tokens: list[str] = []
+        authorization = _mapping_text(request.headers, "Authorization")
+        if authorization.lower().startswith("bearer "):
+            bearer = _strip_token(authorization[7:])
+            if bearer:
+                tokens.append(bearer)
+        for header_name in ("X-API-Key", "X-Api-Key"):
+            header_token = _strip_token(_mapping_text(request.headers, header_name))
+            if header_token and header_token not in tokens:
+                tokens.append(header_token)
+        query_token = _strip_token(_mapping_text(request.query, "access_token"))
+        if query_token and query_token not in tokens:
+            tokens.append(query_token)
+        path_token = _strip_token(request.path_token or "")
+        if path_token and path_token not in tokens:
+            tokens.append(path_token)
+        return tuple(tokens)
+
+    def authenticate(self, request: InboundRequest, *, secret: str) -> bool:
+        """Timing-safe match of any presented token against one stored secret.
+
+        Providers that sign the body override this. An empty secret never matches.
+        """
+        stored = (secret or "").strip()
+        if not stored:
+            return False
+        return any(hmac.compare_digest(token, stored) for token in self.presented_tokens(request))
 
 
 def attachment_to_dict(attachment: WebLeadAttachment, *, include_acquisition_url: bool = False) -> dict[str, Any]:
