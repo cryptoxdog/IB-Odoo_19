@@ -73,7 +73,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      # pyyaml: ci/check_github_actions_kernel.sh parses the workflows (pin matches requirements-dev.txt)
+      # pyyaml: ci/check_github_actions_kernel.sh parses the workflows (the local
+      # .venv gets pyyaml through requirements-dev.txt's pr-repair dependency)
       - run: pip install --only-binary ":all:" lxml==6.0.2 semgrep==1.164.0 mypy==1.14.0 pyyaml==6.0.3
 
       - name: Install shellcheck

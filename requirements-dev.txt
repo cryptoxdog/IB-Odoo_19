@@ -25,8 +25,6 @@ mypy==1.14.0
 # Checker pins — match .github/workflows/ci.yml (lint + static-checks).
 ruff==0.16.0
 semgrep==1.164.0
-# YAML parser for ci/check_github_actions_kernel.sh (ci.yml static-checks + make audit).
-pyyaml==6.0.3
 
 # PR Repair engine — used by scripts/pr_repair_adapter.py for the
 # state-machine-governed CI repair loop (Issue→Finding conversion, approval
