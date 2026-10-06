@@ -2,7 +2,7 @@
 
 ``WKSDetail`` carries the transaction *lines*. The export carries no worksheet
 header table, and ``WKSDetail`` has no party, date, or status column — its full
-104-column inventory (``data/legacy_erp_sm_export/diagnostics/q4_columns.csv``)
+104-column inventory (``plasticos_partner_import/erp_extracted_data/diagnostics/q4_columns.csv``)
 contains no status-like column at all. Supplier, buyer, date, and state are
 therefore reconstructed from the accounting relationships that *do* exist, and
 are proven from the payload rather than inferred from names or PO text.

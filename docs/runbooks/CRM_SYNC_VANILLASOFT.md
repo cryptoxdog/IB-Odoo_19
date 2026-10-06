@@ -147,7 +147,7 @@ is classified.
 ## Field mapping status
 
 Source = VanillaSoft Contact API → `CanonicalLead` (adapter) →
-`_lead_vals_from_dto` → `crm.lead`. Statuses follow the legacy_erp vocabulary
+`_lead_vals_from_dto` → `crm.lead`. Statuses follow the ERP mapping-status vocabulary
 (`VERIFIED` / `NEEDS_CORRECTION` / `UNMAPPED_INTENTIONALLY` / `UNKNOWN`);
 `tests/test_crm_sync_mapping_status.py` pins this table against the code.
 

@@ -567,3 +567,13 @@ Exactly one formatter owns each language. Do not reformat a file with a tool oth
 Generated from `environment/ide/policy.json` in the governance clone by `ops/scripts/adapters/agentdocs.sh`. Edit the policy, not this block.
 
 <!-- END L9 FORMATTER OWNERSHIP -->
+
+> **2026-10-06 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the `make import-legacy-erp` line in the Commands block above is superseded. The canonical ERP import
+> command is **`make import-erp`** (`plasticos_partner_import/scripts/import_erp_shell.py`, driven by
+> `plasticos_partner_import/models/erp_import_service.py`). ERP data enters through SQL (ADR-021): set
+> `ERP_SQL_SERVER` / `ERP_SQL_DATABASE` (plus `ERP_SQL_USER` / `ERP_SQL_PASSWORD`, or `ERP_SQL_DRIVER=pyodbc`)
+> for a direct read of the restored source database; the frozen grid extract under
+> `plasticos_partner_import/erp_extracted_data/bulk/` is a regression fixture, not runtime authority.
+> `PARTNERS_ONLY=1` runs Concern 1 (counterparties → addresses → contacts → roles → salespersons) with
+> each layer validated before anything commits. Runbook: `docs/runbooks/ERP_IMPORT.md`.

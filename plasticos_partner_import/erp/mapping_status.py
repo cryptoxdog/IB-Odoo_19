@@ -1,11 +1,11 @@
-"""Machine-readable field-mapping status for the LegacyErp source payload.
+"""Machine-readable field-mapping status for the ERP source payload.
 
 Encodes the disposition of every source column of the tracked export
-(``data/legacy_erp_sm_export``) and emits the mapping-status table consumed by
+(``plasticos_partner_import/erp_extracted_data``) and emits the mapping-status table consumed by
 the canonical import command, the completeness test, and operator evidence.
 
 The dispositions below are verified against the mapping authority
-``docs/legacy_erp_import_mapping.md`` (identity contract, header
+``docs/erp_import_mapping.md`` (identity contract, header
 reconstruction, CounterParty/Address/Contact/WKSDetail mappings, drop
 decisions with measured evidence) and against the Odoo model schema as the
 import service probes it at runtime. Status vocabulary:
@@ -70,7 +70,7 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "status": VERIFIED,
             "target_model": "res.partner",
             "target_field": "company_role, supplier_rank, customer_rank",
-            "transformation": "COMPANY_ROLE_BY_LEGACY_ERP_ROLE + trade_ranks (behaviour-proven census)",
+            "transformation": "COMPANY_ROLE_BY_ERP_ROLE + trade_ranks (behaviour-proven census)",
             "required": False,
             "null_behavior": "blank -> anomaly, ranks default (0,0)",
             "identity_role": "none",
@@ -171,7 +171,7 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "status": VERIFIED,
             "target_model": "ir.model.data",
             "target_field": "legacy_erp_address_<AddressID>",
-            "transformation": "XML-ID key",
+            "transformation": "XML-ID key for a child location. The company's own remit has no child partner",
             "required": True,
             "null_behavior": "blank raises (source_index PRIMARY_KEYS)",
             "identity_role": "address identity",
@@ -188,17 +188,17 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
         "Type": {
             "status": VERIFIED,
             "target_model": "res.partner",
-            "target_field": "name, type",
-            "transformation": "ADDRESS_TYPE_KIND; unrecognised label kept as name",
+            "target_field": "type",
+            "transformation": "PRIMARY is invoice; a place name is delivery; kind words are not the title",
             "required": False,
-            "null_behavior": "unrecognised -> kind 'other', label preserved",
+            "null_behavior": "blank or unrecognised -> delivery, label preserved",
             "identity_role": "none",
         },
         "Addr1": {
             "status": VERIFIED,
             "target_model": "res.partner",
-            "target_field": "street",
-            "transformation": "direct",
+            "target_field": "name",
+            "transformation": "location company; form title. Falls back to the parent counterparty name",
             "required": False,
             "null_behavior": "blank -> unset",
             "identity_role": "none",
@@ -206,8 +206,8 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
         "Addr2": {
             "status": VERIFIED,
             "target_model": "res.partner",
-            "target_field": "street2",
-            "transformation": "joined with Addr3",
+            "target_field": "street",
+            "transformation": "facility or remit street. Not the location short name",
             "required": False,
             "null_behavior": "blank -> unset",
             "identity_role": "none",
@@ -216,7 +216,7 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "status": VERIFIED,
             "target_model": "res.partner",
             "target_field": "street2",
-            "transformation": "joined with Addr2",
+            "transformation": "second street line",
             "required": False,
             "null_behavior": "blank -> unset",
             "identity_role": "none",
@@ -438,11 +438,47 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "status": VERIFIED,
             "target_model": "res.partner",
             "target_field": "category_id, function",
-            "transformation": "partner tags under 'LegacyErp Contact Role'; primary role fills function",
+            "transformation": (
+                "role word -> one tag under 'ERP Contact Role' (CONTACT_ROLE_TAGS; set semantics, replay adds "
+                "nothing); Job Position (function) = 'Decision Maker' when that tag is present, else the single "
+                "other tag, else left unchanged (mapping.job_position); 'RR' stays unresolved, never guessed"
+            ),
             "required": False,
-            "null_behavior": "blank -> no tags",
+            "null_behavior": "blank or unmapped word -> rejected row with anomaly; no tag written",
             "identity_role": "none",
         },
+    },
+    "SalesReps": {
+        "CpID": {
+            "status": VERIFIED,
+            "target_model": "res.partner",
+            "target_field": "company (legacy_erp_cp_<CpID>)",
+            "transformation": "source-key join only",
+            "required": True,
+            "null_behavior": "blank or not exported -> IdentityViolation",
+            "identity_role": "company link",
+        },
+        "ReferrerNo": {
+            "status": VERIFIED,
+            "target_model": "res.users",
+            "target_field": "res.partner.user_id",
+            "transformation": "strip padding; initials -> SALES_REP_NAMES -> existing user by name; never created",
+            "required": False,
+            "null_behavior": "unknown initials -> anomaly; no single user -> unresolved",
+            "identity_role": "none",
+        },
+        "IsDefault": {
+            "status": VERIFIED,
+            "target_model": "res.partner",
+            "target_field": "user_id",
+            "transformation": "only the IsDefault=1 row sets the Salesperson",
+            "required": False,
+            "null_behavior": "no default row -> no Salesperson",
+            "identity_role": "none",
+        },
+        "Rate": {"status": UNMAPPED, "reason": "commission rate; not a contact field", "identity_role": "none"},
+        "Charge": {"status": UNMAPPED, "reason": "commission charge; not a contact field", "identity_role": "none"},
+        "ChgPer": {"status": UNMAPPED, "reason": "commission basis; not a contact field", "identity_role": "none"},
     },
     "WKSDetail": {
         "DetailID": {
@@ -593,7 +629,7 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
             "status": VERIFIED,
             "target_model": "plasticos.transaction.line",
             "target_field": "unit_type",
-            "transformation": "UNIT_TYPE_MAP (legacy '9' -> 'O'); unknown -> anomaly",
+            "transformation": "UNIT_TYPE_MAP (source code '9' -> 'O'); unknown -> anomaly",
             "required": False,
             "null_behavior": "blank -> None; unknown -> anomaly",
             "identity_role": "none",
@@ -1024,7 +1060,7 @@ class MappingStatusRow:
 class MappingStatus:
     """The full status table for one payload."""
 
-    source: str = "legacy_erp_sm_export"
+    source: str = "erp_extracted_data"
     rows: list[dict] = field(default_factory=list)
     unknowns: list[dict] = field(default_factory=list)
 
@@ -1125,7 +1161,7 @@ def build_mapping_status(repo_root: Path | str | None = None) -> MappingStatus:
 def as_dict(status: MappingStatus) -> dict:
     return {
         "source": status.source,
-        "mapping_authority": "docs/legacy_erp_import_mapping.md",
+        "mapping_authority": "docs/erp_import_mapping.md",
         "row_count": len(status.rows),
         "unknown_count": len(status.unknowns),
         "rows": status.rows,

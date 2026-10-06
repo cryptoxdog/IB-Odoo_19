@@ -1,35 +1,31 @@
-# LegacyErp → PlasticOS import: mapping audit
+# ERP → PlasticOS import: mapping audit
 
-Definitive field-level matrix for the LegacyErp historical import.
+Definitive field-level matrix for the ERP historical import.
 
-- **Source pack** — `data/legacy_erp_sm_export/` (live extract of 2026-08-07)
-- **Source layer** — `plasticos_transaction/legacy_erp/` (Odoo-free, CI-tested)
-- **Import service** — `plasticos_transaction/models/legacy_erp_import_service.py`
-- **Entrypoint** — `plasticos_transaction/scripts/run_legacy_erp_import.py`
-- **Tests** — `tests/test_legacy_erp_source_layer.py`, `tests/test_legacy_erp_import_contract.py`
+- **Source pack** — `plasticos_partner_import/erp_extracted_data/` (query definitions and frozen grids, 2026-08-07)
+- **Source layer** — `plasticos_partner_import/erp/` (Odoo-free, CI-tested)
+- **Import service** — `plasticos_partner_import/models/erp_import_service.py`
+- **Entrypoint** — `plasticos_partner_import/scripts/run_erp_import.py`
+- **Tests** — `tests/test_erp_source_layer.py`, `tests/test_erp_import_contract.py`
 
 Every count below was measured on the tracked payload, not estimated.
 
 ---
 
-## 0. Payload form — correction to the plan's premise
+## 0. Payload form
 
-The plan assumes "tracked SQL files containing the data to import". **This
-repository has no such file.** `data/legacy_erp_sm_export/sql/*.sql` are
-`SELECT`-only query definitions containing zero rows; the repo's own README
-states it: *"Golden CSVs + SELECT-only SQL"*, and the runbook's reload step is
-*SSMS Execute → Copy with Headers each grid → `bulk/`*.
+[ADR-021](adr/ADR-021-erp-sql-crm-api-import.md) is the contract: ERP rows
+import from SQL, CRM rows import from the VanillaSoft API, and CSV is legacy.
 
-The authoritative payload physically present is the **golden extract under
-`bulk/`** (13 files, 17 MB), which `README.md` marks `ACCEPT`.
+`plasticos_partner_import/erp_extracted_data/*.sql` are the `SELECT` definitions for the ERP
+extract. They do not yet contain the row payload. `reader.load_payload()`
+parses `INSERT INTO … VALUES …` in preference to a grid. That statement form
+is the ERP import. Do not add a new CSV mapping.
 
-The import therefore reads that pack. This is **not** the retired CSV
-architecture the plan prohibits — that prohibition is about the deprecated
-partner/transaction wizards with name-based identity and manual spreadsheet
-preparation, none of which is used here. To keep the premise satisfiable if a
-future extract lands as statements, `reader.load_payload()` parses
-`INSERT INTO … VALUES …` **in preference** to the grid extract, so no mapper
-changes when the payload form changes.
+`plasticos_partner_import/erp_extracted_data/bulk/` (13 files, 17 MB) is a frozen grid from
+2026-08-07. `make import-erp` can still read it until a SQL payload
+replaces that call. The counts below were measured on that frozen grid. They
+are not a reason to keep CSV as the architecture.
 
 | Source table | Rows |
 |---|---|
@@ -71,7 +67,7 @@ Never identity: company name, e-mail, phone, address text, Odoo database id.
 
 The export carries **no worksheet header table**, and `WKSDetail`'s full
 104-column inventory contains **no status-like column** — verified against
-`diagnostics/q4_columns.csv`. Parties, date, and state are reconstructed from
+`plasticos_partner_import/erp_extracted_data/diagnostics/q4_columns.csv`. Parties, date, and state are reconstructed from
 accounting relationships.
 
 | Fact | Source join | Coverage |
@@ -152,12 +148,81 @@ express; the multi-role truth is carried by native `supplier_rank` /
 | `TermsCode` | `property_supplier_payment_term_id` | looked up by name; never created |
 | `IndustryNm` | `industry_id` | looked up by name; never created |
 | `MasterAccountID` | — | **drop: 0 of 1290 populated.** No hierarchy exists to import |
-| `CustSvcRep` | — | **drop: 1289 of 1290 NULL** (single value `IB`) |
+| `CustSvcRep` | — | **drop: 1289 of 1290 NULL** (single value `IB`). Not Salesperson; Salesperson comes from `SalesReps.csv` (§3a) |
 | `PaymentDays` | — | **drop: 1279 zero, 11 NULL** — no signal |
 | `OnHold` | — | **drop: 1287 blank, 2 NULL, 1 `N`** — no signal |
 | `CurrCode` | — | **drop: 1289 USD, 1 EUR.** Single-currency payload |
 | `Terms` | — | drop: free-text twin of `TermsCode`, which is mapped |
 | `CpLastEdit` | — | drop: source audit metadata; Odoo keeps its own `write_date` |
+
+---
+
+## 3a. SalesReps → Salesperson (`res.partner.user_id`)
+
+Salesperson is Odoo's own `res.partner.user_id` field (a `res.users` link). No
+new field is added for it. The source is the ERP table `dbo.Counterparty_Referrer`
+(977 rows in `erp_extracted_data/meta/census_payment_rank.txt`), projected by
+`erp_extracted_data/19_salesreps.sql`; the frozen grid of it is `bulk/SalesReps.csv`.
+One row per counterparty and rep, keyed by the same `CpID` as `CounterParty`.
+
+| Source column | Target | Disposition |
+|---|---|---|
+| `CpID` | company `res.partner` | join on the counterparty source key only |
+| `ReferrerNo` | `user_id` | rep initials, padded with trailing spaces; strip, then map through the table below |
+| `IsDefault` | — | `1` marks the row that is the Salesperson |
+| `Rate`, `Charge`, `ChgPer` | — | drop for the partner import: commission terms, not partner data. `Charge` is 0 on every row |
+
+Rep initials:
+
+| `ReferrerNo` | Salesperson | Rows |
+|---|---|---|
+| `IB` | Igor Beylin | 292 |
+| `AA` | Arthur Akopyan | 169 |
+| `RP` | Ricardo Pereira | 165 |
+| `AB` | Arthur Buyanovskiy | 111 |
+| `TF` | Tiffany White | 94 |
+| `MM` | Mack McMurray | 85 |
+| `LR` | Lindsey Malyavko | 60 |
+| `DAVE` | David McLawhorn | 1 |
+
+`MM` also carries the accounts reassigned from former reps. The frozen
+`SalesReps.csv` already reads `MM` on every former `JB`, `YK`, `WC`, `RF`, `GS`,
+`AK`, and `IG` row (67 rows in total, 9 of them `AB` rows whose `CpID` is missing
+from `CounterParty.csv`). The restored database may still carry the former
+initials, so the reassignment is a mapping rule (`mapping.SALES_REP_REASSIGNED`),
+never an edit of the source: a live `JB` row maps to Mack McMurray.
+
+Coverage: 977 rows on 975 `CpID`s. 833 of those `CpID`s are in
+`CounterParty.csv`, and 738 of the 1290 counterparties have an `IsDefault=1` row.
+The 142 `CpID`s missing from `CounterParty.csv` still have `Address.csv` rows
+(and 136 have contacts). Those companies are missing from the extract, so
+they cannot import yet.
+
+Rules:
+
+- A rep is matched to an existing `res.users` record by the name in the table
+  above. The import never creates users. A name with no matching user leaves
+  `user_id` untouched and is reported, one entry per source row.
+- A company whose rows carry no `IsDefault=1` row has no Salesperson: a
+  `user_id` left over from an earlier run is cleared on replay.
+- Every `Counterparty_Referrer` row receives one outcome in the summary: the
+  default row carries the write outcome, the company's other rows are
+  `unchanged`, and rows of a company with two defaults or unknown initials are
+  `rejected`.
+- Igor Beylin and Arthur Buyanovskiy are seeded in
+  `plasticos_base/data/admin_users.xml`. Lindsey Malyavko, Ricardo Pereira,
+  Arthur Akopyan, Tiffany White, and Mack McMurray (login
+  `sales2@scrapmanagement.com`) are seeded in `plasticos_base/data/sales_reps.xml`.
+  David McLawhorn is not seeded. He must already exist in the database.
+- 103 `CpID`s have only `IsDefault=0` rows. They get no Salesperson. 95 of them
+  are in `CounterParty.csv`, and none is a carrier (`D`). By role: 46 `V`, 24 `A`,
+  16 `S`, 4 `P`, 4 `X`, 1 `C`.
+
+The `salesreps` stage runs after `roles` in every applied run (full,
+`PARTNERS_ONLY=1`, or `make import-erp LAYER=salesreps`). A `CpID` with more than one `IsDefault=1`
+row, or with initials missing from the table, is reported and left without a
+Salesperson. `Rate`, `Charge`, and `ChgPer` are commission terms and are not
+imported.
 
 ---
 
@@ -169,25 +234,37 @@ Parent resolution is by `CpID` **only** — never by company name.
 |---|---|---|
 | `AddressID` | `ir.model.data` | identity |
 | `CpID` | `parent_id` | mapped (source key only) |
-| `Type` | `name`, `type` | mapped; unrecognised labels kept as the name |
-| `InvoiceAddr`, `RemitToAddress`, `isBillingAddressOnly` | `type='invoice'` | mapped |
-| `Addr1` | `street` | mapped |
-| `Addr2`, `Addr3` | `street2` | mapped (joined) |
+| `Type` | child `name` and `type` | site label or street. Pickup, warehouse, and delivery labels are `type='delivery'` |
+| `InvoiceAddr`, `RemitToAddress`, `isBillingAddressOnly` | company address, or `type='invoice'` | the company's own remit is written on the counterparty. A second billing street is an Invoice child |
+| `Addr1` | — on a child | the company name. Odoo already prefixes the company, so the child is not named with it |
+| `Addr2` | `street` | mapped |
+| `Addr3` | `street2` | mapped |
 | `City`, `Region`, `PostalCd`, `Country` | `city`, `state_id`, `zip`, `country_id` | mapped; country/state looked up, never created |
 | `Telephone`, `MobilePhone` | `phone` | mapped |
-| `Email`, `BillingEmail` | `email` | mapped |
+| `Email`, `BillingEmail` | `email` | mapped; the brokerage's own staff mailboxes (`mapping.INTERNAL_MAILBOX_DOMAINS`) are dropped by the mapping, the source row is not edited |
 | `Fax` | — | drop: Odoo 19 `res.partner` has no fax field |
 
 `Address.Type` is free text — the payload uses city names such as `OMAHA, NE`
 as labels — so the billing flags carry signal the label does not: **289**
 addresses are `InvoiceAddr='Y'` with no invoice-like `Type`, and **88** more
 carry `RemitToAddress=1`. Resolved population: 1580 invoice (1212 by label +
-368 by flag), 1273 other, 53 delivery, 44 primary.
+368 by flag), 1216 other, 110 delivery, 44 primary. Pickup, warehouse, and
+delivery labels that are not an exact Type token are included in delivery.
 
-A billing address is `is_company=False` with `type='invoice'`; every other kind
-is a child company location, which makes `is_facility` true by its existing
-compute. `facility_role` and `partner_type_id` are left unset — the source
-carries no facility-specialization data, and guessing one would be invention.
+The company's own remit is written onto that counterparty: street, city, state,
+zip, country, phone, and email. An address with the same company name updates
+that partner and does not create another company. A further site is a child
+address, not a company, and it does not receive the remit. The person is a
+Contact under the company, so Odoo copies that address onto the person. The
+import does not write a street onto the person. When Country is blank and
+Region is a US state code, country is United States. `facility_role` and
+`partner_type_id` are left unset. Salesperson (`user_id`) comes from
+`SalesReps.csv` (§3a), not from an address row. The superseded corporate CSV
+sheet is not an import source.
+
+A Primary contact's email and phone fill the company when those company fields
+are still empty. The person remains a child contact. The company is the
+commercial partner.
 
 ---
 
@@ -196,9 +273,9 @@ carries no facility-specialization data, and guessing one would be invention.
 | Source column | Target | Disposition |
 |---|---|---|
 | `CT_ID` | `ir.model.data` | identity |
-| `CpID` | `parent_id` | mapped (source key only) |
-| `Location` | `parent_id` (facility) | mapped — exact `(CpID, Type)` join |
-| `ContactNm` | `name` | mapped |
+| `CpID` | `parent_id` | the company. A person is not parented to a site |
+| `Location` | — | the site join stays in the source. The person stays under the company |
+| `ContactNm` | `name` | one person per counterparty and normalized name |
 | `Email` | `email` | mapped |
 | `PhoneBusiness` | `phone` | mapped |
 | `PhoneMobile` | `mobile` if the installed registry has it, else `comment` | mapped — Odoo 19 base has no `res.partner.mobile` |
@@ -208,15 +285,15 @@ carries no facility-specialization data, and guessing one would be invention.
 | `RoleNm` | `category_id`, `function` | mapped |
 | `CompanyNm` | — | drop: duplicate of the parent company's name |
 
-**`Location` is not fuzzy matching.** It holds an `Address.Type` value, and
-`(CpID, Type)` is Address's declared database primary key, so the join is
-exact: it resolves for 3495 of 3534 non-blank contacts (98.9%). Contacts whose
-`Location` resolves are parented to the facility; the rest to the company.
+**One person per counterparty and name.** The same name, ignoring case and
+punctuation, is one `res.partner`. Different names stay two people. Every
+`CT_ID` external id points at that one person. Role tags are added. `function`
+holds Primary when that role is present, otherwise the first role.
 
 **Contact roles use the existing partner-tag mechanism.** 14 distinct role
 names, 510 contacts holding more than one. `res.partner.category` is this
 repository's multi-valued partner classification, so roles become tags under a
-`LegacyErp Contact Role` parent, and the primary role also fills `function`. No
+`ERP Contact Role` parent, and the primary role also fills `function`. No
 roles subsystem is introduced. `CRA_ID` needs no standalone record because tag
 membership is set semantics — replaying an assignment is inherently
 idempotent, which is exactly the replay-safety `CRA_ID` requires.
@@ -358,7 +435,7 @@ instance:
 Run it with:
 
 ```python
-from plasticos_transaction.scripts.run_legacy_erp_import import run
+from plasticos_partner_import.scripts.run_erp_import import run
 run(env, dry_run=True)   # resolve and map, persist nothing
 run(env)                 # full import
 run(env)                 # again — must report created=0 across the board

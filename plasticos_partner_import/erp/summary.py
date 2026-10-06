@@ -1,4 +1,4 @@
-"""Map a LegacyErp import report onto the shared import-run summary contract.
+"""Map an ERP import report onto the shared import-run summary contract.
 
 Odoo-free: exercised by the pure-Python CI tier alongside the source layer.
 The shared contract is ``contracts/schemas/draft/import-run-summary.schema.json``;
@@ -6,7 +6,9 @@ The shared contract is ``contracts/schemas/draft/import-run-summary.schema.json`
 
 Counter semantics (documented, honest accounting):
 
-* ``records_seen`` — every source row the payload carried.
+* ``records_seen`` — every source row the payload carried: the per-table
+  figures of ``source_counts`` (the ``violations`` tally is a diagnostic view
+  of rows already counted in their table and is not added again).
 * ``records_rejected`` — rows refused (blank required values) plus unresolved
   source references and failed transactions: nothing that did not reach the DB.
   Every unresolved entry is exactly one source row (the importer records a
@@ -17,8 +19,12 @@ Counter semantics (documented, honest accounting):
 * ``records_created`` / ``records_updated`` — identity-resolved rows written.
 * ``errors`` — failed transactions and unresolved references, keyed by the
   source-native identifier. Never contains secrets.
-* ``final_status`` — ``success`` when nothing failed, ``partial`` when some
-  rows were rejected without a transaction failure, ``failed`` otherwise.
+* ``final_status`` — ``success`` when nothing was rejected, ``partial`` when
+  rows were rejected or left unresolved without a failed unit, ``failed`` when
+  a logical unit (a ``BuySellNo``) raised and was rolled back. An unresolved
+  source reference is a rejected row the source itself explains (an inactive
+  counterparty's child, an unknown representative); it is not a failure of the
+  run, so a partner import with known unresolved rows exits partial, not failed.
 
 ``seen == created + updated + unchanged + rejected`` closes the reconciliation:
 an imported-with-anomaly row still lands in created/updated, and anomalies are
@@ -31,7 +37,9 @@ from datetime import UTC, datetime
 
 __all__ = ["import_run_summary", "utc_now"]
 
-SUMMARY_SOURCE = "legacy_erp"
+SUMMARY_SOURCE = "erp"
+# ``source_counts`` key that tallies rows already counted in their own table.
+SOURCE_COUNT_DIAGNOSTIC = "violations"
 
 
 def utc_now() -> str:
@@ -45,7 +53,7 @@ def import_run_summary(
     start_time: str | None = None,
     completion_time: str | None = None,
 ) -> dict:
-    """Project a ``plasticos.legacy_erp.import`` report onto the shared contract."""
+    """Project a ``plasticos.erp.import`` report onto the shared contract."""
     counts = result.get("counts") or {}
     source_counts = result.get("source_counts") or {}
     unresolved = result.get("unresolved") or []
@@ -55,7 +63,7 @@ def import_run_summary(
     updated = sum(bucket.get("updated", 0) for bucket in counts.values())
     unchanged = sum(bucket.get("skipped", 0) for bucket in counts.values())
     rejected = sum(bucket.get("rejected", 0) for bucket in counts.values())
-    seen = sum(source_counts.values())
+    seen = sum(count for name, count in source_counts.items() if name != SOURCE_COUNT_DIAGNOSTIC)
     total_rejected = rejected + len(unresolved) + len(errors)
 
     error_rows = [
@@ -69,7 +77,7 @@ def import_run_summary(
         for row in unresolved
     )
 
-    if error_rows:
+    if errors:
         final_status = "failed"
     elif total_rejected:
         final_status = "partial"

@@ -8,7 +8,11 @@
 
 ## Purpose
 
-Provides bulk **partner** import tooling (legacy ERP / broker CSVs) for `res.partner` and facility data. **Legacy ERP partner import is Settings-only** (one-shot server CSV paths via **Settings → PlasticOS Partner Import → Run Legacy ERP Partner Import**); Contacts / PlasticOS banner menus for the partner wizard are removed — the wizard remains for emergency Technical access only. VanillaSoft **CRM lead** load is API-first via `plasticos_crm_sync` (**Settings → PlasticOS CRM Sync → Run VanillaSoft API Sync**). The CRM lead CSV wizard likewise has no CRM/PlasticOS menu entries (emergency Technical access only).
+[ADR-021](../docs/adr/ADR-021-erp-sql-crm-api-import.md): ERP data imports from SQL. CRM data imports from the API. CSV wizards in this module are legacy and must not be extended.
+
+`make import-erp` loads `erp_extracted_data/` (INSERT statements) and, when those files have no rows, the frozen grid pack. The loader and upsert live in this module (`erp/`, `models/erp_import_service.py`).
+
+The CSV wizard remains only for emergency Technical access. It is not the partner-import path. VanillaSoft leads load through `plasticos_crm_sync` (**Settings → PlasticOS CRM Sync → Run VanillaSoft API Sync**). The CRM lead CSV wizard has no CRM or PlasticOS menu.
 
 ---
 

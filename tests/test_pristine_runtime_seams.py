@@ -8,7 +8,7 @@ work, but they fail the moment the specific construction that made each seam
 break is reintroduced.
 
 That division already exists in this repository for I2/I3 (see
-``docs/runbooks/LAUNCH_GATES.md`` and ``tests/test_legacy_erp_import_contract.py``);
+``docs/runbooks/LAUNCH_GATES.md`` and ``tests/test_erp_import_contract.py``);
 this module extends it to S1/S2/S3.
 """
 
@@ -21,7 +21,7 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 ORCHESTRATOR = ROOT / "plasticos_crm_sync" / "services" / "orchestrator.py"
 WEBHOOK = ROOT / "plasticos_crm_sync" / "controllers" / "webhook.py"
-IMPORTER = ROOT / "plasticos_transaction" / "models" / "legacy_erp_import_service.py"
+IMPORTER = ROOT / "plasticos_partner_import" / "models" / "erp_import_service.py"
 GATE_SCRIPT = ROOT / "tests" / "runtime_gates" / "run_s1_s3_pristine_seams.py"
 
 

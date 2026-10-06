@@ -1,29 +1,32 @@
 #!/usr/bin/env python3
-"""Non-interactive entrypoint for the LegacyErp historical import.
+"""Non-interactive entrypoint for the ERP historical import.
 
 One deterministic entrypoint, no UI, no wizard, no cron. Run it from an Odoo
 shell against the target database::
 
-    from plasticos_transaction.scripts.run_legacy_erp_import import run
+    from plasticos_partner_import.scripts.run_erp_import import run
     run(env)                                   # full import
     run(env, dry_run=True)                     # resolve + map, persist nothing
     run(env, limit=50)                         # first 50 transactions only
     run(env, commit=True)                      # commit between transactions
     run(env, payload_root="/path/to/export")   # non-default payload location
+    run(env, database=source, partners_only=True)  # direct read of the ERP database
 
 ``commit=True`` commits only *between* complete transactions — never inside
 one. A failed ``BuySellNo`` is rolled back to its savepoint, leaving no partial
 transaction and no stale identity marker, so a re-run reprocesses it.
+A partner-only run commits once, after every partner stage has passed its
+``after_stage`` hook.
 
 The import is idempotent: running it twice creates no duplicate counterparty,
 location, contact, contact-role, transaction, or transaction line, because every
-record is addressed by its stable LegacyErp source key.
+record is addressed by its stable ERP source key.
 """
 
 import json
 import os
 
-from ..legacy_erp import summary as import_summary
+from ..erp import summary as import_summary
 
 
 def run(
@@ -34,8 +37,12 @@ def run(
     dry_run: bool = False,
     verbose: bool = True,
     report_path: str | None = None,
+    partners_only: bool = False,
+    layer: str | None = None,
+    database=None,
+    after_stage=None,
 ) -> dict:
-    """Execute the LegacyErp import, print an accounting report, and emit the
+    """Execute the ERP import, print an accounting report, and emit the
     shared import-run summary (``contracts/schemas/draft/import-run-summary``).
 
     Args:
@@ -46,18 +53,29 @@ def run(
         dry_run: Resolve and map everything without persisting.
         verbose: Print the human-readable summary.
         report_path: When set, write the machine-readable summary JSON here.
+        partners_only: Import only the partner tables. Do not open deal files.
+        layer: Import one partner table. ``counterparties``, ``addresses``,
+            ``contacts``, ``roles``, or ``salesreps``.
+        database: A ``reader.DatabaseSource`` for a direct read of the ERP
+            database. It takes precedence over ``payload_root``.
+        after_stage: ``callable(layer_name, payload)`` run after each partner
+            stage, before anything commits. Raising aborts the run.
 
     Returns:
-        The import report produced by ``plasticos.legacy_erp.import`` with a
+        The import report produced by ``plasticos.erp.import`` with a
         ``summary`` key carrying the shared import-run summary (applied runs
         only; dry runs emit no summary).
     """
     start_time = import_summary.utc_now()
-    result = env["plasticos.legacy_erp.import"].run(
+    result = env["plasticos.erp.import"].run(
         payload_root=payload_root,
         limit=limit,
         commit=commit,
         dry_run=dry_run,
+        partners_only=partners_only,
+        layer=layer,
+        database=database,
+        after_stage=after_stage,
     )
 
     if not dry_run:
@@ -80,15 +98,14 @@ def run(
 
 
 def _print_summary(summary: dict) -> None:
-    print("\n=== LEGACY_ERP IMPORT SUMMARY ===")
+    print("\n=== ERP IMPORT SUMMARY ===")
     print(f"status      : {summary['final_status']}")
     print(
         f"seen/valid  : {summary['records_seen']} / {summary['records_valid']} (rejected {summary['records_rejected']})"
     )
     print(
-        "created     : {created}  updated: {updated}  unchanged: {unchanged}  duplicates: {duplicates}".format(
-            **summary
-        )
+        "created     : {records_created}  updated: {records_updated}  "
+        "unchanged: {records_unchanged}  duplicates: {duplicates}".format(**summary)
     )
     if summary["errors"]:
         print(f"errors      : {len(summary['errors'])} (first 10 below)")
@@ -97,16 +114,20 @@ def _print_summary(summary: dict) -> None:
 
 
 def _print_report(result: dict, dry_run: bool) -> None:
-    print(f"\n=== LEGACY_ERP IMPORT ({'DRY RUN' if dry_run else 'APPLIED'}) ===")
+    print(f"\n=== ERP IMPORT ({'DRY RUN' if dry_run else 'APPLIED'}) ===")
     print(f"payload kind : {result['payload_kind']}")
+    if result.get("source_origin"):
+        print(f"source       : {result['source_origin']}")
     print(f"source counts: {json.dumps(result['source_counts'], sort_keys=True)}")
 
     print("\n--- results ---")
-    header = f"{'entity':<20} {'created':>8} {'updated':>8} {'skipped':>8}"
+    header = f"{'entity':<20} {'created':>8} {'updated':>8} {'skipped':>8} {'rejected':>8}"
     print(header)
     print("-" * len(header))
     for entity, counts in result["counts"].items():
-        print(f"{entity:<20} {counts['created']:>8} {counts['updated']:>8} {counts['skipped']:>8}")
+        print(
+            f"{entity:<20} {counts['created']:>8} {counts['updated']:>8} {counts['skipped']:>8} {counts['rejected']:>8}"
+        )
 
     print(f"\nunresolved references : {len(result['unresolved'])}")
     print(f"mapping anomalies     : {len(result['anomalies'])}")

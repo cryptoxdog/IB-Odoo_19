@@ -211,7 +211,9 @@ class PartnerImportWizard(models.TransientModel):
                 lines.append(f"  ... and {len(report['old_external_ids']) - 15} more")
             lines.append("")
         if report["facilities_missing_role"]:
-            lines.append(f"Facilities missing facility_role: {len(report['facilities_missing_role'])}")
+            lines.append(
+                f"Locations without a facility_role (enrichment pending): {len(report['facilities_missing_role'])}"
+            )
             for item in report["facilities_missing_role"][:15]:
                 lines.append(f"  - {item['name']} (id={item['id']}, parent: {item['parent']})")
             if len(report["facilities_missing_role"]) > 15:
@@ -233,7 +235,7 @@ class PartnerImportWizard(models.TransientModel):
         return self._return_wizard()
 
     def action_repair_import(self):
-        """Fix facilities missing facility_role and migrate old external IDs."""
+        """Migrate old external IDs. Facility roles are left to enrichment."""
         self.ensure_one()
         validation = self.env["plasticos.partner.import.validation"]
         report = validation.repair_import_data(dry_run=False)

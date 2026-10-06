@@ -1,4 +1,4 @@
-"""Result accounting for one LegacyErp import run.
+"""Result accounting for one ERP import run.
 
 Odoo-free: the report is a plain record of what the import did, so it is built
 and asserted in the pure-Python CI tier alongside the rest of the source layer.
@@ -17,12 +17,16 @@ class ImportReport:
         "locations",
         "contacts",
         "contact_roles",
+        "salespersons",
         "transactions",
         "transaction_lines",
     )
 
     def __init__(self) -> None:
         self.payload_kind: str = ""
+        # Where the rows came from (database label, statement folder, or grid
+        # root). Never a credential.
+        self.source_origin: str = ""
         self.source_counts: dict[str, int] = {}
         self.counts: dict[str, dict[str, int]] = {
             bucket: {"created": 0, "updated": 0, "skipped": 0, "rejected": 0} for bucket in self.BUCKETS
@@ -55,6 +59,7 @@ class ImportReport:
     def as_dict(self) -> dict:
         return {
             "payload_kind": self.payload_kind,
+            "source_origin": self.source_origin,
             "source_counts": self.source_counts,
             "counts": self.counts,
             "unresolved": self.unresolved,

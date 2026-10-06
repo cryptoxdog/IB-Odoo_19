@@ -1,4 +1,4 @@
-"""Structural contract tests for the LegacyErp import service.
+"""Structural contract tests for the ERP import service.
 
 The service itself needs an Odoo runtime, which the ``pure-python-tests`` CI
 tier does not have. These tests assert the properties that must hold *by
@@ -14,11 +14,11 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "plasticos_transaction"))
+sys.path.insert(0, str(ROOT / "plasticos_partner_import"))
 
-SERVICE = ROOT / "plasticos_transaction" / "models" / "legacy_erp_import_service.py"
-RUNNER = ROOT / "plasticos_transaction" / "scripts" / "run_legacy_erp_import.py"
-LEGACY_ERP_PKG = ROOT / "plasticos_transaction" / "legacy_erp"
+SERVICE = ROOT / "plasticos_partner_import" / "models" / "erp_import_service.py"
+RUNNER = ROOT / "plasticos_partner_import" / "scripts" / "run_erp_import.py"
+ERP_PKG = ROOT / "plasticos_partner_import" / "erp"
 
 
 @pytest.fixture(scope="module")
@@ -42,9 +42,9 @@ def _function(tree: ast.Module, name: str) -> ast.FunctionDef:
 # Wiring
 # ---------------------------------------------------------------------------
 def test_service_is_wired_into_the_module(service_source):
-    init = (ROOT / "plasticos_transaction" / "models" / "__init__.py").read_text(encoding="utf-8")
-    assert "from . import legacy_erp_import_service" in init
-    assert '_name = "plasticos.legacy_erp.import"' in service_source
+    init = (ROOT / "plasticos_partner_import" / "models" / "__init__.py").read_text(encoding="utf-8")
+    assert "from . import erp_import_service" in init
+    assert '_name = "plasticos.erp.import"' in service_source
 
 
 def test_service_declares_an_abstract_model(service_source):
@@ -79,7 +79,7 @@ def test_import_does_not_depend_on_the_retired_csv_architecture(service_source):
 
 def test_source_layer_imports_no_odoo_symbol():
     """The source layer must stay runnable in the pure-Python CI tier."""
-    for path in sorted(LEGACY_ERP_PKG.glob("*.py")):
+    for path in sorted(ERP_PKG.glob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
@@ -160,19 +160,31 @@ def test_commit_never_happens_inside_a_transaction_unit(service_tree):
 def test_identity_marker_is_created_with_the_record_not_before(service_tree):
     """A marker written ahead of the record would survive a rollback as a lie."""
     upsert = _function(service_tree, "_upsert")
-    creates = [
+    calls = [
         node
         for node in ast.walk(upsert)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "create"
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in ("create", "_write_identity_marker")
     ]
-    assert len(creates) == 2, "the record and its identity marker"
+    assert len(calls) == 2, "the record and its identity marker"
 
-    record_create, marker_create = sorted(creates, key=lambda n: n.lineno)
+    record_create, marker_write = sorted(calls, key=lambda n: n.lineno)
     # The record is created first; the ir.model.data marker follows it.
+    assert record_create.func.attr == "create"
     assert isinstance(record_create.func.value, ast.Name)
     assert record_create.func.value.id == "model"
-    assert "ir.model.data" in ast.dump(marker_create.func.value)
-    assert record_create.lineno < marker_create.lineno
+    assert marker_write.func.attr == "_write_identity_marker"
+    assert record_create.lineno < marker_write.lineno
+
+    marker = _function(service_tree, "_write_identity_marker")
+    marker_creates = [
+        node
+        for node in ast.walk(marker)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "create"
+    ]
+    assert len(marker_creates) == 1
+    assert "ir.model.data" in ast.dump(marker_creates[0].func.value)
 
 
 def test_failed_transaction_is_recorded_and_the_run_continues(service_tree):
@@ -188,14 +200,23 @@ def test_failed_transaction_is_recorded_and_the_run_continues(service_tree):
 # Idempotency (gap G10)
 # ---------------------------------------------------------------------------
 def test_every_persisted_entity_goes_through_the_deterministic_upsert(service_tree):
-    """No mapper may call ``create`` directly and bypass identity resolution."""
-    upsert = _function(service_tree, "_upsert")
+    """No mapper may call ``create`` directly and bypass identity resolution.
+
+    ``_write_identity_marker`` only writes ``ir.model.data`` (pinned by the
+    marker-ordering test), so it is the one other allowed ``create`` site.
+    ``Command.create`` is a one2many child line written onto a record that
+    already went through ``_upsert``; it is not a standalone record.
+    """
+    allowed = {_function(service_tree, "_upsert"), _function(service_tree, "_write_identity_marker")}
     for node in ast.walk(service_tree):
-        if not isinstance(node, ast.FunctionDef) or node is upsert:
+        if not isinstance(node, ast.FunctionDef) or node in allowed:
             continue
         for call in ast.walk(node):
-            if isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute) and call.func.attr == "create":
-                raise AssertionError(f"{node.name} calls create() outside _upsert")
+            if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute) and call.func.attr == "create"):
+                continue
+            if isinstance(call.func.value, ast.Name) and call.func.value.id == "Command":
+                continue
+            raise AssertionError(f"{node.name} calls create() outside _upsert")
 
 
 def test_upsert_writes_only_what_actually_changed(service_tree):
@@ -237,3 +258,113 @@ def test_related_records_are_looked_up_never_created(service_tree):
         }
         assert "search" in called, f"{name} does not look the record up"
         assert "create" not in called, f"{name} creates a record instead of resolving one"
+
+
+# ---------------------------------------------------------------------------
+# Full-run completeness, validation before commit, import context
+# ---------------------------------------------------------------------------
+def _calls_in_order(function: ast.FunctionDef, names: tuple[str, ...]) -> list[str]:
+    found = []
+    for node in ast.walk(function):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr in names:
+            found.append((node.lineno, node.col_offset, node.func.attr))
+    return [name for _line, _col, name in sorted(found)]
+
+
+def test_full_run_executes_every_partner_stage_before_transactions(service_tree):
+    """The default full importer must not skip roles and salespersons."""
+    run = _function(service_tree, "run")
+    stages = (
+        "_import_counterparties",
+        "_import_addresses",
+        "_import_contacts",
+        "_import_roles",
+        "_import_sales_reps",
+        "_import_transactions",
+    )
+    order = _calls_in_order(run, stages)
+    assert order == list(stages), f"full run calls stages in order {order}"
+    # Roles and salespersons are not guarded by partners_only.
+    for node in ast.walk(run):
+        if isinstance(node, ast.If) and "partners_only" in ast.dump(node.test):
+            guarded = ast.dump(node.body[0]) if node.body else ""
+            assert "_import_roles" not in guarded and "_import_sales_reps" not in guarded
+
+
+def test_every_partner_stage_is_followed_by_the_after_stage_hook(service_tree):
+    run = _function(service_tree, "run")
+    hooked = [
+        node.args[0].value
+        for node in ast.walk(run)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "stage_done"
+        and node.args
+        and isinstance(node.args[0], ast.Constant)
+    ]
+    assert hooked == ["counterparties", "addresses", "contacts", "roles", "salesreps"]
+    # The hook runs before the single partner commit, and the layer path hooks its own stage.
+    source = ast.get_source_segment(SERVICE.read_text(encoding="utf-8"), run)
+    assert source.index('stage_done("salesreps")') < source.index("self.env.cr.commit()")
+    assert source.index("stage_done(layer)") < source.index("self.env.cr.commit()")
+
+
+def test_partner_writes_always_carry_the_import_context(service_source):
+    """No helper may fall back to a bare environment and trigger chatter or automation."""
+    lines = service_source.splitlines()
+    read_only_markers = ("._fields", "active_test=False)")
+    bare = [
+        (number, line.strip())
+        for number, line in enumerate(lines, start=1)
+        if "self.env[RES_PARTNER]" in line
+        and "IMPORT_CONTEXT" not in line
+        and not any(marker in line for marker in read_only_markers)
+    ]
+    assert not bare, f"res.partner reached without IMPORT_CONTEXT: {bare}"
+    # Read-only accessors (field capability probes, the address catalog) are the only bare ones.
+    read_only = [
+        number
+        for number, line in enumerate(lines, start=1)
+        if "self.env[RES_PARTNER]" in line and "IMPORT_CONTEXT" not in line
+    ]
+    assert len(read_only) == 3
+    for name in ("_fill_company_from_contact", "_apply_site_mailbox"):
+        function = ast.get_source_segment(service_source, _function(ast.parse(service_source), name))
+        assert "IMPORT_CONTEXT" in function, f"{name} writes a partner without the import context"
+
+
+def test_every_source_row_in_roles_and_sales_reps_receives_one_outcome(service_tree):
+    """Set-valued writes collapse rows; the accounting must still credit each row."""
+    roles = ast.dump(_function(service_tree, "_apply_contact_roles"))
+    assert "credited" in roles and "skipped" in roles and "created" in roles
+    import_roles = ast.dump(_function(service_tree, "_import_roles"))
+    assert "roles_by_contact" in import_roles, "iterate the linked rows; violation rows are already reported"
+    assert "reject" in import_roles, "an unmapped role word is a rejected row, not a silent anomaly"
+    reps = ast.dump(_function(service_tree, "_import_sales_reps"))
+    assert "len(rows)" in ast.get_source_segment(
+        SERVICE.read_text(encoding="utf-8"), _function(service_tree, "_import_sales_reps")
+    )
+    assert "'user_id': False" in reps or '"user_id": False' in ast.get_source_segment(
+        SERVICE.read_text(encoding="utf-8"), _function(service_tree, "_import_sales_reps")
+    ), "a company whose source names no default rep must drop a stale Salesperson"
+
+
+def test_superseded_people_and_stale_mailbox_markers_are_retired_not_left_visible(service_tree):
+    alias = ast.dump(_function(service_tree, "_alias_xmlid"))
+    assert "_retire_superseded_partner" in alias
+    retire = ast.get_source_segment(
+        SERVICE.read_text(encoding="utf-8"), _function(service_tree, "_retire_superseded_partner")
+    )
+    assert '"active": False' in retire and "unlink" not in retire, "retire by archiving, never by deleting"
+    contacts = ast.dump(_function(service_tree, "_import_contacts"))
+    assert contacts.count("_retire_stale_contact") == 2, "non-person and mailbox rows both retire a stale person"
+    stale = ast.get_source_segment(
+        SERVICE.read_text(encoding="utf-8"), _function(service_tree, "_retire_stale_contact")
+    )
+    assert "data.unlink()" in stale and '"active": False' in stale
+
+
+def test_brokerage_mailboxes_are_dropped_at_the_mapping_seam(service_source):
+    assert "external_emails" in service_source
+    for raw in ('_text(row, "Email")', '_text(row, "BillingEmail")'):
+        assert raw not in service_source, f"{raw} bypasses the internal-mailbox filter"

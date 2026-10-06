@@ -1,4 +1,4 @@
-"""Deterministic source indexes keyed by stable LegacyErp identifiers.
+"""Deterministic source indexes keyed by stable ERP identifiers.
 
 Every mapper consumes source rows through this layer, never through raw file
 order, so the whole import is replay-safe: the same source key always resolves
@@ -10,6 +10,7 @@ Identity contract (source key -> imported entity)::
     AddressID  -> facility / location     (res.partner child company)
     CT_ID      -> contact                 (res.partner person)
     CRA_ID     -> contact role assignment
+    CpID       -> SalesReps rows          (res.partner.user_id on the company)
     BuySellNo  -> transaction             (plasticos.transaction)
     DetailID   -> transaction line        (plasticos.transaction.line)
 
@@ -60,7 +61,7 @@ def _key(row: dict[str, str | None], column: str) -> str:
 
 @dataclass
 class SourceIndex:
-    """Source rows addressed by LegacyErp identity."""
+    """Source rows addressed by ERP identity."""
 
     counterparties: dict[str, dict[str, str | None]] = field(default_factory=dict)
     addresses: dict[str, dict[str, str | None]] = field(default_factory=dict)
@@ -72,6 +73,10 @@ class SourceIndex:
     addresses_by_cp: dict[str, list[str]] = field(default_factory=dict)
     contacts_by_cp: dict[str, list[str]] = field(default_factory=dict)
     roles_by_contact: dict[str, list[str]] = field(default_factory=dict)
+    sales_reps_by_cp: dict[str, list[dict[str, str | None]]] = field(default_factory=dict)
+    # Every SalesReps row the payload carried, linked or not. The file has no
+    # primary key, so this is the row count the summary reconciles against.
+    sales_rep_rows: int = 0
     lines_by_buysell: dict[str, list[str]] = field(default_factory=dict)
 
     # Supporting rows needed for transaction-header reconstruction
@@ -109,11 +114,20 @@ class SourceIndex:
         return [v for v in self.violations if v.kind == kind]
 
     def counts(self) -> dict[str, int]:
+        """Source rows per table (plus the transaction universe), and the violation tally.
+
+        Every per-table figure counts the rows the payload carried, including
+        the rows later reported as identity violations, so each source row is
+        counted exactly once. ``violations`` is a diagnostic tally of those
+        reported rows, not an extra population; the summary excludes it when
+        it reconciles ``records_seen``.
+        """
         return {
             "counterparties": len(self.counterparties),
             "addresses": len(self.addresses),
             "contacts": len(self.contacts),
             "contact_roles": len(self.contact_roles),
+            "sales_reps": self.sales_rep_rows,
             "transactions": len(self.lines_by_buysell),
             "transaction_lines": len(self.lines),
             "violations": len(self.violations),
@@ -130,16 +144,55 @@ def build_source_index(payload: SourcePayload) -> SourceIndex:
     """
     index = SourceIndex()
 
-    index.counterparties = _index_by_pk(payload, "CounterParty")
-    index.addresses = _index_by_pk(payload, "Address")
-    index.contacts = _index_by_pk(payload, "Contact")
-    index.contact_roles = _index_by_pk(payload, "ContactRoleAssignment")
-    index.lines = _index_by_pk(payload, "WKSDetail")
+    if "CounterParty" in payload.tables:
+        index.counterparties = _index_by_pk(payload, "CounterParty")
+    if "Address" in payload.tables:
+        index.addresses = _index_by_pk(payload, "Address")
+    if "Contact" in payload.tables:
+        index.contacts = _index_by_pk(payload, "Contact")
+    if "ContactRoleAssignment" in payload.tables:
+        index.contact_roles = _index_by_pk(payload, "ContactRoleAssignment")
+    if "WKSDetail" in payload.tables:
+        index.lines = _index_by_pk(payload, "WKSDetail")
+        _link_lines(index)
+    if payload.tables.keys() & {"GPLedger", "Payables", "Receipt", "ReceiptBatch", "WksDelivery"}:
+        _index_supporting_tables(payload, index)
 
-    _link_children(index)
-    _link_lines(index)
-    _index_supporting_tables(payload, index)
+    _link_children(
+        index,
+        counterparties_loaded="CounterParty" in payload.tables,
+        contacts_loaded="Contact" in payload.tables,
+    )
+    if "SalesReps" in payload.tables:
+        _link_sales_reps(payload, index, counterparties_loaded="CounterParty" in payload.tables)
     return index
+
+
+def _link_sales_reps(payload: SourcePayload, index: SourceIndex, *, counterparties_loaded: bool) -> None:
+    """Group SalesReps rows by CpID. The file has no primary key of its own."""
+    grouped: dict[str, list[dict[str, str | None]]] = defaultdict(list)
+    rows = payload.rows("SalesReps")
+    index.sales_rep_rows = len(rows)
+    for position, row in enumerate(rows, start=2):
+        cp_id = _key(row, "CpID")
+        rep = _key(row, "ReferrerNo")
+        if not cp_id:
+            index.violations.append(
+                IdentityViolation("SalesReps", "missing_parent_key", f"line {position}", "blank CpID")
+            )
+            continue
+        if counterparties_loaded and cp_id not in index.counterparties:
+            index.violations.append(
+                IdentityViolation(
+                    "SalesReps",
+                    "unresolved_counterparty",
+                    f"{cp_id}/{rep}",
+                    f"CpID={cp_id} not in exported (active) counterparties",
+                )
+            )
+            continue
+        grouped[cp_id].append(row)
+    index.sales_reps_by_cp = dict(grouped)
 
 
 def _index_by_pk(payload: SourcePayload, table: str) -> dict[str, dict[str, str | None]]:
@@ -155,15 +208,20 @@ def _index_by_pk(payload: SourcePayload, table: str) -> dict[str, dict[str, str 
     return indexed
 
 
-def _link_children(index: SourceIndex) -> None:
-    """Attach addresses and contacts to their counterparty by CpID only."""
+def _link_children(index: SourceIndex, *, counterparties_loaded: bool, contacts_loaded: bool) -> None:
+    """Attach addresses and contacts to their counterparty by CpID only.
+
+    A layer that does not include the parent file still groups the child rows.
+    The importer resolves that parent from the database. A parent file that is
+    present and does not contain the id stays unresolved.
+    """
     addresses: dict[str, list[str]] = defaultdict(list)
     for address_id in sorted(index.addresses):
         cp_id = _key(index.addresses[address_id], "CpID")
         if not cp_id:
             index.violations.append(IdentityViolation("Address", "missing_parent_key", address_id, "blank CpID"))
             continue
-        if cp_id not in index.counterparties:
+        if counterparties_loaded and cp_id not in index.counterparties:
             index.violations.append(
                 IdentityViolation(
                     "Address",
@@ -182,7 +240,7 @@ def _link_children(index: SourceIndex) -> None:
         if not cp_id:
             index.violations.append(IdentityViolation("Contact", "missing_parent_key", contact_id, "blank CpID"))
             continue
-        if cp_id not in index.counterparties:
+        if counterparties_loaded and cp_id not in index.counterparties:
             index.violations.append(
                 IdentityViolation(
                     "Contact",
@@ -203,7 +261,7 @@ def _link_children(index: SourceIndex) -> None:
                 IdentityViolation("ContactRoleAssignment", "missing_parent_key", role_id, "blank CT_ID")
             )
             continue
-        if contact_id not in index.contacts:
+        if contacts_loaded and contact_id not in index.contacts:
             index.violations.append(
                 IdentityViolation(
                     "ContactRoleAssignment",

@@ -1,7 +1,7 @@
-"""Mapping-status completeness tests against the tracked LegacyErp export.
+"""Mapping-status completeness tests against the tracked ERP extract.
 
 Pure-python tier (no Odoo import). Every column of every tracked bulk CSV must
-have an explicit disposition in plasticos_transaction/legacy_erp/mapping_status.py:
+have an explicit disposition in plasticos_partner_import/erp/mapping_status.py:
 no silently discarded source data, no UNKNOWN columns for consumed tables.
 """
 
@@ -14,10 +14,10 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "plasticos_transaction"))
+sys.path.insert(0, str(ROOT / "plasticos_partner_import"))
 
-from legacy_erp import mapping_status  # noqa: E402
-from legacy_erp.reader import DEFAULT_PAYLOAD_ROOT, SOURCE_TABLES  # noqa: E402
+from erp import mapping_status  # noqa: E402
+from erp.reader import DEFAULT_PAYLOAD_ROOT, SOURCE_TABLES  # noqa: E402
 
 PAYLOAD_ROOT = ROOT / DEFAULT_PAYLOAD_ROOT
 
