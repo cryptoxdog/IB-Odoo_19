@@ -226,6 +226,14 @@ def test_upsert_writes_only_what_actually_changed(service_tree):
     assert "skipped" in upsert
 
 
+def test_change_detection_compares_the_values_odoo_normalizes_on_write(service_tree, service_source):
+    """An Html note gains <p> tags and a website gains its scheme on write; a replay must see no change."""
+    differs = ast.get_source_segment(service_source, _function(service_tree, "_differs"))
+    assert "html" in differs and "_plain_text" in differs
+    assert "website" in differs and "_bare_url" in differs
+    assert "html2plaintext" in service_source
+
+
 def test_contact_role_tags_are_applied_as_a_set(service_tree):
     """Tag membership is set semantics, so replaying CRA_ID adds no duplicate."""
     apply_roles = ast.dump(_function(service_tree, "_apply_contact_roles"))

@@ -38,6 +38,7 @@ from __future__ import annotations
 import logging
 
 from odoo import Command, api, models
+from odoo.tools import html2plaintext
 
 _logger = logging.getLogger(__name__)
 
@@ -1195,13 +1196,40 @@ def _set_if(values: dict, key: str, value) -> None:
 
 
 def _differs(record, field_name: str, value) -> bool:
-    """True when writing ``value`` would actually change ``record``."""
+    """True when writing ``value`` would actually change ``record``.
+
+    Odoo normalizes some values on write: an Html field wraps plain text in a
+    paragraph and ``website`` gains its scheme. Those are compared on their
+    normalized form, so a replay of unchanged source rows writes nothing.
+    """
     if field_name not in record._fields:
         return False
+    field = record._fields[field_name]
     current = record[field_name]
     if hasattr(current, "id"):
         current = current.id or False
-    return current != (value if value is not None else False)
+    target = value if value is not None else False
+    if field.type == "html":
+        return _plain_text(current) != _plain_text(target)
+    if field_name == "website" and isinstance(current, str) and isinstance(target, str):
+        return _bare_url(current) != _bare_url(target)
+    return current != target
+
+
+def _plain_text(value) -> str:
+    """Html field content as the text the source carried."""
+    if not value:
+        return ""
+    return html2plaintext(str(value)).strip()
+
+
+def _bare_url(value: str) -> str:
+    """A website without the scheme Odoo adds on write, for change detection only."""
+    text = (value or "").strip().casefold()
+    for scheme in ("https://", "http://"):
+        if text.startswith(scheme):
+            text = text[len(scheme) :]
+    return text.rstrip("/")
 
 
 def _same_party_name(left: str, right: str) -> bool:
