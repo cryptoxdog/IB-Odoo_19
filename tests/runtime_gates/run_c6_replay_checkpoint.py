@@ -1,7 +1,7 @@
 """Gate C6 — replay / checkpoint integrity from a real partial-success state.
 
 Not a pytest module and deliberately not collected: needs a live Odoo 19
-registry and a live PostgreSQL server. Setup: docs/runbooks/C1_C6_LOCAL_RUNTIME.md.
+registry and a live PostgreSQL server. Setup: scripts/setup_local_runtime.sh.
 
 Run 1: page A (50 contacts, watermark W1) commits; page B fails -> run failed.
 Run 2: same connection, adapter now serves page B. Must resume from W1, not

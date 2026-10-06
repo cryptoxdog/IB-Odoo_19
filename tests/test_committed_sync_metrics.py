@@ -14,7 +14,7 @@ What is modelled here and what is not
 durable only if it was written before a commit returned. It is deliberately
 NOT a claim about PostgreSQL — real commit/rollback, row locks and
 cross-session visibility stay real-runtime gates C1-C6 in
-docs/runbooks/LAUNCH_GATES.md. A green result here means the counter is
+tests/runtime_gates/. A green result here means the counter is
 written in the right place; it does not mean the row survived a crash.
 """
 

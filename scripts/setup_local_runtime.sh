@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
 # Build a real Odoo 19 + PostgreSQL 16 runtime WITHOUT Docker.
 #
-# This is docs/runbooks/C1_C6_LOCAL_RUNTIME.md made executable. That runbook is
-# correct and precise, and it was prose only — so every person and every agent
-# retyped it by hand, which is why the launch gates in tests/runtime_gates/ were
-# run rarely and by few.
-#
-# Why not Docker: the gates need a live registry, real cursors, real commits and
-# real session advisory-lock lifetime. Docker is the usual way to get that, and
-# it is not the only way. In a sandbox with no daemon, no registry egress, or no
-# bridge networking, this path still works — the whole argument of the runbook.
+# The launch gates in tests/runtime_gates/ need a live registry, real cursors,
+# real commits, and a real session advisory-lock lifetime. This script is that
+# setup. Docker is the usual way to get a registry, and it is not the only way:
+# in a sandbox with no daemon, no registry egress, or no bridge networking, this
+# path still works.
 #
 # Idempotent: every step is skipped when its artifact already exists, so a warm
 # machine reaches "ready" in seconds. That is what makes it usable as a session

@@ -16,7 +16,6 @@ MATCH_POST = ROOT / "plasticos_matching/migrations/19.0.3.0.0/post-migrate.py"
 ENR_PRE = ROOT / "plasticos_enrichment/migrations/19.0.2.0.0/pre-migrate.py"
 ENR_POST = ROOT / "plasticos_enrichment/migrations/19.0.2.0.0/post-migrate.py"
 DATA_MAP = ROOT / "docs/migrations/MOTHBALL_DATA_MAP.md"
-RUNBOOK = ROOT / "docs/runbooks/MOTHBALL_LOCAL_INTELLIGENCE.md"
 MANIFEST = ROOT / "plasticos_matching/__manifest__.py"
 
 
@@ -29,7 +28,7 @@ def _load_coord():
 
 
 def test_required_m5_files_exist():
-    for path in (COORD, MATCH_PRE, MATCH_POST, ENR_PRE, ENR_POST, DATA_MAP, RUNBOOK):
+    for path in (COORD, MATCH_PRE, MATCH_POST, ENR_PRE, ENR_POST, DATA_MAP):
         assert path.is_file(), path
 
 

@@ -592,4 +592,4 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > for a direct read of the restored source database; the frozen grid extract under
 > `plasticos_partner_import/erp_extracted_data/bulk/` is a regression fixture, not runtime authority.
 > `PARTNERS_ONLY=1` runs Concern 1 (counterparties → addresses → contacts → roles → salespersons) with
-> each layer validated before anything commits. Runbook: `docs/runbooks/ERP_IMPORT.md`.
+> each layer validated before anything commits. Operator path: `make import-erp` and ADR-021.

@@ -15,10 +15,10 @@ CRM_LEAD = "crm.lead"
 CONTACT_PAGE_SIZE = 200
 CALL_BATCH_SIZE = 500
 
-# The Contacts list endpoint accepts `modified_after` only within this lookback
-# (docs/runbooks/CRM_SYNC_VANILLASOFT.md). Incremental runs clamp to it; the
-# full import deliberately does not, and instead verifies at runtime that the
-# older floor it asked for was actually honoured — see `run_full_import`.
+# The Contacts list endpoint accepts `modified_after` only within this lookback.
+# Incremental runs clamp to it. The full import deliberately does not, and
+# instead verifies at runtime that the older floor it asked for was actually
+# honoured — see `run_full_import`.
 CONTACT_LOOKBACK_MAX_DAYS = 31
 INCREMENTAL_CONTACT_LOOKBACK_DAYS = 30
 
@@ -405,9 +405,9 @@ class SyncOrchestrator:
     def _contact_enumeration_gap(self, contact_floor: datetime, boundary: datetime) -> str | None:
         """Return why the contact census is unproven, or None when it is proven.
 
-        The list endpoint documents a 31-day maximum on `modified_after`
-        (docs/runbooks/CRM_SYNC_VANILLASOFT.md). The full import asks for an
-        older floor anyway, because the two failure modes differ sharply:
+        The list endpoint documents a 31-day maximum on `modified_after`.
+        The full import asks for an older floor anyway, because the two failure
+        modes differ sharply:
 
         * the provider rejects the out-of-range bound — a `CrmAdapterError`,
           the run fails, no watermark moves, nothing is claimed;
