@@ -20,6 +20,10 @@
         github-actions-kernel-check \
         pr-autopilot pr-fix \
         roadmap roadmap-sync roadmap-list
+# Imperative targets that produce no same-named file — phony so a stray file or
+# directory of that name can never short-circuit them.
+.PHONY: venv bash-syntax check-plasticos-skills pr-remote-feedback \
+        setup-local-runtime check-local-runtime gate-db runtime-gates runtime-gate test-odoo-local
 
 # ── Load .env if present ──────────────────────────────────────────────────────
 -include .env
@@ -61,16 +65,16 @@ help:
 	@echo "──────────────────────────────────────────────────────"
 	@echo ""
 	@echo "  Code Quality"
-	@echo "    make venv             build pinned local .venv (ruff==0.16.0, semgrep, pytest) — mirrors CI"
+	@echo "    make venv             build pinned local Python dev toolchain (.venv from requirements-dev.txt; CI-aligned versions)"
 	@echo "    make install-extensions  install .vscode/extensions.json recommendations via cursor/code CLI"
 	@echo "    make lint             ruff check (lint only)"
 	@echo "    make format           ruff format --check (check only)"
 	@echo "    make format-fix       ruff format (auto-fix)"
 	@echo "    make check            lint + format check"
 	@echo ""
-	@echo "  Audit (run before PRs — mirrors ci.yml job-for-job)"
+	@echo "  Audit (run before PRs — local blocking gates; GitHub CI remains authoritative)"
 	@echo "    make audit-quick      fast: lint + format + wiring + odoo19 + xml + deps + cron"
-	@echo "    make audit            full: 1:1 parity with ci.yml static-checks (all blocking checks)"
+	@echo "    make audit            full local blocking static gate: ci.yml static-checks blocking checks + repo-local extras"
 	@echo "    make audit-baseline   comprehensive+extended audit vs ci/baselines/*.json fingerprint log (mirrors ci.yml)"
 	@echo "    make advisory-checks  mypy + ACL CSV header + test-attribute-guard (never fails)"
 	@echo "    make xml-check        xmllint on all plasticos XML files"
@@ -80,7 +84,8 @@ help:
 	@echo "    make name-check       _name must be a string literal enforcement"
 	@echo "    make no-local-intelligence  Gate-only intelligence drift guard (M8 — blocking)"
 	@echo "    make manifest-check   __manifest__.py required-field validation"
-	@echo "    make shellcheck-check shellcheck on all *.sh files"
+	@echo "    make bash-syntax      bash -n on all tracked *.sh files"
+	@echo "    make shellcheck-check shellcheck on all tracked *.sh files (requires shellcheck)"
 	@echo "    make critical-manifest  critical manifest rules"
 	@echo "    make enhanced-audit   enhanced XML ID + dependency audit"
 	@echo "    make odoo-antipatterns  Python-vs-ORM idiom enforcement"
@@ -101,7 +106,7 @@ help:
 	@echo "    make dev-fence        production safety: plasticos_dev_tools fenced"
 	@echo "    make state-guard      write guard bypass check"
 	@echo "    make guards           all three hard gates combined"
-	@echo "    make deploy-check     pre-flight: pr-check + guards + ICP + Neo4j validation"
+	@echo "    make deploy-check     pre-flight: pr-check + guards (blocking) + ICP/Neo4j/stub state (reported; unverified items flagged)"
 	@echo ""
 	@echo "  Docker / Odoo"
 	@echo "    make up               docker compose up -d"
@@ -120,7 +125,7 @@ help:
 	@echo "    make governance-backup  push .cursor-commands → Cursor-Governance GitHub"
 	@echo ""
 	@echo "  Testing"
-	@echo "    make test             pure pytest in tests/ (mirrors PR CI Tier 3)"
+	@echo "    make test             pure pytest in tests/ (same suite as ci.yml pure-python-tests; runner defaults from pyproject.toml)"
 	@echo "    make test-odoo        Odoo Docker native tests on installed modules"
 	@echo "    make install-smoke    Docker -i modules --stop-after-init (blocks dirty loads before GH)"
 	@echo "    make test-pure        alias for make test"
@@ -131,7 +136,7 @@ help:
 	@echo "    make commit m=\"...\"   commit with explicit conventional message"
 	@echo "    make github-actions-kernel-check  validate staged/all .github/workflows (R5 kernel)"
 	@echo "    make pr               FAST local gate: audit-quick + test (use while iterating)"
-	@echo "    make pr-check         REQUIRED before push: parallel audit/baseline/test + smoke + remote"
+	@echo "    make pr-check         REQUIRED before push: local pre-push gate (audit/baseline/test + smoke + remote) — not the full GitHub CI graph"
 	@echo "    make pr-check pr=100       remote gate for PR #100 or full GitHub URL"
 	@echo "    make pr-check-100          shorthand for pr=100"
 	@echo "    make push             safe push: pr-check, then push current FEATURE branch (Staging/Production are PR-only)"
@@ -158,10 +163,12 @@ help:
 # CODE QUALITY
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Build a complete, pinned local dev virtualenv (.venv) that mirrors CI.
-# Installs requirements-dev.txt + the EXACT-pinned ruff and semgrep so every tool
-# (ruff, pytest, semgrep, pr-repair) resolves to one reproducible set. The .envrc
-# (direnv) auto-activates it; `make` also auto-prefers .venv/bin/ruff via $(RUFF).
+# Build the pinned local Python developer toolchain (.venv), aligned with the
+# Python tool versions CI pins. requirements-dev.txt is the single pin source
+# (ruff, semgrep, mypy, pytest + plugins, pr-repair); nothing is re-pinned here.
+# System capabilities CI also uses (shellcheck, gitleaks, xmllint) are NOT
+# installed by this target — install them separately. The .envrc (direnv)
+# auto-activates it; `make` also auto-prefers .venv/bin/ruff via $(RUFF).
 # Idempotent: safe to re-run to repair/upgrade the environment.
 VENV ?= .venv
 venv:
@@ -169,7 +176,6 @@ venv:
 	python3.12 -m venv $(VENV)
 	@$(VENV)/bin/python -m pip install --quiet --upgrade pip
 	$(VENV)/bin/python -m pip install -r requirements-dev.txt
-	$(VENV)/bin/python -m pip install "ruff==0.16.0" "semgrep==1.164.0"
 	@echo ""
 	@echo "✅ $(VENV) ready:"
 	@$(VENV)/bin/ruff --version
@@ -247,14 +253,24 @@ manifest-check:
 	@python3 scripts/validate_all_manifests.py
 
 
+# Bash syntax (same check as ci.yml static-checks "Bash syntax"): bash -n on
+# every tracked *.sh — CI checks out tracked files only, so untracked local
+# scripts are out of scope here too. Fail-slow across files; non-zero if any fails.
+bash-syntax:
+	@echo "→ Bash syntax (bash -n, tracked *.sh)..."
+	@git ls-files -z -- '*.sh' | xargs -0 -n1 --no-run-if-empty \
+		sh -c 'bash -n "$$1" || { echo "❌ Syntax error in $$1"; exit 1; }' bash-syntax
+
 # Shellcheck (restored 2026-07 from deleted pr-gate.yml). Not yet a pre-commit
 # hook — install via: brew install shellcheck (macOS) / apt-get install shellcheck (CI).
+# Scope = tracked *.sh (what CI's checkout contains); missing shellcheck fails
+# closed — an unrun blocking check is never reported as passing.
 shellcheck-check:
 	@if ! command -v shellcheck >/dev/null 2>&1; then \
 		echo "❌ shellcheck not found — install: brew install shellcheck"; exit 1; \
 	fi
 	@echo "→ Shellcheck..."
-	@find . -name "*.sh" -not -path "./.git/*" | xargs --no-run-if-empty shellcheck --severity=warning
+	@git ls-files -z -- '*.sh' | xargs -0 --no-run-if-empty shellcheck --severity=warning
 
 critical-manifest:
 	@echo "→ Critical manifest check..."
@@ -285,9 +301,11 @@ xml-ref-deps:
 	@echo "→ XML module-ref vs depends..."
 	python3 ci/check_xml_module_ref_deps.py
 
+# Blocking: the checker's exit status is the verdict (same script ci.yml runs
+# via run_check and pre-commit runs as circular-deps).
 deps-check:
-	@echo "→ Circular dependency check (known pre-existing: commission↔transaction)..."
-	python3 ci/check_circular_deps.py || true
+	@echo "→ Circular dependency check..."
+	python3 ci/check_circular_deps.py
 
 # Regenerate constraints.txt — the transitive dependency lock consumed by the
 # Dockerfile install (SonarCloud S8541/S8544 reproducible-build requirement).
@@ -302,11 +320,11 @@ lock-deps:
 	   /tmp/lock-deps-venv/bin/pip freeze --exclude-editable | grep -v "^constellation-node-sdk\|^pr-repair"; } > constraints.txt
 	@echo "✅ constraints.txt updated"
 
+# Blocking: the checker owns scope (tracked files, its own exclusions) and its
+# exit status is the verdict (same script the cron-invariants pre-commit hook runs).
 cron-check:
 	@echo "→ Cron invariant check..."
-	@find . -path "./current work*" -prune -o -name "*.xml" -print | \
-		xargs grep -l "ir.cron" 2>/dev/null | head -1 > /dev/null && \
-		python3 tools/cron_invariant_check.py 2>&1 | grep -v "current work" || true
+	python3 tools/cron_invariant_check.py
 
 semgrep:
 	@echo "→ Semgrep custom Odoo rules (ERROR level only)..."
@@ -328,7 +346,9 @@ acl-check:
 	python3 ci/check_acl_completeness.py
 
 # ── Advisory checks (mirror ci.yml's run_advisory — never fail the build) ──
-# Restored 2026-07 from deleted workflows; non-blocking there and here.
+# Restored 2026-07 from deleted workflows; non-blocking there and here. mypy is
+# advisory on every surface: config/excludes live in pyproject.toml [tool.mypy];
+# the pre-commit mypy hook is manual-stage only (pre-commit run mypy --hook-stage manual).
 
 mypy-check:
 	@echo "→ mypy type check (advisory)..."
@@ -404,14 +424,21 @@ audit-quick: lint format xml-check odoo19-check wiring deps-check cron-check
 	@echo ""
 	@echo "✅ Quick audit complete"
 
-# Full audit — 1:1 parity with ci.yml's static-checks job (blocking checks
-# only; run `make advisory-checks` separately for the non-blocking set).
-audit: audit-quick semgrep semgrep-test guards acl-check check-plasticos-skills \
+# Full audit — the local BLOCKING static-analysis gate. It composes the blocking
+# checks of ci.yml's static-checks job (plus lint/format from the lint job) and
+# adds repo-local ones: check-plasticos-skills and the extra integrity scanners
+# in scripts/run_audit_integrity.sh (automation field refs, constraint patterns,
+# disabled actions). It is NOT the same execution graph as GitHub CI: XML syntax
+# runs via xmllint over plasticos_* here vs lxml over every XML file in CI, and
+# the other CI jobs (pure-python-tests, gate-sdk-tests, audit-baseline,
+# secret-scan) are separate targets or CI-only. GitHub CI stays authoritative.
+# Run `make advisory-checks` for the non-blocking set.
+audit: audit-quick semgrep semgrep-test guards acl-check check-plasticos-skills bash-syntax shellcheck-check ban-check github-actions-kernel-check \
 	name-check manifest-check no-local-intelligence odoo-patterns odoo19-hooks critical-manifest \
 	enhanced-audit odoo-antipatterns package-init weak-test-check xml-ref-deps
 	@bash scripts/run_audit_integrity.sh
 	@echo ""
-	@echo "✅ Full audit complete (parity with ci.yml static-checks)"
+	@echo "✅ Full local blocking audit complete (GitHub CI remains authoritative)"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # HARD GATES
@@ -432,31 +459,44 @@ state-guard:
 guards: pipeline-guard dev-fence state-guard
 	@echo "✅ All hard gates passed"
 
-# Deployment pre-flight check — validates ICP params + Neo4j credentials + guards
+# Deployment pre-flight check. Blocking (mandatory): pr-check + guards — make
+# stops before this recipe if either fails. Steps 1-3 below are informational:
+# repo law does not make ICP/Neo4j/stub state a deploy prerequisite (graph
+# failures never block Odoo; Neo4j absence = stub mode), so they stay warnings.
+# They are counted, and the closing line only claims what was actually proven.
+# A NEO4J_* key counts only as an active, non-empty .env assignment — commented
+# lines and blank/empty-quoted values do not.
 deploy-check: pr-check guards
 	@echo ""
 	@echo "→ Deployment pre-flight validation..."
-	@echo ""
-	@echo "  1. Checking ICP configuration parameters..."
-	@if docker compose ps | grep -q "web.*Up"; then \
+	@UNVERIFIED=0; \
+	echo ""; \
+	echo "  1. Checking ICP configuration parameters..."; \
+	if docker compose ps 2>/dev/null | grep -q "web.*Up"; then \
+		WEB_UP=1; \
 		docker compose exec -T db psql -U $${POSTGRES_USER:-odoo} $(ODOO_DB_NAME) -c \
 			"SELECT key, value FROM ir_config_parameter WHERE key LIKE 'plasticos.%' ORDER BY key;" \
-			2>/dev/null || echo "    ⚠️  Could not query ICP params (DB not accessible)"; \
+			2>/dev/null || { echo "    ⚠️  Could not query ICP params (DB not accessible)"; UNVERIFIED=$$((UNVERIFIED + 1)); }; \
 	else \
-		echo "    ⚠️  Odoo container not running — start with: make up"; \
-	fi
-	@echo ""
-	@echo "  2. Checking Neo4j credentials..."
-	@if [ -f .env ] && grep -q "NEO4J_URL" .env; then \
+		WEB_UP=0; \
+		echo "    ⚠️  Odoo container not running — ICP params not checked (start with: make up)"; \
+		UNVERIFIED=$$((UNVERIFIED + 1)); \
+	fi; \
+	echo ""; \
+	echo "  2. Checking Neo4j credentials..."; \
+	env_has_value() { [ -f .env ] && grep -Eq "^[[:space:]]*(export[[:space:]]+)?$$1=[[:space:]]*[\"']?[^[:space:]#\"']" .env; }; \
+	if env_has_value NEO4J_URL; then \
 		echo "    ✅ NEO4J_URL configured in .env"; \
-		grep -q "NEO4J_USER" .env && echo "    ✅ NEO4J_USER configured" || echo "    ❌ NEO4J_USER missing"; \
-		grep -q "NEO4J_PASSWORD" .env && echo "    ✅ NEO4J_PASSWORD configured" || echo "    ❌ NEO4J_PASSWORD missing"; \
+		if env_has_value NEO4J_USER; then echo "    ✅ NEO4J_USER configured"; \
+		else echo "    ⚠️  NEO4J_URL set but NEO4J_USER missing or empty"; UNVERIFIED=$$((UNVERIFIED + 1)); fi; \
+		if env_has_value NEO4J_PASSWORD; then echo "    ✅ NEO4J_PASSWORD configured"; \
+		else echo "    ⚠️  NEO4J_URL set but NEO4J_PASSWORD missing or empty"; UNVERIFIED=$$((UNVERIFIED + 1)); fi; \
 	else \
-		echo "    ⚠️  NEO4J_URL not configured (matching engine will run in stub mode)"; \
-	fi
-	@echo ""
-	@echo "  3. Checking stub mode flags..."
-	@if docker compose ps | grep -q "web.*Up"; then \
+		echo "    ℹ️  NEO4J_URL not configured (matching engine will run in stub mode)"; \
+	fi; \
+	echo ""; \
+	echo "  3. Checking stub mode flags..."; \
+	if [ "$$WEB_UP" = "1" ]; then \
 		ENABLED=$$(docker compose exec -T db psql -U $${POSTGRES_USER:-odoo} $(ODOO_DB_NAME) -t -c \
 			"SELECT value FROM ir_config_parameter WHERE key = 'plasticos.matching_engine.enabled';" 2>/dev/null | xargs); \
 		STUBBED=$$(docker compose exec -T db psql -U $${POSTGRES_USER:-odoo} $(ODOO_DB_NAME) -t -c \
@@ -466,10 +506,18 @@ deploy-check: pr-check guards
 		if [ "$$ENABLED" = "True" ] && [ "$$STUBBED" = "False" ]; then \
 			echo "    ⚠️  WARNING: Matching engine is LIVE (not stubbed) — ensure Neo4j is accessible"; \
 		fi; \
-	fi
-	@echo ""
-	@echo "✅ Deploy pre-flight complete — safe to run: make update m=<module>"
-	@echo ""
+	else \
+		echo "    ⚠️  Odoo container not running — stub flags not checked"; \
+		UNVERIFIED=$$((UNVERIFIED + 1)); \
+	fi; \
+	echo ""; \
+	if [ "$$UNVERIFIED" -eq 0 ]; then \
+		echo "✅ Deploy pre-flight complete — pr-check + guards passed; runtime state checked above"; \
+	else \
+		echo "⚠️  Deploy pre-flight: pr-check + guards passed, but $$UNVERIFIED runtime item(s) NOT verified (see ⚠️ above)"; \
+		echo "   Resolve or consciously accept them before: make update m=<module>"; \
+	fi; \
+	echo ""
 
 # ─────────────────────────────────────────────────────────────────────────────
 # DOCKER / ODOO
@@ -563,12 +611,14 @@ governance-backup:
 # TESTING
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Default test target — mirrors CI Tier 3 "Pure Python Tests".
+# Default test target — same suite as ci.yml pure-python-tests.
 # conftest.py auto-deactivates every Odoo-importing test when Odoo isn't installed,
 # so this runs exactly the Odoo-free set without a hand-maintained file list.
+# Common runner defaults (--tb=short --no-header -p no:randomly, timeout) come from
+# pyproject.toml [tool.pytest.ini_options] addopts — only caller-specific flags here.
 test:
-	@echo "→ Pure-Python test suite (Odoo-free; mirrors CI Tier 3)..."
-	python3 -m pytest tests/ --tb=short --no-header -p no:randomly -q
+	@echo "→ Pure-Python test suite (Odoo-free; same suite as ci.yml pure-python-tests)..."
+	python3 -m pytest tests/ -q
 
 # Backward-compatible alias
 test-pure: test
@@ -607,7 +657,8 @@ pr:
 	@bash scripts/pr_check_run.sh fast
 
 # REQUIRED before any push or PR creation (local + remote when PR/CI exists).
-# Same check set as before; scheduled in CI-like parallel waves via
+# The local pre-push gate — not the full GitHub CI job graph (gate-sdk-tests runs
+# only in CI; secrets are scanned by the gitleaks-push hook and CI secret-scan). Scheduled in parallel waves via
 # scripts/pr_check_run.sh (audit + audit-baseline + test in parallel, then smoke, then remote).
 # secret-scan is intentionally NOT listed here: pre-commit's gitleaks-push
 # hook already runs at `git push` time regardless of make, so listing it here
@@ -679,8 +730,8 @@ commit:
 # Protected branches — PR-only via GitHub ruleset "Protect Staging & Production"
 # (require PR + required status check: "CI Gate Result" — ci.yml's aggregator
 # job; it only succeeds once lint, static-checks, pure-python-tests,
-# secret-scan, AND audit-baseline have all succeeded, so it alone is
-# sufficient as the required check — no need to list all 5 individually).
+# gate-sdk-tests, secret-scan, AND audit-baseline have all succeeded, so it
+# alone is sufficient as the required check — no need to list all 6 individually).
 # NOTE: this comment describes the intended ruleset config; if the GitHub
 # ruleset still lists the old individual job names (pre-2026-07 ci.yml), update
 # it via Settings → Rules → Protect Staging & Production → required checks.

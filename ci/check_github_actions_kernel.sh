@@ -113,17 +113,22 @@ sys.exit(0)
         pass "$base: third-party actions SHA-pinned or actions/* only"
     fi
 
-    # merge_gate_logic — ci.yml Phase 1 jobs (lint/static-checks/pure-python-tests)
-    # must run in parallel (no needs: between them, so one push surfaces every
-    # failing check at once); an aggregator job must gate on a superset of them
-    # with if: always() as the single fail-closed verdict.
+    # merge_gate_logic — every mandatory ci.yml Phase 1 job must exist and run in
+    # parallel (no needs:, so one push surfaces every failing check at once); an
+    # aggregator job must gate on ALL of them with if: always() as the single
+    # fail-closed verdict. Keep `required` equal to ci.yml's Phase 1 inventory.
+    # A structurally present aggregator is not enough: it must also be
+    # fail-closed — no continue-on-error (job or step), and its run script must
+    # compare needs.<job>.result != success for every required job and exit
+    # non-zero. ci.yml must also run this kernel in static-checks, so the
+    # invariant is enforced by CI, not only by local `make commit`.
     if [[ "$base" == "ci.yml" ]]; then
         if python3 -c "
-import sys, yaml
+import re, sys, yaml
 from pathlib import Path
 data = yaml.safe_load(Path('$f').read_text())
 jobs = data.get('jobs') or {}
-required = {'lint', 'static-checks', 'pure-python-tests'}
+required = {'lint', 'static-checks', 'pure-python-tests', 'gate-sdk-tests', 'secret-scan', 'audit-baseline'}
 missing = required - jobs.keys()
 if missing:
     print(f'missing required jobs: {missing}', file=sys.stderr)
@@ -132,23 +137,55 @@ for j in required:
     if jobs[j].get('needs'):
         print(f'{j} must not have needs: (Phase 1 must stay parallel)', file=sys.stderr)
         sys.exit(1)
-aggregator = None
+
+def fail_open(v):
+    # continue-on-error: anything but absent/false (incl. expressions) can mask failure
+    return v is not None and v is not False and str(v).strip().lower() != 'false'
+
+def fail_closed_problems(job):
+    problems = []
+    if fail_open(job.get('continue-on-error')):
+        problems.append('job has continue-on-error')
+    steps = job.get('steps') or []
+    if any(fail_open(s.get('continue-on-error')) for s in steps):
+        problems.append('a step has continue-on-error')
+    script = '\n'.join(str(s.get('run') or '') for s in steps)
+    # Each required result must be compared (!= success), not merely echoed.
+    unchecked = [
+        j for j in sorted(required)
+        if not re.search(r'needs\.' + re.escape(j) + r'\.result[^\n]*?!=\s*[\x27\x22]?success', script)
+    ]
+    if unchecked:
+        problems.append(f'run script never compares needs.<job>.result != success for {unchecked}')
+    if not re.search(r'\bexit\s+[1-9]', script):
+        problems.append('run script never exits non-zero')
+    return problems
+
+candidates = []
 for job_id, job in jobs.items():
     needs = job.get('needs')
     if not needs:
         continue
     need_set = set([needs] if isinstance(needs, str) else needs)
     if required.issubset(need_set) and job.get('if') == 'always()':
-        aggregator = job_id
-        break
-if not aggregator:
-    print('no aggregator job found (needs: superset of required jobs + if: always())', file=sys.stderr)
+        candidates.append(job_id)
+if not candidates:
+    print(f'no aggregator job found (needs: must cover ALL of {sorted(required)} + if: always())', file=sys.stderr)
+    sys.exit(1)
+reports = {c: fail_closed_problems(jobs[c]) for c in candidates}
+if not any(not p for p in reports.values()):
+    for c, p in reports.items():
+        print(f'aggregator {c} is fail-open: {p}', file=sys.stderr)
+    sys.exit(1)
+static_run = '\n'.join(str(s.get('run') or '') for s in (jobs['static-checks'].get('steps') or []))
+if not re.search(r'run_check\b[^\n]*check_github_actions_kernel\.sh', static_run):
+    print('static-checks must run ci/check_github_actions_kernel.sh via run_check (blocking)', file=sys.stderr)
     sys.exit(1)
 sys.exit(0)
 "; then
-            pass "$base: merge_gate_logic (fail-slow parallel Phase 1 + aggregator gate present)"
+            pass "$base: merge_gate_logic (fail-slow parallel Phase 1 + fail-closed aggregator + kernel enforced in CI)"
         else
-            fail "$base: ci.yml must run lint/static-checks/pure-python-tests in parallel (no needs:) with an aggregator job (needs: superset + if: always())"
+            fail "$base: ci.yml must run every Phase 1 job (lint/static-checks/pure-python-tests/gate-sdk-tests/secret-scan/audit-baseline) in parallel (no needs:) with a fail-closed aggregator (needs: all of them + if: always(), no continue-on-error, compares each needs.<job>.result != success and exits non-zero) and must run this kernel in static-checks"
         fi
     fi
 done

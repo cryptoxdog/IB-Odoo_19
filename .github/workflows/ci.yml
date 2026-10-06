@@ -5,7 +5,7 @@
 #  see "restored 2026-07" comments — nothing was silently dropped).
 #
 # Design: fail-slow, not fail-fast. `lint`, `static-checks`, `pure-python-tests`,
-# `secret-scan`, and `audit-baseline` all run in PARALLEL (no needs: between
+# `gate-sdk-tests`, `secret-scan`, and `audit-baseline` all run in PARALLEL (no needs: between
 # them) so a single push surfaces every failing check in one CI run instead of
 # stopping at the first tier that fails. Each job also aggregates ALL of its
 # own checks before exiting (a `run_check`/`run_advisory` helper pattern) —
@@ -14,9 +14,9 @@
 # every job still must pass, we just see every failure at once instead of
 # whack-a-mole across N pushes.
 #
-# ci/check_github_actions_kernel.sh enforces this contract: lint/static-checks/
-# pure-python-tests must have no needs:, and an aggregator with needs: covering
-# all of them + if: always() must exist.
+# ci/check_github_actions_kernel.sh enforces this contract: every Phase 1 job
+# above must exist with no needs:, and an aggregator with needs: covering all
+# of them + if: always() must exist.
 
 name: CI Gate
 
@@ -73,7 +73,9 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install --only-binary ":all:" lxml==6.0.2 semgrep==1.164.0 mypy==1.14.0
+      # pyyaml: ci/check_github_actions_kernel.sh parses the workflows (the local
+      # .venv gets pyyaml through requirements-dev.txt's pr-repair dependency)
+      - run: pip install --only-binary ":all:" lxml==6.0.2 semgrep==1.164.0 mypy==1.14.0 pyyaml==6.0.3
 
       - name: Install shellcheck
         run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
@@ -120,30 +122,19 @@ jobs:
               except Exception as e: print(f'ERROR {f}: {e}'); errors+=1
           sys.exit(errors)"
 
-          # Bash syntax
+          # Bash syntax — every *.sh is checked (fail-slow across files); any
+          # bash -n failure makes the check exit non-zero. Same scope and logic
+          # as `make bash-syntax`.
           run_check "Bash syntax" bash -c "
-          find . -name '*.sh' ! -path './.git/*' | while read f; do
-            bash -n \"\$f\" || echo \"Syntax error in \$f\"
-          done"
+          git ls-files -z -- '*.sh' | xargs -0 -n1 --no-run-if-empty \
+            sh -c 'bash -n \"\$1\" || { echo \"Syntax error in \$1\"; exit 1; }' bash-syntax"
 
-          # Manifest syntax
-          run_check "Manifest syntax" python3 -c "
-          import sys, glob
-          errors=0
-          for m in glob.glob('**/__manifest__.py', recursive=True):
-              if '.venv' in m: continue
-              try: exec(open(m).read())
-              except Exception as e: print(f'ERROR {m}: {e}'); errors+=1
-          sys.exit(errors)"
-
-          # Manifest field validation (restored 2026-07 from module-check.yml —
-          # checks required fields beyond bare syntax, via scripts/validate_manifest.py)
-          run_check "Manifest field validation" bash -c '
-          ERRORS=0
-          for m in $(find . -name "__manifest__.py" -not -path "./.venv/*"); do
-            python3 scripts/validate_manifest.py "$m" || ERRORS=$((ERRORS + 1))
-          done
-          [ $ERRORS -eq 0 ]'
+          # Manifest syntax + field validation (restored 2026-07 from
+          # module-check.yml). One canonical implementation shared with
+          # `make manifest-check`: scripts/validate_all_manifests.py ->
+          # scripts/validate_manifest.py (ast.literal_eval parse, so a syntax
+          # error fails here too; required fields name/version/depends).
+          run_check "Manifest syntax + field validation" python3 scripts/validate_all_manifests.py
 
           # _name must be a string literal, never _name = SOME_CONSTANT (restored
           # 2026-07 from odoo-audit.yml; AGENTS.md already documents this contract).
@@ -191,6 +182,12 @@ jobs:
           run_check "Field integrity"         python3 ci/check_field_integrity.py
           run_check "State guard bypass"      python3 ci/check_state_guard_bypass.py
           run_check "Weak test detection"     python3 ci/weak_test_fixer.py
+
+          # GitHub Actions kernel (github_actions_kernel.v1): Phase 1 inventory, parallelism,
+          # fail-closed aggregator, SHA pins, permissions. Blocking here so the invariant
+          # cannot be bypassed by committing without `make commit`. Same script as
+          # `make github-actions-kernel-check`; the kernel itself requires this line.
+          run_check "GitHub Actions kernel" bash ci/check_github_actions_kernel.sh
 
           # INVARIANTS.md invariant 20 (BAN001). Blocking, no exclusions. This is the
           # SAME script `make ban-check` and the pre-commit hook run — one implementation.
@@ -257,9 +254,10 @@ jobs:
           # failure, it does not stop at the first one.
           # Coverage is ADVISORY (no --cov-fail-under): it reports a baseline only and
           # never blocks the build. See [tool.coverage.*] in pyproject.toml.
+          # Common runner defaults (--tb=short --no-header -p no:randomly, timeout)
+          # come from pyproject.toml [tool.pytest.ini_options]; only job-specific flags here.
           python3 -m pytest tests/ \
-            -v --tb=short --no-header \
-            -p no:randomly \
+            -v \
             --cov=. --cov-report=term-missing:skip-covered
 
   # ── PHASE 1 (parallel — no needs:): Gate SDK bridge tests ────────────────
@@ -293,7 +291,7 @@ jobs:
         run: |
           python3 -m pytest tests/test_gate_sdk_invocation.py tests/test_gate_single_egress.py \
             tests/test_gate_canonical_contract.py \
-            -v --tb=short --no-header -p no:randomly -rs
+            -v -rs
 
   # ── PHASE 1 (parallel — no needs:): comprehensive audit baseline regression ─
   # Restored 2026-07 from deleted odoo-audit.yml. scripts/audit/odoo_audit.py and
