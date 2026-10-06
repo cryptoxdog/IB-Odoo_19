@@ -223,7 +223,9 @@ ignore_errors = true  # Uses requests; types-requests in CI
 # SSOT for Pyright/basedpyright policy (mode, reporters, excludes). basedpyright
 # reads [tool.basedpyright] first, then falls back here — keep one block only.
 # Machine-specific Odoo source paths live in .vscode/settings.json (extraPaths),
-# not here. Do not set venvPath/venv — a missing .venv makes Cursor Pyright fail
+# not here, except `ignore` below. Cursor Pyright skips editor `analysis.ignore`
+# when this block exists, and opened upstream files are outside the workspace.
+# Do not set venvPath/venv — a missing .venv makes Cursor Pyright fail
 # workspace settings resolution. Interpreter is python.defaultInterpreterPath.
 # See .cursor/rules/88-plasticos-odoo-python-tooling.mdc.
 [tool.pyright]
@@ -247,6 +249,13 @@ exclude = [
     "odoo-enterprise",
     "current work - ib",
     "Current Work - IGNORE",
+]
+# Suppress diagnostics on opened upstream trees. PlasticOS stays checked.
+# Paths are absolute because these servers do not expand ${env:HOME}.
+ignore = [
+    "/Users/ib-mac/dev/odoo-19",
+    "/Users/ib-mac/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise",
+    "odoo-enterprise",
 ]
 
 # =============================================================================

@@ -96,6 +96,8 @@ Editor semantics for Odoo models, XML, and JavaScript come from the official `Od
 
 `diagnostic_filters` uses `path_type = "in"` on those two upstream trees and does not name diagnostic codes. Do not globally disable OLS codes. Do not set `disable_javascript` or an empty `tsserver_command`. JavaScript semantics need TypeScript 6 `tsserver` on `PATH` (`npm install -g typescript@6`).
 
+Ruff and basedpyright use the same boundary, and neither expands `${env:HOME}`. Opened upstream files sit outside this workspace, so workspace `ruff.exclude` does not apply to them: the user-level `ruff.exclude` lists the Community and Enterprise trees. basedpyright skips editor `analysis.ignore` when `[tool.pyright]` exists, so those paths are in `pyproject.toml` `ignore` (editor-only; Pyright is not a CI gate). PlasticOS files stay diagnosed. Do not turn either tool off.
+
 ## Testing
 
 - Contract tests: `tests/contracts/` — 8 contract test files
