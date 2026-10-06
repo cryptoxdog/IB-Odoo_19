@@ -1,4 +1,5 @@
 from . import compliance_service
+from . import midnight_recompute
 from . import document
 from . import document_rule
 from . import document_tag

@@ -84,6 +84,20 @@ Cursor overlay: `.cursor/rules/88-plasticos-odoo-python-tooling.mdc`. Global `20
 
 **Fresh clone runbook:** [docs/LOCAL_DEV_SETUP.md](docs/LOCAL_DEV_SETUP.md)
 
+## OdooLS
+
+Editor semantics for Odoo models, XML, and JavaScript come from the official `Odoo.odoo` extension. The workspace profile is `default`. Configuration is `odools.toml`. Runtime and deployment stay on Odoo.sh.
+
+| Source | Path | Indexed | OdooLS diagnostics |
+|--------|------|---------|--------------------|
+| Community | `${userHome}/dev/odoo-19` | yes | suppressed |
+| Enterprise | `${userHome}/Dropbox/Repo_Dropbox_IB/IB-Odoo_19/odoo-enterprise` | diagnostic filter is set; gitignored `odoo-enterprise/` is not auto-detected into `addons_paths` | suppressed |
+| PlasticOS | this workspace | yes | published |
+
+`diagnostic_filters` uses `path_type = "in"` on those two upstream trees and does not name diagnostic codes. Do not globally disable OLS codes. Do not set `disable_javascript` or an empty `tsserver_command`. JavaScript semantics need TypeScript 6 `tsserver` on `PATH` (`npm install -g typescript@6`).
+
+Ruff and basedpyright use the same boundary, and neither expands `${env:HOME}`. Opened upstream files sit outside this workspace, so workspace `ruff.exclude` does not apply to them: the user-level `ruff.exclude` lists the Community and Enterprise trees. basedpyright skips editor `analysis.ignore` when `[tool.pyright]` exists, so those paths are in `pyproject.toml` `ignore` (editor-only; Pyright is not a CI gate). PlasticOS files stay diagnosed. Do not turn either tool off.
+
 ## Testing
 
 - Contract tests: `tests/contracts/` — 8 contract test files
@@ -555,14 +569,16 @@ from running silently. Always run `pre-commit run --all-files` locally before pu
 
 ## Formatter ownership
 
-Workspace class: `biome_default` — Default for every governed workspace: Biome owns JS/TS/JSON, Ruff owns Python.
+Workspace class: `biome_default` — Default for every governed workspace: Biome owns JS/TS/JSON, VS Code JSON language features owns JSONC (the Biome extension cannot format jsonc), Ruff owns Python, Prettier owns Markdown (format-on-save off so governance docs do not churn).
 
 Exactly one formatter owns each language. Do not reformat a file with a tool other than its owner, and do not add config for a competing formatter: the result is a diff that churns on every save.
 
 | Languages | Owner | Note |
 |---|---|---|
-| `javascript`, `javascriptreact`, `typescript`, `typescriptreact`, `json`, `jsonc` | **biome** | bound by the governed IDE profile |
+| `javascript`, `javascriptreact`, `typescript`, `typescriptreact`, `json` | **biome** | bound by the governed IDE profile |
+| `jsonc` | **vscode-json** | bound by the governed IDE profile |
 | `python` | **ruff** | bound by the governed IDE profile |
+| `markdown` | **prettier** | bound by the governed IDE profile |
 
 Generated from `environment/ide/policy.json` in the governance clone by `ops/scripts/adapters/agentdocs.sh`. Edit the policy, not this block.
 
