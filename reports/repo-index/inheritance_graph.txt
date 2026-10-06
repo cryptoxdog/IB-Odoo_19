@@ -284,13 +284,13 @@
 ./plasticos_partner_import/__init__.py:120:        WHERE table_name = 'plasticos_load'
 ./plasticos_partner_import/migrations/19.0.1.1.0/pre-migrate.py:21:        WHERE table_name = 'plasticos_partner_bulk_update_wizard'
 ./plasticos_partner_import/migrations/19.0.1.1.0/pre-migrate.py:22:          AND column_name = 'x_private'
-./plasticos_partner_import/models/erp_import_service.py:80:    _name = "plasticos.erp.import"
-./plasticos_partner_import/models/erp_import_service.py:263:        industry_name = _text(row, "IndustryNm")
-./plasticos_partner_import/models/erp_import_service.py:308:            parent_name = parent.name if parent else ""
-./plasticos_partner_import/models/erp_import_service.py:331:                            child_name=_location_title(row, parent_name),
-./plasticos_partner_import/models/erp_import_service.py:786:        user_by_name = self._user_ids_by_name({name for _cp_id, _rows, name, _company in chosen})
-./plasticos_partner_import/models/erp_import_service.py:1099:        if model._name == RES_PARTNER:
-./plasticos_partner_import/models/erp_import_service.py:1214:    if field_name == "website" and isinstance(current, str) and isinstance(target, str):
+./plasticos_partner_import/models/erp_import_service.py:77:    _name = "plasticos.erp.import"
+./plasticos_partner_import/models/erp_import_service.py:267:        industry_name = _text(row, "IndustryNm")
+./plasticos_partner_import/models/erp_import_service.py:312:            parent_name = parent.name if parent else ""
+./plasticos_partner_import/models/erp_import_service.py:335:                            child_name=_location_title(row, parent_name),
+./plasticos_partner_import/models/erp_import_service.py:795:        user_by_name = self._user_ids_by_name({name for _cp_id, _rows, name, _company in chosen})
+./plasticos_partner_import/models/erp_import_service.py:1004:        if model._name == RES_PARTNER:
+./plasticos_partner_import/models/erp_import_service.py:1136:    if field_name == "website" and isinstance(current, str) and isinstance(target, str):
 ./plasticos_partner_import/models/partner_import_service.py:32:    _name = "plasticos.partner.import.service"
 ./plasticos_partner_import/models/partner_import_service.py:404:        partner_name = row.get("partner_id", "").strip()
 ./plasticos_partner_import/models/partner_import_service.py:419:        facility_name = alias if alias and alias != "INVOICE" else f"{partner_name} - {facility_type}"
@@ -327,6 +327,7 @@
 ./plasticos_transaction/models/account_move_inherit.py:62:                po_by_name = {po.name: po for po in purchase_orders}
 ./plasticos_transaction/models/audit_cron.py:9:    _name = "plasticos.audit.cron"
 ./plasticos_transaction/models/intake_bridge.py:7:    _inherit = "plasticos.intake"
+./plasticos_transaction/models/legacy_erp_import_service.py:28:    _inherit = "plasticos.erp.import"
 ./plasticos_transaction/models/offer_bridge.py:7:    _inherit = "plasticos.offer"
 ./plasticos_transaction/models/partner_bridge.py:7:    _inherit = "res.partner"
 ./plasticos_transaction/models/purchase_inherit.py:9:    _inherit = "purchase.order"
@@ -344,9 +345,9 @@
 ./plasticos_transaction/wizards/transaction_bulk_assign_wizard.py:11:    _name = "plasticos.transaction.bulk.assign.wizard"
 ./plasticos_transaction/wizards/transaction_bulk_update_wizard.py:11:    _name = "plasticos.tx.bulk.wizard"
 ./plasticos_transaction/wizards/transaction_import_wizard.py:22:    _name = "plasticos.transaction.import.wizard"
-./plasticos_web_leads/adapters/cognito.py:57:        raw_name = payload.get("Name")
-./plasticos_web_leads/adapters/cognito.py:201:            company_name=self._first_text(payload, "YourBusinessCompanyName", "CompanyName"),
-./plasticos_web_leads/adapters/cognito.py:202:            contact_name=self._contact_name(payload),
+./plasticos_web_leads/adapters/cognito.py:59:        raw_name = payload.get("Name")
+./plasticos_web_leads/adapters/cognito.py:210:            company_name=self._first_text(payload, "YourBusinessCompanyName", "CompanyName"),
+./plasticos_web_leads/adapters/cognito.py:211:            contact_name=self._contact_name(payload),
 ./plasticos_web_leads/models/web_lead.py:209:    _name = "plasticos.web.lead"
 ./plasticos_web_leads/models/web_lead.py:211:    _inherit = ["mail.thread"]
 ./plasticos_web_leads/models/web_lead.py:213:    _rec_name = "lead_id"
@@ -441,7 +442,9 @@
 ./tests/test_crm_sync_full_import.py:74:        last_name="Lovelace",
 ./tests/test_crm_sync_full_import.py:622:        table_name="Grades",
 ./tests/test_depends_transaction_claims_bridge.py:7:and ``transaction_claims_bridge.py``, both ``_inherit = "plasticos.transaction"``).
-./tests/test_erp_import_contract.py:47:    assert '_name = "plasticos.erp.import"' in service_source
+./tests/test_erp_import_contract.py:58:    assert '_name = "plasticos.erp.import"' in service_source
+./tests/test_erp_import_contract.py:408:    assert '_inherit = "plasticos.erp.import"' in deal_source
+./tests/test_erp_import_contract.py:409:    assert '_name = "plasticos.' not in deal_source
 ./tests/test_gap_fixes.py:305:        view_name = "plasticos_rep_performance"
 ./tests/test_gate_canonical_contract.py:57:    _name = "plasticos.enrichment.run"
 ./tests/test_gate_canonical_contract.py:305:    assert build_operation_id(_ctx(db_name="prod")) != build_operation_id(_ctx(db_name="staging"))

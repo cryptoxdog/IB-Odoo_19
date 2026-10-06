@@ -868,30 +868,32 @@
 ./tests/test_enrichment_degraded_mode.py:63:def test_runbook_documents_no_substitution():
 ./tests/test_enrichment_gate_writeback.py:11:def test_gate_converge_helpers_present():
 ./tests/test_enrichment_gate_writeback.py:19:def test_writeback_merge_not_overwrite_documented():
-./tests/test_erp_import_contract.py:44:def test_service_is_wired_into_the_module(service_source):
-./tests/test_erp_import_contract.py:50:def test_service_declares_an_abstract_model(service_source):
-./tests/test_erp_import_contract.py:55:def test_runner_entrypoint_exists_and_is_non_interactive():
-./tests/test_erp_import_contract.py:68:def test_import_does_not_depend_on_the_retired_csv_architecture(service_source):
-./tests/test_erp_import_contract.py:80:def test_source_layer_imports_no_odoo_symbol():
-./tests/test_erp_import_contract.py:91:def test_source_layer_is_not_imported_at_addon_load_time(service_source):
-./tests/test_erp_import_contract.py:98:def test_identity_is_never_a_name_email_or_database_id(service_source):
-./tests/test_erp_import_contract.py:117:def test_each_buysellno_is_wrapped_in_a_savepoint(service_tree):
-./tests/test_erp_import_contract.py:141:def test_commit_never_happens_inside_a_transaction_unit(service_tree):
-./tests/test_erp_import_contract.py:160:def test_identity_marker_is_created_with_the_record_not_before(service_tree):
-./tests/test_erp_import_contract.py:190:def test_failed_transaction_is_recorded_and_the_run_continues(service_tree):
-./tests/test_erp_import_contract.py:202:def test_every_persisted_entity_goes_through_the_deterministic_upsert(service_tree):
-./tests/test_erp_import_contract.py:222:def test_upsert_writes_only_what_actually_changed(service_tree):
-./tests/test_erp_import_contract.py:229:def test_change_detection_compares_the_values_odoo_normalizes_on_write(service_tree, service_source):
-./tests/test_erp_import_contract.py:237:def test_contact_role_tags_are_applied_as_a_set(service_tree):
-./tests/test_erp_import_contract.py:246:def test_no_new_field_is_declared_by_the_import(service_source):
-./tests/test_erp_import_contract.py:250:def test_optional_targets_are_capability_checked(service_source):
-./tests/test_erp_import_contract.py:258:def test_related_records_are_looked_up_never_created(service_tree):
-./tests/test_erp_import_contract.py:282:def test_full_run_executes_every_partner_stage_before_transactions(service_tree):
-./tests/test_erp_import_contract.py:302:def test_every_partner_stage_is_followed_by_the_after_stage_hook(service_tree):
-./tests/test_erp_import_contract.py:320:def test_partner_writes_always_carry_the_import_context(service_source):
-./tests/test_erp_import_contract.py:344:def test_every_source_row_in_roles_and_sales_reps_receives_one_outcome(service_tree):
-./tests/test_erp_import_contract.py:360:def test_superseded_people_and_stale_mailbox_markers_are_retired_not_left_visible(service_tree):
-./tests/test_erp_import_contract.py:375:def test_brokerage_mailboxes_are_dropped_at_the_mapping_seam(service_source):
+./tests/test_erp_import_contract.py:55:def test_service_is_wired_into_the_module(service_source):
+./tests/test_erp_import_contract.py:61:def test_service_declares_an_abstract_model(service_source):
+./tests/test_erp_import_contract.py:66:def test_runner_entrypoint_exists_and_is_non_interactive():
+./tests/test_erp_import_contract.py:79:def test_import_does_not_depend_on_the_retired_csv_architecture(service_source):
+./tests/test_erp_import_contract.py:91:def test_source_layer_imports_no_odoo_symbol():
+./tests/test_erp_import_contract.py:102:def test_source_layer_is_not_imported_at_addon_load_time(service_source):
+./tests/test_erp_import_contract.py:109:def test_identity_is_never_a_name_email_or_database_id(service_source):
+./tests/test_erp_import_contract.py:128:def test_each_buysellno_is_wrapped_in_a_savepoint(deal_tree):
+./tests/test_erp_import_contract.py:152:def test_commit_never_happens_inside_a_transaction_unit(deal_tree):
+./tests/test_erp_import_contract.py:171:def test_identity_marker_is_created_with_the_record_not_before(service_tree):
+./tests/test_erp_import_contract.py:201:def test_failed_transaction_is_recorded_and_the_run_continues(deal_tree):
+./tests/test_erp_import_contract.py:213:def test_every_persisted_entity_goes_through_the_deterministic_upsert(service_tree):
+./tests/test_erp_import_contract.py:233:def test_upsert_writes_only_what_actually_changed(service_tree):
+./tests/test_erp_import_contract.py:240:def test_change_detection_compares_the_values_odoo_normalizes_on_write(service_tree, service_source):
+./tests/test_erp_import_contract.py:248:def test_contact_role_tags_are_applied_as_a_set(service_tree):
+./tests/test_erp_import_contract.py:257:def test_no_new_field_is_declared_by_the_import(service_source):
+./tests/test_erp_import_contract.py:261:def test_optional_targets_are_capability_checked(service_source, deal_source):
+./tests/test_erp_import_contract.py:270:def test_related_records_are_looked_up_never_created(service_tree):
+./tests/test_erp_import_contract.py:294:def test_full_run_executes_every_partner_stage_before_transactions(service_tree):
+./tests/test_erp_import_contract.py:314:def test_every_partner_stage_is_followed_by_the_after_stage_hook(service_tree):
+./tests/test_erp_import_contract.py:332:def test_partner_writes_always_carry_the_import_context(service_source):
+./tests/test_erp_import_contract.py:356:def test_every_source_row_in_roles_and_sales_reps_receives_one_outcome(service_tree):
+./tests/test_erp_import_contract.py:372:def test_superseded_people_and_stale_mailbox_markers_are_retired_not_left_visible(service_tree):
+./tests/test_erp_import_contract.py:387:def test_brokerage_mailboxes_are_dropped_at_the_mapping_seam(service_source):
+./tests/test_erp_import_contract.py:393:def test_partner_import_runtime_does_not_name_layer5_models():
+./tests/test_erp_import_contract.py:404:def test_deal_realization_extends_the_partner_importer(deal_source, deal_tree):
 ./tests/test_erp_layer_gate.py:123:def test_gate_order_covers_every_import_layer_and_names_real_checks():
 ./tests/test_erp_layer_gate.py:136:def test_database_check_runs_before_anything_is_imported(monkeypatch):
 ./tests/test_erp_layer_gate.py:146:def test_layer_is_refused_when_the_previous_validator_fails(monkeypatch):
@@ -917,68 +919,68 @@
 ./tests/test_erp_mapping_status.py:82:def test_source_native_identities_are_marked(status):
 ./tests/test_erp_mapping_status.py:98:def test_sql_types_joined_for_consumed_tables(status):
 ./tests/test_erp_mapping_status.py:105:def test_needs_correction_rows_are_explicit(status):
-./tests/test_erp_source_layer.py:52:def test_payload_loads_every_required_source_table(payload):
-./tests/test_erp_source_layer.py:57:def test_payload_row_counts_are_stable(payload):
-./tests/test_erp_source_layer.py:75:def test_sql_null_and_empty_string_stay_distinct(payload):
-./tests/test_erp_source_layer.py:81:def test_source_strings_and_decimals_are_preserved_verbatim(payload):
-./tests/test_erp_source_layer.py:89:def test_missing_payload_root_fails_loudly(tmp_path):
-./tests/test_erp_source_layer.py:94:def test_incomplete_payload_fails_loudly(tmp_path):
-./tests/test_erp_source_layer.py:101:def test_ragged_row_fails_loudly(tmp_path):
-./tests/test_erp_source_layer.py:109:def test_statement_payload_is_supported(tmp_path):
-./tests/test_erp_source_layer.py:136:def test_primary_keys_are_unique(index, payload, attribute, table, expected):
-./tests/test_erp_source_layer.py:142:def test_duplicate_primary_key_is_rejected(payload):
-./tests/test_erp_source_layer.py:151:def test_transaction_universe_is_every_buysellno_owning_lines(index):
-./tests/test_erp_source_layer.py:159:def test_every_linked_address_resolves_to_an_exported_counterparty(index):
-./tests/test_erp_source_layer.py:165:def test_every_linked_contact_resolves_to_an_exported_counterparty(index):
-./tests/test_erp_source_layer.py:171:def test_every_linked_role_resolves_to_an_exported_contact(index):
-./tests/test_erp_source_layer.py:177:def test_children_of_unexported_counterparties_are_reported_not_orphaned(index):
-./tests/test_erp_source_layer.py:187:def test_multiple_roles_per_contact_survive(index):
-./tests/test_erp_source_layer.py:195:def test_every_transaction_reconstructs_deterministically(index, headers):
-./tests/test_erp_source_layer.py:203:def test_reconstruction_is_repeatable(index):
-./tests/test_erp_source_layer.py:210:def test_supplier_comes_from_material_payables_only(index, headers):
-./tests/test_erp_source_layer.py:231:def test_buyer_comes_from_receipt_batch(index, headers):
-./tests/test_erp_source_layer.py:245:def test_resolved_parties_are_always_exported_counterparties(headers, index):
-./tests/test_erp_source_layer.py:253:def test_designated_cp_id_is_never_used_as_a_party(index, headers):
-./tests/test_erp_source_layer.py:270:def test_ambiguous_party_is_left_unresolved_not_guessed(index, headers):
-./tests/test_erp_source_layer.py:277:def test_missing_party_is_reported_with_a_reason(headers):
-./tests/test_erp_source_layer.py:285:def test_trade_date_is_the_earliest_ledger_date(index, headers):
-./tests/test_erp_source_layer.py:294:def test_state_is_derived_from_settlement_evidence(index, headers):
-./tests/test_erp_source_layer.py:310:def test_complete_transactions_carry_both_parties_and_a_date(headers):
-./tests/test_erp_source_layer.py:320:def test_every_counterparty_role_in_the_payload_is_mapped(index):
-./tests/test_erp_source_layer.py:325:def test_unknown_role_is_reported_not_defaulted():
-./tests/test_erp_source_layer.py:331:def test_role_ranks_match_observed_trade_behaviour():
-./tests/test_erp_source_layer.py:338:def test_shared_weight_uom_is_used_when_both_sides_agree():
-./tests/test_erp_source_layer.py:344:def test_weight_uom_mismatch_is_flagged_not_resolved():
-./tests/test_erp_source_layer.py:350:def test_weight_uom_outside_the_model_selection_is_flagged():
-./tests/test_erp_source_layer.py:356:def test_weight_uom_mismatches_in_the_payload_are_a_bounded_known_set(index):
-./tests/test_erp_source_layer.py:372:def test_unit_type_legacy_code_maps_and_unknown_is_flagged():
-./tests/test_erp_source_layer.py:381:def test_unparsable_number_is_none_not_zero():
-./tests/test_erp_source_layer.py:387:def test_contact_active_flag_parses_the_char_spelling():
-./tests/test_erp_source_layer.py:393:def test_address_kind_falls_back_without_losing_the_label():
-./tests/test_erp_source_layer.py:405:def test_billing_flags_are_honoured_beyond_the_free_text_label():
-./tests/test_erp_source_layer.py:414:def test_address_type_meaning_follows_the_company_role():
-./tests/test_erp_source_layer.py:436:def test_kind_word_is_not_a_location_title():
-./tests/test_erp_source_layer.py:448:def test_site425_is_a_mailbox_and_a_person_name_is_not():
-./tests/test_erp_source_layer.py:460:def test_location_title_uses_the_place_or_the_city_never_the_street():
-./tests/test_erp_source_layer.py:473:def test_person_key_is_first_and_last_name_inside_one_company():
-./tests/test_erp_source_layer.py:486:def test_contact_roles_collapse_and_rr_stays_unresolved():
-./tests/test_erp_source_layer.py:499:def test_address_layer_groups_rows_without_the_counterparty_file(payload):
-./tests/test_erp_source_layer.py:509:def test_partner_only_payload_does_not_open_deal_files():
-./tests/test_erp_source_layer.py:518:def test_billing_address_population_matches_the_payload(index):
-./tests/test_erp_source_layer.py:537:def test_contact_location_resolves_to_an_address_composite_key(index):
-./tests/test_erp_source_layer.py:559:def test_sales_reps_link_to_loaded_counterparties(index, payload):
-./tests/test_erp_source_layer.py:571:def test_every_default_sales_rep_has_a_name(index):
-./tests/test_erp_source_layer.py:582:def test_default_sales_rep_reads_only_the_default_row():
-./tests/test_erp_source_layer.py:597:def test_sales_rep_name_matches_seeded_user_names():
-./tests/test_erp_source_layer.py:603:def test_former_rep_initials_are_reassigned_in_the_mapping_not_the_source():
-./tests/test_erp_source_layer.py:618:def test_internal_mailboxes_are_dropped_by_the_mapping_not_by_editing_the_extract(index):
-./tests/test_erp_source_layer.py:640:def test_placeholder_counterparty_rows_stay_in_the_extract_and_are_reported(index):
-./tests/test_erp_source_layer.py:716:def test_direct_database_read_executes_the_projection_scripts_with_source_fidelity():
-./tests/test_erp_source_layer.py:750:def test_direct_database_read_wins_over_a_payload_root():
-./tests/test_erp_source_layer.py:757:def test_direct_database_read_covers_partner_tables_only():
-./tests/test_erp_source_layer.py:763:def test_direct_database_read_reports_an_unreachable_database_without_a_credential():
-./tests/test_erp_source_layer.py:774:def test_database_source_is_bound_from_the_environment_without_leaking_the_password():
-./tests/test_erp_source_layer.py:796:def test_projection_scripts_exist_and_are_select_only():
+./tests/test_erp_source_layer.py:54:def test_payload_loads_every_required_source_table(payload):
+./tests/test_erp_source_layer.py:59:def test_payload_row_counts_are_stable(payload):
+./tests/test_erp_source_layer.py:77:def test_sql_null_and_empty_string_stay_distinct(payload):
+./tests/test_erp_source_layer.py:83:def test_source_strings_and_decimals_are_preserved_verbatim(payload):
+./tests/test_erp_source_layer.py:91:def test_missing_payload_root_fails_loudly(tmp_path):
+./tests/test_erp_source_layer.py:96:def test_incomplete_payload_fails_loudly(tmp_path):
+./tests/test_erp_source_layer.py:103:def test_ragged_row_fails_loudly(tmp_path):
+./tests/test_erp_source_layer.py:111:def test_statement_payload_is_supported(tmp_path):
+./tests/test_erp_source_layer.py:138:def test_primary_keys_are_unique(index, payload, attribute, table, expected):
+./tests/test_erp_source_layer.py:144:def test_duplicate_primary_key_is_rejected(payload):
+./tests/test_erp_source_layer.py:153:def test_transaction_universe_is_every_buysellno_owning_lines(index):
+./tests/test_erp_source_layer.py:161:def test_every_linked_address_resolves_to_an_exported_counterparty(index):
+./tests/test_erp_source_layer.py:167:def test_every_linked_contact_resolves_to_an_exported_counterparty(index):
+./tests/test_erp_source_layer.py:173:def test_every_linked_role_resolves_to_an_exported_contact(index):
+./tests/test_erp_source_layer.py:179:def test_children_of_unexported_counterparties_are_reported_not_orphaned(index):
+./tests/test_erp_source_layer.py:189:def test_multiple_roles_per_contact_survive(index):
+./tests/test_erp_source_layer.py:197:def test_every_transaction_reconstructs_deterministically(index, headers):
+./tests/test_erp_source_layer.py:205:def test_reconstruction_is_repeatable(index):
+./tests/test_erp_source_layer.py:212:def test_supplier_comes_from_material_payables_only(index, headers):
+./tests/test_erp_source_layer.py:233:def test_buyer_comes_from_receipt_batch(index, headers):
+./tests/test_erp_source_layer.py:247:def test_resolved_parties_are_always_exported_counterparties(headers, index):
+./tests/test_erp_source_layer.py:255:def test_designated_cp_id_is_never_used_as_a_party(index, headers):
+./tests/test_erp_source_layer.py:272:def test_ambiguous_party_is_left_unresolved_not_guessed(index, headers):
+./tests/test_erp_source_layer.py:279:def test_missing_party_is_reported_with_a_reason(headers):
+./tests/test_erp_source_layer.py:287:def test_trade_date_is_the_earliest_ledger_date(index, headers):
+./tests/test_erp_source_layer.py:296:def test_state_is_derived_from_settlement_evidence(index, headers):
+./tests/test_erp_source_layer.py:312:def test_complete_transactions_carry_both_parties_and_a_date(headers):
+./tests/test_erp_source_layer.py:322:def test_every_counterparty_role_in_the_payload_is_mapped(index):
+./tests/test_erp_source_layer.py:327:def test_unknown_role_is_reported_not_defaulted():
+./tests/test_erp_source_layer.py:333:def test_role_ranks_match_observed_trade_behaviour():
+./tests/test_erp_source_layer.py:340:def test_shared_weight_uom_is_used_when_both_sides_agree():
+./tests/test_erp_source_layer.py:346:def test_weight_uom_mismatch_is_flagged_not_resolved():
+./tests/test_erp_source_layer.py:352:def test_weight_uom_outside_the_model_selection_is_flagged():
+./tests/test_erp_source_layer.py:358:def test_weight_uom_mismatches_in_the_payload_are_a_bounded_known_set(index):
+./tests/test_erp_source_layer.py:374:def test_unit_type_legacy_code_maps_and_unknown_is_flagged():
+./tests/test_erp_source_layer.py:383:def test_unparsable_number_is_none_not_zero():
+./tests/test_erp_source_layer.py:389:def test_contact_active_flag_parses_the_char_spelling():
+./tests/test_erp_source_layer.py:395:def test_address_kind_falls_back_without_losing_the_label():
+./tests/test_erp_source_layer.py:407:def test_billing_flags_are_honoured_beyond_the_free_text_label():
+./tests/test_erp_source_layer.py:416:def test_address_type_meaning_follows_the_company_role():
+./tests/test_erp_source_layer.py:438:def test_kind_word_is_not_a_location_title():
+./tests/test_erp_source_layer.py:450:def test_site425_is_a_mailbox_and_a_person_name_is_not():
+./tests/test_erp_source_layer.py:462:def test_location_title_uses_the_place_or_the_city_never_the_street():
+./tests/test_erp_source_layer.py:475:def test_person_key_is_first_and_last_name_inside_one_company():
+./tests/test_erp_source_layer.py:488:def test_contact_roles_collapse_and_rr_stays_unresolved():
+./tests/test_erp_source_layer.py:501:def test_address_layer_groups_rows_without_the_counterparty_file(payload):
+./tests/test_erp_source_layer.py:511:def test_partner_only_payload_does_not_open_deal_files():
+./tests/test_erp_source_layer.py:520:def test_billing_address_population_matches_the_payload(index):
+./tests/test_erp_source_layer.py:539:def test_contact_location_resolves_to_an_address_composite_key(index):
+./tests/test_erp_source_layer.py:561:def test_sales_reps_link_to_loaded_counterparties(index, payload):
+./tests/test_erp_source_layer.py:573:def test_every_default_sales_rep_has_a_name(index):
+./tests/test_erp_source_layer.py:584:def test_default_sales_rep_reads_only_the_default_row():
+./tests/test_erp_source_layer.py:599:def test_sales_rep_name_matches_seeded_user_names():
+./tests/test_erp_source_layer.py:605:def test_former_rep_initials_are_reassigned_in_the_mapping_not_the_source():
+./tests/test_erp_source_layer.py:620:def test_internal_mailboxes_are_dropped_by_the_mapping_not_by_editing_the_extract(index):
+./tests/test_erp_source_layer.py:642:def test_placeholder_counterparty_rows_stay_in_the_extract_and_are_reported(index):
+./tests/test_erp_source_layer.py:718:def test_direct_database_read_executes_the_projection_scripts_with_source_fidelity():
+./tests/test_erp_source_layer.py:752:def test_direct_database_read_wins_over_a_payload_root():
+./tests/test_erp_source_layer.py:759:def test_direct_database_read_covers_partner_tables_only():
+./tests/test_erp_source_layer.py:765:def test_direct_database_read_reports_an_unreachable_database_without_a_credential():
+./tests/test_erp_source_layer.py:778:def test_database_source_is_bound_from_the_environment_without_leaking_the_password():
+./tests/test_erp_source_layer.py:801:def test_projection_scripts_exist_and_are_select_only():
 ./tests/test_erp_summary.py:33:def test_success_projection_validates():
 ./tests/test_erp_summary.py:45:def test_rejection_and_unresolved_count_as_rejected():
 ./tests/test_erp_summary.py:61:def test_partial_when_only_rejections():
@@ -1367,6 +1369,8 @@
 ./tests/test_odoo19_compat.py:254:    def test_no_tree_view_type(self):
 ./tests/test_odoo19_compat.py:271:    def test_xml_well_formed(self):
 ./tests/test_odoo19_compat.py:284:    def test_no_duplicate_xml_ids(self):
+./tests/test_odoo19_compat.py:301:class TestPartnerPhoneFollowsPartnerPrivacy(unittest.TestCase):
+./tests/test_odoo19_compat.py:304:    def test_phone_rule_mirrors_the_private_partner_rule_and_keeps_unlink_acl(self):
 ./tests/test_odoo_dual_write_controls.py:30:def test_dual_write_default_off() -> None:
 ./tests/test_odoo_dual_write_controls.py:41:def test_dual_write_opt_in() -> None:
 ./tests/test_odoo_dual_write_controls.py:55:def test_assert_rejects_local_authority() -> None:
@@ -1501,6 +1505,12 @@
 ./tests/test_security_acl.py:160:class TestBillExclusivity(PlasticosTestCase):
 ./tests/test_security_acl.py:183:    def test_vendor_bill_exclusivity(self):
 ./tests/test_security_acl.py:189:    def test_freight_bill_exclusivity(self):
+./tests/test_security_acl.py:197:class TestPartnerPhonePrivacy(PlasticosTestCase):
+./tests/test_security_acl.py:238:    def test_visible_parent_phone_is_readable(self):
+./tests/test_security_acl.py:242:    def test_private_parent_phone_is_hidden_from_another_sales_rep(self):
+./tests/test_security_acl.py:248:    def test_owner_can_read_private_parent_phone(self):
+./tests/test_security_acl.py:252:    def test_admin_can_read_private_parent_phone(self):
+./tests/test_security_acl.py:256:    def test_sales_rep_cannot_unlink_phone_and_admin_can(self):
 ./tests/test_semantic_gate_payloads.py:75:def test_build_supply_opportunity_validates() -> None:
 ./tests/test_semantic_gate_payloads.py:84:def test_build_buyer_demand_validates() -> None:
 ./tests/test_semantic_gate_payloads.py:91:def test_reversed_quantity_rejected() -> None:
@@ -1678,15 +1688,17 @@
 ./tests/test_triage_pipeline.py:662:    def test_error_results_filtered(self):
 ./tests/test_triage_pipeline.py:672:class TestVisionBytePath:
 ./tests/test_triage_pipeline.py:673:    def test_byte_path_preserves_distinct_visual_evidence(self):
-./tests/test_web_lead_adapter_contract.py:33:def test_registered_adapter_conforms_to_the_port(provider_key, adapter):
-./tests/test_web_lead_adapter_contract.py:63:def test_registry_lists_exactly_its_adapters_and_fails_closed():
-./tests/test_web_lead_adapter_contract.py:107:def test_a_body_signing_adapter_authenticates_without_any_presented_token():
-./tests/test_web_lead_adapter_contract.py:119:def test_controller_reaches_adapter_authenticate_without_rejecting_on_missing_tokens_first():
-./tests/test_web_lead_adapter_contract.py:136:def test_cognito_relies_on_the_port_token_check_and_declares_no_signature():
-./tests/test_web_lead_adapter_contract.py:144:def test_rejected_inbound_dedupes_on_provider_identity_in_its_own_namespace():
-./tests/test_web_lead_adapter_contract.py:174:def test_default_provider_field_is_required_and_defaults_to_cognito():
-./tests/test_web_lead_adapter_contract.py:182:def test_default_provider_migration_backfills_leads_and_config():
-./tests/test_web_lead_adapter_contract.py:190:def test_attachment_policy_falls_back_to_the_configured_default_provider():
+./tests/test_web_lead_adapter_contract.py:36:def test_registered_adapter_conforms_to_the_port(provider_key, adapter):
+./tests/test_web_lead_adapter_contract.py:67:def test_non_ascii_tokens_are_rejected_without_raising(provider_key, adapter):
+./tests/test_web_lead_adapter_contract.py:75:def test_registry_lists_exactly_its_adapters_and_fails_closed():
+./tests/test_web_lead_adapter_contract.py:119:def test_a_body_signing_adapter_authenticates_without_any_presented_token():
+./tests/test_web_lead_adapter_contract.py:131:def test_controller_reaches_adapter_authenticate_without_rejecting_on_missing_tokens_first():
+./tests/test_web_lead_adapter_contract.py:148:def test_cognito_relies_on_the_port_token_check_and_declares_no_signature():
+./tests/test_web_lead_adapter_contract.py:156:def test_rejected_inbound_dedupes_on_provider_identity_in_its_own_namespace():
+./tests/test_web_lead_adapter_contract.py:186:def test_default_provider_field_is_required_and_defaults_to_cognito():
+./tests/test_web_lead_adapter_contract.py:194:def test_default_provider_migration_backfills_leads_and_config():
+./tests/test_web_lead_adapter_contract.py:209:def test_cognito_submission_follows_the_entry_contract_not_the_button_label():
+./tests/test_web_lead_adapter_contract.py:223:def test_attachment_policy_falls_back_to_the_configured_default_provider():
 ./tests/test_web_lead_evidence.py:156:def test_image_evidence_stores_hash_and_preserves_analysis_failure():
 ./tests/test_web_lead_evidence.py:178:def test_pdf_is_stored_and_explicitly_unsupported_for_text_analysis():
 ./tests/test_web_lead_evidence.py:197:def test_provider_mime_remains_authoritative_over_response_header():
