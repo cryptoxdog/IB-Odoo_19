@@ -433,7 +433,7 @@ audit-quick: lint format xml-check odoo19-check wiring deps-check cron-check
 # the other CI jobs (pure-python-tests, gate-sdk-tests, audit-baseline,
 # secret-scan) are separate targets or CI-only. GitHub CI stays authoritative.
 # Run `make advisory-checks` for the non-blocking set.
-audit: audit-quick semgrep semgrep-test guards acl-check check-plasticos-skills bash-syntax shellcheck-check ban-check \
+audit: audit-quick semgrep semgrep-test guards acl-check check-plasticos-skills bash-syntax shellcheck-check ban-check github-actions-kernel-check \
 	name-check manifest-check no-local-intelligence odoo-patterns odoo19-hooks critical-manifest \
 	enhanced-audit odoo-antipatterns package-init weak-test-check xml-ref-deps
 	@bash scripts/run_audit_integrity.sh
@@ -464,6 +464,8 @@ guards: pipeline-guard dev-fence state-guard
 # repo law does not make ICP/Neo4j/stub state a deploy prerequisite (graph
 # failures never block Odoo; Neo4j absence = stub mode), so they stay warnings.
 # They are counted, and the closing line only claims what was actually proven.
+# A NEO4J_* key counts only as an active, non-empty .env assignment — commented
+# lines and blank/empty-quoted values do not.
 deploy-check: pr-check guards
 	@echo ""
 	@echo "→ Deployment pre-flight validation..."
@@ -482,12 +484,13 @@ deploy-check: pr-check guards
 	fi; \
 	echo ""; \
 	echo "  2. Checking Neo4j credentials..."; \
-	if [ -f .env ] && grep -q "NEO4J_URL" .env; then \
+	env_has_value() { [ -f .env ] && grep -Eq "^[[:space:]]*(export[[:space:]]+)?$$1=[[:space:]]*[\"']?[^[:space:]#\"']" .env; }; \
+	if env_has_value NEO4J_URL; then \
 		echo "    ✅ NEO4J_URL configured in .env"; \
-		if grep -q "NEO4J_USER" .env; then echo "    ✅ NEO4J_USER configured"; \
-		else echo "    ⚠️  NEO4J_URL set but NEO4J_USER missing"; UNVERIFIED=$$((UNVERIFIED + 1)); fi; \
-		if grep -q "NEO4J_PASSWORD" .env; then echo "    ✅ NEO4J_PASSWORD configured"; \
-		else echo "    ⚠️  NEO4J_URL set but NEO4J_PASSWORD missing"; UNVERIFIED=$$((UNVERIFIED + 1)); fi; \
+		if env_has_value NEO4J_USER; then echo "    ✅ NEO4J_USER configured"; \
+		else echo "    ⚠️  NEO4J_URL set but NEO4J_USER missing or empty"; UNVERIFIED=$$((UNVERIFIED + 1)); fi; \
+		if env_has_value NEO4J_PASSWORD; then echo "    ✅ NEO4J_PASSWORD configured"; \
+		else echo "    ⚠️  NEO4J_URL set but NEO4J_PASSWORD missing or empty"; UNVERIFIED=$$((UNVERIFIED + 1)); fi; \
 	else \
 		echo "    ℹ️  NEO4J_URL not configured (matching engine will run in stub mode)"; \
 	fi; \
@@ -727,8 +730,8 @@ commit:
 # Protected branches — PR-only via GitHub ruleset "Protect Staging & Production"
 # (require PR + required status check: "CI Gate Result" — ci.yml's aggregator
 # job; it only succeeds once lint, static-checks, pure-python-tests,
-# secret-scan, AND audit-baseline have all succeeded, so it alone is
-# sufficient as the required check — no need to list all 5 individually).
+# gate-sdk-tests, secret-scan, AND audit-baseline have all succeeded, so it
+# alone is sufficient as the required check — no need to list all 6 individually).
 # NOTE: this comment describes the intended ruleset config; if the GitHub
 # ruleset still lists the old individual job names (pre-2026-07 ci.yml), update
 # it via Settings → Rules → Protect Staging & Production → required checks.

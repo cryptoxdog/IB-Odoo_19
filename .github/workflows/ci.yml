@@ -73,7 +73,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install --only-binary ":all:" lxml==6.0.2 semgrep==1.164.0 mypy==1.14.0
+      # pyyaml: ci/check_github_actions_kernel.sh parses the workflows (pin matches requirements-dev.txt)
+      - run: pip install --only-binary ":all:" lxml==6.0.2 semgrep==1.164.0 mypy==1.14.0 pyyaml==6.0.3
 
       - name: Install shellcheck
         run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
@@ -180,6 +181,12 @@ jobs:
           run_check "Field integrity"         python3 ci/check_field_integrity.py
           run_check "State guard bypass"      python3 ci/check_state_guard_bypass.py
           run_check "Weak test detection"     python3 ci/weak_test_fixer.py
+
+          # GitHub Actions kernel (github_actions_kernel.v1): Phase 1 inventory, parallelism,
+          # fail-closed aggregator, SHA pins, permissions. Blocking here so the invariant
+          # cannot be bypassed by committing without `make commit`. Same script as
+          # `make github-actions-kernel-check`; the kernel itself requires this line.
+          run_check "GitHub Actions kernel" bash ci/check_github_actions_kernel.sh
 
           # INVARIANTS.md invariant 20 (BAN001). Blocking, no exclusions. This is the
           # SAME script `make ban-check` and the pre-commit hook run — one implementation.
