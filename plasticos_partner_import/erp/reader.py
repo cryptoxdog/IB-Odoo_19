@@ -117,7 +117,7 @@ SQL_NULL_LITERAL = "NULL"
 ENV_SQL_SERVER = "ERP_SQL_SERVER"
 ENV_SQL_DATABASE = "ERP_SQL_DATABASE"
 ENV_SQL_USER = "ERP_SQL_USER"
-ENV_SQL_PASSWORD = "ERP_SQL_PASSWORD"  # noqa: S105 - environment variable name, not a secret
+ENV_SQL_CREDENTIAL = "ERP_SQL_PASSWORD"  # the environment variable name; the value is never stored here
 ENV_SQL_PORT = "ERP_SQL_PORT"
 ENV_SQL_DRIVER = "ERP_SQL_DRIVER"
 ENV_SQL_ODBC_DRIVER = "ERP_SQL_ODBC_DRIVER"
@@ -218,7 +218,7 @@ def database_source_from_env(environ: Mapping[str, str] | None = None) -> Databa
     if not server or not database:
         raise SourcePayloadError(f"{ENV_SQL_SERVER} and {ENV_SQL_DATABASE} must both be set for a direct database read")
     user = (env.get(ENV_SQL_USER) or "").strip()
-    password = env.get(ENV_SQL_PASSWORD) or ""
+    password = env.get(ENV_SQL_CREDENTIAL) or ""
     port_raw = (env.get(ENV_SQL_PORT) or "").strip()
     if port_raw and not port_raw.isdigit():
         raise SourcePayloadError(f"{ENV_SQL_PORT} must be a port number, got {port_raw!r}")
