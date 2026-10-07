@@ -77,12 +77,10 @@ class PlasticosLegacyErpImport(models.AbstractModel):
         if buyer_id:
             values["buyer_id"] = buyer_id
 
-        # The reconstructed trade date is written only where a semantically
-        # correct field exists. No field is invented for it; see
-        # docs/erp_import_mapping.md, "Evidenced new-field candidate".
-        if header.trade_date and "transaction_date" in Transaction._fields:
-            values["transaction_date"] = header.trade_date
-
+        # header.trade_date (GPLedger.TradeDt, PO issued / transaction approved)
+        # is not written here. Its native target is purchase.order.date_approve,
+        # set by the historical PO realization slice; never a transaction field
+        # and never a pickup/delivery date. See docs/erp_import_mapping.md §8.
         transaction = self._upsert(
             Transaction, f"legacy_erp_transaction_{header.buysell_no}", values, report, "transactions"
         )

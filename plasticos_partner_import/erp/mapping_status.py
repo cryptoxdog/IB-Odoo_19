@@ -694,8 +694,9 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
         },
         "TradeDt": {
             "status": VERIFIED,
-            "target_model": "plasticos.transaction",
-            "target_field": "transaction_date (reconstructed; not persisted — mapping doc §8)",
+            "target_model": "purchase.order",
+            "target_field": "date_approve (PO issued / transaction approved; persisted by historical PO "
+            "realization, not yet implemented — mapping doc §8)",
             "transformation": "earliest GPLedger.TradeDt per BuySellNo (min, deterministic)",
             "required": False,
             "null_behavior": "unparsable -> anomaly; none -> anomaly",

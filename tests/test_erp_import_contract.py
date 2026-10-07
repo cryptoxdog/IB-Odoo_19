@@ -258,13 +258,28 @@ def test_no_new_field_is_declared_by_the_import(service_source):
     assert "fields." not in service_source, "the import must add no field to any model"
 
 
-def test_optional_targets_are_capability_checked(service_source, deal_source):
+def test_optional_targets_are_capability_checked(service_source):
     """Fields that may not exist on this database are probed, never assumed."""
     for field_name in ("credit_limit", "industry_id"):
         guarded = f'"{field_name}" in ' in service_source or f'"{field_name}" not in ' in service_source
         assert guarded, f"{field_name} is written without a _fields capability check"
     assert "_fields" in service_source
-    assert '"transaction_date" in ' in deal_source
+
+
+def test_trade_date_has_no_custom_transaction_field_or_misplaced_target(deal_tree):
+    """GPLedger.TradeDt belongs on purchase.order.date_approve; the deal import neither writes nor anticipates
+    a plasticos.transaction date field, and never parks the date in a pickup/delivery field."""
+    keys = {
+        node.value
+        for node in ast.walk(deal_tree)
+        if isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value.isidentifier()
+    }
+    assert "transaction_date" not in keys
+    assert not keys & {"expected_pickup_date", "actual_pickup_date", "expected_delivery_date", "actual_delivery_date"}
+    trade_date_reads = [
+        node for node in ast.walk(deal_tree) if isinstance(node, ast.Attribute) and node.attr == "trade_date"
+    ]
+    assert trade_date_reads == [], "the reconstructed trade date stays source evidence until PO realization"
 
 
 def test_related_records_are_looked_up_never_created(service_tree):
