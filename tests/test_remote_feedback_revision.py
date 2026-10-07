@@ -62,3 +62,24 @@ def test_missing_pr_sha_does_not_become_a_stale_pass() -> None:
     result = decide_remote_gate([_real_bug()], None, 222, NEW, "")
     assert result.exit_code == 1
     assert result.applicability == "current"
+
+
+def test_explicit_pr_real_bug_fails_when_local_sha_differs() -> None:
+    result = decide_remote_gate([_real_bug()], None, 222, NEW, OLD, explicit=True)
+    assert result.exit_code == 1
+    assert result.applicability == "current"
+    assert result.reasons
+
+
+def test_explicit_pr_failed_ci_fails_when_local_sha_differs() -> None:
+    result = decide_remote_gate([], "failure", 222, NEW, OLD, explicit=True)
+    assert result.exit_code == 1
+    assert result.applicability == "current"
+    assert any("failure" in reason for reason in result.reasons)
+
+
+def test_explicit_pr_changes_requested_fails_when_local_sha_differs() -> None:
+    result = decide_remote_gate([_changes_requested()], None, 222, NEW, OLD, explicit=True)
+    assert result.exit_code == 1
+    assert result.applicability == "current"
+    assert any("CHANGES_REQUESTED" in reason for reason in result.reasons)

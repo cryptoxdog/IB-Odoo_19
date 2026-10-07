@@ -107,13 +107,16 @@ def _pr_head_sha(pr: dict | None) -> str:
     return sha.strip() if isinstance(sha, str) else ""
 
 
-def remote_evidence_applicability(local_sha: str, pr_head_sha: str) -> str:
-    """Return ``current`` when the open PR head is this candidate.
+def remote_evidence_applicability(local_sha: str, pr_head_sha: str, *, explicit: bool = False) -> str:
+    """Return whether remote findings describe this candidate.
 
-    A missing SHA stays ``current`` so unknown evidence cannot pass as stale.
-    Differing SHAs are ``stale``: the findings describe the published revision,
-    not the unpublished local candidate.
+    Implicit publication may classify a SHA mismatch as ``stale``: the findings
+    belong to the published PR head, not the unpublished local candidate.
+    An explicit ``--pr`` inspection is about that PR, so a different local
+    checkout cannot make its findings stale. A missing SHA stays ``current``.
     """
+    if explicit:
+        return "current"
     if local_sha and pr_head_sha and local_sha != pr_head_sha:
         return "stale"
     return "current"
@@ -132,10 +135,17 @@ def decide_remote_gate(
     pr_number: int | None,
     local_sha: str,
     pr_head_sha: str,
+    *,
+    explicit: bool = False,
 ) -> RemoteGateResult:
-    """Fail closed only when remote evidence describes this exact candidate."""
+    """Fail closed when remote evidence describes the subject of this check.
+
+    ``explicit=False`` is publication preflight: findings on an older PR head
+    do not block a newer local candidate. ``explicit=True`` is ``--pr N``:
+    the requested PR head is the subject, whatever this checkout is.
+    """
     should_fail, reasons = _gate_decision(issues, ci_conclusion, pr_number)
-    applicability = remote_evidence_applicability(local_sha, pr_head_sha)
+    applicability = remote_evidence_applicability(local_sha, pr_head_sha, explicit=explicit)
     if applicability == "stale":
         return RemoteGateResult(0, applicability, tuple(reasons))
     return RemoteGateResult(1 if should_fail else 0, applicability, tuple(reasons))
@@ -199,7 +209,14 @@ def main() -> int:
 
     local_sha = _local_head_sha()
     published_sha = _pr_head_sha(_pr)
-    result = decide_remote_gate(issues, ci_conclusion, pr_number, local_sha, published_sha)
+    result = decide_remote_gate(
+        issues,
+        ci_conclusion,
+        pr_number,
+        local_sha,
+        published_sha,
+        explicit=bool(pr_ref),
+    )
     if result.applicability == "stale":
         print()
         print(format_stale_evidence(local_sha, published_sha, list(result.reasons)))

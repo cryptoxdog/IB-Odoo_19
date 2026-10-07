@@ -39,12 +39,19 @@ if [[ "${CURRENT}" != "${TARGET}" ]]; then
   exit 1
 fi
 
-case "${CURRENT}" in
-  Staging|Production|staging|production)
-    echo "refusing to publish: ${CURRENT} is a protected branch; use a feature branch"
-    exit 1
-    ;;
-esac
+# Production is not an ordinary working branch. Staging is: feature work
+# publishes into Staging, and an explicit Staging → Production promotion is
+# allowed. Any source that matches its base is a self-PR and stops here.
+current_lc="$(printf '%s' "${CURRENT}" | tr '[:upper:]' '[:lower:]')"
+base_lc="$(printf '%s' "${BASE}" | tr '[:upper:]' '[:lower:]')"
+if [[ "${current_lc}" == "production" ]]; then
+  echo "refusing to publish: Production is not an ordinary source branch"
+  exit 1
+fi
+if [[ "${current_lc}" == "${base_lc}" ]]; then
+  echo "refusing to publish: ${CURRENT} → ${BASE} is a self-PR; source and base must differ"
+  exit 1
+fi
 
 require_clean() {
   local status
