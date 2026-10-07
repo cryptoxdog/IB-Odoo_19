@@ -17,8 +17,11 @@ Counter semantics (documented, honest accounting):
 * ``records_unchanged`` — identity-resolved rows that needed no write on replay
   (including set-semantics buckets: contact roles, transaction lines).
 * ``records_created`` / ``records_updated`` — identity-resolved rows written.
-* ``errors`` — failed transactions and unresolved references, keyed by the
-  source-native identifier. Never contains secrets.
+* ``errors`` — bounded diagnostic detail for failed transactions and unresolved
+  references, keyed by the source-native identifier. The complete rejected-row
+  accounting remains ``records_rejected``. At most the shared contract's 1000
+  diagnostic entries are emitted. A reconciliation failure reserves one of
+  those slots. Never contains secrets.
 * ``final_status`` — ``success`` when nothing was rejected, ``partial`` when
   rows were rejected or left unresolved without a failed unit, ``failed`` when
   a logical unit (a ``BuySellNo``) raised and was rolled back or when the
@@ -47,6 +50,8 @@ SUMMARY_SOURCE = "erp"
 SOURCE_COUNT_DIAGNOSTIC = "violations"
 # ``record_ref`` of the run-level error a reconciliation gap emits.
 RECONCILIATION_REF = "reconciliation"
+# Producer bound for the shared contract's ``errors.maxItems``. Not read from the schema at runtime.
+ERROR_ROW_LIMIT = 1000
 
 
 def utc_now() -> str:
@@ -85,16 +90,19 @@ def import_run_summary(
     )
 
     accounted = created + updated + unchanged + total_rejected
+    reconciliation_error = None
     if accounted != seen:
-        error_rows.append(
-            {
-                "record_ref": RECONCILIATION_REF,
-                "message": (
-                    f"records_seen {seen} != created {created} + updated {updated} + unchanged {unchanged} "
-                    f"+ rejected {total_rejected} = {accounted}; {seen - accounted} source rows unaccounted"
-                ),
-            }
-        )
+        reconciliation_error = {
+            "record_ref": RECONCILIATION_REF,
+            "message": (
+                f"records_seen {seen} != created {created} + updated {updated} + unchanged {unchanged} "
+                f"+ rejected {total_rejected} = {accounted}; {seen - accounted} source rows unaccounted"
+            ),
+        }
+    if reconciliation_error is None:
+        error_rows = error_rows[:ERROR_ROW_LIMIT]
+    else:
+        error_rows = [*error_rows[: ERROR_ROW_LIMIT - 1], reconciliation_error]
 
     if errors or accounted != seen:
         final_status = "failed"

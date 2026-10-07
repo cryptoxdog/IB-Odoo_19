@@ -5,6 +5,7 @@ Pure-python tier (no Odoo import) — see tests/conftest.py collection rules.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -185,3 +186,39 @@ def test_balanced_runs_carry_no_reconciliation_error():
         projected = summary.import_run_summary(result)
         assert all(row["record_ref"] != summary.RECONCILIATION_REF for row in projected["errors"])
         assert projected["final_status"] == "success"
+
+
+def test_error_row_limit_matches_the_shared_contract():
+    schema = json.loads((ROOT / "contracts/schemas/draft/import-run-summary.schema.json").read_text(encoding="utf-8"))
+    assert summary.ERROR_ROW_LIMIT == schema["properties"]["errors"]["maxItems"] == 1000
+
+
+def test_rejected_accounting_stays_complete_when_diagnostics_exceed_the_contract_cap():
+    report = ImportReport()
+    report.source_counts = {"Address": 1289}
+    for index in range(1289):
+        report.unresolved_ref("Address", "unresolved_counterparty", str(index), "missing parent")
+    projected = summary.import_run_summary(report.as_dict())
+    assert projected["records_seen"] == 1289
+    assert projected["records_rejected"] == 1289
+    assert projected["records_valid"] == 0
+    assert projected["final_status"] == "partial"
+    assert len(projected["errors"]) == 1000
+    assert projected["errors"][0]["record_ref"] == "0"
+    assert projected["errors"][999]["record_ref"] == "999"
+    assert validate_summary(projected) == []
+
+
+def test_reconciliation_error_keeps_a_slot_when_diagnostics_overflow():
+    report = ImportReport()
+    report.source_counts = {"Address": 1001}
+    for index in range(1000):
+        report.unresolved_ref("Address", "unresolved_counterparty", str(index), "missing parent")
+    projected = summary.import_run_summary(report.as_dict())
+    reconciliation = [row for row in projected["errors"] if row["record_ref"] == summary.RECONCILIATION_REF]
+    assert projected["records_seen"] == 1001
+    assert projected["records_rejected"] == 1000
+    assert projected["final_status"] == "failed"
+    assert len(projected["errors"]) == 1000
+    assert len(reconciliation) == 1
+    assert validate_summary(projected) == []
