@@ -35,17 +35,39 @@ def _real_validator():
     return module
 
 
+def _excludes_localization_partners(query: str) -> bool:
+    """The census SQL exempts only l10n_* ir.model.data rows, not every XMLID."""
+    compact = " ".join(query.split())
+    required = (
+        "NOT EXISTS",
+        "data.model = 'res.partner'",
+        "data.res_id = partner.id",
+        "LEFT(data.module, 5) = 'l10n_'",
+    )
+    return all(part in compact for part in required) and "LIKE" not in compact
+
+
 class _Cursor:
-    def __init__(self):
+    def __init__(self, partner_rows="empty"):
         self.queries = []
         self.commits = 0
         self.rollbacks = 0
+        self.partner_rows = partner_rows
 
     def execute(self, query):
         self.queries.append(query)
 
     def fetchone(self):
-        return (0,)
+        query = self.queries[-1]
+        census = "res_users" in query
+        if self.partner_rows == "business" and census:
+            return (1,)
+        if self.partner_rows == "localization_only" and census:
+            # A census that still counts localization reference partners is the pre-repair bug.
+            return (0,) if _excludes_localization_partners(query) else (15,)
+        if census:
+            return (0,)
+        return (28,)
 
     def commit(self):
         self.commits += 1
@@ -55,18 +77,18 @@ class _Cursor:
 
 
 class _Env:
-    def __init__(self):
-        self.cr = _Cursor()
+    def __init__(self, partner_rows="empty"):
+        self.cr = _Cursor(partner_rows)
 
 
 class _Harness:
     """Stub the Odoo-side modules the driver imports; record what it validated, ran, and committed."""
 
-    def __init__(self, monkeypatch, failing=(), database=None):
+    def __init__(self, monkeypatch, failing=(), database=None, partner_rows="empty"):
         self.validated = []
         self.validated_payloads = []
         self.runs = []
-        self.env = _Env()
+        self.env = _Env(partner_rows)
         real = _real_validator()
         harness = self
 
@@ -214,6 +236,40 @@ def test_later_layers_do_not_require_an_empty_partner_set(monkeypatch):
     assert harness.main() == 0
     assert harness.validated == ["database", "addresses", "contacts"]
     assert harness.env.cr.queries == []
+
+
+def _business_census(queries):
+    return next(query for query in queries if "res_users" in query)
+
+
+def test_empty_partner_census_excludes_only_localization_owned_partners(monkeypatch):
+    harness = _Harness(monkeypatch)
+    monkeypatch.setenv("ERP_LAYER", "counterparties")
+
+    assert harness.main() == 0
+    census = _business_census(harness.env.cr.queries)
+    assert _excludes_localization_partners(census)
+    assert "plasticos_" not in census
+
+
+def test_preexisting_business_partner_refuses_before_the_importer_runs(monkeypatch):
+    harness = _Harness(monkeypatch, partner_rows="business")
+    monkeypatch.setenv("ERP_LAYER", "counterparties")
+
+    with pytest.raises(SystemExit, match="business partner"):
+        harness.main()
+    assert harness.runs == []
+    assert harness.env.cr.commits == 0
+
+
+def test_localization_reference_partners_do_not_block_the_importer(monkeypatch):
+    harness = _Harness(monkeypatch, partner_rows="localization_only")
+    monkeypatch.setenv("ERP_LAYER", "counterparties")
+
+    assert harness.main() == 0
+    assert harness.runs, "a localization-only partner table must reach the importer"
+    assert harness.runs[0]["layer"] == "counterparties"
+    assert _excludes_localization_partners(_business_census(harness.env.cr.queries))
 
 
 def test_dry_run_validates_nothing_and_commits_nothing(monkeypatch):

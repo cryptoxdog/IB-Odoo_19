@@ -167,9 +167,10 @@ never put them in a tracked file. The grid and statement forms need no secret.
 - A **disposable, nonproduction** Odoo database (`ODOO_DB_NAME`, passed to the
   preflight as `ERP_TARGET_DB`) with `plasticos_partner_import` installed. A full
   run additionally needs `plasticos_transaction` installed; the preflight refuses
-  a full run without it before any partner stage writes. The partner table must
-  hold only the company and the login users (`ERP_REQUIRE_EMPTY=1`, the default)
-  unless a reload onto a populated database is deliberate.
+  a full run without it before any partner stage writes. A pristine first-import
+  target may also contain localization-owned Odoo reference partners, besides the
+  company and the login users (`ERP_REQUIRE_EMPTY=1`, the default), unless a
+  reload onto a populated database is deliberate.
 - A runtime: `docker compose` (Docker Desktop running) or the no-Docker local
   harness (`scripts/setup_local_runtime.sh`, `L9_ODOO_VENV`). The direct read
   needs the `pymssql` driver in that runtime (`requirements-dev.txt`).

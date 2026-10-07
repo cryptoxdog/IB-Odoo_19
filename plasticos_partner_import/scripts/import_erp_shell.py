@@ -25,8 +25,8 @@ single file serves both the docker and the no-Docker harness paths:
   layer's validator passes.
 * ``ERP_REQUIRE_EMPTY`` — ``0`` allows a database that already has business
   partners. Any other value (including unset) refuses a full import or the
-  ``counterparties`` layer unless the only ``res.partner`` rows are the company
-  and the login users.
+  ``counterparties`` layer when any ``res.partner`` row is not the company, a
+  login user, or a localization-owned (``l10n_*``) reference partner.
 
 Order of operations for an applied run: database check → (layer mode) the
 previous layer's check → import each stage → that stage's validator → commit.
@@ -68,8 +68,10 @@ def _odoo_env():
 def _require_empty_partner_set(env) -> None:
     """Refuse the import when the database already has business partners.
 
-    A usable database always has the company partner and one partner per user.
-    Those are the only rows allowed before a test import.
+    A pristine initialized Odoo database may contain the company partner,
+    login-user partners, and localization-owned res.partner reference records.
+    Those are infrastructure/reference data, not imported business partners.
+    Any other pre-existing partner blocks a first historical import.
     """
     if _setting("REQUIRE_EMPTY").strip().lower() in {"0", "false", "no", "n"}:
         return
@@ -77,11 +79,24 @@ def _require_empty_partner_set(env) -> None:
     env.cr.execute(
         """
         SELECT count(*)
-          FROM res_partner
-         WHERE id NOT IN (
-                SELECT partner_id FROM res_users WHERE partner_id IS NOT NULL
+          FROM res_partner AS partner
+         WHERE partner.id NOT IN (
+                SELECT partner_id
+                  FROM res_users
+                 WHERE partner_id IS NOT NULL
+
                 UNION
-                SELECT partner_id FROM res_company WHERE partner_id IS NOT NULL
+
+                SELECT partner_id
+                  FROM res_company
+                 WHERE partner_id IS NOT NULL
+               )
+           AND NOT EXISTS (
+                SELECT 1
+                  FROM ir_model_data AS data
+                 WHERE data.model = 'res.partner'
+                   AND data.res_id = partner.id
+                   AND LEFT(data.module, 5) = 'l10n_'
                )
         """
     )
@@ -89,11 +104,9 @@ def _require_empty_partner_set(env) -> None:
     # Direct SQL justification: same bulk census, total rows including archived partners.
     env.cr.execute("SELECT count(*) FROM res_partner")
     total = int(env.cr.fetchone()[0])
-    print(f"res.partner before import: {total} (outside company and users: {extra})")
+    print(f"res.partner before import: {total} (pre-existing business partners: {extra})")
     if extra:
-        raise SystemExit(
-            "refusing import: database still has res.partner rows that are not the company or a login user"
-        )
+        raise SystemExit("refusing import: database already contains business partner rows")
 
 
 def main() -> int:
