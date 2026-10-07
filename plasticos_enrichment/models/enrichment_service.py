@@ -380,8 +380,13 @@ class EnrichmentService(models.AbstractModel):
 
         # Merge-not-overwrite: only update fields that are empty
         update_vals = {}
+        # Identity codes are owned by plasticos.material.profile.
+        from odoo.addons.plasticos_material_profile.intake_delta_bridge import (
+            LEGACY_PROFILE_CODE_FIELDS,
+        )
+
         for field_name, value in augmented.items():
-            if field_name in ("polymer", "form", "source_type"):
+            if field_name in LEGACY_PROFILE_CODE_FIELDS:
                 continue  # Skip identity fields
             if value is not None and not getattr(profile, field_name, None):
                 update_vals[field_name] = value
