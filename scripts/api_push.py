@@ -6,7 +6,7 @@ Usage:
     python3 scripts/api_push.py
 
 This script MUST be run before using the GitHub API to push code.
-It enforces the same validation pipeline as `make push`.
+It enforces the same validation pipeline as `make pr`.
 
 Why this exists:
 - When git push fails (Dropbox mmap timeout), the GitHub API is a last resort

@@ -73,6 +73,19 @@ if [[ "${DO_COMMIT}" == "1" ]]; then
   require_clean
 fi
 
+# Makefile COMMIT_EXCLUDE (.cursor-commands). Same refusal the pre-#222 push
+# path used: the published commit range must not contain that governance path,
+# including when it was committed outside make commit.
+range_base="$(git merge-base HEAD "origin/${BASE}" 2>/dev/null || true)"
+if [[ -z "${range_base}" ]]; then
+  range_base="$(git rev-list --max-parents=0 HEAD | tail -1)"
+fi
+if git diff --name-only "${range_base}..HEAD" | grep -q '^\.cursor-commands'; then
+  echo "⛔ Refusing to push: commits include .cursor-commands (governance repo only)."
+  echo "   Remove those paths from the branch before pushing to IB-Odoo_19."
+  exit 1
+fi
+
 echo "→ PR gate (make pr-check, once, before remote mutation)..."
 make pr-check
 echo ""

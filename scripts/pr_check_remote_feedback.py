@@ -132,7 +132,7 @@ def main() -> int:
         for r in reasons:
             print(f"   - {r}")
         print("   Fix issues above, or run `make pr-fix pr=<n>` for auto-fixable CI findings.")
-        print("   Bypass (not recommended): PR_CHECK_SKIP_REMOTE=1 make push")
+        print("   Resolve the remote-feedback blocker before make pr.")
         return 1
 
     print("\n✅ Remote PR feedback gate passed")
