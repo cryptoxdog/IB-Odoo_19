@@ -21,7 +21,8 @@ from scripts.validate_import_summary import validate_summary  # noqa: E402
 def sample_result() -> dict:
     report = ImportReport()
     report.payload_kind = "grid"
-    report.source_counts = {"CounterParty": 2, "Address": 1, "WKSDetail": 1}
+    # 2 counterparties + 1 address + 1 transaction + 1 transaction line: every row has one outcome.
+    report.source_counts = {"CounterParty": 2, "Address": 1, "transactions": 1, "transaction_lines": 1}
     report.bump("counterparties", "created", 1)
     report.bump("counterparties", "updated", 1)
     report.bump("locations", "created", 1)
@@ -34,7 +35,7 @@ def test_success_projection_validates():
     projected = summary.import_run_summary(sample_result())
     assert validate_summary(projected) == []
     assert projected["final_status"] == "success"
-    assert projected["records_seen"] == 4
+    assert projected["records_seen"] == 5
     assert projected["records_created"] == 3
     assert projected["records_updated"] == 1
     assert projected["records_unchanged"] == 1
@@ -44,7 +45,8 @@ def test_success_projection_validates():
 
 def test_rejection_and_unresolved_count_as_rejected():
     report = ImportReport()
-    report.source_counts = {"CounterParty": 3}
+    # 3 partner rows (created / rejected / unresolved) + 1 failed transaction unit.
+    report.source_counts = {"CounterParty": 3, "transactions": 1}
     report.bump("counterparties", "created", 1)
     report.bump("counterparties", "rejected", 1)
     report.unresolved_ref("Contact", "parent_not_imported", "cp1", "counterparty partner was not created")
@@ -53,7 +55,7 @@ def test_rejection_and_unresolved_count_as_rejected():
     assert validate_summary(projected) == []
     assert projected["final_status"] == "failed"
     assert projected["records_rejected"] == 3
-    assert projected["records_valid"] == 0
+    assert projected["records_valid"] == 1
     assert len(projected["errors"]) == 2
     assert projected["errors"][0]["record_ref"] == "B-100"
 
@@ -148,3 +150,38 @@ def test_violation_tally_is_not_a_second_population_of_seen_rows():
         + projected["records_rejected"]
         == projected["records_seen"]
     )
+
+
+def test_unaccounted_rows_fail_the_run_and_are_not_relabelled_as_rejected():
+    """A deal population nothing realized must not close the books as rejected rows."""
+    report = ImportReport()
+    report.source_counts = {"counterparties": 2, "transactions": 3, "transaction_lines": 5}
+    report.bump("counterparties", "created", 2)
+    projected = summary.import_run_summary(report.as_dict())
+    assert validate_summary(projected) == []
+    assert projected["final_status"] == "failed"
+    # Truthful counters: the gap stays a gap.
+    assert projected["records_seen"] == 10
+    assert projected["records_created"] == 2
+    assert projected["records_rejected"] == 0
+    reconciliation = [row for row in projected["errors"] if row["record_ref"] == summary.RECONCILIATION_REF]
+    assert len(reconciliation) == 1
+    assert "8 source rows unaccounted" in reconciliation[0]["message"]
+
+
+def test_over_accounted_rows_also_fail_the_run():
+    """More outcomes than source rows is a double count, never a success."""
+    report = ImportReport()
+    report.source_counts = {"counterparties": 1}
+    report.bump("counterparties", "created", 1)
+    report.bump("counterparties", "updated", 1)
+    projected = summary.import_run_summary(report.as_dict())
+    assert projected["final_status"] == "failed"
+    assert any(row["record_ref"] == summary.RECONCILIATION_REF for row in projected["errors"])
+
+
+def test_balanced_runs_carry_no_reconciliation_error():
+    for result in (sample_result(),):
+        projected = summary.import_run_summary(result)
+        assert all(row["record_ref"] != summary.RECONCILIATION_REF for row in projected["errors"])
+        assert projected["final_status"] == "success"

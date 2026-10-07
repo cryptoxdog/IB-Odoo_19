@@ -330,6 +330,22 @@ def test_full_import_without_transactions_is_refused_before_the_importer_runs(mo
     assert harness.env.cr.commits == 0
 
 
+def test_full_import_with_a_failed_summary_exits_nonzero(monkeypatch):
+    """A reconciliation gap makes the summary ``failed``; the driver must not exit 0 on it."""
+    harness = _Harness(monkeypatch)
+    runner = sys.modules[f"{PACKAGE}.run_erp_import"]
+    passing = runner.run
+
+    def run(env, **kwargs):
+        passing(env, **kwargs)
+        return {"summary": {"final_status": "failed"}}
+
+    runner.run = run
+
+    assert harness.main() == 1
+    assert harness.runs[0]["partners_only"] is False
+
+
 def test_unknown_layer_is_rejected_before_any_import(monkeypatch):
     harness = _Harness(monkeypatch)
     monkeypatch.setenv("ERP_LAYER", "database")
