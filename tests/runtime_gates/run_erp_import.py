@@ -24,6 +24,29 @@ Gates:
     G4 savepoint recovery             one corrupted row fails its BuySellNo
                                       only; the rest persists; a fixed re-run
                                       recovers the failed unit.
+
+G1–G4 read the frozen grid fixture. They do not prove the direct SQL Server
+source seam. G5–G6 do, on a freshly re-created scratch database, and run only
+when ``ERP_SQL_SERVER`` / ``ERP_SQL_DATABASE`` (+ ``ERP_SQL_USER`` /
+``ERP_SQL_PASSWORD`` / ``ERP_SQL_PORT`` / ``ERP_SQL_DRIVER``) name the restored
+ERP database; the source is read with SELECT projection scripts only::
+
+    ERP_GATE_REQUIRE_DIRECT_SQL=1 ERP_SQL_SERVER=… ERP_SQL_DATABASE=… \\
+        make runtime-gate g=run_erp_import.py
+
+    G5 direct-SQL import reconciles  the restored SQL Server is the selected
+                                      source; all 11 projection scripts are
+                                      read through the shared reader; the full
+                                      run realizes transactions; the summary
+                                      closes; sampled supplier, buyer, state and
+                                      line values match the source rows.
+    G6 direct-SQL replay is idempotent identical second direct-SQL run: zero
+                                      created, zero updated, identity markers
+                                      unchanged, no duplicate source identity.
+
+Without the direct-SQL settings G5–G6 report NOT RUN and the exit code covers
+G1–G4 only. ``ERP_GATE_REQUIRE_DIRECT_SQL=1`` turns that absence into exit 77
+(SKIPPED, never PASS) before any gate runs.
 """
 
 from __future__ import annotations
@@ -40,6 +63,7 @@ from psycopg2 import sql
 
 import odoo
 import odoo.modules.module
+import odoo.sql_db
 from odoo.api import Environment
 from odoo.tools import config
 
@@ -129,12 +153,18 @@ def odoo_env():
     return odoo.modules.registry.Registry(SCRATCH_DB).cursor()
 
 
-def import_once(payload_root: str | None = None) -> dict:
+def release_scratch_db() -> None:
+    """Drop Odoo's cached registry and pooled connections so the scratch database can be dropped."""
+    odoo.modules.registry.Registry.delete(SCRATCH_DB)
+    odoo.sql_db.close_db(SCRATCH_DB)
+
+
+def import_once(payload_root: str | None = None, database=None) -> dict:
     from odoo.addons.plasticos_partner_import.scripts.run_erp_import import run
 
     with odoo_env() as cr:
         env = Environment(cr, odoo.SUPERUSER_ID, {})
-        return run(env, payload_root=payload_root, commit=True, verbose=False)
+        return run(env, payload_root=payload_root, commit=True, verbose=False, database=database)
 
 
 def marker_count(dbname: str, name_pattern: str) -> int:
@@ -284,6 +314,218 @@ def gate_g4_savepoint_recovery() -> bool:
     return True
 
 
+# ---------------------------------------------------------------------------
+# G5–G6: the direct SQL Server source seam
+# ---------------------------------------------------------------------------
+REQUIRE_DIRECT_SQL_ENV = "ERP_GATE_REQUIRE_DIRECT_SQL"
+# BuySellNos sampled for supplier / buyer / state / line agreement, spread over the key order.
+DIRECT_SQL_SAMPLES = 5
+PRODUCTION_MARKERS = ("production", "prod")
+DEAL_MARKERS = ("legacy_erp_transaction_%", "legacy_erp_detail_%")
+_DIRECT = {"markers": None}
+
+
+def direct_sql_source():
+    """The restored-database source the environment names, or ``None``."""
+    from odoo.addons.plasticos_partner_import.erp import reader
+
+    return reader.database_source_from_env(os.environ)
+
+
+def _closes(summary: dict) -> bool:
+    return (
+        summary["records_created"]
+        + summary["records_updated"]
+        + summary["records_unchanged"]
+        + summary["records_rejected"]
+        == summary["records_seen"]
+    )
+
+
+def _counters(summary: dict) -> str:
+    keys = ("records_seen", "records_created", "records_updated", "records_unchanged", "records_rejected", "duplicates")
+    return (
+        " ".join(f"{key.removeprefix('records_')}={summary[key]}" for key in keys)
+        + f" status={summary['final_status']}"
+    )
+
+
+def _imported_counterparties() -> dict[str, int]:
+    """CpID -> res.partner id for every imported counterparty marker, in one read."""
+    rows = query(
+        SCRATCH_DB,
+        "select name, res_id from ir_model_data where module = 'plasticos_transaction' "
+        "and model = 'res.partner' and name like %s",
+        ("legacy_erp_cp_%",),
+    )
+    return {name.removeprefix("legacy_erp_cp_"): int(res_id) for name, res_id in rows}
+
+
+def _deal_marker_census() -> dict[str, int]:
+    return {pattern: marker_count(SCRATCH_DB, pattern) for pattern in DEAL_MARKERS}
+
+
+def _duplicate_deal_identities() -> list:
+    """Two deal markers on one record, or two records under one BuySellNo name."""
+    shared = query(
+        SCRATCH_DB,
+        "select model, res_id, count(*) from ir_model_data where module = 'plasticos_transaction' "
+        "and (name like %s or name like %s) group by model, res_id having count(*) > 1",
+        DEAL_MARKERS,
+    )
+    named = query(
+        SCRATCH_DB,
+        "select t.name, count(*) from plasticos_transaction t join ir_model_data d on d.res_id = t.id "
+        "and d.model = 'plasticos.transaction' and d.module = 'plasticos_transaction' "
+        "where d.name like %s group by t.name having count(*) > 1",
+        (DEAL_MARKERS[0],),
+    )
+    return shared + named
+
+
+def _sample(values: list) -> list:
+    if len(values) <= DIRECT_SQL_SAMPLES:
+        return values
+    step = (len(values) - 1) / (DIRECT_SQL_SAMPLES - 1)
+    return [values[round(i * step)] for i in range(DIRECT_SQL_SAMPLES)]
+
+
+def _check_sampled_deals(payload) -> list[str]:
+    """Supplier, buyer, state and every line of sampled deals agree with the source rows."""
+    from odoo.addons.plasticos_partner_import.erp import header_forensics, mapping, source_index
+
+    index = source_index.build_source_index(payload)
+    headers = header_forensics.reconstruct_all_headers(index)
+    partners = _imported_counterparties()
+    complete = [
+        header for header in headers.values() if header.supplier_cp_id in partners and header.buyer_cp_id in partners
+    ]
+    if not complete:
+        return ["no source deal has both parties imported; nothing to sample"]
+    problems = []
+    for header in _sample(complete):
+        ref = header.buysell_no
+        rows = query(
+            SCRATCH_DB,
+            "select t.id, t.supplier_id, t.buyer_id, t.state from plasticos_transaction t "
+            "join ir_model_data d on d.res_id = t.id and d.model = 'plasticos.transaction' "
+            "where d.module = 'plasticos_transaction' and d.name = %s",
+            (f"legacy_erp_transaction_{ref}",),
+        )
+        if len(rows) != 1:
+            problems.append(f"{ref}: {len(rows)} transactions behind its marker")
+            continue
+        transaction_id, supplier_id, buyer_id, state = rows[0]
+        supplier = partners[header.supplier_cp_id]
+        buyer = partners[header.buyer_cp_id]
+        if supplier_id != supplier:
+            problems.append(f"{ref}: supplier {supplier_id}, source CpID {header.supplier_cp_id} is partner {supplier}")
+        if buyer_id != buyer:
+            problems.append(f"{ref}: buyer {buyer_id}, source CpID {header.buyer_cp_id} is partner {buyer}")
+        if state != header.state:
+            problems.append(f"{ref}: state {state!r}, source evidence says {header.state!r}")
+        stored = query(
+            SCRATCH_DB,
+            "select count(*) from plasticos_transaction_line where transaction_id = %s",
+            (transaction_id,),
+        )
+        if int(stored[0][0]) != len(header.detail_ids):
+            problems.append(f"{ref}: {stored[0][0]} lines, source has {len(header.detail_ids)}")
+        for detail_id in header.detail_ids:
+            source = index.lines[detail_id]
+            line = query(
+                SCRATCH_DB,
+                "select l.transaction_id, l.units, coalesce(l.lot_no, '') from plasticos_transaction_line l "
+                "join ir_model_data d on d.res_id = l.id and d.model = 'plasticos.transaction.line' "
+                "where d.module = 'plasticos_transaction' and d.name = %s",
+                (f"legacy_erp_detail_{detail_id}",),
+            )
+            if len(line) != 1:
+                problems.append(f"{ref}/{detail_id}: {len(line)} lines behind its marker")
+                continue
+            line_transaction, units, lot_no = line[0]
+            expected_units = mapping.parse_decimal(source.get("Units")) or 1.0
+            if line_transaction != transaction_id:
+                problems.append(f"{ref}/{detail_id}: line belongs to transaction {line_transaction}")
+            if abs(float(units) - expected_units) > 1e-6:
+                problems.append(f"{ref}/{detail_id}: units {units}, source {expected_units}")
+            if lot_no != (source.get("LotNo") or "").strip():
+                problems.append(f"{ref}/{detail_id}: lot {lot_no!r}, source {source.get('LotNo')!r}")
+        print(
+            f"G5 sample {ref}: supplier CpID {header.supplier_cp_id}->{supplier_id} "
+            f"buyer CpID {header.buyer_cp_id}->{buyer_id} state={state} lines={len(header.detail_ids)}"
+        )
+    return problems
+
+
+def gate_g5_direct_sql_import_reconciles(source) -> bool:
+    from odoo.addons.plasticos_partner_import.erp import reader
+
+    if any(marker in SCRATCH_DB.lower() for marker in PRODUCTION_MARKERS) or SCRATCH_DB == TEMPLATE_DB:
+        print(f"G5 refusing: {SCRATCH_DB!r} is not a disposable scratch database")
+        return False
+    if set(reader.PROJECTION_SCRIPTS) != set(reader.REQUIRED_TABLES) or len(reader.PROJECTION_SCRIPTS) != 11:
+        print(
+            f"G5 projection registry {sorted(reader.PROJECTION_SCRIPTS)} != required {sorted(reader.REQUIRED_TABLES)}"
+        )
+        return False
+
+    result = import_once(database=source)
+    summary = result["summary"]
+    counts = result["counts"]
+    print(f"G5 first direct-SQL run ({source.label}): {_counters(summary)}")
+    if result["payload_kind"] != reader.PayloadKind.DATABASE.value:
+        print(f"G5 source is {result['payload_kind']!r}, not the restored database")
+        return False
+    if not _closes(summary) or summary["duplicates"] != 0 or summary["final_status"] == "failed":
+        print(f"G5 summary does not close: {summary['errors'][:5]}")
+        return False
+    realized = counts["transactions"]["created"] + counts["transactions"]["updated"]
+    if not realized or not counts["transaction_lines"]["created"]:
+        print(f"G5 the full run did not realize transactions: {counts['transactions']} {counts['transaction_lines']}")
+        return False
+
+    # Source evidence: an independent read of the same restored database through the same reader.
+    payload = reader.load_payload(None, database=source)
+    if set(payload.tables) != set(reader.REQUIRED_TABLES):
+        print(f"G5 direct read returned {sorted(payload.tables)}")
+        return False
+    print(f"G5 projection row counts: {payload.row_counts()}")
+    problems = _check_sampled_deals(payload)
+    problems += [f"duplicate identity {row}" for row in _duplicate_deal_identities()]
+    if problems:
+        for problem in problems[:20]:
+            print(f"G5 {problem}")
+        return False
+    _DIRECT["markers"] = _deal_marker_census()
+    print(f"G5 direct-SQL import reconciled; deal markers {_DIRECT['markers']}")
+    return True
+
+
+def gate_g6_direct_sql_replay_is_idempotent(source) -> bool:
+    if _DIRECT["markers"] is None:
+        print("G6 not attempted: G5 did not pass")
+        return False
+    summary = import_once(database=source)["summary"]
+    print(f"G6 replay direct-SQL run ({source.label}): {_counters(summary)}")
+    if not _closes(summary) or summary["final_status"] == "failed":
+        print(f"G6 replay summary does not close: {summary['errors'][:5]}")
+        return False
+    if summary["records_created"] or summary["records_updated"]:
+        print("G6 replay created or updated records — duplicate creation or write churn")
+        return False
+    markers = _deal_marker_census()
+    if markers != _DIRECT["markers"]:
+        print(f"G6 deal markers moved: {_DIRECT['markers']} -> {markers}")
+        return False
+    duplicates = _duplicate_deal_identities()
+    if duplicates:
+        print(f"G6 duplicate source identities: {duplicates[:5]}")
+        return False
+    print(f"G6 replay: 0 created, 0 updated, {summary['records_unchanged']} unchanged")
+    return True
+
+
 def attempt(name: str, fn) -> bool:
     try:
         return bool(fn())
@@ -299,6 +541,11 @@ def main() -> int:
     if not os.path.isdir(os.path.join(PAYLOAD_ROOT, "bulk")):
         print("payload missing in this checkout")
         return 77
+    source = direct_sql_source()
+    if source is None and os.environ.get(REQUIRE_DIRECT_SQL_ENV) == "1":
+        # SKIPPED, never PASS: the direct-SQL seam proof was required and no restored database is named.
+        print(f"{REQUIRE_DIRECT_SQL_ENV}=1 but ERP_SQL_SERVER / ERP_SQL_DATABASE are unset — G5/G6 cannot run")
+        return 77
     if not create_scratch_db():
         # SKIPPED, never PASS: the configured template database does not exist on this runtime.
         print(f"template database {TEMPLATE_DB!r} not found — run scripts/setup_local_runtime.sh")
@@ -310,12 +557,25 @@ def main() -> int:
         results["G2 repeat run is idempotent"] = attempt("G2", gate_g2_repeat_is_idempotent)
         results["G3 changed source updates deterministically"] = attempt("G3", gate_g3_changed_source_updates)
         results["G4 savepoint recovery"] = attempt("G4", gate_g4_savepoint_recovery)
+        if source is not None:
+            # The direct-SQL proof starts from the template again, never from fixture-loaded rows.
+            release_scratch_db()
+            create_scratch_db()
+            results["G5 direct-SQL import reconciles"] = attempt(
+                "G5", lambda: gate_g5_direct_sql_import_reconciles(source)
+            )
+            results["G6 direct-SQL replay is idempotent"] = attempt(
+                "G6", lambda: gate_g6_direct_sql_replay_is_idempotent(source)
+            )
     finally:
+        release_scratch_db()
         drop_scratch_db()
 
     print("\n" + "=" * 64)
     for name, passed in results.items():
         print(f"  {'PASS' if passed else 'FAIL'}  {name}")
+    if source is None:
+        print("  NOT RUN  G5/G6 direct-SQL seam (ERP_SQL_SERVER / ERP_SQL_DATABASE unset) — unproven by this run")
     print("=" * 64)
     return 0 if all(results.values()) else 1
 
