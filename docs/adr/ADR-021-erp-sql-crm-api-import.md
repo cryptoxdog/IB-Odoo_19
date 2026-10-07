@@ -1,32 +1,57 @@
 # ADR-021: ERP Data Imports from SQL, CRM Data Imports from the API
 
-**Status:** Accepted
-**Date:** 2026-10-01
-**Deciders:** Igor Beylin
-**Scope:** ERP partner and transaction import; VanillaSoft CRM import
-**Supersedes:** The CSV transport in [ADR-003](ADR-003-contact-import-configuration.md). The partner hierarchy in ADR-003 stays.
+**Status:** Accepted  
+**Date:** 2026-10-01  
+**Deciders:** Igor Beylin  
+**Scope:** ERP partner and historical transaction import; VanillaSoft CRM import  
+**Supersedes:** The CSV transport in ADR-003. ADR-003's partner hierarchy and role/rank semantics remain applicable.
 
 ## Context
 
-Two inbound streams were documented as CSV wizards: ERP counterparties, and VanillaSoft leads. The ERP extract queries live in `plasticos_partner_import/erp_extracted_data/`. The row files checked in beside them are CSV grids copied out of SSMS. `docs/erp_import_mapping.md` then treated those grids as the authoritative payload. That split is how the import architecture drifted back to CSV.
+Two inbound streams had drifted toward CSV-oriented operating instructions: ERP data and VanillaSoft CRM data. That transport is retired. The ERP already has canonical SQL projection definitions under `plasticos_partner_import/erp_extracted_data/`, and CRM has an API integration.
 
-CSV wizards are the retired path. New ERP work must not add another spreadsheet mapping. New CRM work must not add another lead CSV.
+The architecture must preserve deterministic source identity while preventing the frozen regression grids from becoming a second runtime authority.
 
 ## Decision
 
-1. **ERP data enters through SQL.** Partners, facilities, contacts, and historical transactions from the ERP are imported from SQL (`INSERT` statements or an equivalent statement payload). The scripts in `plasticos_partner_import/erp_extracted_data/` are the query definitions for that extract. They are not a CSV specification.
-2. **CRM data enters through the API.** VanillaSoft leads and calls load only through `plasticos_crm_sync`. The Settings action is **Run VanillaSoft API Sync**.
-3. **CSV import is legacy.** `plasticos_partner_import` CSV wizards, the CRM lead CSV wizard, and `plasticos_partner_import/erp_extracted_data/bulk/*.csv` are frozen. Do not extend them, do not add columns to them, and do not document them as the current architecture. `make import-erp` may still read the frozen grids until a SQL payload replaces that call. That compatibility is not permission to build the next import on CSV.
-4. **Identity stays on source keys.** ERP upserts key on the ERP id (`CpID` and the related table keys), not on company name. CRM upserts key on the VanillaSoft id. ADR-003's company → facility → contact shape still applies when those SQL rows are loaded.
-5. **One sentence for agents.** ERP import means SQL. CRM import means the VanillaSoft API. A CSV path is legacy.
+1. **ERP data enters through SQL.** Partners, facilities, contacts, contact roles, salespersons, and historical transaction reconstruction inputs are read from the restored ERP database through canonical SQL projection scripts.
+2. **CRM data enters through the API.** VanillaSoft leads and calls load through `plasticos_crm_sync`.
+3. **CSV is legacy or test evidence only.** The old CSV wizards and `erp_extracted_data/bulk/*.csv` are not the runtime architecture. Frozen grids may remain as immutable regression fixtures.
+4. **Source identity stays source-native.** ERP upserts use ERP keys (`CpID`, `AddressID`, `CT_ID`, `BuySellNo`, `DetailID`, and the applicable set-valued relationships), never names, email addresses, phone numbers, or Odoo database IDs.
+5. **One import pipeline.** Direct SQL must feed the existing deterministic `reader → SourceIndex → mapping/reconstruction → ORM upsert` path. No parallel direct-SQL importer is permitted.
+6. **Native Odoo semantics first.** A legacy field does not justify a new Odoo field. Map into native Odoo or an existing PlasticOS field when the business meaning already exists. A new field requires a proven representation gap and explicit operator approval.
+7. **Trade date is a PO approval date.** `GPLedger.TradeDt` means the date the purchase order was issued and the transaction approved under current PlasticOS rules. When the historical PO is realized, its native target is `purchase.order.date_approve` (`Confirmation Date`). `purchase.order.date_order` remains the RFQ/order-deadline date. No custom `plasticos.transaction.transaction_date` field is authorized.
+8. **Full import fails closed.** A full ERP import must not report success if the transaction realization extension is unavailable or if source-row accounting does not reconcile.
+
+## Direct database projections
+
+The direct database reader covers the five partner-side sources and the six transaction-reconstruction sources used by the deterministic pipeline:
+
+- `CounterParty`
+- `Address`
+- `Contact`
+- `ContactRoleAssignment`
+- `SalesReps`
+- `Payables`
+- `Receipt`
+- `ReceiptBatch`
+- `GPLedger`
+- `WKSDetail`
+- `WksDelivery`
+
+The projection mapping is owned by `plasticos_partner_import/erp/reader.py::PROJECTION_SCRIPTS`. `20_receiptbatch.sql` and `21_wksdelivery.sql` provide the single-result forms of the corresponding queries from the multi-result extract script.
 
 ## Consequences
 
-- Partner import that unblocks VanillaSoft material profiles reads CounterParty, Address, and Contact from SQL, not from `bulk/CounterParty.csv`.
-- `reader.load_payload(database=...)` reads the partner tables directly from the restored ERP database by executing the projection scripts (`PROJECTION_SCRIPTS`: `10`, `11`, `12`, `18`, `19`). `make import-erp ERP_SQL_SERVER=… ERP_SQL_DATABASE=…` selects it. An `INSERT` statement payload is the second form; the frozen grid is the regression fixture, never edited to make an import pass.
-- Docs that call `bulk/` the authoritative payload are wrong as of this ADR. Point them here instead of restating a CSV architecture.
+- `make import-erp` with `ERP_SQL_*` selects the direct restored-database source.
+- `PARTNERS_ONLY=1` restricts execution to Concern 1 partner tables and stages.
+- A full run may read and reconstruct transaction data only through the same source/index seam used by tests and fixture replay.
+- Runtime proof from a frozen fixture is useful but does not by itself prove the SQL Server → Odoo seam. Direct-SQL production readiness requires a live disposable-database import and identical replay.
+- Documentation that calls the frozen `bulk/` directory authoritative, says direct SQL is partner-only, or presents the CSV transaction wizard as the current import path is stale.
 
 ## Compliance
 
-- Do not reintroduce a CSV wizard as the operator path for ERP or CRM.
-- ADR-003 remains the hierarchy and rank/tag mapping. Its corporate-CSV / facility-CSV procedure does not.
+- Do not reintroduce a CSV wizard as the normal ERP or CRM operator path.
+- Do not add legacy-source-mirroring fields to Odoo merely because the source exposes them.
+- Do not create `plasticos.transaction.transaction_date` for `TradeDt`; use the native PO approval date when PO realization is implemented.
+- Keep unresolved or unsupported source semantics explicit. Do not coerce them into a green import result.

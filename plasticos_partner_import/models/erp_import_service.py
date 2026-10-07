@@ -28,8 +28,10 @@ commits, so a stage whose validator fails is rolled back by the caller and
 never persists.
 
 Deal rows are not written here. ``_extend_historical_import`` is the extension
-point a later module overrides after the partner stages. With no override, a
-full run still finishes the partner stages and persists no deal rows.
+point ``plasticos_transaction`` overrides after the partner stages. A full run
+without that override is not a successful import: the shell preflight refuses
+it before any write (``validate_partner_layer.FULL_RUN_MODULES``), and the deal
+rows nothing realized leave the summary unreconciled, hence ``failed``.
 """
 
 from __future__ import annotations

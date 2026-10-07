@@ -9,13 +9,17 @@ single file serves both the docker and the no-Docker harness paths:
 * ``ERP_PAYLOAD_ROOT`` — non-default payload directory (statement or grid form)
 * ``ERP_SQL_SERVER`` / ``ERP_SQL_DATABASE`` (+ ``ERP_SQL_USER`` /
   ``ERP_SQL_PASSWORD`` / ``ERP_SQL_PORT`` / ``ERP_SQL_DRIVER``) — read the
-  partner tables directly from the restored ERP database (ADR-021). Takes
+  requested partner and/or transaction-reconstruction tables directly from
+  the restored ERP database through ``PROJECTION_SCRIPTS`` (ADR-021). Takes
   precedence over ``ERP_PAYLOAD_ROOT``.
 * ``ERP_REPORT_PATH`` — write the machine-readable summary JSON here
 * ``ERP_TARGET_DB`` — the disposable database this run may write; the
   database check refuses any other database and any production database
 * ``ERP_PARTNERS_ONLY`` — ``1`` imports only CounterParty, Address, Contact,
-  ContactRoleAssignment, and SalesReps (Concern 1). Deal files are not opened.
+  ContactRoleAssignment, and SalesReps (Concern 1). The six deal tables are
+  not opened. Without this flag, a full run also reads Payables, Receipt,
+  ReceiptBatch, GPLedger, WKSDetail, and WksDelivery and must reach the
+  ``plasticos_transaction`` historical-import extension.
 * ``ERP_LAYER`` — ``counterparties``, ``addresses``, ``contacts``, ``roles``,
   or ``salesreps``. Only that table is read, and only after the previous
   layer's validator passes.
