@@ -59,9 +59,13 @@ def _setting(name: str) -> str:
 
 
 def _full_run() -> bool:
-    """True unless the run is ``ERP_PARTNERS_ONLY`` or a single ``ERP_LAYER`` (the driver's own scope rule)."""
+    """True unless the run is ``ERP_PARTNERS_ONLY`` or one partner ``ERP_LAYER`` (the driver's own scope rule).
+
+    ``ERP_LAYER=database`` (a standalone preflight) names a check, not a partner
+    layer, so it keeps the full-run requirement.
+    """
     partners_only = _setting("PARTNERS_ONLY").strip().lower() in {"1", "true", "yes", "y"}
-    return not partners_only and not _setting("LAYER").strip()
+    return not partners_only and _setting("LAYER").strip().lower() not in LAYER_BEFORE
 
 
 def required_modules() -> tuple[str, ...]:

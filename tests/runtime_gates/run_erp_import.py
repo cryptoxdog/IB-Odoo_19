@@ -21,9 +21,11 @@ Gates:
                                       nothing and reports everything unchanged.
     G3 changed source updates         one mutated payload row updates exactly
                                       that record; no duplicate appears.
-    G4 savepoint recovery             one corrupted row fails its BuySellNo
-                                      only; the rest persists; a fixed re-run
-                                      recovers the failed unit.
+    G4 savepoint recovery             on a fresh database, a fault injected
+                                      after one BuySellNo's writes rolls back
+                                      that unit only (no transaction or line
+                                      marker left); the rest persists; a
+                                      re-run recovers the failed unit.
 
 G1–G4 read the frozen grid fixture. They do not prove the direct SQL Server
 source seam. G5–G6 do, on a freshly re-created scratch database, and run only
@@ -272,45 +274,72 @@ def gate_g3_changed_source_updates() -> bool:
     return True
 
 
+def _fixture_deal() -> tuple[str, list[str]]:
+    """The first fixture BuySellNo with lines, and its DetailIDs (columns found by header name)."""
+    path = os.path.join(PAYLOAD_ROOT, "bulk", "WKSDetail.csv")
+    with open(path, encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    target = next(row["BuySellNo"].strip() for row in rows if (row.get("BuySellNo") or "").strip())
+    details = [row["DetailID"].strip() for row in rows if (row.get("BuySellNo") or "").strip() == target]
+    return target, details
+
+
+def _deal_rows(buysell_no: str, detail_ids: list[str]) -> tuple[int, int]:
+    """Transaction and line identity markers stored for one deal."""
+    transactions = marker_count(SCRATCH_DB, f"legacy_erp_transaction_{buysell_no}")
+    lines = sum(marker_count(SCRATCH_DB, f"legacy_erp_detail_{detail_id}") for detail_id in detail_ids)
+    return transactions, lines
+
+
 def gate_g4_savepoint_recovery() -> bool:
-    with tempfile.TemporaryDirectory() as tmp:
-        # Corrupt one WKSDetail row (absurdly long LotNo) so its BuySellNo
-        # insert fails inside the savepoint; everything else must persist.
-        shutil.copytree(PAYLOAD_ROOT, tmp, dirs_exist_ok=True)
-        path = os.path.join(tmp, "bulk", "WKSDetail.csv")
-        rows = list(csv.reader(open(path, encoding="utf-8-sig", newline="")))
-        corrupt_buysell = None
-        for row in rows[1:]:
-            if row and row[1]:
-                row[16] = "X" * 9000  # LotNo
-                corrupt_buysell = row[1]
-                break
-        with open(path, "w", encoding="utf-8", newline="") as handle:
-            csv.writer(handle).writerows(rows)
-
-        result = import_once(payload_root=tmp)
-        summary = result["summary"]
-
-        failed = {str(row.get("buysell_no")) for row in result["errors"]}
-        if corrupt_buysell not in failed:
-            print(f"G4 corrupted BuySellNo {corrupt_buysell} not recorded as failed: {failed}")
-            return False
-        leftover = marker_count(SCRATCH_DB, f"legacy_erp_transaction_{corrupt_buysell}")
-        if leftover != 0:
-            print(f"G4 failed unit left {leftover} markers behind")
-            return False
-        # The failed unit is the ONLY casualty; other units persisted.
-        if summary["records_created"] == 0:
-            print("G4 no unit persisted around the failed one")
-            return False
-
-    # Fixed re-run recovers the failed unit without duplicates.
-    result = import_once()
-    recovered = marker_count(SCRATCH_DB, f"legacy_erp_transaction_{corrupt_buysell}")
-    if recovered != 1:
-        print(f"G4 recovery left {recovered} markers for {corrupt_buysell}")
+    # A fresh database: after G1-G3 every unit already exists, so a rolled-back
+    # unit could never be told apart from the one G1 stored.
+    release_scratch_db()
+    if not create_scratch_db():
+        print("G4 could not re-create the scratch database")
         return False
-    print(f"G4 savepoint recovery verified ({corrupt_buysell} failed, then recovered)")
+    target, detail_ids = _fixture_deal()
+
+    # Fail the target unit AFTER its header and lines are written, inside its
+    # savepoint. No payload edit can guarantee a database error, so the failure
+    # is injected into the deal service of this process's registry.
+    service = odoo.modules.registry.Registry(SCRATCH_DB)["plasticos.erp.import"]
+    original = service._import_one_transaction
+    own = "_import_one_transaction" in vars(service)
+
+    def failing(self, index, header, report, partner_by_cp):
+        original(self, index, header, report, partner_by_cp)
+        if header.buysell_no == target:
+            raise RuntimeError(f"G4 injected failure after writing {target}")
+
+    service._import_one_transaction = failing
+    try:
+        result = import_once()
+    finally:
+        if own:
+            service._import_one_transaction = original
+        else:
+            del service._import_one_transaction
+
+    failed = {str(row.get("buysell_no")) for row in result["errors"]}
+    if failed != {target}:
+        print(f"G4 failed units {sorted(failed)[:5]}, expected only {target}")
+        return False
+    leftover = _deal_rows(target, detail_ids)
+    if leftover != (0, 0):
+        print(f"G4 failed unit {target} left markers behind (transaction, lines) = {leftover}")
+        return False
+    if result["counts"]["transactions"]["created"] == 0:
+        print("G4 no unit persisted around the failed one")
+        return False
+
+    # Re-run without the fault recovers exactly the failed unit.
+    result = import_once()
+    recovered = _deal_rows(target, detail_ids)
+    if recovered != (1, len(detail_ids)) or result["counts"]["transactions"]["created"] != 1:
+        print(f"G4 recovery: markers {recovered}, transactions created {result['counts']['transactions']['created']}")
+        return False
+    print(f"G4 savepoint recovery verified ({target}: rolled back with {len(detail_ids)} lines, then recovered)")
     return True
 
 
@@ -444,7 +473,8 @@ def _check_sampled_deals(payload) -> list[str]:
                 problems.append(f"{ref}/{detail_id}: {len(line)} lines behind its marker")
                 continue
             line_transaction, units, lot_no = line[0]
-            expected_units = mapping.parse_decimal(source.get("Units")) or 1.0
+            # plasticos.transaction.line.units is digits=(16, 2): Odoo stores it rounded.
+            expected_units = round(mapping.parse_decimal(source.get("Units")) or 1.0, 2)
             if line_transaction != transaction_id:
                 problems.append(f"{ref}/{detail_id}: line belongs to transaction {line_transaction}")
             if abs(float(units) - expected_units) > 1e-6:
@@ -542,7 +572,8 @@ def main() -> int:
         print("payload missing in this checkout")
         return 77
     source = direct_sql_source()
-    if source is None and os.environ.get(REQUIRE_DIRECT_SQL_ENV) == "1":
+    required = (os.environ.get(REQUIRE_DIRECT_SQL_ENV) or "").strip().lower() in {"1", "true", "yes", "y"}
+    if source is None and required:
         # SKIPPED, never PASS: the direct-SQL seam proof was required and no restored database is named.
         print(f"{REQUIRE_DIRECT_SQL_ENV}=1 but ERP_SQL_SERVER / ERP_SQL_DATABASE are unset — G5/G6 cannot run")
         return 77
@@ -560,9 +591,8 @@ def main() -> int:
         if source is not None:
             # The direct-SQL proof starts from the template again, never from fixture-loaded rows.
             release_scratch_db()
-            create_scratch_db()
             results["G5 direct-SQL import reconciles"] = attempt(
-                "G5", lambda: gate_g5_direct_sql_import_reconciles(source)
+                "G5", lambda: create_scratch_db() and gate_g5_direct_sql_import_reconciles(source)
             )
             results["G6 direct-SQL replay is idempotent"] = attempt(
                 "G6", lambda: gate_g6_direct_sql_replay_is_idempotent(source)

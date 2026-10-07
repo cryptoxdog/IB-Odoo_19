@@ -309,6 +309,12 @@ def test_concern1_runs_do_not_require_the_transaction_module(monkeypatch, settin
     assert _database_failures(monkeypatch, env, **settings) == []
 
 
+def test_standalone_database_preflight_keeps_the_full_run_requirement(monkeypatch):
+    """``ERP_LAYER=database`` selects the check itself; it is not a partner-only scope."""
+    failures = _database_failures(monkeypatch, _DatabaseEnv(PARTNER_RUNTIME, models=()), LAYER="database")
+    assert failures == ["import modules not installed: plasticos_transaction"]
+
+
 def test_full_import_without_transactions_is_refused_before_the_importer_runs(monkeypatch):
     """The driver's own database check refuses the run; no partner stage writes or commits."""
     harness = _Harness(monkeypatch)
