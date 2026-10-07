@@ -31,6 +31,12 @@ USA_MODULES = (
     "l10n_us_payment_nacha",
 )
 REQUIRED_MODULES = ("plasticos_partner_import",)
+# A full run writes partners and then deals. The deals are realized only by the
+# plasticos_transaction historical-import extension, so a full run without it
+# would commit the partner stages and still look finished. Partner-only and
+# single-layer runs (Concern 1) never open the deal tables and need only
+# REQUIRED_MODULES.
+FULL_RUN_MODULES = ("plasticos_transaction",)
 XMLID_MODULE = "plasticos_transaction"
 
 # The import names the disposable database it may write. The check refuses
@@ -50,6 +56,17 @@ class LayerRejected(RuntimeError):
 
 def _setting(name: str) -> str:
     return os.environ.get(f"ERP_{name}") or ""
+
+
+def _full_run() -> bool:
+    """True unless the run is ``ERP_PARTNERS_ONLY`` or a single ``ERP_LAYER`` (the driver's own scope rule)."""
+    partners_only = _setting("PARTNERS_ONLY").strip().lower() in {"1", "true", "yes", "y"}
+    return not partners_only and not _setting("LAYER").strip()
+
+
+def required_modules() -> tuple[str, ...]:
+    """Import modules the database check requires for the run this environment selects."""
+    return REQUIRED_MODULES + (FULL_RUN_MODULES if _full_run() else ())
 
 
 def _addon_root() -> Path:
@@ -173,16 +190,19 @@ def check_database(env, failures: list[str]) -> None:
     lowered = (name or "").lower()
     if any(marker in lowered for marker in PRODUCTION_NAME_MARKERS):
         _fail(failures, f"database {name} identifies as production")
-    wanted = list(USA_MODULES) + list(REQUIRED_MODULES)
+    required = required_modules()
+    wanted = list(USA_MODULES) + list(required)
     installed = set(
         env["ir.module.module"].search([("name", "in", wanted), ("state", "=", "installed")]).mapped("name")
     )
     missing = [module for module in USA_MODULES if module not in installed]
     if missing:
         _fail(failures, f"USA modules not installed: {', '.join(missing)}")
-    missing = [module for module in REQUIRED_MODULES if module not in installed]
+    missing = [module for module in required if module not in installed]
     if missing:
         _fail(failures, f"import modules not installed: {', '.join(missing)}")
+    if _full_run() and FULL_RUN_MODULES[0] in installed and "plasticos.transaction" not in env:
+        _fail(failures, "full import: plasticos.transaction is not in the registry; deals cannot be realized")
     form = env.ref("base.view_partner_form", raise_if_not_found=False)
     if not form:
         _fail(failures, "contact form view is missing")

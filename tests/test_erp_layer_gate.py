@@ -237,6 +237,99 @@ def test_direct_database_source_is_handed_to_the_import(monkeypatch):
     assert harness.runs[0]["database"] is sentinel
 
 
+class _Modules:
+    def __init__(self, installed):
+        self.installed = installed
+
+    def search(self, domain):
+        wanted = next(value for name, _op, value in domain if name == "name")
+        return types.SimpleNamespace(mapped=lambda _field: [m for m in wanted if m in self.installed])
+
+
+class _DatabaseEnv:
+    """Just enough Odoo for ``check_database``: name, modules, registry, contact form."""
+
+    def __init__(self, installed, models=("plasticos.transaction",), name="erp_import_gate"):
+        cursor = _Cursor()
+        cursor.fetchone = lambda: (name,)
+        self.cr = cursor
+        self.modules = _Modules(set(installed))
+        self.models = set(models)
+
+    def __getitem__(self, model):
+        assert model == "ir.module.module"
+        return self.modules
+
+    def __contains__(self, model):
+        return model in self.models
+
+    def ref(self, _xmlid, raise_if_not_found=True):
+        return types.SimpleNamespace(get_combined_arch=lambda: "phone_line_ids not is_company")
+
+
+def _database_failures(monkeypatch, env, **settings):
+    real = _real_validator()
+    for name in ("PARTNERS_ONLY", "LAYER"):
+        monkeypatch.delenv(f"ERP_{name}", raising=False)
+    monkeypatch.setenv("ERP_TARGET_DB", "erp_import_gate")
+    monkeypatch.delenv("ODOO_STAGE", raising=False)
+    for name, value in settings.items():
+        monkeypatch.setenv(f"ERP_{name}", value)
+    failures: list[str] = []
+    real.check_database(env, failures)
+    return failures
+
+
+PARTNER_RUNTIME = (*_real_validator().USA_MODULES, "plasticos_partner_import")
+
+
+def test_full_import_requires_transaction_realization(monkeypatch):
+    failures = _database_failures(monkeypatch, _DatabaseEnv(PARTNER_RUNTIME, models=()))
+    assert failures == ["import modules not installed: plasticos_transaction"]
+
+
+def test_full_import_requires_the_transaction_model_in_the_registry(monkeypatch):
+    env = _DatabaseEnv((*PARTNER_RUNTIME, "plasticos_transaction"), models=())
+    failures = _database_failures(monkeypatch, env)
+    assert failures == ["full import: plasticos.transaction is not in the registry; deals cannot be realized"]
+
+
+def test_full_import_passes_the_database_check_when_transactions_are_realizable(monkeypatch):
+    env = _DatabaseEnv((*PARTNER_RUNTIME, "plasticos_transaction"))
+    assert _database_failures(monkeypatch, env) == []
+
+
+@pytest.mark.parametrize(
+    "settings",
+    [{"PARTNERS_ONLY": "1"}, *({"LAYER": layer} for layer in PARTNER_LAYERS)],
+    ids=["partners_only", *PARTNER_LAYERS],
+)
+def test_concern1_runs_do_not_require_the_transaction_module(monkeypatch, settings):
+    env = _DatabaseEnv(PARTNER_RUNTIME, models=())
+    assert _database_failures(monkeypatch, env, **settings) == []
+
+
+def test_full_import_without_transactions_is_refused_before_the_importer_runs(monkeypatch):
+    """The driver's own database check refuses the run; no partner stage writes or commits."""
+    harness = _Harness(monkeypatch)
+    real = _real_validator()
+    env = _DatabaseEnv(PARTNER_RUNTIME, models=())
+
+    def validate(_env, layer, payload=None):
+        harness.validated.append(layer)
+        failures: list[str] = []
+        real.CHECKS[layer](env, failures)
+        return 1 if failures else 0
+
+    sys.modules[f"{PACKAGE}.validate_partner_layer"].validate = validate
+    monkeypatch.setenv("ERP_TARGET_DB", "erp_import_gate")
+
+    assert harness.main() == 1
+    assert harness.validated == ["database"]
+    assert harness.runs == [], "a full import must not reach the importer without transaction realization"
+    assert harness.env.cr.commits == 0
+
+
 def test_unknown_layer_is_rejected_before_any_import(monkeypatch):
     harness = _Harness(monkeypatch)
     monkeypatch.setenv("ERP_LAYER", "database")
