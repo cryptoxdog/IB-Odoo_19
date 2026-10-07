@@ -1,43 +1,90 @@
 #!/usr/bin/env bash
-# Full github push kernel: pr-check → commit → push → PR (CI + auto-merge).
+# Publication kernel behind `make pr`: pr-check → push → open/verify PR.
 # Usage: make_push_pipeline.sh [message] [target] [base] [open_pr] [do_commit]
+# `make pr` calls this with do_commit=0. It publishes the committed HEAD only.
 set -euo pipefail
 
-ROOT="$(git rev-parse --show-toplevel)"
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -z "${ROOT}" ]]; then
+  echo "refusing to publish: not inside a git repository"
+  exit 1
+fi
 cd "${ROOT}"
 export PATH="${ROOT}/.venv/bin:${PATH}"
 
 MSG="${1:-}"
-TARGET="${2:-$(git branch --show-current)}"
+CURRENT="$(git branch --show-current)"
+TARGET="${2:-${CURRENT}}"
 BASE="${3:-Staging}"
 OPEN_PR="${4:-1}"
-DO_COMMIT="${5:-1}"
+DO_COMMIT="${5:-0}"
+
+if ! git rev-parse --verify HEAD >/dev/null 2>&1; then
+  echo "refusing to publish: HEAD does not exist"
+  exit 1
+fi
+
+if [[ -z "${CURRENT}" ]]; then
+  echo "refusing to publish: detached HEAD; publication requires an attached feature branch"
+  exit 1
+fi
+
+if [[ -z "${TARGET}" ]]; then
+  echo "refusing to publish: publication target branch is empty"
+  exit 1
+fi
+
+if [[ "${CURRENT}" != "${TARGET}" ]]; then
+  echo "refusing to publish: current branch ${CURRENT} is not the publication target ${TARGET}"
+  exit 1
+fi
+
+case "${CURRENT}" in
+  Staging|Production|staging|production)
+    echo "refusing to publish: ${CURRENT} is a protected branch; use a feature branch"
+    exit 1
+    ;;
+esac
+
+require_clean() {
+  local status
+  status="$(git status --porcelain)"
+  if [[ -n "${status}" ]]; then
+    echo "refusing to publish: working tree, index, or untracked files are not clean"
+    printf '%s\n' "${status}"
+    exit 1
+  fi
+}
+
+if [[ "${DO_COMMIT}" != "1" ]]; then
+  require_clean
+fi
 
 echo "══════════════════════════════════════════════════════"
-echo "  make push — pr-check → commit → push → PR"
+echo "  make pr — pr-check → push → PR"
+echo "  ${CURRENT} → ${BASE}"
 echo "══════════════════════════════════════════════════════"
-echo ""
-
-echo "→ [1/4] PR gate (pipeline checks on workspace, before commit)..."
-make pr-check
 echo ""
 
 if [[ "${DO_COMMIT}" == "1" ]]; then
-  echo "→ [2/4] Commit (conventional message kernel + GA workflow kernel)..."
+  echo "→ Commit (explicit do_commit=1 only; make pr does not use this)..."
   bash scripts/git_commit_workspace.sh "${MSG}"
-else
-  echo "→ [2/4] Skipping commit (commit=0)"
+  echo ""
+  require_clean
 fi
+
+echo "→ PR gate (make pr-check, once, before remote mutation)..."
+make pr-check
 echo ""
 
-echo "→ [3/4] Push branch → origin/${TARGET}..."
+echo "→ Push branch → origin/${TARGET}..."
 bash scripts/git_push_with_pr.sh "${TARGET}"
 echo ""
 
-if [[ "${OPEN_PR}" == "0" ]]; then
-  echo "→ [4/4] Skipping PR (pr=0)"
-  exit 0
+if [[ "${OPEN_PR}" != "1" ]]; then
+  echo "refusing to publish: open_pr=${OPEN_PR}; publication must create or verify the PR"
+  exit 1
 fi
 
-echo "→ [4/4] Open/update PR → ${BASE} (labels + CI)..."
+echo "→ Open/verify PR → ${BASE}..."
 bash scripts/git_open_pr.sh "${TARGET}" "${BASE}"

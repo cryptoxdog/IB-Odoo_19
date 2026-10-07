@@ -135,12 +135,11 @@ help:
 	@echo "    make commit           stage all (except .cursor-commands) + commit"
 	@echo "    make commit m=\"...\"   commit with explicit conventional message"
 	@echo "    make github-actions-kernel-check  validate staged/all .github/workflows (R5 kernel)"
-	@echo "    make pr               FAST local gate: audit-quick + test (use while iterating)"
-	@echo "    make pr-check         REQUIRED before push: local pre-push gate (audit/baseline/test + smoke + remote) — not the full GitHub CI graph"
+	@echo "    make pr               publish the committed feature branch (pr-check, push, PR into Staging)"
+	@echo "    make pr-check         full local validation before publication (audit/baseline/test + smoke + remote) — not the full GitHub CI graph"
 	@echo "    make pr-check pr=100       remote gate for PR #100 or full GitHub URL"
 	@echo "    make pr-check-100          shorthand for pr=100"
-	@echo "    make push             safe push: pr-check, then push current FEATURE branch (Staging/Production are PR-only)"
-	@echo "    make push pr=1        push feature branch, then open a PR into Staging"
+	@echo "    make push             retired — publication is make pr"
 	@echo "    make api-push-check   REQUIRED before GitHub API push (when git push fails)"
 	@echo "    make pr-autopilot     scan all PR signals (CI, SonarCloud, CodeRabbit) — report only"
 	@echo "    make pr-fix           scan + auto-fix safe issues + push back to branch (re-triggers CI)"
@@ -637,7 +636,7 @@ test-odoo:
 		--log-level=test
 
 # Fail-closed module install gate (xmlsec + enterprise + -i --stop-after-init).
-# Required before make push so unloadable modules never reach GitHub.
+# Required before publication so unloadable modules never reach GitHub.
 install-smoke:
 	bash scripts/install_smoke.sh
 
@@ -655,10 +654,13 @@ test-module:
 # PR / CI WORKFLOW
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Fast local iteration gate (not a push substitute).
-# Parallel: audit-quick + pytest. No full audit, baseline, smoke, or remote.
+# Sole publication ceremony. Validates the committed HEAD, pushes the current
+# feature branch, and creates or verifies the PR into Staging.
+# Does not stage, commit, or publish a dirty workspace.
+# Usage: make pr
+#        make pr base=Production
 pr:
-	@bash scripts/pr_check_run.sh fast
+	@bash scripts/make_push_pipeline.sh "" "$(b)" "$(if $(base),$(base),Staging)" 1 0
 
 # REQUIRED before any push or PR creation (local + remote when PR/CI exists).
 # The local pre-push gate — not the full GitHub CI job graph (gate-sdk-tests runs
@@ -724,73 +726,23 @@ commit:
 	git show --stat --oneline -1; \
 	echo ""; \
 	if [ -t 0 ]; then \
-		printf "Run make push? [y/N] "; \
+		printf "Run make pr? [y/N] "; \
 		read -r ans; \
-		case "$$ans" in [yY]|[yY][eE][sS]) $(MAKE) push ;; *) echo "Skipped. Run: make push"; ;; esac; \
+		case "$$ans" in [yY]|[yY][eE][sS]) $(MAKE) pr ;; *) echo "Skipped. Run: make pr"; ;; esac; \
 	else \
-		echo "Run: make push   (feature branch; Staging/Production are PR-only — use: make push pr=1)"; \
+		echo "Run: make pr   (publishes this committed feature branch into Staging)"; \
 	fi
 
-# Protected branches — PR-only via GitHub ruleset "Protect Staging & Production"
-# (require PR + required status check: "CI Gate Result" — ci.yml's aggregator
-# job; it only succeeds once lint, static-checks, pure-python-tests,
-# gate-sdk-tests, secret-scan, AND audit-baseline have all succeeded, so it
-# alone is sufficient as the required check — no need to list all 6 individually).
-# NOTE: this comment describes the intended ruleset config; if the GitHub
-# ruleset still lists the old individual job names (pre-2026-07 ci.yml), update
-# it via Settings → Rules → Protect Staging & Production → required checks.
-# Keep this comment in sync with the repo ruleset. Direct pushes here are rejected by GitHub.
-PROTECTED_BRANCHES := Staging Production
-
-# Safe push: runs full pr-check, then pushes the CURRENT FEATURE branch.
-# Refuses to push if any commit since upstream touches $(COMMIT_EXCLUDE).
-# Staging/Production are PR-only — this target refuses to push to them directly
-# (the ruleset would reject it anyway) and points you to the PR flow.
-# Usage: make push              (push current feature branch)
-#        make push pr=1         (push, then open a PR into Staging)
-#        make push base=Production pr=1   (open the PR against Production instead)
-push: pr-check
-	@echo ""
-	@set -e; \
-	BRANCH=$$(git branch --show-current); \
-	TARGET=$${b:-$$BRANCH}; \
-	UPSTREAM=$$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true); \
-	if [ -n "$$UPSTREAM" ]; then \
-		BASE=$$(git merge-base HEAD "$$UPSTREAM"); \
-	else \
-		BASE=$$(git merge-base HEAD origin/Staging 2>/dev/null || git rev-list --max-parents=0 HEAD | tail -1); \
-	fi; \
-	if git diff --name-only "$$BASE"..HEAD | grep -q '^$(COMMIT_EXCLUDE)'; then \
-		echo "⛔ Refusing to push: commits include $(COMMIT_EXCLUDE) (governance repo only)."; \
-		echo "   Remove those paths from the branch before pushing to IB-Odoo_19."; \
-		exit 1; \
-	fi; \
-	for p in $(PROTECTED_BRANCHES); do \
-		if [ "$$TARGET" = "$$p" ]; then \
-			echo "⛔ '$$p' is a protected branch (PR-only + required checks)."; \
-			echo "   The GitHub ruleset rejects direct pushes. Use a feature branch + PR:"; \
-			echo "       git switch -c fix/<short-description>"; \
-			echo "       make push pr=1"; \
-			exit 1; \
-		fi; \
-	done; \
-	echo "→ Pushing $$BRANCH → origin/$$TARGET ..."; \
-	if git push origin HEAD:$$TARGET; then \
-		echo "✅ Push complete"; \
-		BASE=$${base:-Staging}; \
-		if [ -n "$(pr)" ]; then \
-			echo "→ Opening PR: $$TARGET → $$BASE ..."; \
-			gh pr create --base "$$BASE" --head "$$TARGET" --fill || \
-				echo "⚠️  PR create failed (already open?). Check: gh pr view --web"; \
-		else \
-			echo "ℹ️  Open a PR when ready:  gh pr create --base $$BASE   (or: make push pr=1)"; \
-		fi; \
-	else \
-		echo "⚠️  git push failed (Dropbox mmap issue?). Run: make api-push-check"; \
-	fi
+# Retired publication path. Staging and Production stay PR-only under the
+# GitHub ruleset "Protect Staging & Production" (required check: CI Gate Result).
+# `make push` and `make push pr=1` are no longer a ceremony.
+push:
+	@echo "⛔ make push is not a publication ceremony."
+	@echo "   Publish the current committed feature branch with: make pr"
+	@exit 1
 
 # REQUIRED before using GitHub API to push (when git push is broken)
-# Enforces same validation as make push but for API workflow
+# Enforces make pr-check before the API transport path.
 api-push-check:
 	@python3 scripts/api_push.py
 
