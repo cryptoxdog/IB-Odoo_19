@@ -13,7 +13,7 @@ ERP data enters through SQL (ADR-021). Three physical forms reach the same
 :class:`SourcePayload`:
 
 * ``PayloadKind.DATABASE`` — a direct read of the restored SQL Server database.
-  Each partner table is read by executing its projection script from
+  Each source table is read by executing its projection script from
   ``plasticos_partner_import/erp_extracted_data/`` (:data:`PROJECTION_SCRIPTS`);
   those scripts are the extract authority, so the direct read and the grid
   extract they once produced carry the same columns, filters and ordering.
@@ -97,15 +97,22 @@ PARTNER_SOURCE_TABLES: frozenset[str] = frozenset(
     {"CounterParty", "Address", "Contact", "ContactRoleAssignment", "SalesReps"}
 )
 
-# The SELECT definition the direct database read executes for each partner
-# table. Only Concern 1 (partners) is read directly; the deal tables stay on
-# their statement or grid form until the transaction concern is proven.
+# The SELECT definition the direct database read executes for each source table.
+# Partner tables are Concern 1. The six deal tables are the Concern 2A
+# reconstruction inputs. ReceiptBatch and WksDelivery are the same SELECTs as
+# 05_extract_all.sql, split out because that file returns several result sets.
 PROJECTION_SCRIPTS: dict[str, str] = {
     "CounterParty": "10_counterparty.sql",
     "Address": "11_address.sql",
     "Contact": "12_contact.sql",
+    "Payables": "13_payables.sql",
+    "Receipt": "14_receipt.sql",
+    "GPLedger": "15_gpledger.sql",
+    "WKSDetail": "16_wksdetail.sql",
     "ContactRoleAssignment": "18_contactroleassignment.sql",
     "SalesReps": "19_salesreps.sql",
+    "ReceiptBatch": "20_receiptbatch.sql",
+    "WksDelivery": "21_wksdelivery.sql",
 }
 
 # The literal SQL Server emits for NULL in these grids. An empty cell is a real
@@ -270,7 +277,7 @@ def load_payload(
 ) -> SourcePayload:
     """Load the authoritative payload.
 
-    ``database`` wins: the partner tables are read directly from the restored
+    ``database`` wins: the requested tables are read directly from the restored
     ERP database through their projection scripts. Otherwise, with no ``root``,
     statement files are read from ``plasticos_partner_import/erp_extracted_data``
     and an empty statement result (the checked-in ``SELECT`` scripts) falls back
@@ -329,10 +336,7 @@ def _read_database_payload(
     """Execute each required table's projection script on one connection."""
     unsupported = sorted(required - set(PROJECTION_SCRIPTS))
     if unsupported:
-        raise SourcePayloadError(
-            "the direct database read covers the partner tables only; no projection script for: "
-            + ", ".join(unsupported)
-        )
+        raise SourcePayloadError("no projection script for: " + ", ".join(unsupported))
     try:
         connection = source.connect()
     except SourcePayloadError:

@@ -52,8 +52,8 @@ All primary keys verified unique and non-blank across the whole payload.
 | `Address.AddressID` | 2950 | `res.partner` (child) | `legacy_erp_address_<AddressID>` |
 | `Contact.CT_ID` | 4058 | `res.partner` (person) | `legacy_erp_contact_<CT_ID>` |
 | `ContactRoleAssignment.CRA_ID` | 3091 | `res.partner.category` link | set-valued (see §5) |
-| `WKSDetail.BuySellNo` | 8257 | `plasticos.transaction` | `legacy_erp_transaction_<BuySellNo>` |
-| `WKSDetail.DetailID` | 11303 | `plasticos.transaction.line` | `legacy_erp_detail_<DetailID>` |
+| `WKSDetail.BuySellNo` | 8257 | not written; later `sale.order` and `purchase.order` | none |
+| `WKSDetail.DetailID` | 11303 | not written; later sale and purchase lines | none |
 
 `Address`'s declared database PK is the composite `(CpID, Type)`; `AddressID`
 was verified unique (2950/2950) and is used as the surrogate identity, which
@@ -74,7 +74,7 @@ accounting relationships.
 |---|---|---|
 | Supplier | `Payables` where `ItemID` is empty → `Payables.CpID` | 6005 / 8257 |
 | Buyer | `Receipt.ARBatchNo` → `ReceiptBatch.CPID` | 6488 / 8257 |
-| Trade date | `min(GPLedger.TradeDt)` | 7267 / 8257 |
+| PO issue / transaction approval date | `min(GPLedger.TradeDt)` | 7267 / 8257 |
 | Lines | `WKSDetail.BuySellNo` | 11303 lines |
 
 **Why the supplier split works.** `Payables.ItemID` is an undeclared foreign key
@@ -300,7 +300,9 @@ idempotent, which is exactly the replay-safety `CRA_ID` requires.
 
 ---
 
-## 6. WKSDetail → `plasticos.transaction.line`
+## 6. WKSDetail — not written to `plasticos.transaction.line`
+
+This table is retired as an import target. The import does not create one `plasticos.transaction` per worksheet or one `plasticos.transaction.line` per detail.
 
 | Source column | Target | Disposition |
 |---|---|---|
@@ -357,31 +359,39 @@ named reason rather than linked to an invented partner.
 
 ---
 
-## 8. Evidenced new-field candidate
+## 8. Native date authority: `GPLedger.TradeDt` → purchase order approval
 
-**One** field is proposed, and it is not created by this change.
+The business meaning is now resolved. Under current PlasticOS rules,
+`GPLedger.TradeDt` is the date the purchase order was issued and the transaction
+was approved.
 
-`plasticos.transaction` has **no trade/transaction date field**. Verified across
-the base model and every module that inherits it (`plasticos_logistics`,
-`plasticos_claims`, `plasticos_documents`, `plasticos_commission`,
-`plasticos_transaction`): the only date fields are
-`expected_pickup_date`, `actual_pickup_date`, `expected_delivery_date`,
-`actual_delivery_date` — all Datetime, none meaning "when the trade was
-booked". Writing the trade date into a delivery field would be worse than
-dropping it.
+Odoo 19 already has native purchase-order date semantics:
 
-| Test | Result |
-|---|---|
-| Business concept required? | Yes — 7267 transactions carry an authoritative `GPLedger.TradeDt`, spanning 2019-01-05 to 2026-08-07 |
-| Current field represents it? | No |
-| Current relation represents it? | No |
-| Standard Odoo field represents it? | No |
-| Dropping it acceptable? | No — a historical trade with no date cannot be reported on |
+- `purchase.order.date_approve` — **Confirmation Date**; this is the target for
+  the historical PO issue/approval event.
+- `purchase.order.date_order` — RFQ / order deadline; this is not the chosen
+  target for `TradeDt`.
 
-The importer already reconstructs and reports the date, and writes it **only if
-`transaction_date` exists** on the model. Adding that field is a separate,
-approved change; until then no data path is invented, and adding it later
-requires no importer change — a re-run backfills it.
+`plasticos.transaction` already relates to native purchase orders through
+`purchase_order_ids`, so the date belongs on the historical PO rather than on a
+new transaction field.
+
+**Locked mapping rule:**
+
+```text
+GPLedger.TradeDt
+        ↓
+PO issued / transaction approved
+        ↓
+purchase.order.date_approve
+```
+
+No `plasticos.transaction.transaction_date` field is authorized. Do not copy
+`TradeDt` into pickup/delivery dates or another semantically unrelated field.
+
+The import does not create `plasticos.transaction` or `plasticos.transaction.line`
+records. Until the historical purchase order is realized, the reconstructed
+`TradeDt` remains source evidence. It is not written onto a transaction field.
 
 ---
 
@@ -395,7 +405,7 @@ asserts. For the record, what it did differently:
 |---|---|---|
 | Source | one root `ERP.WksDetail.csv` sample | the full tracked export (10 tables) |
 | Parties | none — no `supplier_id`, no `buyer_id` | reconstructed from proven joins |
-| Date | none | `min(GPLedger.TradeDt)` |
+| PO approval date | none | reconstructed from `min(GPLedger.TradeDt)`; persists to native `purchase.order.date_approve` when historical PO realization exists |
 | State | hardcoded `closed` for every row | derived from settlement evidence |
 | Partners / contacts / roles | not imported | imported deterministically |
 | Atomicity | `cr.commit()` every 100 records | one savepoint per `BuySellNo` |
@@ -430,7 +440,8 @@ instance:
 - [ ] first full import against a clean test database (plan step 16)
 - [ ] identical second import proving zero duplicates (plan step 17)
 - [ ] forced mid-transaction failure and retry against a live database (step 15)
-- [ ] operator decision on the `transaction_date` field (§8)
+- [x] operator decision on date ownership: `GPLedger.TradeDt` → native `purchase.order.date_approve`; no custom transaction date (§8)
+- [ ] historical PO realization that persists the resolved approval date without creating a source-mirroring transaction field
 
 Run it with:
 

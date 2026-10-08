@@ -27,9 +27,10 @@ salespersons. An ``after_stage`` hook runs after each stage and before anything
 commits, so a stage whose validator fails is rolled back by the caller and
 never persists.
 
-Deal rows are not written here. ``_extend_historical_import`` is the extension
-point a later module overrides after the partner stages. With no override, a
-full run still finishes the partner stages and persists no deal rows.
+Deal rows are not written here. Commercial documents are ``sale.order``,
+``purchase.order``, and ``account.move``. A full run is refused before any
+write (``validate_partner_layer.FULL_IMPORT_REFUSAL``). Partner-only and
+single-layer runs remain the write path.
 """
 
 from __future__ import annotations

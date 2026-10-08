@@ -1,5 +1,5 @@
 """Runtime gate — ERP import: reconciliation, repeat-run, changed-record,
-savepoint recovery — on a REAL Odoo runtime.
+and no transaction-object deal write — on a REAL Odoo runtime.
 
 Not a pytest module and deliberately not collected: it needs a live Odoo 19
 registry, a live PostgreSQL server, and a template database with
@@ -9,37 +9,67 @@ Run it directly::
 
     /opt/odoo-venv/bin/python tests/runtime_gates/run_erp_import.py
 
-Exit codes: 0 = all gates PASS, 1 = a gate FAILED, 77 = SKIPPED (no local
-runtime / template database). This is the live-DB proof the import milestone
+Exit codes: 0 = all gates PASS, 1 = a gate FAILED or the scratch database
+was refused, 77 = SKIPPED (no local runtime, no payload, no template
+database, or direct SQL was required and is unset). Exit 77 is never a
+successful G5/G6 result. This is the live-DB proof the import milestone
 requires; the collected pure-python tier cannot see any of it by construction.
 
 Gates:
-    G1 first import reconciles        full import; summary counters close;
+    G1 first import reconciles        partner import; summary counters close;
                                       markers and rows verified over a
                                       psycopg2 connection Odoo does not own.
     G2 repeat run is idempotent       second import on the same input creates
                                       nothing and reports everything unchanged.
     G3 changed source updates         one mutated payload row updates exactly
                                       that record; no duplicate appears.
-    G4 savepoint recovery             one corrupted row fails its BuySellNo
-                                      only; the rest persists; a fixed re-run
-                                      recovers the failed unit.
+    G4 no transaction object         a full import writes no worksheet
+                                      transaction marker and no detail-line
+                                      marker.
+
+G1–G4 read the frozen grid fixture. They do not prove the direct SQL Server
+source seam. G5–G6 do, on a freshly re-created scratch database, and run only
+when ``ERP_SQL_SERVER`` / ``ERP_SQL_DATABASE`` (+ ``ERP_SQL_USER`` /
+``ERP_SQL_PASSWORD`` / ``ERP_SQL_PORT`` / ``ERP_SQL_DRIVER``) name the restored
+ERP database; the source is read with SELECT projection scripts only::
+
+    ERP_GATE_REQUIRE_DIRECT_SQL=1 ERP_SQL_SERVER=… ERP_SQL_DATABASE=… \\
+        make runtime-gate g=run_erp_import.py
+
+    G5 direct-SQL import reconciles  the restored SQL Server is the selected
+                                      source; all 11 projection scripts are
+                                      read through the shared reader; the
+                                      partner summary closes; a full import
+                                      writes no transaction or line marker.
+    G6 direct-SQL replay is idempotent identical second direct-SQL run: zero
+                                      created, zero updated, identity markers
+                                      unchanged, no duplicate source identity.
+
+The scratch database is dropped and recreated only through one identity
+guard (``scratch_db.require_disposable_scratch``). Unsafe identifiers, the
+template database, production-like names, a production stage, PostgreSQL
+system databases, and any name outside the ``erp_import_gate`` namespace
+fail closed before a connection is opened and before DROP or CREATE is
+built. A refusal exits 1.
+
+Without the direct-SQL settings G5–G6 report NOT RUN and the exit code covers
+G1–G4 only. ``ERP_GATE_REQUIRE_DIRECT_SQL=1`` turns that absence into exit 77
+(SKIPPED, never PASS) before any gate runs.
 """
 
 from __future__ import annotations
 
 import csv
 import os
-import re
 import shutil
 import sys
 import tempfile
 
 import psycopg2
-from psycopg2 import sql
 
 import odoo
 import odoo.modules.module
+import odoo.sql_db
 from odoo.api import Environment
 from odoo.tools import config
 
@@ -53,15 +83,12 @@ from _runtime_env import (  # noqa: E402
     odoo_addons,
     odoo_source,
 )
+from scratch_db import create_scratch_database, drop_scratch_database  # noqa: E402
 
 ODOO_SRC = odoo_source()
 ODOO_ADDONS = odoo_addons()
 TEMPLATE_DB = os.environ.get("L9_ODOO_TEMPLATE_DB", "plasticos_template")
 SCRATCH_DB = os.environ.get("L9_ODOO_ERP_GATE_DB", "erp_import_gate")
-# Database identifiers cannot be bound parameters. They are validated against
-# this alphabet and quoted with psycopg2.sql.Identifier, so a configured
-# template database with another valid name runs instead of being skipped.
-_IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_\-]{0,62}$")
 
 bind_config(config)
 # Must run before any odoo.addons.* import, or the addon is not importable.
@@ -92,58 +119,47 @@ def execute(dbname: str, sql: str, args: tuple = ()) -> None:
     conn.close()
 
 
-def _safe_identifier(name: str, what: str) -> str:
-    """A database name this gate will quote. Anything else is a configuration error, not a skip."""
-    if not _IDENTIFIER_RE.match(name or ""):
-        raise SystemExit(f"{what} {name!r} is not a safe database identifier")
-    return name
+def _stage() -> str:
+    return os.environ.get("ODOO_STAGE", "")
+
+
+def _pg_connect(dbname: str):
+    return psycopg2.connect(host=PG_HOST, port=PG_PORT, user=PG_USER, dbname=dbname)
 
 
 def create_scratch_db() -> bool:
-    """CREATE DATABASE from the configured template; False when that template is absent."""
-    template = _safe_identifier(TEMPLATE_DB, "L9_ODOO_TEMPLATE_DB")
-    scratch = _safe_identifier(SCRATCH_DB, "L9_ODOO_ERP_GATE_DB")
-    conn = psycopg2.connect(host=PG_HOST, port=PG_PORT, user=PG_USER, dbname="postgres")
-    conn.set_session(autocommit=True)
-    with conn.cursor() as cur:
-        cur.execute("select 1 from pg_database where datname = %s", (template,))
-        if not cur.fetchone():
-            conn.close()
-            return False
-        cur.execute(sql.SQL(" ").join([sql.SQL("DROP DATABASE IF EXISTS"), sql.Identifier(scratch)]))
-        cur.execute(
-            sql.SQL(" ").join(
-                [
-                    sql.SQL("CREATE DATABASE"),
-                    sql.Identifier(scratch),
-                    sql.SQL("TEMPLATE"),
-                    sql.Identifier(template),
-                ]
-            )
-        )
-    conn.close()
-    return True
+    """Recreate the disposable scratch database. Identity is guarded before any SQL."""
+    return create_scratch_database(_pg_connect, SCRATCH_DB, TEMPLATE_DB, stage=_stage())
 
 
 def drop_scratch_db() -> None:
-    scratch = _safe_identifier(SCRATCH_DB, "L9_ODOO_ERP_GATE_DB")
-    conn = psycopg2.connect(host=PG_HOST, port=PG_PORT, user=PG_USER, dbname="postgres")
-    conn.set_session(autocommit=True)
-    with conn.cursor() as cur:
-        cur.execute(sql.SQL(" ").join([sql.SQL("DROP DATABASE IF EXISTS"), sql.Identifier(scratch)]))
-    conn.close()
+    """Drop the disposable scratch database. Same identity guard as create."""
+    drop_scratch_database(_pg_connect, SCRATCH_DB, TEMPLATE_DB, stage=_stage())
 
 
 def odoo_env():
     return odoo.modules.registry.Registry(SCRATCH_DB).cursor()
 
 
-def import_once(payload_root: str | None = None) -> dict:
+def release_scratch_db() -> None:
+    """Drop Odoo's cached registry and pooled connections so the scratch database can be dropped."""
+    odoo.modules.registry.Registry.delete(SCRATCH_DB)
+    odoo.sql_db.close_db(SCRATCH_DB)
+
+
+def import_once(payload_root: str | None = None, database=None, partners_only: bool = True) -> dict:
     from odoo.addons.plasticos_partner_import.scripts.run_erp_import import run
 
     with odoo_env() as cr:
         env = Environment(cr, odoo.SUPERUSER_ID, {})
-        return run(env, payload_root=payload_root, commit=True, verbose=False)
+        return run(
+            env,
+            payload_root=payload_root,
+            commit=True,
+            verbose=False,
+            database=database,
+            partners_only=partners_only,
+        )
 
 
 def marker_count(dbname: str, name_pattern: str) -> int:
@@ -251,45 +267,132 @@ def gate_g3_changed_source_updates() -> bool:
     return True
 
 
-def gate_g4_savepoint_recovery() -> bool:
-    with tempfile.TemporaryDirectory() as tmp:
-        # Corrupt one WKSDetail row (absurdly long LotNo) so its BuySellNo
-        # insert fails inside the savepoint; everything else must persist.
-        shutil.copytree(PAYLOAD_ROOT, tmp, dirs_exist_ok=True)
-        path = os.path.join(tmp, "bulk", "WKSDetail.csv")
-        rows = list(csv.reader(open(path, encoding="utf-8-sig", newline="")))
-        corrupt_buysell = None
-        for row in rows[1:]:
-            if row and row[1]:
-                row[16] = "X" * 9000  # LotNo
-                corrupt_buysell = row[1]
-                break
-        with open(path, "w", encoding="utf-8", newline="") as handle:
-            csv.writer(handle).writerows(rows)
+def _fixture_deal() -> tuple[str, list[str]]:
+    """The first fixture BuySellNo with lines, and its DetailIDs (columns found by header name)."""
+    path = os.path.join(PAYLOAD_ROOT, "bulk", "WKSDetail.csv")
+    with open(path, encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    target = next(row["BuySellNo"].strip() for row in rows if (row.get("BuySellNo") or "").strip())
+    details = [row["DetailID"].strip() for row in rows if (row.get("BuySellNo") or "").strip() == target]
+    return target, details
 
-        result = import_once(payload_root=tmp)
-        summary = result["summary"]
 
-        failed = {str(row.get("buysell_no")) for row in result["errors"]}
-        if corrupt_buysell not in failed:
-            print(f"G4 corrupted BuySellNo {corrupt_buysell} not recorded as failed: {failed}")
-            return False
-        leftover = marker_count(SCRATCH_DB, f"legacy_erp_transaction_{corrupt_buysell}")
-        if leftover != 0:
-            print(f"G4 failed unit left {leftover} markers behind")
-            return False
-        # The failed unit is the ONLY casualty; other units persisted.
-        if summary["records_created"] == 0:
-            print("G4 no unit persisted around the failed one")
-            return False
+def _deal_rows(buysell_no: str, detail_ids: list[str]) -> tuple[int, int]:
+    """Transaction and line identity markers stored for one deal."""
+    transactions = marker_count(SCRATCH_DB, f"legacy_erp_transaction_{buysell_no}")
+    lines = sum(marker_count(SCRATCH_DB, f"legacy_erp_detail_{detail_id}") for detail_id in detail_ids)
+    return transactions, lines
 
-    # Fixed re-run recovers the failed unit without duplicates.
-    result = import_once()
-    recovered = marker_count(SCRATCH_DB, f"legacy_erp_transaction_{corrupt_buysell}")
-    if recovered != 1:
-        print(f"G4 recovery left {recovered} markers for {corrupt_buysell}")
+
+def gate_g4_full_import_writes_no_transaction_object() -> bool:
+    """A full import must not create one transaction per worksheet or one line per detail."""
+    release_scratch_db()
+    if not create_scratch_db():
+        print("G4 could not re-create the scratch database")
         return False
-    print(f"G4 savepoint recovery verified ({corrupt_buysell} failed, then recovered)")
+    target, detail_ids = _fixture_deal()
+    import_once(partners_only=False)
+    leftover = _deal_rows(target, detail_ids)
+    if leftover != (0, 0):
+        print(f"G4 full import wrote transaction markers {leftover} for {target} / {detail_ids}")
+        return False
+    census = _deal_marker_census()
+    if any(census.values()):
+        print(f"G4 deal markers present: {census}")
+        return False
+    print("G4 full import wrote no transaction or line markers")
+    return True
+
+
+# ---------------------------------------------------------------------------
+# G5–G6: the direct SQL Server source seam
+# ---------------------------------------------------------------------------
+REQUIRE_DIRECT_SQL_ENV = "ERP_GATE_REQUIRE_DIRECT_SQL"
+DEAL_MARKERS = ("legacy_erp_transaction_%", "legacy_erp_detail_%")
+_DIRECT = {"markers": None}
+
+
+def direct_sql_source():
+    """The restored-database source the environment names, or ``None``."""
+    from odoo.addons.plasticos_partner_import.erp import reader
+
+    return reader.database_source_from_env(os.environ)
+
+
+def _closes(summary: dict) -> bool:
+    return (
+        summary["records_created"]
+        + summary["records_updated"]
+        + summary["records_unchanged"]
+        + summary["records_rejected"]
+        == summary["records_seen"]
+    )
+
+
+def _counters(summary: dict) -> str:
+    keys = ("records_seen", "records_created", "records_updated", "records_unchanged", "records_rejected", "duplicates")
+    return (
+        " ".join(f"{key.removeprefix('records_')}={summary[key]}" for key in keys)
+        + f" status={summary['final_status']}"
+    )
+
+
+def _deal_marker_census() -> dict[str, int]:
+    return {pattern: marker_count(SCRATCH_DB, pattern) for pattern in DEAL_MARKERS}
+
+
+def gate_g5_direct_sql_import_reconciles(source) -> bool:
+    from odoo.addons.plasticos_partner_import.erp import reader
+
+    # Identity was enforced by create_scratch_database before this gate was called.
+    if set(reader.PROJECTION_SCRIPTS) != set(reader.REQUIRED_TABLES) or len(reader.PROJECTION_SCRIPTS) != 11:
+        print(
+            f"G5 projection registry {sorted(reader.PROJECTION_SCRIPTS)} != required {sorted(reader.REQUIRED_TABLES)}"
+        )
+        return False
+
+    result = import_once(database=source, partners_only=True)
+    summary = result["summary"]
+    print(f"G5 first direct-SQL partner run ({source.label}): {_counters(summary)}")
+    if result["payload_kind"] != reader.PayloadKind.DATABASE.value:
+        print(f"G5 source is {result['payload_kind']!r}, not the restored database")
+        return False
+    if not _closes(summary) or summary["duplicates"] != 0 or summary["final_status"] == "failed":
+        print(f"G5 summary does not close: {summary['errors'][:5]}")
+        return False
+
+    payload = reader.load_payload(None, database=source)
+    if set(payload.tables) != set(reader.REQUIRED_TABLES):
+        print(f"G5 direct read returned {sorted(payload.tables)}")
+        return False
+    print(f"G5 projection row counts: {payload.row_counts()}")
+    import_once(database=source, partners_only=False)
+    markers = _deal_marker_census()
+    if any(markers.values()):
+        print(f"G5 full import wrote transaction or line markers: {markers}")
+        return False
+    _DIRECT["markers"] = markers
+    print(f"G5 direct-SQL partner import reconciled; deal markers {markers}")
+    return True
+
+
+def gate_g6_direct_sql_replay_is_idempotent(source) -> bool:
+    if _DIRECT["markers"] is None:
+        print("G6 not attempted: G5 did not pass")
+        return False
+    summary = import_once(database=source, partners_only=True)["summary"]
+    print(f"G6 replay direct-SQL run ({source.label}): {_counters(summary)}")
+    if not _closes(summary) or summary["final_status"] == "failed":
+        print(f"G6 replay summary does not close: {summary['errors'][:5]}")
+        return False
+    if summary["records_created"] or summary["records_updated"]:
+        print("G6 replay created or updated records — duplicate creation or write churn")
+        return False
+    markers = _deal_marker_census()
+    if markers != _DIRECT["markers"] or any(markers.values()):
+        print(f"G6 deal markers moved: {_DIRECT['markers']} -> {markers}")
+        return False
+    print(f"G6 replay: 0 created, 0 updated, {summary['records_unchanged']} unchanged")
     return True
 
 
@@ -308,6 +411,12 @@ def main() -> int:
     if not os.path.isdir(os.path.join(PAYLOAD_ROOT, "bulk")):
         print("payload missing in this checkout")
         return 77
+    source = direct_sql_source()
+    required = (os.environ.get(REQUIRE_DIRECT_SQL_ENV) or "").strip().lower() in {"1", "true", "yes", "y"}
+    if source is None and required:
+        # SKIPPED, never PASS: the direct-SQL seam proof was required and no restored database is named.
+        print(f"{REQUIRE_DIRECT_SQL_ENV}=1 but ERP_SQL_SERVER / ERP_SQL_DATABASE are unset — G5/G6 cannot run")
+        return 77
     if not create_scratch_db():
         # SKIPPED, never PASS: the configured template database does not exist on this runtime.
         print(f"template database {TEMPLATE_DB!r} not found — run scripts/setup_local_runtime.sh")
@@ -318,13 +427,27 @@ def main() -> int:
         results["G1 first import reconciles"] = attempt("G1", gate_g1_first_import_reconciles)
         results["G2 repeat run is idempotent"] = attempt("G2", gate_g2_repeat_is_idempotent)
         results["G3 changed source updates deterministically"] = attempt("G3", gate_g3_changed_source_updates)
-        results["G4 savepoint recovery"] = attempt("G4", gate_g4_savepoint_recovery)
+        results["G4 full import writes no transaction object"] = attempt(
+            "G4", gate_g4_full_import_writes_no_transaction_object
+        )
+        if source is not None:
+            # The direct-SQL proof starts from the template again, never from fixture-loaded rows.
+            release_scratch_db()
+            results["G5 direct-SQL import reconciles"] = attempt(
+                "G5", lambda: create_scratch_db() and gate_g5_direct_sql_import_reconciles(source)
+            )
+            results["G6 direct-SQL replay is idempotent"] = attempt(
+                "G6", lambda: gate_g6_direct_sql_replay_is_idempotent(source)
+            )
     finally:
+        release_scratch_db()
         drop_scratch_db()
 
     print("\n" + "=" * 64)
     for name, passed in results.items():
         print(f"  {'PASS' if passed else 'FAIL'}  {name}")
+    if source is None:
+        print("  NOT RUN  G5/G6 direct-SQL seam (ERP_SQL_SERVER / ERP_SQL_DATABASE unset) — unproven by this run")
     print("=" * 64)
     return 0 if all(results.values()) else 1
 

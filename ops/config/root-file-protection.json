@@ -33,6 +33,7 @@
     { "path": ".gitleaks.toml", "tier": "canonical", "rule": "additive_only" },
     { "path": "constraints.txt", "tier": "regenerable", "rule": "regenerable" },
     { "path": "CLAUDE.md", "tier": "managed", "rule": "managed" },
+    { "path": "README.md", "tier": "managed", "rule": "managed" },
     { "path": "ARCHITECTURE.md", "tier": "managed", "rule": "managed" },
     { "path": "INVARIANTS.md", "tier": "managed", "rule": "managed" },
     { "path": "ROADMAP.md", "tier": "managed", "rule": "managed" },

@@ -12,6 +12,17 @@
 4. **Partner Hierarchy** — native Odoo fields (`customer_rank`, `supplier_rank`) + facility capability profiles. No custom partner booleans.
 5. **Intake-First Flow** — supplier intake drives buyer matching. Material profile → intake → match → offer → transaction.
 6. **Odoo 19 Strict** — zero deprecated patterns. `models.Constraint` not `_sql_constraints`. No `@api.one`. No `category_id` on groups.
+7. **ERP Native-Semantics First** — the historical ERP is a source, not a schema template. Direct SQL feeds the existing deterministic import pipeline. Prefer native Odoo fields and existing PlasticOS relationships; do not create source-mirroring fields. Any proposed new field requires explicit operator approval.
+
+## ERP Historical Import Law
+
+- Canonical operator path: `make import-erp`.
+- Runtime authority: restored ERP SQL Server through `plasticos_partner_import/erp/reader.py::PROJECTION_SCRIPTS`.
+- Frozen `erp_extracted_data/bulk/` grids are regression fixtures only; never extend CSV as the runtime architecture.
+- `PARTNERS_ONLY=1` is Concern 1 only. A full run is refused before any write. It must not create `plasticos.transaction` or `plasticos.transaction.line` records. Commercial documents are `sale.order`, `purchase.order`, and `account.move`.
+- Import summaries are fail-closed evidence. A full run is not green unless `records_seen == records_created + records_updated + records_unchanged + records_rejected` and `duplicates == 0`.
+- Changes to the direct-SQL source seam require a real restored-SQL-Server → Odoo runtime import plus identical replay. Fixture-only runtime gates are insufficient for that claim.
+- `GPLedger.TradeDt` means PO issued / transaction approved under current PlasticOS rules. Native target: `purchase.order.date_approve` when the historical PO is realized. `purchase.order.date_order` remains RFQ/order deadline. Do not add `plasticos.transaction.transaction_date`.
 
 ## Code Style Examples
 

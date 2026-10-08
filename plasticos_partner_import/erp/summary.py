@@ -17,18 +17,26 @@ Counter semantics (documented, honest accounting):
 * ``records_unchanged`` — identity-resolved rows that needed no write on replay
   (including set-semantics buckets: contact roles, transaction lines).
 * ``records_created`` / ``records_updated`` — identity-resolved rows written.
-* ``errors`` — failed transactions and unresolved references, keyed by the
-  source-native identifier. Never contains secrets.
+* ``errors`` — bounded diagnostic detail for failed transactions and unresolved
+  references, keyed by the source-native identifier. The complete rejected-row
+  accounting remains ``records_rejected``. At most the shared contract's 1000
+  diagnostic entries are emitted. A reconciliation failure reserves one of
+  those slots. Never contains secrets.
 * ``final_status`` — ``success`` when nothing was rejected, ``partial`` when
   rows were rejected or left unresolved without a failed unit, ``failed`` when
-  a logical unit (a ``BuySellNo``) raised and was rolled back. An unresolved
+  a logical unit (a ``BuySellNo``) raised and was rolled back or when the
+  reconciliation below does not close. An unresolved
   source reference is a rejected row the source itself explains (an inactive
   counterparty's child, an unknown representative); it is not a failure of the
   run, so a partner import with known unresolved rows exits partial, not failed.
 
 ``seen == created + updated + unchanged + rejected`` closes the reconciliation:
 an imported-with-anomaly row still lands in created/updated, and anomalies are
-diagnostics on those rows, never a separate loss bucket.
+diagnostics on those rows, never a separate loss bucket. The equation is
+enforced, not assumed: when it does not close, the counters are reported as
+they are, a ``reconciliation`` error names the gap, and the run is ``failed``.
+Rows the pipeline never accounted for (a deal table nothing realized, a failed
+unit's lines) are evidence of a broken run, never relabelled as rejected.
 """
 
 from __future__ import annotations
@@ -40,6 +48,10 @@ __all__ = ["import_run_summary", "utc_now"]
 SUMMARY_SOURCE = "erp"
 # ``source_counts`` key that tallies rows already counted in their own table.
 SOURCE_COUNT_DIAGNOSTIC = "violations"
+# ``record_ref`` of the run-level error a reconciliation gap emits.
+RECONCILIATION_REF = "reconciliation"
+# Producer bound for the shared contract's ``errors.maxItems``. Not read from the schema at runtime.
+ERROR_ROW_LIMIT = 1000
 
 
 def utc_now() -> str:
@@ -77,7 +89,22 @@ def import_run_summary(
         for row in unresolved
     )
 
-    if errors:
+    accounted = created + updated + unchanged + total_rejected
+    reconciliation_error = None
+    if accounted != seen:
+        reconciliation_error = {
+            "record_ref": RECONCILIATION_REF,
+            "message": (
+                f"records_seen {seen} != created {created} + updated {updated} + unchanged {unchanged} "
+                f"+ rejected {total_rejected} = {accounted}; {seen - accounted} source rows unaccounted"
+            ),
+        }
+    if reconciliation_error is None:
+        error_rows = error_rows[:ERROR_ROW_LIMIT]
+    else:
+        error_rows = [*error_rows[: ERROR_ROW_LIMIT - 1], reconciliation_error]
+
+    if errors or accounted != seen:
         final_status = "failed"
     elif total_rejected:
         final_status = "partial"
