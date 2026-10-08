@@ -9,8 +9,10 @@ Run it directly::
 
     /opt/odoo-venv/bin/python tests/runtime_gates/run_erp_import.py
 
-Exit codes: 0 = all gates PASS, 1 = a gate FAILED, 77 = SKIPPED (no local
-runtime / template database). This is the live-DB proof the import milestone
+Exit codes: 0 = all gates PASS, 1 = a gate FAILED or the scratch database
+was refused, 77 = SKIPPED (no local runtime, no payload, no template
+database, or direct SQL was required and is unset). Exit 77 is never a
+successful G5/G6 result. This is the live-DB proof the import milestone
 requires; the collected pure-python tier cannot see any of it by construction.
 
 Gates:
@@ -46,6 +48,13 @@ ERP database; the source is read with SELECT projection scripts only::
                                       created, zero updated, identity markers
                                       unchanged, no duplicate source identity.
 
+The scratch database is dropped and recreated only through one identity
+guard (``scratch_db.require_disposable_scratch``). Unsafe identifiers, the
+template database, production-like names, a production stage, PostgreSQL
+system databases, and any name outside the ``erp_import_gate`` namespace
+fail closed before a connection is opened and before DROP or CREATE is
+built. A refusal exits 1.
+
 Without the direct-SQL settings G5–G6 report NOT RUN and the exit code covers
 G1–G4 only. ``ERP_GATE_REQUIRE_DIRECT_SQL=1`` turns that absence into exit 77
 (SKIPPED, never PASS) before any gate runs.
@@ -55,13 +64,11 @@ from __future__ import annotations
 
 import csv
 import os
-import re
 import shutil
 import sys
 import tempfile
 
 import psycopg2
-from psycopg2 import sql
 
 import odoo
 import odoo.modules.module
@@ -79,15 +86,12 @@ from _runtime_env import (  # noqa: E402
     odoo_addons,
     odoo_source,
 )
+from scratch_db import create_scratch_database, drop_scratch_database  # noqa: E402
 
 ODOO_SRC = odoo_source()
 ODOO_ADDONS = odoo_addons()
 TEMPLATE_DB = os.environ.get("L9_ODOO_TEMPLATE_DB", "plasticos_template")
 SCRATCH_DB = os.environ.get("L9_ODOO_ERP_GATE_DB", "erp_import_gate")
-# Database identifiers cannot be bound parameters. They are validated against
-# this alphabet and quoted with psycopg2.sql.Identifier, so a configured
-# template database with another valid name runs instead of being skipped.
-_IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_\-]{0,62}$")
 
 bind_config(config)
 # Must run before any odoo.addons.* import, or the addon is not importable.
@@ -118,37 +122,22 @@ def execute(dbname: str, sql: str, args: tuple = ()) -> None:
     conn.close()
 
 
-def _safe_identifier(name: str, what: str) -> str:
-    """A database name this gate will quote. Anything else is a configuration error, not a skip."""
-    if not _IDENTIFIER_RE.match(name or ""):
-        raise SystemExit(f"{what} {name!r} is not a safe database identifier")
-    return name
+def _stage() -> str:
+    return os.environ.get("ODOO_STAGE", "")
+
+
+def _pg_connect(dbname: str):
+    return psycopg2.connect(host=PG_HOST, port=PG_PORT, user=PG_USER, dbname=dbname)
 
 
 def create_scratch_db() -> bool:
-    """CREATE DATABASE from the configured template; False when that template is absent."""
-    template = _safe_identifier(TEMPLATE_DB, "L9_ODOO_TEMPLATE_DB")
-    scratch = _safe_identifier(SCRATCH_DB, "L9_ODOO_ERP_GATE_DB")
-    conn = psycopg2.connect(host=PG_HOST, port=PG_PORT, user=PG_USER, dbname="postgres")
-    conn.set_session(autocommit=True)
-    with conn.cursor() as cur:
-        cur.execute("select 1 from pg_database where datname = %s", (template,))
-        if not cur.fetchone():
-            conn.close()
-            return False
-        cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(scratch)))
-        cur.execute(sql.SQL("CREATE DATABASE {} TEMPLATE {}").format(sql.Identifier(scratch), sql.Identifier(template)))
-    conn.close()
-    return True
+    """Recreate the disposable scratch database. Identity is guarded before any SQL."""
+    return create_scratch_database(_pg_connect, SCRATCH_DB, TEMPLATE_DB, stage=_stage())
 
 
 def drop_scratch_db() -> None:
-    scratch = _safe_identifier(SCRATCH_DB, "L9_ODOO_ERP_GATE_DB")
-    conn = psycopg2.connect(host=PG_HOST, port=PG_PORT, user=PG_USER, dbname="postgres")
-    conn.set_session(autocommit=True)
-    with conn.cursor() as cur:
-        cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(scratch)))
-    conn.close()
+    """Drop the disposable scratch database. Same identity guard as create."""
+    drop_scratch_database(_pg_connect, SCRATCH_DB, TEMPLATE_DB, stage=_stage())
 
 
 def odoo_env():
@@ -349,7 +338,6 @@ def gate_g4_savepoint_recovery() -> bool:
 REQUIRE_DIRECT_SQL_ENV = "ERP_GATE_REQUIRE_DIRECT_SQL"
 # BuySellNos sampled for supplier / buyer / state / line agreement, spread over the key order.
 DIRECT_SQL_SAMPLES = 5
-PRODUCTION_MARKERS = ("production", "prod")
 DEAL_MARKERS = ("legacy_erp_transaction_%", "legacy_erp_detail_%")
 _DIRECT = {"markers": None}
 
@@ -491,9 +479,7 @@ def _check_sampled_deals(payload) -> list[str]:
 def gate_g5_direct_sql_import_reconciles(source) -> bool:
     from odoo.addons.plasticos_partner_import.erp import reader
 
-    if any(marker in SCRATCH_DB.lower() for marker in PRODUCTION_MARKERS) or SCRATCH_DB == TEMPLATE_DB:
-        print(f"G5 refusing: {SCRATCH_DB!r} is not a disposable scratch database")
-        return False
+    # Identity was enforced by create_scratch_database before this gate was called.
     if set(reader.PROJECTION_SCRIPTS) != set(reader.REQUIRED_TABLES) or len(reader.PROJECTION_SCRIPTS) != 11:
         print(
             f"G5 projection registry {sorted(reader.PROJECTION_SCRIPTS)} != required {sorted(reader.REQUIRED_TABLES)}"
