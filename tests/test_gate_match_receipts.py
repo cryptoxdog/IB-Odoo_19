@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import ast
-import hashlib
+import importlib.util
 import json
 import math
 from pathlib import Path
@@ -68,7 +68,7 @@ def test_match_client_forwards_business_idempotency_to_single_gate_egress():
 # Asserted structurally over the AST, exactly as I2/I3 are for crm_sync and
 # enrichment: rollback precedes the owned cursor, no flush in between, every
 # failure path goes through the one durable helper. Real cross-session
-# durability is a runtime gate (C9/C10 in docs/runbooks/LAUNCH_GATES.md).
+# durability is a runtime gate (C9/C10 in tests/runtime_gates/).
 
 
 def _function(path: Path, name: str) -> ast.FunctionDef:
@@ -212,11 +212,12 @@ def test_orchestrator_is_the_only_receipt_writer():
 
 
 def _load_canonical_digest():
-    tree = ast.parse(ORCHESTRATOR.read_text(encoding="utf-8"))
-    fn = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == "_canonical_digest")
-    namespace: dict[str, object] = {"hashlib": hashlib, "json": json}
-    exec(compile(ast.Module(body=[fn], type_ignores=[]), str(ORCHESTRATOR), "exec"), namespace)  # noqa: S102
-    return namespace["_canonical_digest"]
+    path = ROOT / "plasticos_matching" / "canonical_digest.py"
+    spec = importlib.util.spec_from_file_location("plasticos_canonical_digest", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec is not None and spec.loader is not None
+    spec.loader.exec_module(module)
+    return module._canonical_digest
 
 
 def test_canonical_digest_is_stable_over_normalized_input_and_rejects_nan():

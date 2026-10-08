@@ -68,5 +68,5 @@ above always mean `docs/adr/ADR-0NN-*.md`.
 - **Recovered v2 schema set (PACK_029 evidence):** preserved outside the
   repository and assessed by the prior recovery lineage; no import dependency.
   The `contracts/schemas/draft/` tree remains the authoritative payload-schema
-  home (see `docs/runbooks/CRM_ADAPTER_ROADMAP.md`). Future CRM support is
+  home. Future CRM support is
   roadmap guidance only — VanillaSoft is the single implemented CRM source.

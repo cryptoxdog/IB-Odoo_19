@@ -45,6 +45,10 @@ FORBIDDEN_INTAKE_PAYLOAD_KEYS = frozenset(
     }
 )
 
+# Computed code fields on plasticos.material.profile. Identity is the
+# Many2one (polymer_id, form_id, source_type_id). These names are not write keys.
+LEGACY_PROFILE_CODE_FIELDS = ("polymer", "form", "source_type")
+
 
 def _m2o_id(record, field_name):
     field = getattr(record, field_name, False)

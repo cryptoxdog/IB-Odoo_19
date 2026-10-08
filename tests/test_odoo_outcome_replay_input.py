@@ -83,9 +83,8 @@ def test_exporter_source_has_no_gate_client_import() -> None:
         assert "send_to_gate" not in src
 
 
-def test_adr_and_runbook_document_schema() -> None:
+def test_adr_documents_schema() -> None:
     adr = (ROOT / "docs/adr/ADR-126-odoo-outcome-replay-input.md").read_text(encoding="utf-8")
-    rb = (ROOT / "docs/runbooks/ODOO_OUTCOME_REPLAY_INPUT.md").read_text(encoding="utf-8")
-    assert SCHEMA_ID in adr and SCHEMA_ID in rb
-    assert "content_hash" in adr and "idempotent" in rb.lower() or "Idempotency" in rb
-    assert "TASK-033" in adr or "TASK-033" in rb
+    assert SCHEMA_ID in adr
+    assert "content_hash" in adr
+    assert "TASK-033" in adr

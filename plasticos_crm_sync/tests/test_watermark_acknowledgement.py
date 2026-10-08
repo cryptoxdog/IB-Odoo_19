@@ -5,7 +5,7 @@ These exercise ``_sync_contacts`` / ``_sync_calls`` directly. Going through
 under Odoo's test mode a rollback unwinds to the test savepoint rather than a
 real transaction boundary — a green result there would prove nothing about the
 production behavior. The cross-session/rollback invariants (I2/I3/I5) are
-therefore real-runtime deployment gates; see docs/runbooks/LAUNCH_GATES.md.
+therefore real-runtime deployment gates in tests/runtime_gates/.
 """
 
 from odoo.addons.plasticos_crm_sync.adapters.base import CanonicalCall, CanonicalLead, CrmAdapterError

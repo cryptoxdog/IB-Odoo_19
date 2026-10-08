@@ -1,8 +1,7 @@
 """Gates F1–F3 — manual full import, on a real registry and a real PostgreSQL.
 
 Not a pytest module and deliberately not collected: needs a live Odoo 19
-registry and a live PostgreSQL server. Setup: docs/runbooks/C1_C6_LOCAL_RUNTIME.md.
-End-to-end procedure: docs/runbooks/CRM_SYNC_FULL_IMPORT_E2E.md.
+registry and a live PostgreSQL server. Setup: scripts/setup_local_runtime.sh.
 
 The pure-Python tier drives `run_full_import` against an in-memory ORM, which
 proves the algorithm but not the thing that has already bitten this module

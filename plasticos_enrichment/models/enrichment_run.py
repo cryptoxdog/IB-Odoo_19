@@ -599,9 +599,14 @@ class EnrichmentRun(models.Model):
                 existing = MatProf.search(domain, limit=1)
 
                 if existing:
+                    # Identity codes are owned by plasticos.material.profile.
+                    from odoo.addons.plasticos_material_profile.intake_delta_bridge import (
+                        LEGACY_PROFILE_CODE_FIELDS,
+                    )
+
                     merge_vals = {}
                     for field, value in profile_vals.items():
-                        if field in ("polymer", "form", "source_type"):
+                        if field in LEGACY_PROFILE_CODE_FIELDS:
                             continue
                         current = existing[field]
                         if not current:

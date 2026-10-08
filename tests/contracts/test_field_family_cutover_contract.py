@@ -6,24 +6,19 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 ADR = ROOT / "docs/adr/ADR-127-field-family-cutover.md"
-RUNBOOK = ROOT / "docs/runbooks/FIELD_FAMILY_CUTOVER.md"
 SEED = ROOT / "plasticos_gate/data/gate_icp_seed.xml"
 SVC = ROOT / "plasticos_gate/services/field_family_cutover.py"
 AUTH = ROOT / "tests/contracts/test_external_intelligence_authority.py"
 
 
-def test_adr_and_runbook_exist() -> None:
+def test_adr_exists() -> None:
     assert ADR.is_file()
     text = ADR.read_text()
     assert "specification" in text
     assert "field_family_cutover_enabled" in text
     assert "observation" in text.lower()
     assert "local" in text.lower() and "authority" in text.lower()
-    assert RUNBOOK.is_file()
-    rb = RUNBOOK.read_text()
-    assert "plasticos.gate.field_family_cutover_enabled" in rb
-    assert "Disable" in rb or "disable" in rb
-    assert "specification" in rb
+    assert "plasticos.gate.field_family_cutover_enabled" in text
 
 
 def test_icp_seed_opt_in_default_off() -> None:

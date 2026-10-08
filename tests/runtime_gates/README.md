@@ -6,8 +6,8 @@ under `TransactionCase` there is one cursor and one snapshot, `cr.commit()` is
 neutered, and `registry.cursor()` returns the test cursor — a green result
 there would prove nothing about any of these invariants.
 
-Setup (no Docker required): [`docs/runbooks/C1_C6_LOCAL_RUNTIME.md`](../../docs/runbooks/C1_C6_LOCAL_RUNTIME.md).
-Gate definitions and status: [`docs/runbooks/LAUNCH_GATES.md`](../../docs/runbooks/LAUNCH_GATES.md).
+Setup (no Docker required): [`scripts/setup_local_runtime.sh`](../../scripts/setup_local_runtime.sh).
+The gate each script proves is the table below.
 
 | Script | Gates |
 |---|---|

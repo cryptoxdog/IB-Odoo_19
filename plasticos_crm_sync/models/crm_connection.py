@@ -27,7 +27,7 @@ class PlasticosCrmConnection(models.Model):
         PROVIDER_SELECTION,
         required=True,
         default="vanillasoft",
-        help="CRM provider. Only VanillaSoft is implemented; see docs/runbooks/CRM_ADAPTER_ROADMAP.md.",
+        help="CRM provider. Only VanillaSoft is implemented.",
     )
     project_id = fields.Char(
         string="External Project ID",

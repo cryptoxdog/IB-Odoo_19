@@ -5,8 +5,8 @@ transaction-ordering invariants (I2/I3) are asserted structurally over the AST:
 that proves the *ordering contract* — rollback before the second cursor, no
 flush between — which is the property that silently regresses when someone
 "tidies" the failure handler. It does NOT prove real PostgreSQL row-lock and
-cross-session visibility behavior; that stays a real-runtime deployment gate and
-is listed in docs/runbooks/LAUNCH_GATES.md.
+cross-session visibility behavior; that stays a real-runtime deployment gate in
+tests/runtime_gates/.
 """
 
 from __future__ import annotations
