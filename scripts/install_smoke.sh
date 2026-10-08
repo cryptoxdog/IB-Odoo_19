@@ -23,11 +23,13 @@ if [ -f "$ROOT/.env" ]; then
   set +a
 fi
 
-export PATH="/usr/local/bin:/opt/homebrew/bin:${PATH}"
+# Keep a caller-supplied docker (tests stub it) ahead of the Homebrew/system paths.
+if ! command -v docker >/dev/null 2>&1; then
+  export PATH="/usr/local/bin:/opt/homebrew/bin:${PATH}"
+fi
 
 POSTGRES_USER="${POSTGRES_USER:-odoo}"
 POSTGRES_DB="${POSTGRES_DB:-odoo}"
-ODOO_COMPOSE_PROJECT="${ODOO_COMPOSE_PROJECT:-odoo19}"
 SMOKE_NETWORK_MODE="${ODOO_INSTALL_SMOKE_NETWORK:-compose}"
 case "$SMOKE_NETWORK_MODE" in
   compose)
@@ -43,7 +45,142 @@ case "$SMOKE_NETWORK_MODE" in
     exit 2
     ;;
 esac
-SMOKE_DB="${ODOO_INSTALL_SMOKE_DB:-odoo_install_smoke}"
+
+# The only database this script may terminate or drop. An environment value is
+# not authorization; it must match this name after the endpoint is proven.
+SMOKE_DB_ALLOWED="odoo_install_smoke"
+
+refuse_smoke() {
+  echo "❌ install-smoke refused: $*" >&2
+  exit 2
+}
+
+# Static compose identity from THIS repo's file. Env project/host/db settings
+# cannot certify a disposable server by themselves.
+compose_identity="$(
+  python3 - "$ROOT/docker-compose.yml" <<'PY'
+import pathlib
+import re
+import sys
+
+text = pathlib.Path(sys.argv[1]).read_text()
+name = re.search(r"(?m)^name:\s*(\S+)\s*$", text)
+match = re.search(r"(?ms)^  db:\n(.*?)(?=^  [a-zA-Z]|\Z)", text)
+block = match.group(1) if match else ""
+database = re.search(r"(?m)^\s*POSTGRES_DB:\s*(\S+)\s*$", block)
+port = re.search(r'(?m)^\s*-\s*"?(?:127\.0\.0\.1:|\[::1\]:)?(\d+):\d+"?\s*$', block)
+if not name or not database or not port:
+    raise SystemExit(1)
+print(name.group(1))
+print(database.group(1))
+print(port.group(1))
+PY
+)" || refuse_smoke "this repo's docker-compose.yml does not declare a disposable db service"
+COMPOSE_PROJECT_DECLARED="$(printf '%s\n' "$compose_identity" | sed -n '1p')"
+COMPOSE_BUSINESS_DB="$(printf '%s\n' "$compose_identity" | sed -n '2p')"
+COMPOSE_HOST_PORT="$(printf '%s\n' "$compose_identity" | sed -n '3p')"
+ODOO_COMPOSE_PROJECT="${ODOO_COMPOSE_PROJECT:-$COMPOSE_PROJECT_DECLARED}"
+
+prove_host_db_endpoint() {
+  local cid inspect_file rc
+  cid="$(docker compose -p "$ODOO_COMPOSE_PROJECT" ps -q db 2>/dev/null || true)"
+  if [ -z "$cid" ]; then
+    echo "host mode: db container is not running, so its endpoint cannot be proven" >&2
+    return 1
+  fi
+  inspect_file="$(mktemp)"
+  if ! docker inspect "$cid" >"$inspect_file"; then
+    rm -f "$inspect_file"
+    return 1
+  fi
+  python3 - "$inspect_file" "$ROOT" "$ODOO_DB_PORT" "$ODOO_COMPOSE_PROJECT" <<'PY'
+import json
+import os
+import sys
+
+inspect_path, root, port, project = sys.argv[1:]
+with open(inspect_path, encoding="utf-8") as handle:
+    payload = json.load(handle)
+if not isinstance(payload, list) or not payload:
+    raise SystemExit(1)
+info = payload[0]
+labels = (info.get("Config") or {}).get("Labels") or {}
+if labels.get("com.docker.compose.project") != project:
+    raise SystemExit(1)
+if labels.get("com.docker.compose.service") != "db":
+    raise SystemExit(1)
+workdir = os.path.realpath(labels.get("com.docker.compose.project.working_dir") or "")
+if workdir != os.path.realpath(root):
+    raise SystemExit(1)
+bindings = (info.get("HostConfig") or {}).get("PortBindings") or {}
+hosts = bindings.get("5432/tcp") or []
+for item in hosts:
+    ip = item.get("HostIp") or ""
+    host_port = item.get("HostPort") or ""
+    if ip in {"127.0.0.1", "::1"} and host_port == port:
+        raise SystemExit(0)
+raise SystemExit(1)
+PY
+  rc=$?
+  rm -f "$inspect_file"
+  return "$rc"
+}
+
+assert_smoke_db_disposable() {
+  local requested="${ODOO_INSTALL_SMOKE_DB:-$SMOKE_DB_ALLOWED}"
+
+  if [ -n "${DOCKER_HOST:-}" ]; then
+    refuse_smoke "DOCKER_HOST is set (${DOCKER_HOST}); refusing a remote Docker endpoint"
+  fi
+  if [ -n "${COMPOSE_FILE:-}" ]; then
+    local compose_here compose_req
+    compose_here="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$ROOT/docker-compose.yml")"
+    compose_req="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$COMPOSE_FILE" 2>/dev/null || true)"
+    if [ "$compose_req" != "$compose_here" ]; then
+      refuse_smoke "COMPOSE_FILE is not this repo's docker-compose.yml"
+    fi
+  fi
+  if [ "$ODOO_COMPOSE_PROJECT" != "$COMPOSE_PROJECT_DECLARED" ]; then
+    refuse_smoke "compose project '$ODOO_COMPOSE_PROJECT' is not this repo's disposable stack '$COMPOSE_PROJECT_DECLARED'"
+  fi
+  if [[ ! "$requested" =~ ^[A-Za-z0-9_]+$ ]]; then
+    refuse_smoke "database name contains unsafe SQL characters"
+  fi
+  case "$requested" in
+    odoo|postgres|template0|template1|production|Production|cieTrade|ERP|erp)
+      refuse_smoke "database '$requested' is a protected business, system, production, or ERP name"
+      ;;
+  esac
+  if [ "$requested" != "$SMOKE_DB_ALLOWED" ]; then
+    refuse_smoke "database '$requested' is not the disposable smoke database '$SMOKE_DB_ALLOWED'"
+  fi
+  if [ "$requested" = "$COMPOSE_BUSINESS_DB" ] || [ "$requested" = "$POSTGRES_DB" ]; then
+    refuse_smoke "smoke database collides with the business database"
+  fi
+  case "$SMOKE_NETWORK_MODE" in
+    compose)
+      if [ "$ODOO_DB_HOST" != "db" ] || [ "$ODOO_DB_PORT" != "5432" ]; then
+        refuse_smoke "compose endpoint ${ODOO_DB_HOST}:${ODOO_DB_PORT} is not the local db service"
+      fi
+      ;;
+    host)
+      case "$ODOO_DB_HOST" in
+        127.0.0.1|localhost) ;;
+        *) refuse_smoke "host endpoint '$ODOO_DB_HOST' is not a loopback address" ;;
+      esac
+      if [ "$ODOO_DB_PORT" != "$COMPOSE_HOST_PORT" ]; then
+        refuse_smoke "host port '$ODOO_DB_PORT' does not match the compose published port '$COMPOSE_HOST_PORT'"
+      fi
+      if ! prove_host_db_endpoint; then
+        refuse_smoke "host-network database identity is not a proven disposable loopback container; host mode is blocked"
+      fi
+      ;;
+  esac
+  SMOKE_DB="$SMOKE_DB_ALLOWED"
+  readonly SMOKE_DB
+}
+
+assert_smoke_db_disposable
 LOG_DIR="${ODOO_INSTALL_SMOKE_LOG_DIR:-/tmp}"
 mkdir -p "$LOG_DIR"
 LOG_FILE="${LOG_DIR}/odoo-install-smoke-$(date +%Y%m%d_%H%M%S).log"
@@ -150,12 +287,16 @@ echo "→ Building Odoo image (xmlsec + requirements)..."
 docker compose -p "$ODOO_COMPOSE_PROJECT" build odoo-test
 SMOKE_IMAGE="${ODOO_SMOKE_IMAGE:-${ODOO_COMPOSE_PROJECT}-odoo-test:latest}"
 
-echo "→ Dropping smoke DB '$SMOKE_DB'..."
+if [ "$SMOKE_DB" != "odoo_install_smoke" ]; then
+  echo "❌ install-smoke refused: smoke database identity was not proven" >&2
+  exit 2
+fi
+echo "→ Dropping smoke DB 'odoo_install_smoke'..."
 docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d postgres \
-  -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$SMOKE_DB' AND pid <> pg_backend_pid();" \
+  -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'odoo_install_smoke' AND pid <> pg_backend_pid();" \
   >/dev/null 2>&1 || true
 docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d postgres \
-  -c "DROP DATABASE IF EXISTS \"$SMOKE_DB\";" >/dev/null
+  -c "DROP DATABASE IF EXISTS \"odoo_install_smoke\";" >/dev/null
 
 echo "→ Installing modules (--stop-after-init)..."
 set +e
@@ -234,12 +375,9 @@ fi
 # Verify key modules installed
 echo "→ Verifying module states..."
 FAIL=0
-# Portable split (bash 3.2 / zsh-safe when invoked via bash)
-OLD_IFS=$IFS
-IFS=','
-set -- $CUSTOM_MODULES
-IFS=$OLD_IFS
-for mod in "$@"; do
+# Comma-split only for this read. A global IFS would change later unquoted expansions.
+IFS=',' read -r -a _smoke_modules <<< "${CUSTOM_MODULES}"
+for mod in "${_smoke_modules[@]}"; do
   mod="$(echo "$mod" | xargs)"
   [ -z "$mod" ] && continue
   STATE="$(docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d "$SMOKE_DB" -t -A -c \

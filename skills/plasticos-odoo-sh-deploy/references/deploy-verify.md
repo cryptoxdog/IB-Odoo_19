@@ -26,13 +26,9 @@ Feature repairs publish onto `Staging`:
 make pr
 ```
 
-Production promotion is a separate PR. The source must be `Staging` and the base must be `Production`. Run it only after explicit user approval:
+`make pr` refuses `base=Production`, a `Staging` or `Production` source, and every other destination. Promoting `Staging` onto `Production` is outside this command.
 
-```bash
-make pr base=Production
-```
-
-Odoo.sh rebuilds `Staging` or `Production` after that governed PR merges.
+Odoo.sh rebuilds `Staging` after that pull request merges.
 
 ## Phase 4 — Verify
 

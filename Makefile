@@ -135,14 +135,14 @@ help:
 	@echo "    make commit           stage all (except .cursor-commands) + commit"
 	@echo "    make commit m=\"...\"   commit with explicit conventional message"
 	@echo "    make github-actions-kernel-check  validate staged/all .github/workflows (R5 kernel)"
-	@echo "    make pr               publish the committed feature branch (pr-check, push, PR into Staging)"
+	@echo "    make pr               publish the committed feature branch into Staging only"
 	@echo "    make pr-check         full local validation before publication (audit/baseline/test + smoke + remote) — not the full GitHub CI graph"
 	@echo "    make pr-check pr=100       remote gate for PR #100 or full GitHub URL"
 	@echo "    make pr-check-100          shorthand for pr=100"
 	@echo "    make push             retired — publication is make pr"
-	@echo "    make api-push-check   REQUIRED before GitHub API push (when git push fails)"
+	@echo "    make api-push-check   refuses API publication; make pr is the only ceremony"
 	@echo "    make pr-autopilot     scan all PR signals (CI, SonarCloud, CodeRabbit) — report only"
-	@echo "    make pr-fix           scan + auto-fix safe issues + push back to branch (re-triggers CI)"
+	@echo "    make pr-fix           apply safe local fixes; publication remains make pr"
 	@echo "    make sonar            show SonarCloud quality gate status"
 	@echo "    make changelog        generate CHANGELOG.md from conventional commits"
 	@echo ""
@@ -402,17 +402,7 @@ advisory-checks: mypy-check acl-csv-check test-attr-guard-check
 # ci/baselines/README.md for how to log a newly-reviewed finding. Mirrors
 # ci.yml's audit-baseline job exactly (same two scripts, same flags).
 audit-baseline:
-	@echo "→ Comprehensive audit (scripts/audit/odoo_audit.py) vs ci/baselines/odoo_audit_baseline.json..."
-	@python3 scripts/audit/odoo_audit.py . || true
-	@python3 scripts/audit/check_baseline.py \
-		odoo_audit_report.json ci/baselines/odoo_audit_baseline.json \
-		--severities CRITICAL,HIGH --label "Comprehensive audit"
-	@echo "→ Extended audit (scripts/audit/run_all_audits.py) vs ci/baselines/extended_audit_baseline.json..."
-	@python3 scripts/audit/run_all_audits.py . || true
-	@python3 scripts/audit/check_baseline.py \
-		extended_audit_report.json ci/baselines/extended_audit_baseline.json \
-		--severities HIGH --label "Extended audit"
-	@echo "✅ No audit baseline regression"
+	@bash scripts/audit/run_baseline_gate.sh
 
 secret-scan:
 	@echo "→ Secret detection (gitleaks)..."
@@ -657,8 +647,8 @@ test-module:
 # Sole publication ceremony. Validates the committed HEAD, pushes the current
 # feature branch, and creates or verifies the PR into Staging.
 # Does not stage, commit, or publish a dirty workspace.
+# Any base other than Staging is refused before push.
 # Usage: make pr
-#        make pr base=Production
 pr:
 	@bash scripts/make_push_pipeline.sh "" "$(b)" "$(if $(base),$(base),Staging)" 1 0
 
@@ -741,8 +731,7 @@ push:
 	@echo "   Publish the current committed feature branch with: make pr"
 	@exit 1
 
-# REQUIRED before using GitHub API to push (when git push is broken)
-# Enforces make pr-check before the API transport path.
+# API publication is refused. make pr is the only ceremony.
 api-push-check:
 	@python3 scripts/api_push.py
 
@@ -751,10 +740,9 @@ pr-autopilot:
 	@echo "→ PR Autopilot — scanning all signals (CI, SonarCloud, CodeRabbit, reviews)..."
 	python3 scripts/pr_autopilot.py
 
-# Scan + auto-fix all safe issues + push back to branch (triggers CI re-run)
-# Runs make pr-check before pushing — never bypasses the pre-push pipeline
+# Scan + apply safe local fixes. Publication remains make pr.
 pr-fix:
-	@echo "→ PR Autopilot — scanning + fixing + pushing..."
+	@echo "→ PR Autopilot — scanning + applying local fixes (publication remains make pr)..."
 	python3 scripts/pr_autopilot.py --fix
 
 sonar:

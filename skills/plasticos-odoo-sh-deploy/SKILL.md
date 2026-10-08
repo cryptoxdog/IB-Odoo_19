@@ -32,8 +32,8 @@ Diagnose PlasticOS Odoo.sh production/staging failures from server logs, then pu
 1. Explicit user request and deploy target (Staging vs Production).
 2. Server log evidence (`update.log`, `odoo.log`) over user error summary.
 3. `.env.local` SSH values; branch model `Staging` / `Production` (capitalized).
-4. Publication SSOT — `make pr` only. Feature work targets `Staging`. Production promotion is `Staging` → `Production` through `make pr base=Production`, and only from the `Staging` branch.
-5. Odoo runtime tests stay local. Production promotion still requires explicit user approval.
+4. Publication SSOT — `make pr` only. It publishes a feature branch into `Staging` and refuses every other base, including `Production`.
+5. Odoo runtime tests stay local. `make pr` does not promote `Staging` to `Production`.
 6. This skill's references.
 7. `Unknown` — stop if SSH access or deployed commit cannot be verified.
 
@@ -81,5 +81,5 @@ Local fix MUST pass `make pr-check` before `make pr` (PlasticOS policy).
 - No SSH access → STOP; request credentials or `.env.local` values.
 - "Read-only file system" on server → expected; fix locally and publish through `make pr`.
 - Registry failure → root cause is in `update.log` traceback, not browser RPC message.
-- Production promotion without explicit user approval → STOP.
+- Production promotion is not `make pr`. That command publishes feature branches into `Staging` only.
 - Version not triggering update → follow **`plasticos-odoo-version-bump`** (bump without asking; `make update m=<module>` only).

@@ -98,7 +98,7 @@ maybe_install_smoke() {
   if [ "$force" != "1" ] && [ "$use_cache" = "1" ]; then
     fp="$(smoke_fingerprint)"
     if [ -f "$SMOKE_CACHE" ] && [ "$(cat "$SMOKE_CACHE")" = "$fp" ]; then
-      log "→ install-smoke skipped (unchanged load fingerprint — PR_CHECK_FORCE_SMOKE=1 to re-run)"
+      log "→ install-smoke cache hit is not environment-specific install proof (source fingerprint unchanged; PR_CHECK_FORCE_SMOKE=1 re-runs the gate)"
       return 0
     fi
   fi

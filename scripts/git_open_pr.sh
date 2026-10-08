@@ -6,6 +6,11 @@ TARGET="${1:?head branch}"
 BASE="${2:-Staging}"
 LOCAL_SHA="$(git rev-parse HEAD)"
 
+if [[ "${BASE}" != "Staging" ]]; then
+  echo "refusing to publish: destination must be Staging (got ${BASE})" >&2
+  exit 1
+fi
+
 if ! command -v gh >/dev/null 2>&1; then
   echo "gh CLI is not available; publication cannot verify the pull request"
   exit 1

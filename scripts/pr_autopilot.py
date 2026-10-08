@@ -30,7 +30,6 @@ Fix strategy (--fix mode):
 from __future__ import annotations
 
 import argparse
-import base64
 import json
 import os
 import re
@@ -979,97 +978,16 @@ def apply_all_auto_fixes(issues: list[Issue]) -> list[str]:
 
 
 def atomic_push(branch: str, commit_msg: str) -> bool:
+    """Refuse to publish.
+
+    Upstream L4 distinguishes a later update of an already-open PR from first
+    publication. This repository's operator lock is stricter: ``make pr`` is
+    the only publication ceremony, and it consumes L4 itself. Autofix still
+    edits the worktree; this function does not move a remote ref.
     """
-    Commit ALL locally-changed files in one atomic push via GitHub git-tree API.
-    This creates a single commit regardless of how many files changed.
-    Returns True if something was pushed.
-    """
-    token = GH_TOKEN
-    if not token:
-        print("  ❌ No GitHub token — cannot push")
-        return False
-
-    # Find changed files vs git HEAD
-    r = subprocess.run(["git", "diff", "--name-only"], capture_output=True, text=True, cwd=REPO_ROOT)
-    changed = [f.strip() for f in r.stdout.splitlines() if f.strip()]
-    if not changed:
-        print("  No local changes to commit.")
-        return False
-
-    print(f"  → Files to commit ({len(changed)}): {', '.join(changed)}")
-
-    ssl_ctx = _make_ssl()
-
-    def api(method: str, path: str, data: dict | None = None) -> Any:
-        # SSRF guard (SonarCloud S7044): only same-origin GitHub API paths are
-        # allowed — reject anything that could redirect the request elsewhere.
-        if not path.startswith("/repos/") or "://" in path or path.startswith("//"):
-            raise ValueError(f"Refusing non-GitHub-API path: {path!r}")
-        url = f"https://api.github.com{path}"
-        req = urllib.request.Request(url, method=method)  # noqa: S310 — https scheme enforced above
-        req.add_header("Authorization", f"token {token}")
-        req.add_header("Content-Type", "application/json")
-        if data:
-            req.data = json.dumps(data).encode()
-        with urllib.request.urlopen(req, context=ssl_ctx) as resp:  # noqa: S310
-            return json.load(resp)
-
-    # 1. Get current branch HEAD commit
-    ref = api("GET", f"/repos/{REPO}/git/ref/heads/{_safe_ref(branch)}")
-    head_sha = ref["object"]["sha"]
-
-    # 2. Get the tree SHA of HEAD
-    head_commit = api("GET", f"/repos/{REPO}/git/commits/{head_sha}")
-    base_tree_sha = head_commit["tree"]["sha"]
-
-    # 3. Create blobs for each changed file
-    tree_items = []
-    for fpath in changed:
-        full = REPO_ROOT / fpath
-        if not full.exists():
-            print(f"    ⚠  {fpath} not found locally — skipping")
-            continue
-        content = full.read_bytes()
-        blob = api(
-            "POST",
-            f"/repos/{REPO}/git/blobs",
-            {"content": base64.b64encode(content).decode(), "encoding": "base64"},
-        )
-        tree_items.append({"path": fpath, "mode": "100644", "type": "blob", "sha": blob["sha"]})
-        print(f"    blob {fpath}: {blob['sha'][:8]}")
-
-    if not tree_items:
-        print("  No blobs created.")
-        return False
-
-    # 4. Create new tree based on current HEAD tree
-    new_tree = api(
-        "POST",
-        f"/repos/{REPO}/git/trees",
-        {"base_tree": base_tree_sha, "tree": tree_items},
-    )
-
-    # 5. Create commit
-    new_commit = api(
-        "POST",
-        f"/repos/{REPO}/git/commits",
-        {
-            "message": commit_msg,
-            "tree": new_tree["sha"],
-            "parents": [head_sha],
-        },
-    )
-
-    # 6. Update branch reference
-    api(
-        "PATCH",
-        f"/repos/{REPO}/git/refs/heads/{_safe_ref(branch)}",
-        {"sha": new_commit["sha"], "force": False},
-    )
-
-    print(f"  ✅ Atomic commit: {new_commit['sha'][:8]} → {branch}")
-    print("     CI re-triggered by single push")
-    return True
+    summary = commit_msg.splitlines()[0] if commit_msg else "no message"
+    print(f"refusing to publish {branch} from pr-autopilot ({summary}): the only publication ceremony is make pr")
+    return False
 
 
 # ── Signal gathering (shared by pr-check gate and pr-autopilot) ───────────────
