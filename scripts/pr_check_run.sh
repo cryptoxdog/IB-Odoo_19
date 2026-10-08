@@ -7,10 +7,10 @@
 # gitleaks-push hook at `git push` time, not here.
 #
 # Modes:
-#   fast  — audit-quick + pytest (local iteration; make pr)
+#   fast  — audit-quick + pytest (local iteration only; not publication)
 #   full  — local blocking static audit (make audit) + audit baseline +
 #           pure-Python tests + local Odoo install-smoke (when its load inputs
-#           changed) + remote PR feedback (when available) (make pr-check / push)
+#           changed) + remote PR feedback (when available) (make pr-check)
 #
 # Env:
 #   PR_CHECK_JOBS=N           parallel make jobs (default: 4)
@@ -98,7 +98,7 @@ maybe_install_smoke() {
   if [ "$force" != "1" ] && [ "$use_cache" = "1" ]; then
     fp="$(smoke_fingerprint)"
     if [ -f "$SMOKE_CACHE" ] && [ "$(cat "$SMOKE_CACHE")" = "$fp" ]; then
-      log "→ install-smoke skipped (unchanged load fingerprint — PR_CHECK_FORCE_SMOKE=1 to re-run)"
+      log "→ install-smoke cache hit is not environment-specific install proof (source fingerprint unchanged; PR_CHECK_FORCE_SMOKE=1 re-runs the gate)"
       return 0
     fi
   fi
@@ -119,12 +119,12 @@ maybe_remote() {
 case "$MODE" in
   fast | pr)
     log "════════════════════════════════════════════════════"
-    log " make pr — fast local gate (audit-quick + test)"
-    log " Full pre-push gate: make pr-check"
+    log " fast local gate (audit-quick + test)"
+    log " This is not publication. Validation: make pr-check. Publish: make pr."
     log "════════════════════════════════════════════════════"
     run_wave audit-quick test
     log ""
-    log "✅ Fast PR gate passed — iterate freely; run make pr-check before push"
+    log "✅ Fast local gate passed — this is not publication"
     ;;
   full | pr-check)
     log "════════════════════════════════════════════════════"

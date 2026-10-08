@@ -6,8 +6,8 @@ role: deploy_playbook
 tags: [plasticos, odoo-sh, deploy, verify, push]
 owner: igor_beylin
 status: active
-version: 1.1.0
-updated: 2026-06-06
+version: 1.1.1
+updated: 2026-10-07
 /L9_META -->
 
 # Deploy and Verify Playbook
@@ -18,14 +18,17 @@ updated: 2026-06-06
 2. Bump module version in `__manifest__.py` (`19.0.X.Y.Z` → increment patch segment).
 3. Run `make pr-check` locally.
 
-## Phase 3 — Push (Requires Explicit User Approval for Production)
+## Phase 3 — Publish
+
+Feature repairs publish onto `Staging`:
 
 ```bash
-make push b=Production   # preferred PlasticOS workflow
-# or after pr-check: git push origin <branch>:Production
+make pr
 ```
 
-Odoo.sh watches `Production` branch; push triggers rebuild.
+`make pr` refuses `base=Production`, a `Staging` or `Production` source, and every other destination. Promoting `Staging` onto `Production` is outside this command.
+
+Odoo.sh rebuilds `Staging` after that pull request merges.
 
 ## Phase 4 — Verify
 
@@ -58,4 +61,4 @@ Success: `Registry loaded in X.XXXs` with no ERROR lines.
 
 ## Rollback Note
 
-If deploy fails: revert commit locally, push revert, or restore DB backup on Odoo.sh per incident policy.
+If deploy fails: revert the commit locally and publish that revert through `make pr`, or restore the DB backup on Odoo.sh per incident policy.

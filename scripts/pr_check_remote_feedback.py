@@ -15,7 +15,9 @@ from __future__ import annotations
 
 import argparse
 import os
+import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 _SCRIPTS = Path(__file__).resolve().parent
@@ -24,6 +26,7 @@ if str(_SCRIPTS) not in sys.path:
 
 from pr_autopilot import (  # noqa: E402
     GH_TOKEN,
+    REPO_ROOT,
     Issue,
     current_branch,
     gather_all_signals,
@@ -83,6 +86,84 @@ def _gate_decision(
     return bool(reasons), reasons
 
 
+def _local_head_sha() -> str:
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+        check=False,
+    )
+    return result.stdout.strip()
+
+
+def _pr_head_sha(pr: dict | None) -> str:
+    if not isinstance(pr, dict):
+        return ""
+    head = pr.get("head")
+    if not isinstance(head, dict):
+        return ""
+    sha = head.get("sha")
+    return sha.strip() if isinstance(sha, str) else ""
+
+
+def remote_evidence_applicability(local_sha: str, pr_head_sha: str, *, explicit: bool = False) -> str:
+    """Return whether remote findings describe this candidate.
+
+    Implicit publication may classify a SHA mismatch as ``stale``: the findings
+    belong to the published PR head, not the unpublished local candidate.
+    An explicit ``--pr`` inspection is about that PR, so a different local
+    checkout cannot make its findings stale. A missing SHA stays ``current``.
+    """
+    if explicit:
+        return "current"
+    if local_sha and pr_head_sha and local_sha != pr_head_sha:
+        return "stale"
+    return "current"
+
+
+@dataclass(frozen=True)
+class RemoteGateResult:
+    exit_code: int
+    applicability: str
+    reasons: tuple[str, ...]
+
+
+def decide_remote_gate(
+    issues: list[Issue],
+    ci_conclusion: str | None,
+    pr_number: int | None,
+    local_sha: str,
+    pr_head_sha: str,
+    *,
+    explicit: bool = False,
+) -> RemoteGateResult:
+    """Fail closed when remote evidence describes the subject of this check.
+
+    ``explicit=False`` is publication preflight: findings on an older PR head
+    do not block a newer local candidate. ``explicit=True`` is ``--pr N``:
+    the requested PR head is the subject, whatever this checkout is.
+    """
+    should_fail, reasons = _gate_decision(issues, ci_conclusion, pr_number)
+    applicability = remote_evidence_applicability(local_sha, pr_head_sha, explicit=explicit)
+    if applicability == "stale":
+        return RemoteGateResult(0, applicability, tuple(reasons))
+    return RemoteGateResult(1 if should_fail else 0, applicability, tuple(reasons))
+
+
+def format_stale_evidence(local_sha: str, pr_head_sha: str, reasons: list[str]) -> str:
+    lines = [
+        "STALE-TO-LOCAL-CANDIDATE",
+        "remote evidence applicability = STALE",
+        f"local HEAD {local_sha} != PR head {pr_head_sha}",
+        "The findings above describe the published PR head, not this unpublished candidate.",
+        "They do not block publication of the newer local candidate.",
+        "This is not a passing remote review. Fresh remote review is still required after publication.",
+    ]
+    lines.extend(f"   - {reason}" for reason in reasons)
+    return "\n".join(lines)
+
+
 def main() -> int:
     if os.environ.get("PR_CHECK_SKIP_REMOTE") == "1":
         print("→ Remote PR feedback skipped (PR_CHECK_SKIP_REMOTE=1)")
@@ -126,13 +207,27 @@ def main() -> int:
 
     print_report(issues, pr_number, branch or "(pr head)")
 
-    should_fail, reasons = _gate_decision(issues, ci_conclusion, pr_number)
-    if should_fail:
+    local_sha = _local_head_sha()
+    published_sha = _pr_head_sha(_pr)
+    result = decide_remote_gate(
+        issues,
+        ci_conclusion,
+        pr_number,
+        local_sha,
+        published_sha,
+        explicit=bool(pr_ref),
+    )
+    if result.applicability == "stale":
+        print()
+        print(format_stale_evidence(local_sha, published_sha, list(result.reasons)))
+        return 0
+
+    if result.exit_code:
         print("\n❌ Remote PR gate FAILED:")
-        for r in reasons:
-            print(f"   - {r}")
+        for reason in result.reasons:
+            print(f"   - {reason}")
         print("   Fix issues above, or run `make pr-fix pr=<n>` for auto-fixable CI findings.")
-        print("   Bypass (not recommended): PR_CHECK_SKIP_REMOTE=1 make push")
+        print("   Resolve the remote-feedback blocker before make pr.")
         return 1
 
     print("\n✅ Remote PR feedback gate passed")

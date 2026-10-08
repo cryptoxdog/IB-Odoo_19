@@ -592,4 +592,10 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > for a direct read of the restored source database; the frozen grid extract under
 > `plasticos_partner_import/erp_extracted_data/bulk/` is a regression fixture, not runtime authority.
 > `PARTNERS_ONLY=1` runs Concern 1 (counterparties → addresses → contacts → roles → salespersons) with
-> each layer validated before anything commits. Operator path: `make import-erp` and ADR-021.
+> each layer validated before anything commits. Runbook: `docs/runbooks/ERP_IMPORT.md`.
+
+> **2026-10-07 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> Publication override: `make pr` is the sole publication SSOT.
+> `make push` and `make push pr=1` are retired and must not be used for publication.
+> The Commands block above that names those ceremonies is historical and is superseded by this correction.
+> A failed remote-feedback gate must be resolved before `make pr`.
