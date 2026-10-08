@@ -298,7 +298,8 @@ def test_missing_gh_auth_and_pr_lookup_refuse_before_push(tmp_path: Path) -> Non
     repo, seq = _init_repo(tmp_path / "nogh")
     bindir = tmp_path / "nogh" / "bin"
     bindir.joinpath("gh").unlink()
-    # tr is required before the gh probe. On Ubuntu, gh and tr share /usr/bin.
+    # Ubuntu merges /bin and /usr/bin, so a PATH that contains /bin still finds gh.
+    bindir.joinpath("bash").symlink_to(_real("bash"))
     bindir.joinpath("tr").symlink_to(_real("tr"))
     missing = _run(
         repo,
@@ -307,7 +308,7 @@ def test_missing_gh_auth_and_pr_lookup_refuse_before_push(tmp_path: Path) -> Non
         "Staging",
         "1",
         "0",
-        PATH=f"{bindir}{os.pathsep}/bin",
+        PATH=str(bindir),
     )
     assert missing.returncode == 1, missing.stdout + missing.stderr
     assert "gh CLI is not available" in (missing.stdout + missing.stderr)
