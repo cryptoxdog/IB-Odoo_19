@@ -11,7 +11,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 COORD = ROOT / "scripts/migrations/mothball_local_intelligence.py"
 CRON = ROOT / "plasticos_enrichment/data/cron.xml"
-RUNBOOK = ROOT / "docs/runbooks/MOTHBALL_LOCAL_INTELLIGENCE.md"
 
 
 def _load_coord():
@@ -66,11 +65,3 @@ def test_uninstall_preflight_cli():
     payload = json.loads(proc.stdout)
     assert payload["would_uninstall"] is False
     assert payload["status"] == "BLOCKED"
-
-
-def test_runbook_covers_backup_uninstall_restore():
-    src = RUNBOOK.read_text(encoding="utf-8").lower()
-    assert "backup" in src
-    assert "uninstall" in src
-    assert "restore" in src
-    assert "automatic production uninstall" in src or "no automatic" in src

@@ -321,38 +321,20 @@ jobs:
         name: Run comprehensive + extended audits (diff vs per-finding baseline)
         run: |
           # Per-finding fingerprint baseline (ci/baselines/*.json), not a raw
-          # count comparison — see scripts/audit/baseline_utils.py. Each entry
-          # there is a human-reviewed known false positive or accepted debt
-          # item; anything NOT in the log is treated as new and fails the gate,
-          # so a count staying flat can never mask "one known FP got fixed,
-          # one new real bug appeared" the way a count-only baseline could.
-          FAIL=0
-
-          echo "=== Comprehensive audit (scripts/audit/odoo_audit.py) ==="
-          # Fail-slow within the step: always run the baseline gate even if the
-          # scanner exits non-zero. Do not use `|| true` (workflow-integrity ban).
+          # count comparison — see scripts/audit/baseline_utils.py. The shared
+          # gate deletes each report, runs both scanners (fail-slow), and lets
+          # check_baseline.py fail closed on a missing, stale, malformed, or
+          # unbound report. Scanner exit 1 with a fresh findings list is
+          # classified against the baseline; it is not an automatic failure.
           set +e
-          python3 scripts/audit/odoo_audit.py .
-          python3 scripts/audit/check_baseline.py \
-            odoo_audit_report.json ci/baselines/odoo_audit_baseline.json \
-            --severities CRITICAL,HIGH --label "Comprehensive audit" \
-            --summary-file "$GITHUB_STEP_SUMMARY"
-          rc_comprehensive=$?
-          echo ""
-
-          echo "=== Extended audit (scripts/audit/run_all_audits.py) ==="
-          python3 scripts/audit/run_all_audits.py .
-          python3 scripts/audit/check_baseline.py \
-            extended_audit_report.json ci/baselines/extended_audit_baseline.json \
-            --severities HIGH --label "Extended audit" \
-            --summary-file "$GITHUB_STEP_SUMMARY"
-          rc_extended=$?
+          bash scripts/audit/run_baseline_gate.sh
+          rc=$?
           set -e
-
-          [ "$rc_comprehensive" -eq 0 ] || FAIL=1
-          [ "$rc_extended" -eq 0 ] || FAIL=1
-
-          echo "fail=$FAIL" >> "$GITHUB_OUTPUT"
+          if [ "$rc" -ne 0 ]; then
+            echo "fail=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "fail=0" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Upload audit reports
         if: always()

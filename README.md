@@ -35,7 +35,6 @@ The canonical operator entrypoint is `make import-erp`. Partner-only execution i
 
 See:
 
-- `docs/runbooks/ERP_IMPORT.md` — operator runbook
 - `docs/adr/ADR-021-erp-sql-crm-api-import.md` — source architecture decision
 - `docs/erp_import_mapping.md` — source-to-Odoo mapping authority
 - `plasticos_partner_import/erp/mapping_status.py` — machine-readable column disposition

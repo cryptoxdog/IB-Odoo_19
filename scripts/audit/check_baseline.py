@@ -50,16 +50,63 @@ def main() -> int:
         default=None,
         help="Append a markdown summary block here (e.g. $GITHUB_STEP_SUMMARY)",
     )
+    parser.add_argument(
+        "--scanner-rc",
+        type=int,
+        default=None,
+        help="Exit status of the scanner invocation that must have just produced the report",
+    )
+    parser.add_argument(
+        "--newer-than",
+        type=Path,
+        default=None,
+        help="Stamp file touched before that scanner invocation; the report must be newer",
+    )
     args = parser.parse_args()
 
     label = args.label or args.report.stem
     gated_severities = {s.strip().upper() for s in args.severities.split(",") if s.strip()}
 
-    if not args.report.exists():
-        print(f"⚠️  {args.report} not found — skipping ({label})")
-        return 0
+    def fail(message: str) -> int:
+        print(f"❌ {label}: {message}", file=sys.stderr)
+        return 1
 
-    all_findings = json.loads(args.report.read_text())
+    if not args.dump_new and (args.scanner_rc is None or args.newer_than is None):
+        return fail("report is not bound to a scanner invocation (--scanner-rc and --newer-than are required)")
+
+    if not args.report.is_file():
+        return fail(f"{args.report} is missing; refusing to treat a missing report as zero findings")
+
+    try:
+        payload = json.loads(args.report.read_text())
+    except json.JSONDecodeError as exc:
+        return fail(f"{args.report} is not parseable JSON ({exc})")
+
+    if not isinstance(payload, list):
+        return fail(f"{args.report} must be a JSON list of findings")
+    for index, item in enumerate(payload):
+        if not isinstance(item, dict) or not isinstance(item.get("type"), str) or not item.get("type"):
+            return fail(f"{args.report} finding {index} is missing a string type")
+        if not isinstance(item.get("severity"), str) or not item.get("severity"):
+            return fail(f"{args.report} finding {index} is missing a string severity")
+    all_findings: list[dict] = payload
+
+    if not args.dump_new and args.scanner_rc not in (0, 1):
+        return fail(f"scanner execution failed (exit {args.scanner_rc}); a non-finding exit is not a baseline pass")
+
+    if not args.dump_new:
+        stamp = args.newer_than
+        if not stamp.is_file():
+            return fail(f"freshness stamp {stamp} is missing")
+        if args.report.stat().st_mtime_ns <= stamp.stat().st_mtime_ns:
+            return fail(f"{args.report} is not newer than this run; refusing a preexisting report")
+
+    if not args.baseline.is_file():
+        return fail(f"baseline {args.baseline} is missing")
+
+    if args.scanner_rc == 1:
+        print(f"scanner exit 1 is classified findings for {label}; the baseline comparison is the verdict")
+
     gated_findings = [f for f in all_findings if f.get("severity") in gated_severities]
 
     baseline = load_baseline(args.baseline)

@@ -1,9 +1,8 @@
-"""VanillaSoft mapping-status contract: the documented mapping must match the code.
+"""VanillaSoft mapping-status contract: code classification stays explicit.
 
 Pure-python tier (no Odoo import) — AST contract style, like
-tests/test_erp_import_contract.py. The runbook table
-(docs/runbooks/CRM_SYNC_VANILLASOFT.md, "Field mapping status") is the
-human-facing status SSOT; this test pins the code to it.
+tests/test_erp_import_contract.py. The upsert vocabulary and the no-write
+path are pinned on the orchestrator, not on a separate prose document.
 """
 
 from __future__ import annotations
@@ -15,7 +14,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-RUNBOOK = ROOT / "docs" / "runbooks" / "CRM_SYNC_VANILLASOFT.md"
 ORCHESTRATOR = ROOT / "plasticos_crm_sync" / "services" / "orchestrator.py"
 SUMMARY = ROOT / "plasticos_crm_sync" / "services" / "import_summary.py"
 
@@ -29,26 +27,6 @@ def _function(module: ast.Module, name: str) -> ast.FunctionDef:
         if isinstance(node, ast.FunctionDef) and node.name == name:
             return node
     raise AssertionError(f"{name} not found in {module}")
-
-
-def _return_keys(func: ast.FunctionDef) -> set[str]:
-    for node in ast.walk(func):
-        if isinstance(node, ast.Return) and isinstance(node.value, ast.Dict):
-            keys: set[str] = set()
-            for key in node.value.keys:
-                if isinstance(key, ast.Constant) and isinstance(key.value, str):
-                    keys.add(key.value)
-            return keys
-    raise AssertionError(f"{func.name} has no literal dict return")
-
-
-def test_every_lead_vals_key_is_documented():
-    """Every `_lead_vals_from_dto` return key must appear in the runbook mapping."""
-    module = _ast_module(ORCHESTRATOR)
-    keys = _return_keys(_function(module, "_lead_vals_from_dto"))
-    runbook = RUNBOOK.read_text(encoding="utf-8")
-    missing = [key for key in sorted(keys) if key not in runbook]
-    assert not missing, f"_lead_vals_from_dto keys undocumented in {RUNBOOK.name}: {missing}"
 
 
 def test_upsert_classification_vocabulary_is_pinned():
@@ -67,12 +45,6 @@ def test_unchanged_records_are_not_written():
     source = ast.get_source_segment(text, _function(module, "_upsert_lead")) or ""
     assert 'outcome = "unchanged"' in source
     assert "lead.write(changed)" in source
-
-
-def test_runbook_declares_the_status_vocabulary():
-    runbook = RUNBOOK.read_text(encoding="utf-8")
-    for status in ("VERIFIED", "NEEDS_CORRECTION", "UNMAPPED_INTENTIONALLY", "UNKNOWN"):
-        assert status in runbook
 
 
 def test_summary_projection_uses_the_shared_schema():

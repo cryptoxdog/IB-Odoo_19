@@ -4,7 +4,7 @@ and no transaction-object deal write — on a REAL Odoo runtime.
 Not a pytest module and deliberately not collected: it needs a live Odoo 19
 registry, a live PostgreSQL server, and a template database with
 ``plasticos_transaction`` installed. Setup is
-``scripts/setup_local_runtime.sh`` (see docs/runbooks/C1_C6_LOCAL_RUNTIME.md).
+``scripts/setup_local_runtime.sh``.
 Run it directly::
 
     /opt/odoo-venv/bin/python tests/runtime_gates/run_erp_import.py
@@ -406,7 +406,7 @@ def attempt(name: str, fn) -> bool:
 
 def main() -> int:
     if not ODOO_SRC or not os.path.isdir(ODOO_ADDONS):
-        print(f"odoo source not found (looked for {ODOO_ADDONS}); see C1_C6_LOCAL_RUNTIME.md")
+        print(f"odoo source not found (looked for {ODOO_ADDONS}); see scripts/setup_local_runtime.sh")
         return 77
     if not os.path.isdir(os.path.join(PAYLOAD_ROOT, "bulk")):
         print("payload missing in this checkout")

@@ -1,7 +1,7 @@
 """Gates C9 / C10 — Gate matching failure durability (Gate disabled, transport failure).
 
 Not a pytest module and deliberately not collected: needs a live Odoo 19
-registry and a live PostgreSQL server. Setup: docs/runbooks/C1_C6_LOCAL_RUNTIME.md.
+registry and a live PostgreSQL server. Setup: scripts/setup_local_runtime.sh.
 
 Both drive the operator entry point (`plasticos.intake.action_match_to_buyers`)
 and assert, from a session Odoo does not own, that the classified
@@ -74,7 +74,7 @@ def require_matching_model() -> None:
         "         plasticos_matching -> plasticos_gate requires the private\n"
         "         constellation_node_sdk (external_dependencies). Install it and\n"
         "         `-i plasticos_matching`, then re-run. See\n"
-        "         docs/runbooks/C1_C6_LOCAL_RUNTIME.md."
+        "         scripts/setup_local_runtime.sh."
     )
     sys.exit(SKIP_EXIT)
 

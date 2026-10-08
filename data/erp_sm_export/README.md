@@ -2,7 +2,7 @@
 
 **Runbook (SSOT):** [`docs/erp_extract_research.md`](../../docs/erp_extract_research.md)
 
-The 2026-08-07 row files now live in `plasticos_partner_import/erp_extracted_data/bulk/`. The SQL query definitions live beside them. Import is wired in that module (`erp/` + `models/erp_import_service.py`), driven by `make import-erp` — see [`docs/erp_import_mapping.md`](../../docs/erp_import_mapping.md) and [`docs/runbooks/ERP_IMPORT.md`](../../docs/runbooks/ERP_IMPORT.md).
+The 2026-08-07 row files now live in `plasticos_partner_import/erp_extracted_data/bulk/`. The SQL query definitions live beside them. Import is wired in that module (`erp/` + `models/erp_import_service.py`), driven by `make import-erp` — see [`docs/erp_import_mapping.md`](../../docs/erp_import_mapping.md).
 
 | Path | Contents |
 |------|----------|

@@ -1,7 +1,7 @@
 """Gates C7 / C8 — enrichment failure durability (Gate disabled, transport failure).
 
 Not a pytest module and deliberately not collected: needs a live Odoo 19
-registry and a live PostgreSQL server. Setup: docs/runbooks/C1_C6_LOCAL_RUNTIME.md.
+registry and a live PostgreSQL server. Setup: scripts/setup_local_runtime.sh.
 
 Both assert that operator-visible failure state survives the OUTER RPC rollback
 (a UserError in a real request rolls the request transaction back), that the
@@ -71,7 +71,7 @@ def require_enrichment_model() -> None:
         "         plasticos_enrichment -> plasticos_gate requires the private\n"
         "         constellation_node_sdk (external_dependencies). Install it and\n"
         "         `-i plasticos_enrichment`, then re-run. See\n"
-        "         docs/runbooks/C1_C6_LOCAL_RUNTIME.md."
+        "         scripts/setup_local_runtime.sh."
     )
     sys.exit(SKIP_EXIT)
 

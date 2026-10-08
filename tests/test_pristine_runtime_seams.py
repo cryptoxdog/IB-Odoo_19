@@ -8,7 +8,7 @@ work, but they fail the moment the specific construction that made each seam
 break is reintroduced.
 
 That division already exists in this repository for I2/I3 (see
-``docs/runbooks/LAUNCH_GATES.md`` and ``tests/test_erp_import_contract.py``);
+``tests/runtime_gates/`` and ``tests/test_erp_import_contract.py``);
 this module extends it to S1/S2/S3.
 """
 

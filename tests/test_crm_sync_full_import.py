@@ -19,7 +19,7 @@ runtime and are not what these tests assert.
   `_try_advisory_lock` open second cursors and take PostgreSQL session locks.
 
 Real commit/rollback durability, row locks and cross-session visibility stay
-real-runtime gates (docs/runbooks/LAUNCH_GATES.md), and the delete/restore
+real-runtime gates (tests/runtime_gates/), and the delete/restore
 lifecycle is asserted against the real ORM in
 `plasticos_crm_sync/tests/test_lead_lifecycle.py`.
 """

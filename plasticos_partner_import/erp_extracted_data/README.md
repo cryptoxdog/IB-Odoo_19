@@ -28,7 +28,6 @@ These SQL files define the restored ERP database projections consumed by the det
 | — | `diagnostics/` | Full column inventory and distribution evidence |
 
 Playbook: `docs/erp_extract_research.md`
-Operator runbook: `docs/runbooks/ERP_IMPORT.md`
 
 ## Direct database read
 
