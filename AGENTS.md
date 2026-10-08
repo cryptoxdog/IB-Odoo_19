@@ -594,9 +594,8 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `PARTNERS_ONLY=1` runs Concern 1 (counterparties → addresses → contacts → roles → salespersons) with
 > each layer validated before anything commits. Runbook: `docs/runbooks/ERP_IMPORT.md`.
 
-> **2026-10-07 ERP direct-SQL correction (additive; `AGENTS.md` is append-only under `ops/config/root-file-protection.json`):**
-> PR #221 expands the canonical ERP `DatabaseSource` beyond Concern 1. The direct SQL reader now has projection scripts for the five partner sources (`CounterParty`, `Address`, `Contact`, `ContactRoleAssignment`, `SalesReps`) and the six transaction-reconstruction sources (`Payables`, `Receipt`, `ReceiptBatch`, `GPLedger`, `WKSDetail`, `WksDelivery`). `PARTNERS_ONLY=1` remains the explicit partner-only mode; a full run must reach the `plasticos_transaction` historical-import extension and must fail closed if that realization is unavailable.
->
-> A green import result requires honest row accounting: `records_seen == records_created + records_updated + records_unchanged + records_rejected`, with `duplicates == 0`. Missing downstream realization or any reconciliation gap is a material failure, never a successful or partial import. The frozen grids under `plasticos_partner_import/erp_extracted_data/bulk/` remain regression fixtures only. Fixture-backed runtime gates do not replace a direct restored-SQL-Server → Odoo runtime proof for changes to the source seam.
->
-> **ERP field law:** do not create fields to mirror the legacy ERP. Map into native Odoo or an existing PlasticOS field whenever the business meaning already exists. Any proposed new field is a STOP gate requiring explicit operator approval. `GPLedger.TradeDt` means the date the PO was issued / the transaction approved under current PlasticOS rules. Its native Odoo target is `purchase.order.date_approve` when the historical PO is realized. Do not create `plasticos.transaction.transaction_date` for this concept; `purchase.order.date_order` remains the RFQ/order-deadline field.
+> **2026-10-07 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> Publication override: `make pr` is the sole publication SSOT.
+> `make push` and `make push pr=1` are retired and must not be used for publication.
+> The Commands block above that names those ceremonies is historical and is superseded by this correction.
+> A failed remote-feedback gate must be resolved before `make pr`.
