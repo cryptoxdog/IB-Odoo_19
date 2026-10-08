@@ -1,5 +1,9 @@
 # PlasticOS TODO
 
+## Before the ERP migration continues
+
+- [ ] **Rewire `plasticos_logistics` off the deprecated delivery-term field.** Logistics must read and write the native incoterm fields (`sale.order.incoterm`, `purchase.order.incoterm_id` on `account.incoterms`) instead of `delivery_term` (FCFS / Appointment). Do this before the ERP → Odoo migration moves on. Do not add another custom incoterm field.
+
 ## Trip Handoff — State as of 2026-06-02
 
 All local work has been committed and pushed to `cryptoxdog/IB-Odoo_19`. To continue on the laptop: clone, then `git fetch --all` and check out the branch you want.
