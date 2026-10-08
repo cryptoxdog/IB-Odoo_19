@@ -5,19 +5,22 @@ One deterministic entrypoint, no UI, no wizard, no cron. Run it from an Odoo
 shell against the target database::
 
     from plasticos_partner_import.scripts.run_erp_import import run
-    run(env, partners_only=True)               # partner import
-    run(env, dry_run=True, partners_only=True) # resolve + map, persist nothing
-    run(env, commit=True, partners_only=True)  # commit after the partner stages
+    run(env)                                   # full import
+    run(env, dry_run=True)                     # resolve + map, persist nothing
+    run(env, limit=50)                         # first 50 transactions only
+    run(env, commit=True)                      # commit between transactions
     run(env, payload_root="/path/to/export")   # non-default payload location
     run(env, database=source, partners_only=True)  # direct read of the ERP database
 
+``commit=True`` commits only *between* complete transactions — never inside
+one. A failed ``BuySellNo`` is rolled back to its savepoint, leaving no partial
+transaction and no stale identity marker, so a re-run reprocesses it.
 A partner-only run commits once, after every partner stage has passed its
-``after_stage`` hook. A full run does not write ``plasticos.transaction`` or
-``plasticos.transaction.line`` records.
+``after_stage`` hook.
 
-The partner import is idempotent: running it twice creates no duplicate
-counterparty, location, contact, or contact-role, because every record is
-addressed by its stable ERP source key.
+The import is idempotent: running it twice creates no duplicate counterparty,
+location, contact, contact-role, transaction, or transaction line, because every
+record is addressed by its stable ERP source key.
 """
 
 import json
