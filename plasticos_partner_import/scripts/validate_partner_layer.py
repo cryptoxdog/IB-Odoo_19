@@ -178,6 +178,27 @@ def _imported_companies(env):
     return partners
 
 
+def check_full_run_extension(env, failures: list[str], installed: set[str] | None = None) -> None:
+    """Read-only admission for a full run: the transaction extension must be installed and registered.
+
+    ``installed`` is a preloaded set of installed module names so the database
+    check can reuse the query it already ran. When it is omitted, this check
+    reads ``ir.module.module`` itself. It does not write, commit, or change ``env``.
+    """
+    if installed is None:
+        installed = set(
+            env["ir.module.module"]
+            .search([("name", "in", list(FULL_RUN_MODULES)), ("state", "=", "installed")])
+            .mapped("name")
+        )
+    missing = [module for module in FULL_RUN_MODULES if module not in installed]
+    if missing:
+        _fail(failures, f"import modules not installed: {', '.join(missing)}")
+        return
+    if "plasticos.transaction" not in env:
+        _fail(failures, "full import: plasticos.transaction is not in the registry; deals cannot be realized")
+
+
 def check_database(env, failures: list[str]) -> None:
     """The target is the declared disposable database, not production, with the modules the import needs."""
     # Direct SQL justification: the connected database's own name is the identity being verified.
@@ -202,11 +223,14 @@ def check_database(env, failures: list[str]) -> None:
     missing = [module for module in USA_MODULES if module not in installed]
     if missing:
         _fail(failures, f"USA modules not installed: {', '.join(missing)}")
-    missing = [module for module in required if module not in installed]
+    # The transaction extension reports its own missing-module line. Keeping it
+    # out of this list avoids a second "import modules not installed" entry.
+    extension = FULL_RUN_MODULES if _full_run() else ()
+    missing = [module for module in required if module not in extension and module not in installed]
     if missing:
         _fail(failures, f"import modules not installed: {', '.join(missing)}")
-    if _full_run() and FULL_RUN_MODULES[0] in installed and "plasticos.transaction" not in env:
-        _fail(failures, "full import: plasticos.transaction is not in the registry; deals cannot be realized")
+    if extension:
+        check_full_run_extension(env, failures, installed=installed)
     form = env.ref("base.view_partner_form", raise_if_not_found=False)
     if not form:
         _fail(failures, "contact form view is missing")

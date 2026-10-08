@@ -31,9 +31,13 @@ single file serves both the docker and the no-Docker harness paths:
 Order of operations for an applied run: database check → (layer mode) the
 previous layer's check → import each stage → that stage's validator → commit.
 A validator that fails raises before the commit, the transaction is rolled
-back, and nothing of the run is persisted. Dry runs validate nothing and
-always exit 0. Exit code is otherwise nonzero when a validator fails or the
-summary reports ``failed``, so the Makefile target fails closed.
+back, and nothing of the run is persisted. A full dry run checks only that
+the transaction extension is installed and registered, then previews without
+committing. It exits nonzero when that extension is missing and does not
+apply the write-target database check. Partner-only and single-layer dry
+runs skip the extension check and do not persist. Exit code is otherwise
+nonzero when a validator fails or the summary reports ``failed``, so the
+Makefile target fails closed.
 """
 
 import os
@@ -45,6 +49,7 @@ from odoo.addons.plasticos_partner_import.scripts.validate_partner_layer import 
     DATABASE_CHECK,
     LAYER_BEFORE,
     LayerRejected,
+    check_full_run_extension,
     validate,
 )
 
@@ -117,6 +122,13 @@ def main() -> int:
     layer = _setting("LAYER").strip().lower() or None
     if layer and layer not in LAYER_BEFORE:
         raise SystemExit(f"ERP_LAYER must be one of {', '.join(LAYER_BEFORE)}")
+    if dry_run and not _flag("PARTNERS_ONLY") and not layer:
+        failures: list[str] = []
+        check_full_run_extension(env, failures)
+        if failures:
+            for message in failures:
+                print(message)
+            return 1
     database = reader.database_source_from_env(os.environ)
     if database is not None:
         print(f"ERP source: direct database read ({database.label})")

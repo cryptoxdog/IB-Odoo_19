@@ -84,11 +84,12 @@ class _Env:
 class _Harness:
     """Stub the Odoo-side modules the driver imports; record what it validated, ran, and committed."""
 
-    def __init__(self, monkeypatch, failing=(), database=None, partner_rows="empty"):
+    def __init__(self, monkeypatch, failing=(), database=None, partner_rows="empty", odoo_env=None):
         self.validated = []
         self.validated_payloads = []
         self.runs = []
-        self.env = _Env(partner_rows)
+        self.source_lookups = []
+        self.env = odoo_env if odoo_env is not None else _Env(partner_rows)
         real = _real_validator()
         harness = self
 
@@ -113,7 +114,12 @@ class _Harness:
         for name in ("odoo", "odoo.addons", "odoo.addons.plasticos_partner_import", PACKAGE, ERP_PACKAGE):
             monkeypatch.setitem(sys.modules, name, types.ModuleType(name))
         reader = types.ModuleType(f"{ERP_PACKAGE}.reader")
-        reader.database_source_from_env = lambda environ: database
+
+        def database_source_from_env(environ):
+            harness.source_lookups.append(environ)
+            return database
+
+        reader.database_source_from_env = database_source_from_env
         runner = types.ModuleType(f"{PACKAGE}.run_erp_import")
         runner.run = run
         validator = types.ModuleType(f"{PACKAGE}.validate_partner_layer")
@@ -121,6 +127,7 @@ class _Harness:
         validator.DATABASE_CHECK = real.DATABASE_CHECK
         validator.LayerRejected = real.LayerRejected
         validator.validate = validate
+        validator.check_full_run_extension = real.check_full_run_extension
         monkeypatch.setitem(sys.modules, reader.__name__, reader)
         monkeypatch.setitem(sys.modules, runner.__name__, runner)
         monkeypatch.setitem(sys.modules, validator.__name__, validator)
@@ -137,9 +144,13 @@ class _Harness:
             monkeypatch.delenv(f"ERP_{name}", raising=False)
 
     def main(self):
-        namespace = {"__name__": "erp_import_shell", "env": self.env}
-        exec(compile(DRIVER.read_text(encoding="utf-8"), str(DRIVER), "exec"), namespace)  # noqa: S102
-        return namespace["main"]()
+        """Load the real driver the same way as the validator: a fixed repo file, not evaluated text."""
+        spec = importlib.util.spec_from_file_location("erp_import_shell_under_test", DRIVER)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        # ``odoo shell`` injects ``env`` into the script globals. The driver reads that name.
+        module.env = self.env
+        return module.main()
 
 
 def test_gate_order_covers_every_import_layer_and_names_real_checks():
@@ -296,8 +307,10 @@ def test_direct_database_source_is_handed_to_the_import(monkeypatch):
 class _Modules:
     def __init__(self, installed):
         self.installed = installed
+        self.searches = 0
 
     def search(self, domain):
+        self.searches += 1
         wanted = next(value for name, _op, value in domain if name == "name")
         return types.SimpleNamespace(mapped=lambda _field: [m for m in wanted if m in self.installed])
 
@@ -353,6 +366,7 @@ def test_full_import_requires_the_transaction_model_in_the_registry(monkeypatch)
 def test_full_import_passes_the_database_check_when_transactions_are_realizable(monkeypatch):
     env = _DatabaseEnv((*PARTNER_RUNTIME, "plasticos_transaction"))
     assert _database_failures(monkeypatch, env) == []
+    assert env.modules.searches == 1, "the extension check must reuse the database check's module query"
 
 
 @pytest.mark.parametrize(
@@ -369,6 +383,72 @@ def test_standalone_database_preflight_keeps_the_full_run_requirement(monkeypatc
     """``ERP_LAYER=database`` selects the check itself; it is not a partner-only scope."""
     failures = _database_failures(monkeypatch, _DatabaseEnv(PARTNER_RUNTIME, models=()), LAYER="database")
     assert failures == ["import modules not installed: plasticos_transaction"]
+
+
+def test_full_dry_run_without_the_transaction_module_exits_before_import(monkeypatch, capsys):
+    """A full preview must not report success, or call the importer, when deals cannot be realized."""
+    env = _DatabaseEnv(PARTNER_RUNTIME, models=())
+    harness = _Harness(monkeypatch, odoo_env=env)
+    monkeypatch.setenv("ERP_DRY", "1")
+
+    assert harness.main() == 1
+    assert harness.runs == []
+    assert harness.validated == []
+    assert harness.source_lookups == []
+    assert harness.env.cr.commits == 0
+    assert harness.env.cr.queries == []
+    assert "import modules not installed: plasticos_transaction" in capsys.readouterr().out
+
+
+def test_full_dry_run_without_the_transaction_model_exits_before_import(monkeypatch, capsys):
+    env = _DatabaseEnv((*PARTNER_RUNTIME, "plasticos_transaction"), models=())
+    harness = _Harness(monkeypatch, odoo_env=env)
+    monkeypatch.setenv("ERP_DRY", "1")
+
+    assert harness.main() == 1
+    assert harness.runs == []
+    assert harness.validated == []
+    assert harness.source_lookups == []
+    assert harness.env.cr.commits == 0
+    assert env.modules.searches == 1
+    assert "plasticos.transaction is not in the registry" in capsys.readouterr().out
+
+
+def test_full_dry_run_with_the_extension_reaches_the_importer_without_the_database_check(monkeypatch):
+    sentinel = types.SimpleNamespace(label="erp-host/ERP_RESTORED")
+    env = _DatabaseEnv((*PARTNER_RUNTIME, "plasticos_transaction"))
+    harness = _Harness(monkeypatch, database=sentinel, odoo_env=env)
+    monkeypatch.setenv("ERP_DRY", "1")
+
+    assert harness.main() == 0
+    assert harness.validated == [], "a dry preview must not demand the write-target database check"
+    assert harness.runs[0]["dry_run"] is True
+    assert harness.runs[0]["after_stage"] is None
+    assert harness.runs[0]["partners_only"] is False
+    assert harness.runs[0]["layer"] is None
+    assert harness.runs[0]["database"] is sentinel
+    assert harness.env.cr.commits == 0
+    assert env.modules.searches == 1
+
+
+@pytest.mark.parametrize(
+    "settings",
+    [{"PARTNERS_ONLY": "1"}, {"LAYER": "roles"}],
+    ids=["partners_only", "layer"],
+)
+def test_partner_scoped_dry_runs_do_not_require_the_transaction_extension(monkeypatch, settings):
+    """Concern 1 previews stay preflight-free on a database with no transaction extension."""
+    harness = _Harness(monkeypatch)
+    monkeypatch.setenv("ERP_DRY", "1")
+    for name, value in settings.items():
+        monkeypatch.setenv(f"ERP_{name}", value)
+
+    assert harness.main() == 0
+    assert harness.validated == []
+    assert harness.runs[0]["dry_run"] is True
+    assert harness.runs[0]["after_stage"] is None
+    assert harness.runs[0]["partners_only"] is True
+    assert harness.env.cr.commits == 0
 
 
 def test_full_import_without_transactions_is_refused_before_the_importer_runs(monkeypatch):
