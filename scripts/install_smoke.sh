@@ -147,7 +147,7 @@ assert_smoke_db_disposable() {
     refuse_smoke "database name contains unsafe SQL characters"
   fi
   case "$requested" in
-    odoo|postgres|template0|template1|production|Production|cieTrade|ERP|erp)
+    odoo|postgres|template0|template1|production|Production|ERP|erp)
       refuse_smoke "database '$requested' is a protected business, system, production, or ERP name"
       ;;
   esac

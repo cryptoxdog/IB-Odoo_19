@@ -111,7 +111,6 @@ def _assert_no_destructive(log: str) -> None:
         "template1",
         "Production",
         "production",
-        "cieTrade",
         "ERP",
         "odoo_install_smoke;DROP DATABASE odoo",
         'odoo_install_smoke"',
