@@ -32,11 +32,27 @@ def _write(path: Path, text: str) -> None:
     path.chmod(0o755)
 
 
+def _plant_l4_provider(tmp_path: Path) -> None:
+    """Fixture governance tree. CI runners have no ~/.cursor-governance."""
+    gov = tmp_path / "gov-home" / ".cursor-governance"
+    scripts = gov / "ops" / "scripts"
+    autonomy = gov / "ops" / "autonomy"
+    scripts.mkdir(parents=True)
+    autonomy.mkdir(parents=True)
+    (autonomy / "l4_local.py").write_text("# fixture provider\n", encoding="utf-8")
+    gov_root = str(gov.resolve())
+    _write(
+        scripts / "resolve_governance_paths.sh",
+        f'#!/bin/bash\nresolve_governance_paths() {{\n  GOV_ROOT="{gov_root}"\n  return 0\n}}\n',
+    )
+
+
 def _init_repo(tmp_path: Path, branch: str = "fix/example") -> tuple[Path, Path]:
     repo = tmp_path / "repo"
     repo.mkdir(parents=True)
     bindir = tmp_path / "bin"
     bindir.mkdir(parents=True)
+    _plant_l4_provider(tmp_path)
     seq = tmp_path / "seq.log"
     subprocess.run([REAL_GIT, "init", "-b", branch], cwd=repo, check=True, capture_output=True)
     scripts = repo / "scripts"
@@ -123,6 +139,8 @@ def _env(tmp_path: Path, **extra: str) -> dict[str, str]:
     env.pop("L9_L4_LOCAL_AUTONOMY", None)
     env.pop("L9_LOCAL_PUSH_AUTHORIZED", None)
     env["PATH"] = f"{tmp_path / 'bin'}{os.pathsep}/bin{os.pathsep}/usr/bin"
+    if "HOME" not in extra:
+        env["HOME"] = str(tmp_path / "gov-home")
     env["GIT_CONFIG_NOSYSTEM"] = "1"
     env["GIT_CONFIG_GLOBAL"] = os.devnull
     env.update(extra)
@@ -278,8 +296,19 @@ def test_missing_provider_blocks_without_a_dropbox_fallback(tmp_path: Path) -> N
 
 def test_missing_gh_auth_and_pr_lookup_refuse_before_push(tmp_path: Path) -> None:
     repo, seq = _init_repo(tmp_path / "nogh")
-    (tmp_path / "nogh" / "bin" / "gh").unlink()
-    missing = _run(repo, tmp_path / "nogh", "fix/example", "Staging", "1", "0")
+    bindir = tmp_path / "nogh" / "bin"
+    bindir.joinpath("gh").unlink()
+    # tr is required before the gh probe. On Ubuntu, gh and tr share /usr/bin.
+    bindir.joinpath("tr").symlink_to(_real("tr"))
+    missing = _run(
+        repo,
+        tmp_path / "nogh",
+        "fix/example",
+        "Staging",
+        "1",
+        "0",
+        PATH=f"{bindir}{os.pathsep}/bin",
+    )
     assert missing.returncode == 1, missing.stdout + missing.stderr
     assert "gh CLI is not available" in (missing.stdout + missing.stderr)
     _assert_no_push(seq)
