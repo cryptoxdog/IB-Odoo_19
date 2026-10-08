@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 import logging
 
 from odoo import _, api, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
+from ..canonical_digest import _canonical_digest
 from .match_run import RECEIPT_WRITE_CONTEXT
 
 _logger = logging.getLogger(__name__)
@@ -39,18 +38,6 @@ _DURABLE_RUN_FIELDS = (
     "gate_response_digest",
     "match_count",
 )
-
-
-def _canonical_digest(value):
-    """Return a deterministic SHA-256 digest of Gate request or response material."""
-    encoded = json.dumps(
-        value,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=True,
-        allow_nan=False,
-    ).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
 
 
 def _receipt_text(value):

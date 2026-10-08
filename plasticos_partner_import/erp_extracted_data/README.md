@@ -1,26 +1,40 @@
 # ERP extract SQL (canonical)
 
+These SQL files define the restored ERP database projections consumed by the deterministic historical import. They are source-query authority. Frozen files under `bulk/` are regression fixtures only.
+
 | # | File | Use |
-|---|------|-----|
-| 00 | `00_probe.sql` | Confirm DB / login / server |
+|---|---|---|
+| 00 | `00_probe.sql` | Confirm database / login / server |
 | 01 | `01_census.sql` | Table size rank |
-| 02 | `02_columns.sql` | P0 column inventory |
-| 03 | `03_diagnostic.sql` | PK / FK / distributions |
+| 02 | `02_columns.sql` | Column inventory |
+| 03 | `03_diagnostic.sql` | PK / FK / distribution diagnostics |
 | 04 | `04_counts.sql` | Exact row counts |
-| **05** | **`05_extract_all.sql`** | **Full reload — 14 result grids** |
-| 06 | `06_extract_remaining.sql` | Batches / roles / delivery / docs only |
-| 10–17 | `10_counterparty.sql` … `17_prepayledger.sql` | Single-table full extracts |
-| 18–19 | `18_contactroleassignment.sql`, `19_salesreps.sql` | Single-table partner projections the direct database read executes (`erp/reader.py`, `PROJECTION_SCRIPTS`) |
-| | `bulk/` | Frozen row files from the 2026-08-07 grid extract — regression fixture, not runtime authority (ADR-021); never edited to make an import pass |
-| | `meta/` | Column types, census, and row-count probes |
-| | `diagnostics/` | Full column inventory and role distribution |
+| 05 | `05_extract_all.sql` | Multi-result full research extract |
+| 06 | `06_extract_remaining.sql` | Supplemental research extract |
+| 10 | `10_counterparty.sql` | `CounterParty` direct runtime projection |
+| 11 | `11_address.sql` | `Address` direct runtime projection |
+| 12 | `12_contact.sql` | `Contact` direct runtime projection |
+| 13 | `13_payables.sql` | `Payables` direct runtime projection |
+| 14 | `14_receipt.sql` | `Receipt` direct runtime projection |
+| 15 | `15_gpledger.sql` | `GPLedger` direct runtime projection |
+| 16 | `16_wksdetail.sql` | `WKSDetail` direct runtime projection |
+| 17 | `17_prepayledger.sql` | Research/support projection; not part of the current runtime source set |
+| 18 | `18_contactroleassignment.sql` | `ContactRoleAssignment` direct runtime projection |
+| 19 | `19_salesreps.sql` | `SalesReps` direct runtime projection |
+| 20 | `20_receiptbatch.sql` | `ReceiptBatch` direct runtime projection; single-result form of the query in `05_extract_all.sql` |
+| 21 | `21_wksdelivery.sql` | `WksDelivery` direct runtime projection; single-result form of the query in `05_extract_all.sql` |
+| — | `bulk/` | Frozen 2026-08-07 row grids; regression fixtures, never runtime authority |
+| — | `meta/` | Column types, census, and row-count evidence |
+| — | `diagnostics/` | Full column inventory and distribution evidence |
 
-Playbook: [`docs/erp_extract_research.md`](../../docs/erp_extract_research.md)
+Playbook: `docs/erp_extract_research.md`
 
-## Direct database read (runtime form)
+## Direct database read
 
-`make import-erp ERP_SQL_SERVER=<host> ERP_SQL_DATABASE=<db> [ERP_SQL_USER=.. ERP_SQL_PASSWORD=..]`
-reads the five partner tables straight from the restored ERP database by executing
-`10`, `11`, `12`, `18`, and `19` above, one result set each, with the same columns, filters,
-`RTRIM`s and ordering the frozen grid was produced with. `ERP_SQL_DRIVER` is `pymssql`
-(default) or `pyodbc`. The password is read from the environment only and never logged.
+`plasticos_partner_import/erp/reader.py::PROJECTION_SCRIPTS` is the runtime projection registry. A full direct-SQL source read covers all 11 source tables required by the partner and transaction-reconstruction pipeline:
+
+`CounterParty`, `Address`, `Contact`, `ContactRoleAssignment`, `SalesReps`, `Payables`, `Receipt`, `ReceiptBatch`, `GPLedger`, `WKSDetail`, and `WksDelivery`.
+
+`PARTNERS_ONLY=1` restricts the requested set to the five partner-side sources; the six deal tables are not opened in that mode.
+
+The SQL driver is selected by `ERP_SQL_DRIVER` (`pymssql` by default, `pyodbc` when explicitly configured). Credentials are supplied through the process environment and must never be written to tracked files or emitted into import summaries.

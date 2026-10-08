@@ -2,7 +2,7 @@
 
 Not a pytest module and deliberately not collected: it needs a live Odoo 19
 registry and a live PostgreSQL server. Setup is in
-docs/runbooks/C1_C6_LOCAL_RUNTIME.md. Run it directly::
+scripts/setup_local_runtime.sh. Run it directly::
 
     /opt/odoo-venv/bin/python tests/runtime_gates/run_s1_s3_pristine_seams.py
 
@@ -25,6 +25,7 @@ cursor boundary and the model registry are all real.
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import shutil
@@ -33,9 +34,7 @@ import subprocess
 import sys
 import threading
 import time
-import urllib.error
 import urllib.parse
-import urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import psycopg2
@@ -265,17 +264,13 @@ def gate_s1(stub: StubCrm) -> bool:
 # ----------------------------------------------------------------------
 def post(path: str, body: dict, timeout: int = 30):
     data = json.dumps(body).encode()
-    req = urllib.request.Request(  # noqa: S310 - loopback test server
-        f"http://127.0.0.1:{HTTP_PORT}{path}",
-        data=data,
-        method="POST",
-        headers={"Content-Type": "application/json"},
-    )
+    conn = http.client.HTTPConnection("127.0.0.1", HTTP_PORT, timeout=timeout)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
-            return resp.status, resp.read().decode()
-    except urllib.error.HTTPError as exc:
-        return exc.code, exc.read().decode()
+        conn.request("POST", path, body=data, headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        return resp.status, resp.read().decode()
+    finally:
+        conn.close()
 
 
 def start_odoo_http(log_path: str):
@@ -302,13 +297,13 @@ def start_odoo_http(log_path: str):
         if proc.poll() is not None:
             raise RuntimeError(f"odoo http server exited early; see {log_path}")
         try:
-            urllib.request.urlopen(  # noqa: S310
-                f"http://127.0.0.1:{HTTP_PORT}/web/login", timeout=2
-            )
+            conn = http.client.HTTPConnection("127.0.0.1", HTTP_PORT, timeout=2)
+            conn.request("GET", "/web/login")
+            resp = conn.getresponse()
+            resp.read()
+            conn.close()
             return proc, log
-        except urllib.error.HTTPError:
-            return proc, log
-        except Exception:  # noqa: BLE001 - server not up yet
+        except (OSError, http.client.HTTPException):
             time.sleep(1)
     raise RuntimeError(f"odoo http server did not become ready; see {log_path}")
 
@@ -496,7 +491,7 @@ def attempt(name: str, fn, *args) -> bool:
 
 def main() -> int:
     if not ODOO_SRC or not os.path.isdir(ODOO_ADDONS):
-        print(f"odoo source not found (looked for {ODOO_ADDONS}); see C1_C6_LOCAL_RUNTIME.md")
+        print(f"odoo source not found (looked for {ODOO_ADDONS}); see scripts/setup_local_runtime.sh")
         return 2
 
     log_path = os.environ.get("SEAM_HTTP_LOG", "/tmp/seam_odoo_http.log")

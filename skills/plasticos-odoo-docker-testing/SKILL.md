@@ -38,7 +38,7 @@ Gate-shell / security_base regressions (2026-08).
 
 1. Explicit user request (smoke vs full e2e vs single module).
 2. `config/odoo_module_order.yaml` + module `__manifest__.py` `installable` / `auto_install`.
-3. `docs/runbooks/INSTALL_SMOKE.md` + `scripts/install_smoke.sh`.
+3. `scripts/install_smoke.sh` (`make install-smoke`).
 4. `Makefile` targets: `install-smoke`, `test-odoo`, `test-module`, `pr-check`.
 5. Gate law: Odoo → Gate → EIE/CEG → Gate → Odoo — no local matching/IE.
 6. `plasticos-odoo-sh-deploy` for SSH after local green only.

@@ -10,11 +10,10 @@ RUN = ROOT / "plasticos_enrichment/models/enrichment_run.py"
 SVC = ROOT / "plasticos_enrichment/models/enrichment_service.py"
 MANIFEST = ROOT / "plasticos_enrichment/__manifest__.py"
 CRON = ROOT / "plasticos_enrichment/data/cron.xml"
-RUNBOOK = ROOT / "docs/runbooks/ENRICHMENT_DEGRADED_MODE.md"
 
 
 def test_required_m4_files_exist():
-    for path in (RUN, SVC, MANIFEST, CRON, RUNBOOK):
+    for path in (RUN, SVC, MANIFEST, CRON):
         assert path.is_file(), path
 
 
@@ -58,10 +57,3 @@ def test_run_ast_action_execute_has_no_local_service_calls():
     assert "crawl_source" not in calls
     assert "extract_from_source" not in calls
     assert "run_inference" not in calls
-
-
-def test_runbook_documents_no_substitution():
-    src = RUNBOOK.read_text(encoding="utf-8")
-    assert "degraded" in src.lower()
-    assert "gate" in src.lower()
-    assert "local" in src.lower()

@@ -35,5 +35,5 @@ checkouts — always verify `git rev-parse --abbrev-ref HEAD`.
 ## Related skills / docs
 
 - `plasticos-odoo-sh-deploy` — SSH diagnose after local green
-- `docs/runbooks/INSTALL_SMOKE.md` — short operator runbook
+- `scripts/install_smoke.sh` — local module-load gate (`make install-smoke`)
 - `docs/adr/ADR-002-gate-hub-phased-autonomy.md` — Gate hub topology

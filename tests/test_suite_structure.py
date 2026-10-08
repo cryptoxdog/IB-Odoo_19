@@ -52,6 +52,8 @@ NON_TEST_FILES = frozenset(
         "run_erp_import.py",
         "run_s1_s3_pristine_seams.py",
         "_runtime_env.py",
+        # Disposable-database lifecycle imported by run_erp_import.py. Not a test.
+        "scratch_db.py",
     }
 )
 

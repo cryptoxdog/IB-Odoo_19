@@ -724,9 +724,13 @@ def test_direct_database_read_executes_the_projection_scripts_with_source_fideli
     assert set(payload.tables) == set(reader.PARTNER_SOURCE_TABLES)
     # One projection script per partner table, read from the extract-authority folder.
     executed = "\n".join(statement for cursor in connection.cursors for statement in cursor.executed)
-    for table, script in reader.PROJECTION_SCRIPTS.items():
+    for table in reader.PARTNER_SOURCE_TABLES:
+        script = reader.PROJECTION_SCRIPTS[table]
         text = (PAYLOAD_ROOT / script).read_text(encoding="utf-8-sig")
         assert text in executed, f"{table} must be read through {script}"
+    for table in reader.SOURCE_TABLES.keys() - reader.PARTNER_SOURCE_TABLES:
+        text = (PAYLOAD_ROOT / reader.PROJECTION_SCRIPTS[table]).read_text(encoding="utf-8-sig")
+        assert text not in executed, f"partner-only read must not open {table}"
     assert connection.closed
 
     counterparty = payload.rows("CounterParty")[0]
@@ -756,10 +760,40 @@ def test_direct_database_read_wins_over_a_payload_root():
     assert payload.row_counts()["CounterParty"] == 1
 
 
-def test_direct_database_read_covers_partner_tables_only():
-    _connection, source = _database_fixture()
-    with pytest.raises(reader.SourcePayloadError, match="partner tables only"):
-        reader.load_payload(database=source)
+def test_direct_database_read_covers_transaction_reconstruction_tables():
+    """Concern 2A reads the six deal tables through the same projection scripts."""
+    connection, source = _database_fixture()
+    deal_rows = {
+        "Payables": (["BuySellNo", "ItemID", "CpID"], [("BS1", "0", "1004")]),
+        "Receipt": (["BuySellNo", "ARBatchNo"], [("BS1", "B1")]),
+        "ReceiptBatch": (["ARBatchNo", "CPID"], [("B1", "1004")]),
+        "GPLedger": (["BuySellNo", "TradeDt"], [("BS1", "2026-01-02 00:00:00")]),
+        "WKSDetail": (
+            ["DetailID", "BuySellNo", "SWeightUOM", "PWeightUOM"],
+            [(7, "BS1", "L", "L")],
+        ),
+        "WksDelivery": (["ItemID", "BuySellNo", "VendorID"], [(9, "BS1", "1004")]),
+    }
+    connection.result_sets.update(deal_rows)
+    payload = reader.load_payload(database=source)
+
+    assert payload.kind == reader.PayloadKind.DATABASE
+    assert set(payload.tables) == set(reader.SOURCE_TABLES)
+    executed = "\n".join(statement for cursor in connection.cursors for statement in cursor.executed)
+    for table in ("WKSDetail", "Payables", "Receipt", "ReceiptBatch", "GPLedger", "WksDelivery"):
+        script = reader.PROJECTION_SCRIPTS[table]
+        text = (PAYLOAD_ROOT / script).read_text(encoding="utf-8-sig")
+        assert text in executed, f"{table} must be read through {script}"
+        assert f"FROM dbo.{'Counterparty_Referrer' if table == 'SalesReps' else table}" in text
+
+    index = source_index.build_source_index(payload)
+    assert index.buysell_numbers() == ["BS1"]
+    assert index.detail_ids("BS1") == ["7"]
+    header = header_forensics.reconstruct_transaction_header(index, "BS1")
+    assert header.supplier_cp_id == "1004"
+    assert header.buyer_cp_id == "1004"
+    assert header.trade_date is not None
+    assert header.detail_ids == ("7",)
 
 
 def test_direct_database_read_reports_an_unreachable_database_without_a_credential():

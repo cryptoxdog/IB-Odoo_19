@@ -31,6 +31,14 @@ USA_MODULES = (
     "l10n_us_payment_nacha",
 )
 REQUIRED_MODULES = ("plasticos_partner_import",)
+# A full run must not write plasticos.transaction or plasticos.transaction.line.
+# Commercial documents are sale.order, purchase.order, and account.move, and
+# this import does not realize them yet. Partner-only and single-layer runs
+# (Concern 1) never open the deal tables.
+FULL_IMPORT_REFUSAL = (
+    "full import: sale.order, purchase.order, and account.move are not realized "
+    "by this import; refusing before any write"
+)
 XMLID_MODULE = "plasticos_transaction"
 
 # The import names the disposable database it may write. The check refuses
@@ -50,6 +58,21 @@ class LayerRejected(RuntimeError):
 
 def _setting(name: str) -> str:
     return os.environ.get(f"ERP_{name}") or ""
+
+
+def _full_run() -> bool:
+    """True unless the run is ``ERP_PARTNERS_ONLY`` or one partner ``ERP_LAYER`` (the driver's own scope rule).
+
+    ``ERP_LAYER=database`` (a standalone preflight) names a check, not a partner
+    layer, so it keeps the full-run requirement.
+    """
+    partners_only = _setting("PARTNERS_ONLY").strip().lower() in {"1", "true", "yes", "y"}
+    return not partners_only and _setting("LAYER").strip().lower() not in LAYER_BEFORE
+
+
+def required_modules() -> tuple[str, ...]:
+    """Import modules the database check requires for the run this environment selects."""
+    return REQUIRED_MODULES
 
 
 def _addon_root() -> Path:
@@ -157,6 +180,16 @@ def _imported_companies(env):
     return partners
 
 
+def check_full_run_extension(env, failures: list[str], installed: set[str] | None = None) -> None:
+    """Refuse a full run. This import does not realize commercial documents yet.
+
+    ``installed`` is accepted so existing callers can pass the module set they
+    already loaded. The refusal does not depend on it, and it does not write.
+    """
+    del env, installed
+    _fail(failures, FULL_IMPORT_REFUSAL)
+
+
 def check_database(env, failures: list[str]) -> None:
     """The target is the declared disposable database, not production, with the modules the import needs."""
     # Direct SQL justification: the connected database's own name is the identity being verified.
@@ -173,16 +206,19 @@ def check_database(env, failures: list[str]) -> None:
     lowered = (name or "").lower()
     if any(marker in lowered for marker in PRODUCTION_NAME_MARKERS):
         _fail(failures, f"database {name} identifies as production")
-    wanted = list(USA_MODULES) + list(REQUIRED_MODULES)
+    required = required_modules()
+    wanted = list(USA_MODULES) + list(required)
     installed = set(
         env["ir.module.module"].search([("name", "in", wanted), ("state", "=", "installed")]).mapped("name")
     )
     missing = [module for module in USA_MODULES if module not in installed]
     if missing:
         _fail(failures, f"USA modules not installed: {', '.join(missing)}")
-    missing = [module for module in REQUIRED_MODULES if module not in installed]
+    missing = [module for module in required if module not in installed]
     if missing:
         _fail(failures, f"import modules not installed: {', '.join(missing)}")
+    if _full_run():
+        check_full_run_extension(env, failures, installed=installed)
     form = env.ref("base.view_partner_form", raise_if_not_found=False)
     if not form:
         _fail(failures, "contact form view is missing")

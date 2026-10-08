@@ -1,7 +1,7 @@
 """Gate C3 — the failure writer cannot block on the transaction that failed.
 
 Not a pytest module and deliberately not collected: needs a live Odoo 19
-registry and a live PostgreSQL server. Setup: docs/runbooks/C1_C6_LOCAL_RUNTIME.md.
+registry and a live PostgreSQL server. Setup: scripts/setup_local_runtime.sh.
 
 Two parts, because a timing assertion with no teeth proves nothing:
   A. the hazard is REAL   — an uncommitted, flushed write to the sync-run row

@@ -9,27 +9,33 @@ single file serves both the docker and the no-Docker harness paths:
 * ``ERP_PAYLOAD_ROOT`` — non-default payload directory (statement or grid form)
 * ``ERP_SQL_SERVER`` / ``ERP_SQL_DATABASE`` (+ ``ERP_SQL_USER`` /
   ``ERP_SQL_PASSWORD`` / ``ERP_SQL_PORT`` / ``ERP_SQL_DRIVER``) — read the
-  partner tables directly from the restored ERP database (ADR-021). Takes
+  requested partner and/or transaction-reconstruction tables directly from
+  the restored ERP database through ``PROJECTION_SCRIPTS`` (ADR-021). Takes
   precedence over ``ERP_PAYLOAD_ROOT``.
 * ``ERP_REPORT_PATH`` — write the machine-readable summary JSON here
 * ``ERP_TARGET_DB`` — the disposable database this run may write; the
   database check refuses any other database and any production database
 * ``ERP_PARTNERS_ONLY`` — ``1`` imports only CounterParty, Address, Contact,
-  ContactRoleAssignment, and SalesReps (Concern 1). Deal files are not opened.
+  ContactRoleAssignment, and SalesReps (Concern 1). The six deal tables are
+  not opened. Without this flag, a full run is refused before any write:
+  this import does not realize sale orders, purchase orders, or invoices.
 * ``ERP_LAYER`` — ``counterparties``, ``addresses``, ``contacts``, ``roles``,
   or ``salesreps``. Only that table is read, and only after the previous
   layer's validator passes.
 * ``ERP_REQUIRE_EMPTY`` — ``0`` allows a database that already has business
   partners. Any other value (including unset) refuses a full import or the
-  ``counterparties`` layer unless the only ``res.partner`` rows are the company
-  and the login users.
+  ``counterparties`` layer when any ``res.partner`` row is not the company, a
+  login user, or a localization-owned (``l10n_*``) reference partner.
 
 Order of operations for an applied run: database check → (layer mode) the
 previous layer's check → import each stage → that stage's validator → commit.
 A validator that fails raises before the commit, the transaction is rolled
-back, and nothing of the run is persisted. Dry runs validate nothing and
-always exit 0. Exit code is otherwise nonzero when a validator fails or the
-summary reports ``failed``, so the Makefile target fails closed.
+back, and nothing of the run is persisted. A full dry run is refused before
+the importer runs, because commercial documents are not realized yet. It
+does not apply the write-target database check. Partner-only and
+single-layer dry runs do not persist. Exit code is otherwise nonzero when a
+validator fails or the summary reports ``failed``, so the Makefile target
+fails closed.
 """
 
 import os
@@ -41,6 +47,7 @@ from odoo.addons.plasticos_partner_import.scripts.validate_partner_layer import 
     DATABASE_CHECK,
     LAYER_BEFORE,
     LayerRejected,
+    check_full_run_extension,
     validate,
 )
 
@@ -64,8 +71,10 @@ def _odoo_env():
 def _require_empty_partner_set(env) -> None:
     """Refuse the import when the database already has business partners.
 
-    A usable database always has the company partner and one partner per user.
-    Those are the only rows allowed before a test import.
+    A pristine initialized Odoo database may contain the company partner,
+    login-user partners, and localization-owned res.partner reference records.
+    Those are infrastructure/reference data, not imported business partners.
+    Any other pre-existing partner blocks a first historical import.
     """
     if _setting("REQUIRE_EMPTY").strip().lower() in {"0", "false", "no", "n"}:
         return
@@ -73,11 +82,24 @@ def _require_empty_partner_set(env) -> None:
     env.cr.execute(
         """
         SELECT count(*)
-          FROM res_partner
-         WHERE id NOT IN (
-                SELECT partner_id FROM res_users WHERE partner_id IS NOT NULL
+          FROM res_partner AS partner
+         WHERE partner.id NOT IN (
+                SELECT partner_id
+                  FROM res_users
+                 WHERE partner_id IS NOT NULL
+
                 UNION
-                SELECT partner_id FROM res_company WHERE partner_id IS NOT NULL
+
+                SELECT partner_id
+                  FROM res_company
+                 WHERE partner_id IS NOT NULL
+               )
+           AND NOT EXISTS (
+                SELECT 1
+                  FROM ir_model_data AS data
+                 WHERE data.model = 'res.partner'
+                   AND data.res_id = partner.id
+                   AND LEFT(data.module, 5) = 'l10n_'
                )
         """
     )
@@ -85,11 +107,9 @@ def _require_empty_partner_set(env) -> None:
     # Direct SQL justification: same bulk census, total rows including archived partners.
     env.cr.execute("SELECT count(*) FROM res_partner")
     total = int(env.cr.fetchone()[0])
-    print(f"res.partner before import: {total} (outside company and users: {extra})")
+    print(f"res.partner before import: {total} (pre-existing business partners: {extra})")
     if extra:
-        raise SystemExit(
-            "refusing import: database still has res.partner rows that are not the company or a login user"
-        )
+        raise SystemExit("refusing import: database already contains business partner rows")
 
 
 def main() -> int:
@@ -100,6 +120,13 @@ def main() -> int:
     layer = _setting("LAYER").strip().lower() or None
     if layer and layer not in LAYER_BEFORE:
         raise SystemExit(f"ERP_LAYER must be one of {', '.join(LAYER_BEFORE)}")
+    if dry_run and not _flag("PARTNERS_ONLY") and not layer:
+        failures: list[str] = []
+        check_full_run_extension(env, failures)
+        if failures:
+            for message in failures:
+                print(message)
+            return 1
     database = reader.database_source_from_env(os.environ)
     if database is not None:
         print(f"ERP source: direct database read ({database.label})")

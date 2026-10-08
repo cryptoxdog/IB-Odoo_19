@@ -11,11 +11,10 @@ INTAKE = ROOT / "plasticos_matching/models/intake_extension.py"
 RUN = ROOT / "plasticos_matching/models/match_run.py"
 GATE_CFG = ROOT / "plasticos_gate/services/gate_config.py"
 VIEWS = ROOT / "plasticos_matching/views/match_run_views.xml"
-RUNBOOK = ROOT / "docs/runbooks/MATCHING_DEGRADED_MODE.md"
 
 
 def test_m3_required_files_exist():
-    for path in (ORCH, INTAKE, RUN, GATE_CFG, VIEWS, RUNBOOK):
+    for path in (ORCH, INTAKE, RUN, GATE_CFG, VIEWS):
         assert path.is_file(), path
 
 
@@ -72,10 +71,3 @@ def test_orchestrator_ast_bans_local_scoring_symbols():
     banned = {"_find_matches_local", "_fallback_scoring", "graph_service", "neo4j"}
     names = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
     assert not (names & banned)
-
-
-def test_runbook_documents_no_substitution():
-    src = RUNBOOK.read_text(encoding="utf-8")
-    assert "degraded" in src.lower()
-    assert "retry" in src.lower()
-    assert "local" in src.lower()
