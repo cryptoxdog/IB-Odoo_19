@@ -46,7 +46,7 @@ A full direct database read can open all 11 sources required by the current part
 
 Direct restored-database source selection uses the `ERP_SQL_*` settings consumed by `plasticos_partner_import/scripts/import_erp_shell.py`.
 
-A full run must have the transaction realization extension from `plasticos_transaction` available. If it is not available, the run must fail before partner writes. Completing only partner stages is not a successful full historical import.
+A full run is refused before any write. It must not create `plasticos.transaction` or `plasticos.transaction.line` records. Commercial documents are `sale.order`, `purchase.order`, and `account.move`, and this import does not realize them yet. `PARTNERS_ONLY=1` remains the write path.
 
 ## Safety boundary
 
@@ -62,7 +62,7 @@ Partner stages run in this order:
 
 Each stage validator executes before the partner stage is allowed to become durable. A failed validator rolls the run back.
 
-Full runs continue through the transaction extension after the partner stages. Each `BuySellNo` is one atomic deal unit guarded by a savepoint.
+A full run stops before those stages write. It does not turn each worksheet into a transaction.
 
 ## Result accounting
 
@@ -104,7 +104,7 @@ The normal test suite proves projection coverage, deterministic source indexing,
 
 ### Odoo/PostgreSQL runtime gate
 
-`make runtime-gate g=run_erp_import.py` is the existing live Odoo/PostgreSQL gate. It proves first import, replay, changed-record handling, and savepoint recovery using the frozen regression fixture.
+`make runtime-gate g=run_erp_import.py` is the existing live Odoo/PostgreSQL gate. It proves the partner import, replay, changed-record handling, and that a full import writes no transaction or line marker, using the frozen regression fixture.
 
 Exit 77 means SKIPPED because the required local runtime/template is unavailable. It is never PASS.
 
@@ -116,7 +116,7 @@ Required evidence:
 
 1. direct SQL Server source is selected;
 2. all required partner and deal projection scripts are executed through the shared reader;
-3. full import reaches `plasticos_transaction` transaction realization;
+3. a full import writes no `plasticos.transaction` and no `plasticos.transaction.line`;
 4. summary reconciliation closes;
 5. sampled supplier, buyer, state, and line values agree with the restored source;
 6. identical second direct-SQL run reports zero creates and zero update churn;
@@ -166,8 +166,7 @@ never put them in a tracked file. The grid and statement forms need no secret.
 
 - A **disposable, nonproduction** Odoo database (`ODOO_DB_NAME`, passed to the
   preflight as `ERP_TARGET_DB`) with `plasticos_partner_import` installed. A full
-  run additionally needs `plasticos_transaction` installed; the preflight refuses
-  a full run without it before any partner stage writes. A pristine first-import
+  run is refused before any write. A pristine first-import
   target may also contain localization-owned Odoo reference partners, besides the
   company and the login users (`ERP_REQUIRE_EMPTY=1`, the default), unless a
   reload onto a populated database is deliberate.

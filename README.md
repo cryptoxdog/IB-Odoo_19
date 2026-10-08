@@ -26,16 +26,12 @@ SourceIndex + deterministic source identity
         ↓
 partner stages
         ↓
-transaction header reconstruction
-        ↓
-plasticos_transaction legacy ERP extension
-        ↓
-Odoo records
+Odoo partners
 ```
 
 The direct database reader executes the canonical projection scripts under `plasticos_partner_import/erp_extracted_data/`. The frozen files under `erp_extracted_data/bulk/` are regression fixtures only. They are not runtime authority and must never be edited to make an import pass.
 
-The canonical operator entrypoint is `make import-erp`. Partner-only execution is available with `PARTNERS_ONLY=1`. A full import includes transaction reconstruction and realization and must fail closed if that realization is unavailable or if result accounting does not reconcile.
+The canonical operator entrypoint is `make import-erp`. Partner-only execution is available with `PARTNERS_ONLY=1`. A full import is refused before any write. It does not create `plasticos.transaction` or `plasticos.transaction.line` records. Commercial documents are `sale.order`, `purchase.order`, and `account.move`. Partner result accounting still fails closed when it does not reconcile.
 
 See:
 

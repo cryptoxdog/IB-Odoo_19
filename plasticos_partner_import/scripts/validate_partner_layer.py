@@ -31,12 +31,14 @@ USA_MODULES = (
     "l10n_us_payment_nacha",
 )
 REQUIRED_MODULES = ("plasticos_partner_import",)
-# A full run writes partners and then deals. The deals are realized only by the
-# plasticos_transaction historical-import extension, so a full run without it
-# would commit the partner stages and still look finished. Partner-only and
-# single-layer runs (Concern 1) never open the deal tables and need only
-# REQUIRED_MODULES.
-FULL_RUN_MODULES = ("plasticos_transaction",)
+# A full run must not write plasticos.transaction or plasticos.transaction.line.
+# Commercial documents are sale.order, purchase.order, and account.move, and
+# this import does not realize them yet. Partner-only and single-layer runs
+# (Concern 1) never open the deal tables.
+FULL_IMPORT_REFUSAL = (
+    "full import: sale.order, purchase.order, and account.move are not realized "
+    "by this import; refusing before any write"
+)
 XMLID_MODULE = "plasticos_transaction"
 
 # The import names the disposable database it may write. The check refuses
@@ -70,7 +72,7 @@ def _full_run() -> bool:
 
 def required_modules() -> tuple[str, ...]:
     """Import modules the database check requires for the run this environment selects."""
-    return REQUIRED_MODULES + (FULL_RUN_MODULES if _full_run() else ())
+    return REQUIRED_MODULES
 
 
 def _addon_root() -> Path:
@@ -179,24 +181,13 @@ def _imported_companies(env):
 
 
 def check_full_run_extension(env, failures: list[str], installed: set[str] | None = None) -> None:
-    """Read-only admission for a full run: the transaction extension must be installed and registered.
+    """Refuse a full run. This import does not realize commercial documents yet.
 
-    ``installed`` is a preloaded set of installed module names so the database
-    check can reuse the query it already ran. When it is omitted, this check
-    reads ``ir.module.module`` itself. It does not write, commit, or change ``env``.
+    ``installed`` is accepted so existing callers can pass the module set they
+    already loaded. The refusal does not depend on it, and it does not write.
     """
-    if installed is None:
-        installed = set(
-            env["ir.module.module"]
-            .search([("name", "in", list(FULL_RUN_MODULES)), ("state", "=", "installed")])
-            .mapped("name")
-        )
-    missing = [module for module in FULL_RUN_MODULES if module not in installed]
-    if missing:
-        _fail(failures, f"import modules not installed: {', '.join(missing)}")
-        return
-    if "plasticos.transaction" not in env:
-        _fail(failures, "full import: plasticos.transaction is not in the registry; deals cannot be realized")
+    del env, installed
+    _fail(failures, FULL_IMPORT_REFUSAL)
 
 
 def check_database(env, failures: list[str]) -> None:
@@ -223,13 +214,10 @@ def check_database(env, failures: list[str]) -> None:
     missing = [module for module in USA_MODULES if module not in installed]
     if missing:
         _fail(failures, f"USA modules not installed: {', '.join(missing)}")
-    # The transaction extension reports its own missing-module line. Keeping it
-    # out of this list avoids a second "import modules not installed" entry.
-    extension = FULL_RUN_MODULES if _full_run() else ()
-    missing = [module for module in required if module not in extension and module not in installed]
+    missing = [module for module in required if module not in installed]
     if missing:
         _fail(failures, f"import modules not installed: {', '.join(missing)}")
-    if extension:
+    if _full_run():
         check_full_run_extension(env, failures, installed=installed)
     form = env.ref("base.view_partner_form", raise_if_not_found=False)
     if not form:

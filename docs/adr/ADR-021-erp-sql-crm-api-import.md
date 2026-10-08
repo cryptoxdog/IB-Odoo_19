@@ -21,7 +21,7 @@ The architecture must preserve deterministic source identity while preventing th
 5. **One import pipeline.** Direct SQL must feed the existing deterministic `reader → SourceIndex → mapping/reconstruction → ORM upsert` path. No parallel direct-SQL importer is permitted.
 6. **Native Odoo semantics first.** A legacy field does not justify a new Odoo field. Map into native Odoo or an existing PlasticOS field when the business meaning already exists. A new field requires a proven representation gap and explicit operator approval.
 7. **Trade date is a PO approval date.** `GPLedger.TradeDt` means the date the purchase order was issued and the transaction approved under current PlasticOS rules. When the historical PO is realized, its native target is `purchase.order.date_approve` (`Confirmation Date`). `purchase.order.date_order` remains the RFQ/order-deadline date. No custom `plasticos.transaction.transaction_date` field is authorized.
-8. **Full import fails closed.** A full ERP import must not report success if the transaction realization extension is unavailable or if source-row accounting does not reconcile.
+8. **Full import fails closed.** A full ERP import must not report success by writing `plasticos.transaction` or `plasticos.transaction.line`. Commercial documents are `sale.order`, `purchase.order`, and `account.move`, and this import does not realize them yet. A full run is refused before any write. Partner imports still fail closed when source-row accounting does not reconcile.
 
 ## Direct database projections
 

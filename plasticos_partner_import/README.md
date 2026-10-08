@@ -23,11 +23,9 @@ erp.reader
 erp.source_index
         ↓
 partner realization in plasticos.erp.import
-        ↓
-transaction extension in plasticos_transaction (full runs)
 ```
 
-`models/erp_import_service.py` owns counterparties, addresses/locations, contacts, roles, and salespersons. It deliberately exposes `_extend_historical_import()` so `plasticos_transaction` can realize historical transactions without creating a second source reader or mapping stack.
+`models/erp_import_service.py` owns counterparties, addresses/locations, contacts, roles, and salespersons. `_extend_historical_import()` does not write `plasticos.transaction` or `plasticos.transaction.line`. A full run is refused before any write.
 
 Stable ERP source keys are written through `ir.model.data` identity markers. Names, email addresses, phone numbers, address text, and Odoo database IDs are never identity.
 

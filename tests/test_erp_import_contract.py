@@ -125,47 +125,14 @@ def test_identity_is_never_a_name_email_or_database_id(service_source):
 # ---------------------------------------------------------------------------
 # Atomicity (gap G09)
 # ---------------------------------------------------------------------------
-def test_each_buysellno_is_wrapped_in_a_savepoint(deal_tree):
-    loop = _function(deal_tree, "_import_transactions")
-    savepoints = [
-        node
-        for node in ast.walk(loop)
-        if isinstance(node, ast.With)
-        and any(
-            isinstance(item.context_expr, ast.Call)
-            and isinstance(item.context_expr.func, ast.Attribute)
-            and item.context_expr.func.attr == "savepoint"
-            for item in node.items
-        )
-    ]
-    assert len(savepoints) == 1, "one savepoint per BuySellNo logical unit"
-
-    # The whole unit — header, lines, identity markers — lives inside it.
-    called = {
-        node.func.attr
-        for node in ast.walk(savepoints[0])
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
-    }
-    assert "_import_one_transaction" in called
-
-
-def test_commit_never_happens_inside_a_transaction_unit(deal_tree):
-    loop = _function(deal_tree, "_import_transactions")
-    commits = [
-        node
-        for node in ast.walk(loop)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "commit"
-    ]
-    assert len(commits) == 1, "exactly one commit site, between complete transactions"
-
-    inside_savepoint = [
-        node
-        for with_node in ast.walk(loop)
-        if isinstance(with_node, ast.With)
-        for node in ast.walk(with_node)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "commit"
-    ]
-    assert not inside_savepoint, "a commit inside the savepoint would break atomicity"
+def test_deal_extension_does_not_write_the_transaction_object(deal_source):
+    assert "_import_transactions" not in deal_source
+    assert "_import_one_transaction" not in deal_source
+    assert "legacy_erp_transaction_" not in deal_source
+    assert "legacy_erp_detail_" not in deal_source
+    extend = _function(ast.parse(deal_source), "_extend_historical_import")
+    returns = [node for node in ast.walk(extend) if isinstance(node, ast.Return)]
+    assert returns and isinstance(returns[-1].value, ast.Constant) and returns[-1].value.value is False
 
 
 def test_identity_marker_is_created_with_the_record_not_before(service_tree):
@@ -196,15 +163,6 @@ def test_identity_marker_is_created_with_the_record_not_before(service_tree):
     ]
     assert len(marker_creates) == 1
     assert "ir.model.data" in ast.dump(marker_creates[0].func.value)
-
-
-def test_failed_transaction_is_recorded_and_the_run_continues(deal_tree):
-    loop = _function(deal_tree, "_import_transactions")
-    handlers = [node for node in ast.walk(loop) if isinstance(node, ast.ExceptHandler)]
-    assert handlers, "a failing BuySellNo must be recorded, not abort the run"
-    handler_body = ast.dump(handlers[0])
-    assert "error" in handler_body
-    assert "Continue" in handler_body or "continue" in handler_body.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -430,7 +388,7 @@ def test_deal_realization_extends_the_partner_importer(deal_source, deal_tree):
         for node in ast.walk(extend)
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
     }
-    assert "_import_transactions" in called
-    assert "reconstruct_all_headers" in ast.dump(extend)
+    assert "_import_transactions" not in called
+    assert "reconstruct_all_headers" not in ast.dump(extend)
     assert "import csv" not in deal_source
     assert "run_csv_import" not in deal_source

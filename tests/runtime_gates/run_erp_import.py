@@ -1,5 +1,5 @@
 """Runtime gate — ERP import: reconciliation, repeat-run, changed-record,
-savepoint recovery — on a REAL Odoo runtime.
+and no transaction-object deal write — on a REAL Odoo runtime.
 
 Not a pytest module and deliberately not collected: it needs a live Odoo 19
 registry, a live PostgreSQL server, and a template database with
@@ -16,18 +16,16 @@ successful G5/G6 result. This is the live-DB proof the import milestone
 requires; the collected pure-python tier cannot see any of it by construction.
 
 Gates:
-    G1 first import reconciles        full import; summary counters close;
+    G1 first import reconciles        partner import; summary counters close;
                                       markers and rows verified over a
                                       psycopg2 connection Odoo does not own.
     G2 repeat run is idempotent       second import on the same input creates
                                       nothing and reports everything unchanged.
     G3 changed source updates         one mutated payload row updates exactly
                                       that record; no duplicate appears.
-    G4 savepoint recovery             on a fresh database, a fault injected
-                                      after one BuySellNo's writes rolls back
-                                      that unit only (no transaction or line
-                                      marker left); the rest persists; a
-                                      re-run recovers the failed unit.
+    G4 no transaction object         a full import writes no worksheet
+                                      transaction marker and no detail-line
+                                      marker.
 
 G1–G4 read the frozen grid fixture. They do not prove the direct SQL Server
 source seam. G5–G6 do, on a freshly re-created scratch database, and run only
@@ -40,10 +38,9 @@ ERP database; the source is read with SELECT projection scripts only::
 
     G5 direct-SQL import reconciles  the restored SQL Server is the selected
                                       source; all 11 projection scripts are
-                                      read through the shared reader; the full
-                                      run realizes transactions; the summary
-                                      closes; sampled supplier, buyer, state and
-                                      line values match the source rows.
+                                      read through the shared reader; the
+                                      partner summary closes; a full import
+                                      writes no transaction or line marker.
     G6 direct-SQL replay is idempotent identical second direct-SQL run: zero
                                       created, zero updated, identity markers
                                       unchanged, no duplicate source identity.
@@ -150,12 +147,19 @@ def release_scratch_db() -> None:
     odoo.sql_db.close_db(SCRATCH_DB)
 
 
-def import_once(payload_root: str | None = None, database=None) -> dict:
+def import_once(payload_root: str | None = None, database=None, partners_only: bool = True) -> dict:
     from odoo.addons.plasticos_partner_import.scripts.run_erp_import import run
 
     with odoo_env() as cr:
         env = Environment(cr, odoo.SUPERUSER_ID, {})
-        return run(env, payload_root=payload_root, commit=True, verbose=False, database=database)
+        return run(
+            env,
+            payload_root=payload_root,
+            commit=True,
+            verbose=False,
+            database=database,
+            partners_only=partners_only,
+        )
 
 
 def marker_count(dbname: str, name_pattern: str) -> int:
@@ -280,55 +284,23 @@ def _deal_rows(buysell_no: str, detail_ids: list[str]) -> tuple[int, int]:
     return transactions, lines
 
 
-def gate_g4_savepoint_recovery() -> bool:
-    # A fresh database: after G1-G3 every unit already exists, so a rolled-back
-    # unit could never be told apart from the one G1 stored.
+def gate_g4_full_import_writes_no_transaction_object() -> bool:
+    """A full import must not create one transaction per worksheet or one line per detail."""
     release_scratch_db()
     if not create_scratch_db():
         print("G4 could not re-create the scratch database")
         return False
     target, detail_ids = _fixture_deal()
-
-    # Fail the target unit AFTER its header and lines are written, inside its
-    # savepoint. No payload edit can guarantee a database error, so the failure
-    # is injected into the deal service of this process's registry.
-    service = odoo.modules.registry.Registry(SCRATCH_DB)["plasticos.erp.import"]
-    original = service._import_one_transaction
-    own = "_import_one_transaction" in vars(service)
-
-    def failing(self, index, header, report, partner_by_cp):
-        original(self, index, header, report, partner_by_cp)
-        if header.buysell_no == target:
-            raise RuntimeError(f"G4 injected failure after writing {target}")
-
-    service._import_one_transaction = failing
-    try:
-        result = import_once()
-    finally:
-        if own:
-            service._import_one_transaction = original
-        else:
-            del service._import_one_transaction
-
-    failed = {str(row.get("buysell_no")) for row in result["errors"]}
-    if failed != {target}:
-        print(f"G4 failed units {sorted(failed)[:5]}, expected only {target}")
-        return False
+    import_once(partners_only=False)
     leftover = _deal_rows(target, detail_ids)
     if leftover != (0, 0):
-        print(f"G4 failed unit {target} left markers behind (transaction, lines) = {leftover}")
+        print(f"G4 full import wrote transaction markers {leftover} for {target} / {detail_ids}")
         return False
-    if result["counts"]["transactions"]["created"] == 0:
-        print("G4 no unit persisted around the failed one")
+    census = _deal_marker_census()
+    if any(census.values()):
+        print(f"G4 deal markers present: {census}")
         return False
-
-    # Re-run without the fault recovers exactly the failed unit.
-    result = import_once()
-    recovered = _deal_rows(target, detail_ids)
-    if recovered != (1, len(detail_ids)) or result["counts"]["transactions"]["created"] != 1:
-        print(f"G4 recovery: markers {recovered}, transactions created {result['counts']['transactions']['created']}")
-        return False
-    print(f"G4 savepoint recovery verified ({target}: rolled back with {len(detail_ids)} lines, then recovered)")
+    print("G4 full import wrote no transaction or line markers")
     return True
 
 
@@ -336,8 +308,6 @@ def gate_g4_savepoint_recovery() -> bool:
 # G5–G6: the direct SQL Server source seam
 # ---------------------------------------------------------------------------
 REQUIRE_DIRECT_SQL_ENV = "ERP_GATE_REQUIRE_DIRECT_SQL"
-# BuySellNos sampled for supplier / buyer / state / line agreement, spread over the key order.
-DIRECT_SQL_SAMPLES = 5
 DEAL_MARKERS = ("legacy_erp_transaction_%", "legacy_erp_detail_%")
 _DIRECT = {"markers": None}
 
@@ -367,113 +337,8 @@ def _counters(summary: dict) -> str:
     )
 
 
-def _imported_counterparties() -> dict[str, int]:
-    """CpID -> res.partner id for every imported counterparty marker, in one read."""
-    rows = query(
-        SCRATCH_DB,
-        "select name, res_id from ir_model_data where module = 'plasticos_transaction' "
-        "and model = 'res.partner' and name like %s",
-        ("legacy_erp_cp_%",),
-    )
-    return {name.removeprefix("legacy_erp_cp_"): int(res_id) for name, res_id in rows}
-
-
 def _deal_marker_census() -> dict[str, int]:
     return {pattern: marker_count(SCRATCH_DB, pattern) for pattern in DEAL_MARKERS}
-
-
-def _duplicate_deal_identities() -> list:
-    """Two deal markers on one record, or two records under one BuySellNo name."""
-    shared = query(
-        SCRATCH_DB,
-        "select model, res_id, count(*) from ir_model_data where module = 'plasticos_transaction' "
-        "and (name like %s or name like %s) group by model, res_id having count(*) > 1",
-        DEAL_MARKERS,
-    )
-    named = query(
-        SCRATCH_DB,
-        "select t.name, count(*) from plasticos_transaction t join ir_model_data d on d.res_id = t.id "
-        "and d.model = 'plasticos.transaction' and d.module = 'plasticos_transaction' "
-        "where d.name like %s group by t.name having count(*) > 1",
-        (DEAL_MARKERS[0],),
-    )
-    return shared + named
-
-
-def _sample(values: list) -> list:
-    if len(values) <= DIRECT_SQL_SAMPLES:
-        return values
-    step = (len(values) - 1) / (DIRECT_SQL_SAMPLES - 1)
-    return [values[round(i * step)] for i in range(DIRECT_SQL_SAMPLES)]
-
-
-def _check_sampled_deals(payload) -> list[str]:
-    """Supplier, buyer, state and every line of sampled deals agree with the source rows."""
-    from odoo.addons.plasticos_partner_import.erp import header_forensics, mapping, source_index
-
-    index = source_index.build_source_index(payload)
-    headers = header_forensics.reconstruct_all_headers(index)
-    partners = _imported_counterparties()
-    complete = [
-        header for header in headers.values() if header.supplier_cp_id in partners and header.buyer_cp_id in partners
-    ]
-    if not complete:
-        return ["no source deal has both parties imported; nothing to sample"]
-    problems = []
-    for header in _sample(complete):
-        ref = header.buysell_no
-        rows = query(
-            SCRATCH_DB,
-            "select t.id, t.supplier_id, t.buyer_id, t.state from plasticos_transaction t "
-            "join ir_model_data d on d.res_id = t.id and d.model = 'plasticos.transaction' "
-            "where d.module = 'plasticos_transaction' and d.name = %s",
-            (f"legacy_erp_transaction_{ref}",),
-        )
-        if len(rows) != 1:
-            problems.append(f"{ref}: {len(rows)} transactions behind its marker")
-            continue
-        transaction_id, supplier_id, buyer_id, state = rows[0]
-        supplier = partners[header.supplier_cp_id]
-        buyer = partners[header.buyer_cp_id]
-        if supplier_id != supplier:
-            problems.append(f"{ref}: supplier {supplier_id}, source CpID {header.supplier_cp_id} is partner {supplier}")
-        if buyer_id != buyer:
-            problems.append(f"{ref}: buyer {buyer_id}, source CpID {header.buyer_cp_id} is partner {buyer}")
-        if state != header.state:
-            problems.append(f"{ref}: state {state!r}, source evidence says {header.state!r}")
-        stored = query(
-            SCRATCH_DB,
-            "select count(*) from plasticos_transaction_line where transaction_id = %s",
-            (transaction_id,),
-        )
-        if int(stored[0][0]) != len(header.detail_ids):
-            problems.append(f"{ref}: {stored[0][0]} lines, source has {len(header.detail_ids)}")
-        for detail_id in header.detail_ids:
-            source = index.lines[detail_id]
-            line = query(
-                SCRATCH_DB,
-                "select l.transaction_id, l.units, coalesce(l.lot_no, '') from plasticos_transaction_line l "
-                "join ir_model_data d on d.res_id = l.id and d.model = 'plasticos.transaction.line' "
-                "where d.module = 'plasticos_transaction' and d.name = %s",
-                (f"legacy_erp_detail_{detail_id}",),
-            )
-            if len(line) != 1:
-                problems.append(f"{ref}/{detail_id}: {len(line)} lines behind its marker")
-                continue
-            line_transaction, units, lot_no = line[0]
-            # plasticos.transaction.line.units is digits=(16, 2): Odoo stores it rounded.
-            expected_units = round(mapping.parse_decimal(source.get("Units")) or 1.0, 2)
-            if line_transaction != transaction_id:
-                problems.append(f"{ref}/{detail_id}: line belongs to transaction {line_transaction}")
-            if abs(float(units) - expected_units) > 1e-6:
-                problems.append(f"{ref}/{detail_id}: units {units}, source {expected_units}")
-            if lot_no != (source.get("LotNo") or "").strip():
-                problems.append(f"{ref}/{detail_id}: lot {lot_no!r}, source {source.get('LotNo')!r}")
-        print(
-            f"G5 sample {ref}: supplier CpID {header.supplier_cp_id}->{supplier_id} "
-            f"buyer CpID {header.buyer_cp_id}->{buyer_id} state={state} lines={len(header.detail_ids)}"
-        )
-    return problems
 
 
 def gate_g5_direct_sql_import_reconciles(source) -> bool:
@@ -486,35 +351,28 @@ def gate_g5_direct_sql_import_reconciles(source) -> bool:
         )
         return False
 
-    result = import_once(database=source)
+    result = import_once(database=source, partners_only=True)
     summary = result["summary"]
-    counts = result["counts"]
-    print(f"G5 first direct-SQL run ({source.label}): {_counters(summary)}")
+    print(f"G5 first direct-SQL partner run ({source.label}): {_counters(summary)}")
     if result["payload_kind"] != reader.PayloadKind.DATABASE.value:
         print(f"G5 source is {result['payload_kind']!r}, not the restored database")
         return False
     if not _closes(summary) or summary["duplicates"] != 0 or summary["final_status"] == "failed":
         print(f"G5 summary does not close: {summary['errors'][:5]}")
         return False
-    realized = counts["transactions"]["created"] + counts["transactions"]["updated"]
-    if not realized or not counts["transaction_lines"]["created"]:
-        print(f"G5 the full run did not realize transactions: {counts['transactions']} {counts['transaction_lines']}")
-        return False
 
-    # Source evidence: an independent read of the same restored database through the same reader.
     payload = reader.load_payload(None, database=source)
     if set(payload.tables) != set(reader.REQUIRED_TABLES):
         print(f"G5 direct read returned {sorted(payload.tables)}")
         return False
     print(f"G5 projection row counts: {payload.row_counts()}")
-    problems = _check_sampled_deals(payload)
-    problems += [f"duplicate identity {row}" for row in _duplicate_deal_identities()]
-    if problems:
-        for problem in problems[:20]:
-            print(f"G5 {problem}")
+    import_once(database=source, partners_only=False)
+    markers = _deal_marker_census()
+    if any(markers.values()):
+        print(f"G5 full import wrote transaction or line markers: {markers}")
         return False
-    _DIRECT["markers"] = _deal_marker_census()
-    print(f"G5 direct-SQL import reconciled; deal markers {_DIRECT['markers']}")
+    _DIRECT["markers"] = markers
+    print(f"G5 direct-SQL partner import reconciled; deal markers {markers}")
     return True
 
 
@@ -522,7 +380,7 @@ def gate_g6_direct_sql_replay_is_idempotent(source) -> bool:
     if _DIRECT["markers"] is None:
         print("G6 not attempted: G5 did not pass")
         return False
-    summary = import_once(database=source)["summary"]
+    summary = import_once(database=source, partners_only=True)["summary"]
     print(f"G6 replay direct-SQL run ({source.label}): {_counters(summary)}")
     if not _closes(summary) or summary["final_status"] == "failed":
         print(f"G6 replay summary does not close: {summary['errors'][:5]}")
@@ -531,12 +389,8 @@ def gate_g6_direct_sql_replay_is_idempotent(source) -> bool:
         print("G6 replay created or updated records — duplicate creation or write churn")
         return False
     markers = _deal_marker_census()
-    if markers != _DIRECT["markers"]:
+    if markers != _DIRECT["markers"] or any(markers.values()):
         print(f"G6 deal markers moved: {_DIRECT['markers']} -> {markers}")
-        return False
-    duplicates = _duplicate_deal_identities()
-    if duplicates:
-        print(f"G6 duplicate source identities: {duplicates[:5]}")
         return False
     print(f"G6 replay: 0 created, 0 updated, {summary['records_unchanged']} unchanged")
     return True
@@ -573,7 +427,9 @@ def main() -> int:
         results["G1 first import reconciles"] = attempt("G1", gate_g1_first_import_reconciles)
         results["G2 repeat run is idempotent"] = attempt("G2", gate_g2_repeat_is_idempotent)
         results["G3 changed source updates deterministically"] = attempt("G3", gate_g3_changed_source_updates)
-        results["G4 savepoint recovery"] = attempt("G4", gate_g4_savepoint_recovery)
+        results["G4 full import writes no transaction object"] = attempt(
+            "G4", gate_g4_full_import_writes_no_transaction_object
+        )
         if source is not None:
             # The direct-SQL proof starts from the template again, never from fixture-loaded rows.
             release_scratch_db()

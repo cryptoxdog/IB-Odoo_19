@@ -52,8 +52,8 @@ All primary keys verified unique and non-blank across the whole payload.
 | `Address.AddressID` | 2950 | `res.partner` (child) | `legacy_erp_address_<AddressID>` |
 | `Contact.CT_ID` | 4058 | `res.partner` (person) | `legacy_erp_contact_<CT_ID>` |
 | `ContactRoleAssignment.CRA_ID` | 3091 | `res.partner.category` link | set-valued (see §5) |
-| `WKSDetail.BuySellNo` | 8257 | `plasticos.transaction` | `legacy_erp_transaction_<BuySellNo>` |
-| `WKSDetail.DetailID` | 11303 | `plasticos.transaction.line` | `legacy_erp_detail_<DetailID>` |
+| `WKSDetail.BuySellNo` | 8257 | not written; later `sale.order` and `purchase.order` | none |
+| `WKSDetail.DetailID` | 11303 | not written; later sale and purchase lines | none |
 
 `Address`'s declared database PK is the composite `(CpID, Type)`; `AddressID`
 was verified unique (2950/2950) and is used as the surrogate identity, which
@@ -300,7 +300,9 @@ idempotent, which is exactly the replay-safety `CRA_ID` requires.
 
 ---
 
-## 6. WKSDetail → `plasticos.transaction.line`
+## 6. WKSDetail — not written to `plasticos.transaction.line`
+
+This table is retired as an import target. The import does not create one `plasticos.transaction` per worksheet or one `plasticos.transaction.line` per detail.
 
 | Source column | Target | Disposition |
 |---|---|---|
@@ -387,11 +389,9 @@ purchase.order.date_approve
 No `plasticos.transaction.transaction_date` field is authorized. Do not copy
 `TradeDt` into pickup/delivery dates or another semantically unrelated field.
 
-The current transaction realization creates `plasticos.transaction` and
-`plasticos.transaction.line` records but does not yet realize the historical
-purchase order. Until that bounded PO-realization slice is implemented, the
-reconstructed `TradeDt` remains source evidence and is intentionally not
-persisted on `plasticos.transaction`.
+The import does not create `plasticos.transaction` or `plasticos.transaction.line`
+records. Until the historical purchase order is realized, the reconstructed
+`TradeDt` remains source evidence. It is not written onto a transaction field.
 
 ---
 

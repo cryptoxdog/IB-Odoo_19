@@ -352,21 +352,15 @@ def _database_failures(monkeypatch, env, **settings):
 PARTNER_RUNTIME = (*_real_validator().USA_MODULES, "plasticos_partner_import")
 
 
-def test_full_import_requires_transaction_realization(monkeypatch):
+def test_full_import_is_refused_until_native_documents_exist(monkeypatch):
     failures = _database_failures(monkeypatch, _DatabaseEnv(PARTNER_RUNTIME, models=()))
-    assert failures == ["import modules not installed: plasticos_transaction"]
+    assert failures == [_real_validator().FULL_IMPORT_REFUSAL]
 
 
-def test_full_import_requires_the_transaction_model_in_the_registry(monkeypatch):
-    env = _DatabaseEnv((*PARTNER_RUNTIME, "plasticos_transaction"), models=())
-    failures = _database_failures(monkeypatch, env)
-    assert failures == ["full import: plasticos.transaction is not in the registry; deals cannot be realized"]
-
-
-def test_full_import_passes_the_database_check_when_transactions_are_realizable(monkeypatch):
+def test_full_import_stays_refused_when_the_transaction_model_is_installed(monkeypatch):
     env = _DatabaseEnv((*PARTNER_RUNTIME, "plasticos_transaction"))
-    assert _database_failures(monkeypatch, env) == []
-    assert env.modules.searches == 1, "the extension check must reuse the database check's module query"
+    failures = _database_failures(monkeypatch, env)
+    assert failures == [_real_validator().FULL_IMPORT_REFUSAL]
 
 
 @pytest.mark.parametrize(
@@ -382,12 +376,12 @@ def test_concern1_runs_do_not_require_the_transaction_module(monkeypatch, settin
 def test_standalone_database_preflight_keeps_the_full_run_requirement(monkeypatch):
     """``ERP_LAYER=database`` selects the check itself; it is not a partner-only scope."""
     failures = _database_failures(monkeypatch, _DatabaseEnv(PARTNER_RUNTIME, models=()), LAYER="database")
-    assert failures == ["import modules not installed: plasticos_transaction"]
+    assert failures == [_real_validator().FULL_IMPORT_REFUSAL]
 
 
-def test_full_dry_run_without_the_transaction_module_exits_before_import(monkeypatch, capsys):
-    """A full preview must not report success, or call the importer, when deals cannot be realized."""
-    env = _DatabaseEnv(PARTNER_RUNTIME, models=())
+def test_full_dry_run_is_refused_before_import(monkeypatch, capsys):
+    """A full preview must not report success or call the importer."""
+    env = _DatabaseEnv((*PARTNER_RUNTIME, "plasticos_transaction"))
     harness = _Harness(monkeypatch, odoo_env=env)
     monkeypatch.setenv("ERP_DRY", "1")
 
@@ -397,38 +391,7 @@ def test_full_dry_run_without_the_transaction_module_exits_before_import(monkeyp
     assert harness.source_lookups == []
     assert harness.env.cr.commits == 0
     assert harness.env.cr.queries == []
-    assert "import modules not installed: plasticos_transaction" in capsys.readouterr().out
-
-
-def test_full_dry_run_without_the_transaction_model_exits_before_import(monkeypatch, capsys):
-    env = _DatabaseEnv((*PARTNER_RUNTIME, "plasticos_transaction"), models=())
-    harness = _Harness(monkeypatch, odoo_env=env)
-    monkeypatch.setenv("ERP_DRY", "1")
-
-    assert harness.main() == 1
-    assert harness.runs == []
-    assert harness.validated == []
-    assert harness.source_lookups == []
-    assert harness.env.cr.commits == 0
-    assert env.modules.searches == 1
-    assert "plasticos.transaction is not in the registry" in capsys.readouterr().out
-
-
-def test_full_dry_run_with_the_extension_reaches_the_importer_without_the_database_check(monkeypatch):
-    sentinel = types.SimpleNamespace(label="erp-host/ERP_RESTORED")
-    env = _DatabaseEnv((*PARTNER_RUNTIME, "plasticos_transaction"))
-    harness = _Harness(monkeypatch, database=sentinel, odoo_env=env)
-    monkeypatch.setenv("ERP_DRY", "1")
-
-    assert harness.main() == 0
-    assert harness.validated == [], "a dry preview must not demand the write-target database check"
-    assert harness.runs[0]["dry_run"] is True
-    assert harness.runs[0]["after_stage"] is None
-    assert harness.runs[0]["partners_only"] is False
-    assert harness.runs[0]["layer"] is None
-    assert harness.runs[0]["database"] is sentinel
-    assert harness.env.cr.commits == 0
-    assert env.modules.searches == 1
+    assert _real_validator().FULL_IMPORT_REFUSAL in capsys.readouterr().out
 
 
 @pytest.mark.parametrize(
@@ -468,7 +431,7 @@ def test_full_import_without_transactions_is_refused_before_the_importer_runs(mo
 
     assert harness.main() == 1
     assert harness.validated == ["database"]
-    assert harness.runs == [], "a full import must not reach the importer without transaction realization"
+    assert harness.runs == [], "a full import must not reach the importer"
     assert harness.env.cr.commits == 0
 
 
@@ -483,9 +446,10 @@ def test_full_import_with_a_failed_summary_exits_nonzero(monkeypatch):
         return {"summary": {"final_status": "failed"}}
 
     runner.run = run
+    monkeypatch.setenv("ERP_PARTNERS_ONLY", "1")
 
     assert harness.main() == 1
-    assert harness.runs[0]["partners_only"] is False
+    assert harness.runs[0]["partners_only"] is True
 
 
 def test_unknown_layer_is_rejected_before_any_import(monkeypatch):

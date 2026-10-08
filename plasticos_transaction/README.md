@@ -15,18 +15,7 @@ Those relations are the preferred ownership path for native Odoo business semant
 
 ## Historical ERP import
 
-The current historical import path is **not** the CSV transaction wizard.
-
-A full `make import-erp` run reads the restored ERP source through `plasticos_partner_import`, constructs one shared `SourceIndex`, reconstructs transaction headers, then reaches `plasticos_transaction/models/legacy_erp_import_service.py` through the `_extend_historical_import()` extension point.
-
-That extension currently owns:
-
-- one `plasticos.transaction` identity per `BuySellNo`;
-- one `plasticos.transaction.line` identity per `DetailID`;
-- supplier/buyer linkage resolved from the source index;
-- deterministic upsert behavior;
-- one savepoint per `BuySellNo` so a failed deal leaves no partial header, line set, or identity marker;
-- commits only between complete transaction units.
+The historical ERP import does not create `plasticos.transaction` or `plasticos.transaction.line` records. Commercial documents are `sale.order`, `purchase.order`, and `account.move`. A full `make import-erp` run is refused before any write.
 
 The old `transaction_import_service.py`, `run_transaction_import.py`, and transaction CSV wizard remain legacy code. They are not the production historical import path and must not be extended.
 
@@ -45,15 +34,6 @@ Odoo 19 already owns that concept on `purchase.order.date_approve` (`Confirmatio
 
 Until historical PO realization is implemented, the reconstructed `TradeDt` remains source evidence and is not persisted on `plasticos.transaction`.
 
-## Transaction identity and lines
-
-Historical transaction identity is source-native:
-
-- `BuySellNo` → `plasticos_transaction.legacy_erp_transaction_<BuySellNo>`
-- `DetailID` → `plasticos_transaction.legacy_erp_detail_<DetailID>`
-
-Replay must update or report unchanged records through those identities. It must not create duplicate transactions because names happen to match or differ.
-
 ## Native document integration
 
 `plasticos.transaction` already links to Odoo purchase orders through `purchase_order_ids`. `purchase_inherit.py` links confirmed/approved POs into the transaction spine and locates the transaction from either the SO origin or the existing M2M relation.
@@ -62,7 +42,7 @@ This existing relation is why historical PO semantics should be realized on nati
 
 ## Current production-readiness proof
 
-Static and pure-Python tests cover source mapping, deterministic identities, savepoint construction, and replay contracts. The real-runtime ERP gate proves Odoo/PostgreSQL first import, replay, changed-record handling, and savepoint recovery using the frozen fixture source.
+Static and pure-Python tests cover source mapping, deterministic partner identities, and replay contracts. The real-runtime ERP gate proves the partner import, replay, changed-record handling, and that a full import writes no transaction or line marker.
 
 Direct-SQL readiness additionally requires the restored SQL Server source to feed the same pipeline on a disposable Odoo database, followed by an identical replay with zero creates, zero update churn, and no duplicate identities.
 
