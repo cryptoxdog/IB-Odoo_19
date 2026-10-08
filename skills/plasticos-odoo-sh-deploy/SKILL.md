@@ -8,22 +8,22 @@ tags: [plasticos, odoo, odoo-sh, deploy, production, ssh]
 owner: igor_beylin
 status: active
 disable-model-invocation: false
-version: 1.2.0
-updated: 2026-08-07
+version: 1.2.1
+updated: 2026-10-07
 ---
 
 # Odoo.sh Deploy & Debug
 
 ## Purpose
 
-Diagnose PlasticOS Odoo.sh production/staging failures from server logs, then deploy fixes via git push — never edit files on the server.
+Diagnose PlasticOS Odoo.sh production/staging failures from server logs, then publish the repair through `make pr`. Never edit files on the server.
 
 ## Core Contract
 
 | Phase | Rule |
 |-------|------|
 | Diagnose | SSH logs first; user-reported symptom is not root cause |
-| Fix | Local commit + manifest version bump; push via approved workflow |
+| Fix | Local commit + manifest version bump; publish through `make pr` |
 | Verify | Confirm commits on server + `Registry loaded` in update.log |
 | Server FS | Read-only — all code changes via GitHub → Odoo.sh pull |
 
@@ -32,8 +32,8 @@ Diagnose PlasticOS Odoo.sh production/staging failures from server logs, then de
 1. Explicit user request and deploy target (Staging vs Production).
 2. Server log evidence (`update.log`, `odoo.log`) over user error summary.
 3. `.env.local` SSH values; branch model `Staging` / `Production` (capitalized).
-4. `AGENTS.md` — push via `make push`; Odoo runtime tests local only.
-5. `.cursor/rules/70-github-api-commit.mdc` — never raw push without pr-check.
+4. Publication SSOT — `make pr` only. It publishes a feature branch into `Staging` and refuses every other base, including `Production`.
+5. Odoo runtime tests stay local. `make pr` does not promote `Staging` to `Production`.
 6. This skill's references.
 7. `Unknown` — stop if SSH access or deployed commit cannot be verified.
 
@@ -64,7 +64,7 @@ ssh "$ODOO_SH_PRODUCTION_SSH"
 ## Resource Map
 
 - [references/ssh-diagnose.md](references/ssh-diagnose.md) — SSH hosts, log files, diagnose commands, common issues.
-- [references/deploy-verify.md](references/deploy-verify.md) — push workflow, manual module upgrade, success indicators.
+- [references/deploy-verify.md](references/deploy-verify.md) — `make pr` publication, manual module upgrade, success indicators.
 
 ## Validation
 
@@ -74,12 +74,12 @@ Before declaring deploy success:
 - `update.log` ends with `Registry loaded` and no ERROR tracebacks.
 - Specific fix grep confirms change is live on server.
 
-Local fix MUST pass `make pr-check` before push (PlasticOS policy).
+Local fix MUST pass `make pr-check` before `make pr` (PlasticOS policy).
 
 ## Failure Handling
 
 - No SSH access → STOP; request credentials or `.env.local` values.
-- "Read-only file system" on server → expected; fix locally and push.
+- "Read-only file system" on server → expected; fix locally and publish through `make pr`.
 - Registry failure → root cause is in `update.log` traceback, not browser RPC message.
-- Production push without explicit user approval → STOP.
+- Production promotion is not `make pr`. That command publishes feature branches into `Staging` only.
 - Version not triggering update → follow **`plasticos-odoo-version-bump`** (bump without asking; `make update m=<module>` only).
