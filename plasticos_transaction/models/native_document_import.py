@@ -234,12 +234,13 @@ def _upsert_order(importer, context, partner_by_cp, header, buysell, number, mod
     return importer._upsert(model, xml_id, values, _silent(), None)
 
 
-def _silent():
-    class _Report:
-        def bump(self, *_args, **_kwargs):
-            return None
+class _SilentReport:
+    def bump(self, *_args, **_kwargs):
+        return None
 
-    return _Report()
+
+def _silent():
+    return _SilentReport()
 
 
 def _upsert_sale_line(importer, context, order, detail_id, line, unit_price):
