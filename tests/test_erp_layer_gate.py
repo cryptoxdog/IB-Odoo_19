@@ -352,15 +352,14 @@ def _database_failures(monkeypatch, env, **settings):
 PARTNER_RUNTIME = (*_real_validator().USA_MODULES, "plasticos_partner_import")
 
 
-def test_full_import_is_refused_until_native_documents_exist(monkeypatch):
+def test_full_import_needs_the_native_document_modules(monkeypatch):
     failures = _database_failures(monkeypatch, _DatabaseEnv(PARTNER_RUNTIME, models=()))
-    assert failures == [_real_validator().FULL_IMPORT_REFUSAL]
+    assert failures == ["full import needs installed modules: sale, purchase, account"]
 
 
-def test_full_import_stays_refused_when_the_transaction_model_is_installed(monkeypatch):
-    env = _DatabaseEnv((*PARTNER_RUNTIME, "plasticos_transaction"))
-    failures = _database_failures(monkeypatch, env)
-    assert failures == [_real_validator().FULL_IMPORT_REFUSAL]
+def test_full_import_proceeds_when_native_document_modules_are_installed(monkeypatch):
+    env = _DatabaseEnv((*PARTNER_RUNTIME, "sale", "purchase", "account", "plasticos_transaction"))
+    assert _database_failures(monkeypatch, env) == []
 
 
 @pytest.mark.parametrize(
@@ -376,7 +375,7 @@ def test_concern1_runs_do_not_require_the_transaction_module(monkeypatch, settin
 def test_standalone_database_preflight_keeps_the_full_run_requirement(monkeypatch):
     """``ERP_LAYER=database`` selects the check itself; it is not a partner-only scope."""
     failures = _database_failures(monkeypatch, _DatabaseEnv(PARTNER_RUNTIME, models=()), LAYER="database")
-    assert failures == [_real_validator().FULL_IMPORT_REFUSAL]
+    assert failures == ["full import needs installed modules: sale, purchase, account"]
 
 
 def test_full_dry_run_is_refused_before_import(monkeypatch, capsys):
@@ -391,7 +390,7 @@ def test_full_dry_run_is_refused_before_import(monkeypatch, capsys):
     assert harness.source_lookups == []
     assert harness.env.cr.commits == 0
     assert harness.env.cr.queries == []
-    assert _real_validator().FULL_IMPORT_REFUSAL in capsys.readouterr().out
+    assert "full import needs installed modules: sale, purchase, account" in capsys.readouterr().out
 
 
 @pytest.mark.parametrize(

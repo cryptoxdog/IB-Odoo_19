@@ -1,6 +1,6 @@
 {
     "name": "Plasticos — Security Base",
-    "version": "19.0.1.2.15",
+    "version": "19.0.1.2.16",
     "category": "Plasticos/Security",
     "summary": "Core RBAC roles, record rules, and private-partner flag for the Plasticos platform.",
     "description": """

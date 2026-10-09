@@ -11,6 +11,16 @@ ACCOUNT_MOVE = "account.move"
 RES_PARTNER = "res.partner"
 PLASTICOS_MATERIAL_PROFILE = "plasticos.material.profile"
 PLASTICOS_TRANSACTION = "plasticos.transaction"
+_REFUND_TYPES = frozenset({"out_refund", "in_refund"})
+
+
+def _signed_move_total(moves) -> float:
+    """Invoice totals minus credit notes."""
+    total = 0.0
+    for move in moves:
+        sign = -1.0 if move.move_type in _REFUND_TYPES else 1.0
+        total += sign * (move.amount_total or 0.0)
+    return total
 
 
 class PlasticosTransaction(models.Model):
@@ -740,6 +750,7 @@ class PlasticosTransaction(models.Model):
         "vendor_bill_ids.amount_total",
         "freight_bill_ids",
         "freight_bill_ids.amount_total",
+        "freight_actual",
         "other_expenses",
         "freight_chargebacks",
         "lightweight_penalties",
@@ -747,9 +758,10 @@ class PlasticosTransaction(models.Model):
     def _compute_financials(self):
         """RevOps formula: gross_margin = revenue - costs + recoveries."""
         for rec in self:
-            revenue = rec.customer_invoice_id.amount_total if rec.customer_invoice_id else 0.0
-            purchase_cost = sum(rec.vendor_bill_ids.mapped("amount_total"))
-            freight_cost = sum(rec.freight_bill_ids.mapped("amount_total"))
+            revenue = _signed_move_total(rec.customer_invoice_id)
+            purchase_cost = _signed_move_total(rec.vendor_bill_ids)
+            billed_freight = sum(rec.freight_bill_ids.mapped("amount_total"))
+            freight_cost = billed_freight or (rec.freight_actual or 0.0)
             other = rec.other_expenses or 0.0
 
             # Recoveries reduce effective cost

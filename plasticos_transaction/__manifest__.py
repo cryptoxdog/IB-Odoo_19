@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Transaction Spine",
-    "version": "19.0.2.3.4",
+    "version": "19.0.2.3.11",
     "summary": "Core transaction lifecycle management with integrated commission engine",
     "author": "Igor Beylin",
     "license": "LGPL-3",
@@ -29,6 +29,7 @@
         "data/res.groups.csv",
         "data/audit_cron.xml",
         "views/transaction_views.xml",
+        "views/sale_quotation_scope.xml",
         "views/transaction_bulk_update_wizard_views.xml",
         "views/transaction_bulk_assign_wizard_views.xml",
         "views/transaction_import_wizard_views.xml",

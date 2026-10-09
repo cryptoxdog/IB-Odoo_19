@@ -27,10 +27,10 @@ salespersons. An ``after_stage`` hook runs after each stage and before anything
 commits, so a stage whose validator fails is rolled back by the caller and
 never persists.
 
-Deal rows are not written here. Commercial documents are ``sale.order``,
-``purchase.order``, and ``account.move``. A full run is refused before any
-write (``validate_partner_layer.FULL_IMPORT_REFUSAL``). Partner-only and
-single-layer runs remain the write path.
+Deal rows are not written here. A full run hands the indexed source to the
+historical-import extension, which realizes ``sale.order``, ``purchase.order``,
+and ``account.move``. Partner-only and single-layer runs stay on the partner
+stages.
 """
 
 from __future__ import annotations
@@ -130,8 +130,12 @@ class PlasticosErpImport(models.AbstractModel):
             raise ValueError(f"unknown partner layer {layer!r}")
         if layer:
             only = frozenset({LAYER_TABLE[layer]})
+        elif partners_only:
+            only = reader.PARTNER_SOURCE_TABLES
+        elif database is not None:
+            only = reader.REQUIRED_TABLES | reader.COMMERCIAL_SQL_TABLES
         else:
-            only = reader.PARTNER_SOURCE_TABLES if partners_only else None
+            only = None
         payload = reader.load_payload(payload_root, only=only, database=database)
         index = source_index.build_source_index(payload)
         _logger.info("ERP payload loaded (%s from %s): %s", payload.kind.value, payload.origin, payload.row_counts())

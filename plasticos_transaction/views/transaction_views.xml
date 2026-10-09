@@ -150,7 +150,7 @@
                     <group>
                         <group string="Costs">
                             <field name="purchase_cost_total"/>
-                            <field name="freight_cost_total"/>
+                            <field name="freight_actual" string="Freight Cost" readonly="state in ('closed', 'cancelled')"/>
                             <field name="other_expenses"/>
                             <field name="cost_total"/>
                         </group>

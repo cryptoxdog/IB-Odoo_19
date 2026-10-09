@@ -17,8 +17,8 @@ single file serves both the docker and the no-Docker harness paths:
   database check refuses any other database and any production database
 * ``ERP_PARTNERS_ONLY`` — ``1`` imports only CounterParty, Address, Contact,
   ContactRoleAssignment, and SalesReps (Concern 1). The six deal tables are
-  not opened. Without this flag, a full run is refused before any write:
-  this import does not realize sale orders, purchase orders, or invoices.
+  not opened. Without this flag, a full run writes sale orders, purchase
+  orders, and invoices from the direct SQL source.
 * ``ERP_LAYER`` — ``counterparties``, ``addresses``, ``contacts``, ``roles``,
   or ``salesreps``. Only that table is read, and only after the previous
   layer's validator passes.
@@ -30,12 +30,11 @@ single file serves both the docker and the no-Docker harness paths:
 Order of operations for an applied run: database check → (layer mode) the
 previous layer's check → import each stage → that stage's validator → commit.
 A validator that fails raises before the commit, the transaction is rolled
-back, and nothing of the run is persisted. A full dry run is refused before
-the importer runs, because commercial documents are not realized yet. It
-does not apply the write-target database check. Partner-only and
-single-layer dry runs do not persist. Exit code is otherwise nonzero when a
-validator fails or the summary reports ``failed``, so the Makefile target
-fails closed.
+back, and nothing of the run is persisted. A full dry run still checks that
+sale, purchase, and account are installed. It does not apply the write-target
+database check. Partner-only and single-layer dry runs do not persist. Exit
+code is otherwise nonzero when a validator fails or the summary reports
+``failed``, so the Makefile target fails closed.
 """
 
 import os

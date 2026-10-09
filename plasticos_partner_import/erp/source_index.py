@@ -38,6 +38,9 @@ PRIMARY_KEYS: dict[str, str] = {
     "Contact": "CT_ID",
     "ContactRoleAssignment": "CRA_ID",
     "WKSDetail": "DetailID",
+    "PO": "POID",
+    "PODetail": "PO_ID",
+    "BuySell": "BuySellNo",
 }
 
 
@@ -86,6 +89,13 @@ class SourceIndex:
     deliveries_by_buysell: dict[str, list[dict[str, str | None]]] = field(default_factory=dict)
     receipt_batches: dict[str, dict[str, str | None]] = field(default_factory=dict)
     delivery_item_ids: set[str] = field(default_factory=set)
+
+    # Commercial graph. Present on a direct SQL read. Absent on the frozen grid.
+    orders: dict[str, dict[str, str | None]] = field(default_factory=dict)
+    order_lines: dict[str, dict[str, str | None]] = field(default_factory=dict)
+    buysells: dict[str, dict[str, str | None]] = field(default_factory=dict)
+    orders_by_source_number: dict[tuple[str, str], list[str]] = field(default_factory=dict)
+    prepay_batches: set[str] = field(default_factory=set)
 
     violations: list[IdentityViolation] = field(default_factory=list)
 
@@ -155,6 +165,15 @@ def build_source_index(payload: SourcePayload) -> SourceIndex:
     if "WKSDetail" in payload.tables:
         index.lines = _index_by_pk(payload, "WKSDetail")
         _link_lines(index)
+    if "PO" in payload.tables:
+        index.orders = _index_by_pk(payload, "PO")
+        _link_orders(index)
+    if "PODetail" in payload.tables:
+        index.order_lines = _index_by_pk(payload, "PODetail")
+    if "BuySell" in payload.tables:
+        index.buysells = _index_by_pk(payload, "BuySell")
+    if "PayablesBatch" in payload.tables:
+        _index_prepay_batches(payload, index)
     if payload.tables.keys() & {"GPLedger", "Payables", "Receipt", "ReceiptBatch", "WksDelivery"}:
         _index_supporting_tables(payload, index)
 
@@ -273,6 +292,26 @@ def _link_children(index: SourceIndex, *, counterparties_loaded: bool, contacts_
             continue
         roles[contact_id].append(role_id)
     index.roles_by_contact = dict(roles)
+
+
+def _link_orders(index: SourceIndex) -> None:
+    """Group headers by (Source, PONumber). More than one header is a conflict."""
+    grouped: dict[tuple[str, str], list[str]] = defaultdict(list)
+    for po_id in sorted(index.orders):
+        row = index.orders[po_id]
+        source = _key(row, "Source").upper()
+        number = _key(row, "PONumber")
+        if source and number:
+            grouped[(source, number)].append(po_id)
+    index.orders_by_source_number = dict(grouped)
+
+
+def _index_prepay_batches(payload: SourcePayload, index: SourceIndex) -> None:
+    for row in payload.rows("PayablesBatch"):
+        if _key(row, "PrePay") == "1":
+            batch = _key(row, "APBatchNo")
+            if batch:
+                index.prepay_batches.add(batch)
 
 
 def _link_lines(index: SourceIndex) -> None:

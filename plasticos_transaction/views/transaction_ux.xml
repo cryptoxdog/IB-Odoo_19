@@ -82,9 +82,13 @@
             </xpath>
 
             <!-- ═══ Add Supplier / Buyer / Carrier to Orders group ═══ -->
+            <xpath expr="//group[@name='orders']/field[@name='user_id']" position="before">
+                <field name="product_id" string="Material"/>
+            </xpath>
             <xpath expr="//group[@name='orders']/field[@name='purchase_order_ids']" position="after">
                 <field name="supplier_id"/>
                 <field name="buyer_id"/>
+                <field name="carrier_id"/>
             </xpath>
 
         </field>
@@ -106,6 +110,7 @@
             <xpath expr="//list/field[@name='name']" position="after">
                 <field name="supplier_id" optional="show"/>
                 <field name="buyer_id" optional="show"/>
+                <field name="product_id" string="Material" optional="show"/>
             </xpath>
 
             <!-- Revenue columns → optional hide (scoped to list view) -->
