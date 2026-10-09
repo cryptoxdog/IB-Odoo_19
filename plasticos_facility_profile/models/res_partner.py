@@ -291,7 +291,18 @@ class ResPartner(models.Model):
         "plasticos.partner.phone",
         "partner_id",
         string="Other Phones",
-        help="Mobile, other, and fax numbers. The business number stays in Phone.",
+        help="Extra numbers kept for import. Phone and Mobile are the fields on the form.",
+    )
+    mobile = fields.Char(
+        string="Mobile",
+        compute="_compute_mobile",
+        inverse="_inverse_mobile",
+        help="Mobile number. Stored with the partner's other phone lines.",
+    )
+    contact_header_name = fields.Char(
+        string="Contact",
+        compute="_compute_contact_header_name",
+        help="People at this company, or the people linked to this location.",
     )
     location_child_ids = fields.Many2many(
         "res.partner",
@@ -330,6 +341,43 @@ class ResPartner(models.Model):
                 company_role=partner.company_role,
                 source_label=partner.erp_address_label,
             )
+
+    @api.depends("phone_line_ids.label", "phone_line_ids.number")
+    def _compute_mobile(self):
+        for partner in self:
+            line = partner.phone_line_ids.filtered(lambda row: row.label == "mobile")[:1]
+            partner.mobile = line.number or False
+
+    def _inverse_mobile(self):
+        phone_model = self.env["plasticos.partner.phone"]
+        for partner in self:
+            number = (partner.mobile or "").strip()
+            lines = partner.phone_line_ids.filtered(lambda row: row.label == "mobile")
+            if not number:
+                lines.unlink()
+                continue
+            if lines:
+                lines[:1].number = number
+            else:
+                phone_model.create({"partner_id": partner.id, "label": "mobile", "number": number})
+
+    @api.depends(
+        "is_company",
+        "parent_id",
+        "child_ids.name",
+        "child_ids.is_company",
+        "site_person_ids.name",
+    )
+    def _compute_contact_header_name(self):
+        for partner in self:
+            if not partner.is_company:
+                partner.contact_header_name = False
+                continue
+            if partner.parent_id:
+                people = partner.site_person_ids
+            else:
+                people = partner.child_ids.filtered(lambda child: not child.is_company)
+            partner.contact_header_name = ", ".join(people.mapped("name"))
 
     @api.depends("child_ids", "child_ids.is_company")
     def _compute_location_child_ids(self):

@@ -8,7 +8,7 @@ class ResPartnerDeliveryTerm(models.Model):
 
     default_delivery_term = fields.Selection(
         [("fcfs", "FCFS"), ("appointment", "Appointment")],
-        string="Delivery Term",
+        string="Dock Rule",
         default="appointment",
-        help="Delivery term for transactions with this partner. Used when this partner is supplier or buyer.",
+        help="Dock rule for this company. Appointment or first come, first served. Same rule for pickup and delivery.",
     )
