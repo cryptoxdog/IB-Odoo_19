@@ -863,6 +863,36 @@
       "model": "plasticos.match.exclusion",
       "field": "user_id",
       "message": "Field 'user_id' not defined on model 'plasticos.match.exclusion'"
+    },
+    {
+      "fingerprint": "59fd729a38430472",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 247,
+      "model": "plasticos.transaction",
+      "field": "sequence",
+      "message": "Field 'sequence' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "606d35ca2d6d6e34",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 249,
+      "model": "plasticos.transaction",
+      "field": "view_id",
+      "message": "Field 'view_id' not defined on model 'plasticos.transaction'"
+    },
+    {
+      "fingerprint": "5f07854c6353929c",
+      "type": "FIELD_NOT_FOUND",
+      "severity": "CRITICAL",
+      "file": "plasticos_transaction/views/transaction_views.xml",
+      "line": 250,
+      "model": "plasticos.transaction",
+      "field": "act_window_id",
+      "message": "Field 'act_window_id' not defined on model 'plasticos.transaction'"
     }
   ]
 }
