@@ -73,6 +73,7 @@ GLOBAL_ALLOWLIST = frozenset(
         "closed",
         "paid",
         "posted",
+        "to approve",
         # Odoo move types (account.move)
         "entry",
         "out_invoice",
@@ -87,6 +88,10 @@ GLOBAL_ALLOWLIST = frozenset(
         "cash",
         "bank",
         "general",
+        # Odoo account.account types (core selections, not declared in this repo)
+        "asset_receivable",
+        "liability_payable",
+        "equity_unaffected",
         # Odoo partner types
         "contact",
         "invoice",

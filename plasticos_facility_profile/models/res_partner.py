@@ -359,7 +359,8 @@ class ResPartner(models.Model):
             if lines:
                 lines[:1].number = number
             else:
-                phone_model.create({"partner_id": partner.id, "label": "mobile", "number": number})
+                line = phone_model.create({"partner_id": partner.id, "label": "mobile"})
+                line.number = number
 
     @api.depends(
         "is_company",
@@ -377,7 +378,8 @@ class ResPartner(models.Model):
                 people = partner.site_person_ids
             else:
                 people = partner.child_ids.filtered(lambda child: not child.is_company)
-            partner.contact_header_name = ", ".join(people.mapped("name"))
+            names = ", ".join(people.mapped("name"))
+            partner.contact_header_name = names
 
     @api.depends("child_ids", "child_ids.is_company")
     def _compute_location_child_ids(self):

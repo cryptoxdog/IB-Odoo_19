@@ -89,13 +89,13 @@ def _load_context(importer) -> dict:
     income = env.ref("plasticos_accounting.account_40050_sales_income", raise_if_not_found=False)
     _clear_default_taxes(env)
     return {
-        "material": material,
-        "income": income,
+        "material_account": material,
+        "income_account": income,
         "sale_journal": env["account.journal"].search([("type", "=", "sale")], limit=1),
         "purchase_journal": env["account.journal"].search([("type", "=", "purchase")], limit=1),
-        "products": {},
-        "uoms": {},
-        "incoterms": {},
+        "product_cache": {},
+        "uom_cache": {},
+        "incoterm_cache": {},
     }
 
 
@@ -307,8 +307,8 @@ def _customer_invoice(importer, context, partner_by_cp, number, buysell, sale_gr
             uom = _uom(importer, context, line.get("SWeightUOM"))
             if uom:
                 vals["product_uom_id"] = uom.id
-            if context["income"]:
-                vals["account_id"] = context["income"].id
+            if context["income_account"]:
+                vals["account_id"] = context["income_account"].id
             commands.append(Command.create(vals))
     if not commands:
         return
@@ -386,7 +386,7 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number):
         MATERIAL_GL,
     )
 
-    material = context["material"]
+    material = context["material_account"]
     journal = context["purchase_journal"]
     costs = context.setdefault("costs", {"freight": {}, "other": {}})
     for row in index.payables_by_buysell.get(number, []):
@@ -501,13 +501,13 @@ def _remember_carrier(importer, context, partner_by_cp, number, deliveries) -> N
 
 def _product(importer, context, grade_id, description):
     grade = (grade_id or "").strip() or "unspecified"
-    cached = context["products"].get(grade)
+    cached = context["product_cache"].get(grade)
     if cached:
         return cached
     xml_id = f"legacy_erp_grade_{_token(grade)}"
     existing = _existing(importer, "product.product", xml_id)
     if existing is not None:
-        context["products"][grade] = existing
+        context["product_cache"][grade] = existing
         return existing
     values = {
         "name": (description or "").strip() or grade,
@@ -522,7 +522,7 @@ def _product(importer, context, grade_id, description):
         values["is_storable"] = False
     product = importer.env["product.product"].with_context(**_import_context()).create(values)
     importer._write_identity_marker(product, xml_id, product)
-    context["products"][grade] = product
+    context["product_cache"][grade] = product
     return product
 
 
@@ -530,23 +530,23 @@ def _uom(importer, context, code):
     token = (code or "").strip().upper()
     if not token:
         return None
-    if token in context["uoms"]:
-        return context["uoms"][token]
+    if token in context["uom_cache"]:
+        return context["uom_cache"][token]
     xml_id = _UOM_XMLID.get(token)
     record = importer.env.ref(xml_id, raise_if_not_found=False) if xml_id else None
-    context["uoms"][token] = record
+    context["uom_cache"][token] = record
     return record
 
 
 def _incoterm(env, context, code):
     if not code:
         return None
-    cached = context["incoterms"].get(code)
+    cached = context["incoterm_cache"].get(code)
     if cached:
         return cached.id
     record = env["account.incoterms"].search([("code", "=", code)], limit=1)
     if record:
-        context["incoterms"][code] = record
+        context["incoterm_cache"][code] = record
     return record.id if record else None
 
 
@@ -676,9 +676,12 @@ def _settle_historical(move) -> None:
         ).reconcile()
 
 
+_RETAINED_EARNINGS_CODE = "999998"
+
+
 def _clearing_account(env):
     accounts = env["account.account"].search([("account_type", "=", "equity_unaffected")])
-    chosen = accounts.filtered(lambda account: (account.code or "") == "999998")[:1]
+    chosen = accounts.filtered(lambda account: (account.code or "") == _RETAINED_EARNINGS_CODE)[:1]
     return chosen or accounts[:1]
 
 
