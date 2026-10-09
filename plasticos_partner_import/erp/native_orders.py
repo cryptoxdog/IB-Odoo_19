@@ -25,6 +25,8 @@ __all__ = [
     "header_for_line",
     "incoterm_code",
     "newest_numbers",
+    "payable_matches_purchase",
+    "purchase_bill_lines",
     "sale_note",
     "worksheet_log",
     "worksheet_outcome",
@@ -146,6 +148,41 @@ def unit_price(amount: str | None, weight: str | None, price: str | None) -> flo
     if weight_value:
         return _number(amount) / weight_value
     return _number(price)
+
+
+def purchase_bill_lines(rows: list[dict]) -> list[dict]:
+    """Buy-side worksheet quantity and rate for a vendor bill.
+
+    ``PWeight`` is the quantity. The rate is ``PAmount / PWeight``. A stored
+    price with no weight uses ``PAmount / PPrice`` as the quantity. The payable
+    lump (one unit at the full amount) is not a weight.
+    """
+    lines = []
+    for row in rows:
+        amount = _number(row.get("PAmount"))
+        weight = _number(row.get("PWeight"))
+        price = _number(row.get("PPrice"))
+        if not weight and amount and price:
+            weight = amount / price
+        if not weight or not amount:
+            continue
+        lines.append(
+            {
+                "quantity": abs(weight),
+                "price_unit": abs(amount) / abs(weight),
+                "uom": (row.get("PWeightUOM") or "").strip().upper(),
+                "grade": (row.get("GradeID") or "").strip(),
+                "description": (row.get("InvoiceDesc") or "").strip(),
+                "detail_id": (row.get("DetailID") or "").strip(),
+            }
+        )
+    return lines
+
+
+def payable_matches_purchase(payable_amount: float, rows: list[dict]) -> bool:
+    """True when this payable is the worksheet purchase total, not a side charge."""
+    total = sum(_number(row.get("PAmount")) for row in rows)
+    return bool(total) and abs(abs(payable_amount) - abs(total)) < 0.02
 
 
 def _number(value: str | None) -> float:

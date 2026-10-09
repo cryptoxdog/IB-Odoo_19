@@ -13,6 +13,8 @@ from erp.native_orders import (  # noqa: E402
     header_for_line,
     incoterm_code,
     newest_numbers,
+    payable_matches_purchase,
+    purchase_bill_lines,
     sale_note,
     unit_price,
     worksheet_commission,
@@ -86,6 +88,41 @@ def test_freight_vendor_is_the_nonzero_inland_freight_row():
 
 def test_unit_price_uses_amount_over_worksheet_weight():
     assert unit_price("9763.95", "19145", "0") == pytest.approx(9763.95 / 19145)
+
+
+def test_purchase_bill_uses_worksheet_weight_when_the_payable_is_the_purchase_total():
+    rows = [
+        {
+            "PWeight": "36000",
+            "PWeightUOM": "L",
+            "PPrice": "0.12",
+            "PAmount": "4320",
+            "GradeID": "10059",
+            "InvoiceDesc": "LDPE Film",
+            "DetailID": "13620",
+        }
+    ]
+    assert payable_matches_purchase(4320, rows)
+    assert not payable_matches_purchase(255, rows)
+    line = purchase_bill_lines(rows)[0]
+    assert line["quantity"] == 36000
+    assert line["price_unit"] == pytest.approx(0.12)
+    assert line["uom"] == "L"
+    assert line["detail_id"] == "13620"
+    counted = purchase_bill_lines(
+        [
+            {
+                "PWeight": "240",
+                "PWeightUOM": "E",
+                "PPrice": "3",
+                "PAmount": "720",
+                "GradeID": "881",
+                "InvoiceDesc": "Gaylord Boxes",
+            }
+        ]
+    )[0]
+    assert counted["quantity"] == 240
+    assert counted["uom"] == "E"
 
 
 def test_newest_numbers_keeps_the_highest_worksheet_numbers():

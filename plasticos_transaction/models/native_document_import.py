@@ -14,7 +14,8 @@ from odoo import Command
 _logger = logging.getLogger(__name__)
 
 XMLID_MODULE = "plasticos_transaction"
-_UOM_XMLID = {"L": "uom.product_uom_lb", "S": "uom.product_uom_ton", "E": "uom.product_uom_ton"}
+# L pounds, S short tons, E each. E is a count (gaylords), not a ton.
+_UOM_XMLID = {"L": "uom.product_uom_lb", "S": "uom.product_uom_ton", "E": "uom.product_uom_unit"}
 
 
 def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> bool:
@@ -66,10 +67,27 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
     return True
 
 
+def _clear_default_taxes(env) -> None:
+    """Wholesale reseller. No sales tax and no purchase tax on imported documents."""
+    company = env.company
+    tax_fields = [name for name in ("account_sale_tax_id", "account_purchase_tax_id") if name in company._fields]
+    if tax_fields:
+        company.sudo().write(dict.fromkeys(tax_fields, False))  # sudo: company tax defaults are a system setting
+    accounts = env["account.account"].search([("tax_ids", "!=", False)])
+    if accounts:
+        accounts.with_context(**_import_context()).write({"tax_ids": [Command.clear()]})
+    products = env["product.template"].search(["|", ("taxes_id", "!=", False), ("supplier_taxes_id", "!=", False)])
+    if products:
+        products.with_context(**_import_context()).write(
+            {"taxes_id": [Command.clear()], "supplier_taxes_id": [Command.clear()]}
+        )
+
+
 def _load_context(importer) -> dict:
     env = importer.env
     material = env.ref("plasticos_accounting.account_50100_material_cost", raise_if_not_found=False)
     income = env.ref("plasticos_accounting.account_40050_sales_income", raise_if_not_found=False)
+    _clear_default_taxes(env)
     return {
         "material": material,
         "income": income,
@@ -234,6 +252,7 @@ def _upsert_sale_line(importer, context, order, detail_id, line, unit_price):
         "name": (line.get("InvoiceDesc") or "").strip() or product.display_name,
         "product_uom_qty": _qty(line.get("SWeight")),
         "price_unit": unit_price(line.get("SAmount"), line.get("SWeight"), line.get("SPrice")),
+        "tax_ids": [Command.clear()],
     }
     if uom:
         values["product_uom_id"] = uom.id
@@ -253,6 +272,7 @@ def _upsert_purchase_line(importer, context, order, detail_id, line, unit_price)
         "product_qty": _qty(line.get("PWeight")),
         "price_unit": unit_price(line.get("PAmount"), line.get("PWeight"), line.get("PPrice")),
         "date_planned": _date(order.date_order),
+        "tax_ids": [Command.clear()],
     }
     if uom:
         values["product_uom_id"] = uom.id
@@ -281,7 +301,12 @@ def _customer_invoice(importer, context, partner_by_cp, number, buysell, sale_gr
                 "name": (line.get("InvoiceDesc") or "").strip() or product.display_name,
                 "quantity": weight,
                 "price_unit": unit_price(line.get("SAmount"), line.get("SWeight"), line.get("SPrice")),
+                "tax_ids": [Command.clear()],
+                "is_imported": True,
             }
+            uom = _uom(importer, context, line.get("SWeightUOM"))
+            if uom:
+                vals["product_uom_id"] = uom.id
             if context["income"]:
                 vals["account_id"] = context["income"].id
             commands.append(Command.create(vals))
@@ -306,6 +331,52 @@ def _customer_invoice(importer, context, partner_by_cp, number, buysell, sale_gr
             "invoice_line_ids": commands,
         },
     )
+
+
+def _vendor_bill_lines(importer, context, index, material, number, amount, row):
+    """Worksheet buy quantity when this payable is the purchase total."""
+    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        payable_matches_purchase,
+        purchase_bill_lines,
+    )
+
+    item = (row.get("ItemID") or "").strip()
+    details = [index.lines[detail_id] for detail_id in index.detail_ids(number)]
+    specs = purchase_bill_lines(details) if item in ("", "0") and payable_matches_purchase(amount, details) else []
+    if not specs:
+        product, description = _worksheet_material(importer, context, index, number)
+        label = description or (product.display_name if product else "") or (row.get("InvoiceNo") or "").strip()
+        line_vals = {
+            "name": label,
+            "quantity": 1.0,
+            "price_unit": abs(amount),
+            "account_id": material.id,
+            "tax_ids": [Command.clear()],
+            "is_imported": True,
+        }
+        if product:
+            line_vals["product_id"] = product.id
+        return [Command.create(line_vals)]
+    commands = []
+    for spec in specs:
+        product = _product(importer, context, spec["grade"], spec["description"])
+        vals = {
+            "product_id": product.id,
+            "name": spec["description"] or product.display_name,
+            "quantity": spec["quantity"],
+            "price_unit": spec["price_unit"],
+            "account_id": material.id,
+            "tax_ids": [Command.clear()],
+            "is_imported": True,
+        }
+        uom = _uom(importer, context, spec["uom"])
+        if uom:
+            vals["product_uom_id"] = uom.id
+        po_line = _existing(importer, "purchase.order.line", f"legacy_erp_pol_{_token(spec.get('detail_id'))}")
+        if po_line and "purchase_line_id" in importer.env["account.move.line"]._fields:
+            vals["purchase_line_id"] = po_line.id
+        commands.append(Command.create(vals))
+    return commands
 
 
 def _vendor_bills(importer, index, report, context, partner_by_cp, number):
@@ -339,16 +410,6 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number):
         partner_id = _partner_id(importer, partner_by_cp, row.get("CpID"))
         if material is None or not journal or not partner_id or not payable_id or not amount:
             continue
-        product, description = _worksheet_material(importer, context, index, number)
-        label = description or (product.display_name if product else "") or (row.get("InvoiceNo") or payable_id).strip()
-        line_vals = {
-            "name": label,
-            "quantity": 1.0,
-            "price_unit": abs(amount),
-            "account_id": material.id,
-        }
-        if product:
-            line_vals["product_id"] = product.id
         invoice_date = _date(row.get("InvoiceDt")) or _date(index.buysells.get(number, {}).get("OrderDt"))
         _move(
             importer,
@@ -360,7 +421,7 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number):
                 "invoice_date": (invoice_date or "")[:10] or False,
                 "invoice_origin": number,
                 "ref": (row.get("InvoiceNo") or payable_id).strip(),
-                "invoice_line_ids": [Command.create(line_vals)],
+                "invoice_line_ids": _vendor_bill_lines(importer, context, index, material, number, amount, row),
             },
         )
 
@@ -454,6 +515,8 @@ def _product(importer, context, grade_id, description):
         "type": "consu",
         "sale_ok": True,
         "purchase_ok": True,
+        "taxes_id": [Command.clear()],
+        "supplier_taxes_id": [Command.clear()],
     }
     if "is_storable" in importer.env["product.product"]._fields:
         values["is_storable"] = False

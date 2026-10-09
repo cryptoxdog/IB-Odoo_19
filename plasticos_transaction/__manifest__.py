@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Transaction Spine",
-    "version": "19.0.2.3.11",
+    "version": "19.0.2.3.16",
     "summary": "Core transaction lifecycle management with integrated commission engine",
     "author": "Igor Beylin",
     "license": "LGPL-3",
@@ -40,6 +40,12 @@
         "views/offer_bridge_views.xml",
         # "views/match_result_bridge_views.xml",  # Disabled - plasticos_matching is external
     ],
+    "assets": {
+        "web.assets_backend": [
+            "plasticos_transaction/static/src/fields/many2many_tags_open.js",
+            "plasticos_transaction/static/src/fields/many2many_tags_open.scss",
+        ],
+    },
     "post_init_hook": "post_init_hook",
     "installable": True,
     "application": True,
