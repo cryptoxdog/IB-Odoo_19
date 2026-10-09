@@ -21,6 +21,8 @@
 #
 # Fail-closed: the build refuses to start without an enterprise checkout and
 # refuses to publish a template in which any requested module is not installed.
+# Resumable: Odoo stages run as detached named containers; an interrupted build
+# is resumed from the database state (install done → re-seed → verify → stamp).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -112,45 +114,107 @@ drop_db() {
   psql_admin "DROP DATABASE IF EXISTS \"$1\"" >/dev/null
 }
 
+db_exists() {
+  [ "$(psql_admin "SELECT 1 FROM pg_database WHERE datname = '$1'")" = "1" ]
+}
+
+seeded_accounts() {
+  compose exec -T db psql -U "$POSTGRES_USER" -d "$TEMPLATE_DB" -tAc \
+    "SELECT count(*) FROM ir_model_data WHERE module = 'plasticos_accounting' AND model = 'account.account'" 2>/dev/null || echo 0
+}
+
+# Each Odoo stage runs as a detached, named container and is awaited from here.
+# If this shell dies mid-stage the container keeps running to completion and the
+# next invocation resumes from the database state instead of starting over.
+# The odoo service mounts ./config as /etc/odoo, so addons_path (incl. the
+# enterprise tier) is read from odoo.conf even though the command is replaced.
+odoo_stage() {
+  local name="${PROJECT}-test-env-$1"
+  shift
+  if docker ps -q --filter "name=^${name}$" | grep -q .; then
+    echo "→ ${name} is already running; waiting for it"
+  else
+    docker rm -f "$name" >/dev/null 2>&1 || true
+    compose run -d --name "$name" odoo odoo -d "$TEMPLATE_DB" \
+      --db_host=db --db_port=5432 --db_user="$POSTGRES_USER" --db_password="$POSTGRES_PASSWORD" \
+      "$@" --stop-after-init --workers=0 --max-cron-threads=0 --log-level=warn >/dev/null
+  fi
+  local rc
+  rc="$(docker wait "$name")"
+  docker logs "$name" 2>&1 | grep -E " (ERROR|CRITICAL) " | grep -v "docutils\|(ERROR/3)" | tail -20 || true
+  docker rm "$name" >/dev/null 2>&1 || true
+  if [ "$rc" != "0" ]; then
+    echo "❌ ${name} exited with status $rc (docker logs were printed above)" >&2
+    exit 1
+  fi
+}
+
+install_stage() {
+  echo "→ Installing $(echo "$1" | tr ',' '\n' | wc -l | tr -d ' ') modules into $TEMPLATE_DB"
+  odoo_stage install -i "$1" --without-demo=all
+}
+
+# A fresh install loads the generic chart template after plasticos_accounting,
+# which drops the PlasticOS chart seed (40050/50100/50200 ...). Re-seed it so
+# the template matches an upgraded Staging database.
+reseed_stage() {
+  echo "→ Re-seeding the plasticos_accounting chart"
+  odoo_stage reseed -u plasticos_accounting
+}
+
+publish_template() {
+  local want="$1" modules="$2" installed accounts
+  assert_modules_installed "$modules"
+  accounts="$(seeded_accounts)"
+  if [ "${accounts:-0}" -lt 1 ]; then
+    echo "❌ template build left no plasticos_accounting accounts" >&2
+    exit 1
+  fi
+  installed="$(compose exec -T db psql -U "$POSTGRES_USER" -d "$TEMPLATE_DB" -tAc "SELECT count(*) FROM ir_module_module WHERE state = 'installed'")"
+  psql_admin "COMMENT ON DATABASE \"$TEMPLATE_DB\" IS '$want'" >/dev/null
+  echo "✅ $TEMPLATE_DB ready: $installed modules installed, $accounts PlasticOS accounts seeded (fingerprint $want)"
+}
+
 build_template() {
-  local want modules
+  local want modules missing
   want="$(fingerprint)"
   modules="$(module_list)"
   if [ "$(template_fingerprint)" = "$want" ]; then
-    local missing
     missing="$(missing_modules "$modules")"
     if [ -z "$missing" ]; then
       echo "✅ $TEMPLATE_DB is current (fingerprint $want)"
       return 0
     fi
     echo "⚠️  $TEMPLATE_DB carries the current fingerprint but lacks: $missing — rebuilding"
+    drop_db "$TEMPLATE_DB"
   fi
   require_enterprise_checkout
   echo "→ Building $TEMPLATE_DB (fingerprint $want)"
   echo "  enterprise: $ODOO_ENTERPRISE_PATH"
   echo "  modules: $modules"
-  drop_db "$TEMPLATE_DB"
-  # The odoo service mounts ./config as /etc/odoo, so addons_path (incl. the
-  # enterprise tier) is read from odoo.conf even though the command is replaced.
-  compose run --rm odoo odoo -d "$TEMPLATE_DB" \
-    --db_host=db --db_port=5432 --db_user="$POSTGRES_USER" --db_password="$POSTGRES_PASSWORD" \
-    -i "$modules" --without-demo=all --stop-after-init --workers=0 --max-cron-threads=0 --log-level=warn
-  # A fresh install loads the generic chart template after plasticos_accounting,
-  # which drops the PlasticOS chart seed (40050/50100/50200 ...). Re-seed it so
-  # the template matches an upgraded Staging database.
-  compose run --rm odoo odoo -d "$TEMPLATE_DB" \
-    --db_host=db --db_port=5432 --db_user="$POSTGRES_USER" --db_password="$POSTGRES_PASSWORD" \
-    -u plasticos_accounting --stop-after-init --workers=0 --max-cron-threads=0 --log-level=warn
-  assert_modules_installed "$modules"
-  local installed accounts
-  installed="$(compose exec -T db psql -U "$POSTGRES_USER" -d "$TEMPLATE_DB" -tAc "SELECT count(*) FROM ir_module_module WHERE state = 'installed'")"
-  accounts="$(compose exec -T db psql -U "$POSTGRES_USER" -d "$TEMPLATE_DB" -tAc "SELECT count(*) FROM ir_model_data WHERE module = 'plasticos_accounting' AND model = 'account.account'")"
-  if [ "${accounts:-0}" -lt 1 ]; then
-    echo "❌ template build left no plasticos_accounting accounts" >&2
-    exit 1
+
+  # Resume: an unstamped database whose install stage finished only needs the
+  # re-seed and verification (about a minute instead of a full rebuild).
+  if db_exists "$TEMPLATE_DB" && [ -z "$(template_fingerprint)" ]; then
+    local running="${PROJECT}-test-env-install"
+    if docker ps -q --filter "name=^${running}$" | grep -q .; then
+      echo "→ Resuming: install stage still running"
+      odoo_stage install
+    fi
+    missing="$(missing_modules "$modules")"
+    if [ -z "$missing" ]; then
+      echo "→ Resuming: install stage already complete, skipping to re-seed"
+      reseed_stage
+      publish_template "$want" "$modules"
+      return 0
+    fi
+    echo "→ Unstamped $TEMPLATE_DB is incomplete (missing: $missing); rebuilding"
   fi
-  psql_admin "COMMENT ON DATABASE \"$TEMPLATE_DB\" IS '$want'" >/dev/null
-  echo "✅ $TEMPLATE_DB ready: $installed modules installed, $accounts PlasticOS accounts seeded"
+
+  drop_db "$TEMPLATE_DB"
+  install_stage "$modules"
+  reseed_stage
+  publish_template "$want" "$modules"
 }
 
 clone_template() {
