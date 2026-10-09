@@ -48,10 +48,13 @@ class TestPurchaseOrderAccess(TransactionCase):
             .search([("id", "in", (self.po_a | self.po_b | self.po_unowned).ids)])
         )
 
-    def test_all_documents_matches_sale_order_visibility(self):
-        rule = self.env.ref("plasticos_security_base.rule_purchase_order_all_documents")
-        self.assertEqual(rule.domain_force.replace(" ", ""), "[(1,'=',1)]")
-        self.assertIn(self.env.ref("sales_team.group_sale_salesman_all_leads"), rule.groups)
+    def test_all_documents_rule_is_gone(self):
+        self.assertFalse(
+            self.env.ref("plasticos_security_base.rule_purchase_order_all_documents", raise_if_not_found=False)
+        )
+        po_model = self.env["ir.model"]._get("purchase.order")
+        open_rules = self.env["ir.rule"].search([("model_id", "=", po_model.id), ("domain_force", "like", "(1,")])
+        self.assertFalse(open_rules, open_rules.mapped("name"))
 
     def test_sales_rep_sees_own_purchase_orders_only(self):
         self.assertEqual(self._visible(self.rep_a), self.po_a)
@@ -61,9 +64,12 @@ class TestPurchaseOrderAccess(TransactionCase):
         with self.assertRaises(AccessError):
             self.po_a.with_user(self.rep_b).write({"origin": "touched"})
 
-    def test_all_documents_user_sees_every_purchase_order(self):
-        self.assertEqual(self._visible(self.rep_all_leads), self.po_a | self.po_b | self.po_unowned)
-        self.po_b.with_user(self.rep_all_leads).read(["name"])
+    def test_all_leads_group_does_not_widen_purchase_order_access(self):
+        self.assertFalse(self._visible(self.rep_all_leads))
+        with self.assertRaises(AccessError):
+            self.po_b.with_user(self.rep_all_leads).read(["name"])
+        with self.assertRaises(AccessError):
+            self.po_unowned.with_user(self.rep_all_leads).unlink()
 
     def test_accounting_reads_every_purchase_order_without_write(self):
         self.assertEqual(self._visible(self.accountant), self.po_a | self.po_b | self.po_unowned)

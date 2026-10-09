@@ -1,0 +1,31 @@
+2026-10-09 21:22:42,943 11 ERROR erp_import_proof odoo.sql_db: bad query: b'INSERT INTO "purchase_order_line" ("create_date", "create_uid", "date_planned", "display_type", "name", "order_id", "price_unit", "product_id", "product_qty", "product_uom_id", "propagate_cancel", "sequence", "technical_price_unit", "write_date", "write_uid") VALUES (\'2026-10-09T21:22:29.224847\'::timestamp, 1, \'2022-11-14T00:00:00\'::timestamp, NULL, \'48x45x50 Knockdowns in need of repair\', 3497, 30.0, 256, \'1.00\', 1, true, 10, 30.0, \'2026-10-09T21:22:29.224847\'::timestamp, 1) RETURNING "id"'
+ERROR: insert or update on table "purchase_order_line" violates foreign key constraint "purchase_order_line_product_id_fkey"
+DETAIL:  Key (product_id)=(256) is not present in table "product_product".
+ 
+ERP source: direct database read (host.docker.internal/<ERP_SOURCE_DB>)
+VALIDATOR PASSED (database)
+res.partner before import: 29 (pre-existing business partners: 0)
+VALIDATOR PASSED (counterparties)
+VALIDATOR PASSED (addresses)
+VALIDATOR PASSED (contacts)
+Eddie Dyess partner id 8882
+http://localhost:8069/odoo/contacts/8882
+TUCKAHOE NURSERIES INC has no partner named 16098610383
+VALIDATOR PASSED (roles)
+VALIDATOR PASSED (salesreps)
+
+=== ERP IMPORT SUMMARY ===
+status      : partial
+seen/valid  : 32332 / 29900 (rejected 2432)
+created     : 25694  updated: 2115  unchanged: 2091  duplicates: 0
+errors      : 1000 (first 10 below)
+  - 400094: Address unresolved_counterparty: CpID=(OTHER) not in exported (active) counterparties
+  - 400096: Address unresolved_counterparty: CpID={C} not in exported (active) counterparties
+  - 400097: Address unresolved_counterparty: CpID={C} not in exported (active) counterparties
+  - 401838: Address unresolved_counterparty: CpID=134 not in exported (active) counterparties
+  - 402007: Address unresolved_counterparty: CpID=303 not in exported (active) counterparties
+  - 402015: Address unresolved_counterparty: CpID=312 not in exported (active) counterparties
+  - 402163: Address unresolved_counterparty: CpID=134 not in exported (active) counterparties
+  - 402427: Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties
+  - 402430: Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties
+  - 402431: Address unresolved_counterparty: CpID=(INV) not in exported (active) counterparties
