@@ -120,6 +120,12 @@ class _Harness:
             return database
 
         reader.database_source_from_env = database_source_from_env
+        limits_spec = importlib.util.spec_from_file_location(
+            f"{ERP_PACKAGE}.limits", ROOT / "plasticos_partner_import" / "erp" / "limits.py"
+        )
+        limits = importlib.util.module_from_spec(limits_spec)
+        limits_spec.loader.exec_module(limits)
+        monkeypatch.setitem(sys.modules, limits.__name__, limits)
         runner = types.ModuleType(f"{PACKAGE}.run_erp_import")
         runner.run = run
         validator = types.ModuleType(f"{PACKAGE}.validate_partner_layer")
@@ -302,6 +308,15 @@ def test_direct_database_source_is_handed_to_the_import(monkeypatch):
 
     assert harness.main() == 0
     assert harness.runs[0]["database"] is sentinel
+
+
+def test_percent_limit_reaches_the_import_as_a_fraction(monkeypatch):
+    harness = _Harness(monkeypatch)
+    monkeypatch.setenv("ERP_PARTNERS_ONLY", "1")
+    monkeypatch.setenv("ERP_LIMIT", "25%")
+
+    assert harness.main() == 0
+    assert harness.runs[0]["limit"] == 0.25
 
 
 class _Modules:

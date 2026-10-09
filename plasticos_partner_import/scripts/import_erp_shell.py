@@ -5,7 +5,7 @@ file into the shell). Configuration arrives via environment variables so the
 single file serves both the docker and the no-Docker harness paths:
 
 * ``ERP_DRY`` — ``1`` for a resolve-and-map preview (nothing persisted)
-* ``ERP_LIMIT`` — process at most N transactions (diagnostics)
+* ``ERP_LIMIT`` — newest N worksheets, or ``25%`` for the newest quarter (diagnostics / test databases)
 * ``ERP_PAYLOAD_ROOT`` — non-default payload directory (statement or grid form)
 * ``ERP_SQL_SERVER`` / ``ERP_SQL_DATABASE`` (+ ``ERP_SQL_USER`` /
   ``ERP_SQL_PASSWORD`` / ``ERP_SQL_PORT`` / ``ERP_SQL_DRIVER``) — read the
@@ -42,6 +42,7 @@ import os
 import sys
 
 from odoo.addons.plasticos_partner_import.erp import reader
+from odoo.addons.plasticos_partner_import.erp.limits import parse_limit
 from odoo.addons.plasticos_partner_import.scripts.run_erp_import import run
 from odoo.addons.plasticos_partner_import.scripts.validate_partner_layer import (
     DATABASE_CHECK,
@@ -113,8 +114,7 @@ def _require_empty_partner_set(env) -> None:
 
 
 def main() -> int:
-    limit_raw = _setting("LIMIT").strip()
-    limit = int(limit_raw) if limit_raw.isdigit() else None
+    limit = parse_limit(_setting("LIMIT"))
     env = _odoo_env()
     dry_run = _flag("DRY")
     layer = _setting("LAYER").strip().lower() or None

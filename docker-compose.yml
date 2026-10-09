@@ -2,7 +2,8 @@
 #
 # Addons paths (all three tiers, matching Odoo.sh):
 #   /mnt/extra-addons  → repo root         (plasticos_* custom modules)
-#   /mnt/enterprise    → ./odoo-enterprise  (Enterprise modules — parity with production)
+#   /mnt/enterprise    → ${ODOO_ENTERPRISE_PATH:-./odoo-enterprise}  (Enterprise — parity with Staging;
+#                        worktrees/secondary clones set ODOO_ENTERPRISE_PATH to the checkout that has it)
 #   Odoo core          → baked into odoo:19 image
 #
 # Quick start:
@@ -11,6 +12,14 @@
 #
 # Rebuild DB (enterprise + custom, no demo):
 #   ./scripts/rebuild-odoo-no-demo.sh
+#
+# Pristine test database in seconds (template built once, cloned per run):
+#   make test-env                # build/refresh the odoo_test_template DB
+#   make test-db [name=odoo_test]  # clone the template into a fresh DB
+#   make test-module m=<module>  # run module tests on $(ODOO_TEST_DB)
+#
+# Every service mounts ./config as /etc/odoo so addons_path (incl. enterprise)
+# survives a `docker compose run <service> <args>` command override.
 #
 # Enterprise module list (what production has installed):
 #   config/odoo_module_order.yaml → docker_enterprise_modules
@@ -66,7 +75,7 @@ services:
       L9_REQUIRE_SIGNATURE: ${L9_REQUIRE_SIGNATURE:-}
     volumes:
       - .:/mnt/extra-addons
-      - ./odoo-enterprise:/mnt/enterprise:ro
+      - ${ODOO_ENTERPRISE_PATH:-./odoo-enterprise}:/mnt/enterprise:ro
       - odoo_data:/var/lib/odoo
       - ./config:/etc/odoo:ro
     command: >
@@ -103,7 +112,11 @@ services:
       L9_REQUIRE_SIGNATURE: ${L9_REQUIRE_SIGNATURE:-}
     volumes:
       - .:/mnt/extra-addons
-      - ./odoo-enterprise:/mnt/enterprise:ro
+      - ${ODOO_ENTERPRISE_PATH:-./odoo-enterprise}:/mnt/enterprise:ro
+      # /etc/odoo/odoo.conf carries addons_path (incl. /mnt/enterprise). Without
+      # it, `docker compose run odoo-test <args>` replaces the command below and
+      # the run silently loses the enterprise tier.
+      - ./config:/etc/odoo:ro
     command: >
       --addons-path=/mnt/extra-addons,/mnt/enterprise,/usr/lib/python3/dist-packages/odoo/addons
       -d odoo
@@ -127,7 +140,8 @@ services:
         condition: service_healthy
     volumes:
       - .:/mnt/extra-addons
-      - ./odoo-enterprise:/mnt/enterprise:ro
+      - ${ODOO_ENTERPRISE_PATH:-./odoo-enterprise}:/mnt/enterprise:ro
+      - ./config:/etc/odoo:ro
     environment:
       ODOO_DEMO: "1"
       GATE_URL: ${GATE_URL:-}

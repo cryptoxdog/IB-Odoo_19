@@ -85,7 +85,7 @@ class PlasticosErpImport(models.AbstractModel):
     def run(
         self,
         payload_root: str | None = None,
-        limit: int | None = None,
+        limit: int | float | None = None,
         commit: bool = False,
         dry_run: bool = False,
         partners_only: bool = False,

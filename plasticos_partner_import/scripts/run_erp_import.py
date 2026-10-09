@@ -32,7 +32,7 @@ from ..erp import summary as import_summary
 def run(
     env,
     payload_root: str | None = None,
-    limit: int | None = None,
+    limit: int | float | None = None,
     commit: bool = False,
     dry_run: bool = False,
     verbose: bool = True,
@@ -48,7 +48,7 @@ def run(
     Args:
         env: Odoo environment.
         payload_root: Override the tracked payload directory.
-        limit: Process at most this many transactions (diagnostics only).
+        limit: Newest N worksheets, or a fraction (0.25 = newest quarter); diagnostics and test databases.
         commit: Commit between complete transactions.
         dry_run: Resolve and map everything without persisting.
         verbose: Print the human-readable summary.

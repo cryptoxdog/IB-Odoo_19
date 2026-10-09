@@ -47,6 +47,14 @@ docker_enterprise_modules:
   # Currency
   - currency_rate_live           # CRITICAL: adds currency_provider field to res.config.settings
 
+  # US localization (installed on Staging; l10n_us/l10n_us_account are core, the rest enterprise)
+  - l10n_us
+  - l10n_us_account
+  - l10n_us_1099
+  - l10n_us_check_printing
+  - l10n_us_payment_nacha
+  - l10n_us_reports
+
   # CRM & Sales
   - crm_enterprise               # CRM map view, pipeline enhancements
   - sale_enterprise              # sale forecasting, reporting
