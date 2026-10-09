@@ -185,6 +185,7 @@ Totals: 7 428 transactions `paid` + 260 `unpaid`, all `commission_locked`. 424 t
 
 **Environment**
 - A fresh install loads `generic_coa` after `plasticos_accounting`, wiping its 58 account seeds; the proof DB needed a scoped `-u plasticos_accounting`. Pre-existing install-order issue, not touched.
+- `scripts/install_smoke.sh` (compose mode) passed CLI arguments to `docker compose run odoo-test`, which replaces the service `command` and dropped `--addons-path`; the image's `odoo.conf` then exposed `/mnt/extra-addons` only and every Enterprise module installed as `missing`, failing `make pr-check`. Previously masked by the pr-check content cache. Fixed in this PR: the addons path is passed explicitly in both network modes; `make install-smoke` now passes with all `l10n_us*` modules installed.
 
 ## 13. PR
 

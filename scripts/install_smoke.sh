@@ -300,8 +300,15 @@ docker compose -p "$ODOO_COMPOSE_PROJECT" exec -T db psql -U "$POSTGRES_USER" -d
 
 echo "→ Installing modules (--stop-after-init)..."
 set +e
+# Passing CLI arguments to `docker compose run odoo-test` replaces the service
+# `command`, so its --addons-path is lost and the image's odoo.conf
+# (/mnt/extra-addons only) applies: Enterprise modules then install as
+# "missing". The addons path is therefore always passed explicitly here.
+ADDONS_PATH="/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons"
+if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ]; then
+  ADDONS_PATH="/mnt/extra-addons,/mnt/enterprise,/usr/lib/python3/dist-packages/odoo/addons"
+fi
 if [ "$SMOKE_NETWORK_MODE" = "host" ]; then
-  ADDONS_PATH="/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons"
   # The official Odoo image entrypoint appends DB arguments after CLI input.
   # Set its HOST/PORT/USER/PASSWORD contract so it preserves host-network values.
   RUN_ARGS=(
@@ -313,7 +320,6 @@ if [ "$SMOKE_NETWORK_MODE" = "host" ]; then
     -v "$ROOT:/mnt/extra-addons"
   )
   if [ -n "$ENTERPRISE_MODULES" ] && [ "$ENTERPRISE_MODULES" != "none" ]; then
-    ADDONS_PATH="/mnt/extra-addons,/mnt/enterprise,/usr/lib/python3/dist-packages/odoo/addons"
     RUN_ARGS+=(-v "$ROOT/odoo-enterprise:/mnt/enterprise:ro")
   fi
   "${RUN_ARGS[@]}" "$SMOKE_IMAGE" \
@@ -330,6 +336,7 @@ if [ "$SMOKE_NETWORK_MODE" = "host" ]; then
 else
   docker compose -p "$ODOO_COMPOSE_PROJECT" run --rm \
     odoo-test \
+    --addons-path="$ADDONS_PATH" \
     -d "$SMOKE_DB" \
     --db_host="$ODOO_DB_HOST" \
     --db_port="$ODOO_DB_PORT" \
