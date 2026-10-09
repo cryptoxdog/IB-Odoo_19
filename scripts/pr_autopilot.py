@@ -880,11 +880,18 @@ def get_inline_bot_issues(
 
     issues: list[Issue] = []
     matched = 0
+    outdated = 0
     for c in comments:
         login = c.get("user", {}).get("login", "").lower()
         if not any(sub in login for sub in login_substrings):
             continue
         if "coderabbit" in login or "gemini" in login:
+            continue
+        # GitHub clears ``position`` once the commented line is no longer in
+        # the PR diff: the finding was addressed by a later push and must not
+        # keep failing the gate.
+        if c.get("position") is None:
+            outdated += 1
             continue
         matched += 1
         body = c.get("body", "")
@@ -906,8 +913,8 @@ def get_inline_bot_issues(
                 raw=c,
             )
         )
-    if matched:
-        print(f"  → {source}: {matched} inline comment(s)")
+    if matched or outdated:
+        print(f"  → {source}: {matched} inline comment(s), {outdated} outdated")
     return issues
 
 

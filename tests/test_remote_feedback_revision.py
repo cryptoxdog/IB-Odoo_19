@@ -83,3 +83,29 @@ def test_explicit_pr_changes_requested_fails_when_local_sha_differs() -> None:
     assert result.exit_code == 1
     assert result.applicability == "current"
     assert any("CHANGES_REQUESTED" in reason for reason in result.reasons)
+
+
+def _inline(body: str, position: int | None) -> dict:
+    return {
+        "user": {"login": "chatgpt-codex-connector[bot]"},
+        "body": body,
+        "path": "plasticos_x/models/y.py",
+        "line": 10,
+        "position": position,
+    }
+
+
+def test_outdated_inline_bot_comments_do_not_block(monkeypatch) -> None:
+    """GitHub clears ``position`` once a later push removes the commented line: the finding was addressed."""
+    import scripts.pr_autopilot as autopilot
+
+    comments = [
+        _inline("**![P1 Badge](x)  Still on the current diff**", 7),
+        _inline("**![P1 Badge](x)  Line was changed by a later push**", None),
+    ]
+    monkeypatch.setattr(autopilot, "gh", lambda _path: comments)
+
+    issues = autopilot.get_codex_issues(231)
+
+    assert [i.kind for i in issues] == ["REAL_BUG"]
+    assert "Still on the current diff" in issues[0].message

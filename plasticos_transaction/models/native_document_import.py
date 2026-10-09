@@ -284,10 +284,17 @@ def _upsert_purchase_line(importer, context, order, detail_id, line, unit_price)
 def _customer_invoice(importer, context, partner_by_cp, number, buysell, sale_groups, unit_price):
     if not sale_groups or not context["sale_journal"]:
         return None
-    header = next(iter(sale_groups.values()))[0][2]
-    partner_id = _partner_id(importer, partner_by_cp, header.get("CpID")) or _partner_id(
-        importer, partner_by_cp, buysell.get("CustID")
-    )
+    # One worksheet is one customer invoice on one transaction. Sale headers
+    # that resolve to different customers cannot share it; the worksheet is
+    # rejected rather than invoicing one customer's material to another.
+    partner_ids = {
+        _partner_id(importer, partner_by_cp, rows[0][2].get("CpID"))
+        or _partner_id(importer, partner_by_cp, buysell.get("CustID"))
+        for rows in sale_groups.values()
+    }
+    if len(partner_ids) > 1:
+        raise ValueError(f"worksheet {number} sale orders belong to {len(partner_ids)} different customers")
+    partner_id = partner_ids.pop()
     if not partner_id:
         return None
     commands = []

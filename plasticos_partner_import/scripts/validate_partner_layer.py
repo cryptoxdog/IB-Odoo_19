@@ -33,6 +33,11 @@ USA_MODULES = (
 REQUIRED_MODULES = ("plasticos_partner_import",)
 COMMERCIAL_MODULES = ("sale", "purchase", "account")
 XMLID_MODULE = "plasticos_transaction"
+# A full run realizes native documents through plasticos_transaction and posts
+# them to the accounts plasticos_accounting seeds; without either the base
+# importer commits partners and silently reports no transaction outcome.
+FULL_RUN_PROVIDER_MODULES = (XMLID_MODULE, "plasticos_accounting")
+FULL_RUN_MODULES = (*COMMERCIAL_MODULES, *FULL_RUN_PROVIDER_MODULES)
 
 # The import names the disposable database it may write. The check refuses
 # any other database, and any database that identifies as production.
@@ -176,12 +181,17 @@ def _imported_companies(env):
 def check_full_run_extension(env, failures: list[str], installed: set[str] | None = None) -> None:
     """A full run realizes sale orders, purchase orders, and invoices.
 
-    ``installed`` is the module set the caller already loaded. Partner-only and
-    single-layer runs do not call this.
+    ``installed`` is the module set the caller already loaded; when absent, the
+    installed set is read from ``env``. Partner-only and single-layer runs do
+    not call this.
     """
-    del env
-    present = installed or set()
-    missing = [name for name in COMMERCIAL_MODULES if name not in present]
+    if installed is None:
+        installed = set(
+            env["ir.module.module"]
+            .search([("name", "in", list(FULL_RUN_MODULES)), ("state", "=", "installed")])
+            .mapped("name")
+        )
+    missing = [name for name in FULL_RUN_MODULES if name not in installed]
     if missing:
         _fail(failures, "full import needs installed modules: " + ", ".join(missing))
 
@@ -205,7 +215,7 @@ def check_database(env, failures: list[str]) -> None:
     required = required_modules()
     wanted = list(USA_MODULES) + list(required)
     if _full_run():
-        wanted.extend(COMMERCIAL_MODULES)
+        wanted.extend(FULL_RUN_MODULES)
     installed = set(
         env["ir.module.module"].search([("name", "in", wanted), ("state", "=", "installed")]).mapped("name")
     )

@@ -293,10 +293,14 @@ class ResPartner(models.Model):
         string="Other Phones",
         help="Extra numbers kept for import. Phone and Mobile are the fields on the form.",
     )
+    # Odoo 19 base has no res.partner.mobile column (phone only); this field is
+    # new here and projects the "mobile" phone line, so no stored value exists
+    # to migrate. The search method keeps it usable in domains and filters.
     mobile = fields.Char(
         string="Mobile",
         compute="_compute_mobile",
         inverse="_inverse_mobile",
+        search="_search_mobile",
         help="Mobile number. Stored with the partner's other phone lines.",
     )
     contact_header_name = fields.Char(
@@ -348,6 +352,9 @@ class ResPartner(models.Model):
             line = partner.phone_line_ids.filtered(lambda row: row.label == "mobile")[:1]
             partner.mobile = line.number or False
 
+    def _search_mobile(self, operator, value):
+        return [("phone_line_ids", "any", [("label", "=", "mobile"), ("number", operator, value)])]
+
     def _inverse_mobile(self):
         phone_model = self.env["plasticos.partner.phone"]
         for partner in self:
@@ -359,8 +366,9 @@ class ResPartner(models.Model):
             if lines:
                 lines[:1].number = number
             else:
-                line = phone_model.create({"partner_id": partner.id, "label": "mobile"})
-                line.number = number
+                values = {"partner_id": partner.id, "label": "mobile"}
+                values["number"] = number
+                phone_model.create(values)
 
     @api.depends(
         "is_company",

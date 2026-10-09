@@ -411,7 +411,7 @@ class TestErpWorksheetImport(TransactionCase):
     def test_worksheet_with_two_sale_orders_compiles_one_transaction(self):
         index = self._index()
         self._add_order(index, "8001", "15001", "SO", CUSTOMER)
-        self._add_order(index, "8002", "15002", "SO", OTHER_CUSTOMER)
+        self._add_order(index, "8002", "15002", "SO", CUSTOMER)
         self._add_order(index, "8000", "7300", "PO", VENDOR)
         index.order_lines["9400"] = {"PONumber": "15001"}
         index.order_lines["9401"] = {"PONumber": "15002"}
@@ -436,6 +436,31 @@ class TestErpWorksheetImport(TransactionCase):
         self.assertIn(
             ("BuySell", "57135", "worksheet carries 2 sale orders"),
             {(a["table"], a["key"], a["detail"]) for a in report.anomalies},
+        )
+        invoice = self._marked("account.move", "legacy_erp_outinv_")
+        self.assertEqual(len(invoice), 1)
+        self.assertEqual(invoice.partner_id, self.customer)
+        self.assertEqual(len(invoice.invoice_line_ids), 2)
+
+    def test_worksheet_whose_sale_orders_have_different_customers_is_rejected(self):
+        """One worksheet carries one customer invoice; two customers cannot share it."""
+        index = self._index()
+        self._add_order(index, "8001", "15001", "SO", CUSTOMER)
+        self._add_order(index, "8002", "15002", "SO", OTHER_CUSTOMER)
+        self._add_order(index, "8000", "7300", "PO", VENDOR)
+        index.order_lines["9400"] = {"PONumber": "15001"}
+        index.order_lines["9401"] = {"PONumber": "15002"}
+        index.order_lines["9402"] = {"PONumber": "7300"}
+        self._add_line(index, "9400", "15001", _line("7001", "57136", "9400", "9402", "10000", "5000", "10000", "4000"))
+        self._add_line(index, "9401", "15002", _line("7002", "57136", "9401", "9402", "10000", "5000", "10000", "4000"))
+        index.buysells["57136"] = _buysell("57136", "2024-03-01 00:00:00")
+        report = self._run(index)
+
+        self.assertFalse(self.Transaction.search([("name", "=", "57136")]))
+        self.assertFalse(self._marked("account.move", "legacy_erp_outinv_"))
+        self.assertEqual(report.counts["transactions"]["rejected"], 1)
+        self.assertIn(
+            ("BuySell", "57136", "ValueError"), {(a["table"], a["key"], a["detail"]) for a in report.anomalies}
         )
 
     def test_rejected_worksheet_does_not_poison_the_product_cache(self):

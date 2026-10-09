@@ -350,15 +350,18 @@ def _database_failures(monkeypatch, env, **settings):
 
 
 PARTNER_RUNTIME = (*_real_validator().USA_MODULES, "plasticos_partner_import")
+FULL_RUN = _real_validator().FULL_RUN_MODULES
 
 
 def test_full_import_needs_the_native_document_modules(monkeypatch):
     failures = _database_failures(monkeypatch, _DatabaseEnv(PARTNER_RUNTIME, models=()))
-    assert failures == ["full import needs installed modules: sale, purchase, account"]
+    assert failures == [
+        "full import needs installed modules: sale, purchase, account, plasticos_transaction, plasticos_accounting"
+    ]
 
 
 def test_full_import_proceeds_when_native_document_modules_are_installed(monkeypatch):
-    env = _DatabaseEnv((*PARTNER_RUNTIME, "sale", "purchase", "account", "plasticos_transaction"))
+    env = _DatabaseEnv((*PARTNER_RUNTIME, *FULL_RUN))
     assert _database_failures(monkeypatch, env) == []
 
 
@@ -375,11 +378,13 @@ def test_concern1_runs_do_not_require_the_transaction_module(monkeypatch, settin
 def test_standalone_database_preflight_keeps_the_full_run_requirement(monkeypatch):
     """``ERP_LAYER=database`` selects the check itself; it is not a partner-only scope."""
     failures = _database_failures(monkeypatch, _DatabaseEnv(PARTNER_RUNTIME, models=()), LAYER="database")
-    assert failures == ["full import needs installed modules: sale, purchase, account"]
+    assert failures == [
+        "full import needs installed modules: sale, purchase, account, plasticos_transaction, plasticos_accounting"
+    ]
 
 
 def test_full_dry_run_is_refused_before_import(monkeypatch, capsys):
-    """A full preview must not report success or call the importer."""
+    """A full preview on a database without the document modules must not report success or call the importer."""
     env = _DatabaseEnv((*PARTNER_RUNTIME, "plasticos_transaction"))
     harness = _Harness(monkeypatch, odoo_env=env)
     monkeypatch.setenv("ERP_DRY", "1")
@@ -390,7 +395,22 @@ def test_full_dry_run_is_refused_before_import(monkeypatch, capsys):
     assert harness.source_lookups == []
     assert harness.env.cr.commits == 0
     assert harness.env.cr.queries == []
-    assert "full import needs installed modules: sale, purchase, account" in capsys.readouterr().out
+    assert (
+        "full import needs installed modules: sale, purchase, account, plasticos_accounting" in capsys.readouterr().out
+    )
+
+
+def test_full_dry_run_proceeds_on_a_complete_database(monkeypatch):
+    """The preflight reads the installed set from ``env``; a complete database previews the full import."""
+    env = _DatabaseEnv((*PARTNER_RUNTIME, *FULL_RUN))
+    harness = _Harness(monkeypatch, odoo_env=env)
+    monkeypatch.setenv("ERP_DRY", "1")
+
+    assert harness.main() == 0
+    assert env.modules.searches == 1
+    assert harness.runs[0]["dry_run"] is True
+    assert harness.runs[0]["partners_only"] is False
+    assert harness.env.cr.commits == 0
 
 
 @pytest.mark.parametrize(

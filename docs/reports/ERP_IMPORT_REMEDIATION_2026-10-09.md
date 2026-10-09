@@ -187,6 +187,19 @@ Totals: 7 428 transactions `paid` + 260 `unpaid`, all `commission_locked`. 424 t
 - A fresh install loads `generic_coa` after `plasticos_accounting`, wiping its 58 account seeds; the proof DB needed a scoped `-u plasticos_accounting`. Pre-existing install-order issue, not touched.
 - `scripts/install_smoke.sh` (compose mode) passed CLI arguments to `docker compose run odoo-test`, which replaces the service `command` and dropped `--addons-path`; the image's `odoo.conf` then exposed `/mnt/extra-addons` only and every Enterprise module installed as `missing`, failing `make pr-check`. Previously masked by the pr-check content cache. Fixed in this PR: the addons path is passed explicitly in both network modes; `make install-smoke` now passes with all `l10n_us*` modules installed.
 
+## 12a. Review findings on PR #231 (Codex, 4 × P1) — all addressed
+
+| File | Finding | Disposition |
+|---|---|---|
+| `plasticos_partner_import/scripts/validate_partner_layer.py:184` | `check_full_run_extension` discarded `env` and treated a missing `installed` set as empty, so every full `ERP_DRY=1` preview was refused | Fixed: the installed set is read from `env` when not supplied; `test_full_dry_run_proceeds_on_a_complete_database` |
+| `…/validate_partner_layer.py:35` | Full-run preflight required only `sale`/`purchase`/`account`; a database without `plasticos_transaction` or `plasticos_accounting` passed and committed partners before reporting no transaction outcome | Fixed: `FULL_RUN_MODULES` adds both provider addons; the full run fails before any write (`tests/test_erp_layer_gate.py`, 35 pass) |
+| `plasticos_transaction/models/native_document_import.py:295` | A worksheet whose sale headers resolve to different customers put every line on the first customer's invoice | Fixed: such a worksheet is rejected (`ValueError`, anomaly, no documents); the shared-order test now uses one customer and asserts a single two-line invoice to it; new `test_worksheet_whose_sale_orders_have_different_customers_is_rejected`. Source has 0 such worksheets |
+| `plasticos_facility_profile/models/res_partner.py:300` | "Redefines the native stored `mobile` column without migration; breaks searches" | Partly a false premise: Odoo 19 `res.partner` has no `mobile` field (verified in `~/dev/odoo-19` base and on the fully-installed smoke DB), so nothing exists to migrate. The searchability point stands and is fixed with `search="_search_mobile"`. The probe also found `_inverse_mobile` creating the phone line without `number` (NOT NULL violation on first write) — fixed. Runtime probe: create/search/update/clear all pass (`evidence/mobile_probe.txt`) |
+
+Runtime re-verification on a fresh DB installed from this branch: **0 failed, 0 errors of 14 tests** (`evidence/runtime_tests_review_fixes.txt`). Versions bumped: `plasticos_transaction` 19.0.2.3.25, `plasticos_partner_import` 19.0.2.10.15, `plasticos_facility_profile` 19.0.5.3.10.
+
+Gate correction: `scripts/pr_autopilot.py` counted every P1 bot comment as a blocking `REAL_BUG` forever, including comments whose line was already rewritten by a later push, so a PR could never pass `make pr` once reviewed. Inline comments with `position: null` (GitHub's "outdated" marker) are now skipped and counted separately; `test_outdated_inline_bot_comments_do_not_block`.
+
 ## 13. PR
 
 | Item | Value |
@@ -206,4 +219,5 @@ Totals: 7 428 transactions `paid` + 260 `unpaid`, all `commission_locked`. 424 t
 | `source_counts.txt`, `source_54839_53797.txt`, `source_cutoff.txt` | source-side facts read directly from SQL Server |
 | `db_pristine.txt`, `runtime_tests.txt` | target DB pristine check; Odoo runtime test result (import tests) |
 | `runtime_tests_f3.txt`, `f3_rules.txt` | F3 runtime test result and the `purchase.order` rule set on a DB installed from this branch |
+| `runtime_tests_review_fixes.txt`, `mobile_probe.txt` | runtime re-verification after the PR review fixes (14 tests) and the `mobile` field probe |
 | `run_import.sh`, `collect.sh`, `snapshot.sql`, `dump.sql` | exact commands to reproduce run 1 / run 2 and the normalised comparison |
