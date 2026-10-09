@@ -85,27 +85,41 @@ def test_explicit_pr_changes_requested_fails_when_local_sha_differs() -> None:
     assert any("CHANGES_REQUESTED" in reason for reason in result.reasons)
 
 
-def _inline(body: str, position: int | None) -> dict:
+def _inline(body: str, line: int | None, comment_id: int = 1) -> dict:
     return {
+        "id": comment_id,
         "user": {"login": "chatgpt-codex-connector[bot]"},
         "body": body,
         "path": "plasticos_x/models/y.py",
-        "line": 10,
-        "position": position,
+        "line": line,
+        "original_line": 10,
+        "position": 1,
     }
 
 
-def test_outdated_inline_bot_comments_do_not_block(monkeypatch) -> None:
-    """GitHub clears ``position`` once a later push removes the commented line: the finding was addressed."""
+def test_outdated_or_resolved_inline_bot_comments_do_not_block(monkeypatch) -> None:
+    """GitHub clears ``line`` once a later push removes the commented line; a resolved thread is answered."""
     import scripts.pr_autopilot as autopilot
 
     comments = [
-        _inline("**![P1 Badge](x)  Still on the current diff**", 7),
-        _inline("**![P1 Badge](x)  Line was changed by a later push**", None),
+        _inline("**![P1 Badge](x)  Still on the current diff**", 7, comment_id=1),
+        _inline("**![P1 Badge](x)  Line was changed by a later push**", None, comment_id=2),
+        _inline("**![P1 Badge](x)  Thread resolved by a reviewer**", 9, comment_id=3),
     ]
     monkeypatch.setattr(autopilot, "gh", lambda _path: comments)
+    monkeypatch.setattr(autopilot, "_resolved_review_comment_ids", lambda _pr: {3})
 
     issues = autopilot.get_codex_issues(231)
 
     assert [i.kind for i in issues] == ["REAL_BUG"]
     assert "Still on the current diff" in issues[0].message
+
+
+def test_resolved_thread_lookup_fails_open_to_no_resolution(monkeypatch) -> None:
+    import scripts.pr_autopilot as autopilot
+
+    def boom(*_args, **_kwargs):
+        raise OSError("offline")
+
+    monkeypatch.setattr(autopilot, "_http", boom)
+    assert autopilot._resolved_review_comment_ids(231) == set()

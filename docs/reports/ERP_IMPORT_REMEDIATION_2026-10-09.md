@@ -198,7 +198,7 @@ Totals: 7 428 transactions `paid` + 260 `unpaid`, all `commission_locked`. 424 t
 
 Runtime re-verification on a fresh DB installed from this branch: **0 failed, 0 errors of 14 tests** (`evidence/runtime_tests_review_fixes.txt`). Versions bumped: `plasticos_transaction` 19.0.2.3.25, `plasticos_partner_import` 19.0.2.10.15, `plasticos_facility_profile` 19.0.5.3.10.
 
-Gate correction: `scripts/pr_autopilot.py` counted every P1 bot comment as a blocking `REAL_BUG` forever, including comments whose line was already rewritten by a later push, so a PR could never pass `make pr` once reviewed. Inline comments with `position: null` (GitHub's "outdated" marker) are now skipped and counted separately; `test_outdated_inline_bot_comments_do_not_block`.
+Gate corrections found while publishing: (1) `scripts/pr_autopilot.py` counted every P1 bot comment as a blocking `REAL_BUG` forever, including comments whose line was already rewritten by a later push, so a PR could never pass `make pr` once reviewed — inline comments with `line: null` (GitHub's "outdated" marker) or a resolved review thread (GraphQL `isResolved`) are now skipped and counted separately (`test_outdated_or_resolved_inline_bot_comments_do_not_block`, fail-open test); the four Codex threads were answered with the fix evidence and resolved. (2) `scripts/git_open_pr.sh` read the PR head once immediately after the push and failed the publication proof on GitHub's propagation lag (twice tonight); it now re-reads up to six times, five seconds apart, for a SHA mismatch only.
 
 ## 13. PR
 
