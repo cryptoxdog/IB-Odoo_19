@@ -57,14 +57,11 @@
         <field name="name">plasticos.transaction.tree</field>
         <field name="model">plasticos.transaction</field>
         <field name="arch" type="xml">
-            <list decoration-info="state == 'draft'"
-                  decoration-success="state in ('active', 'supplier_ready', 'do_created', 'dispatched', 'in_transit', 'delivered')"
-                  decoration-warning="state in ('pending_supplier', 'supplier_not_ready')"
-                  decoration-muted="state in ('closed', 'cancelled')"
-                  decoration-danger="state == 'invoiced'">
+            <list>
                 <field name="name"/>
                 <field name="user_id" optional="show" widget="many2one_avatar_user"/>
                 <field name="sale_order_id" optional="show"/>
+                <field name="purchase_order_ids" string="Purchase Orders" optional="hide" widget="many2many_tags"/>
                 <field name="line_count" optional="hide"/>
                 <field name="historical_sale_total" optional="show" sum="Historical Sale"/>
                 <field name="historical_purchase_total" optional="show" sum="Historical Purchase"/>
@@ -140,25 +137,31 @@
                     <group>
                         <group string="Orders" name="orders">
                             <field name="user_id"/>
+                            <field name="product_id" string="Material"/>
+                            <field name="supplier_id"/>
+                            <field name="buyer_id"/>
                             <field name="sale_order_id"/>
-                            <field name="purchase_order_ids" widget="many2many_tags"/>
+                            <field name="purchase_order_ids" widget="many2many_tags_open"/>
                         </group>
-                        <group string="Revenue">
+                        <group string="Profit Snapshot" name="profit_snapshot">
                             <field name="revenue_total"/>
+                            <field name="purchase_cost_total" string="Material Cost"/>
+                            <field name="freight_cost_total" string="Freight Cost"/>
+                            <field name="cost_total"/>
+                            <field name="gross_margin"/>
+                            <field name="commission_amount" string="Commission"/>
+                            <field name="net_margin" class="o_plasticos_net_margin"/>
                         </group>
                     </group>
                     <group>
-                        <group string="Costs">
-                            <field name="purchase_cost_total"/>
-                            <field name="freight_actual" string="Freight Cost" readonly="state in ('closed', 'cancelled')"/>
-                            <field name="other_expenses"/>
-                            <field name="cost_total"/>
-                        </group>
-                        <group string="Recoveries &amp; Margin">
+                        <group string="Freight" name="freight">
                             <field name="freight_chargebacks"/>
-                            <field name="lightweight_penalties"/>
-                            <field name="gross_margin"/>
-                            <field name="net_margin"/>
+                            <field name="other_expenses" string="Additional Costs"/>
+                        </group>
+                        <group string="Material" name="material">
+                            <field name="final_weight" string="Material Weight"/>
+                            <field name="material_unit_cost"/>
+                            <field name="lightweight_penalties" string="Weight Penalty"/>
                         </group>
                     </group>
 
@@ -168,7 +171,9 @@
                             <field name="supplier_confirmation_received"/>
                             <field name="is_supplier_confirmed" readonly="1"/>
                         </group>
-                        <group string="Delivery Order">
+                        <group string="Delivery Order" name="delivery_order">
+                            <field name="carrier_id"/>
+                            <field name="freight_actual" string="Freight Cost" readonly="state in ('closed', 'cancelled')"/>
                             <field name="delivery_order_id"/>
                             <field name="do_number" readonly="1"/>
                         </group>
@@ -234,6 +239,15 @@
                 to track revenue, costs, and margins.
             </p>
         </field>
+    </record>
+
+    <!-- Pin the real list. Another primary list on this model (the bulk wizard)
+         sorts first at the same priority and would otherwise replace it. -->
+    <record id="action_transaction_view_list" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_transaction_tree"/>
+        <field name="act_window_id" ref="action_transaction"/>
     </record>
 
     <!-- Menu under PlasticOS root -->

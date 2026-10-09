@@ -387,6 +387,12 @@ class PlasticosTransaction(models.Model):
         store=True,
         help="Total from vendor bill(s).",
     )
+    material_unit_cost = fields.Float(
+        string="Material Cost per Unit",
+        compute="_compute_material_unit_cost",
+        digits=PRODUCT_PRICE,
+        help="Material cost divided by material weight. Zero when the weight is zero.",
+    )
     freight_cost_total = fields.Float(
         string="Freight Cost",
         compute="_compute_financials",
@@ -746,6 +752,9 @@ class PlasticosTransaction(models.Model):
     @api.depends(
         "customer_invoice_id",
         "customer_invoice_id.amount_total",
+        "customer_invoice_id.reversal_move_ids",
+        "customer_invoice_id.reversal_move_ids.amount_total",
+        "customer_invoice_id.reversal_move_ids.state",
         "vendor_bill_ids",
         "vendor_bill_ids.amount_total",
         "freight_bill_ids",
@@ -756,11 +765,16 @@ class PlasticosTransaction(models.Model):
         "lightweight_penalties",
     )
     def _compute_financials(self):
-        """RevOps formula: gross_margin = revenue - costs + recoveries."""
+        """RevOps formula: gross_margin = revenue - costs + recoveries.
+
+        Revenue is the customer invoice net of the credit notes that reverse it.
+        """
         for rec in self:
-            revenue = _signed_move_total(rec.customer_invoice_id)
+            invoice = rec.customer_invoice_id
+            credit_notes = invoice.reversal_move_ids.filtered(lambda move: move.state != "cancel")
+            revenue = _signed_move_total(invoice) + _signed_move_total(credit_notes)
             purchase_cost = _signed_move_total(rec.vendor_bill_ids)
-            billed_freight = sum(rec.freight_bill_ids.mapped("amount_total"))
+            billed_freight = _signed_move_total(rec.freight_bill_ids)
             freight_cost = billed_freight or (rec.freight_actual or 0.0)
             other = rec.other_expenses or 0.0
 
@@ -776,6 +790,13 @@ class PlasticosTransaction(models.Model):
             rec.freight_cost_total = freight_cost
             rec.cost_total = total_cost
             rec.gross_margin = gross
+
+    @api.depends("purchase_cost_total", "final_weight")
+    def _compute_material_unit_cost(self):
+        """Material cost per unit of material weight. The snapshot total stays separate."""
+        for rec in self:
+            weight = rec.final_weight or 0.0
+            rec.material_unit_cost = (rec.purchase_cost_total or 0.0) / weight if weight else 0.0
 
     @api.depends("gross_margin", "commission_amount")
     def _compute_net_margin(self):

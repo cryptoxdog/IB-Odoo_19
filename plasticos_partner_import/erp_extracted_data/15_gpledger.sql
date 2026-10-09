@@ -7,6 +7,9 @@ SELECT
   Source, Sale, Cost, GrossProfit, Commission,
   RTRIM(AdjCpID) AS AdjCpID,
   AdjType, AdjFxAmount,
+  AdjApproved,
+  RTRIM(AdjMemoNo) AS AdjMemoNo,
+  RTRIM(AdjDocTitle) AS AdjDocTitle,
   RTRIM(APBatchNo) AS APBatchNo,
   RTRIM(ARBatchNo) AS ARBatchNo,
   ReferenceID

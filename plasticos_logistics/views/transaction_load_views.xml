@@ -12,8 +12,8 @@
         <field name="priority">30</field>
         <field name="arch" type="xml">
 
-            <!-- Add load_id to Orders group (readonly until supplier AND buyer are set) -->
-            <xpath expr="//group[@name='orders']/field[@name='carrier_id']" position="after">
+            <!-- Load sits with the delivery fields, after the delivery order. -->
+            <xpath expr="//group[@name='delivery_order']/field[@name='delivery_order_id']" position="after">
                 <field name="load_id"
                        readonly="not supplier_id or not buyer_id"
                        help="Select supplier and buyer before assigning a load."/>

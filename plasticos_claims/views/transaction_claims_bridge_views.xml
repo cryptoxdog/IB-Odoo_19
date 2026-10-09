@@ -18,6 +18,9 @@
                     </div>
                 </button>
             </xpath>
+            <xpath expr="//group[@name='material']" position="inside">
+                <field name="has_quality_claim" string="Quality Penalty"/>
+            </xpath>
         </field>
     </record>
 </odoo>

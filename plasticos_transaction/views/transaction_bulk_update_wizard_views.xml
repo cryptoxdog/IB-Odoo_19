@@ -5,6 +5,8 @@
     <record id="view_plasticos_transaction_bulk_wizard_tree" model="ir.ui.view">
         <field name="name">plasticos.transaction.bulk.wizard.tree</field>
         <field name="model">plasticos.transaction</field>
+        <!-- Higher than the real list (16) so this embedded wizard list is not the default. -->
+        <field name="priority" eval="99"/>
         <field name="arch" type="xml">
             <list>
                 <field name="name"/>
