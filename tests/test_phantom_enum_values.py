@@ -92,6 +92,13 @@ GLOBAL_ALLOWLIST = frozenset(
         "asset_receivable",
         "liability_payable",
         "equity_unaffected",
+        "expense_direct_cost",
+        # ERP worksheet document map keys (native_document_import), not Selection values
+        "sales",
+        "purchases",
+        "credits",
+        "bills",
+        "freight_bills",
         # Odoo partner types
         "contact",
         "invoice",

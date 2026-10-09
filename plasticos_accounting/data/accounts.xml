@@ -22,6 +22,12 @@
       <field name="account_type">expense_direct_cost</field>
       <field name="reconcile">False</field>
     </record>
+    <record id="account_50200_freight_cost" model="account.account">
+      <field name="code">50200</field>
+      <field name="name">Freight Cost</field>
+      <field name="account_type">expense_direct_cost</field>
+      <field name="reconcile">False</field>
+    </record>
     <record id="account_50700_national_box_exchange" model="account.account">
       <field name="code">50700</field>
       <field name="name">National Box Exchange</field>

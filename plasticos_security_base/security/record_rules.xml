@@ -103,21 +103,6 @@
         <field name="perm_unlink" eval="True"/>
     </record>
 
-    <!-- 4b. Users who can see every sale order can see every purchase order.
-         The sales-rep rule above is OR-combined with this one, matching the
-         sale.order "All Orders" rule. Without it, an imported purchase order
-         owned by the import user disappears from the transaction form. -->
-    <record id="rule_purchase_order_all_documents" model="ir.rule">
-        <field name="name">Plasticos: Purchase Order - All Documents</field>
-        <field name="model_id" ref="purchase.model_purchase_order"/>
-        <field name="domain_force">[(1, '=', 1)]</field>
-        <field name="groups" eval="[(4, ref('sales_team.group_sale_salesman_all_leads'))]"/>
-        <field name="perm_read" eval="True"/>
-        <field name="perm_write" eval="True"/>
-        <field name="perm_create" eval="True"/>
-        <field name="perm_unlink" eval="True"/>
-    </record>
-
     <!-- 5. Account Move (Invoice/Bill): Sales Rep sees own only -->
     <record id="rule_account_move_sales_rep" model="ir.rule">
         <field name="name">Plasticos: Invoice - Sales Rep Own Records</field>

@@ -1,8 +1,11 @@
-"""Write sale orders, purchase orders, and invoices from the ERP source index.
+"""Write sale orders, purchase orders, invoices, and bills from the ERP source index.
 
 The importer does not create a transaction record. Confirming the sale order
-lets the sales hook compile one. Source identity is ``ir.model.data``. A second
-run updates the same documents.
+lets the sales hook compile one per worksheet. Source identity is
+``ir.model.data``. A second run finds the same documents and writes nothing.
+
+Historical documents are left in draft. QuickBooks owns their settlement; the
+import creates no payment, no clearing entry, and no posted balance.
 """
 
 from __future__ import annotations
@@ -16,6 +19,8 @@ _logger = logging.getLogger(__name__)
 XMLID_MODULE = "plasticos_transaction"
 # L pounds, S short tons, E each. E is a count (gaylords), not a ton.
 _UOM_XMLID = {"L": "uom.product_uom_lb", "S": "uom.product_uom_ton", "E": "uom.product_uom_unit"}
+_OPEN_SALE_STATES = ("draft", "sent")
+_OPEN_PURCHASE_STATES = ("draft", "sent", "to approve")
 
 
 def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> bool:
@@ -27,9 +32,9 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
             report.skip("transaction_lines", len(index.detail_ids(number)))
         return True
 
-    from odoo.addons.plasticos_partner_import.erp.native_orders import newest_numbers  # noqa: PLC0415
+    from odoo.addons.plasticos_partner_import.erp.native_orders import selected_worksheets  # noqa: PLC0415
 
-    selected = newest_numbers(numbers, limit)
+    selected = selected_worksheets(numbers, limit)
     selected_set = set(selected)
     context = _load_context(importer)
     pending_sales: dict[int, list[str]] = {}
@@ -46,17 +51,18 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
             report.anomaly("BuySell", number, type(exc).__name__)
             report.reject("transactions")
             report.reject("transaction_lines", len(index.detail_ids(number)))
+            context["documents"].pop(number, None)
             continue
         for sale_id in sale_ids:
             pending_sales.setdefault(sale_id, []).extend(trailers)
         if commit and not dry_run and position % 200 == 0:
-            _confirm_sales(importer, index, pending_sales, context)
+            _confirm_sales(importer, pending_sales, context)
             pending_sales.clear()
             importer.env.cr.commit()
             _logger.info("ERP import committed through worksheet %s", position)
 
     if not dry_run:
-        _confirm_sales(importer, index, pending_sales, context)
+        _confirm_sales(importer, pending_sales, context)
     for number in numbers:
         if number in selected_set:
             continue
@@ -67,36 +73,34 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
     return True
 
 
-def _clear_default_taxes(env) -> None:
-    """Wholesale reseller. No sales tax and no purchase tax on imported documents."""
-    company = env.company
-    tax_fields = [name for name in ("account_sale_tax_id", "account_purchase_tax_id") if name in company._fields]
-    if tax_fields:
-        company.sudo().write(dict.fromkeys(tax_fields, False))  # sudo: company tax defaults are a system setting
-    accounts = env["account.account"].search([("tax_ids", "!=", False)])
-    if accounts:
-        accounts.with_context(**_import_context()).write({"tax_ids": [Command.clear()]})
-    products = env["product.template"].search(["|", ("taxes_id", "!=", False), ("supplier_taxes_id", "!=", False)])
-    if products:
-        products.with_context(**_import_context()).write(
-            {"taxes_id": [Command.clear()], "supplier_taxes_id": [Command.clear()]}
-        )
-
-
 def _load_context(importer) -> dict:
+    """Accounts and journals the documents post to. No company, account, or product setting is written."""
     env = importer.env
     material = env.ref("plasticos_accounting.account_50100_material_cost", raise_if_not_found=False)
     income = env.ref("plasticos_accounting.account_40050_sales_income", raise_if_not_found=False)
-    _clear_default_taxes(env)
+    freight = env.ref("plasticos_accounting.account_50200_freight_cost", raise_if_not_found=False)
+    if freight is None:
+        freight = (
+            env["account.account"].search(
+                [("code", "=", "50200"), ("account_type", "=", "expense_direct_cost")], limit=1
+            )
+            or None
+        )
     return {
         "material_account": material,
         "income_account": income,
+        "freight_account": freight,
         "sale_journal": env["account.journal"].search([("type", "=", "sale")], limit=1),
         "purchase_journal": env["account.journal"].search([("type", "=", "purchase")], limit=1),
         "product_cache": {},
         "uom_cache": {},
         "incoterm_cache": {},
+        "documents": {},
     }
+
+
+def _new_documents() -> dict:
+    return {"sales": [], "purchases": [], "invoice": False, "credits": [], "bills": [], "freight_bills": []}
 
 
 def _realize_one(importer, index, report, partner_by_cp, context, number):
@@ -104,17 +108,19 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
         header_for_line,
         incoterm_code,
         unit_price,
-        worksheet_commission,
         worksheet_log,
         worksheet_outcome,
     )
 
     buysell = index.buysells.get(number, {})
-    _remember_salesperson(importer, context, number, buysell, worksheet_commission)
+    documents = _new_documents()
+    context["documents"][number] = documents
+    _remember_salesperson(importer, report, context, number, buysell)
     context.setdefault("notes", {})[number] = worksheet_log(
         buysell.get("ProblemNotes"), buysell.get("Notes"), buysell.get("BookingNo")
     )
     context.setdefault("states", {})[number] = worksheet_outcome(buysell.get("status"))
+    context.setdefault("order_days", {})[number] = (_date(buysell.get("OrderDt")) or "")[:10]
     _remember_carrier(importer, context, partner_by_cp, number, index.deliveries_by_buysell.get(number, []))
     sale_groups: dict[str, list] = {}
     purchase_groups: dict[str, list] = {}
@@ -139,7 +145,6 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
         return [], []
 
     trailers = _trailers(index, number)
-    sale_ids = []
     fresh_document = False
     new_lines: set[str] = set()
     for _po_id, rows in sale_groups.items():
@@ -147,60 +152,52 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
         xml_id = f"legacy_erp_so_{_token(header.get('PONumber'))}"
         fresh_document = fresh_document or _existing(importer, "sale.order", xml_id) is None
         order = _upsert_order(
-            importer,
-            context,
-            partner_by_cp,
-            header,
-            buysell,
-            number,
-            "sale.order",
-            xml_id,
-            incoterm_code,
+            importer, context, partner_by_cp, header, buysell, number, "sale.order", xml_id, incoterm_code
         )
         if order is not None:
-            sale_ids.append(order.id)
+            documents["sales"].append(order.id)
             for detail_id, line, _header in rows:
                 if (
-                    order.state in ("draft", "sent")
+                    order.state in _OPEN_SALE_STATES
                     and _existing(importer, "sale.order.line", f"legacy_erp_sol_{_token(detail_id)}") is None
                 ):
                     new_lines.add(detail_id)
                 _upsert_sale_line(importer, context, order, detail_id, line, unit_price)
+    if len(documents["sales"]) > 1:
+        report.anomaly("BuySell", number, f"worksheet carries {len(documents['sales'])} sale orders")
     for _po_id, rows in purchase_groups.items():
         header = rows[0][2]
         xml_id = f"legacy_erp_po_{_token(header.get('PONumber'))}"
         fresh_document = fresh_document or _existing(importer, "purchase.order", xml_id) is None
         order = _upsert_order(
-            importer,
-            context,
-            partner_by_cp,
-            header,
-            buysell,
-            number,
-            "purchase.order",
-            xml_id,
-            incoterm_code,
+            importer, context, partner_by_cp, header, buysell, number, "purchase.order", xml_id, incoterm_code
         )
         if order is not None:
+            documents["purchases"].append(order.id)
             for detail_id, line, _header in rows:
                 if (
-                    order.state in ("draft", "sent", "to approve")
+                    order.state in _OPEN_PURCHASE_STATES
                     and _existing(importer, "purchase.order.line", f"legacy_erp_pol_{_token(detail_id)}") is None
                 ):
                     new_lines.add(detail_id)
                 _upsert_purchase_line(importer, context, order, detail_id, line, unit_price)
-    _customer_invoice(importer, context, partner_by_cp, number, buysell, sale_groups, unit_price)
-    _vendor_bills(importer, index, report, context, partner_by_cp, number)
+    invoice = _customer_invoice(importer, context, partner_by_cp, number, buysell, sale_groups, unit_price)
+    documents["invoice"] = invoice.id if invoice is not None else False
+    _customer_adjustments(importer, index, report, context, partner_by_cp, number, invoice, documents)
+    _vendor_bills(importer, index, report, context, partner_by_cp, number, documents)
     report.bump("transactions", "created" if fresh_document else "skipped")
     for outcome in line_outcomes:
         if outcome == "rejected":
             report.bump("transaction_lines", "rejected")
         else:
             report.bump("transaction_lines", "created" if outcome in new_lines else "skipped")
-    return sale_ids, trailers
+    return list(documents["sales"]), trailers
 
 
 def _upsert_order(importer, context, partner_by_cp, header, buysell, number, model_name, xml_id, incoterm_code):
+    """One native order per source ``PONumber``. Every worksheet it serves is listed on ``origin``."""
+    from odoo.addons.plasticos_partner_import.erp.native_orders import with_worksheet  # noqa: PLC0415
+
     env = importer.env
     model = env[model_name].with_context(**_import_context())
     partner_field = "CustID" if model_name == "sale.order" else "VendorID"
@@ -209,14 +206,21 @@ def _upsert_order(importer, context, partner_by_cp, header, buysell, number, mod
     )
     if not partner_id:
         raise ValueError(f"{model_name} {header.get('PONumber')} has no partner")
+    existing = _existing(importer, model_name, xml_id)
+    origin = with_worksheet(existing.origin if existing is not None else "", number)
+    open_states = _OPEN_SALE_STATES if model_name == "sale.order" else _OPEN_PURCHASE_STATES
+    if existing is not None and existing.state not in open_states:
+        if (existing.origin or "") != origin:
+            existing.with_context(**_import_context()).write({"origin": origin})
+        return existing
     basis = (header.get("PriceBasis") or "").strip() or (buysell.get("PriceBasis") or "")
     values = {
         "partner_id": partner_id,
         "name": (header.get("PONumber") or "").strip(),
-        "origin": number,
+        "origin": origin,
         "date_order": _date(header.get("PODate") or buysell.get("OrderDt")),
+        "user_id": (context.get("salesperson") or {}).get(number) or False,
     }
-    values["user_id"] = (context.get("salesperson") or {}).get(number) or False
     if model_name == "sale.order":
         values["client_order_ref"] = (header.get("POReference") or "").strip() or False
         if "incoterm" in model._fields:
@@ -227,9 +231,6 @@ def _upsert_order(importer, context, partner_by_cp, header, buysell, number, mod
         incoterm = _incoterm(env, context, incoterm_code(basis))
         if incoterm:
             values["incoterm_id"] = incoterm
-    existing = _existing(importer, model_name, xml_id)
-    if existing is not None and existing.state not in ("draft", "sent"):
-        return existing
     return importer._upsert(model, xml_id, values, _silent(), None)
 
 
@@ -242,7 +243,7 @@ def _silent():
 
 
 def _upsert_sale_line(importer, context, order, detail_id, line, unit_price):
-    if order.state not in ("draft", "sent"):
+    if order.state not in _OPEN_SALE_STATES:
         return
     product = _product(importer, context, line.get("GradeID"), line.get("InvoiceDesc"))
     uom = _uom(importer, context, line.get("SWeightUOM"))
@@ -261,7 +262,7 @@ def _upsert_sale_line(importer, context, order, detail_id, line, unit_price):
 
 
 def _upsert_purchase_line(importer, context, order, detail_id, line, unit_price):
-    if order.state not in ("draft", "sent", "to approve"):
+    if order.state not in _OPEN_PURCHASE_STATES:
         return
     product = _product(importer, context, line.get("GradeID"), line.get("InvoiceDesc"))
     uom = _uom(importer, context, line.get("PWeightUOM"))
@@ -282,13 +283,13 @@ def _upsert_purchase_line(importer, context, order, detail_id, line, unit_price)
 
 def _customer_invoice(importer, context, partner_by_cp, number, buysell, sale_groups, unit_price):
     if not sale_groups or not context["sale_journal"]:
-        return
+        return None
     header = next(iter(sale_groups.values()))[0][2]
     partner_id = _partner_id(importer, partner_by_cp, header.get("CpID")) or _partner_id(
         importer, partner_by_cp, buysell.get("CustID")
     )
     if not partner_id:
-        return
+        return None
     commands = []
     for rows in sale_groups.values():
         for _detail_id, line, _header in rows:
@@ -311,13 +312,13 @@ def _customer_invoice(importer, context, partner_by_cp, number, buysell, sale_gr
                 vals["account_id"] = context["income_account"].id
             commands.append(Command.create(vals))
     if not commands:
-        return
+        return None
     signed = sum(item[2]["quantity"] * item[2]["price_unit"] for item in commands)
     if signed < 0:
         for item in commands:
             item[2]["price_unit"] = abs(item[2]["price_unit"])
     invoice_date = _date(buysell.get("InvoiceDt") or buysell.get("OrderDt"))
-    _move(
+    return _move(
         importer,
         f"legacy_erp_outinv_{_token(number)}",
         {
@@ -331,6 +332,77 @@ def _customer_invoice(importer, context, partner_by_cp, number, buysell, sale_gr
             "invoice_line_ids": commands,
         },
     )
+
+
+def _customer_adjustments(importer, index, report, context, partner_by_cp, number, invoice, documents):
+    """Approved sale-side ledger adjustments become customer credit notes and debit memos.
+
+    One approved ``GPLedger`` row is one document, keyed by ``LedgerID``.
+    Vendor-side adjustments are not written here: ``Payables`` carries each of
+    them as its own row. Discount and fee rows belong to settlement and are
+    reported, not realized.
+    """
+    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        BASE_TRADE,
+        CARRIED_BY_PAYABLES,
+        CUSTOMER_CREDIT,
+        SETTLEMENT_EVIDENCE,
+        UNAPPROVED,
+        ledger_adjustment_kind,
+    )
+
+    journal = context["sale_journal"]
+    income = context["income_account"]
+    move_fields = importer.env["account.move"]._fields
+    for row in index.ledger_by_buysell.get(number, []):
+        kind = ledger_adjustment_kind(row)
+        if kind in (BASE_TRADE, CARRIED_BY_PAYABLES):
+            continue
+        ledger_id = (row.get("LedgerID") or "").strip() or number
+        if kind == UNAPPROVED:
+            report.anomaly("GPLedger", ledger_id, "unapproved adjustment omitted")
+            continue
+        if kind == SETTLEMENT_EVIDENCE:
+            report.anomaly(
+                "GPLedger", ledger_id, f"Source {(row.get('Source') or '').strip()} row is settlement evidence"
+            )
+            continue
+        amount = _qty(row.get("Sale"))
+        partner_id = _partner_id(importer, partner_by_cp, row.get("AdjCpID")) or (
+            invoice.partner_id.id if invoice is not None else None
+        )
+        if not amount or not partner_id or not journal or income is None:
+            report.anomaly("GPLedger", ledger_id, "adjustment has no partner, amount, journal, or income account")
+            continue
+        memo = (row.get("AdjMemoNo") or "").strip()
+        title = (row.get("AdjDocTitle") or "").strip()
+        values = {
+            "move_type": "out_refund" if kind == CUSTOMER_CREDIT else "out_invoice",
+            "partner_id": partner_id,
+            "journal_id": journal.id,
+            "invoice_date": (_date(row.get("TradeDt")) or "")[:10] or False,
+            "invoice_origin": number,
+            "ref": memo or f"GPLedger {ledger_id}",
+            "invoice_user_id": (context.get("salesperson") or {}).get(number) or False,
+            "invoice_line_ids": [
+                Command.create(
+                    {
+                        "name": " ".join(part for part in (title, memo) if part) or f"Adjustment {ledger_id}",
+                        "quantity": 1.0,
+                        "price_unit": abs(amount),
+                        "account_id": income.id,
+                        "tax_ids": [Command.clear()],
+                        "is_imported": True,
+                    }
+                )
+            ],
+        }
+        if invoice is not None and kind == CUSTOMER_CREDIT:
+            values["reversed_entry_id"] = invoice.id
+        elif invoice is not None and "debit_origin_id" in move_fields:
+            values["debit_origin_id"] = invoice.id
+        move = _move(importer, f"legacy_erp_ledger_{_token(ledger_id)}", values)
+        documents["credits"].append(move.id)
 
 
 def _vendor_bill_lines(importer, context, index, material, number, amount, row):
@@ -379,7 +451,14 @@ def _vendor_bill_lines(importer, context, index, material, number, amount, row):
     return commands
 
 
-def _vendor_bills(importer, index, report, context, partner_by_cp, number):
+def _vendor_bills(importer, index, report, context, partner_by_cp, number, documents):
+    """One bill or vendor credit per ``Payables`` row, routed by the source account lookup.
+
+    Purchases (50100) bill Material Cost. Inland Freight (50200) bills Freight
+    Cost and is never material cost. Handling and Equipment (50300, 50600) have
+    no seeded account; their signed total is carried as the transaction's other
+    expenses. Rows in a prepayment batch are never written.
+    """
     from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
         EXPENSE_GL,
         FREIGHT_GL,
@@ -387,6 +466,7 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number):
     )
 
     material = context["material_account"]
+    freight_account = context["freight_account"]
     journal = context["purchase_journal"]
     costs = context.setdefault("costs", {"freight": {}, "other": {}})
     for row in index.payables_by_buysell.get(number, []):
@@ -397,21 +477,39 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number):
             continue
         gl_acct = (row.get("GLAcct") or "").strip()
         amount = _qty(row.get("Amount"))
-        if gl_acct == FREIGHT_GL:
-            costs["freight"][number] = costs["freight"].get(number, 0.0) + amount
-            report.anomaly("Payables", payable_id or number, "Inland Freight is not posted to Material Cost")
-            continue
         if gl_acct in EXPENSE_GL:
             costs["other"][number] = costs["other"].get(number, 0.0) + amount
             continue
-        if gl_acct != MATERIAL_GL:
+        if gl_acct not in (MATERIAL_GL, FREIGHT_GL):
             report.anomaly("Payables", payable_id or number, f"GL lookup {gl_acct or 'blank'} has no native account")
             continue
+        account = freight_account if gl_acct == FREIGHT_GL else material
         partner_id = _partner_id(importer, partner_by_cp, row.get("CpID"))
-        if material is None or not journal or not partner_id or not payable_id or not amount:
+        if account is None or not journal or not partner_id or not payable_id or not amount:
+            if gl_acct == FREIGHT_GL and amount:
+                costs["freight"][number] = costs["freight"].get(number, 0.0) + amount
+            reason = "no native account" if account is None else "no vendor, journal, or amount"
+            report.anomaly("Payables", payable_id or number, f"GL lookup {gl_acct} {reason}")
             continue
         invoice_date = _date(row.get("InvoiceDt")) or _date(index.buysells.get(number, {}).get("OrderDt"))
-        _move(
+        if gl_acct == FREIGHT_GL:
+            lines = [
+                Command.create(
+                    {
+                        "name": " ".join(
+                            part for part in ("Inland Freight", (row.get("InvoiceNo") or "").strip()) if part
+                        ),
+                        "quantity": 1.0,
+                        "price_unit": abs(amount),
+                        "account_id": account.id,
+                        "tax_ids": [Command.clear()],
+                        "is_imported": True,
+                    }
+                )
+            ]
+        else:
+            lines = _vendor_bill_lines(importer, context, index, account, number, amount, row)
+        move = _move(
             importer,
             f"legacy_erp_ininv_{_token(payable_id)}",
             {
@@ -421,48 +519,66 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number):
                 "invoice_date": (invoice_date or "")[:10] or False,
                 "invoice_origin": number,
                 "ref": (row.get("InvoiceNo") or payable_id).strip(),
-                "invoice_line_ids": _vendor_bill_lines(importer, context, index, material, number, amount, row),
+                "invoice_line_ids": lines,
             },
         )
+        documents["freight_bills" if gl_acct == FREIGHT_GL else "bills"].append(move.id)
 
 
 def _move(importer, xml_id, values):
+    """Create the document once. It stays in draft; settlement is not inferred from the source."""
     existing = _existing(importer, "account.move", xml_id)
     if existing is not None:
         return existing
     model = importer.env["account.move"].with_context(**_import_context())
     record = model.create(values)
     importer._write_identity_marker(model, xml_id, record)
-    _settle_historical(record)
     return record
 
 
-def _confirm_sales(importer, index, pending_sales, context):
-    del index
+def _confirm_sales(importer, pending_sales, context):
     orders = importer.env["sale.order"].browse(list(pending_sales)).exists()
-    drafts = orders.filtered(lambda order: order.state in ("draft", "sent"))
+    drafts = orders.filtered(lambda order: order.state in _OPEN_SALE_STATES)
     if drafts and "approved" in drafts._fields:
         drafts.write({"approved": True})
+    costs = context.get("costs") or {}
+    confirm_context = _confirm_context(context, costs)
     if drafts:
-        costs = context.get("costs") or {}
-        confirm = drafts.with_context(**_confirm_context(context, costs))
+        confirm = drafts.with_context(**confirm_context)
         try:
             with importer.env.cr.savepoint():
                 confirm.action_confirm()
         except Exception as exc:  # noqa: BLE001 - one blocked order must not drop the load
             _logger.info("ERP batch confirm failed (%s); confirming individually", type(exc).__name__)
             for order in drafts:
-                if order.state not in ("draft", "sent"):
+                if order.state not in _OPEN_SALE_STATES:
                     continue
                 try:
                     with importer.env.cr.savepoint():
-                        order.with_context(**_confirm_context(context, costs)).action_confirm()
+                        order.with_context(**confirm_context).action_confirm()
                 except Exception as one:  # noqa: BLE001 - keep the imported order even if confirm fails
                     _logger.info("ERP sale %s was not confirmed: %s", order.name, one)
+    # A worksheet added to an order confirmed in an earlier batch still needs its transaction.
+    confirmed = orders.filtered(lambda order: order.state == "sale")
+    if confirmed:
+        try:
+            with importer.env.cr.savepoint():
+                confirmed.with_context(**confirm_context)._compile_worksheet_transactions()
+        except Exception as exc:  # noqa: BLE001 - compile per order so one worksheet cannot drop the batch
+            _logger.info("ERP batch compile failed (%s); compiling individually", type(exc).__name__)
+            for order in confirmed:
+                try:
+                    with importer.env.cr.savepoint():
+                        order.with_context(**confirm_context)._compile_worksheet_transactions()
+                except Exception as one:  # noqa: BLE001 - keep the imported order even if compile fails
+                    _logger.info("ERP sale %s transaction was not compiled: %s", order.name, one)
     for order in orders:
         trailers = [item for item in pending_sales.get(order.id, []) if item]
         if trailers and order.picking_ids and "carrier_tracking_ref" in order.picking_ids._fields:
-            order.picking_ids.write({"carrier_tracking_ref": ", ".join(dict.fromkeys(trailers))})
+            reference = ", ".join(dict.fromkeys(trailers))
+            stale = order.picking_ids.filtered(lambda picking, ref=reference: picking.carrier_tracking_ref != ref)
+            if stale:
+                stale.write({"carrier_tracking_ref": reference})
 
 
 def _trailers(index, number) -> list[str]:
@@ -502,8 +618,11 @@ def _remember_carrier(importer, context, partner_by_cp, number, deliveries) -> N
 def _product(importer, context, grade_id, description):
     grade = (grade_id or "").strip() or "unspecified"
     cached = context["product_cache"].get(grade)
-    if cached:
+    # A product created inside a worksheet savepoint vanishes when that
+    # worksheet is rolled back; the cache must not hand out the dead record.
+    if cached and cached.exists():
         return cached
+    context["product_cache"].pop(grade, None)
     xml_id = f"legacy_erp_grade_{_token(grade)}"
     existing = _existing(importer, "product.product", xml_id)
     if existing is not None:
@@ -589,19 +708,35 @@ def _date(value):
     return text or False
 
 
-def _remember_salesperson(importer, context, number, buysell, worksheet_commission) -> None:
-    """Worksheet referrer, not the customer's current default rep."""
-    from odoo.addons.plasticos_partner_import.erp.mapping import sales_rep_name  # noqa: PLC0415
+def _remember_salesperson(importer, report, context, number, buysell) -> None:
+    """Worksheet commission recipient, not the customer's current default rep.
 
-    code, amount = worksheet_commission(buysell)
+    The recipient keeps the initials the worksheet stored. A former
+    representative with no user leaves the salesperson blank and is reported.
+    A second recipient with an amount is reported and written to the
+    transaction log; the transaction model holds one salesperson.
+    """
+    from odoo.addons.plasticos_partner_import.erp.mapping import SALES_REP_NAMES  # noqa: PLC0415
+    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        commission_recipients,
+        worksheet_commission,
+    )
+
+    code, amount, slots = worksheet_commission(buysell)
     context.setdefault("commission", {})[number] = amount
+    context.setdefault("commission_slots", {})[number] = slots
+    recipients = commission_recipients(slots)
+    if len(recipients) > 1:
+        report.anomaly("BuySell", number, f"two commission recipients: {', '.join(recipients)}")
     user_id = False
     if code:
-        name = sales_rep_name(code)
+        name = SALES_REP_NAMES.get(code)
         cache = context.setdefault("users_by_name", {})
         if name and name not in cache:
             cache[name] = importer._user_ids_by_name({name}).get(name) or False
         user_id = cache.get(name) if name else False
+        if not user_id:
+            report.anomaly("BuySell", number, f"commission recipient {code} has no user")
     context.setdefault("salesperson", {})[number] = user_id or False
 
 
@@ -612,77 +747,13 @@ def _confirm_context(context, costs) -> dict:
         "erp_other_by_origin": costs.get("other") or {},
         "erp_salesperson_by_origin": context.get("salesperson") or {},
         "erp_commission_by_origin": context.get("commission") or {},
+        "erp_commission_slots_by_origin": context.get("commission_slots") or {},
         "erp_note_by_origin": context.get("notes") or {},
         "erp_state_by_origin": context.get("states") or {},
         "erp_carrier_by_origin": context.get("carriers") or {},
+        "erp_order_day_by_origin": context.get("order_days") or {},
+        "erp_documents_by_origin": context.get("documents") or {},
     }
-
-
-def _settle_historical(move) -> None:
-    """Post the historical invoice and clear its open balance.
-
-    QuickBooks already settled these documents. A draft or open bill would sit
-    in the live vendor-bill queue. The offset lands on retained earnings, not
-    on Material Cost, and no payment is created.
-    """
-    posted = move.with_context(**_import_context())
-    if posted.state == "draft":
-        posted.action_post()
-    if posted.state != "posted" or posted.currency_id.is_zero(posted.amount_residual):
-        return
-    open_lines = posted.line_ids.filtered(
-        lambda line: line.account_id.account_type in ("asset_receivable", "liability_payable") and not line.reconciled
-    )
-    clearing = _clearing_account(posted.env)
-    journal = posted.env["account.journal"].search([("type", "=", "general")], limit=1)
-    if not open_lines or not clearing or not journal:
-        raise ValueError(f"historical move {posted.ref or posted.name} is still open")
-    for line in open_lines:
-        entry = (
-            posted.env["account.move"]
-            .with_context(**_import_context())
-            .create(
-                {
-                    "move_type": "entry",
-                    "date": posted.date,
-                    "ref": posted.ref or posted.name,
-                    "journal_id": journal.id,
-                    "line_ids": [
-                        Command.create(
-                            {
-                                "name": "Historical settlement",
-                                "account_id": line.account_id.id,
-                                "partner_id": line.partner_id.id,
-                                "debit": line.credit,
-                                "credit": line.debit,
-                            }
-                        ),
-                        Command.create(
-                            {
-                                "name": "Historical settlement",
-                                "account_id": clearing.id,
-                                "debit": line.debit,
-                                "credit": line.credit,
-                            }
-                        ),
-                    ],
-                }
-            )
-        )
-        entry.action_post()
-        account_id = line.account_id.id
-        (
-            line + entry.line_ids.filtered(lambda item, account_id=account_id: item.account_id.id == account_id)
-        ).reconcile()
-
-
-_RETAINED_EARNINGS_CODE = "999998"
-
-
-def _clearing_account(env):
-    accounts = env["account.account"].search([("account_type", "=", "equity_unaffected")])
-    chosen = accounts.filtered(lambda account: (account.code or "") == _RETAINED_EARNINGS_CODE)[:1]
-    return chosen or accounts[:1]
 
 
 def _import_context() -> dict:

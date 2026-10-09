@@ -9,16 +9,27 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "plasticos_partner_import"))
 
 from erp.native_orders import (  # noqa: E402
+    BASE_TRADE,
+    CARRIED_BY_PAYABLES,
+    CUSTOMER_CREDIT,
+    CUSTOMER_DEBIT,
+    SETTLEMENT_EVIDENCE,
+    UNAPPROVED,
+    commission_recipients,
     freight_vendor_id,
     header_for_line,
     incoterm_code,
+    ledger_adjustment_kind,
     newest_numbers,
     payable_matches_purchase,
     purchase_bill_lines,
     sale_note,
+    selected_worksheets,
     unit_price,
+    with_worksheet,
     worksheet_commission,
     worksheet_log,
+    worksheet_numbers,
     worksheet_outcome,
 )
 
@@ -130,14 +141,70 @@ def test_newest_numbers_keeps_the_highest_worksheet_numbers():
     assert newest_numbers(["3", "1"], None) == ["3", "1"]
 
 
-def test_worksheet_commission_uses_the_filled_slot_and_reassigns_former_reps():
-    code, amount = worksheet_commission(
+def test_selected_worksheets_keeps_the_pinned_carrier_chargeback():
+    selected = selected_worksheets(["58699", "60400", "60739"], 1)
+    assert selected == ["60739", "58699"]
+    assert selected_worksheets(["60400"], 1) == ["60400"]
+
+
+def test_worksheet_commission_uses_the_slot_that_carries_the_amount():
+    code, amount, slots = worksheet_commission(
         {"ReferrerNo1": None, "ReferrerNo2": "TF", "Commission1": "0", "Commission2": "168.28"}
     )
     assert code == "TF"
     assert amount == pytest.approx(168.28)
-    code, amount = worksheet_commission(
-        {"ReferrerNo1": "JB", "ReferrerNo2": "TF", "Commission1": "10", "Commission2": "5"}
+    assert slots == [{"slot": "2", "code": "TF", "amount": pytest.approx(168.28)}]
+    # A named slot with no amount yields to the slot that was paid (2026 pattern: IB 0 / LR amount).
+    code, amount, slots = worksheet_commission(
+        {"ReferrerNo1": "IB", "ReferrerNo2": "LR", "Commission1": "0", "Commission2": "75.5"}
     )
-    assert code == "MM"
-    assert amount == pytest.approx(15)
+    assert code == "LR"
+    assert amount == pytest.approx(75.5)
+    assert commission_recipients(slots) == ["LR"]
+
+
+def test_worksheet_commission_keeps_the_historical_recipient_and_both_paid_slots():
+    # A former representative is the historical recipient; the account reassignment is not applied.
+    code, amount, slots = worksheet_commission(
+        {"ReferrerNo1": "JB", "ReferrerNo2": None, "Commission1": "10", "Commission2": None}
+    )
+    assert code == "JB"
+    assert amount == pytest.approx(10)
+    # Two recipients each with an amount (worksheet 54119: GS 389.19 / TF 50).
+    code, amount, slots = worksheet_commission(
+        {"ReferrerNo1": "GS", "ReferrerNo2": "TF", "Commission1": "389.19", "Commission2": "50"}
+    )
+    assert code == "GS"
+    assert amount == pytest.approx(439.19)
+    assert commission_recipients(slots) == ["GS", "TF"]
+    # No slot at all.
+    code, amount, slots = worksheet_commission({"ReferrerNo1": None, "ReferrerNo2": "", "Commission1": None})
+    assert (code, amount, slots) == ("", 0.0, [])
+    # Named slot, nothing paid: the name is still the recipient, the amount is zero.
+    code, amount, slots = worksheet_commission({"ReferrerNo1": "IB", "Commission1": "0"})
+    assert (code, amount) == ("IB", 0.0)
+    assert commission_recipients(slots) == []
+
+
+def test_ledger_rows_route_by_source_adjustment_type_and_approval():
+    assert ledger_adjustment_kind({"Source": "B"}) == BASE_TRADE
+    credit = {"Source": "A", "AdjType": "S", "AdjApproved": "Y", "Sale": "-382.90", "LedgerID": "5694"}
+    assert ledger_adjustment_kind(credit) == CUSTOMER_CREDIT
+    debit = {"Source": "A", "AdjType": "S", "AdjApproved": "Y", "Sale": "14.06"}
+    assert ledger_adjustment_kind(debit) == CUSTOMER_DEBIT
+    assert ledger_adjustment_kind({"Source": "A", "AdjType": "P", "AdjApproved": "Y", "Cost": "-9366.52"}) == (
+        CARRIED_BY_PAYABLES
+    )
+    assert ledger_adjustment_kind({"Source": "A", "AdjType": "S", "AdjApproved": "N", "Sale": "-5"}) == UNAPPROVED
+    assert ledger_adjustment_kind({"Source": "A", "AdjType": "S", "Sale": "-5"}) == UNAPPROVED
+    assert ledger_adjustment_kind({"Source": "D", "AdjType": "S", "AdjApproved": "Y"}) == SETTLEMENT_EVIDENCE
+    assert ledger_adjustment_kind({"Source": "F", "AdjType": "S", "AdjApproved": "Y"}) == SETTLEMENT_EVIDENCE
+
+
+def test_worksheet_origin_lists_every_worksheet_once():
+    assert worksheet_numbers("") == []
+    assert worksheet_numbers("54839") == ["54839"]
+    assert with_worksheet("", "54840") == "54840"
+    assert with_worksheet("54840", "54839") == "54839, 54840"
+    assert with_worksheet("54839, 54840", "54840") == "54839, 54840"
+    assert worksheet_numbers("54839, 54840") == ["54839", "54840"]
