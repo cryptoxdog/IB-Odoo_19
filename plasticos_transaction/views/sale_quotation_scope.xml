@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- CieTrade has no quotes. A confirmed sale order is a sales order.
+    <!-- The source ERP has no quotes. A confirmed sale order is a sales order.
          Odoo 19 leaves these actions unfiltered, so confirmed orders also
          open under Quotations. Keep that menu to draft and sent only. -->
     <record id="sale.action_quotations_with_onboarding" model="ir.actions.act_window">
