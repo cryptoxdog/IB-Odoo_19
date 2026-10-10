@@ -29,7 +29,8 @@ def test_form_groups_are_snapshot_freight_and_material():
     assert 'string="Delivery Order" name="delivery_order"' in form
     assert "Recoveries" not in form
     assert 'name="purchase_order_ids" widget="many2many_tags_open"' in form
-    assert 'name="net_margin" class="o_plasticos_net_margin"' in form
+    net_margin = _section(form, '<field name="net_margin"', "/>")
+    assert 'class="o_plasticos_net_margin"' in net_margin
 
     snapshot = _section(form, 'name="profit_snapshot"', "</group>")
     expected = [
@@ -117,10 +118,19 @@ def test_margin_banners_are_gone_and_ux_keeps_list_search_helpers():
     assert "'group_by': 'carrier_id'" in ux
 
 
-def test_net_margin_styling_rides_the_existing_asset():
+def test_net_margin_colour_follows_its_sign():
+    # F232-1: a negative net margin must not render green. The sign-aware colour comes
+    # from Odoo's field decorations (text-success / text-danger); zero stays neutral
+    # because neither expression is true at 0. No unconditional colour rule remains.
+    form = FORM.read_text()
+    net_margin = _section(form, '<field name="net_margin"', "/>")
+    assert 'decoration-success="net_margin > 0"' in net_margin
+    assert 'decoration-danger="net_margin &lt; 0"' in net_margin  # parsed by Odoo as net_margin < 0
+    assert "decoration-success" not in _section(form, 'name="profit_snapshot"', 'name="net_margin"')
     scss = SCSS.read_text()
-    assert ".o_plasticos_net_margin" in scss
-    assert "--bs-success-text-emphasis" in scss
+    assert "o_plasticos_net_margin" not in scss
+    assert "bs-success" not in scss
+    assert ".o_field_widget.o_field_many2many_tags_open .o_tag" in scss  # clickable tags unchanged
 
 
 def test_dependent_views_target_the_new_groups():

@@ -1,11 +1,3 @@
-// Same green as the removed margin banner (Bootstrap alert-success).
-.o_form_view .o_wrap_field:has(.o_plasticos_net_margin) {
-    .o_form_label,
-    .o_field_widget {
-        color: var(--bs-success-text-emphasis);
-    }
-}
-
 .o_field_widget.o_field_many2many_tags_open .o_tag {
     cursor: pointer;
 

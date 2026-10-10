@@ -55,7 +55,15 @@ class TestTransactionFormUi(TransactionCase):
             ],
         )
         self.assertEqual(snapshot.xpath("./field[@name='purchase_cost_total']")[0].get("string"), "Material Cost")
-        self.assertIn("o_plasticos_net_margin", snapshot.xpath("./field[@name='net_margin']")[0].get("class", ""))
+        net_margin = snapshot.xpath("./field[@name='net_margin']")[0]
+        self.assertIn("o_plasticos_net_margin", net_margin.get("class", ""))
+        # F232-1: sign-aware colour survives view post-processing; the renderer maps these
+        # to text-success / text-danger (web/static/src/views/utils.js getClassNameFromDecoration).
+        self.assertEqual(net_margin.get("decoration-success"), "net_margin > 0")
+        self.assertEqual(net_margin.get("decoration-danger"), "net_margin < 0")
+        for name in ("revenue_total", "purchase_cost_total", "freight_cost_total", "cost_total", "gross_margin"):
+            field = snapshot.xpath(f"./field[@name='{name}']")[0]
+            self.assertFalse([a for a in field.attrib if a.startswith("decoration-")], name)
         # gross_margin is shown once; the former banners and the gross-margin stat are gone.
         self.assertEqual(len(self.form.xpath("//field[@name='gross_margin']")), 1)
         self.assertFalse(self.form.xpath("//div[contains(@class, 'alert-success')]"))

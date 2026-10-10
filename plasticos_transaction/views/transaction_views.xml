@@ -155,7 +155,12 @@
                             <field name="cost_total"/>
                             <field name="gross_margin"/>
                             <field name="commission_amount" string="Commission"/>
-                            <field name="net_margin" class="o_plasticos_net_margin"/>
+                            <!-- Sign-aware colour: the renderer turns these into text-success /
+                                 text-danger on the field; zero stays neutral. -->
+                            <field name="net_margin"
+                                   class="o_plasticos_net_margin"
+                                   decoration-success="net_margin > 0"
+                                   decoration-danger="net_margin &lt; 0"/>
                         </group>
                     </group>
                     <group>
