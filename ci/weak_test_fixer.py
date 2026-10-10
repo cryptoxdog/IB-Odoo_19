@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Scan assertion-free tests and suggest fix templates.
 
-Sole assertion-quality owner. Walks every ``tests/test_*.py`` the extended
-audit walks, including addon trees, and skips the same non-addon directories.
+Sole assertion-quality owner. Walks every ``test_*.py`` at any depth beneath a
+``tests/`` directory, in the repository tree and in addon trees, and skips the
+same non-addon directories as the extended audit.
 Counts bare ``assert``, unittest ``assert*``, ``pytest.raises`` /
 ``assertRaises``, ``raise AssertionError(...)``, and assertion-named helpers
 as evidence. A ``check_``, ``_check_``, ``validate_``, ``_run_``, or ``_safe_``
@@ -150,23 +151,30 @@ class WeakTestFixer:
         return suggestions
 
     def iter_test_files(self):
-        """Yield ``tests/test_*.py`` files the extended audit would walk."""
+        """Yield every ``test_*.py`` at any depth beneath a ``tests/`` directory.
+
+        Covers the repository ``tests/`` tree and addon ``tests/`` trees,
+        including nested suites such as ``tests/contracts/``. Skips are judged
+        on the path relative to ``root_dir`` so the checkout location never
+        hides the population.
+        """
         if not self.root_dir.is_dir():
             return
         skip_parts, skip_path = _audit_skip_parts()
+        pruned = skip_parts | SKIP_PARTS
         found: list[Path] = []
         for dirpath, dirnames, filenames in os.walk(self.root_dir):
-            dirnames[:] = [name for name in dirnames if name not in skip_parts]
-            current = Path(dirpath)
-            if current.name != "tests" or skip_path(current):
+            dirnames[:] = [name for name in dirnames if name not in pruned]
+            relative_dir = Path(dirpath).relative_to(self.root_dir)
+            if "tests" not in relative_dir.parts:
                 continue
             for name in filenames:
                 if not (name.startswith("test_") and name.endswith(".py")):
                     continue
-                path = current / name
-                if _is_skipped(path) or skip_path(path):
+                relative = relative_dir / name
+                if _is_skipped(relative) or skip_path(relative):
                     continue
-                found.append(path)
+                found.append(self.root_dir / relative)
         yield from sorted(found)
 
 
@@ -194,7 +202,7 @@ def main() -> int:
         print(f"⚠️  {total_weak} assertion-free test(s) in {files_with_weak} file(s)")
         print("   (advisory — does not fail the gate)")
         return 0
-    print("✅ No assertion-free tests under tests/")
+    print("✅ No assertion-free tests in any tests/ tree")
     return 0
 
 
