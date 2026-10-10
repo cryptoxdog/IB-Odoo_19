@@ -79,3 +79,133 @@ def test_bare_sudo_is_flagged(tmp_path: Path):
         """,
     )
     assert [item["line"] for item in _findings(tmp_path)] == [3]
+
+
+def test_hash_inside_string_is_not_a_comment(tmp_path: Path):
+    _write(
+        tmp_path,
+        """
+        def find(self):
+            return self.env["res.partner"].sudo().search([("name", "=", "#internal")])
+        """,
+    )
+    assert [item["line"] for item in _findings(tmp_path)] == [3]
+
+
+def test_generic_comment_is_not_a_justification(tmp_path: Path):
+    _write(
+        tmp_path,
+        """
+        def read_param(self):
+            return self.env["ir.config_parameter"].sudo()  # noqa
+        """,
+    )
+    assert [item["line"] for item in _findings(tmp_path)] == [3]
+
+
+def test_empty_marker_is_not_a_justification(tmp_path: Path):
+    _write(
+        tmp_path,
+        """
+        def read_param(self):
+            return self.env["ir.config_parameter"].sudo()  # sudo:
+        """,
+    )
+    assert [item["line"] for item in _findings(tmp_path)] == [3]
+
+
+def test_placeholder_marker_is_not_a_justification(tmp_path: Path):
+    _write(
+        tmp_path,
+        """
+        def read_param(self):
+            a = self.env["ir.config_parameter"].sudo()  # sudo: justified
+            b = self.env["ir.config_parameter"].sudo()  # sudo: TODO
+            return a, b
+        """,
+    )
+    assert [item["line"] for item in _findings(tmp_path)] == [3, 4]
+
+
+def test_substantive_marker_passes_documentation_check(tmp_path: Path):
+    _write(
+        tmp_path,
+        """
+        def read_param(self):
+            a = self.env["ir.config_parameter"].sudo()  # sudo: narrow documented boundary
+            b = self.env["plasticos.x"].sudo().get_config()  # cron-sudo-justification: config read
+            return a, b
+        """,
+    )
+    assert _findings(tmp_path) == []
+
+
+def test_sudo_text_in_string_or_comment_is_not_elevation(tmp_path: Path):
+    _write(
+        tmp_path,
+        """
+        def describe(self):
+            # call .sudo() only after the guard
+            note = "never use .sudo() here"
+            doc = '''self.sudo().write({})'''
+            return note, doc
+        """,
+    )
+    assert _findings(tmp_path) == []
+
+
+def test_multiline_chain_with_same_line_justification_passes(tmp_path: Path):
+    _write(
+        tmp_path,
+        """
+        def read_param(self):
+            return (
+                self.env["ir.config_parameter"]
+                .sudo()  # sudo: settings-admin parameter store
+                .get_param("plasticos.example")
+            )
+        """,
+    )
+    assert _findings(tmp_path) == []
+
+
+def test_justification_on_a_later_chain_line_does_not_count(tmp_path: Path):
+    _write(
+        tmp_path,
+        """
+        def read_param(self):
+            return (
+                self.env["ir.config_parameter"]
+                .sudo()
+                .get_param("plasticos.example")  # sudo: on the wrong line
+            )
+        """,
+    )
+    assert [item["line"] for item in _findings(tmp_path)] == [5]
+
+
+def test_finding_schema_is_preserved(tmp_path: Path):
+    _write(
+        tmp_path,
+        """
+        def read_param(self):
+            return self.env["ir.config_parameter"].sudo()
+        """,
+    )
+    (finding,) = _findings(tmp_path)
+    assert set(finding) == {"type", "severity", "file", "line", "code", "message", "fix"}
+    assert finding["type"] == "UNJUSTIFIED_SUDO"
+    assert finding["severity"] == "MODERATE"
+    assert finding["file"] == "models/sample.py"
+    assert "proof of authorization" in finding["fix"]
+
+
+def test_untokenizable_source_fails_closed(tmp_path: Path):
+    _write(
+        tmp_path,
+        """
+        def broken(self:
+            return self.env["x"].sudo()  # sudo: documented but file does not parse
+        """,
+    )
+    assert [item["line"] for item in _findings(tmp_path)] == [3]
