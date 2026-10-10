@@ -11,7 +11,10 @@ Counter semantics (documented, honest accounting):
   of rows already counted in their table and is not added again).
 * ``records_rejected`` — rows refused (blank required values) plus unresolved
   source references and failed transactions: nothing that did not reach the DB.
-  Every unresolved entry is exactly one source row (the importer records a
+  In the ``transactions`` bucket a rejected row is a worksheet that compiled no
+  ``plasticos.transaction``; its purchase documents may still have been
+  realized on their own identity (the run census names it), but it is never
+  counted as a created transaction. Every unresolved entry is exactly one source row (the importer records a
   parent failure once per suppressed child row, never once per parent), so
   ``len(unresolved)`` is a row count and the reconciliation below holds.
 * ``records_unchanged`` — identity-resolved rows that needed no write on replay

@@ -72,6 +72,14 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
         report.skip("transactions")
         report.skip("transaction_lines", len(index.detail_ids(number)))
     report.census = _census(index, context)
+    reconciliation = report.census["payables_reconciliation"]
+    if not reconciliation["closes"]:
+        report.anomaly(
+            "Payables",
+            "reconciliation",
+            f"{reconciliation['rows_seen']} rows seen != {reconciliation['billed_rows']} billed"
+            f" + {reconciliation['quarantined_rows']} quarantined",
+        )
     if commit and not dry_run:
         importer.env.cr.commit()
     return True
@@ -79,7 +87,10 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
 
 def _census(index, context) -> dict:
     """Source exceptions of this run, grouped by root cause with their dollar exposure."""
-    from odoo.addons.plasticos_partner_import.erp.native_orders import link_census  # noqa: PLC0415
+    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        link_census,
+        payables_reconciliation,
+    )
 
     census = link_census(index, context.get("link_failures") or [], context.get("worksheet_links") or {})
     drift = dict(context.get("price_drift") or _new_price_drift(context.get("price_digits")))
@@ -101,6 +112,12 @@ def _census(index, context) -> dict:
         key: {"rows": tally["rows"], "worksheets": len(tally["worksheets"]), "amount": round(tally["amount"], 2)}
         for key, tally in sorted(tallies.items())
     }
+    quarantine = sorted(
+        (entry for entry in context.get("quarantine") or [] if entry["worksheet"] not in rejected),
+        key=lambda entry: (entry["worksheet"], entry["payable_id"]),
+    )
+    census["unresolved_bills"] = quarantine
+    census["payables_reconciliation"] = payables_reconciliation(context.get("expense_rows") or [], quarantine, rejected)
     census["worksheets_rejected"] = sorted(rejected)
     return census
 
@@ -158,6 +175,7 @@ def _load_context(importer) -> dict:
         "link_failures": [],
         "worksheet_links": {},
         "expense_rows": [],
+        "quarantine": [],
         "rejected": set(),
     }
 
@@ -223,7 +241,8 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
     if not sale_groups:
         # No native sale order can be compiled, so no transaction exists for the
         # worksheet. Its purchase documents and vendor bills are still realized
-        # on their own identity; nothing manufactures a sale order for it.
+        # on their own identity; nothing manufactures a sale order for it, and
+        # the worksheet is counted as a rejected transaction, never a created one.
         report.anomaly("BuySell", number, "no sale order link: purchase documents realized, no transaction compiled")
 
     trailers = _trailers(index, number)
@@ -267,7 +286,10 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
     documents["invoice"] = invoice.id if invoice is not None else False
     _customer_adjustments(importer, index, report, context, partner_by_cp, number, invoice, documents)
     _vendor_bills(importer, index, report, context, partner_by_cp, number, documents)
-    report.bump("transactions", "created" if fresh_document else "skipped")
+    if not sale_groups:
+        report.reject("transactions")
+    else:
+        report.bump("transactions", "created" if fresh_document else "skipped")
     for outcome in line_outcomes:
         if outcome == "rejected":
             report.bump("transaction_lines", "rejected")
@@ -594,6 +616,10 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
         EXPENSE_GL,
         FREIGHT_GL,
         MATERIAL_GL,
+        NOT_REALIZED,
+        PREPAY_OMITTED,
+        TRANSACTION_ONLY_COST,
+        UNBILLABLE,
     )
 
     material = context["material_account"]
@@ -607,28 +633,33 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
         amount = _qty(row.get("Amount"))
         if batch and batch in index.prepay_batches:
             _count_expense(context, "prepay_batch_omitted", number, amount)
-            report.anomaly("Payables", payable_id or number, "prepay batch omitted")
+            _quarantine(context, report, row, number, f"APBatchNo {batch} is a PrePay=1 batch", PREPAY_OMITTED)
             continue
         if gl_acct in EXPENSE_GL:
             # Handling (50300) and Equipment (50600) are not cost-of-goods
             # accounts in the mapping SSOT and have no seeded account, so the
             # amount is carried once as the transaction's other expenses. The
-            # bill identity the source holds is kept in the run evidence.
+            # bill itself is quarantined with its full source identity.
             costs["other"][number] = costs["other"].get(number, 0.0) + amount
             _count_expense(context, f"gl_{gl_acct}_as_other_expenses", number, amount)
-            report.anomaly(
-                "Payables",
-                payable_id or number,
-                f"GL {gl_acct} {amount:.2f} carried as other expenses; vendor {(row.get('CpID') or '').strip()}"
-                f" invoice {(row.get('InvoiceNo') or '').strip() or 'blank'} not realized as a bill",
+            _quarantine(
+                context,
+                report,
+                row,
+                number,
+                f"GL {gl_acct} has no native account in the crosswalk; amount carried as other expenses",
+                TRANSACTION_ONLY_COST,
             )
             continue
         if gl_acct not in (MATERIAL_GL, FREIGHT_GL):
             _count_expense(context, f"gl_{gl_acct or 'blank'}_not_realized", number, amount)
-            report.anomaly(
-                "Payables",
-                payable_id or number,
-                f"GL lookup {gl_acct or 'blank'} has no native account; {amount:.2f} not realized",
+            _quarantine(
+                context,
+                report,
+                row,
+                number,
+                f"GL lookup {gl_acct or 'blank'} resolves no native account; not realized, not counted",
+                NOT_REALIZED,
             )
             continue
         account = freight_account if gl_acct == FREIGHT_GL else material
@@ -636,9 +667,18 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
         if account is None or not journal or not partner_id or not payable_id or not amount:
             if gl_acct == FREIGHT_GL and amount:
                 costs["freight"][number] = costs["freight"].get(number, 0.0) + amount
-            reason = "no native account" if account is None else "no vendor, journal, or amount"
+            if account is None:
+                reason = f"native account for GL {gl_acct} is not seeded on this database"
+            elif not journal:
+                reason = "no purchase journal on this database"
+            elif not partner_id:
+                reason = f"vendor {(row.get('CpID') or '').strip() or 'blank'} is not an imported counterparty"
+            elif not payable_id:
+                reason = "blank PayableID"
+            else:
+                reason = "zero amount"
             _count_expense(context, f"gl_{gl_acct}_unbilled", number, amount)
-            report.anomaly("Payables", payable_id or number, f"GL lookup {gl_acct} {reason}; {amount:.2f}")
+            _quarantine(context, report, row, number, reason, UNBILLABLE)
             continue
         invoice_date = _date(row.get("InvoiceDt")) or _date(index.buysells.get(number, {}).get("OrderDt"))
         if gl_acct == FREIGHT_GL:
@@ -688,6 +728,20 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
 def _count_expense(context, bucket: str, number: str, amount: float) -> None:
     """One payable row's routing, tallied when the worksheet is not rolled back."""
     context["expense_rows"].append((number, bucket, amount))
+
+
+def _quarantine(context, report, row, number: str, reason: str, disposition: str) -> None:
+    """A source bill the import did not write, kept with its identity and reported."""
+    from odoo.addons.plasticos_partner_import.erp.native_orders import quarantined_payable  # noqa: PLC0415
+
+    entry = quarantined_payable(row, number, reason, disposition)
+    context["quarantine"].append(entry)
+    report.anomaly(
+        "Payables",
+        entry["payable_id"] or number,
+        f"{disposition}: {reason}; vendor {entry['vendor'] or 'blank'} invoice {entry['invoice_no'] or 'blank'}"
+        f" dated {entry['invoice_date'] or 'blank'} amount {entry['amount']:.2f} worksheet {number}",
+    )
 
 
 def _move(importer, xml_id, values):

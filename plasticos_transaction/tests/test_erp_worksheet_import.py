@@ -177,6 +177,8 @@ class TestErpWorksheetImport(TransactionCase):
             _payable("600002", "54839", CARRIER, "-25", "50200", "FRT-1-CR"),
             _payable("600003", "54839", VENDOR, "100", "50300", "HANDLING"),
             _payable("600004", "54839", VENDOR, "5000", "50100", "PREPAY", batch="PP-1"),
+            # A posted vendor invoice whose GL lookup is blank on the row and on its delivery item.
+            _payable("600009", "54839", VENDOR, "40", "", "PALLETS-9"),
         ]
         index.prepay_batches.add("PP-1")
         index.ledger_by_buysell["54839"] = [
@@ -323,15 +325,34 @@ class TestErpWorksheetImport(TransactionCase):
             self._marked("account.move", "legacy_erp_ledger_5696"), "unapproved adjustment is not a document"
         )
         self.assertFalse(self._marked("account.move", "legacy_erp_ledger_5697"), "discount row is settlement evidence")
+        self.assertFalse(self._marked("account.move", "legacy_erp_ininv_600009"), "blank-GL row is not a bill")
         details = {(item["table"], item["key"], item["detail"]) for item in report.anomalies}
-        self.assertIn(("Payables", "600004", "prepay batch omitted"), details)
         self.assertIn(("GPLedger", "5696", "unapproved adjustment omitted"), details)
         self.assertIn(("GPLedger", "5697", "Source D row is settlement evidence"), details)
         self.assertIn(
             (
                 "Payables",
                 "600003",
-                "GL 50300 100.00 carried as other expenses; vendor 2213 invoice HANDLING not realized as a bill",
+                "transaction_only_cost: GL 50300 has no native account in the crosswalk; amount carried as other"
+                " expenses; vendor 2213 invoice HANDLING dated 2022-04-01 amount 100.00 worksheet 54839",
+            ),
+            details,
+        )
+        self.assertIn(
+            (
+                "Payables",
+                "600009",
+                "not_realized: GL lookup blank resolves no native account; not realized, not counted;"
+                " vendor 2213 invoice PALLETS-9 dated 2022-04-01 amount 40.00 worksheet 54839",
+            ),
+            details,
+        )
+        self.assertIn(
+            (
+                "Payables",
+                "600004",
+                "prepay_omitted: APBatchNo PP-1 is a PrePay=1 batch; vendor 2213 invoice PREPAY dated 2022-04-01"
+                " amount 5000.00 worksheet 54839",
             ),
             details,
         )
@@ -339,7 +360,49 @@ class TestErpWorksheetImport(TransactionCase):
         self.assertEqual(payables["gl_50100_billed"], {"rows": 3, "worksheets": 1, "amount": 8826.48})
         self.assertEqual(payables["gl_50200_billed"], {"rows": 2, "worksheets": 1, "amount": 600.0})
         self.assertEqual(payables["gl_50300_as_other_expenses"], {"rows": 1, "worksheets": 1, "amount": 100.0})
+        self.assertEqual(payables["gl_blank_not_realized"], {"rows": 1, "worksheets": 1, "amount": 40.0})
         self.assertEqual(payables["prepay_batch_omitted"], {"rows": 1, "worksheets": 1, "amount": 5000.0})
+        # Every row the import did not write is quarantined with its full source identity.
+        quarantine = {entry["payable_id"]: entry for entry in report.census["unresolved_bills"]}
+        self.assertEqual(sorted(quarantine), ["600003", "600004", "600009"])
+        self.assertEqual(
+            quarantine["600009"],
+            {
+                "payable_id": "600009",
+                "worksheet": "54839",
+                "vendor": VENDOR,
+                "invoice_no": "PALLETS-9",
+                "invoice_date": "2022-04-01",
+                "amount": 40.0,
+                "gl": "",
+                "batch": "",
+                "reason": "GL lookup blank resolves no native account; not realized, not counted",
+                "disposition": "not_realized",
+            },
+        )
+        self.assertEqual(quarantine["600003"]["disposition"], "transaction_only_cost")
+        self.assertEqual(quarantine["600003"]["gl"], "50300")
+        self.assertEqual(quarantine["600004"]["disposition"], "prepay_omitted")
+        self.assertEqual(quarantine["600004"]["batch"], "PP-1")
+        # Billed rows plus quarantined rows account for every payable row of the worksheet.
+        reconciliation = report.census["payables_reconciliation"]
+        self.assertEqual(reconciliation["rows_seen"], 8)
+        self.assertEqual(reconciliation["billed_rows"], 5)
+        self.assertAlmostEqual(reconciliation["billed_amount"], 8826.48 + 600.0, places=2)
+        self.assertEqual(reconciliation["quarantined_rows"], 3)
+        self.assertAlmostEqual(reconciliation["quarantined_amount"], 5140.0, places=2)
+        self.assertEqual(
+            reconciliation["by_disposition"],
+            {
+                "not_realized": {"rows": 1, "amount": 40.0},
+                "prepay_omitted": {"rows": 1, "amount": 5000.0},
+                "transaction_only_cost": {"rows": 1, "amount": 100.0},
+            },
+        )
+        self.assertTrue(reconciliation["closes"])
+        self.assertNotIn("reconciliation", {item["key"] for item in report.anomalies})
+        # The blank-GL amount is in no economic total: not a bill, not other expenses.
+        self.assertAlmostEqual(tx.cost_total, 8826.48 + 600.0 + 100.0, places=2)
         self.assertEqual(report.census["price_precision"]["lines"], 0, "0.51/lb and 0.46/lb store exactly")
         self.assertEqual(report.census["worksheets"]["without_sale_link"]["worksheets"], 0)
 
@@ -492,7 +555,13 @@ class TestErpWorksheetImport(TransactionCase):
         bill = self._marked("account.move", "legacy_erp_ininv_700021")
         self.assertEqual(bill.move_type, "in_invoice")
         self.assertAlmostEqual(bill.amount_total, 1000.0, places=2)
-        self.assertEqual(report.counts["transactions"]["rejected"], 0)
+        # No transaction exists for either worksheet, so neither is a created transaction.
+        self.assertEqual(report.counts["transactions"]["created"], 0)
+        self.assertEqual(report.counts["transactions"]["skipped"], 0)
+        self.assertEqual(report.counts["transactions"]["rejected"], 2)
+        self.assertEqual(report.counts["transaction_lines"]["created"], 2, "the purchase-side lines were written")
+        self.assertEqual(report.census["payables_reconciliation"]["billed_rows"], 1)
+        self.assertTrue(report.census["payables_reconciliation"]["closes"])
         details = {(item["table"], item["key"], item["detail"]) for item in report.anomalies}
         self.assertIn(("WKSDetail", "13800", "sale link: blank line key"), details)
         self.assertIn(("WKSDetail", "13801", "sale link: SO 8022 matched 0 headers (exists as PO)"), details)
@@ -525,7 +594,10 @@ class TestErpWorksheetImport(TransactionCase):
         replay = self._run(index)
         self.assertEqual(self._snapshot(), before)
         self.assertEqual(replay.counts["transactions"]["created"], 0)
+        self.assertEqual(replay.counts["transactions"]["rejected"], 2, "a replay reports the same outcome")
+        self.assertEqual(replay.counts["transaction_lines"]["created"], 0)
         self.assertEqual(replay.census["worksheets"]["without_sale_link"]["worksheets"], 2)
+        self.assertTrue(replay.census["payables_reconciliation"]["closes"])
 
     def test_worksheet_53797_nets_to_zero_revenue_and_negative_margin(self):
         index = self._index()

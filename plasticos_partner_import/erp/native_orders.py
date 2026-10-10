@@ -37,9 +37,13 @@ __all__ = [
     "HANDLING_GL",
     "LINK_REASON_CLASSES",
     "MATERIAL_GL",
+    "NOT_REALIZED",
+    "PREPAY_OMITTED",
     "SETTLEMENT_EVIDENCE",
     "SHORT_TON_LB",
+    "TRANSACTION_ONLY_COST",
     "UNAPPROVED",
+    "UNBILLABLE",
     "WORKSHEET_SEPARATOR",
     "amount_drift",
     "commission_recipients",
@@ -54,7 +58,9 @@ __all__ = [
     "newest_numbers",
     "selected_worksheets",
     "payable_matches_purchase",
+    "payables_reconciliation",
     "purchase_bill_lines",
+    "quarantined_payable",
     "sale_note",
     "with_worksheet",
     "worksheet_log",
@@ -226,6 +232,64 @@ def _worksheet_view(index, numbers: list[str], worksheet_links: dict, side: str)
     view["years"] = dict(sorted(view["years"].items()))
     view["status"] = dict(sorted(view["status"].items()))
     return view
+
+
+# Where a source payable row ended up when it was not written as a native bill.
+TRANSACTION_ONLY_COST = "transaction_only_cost"  # amount carried on the transaction, no document
+NOT_REALIZED = "not_realized"  # no account owner: nothing written, nothing counted
+PREPAY_OMITTED = "prepay_omitted"  # historical vendor advance, excluded by rule
+UNBILLABLE = "unbillable"  # account owner exists, but no vendor, journal, or amount
+
+
+def quarantined_payable(row: dict, number: str, reason: str, disposition: str) -> dict:
+    """One source bill the import did not realize, with everything needed to act on it.
+
+    The row keeps its identity (``PayableID``), vendor, invoice reference,
+    date, amount, GL lookup, batch and worksheet, plus the precise reason and
+    where its amount went. Nothing here is a native document.
+    """
+    return {
+        "payable_id": (row.get("PayableID") or "").strip(),
+        "worksheet": number,
+        "vendor": (row.get("CpID") or "").strip(),
+        "invoice_no": (row.get("InvoiceNo") or "").strip(),
+        "invoice_date": ((row.get("InvoiceDt") or "").strip())[:10],
+        "amount": round(_amount(row.get("Amount")), 2),
+        "gl": (row.get("GLAcct") or "").strip(),
+        "batch": (row.get("APBatchNo") or "").strip(),
+        "reason": reason,
+        "disposition": disposition,
+    }
+
+
+def payables_reconciliation(expense_rows: list[tuple[str, str, float]], quarantine: list[dict], rejected) -> dict:
+    """Every payable row of a realized worksheet is a native bill or a quarantined row, never both.
+
+    ``expense_rows`` carry ``(worksheet, bucket, amount)`` for every row the
+    importer routed; ``quarantine`` carries the rows it did not bill. Rows of
+    worksheets that were rolled back are left out of both sides. The result
+    closes only when the billed rows plus the quarantined rows account for
+    every row seen, so an unrealized bill can never read as imported.
+    """
+    kept = [(number, bucket, amount) for number, bucket, amount in expense_rows if number not in rejected]
+    quarantined = [entry for entry in quarantine if entry["worksheet"] not in rejected]
+    billed = [item for item in kept if item[1].endswith("_billed")]
+    by_disposition: dict[str, dict] = {}
+    for entry in quarantined:
+        tally = by_disposition.setdefault(entry["disposition"], {"rows": 0, "amount": 0.0})
+        tally["rows"] += 1
+        tally["amount"] += entry["amount"]
+    for tally in by_disposition.values():
+        tally["amount"] = round(tally["amount"], 2)
+    return {
+        "rows_seen": len(kept),
+        "billed_rows": len(billed),
+        "billed_amount": round(sum(item[2] for item in billed), 2),
+        "quarantined_rows": len(quarantined),
+        "quarantined_amount": round(sum(entry["amount"] for entry in quarantined), 2),
+        "by_disposition": dict(sorted(by_disposition.items())),
+        "closes": len(kept) == len(billed) + len(quarantined),
+    }
 
 
 def native_quantity(weight: str | None, uom_code: str | None) -> tuple[float, str]:

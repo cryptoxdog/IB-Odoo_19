@@ -13,9 +13,13 @@ from erp.native_orders import (  # noqa: E402
     CARRIED_BY_PAYABLES,
     CUSTOMER_CREDIT,
     CUSTOMER_DEBIT,
+    NOT_REALIZED,
+    PREPAY_OMITTED,
     SETTLEMENT_EVIDENCE,
     SHORT_TON_LB,
+    TRANSACTION_ONLY_COST,
     UNAPPROVED,
+    UNBILLABLE,
     amount_drift,
     commission_recipients,
     freight_vendor_id,
@@ -27,7 +31,9 @@ from erp.native_orders import (  # noqa: E402
     native_quantity,
     newest_numbers,
     payable_matches_purchase,
+    payables_reconciliation,
     purchase_bill_lines,
+    quarantined_payable,
     sale_note,
     selected_worksheets,
     unit_price,
@@ -350,3 +356,81 @@ def test_amount_drift_is_the_cents_the_stored_line_cannot_reproduce():
     assert amount_drift("1.00", 3.0, 1 / 3, 2) == pytest.approx(-0.01)
     assert amount_drift("0.99", 3.0, 0.33, 2) == 0.0
     assert amount_drift("1.00", 3.0, 1 / 3, None) == 0.0
+
+
+# ---------------------------------------------------------------------------
+# Unresolved source bills: quarantine and reconciliation
+# ---------------------------------------------------------------------------
+def test_quarantined_payable_keeps_the_full_source_identity():
+    row = {
+        "PayableID": " 502470 ",
+        "BuySellNo": "51746",
+        "CpID": "1380 ",
+        "InvoiceNo": "4754 / 51746",
+        "InvoiceDt": "2019-03-07 00:00:00",
+        "Amount": "275",
+        "GLAcct": "50300",
+        "APBatchNo": "103189",
+    }
+    entry = quarantined_payable(row, "51746", "GL 50300 has no native account", TRANSACTION_ONLY_COST)
+    assert entry == {
+        "payable_id": "502470",
+        "worksheet": "51746",
+        "vendor": "1380",
+        "invoice_no": "4754 / 51746",
+        "invoice_date": "2019-03-07",
+        "amount": 275.0,
+        "gl": "50300",
+        "batch": "103189",
+        "reason": "GL 50300 has no native account",
+        "disposition": TRANSACTION_ONLY_COST,
+    }
+    blank = quarantined_payable({"Amount": None, "GLAcct": None}, "1", "no GL", NOT_REALIZED)
+    assert blank["payable_id"] == "" and blank["gl"] == "" and blank["amount"] == 0.0
+    assert {TRANSACTION_ONLY_COST, NOT_REALIZED, PREPAY_OMITTED, UNBILLABLE} == {
+        "transaction_only_cost",
+        "not_realized",
+        "prepay_omitted",
+        "unbillable",
+    }
+
+
+def test_payables_reconciliation_closes_only_when_every_row_is_billed_or_quarantined():
+    rows = [
+        ("54839", "gl_50100_billed", 9366.52),
+        ("54839", "gl_50100_billed", -9366.52),
+        ("54839", "gl_50200_billed", 625.0),
+        ("54839", "gl_50300_as_other_expenses", 100.0),
+        ("54839", "gl_blank_not_realized", 40.0),
+        ("54839", "prepay_batch_omitted", 5000.0),
+        ("58001", "gl_50100_billed", 400.0),  # rolled back later: excluded from both sides
+    ]
+    quarantine = [
+        {"worksheet": "54839", "payable_id": "600003", "amount": 100.0, "disposition": TRANSACTION_ONLY_COST},
+        {"worksheet": "54839", "payable_id": "600009", "amount": 40.0, "disposition": NOT_REALIZED},
+        {"worksheet": "54839", "payable_id": "600004", "amount": 5000.0, "disposition": PREPAY_OMITTED},
+    ]
+    result = payables_reconciliation(rows, quarantine, {"58001"})
+    assert result["rows_seen"] == 6
+    assert result["billed_rows"] == 3
+    assert result["billed_amount"] == pytest.approx(625.0)
+    assert result["quarantined_rows"] == 3
+    assert result["quarantined_amount"] == pytest.approx(5140.0)
+    assert result["by_disposition"] == {
+        NOT_REALIZED: {"rows": 1, "amount": 40.0},
+        PREPAY_OMITTED: {"rows": 1, "amount": 5000.0},
+        TRANSACTION_ONLY_COST: {"rows": 1, "amount": 100.0},
+    }
+    assert result["closes"] is True
+    # A row that was neither billed nor quarantined cannot read as imported.
+    short = payables_reconciliation(rows, quarantine[:2], {"58001"})
+    assert short["closes"] is False
+    assert payables_reconciliation([], [], set()) == {
+        "rows_seen": 0,
+        "billed_rows": 0,
+        "billed_amount": 0.0,
+        "quarantined_rows": 0,
+        "quarantined_amount": 0.0,
+        "by_disposition": {},
+        "closes": True,
+    }
