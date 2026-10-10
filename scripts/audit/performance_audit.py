@@ -60,90 +60,283 @@ class PerformanceAudit:
         return errors
 
     def check_unbounded_searches(self):
-        """Find search() calls without limit that could return huge recordsets.
+        """Flag ORM search() calls whose intent is not a proven bound.
 
-        Excludes legitimate patterns:
-        - Searches with 'in' operator (already bounded by input list)
-        - Searches for small reference tables (country, currency, etc.)
-        - Searches used for duplicate/validation checking
-        - Searches assigned to variables ending in _ids, _by_*, etc. (batch lookups)
-        - Searches in batch query context (preceded by comment about batch)
+        A limit anywhere on the call, a positive identity predicate, a
+        same-expression projection, or a search that defines a returned
+        domain is retained. Spelling (variable suffixes, a nearby batch
+        comment, any ``in`` operator, a table-name list) is not intent.
         """
+        import ast
+
         errors = []
-
-        # Models that typically have small, bounded result sets
-        SMALL_TABLES = {
-            "res.country",
-            "res.currency",
-            "res.lang",
-            "res.company",
-            "uom.uom",
-            "uom.category",
-            "product.category",
-            "ir.model",
-            "ir.model.fields",
-            "ir.module.module",
-            "plasticos.material.form",
-            "plasticos.source.type",
-            "plasticos.document.tag",
-            "plasticos.document.rule",
-        }
-
         for py_file in self.root_dir.rglob("models/*.py"):
-            if skip_path(py_file):
+            if skip_path(py_file) or ".venv" in py_file.parts or "venv" in py_file.parts:
                 continue
-            # Skip virtual environments
-            if ".venv" in str(py_file) or "venv" in str(py_file):
+            try:
+                source = py_file.read_text(encoding="utf-8")
+                tree = ast.parse(source)
+            except (OSError, SyntaxError, UnicodeError):
                 continue
-
-            with open(py_file, encoding="utf-8") as f:
-                lines = f.readlines()
-
-            for line_num, line in enumerate(lines, 1):
-                if ".search(" not in line or "limit=" in line:
-                    continue
-
-                # Skip if it's a count or boolean check
-                if "len(" in line or "if " in line or "not " in line:
-                    continue
-
-                # Skip if using 'in' operator (bounded by input list)
-                if '"in"' in line or "'in'" in line or ", in," in line.lower():
-                    continue
-
-                # Skip searches on small reference tables
-                is_small_table = False
-                for table in SMALL_TABLES:
-                    if f'["{table}"]' in line or f"['{table}']" in line:
-                        is_small_table = True
-                        break
-                if is_small_table:
-                    continue
-
-                # Skip batch lookup patterns (variable names suggest bounded use)
-                if re.search(r"(\w+_by_\w+|_ids|_map|_dict)\s*=", line):
-                    continue
-
-                # Skip if preceded by batch query comment (within 3 lines)
-                context_start = max(0, line_num - 4)
-                context = "".join(lines[context_start:line_num])
-                if "batch" in context.lower() or "Batch" in context:
-                    continue
-
-                # Skip duplicate/validation checks
-                if "duplicate" in line.lower() or "existing" in line.lower():
-                    continue
-
+            lines = source.splitlines()
+            for call in _unbounded_search_calls(tree):
+                line_num = call.lineno
+                code = lines[line_num - 1].strip() if 0 < line_num <= len(lines) else ""
                 errors.append(
                     {
                         "type": "UNBOUNDED_SEARCH",
                         "severity": "MODERATE",
                         "file": str(py_file.relative_to(self.root_dir)),
                         "line": line_num,
-                        "code": line.strip(),
-                        "message": "search() without limit may return huge recordset",
-                        "fix": "Add limit parameter or use search_count()",
+                        "code": code,
+                        "message": "search() has no proven bound for its intent",
+                        "fix": ("Match the search to its intent. Do not add limit=1 to silence this finding."),
                     }
                 )
-
         return errors
+
+
+def _unbounded_search_calls(tree):
+    """ORM ``search()`` calls that are not a proven complete or bounded intent."""
+    import ast
+
+    found = []
+
+    def visit(node, aliases):
+        for child in ast.iter_child_nodes(node):
+            child._unbounded_parent = node
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            local = aliases | _model_aliases(node)
+            for child in node.body:
+                visit(child, local)
+            return
+        if isinstance(node, ast.ClassDef):
+            for child in node.body:
+                visit(child, aliases)
+            return
+        if isinstance(node, ast.Call) and _is_exact_search(node) and _is_orm_owner(node, aliases):
+            if not _retains_search(node, _enclosing_function(tree, node)):
+                found.append(node)
+        for child in ast.iter_child_nodes(node):
+            visit(child, aliases)
+
+    visit(tree, frozenset())
+    return found
+
+
+def _enclosing_function(tree, call):
+    import ast
+
+    owner = None
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and _contains(node, call):
+            if owner is None or _contains(owner, node):
+                owner = node
+    return owner
+
+
+def _contains(parent, child):
+    return (
+        parent.lineno < child.lineno or (parent.lineno == child.lineno and parent.col_offset <= child.col_offset)
+    ) and (
+        getattr(parent, "end_lineno", parent.lineno) > getattr(child, "end_lineno", child.lineno)
+        or (
+            getattr(parent, "end_lineno", parent.lineno) == getattr(child, "end_lineno", child.lineno)
+            and getattr(parent, "end_col_offset", 0) >= getattr(child, "end_col_offset", 0)
+        )
+    )
+
+
+def _model_aliases(func):
+    import ast
+
+    aliases = set()
+    for node in ast.walk(func):
+        value = None
+        targets = []
+        if isinstance(node, ast.Assign):
+            value = node.value
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign):
+            value = node.value
+            targets = [node.target]
+        if _is_env_model(value):
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    aliases.add(target.id)
+    return aliases
+
+
+def _is_exact_search(call):
+    import ast
+
+    func = call.func
+    return isinstance(func, ast.Attribute) and func.attr == "search"
+
+
+def _unwrap_model(node):
+    import ast
+
+    while isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+        if node.func.attr not in {"sudo", "with_context", "with_user"}:
+            break
+        node = node.func.value
+    return node
+
+
+def _is_env_model(node):
+    import ast
+
+    node = _unwrap_model(node) if node is not None else None
+    return isinstance(node, ast.Subscript) and isinstance(node.value, ast.Attribute) and node.value.attr == "env"
+
+
+def _is_orm_owner(call, aliases):
+    import ast
+
+    owner = _unwrap_model(call.func.value)
+    if isinstance(owner, ast.Name) and (owner.id == "self" or owner.id in aliases):
+        return True
+    return _is_env_model(owner)
+
+
+def _retains_search(call, func):
+    if any(keyword.arg == "limit" for keyword in call.keywords):
+        return True
+    if _is_projection(call) or _defines_returned_domain(call, func):
+        return True
+    return _domain_has_identity(call, func)
+
+
+def _is_projection(call):
+    import ast
+
+    parent = getattr(call, "_unbounded_parent", None)
+    return isinstance(parent, ast.Attribute) and parent.attr == "mapped" and parent.value is call
+
+
+def _defines_returned_domain(call, func):
+    import ast
+
+    if func is None:
+        return False
+    names = set()
+    for node in ast.walk(func):
+        if isinstance(node, ast.Assign) and node.value is call:
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    names.add(target.id)
+    if not names:
+        return False
+    for node in ast.walk(func):
+        if not isinstance(node, ast.Return):
+            continue
+        for child in ast.walk(node):
+            if (
+                isinstance(child, ast.Attribute)
+                and child.attr == "ids"
+                and isinstance(child.value, ast.Name)
+                and child.value.id in names
+            ):
+                return True
+    return False
+
+
+def _domain_has_identity(call, func):
+    domain = None
+    for keyword in call.keywords:
+        if keyword.arg == "domain":
+            domain = keyword.value
+    if domain is None and call.args:
+        domain = call.args[0]
+    return _terms_have_identity(_domain_terms(domain, func, getattr(call, "lineno", 0)))
+
+
+def _domain_terms(domain, func, call_line):
+    import ast
+
+    if isinstance(domain, (ast.List, ast.Tuple)):
+        return list(domain.elts)
+    if isinstance(domain, ast.Name) and func is not None:
+        return _assigned_terms(func, domain.id, call_line)
+    return []
+
+
+def _assigned_terms(func, name, call_line):
+    import ast
+
+    terms = []
+
+    def visit(stmts):
+        for stmt in stmts:
+            if getattr(stmt, "lineno", 0) > call_line:
+                continue
+            if isinstance(stmt, ast.Assign):
+                for target in stmt.targets:
+                    if (
+                        isinstance(target, ast.Name)
+                        and target.id == name
+                        and isinstance(stmt.value, (ast.List, ast.Tuple))
+                    ):
+                        terms.clear()
+                        terms.extend(stmt.value.elts)
+            elif (
+                isinstance(stmt, ast.Expr)
+                and isinstance(stmt.value, ast.Call)
+                and isinstance(stmt.value.func, ast.Attribute)
+                and stmt.value.func.attr == "append"
+                and isinstance(stmt.value.func.value, ast.Name)
+                and stmt.value.func.value.id == name
+                and stmt.value.args
+                and stmt.lineno <= call_line
+            ):
+                terms.append(stmt.value.args[0])
+            for block in _nested_statements(stmt):
+                visit(block)
+
+    visit(func.body)
+    return terms
+
+
+def _nested_statements(stmt):
+    import ast
+
+    blocks = []
+    for name in ("body", "orelse", "finalbody"):
+        block = getattr(stmt, name, None)
+        if block and isinstance(block, list) and block and isinstance(block[0], ast.stmt):
+            blocks.append(block)
+    return blocks
+
+
+def _terms_have_identity(terms):
+    import ast
+
+    for term in terms:
+        if not isinstance(term, (ast.List, ast.Tuple)) or len(term.elts) < 3:
+            continue
+        field, operator = term.elts[0], term.elts[1]
+        if not (isinstance(field, ast.Constant) and isinstance(field.value, str)):
+            continue
+        if not (isinstance(operator, ast.Constant) and operator.value in {"=", "in"}):
+            continue
+        if not _is_explicit_value(term.elts[2]):
+            continue
+        if operator.value == "in":
+            return True
+        name = field.value
+        if name in {"id", "res_id"} or name.endswith("_id") or name.endswith("_ids"):
+            return True
+    return False
+
+
+def _is_explicit_value(node):
+    import ast
+
+    if isinstance(node, ast.Constant):
+        return False
+    if isinstance(node, (ast.Name, ast.Attribute, ast.Subscript, ast.Call)):
+        return True
+    if isinstance(node, (ast.List, ast.Tuple)):
+        return bool(node.elts) and all(_is_explicit_value(elt) for elt in node.elts)
+    return False

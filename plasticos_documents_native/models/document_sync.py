@@ -153,26 +153,36 @@ class DocumentSyncService(models.AbstractModel):
         not yet synced (e.g., if the create hook was bypassed).
         """
         NativeDoc = self.env["documents.document"]
-        unlinked = NativeDoc.search(
-            [
-                ("plasticos_doc_id", "=", False),
-                ("doc_type", "!=", False),
-                ("attachment_id", "!=", False),
-            ]
-        )
-        count = 0
-        for doc in unlinked:
-            try:
-                self.sync_native_to_legacy(doc)
-                count += 1
-            except Exception:
-                _logger.exception(
-                    "Failed to sync native document %s to legacy",
-                    doc.id,
-                )
+        domain = [
+            ("plasticos_doc_id", "=", False),
+            ("doc_type", "!=", False),
+            ("attachment_id", "!=", False),
+        ]
+        last_id = 0
+        seen = 0
+        synced = 0
+        while True:
+            batch = NativeDoc.search(
+                [*domain, ("id", ">", last_id)],
+                order="id ASC",
+                limit=200,
+            )
+            if not batch:
+                break
+            last_id = batch[-1].id
+            seen += len(batch)
+            for doc in batch:
+                try:
+                    self.sync_native_to_legacy(doc)
+                    synced += 1
+                except Exception:
+                    _logger.exception(
+                        "Failed to sync native document %s to legacy",
+                        doc.id,
+                    )
         _logger.info(
             "Batch sync complete: %d of %d documents synced",
-            count,
-            len(unlinked),
+            synced,
+            seen,
         )
-        return count
+        return synced

@@ -60,7 +60,7 @@ class PlasticosAutomationConfig(models.Model):
         """Ensure only one active configuration record exists."""
         for record in self:
             if record.active:
-                existing = self.search(
+                existing = self.search_count(
                     [
                         ("active", "=", True),
                         ("id", "!=", record.id),
