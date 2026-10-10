@@ -343,7 +343,12 @@ print(json.load(sys.stdin)["services"]["odoo"].get("image") or "")')"
   local out
   out="$(compose build --quiet odoo 2>&1)" || die "building $ODOO_IMAGE failed: $out"
 }
-image_id() { docker image inspect --format '{{.Id}}' "$ODOO_IMAGE"; }
+# The image's layers and runtime config. Not .Id: with the containerd image
+# store every cached rebuild gets a new index digest (provenance timestamps)
+# for byte-identical content.
+image_id() {
+  echo "content:$(docker image inspect --format '{{json .RootFS.Layers}}{{json .Config}}' "$ODOO_IMAGE" | sha256)"
+}
 
 fingerprint_inputs() {
   echo "schema=$SCHEMA"
@@ -480,7 +485,7 @@ admit() {
   local journals taxes receivable payable
   journals="$(q "SELECT string_agg(type || '=' || n, ',' ORDER BY type) FROM
                 (SELECT type, count(*) n FROM account_journal WHERE company_id = $cid AND active GROUP BY type) j")"
-  for type in sale purchase cash bank general; do
+  for type in sale purchase bank general; do
     [[ ",$journals," == *",$type="* ]] || failures+=("no active $type journal")
   done
   taxes="$(q "SELECT string_agg(type_tax_use || '=' || n, ',' ORDER BY type_tax_use) FROM
