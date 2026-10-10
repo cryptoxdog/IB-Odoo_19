@@ -180,21 +180,25 @@ def test_search_that_defines_a_returned_domain_stays_complete(tmp_path: Path):
     assert _findings(tmp_path) == []
 
 
-def test_n_plus_one_method_still_uses_the_line_rule(tmp_path: Path):
+def test_query_intent_never_suppresses_a_loop_query(tmp_path: Path):
+    """The Moderate intent rule and the High loop rule judge independently.
+
+    An identity-bounded search is not an unbounded search, and it is still a
+    query inside a loop. Neither check may consume the other's verdict, so
+    this holds for any High scanner that flags a direct ``self.env`` query
+    in a loop.
+    """
     _write(
         tmp_path,
         """
         def walk(self, rows):
             for rec in rows:
                 self.env["res.partner"].search([("id", "=", rec.id)])
-            Model = self.env["res.partner"]
-            for rec in rows:
-                Model.search([("id", "=", rec.id)])
         """,
     )
-    findings = module.PerformanceAudit(tmp_path).check_n_plus_one_queries()
-    assert len(findings) == 1
-    assert "self.env" in findings[0]["code"]
+    assert _findings(tmp_path) == []
+    loop_findings = module.PerformanceAudit(tmp_path).check_n_plus_one_queries()
+    assert [finding["line"] for finding in loop_findings] == [4]
 
 
 # -- D-01: only a provably positive limit is a bound -------------------------
