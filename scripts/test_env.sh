@@ -664,6 +664,9 @@ clone_template() {
     echo "→ resuming the interrupted clone of $target"
     odoo_db "$stage" duplicate "$TEMPLATE_DB" "$target"
     set_comment "$target" "$SCHEMA role=clone owner=$OWNER parity=$PARITY template=$TEMPLATE_DB fp=$FP created=$(utc_now)"
+    unlease "db:$target" exclusive
+    echo "✅ $target is a fresh clone of $TEMPLATE_DB (owner $OWNER, parity $PARITY; resumed)"
+    return 0
   fi
   assert_owned_or_absent "$target"
   for attempt in 1 2; do
