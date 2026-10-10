@@ -291,7 +291,22 @@ class ResPartner(models.Model):
         "plasticos.partner.phone",
         "partner_id",
         string="Other Phones",
-        help="Mobile, other, and fax numbers. The business number stays in Phone.",
+        help="Extra numbers kept for import. Phone and Mobile are the fields on the form.",
+    )
+    # Odoo 19 base has no res.partner.mobile column (phone only); this field is
+    # new here and projects the "mobile" phone line, so no stored value exists
+    # to migrate. The search method keeps it usable in domains and filters.
+    mobile = fields.Char(
+        string="Mobile",
+        compute="_compute_mobile",
+        inverse="_inverse_mobile",
+        search="_search_mobile",
+        help="Mobile number. Stored with the partner's other phone lines.",
+    )
+    contact_header_name = fields.Char(
+        string="Contact",
+        compute="_compute_contact_header_name",
+        help="People at this company, or the people linked to this location.",
     )
     location_child_ids = fields.Many2many(
         "res.partner",
@@ -330,6 +345,49 @@ class ResPartner(models.Model):
                 company_role=partner.company_role,
                 source_label=partner.erp_address_label,
             )
+
+    @api.depends("phone_line_ids.label", "phone_line_ids.number")
+    def _compute_mobile(self):
+        for partner in self:
+            line = partner.phone_line_ids.filtered(lambda row: row.label == "mobile")[:1]
+            partner.mobile = line.number or False
+
+    def _search_mobile(self, operator, value):
+        return [("phone_line_ids", "any", [("label", "=", "mobile"), ("number", operator, value)])]
+
+    def _inverse_mobile(self):
+        phone_model = self.env["plasticos.partner.phone"]
+        for partner in self:
+            number = (partner.mobile or "").strip()
+            lines = partner.phone_line_ids.filtered(lambda row: row.label == "mobile")
+            if not number:
+                lines.unlink()
+                continue
+            if lines:
+                lines[:1].number = number
+            else:
+                values = {"partner_id": partner.id, "label": "mobile"}
+                values["number"] = number
+                phone_model.create(values)
+
+    @api.depends(
+        "is_company",
+        "parent_id",
+        "child_ids.name",
+        "child_ids.is_company",
+        "site_person_ids.name",
+    )
+    def _compute_contact_header_name(self):
+        for partner in self:
+            if not partner.is_company:
+                partner.contact_header_name = False
+                continue
+            if partner.parent_id:
+                people = partner.site_person_ids
+            else:
+                people = partner.child_ids.filtered(lambda child: not child.is_company)
+            names = ", ".join(people.mapped("name"))
+            partner.contact_header_name = names
 
     @api.depends("child_ids", "child_ids.is_company")
     def _compute_location_child_ids(self):

@@ -34,6 +34,15 @@ class ImportReport:
         self.unresolved: list[dict[str, str]] = []
         self.anomalies: list[dict[str, str]] = []
         self.errors: list[dict[str, str]] = []
+        # Run-level failures: a mandatory check of the whole run that did not
+        # pass (the payables identity reconciliation). Not a row, so never a
+        # counter; the run is ``failed`` and exits nonzero while every row
+        # keeps the outcome it actually had.
+        self.failures: list[dict[str, str]] = []
+        # Source exceptions grouped by root cause with their dollar exposure
+        # (order links, price precision, payables routing). Filled by the
+        # historical extension; empty for a partner-only run.
+        self.census: dict = {}
 
     def bump(self, bucket: str, outcome: str, amount: int = 1) -> None:
         self.counts[bucket][outcome] += amount
@@ -56,6 +65,10 @@ class ImportReport:
     def error(self, key: str, detail: str) -> None:
         self.errors.append({"buysell_no": key, "error": detail})
 
+    def fail(self, check: str, detail: str) -> None:
+        """Record that a mandatory run-level check did not pass. The run cannot succeed."""
+        self.failures.append({"check": check, "detail": detail})
+
     def as_dict(self) -> dict:
         return {
             "payload_kind": self.payload_kind,
@@ -65,4 +78,6 @@ class ImportReport:
             "unresolved": self.unresolved,
             "anomalies": self.anomalies,
             "errors": self.errors,
+            "failures": self.failures,
+            "census": self.census,
         }

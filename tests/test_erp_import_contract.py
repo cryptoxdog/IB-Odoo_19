@@ -132,7 +132,8 @@ def test_deal_extension_does_not_write_the_transaction_object(deal_source):
     assert "legacy_erp_detail_" not in deal_source
     extend = _function(ast.parse(deal_source), "_extend_historical_import")
     returns = [node for node in ast.walk(extend) if isinstance(node, ast.Return)]
-    assert returns and isinstance(returns[-1].value, ast.Constant) and returns[-1].value.value is False
+    assert returns
+    assert not (isinstance(returns[-1].value, ast.Constant) and returns[-1].value.value is False)
 
 
 def test_identity_marker_is_created_with_the_record_not_before(service_tree):
@@ -389,6 +390,7 @@ def test_deal_realization_extends_the_partner_importer(deal_source, deal_tree):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
     }
     assert "_import_transactions" not in called
+    assert "realize" in called
     assert "reconstruct_all_headers" not in ast.dump(extend)
     assert "import csv" not in deal_source
     assert "run_csv_import" not in deal_source

@@ -11,7 +11,12 @@ Counter semantics (documented, honest accounting):
   of rows already counted in their table and is not added again).
 * ``records_rejected`` — rows refused (blank required values) plus unresolved
   source references and failed transactions: nothing that did not reach the DB.
-  Every unresolved entry is exactly one source row (the importer records a
+  In the ``transactions`` bucket a rejected row is a worksheet that compiled no
+  ``plasticos.transaction`` (no sale order link, a sale order that was not
+  confirmed, or a compile that failed); its purchase documents and vendor
+  bills may still have been realized on their own identity (the run census
+  names it), but it is never counted as a created transaction. ``created``
+  is counted only once the transaction exists. Every unresolved entry is exactly one source row (the importer records a
   parent failure once per suppressed child row, never once per parent), so
   ``len(unresolved)`` is a row count and the reconciliation below holds.
 * ``records_unchanged`` — identity-resolved rows that needed no write on replay
@@ -20,15 +25,21 @@ Counter semantics (documented, honest accounting):
 * ``errors`` — bounded diagnostic detail for failed transactions and unresolved
   references, keyed by the source-native identifier. The complete rejected-row
   accounting remains ``records_rejected``. At most the shared contract's 1000
-  diagnostic entries are emitted. A reconciliation failure reserves one of
-  those slots. Never contains secrets.
+  diagnostic entries are emitted. A reconciliation failure and each run-level
+  failure reserve slots among them. Never contains secrets.
+* ``failures`` (on the report, not the summary) — mandatory run-level checks
+  that did not pass, such as the payables identity reconciliation
+  (``payables_reconciliation``). A failure is not a row: it enters no counter,
+  relabels nothing, and is projected into ``errors`` under its check name so
+  the run is ``failed`` while every counter stays what the run measured.
 * ``final_status`` — ``success`` when nothing was rejected, ``partial`` when
   rows were rejected or left unresolved without a failed unit, ``failed`` when
-  a logical unit (a ``BuySellNo``) raised and was rolled back or when the
-  reconciliation below does not close. An unresolved
-  source reference is a rejected row the source itself explains (an inactive
-  counterparty's child, an unknown representative); it is not a failure of the
-  run, so a partner import with known unresolved rows exits partial, not failed.
+  a logical unit (a ``BuySellNo``) raised and was rolled back, when a
+  run-level check failed, or when the reconciliation below does not close. An
+  unresolved source reference is a rejected row the source itself explains (an
+  inactive counterparty's child, an unknown representative); it is not a
+  failure of the run, so a partner import with known unresolved rows exits
+  partial, not failed.
 
 ``seen == created + updated + unchanged + rejected`` closes the reconciliation:
 an imported-with-anomaly row still lands in created/updated, and anomalies are
@@ -43,15 +54,19 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-__all__ = ["import_run_summary", "utc_now"]
+__all__ = ["import_run_summary", "run_exit_status", "utc_now"]
 
 SUMMARY_SOURCE = "erp"
 # ``source_counts`` key that tallies rows already counted in their own table.
 SOURCE_COUNT_DIAGNOSTIC = "violations"
 # ``record_ref`` of the run-level error a reconciliation gap emits.
 RECONCILIATION_REF = "reconciliation"
-# Producer bound for the shared contract's ``errors.maxItems``. Not read from the schema at runtime.
+# ``record_ref`` (and report ``check``) of the payables identity reconciliation.
+PAYABLES_RECONCILIATION_REF = "payables_reconciliation"
+# Producer bounds for the shared contract's ``errors.maxItems`` and
+# ``errors.items.message.maxLength``. Not read from the schema at runtime.
 ERROR_ROW_LIMIT = 1000
+ERROR_MESSAGE_LIMIT = 2000
 
 
 def utc_now() -> str:
@@ -70,6 +85,7 @@ def import_run_summary(
     source_counts = result.get("source_counts") or {}
     unresolved = result.get("unresolved") or []
     errors = result.get("errors") or []
+    failures = result.get("failures") or []
 
     created = sum(bucket.get("created", 0) for bucket in counts.values())
     updated = sum(bucket.get("updated", 0) for bucket in counts.values())
@@ -90,21 +106,25 @@ def import_run_summary(
     )
 
     accounted = created + updated + unchanged + total_rejected
-    reconciliation_error = None
+    # Run-level entries: never rows, never counted, always kept in ``errors``
+    # ahead of the diagnostic cap so a failed run can be read from the summary.
+    run_level = [
+        {"record_ref": str(row.get("check") or "?"), "message": str(row.get("detail") or "?")[:ERROR_MESSAGE_LIMIT]}
+        for row in failures
+    ]
     if accounted != seen:
-        reconciliation_error = {
-            "record_ref": RECONCILIATION_REF,
-            "message": (
-                f"records_seen {seen} != created {created} + updated {updated} + unchanged {unchanged} "
-                f"+ rejected {total_rejected} = {accounted}; {seen - accounted} source rows unaccounted"
-            ),
-        }
-    if reconciliation_error is None:
-        error_rows = error_rows[:ERROR_ROW_LIMIT]
-    else:
-        error_rows = [*error_rows[: ERROR_ROW_LIMIT - 1], reconciliation_error]
+        run_level.append(
+            {
+                "record_ref": RECONCILIATION_REF,
+                "message": (
+                    f"records_seen {seen} != created {created} + updated {updated} + unchanged {unchanged} "
+                    f"+ rejected {total_rejected} = {accounted}; {seen - accounted} source rows unaccounted"
+                ),
+            }
+        )
+    error_rows = [*error_rows[: max(ERROR_ROW_LIMIT - len(run_level), 0)], *run_level][:ERROR_ROW_LIMIT]
 
-    if errors or accounted != seen:
+    if errors or failures or accounted != seen:
         final_status = "failed"
     elif total_rejected:
         final_status = "partial"
@@ -125,3 +145,21 @@ def import_run_summary(
         "errors": error_rows,
         "final_status": final_status,
     }
+
+
+def run_exit_status(result: dict, *, dry_run: bool = False, layer: str | None = None) -> int:
+    """Process exit status of an import run: nonzero whenever the run cannot be called successful.
+
+    A run-level failure (``result["failures"]``) fails every mode, a dry run
+    and a single-layer run included: a preview whose payables reconciliation
+    does not close must not exit clean. An applied full run also fails when
+    its summary reports ``failed``. A layer run that reached this point passed
+    its validator, and a dry run emits no summary, so the summary is read only
+    for an applied full run.
+    """
+    if result.get("failures"):
+        return 1
+    if dry_run or layer:
+        return 0
+    summary = result.get("summary") or {}
+    return 1 if summary.get("final_status") == "failed" else 0

@@ -1,5 +1,7 @@
 from odoo import api, fields, models
 
+from .material_label import projected_material
+
 
 class PurchaseOrderLine(models.Model):
     """
@@ -9,8 +11,7 @@ class PurchaseOrderLine(models.Model):
     All other fields describe the specific material variation for this line.
     Pre-filled from material_profile_id but editable by user.
 
-    Full description format: "HDPE Blue Regrind - Gaylords - Post-Industrial - Clean"
-    Order: Polymer + Color + Form + Packaging + Source + Attributes
+    Full description format: "PET Trays - Clear - Bales - Post-Industrial - Clean"
     """
 
     _inherit = "purchase.order.line"
@@ -68,35 +69,12 @@ class PurchaseOrderLine(models.Model):
         string="Material Description",
         compute="_compute_material_description",
         store=True,
-        help="Full material description: Polymer Color Form - Packaging - Source - Attributes",
+        help="Product, then color, filler, form, packaging, source, and attributes.",
     )
-
-    def _build_main_description_part(self, line):
-        """Build space-separated main part: Polymer Color Filler Form."""
-        parts = []
-        if line.product_id and line.product_id.polymer_id:
-            parts.append(line.product_id.polymer_id.name)
-        if line.color_id:
-            parts.append(line.color_id.name)
-        if line.filler_type_id:
-            parts.append(line.filler_type_id.name)
-        if line.form_id:
-            parts.append(line.form_id.name)
-        return " ".join(parts)
-
-    def _build_extras_parts(self, line):
-        """Build dash-separated extras list: Packaging, Source, Attributes."""
-        extras = []
-        if line.packaging_type_id:
-            extras.append(line.packaging_type_id.name)
-        if line.source_type_id:
-            extras.append(line.source_type_id.name)
-        if line.material_attribute_ids:
-            extras.append(", ".join(line.material_attribute_ids.mapped("name")))
-        return extras
 
     @api.depends(
         "product_id",
+        "product_id.name",
         "product_id.polymer_id",
         "color_id",
         "form_id",
@@ -106,20 +84,9 @@ class PurchaseOrderLine(models.Model):
         "material_attribute_ids",
     )
     def _compute_material_description(self):
-        """
-        Build full description: HDPE Blue Glass Filled Regrind - Gaylords - Post-Industrial - Clean
-
-        Order: Polymer + Color + Filler + Form - Packaging - Source - Attributes
-        Main part (space-separated): Polymer Color Filler Form
-        Extras (dash-separated): Packaging - Source - Attributes
-        """
+        """Project the product name in front of the line specs."""
         for line in self:
-            main_part = self._build_main_description_part(line)
-            extras = self._build_extras_parts(line)
-            if extras:
-                line.material_description = f"{main_part} - {' - '.join(extras)}"
-            else:
-                line.material_description = main_part
+            line.material_description = projected_material(line)
 
     @api.onchange("material_profile_id")
     def _onchange_material_profile_id(self):

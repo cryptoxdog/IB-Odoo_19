@@ -113,7 +113,16 @@ PROJECTION_SCRIPTS: dict[str, str] = {
     "SalesReps": "19_salesreps.sql",
     "ReceiptBatch": "20_receiptbatch.sql",
     "WksDelivery": "21_wksdelivery.sql",
+    "PO": "22_po.sql",
+    "PODetail": "23_podetail.sql",
+    "BuySell": "24_buysell.sql",
+    "PayablesBatch": "25_payablesbatch.sql",
 }
+
+# Direct-SQL tables a full import reads in addition to the grid-backed set.
+# They are not part of REQUIRED_TABLES: the frozen grid has no extract for them,
+# and a partners-only run must not open them.
+COMMERCIAL_SQL_TABLES: frozenset[str] = frozenset({"PO", "PODetail", "BuySell", "PayablesBatch"})
 
 # The literal SQL Server emits for NULL in these grids. An empty cell is a real
 # empty string and is deliberately NOT folded into this.

@@ -1,0 +1,56 @@
+grid WKSDetail lines: 11303 (the 2026-10-09 SQL run read 11 441)
+== order-link proxy (WKSDetail.SPo / PPo header references; grid has no SPO_ID/PPO_ID) ==
+sale: lines with blank SPo 1189 on 737 worksheets
+  of those lines: SAmount 1,036,095.72  PAmount 942,992.35  with PPo present 695
+  worksheets with no SPo on any line: 485
+    lines 681  SAmount 930,671.19  PAmount 926,699.04  with PPo link 411  with base-trade sale ledger 328  with receipts 12  with payables 367
+    trade years: {'2019': 5, '2020': 13, '2021': 3, '2022': 33, '2023': 49, '2024': 119, '2025': 125, '2026': 25, 'unknown': 113}
+purchase: lines with blank PPo 903 on 535 worksheets
+  of those lines: SAmount 1,588,629.76  PAmount 1,061,139.37  with SPo present 409
+  worksheets with no PPo on any line: 350
+    lines 559  SAmount 1,543,364.42  PAmount 1,056,100.69  with SPo link 276  with base-trade sale ledger 226  with receipts 210  with payables 178
+    trade years: {'2019': 6, '2020': 4, '2022': 18, '2023': 31, '2024': 72, '2025': 99, '2026': 23, 'unknown': 97}
+== price precision: source amount vs quantity x unit price as Odoo would store it ==
+Odoo 19 sale/purchase/invoice price_unit is a Float with min_display_digits='Product Price' and no digits, so the stored value is unrounded (float8); quantities store at 'Product Unit' (2 decimals).
+stored (unrounded price)                : lines with drift     0  net         0.00  abs         0.00  max     0.00
+if price were rounded to 2 decimals     : lines with drift  2282  net   195,266.17  abs   238,376.07  max   239.10
+if price were rounded to 3 decimals     : lines with drift   886  net     1,501.77  abs     4,476.45  max    79.29
+if price were rounded to 4 decimals     : lines with drift   760  net        87.00  abs       369.10  max    79.29
+if price were rounded to 5 decimals     : lines with drift   613  net        -3.65  abs        34.85  max     5.51
+if price were rounded to 6 decimals     : lines with drift   193  net        -0.20  abs         2.52  max     0.42
+weight decimal places in the source (quantity stores at 2): {0: 22601, 2: 5}
+short-ton lines (UoM S on either side): 7
+  DetailID 1715 ws 52526: sale 2.28 S @ -60/S = -136.8; buy 2.28 S @ -80/S = -182.4
+  DetailID 3148 ws 52993: sale 0 L @ 0.13/L = 0; buy 8.53 S @ 50/S = 426.5
+  DetailID 5914 ws 54224: sale 848 L @ -79.29/U = -79.29; buy 848 S @ -79.29/U = -79.29
+  DetailID 6471 ws 54656: sale 11.03 S @ -40/S = -441.2; buy 11.03 S @ 0/S = 0
+  DetailID 10945 ws 58468: sale 0 S @ 0/S = 0; buy 0 S @ 130/S = 0
+  DetailID 11380 ws 58836: sale 0 S @ 100/S = 0; buy 0 S @ 90/S = 0
+  DetailID 13653 ws 60705: sale 20 S @ 97.5/S = 1950; buy 20 S @ 92/S = 1840
+== Payables routing by GL lookup ==
+gl_50100_material_bill         rows   6652  worksheets  6156  amount  19,972,246.32  vendors  603  with InvoiceNo   6492  vendor not in active counterparties   63 (85,078.02)
+gl_50200_freight_bill          rows   6686  worksheets  4858  amount   4,928,429.65  vendors  347  with InvoiceNo   6562  vendor not in active counterparties   10 (-2,615.63)
+gl_50300_as_other_expenses     rows    475  worksheets   314  amount     319,857.55  vendors   37  with InvoiceNo    458  vendor not in active counterparties    5 (11,743.64)
+gl_50600_as_other_expenses     rows     43  worksheets    36  amount     153,681.86  vendors   15  with InvoiceNo     41  vendor not in active counterparties    0 (0.00)
+gl_blank_not_realized          rows    597  worksheets   498  amount     314,375.05  vendors  158  with InvoiceNo    597  vendor not in active counterparties    5 (2,620.58)
+  gl_50300_as_other_expenses top vendors:
+    2593 TLC WORLDWIDE LOGISTICS HOLLY SP rows  145 amount    65,302.00
+    2106 JEI INC                          rows  140 amount   104,201.71
+    1567 GERALD STRUVE                    rows   49 amount     8,126.35
+    2041 GREENVIEW MATERIALS INC          rows   39 amount    95,294.69
+    1975 HODGE DISTRIBUTION & LOGISTICS   rows   24 amount     3,338.12
+    1428 SKY RECYCLING                    rows    8 amount     2,560.57
+  gl_50600_as_other_expenses top vendors:
+    1199 BUTLER PAPER RECYCLING INC       rows   14 amount    30,945.28
+    2592 BONNETTE AUCTION COMPANY         rows    5 amount    79,074.60
+    1495 ECHO LOGISTICS                   rows    4 amount     7,132.50
+    2290 MYRON BOWLING AUCTIONEERS INC    rows    3 amount     5,428.00
+    1428 SKY RECYCLING                    rows    3 amount    -1,000.00
+    1620 ARRIVE LOGISTICS LLC             rows    2 amount     1,270.00
+  gl_blank_not_realized top vendors:
+    1775 STERICYCLE                       rows   77 amount    59,395.66
+    1680 48 FORTY SOLUTIONS - AA          rows   39 amount     9,121.48
+    1802 48 FORTY SOLUTIONS - IB          rows   35 amount    10,010.02
+    1968 SPROUT                           rows   20 amount     5,185.17
+    2356 S&B PALLET CO                    rows   19 amount     3,950.00
+    2354 4TH GENERATION RECYCLING         rows   15 amount     4,358.81

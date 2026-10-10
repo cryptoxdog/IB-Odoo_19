@@ -1,0 +1,12 @@
+== WS 54839
+[{'BuySellNo': '54839', 'OrderDt': '2022-02-18 00:00:00', 'r1': None, 'Commission1': Decimal('0.0000'), 'r2': 'TF', 'Commission2': Decimal('55.4570'), 'status': 'I'}]
+[{'DetailID': 6702, 'SPO_ID': 9227, 'PPO_ID': 9226, 'SWeight': Decimal('19145.000000000000'), 'SAmount': Decimal('9763.9500'), 'PWeight': Decimal('19188.000000000000'), 'PAmount': Decimal('8826.4800')}]
+[{'PO_ID': 9226, 'PONumber': '7275', 'Source': 'PO'}, {'PO_ID': 9227, 'PONumber': '14263', 'Source': 'SO'}]
+[{'LedgerID': 5462, 'Source': 'B', 'AdjType': None, 'AdjApproved': None, 'Sale': Decimal('9763.9500'), 'Cost': Decimal('8826.4800'), 'memo': None}, {'LedgerID': 5694, 'Source': 'A', 'AdjType': 'S', 'AdjApproved': 'Y', 'Sale': Decimal('-382.9000'), 'Cost': Decimal('0.0000'), 'memo': 'CM 54839'}]
+[{'PayableID': 591398, 'InvoiceNo': '7275 / 54839', 'CpID': '2213', 'GLAcct': '50100', 'Amount': Decimal('9366.5200'), 'batch': '107184'}, {'PayableID': 591476, 'InvoiceNo': 'U-7275 / 54839', 'CpID': '2213', 'GLAcct': '50100', 'Amount': Decimal('-9366.5200'), 'batch': '107200'}, {'PayableID': 594620, 'InvoiceNo': '7275 /54839', 'CpID': '2213', 'GLAcct': '50100', 'Amount': Decimal('8826.4800'), 'batch': '107367'}]
+== WS 53797
+[{'BuySellNo': '53797', 'OrderDt': '2021-03-04 00:00:00', 'r1': None, 'Commission1': Decimal('0.0000'), 'r2': 'IB', 'Commission2': Decimal('0.0000'), 'status': 'I'}]
+[{'DetailID': 5194, 'SPO_ID': 6683, 'PPO_ID': 6460, 'SWeight': Decimal('200.000000000000'), 'SAmount': Decimal('2000.0000'), 'PWeight': Decimal('200.000000000000'), 'PAmount': Decimal('2000.0000')}]
+[{'PO_ID': 6460, 'PONumber': '6240', 'Source': 'PO'}, {'PO_ID': 6683, 'PONumber': '13289', 'Source': 'SO'}]
+[{'LedgerID': 4237, 'Source': 'B', 'AdjType': None, 'AdjApproved': None, 'Sale': Decimal('2000.0000'), 'Cost': Decimal('2000.0000'), 'memo': None}, {'LedgerID': 4670, 'Source': 'A', 'AdjType': 'S', 'AdjApproved': 'Y', 'Sale': Decimal('-2000.0000'), 'Cost': Decimal('0.0000'), 'memo': 'CM 53797'}]
+[{'PayableID': 562145, 'InvoiceNo': '6240 / 53797', 'CpID': '2152', 'GLAcct': '50100', 'Amount': Decimal('2000.0000'), 'batch': '105791'}]

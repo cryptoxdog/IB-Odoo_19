@@ -1,6 +1,28 @@
 from odoo import api, fields, models
 
 
+class ProductProduct(models.Model):
+    """Show the product name without the internal reference prefix."""
+
+    _inherit = "product.product"
+
+    @api.depends("name", "default_code", "product_tmpl_id")
+    @api.depends_context(
+        "display_default_code",
+        "seller_id",
+        "company_id",
+        "partner_id",
+        "formatted_display_name",
+        "lang",
+    )
+    def _compute_display_name(self):
+        # The grade number stays on default_code. Documents show the name only.
+        named = self.with_context(display_default_code=False)
+        super(ProductProduct, named)._compute_display_name()
+        for product, shown in zip(self, named, strict=True):
+            product.display_name = shown.display_name
+
+
 class ProductTemplate(models.Model):
     """
     Extends product.template for plastics trading.
@@ -16,6 +38,14 @@ class ProductTemplate(models.Model):
     """
 
     _inherit = "product.template"
+
+    @api.depends("name", "default_code")
+    @api.depends_context("formatted_display_name", "display_default_code")
+    def _compute_display_name(self):
+        named = self.with_context(display_default_code=False)
+        super(ProductTemplate, named)._compute_display_name()
+        for template, shown in zip(self, named, strict=True):
+            template.display_name = shown.display_name
 
     # ── Link to Polymer Master ────────────────────────────────────
     polymer_id = fields.Many2one(

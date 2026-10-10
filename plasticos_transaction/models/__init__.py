@@ -3,6 +3,7 @@ from . import res_users_inherit
 from . import sale_inherit
 from . import transaction
 from . import legacy_erp_import_service
+from . import native_document_import
 from . import transaction_import_service
 from . import transaction_line
 from . import account_move_inherit
