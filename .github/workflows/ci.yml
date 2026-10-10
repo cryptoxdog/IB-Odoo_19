@@ -377,6 +377,13 @@ jobs:
   secret-scan:
     name: Secret Detection
     runs-on: ubuntu-latest
+    # gitleaks-action lists the PR's commits (GET pulls/{n}/commits) on a
+    # pull_request event and comments on findings; with the workflow token at
+    # its restricted default that lookup is refused ("Resource not accessible
+    # by integration") before any scan runs, so the job needs these explicitly.
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
         with:
