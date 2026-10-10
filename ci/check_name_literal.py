@@ -20,7 +20,7 @@ FIELD_EXCLUSIONS = re.compile(
     r"\b("
     r"display_name|model_name|field_name|_unique_name|buyer_name|"
     r"company_name|contact_name|pending_company_name|full_name|utm_name|"
-    r"pickup_contact_name|delivery_contact_name"
+    r"pickup_contact_name|delivery_contact_name|contact_header_name"
     r")\b"
 )
 

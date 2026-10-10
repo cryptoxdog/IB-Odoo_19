@@ -11,6 +11,16 @@ ACCOUNT_MOVE = "account.move"
 RES_PARTNER = "res.partner"
 PLASTICOS_MATERIAL_PROFILE = "plasticos.material.profile"
 PLASTICOS_TRANSACTION = "plasticos.transaction"
+_REFUND_TYPES = frozenset({"out_refund", "in_refund"})
+
+
+def _signed_move_total(moves) -> float:
+    """Invoice totals minus credit notes."""
+    total = 0.0
+    for move in moves:
+        sign = -1.0 if move.move_type in _REFUND_TYPES else 1.0
+        total += sign * (move.amount_total or 0.0)
+    return total
 
 
 class PlasticosTransaction(models.Model):
@@ -736,20 +746,39 @@ class PlasticosTransaction(models.Model):
     @api.depends(
         "customer_invoice_id",
         "customer_invoice_id.amount_total",
+        "customer_invoice_id.reversal_move_ids",
+        "customer_invoice_id.reversal_move_ids.amount_total",
+        "customer_invoice_id.reversal_move_ids.state",
+        "customer_invoice_id.debit_note_ids",
+        "customer_invoice_id.debit_note_ids.amount_total",
+        "customer_invoice_id.debit_note_ids.state",
         "vendor_bill_ids",
         "vendor_bill_ids.amount_total",
         "freight_bill_ids",
         "freight_bill_ids.amount_total",
+        "freight_actual",
         "other_expenses",
         "freight_chargebacks",
         "lightweight_penalties",
     )
     def _compute_financials(self):
-        """RevOps formula: gross_margin = revenue - costs + recoveries."""
+        """RevOps formula: gross_margin = revenue - costs + recoveries.
+
+        Revenue is the customer document set of the transaction, each document
+        once: the customer invoice, plus the debit notes raised on it
+        (``debit_origin_id``), minus the credit notes that reverse it
+        (``reversed_entry_id``). Each document carries exactly one of those
+        links, so nothing is counted or netted twice.
+        """
         for rec in self:
-            revenue = rec.customer_invoice_id.amount_total if rec.customer_invoice_id else 0.0
-            purchase_cost = sum(rec.vendor_bill_ids.mapped("amount_total"))
-            freight_cost = sum(rec.freight_bill_ids.mapped("amount_total"))
+            invoice = rec.customer_invoice_id
+            live = lambda move: move.state != "cancel"  # noqa: E731 - one predicate for both document sets
+            credit_notes = invoice.reversal_move_ids.filtered(live)
+            debit_notes = invoice.debit_note_ids.filtered(live)
+            revenue = _signed_move_total(invoice) + _signed_move_total(credit_notes) + _signed_move_total(debit_notes)
+            purchase_cost = _signed_move_total(rec.vendor_bill_ids)
+            billed_freight = _signed_move_total(rec.freight_bill_ids)
+            freight_cost = billed_freight or (rec.freight_actual or 0.0)
             other = rec.other_expenses or 0.0
 
             # Recoveries reduce effective cost

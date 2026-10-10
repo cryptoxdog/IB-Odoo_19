@@ -1,0 +1,14 @@
+  File "src/pymssql/_pymssql.pyx", line 462, in pymssql._pymssql.Cursor.execute
+pymssql.exceptions.ProgrammingError: (207, b"Invalid column name 'PayableID'.DB-Lib error message 20018, severity 16:\nGeneral SQL Server error: Check messages from the SQL Server\n")
+BuySell 8961
+PO 14724
+PODetail 19630
+WKSDetail 11441
+GPLedger 8353
+Payables 14649
+PrepayLedger 41
+prepay_batches 38
+prepay_payables 0
+prepayledger_rows_in_prepay_batches 38
+prepayledger_rows_outside_prepay_batches [('100003', 'UCS10026', '343', Decimal('6270.0000')), ('102637', '51407-PP', '1723', Decimal('1200.0000')), ('102746', '51515-PP', '1723', Decimal('1200.0000'))]
+payables_matching_prepay_invoice_vendor 0

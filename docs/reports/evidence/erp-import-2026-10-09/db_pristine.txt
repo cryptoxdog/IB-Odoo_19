@@ -1,0 +1,2 @@
+plasticos_acct_xmlids=58
+pristine: partners=29 so=0 moves=0 tx=0

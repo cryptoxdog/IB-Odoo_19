@@ -27,10 +27,10 @@ salespersons. An ``after_stage`` hook runs after each stage and before anything
 commits, so a stage whose validator fails is rolled back by the caller and
 never persists.
 
-Deal rows are not written here. Commercial documents are ``sale.order``,
-``purchase.order``, and ``account.move``. A full run is refused before any
-write (``validate_partner_layer.FULL_IMPORT_REFUSAL``). Partner-only and
-single-layer runs remain the write path.
+Deal rows are not written here. A full run hands the indexed source to the
+historical-import extension, which realizes ``sale.order``, ``purchase.order``,
+and ``account.move``. Partner-only and single-layer runs stay on the partner
+stages.
 """
 
 from __future__ import annotations
@@ -130,8 +130,12 @@ class PlasticosErpImport(models.AbstractModel):
             raise ValueError(f"unknown partner layer {layer!r}")
         if layer:
             only = frozenset({LAYER_TABLE[layer]})
+        elif partners_only:
+            only = reader.PARTNER_SOURCE_TABLES
+        elif database is not None:
+            only = reader.REQUIRED_TABLES | reader.COMMERCIAL_SQL_TABLES
         else:
-            only = reader.PARTNER_SOURCE_TABLES if partners_only else None
+            only = None
         payload = reader.load_payload(payload_root, only=only, database=database)
         index = source_index.build_source_index(payload)
         _logger.info("ERP payload loaded (%s from %s): %s", payload.kind.value, payload.origin, payload.row_counts())
@@ -1129,11 +1133,21 @@ def _differs(record, field_name: str, value) -> bool:
         return False
     field = record._fields[field_name]
     current = record[field_name]
+    target = value if value is not None else False
+    if field.type in ("many2many", "one2many"):
+        # The import writes relational lines as a clear command; an empty relation is already clear.
+        return not (isinstance(target, list) and target == [Command.clear()] and not current)
     if hasattr(current, "id"):
         current = current.id or False
-    target = value if value is not None else False
     if field.type == "html":
         return _plain_text(current) != _plain_text(target)
+    if field.type in ("date", "datetime") and current and isinstance(target, str):
+        parsed = field.to_date(target) if field.type == "date" else field.to_datetime(target)
+        return current != parsed
+    if field.type in ("float", "monetary") and isinstance(target, (int, float)):
+        digits = field.get_digits(record.env) if field.type == "float" else None
+        precision = digits[1] if digits else 2
+        return round(float(current or 0.0), precision) != round(float(target), precision)
     if field_name == "website" and isinstance(current, str) and isinstance(target, str):
         return _bare_url(current) != _bare_url(target)
     return current != target

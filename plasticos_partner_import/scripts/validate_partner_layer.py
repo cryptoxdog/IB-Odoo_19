@@ -31,15 +31,13 @@ USA_MODULES = (
     "l10n_us_payment_nacha",
 )
 REQUIRED_MODULES = ("plasticos_partner_import",)
-# A full run must not write plasticos.transaction or plasticos.transaction.line.
-# Commercial documents are sale.order, purchase.order, and account.move, and
-# this import does not realize them yet. Partner-only and single-layer runs
-# (Concern 1) never open the deal tables.
-FULL_IMPORT_REFUSAL = (
-    "full import: sale.order, purchase.order, and account.move are not realized "
-    "by this import; refusing before any write"
-)
+COMMERCIAL_MODULES = ("sale", "purchase", "account")
 XMLID_MODULE = "plasticos_transaction"
+# A full run realizes native documents through plasticos_transaction and posts
+# them to the accounts plasticos_accounting seeds; without either the base
+# importer commits partners and silently reports no transaction outcome.
+FULL_RUN_PROVIDER_MODULES = (XMLID_MODULE, "plasticos_accounting")
+FULL_RUN_MODULES = (*COMMERCIAL_MODULES, *FULL_RUN_PROVIDER_MODULES)
 
 # The import names the disposable database it may write. The check refuses
 # any other database, and any database that identifies as production.
@@ -181,13 +179,21 @@ def _imported_companies(env):
 
 
 def check_full_run_extension(env, failures: list[str], installed: set[str] | None = None) -> None:
-    """Refuse a full run. This import does not realize commercial documents yet.
+    """A full run realizes sale orders, purchase orders, and invoices.
 
-    ``installed`` is accepted so existing callers can pass the module set they
-    already loaded. The refusal does not depend on it, and it does not write.
+    ``installed`` is the module set the caller already loaded; when absent, the
+    installed set is read from ``env``. Partner-only and single-layer runs do
+    not call this.
     """
-    del env, installed
-    _fail(failures, FULL_IMPORT_REFUSAL)
+    if installed is None:
+        installed = set(
+            env["ir.module.module"]
+            .search([("name", "in", list(FULL_RUN_MODULES)), ("state", "=", "installed")])
+            .mapped("name")
+        )
+    missing = [name for name in FULL_RUN_MODULES if name not in installed]
+    if missing:
+        _fail(failures, "full import needs installed modules: " + ", ".join(missing))
 
 
 def check_database(env, failures: list[str]) -> None:
@@ -208,6 +214,8 @@ def check_database(env, failures: list[str]) -> None:
         _fail(failures, f"database {name} identifies as production")
     required = required_modules()
     wanted = list(USA_MODULES) + list(required)
+    if _full_run():
+        wanted.extend(FULL_RUN_MODULES)
     installed = set(
         env["ir.module.module"].search([("name", "in", wanted), ("state", "=", "installed")]).mapped("name")
     )

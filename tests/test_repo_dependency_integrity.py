@@ -40,6 +40,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 KNOWN_ODOO_ADDONS = frozenset(
     {
         "account",
+        "account_debit_note",
         "barcodes",
         "base",
         "base_automation",

@@ -1,20 +1,19 @@
-"""Historical ERP import must not realize deals on the transaction object.
+"""Historical ERP commercial documents on native Odoo records.
 
-Commercial documents belong on ``sale.order``, ``purchase.order``, and
-``account.move``. This hook stays registered so the partner importer has one
-extension point, and it writes nothing.
+The partner importer calls ``_extend_historical_import`` after the partner
+stages. This writes ``sale.order``, ``purchase.order``, and ``account.move``
+from the source index. It does not create a transaction record: confirming
+the sale order is what compiles one.
 """
-
-from __future__ import annotations
 
 from odoo import models
 
 
 class PlasticosLegacyErpImport(models.AbstractModel):
-    """Does not write historical worksheets onto the transaction object."""
-
     _inherit = "plasticos.erp.import"
 
     def _extend_historical_import(self, index, report, partner_by_cp, limit, commit, dry_run) -> bool:
-        """Refuse the retired one-transaction-per-worksheet import."""
-        return False
+        """Realize native commercial documents and own the commit."""
+        from . import native_document_import  # noqa: PLC0415 - loaded with the extension, not at install of the base
+
+        return native_document_import.realize(self, index, report, partner_by_cp, limit, commit, dry_run)
