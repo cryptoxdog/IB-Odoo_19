@@ -398,7 +398,11 @@ odoo_stage() {
   rc="$(docker wait "$cname")"
   docker logs "$cname" >"$EVIDENCE_DIR/${cname}.log" 2>&1 || true
   grep -E " (ERROR|CRITICAL) " "$EVIDENCE_DIR/${cname}.log" | tail -20 || true
-  docker rm "$cname" >/dev/null 2>&1 || true
+  # Keep a successful clone stage until its database has been stamped.
+  # It is the recovery witness if the caller dies after duplication.
+  if [ "$rc" != "0" ] || [[ "$stage" != clone-* ]]; then
+    docker rm "$cname" >/dev/null 2>&1 || true
+  fi
   [ "$rc" = "0" ] || die "$cname exited with status $rc (log: ${EVIDENCE_DIR#"$ROOT"/}/${cname}.log)"
 }
 
@@ -605,10 +609,15 @@ build_template() {
 # Databases cloned from a template, whoever owns them, plus a clone stage of
 # that template that was interrupted before its database was stamped.
 template_references() {
-  local refs stages
+  local refs stages builds=""
   refs="$(psql_admin "SELECT string_agg(datname, ',' ORDER BY datname) FROM pg_database
-                      WHERE shobj_description(oid, 'pg_database') ~ (' template=' || '$1' || '( |$)')")"
-  stages="$(docker ps -a --format '{{.Names}}' --filter "name=^${PROJECT}-test-env-${1: -16}-clone-" | paste -sd, -)"
+                      WHERE shobj_description(oid, 'pg_database') ~ (' template=' || '$1' || '( |$)')")" || return 1
+  stages="$(docker ps -a --format '{{.Names}}' --filter "name=^${PROJECT}-test-env-${1: -16}-clone-" | paste -sd, -)" || return 1
+  if [[ "$1" == odoo_test_bld_* ]]; then
+    builds="$(docker ps -a --format '{{.Names}}' \
+      --filter "name=^${PROJECT}-test-env-${1: -16}-(init|install|reseed)$" | paste -sd, -)" || return 1
+  fi
+  stages="${stages}${stages:+${builds:+,}}${builds}"
   printf '%s' "${refs}${refs:+${stages:+,}}${stages}"
 }
 
@@ -616,7 +625,7 @@ template_references() {
 # unless someone is using them right now (their lease is tried, not awaited).
 # Both share the template's lease key, so a build in progress is never touched.
 retire_own_templates() {
-  local name comment token key
+  local name comment token key references
   for name in $(psql_admin "SELECT datname FROM pg_database
                             WHERE (datname LIKE 'odoo_test\_tpl\_${PARITY}\_%' OR datname LIKE 'odoo_test\_bld\_${PARITY}\_%')
                               AND datname NOT IN ('$TEMPLATE_DB', '$BUILD_DB')"); do
@@ -634,8 +643,10 @@ retire_own_templates() {
     # Holding the template's exclusive lease, no clone of it can start or be
     # stamped (cloning holds the shared lease until its clone is stamped), so
     # the references read here are final for this retirement.
-    if [ -n "$(template_references "$name")" ]; then
-      echo "→ keeping $name (cloned by: $(template_references "$name"))"
+    references="$(template_references "$name")" ||
+      die "cannot inspect references for $name; refusing retirement"
+    if [ -n "$references" ]; then
+      echo "→ keeping $name (referenced by: $references)"
       unlease "$key" exclusive
       continue
     fi
@@ -670,23 +681,35 @@ drop_owned_clone() {
 }
 
 clone_template() {
-  local target="$1" attempt stage
+  local target="$1" attempt stage cname
   validate_clone_name "$target"
   lease "db:$target" exclusive
   # The stage name carries the owner: if an earlier run of this owner was killed
   # after Odoo created the clone but before it was stamped, the finished stage
   # container is the proof that the unstamped database is that run's clone.
   stage="clone-${OWNER}-${target}"
+  cname="${PROJECT}-test-env-${FP:0:16}-${stage}"
   if db_exists "$target" && [ -z "$(db_comment "$target")" ] &&
-    [ -n "$(docker ps -aq --filter "name=^${PROJECT}-test-env-${FP:0:16}-${stage}$")" ]; then
+    [ -n "$(docker ps -aq --filter "name=^${cname}$")" ]; then
     echo "→ resuming the interrupted clone of $target"
+    lease "tpl:$TEMPLATE_DB" shared
+    template_ready || refuse "$TEMPLATE_DB is not an admitted template"
     odoo_db "$stage" duplicate "$TEMPLATE_DB" "$target"
     set_comment "$target" "$SCHEMA role=clone owner=$OWNER parity=$PARITY template=$TEMPLATE_DB fp=$FP created=$(utc_now)"
+    docker rm "$cname" >/dev/null ||
+      die "could not retire stamped clone stage $cname"
+    unlease "tpl:$TEMPLATE_DB" shared
     unlease "db:$target" exclusive
     echo "✅ $target is a fresh clone of $TEMPLATE_DB (owner $OWNER, parity $PARITY; resumed)"
     return 0
   fi
   assert_owned_or_absent "$target"
+  # A prior run may have stamped this clone before being interrupted
+  # during successful stage cleanup.
+  if [ -n "$(docker ps -aq --filter "name=^${cname}$")" ]; then
+    docker rm "$cname" >/dev/null ||
+      die "could not clear completed clone stage $cname"
+  fi
   for attempt in 1 2; do
     template_ready || build_template
     lease "tpl:$TEMPLATE_DB" shared
@@ -700,6 +723,8 @@ clone_template() {
   clear_filestore "$target"
   odoo_db "$stage" duplicate "$TEMPLATE_DB" "$target"
   set_comment "$target" "$SCHEMA role=clone owner=$OWNER parity=$PARITY template=$TEMPLATE_DB fp=$FP created=$(utc_now)"
+  docker rm "$cname" >/dev/null ||
+    die "could not retire stamped clone stage $cname"
   unlease "tpl:$TEMPLATE_DB" shared
   unlease "db:$target" exclusive
   echo "✅ $target is a fresh clone of $TEMPLATE_DB (owner $OWNER, parity $PARITY)"

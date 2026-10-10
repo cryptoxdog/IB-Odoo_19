@@ -320,3 +320,30 @@ def test_another_owners_current_clone_is_still_refused(tmp_path):
     )
     assert result.returncode == 2
     assert "owned by 'agentb'" in result.stderr
+
+
+def test_clone_stage_is_retained_until_marker_is_written():
+    source = SCRIPT.read_text()
+    stage = source.split("odoo_stage() {", 1)[1].split("\n}\n", 1)[0]
+    clone = source.split("clone_template() {", 1)[1].split("\n}\n", 1)[0]
+
+    assert '[[ "$stage" != clone-* ]]' in stage
+    duplicate = 'odoo_db "$stage" duplicate "$TEMPLATE_DB" "$target"'
+    assert clone.count(duplicate) == 2
+    for tail in clone.split(duplicate)[1:]:
+        assert tail.index('set_comment "$target"') < tail.index('docker rm "$cname"')
+    resume = clone.split('echo "→ resuming the interrupted clone', 1)[1].split("return 0", 1)[0]
+    assert 'lease "tpl:$TEMPLATE_DB" shared' in resume
+    assert "template_ready || refuse" in resume
+
+
+def test_retirement_protects_detached_build_stages():
+    source = SCRIPT.read_text()
+    refs = source.split("template_references() {", 1)[1].split("\n}\n", 1)[0]
+    retire = source.split("retire_own_templates() {", 1)[1].split("\n}\n", 1)[0]
+
+    assert '[[ "$1" == odoo_test_bld_* ]]' in refs
+    assert "(init|install|reseed)$" in refs
+    assert refs.count("|| return 1") >= 3
+    assert 'references="$(template_references "$name")" ||' in retire
+    assert 'if [ -n "$references" ]; then' in retire
