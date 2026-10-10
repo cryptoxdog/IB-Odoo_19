@@ -648,10 +648,11 @@ test-db-drop:
 # Odoo runtime tests — Docker native runner on installed modules (not tests/ pytest suite).
 # Same surface as ci/odoo.sh (dev) Odoo Test Suite, but runs locally via docker compose.
 # Runs on a fresh owned clone of the admitted template (fresh=0 reuses it); the
-# clone's identity and scope are asserted before Odoo touches it.
+# recipe runs inside `test_env.sh run`, which holds the clone's lease, asserts its
+# identity, scope, and fingerprint, and binds compose to this repository.
 test-odoo:
 	@if [ "$(fresh)" != "0" ]; then bash scripts/test_env.sh clone $(ODOO_TEST_DB); fi
-	@bash scripts/test_env.sh assert-clone $(ODOO_TEST_DB)
+	bash scripts/test_env.sh run $(ODOO_TEST_DB) -- \
 	docker compose run --rm odoo \
 		--test-enable \
 		--stop-after-init \
@@ -667,7 +668,7 @@ install-smoke:
 test-module:
 	@if [ -z "$(m)" ]; then echo "Usage: make test-module m=<module>"; exit 1; fi
 	@if [ "$(fresh)" != "0" ]; then bash scripts/test_env.sh clone $(ODOO_TEST_DB); fi
-	@bash scripts/test_env.sh assert-clone $(ODOO_TEST_DB)
+	bash scripts/test_env.sh run $(ODOO_TEST_DB) -- \
 	docker compose run --rm odoo \
 		--test-enable \
 		--stop-after-init \
@@ -1010,8 +1011,8 @@ import-erp:
 #   make import-erp-test db=odoo_test_erp_proof LIMIT=10% ...
 import-erp-test:
 	@bash scripts/test_env.sh clone $(if $(db),$(db),$(ODOO_TEST_DB))
-	@bash scripts/test_env.sh assert-clone $(if $(db),$(db),$(ODOO_TEST_DB))
-	@$(MAKE) import-erp ODOO_DB_NAME=$(if $(db),$(db),$(ODOO_TEST_DB)) \
+	@bash scripts/test_env.sh run $(if $(db),$(db),$(ODOO_TEST_DB)) -- \
+		$(MAKE) import-erp ODOO_DB_NAME=$(if $(db),$(db),$(ODOO_TEST_DB)) \
 		ERP_LIMIT="$(if $(LIMIT),$(LIMIT),25%)" \
 		ERP_REPORT_PATH="$(or $(REPORT_PATH),.l9/pr/import-erp-test-summary.json)"
 

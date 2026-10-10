@@ -376,7 +376,7 @@ template_ready() {
   db_exists "$TEMPLATE_DB" || return 1
   comment="$(db_comment "$TEMPLATE_DB")"
   is_ours "$comment" && [ "$(field "$comment" role)" = "template" ] && [ "$(field "$comment" state)" = "ready" ] &&
-    [ "$(field "$comment" fp)" = "$FP" ]
+    [ "$(field "$comment" fp)" = "$FP" ] && [ "$(field "$comment" parity)" = "$PARITY" ]
 }
 
 # ---------------------------------------------------------------------------
@@ -602,6 +602,16 @@ build_template() {
   retire_own_templates
 }
 
+# Databases cloned from a template, whoever owns them, plus a clone stage of
+# that template that was interrupted before its database was stamped.
+template_references() {
+  local refs stages
+  refs="$(psql_admin "SELECT string_agg(datname, ',' ORDER BY datname) FROM pg_database
+                      WHERE shobj_description(oid, 'pg_database') ~ (' template=' || '$1' || '( |$)')")"
+  stages="$(docker ps -a --format '{{.Names}}' --filter "name=^${PROJECT}-test-env-${1: -16}-clone-" | paste -sd, -)"
+  printf '%s' "${refs}${refs:+${stages:+,}}${stages}"
+}
+
 # Templates and unfinished builds this owner made for other inputs are retired,
 # unless someone is using them right now (their lease is tried, not awaited).
 # Both share the template's lease key, so a build in progress is never touched.
@@ -619,6 +629,14 @@ retire_own_templates() {
     until grep -qx "$token" "$LEASE_DIR/out"; do sleep 0.2; done
     if tail -2 "$LEASE_DIR/out" | grep -qx busy; then
       echo "→ keeping $name (in use)"
+      continue
+    fi
+    # Holding the template's exclusive lease, no clone of it can start or be
+    # stamped (cloning holds the shared lease until its clone is stamped), so
+    # the references read here are final for this retirement.
+    if [ -n "$(template_references "$name")" ]; then
+      echo "→ keeping $name (cloned by: $(template_references "$name"))"
+      unlease "$key" exclusive
       continue
     fi
     psql_admin "ALTER DATABASE \"$name\" WITH IS_TEMPLATE false ALLOW_CONNECTIONS true" >/dev/null
@@ -687,6 +705,100 @@ clone_template() {
   echo "✅ $target is a fresh clone of $TEMPLATE_DB (owner $OWNER, parity $PARITY)"
 }
 
+# `run <db> -- ...` accepts three forms and binds each to <db> and this
+# repository's compose project:
+#   <odoo args>                                    e.g. -- --test-enable -u m, or -- shell
+#   docker compose run [--rm|-T|-w D|-e K=V] odoo [odoo] <odoo args>
+#                                                  the Makefile test recipes, verbatim
+#   make import-erp ODOO_DB_NAME=<db> [ERP_*|LIMIT|DRY|...=V]
+#                                                  the Makefile ERP import, verbatim
+# Anything that would point Odoo, Postgres, or compose elsewhere is refused.
+RUN_MODE=""
+RUN_OPTS=()
+RUN_ARGS=()
+parse_run() {
+  local target="$1" arg name
+  shift
+  RUN_MODE="odoo"
+  RUN_OPTS=()
+  RUN_ARGS=()
+  [ "${1:-}" = "--" ] && shift
+  case "${1:-}" in
+    make | gmake | */make)
+      RUN_MODE="make"
+      RUN_ARGS=("$1")
+      shift
+      [ "${1:-}" = "import-erp" ] || refuse "run accepts only 'make import-erp', not 'make ${1:-}'"
+      RUN_ARGS+=("$1")
+      shift
+      for arg in "$@"; do
+        name="${arg%%=*}"
+        case "$arg" in
+          ODOO_DB_NAME=*)
+            [ "${arg#ODOO_DB_NAME=}" = "$target" ] || refuse "'$arg' would redirect the import away from the verified clone $target"
+            ;;
+          *=*)
+            [[ "$name" =~ ^(ERP_[A-Z_]+|LIMIT|DRY|PAYLOAD_ROOT|REPORT_PATH|PARTNERS_ONLY|LAYER)$ ]] ||
+              refuse "'$name=' is not an ERP import setting; run does not forward it"
+            ;;
+          *) refuse "'$arg' is not accepted after 'make import-erp'" ;;
+        esac
+        RUN_ARGS+=("$arg")
+      done
+      [[ " ${RUN_ARGS[*]} " == *" ODOO_DB_NAME=$target "* ]] || refuse "make import-erp must name ODOO_DB_NAME=$target"
+      return 0
+      ;;
+    docker)
+      [ "${2:-}" = "compose" ] && [ "${3:-}" = "run" ] || refuse "run accepts 'docker compose run ... odoo', not '$*'"
+      shift 3
+      while [ $# -gt 0 ] && [ "$1" != "odoo" ]; do
+        case "$1" in
+          --rm | -T | --no-deps) shift ;;
+          -w)
+            RUN_OPTS+=("$1" "${2:?-w needs a directory}")
+            shift 2
+            ;;
+          -e)
+            [[ "${2:-}" =~ ^[A-Z][A-Z0-9_]*= ]] || refuse "-e needs KEY=VALUE"
+            [[ "${2%%=*}" =~ ^(ERP_[A-Z_]+|GATE_URL|L9_[A-Z_]+)$ ]] ||
+              refuse "-e ${2%%=*} is not forwarded: it could redirect the database or runtime"
+            RUN_OPTS+=("$1" "$2")
+            shift 2
+            ;;
+          *) refuse "compose option '$1' is not accepted by run" ;;
+        esac
+      done
+      [ "${1:-}" = "odoo" ] || refuse "run executes only the odoo service"
+      shift
+      [ "${1:-}" = "odoo" ] && shift
+      ;;
+  esac
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -d | --database)
+        [ "${2:-}" = "$target" ] || refuse "'$1 ${2:-}' would redirect the run away from the verified clone $target"
+        shift 2
+        ;;
+      --database=*)
+        [ "${1#--database=}" = "$target" ] || refuse "'$1' would redirect the run away from the verified clone $target"
+        shift
+        ;;
+      -d*)
+        [ "${1#-d}" = "$target" ] || refuse "'$1' would redirect the run away from the verified clone $target"
+        shift
+        ;;
+      --db-filter* | --db_host* | --db_port* | --db_user* | --db_password* | -r | -w | --pg_path* | \
+        --addons-path* | -c | --config* | -D | --data-dir*)
+        refuse "'$1' would redirect the run away from the verified clone $target"
+        ;;
+      *)
+        RUN_ARGS+=("$1")
+        shift
+        ;;
+    esac
+  done
+}
+
 # Identity and scope check before any test, import, or upgrade touches a database.
 assert_clone() {
   local target="$1" comment template tcomment
@@ -699,9 +811,12 @@ assert_clone() {
     refuse "$target is owned by '$(field "$comment" owner)', not '$OWNER'"
   [ "$(field "$comment" parity)" = "$PARITY" ] ||
     refuse "$target was cloned with parity '$(field "$comment" parity)'; this run requires '$PARITY'"
+  [ "$(field "$comment" fp)" = "$FP" ] ||
+    refuse "$target is stale: cloned for inputs $(field "$comment" fp | cut -c1-16), current inputs are ${FP:0:16}; run: scripts/test_env.sh clone $target"
   template="$(field "$comment" template)"
+  [ "$template" = "$TEMPLATE_DB" ] || refuse "$target was cloned from $template, not the current template $TEMPLATE_DB"
+  template_ready || refuse "$target's template $template is not an admitted template for the current inputs"
   tcomment="$(db_comment "$template")"
-  [ "$(field "$tcomment" state)" = "ready" ] || refuse "$target's template $template is no longer an admitted template"
   echo "✓ $target: clone of $template (parity $PARITY, owner $OWNER, $(field "$tcomment" odoo), chart $(field "$tcomment" chart), $(field "$tcomment" installed) modules)"
 }
 
@@ -719,7 +834,7 @@ status() {
 }
 
 main() {
-  local command="${1:-}" target arg
+  local command="${1:-}" target
   case "$command" in
     name)
       echo "$DEFAULT_CLONE"
@@ -728,13 +843,7 @@ main() {
     clone | drop | assert-clone) validate_clone_name "${2:-$DEFAULT_CLONE}" ;;
     run)
       validate_clone_name "${2:-}"
-      for arg in "${@:3}"; do
-        case "$arg" in
-          -d | -d* | --database | --database=* | --db-filter* | --db_host* | --addons-path* | -c | --config*)
-            refuse "'$arg' would redirect the run away from the verified clone $2"
-            ;;
-        esac
-      done
+      parse_run "$2" "${@:3}"
       ;;
     template | status) ;;
     *)
@@ -758,14 +867,22 @@ main() {
       ;;
     run)
       target="$2"
-      shift 2
-      [ "${1:-}" = "--" ] && shift
-      assert_clone "$target"
+      # The lease comes first and is held until this process exits, so the
+      # clone verified below is the one the command runs on: no clone, drop,
+      # or other run of it can start in between.
       lease "db:$target" exclusive
-      local tty=()
-      [ -t 0 ] || tty=(-T)
-      # Subcommand (e.g. shell) first, then the verified database and addons path.
-      compose run --rm --no-deps "${tty[@]}" odoo odoo "$@" -d "$target" --addons-path="$(addons_path)"
+      assert_clone "$target"
+      if [ "$RUN_MODE" = "make" ]; then
+        # The import's own `docker compose` is bound to this repository's
+        # verified file and project.
+        COMPOSE_FILE="$COMPOSE_FILE_HERE" COMPOSE_PROJECT_NAME="$PROJECT" "${RUN_ARGS[@]}"
+      else
+        local tty=()
+        [ -t 0 ] || tty=(-T)
+        # Subcommand (e.g. shell) first, then the verified database and addons path.
+        compose run --rm --no-deps "${tty[@]}" "${RUN_OPTS[@]}" odoo odoo "${RUN_ARGS[@]}" -d "$target" \
+          --addons-path="$(addons_path)"
+      fi
       ;;
     status) status ;;
   esac
