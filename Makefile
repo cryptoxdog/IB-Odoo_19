@@ -14,7 +14,7 @@
         pipeline-guard dev-fence state-guard acl-check guards deploy-check \
         up down restart logs logs-error shell odoo-shell \
         update update-all rebuild backup lock-deps \
-        test test-odoo test-pure test-module test-env test-db test-db-drop install-smoke \
+        test test-odoo test-pure test-module install-smoke \
         pr pr-check pr-check-% commit push api-push-check sonar changelog \
         governance-backup \
         github-actions-kernel-check \
@@ -43,8 +43,12 @@ export PR_REMOTE_REF := $(pr)
 endif
 
 ODOO_DB_NAME          ?= odoo
-# Per-worktree disposable clone (odoo_test_<owner>); see scripts/test_env.sh.
-ODOO_TEST_DB          ?= $(shell bash scripts/test_env.sh name)
+ODOO_TEST_DB          ?= odoo_test
+# Per-worktree disposable clone (odoo_test_<owner>; scripts/test_env.sh) unless
+# ODOO_TEST_DB comes from the environment or the command line.
+ifeq ($(origin ODOO_TEST_DB),file)
+ODOO_TEST_DB := $(shell bash scripts/test_env.sh name)
+endif
 ODOO_COMPOSE_PROJECT  ?= odoo19
 
 # Pinned ruff resolver. pyproject pins ruff EXACTLY (==0.16.0 via [tool.ruff]
@@ -127,10 +131,11 @@ help:
 	@echo ""
 	@echo "  Testing"
 	@echo "    make test             pure pytest in tests/ (same suite as ci.yml pure-python-tests; runner defaults from pyproject.toml)"
+	@echo "    make test-odoo        Odoo Docker native tests on installed modules"
 	@echo "    make test-env         build or reuse the admitted template (enterprise + US accounting + PlasticOS, no demo)"
 	@echo "    make test-db [name=]  fresh clone of the template owned by this worktree"
 	@echo "    make test-db-drop [name=]  drop an owned clone (database + filestore)"
-	@echo "    make test-odoo        Odoo Docker native tests on a fresh clone (fresh=0 reuses the DB)"
+	@echo "                          test-odoo / test-module run on a fresh owned clone (fresh=0 reuses it)"
 	@echo "    make install-smoke    Docker -i modules --stop-after-init (blocks dirty loads before GH)"
 	@echo "    make test-pure        alias for make test"
 	@echo "    make test-module m=<mod>  Odoo tests for one module (-u m)"
@@ -629,6 +634,8 @@ test-pure: test
 #   make test-db [name=odoo_test_x]    fresh clone (default $(ODOO_TEST_DB))
 #   make test-db-drop [name=...]       drop an owned clone
 #   TEST_ENV_PARITY=community ...      separately named, non-production template (no Enterprise)
+.PHONY: test-env test-db test-db-drop
+
 test-env:
 	@bash scripts/test_env.sh template
 
@@ -640,13 +647,15 @@ test-db-drop:
 
 # Odoo runtime tests — Docker native runner on installed modules (not tests/ pytest suite).
 # Same surface as ci/odoo.sh (dev) Odoo Test Suite, but runs locally via docker compose.
-# Runs on a fresh clone of the template unless fresh=0; `test_env.sh run` verifies the
-# database is an owned, admitted clone before Odoo touches it.
+# Runs on a fresh owned clone of the admitted template (fresh=0 reuses it); the
+# clone's identity and scope are asserted before Odoo touches it.
 test-odoo:
 	@if [ "$(fresh)" != "0" ]; then bash scripts/test_env.sh clone $(ODOO_TEST_DB); fi
-	bash scripts/test_env.sh run $(ODOO_TEST_DB) -- \
+	@bash scripts/test_env.sh assert-clone $(ODOO_TEST_DB)
+	docker compose run --rm odoo \
 		--test-enable \
 		--stop-after-init \
+		-d $(ODOO_TEST_DB) \
 		--log-level=test
 
 # Fail-closed module install gate (xmlsec + enterprise + -i --stop-after-init).
@@ -654,13 +663,15 @@ test-odoo:
 install-smoke:
 	bash scripts/install_smoke.sh
 
-# make test-module m=plasticos_commission        (fresh clone of the template; fresh=0 reuses $(ODOO_TEST_DB))
+# make test-module m=plasticos_commission
 test-module:
 	@if [ -z "$(m)" ]; then echo "Usage: make test-module m=<module>"; exit 1; fi
 	@if [ "$(fresh)" != "0" ]; then bash scripts/test_env.sh clone $(ODOO_TEST_DB); fi
-	bash scripts/test_env.sh run $(ODOO_TEST_DB) -- \
+	@bash scripts/test_env.sh assert-clone $(ODOO_TEST_DB)
+	docker compose run --rm odoo \
 		--test-enable \
 		--stop-after-init \
+		-d $(ODOO_TEST_DB) \
 		--log-level=test \
 		-u $(m)
 
@@ -904,8 +915,9 @@ test-odoo-local: check-local-runtime
 # ---------------------------------------------------------------
 # make import-erp                full ERP import (applied)
 # make import-erp DRY=1          resolve + map, persist nothing
-# make import-erp LIMIT=100      newest 100 worksheets (diagnostics)
-# make import-erp LIMIT=25%      newest quarter of the worksheets (test databases)
+# make import-erp LIMIT=100      first 100 transactions (diagnostics)
+#   LIMIT counts worksheets, newest first. LIMIT=25% is the newest quarter (test databases);
+#   anything that is not a positive count or a whole 1-100% is refused before any write.
 # make import-erp PAYLOAD_ROOT=/abs/path  non-default source payload (statement or grid form)
 # make import-erp REPORT_PATH=/abs/summary.json  override machine summary path
 # make import-erp PARTNERS_ONLY=1  Concern 1: counterparties → addresses → contacts → roles → salespersons
@@ -915,7 +927,8 @@ test-odoo-local: check-local-runtime
 # make import-erp ERP_SQL_SERVER=host ERP_SQL_DATABASE=db [ERP_SQL_USER=.. ERP_SQL_PASSWORD=..]
 #   direct read of the restored ERP SQL Server database (ADR-021); wins over PAYLOAD_ROOT
 
-.PHONY: import-erp import-erp-test import-vanillasoft
+.PHONY: import-erp import-vanillasoft
+.PHONY: import-erp-test
 
 # Public overrides (DRY / LIMIT / PAYLOAD_ROOT / REPORT_PATH / PARTNERS_ONLY /
 # LAYER) bridge onto the ERP_* names the shell driver reads

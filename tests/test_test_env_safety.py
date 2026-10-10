@@ -123,10 +123,10 @@ def test_invalid_owner_is_refused(tmp_path):
 
 def test_makefile_test_targets_go_through_the_identity_check():
     makefile = (ROOT / "Makefile").read_text()
-    assert "ODOO_TEST_DB          ?= $(shell bash scripts/test_env.sh name)" in makefile
+    assert "ifeq ($(origin ODOO_TEST_DB),file)\nODOO_TEST_DB := $(shell bash scripts/test_env.sh name)" in makefile
     for target in ("test-odoo", "test-module"):
         body = re.search(rf"(?ms)^{target}:\n(.*?)(?=^\S|\Z)", makefile).group(1)
-        assert "scripts/test_env.sh run $(ODOO_TEST_DB) --" in body, target
-        assert "docker compose run" not in body, target
+        assert body.index("test_env.sh assert-clone $(ODOO_TEST_DB)") < body.index("docker compose run"), target
+        assert "-d $(ODOO_TEST_DB)" in body, target
     erp = re.search(r"(?ms)^import-erp-test:\n(.*?)(?=^\S|\Z)", makefile).group(1)
     assert erp.index("test_env.sh assert-clone") < erp.index("$(MAKE) import-erp")
