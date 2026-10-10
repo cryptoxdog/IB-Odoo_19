@@ -539,6 +539,221 @@ was manufactured.
 
 ---
 
+## 16. Session 4 (2026-10-10) — payable coverage and economic dispositions (GMP-002)
+
+Contract: *PR #231 Final Accounting-Integrity Remediation*, audited HEAD `085f9d6`. Code commit `889ea80`.
+No ADR, mapping SSOT, chart seed, security file, business rule, or other PR was touched; BAN001 passes on all
+tracked content (`ci/check_banned_identifier.py`: OK).
+
+### 16.1 Defect 1 — payable coverage
+
+Three paths let applicable source payables disappear from both sides of the reconciliation, which then
+closed as if they did not exist:
+
+| Path | Before | Now |
+|---|---|---|
+| Worksheet with lines but no valid sale **or** purchase link (`_realize_one` early return) | returned before `_vendor_bills`; its payables neither billed nor quarantined | every payable quarantined (`not_realized`, "worksheet has no valid sale or purchase order link; no document to attach the bill to"), tallied as `no_order_link_not_realized`, counted in `rows_seen` |
+| Worksheet rolled back by an exception | its attempt's rows dropped from both sides | the attempt's rows purged, every payable re-quarantined (`not_realized`, "worksheet rolled back (…); no document of it exists"), tallied as `worksheet_rolled_back_not_realized` |
+| Payable whose `BuySellNo` is not a worksheet with lines, or blank | never visited by `realize()`; blank references dropped at index time | `SourceIndex` keeps blank-reference payables under key `""`; after the worksheet loop every such row is quarantined (`not_realized`, "BuySellNo '…' is not a worksheet with lines; no transaction to attach the bill to" / "blank BuySellNo; the bill names no worksheet"), tallied as `outside_worksheet_universe_not_realized`, counted in `rows_seen` |
+| Worksheet left out by a diagnostic `ERP_LIMIT` | silent | counted in `census.payables_unselected` (rows, amount); not part of the reconciliation, never claimed |
+
+**Why the outside-universe rows exist (source contract).** `SourceIndex.buysell_numbers()` defines the
+transaction universe as every `BuySellNo` that owns a `WKSDetail` line; a payable can attach to a native
+document only through that worksheet. On the frozen grid 610 `Payables` rows (291 523.44) carry a
+`BuySellNo` that is no such worksheet: 510 distinct free-text references (`51694 / 4714`, `51715R`,
+`51685-1`, …), of which 597 rows have no GL lookup, 7 are GL 50100 and 6 are GL 50200. The contract excludes
+them from transactions legitimately (nothing to attach to), but not from *reporting*: they are now listed
+one by one. The 13 rows with a native account are flagged in their reason as an **operator decision**
+(realize standalone, unattached bills, or confirm exclusion); the importer does not invent a transaction for
+them. Blank `BuySellNo`: 0 rows on the grid.
+
+**The §15.2 blank-GL figure, corrected.** The 597 blank-GL rows counted in §15.2 are the same rows: they
+are outside the worksheet universe, so a real run would never have reached the `gl_blank_not_realized`
+branch for them. They now surface under `outside_worksheet_universe_not_realized` instead, with the same
+dollar exposure.
+
+### 16.2 Defect 2 — economic dispositions
+
+| Case | Before | Now |
+|---|---|---|
+| GL 50300 / 50600 on a worksheet with no transaction (purchase-only) | `transaction_only_cost`, amount added to `costs["other"]` that nothing ever carried | `not_realized`, "GL … has no native account in the crosswalk and no transaction exists to carry it"; nothing added; bucket `gl_<gl>_not_realized` |
+| GL 50300 / 50600 with a transaction | `transaction_only_cost` | unchanged: carried once as `other_expenses` |
+| Unbillable freight on a worksheet **with** freight bills | `unbillable` | `unbillable`, "…; not counted: worksheet has freight bills" (bills are the freight cost; the row is not folded into `freight_actual`) |
+| Unbillable freight, no freight bill, transaction exists | `unbillable` while `freight_actual` silently carried it | `transaction_only_cost`, "…; amount carried once as the transaction's actual freight cost" — the disposition now agrees with `freight_cost_total` |
+| Unbillable freight, no transaction | `unbillable` with the amount left in `costs["freight"]` | `not_realized`, "…; no transaction exists to carry it" |
+| Unbillable material (50100) | `unbillable` | `unbillable`, "…; not counted" |
+
+GL mappings (`50100` → Material Cost, `50200` → Freight Cost) and cost ownership are unchanged; no account,
+mapping, or transaction was invented.
+
+### 16.3 Regression proof (Odoo 19 runtime, `plasticos_transaction/tests/test_erp_worksheet_import.py`)
+
+| Test | Proves |
+|---|---|
+| `test_no_link_worksheet_quarantines_every_source_payable` | no-link worksheet with four payables: rejected 1, no document, 4 quarantined `not_realized`, `rows_seen` 4 = billed 0 + quarantined 4, replay identical |
+| `test_purchase_only_worksheet_carries_no_handling_or_equipment_cost` | PO-only worksheet with GL 50300 and 50600: material bill written, both rows `not_realized`, no `other_expenses` bucket, reconciliation closes, replay stable |
+| `test_unbillable_only_freight_is_carried_as_actual_freight_cost_when_a_transaction_exists` | unbillable-only GL 50200: `freight_actual` 55.00 = `freight_cost_total`, disposition `transaction_only_cost`; the same row on a transaction-less worksheet is `not_realized` |
+| `test_payables_outside_the_worksheet_universe_and_rolled_back_worksheets_are_quarantined` | rolled-back worksheet's bill and two outside-universe rows (free-text and blank reference) quarantined with reasons; `rows_seen` 11 = billed 5 + quarantined 6; replay identical, `unresolved_bills` identical |
+| `test_diagnostic_limit_counts_the_payables_it_leaves_out` | `ERP_LIMIT=1`: `payables_unselected` 8 rows / 14 566.48 (9 366.52 − 9 366.52 + 8 826.48 + 625 − 25 + 100 + 5 000 + 40; corrected in §17.3 from the 15 006.48 first written here), reconciliation closes on the selected worksheet |
+| `test_unbilled_freight_row_is_not_folded_beside_freight_bills` (extended) | disposition `unbillable` with the "worksheet has freight bills" reason |
+
+Pure-python (`tests/test_erp_native_orders.py`): `outside_universe_payables`, `payables_reconciliation`
+including rolled-back and outside-universe rows, `SourceIndex` keeping blank-reference payables.
+F1–F6 tests unchanged and green.
+
+### 16.4 Test results and gates
+
+| Tier | Result |
+|---|---|
+| Pure python, ERP subset | 102 passed |
+| Pure python, whole repo | 1 104 passed, 48 skipped |
+| Odoo 19 runtime, `/plasticos_transaction,/plasticos_security_base` on `erp_rt` | **0 failed, 0 errors of 24 tests** (`evidence/runtime_tests_gmp002.txt`) |
+| ruff 0.16.0, py_compile, module wiring, circular deps, BAN001 | pass |
+
+### 16.5 Outstanding exception totals (frozen grid; the live figures come from `<report>-census.json`)
+
+| Disposition / bucket | Rows | Amount |
+|---|---|---|
+| fully imported (`50100`, `50200` on a worksheet with lines; includes the 73 inactive-vendor rows below until the run excludes them) | 13 325 | 24 923 527.58 |
+| `transaction_only_cost` (50300 / 50600 on worksheets that compile a transaction; plus unbillable freight carried by `freight_actual`) | ≤ 518 (+10) | ≤ 473 539.41 (−2 615.63) — exact split by transaction existence comes from the run |
+| `not_realized`, outside the worksheet universe | 610 | 291 523.44 (597 blank GL, 7 × 50100, 6 × 50200) |
+| `not_realized`, no-link worksheets (grid proxy) | 35 | 41 092.24 |
+| `not_realized`, rolled-back worksheets (inactive counterparty, 2026-10-09 decision) | 63 material rows | 85 078.02 |
+
+Deferred, unchanged: full SQL-backed first import, FK-level 561 census, full replay.
+
+## 17. Session 5 (2026-10-10) — payable identity coverage, transaction verdict, evidence consistency (GMP-003)
+
+Contract: *GAR | PR #231 · GMP-003*, audited HEAD `0ba9115b5df7aa621f7a84ef25b5c9833fdbfcdb`. Code commit
+`65cd2d3`. No ADR, mapping SSOT, chart seed, security file, business rule, or other PR was touched; BAN001
+passes on all tracked content (`ci/check_banned_identifier.py`: OK). Module versions `plasticos_transaction`
+19.0.2.3.29, `plasticos_partner_import` 19.0.2.10.19.
+
+### 17.1 F1 — payable coverage
+
+| Finding at `0ba9115` | Now |
+|---|---|
+| `realize()` returned at its first branch when `index.orders` was empty: every worksheet skipped, no payable quarantined, no census, no reconciliation | the branch is gone. With no order header the run still loads its context, skips every worksheet, quarantines each of its payables (`not_realized`, "source carries no order headers; no document to attach the bill to", bucket `no_order_link_not_realized`), then runs the outside-universe pass, the census and the reconciliation exactly as any other load |
+| `payables_reconciliation` derived `rows_seen` from the routed rows, so a payable omitted from **both** tallies kept the equation balanced and the run closed | the source is reconciled by identity: `source_rows` is every indexed `Payables` row, and each `PayableID` must appear exactly once across billed (`context["billed_payables"]`, recorded when the bill is written or found), quarantined (`unresolved_bills`) and excluded (named below). The result lists `missing_rows`, `duplicated_rows`, `unknown_rows` (an identity the source never carried) and `blank_identity_rows` (a source row without a `PayableID` cannot be proven covered) and `closes` only when all are empty and `source_rows == billed + quarantined + excluded`. `reconciliation_gap()` renders the gap into the run anomaly (`Payables / reconciliation`) and the operator printout |
+| Worksheets a diagnostic `ERP_LIMIT` left out were counted (`payables_unselected`) but sat outside the reconciliation; a dry run left every payable unaccounted | both are explicit exclusions: `payables_excluded = {rows, amount, by_reason: {diagnostic_limit \| dry_run}}`, each row recorded by identity so the identity reconciliation covers it. `payables_unselected` keeps its contract (the `diagnostic_limit` slice) |
+
+On the frozen grid every one of the 14 453 `Payables` rows has a distinct, non-blank `PayableID`
+(`grid_census.py` input; verified this session: 0 blank, 0 duplicate), so identity coverage is exact there.
+
+### 17.2 F2 — economic truth
+
+| Finding at `0ba9115` | Now |
+|---|---|
+| `has_transaction = bool(documents["sales"])`: a linked sale order was treated as an existing transaction, so GL 50300/50600 rows were `transaction_only_cost` ("carried once as other expenses") and unbilled freight was `transaction_only_cost` ("carried … as the transaction's actual freight cost") before anything was confirmed or compiled | `_vendor_bills` only decides *whether a transaction may compile*; rows whose disposition depends on it are held in `context["pending_costs"]`. `_confirm_sales` confirms the batch, compiles, then `_settle_transactions` looks the transaction up (`plasticos.transaction` named by the worksheet **and** owned by one of the worksheet's own sale orders) and dispositions each held row: `transaction_only_cost` when it exists, `not_realized` with the failure appended ("… no transaction exists to carry it (sale order S00042 not confirmed (draft))" / "… (sale order confirmed but no transaction was compiled)") when it does not. The tally buckets (`gl_<gl>_as_other_expenses` vs `gl_<gl>_not_realized`) are written at the same point |
+| `report.bump("transactions", "created" if fresh_document else "skipped")` fired inside `_realize_one`, before confirmation: a blocked confirmation or failed compile still read as a created transaction | the verdict is pending until settlement: `created` when the transaction came to exist in this run, `skipped` when it already existed (replay), `rejected` with a `BuySell` anomaly naming the cause when none exists. `fresh_document` is gone; document freshness never stood for a transaction |
+| | GL mappings (50100 → Material Cost, 50200 → Freight Cost), `costs["other"]` / `costs["freight"]` as compile inputs, prepay exclusion and the unbilled-freight-beside-bills rule are unchanged. No account, mapping, field or transaction was invented |
+
+Rows and documents that are not transaction-dependent are untouched: the material and freight bills of a
+worksheet whose order fails to confirm are still written on their own identity (they are documents, not
+transactions) and are billed in the reconciliation.
+
+### 17.3 F3 — evidence consistency
+
+§16.3 reported `payables_unselected` as 8 rows / **15 006.48** for `test_diagnostic_limit_counts_the_payables_it_leaves_out`.
+The fixture (`_worksheet_54839`) carries 9 366.52 − 9 366.52 + 8 826.48 + 625 − 25 + 100 + 5 000 + 40 =
+**14 566.48**, which is what the test asserted and the runtime proved at `0ba9115` (`runtime_tests_gmp002.txt`,
+0 failed). The 15 006.48 was a transcription error in the report (the pre-correction value of the test's
+first draft), not a code or test result; the §16.3 row is corrected in place with the derivation, and no
+business logic was changed to fit either number. The test now also asserts `payables_excluded` and the
+identity reconciliation (`source_rows` 9 = 1 billed + 0 quarantined + 8 excluded).
+
+### 17.4 Regression proof (Odoo 19 runtime, `plasticos_transaction/tests/test_erp_worksheet_import.py`)
+
+| Test | Proves |
+|---|---|
+| `test_empty_order_graph_quarantines_every_payable_and_still_reconciles` | F1 positive: no order header, one worksheet with four payables plus one outside-universe row → skipped 1, nothing written, 5 quarantined `not_realized`, `source_rows` 5 = 0 + 5 + 0, closes, no reconciliation anomaly; replay identical |
+| `test_reconciliation_does_not_close_when_a_source_payable_is_on_neither_side` | F1 negative: a census rebuilt from a context that routed two bills and nothing else keeps the routed count balanced yet reports `unaccounted_rows` 6, `missing_rows` = the six omitted `PayableID`s, `closes` False; the same identity billed and quarantined → `duplicated_rows`; end to end, a source row with a blank `PayableID` leaves `blank_identity_rows` 1 and the run anomaly "1 source rows without a PayableID" |
+| `test_dry_run_excludes_every_payable_by_name_and_writes_nothing` | dry run: nothing written, `payables_excluded.by_reason.dry_run` 8 rows / 14 566.48, outside-universe row still quarantined, `source_rows` 9 = 0 + 1 + 8, closes |
+| `test_blocked_sale_confirmation_is_a_rejected_transaction_that_carries_no_cost` | F2: `action_confirm` raising → order stays draft, no transaction, counts `rejected` 1 / `created` 0, anomaly "sale order S… not confirmed (draft); no transaction compiled"; material bill still written; GL 50300 and unbilled freight `not_realized` with the failure appended, bucket `gl_50300_not_realized`, no `_as_other_expenses`, closes. Second run (unblocked): `created` 1, `other_expenses` 80, `freight_actual` 55, both rows `transaction_only_cost`. Third run: `skipped` 1, snapshot identical, reconciliation and `unresolved_bills` identical to the second |
+| `test_failed_transaction_compile_is_a_rejected_transaction_until_it_compiles` | F2: a second worksheet on an already confirmed order, with the standalone compile raising → order still `sale`, no transaction, `rejected` 1, anomaly "sale order confirmed but no transaction was compiled; no transaction compiled", GL 50600 `not_realized` "(sale order confirmed but no transaction was compiled)", closes. Next run: `created` 1, `other_expenses` 90, row `transaction_only_cost` |
+| `test_diagnostic_limit_counts_the_payables_it_leaves_out` (extended) | F3: 8 rows / 14 566.48 under `payables_unselected` and `payables_excluded.by_reason.diagnostic_limit`; identity reconciliation closes with the eight excluded by name |
+
+Pure-python (`tests/test_erp_native_orders.py`): `payables_reconciliation` closing on full identity coverage
+with an exclusion; detecting a row on neither side (gap text "9 source rows != 3 billed + 4 quarantined + 1
+excluded; 1 missing PayableID: 500868"); detecting duplicates, unknown identities, blank identities and an
+excluded-and-quarantined row; `source_payable_identities` walking every indexed row. The exact-shape assertion
+on the empty reconciliation was extended to the new keys. F1–F6 tests and the GMP-001/002 tests are
+unchanged and green.
+
+Why the failed-compile test uses an already confirmed order: in `import_mode`, `sale.order.action_confirm`
+compiles inside the same savepoint, so a compile failure on a fresh order rolls the confirmation back and
+surfaces as "not confirmed (draft)" (the blocked-confirmation test). The standalone compile that
+`_confirm_sales` runs for orders confirmed earlier is the only path where a confirmed order can lack its
+transaction, and that is the path the test blocks.
+
+### 17.5 Test results and gates
+
+| Tier | Result |
+|---|---|
+| Pure python, whole repo | 1 108 passed, 48 skipped |
+| Odoo 19 runtime, `/plasticos_transaction,/plasticos_security_base` on `erp_rt` | **0 failed, 0 errors of 29 tests** (`evidence/runtime_tests_gmp003.txt`; 27 transaction, 6 security tests counted by Odoo) |
+| ruff 0.16.0 check/format, py_compile, module wiring, circular deps, Odoo 19 XML, phantom-enum, manifest contract, BAN001 | pass |
+
+Payable identity coverage and replay stability are asserted directly by the tests above (identity
+reconciliation closing on every run; snapshot and census identical on replay after a blocked confirmation
+recovers). Deferred, unchanged and not blocking: full SQL-backed first import, FK-level 561 census, full
+second-run replay.
+
+## 18. Session 6 (2026-10-10) — the reconciliation gap fails the run (GMP-004)
+
+Contract: *GAR | PR #231 · GMP-004*, audited HEAD `b4a0ae8e7861fb766e8986275a1d350ce8b192fe`. Code commit
+`e202417`. No ADR, mapping SSOT, chart seed, security file, business rule, summary schema, or other PR was
+touched; BAN001 passes on all tracked content. Module versions `plasticos_transaction` 19.0.2.3.30,
+`plasticos_partner_import` 19.0.2.10.20.
+
+### 18.1 The defect at `b4a0ae8`
+
+The identity reconciliation of §17.1 reported a gap as `report.anomaly("Payables", "reconciliation", …)`
+only. Anomalies are diagnostics: `import_run_summary` never reads them, so the summary stayed `success` or
+`partial` and `import_erp_shell.main()` returned 0. The one channel that did fail a run, `report.errors`,
+is defined as *failed transaction units* and every entry is added to `records_rejected` and to the
+`seen == created + updated + unchanged + rejected` equation; recording the reconciliation there would have
+made the counters lie (one phantom rejected row, a spurious counter-reconciliation error) to balance a
+check that is not a row.
+
+### 18.2 The fix
+
+| Layer | Change |
+|---|---|
+| `erp/report.py` | `ImportReport.failures` (`{check, detail}`) and `fail()`: a mandatory run-level check that did not pass. Not a row, never a counter, carried by `as_dict()` |
+| `erp/summary.py` | each failure is projected into `errors` under its check name (`payables_reconciliation`), message capped at the contract's 2 000 characters, slots reserved beside the counter-reconciliation error ahead of the 1 000-row diagnostic cap; `final_status` is `failed` whenever a failure exists. `records_*` are untouched. New `run_exit_status(result, dry_run, layer)`: 1 on any run-level failure in every mode, 1 on a `failed` summary for an applied full run, 0 otherwise |
+| `scripts/import_erp_shell.py` | `main()` prints each failure (`IMPORT FAILED: payables_reconciliation: …`) and returns `run_exit_status(...)`; a dry run or a layer run with a run-level failure no longer exits 0 |
+| `models/native_document_import.py` | `realize()` calls `report.fail(PAYABLES_RECONCILIATION_REF, "payables identity reconciliation does not close: <gap>")` beside the existing anomaly. Nothing else changes: the census, `unresolved_bills`, the per-row dispositions and every counter are exactly those of GMP-003 |
+| `scripts/run_erp_import.py` | the dry-run printout names run failures |
+
+The shared summary schema (`contracts/schemas/draft/import-run-summary.schema.json`) is unchanged;
+`validate_summary` passes on every projected failure. `tests/runtime_gates/run_erp_import.py` G1 still
+expects `success`/`partial` on a closing run, which the positive path preserves.
+
+### 18.3 Regression proof
+
+| Tier | Test | Proves |
+|---|---|---|
+| pure python, `tests/test_erp_summary.py` | `test_a_run_level_failure_fails_the_run_without_touching_the_counters` | balanced report + one failure → `failed`, `records_seen` 4 = created 4, rejected 0, `errors` = the one failure, no counter-reconciliation error; the same report without the failure is `success` with identical `records_*` |
+| | `test_an_omitted_or_blank_identity_payable_cannot_produce_a_successful_import` | the realizer's chain for an omitted identity ("1 missing PayableID: 591476") and a blank one ("1 source rows without a PayableID"): `payables_reconciliation` → `reconciliation_gap` → `report.fail` → summary `failed`, rejected 0 → `run_exit_status` 1 applied, dry run and layer; the closing counterpart exits 0 |
+| | `test_run_exit_status_follows_the_summary_only_for_an_applied_full_run`, `…keep_their_slots_when_diagnostics_overflow`, `test_error_message_limit_matches_the_shared_contract` | exit matrix; 1 000 unresolved rows + failure keeps the failure's slot, rejected stays 1 000, message truncated to 2 000; the limit equals the schema's `maxLength` |
+| pure python, `tests/test_erp_layer_gate.py` (real driver file, stubbed Odoo) | `test_a_run_level_failure_exits_nonzero_even_when_the_counters_close`, `test_a_dry_run_with_a_run_level_failure_exits_nonzero` | `main()` returns 1 and prints the failure on an applied run whose summary reads `success`, and on a dry run (no commit) |
+| Odoo 19 runtime, `test_reconciliation_does_not_close_when_a_source_payable_is_on_neither_side` (extended) | blank-`PayableID` row end to end: `report.failures` = the one `payables_reconciliation` failure; projected summary `failed` with `records_rejected` 0 and every row `unchanged`; the closing run of the same worksheet projects `success`; `run_exit_status` 0 for the closing run, 1 for the failing run (applied and dry); `unresolved_bills` grew by exactly the one row |
+
+### 18.4 Test results and gates
+
+| Tier | Result |
+|---|---|
+| Pure python, whole repo | 1 115 passed, 48 skipped |
+| Odoo 19 runtime, `/plasticos_transaction,/plasticos_security_base` on `erp_rt` | **0 failed, 0 errors of 29 tests** (`evidence/runtime_tests_gmp004.txt`) |
+| ruff 0.16.0 check/format, py_compile, module wiring, circular deps, Odoo 19 XML, BAN001 | pass |
+
+GMP-001/002/003 repairs, the F1–F6 protections, payable GL routing and the transaction-count rules are
+unchanged (their tests are the same 29 runtime and 1 108 prior pure-python tests, all green). Deferred,
+unchanged and not blocking: full SQL-backed first import, FK-level 561 census, full second-run replay.
+
+---
+
 ### Evidence index (`docs/reports/evidence/erp-import-2026-10-09/`)
 
 | File | Content |
@@ -555,3 +770,6 @@ was manufactured.
 | `grid_census.py`, `grid_census.txt` | session 2 source-side census on the frozen grid: order-link proxy, price precision as stored vs display, short-ton lines, payables routing by GL with vendors and dollars |
 | `f7_environment_probe.txt` | session 2 proof that the ERP SQL Server source is not reachable from the session host (why run 1 / run 2 were refused) |
 | `runtime_tests_gmp001.txt` | session 3 Odoo 19 runtime result after the accounting / quarantine convergence (GMP-001) |
+| `runtime_tests_gmp002.txt` | session 4 Odoo 19 runtime result after the payable-coverage / disposition remediation (GMP-002) |
+| `runtime_tests_gmp003.txt` | session 5 Odoo 19 runtime result after the identity-coverage / transaction-verdict remediation (GMP-003): 29 tests, 0 failed |
+| `runtime_tests_gmp004.txt` | session 6 Odoo 19 runtime result after the fail-closed reconciliation remediation (GMP-004): 29 tests, 0 failed |

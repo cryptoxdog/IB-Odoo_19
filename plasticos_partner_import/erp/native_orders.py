@@ -56,12 +56,16 @@ __all__ = [
     "link_reason_class",
     "native_quantity",
     "newest_numbers",
+    "outside_universe_payables",
     "selected_worksheets",
+    "payable_identity",
     "payable_matches_purchase",
     "payables_reconciliation",
     "purchase_bill_lines",
     "quarantined_payable",
+    "reconciliation_gap",
     "sale_note",
+    "source_payable_identities",
     "with_worksheet",
     "worksheet_log",
     "worksheet_numbers",
@@ -262,17 +266,65 @@ def quarantined_payable(row: dict, number: str, reason: str, disposition: str) -
     }
 
 
-def payables_reconciliation(expense_rows: list[tuple[str, str, float]], quarantine: list[dict], rejected) -> dict:
-    """Every payable row of a realized worksheet is a native bill or a quarantined row, never both.
+def outside_universe_payables(index, numbers: list[str]) -> list[tuple[str, dict]]:
+    """Payable rows whose ``BuySellNo`` is not a worksheet with lines.
+
+    The transaction universe is every ``BuySellNo`` that owns a worksheet
+    line. A payable outside it (a blank reference, or a free-text one such as
+    ``51694 / 4714``) can be attached to no transaction, so the importer never
+    visits it; it is returned here so every such row is reported, never
+    silently omitted.
+    """
+    universe = set(numbers)
+    found: list[tuple[str, dict]] = []
+    for key in sorted(index.payables_by_buysell):
+        if key in universe:
+            continue
+        found.extend((key, row) for row in index.payables_by_buysell[key])
+    return found
+
+
+def payable_identity(row: dict) -> str:
+    """The source identity of a ``Payables`` row: its ``PayableID``. Blank when the source carries none."""
+    return (row.get("PayableID") or "").strip()
+
+
+def source_payable_identities(index) -> list[str]:
+    """Every indexed payable row's identity, worksheet by worksheet, blanks included."""
+    return [
+        payable_identity(row) for key in sorted(index.payables_by_buysell) for row in index.payables_by_buysell[key]
+    ]
+
+
+def payables_reconciliation(
+    expense_rows: list[tuple[str, str, float]],
+    quarantine: list[dict],
+    source_ids: list[str] | None = None,
+    billed_ids: list[str] | tuple[str, ...] = (),
+    excluded_ids: list[str] | tuple[str, ...] = (),
+) -> dict:
+    """Every indexed payable is a native bill, a quarantined row, or an explicit exclusion, exactly once.
 
     ``expense_rows`` carry ``(worksheet, bucket, amount)`` for every row the
-    importer routed; ``quarantine`` carries the rows it did not bill. Rows of
-    worksheets that were rolled back are left out of both sides. The result
-    closes only when the billed rows plus the quarantined rows account for
-    every row seen, so an unrealized bill can never read as imported.
+    importer routed, including rows of worksheets it rolled back, refused for
+    want of an order link, or found outside the worksheet universe; those
+    rows are quarantined, so they sit on the quarantine side. The routed
+    count closes only when the billed rows plus the quarantined rows account
+    for every row seen.
+
+    That count cannot see a row omitted from *both* sides, so the source is
+    reconciled by identity as well: ``source_ids`` are the ``PayableID`` of
+    every indexed row, ``billed_ids`` those written as native bills,
+    ``excluded_ids`` those a diagnostic limit or a dry run deliberately left
+    out, and the quarantine carries its own. A source identity on no side is
+    ``missing``; one on two sides (or twice on one) is ``duplicated``; one the
+    source does not carry is ``unknown``; a source row with no ``PayableID``
+    cannot be proven covered and is counted in ``blank_identity_rows``. The
+    reconciliation closes only when every list is empty, so an unrealized
+    bill can never read as imported and a silent omission can never close.
     """
-    kept = [(number, bucket, amount) for number, bucket, amount in expense_rows if number not in rejected]
-    quarantined = [entry for entry in quarantine if entry["worksheet"] not in rejected]
+    kept = list(expense_rows)
+    quarantined = list(quarantine)
     billed = [item for item in kept if item[1].endswith("_billed")]
     by_disposition: dict[str, dict] = {}
     for entry in quarantined:
@@ -281,6 +333,25 @@ def payables_reconciliation(expense_rows: list[tuple[str, str, float]], quaranti
         tally["amount"] += entry["amount"]
     for tally in by_disposition.values():
         tally["amount"] = round(tally["amount"], 2)
+    accounted: dict[str, int] = {}
+    for identity in (*billed_ids, *(entry["payable_id"] for entry in quarantined), *excluded_ids):
+        accounted[identity] = accounted.get(identity, 0) + 1
+    duplicated = sorted(identity for identity, seen in accounted.items() if identity and seen > 1)
+    excluded_rows = len(excluded_ids)
+    if source_ids is None:
+        source_rows = None
+        blank_identity_rows = 0
+        missing: list[str] = []
+        unknown: list[str] = []
+        unaccounted_rows = 0
+    else:
+        source = list(source_ids)
+        source_rows = len(source)
+        blank_identity_rows = sum(1 for identity in source if not identity)
+        known = {identity for identity in source if identity}
+        missing = sorted(known - set(accounted))
+        unknown = sorted({identity for identity in accounted if identity} - known)
+        unaccounted_rows = source_rows - len(billed) - len(quarantined) - excluded_rows
     return {
         "rows_seen": len(kept),
         "billed_rows": len(billed),
@@ -288,8 +359,45 @@ def payables_reconciliation(expense_rows: list[tuple[str, str, float]], quaranti
         "quarantined_rows": len(quarantined),
         "quarantined_amount": round(sum(entry["amount"] for entry in quarantined), 2),
         "by_disposition": dict(sorted(by_disposition.items())),
-        "closes": len(kept) == len(billed) + len(quarantined),
+        "source_rows": source_rows,
+        "excluded_rows": excluded_rows,
+        "unaccounted_rows": unaccounted_rows,
+        "missing_rows": missing,
+        "duplicated_rows": duplicated,
+        "unknown_rows": unknown,
+        "blank_identity_rows": blank_identity_rows,
+        "closes": (
+            len(kept) == len(billed) + len(quarantined)
+            and unaccounted_rows == 0
+            and not missing
+            and not duplicated
+            and not unknown
+            and blank_identity_rows == 0
+        ),
     }
+
+
+def reconciliation_gap(reconciliation: dict, sample: int = 20) -> str:
+    """Why a payables reconciliation does not close, naming the identities involved."""
+    parts = []
+    if reconciliation["rows_seen"] != reconciliation["billed_rows"] + reconciliation["quarantined_rows"]:
+        parts.append(
+            f"{reconciliation['rows_seen']} rows routed != {reconciliation['billed_rows']} billed"
+            f" + {reconciliation['quarantined_rows']} quarantined"
+        )
+    if reconciliation.get("unaccounted_rows"):
+        parts.append(
+            f"{reconciliation['source_rows']} source rows != {reconciliation['billed_rows']} billed"
+            f" + {reconciliation['quarantined_rows']} quarantined + {reconciliation['excluded_rows']} excluded"
+        )
+    for label in ("missing", "duplicated", "unknown"):
+        identities = reconciliation.get(f"{label}_rows") or []
+        if identities:
+            shown = ", ".join(identities[:sample]) + (", …" if len(identities) > sample else "")
+            parts.append(f"{len(identities)} {label} PayableID: {shown}")
+    if reconciliation.get("blank_identity_rows"):
+        parts.append(f"{reconciliation['blank_identity_rows']} source rows without a PayableID")
+    return "; ".join(parts) or "closes"
 
 
 def native_quantity(weight: str | None, uom_code: str | None) -> tuple[float, str]:

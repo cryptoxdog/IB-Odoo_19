@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import date
 
 from odoo import Command
+from odoo.addons.plasticos_partner_import.erp import summary
 from odoo.addons.plasticos_partner_import.erp.report import ImportReport
 from odoo.addons.plasticos_partner_import.erp.source_index import SourceIndex
 from odoo.tests import TransactionCase, tagged
@@ -333,8 +334,8 @@ class TestErpWorksheetImport(TransactionCase):
             (
                 "Payables",
                 "600003",
-                "transaction_only_cost: GL 50300 has no native account in the crosswalk; amount carried as other"
-                " expenses; vendor 2213 invoice HANDLING dated 2022-04-01 amount 100.00 worksheet 54839",
+                "transaction_only_cost: GL 50300 has no native account in the crosswalk; amount carried once as"
+                " other expenses; vendor 2213 invoice HANDLING dated 2022-04-01 amount 100.00 worksheet 54839",
             ),
             details,
         )
@@ -420,6 +421,489 @@ class TestErpWorksheetImport(TransactionCase):
         details = {(item["table"], item["key"], item["detail"]) for item in report.anomalies}
         self.assertIn(("BuySell", "54839", "unbilled freight -75.00 not counted: worksheet has freight bills"), details)
         self.assertEqual(report.census["payables"]["gl_50200_unbilled"], {"rows": 1, "worksheets": 1, "amount": -75.0})
+        entry = {e["payable_id"]: e for e in report.census["unresolved_bills"]}["600005"]
+        self.assertEqual(entry["disposition"], "unbillable")
+        self.assertEqual(
+            entry["reason"], "vendor 9999 is not an imported counterparty; not counted: worksheet has freight bills"
+        )
+        self.assertTrue(report.census["payables_reconciliation"]["closes"])
+
+    # ── GMP-002: payable coverage and economic dispositions ────────────────
+    def _payable_set(self, number, vendor=VENDOR):
+        """One material bill, one handling row, one blank-GL row, one unbillable freight credit."""
+        return [
+            _payable(f"8{number}1", number, vendor, "1000", "50100", f"INV-{number}"),
+            _payable(f"8{number}2", number, vendor, "80", "50300", f"HND-{number}"),
+            _payable(f"8{number}3", number, vendor, "40", "", f"PLT-{number}"),
+            _payable(f"8{number}4", number, "9999", "-30", "50200", f"FRT-{number}"),
+        ]
+
+    def _quarantine_by_id(self, report):
+        return {entry["payable_id"]: entry for entry in report.census["unresolved_bills"]}
+
+    def test_no_link_worksheet_quarantines_every_source_payable(self):
+        """A worksheet with no valid order link realizes nothing; each of its bills is reported, none counted."""
+        index = self._index()
+        # The commercial graph is present (an unrelated order), so realization runs; the worksheet's
+        # own line names no order on either side.
+        self._add_order(index, "9000", "16000", "SO", CUSTOMER, "2021-06-01 00:00:00")
+        self._add_line(index, "9900", "x", _line("14000", "60800", "", "", "1000", "500", "1000", "400"))
+        index.order_lines.pop("9900", None)
+        index.buysells["60800"] = _buysell("60800", "2021-06-01 00:00:00")
+        index.payables_by_buysell["60800"] = self._payable_set("60800")
+        report = self._run(index)
+
+        self.assertEqual(report.counts["transactions"]["rejected"], 1)
+        self.assertEqual(report.counts["transactions"]["created"], 0)
+        self.assertFalse(self._marked("account.move", "legacy_erp_ininv_"))
+        self.assertFalse(self._marked("purchase.order", "legacy_erp_po_"))
+        quarantine = self._quarantine_by_id(report)
+        self.assertEqual(sorted(quarantine), ["8608001", "8608002", "8608003", "8608004"])
+        for entry in quarantine.values():
+            self.assertEqual(entry["disposition"], "not_realized")
+            self.assertEqual(entry["worksheet"], "60800")
+            self.assertEqual(
+                entry["reason"],
+                "worksheet has no valid sale or purchase order link; no document to attach the bill to",
+            )
+        self.assertEqual(quarantine["8608001"]["invoice_no"], "INV-60800")
+        self.assertEqual(quarantine["8608001"]["amount"], 1000.0)
+        reconciliation = report.census["payables_reconciliation"]
+        self.assertEqual(reconciliation["rows_seen"], 4)
+        self.assertEqual(reconciliation["billed_rows"], 0)
+        self.assertEqual(reconciliation["quarantined_rows"], 4)
+        self.assertAlmostEqual(reconciliation["quarantined_amount"], 1090.0, places=2)
+        self.assertTrue(reconciliation["closes"])
+        self.assertEqual(
+            report.census["payables"]["no_order_link_not_realized"], {"rows": 4, "worksheets": 1, "amount": 1090.0}
+        )
+        before = self._snapshot()
+        replay = self._run(index)
+        self.assertEqual(self._snapshot(), before)
+        self.assertEqual(replay.counts["transactions"]["rejected"], 1)
+        self.assertEqual(replay.census["payables_reconciliation"], reconciliation)
+
+    def test_purchase_only_worksheet_carries_no_handling_or_equipment_cost(self):
+        """Without a transaction there is nothing to carry a transaction-only cost; the bill is not realized."""
+        index = self._index()
+        self._add_order(index, "9650", "8051", "PO", VENDOR, "2021-07-01 00:00:00")
+        self._add_line(index, "9850", "8051", _line("14010", "60810", "", "9850", "0", "0", "2000", "1000"))
+        index.buysells["60810"] = _buysell("60810", "2021-07-01 00:00:00")
+        index.payables_by_buysell["60810"] = [
+            _payable("8608101", "60810", VENDOR, "1000", "50100", "INV-60810"),
+            _payable("8608102", "60810", VENDOR, "80", "50300", "HND-60810"),
+            _payable("8608105", "60810", VENDOR, "120", "50600", "EQP-60810"),
+        ]
+        report = self._run(index)
+
+        self.assertFalse(self.Transaction.search([("name", "=", "60810")]))
+        self.assertEqual(report.counts["transactions"]["rejected"], 1)
+        bill = self._marked("account.move", "legacy_erp_ininv_8608101")
+        self.assertAlmostEqual(bill.amount_total, 1000.0, places=2)
+        self.assertFalse(self._marked("account.move", "legacy_erp_ininv_8608102"))
+        quarantine = self._quarantine_by_id(report)
+        self.assertEqual(sorted(quarantine), ["8608102", "8608105"])
+        for payable_id, gl in (("8608102", "50300"), ("8608105", "50600")):
+            self.assertEqual(quarantine[payable_id]["disposition"], "not_realized")
+            self.assertEqual(
+                quarantine[payable_id]["reason"],
+                f"GL {gl} has no native account in the crosswalk and no transaction exists to carry it",
+            )
+        payables = report.census["payables"]
+        self.assertEqual(payables["gl_50300_not_realized"], {"rows": 1, "worksheets": 1, "amount": 80.0})
+        self.assertEqual(payables["gl_50600_not_realized"], {"rows": 1, "worksheets": 1, "amount": 120.0})
+        self.assertNotIn("gl_50300_as_other_expenses", payables)
+        self.assertEqual(
+            report.census["payables_reconciliation"]["by_disposition"], {"not_realized": {"rows": 2, "amount": 200.0}}
+        )
+        self.assertTrue(report.census["payables_reconciliation"]["closes"])
+        before = self._snapshot()
+        replay = self._run(index)
+        self.assertEqual(self._snapshot(), before)
+        self.assertEqual(replay.census["payables_reconciliation"], report.census["payables_reconciliation"])
+
+    def test_unbillable_only_freight_is_carried_as_actual_freight_cost_when_a_transaction_exists(self):
+        """No freight bill exists: the transaction's actual freight cost carries the amount once, and says so."""
+        index = self._index()
+        self._add_order(index, "9661", "16061", "SO", CUSTOMER, "2021-08-01 00:00:00")
+        self._add_order(index, "9660", "8061", "PO", VENDOR, "2021-08-01 00:00:00")
+        self._add_line(index, "9861", "16061", _line("14020", "60820", "9861", "9860", "1000", "500", "1000", "400"))
+        index.order_lines["9860"] = {"PONumber": "8061"}
+        index.buysells["60820"] = _buysell("60820", "2021-08-01 00:00:00")
+        index.payables_by_buysell["60820"] = [
+            _payable("8608201", "60820", VENDOR, "400", "50100", "INV-60820"),
+            _payable("8608204", "60820", "9999", "55", "50200", "FRT-60820"),
+        ]
+        report = self._run(index)
+
+        tx = self.Transaction.search([("name", "=", "60820")])
+        self.assertEqual(len(tx), 1)
+        self.assertFalse(tx.freight_bill_ids)
+        self.assertAlmostEqual(tx.freight_actual, 55.0, places=2)
+        self.assertAlmostEqual(tx.freight_cost_total, 55.0, places=2)
+        self.assertAlmostEqual(tx.cost_total, 455.0, places=2)
+        entry = self._quarantine_by_id(report)["8608204"]
+        self.assertEqual(entry["disposition"], "transaction_only_cost")
+        self.assertEqual(
+            entry["reason"],
+            "vendor 9999 is not an imported counterparty; amount carried once as the transaction's actual freight cost",
+        )
+        self.assertEqual(report.census["payables"]["gl_50200_unbilled"], {"rows": 1, "worksheets": 1, "amount": 55.0})
+        self.assertTrue(report.census["payables_reconciliation"]["closes"])
+        # Without a transaction the same row has nowhere to go and says so.
+        self._add_order(index, "9670", "8071", "PO", VENDOR, "2021-08-02 00:00:00")
+        self._add_line(index, "9870", "8071", _line("14021", "60821", "", "9870", "0", "0", "1000", "400"))
+        index.buysells["60821"] = _buysell("60821", "2021-08-02 00:00:00")
+        index.payables_by_buysell["60821"] = [_payable("8608214", "60821", "9999", "20", "50200", "FRT-60821")]
+        second = self._run(index)
+        self.assertFalse(self.Transaction.search([("name", "=", "60821")]))
+        entry = self._quarantine_by_id(second)["8608214"]
+        self.assertEqual(entry["disposition"], "not_realized")
+        self.assertEqual(
+            entry["reason"], "vendor 9999 is not an imported counterparty; no transaction exists to carry it"
+        )
+        self.assertTrue(second.census["payables_reconciliation"]["closes"])
+
+    def test_payables_outside_the_worksheet_universe_and_rolled_back_worksheets_are_quarantined(self):
+        """Exception totals cover rows the importer never visits and rows it rolled back; replay is stable."""
+        index = self._index()
+        self._worksheet_54839(index)
+        # Rolled back: vendor 9999 is not an imported counterparty, so the PO cannot be written.
+        self._add_order(index, "8101", "15101", "SO", CUSTOMER)
+        self._add_order(index, "8100", "7400", "PO", "9999")
+        self._add_line(index, "9500", "15101", _line("7101", "58001", "9500", "9501", "1000", "500", "1000", "400"))
+        index.order_lines["9501"] = {"PONumber": "7400"}
+        index.buysells["58001"] = _buysell("58001", "2024-03-01 00:00:00", vendor="9999")
+        index.payables_by_buysell["58001"] = [_payable("8580011", "58001", VENDOR, "400", "50100", "INV-58001")]
+        # Outside the universe: a free-text reference and a blank one.
+        index.payables_by_buysell["51694 / 4714"] = [_payable("500868", "51694 / 4714", VENDOR, "168.72", "", "4714")]
+        index.payables_by_buysell[""] = [_payable("999001", "", VENDOR, "12.5", "50100", "NOREF")]
+        report = self._run(index)
+
+        self.assertEqual(report.counts["transactions"]["rejected"], 1)
+        self.assertEqual(report.census["worksheets_rejected"], ["58001"])
+        quarantine = self._quarantine_by_id(report)
+        rolled = quarantine["8580011"]
+        self.assertEqual(rolled["disposition"], "not_realized")
+        self.assertEqual(rolled["reason"], "worksheet rolled back (ValueError); no document of it exists")
+        self.assertFalse(self._marked("account.move", "legacy_erp_ininv_8580011"))
+        outside = quarantine["500868"]
+        self.assertEqual(outside["worksheet"], "51694 / 4714")
+        self.assertEqual(
+            outside["reason"],
+            "BuySellNo '51694 / 4714' is not a worksheet with lines; no transaction to attach the bill to",
+        )
+        blank = quarantine["999001"]
+        self.assertEqual(blank["worksheet"], "")
+        self.assertEqual(
+            blank["reason"],
+            "blank BuySellNo; the bill names no worksheet"
+            " (GL 50100 has a native account; realizing it standalone is an operator decision)",
+        )
+        payables = report.census["payables"]
+        self.assertEqual(payables["worksheet_rolled_back_not_realized"], {"rows": 1, "worksheets": 1, "amount": 400.0})
+        self.assertEqual(
+            payables["outside_worksheet_universe_not_realized"], {"rows": 2, "worksheets": 2, "amount": 181.22}
+        )
+        reconciliation = report.census["payables_reconciliation"]
+        self.assertEqual(reconciliation["rows_seen"], 8 + 1 + 2)
+        self.assertEqual(reconciliation["billed_rows"], 5)
+        self.assertEqual(reconciliation["quarantined_rows"], 6)
+        self.assertTrue(reconciliation["closes"])
+        self.assertEqual(report.census["payables_unselected"], {"rows": 0, "amount": 0.0})
+        before = self._snapshot()
+        replay = self._run(index)
+        self.assertEqual(self._snapshot(), before)
+        self.assertEqual(replay.census["payables_reconciliation"], reconciliation)
+        self.assertEqual(replay.census["unresolved_bills"], report.census["unresolved_bills"])
+
+    def test_diagnostic_limit_counts_the_payables_it_leaves_out(self):
+        index = self._index()
+        self._worksheet_54839(index)
+        self._add_order(index, "9681", "16081", "SO", CUSTOMER, "2026-07-05 00:00:00")
+        self._add_order(index, "9680", "8081", "PO", VENDOR, "2026-07-05 00:00:00")
+        self._add_line(index, "9881", "16081", _line("14030", "60830", "9881", "9880", "1000", "500", "1000", "400"))
+        index.order_lines["9880"] = {"PONumber": "8081"}
+        index.buysells["60830"] = _buysell("60830", "2026-07-05 00:00:00")
+        index.payables_by_buysell["60830"] = [_payable("8608301", "60830", VENDOR, "400", "50100", "INV-60830")]
+        report = self._run(index, limit=1)
+
+        self.assertEqual(report.counts["transactions"]["skipped"], 1, "54839 left out by the limit")
+        # 9 366.52 − 9 366.52 + 8 826.48 + 625 − 25 + 100 + 5 000 + 40
+        self.assertEqual(report.census["payables_unselected"], {"rows": 8, "amount": 14566.48})
+        self.assertEqual(
+            report.census["payables_excluded"],
+            {"rows": 8, "amount": 14566.48, "by_reason": {"diagnostic_limit": {"rows": 8, "amount": 14566.48}}},
+        )
+        reconciliation = report.census["payables_reconciliation"]
+        self.assertEqual(reconciliation["rows_seen"], 1)
+        # The eight excluded rows are named by identity, so the source still reconciles: 9 = 1 + 0 + 8.
+        self.assertEqual(reconciliation["source_rows"], 9)
+        self.assertEqual(reconciliation["excluded_rows"], 8)
+        self.assertEqual(reconciliation["missing_rows"], [])
+        self.assertTrue(reconciliation["closes"])
+
+    # ── GMP-003: payable coverage by identity, transaction verdict after confirm ──
+    def _worksheet_with_sale_and_costs(self, index, number, so_poid, so_number, po_poid, po_number, day):
+        """SO + PO linked worksheet with a material bill, a handling row (50300) and an unbillable freight row."""
+        self._add_order(index, so_poid, so_number, "SO", CUSTOMER, day)
+        self._add_order(index, po_poid, po_number, "PO", VENDOR, day)
+        sale_key, purchase_key = f"9{so_poid}", f"9{po_poid}"
+        self._add_line(
+            index,
+            sale_key,
+            so_number,
+            _line(f"14{number}", number, sale_key, purchase_key, "1000", "500", "1000", "400"),
+        )
+        index.order_lines[purchase_key] = {"PONumber": po_number}
+        index.buysells[number] = _buysell(number, day)
+        index.payables_by_buysell[number] = [
+            _payable(f"8{number}1", number, VENDOR, "400", "50100", f"INV-{number}"),
+            _payable(f"8{number}2", number, VENDOR, "80", "50300", f"HND-{number}"),
+            _payable(f"8{number}4", number, "9999", "55", "50200", f"FRT-{number}"),
+        ]
+
+    def _anomaly_details(self, report):
+        return {(item["table"], item["key"], item["detail"]) for item in report.anomalies}
+
+    def test_empty_order_graph_quarantines_every_payable_and_still_reconciles(self):
+        """A source with no order header writes nothing, skips every worksheet, and reports every bill."""
+        index = self._index()
+        self._add_line(index, "9900", "x", _line("14000", "60900", "9900", "9901", "1000", "500", "1000", "400"))
+        index.order_lines.clear()
+        index.buysells["60900"] = _buysell("60900", "2021-06-01 00:00:00")
+        index.payables_by_buysell["60900"] = self._payable_set("60900")
+        index.payables_by_buysell["51694 / 4714"] = [_payable("500868", "51694 / 4714", VENDOR, "168.72", "", "4714")]
+        self.assertFalse(index.orders)
+        report = self._run(index)
+
+        self.assertEqual(report.counts["transactions"], {"created": 0, "updated": 0, "skipped": 1, "rejected": 0})
+        self.assertFalse(self._marked("account.move", "legacy_erp_ininv_"))
+        self.assertFalse(self._marked("sale.order", "legacy_erp_so_"))
+        quarantine = self._quarantine_by_id(report)
+        self.assertEqual(sorted(quarantine), ["500868", "8609001", "8609002", "8609003", "8609004"])
+        for payable_id in ("8609001", "8609002", "8609003", "8609004"):
+            self.assertEqual(quarantine[payable_id]["disposition"], "not_realized")
+            self.assertEqual(
+                quarantine[payable_id]["reason"], "source carries no order headers; no document to attach the bill to"
+            )
+        self.assertEqual(
+            report.census["payables"]["no_order_link_not_realized"], {"rows": 4, "worksheets": 1, "amount": 1090.0}
+        )
+        reconciliation = report.census["payables_reconciliation"]
+        self.assertEqual(reconciliation["source_rows"], 5)
+        self.assertEqual(reconciliation["quarantined_rows"], 5)
+        self.assertEqual((reconciliation["billed_rows"], reconciliation["excluded_rows"]), (0, 0))
+        self.assertEqual(reconciliation["missing_rows"], [])
+        self.assertTrue(reconciliation["closes"])
+        self.assertNotIn("reconciliation", {item["key"] for item in report.anomalies})
+        before = self._snapshot()
+        replay = self._run(index)
+        self.assertEqual(self._snapshot(), before)
+        self.assertEqual(replay.census["payables_reconciliation"], reconciliation)
+
+    def test_reconciliation_does_not_close_when_a_source_payable_is_on_neither_side(self):
+        """Identity coverage catches what the routed count cannot: a row omitted from both tallies."""
+        index = self._index()
+        self._worksheet_54839(index)
+        report = self._run(index)
+        self.assertTrue(report.census["payables_reconciliation"]["closes"])
+        # Rebuild the census from a context that lost one billed identity and never routed one row.
+        context = native_document_import._load_context(self.importer)
+        context["expense_rows"] = [("54839", "gl_50100_billed", 9366.52), ("54839", "gl_50100_billed", -9366.52)]
+        context["billed_payables"] = [("54839", "591398"), ("54839", "591476")]
+        census = native_document_import._census(index, context)
+        reconciliation = census["payables_reconciliation"]
+        self.assertEqual(
+            reconciliation["rows_seen"], reconciliation["billed_rows"] + reconciliation["quarantined_rows"]
+        )
+        self.assertEqual(reconciliation["source_rows"], 8)
+        self.assertEqual(reconciliation["unaccounted_rows"], 6)
+        self.assertEqual(reconciliation["missing_rows"], ["594620", "600001", "600002", "600003", "600004", "600009"])
+        self.assertFalse(reconciliation["closes"])
+        # The same identity on both sides is a duplicate, not coverage.
+        context["quarantine"] = [
+            {"worksheet": "54839", "payable_id": "591398", "amount": 1.0, "disposition": "unbillable"}
+        ]
+        context["expense_rows"].append(("54839", "gl_50100_unbilled", 1.0))
+        duplicated = native_document_import._census(index, context)["payables_reconciliation"]
+        self.assertEqual(duplicated["duplicated_rows"], ["591398"])
+        self.assertFalse(duplicated["closes"])
+        # End to end: a source row with no PayableID cannot be proven covered, and the run says so.
+        index.payables_by_buysell["54839"].append(_payable("", "54839", VENDOR, "7", "", "NO-ID"))
+        unproven = self._run(index)
+        self.assertEqual(unproven.census["payables_reconciliation"]["blank_identity_rows"], 1)
+        self.assertFalse(unproven.census["payables_reconciliation"]["closes"])
+        self.assertIn(
+            ("Payables", "reconciliation", "1 source rows without a PayableID"), self._anomaly_details(unproven)
+        )
+        # GMP-004: the gap is a failure of the run, not a diagnostic. It reaches the machine-readable
+        # summary and the exit status without relabelling a single row.
+        self.assertEqual(
+            unproven.failures,
+            [
+                {
+                    "check": "payables_reconciliation",
+                    "detail": "payables identity reconciliation does not close: 1 source rows without a PayableID",
+                }
+            ],
+        )
+        self.assertEqual(report.failures, [], "the closing run carries no failure")
+        for outcome in (report, unproven):
+            outcome.source_counts = index.counts()
+        closing = summary.import_run_summary(report.as_dict())
+        failing = summary.import_run_summary(unproven.as_dict())
+        self.assertEqual(closing["final_status"], "success")
+        self.assertEqual(failing["final_status"], "failed")
+        # Same counters either way: the replay's rows are all unchanged, nothing is rejected to balance it.
+        self.assertEqual(failing["records_rejected"], 0)
+        self.assertEqual(failing["records_seen"], failing["records_unchanged"])
+        self.assertEqual(
+            [row["record_ref"] for row in failing["errors"]], ["payables_reconciliation"], "no counter gap, one failure"
+        )
+        self.assertEqual(len(unproven.census["unresolved_bills"]), len(report.census["unresolved_bills"]) + 1)
+        self.assertEqual(summary.run_exit_status({**report.as_dict(), "summary": closing}), 0)
+        self.assertEqual(summary.run_exit_status({**unproven.as_dict(), "summary": failing}), 1)
+        self.assertEqual(summary.run_exit_status(unproven.as_dict(), dry_run=True), 1)
+
+    def test_dry_run_excludes_every_payable_by_name_and_writes_nothing(self):
+        index = self._index()
+        self._worksheet_54839(index)
+        index.payables_by_buysell[""] = [_payable("999001", "", VENDOR, "12.5", "50100", "NOREF")]
+        report = ImportReport()
+        native_document_import.realize(self.importer, index, report, dict(self.partner_by_cp), None, False, True)
+
+        self.assertEqual(report.counts["transactions"]["skipped"], 1)
+        self.assertFalse(self._marked("sale.order", "legacy_erp_so_"))
+        self.assertFalse(self._marked("account.move", "legacy_erp_ininv_"))
+        self.assertEqual(
+            report.census["payables_excluded"],
+            {"rows": 8, "amount": 14566.48, "by_reason": {"dry_run": {"rows": 8, "amount": 14566.48}}},
+        )
+        self.assertEqual(report.census["payables_unselected"], {"rows": 0, "amount": 0.0})
+        reconciliation = report.census["payables_reconciliation"]
+        # The outside-universe row is still quarantined; nothing is claimed as billed.
+        self.assertEqual(reconciliation["source_rows"], 9)
+        self.assertEqual((reconciliation["billed_rows"], reconciliation["quarantined_rows"]), (0, 1))
+        self.assertEqual(reconciliation["excluded_rows"], 8)
+        self.assertTrue(reconciliation["closes"])
+
+    def test_blocked_sale_confirmation_is_a_rejected_transaction_that_carries_no_cost(self):
+        """A linked sale order is not a transaction: until the order confirms, nothing is created or carried."""
+        from unittest.mock import patch
+
+        from odoo.exceptions import UserError
+
+        index = self._index()
+        self._worksheet_with_sale_and_costs(index, "60910", "9691", "16091", "9690", "8091", "2026-07-06 00:00:00")
+        with patch.object(type(self.env["sale.order"]), "action_confirm", side_effect=UserError("blocked")):
+            report = self._run(index)
+
+        order = self._marked("sale.order", "legacy_erp_so_")
+        self.assertEqual(order.state, "draft")
+        self.assertFalse(self.Transaction.search([("name", "=", "60910")]))
+        self.assertEqual(report.counts["transactions"], {"created": 0, "updated": 0, "skipped": 0, "rejected": 1})
+        self.assertIn(
+            ("BuySell", "60910", f"sale order {order.name} not confirmed (draft); no transaction compiled"),
+            self._anomaly_details(report),
+        )
+        # The material bill is a document of its own and is still written.
+        self.assertAlmostEqual(self._marked("account.move", "legacy_erp_ininv_8609101").amount_total, 400.0, places=2)
+        quarantine = self._quarantine_by_id(report)
+        self.assertEqual(quarantine["8609102"]["disposition"], "not_realized")
+        self.assertEqual(
+            quarantine["8609102"]["reason"],
+            "GL 50300 has no native account in the crosswalk and no transaction exists to carry it"
+            f" (sale order {order.name} not confirmed (draft))",
+        )
+        self.assertEqual(quarantine["8609104"]["disposition"], "not_realized")
+        self.assertEqual(
+            quarantine["8609104"]["reason"],
+            "vendor 9999 is not an imported counterparty; no transaction exists to carry it"
+            f" (sale order {order.name} not confirmed (draft))",
+        )
+        payables = report.census["payables"]
+        self.assertEqual(payables["gl_50300_not_realized"], {"rows": 1, "worksheets": 1, "amount": 80.0})
+        self.assertNotIn("gl_50300_as_other_expenses", payables)
+        self.assertEqual(
+            report.census["payables_reconciliation"]["by_disposition"], {"not_realized": {"rows": 2, "amount": 135.0}}
+        )
+        self.assertTrue(report.census["payables_reconciliation"]["closes"])
+
+        # Once the order confirms, the transaction exists and the same rows are carried, and say so.
+        second = self._run(index)
+        tx = self.Transaction.search([("name", "=", "60910")])
+        self.assertEqual(len(tx), 1)
+        self.assertEqual(second.counts["transactions"], {"created": 1, "updated": 0, "skipped": 0, "rejected": 0})
+        self.assertAlmostEqual(tx.other_expenses, 80.0, places=2)
+        self.assertAlmostEqual(tx.freight_actual, 55.0, places=2)
+        quarantine = self._quarantine_by_id(second)
+        self.assertEqual(quarantine["8609102"]["disposition"], "transaction_only_cost")
+        self.assertEqual(quarantine["8609104"]["disposition"], "transaction_only_cost")
+        self.assertEqual(
+            second.census["payables"]["gl_50300_as_other_expenses"], {"rows": 1, "worksheets": 1, "amount": 80.0}
+        )
+        self.assertTrue(second.census["payables_reconciliation"]["closes"])
+        # Replay: the transaction already exists, so it is skipped, and the census is stable.
+        before = self._snapshot()
+        third = self._run(index)
+        self.assertEqual(self._snapshot(), before)
+        self.assertEqual(third.counts["transactions"], {"created": 0, "updated": 0, "skipped": 1, "rejected": 0})
+        self.assertEqual(third.census["payables_reconciliation"], second.census["payables_reconciliation"])
+        self.assertEqual(third.census["unresolved_bills"], second.census["unresolved_bills"])
+
+    def test_failed_transaction_compile_is_a_rejected_transaction_until_it_compiles(self):
+        """A confirmed order whose compile fails has no transaction: rejected, and its costs are not carried."""
+        from unittest.mock import patch
+
+        index = self._index()
+        self._worksheet_54839(index)
+        self._run(index)
+        order = self._marked("sale.order", "legacy_erp_so_")
+        self.assertEqual(order.state, "sale")
+        # A second worksheet arrives on the already confirmed order; only the standalone compile can serve it.
+        self._add_order(index, "6350", "7276", "PO", VENDOR)
+        index.order_lines["9300"] = {"PONumber": "14263"}
+        self._add_line(
+            index, "9300", "14263", _line("6703", "54840", "9300", "9301", "40000", "20000", "40100", "18000")
+        )
+        index.order_lines["9301"] = {"PONumber": "7276"}
+        index.buysells["54840"] = _buysell("54840", "2022-02-20 00:00:00")
+        index.payables_by_buysell["54840"] = [
+            _payable("8548401", "54840", VENDOR, "18000", "50100", "INV-54840"),
+            _payable("8548402", "54840", VENDOR, "90", "50600", "EQP-54840"),
+        ]
+        with patch.object(
+            type(self.env["sale.order"]), "_compile_worksheet_transactions", side_effect=RuntimeError("compile failed")
+        ):
+            report = self._run(index)
+
+        self.assertFalse(self.Transaction.search([("name", "=", "54840")]))
+        self.assertEqual(report.counts["transactions"], {"created": 0, "updated": 0, "skipped": 1, "rejected": 1})
+        self.assertIn(
+            ("BuySell", "54840", "sale order confirmed but no transaction was compiled; no transaction compiled"),
+            self._anomaly_details(report),
+        )
+        self.assertAlmostEqual(self._marked("account.move", "legacy_erp_ininv_8548401").amount_total, 18000.0, places=2)
+        entry = self._quarantine_by_id(report)["8548402"]
+        self.assertEqual(entry["disposition"], "not_realized")
+        self.assertEqual(
+            entry["reason"],
+            "GL 50600 has no native account in the crosswalk and no transaction exists to carry it"
+            " (sale order confirmed but no transaction was compiled)",
+        )
+        self.assertEqual(
+            report.census["payables"]["gl_50600_not_realized"], {"rows": 1, "worksheets": 1, "amount": 90.0}
+        )
+        self.assertTrue(report.census["payables_reconciliation"]["closes"])
+
+        second = self._run(index)
+        later = self.Transaction.search([("name", "=", "54840")])
+        self.assertEqual(len(later), 1)
+        self.assertAlmostEqual(later.other_expenses, 90.0, places=2)
+        self.assertEqual(second.counts["transactions"], {"created": 1, "updated": 0, "skipped": 1, "rejected": 0})
+        self.assertEqual(self._quarantine_by_id(second)["8548402"]["disposition"], "transaction_only_cost")
+        self.assertTrue(second.census["payables_reconciliation"]["closes"])
 
     # ── Workstream C: weight and price fidelity ────────────────────────────
     def test_short_ton_lines_are_carried_in_pounds_at_two_thousand_per_ton(self):

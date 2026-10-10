@@ -222,3 +222,104 @@ def test_reconciliation_error_keeps_a_slot_when_diagnostics_overflow():
     assert len(projected["errors"]) == 1000
     assert len(reconciliation) == 1
     assert validate_summary(projected) == []
+
+
+# ── GMP-004: a mandatory run-level check that fails cannot produce a successful import ──
+def _balanced_report() -> ImportReport:
+    """Every source row has one outcome, nothing rejected: the counter reconciliation closes."""
+    report = ImportReport()
+    report.source_counts = {"counterparties": 2, "transactions": 1, "transaction_lines": 1}
+    report.bump("counterparties", "created", 2)
+    report.bump("transactions", "created", 1)
+    report.bump("transaction_lines", "created", 1)
+    return report
+
+
+def test_a_run_level_failure_fails_the_run_without_touching_the_counters():
+    report = _balanced_report()
+    report.fail(summary.PAYABLES_RECONCILIATION_REF, "payables identity reconciliation does not close: 1 missing")
+    result = report.as_dict()
+    assert result["failures"] == [
+        {"check": "payables_reconciliation", "detail": "payables identity reconciliation does not close: 1 missing"}
+    ]
+    projected = summary.import_run_summary(result)
+    assert validate_summary(projected) == []
+    assert projected["final_status"] == "failed"
+    # The failure is not a row: counters are exactly what the run measured, and they still close.
+    assert projected["records_seen"] == 4
+    assert projected["records_created"] == 4
+    assert projected["records_rejected"] == 0
+    assert projected["records_valid"] == 4
+    assert projected["errors"] == [
+        {
+            "record_ref": "payables_reconciliation",
+            "message": "payables identity reconciliation does not close: 1 missing",
+        }
+    ]
+    assert all(row["record_ref"] != summary.RECONCILIATION_REF for row in projected["errors"])
+    # The same report without the failure is the success path, unchanged.
+    clean = summary.import_run_summary(_balanced_report().as_dict())
+    assert clean["final_status"] == "success" and clean["errors"] == []
+    assert {key: clean[key] for key in clean if key.startswith("records_")} == {
+        key: projected[key] for key in projected if key.startswith("records_")
+    }
+
+
+def test_an_omitted_or_blank_identity_payable_cannot_produce_a_successful_import():
+    """The realizer's chain: identity gap -> reconciliation_gap -> report.fail -> summary failed -> exit 1."""
+    from erp.native_orders import payables_reconciliation, reconciliation_gap
+
+    rows = [("54839", "gl_50100_billed", 100.0)]
+    for source_ids, expected in (
+        (["591398", "591476"], "1 missing PayableID: 591476"),  # omitted from both sides
+        (["591398", ""], "1 source rows without a PayableID"),  # blank identity
+    ):
+        reconciliation = payables_reconciliation(rows, [], source_ids, ["591398"])
+        assert reconciliation["closes"] is False
+        report = _balanced_report()
+        gap = reconciliation_gap(reconciliation)
+        assert gap.endswith(expected)
+        report.fail(summary.PAYABLES_RECONCILIATION_REF, f"payables identity reconciliation does not close: {gap}")
+        result = report.as_dict()
+        result["summary"] = summary.import_run_summary(result)
+        assert result["summary"]["final_status"] == "failed"
+        assert result["summary"]["records_rejected"] == 0
+        assert summary.run_exit_status(result) == 1
+        assert summary.run_exit_status(result, dry_run=True) == 1
+        assert summary.run_exit_status(result, layer="counterparties") == 1
+    closing = payables_reconciliation(rows, [], ["591398"], ["591398"])
+    assert closing["closes"] is True
+    result = _balanced_report().as_dict()
+    result["summary"] = summary.import_run_summary(result)
+    assert summary.run_exit_status(result) == 0
+
+
+def test_run_exit_status_follows_the_summary_only_for_an_applied_full_run():
+    failed = {"failures": [], "summary": {"final_status": "failed"}}
+    assert summary.run_exit_status(failed) == 1
+    assert summary.run_exit_status(failed, dry_run=True) == 0, "a dry run emits no summary to read"
+    assert summary.run_exit_status(failed, layer="contacts") == 0, "a layer run is gated by its validator"
+    assert summary.run_exit_status({"failures": [], "summary": {"final_status": "partial"}}) == 0
+    assert summary.run_exit_status({"failures": [], "summary": {"final_status": "success"}}) == 0
+    assert summary.run_exit_status({}) == 0
+
+
+def test_run_level_failures_keep_their_slots_when_diagnostics_overflow():
+    report = ImportReport()
+    report.source_counts = {"Address": 1000}
+    for index in range(1000):
+        report.unresolved_ref("Address", "unresolved_counterparty", str(index), "missing parent")
+    report.fail(summary.PAYABLES_RECONCILIATION_REF, "x" * 5000)
+    projected = summary.import_run_summary(report.as_dict())
+    assert projected["final_status"] == "failed"
+    assert projected["records_rejected"] == 1000, "the failure added no rejected row"
+    assert len(projected["errors"]) == 1000
+    assert projected["errors"][-1]["record_ref"] == "payables_reconciliation"
+    assert len(projected["errors"][-1]["message"]) == summary.ERROR_MESSAGE_LIMIT
+    assert projected["errors"][0]["record_ref"] == "0"
+    assert validate_summary(projected) == []
+
+
+def test_error_message_limit_matches_the_shared_contract():
+    schema = json.loads((ROOT / "contracts/schemas/draft/import-run-summary.schema.json").read_text(encoding="utf-8"))
+    assert summary.ERROR_MESSAGE_LIMIT == schema["properties"]["errors"]["items"]["properties"]["message"]["maxLength"]
