@@ -1,7 +1,7 @@
 {
     "name": "PlasticOS CRM Sync",
-    "version": "19.0.1.7.2",
-    "summary": "API-first CRM sync (VanillaSoft live; other providers stubbed)",
+    "version": "19.0.1.7.3",
+    "summary": "API-first CRM sync (VanillaSoft live; unknown providers fail closed)",
     "author": "Igor Beylin",
     "license": "LGPL-3",
     "category": "PlasticOS",
