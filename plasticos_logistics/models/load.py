@@ -283,11 +283,18 @@ class PlasticosLoad(models.Model):
                         f"{', '.join(sorted(protected))}"
                     )
         records = super().create(vals_list)
+        sale_orders = records.mapped("sale_order_id")
+        tx_by_sale = {}
+        if sale_orders:
+            transactions = self.env[PLASTICOS_TRANSACTION].search([("sale_order_id", "in", sale_orders.ids)])
+            for tx in transactions:
+                tx_by_sale.setdefault(tx.sale_order_id.id, tx)
         for rec in records:
-            if rec.sale_order_id:
-                tx = self.env[PLASTICOS_TRANSACTION].search([("sale_order_id", "=", rec.sale_order_id.id)], limit=1)
-                if tx and not tx.load_id and tx.supplier_id and tx.buyer_id:
-                    tx.load_id = rec.id
+            if not rec.sale_order_id:
+                continue
+            tx = tx_by_sale.get(rec.sale_order_id.id)
+            if tx and not tx.load_id and tx.supplier_id and tx.buyer_id:
+                tx.load_id = rec.id
         return records
 
     def copy_data(self, default=None):
@@ -392,7 +399,7 @@ class PlasticosLoad(models.Model):
 
         if "state" in vals and vals["state"] == "closed":
             for rec in self:
-                tx = self.env[PLASTICOS_TRANSACTION].search([("load_id", "=", rec.id)], limit=1)
+                tx = rec.transaction_id
                 if tx:
                     tx.message_post(body="Logistics closed.")
 
@@ -431,10 +438,9 @@ class PlasticosLoad(models.Model):
 
     @api.depends("delivery_term", "transaction_id.delivery_term")
     def _compute_delivery_term_overridden(self):
-        """Check if delivery_term differs from transaction."""
+        """Check if delivery_term differs from the linked transaction."""
         for rec in self:
-            # Use reverse lookup to get transaction
-            tx = self.env[PLASTICOS_TRANSACTION].search([("load_id", "=", rec.id)], limit=1)
+            tx = rec.transaction_id
             if tx and tx.delivery_term:
                 rec.delivery_term_overridden = rec.delivery_term != tx.delivery_term
             else:

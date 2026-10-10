@@ -544,67 +544,88 @@ class PlasticosTransaction(models.Model):
     # ── Computed Methods (harvested) ──────────────────────────
     @api.depends(
         "supplier_id",
+        "supplier_id.material_profile_ids",
         "buyer_id",
+        "buyer_id.material_profile_ids",
         "product_id",
+        "product_id.product_tmpl_id.polymer_id",
     )
     def _compute_profile_refs(self):
         """Denormalize material profile links for fast lookup.
 
         Matches supplier/buyer to their material profile based on the
-        transaction's product polymer. Avoids slow 3-hop traversals.
+        transaction's product polymer. One search covers the recordset.
+        When several profiles share a partner and polymer, the first row in
+        model order is kept (same row ``search(limit=1)`` returned).
 
         Note: product.template has polymer_id (via plasticos_product) but not
         form_id. We match on polymer only; form matching requires order line fields.
         """
         Profile = self.env[PLASTICOS_MATERIAL_PROFILE]
+        polymer_by_tx = {}
+        partner_ids = set()
+        polymer_ids = set()
         for rec in self:
-            supplier_profile = False
-            buyer_profile = False
             tmpl = rec.product_id.product_tmpl_id if rec.product_id else False
-            # Check if polymer_id exists on template (added by plasticos_product)
-            polymer_id = tmpl.polymer_id.id if tmpl and hasattr(tmpl, "polymer_id") and tmpl.polymer_id else False
-            if polymer_id:
-                if rec.supplier_id:
-                    supplier_profile = Profile.search(
-                        [
-                            ("partner_id", "=", rec.supplier_id.id),
-                            ("polymer_id", "=", polymer_id),
-                        ],
-                        limit=1,
-                    )
-                if rec.buyer_id:
-                    buyer_profile = Profile.search(
-                        [
-                            ("partner_id", "=", rec.buyer_id.id),
-                            ("polymer_id", "=", polymer_id),
-                        ],
-                        limit=1,
-                    )
-            rec.supplier_profile_id = supplier_profile
-            rec.buyer_profile_id = buyer_profile
-
-    @api.depends("sale_order_id", "sale_order_id.partner_id", "purchase_order_ids", "purchase_order_ids.partner_id")
-    def _compute_profiles(self):
+            polymer = tmpl.polymer_id if tmpl and getattr(tmpl, "polymer_id", False) else False
+            polymer_by_tx[rec.id] = polymer.id if polymer else False
+            if not polymer:
+                continue
+            polymer_ids.add(polymer.id)
+            if rec.supplier_id:
+                partner_ids.add(rec.supplier_id.id)
+            if rec.buyer_id:
+                partner_ids.add(rec.buyer_id.id)
+        first_match = {}
+        if partner_ids and polymer_ids:
+            profiles = Profile.search(
+                [
+                    ("partner_id", "in", list(partner_ids)),
+                    ("polymer_id", "in", list(polymer_ids)),
+                ]
+            )
+            for profile in profiles:
+                first_match.setdefault((profile.partner_id.id, profile.polymer_id.id), profile)
         for rec in self:
-            # Buyer facility from sale order partner
-            if rec.sale_order_id and rec.sale_order_id.partner_id:
-                facility = self.env["plasticos.facility.profile"].search(
-                    [("partner_id", "=", rec.sale_order_id.partner_id.id)], limit=1
-                )
-                rec.buyer_facility_id = facility
-            else:
-                rec.buyer_facility_id = False
+            polymer_id = polymer_by_tx[rec.id]
+            supplier_key = (rec.supplier_id.id, polymer_id) if polymer_id and rec.supplier_id else None
+            buyer_key = (rec.buyer_id.id, polymer_id) if polymer_id and rec.buyer_id else None
+            rec.supplier_profile_id = first_match.get(supplier_key, False) if supplier_key else False
+            rec.buyer_profile_id = first_match.get(buyer_key, False) if buyer_key else False
 
-            # Supplier material from first purchase order partner
-            if rec.purchase_order_ids:
-                first_po = rec.purchase_order_ids[0]
-                if first_po.partner_id:
-                    material = self.env[PLASTICOS_MATERIAL_PROFILE].search(
-                        [("partner_id", "=", first_po.partner_id.id)], limit=1
-                    )
-                    rec.supplier_material_id = material
-                else:
-                    rec.supplier_material_id = False
+    @api.depends(
+        "sale_order_id",
+        "sale_order_id.partner_id",
+        "sale_order_id.partner_id.facility_profile_ids",
+        "purchase_order_ids",
+        "purchase_order_ids.partner_id",
+        "purchase_order_ids.partner_id.material_profile_ids",
+    )
+    def _compute_profiles(self):
+        """Buyer facility is the sale-order partner's facility profile.
+
+        Supplier material stays the first material profile of the first
+        purchase-order partner, in material-profile order. Facility uniqueness
+        is already ``unique(partner_id)``, so the partner's existing one2many
+        is the authoritative row.
+        """
+        Profile = self.env[PLASTICOS_MATERIAL_PROFILE]
+        partner_ids = set()
+        for rec in self:
+            first_po = rec.purchase_order_ids[:1]
+            if first_po.partner_id:
+                partner_ids.add(first_po.partner_id.id)
+        first_material = {}
+        if partner_ids:
+            for profile in Profile.search([("partner_id", "in", list(partner_ids))]):
+                first_material.setdefault(profile.partner_id.id, profile)
+        empty_partner = self.env[RES_PARTNER]
+        for rec in self:
+            buyer = rec.sale_order_id.partner_id if rec.sale_order_id else empty_partner
+            rec.buyer_facility_id = buyer.facility_profile_ids[:1]
+            first_po = rec.purchase_order_ids[:1]
+            if first_po.partner_id:
+                rec.supplier_material_id = first_material.get(first_po.partner_id.id, False)
             else:
                 rec.supplier_material_id = False
 

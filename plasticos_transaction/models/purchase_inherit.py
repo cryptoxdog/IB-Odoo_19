@@ -26,15 +26,19 @@ class PurchaseOrder(models.Model):
         Transactions are linked via purchase_order_ids Many2many, so we do
         a reverse lookup to find the transaction that contains this PO.
         """
+        po_tx = {}
+        if self.ids:
+            # Membership stays purchase_order_ids. search() order is id, which
+            # is what limit=1 selected when several transactions contain one PO.
+            transactions = self.env["plasticos.transaction"].search([("purchase_order_ids", "in", list(self.ids))])
+            order_ids = set(self.ids)
+            for tx in transactions:
+                for po in tx.purchase_order_ids:
+                    if po.id in order_ids:
+                        po_tx.setdefault(po.id, tx)
         for order in self:
-            tx = self.env["plasticos.transaction"].search(
-                [("purchase_order_ids", "in", [order.id])],
-                limit=1,
-            )
-            if tx:
-                order.delivery_term = tx.delivery_term
-            else:
-                order.delivery_term = False
+            tx = po_tx.get(order.id)
+            order.delivery_term = tx.delivery_term if tx else False
 
     def button_confirm(self):
         res = super().button_confirm()

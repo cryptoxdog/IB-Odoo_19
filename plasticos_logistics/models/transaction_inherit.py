@@ -15,6 +15,12 @@ class PlasticosTransactionLoadBridge(models.Model):
         ondelete="cascade",
     )
 
+    # One load belongs to one transaction. NULL stays repeatable in PostgreSQL.
+    _unique_load_id = models.Constraint(
+        "UNIQUE (load_id)",
+        "A load can belong to only one transaction.",
+    )
+
     @api.model_create_multi
     def create(self, vals_list):
         """Override create to update reverse link on load."""
