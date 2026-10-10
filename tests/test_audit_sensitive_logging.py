@@ -59,3 +59,27 @@ def test_token_word_in_prose_with_unrelated_value_is_not_a_finding(tmp_path):
         '_logger = None\ndef run(user_name):\n    _logger.info("token rotation for %s", user_name)\n',
     )
     assert findings == []
+
+
+def test_sensitive_mapping_key_is_high(tmp_path):
+    findings = _findings(
+        tmp_path, '_logger = None\ndef run(payload):\n    _logger.info("value=%s", payload["api_key"])\n'
+    )
+    assert len(findings) == 1
+    assert findings[0]["type"] == "SENSITIVE_DATA_LOGGED"
+    assert findings[0]["severity"] == "HIGH"
+
+
+def test_sensitive_mapping_key_in_fstring_is_high(tmp_path):
+    findings = _findings(
+        tmp_path, "_logger = None\ndef run(payload):\n    _logger.info(f\"value={payload['token']}\")\n"
+    )
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "HIGH"
+
+
+def test_non_sensitive_mapping_key_is_not_a_finding(tmp_path):
+    findings = _findings(
+        tmp_path, '_logger = None\ndef run(payload):\n    _logger.info("user=%s", payload["user_name"])\n'
+    )
+    assert findings == []

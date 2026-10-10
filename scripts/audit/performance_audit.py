@@ -25,6 +25,13 @@ def _is_env_subscription(node):
     )
 
 
+def _without_sudo(node):
+    """``x.sudo()`` addresses the same model as ``x``."""
+    while isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "sudo":
+        node = node.func.value
+    return node
+
+
 def _collect_aliases(func_node):
     aliases = set()
     for node in ast.walk(func_node):
@@ -36,7 +43,7 @@ def _collect_aliases(func_node):
         elif isinstance(node, ast.AnnAssign):
             value = node.value
             targets = [node.target]
-        if value is not None and _is_env_subscription(value):
+        if value is not None and _is_env_subscription(_without_sudo(value)):
             for target in targets:
                 if isinstance(target, ast.Name):
                     aliases.add(target.id)
@@ -47,7 +54,7 @@ def _orm_method(call, aliases):
     func = call.func
     if not isinstance(func, ast.Attribute) or func.attr not in _FLAGGED_METHODS:
         return None
-    owner = func.value
+    owner = _without_sudo(func.value)
     if isinstance(owner, ast.Name) and (owner.id == "self" or owner.id in aliases):
         return func.attr
     if _is_env_subscription(owner):

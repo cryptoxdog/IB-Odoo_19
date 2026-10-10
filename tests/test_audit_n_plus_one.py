@@ -118,3 +118,74 @@ def test_create_inside_loop_stays_in_the_n_plus_one_family(tmp_path):
     assert findings[0]["type"] == "N_PLUS_ONE_QUERY"
     assert "mutation in loop" in findings[0]["message"]
     assert 'self.env["plasticos.match.result"].create(row)' in findings[0]["code"]
+
+
+def test_sudo_env_search_inside_loop_is_a_finding(tmp_path):
+    findings = _findings(
+        tmp_path,
+        """
+        class Model:
+            def run(self, xs):
+                for x in xs:
+                    self.env["res.partner"].sudo().search([("id", "=", x)])
+        """,
+    )
+    assert len(findings) == 1
+    assert findings[0]["type"] == "N_PLUS_ONE_QUERY"
+    assert "query in loop" in findings[0]["message"]
+
+
+def test_sudo_create_inside_loop_stays_a_mutation_finding(tmp_path):
+    findings = _findings(
+        tmp_path,
+        """
+        class Model:
+            def run(self, rows):
+                for row in rows:
+                    self.env["plasticos.match.result"].sudo().create(row)
+        """,
+    )
+    assert len(findings) == 1
+    assert "mutation in loop" in findings[0]["message"]
+
+
+def test_sudo_browse_inside_loop_is_not_a_query_finding(tmp_path):
+    findings = _findings(
+        tmp_path,
+        """
+        class Model:
+            def run(self, xs):
+                for x in xs:
+                    self.env["res.partner"].sudo().browse(x)
+        """,
+    )
+    assert findings == []
+
+
+def test_sudo_batch_search_before_loop_is_not_a_finding(tmp_path):
+    findings = _findings(
+        tmp_path,
+        """
+        class Model:
+            def run(self, xs):
+                rows = self.env["res.partner"].sudo().search([("id", "in", xs)])
+                for row in rows:
+                    row.name
+        """,
+    )
+    assert findings == []
+
+
+def test_sudo_env_alias_search_inside_loop_is_a_finding(tmp_path):
+    findings = _findings(
+        tmp_path,
+        """
+        class Model:
+            def run(self, xs):
+                Partner = self.env["res.partner"].sudo()
+                for x in xs:
+                    Partner.search([("id", "=", x)])
+        """,
+    )
+    assert len(findings) == 1
+    assert "query in loop" in findings[0]["message"]

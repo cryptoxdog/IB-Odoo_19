@@ -21,6 +21,9 @@ def _is_sensitive_name(node):
     if isinstance(node, ast.Attribute):
         return bool(_SENSITIVE_NAME.search(node.attr)) or _is_sensitive_name(node.value)
     if isinstance(node, ast.Subscript):
+        key = node.slice
+        if isinstance(key, ast.Constant) and isinstance(key.value, str) and _SENSITIVE_NAME.search(key.value):
+            return True
         return _is_sensitive_name(node.value)
     return False
 
