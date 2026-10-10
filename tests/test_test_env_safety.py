@@ -73,6 +73,13 @@ def test_unsafe_target_is_refused_before_docker(tmp_path, command, target, reaso
     assert calls == ""
 
 
+@pytest.mark.parametrize("arg", ["-d", "-dodoo", "--database=odoo", "--db-filter=.*", "-c", "--addons-path=/tmp"])
+def test_run_refuses_arguments_that_redirect_away_from_the_clone(tmp_path, arg):
+    result, calls = _run(tmp_path, "run", "odoo_test_a", "--", "--test-enable", arg, "odoo")
+    _assert_refused(result, calls, "redirect the run away")
+    assert calls == ""
+
+
 def test_business_database_name_from_env_is_refused(tmp_path):
     result, calls = _run(tmp_path, "clone", "odoo_test_live", ODOO_DB_NAME="odoo_test_live")
     _assert_refused(result, calls, "business database")

@@ -680,13 +680,23 @@ status() {
 }
 
 main() {
-  local command="${1:-}" target
+  local command="${1:-}" target arg
   case "$command" in
     name)
       echo "$DEFAULT_CLONE"
       exit 0
       ;;
-    clone | drop | assert-clone | run) validate_clone_name "${2:-$DEFAULT_CLONE}" ;;
+    clone | drop | assert-clone) validate_clone_name "${2:-$DEFAULT_CLONE}" ;;
+    run)
+      validate_clone_name "${2:-}"
+      for arg in "${@:3}"; do
+        case "$arg" in
+          -d | -d* | --database | --database=* | --db-filter* | --db_host* | --addons-path* | -c | --config*)
+            refuse "'$arg' would redirect the run away from the verified clone $2"
+            ;;
+        esac
+      done
+      ;;
     template | status) ;;
     *)
       echo "usage: $0 template | clone [db] | run <db> -- <odoo args> | assert-clone <db> | drop <db> | status | name" >&2
@@ -713,7 +723,10 @@ main() {
       [ "${1:-}" = "--" ] && shift
       assert_clone "$target"
       lease "db:$target" exclusive
-      compose run --rm --no-deps odoo odoo -d "$target" --addons-path="$(addons_path)" "$@"
+      local tty=()
+      [ -t 0 ] || tty=(-T)
+      # Subcommand (e.g. shell) first, then the verified database and addons path.
+      compose run --rm --no-deps "${tty[@]}" odoo odoo "$@" -d "$target" --addons-path="$(addons_path)"
       ;;
     status) status ;;
   esac
