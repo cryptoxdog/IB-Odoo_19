@@ -456,6 +456,11 @@ and (2) `Float.get_digits` returning `False` rather than `None` for such a field
   amount; freight counted once.
 - Short tons at 2 000 lb; price precision shown to be display-only with zero stored drift.
 - Transaction accounting for PO-only worksheets is no longer silent; the census instrument ships.
+- Publication hygiene: the mapping runbook directory introduced in session 1 (`docs/runbooks/erp sync mapping
+  matrix/`) is renamed to `docs/runbooks/erp_sync_mapping_matrix/`; the governance `make pr` writer stage splits
+  changed paths on whitespace and refused the branch on that path alone. The repo's own `make pr` refuses on
+  `gh auth status`, which reports a sentinel token on this surface while the REST transport works; publication
+  therefore went through the governance `make pr` (`PR_BASE=origin/Staging`, `PR_REMEDIATE=0`).
 
 ---
 
