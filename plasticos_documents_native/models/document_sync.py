@@ -172,14 +172,22 @@ class DocumentSyncService(models.AbstractModel):
             last_id = batch[-1].id
             seen += len(batch)
             for doc in batch:
+                # A savepoint per document: a failure rolls back only that
+                # document's partial work (e.g. a legacy row created before
+                # the link is written), so it stays unlinked for a later run
+                # without a duplicate, and later documents still sync.
                 try:
-                    self.sync_native_to_legacy(doc)
-                    synced += 1
+                    with self.env.cr.savepoint():
+                        legacy = self.sync_native_to_legacy(doc)
                 except Exception:
                     _logger.exception(
                         "Failed to sync native document %s to legacy",
                         doc.id,
                     )
+                    continue
+                # An empty result (no matching tag) links nothing.
+                if legacy:
+                    synced += 1
         _logger.info(
             "Batch sync complete: %d of %d documents synced",
             synced,
