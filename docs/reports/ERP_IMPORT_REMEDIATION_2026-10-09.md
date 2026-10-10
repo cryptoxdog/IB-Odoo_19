@@ -539,6 +539,91 @@ was manufactured.
 
 ---
 
+## 16. Session 4 (2026-10-10) — payable coverage and economic dispositions (GMP-002)
+
+Contract: *PR #231 Final Accounting-Integrity Remediation*, audited HEAD `085f9d6`. Code commit `889ea80`.
+No ADR, mapping SSOT, chart seed, security file, business rule, or other PR was touched; BAN001 passes on all
+tracked content (`ci/check_banned_identifier.py`: OK).
+
+### 16.1 Defect 1 — payable coverage
+
+Three paths let applicable source payables disappear from both sides of the reconciliation, which then
+closed as if they did not exist:
+
+| Path | Before | Now |
+|---|---|---|
+| Worksheet with lines but no valid sale **or** purchase link (`_realize_one` early return) | returned before `_vendor_bills`; its payables neither billed nor quarantined | every payable quarantined (`not_realized`, "worksheet has no valid sale or purchase order link; no document to attach the bill to"), tallied as `no_order_link_not_realized`, counted in `rows_seen` |
+| Worksheet rolled back by an exception | its attempt's rows dropped from both sides | the attempt's rows purged, every payable re-quarantined (`not_realized`, "worksheet rolled back (…); no document of it exists"), tallied as `worksheet_rolled_back_not_realized` |
+| Payable whose `BuySellNo` is not a worksheet with lines, or blank | never visited by `realize()`; blank references dropped at index time | `SourceIndex` keeps blank-reference payables under key `""`; after the worksheet loop every such row is quarantined (`not_realized`, "BuySellNo '…' is not a worksheet with lines; no transaction to attach the bill to" / "blank BuySellNo; the bill names no worksheet"), tallied as `outside_worksheet_universe_not_realized`, counted in `rows_seen` |
+| Worksheet left out by a diagnostic `ERP_LIMIT` | silent | counted in `census.payables_unselected` (rows, amount); not part of the reconciliation, never claimed |
+
+**Why the outside-universe rows exist (source contract).** `SourceIndex.buysell_numbers()` defines the
+transaction universe as every `BuySellNo` that owns a `WKSDetail` line; a payable can attach to a native
+document only through that worksheet. On the frozen grid 610 `Payables` rows (291 523.44) carry a
+`BuySellNo` that is no such worksheet: 510 distinct free-text references (`51694 / 4714`, `51715R`,
+`51685-1`, …), of which 597 rows have no GL lookup, 7 are GL 50100 and 6 are GL 50200. The contract excludes
+them from transactions legitimately (nothing to attach to), but not from *reporting*: they are now listed
+one by one. The 13 rows with a native account are flagged in their reason as an **operator decision**
+(realize standalone, unattached bills, or confirm exclusion); the importer does not invent a transaction for
+them. Blank `BuySellNo`: 0 rows on the grid.
+
+**The §15.2 blank-GL figure, corrected.** The 597 blank-GL rows counted in §15.2 are the same rows: they
+are outside the worksheet universe, so a real run would never have reached the `gl_blank_not_realized`
+branch for them. They now surface under `outside_worksheet_universe_not_realized` instead, with the same
+dollar exposure.
+
+### 16.2 Defect 2 — economic dispositions
+
+| Case | Before | Now |
+|---|---|---|
+| GL 50300 / 50600 on a worksheet with no transaction (purchase-only) | `transaction_only_cost`, amount added to `costs["other"]` that nothing ever carried | `not_realized`, "GL … has no native account in the crosswalk and no transaction exists to carry it"; nothing added; bucket `gl_<gl>_not_realized` |
+| GL 50300 / 50600 with a transaction | `transaction_only_cost` | unchanged: carried once as `other_expenses` |
+| Unbillable freight on a worksheet **with** freight bills | `unbillable` | `unbillable`, "…; not counted: worksheet has freight bills" (bills are the freight cost; the row is not folded into `freight_actual`) |
+| Unbillable freight, no freight bill, transaction exists | `unbillable` while `freight_actual` silently carried it | `transaction_only_cost`, "…; amount carried once as the transaction's actual freight cost" — the disposition now agrees with `freight_cost_total` |
+| Unbillable freight, no transaction | `unbillable` with the amount left in `costs["freight"]` | `not_realized`, "…; no transaction exists to carry it" |
+| Unbillable material (50100) | `unbillable` | `unbillable`, "…; not counted" |
+
+GL mappings (`50100` → Material Cost, `50200` → Freight Cost) and cost ownership are unchanged; no account,
+mapping, or transaction was invented.
+
+### 16.3 Regression proof (Odoo 19 runtime, `plasticos_transaction/tests/test_erp_worksheet_import.py`)
+
+| Test | Proves |
+|---|---|
+| `test_no_link_worksheet_quarantines_every_source_payable` | no-link worksheet with four payables: rejected 1, no document, 4 quarantined `not_realized`, `rows_seen` 4 = billed 0 + quarantined 4, replay identical |
+| `test_purchase_only_worksheet_carries_no_handling_or_equipment_cost` | PO-only worksheet with GL 50300 and 50600: material bill written, both rows `not_realized`, no `other_expenses` bucket, reconciliation closes, replay stable |
+| `test_unbillable_only_freight_is_carried_as_actual_freight_cost_when_a_transaction_exists` | unbillable-only GL 50200: `freight_actual` 55.00 = `freight_cost_total`, disposition `transaction_only_cost`; the same row on a transaction-less worksheet is `not_realized` |
+| `test_payables_outside_the_worksheet_universe_and_rolled_back_worksheets_are_quarantined` | rolled-back worksheet's bill and two outside-universe rows (free-text and blank reference) quarantined with reasons; `rows_seen` 11 = billed 5 + quarantined 6; replay identical, `unresolved_bills` identical |
+| `test_diagnostic_limit_counts_the_payables_it_leaves_out` | `ERP_LIMIT=1`: `payables_unselected` 8 rows / 15 006.48, reconciliation closes on the selected worksheet |
+| `test_unbilled_freight_row_is_not_folded_beside_freight_bills` (extended) | disposition `unbillable` with the "worksheet has freight bills" reason |
+
+Pure-python (`tests/test_erp_native_orders.py`): `outside_universe_payables`, `payables_reconciliation`
+including rolled-back and outside-universe rows, `SourceIndex` keeping blank-reference payables.
+F1–F6 tests unchanged and green.
+
+### 16.4 Test results and gates
+
+| Tier | Result |
+|---|---|
+| Pure python, ERP subset | 102 passed |
+| Pure python, whole repo | 1 104 passed, 48 skipped |
+| Odoo 19 runtime, `/plasticos_transaction,/plasticos_security_base` on `erp_rt` | **0 failed, 0 errors of 24 tests** (`evidence/runtime_tests_gmp002.txt`) |
+| ruff 0.16.0, py_compile, module wiring, circular deps, BAN001 | pass |
+
+### 16.5 Outstanding exception totals (frozen grid; the live figures come from `<report>-census.json`)
+
+| Disposition / bucket | Rows | Amount |
+|---|---|---|
+| fully imported (`50100`, `50200` on a worksheet with lines; includes the 73 inactive-vendor rows below until the run excludes them) | 13 325 | 24 923 527.58 |
+| `transaction_only_cost` (50300 / 50600 on worksheets that compile a transaction; plus unbillable freight carried by `freight_actual`) | ≤ 518 (+10) | ≤ 473 539.41 (−2 615.63) — exact split by transaction existence comes from the run |
+| `not_realized`, outside the worksheet universe | 610 | 291 523.44 (597 blank GL, 7 × 50100, 6 × 50200) |
+| `not_realized`, no-link worksheets (grid proxy) | 35 | 41 092.24 |
+| `not_realized`, rolled-back worksheets (inactive counterparty, 2026-10-09 decision) | 63 material rows | 85 078.02 |
+
+Deferred, unchanged: full SQL-backed first import, FK-level 561 census, full replay.
+
+---
+
 ### Evidence index (`docs/reports/evidence/erp-import-2026-10-09/`)
 
 | File | Content |
@@ -555,3 +640,4 @@ was manufactured.
 | `grid_census.py`, `grid_census.txt` | session 2 source-side census on the frozen grid: order-link proxy, price precision as stored vs display, short-ton lines, payables routing by GL with vendors and dollars |
 | `f7_environment_probe.txt` | session 2 proof that the ERP SQL Server source is not reachable from the session host (why run 1 / run 2 were refused) |
 | `runtime_tests_gmp001.txt` | session 3 Odoo 19 runtime result after the accounting / quarantine convergence (GMP-001) |
+| `runtime_tests_gmp002.txt` | session 4 Odoo 19 runtime result after the payable-coverage / disposition remediation (GMP-002) |
