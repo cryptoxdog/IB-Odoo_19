@@ -346,7 +346,6 @@ class PlasticosSalesDashboard(models.Model):
         self.ensure_one()
         payout_ids = (
             self.env["plasticos.commission.payout"]
-            .sudo()  # sudo: read-only payout lookup; payout ACL is narrower than the rep view
             .search(
                 [
                     ("transaction_ids", "in", [self.transaction_id.id]),
