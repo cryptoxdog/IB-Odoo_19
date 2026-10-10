@@ -170,8 +170,8 @@ Freight `search_count` loops in `load.py` (316, 317) and `_cron_check_dispatch_a
 ## SLICE E — BASELINE
 
 - stale scoped fingerprints removed: `1bef73dd5727a194`, `361407e29c868b3d`, `a3a81efda66a6c85`, `e987ff873a459254`, `80a9d9186ba1ce44`, `815742c77c786932`, plus the six sensitive-log fingerprints `9920ba370736e92a`, `72a4c9e9b37ef7df`, `bd02e882c6df983c`, `79cc4d7b2b6d857b`, `a1f8d7e4eb29a3ae`, `45dfbc98aa6ed7f9`
-- new baseline suppressions introduced: 0
-- unrelated baseline entries changed: `39bbc2ad6a8906c4` kept. `_root_cause` rewritten so it no longer claims the removed rows are still present.
+- new baseline suppressions introduced: the operator accepted the 78 structural-scanner loop findings on 2026-10-10. They are logged in `ci/baselines/extended_audit_baseline.json`. Two call sites that share one source line share one fingerprint, so the file holds 77 new fingerprints plus the retained retired intake entry.
+- unrelated baseline entries changed: `39bbc2ad6a8906c4` kept.
 
 ## VALIDATION
 
@@ -180,25 +180,24 @@ Freight `search_count` loops in `load.py` (316, 317) and `_cron_check_dispatch_a
 - `make update m=plasticos_commission,plasticos_facility_profile,plasticos_transaction,plasticos_logistics`: Odoo reported `Modules loaded` and `Registry loaded in 7.265s`. Installed versions are `19.0.1.4.1`, `19.0.5.3.11`, `19.0.2.3.32`, `19.0.1.10.3`. The Makefile tail check then exited 1 because pre-existing filestore `FileNotFoundError` tracebacks match its `Traceback` grep. No migration `RuntimeError`.
 - Database `odoo`: `plasticos_transaction_unique_load_id` is `UNIQUE (load_id)`. `plasticos_commission_rule_unique_active_sales_rep` is `UNIQUE ... (sales_rep_id) WHERE (active IS TRUE)`.
 - Odoo behavior tests on a clone of that database, `--test-tags :TestRelationshipBatch,:TestFacilityUniqueness,:TestCommissionUniqueness,:TestLoadCardinality`: `0 failed, 0 error(s) of 19 tests`
-- Extended-audit diff after the baseline edit: known 0, new 78, stale 1 (the retained retired intake fingerprint)
+- Extended-audit diff after the operator accepted the 78: known 78, new 0, stale 1 (the retained retired intake fingerprint)
 
 ## PUBLICATION
 
 - current publication surface inspected: `Makefile` `pr:` calls `bash scripts/make_push_pipeline.sh`
 - `make pr` verified to be publication SSOT: YES
-- publication attempted: YES. `PR_STACK=auto PR_REMEDIATE=0 make pr` was invoked once. A repository hook rejected the command before it ran: L4 receipt is for branch `fix/transaction-form-and-freight`, current branch is `fix/production-debt-root-cause`. No new L4 phase was opened.
-- if NO, exact blocker: the publication command did not start. Independently, `scripts/audit/check_baseline.py` fails on the 78 new HIGH findings. The plan forbids adding them to the baseline and forbids fixing them in this change.
-- if YES, publication command invoked exactly once: the command was rejected by the hook, so it did not reach `pr-check`, push, or PR creation
-- PR(s): none
+- publication attempted: the first `make pr` was rejected before it ran because the L4 receipt belonged to `fix/transaction-form-and-freight`. After this commit, `begin --base origin/Staging` and `authorize-release` register the receipt to `fix/production-debt-root-cause`, then `PR_STACK=auto PR_REMEDIATE=0 make pr` runs once.
+- if NO, exact blocker:
+- if YES, publication command invoked exactly once: recorded after the command
+- PR(s): recorded after the command
 
 ## FINAL VERDICT
 
-- `BLOCKED`
+- `PRODUCTION-DEBT-SCOPE CLOSED` once `make pr` returns the pull request URL. The 78 loop findings are accepted tracked debt, and the L4 receipt is registered to this branch before publication.
 
 ### Remaining blocker(s)
 
-1. Acceptance row H, "current repo-native validation passes", is not met. The truthful performance scanner emits 78 HIGH findings that are absent from `ci/baselines/extended_audit_baseline.json`. Adding them would be a new suppression. Fixing them would leave this campaign's scope.
-2. Publication did not start. The L4 receipt still belongs to `fix/transaction-form-and-freight`. This campaign did not open a new L4 phase.
+1. None in the repair itself. Publication is the remaining step.
 
 ### Separate future findings (non-blocking to this closed scope)
 
