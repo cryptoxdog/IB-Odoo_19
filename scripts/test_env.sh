@@ -52,6 +52,7 @@ fi
 
 SCHEMA="plasticos-test-env/2"
 POSTGRES_USER="${POSTGRES_USER:-odoo}"
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-odoo}"
 LOCK_TIMEOUT="${TEST_ENV_LOCK_TIMEOUT:-3600}"
 CORE_ADDONS="/usr/lib/python3/dist-packages/odoo/addons"
 EVIDENCE_DIR="$ROOT/.l9/runtime/test-env"
@@ -332,8 +333,12 @@ enterprise_revision() {
 
 ODOO_IMAGE=""
 ensure_odoo_image() {
-  ODOO_IMAGE="$(compose config --images odoo | head -1)"
-  [ -n "$ODOO_IMAGE" ] || die "compose declares no image for the odoo service"
+  # The odoo service builds from the Dockerfile; compose names that image
+  # <project>-odoo unless the service sets `image:`. (`config --images odoo`
+  # also lists the db dependency's image, in no fixed order.)
+  ODOO_IMAGE="$(compose config --format json | python3 -c 'import json, sys
+print(json.load(sys.stdin)["services"]["odoo"].get("image") or "")')"
+  ODOO_IMAGE="${ODOO_IMAGE:-${PROJECT}-odoo}"
   # A cached build is a no-op; a changed Dockerfile, requirement, or base image rebuilds.
   local out
   out="$(compose build --quiet odoo 2>&1)" || die "building $ODOO_IMAGE failed: $out"
@@ -342,6 +347,7 @@ image_id() { docker image inspect --format '{{.Id}}' "$ODOO_IMAGE"; }
 
 fingerprint_inputs() {
   echo "schema=$SCHEMA"
+  echo "recipe=us-company-before-accounting"
   echo "parity=$PARITY"
   echo "image=$(image_id)"
   echo "postgres=$(psql_admin "SELECT current_setting('server_version_num')::int / 10000")"
@@ -391,11 +397,17 @@ odoo_stage() {
   [ "$rc" = "0" ] || die "$cname exited with status $rc (log: ${EVIDENCE_DIR#"$ROOT"/}/${cname}.log)"
 }
 
-# `odoo db <command>`: Odoo's filestore-aware database manager.
+# `odoo db <command>`: Odoo's filestore-aware database manager. It runs without
+# config/odoo.conf on purpose: that file's `db_name = odoo` limits the manager
+# to the business database, which is exactly the one it must never touch here.
+db_manager_args() {
+  echo "db -c /dev/null --db_host db --db_port 5432 -r $POSTGRES_USER -w $POSTGRES_PASSWORD --addons-path $1"
+}
 odoo_db() {
   local stage="$1"
   shift
-  odoo_stage "$stage" db -c /etc/odoo/odoo.conf --addons-path "$(addons_path)" "$@"
+  # shellcheck disable=SC2046 # word-split the fixed manager arguments
+  odoo_stage "$stage" $(db_manager_args "$(addons_path)") "$@"
 }
 
 # A database dropped outside Odoo can leave its filestore behind; a new clone
@@ -542,9 +554,12 @@ build_template() {
   started="$(utc_now)"
   local marker="$SCHEMA role=build owner=$OWNER parity=$PARITY fp=$FP started=$started"
   if [ -z "$state" ]; then
-    # Odoo's own initializer creates the US company before any accounting
-    # module loads, so the localization picks the US chart for it.
-    odoo_db init init "$BUILD_DB" --country US --language en_US
+    # Odoo's own initializer creates the US company. It runs on the core
+    # addons only: with the repo on the path, the auto-install bundle
+    # (plasticos_odoo_standard_apps) installs `account` before the initializer
+    # sets the country, and the company is left on the generic chart.
+    # shellcheck disable=SC2046 # word-split the fixed manager arguments
+    odoo_stage init $(db_manager_args "$CORE_ADDONS") init "$BUILD_DB" --country US --language en_US
     set_comment "$BUILD_DB" "$marker state=initialized"
     state="initialized"
   fi
