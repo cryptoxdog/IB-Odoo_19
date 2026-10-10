@@ -258,10 +258,18 @@ The earlier runtime evidence was not bound to a revision and its `make update` w
 - `scripts/audit/run_baseline_gate.sh` with the repaired scanners: known 78, new 0, stale 1.
 - ruff 0.16.0 `check` and `format --check` on the four changed Python files: clean.
 
+### Publication
+
+- route: Cursor-Governance `make pr` at `9378c4a` (equal to its `origin/main`), `WS` = this checkout, `PR_BASE=origin/Staging`, `OPEN_PR=1`, `PR_STACK` empty, `PR_REMEDIATE=0`. The open PR for this branch is reused; no new PR and no retarget.
+- first invocation, head `1fed244`: refused inside the gate before any push. The governance writer stage looks for `$WS/.venv/bin/ruff`, found none in this fresh checkout, and fell back to its own ruff 0.16.1, which this repo's `required-version = "==0.16.0"` rejects. The gate then wrote a STOP LOOPING receipt with no failed node or hook, and the second invocation was refused on that receipt.
+- environment fix: `.venv` built from `requirements-dev.txt` (ruff 0.16.0), the toolchain `make venv` installs. `ruff check` and `ruff format --check` with it pass on all 24 Python files the PR changes.
+- this subsection changes the tree, so release was re-authorized and the gate runs again on the new state.
+
 ### Separate findings (not this campaign)
 
 1. `Makefile` `update`: the tail grep treats docutils description warnings and filestore tracebacks as upgrade errors, so a clean upgrade can exit 1.
 2. The N+1 scanner still does not see through `.with_context()`, `.with_user()` or `.with_company()`. Whether the repo has such calls inside loops was not measured.
+3. Cursor-Governance `run_pr_precommit.sh` falls back to the governance ruff when a consumer checkout has no `.venv`, and `run_pr_gate.sh` records that version mismatch as a red-tree STOP LOOPING receipt instead of an environment block.
 
 ### Verdict
 
