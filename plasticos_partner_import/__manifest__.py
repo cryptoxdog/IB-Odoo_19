@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Partner Import",
-    "version": "19.0.2.10.20",
+    "version": "19.0.2.10.21",
     "summary": "Deterministic partner import with wizard UI; manual VS CRM CSV import removed (use plasticos_crm_sync API)",
     "author": "Igor Beylin",
     "license": "LGPL-3",

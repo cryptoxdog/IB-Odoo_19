@@ -85,7 +85,7 @@ class PlasticosErpImport(models.AbstractModel):
     def run(
         self,
         payload_root: str | None = None,
-        limit: int | None = None,
+        limit: int | float | None = None,
         commit: bool = False,
         dry_run: bool = False,
         partners_only: bool = False,
@@ -99,7 +99,10 @@ class PlasticosErpImport(models.AbstractModel):
             payload_root: Override the payload location. Defaults to statement
                 SQL in ``plasticos_partner_import/erp_extracted_data``, then
                 the frozen grid pack.
-            limit: Passed to the historical-import extension (diagnostics only).
+            limit: Newest N worksheets, or a fraction of them (``0.25`` is the
+                newest quarter), passed to the historical-import extension
+                (diagnostics and test databases). Validated before anything is
+                read; an invalid limit raises ``ValueError``.
             commit: Commit between complete transactions. Never mid-transaction.
                 A partners-only or single-layer run commits once, after every
                 stage has passed its ``after_stage`` hook.
@@ -125,7 +128,9 @@ class PlasticosErpImport(models.AbstractModel):
         # at addon load time.
         from ..erp import reader, source_index
         from ..erp import report as report_module
+        from ..erp.limits import validate_limit
 
+        validate_limit(limit)
         if layer and layer not in PARTNER_LAYERS:
             raise ValueError(f"unknown partner layer {layer!r}")
         if layer:

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import html
 
+from .limits import resolve_limit
+
 MATERIAL_GL = "50100"
 FREIGHT_GL = "50200"
 HANDLING_GL = "50300"
@@ -449,9 +451,14 @@ def newest_numbers(numbers: list[str], limit: int | None) -> list[str]:
 PINNED_WORKSHEETS = ("58699",)
 
 
-def selected_worksheets(numbers: list[str], limit: int | None) -> list[str]:
-    """Newest worksheets, plus pinned numbers the source actually contains."""
-    selected = newest_numbers(numbers, limit)
+def selected_worksheets(numbers: list[str], limit: int | float | None) -> list[str]:
+    """Newest worksheets, plus pinned numbers the source actually contains.
+
+    ``limit`` is a worksheet count or a fraction of ``numbers`` (``0.25`` is the
+    newest quarter). A fraction becomes a count here and nowhere else; an
+    invalid limit raises before anything is selected.
+    """
+    selected = newest_numbers(numbers, resolve_limit(limit, len(numbers)))
     have = set(selected)
     available = set(numbers)
     for number in PINNED_WORKSHEETS:
