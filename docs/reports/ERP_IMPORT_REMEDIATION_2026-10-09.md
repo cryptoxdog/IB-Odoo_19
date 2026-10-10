@@ -699,6 +699,59 @@ reconciliation closing on every run; snapshot and census identical on replay aft
 recovers). Deferred, unchanged and not blocking: full SQL-backed first import, FK-level 561 census, full
 second-run replay.
 
+## 18. Session 6 (2026-10-10) — the reconciliation gap fails the run (GMP-004)
+
+Contract: *GAR | PR #231 · GMP-004*, audited HEAD `b4a0ae8e7861fb766e8986275a1d350ce8b192fe`. Code commit
+`e202417`. No ADR, mapping SSOT, chart seed, security file, business rule, summary schema, or other PR was
+touched; BAN001 passes on all tracked content. Module versions `plasticos_transaction` 19.0.2.3.30,
+`plasticos_partner_import` 19.0.2.10.20.
+
+### 18.1 The defect at `b4a0ae8`
+
+The identity reconciliation of §17.1 reported a gap as `report.anomaly("Payables", "reconciliation", …)`
+only. Anomalies are diagnostics: `import_run_summary` never reads them, so the summary stayed `success` or
+`partial` and `import_erp_shell.main()` returned 0. The one channel that did fail a run, `report.errors`,
+is defined as *failed transaction units* and every entry is added to `records_rejected` and to the
+`seen == created + updated + unchanged + rejected` equation; recording the reconciliation there would have
+made the counters lie (one phantom rejected row, a spurious counter-reconciliation error) to balance a
+check that is not a row.
+
+### 18.2 The fix
+
+| Layer | Change |
+|---|---|
+| `erp/report.py` | `ImportReport.failures` (`{check, detail}`) and `fail()`: a mandatory run-level check that did not pass. Not a row, never a counter, carried by `as_dict()` |
+| `erp/summary.py` | each failure is projected into `errors` under its check name (`payables_reconciliation`), message capped at the contract's 2 000 characters, slots reserved beside the counter-reconciliation error ahead of the 1 000-row diagnostic cap; `final_status` is `failed` whenever a failure exists. `records_*` are untouched. New `run_exit_status(result, dry_run, layer)`: 1 on any run-level failure in every mode, 1 on a `failed` summary for an applied full run, 0 otherwise |
+| `scripts/import_erp_shell.py` | `main()` prints each failure (`IMPORT FAILED: payables_reconciliation: …`) and returns `run_exit_status(...)`; a dry run or a layer run with a run-level failure no longer exits 0 |
+| `models/native_document_import.py` | `realize()` calls `report.fail(PAYABLES_RECONCILIATION_REF, "payables identity reconciliation does not close: <gap>")` beside the existing anomaly. Nothing else changes: the census, `unresolved_bills`, the per-row dispositions and every counter are exactly those of GMP-003 |
+| `scripts/run_erp_import.py` | the dry-run printout names run failures |
+
+The shared summary schema (`contracts/schemas/draft/import-run-summary.schema.json`) is unchanged;
+`validate_summary` passes on every projected failure. `tests/runtime_gates/run_erp_import.py` G1 still
+expects `success`/`partial` on a closing run, which the positive path preserves.
+
+### 18.3 Regression proof
+
+| Tier | Test | Proves |
+|---|---|---|
+| pure python, `tests/test_erp_summary.py` | `test_a_run_level_failure_fails_the_run_without_touching_the_counters` | balanced report + one failure → `failed`, `records_seen` 4 = created 4, rejected 0, `errors` = the one failure, no counter-reconciliation error; the same report without the failure is `success` with identical `records_*` |
+| | `test_an_omitted_or_blank_identity_payable_cannot_produce_a_successful_import` | the realizer's chain for an omitted identity ("1 missing PayableID: 591476") and a blank one ("1 source rows without a PayableID"): `payables_reconciliation` → `reconciliation_gap` → `report.fail` → summary `failed`, rejected 0 → `run_exit_status` 1 applied, dry run and layer; the closing counterpart exits 0 |
+| | `test_run_exit_status_follows_the_summary_only_for_an_applied_full_run`, `…keep_their_slots_when_diagnostics_overflow`, `test_error_message_limit_matches_the_shared_contract` | exit matrix; 1 000 unresolved rows + failure keeps the failure's slot, rejected stays 1 000, message truncated to 2 000; the limit equals the schema's `maxLength` |
+| pure python, `tests/test_erp_layer_gate.py` (real driver file, stubbed Odoo) | `test_a_run_level_failure_exits_nonzero_even_when_the_counters_close`, `test_a_dry_run_with_a_run_level_failure_exits_nonzero` | `main()` returns 1 and prints the failure on an applied run whose summary reads `success`, and on a dry run (no commit) |
+| Odoo 19 runtime, `test_reconciliation_does_not_close_when_a_source_payable_is_on_neither_side` (extended) | blank-`PayableID` row end to end: `report.failures` = the one `payables_reconciliation` failure; projected summary `failed` with `records_rejected` 0 and every row `unchanged`; the closing run of the same worksheet projects `success`; `run_exit_status` 0 for the closing run, 1 for the failing run (applied and dry); `unresolved_bills` grew by exactly the one row |
+
+### 18.4 Test results and gates
+
+| Tier | Result |
+|---|---|
+| Pure python, whole repo | 1 115 passed, 48 skipped |
+| Odoo 19 runtime, `/plasticos_transaction,/plasticos_security_base` on `erp_rt` | **0 failed, 0 errors of 29 tests** (`evidence/runtime_tests_gmp004.txt`) |
+| ruff 0.16.0 check/format, py_compile, module wiring, circular deps, Odoo 19 XML, BAN001 | pass |
+
+GMP-001/002/003 repairs, the F1–F6 protections, payable GL routing and the transaction-count rules are
+unchanged (their tests are the same 29 runtime and 1 108 prior pure-python tests, all green). Deferred,
+unchanged and not blocking: full SQL-backed first import, FK-level 561 census, full second-run replay.
+
 ---
 
 ### Evidence index (`docs/reports/evidence/erp-import-2026-10-09/`)
@@ -719,3 +772,4 @@ second-run replay.
 | `runtime_tests_gmp001.txt` | session 3 Odoo 19 runtime result after the accounting / quarantine convergence (GMP-001) |
 | `runtime_tests_gmp002.txt` | session 4 Odoo 19 runtime result after the payable-coverage / disposition remediation (GMP-002) |
 | `runtime_tests_gmp003.txt` | session 5 Odoo 19 runtime result after the identity-coverage / transaction-verdict remediation (GMP-003): 29 tests, 0 failed |
+| `runtime_tests_gmp004.txt` | session 6 Odoo 19 runtime result after the fail-closed reconciliation remediation (GMP-004): 29 tests, 0 failed |
