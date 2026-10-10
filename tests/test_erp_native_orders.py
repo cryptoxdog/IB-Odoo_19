@@ -14,12 +14,17 @@ from erp.native_orders import (  # noqa: E402
     CUSTOMER_CREDIT,
     CUSTOMER_DEBIT,
     SETTLEMENT_EVIDENCE,
+    SHORT_TON_LB,
     UNAPPROVED,
+    amount_drift,
     commission_recipients,
     freight_vendor_id,
     header_for_line,
     incoterm_code,
     ledger_adjustment_kind,
+    link_census,
+    link_reason_class,
+    native_quantity,
     newest_numbers,
     payable_matches_purchase,
     purchase_bill_lines,
@@ -208,3 +213,140 @@ def test_worksheet_origin_lists_every_worksheet_once():
     assert with_worksheet("54840", "54839") == "54839, 54840"
     assert with_worksheet("54839, 54840", "54840") == "54839, 54840"
     assert worksheet_numbers("54839, 54840") == ["54839", "54840"]
+
+
+# ---------------------------------------------------------------------------
+# Order-link exception census
+# ---------------------------------------------------------------------------
+def test_header_reason_names_a_number_that_exists_under_the_other_source():
+    index = _index()
+    index.order_lines["9300"] = {"PONumber": "7275"}  # a sale key whose number is a purchase order
+    header, reason = header_for_line(index, "9300", "SO")
+    assert header is None
+    assert reason == "SO 7275 matched 0 headers (exists as PO)"
+    assert link_reason_class(reason) == "number_under_other_source"
+    index.order_lines["9301"] = {"PONumber": "99999"}
+    assert header_for_line(index, "9301", "SO") == (None, "SO 99999 matched 0 headers")
+
+
+def test_link_reason_classes_cover_every_header_for_line_reason():
+    assert link_reason_class("blank line key") == "blank_key"
+    assert link_reason_class("no order line for 123") == "key_without_order_line"
+    assert link_reason_class("order line 123 has no PONumber") == "order_line_without_number"
+    assert link_reason_class("SO 14263 matched 0 headers") == "number_without_header"
+    assert link_reason_class("PO 7275 matched 0 headers (exists as SO)") == "number_under_other_source"
+    assert link_reason_class("SO 14263 matched 2 headers") == "number_with_several_headers"
+
+
+def _census_index():
+    lines = {
+        # 57001: no sale link on either line, purchase links, $900 of sale amount in the source
+        "1": {"BuySellNo": "57001", "SAmount": "500", "PAmount": "400"},
+        "2": {"BuySellNo": "57001", "SAmount": "400", "PAmount": "300"},
+        # 57002: sale link on one line, the other line dangles on the purchase side
+        "3": {"BuySellNo": "57002", "SAmount": "1000", "PAmount": "800"},
+        "4": {"BuySellNo": "57002", "SAmount": "0", "PAmount": "50"},
+        # 57003: fully linked
+        "5": {"BuySellNo": "57003", "SAmount": "10", "PAmount": "5"},
+    }
+    return SimpleNamespace(
+        lines=lines,
+        lines_by_buysell={"57001": ["1", "2"], "57002": ["3", "4"], "57003": ["5"]},
+        buysells={
+            "57001": {"CustID": "1577", "VendorID": "2213", "OrderDt": "2019-03-01 00:00:00", "status": "I"},
+            "57002": {"CustID": "9999", "VendorID": "2213", "OrderDt": "2024-05-01 00:00:00", "status": "W"},
+            "57003": {"CustID": "1577", "VendorID": "2213", "OrderDt": "2024-05-01 00:00:00", "status": "I"},
+        },
+        counterparties={"1577": {}, "2213": {}},
+        ledger_by_buysell={"57001": [{"Source": "B", "Sale": "900"}], "57002": [{"Source": "B", "Sale": "0"}]},
+        receipts_by_buysell={"57001": [{"BuySellNo": "57001"}]},
+        payables_by_buysell={"57001": [{"PayableID": "1"}], "57003": [{"PayableID": "2"}]},
+    )
+
+
+def test_link_census_counts_lines_worksheets_keys_and_dollars_by_root_cause():
+    failures = [
+        {"number": "57001", "detail_id": "1", "side": "sale", "key": "", "reason": "blank line key"},
+        {"number": "57001", "detail_id": "2", "side": "sale", "key": "800", "reason": "no order line for 800"},
+        {"number": "57002", "detail_id": "4", "side": "purchase", "key": "801", "reason": "no order line for 801"},
+    ]
+    links = {
+        "57001": {"sale": False, "purchase": True},
+        "57002": {"sale": True, "purchase": True},
+        "57003": {"sale": True, "purchase": True},
+    }
+    census = link_census(_census_index(), failures, links)
+
+    by_reason = {(group["side"], group["reason"]): group for group in census["lines_by_reason"]}
+    assert by_reason[("sale", "blank_key")] == {
+        "side": "sale",
+        "reason": "blank_key",
+        "lines": 1,
+        "worksheets": 1,
+        "distinct_keys": 0,
+        "sale_amount": 500.0,
+        "purchase_amount": 400.0,
+    }
+    assert by_reason[("sale", "key_without_order_line")]["lines"] == 1
+    assert by_reason[("sale", "key_without_order_line")]["distinct_keys"] == 1
+    assert by_reason[("purchase", "key_without_order_line")]["purchase_amount"] == 50.0
+
+    unsold = census["worksheets"]["without_sale_link"]
+    assert unsold["worksheets"] == 1
+    assert unsold["numbers"] == ["57001"]
+    assert unsold["lines"] == 2
+    assert unsold["with_purchase_link"] == 1
+    assert unsold["with_customer_trade_ledger"] == 1
+    assert unsold["with_customer_receipts"] == 1
+    assert unsold["with_payables"] == 1
+    assert unsold["partner_active"] == 1
+    assert unsold["partner_inactive_or_absent"] == 0
+    assert unsold["sale_amount"] == 900.0
+    assert unsold["purchase_amount"] == 700.0
+    assert unsold["years"] == {"2019": 1}
+    assert unsold["status"] == {"I": 1}
+    assert census["worksheets"]["without_purchase_link"]["worksheets"] == 0
+
+
+def test_link_census_reports_an_absent_customer_as_inactive_or_absent():
+    links = {"57002": {"sale": False, "purchase": True}}
+    census = link_census(_census_index(), [], links)
+    view = census["worksheets"]["without_sale_link"]
+    assert view["partner_inactive_or_absent"] == 1
+    assert view["with_customer_trade_ledger"] == 0, "a zero-sale base trade row is not customer-invoice evidence"
+    assert view["years"] == {"2024": 1}
+
+
+# ---------------------------------------------------------------------------
+# Weight and price fidelity
+# ---------------------------------------------------------------------------
+def test_short_tons_are_two_thousand_pounds_not_a_metric_tonne():
+    assert SHORT_TON_LB == 2000.0
+    assert native_quantity("20", "S") == (40000.0, "L")
+    assert native_quantity("19145", "L") == (19145.0, "L")
+    assert native_quantity("240", "e") == (240.0, "E")
+    assert native_quantity("", "S") == (0.0, "L")
+    # A short-ton purchase line bills 2,000 lb per ton at the per-pound rate; the amount is unchanged.
+    line = purchase_bill_lines([{"PWeight": "20", "PWeightUOM": "S", "PPrice": "92", "PAmount": "1840"}])[0]
+    assert line["quantity"] == 40000.0
+    assert line["uom"] == "L"
+    assert line["quantity"] * line["price_unit"] == pytest.approx(1840.0)
+
+
+def test_amount_drift_is_the_cents_the_stored_line_cannot_reproduce():
+    # 9,763.95 / 19,145 lb = 0.51 exactly: no drift at any precision.
+    assert amount_drift("9763.95", 19145.0, 9763.95 / 19145, 2) == 0.0
+    # 10,000 lb at 0.2441/lb = 2,441.00: a price field rounded to two decimals stores 0.24 and the
+    # line reads 2,400.00; an unrounded price field (Odoo 19 ``price_unit``) reproduces the amount.
+    assert amount_drift("2441", 10000.0, 0.2441, 2) == pytest.approx(-41.0)
+    assert amount_drift("2441", 10000.0, 0.2441, 4) == 0.0
+    assert amount_drift("2441", 10000.0, 0.2441, None) == 0.0
+    # The quantity field's own precision counts too (``Product Unit``, two decimals).
+    assert amount_drift("100", 3.333, 100 / 3.333, None, quantity_digits=2) == pytest.approx(-0.09)
+    assert amount_drift("100", 3.333, 100 / 3.333, None, quantity_digits=None) == 0.0
+    # A zero quantity cannot drift (the source price is carried as is).
+    assert amount_drift("79.29", 0.0, 79.29, 2) == 0.0
+    # Rounding within half a cent is not drift.
+    assert amount_drift("1.00", 3.0, 1 / 3, 2) == pytest.approx(-0.01)
+    assert amount_drift("0.99", 3.0, 0.33, 2) == 0.0
+    assert amount_drift("1.00", 3.0, 1 / 3, None) == 0.0

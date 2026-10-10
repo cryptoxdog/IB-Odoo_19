@@ -99,6 +99,16 @@ GLOBAL_ALLOWLIST = frozenset(
         "credits",
         "bills",
         "freight_bills",
+        # ERP source-exception census keys (native_document_import / run_erp_import), not Selection values
+        "census",
+        "anomalies",
+        "unresolved",
+        "rows",
+        "worksheets",
+        "number",
+        "detail_id",
+        "side",
+        "key",
         # Odoo partner types
         "contact",
         "invoice",

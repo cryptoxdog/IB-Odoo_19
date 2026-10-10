@@ -14,6 +14,17 @@ FREIGHT_GL = "50200"
 HANDLING_GL = "50300"
 EQUIPMENT_GL = "50600"
 EXPENSE_GL = frozenset({HANDLING_GL, EQUIPMENT_GL})
+# Source weight code S is a short ton: 2,000 lb. Odoo's ``uom.product_uom_ton``
+# is the metric tonne (1,000 kg), so S is carried in pounds at this factor.
+SHORT_TON_LB = 2000.0
+_SHORT_TON = "S"
+_POUND = "L"
+# A ``Float`` field declared with ``digits`` is rounded on write
+# (``odoo/orm/fields_numeric.py`` ``Float.convert_to_cache``); one declared
+# without (Odoo 19 ``price_unit`` carries only ``min_display_digits``) keeps
+# the full value. The source amount is compared against what the stored
+# quantity and price reproduce, whichever way the target fields are declared.
+_CENT = 0.005
 
 __all__ = [
     "BASE_TRADE",
@@ -24,16 +35,22 @@ __all__ = [
     "EXPENSE_GL",
     "FREIGHT_GL",
     "HANDLING_GL",
+    "LINK_REASON_CLASSES",
     "MATERIAL_GL",
     "SETTLEMENT_EVIDENCE",
+    "SHORT_TON_LB",
     "UNAPPROVED",
     "WORKSHEET_SEPARATOR",
+    "amount_drift",
     "commission_recipients",
     "commission_slots",
     "freight_vendor_id",
     "header_for_line",
     "incoterm_code",
     "ledger_adjustment_kind",
+    "link_census",
+    "link_reason_class",
+    "native_quantity",
     "newest_numbers",
     "selected_worksheets",
     "payable_matches_purchase",
@@ -49,7 +66,12 @@ __all__ = [
 
 
 def header_for_line(index, line_key: str, source: str) -> tuple[dict | None, str]:
-    """Return the single ``PO`` header for a worksheet line key, or a reason."""
+    """Return the single ``PO`` header for a worksheet line key, or a reason.
+
+    A number that matches no header of the requested ``Source`` but does
+    match the other one is named as such: that is a cross-linked line, which
+    is a different source condition from a number no header carries at all.
+    """
     if not line_key:
         return None, "blank line key"
     detail = index.order_lines.get(line_key)
@@ -60,8 +82,183 @@ def header_for_line(index, line_key: str, source: str) -> tuple[dict | None, str
         return None, f"order line {line_key} has no PONumber"
     matches = index.orders_by_source_number.get((source, number), [])
     if len(matches) != 1:
-        return None, f"{source} {number} matched {len(matches)} headers"
+        reason = f"{source} {number} matched {len(matches)} headers"
+        other = "PO" if source == "SO" else "SO"
+        if not matches and index.orders_by_source_number.get((other, number)):
+            reason += f" (exists as {other})"
+        return None, reason
     return index.orders[matches[0]], ""
+
+
+# Root-cause classes of a worksheet line that resolves no native order header.
+LINK_REASON_CLASSES = (
+    "blank_key",
+    "key_without_order_line",
+    "order_line_without_number",
+    "number_under_other_source",
+    "number_without_header",
+    "number_with_several_headers",
+)
+
+
+def link_reason_class(reason: str) -> str:
+    """Classify a ``header_for_line`` reason by its source root cause."""
+    text = (reason or "").strip()
+    if text == "blank line key":
+        return "blank_key"
+    if text.startswith("no order line for "):
+        return "key_without_order_line"
+    if " has no PONumber" in text:
+        return "order_line_without_number"
+    if text.endswith(" headers (exists as SO)") or text.endswith(" headers (exists as PO)"):
+        return "number_under_other_source"
+    if " matched 0 headers" in text:
+        return "number_without_header"
+    if " matched " in text and " headers" in text:
+        return "number_with_several_headers"
+    return "other"
+
+
+def link_census(index, failures: list[dict], worksheet_links: dict[str, dict[str, bool]]) -> dict:
+    """Census of worksheet lines that resolved no order header, by side and root cause.
+
+    ``failures`` carry ``number``, ``detail_id``, ``side`` (``sale`` or
+    ``purchase``), ``key`` and ``reason``. ``worksheet_links`` says, per
+    worksheet, whether any line resolved a sale header and a purchase header.
+    Every figure is counted on source rows: a line is one ``DetailID``, a
+    worksheet one ``BuySellNo``, an order reference one distinct key. The
+    worksheet view says what the line view cannot: how many worksheets have
+    no sale order at all, whether their purchase side still links, which
+    financial documents the source holds for them, and the dollars involved.
+    """
+    groups: dict[tuple[str, str], dict] = {}
+    for failure in failures:
+        side = failure.get("side") or ""
+        reason_class = link_reason_class(failure.get("reason") or "")
+        group = groups.setdefault(
+            (side, reason_class),
+            {
+                "side": side,
+                "reason": reason_class,
+                "lines": 0,
+                "worksheets": set(),
+                "keys": set(),
+                "sale_amount": 0.0,
+                "purchase_amount": 0.0,
+            },
+        )
+        number = failure.get("number") or ""
+        line = index.lines.get(failure.get("detail_id") or "", {})
+        group["lines"] += 1
+        group["worksheets"].add(number)
+        if failure.get("key"):
+            group["keys"].add(failure["key"])
+        group["sale_amount"] += _number(line.get("SAmount"))
+        group["purchase_amount"] += _number(line.get("PAmount"))
+
+    by_reason = []
+    for (_side, _reason), group in sorted(groups.items()):
+        by_reason.append(
+            {
+                "side": group["side"],
+                "reason": group["reason"],
+                "lines": group["lines"],
+                "worksheets": len(group["worksheets"]),
+                "distinct_keys": len(group["keys"]),
+                "sale_amount": round(group["sale_amount"], 2),
+                "purchase_amount": round(group["purchase_amount"], 2),
+            }
+        )
+
+    worksheets = {}
+    for side in ("sale", "purchase"):
+        unlinked = sorted(number for number, links in worksheet_links.items() if not links.get(side))
+        worksheets[f"without_{side}_link"] = _worksheet_view(index, unlinked, worksheet_links, side)
+    return {"lines_by_reason": by_reason, "worksheets": worksheets}
+
+
+def _worksheet_view(index, numbers: list[str], worksheet_links: dict, side: str) -> dict:
+    other = "purchase" if side == "sale" else "sale"
+    view = {
+        "worksheets": len(numbers),
+        "lines": 0,
+        f"with_{other}_link": 0,
+        "with_customer_trade_ledger": 0,
+        "with_customer_receipts": 0,
+        "with_payables": 0,
+        "partner_active": 0,
+        "partner_inactive_or_absent": 0,
+        "sale_amount": 0.0,
+        "purchase_amount": 0.0,
+        "years": {},
+        "status": {},
+        "numbers": numbers,
+    }
+    partner_column = "CustID" if side == "sale" else "VendorID"
+    for number in numbers:
+        detail_ids = index.lines_by_buysell.get(number, [])
+        view["lines"] += len(detail_ids)
+        for detail_id in detail_ids:
+            line = index.lines.get(detail_id, {})
+            view["sale_amount"] += _number(line.get("SAmount"))
+            view["purchase_amount"] += _number(line.get("PAmount"))
+        if worksheet_links.get(number, {}).get(other):
+            view[f"with_{other}_link"] += 1
+        ledger = index.ledger_by_buysell.get(number, [])
+        if any((row.get("Source") or "").strip().upper() == "B" and _amount(row.get("Sale")) for row in ledger):
+            view["with_customer_trade_ledger"] += 1
+        if index.receipts_by_buysell.get(number):
+            view["with_customer_receipts"] += 1
+        if index.payables_by_buysell.get(number):
+            view["with_payables"] += 1
+        buysell = index.buysells.get(number, {})
+        partner = (buysell.get(partner_column) or "").strip()
+        if partner and (not index.counterparties or partner in index.counterparties):
+            view["partner_active"] += 1
+        else:
+            view["partner_inactive_or_absent"] += 1
+        year = (buysell.get("OrderDt") or "")[:4] or "unknown"
+        view["years"][year] = view["years"].get(year, 0) + 1
+        status = (buysell.get("status") or "").strip() or "blank"
+        view["status"][status] = view["status"].get(status, 0) + 1
+    view["sale_amount"] = round(view["sale_amount"], 2)
+    view["purchase_amount"] = round(view["purchase_amount"], 2)
+    view["years"] = dict(sorted(view["years"].items()))
+    view["status"] = dict(sorted(view["status"].items()))
+    return view
+
+
+def native_quantity(weight: str | None, uom_code: str | None) -> tuple[float, str]:
+    """Source weight in a unit Odoo seeds. Short tons become pounds at 2,000 lb."""
+    code = (uom_code or "").strip().upper()
+    value = _number(weight)
+    if code == _SHORT_TON:
+        return value * SHORT_TON_LB, _POUND
+    return value, code
+
+
+def amount_drift(
+    amount: str | None,
+    quantity: float,
+    price_unit: float,
+    digits: int | None,
+    quantity_digits: int | None = None,
+) -> float:
+    """Signed difference between the amount Odoo stores and the source amount.
+
+    ``digits`` and ``quantity_digits`` are the storage precisions of the
+    target ``price_unit`` and quantity fields (``None`` when the field is not
+    rounded). The document line is ``stored quantity × stored price`` at two
+    decimals; zero when that reproduces the source amount to the cent.
+    """
+    source = _number(amount)
+    if not quantity:
+        return 0.0
+    stored_quantity = round(quantity, quantity_digits) if quantity_digits is not None else quantity
+    stored_price = round(price_unit, digits) if digits is not None else price_unit
+    stored = round(stored_quantity * stored_price, 2)
+    drift = round(stored - source, 2)
+    return drift if abs(drift) >= _CENT else 0.0
 
 
 def newest_numbers(numbers: list[str], limit: int | None) -> list[str]:
@@ -269,7 +466,7 @@ def purchase_bill_lines(rows: list[dict]) -> list[dict]:
     lines = []
     for row in rows:
         amount = _number(row.get("PAmount"))
-        weight = _number(row.get("PWeight"))
+        weight, uom = native_quantity(row.get("PWeight"), row.get("PWeightUOM"))
         price = _number(row.get("PPrice"))
         if not weight and amount and price:
             weight = amount / price
@@ -279,7 +476,7 @@ def purchase_bill_lines(rows: list[dict]) -> list[dict]:
             {
                 "quantity": abs(weight),
                 "price_unit": abs(amount) / abs(weight),
-                "uom": (row.get("PWeightUOM") or "").strip().upper(),
+                "uom": uom,
                 "grade": (row.get("GradeID") or "").strip(),
                 "description": (row.get("InvoiceDesc") or "").strip(),
                 "detail_id": (row.get("DetailID") or "").strip(),

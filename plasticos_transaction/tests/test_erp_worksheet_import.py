@@ -185,6 +185,8 @@ class TestErpWorksheetImport(TransactionCase):
             _ledger("5695", "54839", "A", "P", "Y", cost="-9366.52", cp_id=VENDOR),
             _ledger("5696", "54839", "A", "S", "N", sale="-1"),
             _ledger("5697", "54839", "D", "S", "Y", sale="-45.11"),
+            # An approved positive sale-side adjustment is a customer debit memo on the invoice.
+            _ledger("5698", "54839", "A", "S", "Y", sale="150", memo="DM 54839", title="DEBIT MEMO"),
         ]
         index.deliveries_by_buysell["54839"] = [
             {"BuySellNo": "54839", "GLAcct": "50200", "Cost": "625", "VendorID": CARRIER, "TrailerNo": "TRL-1"}
@@ -285,7 +287,18 @@ class TestErpWorksheetImport(TransactionCase):
         self.assertEqual(credit.reversed_entry_id, invoice)
         self.assertEqual(credit.partner_id, self.customer)
         self.assertEqual(credit.invoice_line_ids.account_id, self.income)
-        self.assertAlmostEqual(tx.revenue_total, 9763.95 - 382.90, places=2)
+        debit = self._marked("account.move", "legacy_erp_ledger_5698")
+        self.assertEqual(debit.move_type, "out_invoice")
+        self.assertAlmostEqual(debit.amount_total, 150.0, places=2)
+        self.assertEqual(debit.debit_origin_id, invoice)
+        self.assertEqual(invoice.debit_note_ids, debit)
+        self.assertEqual(invoice.reversal_move_ids, credit)
+        # Revenue is the customer document set, each document once: the invoice,
+        # plus its debit memo, minus its credit note.
+        self.assertAlmostEqual(tx.revenue_total, 9763.95 + 150.0 - 382.90, places=2)
+        self.assertAlmostEqual(
+            tx.revenue_total, invoice.amount_total + debit.amount_total - credit.amount_total, places=2
+        )
 
         bills = tx.vendor_bill_ids
         self.assertEqual(len(bills), 3)
@@ -300,7 +313,7 @@ class TestErpWorksheetImport(TransactionCase):
         self.assertFalse(self.material in freight_bills.invoice_line_ids.mapped("account_id"))
         self.assertAlmostEqual(tx.freight_cost_total, 600.0, places=2)
         self.assertAlmostEqual(tx.other_expenses, 100.0, places=2)
-        self.assertAlmostEqual(tx.gross_margin, (9763.95 - 382.90) - 8826.48 - 600.0 - 100.0, places=2)
+        self.assertAlmostEqual(tx.gross_margin, (9763.95 + 150.0 - 382.90) - 8826.48 - 600.0 - 100.0, places=2)
 
         self.assertFalse(self._marked("account.move", "legacy_erp_ininv_600004"), "prepay batch row is not a bill")
         self.assertFalse(
@@ -314,6 +327,205 @@ class TestErpWorksheetImport(TransactionCase):
         self.assertIn(("Payables", "600004", "prepay batch omitted"), details)
         self.assertIn(("GPLedger", "5696", "unapproved adjustment omitted"), details)
         self.assertIn(("GPLedger", "5697", "Source D row is settlement evidence"), details)
+        self.assertIn(
+            (
+                "Payables",
+                "600003",
+                "GL 50300 100.00 carried as other expenses; vendor 2213 invoice HANDLING not realized as a bill",
+            ),
+            details,
+        )
+        payables = report.census["payables"]
+        self.assertEqual(payables["gl_50100_billed"], {"rows": 3, "worksheets": 1, "amount": 8826.48})
+        self.assertEqual(payables["gl_50200_billed"], {"rows": 2, "worksheets": 1, "amount": 600.0})
+        self.assertEqual(payables["gl_50300_as_other_expenses"], {"rows": 1, "worksheets": 1, "amount": 100.0})
+        self.assertEqual(payables["prepay_batch_omitted"], {"rows": 1, "worksheets": 1, "amount": 5000.0})
+        self.assertEqual(report.census["price_precision"]["lines"], 0, "0.51/lb and 0.46/lb store exactly")
+        self.assertEqual(report.census["worksheets"]["without_sale_link"]["worksheets"], 0)
+
+    def test_unbilled_freight_row_is_not_folded_beside_freight_bills(self):
+        """Freight is counted once: a freight row with no vendor is an exception, not a second cost."""
+        index = self._index()
+        self._worksheet_54839(index)
+        index.payables_by_buysell["54839"].append(_payable("600005", "54839", "9999", "-75", "50200", "FRT-X"))
+        report = self._run(index)
+
+        tx = self.Transaction.search([("name", "=", "54839")])
+        self.assertEqual(len(tx.freight_bill_ids), 2)
+        self.assertAlmostEqual(tx.freight_cost_total, 600.0, places=2)
+        self.assertAlmostEqual(tx.freight_actual, 0.0, places=2)
+        details = {(item["table"], item["key"], item["detail"]) for item in report.anomalies}
+        self.assertIn(("BuySell", "54839", "unbilled freight -75.00 not counted: worksheet has freight bills"), details)
+        self.assertEqual(report.census["payables"]["gl_50200_unbilled"], {"rows": 1, "worksheets": 1, "amount": -75.0})
+
+    # ── Workstream C: weight and price fidelity ────────────────────────────
+    def test_short_ton_lines_are_carried_in_pounds_at_two_thousand_per_ton(self):
+        index = self._index()
+        self._add_order(index, "9601", "16001", "SO", CUSTOMER, "2026-07-01 00:00:00")
+        self._add_order(index, "9600", "8001", "PO", VENDOR, "2026-07-01 00:00:00")
+        detail = _line("13653", "60705", "9801", "9800", "20", "1950", "20", "1840")
+        detail.update({"SWeightUOM": "S", "SPrice": "97.5", "PWeightUOM": "S", "PPrice": "92"})
+        self._add_line(index, "9801", "16001", detail)
+        index.order_lines["9800"] = {"PONumber": "8001"}
+        index.buysells["60705"] = _buysell("60705", "2026-07-01 00:00:00")
+        index.payables_by_buysell["60705"] = [_payable("700001", "60705", VENDOR, "1840", "50100", "8001")]
+        report = self._run(index)
+
+        pound = self.env.ref("uom.product_uom_lb")
+        tx = self.Transaction.search([("name", "=", "60705")])
+        sale_line = tx.sale_order_id.order_line
+        self.assertAlmostEqual(sale_line.product_uom_qty, 40000.0)
+        self.assertEqual(sale_line.product_uom_id, pound)
+        self.assertNotEqual(sale_line.product_uom_id, self.env.ref("uom.product_uom_ton"))
+        self.assertAlmostEqual(sale_line.price_subtotal, 1950.0, places=2)
+        purchase_line = tx.purchase_order_ids.order_line
+        self.assertAlmostEqual(purchase_line.product_qty, 40000.0)
+        self.assertEqual(purchase_line.product_uom_id, pound)
+        self.assertAlmostEqual(purchase_line.price_subtotal, 1840.0, places=2)
+        invoice_line = tx.customer_invoice_id.invoice_line_ids
+        self.assertAlmostEqual(invoice_line.quantity, 40000.0)
+        self.assertEqual(invoice_line.product_uom_id, pound)
+        self.assertAlmostEqual(tx.customer_invoice_id.amount_total, 1950.0, places=2)
+        bill_line = tx.vendor_bill_ids.invoice_line_ids
+        self.assertAlmostEqual(bill_line.quantity, 40000.0)
+        self.assertEqual(bill_line.product_uom_id, pound)
+        self.assertAlmostEqual(tx.vendor_bill_ids.amount_total, 1840.0, places=2)
+        self.assertEqual(report.census["price_precision"]["lines"], 0)
+
+    def test_sub_cent_unit_price_keeps_the_source_amount_and_is_only_rounded_for_display(self):
+        """``Product Price`` is a display precision: the stored unit price is unrounded and the line reproduces the amount."""
+        display_digits = self.env["decimal.precision"].precision_get("Product Price")
+        # ``get_digits`` is falsy (``False``) for a Float declared without ``digits``.
+        self.assertFalse(self.env["account.move.line"]._fields["price_unit"].get_digits(self.env))
+        self.assertFalse(self.env["sale.order.line"]._fields["price_unit"].get_digits(self.env))
+        self.assertFalse(self.env["purchase.order.line"]._fields["price_unit"].get_digits(self.env))
+        index = self._index()
+        self._add_order(index, "9611", "16011", "SO", CUSTOMER, "2026-07-02 00:00:00")
+        self._add_order(index, "9610", "8011", "PO", VENDOR, "2026-07-02 00:00:00")
+        # 10,000 lb sold for 2,441.00 (0.2441/lb, four decimals) and bought for 2,000.00 (0.20/lb).
+        self._add_line(
+            index, "9811", "16011", _line("13700", "60710", "9811", "9810", "10000", "2441", "10000", "2000")
+        )
+        index.order_lines["9810"] = {"PONumber": "8011"}
+        index.buysells["60710"] = _buysell("60710", "2026-07-02 00:00:00")
+        index.payables_by_buysell["60710"] = [_payable("700011", "60710", VENDOR, "2000", "50100", "8011")]
+        report = self._run(index)
+
+        tx = self.Transaction.search([("name", "=", "60710")])
+        sale_line = tx.sale_order_id.order_line
+        self.assertAlmostEqual(sale_line.price_unit, 0.2441, places=6)
+        self.assertNotAlmostEqual(sale_line.price_unit, round(0.2441, display_digits), places=4)
+        self.assertAlmostEqual(sale_line.price_subtotal, 2441.0, places=2)
+        self.assertAlmostEqual(tx.customer_invoice_id.invoice_line_ids.price_unit, 0.2441, places=6)
+        self.assertAlmostEqual(tx.customer_invoice_id.amount_total, 2441.0, places=2)
+        self.assertAlmostEqual(tx.purchase_order_ids.order_line.price_subtotal, 2000.0, places=2)
+        self.assertAlmostEqual(tx.revenue_total, 2441.0, places=2)
+        self.assertAlmostEqual(tx.purchase_cost_total, 2000.0, places=2)
+        # Re-read from the database: the column is unrounded, not merely the cache.
+        self.env.invalidate_all()
+        self.assertAlmostEqual(sale_line.price_unit, 0.2441, places=6)
+        precision = report.census["price_precision"]
+        self.assertIsNone(precision["digits"])
+        self.assertEqual(precision["quantity_digits"], self.env["decimal.precision"].precision_get("Product Unit"))
+        self.assertEqual(precision["display_digits"], display_digits)
+        self.assertEqual(precision["lines"], 0)
+        self.assertFalse([item for item in report.anomalies if item["key"] == "13700"])
+
+    def test_source_amount_drift_is_reported_when_a_quantity_cannot_be_stored_exactly(self):
+        """A weight with more decimals than ``Product Unit`` keeps is a reported exception, not a silent change."""
+        quantity_digits = self.env["decimal.precision"].precision_get("Product Unit")
+        index = self._index()
+        self._add_order(index, "9631", "16031", "SO", CUSTOMER, "2026-07-03 00:00:00")
+        self._add_order(index, "9630", "8031", "PO", VENDOR, "2026-07-03 00:00:00")
+        # 3.333 lb at 30.003/lb = 100.00: the quantity stores at two decimals, the line reads 99.99.
+        self._add_line(index, "9831", "16031", _line("13710", "60730", "9831", "9830", "3.333", "100", "3.333", "100"))
+        index.order_lines["9830"] = {"PONumber": "8031"}
+        index.buysells["60730"] = _buysell("60730", "2026-07-03 00:00:00")
+        report = self._run(index)
+
+        tx = self.Transaction.search([("name", "=", "60730")])
+        stored_quantity = round(3.333, quantity_digits)
+        stored_amount = round(stored_quantity * (100.0 / 3.333), 2)
+        self.assertAlmostEqual(tx.sale_order_id.order_line.product_uom_qty, stored_quantity, places=quantity_digits)
+        self.assertAlmostEqual(tx.customer_invoice_id.amount_total, stored_amount, places=2)
+        drift = round(stored_amount - 100.0, 2)
+        precision = report.census["price_precision"]
+        details = {(item["table"], item["key"], item["detail"]) for item in report.anomalies}
+        if drift:
+            self.assertEqual(precision["lines"], 2, "sale and purchase side of the one line")
+            self.assertAlmostEqual(precision["net_drift"], 2 * drift, places=2)
+            self.assertAlmostEqual(precision["max_abs_drift"], abs(drift), places=2)
+            self.assertIn(
+                (
+                    "WKSDetail",
+                    "13710",
+                    f"sale amount 100.00 stored as {stored_amount:.2f} at the stored quantity and price",
+                ),
+                details,
+            )
+        else:
+            self.assertEqual(precision["lines"], 0)
+
+    # ── Workstream B: order-link exception census ──────────────────────────
+    def test_worksheet_without_a_sale_link_keeps_its_purchase_documents_and_is_censused(self):
+        """No sale order is manufactured; the purchase side is realized on its own identity and reported."""
+        index = self._index()
+        self._add_order(index, "9620", "8021", "PO", VENDOR, "2020-02-01 00:00:00")
+        detail = _line("13800", "60720", "", "9820", "5000", "1500", "5000", "1000")
+        self._add_line(index, "9820", "8021", detail)
+        index.buysells["60720"] = _buysell("60720", "2020-02-01 00:00:00")
+        index.payables_by_buysell["60720"] = [_payable("700021", "60720", VENDOR, "1000", "50100", "8021")]
+        index.ledger_by_buysell["60720"] = [_ledger("7001", "60720", "B", None, None, sale="1500", cost="1000")]
+        index.receipts_by_buysell["60720"] = [{"BuySellNo": "60720"}]
+        # A second worksheet whose sale key points at a purchase order number.
+        self._add_order(index, "9621", "8022", "PO", VENDOR, "2020-02-02 00:00:00")
+        index.order_lines["9821"] = {"PONumber": "8022"}
+        self._add_line(index, "9822", "8022", _line("13801", "60721", "9821", "9822", "100", "50", "100", "40"))
+        index.buysells["60721"] = _buysell("60721", "2020-02-02 00:00:00")
+        report = self._run(index)
+
+        self.assertFalse(self.Transaction.search([("name", "in", ["60720", "60721"])]))
+        self.assertFalse(self._marked("sale.order", "legacy_erp_so_"))
+        self.assertFalse(self._marked("account.move", "legacy_erp_outinv_"))
+        purchases = self._marked("purchase.order", "legacy_erp_po_")
+        self.assertEqual(sorted(purchases.mapped("name")), ["8021", "8022"])
+        bill = self._marked("account.move", "legacy_erp_ininv_700021")
+        self.assertEqual(bill.move_type, "in_invoice")
+        self.assertAlmostEqual(bill.amount_total, 1000.0, places=2)
+        self.assertEqual(report.counts["transactions"]["rejected"], 0)
+        details = {(item["table"], item["key"], item["detail"]) for item in report.anomalies}
+        self.assertIn(("WKSDetail", "13800", "sale link: blank line key"), details)
+        self.assertIn(("WKSDetail", "13801", "sale link: SO 8022 matched 0 headers (exists as PO)"), details)
+        for number in ("60720", "60721"):
+            self.assertIn(
+                ("BuySell", number, "no sale order link: purchase documents realized, no transaction compiled"),
+                details,
+            )
+
+        by_reason = {(g["side"], g["reason"]): g for g in report.census["lines_by_reason"]}
+        self.assertEqual(by_reason[("sale", "blank_key")]["lines"], 1)
+        self.assertEqual(by_reason[("sale", "blank_key")]["sale_amount"], 1500.0)
+        self.assertEqual(by_reason[("sale", "number_under_other_source")]["lines"], 1)
+        self.assertEqual(by_reason[("sale", "number_under_other_source")]["distinct_keys"], 1)
+        self.assertNotIn(("purchase", "blank_key"), by_reason)
+        unsold = report.census["worksheets"]["without_sale_link"]
+        self.assertEqual(unsold["worksheets"], 2)
+        self.assertEqual(unsold["numbers"], ["60720", "60721"])
+        self.assertEqual(unsold["with_purchase_link"], 2)
+        self.assertEqual(unsold["with_customer_trade_ledger"], 1)
+        self.assertEqual(unsold["with_customer_receipts"], 1)
+        self.assertEqual(unsold["with_payables"], 1)
+        self.assertEqual(unsold["partner_active"], 2)
+        self.assertEqual(unsold["sale_amount"], 1550.0)
+        self.assertEqual(unsold["purchase_amount"], 1040.0)
+        self.assertEqual(unsold["years"], {"2020": 2})
+        self.assertEqual(report.census["worksheets"]["without_purchase_link"]["worksheets"], 0)
+
+        before = self._snapshot()
+        replay = self._run(index)
+        self.assertEqual(self._snapshot(), before)
+        self.assertEqual(replay.counts["transactions"]["created"], 0)
+        self.assertEqual(replay.census["worksheets"]["without_sale_link"]["worksheets"], 2)
 
     def test_worksheet_53797_nets_to_zero_revenue_and_negative_margin(self):
         index = self._index()

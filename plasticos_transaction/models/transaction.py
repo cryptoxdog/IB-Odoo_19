@@ -749,6 +749,9 @@ class PlasticosTransaction(models.Model):
         "customer_invoice_id.reversal_move_ids",
         "customer_invoice_id.reversal_move_ids.amount_total",
         "customer_invoice_id.reversal_move_ids.state",
+        "customer_invoice_id.debit_note_ids",
+        "customer_invoice_id.debit_note_ids.amount_total",
+        "customer_invoice_id.debit_note_ids.state",
         "vendor_bill_ids",
         "vendor_bill_ids.amount_total",
         "freight_bill_ids",
@@ -761,12 +764,18 @@ class PlasticosTransaction(models.Model):
     def _compute_financials(self):
         """RevOps formula: gross_margin = revenue - costs + recoveries.
 
-        Revenue is the customer invoice net of the credit notes that reverse it.
+        Revenue is the customer document set of the transaction, each document
+        once: the customer invoice, plus the debit notes raised on it
+        (``debit_origin_id``), minus the credit notes that reverse it
+        (``reversed_entry_id``). Each document carries exactly one of those
+        links, so nothing is counted or netted twice.
         """
         for rec in self:
             invoice = rec.customer_invoice_id
-            credit_notes = invoice.reversal_move_ids.filtered(lambda move: move.state != "cancel")
-            revenue = _signed_move_total(invoice) + _signed_move_total(credit_notes)
+            live = lambda move: move.state != "cancel"  # noqa: E731 - one predicate for both document sets
+            credit_notes = invoice.reversal_move_ids.filtered(live)
+            debit_notes = invoice.debit_note_ids.filtered(live)
+            revenue = _signed_move_total(invoice) + _signed_move_total(credit_notes) + _signed_move_total(debit_notes)
             purchase_cost = _signed_move_total(rec.vendor_bill_ids)
             billed_freight = _signed_move_total(rec.freight_bill_ids)
             freight_cost = billed_freight or (rec.freight_actual or 0.0)

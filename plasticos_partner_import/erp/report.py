@@ -34,6 +34,10 @@ class ImportReport:
         self.unresolved: list[dict[str, str]] = []
         self.anomalies: list[dict[str, str]] = []
         self.errors: list[dict[str, str]] = []
+        # Source exceptions grouped by root cause with their dollar exposure
+        # (order links, price precision, payables routing). Filled by the
+        # historical extension; empty for a partner-only run.
+        self.census: dict = {}
 
     def bump(self, bucket: str, outcome: str, amount: int = 1) -> None:
         self.counts[bucket][outcome] += amount
@@ -65,4 +69,5 @@ class ImportReport:
             "unresolved": self.unresolved,
             "anomalies": self.anomalies,
             "errors": self.errors,
+            "census": self.census,
         }

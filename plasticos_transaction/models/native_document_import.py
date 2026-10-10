@@ -17,8 +17,10 @@ from odoo import Command
 _logger = logging.getLogger(__name__)
 
 XMLID_MODULE = "plasticos_transaction"
-# L pounds, S short tons, E each. E is a count (gaylords), not a ton.
-_UOM_XMLID = {"L": "uom.product_uom_lb", "S": "uom.product_uom_ton", "E": "uom.product_uom_unit"}
+# L pounds, E each. E is a count (gaylords), not a ton. S (short ton, 2,000 lb)
+# is converted to pounds by ``native_quantity``: Odoo's seeded ton is metric.
+_UOM_XMLID = {"L": "uom.product_uom_lb", "E": "uom.product_uom_unit"}
+_PRODUCT_PRICE = "Product Price"
 _OPEN_SALE_STATES = ("draft", "sent")
 _OPEN_PURCHASE_STATES = ("draft", "sent", "to approve")
 
@@ -52,6 +54,7 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
             report.reject("transactions")
             report.reject("transaction_lines", len(index.detail_ids(number)))
             context["documents"].pop(number, None)
+            context["rejected"].add(number)
             continue
         for sale_id in sale_ids:
             pending_sales.setdefault(sale_id, []).extend(trailers)
@@ -68,9 +71,56 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
             continue
         report.skip("transactions")
         report.skip("transaction_lines", len(index.detail_ids(number)))
+    report.census = _census(index, context)
     if commit and not dry_run:
         importer.env.cr.commit()
     return True
+
+
+def _census(index, context) -> dict:
+    """Source exceptions of this run, grouped by root cause with their dollar exposure."""
+    from odoo.addons.plasticos_partner_import.erp.native_orders import link_census  # noqa: PLC0415
+
+    census = link_census(index, context.get("link_failures") or [], context.get("worksheet_links") or {})
+    drift = dict(context.get("price_drift") or _new_price_drift(context.get("price_digits")))
+    drift["display_digits"] = context.get("display_digits")
+    drift["net_drift"] = round(drift["net_drift"], 2)
+    drift["abs_drift"] = round(drift["abs_drift"], 2)
+    drift["max_abs_drift"] = round(drift["max_abs_drift"], 2)
+    census["price_precision"] = drift
+    rejected = context.get("rejected") or set()
+    tallies: dict[str, dict] = {}
+    for number, bucket, amount in context.get("expense_rows") or []:
+        if number in rejected:
+            continue
+        tally = tallies.setdefault(bucket, {"rows": 0, "worksheets": set(), "amount": 0.0})
+        tally["rows"] += 1
+        tally["worksheets"].add(number)
+        tally["amount"] += amount
+    census["payables"] = {
+        key: {"rows": tally["rows"], "worksheets": len(tally["worksheets"]), "amount": round(tally["amount"], 2)}
+        for key, tally in sorted(tallies.items())
+    }
+    census["worksheets_rejected"] = sorted(rejected)
+    return census
+
+
+def _new_price_drift(digits, quantity_digits=None) -> dict:
+    return {
+        "digits": digits,
+        "quantity_digits": quantity_digits,
+        "display_digits": None,
+        "lines": 0,
+        "net_drift": 0.0,
+        "abs_drift": 0.0,
+        "max_abs_drift": 0.0,
+    }
+
+
+def _stored_digits(env, model_name: str, field_name: str):
+    """Decimal places a stored ``Float`` field rounds to, or ``None`` when it keeps the full value."""
+    digits = env[model_name]._fields[field_name].get_digits(env)
+    return digits[1] if digits else None
 
 
 def _load_context(importer) -> dict:
@@ -86,6 +136,11 @@ def _load_context(importer) -> dict:
             )
             or None
         )
+    # Storage precision of the document line fields, read from the fields
+    # themselves: ``None`` when the field keeps the full value (Odoo 19
+    # ``price_unit`` is declared with ``min_display_digits`` only).
+    price_digits = _stored_digits(env, "account.move.line", "price_unit")
+    quantity_digits = _stored_digits(env, "account.move.line", "quantity")
     return {
         "material_account": material,
         "income_account": income,
@@ -96,6 +151,14 @@ def _load_context(importer) -> dict:
         "uom_cache": {},
         "incoterm_cache": {},
         "documents": {},
+        "price_digits": price_digits,
+        "quantity_digits": quantity_digits,
+        "display_digits": env["decimal.precision"].precision_get(_PRODUCT_PRICE),
+        "price_drift": _new_price_drift(price_digits, quantity_digits),
+        "link_failures": [],
+        "worksheet_links": {},
+        "expense_rows": [],
+        "rejected": set(),
     }
 
 
@@ -107,7 +170,6 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
     from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
         header_for_line,
         incoterm_code,
-        unit_price,
         worksheet_log,
         worksheet_outcome,
     )
@@ -125,17 +187,32 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
     sale_groups: dict[str, list] = {}
     purchase_groups: dict[str, list] = {}
     line_outcomes = []
+    links = context["worksheet_links"].setdefault(number, {"sale": False, "purchase": False})
     for detail_id in index.detail_ids(number):
         line = index.lines[detail_id]
-        sale_header, sale_reason = header_for_line(index, (line.get("SPO_ID") or "").strip(), "SO")
-        purchase_header, purchase_reason = header_for_line(index, (line.get("PPO_ID") or "").strip(), "PO")
+        sale_key = (line.get("SPO_ID") or "").strip()
+        purchase_key = (line.get("PPO_ID") or "").strip()
+        sale_header, sale_reason = header_for_line(index, sale_key, "SO")
+        purchase_header, purchase_reason = header_for_line(index, purchase_key, "PO")
+        # Each side that resolves no header is recorded with its own reason, so
+        # a line that still links on the other side is not a silent half-link.
+        for side, key, header, reason in (
+            ("sale", sale_key, sale_header, sale_reason),
+            ("purchase", purchase_key, purchase_header, purchase_reason),
+        ):
+            if header is None:
+                context["link_failures"].append(
+                    {"number": number, "detail_id": detail_id, "side": side, "key": key, "reason": reason}
+                )
+                report.anomaly("WKSDetail", detail_id, f"{side} link: {reason}")
         if sale_header is None and purchase_header is None:
-            report.anomaly("WKSDetail", detail_id, sale_reason or purchase_reason)
             line_outcomes.append("rejected")
             continue
         if sale_header is not None:
+            links["sale"] = True
             sale_groups.setdefault(sale_header["POID"], []).append((detail_id, line, sale_header))
         if purchase_header is not None:
+            links["purchase"] = True
             purchase_groups.setdefault(purchase_header["POID"], []).append((detail_id, line, purchase_header))
         line_outcomes.append(detail_id)
 
@@ -143,6 +220,11 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
         report.reject("transactions")
         report.reject("transaction_lines", len(line_outcomes) or len(index.detail_ids(number)))
         return [], []
+    if not sale_groups:
+        # No native sale order can be compiled, so no transaction exists for the
+        # worksheet. Its purchase documents and vendor bills are still realized
+        # on their own identity; nothing manufactures a sale order for it.
+        report.anomaly("BuySell", number, "no sale order link: purchase documents realized, no transaction compiled")
 
     trailers = _trailers(index, number)
     fresh_document = False
@@ -162,7 +244,7 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
                     and _existing(importer, "sale.order.line", f"legacy_erp_sol_{_token(detail_id)}") is None
                 ):
                     new_lines.add(detail_id)
-                _upsert_sale_line(importer, context, order, detail_id, line, unit_price)
+                _upsert_sale_line(importer, context, report, order, detail_id, line)
     if len(documents["sales"]) > 1:
         report.anomaly("BuySell", number, f"worksheet carries {len(documents['sales'])} sale orders")
     for _po_id, rows in purchase_groups.items():
@@ -180,8 +262,8 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
                     and _existing(importer, "purchase.order.line", f"legacy_erp_pol_{_token(detail_id)}") is None
                 ):
                     new_lines.add(detail_id)
-                _upsert_purchase_line(importer, context, order, detail_id, line, unit_price)
-    invoice = _customer_invoice(importer, context, partner_by_cp, number, buysell, sale_groups, unit_price)
+                _upsert_purchase_line(importer, context, report, order, detail_id, line)
+    invoice = _customer_invoice(importer, report, context, partner_by_cp, number, buysell, sale_groups)
     documents["invoice"] = invoice.id if invoice is not None else False
     _customer_adjustments(importer, index, report, context, partner_by_cp, number, invoice, documents)
     _vendor_bills(importer, index, report, context, partner_by_cp, number, documents)
@@ -242,17 +324,57 @@ def _silent():
     return _Report()
 
 
-def _upsert_sale_line(importer, context, order, detail_id, line, unit_price):
+def _line_terms(context, report, detail_id, line, side):
+    """Quantity, unit code, and unit price of one worksheet side, with its precision drift.
+
+    ``SWeight`` / ``PWeight`` are the quantity. A short ton becomes 2,000 lb.
+    The unit price is ``amount / quantity``. When the quantity and price the
+    document line fields store no longer reproduce the source amount to the
+    cent, the line is reported and tallied; the source amount is never
+    silently replaced. ``Product Price`` governs only how the price displays.
+    """
+    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        amount_drift,
+        native_quantity,
+        unit_price,
+    )
+
+    prefix = "S" if side == "sale" else "P"
+    quantity, uom_code = native_quantity(line.get(f"{prefix}Weight"), line.get(f"{prefix}WeightUOM"))
+    amount = line.get(f"{prefix}Amount")
+    price = unit_price(amount, str(quantity) if quantity else "", line.get(f"{prefix}Price"))
+    recorded = context.setdefault("drift_recorded", set())
+    if (detail_id, side) not in recorded:
+        recorded.add((detail_id, side))
+        drift = amount_drift(amount, quantity, price, context["price_digits"], context.get("quantity_digits"))
+        if drift:
+            tally = context["price_drift"]
+            tally["lines"] += 1
+            tally["net_drift"] += drift
+            tally["abs_drift"] += abs(drift)
+            tally["max_abs_drift"] = max(tally["max_abs_drift"], abs(drift))
+            digits = context["price_digits"]
+            precision = f"{digits} price decimals" if digits is not None else "the stored quantity and price"
+            report.anomaly(
+                "WKSDetail",
+                detail_id,
+                f"{side} amount {_qty(amount):.2f} stored as {_qty(amount) + drift:.2f} at {precision}",
+            )
+    return quantity, uom_code, price
+
+
+def _upsert_sale_line(importer, context, report, order, detail_id, line):
+    quantity, uom_code, price = _line_terms(context, report, detail_id, line, "sale")
     if order.state not in _OPEN_SALE_STATES:
         return
     product = _product(importer, context, line.get("GradeID"), line.get("InvoiceDesc"))
-    uom = _uom(importer, context, line.get("SWeightUOM"))
+    uom = _uom(importer, context, uom_code)
     values = {
         "order_id": order.id,
         "product_id": product.id,
         "name": (line.get("InvoiceDesc") or "").strip() or product.display_name,
-        "product_uom_qty": _qty(line.get("SWeight")),
-        "price_unit": unit_price(line.get("SAmount"), line.get("SWeight"), line.get("SPrice")),
+        "product_uom_qty": quantity,
+        "price_unit": price,
         "tax_ids": [Command.clear()],
     }
     if uom:
@@ -261,17 +383,18 @@ def _upsert_sale_line(importer, context, order, detail_id, line, unit_price):
     importer._upsert(model, f"legacy_erp_sol_{_token(detail_id)}", values, _silent(), None)
 
 
-def _upsert_purchase_line(importer, context, order, detail_id, line, unit_price):
+def _upsert_purchase_line(importer, context, report, order, detail_id, line):
+    quantity, uom_code, price = _line_terms(context, report, detail_id, line, "purchase")
     if order.state not in _OPEN_PURCHASE_STATES:
         return
     product = _product(importer, context, line.get("GradeID"), line.get("InvoiceDesc"))
-    uom = _uom(importer, context, line.get("PWeightUOM"))
+    uom = _uom(importer, context, uom_code)
     values = {
         "order_id": order.id,
         "product_id": product.id,
         "name": (line.get("InvoiceDesc") or "").strip() or product.display_name,
-        "product_qty": _qty(line.get("PWeight")),
-        "price_unit": unit_price(line.get("PAmount"), line.get("PWeight"), line.get("PPrice")),
+        "product_qty": quantity,
+        "price_unit": price,
         "date_planned": _date(order.date_order),
         "tax_ids": [Command.clear()],
     }
@@ -281,7 +404,7 @@ def _upsert_purchase_line(importer, context, order, detail_id, line, unit_price)
     importer._upsert(model, f"legacy_erp_pol_{_token(detail_id)}", values, _silent(), None)
 
 
-def _customer_invoice(importer, context, partner_by_cp, number, buysell, sale_groups, unit_price):
+def _customer_invoice(importer, report, context, partner_by_cp, number, buysell, sale_groups):
     if not sale_groups or not context["sale_journal"]:
         return None
     # One worksheet is one customer invoice on one transaction. Sale headers
@@ -299,20 +422,20 @@ def _customer_invoice(importer, context, partner_by_cp, number, buysell, sale_gr
         return None
     commands = []
     for rows in sale_groups.values():
-        for _detail_id, line, _header in rows:
+        for detail_id, line, _header in rows:
             product = _product(importer, context, line.get("GradeID"), line.get("InvoiceDesc"))
-            weight = _qty(line.get("SWeight"))
+            weight, uom_code, price = _line_terms(context, report, detail_id, line, "sale")
             if not weight:
                 continue
             vals = {
                 "product_id": product.id,
                 "name": (line.get("InvoiceDesc") or "").strip() or product.display_name,
                 "quantity": weight,
-                "price_unit": unit_price(line.get("SAmount"), line.get("SWeight"), line.get("SPrice")),
+                "price_unit": price,
                 "tax_ids": [Command.clear()],
                 "is_imported": True,
             }
-            uom = _uom(importer, context, line.get("SWeightUOM"))
+            uom = _uom(importer, context, uom_code)
             if uom:
                 vals["product_uom_id"] = uom.id
             if context["income_account"]:
@@ -464,7 +587,8 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
     Purchases (50100) bill Material Cost. Inland Freight (50200) bills Freight
     Cost and is never material cost. Handling and Equipment (50300, 50600) have
     no seeded account; their signed total is carried as the transaction's other
-    expenses. Rows in a prepayment batch are never written.
+    expenses. Rows in a prepayment batch are never written. Every row that is
+    not realized as a bill is tallied with its amount in the run census.
     """
     from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
         EXPENSE_GL,
@@ -479,16 +603,33 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
     for row in index.payables_by_buysell.get(number, []):
         batch = (row.get("APBatchNo") or "").strip()
         payable_id = (row.get("PayableID") or "").strip()
-        if batch and batch in index.prepay_batches:
-            report.anomaly("Payables", payable_id or number, "prepay batch omitted")
-            continue
         gl_acct = (row.get("GLAcct") or "").strip()
         amount = _qty(row.get("Amount"))
+        if batch and batch in index.prepay_batches:
+            _count_expense(context, "prepay_batch_omitted", number, amount)
+            report.anomaly("Payables", payable_id or number, "prepay batch omitted")
+            continue
         if gl_acct in EXPENSE_GL:
+            # Handling (50300) and Equipment (50600) are not cost-of-goods
+            # accounts in the mapping SSOT and have no seeded account, so the
+            # amount is carried once as the transaction's other expenses. The
+            # bill identity the source holds is kept in the run evidence.
             costs["other"][number] = costs["other"].get(number, 0.0) + amount
+            _count_expense(context, f"gl_{gl_acct}_as_other_expenses", number, amount)
+            report.anomaly(
+                "Payables",
+                payable_id or number,
+                f"GL {gl_acct} {amount:.2f} carried as other expenses; vendor {(row.get('CpID') or '').strip()}"
+                f" invoice {(row.get('InvoiceNo') or '').strip() or 'blank'} not realized as a bill",
+            )
             continue
         if gl_acct not in (MATERIAL_GL, FREIGHT_GL):
-            report.anomaly("Payables", payable_id or number, f"GL lookup {gl_acct or 'blank'} has no native account")
+            _count_expense(context, f"gl_{gl_acct or 'blank'}_not_realized", number, amount)
+            report.anomaly(
+                "Payables",
+                payable_id or number,
+                f"GL lookup {gl_acct or 'blank'} has no native account; {amount:.2f} not realized",
+            )
             continue
         account = freight_account if gl_acct == FREIGHT_GL else material
         partner_id = _partner_id(importer, partner_by_cp, row.get("CpID"))
@@ -496,7 +637,8 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
             if gl_acct == FREIGHT_GL and amount:
                 costs["freight"][number] = costs["freight"].get(number, 0.0) + amount
             reason = "no native account" if account is None else "no vendor, journal, or amount"
-            report.anomaly("Payables", payable_id or number, f"GL lookup {gl_acct} {reason}")
+            _count_expense(context, f"gl_{gl_acct}_unbilled", number, amount)
+            report.anomaly("Payables", payable_id or number, f"GL lookup {gl_acct} {reason}; {amount:.2f}")
             continue
         invoice_date = _date(row.get("InvoiceDt")) or _date(index.buysells.get(number, {}).get("OrderDt"))
         if gl_acct == FREIGHT_GL:
@@ -530,6 +672,22 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
             },
         )
         documents["freight_bills" if gl_acct == FREIGHT_GL else "bills"].append(move.id)
+        _count_expense(context, f"gl_{gl_acct}_billed", number, amount)
+    unbilled_freight = costs["freight"].get(number)
+    if unbilled_freight and documents["freight_bills"]:
+        # Freight is counted once: the bills are the freight cost of this
+        # worksheet. A freight row that could not be billed is not folded
+        # into ``freight_actual`` beside them, where it would be ignored or
+        # counted twice; it stays an exception with its amount.
+        del costs["freight"][number]
+        report.anomaly(
+            "BuySell", number, f"unbilled freight {unbilled_freight:.2f} not counted: worksheet has freight bills"
+        )
+
+
+def _count_expense(context, bucket: str, number: str, amount: float) -> None:
+    """One payable row's routing, tallied when the worksheet is not rolled back."""
+    context["expense_rows"].append((number, bucket, amount))
 
 
 def _move(importer, xml_id, values):

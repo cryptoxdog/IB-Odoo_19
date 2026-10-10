@@ -90,11 +90,64 @@ def run(
             with open(report_path, "w", encoding="utf-8") as handle:
                 json.dump(summary, handle, indent=2, sort_keys=True)
                 handle.write("\n")
+            _write_census(census_path(report_path), result)
         if verbose:
             _print_summary(summary)
+            _print_census(result.get("census") or {})
     elif verbose:
         _print_report(result, dry_run=True)
     return result
+
+
+def census_path(report_path: str) -> str:
+    """Sibling of the summary: ``<report>-census.json``.
+
+    The shared summary contract allows no extra keys, so the source-exception
+    census (every anomaly, and the grouped order-link, price-precision, and
+    payables census with dollar exposure) is written beside it.
+    """
+    root, _ext = os.path.splitext(report_path)
+    return f"{root}-census.json"
+
+
+def _write_census(path: str, result: dict) -> None:
+    payload = {
+        "census": result.get("census") or {},
+        "anomalies": result.get("anomalies") or [],
+        "unresolved": result.get("unresolved") or [],
+    }
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+
+def _print_census(census: dict) -> None:
+    if not census:
+        return
+    print("\n=== SOURCE EXCEPTION CENSUS ===")
+    for group in census.get("lines_by_reason") or []:
+        print(
+            f"{group['side']:<9} {group['reason']:<28} lines {group['lines']:>6}  worksheets {group['worksheets']:>5}"
+            f"  keys {group['distinct_keys']:>5}  sale {group['sale_amount']:>14,.2f}"
+            f"  purchase {group['purchase_amount']:>14,.2f}"
+        )
+    for name, view in (census.get("worksheets") or {}).items():
+        print(
+            f"{name}: {view['worksheets']} worksheets, {view['lines']} lines, sale {view['sale_amount']:,.2f},"
+            f" purchase {view['purchase_amount']:,.2f}, partner active {view['partner_active']},"
+            f" inactive/absent {view['partner_inactive_or_absent']}"
+        )
+    drift = census.get("price_precision") or {}
+    if drift:
+        print(
+            f"price precision ({drift.get('digits')} decimals): {drift.get('lines')} lines drift,"
+            f" net {drift.get('net_drift', 0):,.2f}, abs {drift.get('abs_drift', 0):,.2f},"
+            f" max {drift.get('max_abs_drift', 0):,.2f}"
+        )
+    for bucket, tally in (census.get("payables") or {}).items():
+        print(
+            f"payables {bucket:<34} rows {tally['rows']:>6}  worksheets {tally['worksheets']:>5}  {tally['amount']:>14,.2f}"
+        )
 
 
 def _print_summary(summary: dict) -> None:
