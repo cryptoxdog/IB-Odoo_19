@@ -66,9 +66,7 @@ def test_selection_write_without_the_guard_is_only_a_moderate(tmp_path: Path, mo
     _module(
         tmp_path,
         """
-        from odoo import fields, models
-
-        class SampleLoad(models.Model):
+        class SampleLoad:
             _name = "plasticos.sample.load"
             state = fields.Selection([("draft", "Draft"), ("done", "Done")])
 
@@ -86,9 +84,7 @@ def test_xml_server_action_is_only_a_guard_finding(tmp_path: Path, monkeypatch):
     _module(
         tmp_path,
         """
-        from odoo import fields, models
-
-        class SampleLoad(models.Model):
+        class SampleLoad:
             _name = "plasticos.sample.load"
             state = fields.Selection([("draft", "Draft"), ("done", "Done")])
 
@@ -108,9 +104,7 @@ def test_documented_transition_is_only_a_guard_finding(tmp_path: Path, monkeypat
     _module(
         tmp_path,
         """
-        from odoo import fields, models
-
-        class SampleLoad(models.Model):
+        class SampleLoad:
             _name = "plasticos.sample.load"
             state = fields.Selection([("draft", "Draft"), ("done", "Done")])
 
