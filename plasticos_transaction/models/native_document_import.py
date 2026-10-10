@@ -26,83 +26,109 @@ _OPEN_PURCHASE_STATES = ("draft", "sent", "to approve")
 
 
 def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> bool:
-    """Realize native documents. Returns true so the caller does not commit twice."""
+    """Realize native documents. Returns true so the caller does not commit twice.
+
+    Every indexed payable leaves this function on exactly one side of the
+    census: written as a native bill, quarantined with its identity and
+    reason, or excluded by name (a diagnostic limit, a dry run). The run
+    never returns before that accounting is complete.
+    """
+    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        reconciliation_gap,
+        selected_worksheets,
+    )
+
     numbers = index.buysell_numbers()
+    context = _load_context(importer)
     if not index.orders:
+        # The source carries no order header at all, so no worksheet can
+        # link to a native document. Nothing is written; every worksheet is
+        # skipped and every one of its payables is reported on its own.
         for number in numbers:
             report.skip("transactions")
             report.skip("transaction_lines", len(index.detail_ids(number)))
-        return True
-
-    from odoo.addons.plasticos_partner_import.erp.native_orders import selected_worksheets  # noqa: PLC0415
-
-    selected = selected_worksheets(numbers, limit)
-    selected_set = set(selected)
-    context = _load_context(importer)
-    pending_sales: dict[int, list[str]] = {}
-    for position, number in enumerate(selected, start=1):
-        if dry_run:
-            report.skip("transactions")
-            report.skip("transaction_lines", len(index.detail_ids(number)))
-            continue
-        try:
-            with importer.env.cr.savepoint():
-                sale_ids, trailers = _realize_one(importer, index, report, partner_by_cp, context, number)
-        except Exception as exc:  # noqa: BLE001 - one worksheet must not abort the load
-            _logger.info("ERP worksheet %s was not written: %s", number, exc)
-            report.anomaly("BuySell", number, type(exc).__name__)
-            report.reject("transactions")
-            report.reject("transaction_lines", len(index.detail_ids(number)))
-            context["documents"].pop(number, None)
-            context["rejected"].add(number)
-            # Everything the attempt routed was rolled back with it; the
-            # worksheet's payables are quarantined afresh so each one is
-            # reported and the reconciliation still covers them.
-            context["expense_rows"] = [item for item in context["expense_rows"] if item[0] != number]
-            context["quarantine"] = [entry for entry in context["quarantine"] if entry["worksheet"] != number]
             _quarantine_worksheet_payables(
                 index,
                 context,
                 report,
                 number,
-                f"worksheet rolled back ({type(exc).__name__}); no document of it exists",
-                "worksheet_rolled_back_not_realized",
+                "source carries no order headers; no document to attach the bill to",
+                "no_order_link_not_realized",
             )
-            continue
-        for sale_id in sale_ids:
-            pending_sales.setdefault(sale_id, []).extend(trailers)
-        if commit and not dry_run and position % 200 == 0:
-            _confirm_sales(importer, pending_sales, context)
-            pending_sales.clear()
-            importer.env.cr.commit()
-            _logger.info("ERP import committed through worksheet %s", position)
-
-    if not dry_run:
-        _confirm_sales(importer, pending_sales, context)
-    unselected_rows = 0
-    unselected_amount = 0.0
+        selected_set = set(numbers)
+    else:
+        selected = selected_worksheets(numbers, limit)
+        selected_set = set(selected)
+        pending_sales: dict[int, list[str]] = {}
+        for position, number in enumerate(selected, start=1):
+            if dry_run:
+                report.skip("transactions")
+                report.skip("transaction_lines", len(index.detail_ids(number)))
+                _exclude_worksheet_payables(index, context, number, "dry_run")
+                continue
+            try:
+                with importer.env.cr.savepoint():
+                    sale_ids, trailers = _realize_one(importer, index, report, partner_by_cp, context, number)
+            except Exception as exc:  # noqa: BLE001 - one worksheet must not abort the load
+                _logger.info("ERP worksheet %s was not written: %s", number, exc)
+                report.anomaly("BuySell", number, type(exc).__name__)
+                report.reject("transactions")
+                report.reject("transaction_lines", len(index.detail_ids(number)))
+                _discard_worksheet(context, number)
+                # Everything the attempt routed was rolled back with it; the
+                # worksheet's payables are quarantined afresh so each one is
+                # reported and the reconciliation still covers them.
+                _quarantine_worksheet_payables(
+                    index,
+                    context,
+                    report,
+                    number,
+                    f"worksheet rolled back ({type(exc).__name__}); no document of it exists",
+                    "worksheet_rolled_back_not_realized",
+                )
+                continue
+            for sale_id in sale_ids:
+                pending_sales.setdefault(sale_id, []).extend(trailers)
+            if commit and position % 200 == 0:
+                _confirm_sales(importer, report, pending_sales, context)
+                pending_sales.clear()
+                importer.env.cr.commit()
+                _logger.info("ERP import committed through worksheet %s", position)
+        if not dry_run:
+            _confirm_sales(importer, report, pending_sales, context)
     for number in numbers:
         if number in selected_set:
             continue
         report.skip("transactions")
         report.skip("transaction_lines", len(index.detail_ids(number)))
-        for row in index.payables_by_buysell.get(number, []):
-            unselected_rows += 1
-            unselected_amount += _qty(row.get("Amount"))
-    context["payables_unselected"] = {"rows": unselected_rows, "amount": round(unselected_amount, 2)}
+        _exclude_worksheet_payables(index, context, number, "diagnostic_limit")
     _quarantine_outside_universe(index, context, report, numbers)
     report.census = _census(index, context)
     reconciliation = report.census["payables_reconciliation"]
     if not reconciliation["closes"]:
-        report.anomaly(
-            "Payables",
-            "reconciliation",
-            f"{reconciliation['rows_seen']} rows seen != {reconciliation['billed_rows']} billed"
-            f" + {reconciliation['quarantined_rows']} quarantined",
-        )
+        report.anomaly("Payables", "reconciliation", reconciliation_gap(reconciliation))
     if commit and not dry_run:
         importer.env.cr.commit()
     return True
+
+
+def _discard_worksheet(context, number: str) -> None:
+    """Forget everything a rolled-back worksheet routed: its documents, bills, pending verdicts and rows."""
+    context["documents"].pop(number, None)
+    context["rejected"].add(number)
+    context["pending_transactions"].pop(number, None)
+    context["pending_costs"].pop(number, None)
+    context["billed_payables"] = [item for item in context["billed_payables"] if item[0] != number]
+    context["expense_rows"] = [item for item in context["expense_rows"] if item[0] != number]
+    context["quarantine"] = [entry for entry in context["quarantine"] if entry["worksheet"] != number]
+
+
+def _exclude_worksheet_payables(index, context, number: str, reason: str) -> None:
+    """A worksheet the run deliberately did not visit: its payables are named as excluded, never claimed."""
+    from odoo.addons.plasticos_partner_import.erp.native_orders import payable_identity  # noqa: PLC0415
+
+    for row in index.payables_by_buysell.get(number, []):
+        context["excluded_payables"].append((number, payable_identity(row), reason, _qty(row.get("Amount"))))
 
 
 def _census(index, context) -> dict:
@@ -110,6 +136,7 @@ def _census(index, context) -> dict:
     from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
         link_census,
         payables_reconciliation,
+        source_payable_identities,
     )
 
     census = link_census(index, context.get("link_failures") or [], context.get("worksheet_links") or {})
@@ -132,10 +159,33 @@ def _census(index, context) -> dict:
     }
     quarantine = sorted(context.get("quarantine") or [], key=lambda entry: (entry["worksheet"], entry["payable_id"]))
     census["unresolved_bills"] = quarantine
-    census["payables_reconciliation"] = payables_reconciliation(context.get("expense_rows") or [], quarantine)
-    # Payables of worksheets a diagnostic limit left out are neither billed nor
-    # quarantined; they are counted here so the limit never hides them.
-    census["payables_unselected"] = context.get("payables_unselected") or {"rows": 0, "amount": 0.0}
+    excluded = context.get("excluded_payables") or []
+    census["payables_reconciliation"] = payables_reconciliation(
+        context.get("expense_rows") or [],
+        quarantine,
+        source_ids=source_payable_identities(index),
+        billed_ids=[identity for _number, identity in context.get("billed_payables") or []],
+        excluded_ids=[identity for _number, identity, _reason, _amount in excluded],
+    )
+    # Payables of worksheets the run deliberately did not visit (a diagnostic
+    # limit, a dry run) are neither billed nor quarantined; they are named
+    # here, by reason, so the exclusion never hides them and the identity
+    # reconciliation above still accounts for them.
+    by_reason: dict[str, dict] = {}
+    for _number, _identity, reason, amount in excluded:
+        tally = by_reason.setdefault(reason, {"rows": 0, "amount": 0.0})
+        tally["rows"] += 1
+        tally["amount"] += amount
+    census["payables_excluded"] = {
+        "rows": len(excluded),
+        "amount": round(sum(item[3] for item in excluded), 2),
+        "by_reason": {
+            reason: {"rows": tally["rows"], "amount": round(tally["amount"], 2)}
+            for reason, tally in sorted(by_reason.items())
+        },
+    }
+    limited = census["payables_excluded"]["by_reason"].get("diagnostic_limit")
+    census["payables_unselected"] = dict(limited) if limited else {"rows": 0, "amount": 0.0}
     census["worksheets_rejected"] = sorted(rejected)
     return census
 
@@ -194,6 +244,15 @@ def _load_context(importer) -> dict:
         "worksheet_links": {},
         "expense_rows": [],
         "quarantine": [],
+        # Identity of every payable written as a native bill, per worksheet.
+        "billed_payables": [],
+        # (worksheet, PayableID, reason, amount) of rows the run deliberately did not visit.
+        "excluded_payables": [],
+        # Worksheets whose transaction verdict waits for the sale order to be
+        # confirmed and its transaction compiled: number -> sale order ids.
+        "pending_transactions": {},
+        # Payable rows whose disposition depends on that verdict.
+        "pending_costs": {},
         "rejected": set(),
     }
 
@@ -274,12 +333,10 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
         report.anomaly("BuySell", number, "no sale order link: purchase documents realized, no transaction compiled")
 
     trailers = _trailers(index, number)
-    fresh_document = False
     new_lines: set[str] = set()
     for _po_id, rows in sale_groups.items():
         header = rows[0][2]
         xml_id = f"legacy_erp_so_{_token(header.get('PONumber'))}"
-        fresh_document = fresh_document or _existing(importer, "sale.order", xml_id) is None
         order = _upsert_order(
             importer, context, partner_by_cp, header, buysell, number, "sale.order", xml_id, incoterm_code
         )
@@ -297,7 +354,6 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
     for _po_id, rows in purchase_groups.items():
         header = rows[0][2]
         xml_id = f"legacy_erp_po_{_token(header.get('PONumber'))}"
-        fresh_document = fresh_document or _existing(importer, "purchase.order", xml_id) is None
         order = _upsert_order(
             importer, context, partner_by_cp, header, buysell, number, "purchase.order", xml_id, incoterm_code
         )
@@ -317,7 +373,10 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
     if not sale_groups:
         report.reject("transactions")
     else:
-        report.bump("transactions", "created" if fresh_document else "skipped")
+        # A linked sale order is not a transaction. The verdict (created,
+        # skipped, rejected) is settled in ``_settle_transactions`` once the
+        # order has been confirmed and its transaction compiled, or not.
+        context["pending_transactions"][number] = list(documents["sales"])
     for outcome in line_outcomes:
         if outcome == "rejected":
             report.bump("transaction_lines", "rejected")
@@ -646,7 +705,6 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
         MATERIAL_GL,
         NOT_REALIZED,
         PREPAY_OMITTED,
-        TRANSACTION_ONLY_COST,
         UNBILLABLE,
     )
 
@@ -654,10 +712,13 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
     freight_account = context["freight_account"]
     journal = context["purchase_journal"]
     costs = context.setdefault("costs", {"freight": {}, "other": {}})
-    # A transaction is compiled from the worksheet's sale order; without one
-    # there is nothing to carry a transaction-only cost, and the disposition
-    # must say so rather than claim an economic effect that never happens.
-    has_transaction = bool(documents["sales"])
+    # A transaction is compiled from the worksheet's sale order once that
+    # order is confirmed. Without a sale order there is nothing to carry a
+    # transaction-only cost; with one, the cost is only carried if the
+    # transaction actually comes to exist, so its disposition is settled in
+    # ``_settle_transactions`` and never claimed here.
+    may_compile = bool(documents["sales"])
+    pending = context["pending_costs"].setdefault(number, [])
     unbilled_freight_rows: list[tuple[dict, str]] = []
     for row in index.payables_by_buysell.get(number, []):
         batch = (row.get("APBatchNo") or "").strip()
@@ -674,16 +735,16 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
             # transaction the amount is carried once as its other expenses;
             # without one it is carried nowhere. The bill itself is quarantined
             # with its full source identity either way.
-            if has_transaction:
+            if may_compile:
                 costs["other"][number] = costs["other"].get(number, 0.0) + amount
-                _count_expense(context, f"gl_{gl_acct}_as_other_expenses", number, amount)
-                _quarantine(
-                    context,
-                    report,
-                    row,
-                    number,
-                    f"GL {gl_acct} has no native account in the crosswalk; amount carried once as other expenses",
-                    TRANSACTION_ONLY_COST,
+                pending.append(
+                    (
+                        row,
+                        f"gl_{gl_acct}_as_other_expenses",
+                        f"GL {gl_acct} has no native account in the crosswalk; amount carried once as other expenses",
+                        f"gl_{gl_acct}_not_realized",
+                        f"GL {gl_acct} has no native account in the crosswalk and no transaction exists to carry it",
+                    )
                 )
             else:
                 _count_expense(context, f"gl_{gl_acct}_not_realized", number, amount)
@@ -760,6 +821,7 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
             },
         )
         documents["freight_bills" if gl_acct == FREIGHT_GL else "bills"].append(move.id)
+        context["billed_payables"].append((number, payable_id))
         _count_expense(context, f"gl_{gl_acct}_billed", number, amount)
     if not unbilled_freight_rows:
         return
@@ -774,18 +836,20 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
         )
         for row, reason in unbilled_freight_rows:
             _quarantine(context, report, row, number, f"{reason}; not counted: worksheet has freight bills", UNBILLABLE)
-    elif has_transaction:
+    elif may_compile:
         # No freight bill exists, so the transaction's actual freight cost
-        # carries the amount once (``freight_actual`` → ``freight_cost_total``).
+        # carries the amount once (``freight_actual`` → ``freight_cost_total``)
+        # if, and only if, the transaction is compiled.
         costs["freight"][number] = round(unbilled_freight, 2)
         for row, reason in unbilled_freight_rows:
-            _quarantine(
-                context,
-                report,
-                row,
-                number,
-                f"{reason}; amount carried once as the transaction's actual freight cost",
-                TRANSACTION_ONLY_COST,
+            pending.append(
+                (
+                    row,
+                    None,
+                    f"{reason}; amount carried once as the transaction's actual freight cost",
+                    None,
+                    f"{reason}; no transaction exists to carry it",
+                )
             )
     else:
         for row, reason in unbilled_freight_rows:
@@ -852,7 +916,84 @@ def _move(importer, xml_id, values):
     return record
 
 
-def _confirm_sales(importer, pending_sales, context):
+def _confirm_sales(importer, report, pending_sales, context):
+    """Confirm the batch's sale orders, compile their transactions, then settle every pending verdict."""
+    existing_before = _existing_transactions(importer, context["pending_transactions"])
+    _confirm_and_compile(importer, pending_sales, context)
+    _settle_transactions(importer, report, context, existing_before)
+
+
+def _existing_transactions(importer, pending: dict[str, list[int]]) -> set[str]:
+    """Worksheets of ``pending`` that already own a transaction on one of their sale orders."""
+    found: set[str] = set()
+    for number, sale_ids in pending.items():
+        if _worksheet_transaction(importer, number, sale_ids) is not None:
+            found.add(number)
+    return found
+
+
+def _worksheet_transaction(importer, number: str, sale_ids: list[int]):
+    """The transaction compiled for this worksheet from one of its own sale orders, or ``None``."""
+    transaction = importer.env["plasticos.transaction"].search(
+        [("name", "=", number), ("sale_order_id", "in", sale_ids)], limit=1
+    )
+    return transaction or None
+
+
+def _settle_transactions(importer, report, context, existing_before: set[str]) -> None:
+    """Count a transaction only once it exists; route every cost that depended on it accordingly.
+
+    ``created`` is a worksheet whose transaction came to exist in this run,
+    ``skipped`` one whose transaction already existed, ``rejected`` one whose
+    sale order was not confirmed or whose transaction was not compiled. A
+    pending cost row is ``transaction_only_cost`` only in the first two cases;
+    otherwise nothing carries it and it is ``not_realized``, saying why.
+    """
+    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        NOT_REALIZED,
+        TRANSACTION_ONLY_COST,
+    )
+
+    pending = context["pending_transactions"]
+    for number in list(pending):
+        sale_ids = pending.pop(number)
+        transaction = _worksheet_transaction(importer, number, sale_ids)
+        if transaction is not None:
+            report.bump("transactions", "skipped" if number in existing_before else "created")
+            failure = ""
+        else:
+            report.reject("transactions")
+            failure = _transaction_failure(importer, number, sale_ids)
+            report.anomaly("BuySell", number, f"{failure}; no transaction compiled")
+        for row, carried_bucket, carried_reason, uncarried_bucket, uncarried_reason in context["pending_costs"].pop(
+            number, []
+        ):
+            amount = _qty(row.get("Amount"))
+            if transaction is not None:
+                if carried_bucket:
+                    _count_expense(context, carried_bucket, number, amount)
+                _quarantine(context, report, row, number, carried_reason, TRANSACTION_ONLY_COST)
+            else:
+                if uncarried_bucket:
+                    _count_expense(context, uncarried_bucket, number, amount)
+                _quarantine(context, report, row, number, f"{uncarried_reason} ({failure})", NOT_REALIZED)
+
+
+def _transaction_failure(importer, number: str, sale_ids: list[int]) -> str:
+    """Why no transaction exists for the worksheet: an unconfirmed order, a foreign transaction, or no compile."""
+    if not sale_ids:
+        return "no sale order was written for the worksheet"
+    orders = importer.env["sale.order"].browse(sale_ids).exists()
+    unconfirmed = orders.filtered(lambda order: order.state != "sale")
+    if unconfirmed:
+        return "sale order " + ", ".join(f"{order.name} not confirmed ({order.state})" for order in unconfirmed)
+    foreign = importer.env["plasticos.transaction"].search([("name", "=", number)], limit=1)
+    if foreign:
+        return f"transaction {number} exists on sale order {foreign.sale_order_id.name or foreign.sale_order_id.id}"
+    return "sale order confirmed but no transaction was compiled"
+
+
+def _confirm_and_compile(importer, pending_sales, context):
     orders = importer.env["sale.order"].browse(list(pending_sales)).exists()
     drafts = orders.filtered(lambda order: order.state in _OPEN_SALE_STATES)
     if drafts and "approved" in drafts._fields:

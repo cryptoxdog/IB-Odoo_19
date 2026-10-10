@@ -12,9 +12,11 @@ Counter semantics (documented, honest accounting):
 * ``records_rejected`` — rows refused (blank required values) plus unresolved
   source references and failed transactions: nothing that did not reach the DB.
   In the ``transactions`` bucket a rejected row is a worksheet that compiled no
-  ``plasticos.transaction``; its purchase documents may still have been
-  realized on their own identity (the run census names it), but it is never
-  counted as a created transaction. Every unresolved entry is exactly one source row (the importer records a
+  ``plasticos.transaction`` (no sale order link, a sale order that was not
+  confirmed, or a compile that failed); its purchase documents and vendor
+  bills may still have been realized on their own identity (the run census
+  names it), but it is never counted as a created transaction. ``created``
+  is counted only once the transaction exists. Every unresolved entry is exactly one source row (the importer records a
   parent failure once per suppressed child row, never once per parent), so
   ``len(unresolved)`` is a row count and the reconciliation below holds.
 * ``records_unchanged`` — identity-resolved rows that needed no write on replay

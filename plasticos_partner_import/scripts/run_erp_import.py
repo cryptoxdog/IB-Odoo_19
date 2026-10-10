@@ -148,6 +148,16 @@ def _print_census(census: dict) -> None:
         print(
             f"payables {bucket:<34} rows {tally['rows']:>6}  worksheets {tally['worksheets']:>5}  {tally['amount']:>14,.2f}"
         )
+    reconciliation = census.get("payables_reconciliation") or {}
+    if reconciliation:
+        from ..erp.native_orders import reconciliation_gap  # noqa: PLC0415
+
+        verdict = "CLOSES" if reconciliation["closes"] else f"OPEN: {reconciliation_gap(reconciliation)}"
+        print(
+            f"payables reconciliation: source {reconciliation.get('source_rows')} = billed"
+            f" {reconciliation['billed_rows']} + quarantined {reconciliation['quarantined_rows']}"
+            f" + excluded {reconciliation.get('excluded_rows', 0)} -> {verdict}"
+        )
 
 
 def _print_summary(summary: dict) -> None:

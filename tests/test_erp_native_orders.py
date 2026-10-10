@@ -31,12 +31,15 @@ from erp.native_orders import (  # noqa: E402
     native_quantity,
     newest_numbers,
     outside_universe_payables,
+    payable_identity,
     payable_matches_purchase,
     payables_reconciliation,
     purchase_bill_lines,
     quarantined_payable,
+    reconciliation_gap,
     sale_note,
     selected_worksheets,
+    source_payable_identities,
     unit_price,
     with_worksheet,
     worksheet_commission,
@@ -438,8 +441,96 @@ def test_payables_reconciliation_closes_only_when_every_row_is_billed_or_quarant
         "quarantined_rows": 0,
         "quarantined_amount": 0.0,
         "by_disposition": {},
+        "source_rows": None,
+        "excluded_rows": 0,
+        "unaccounted_rows": 0,
+        "missing_rows": [],
+        "duplicated_rows": [],
+        "unknown_rows": [],
+        "blank_identity_rows": 0,
         "closes": True,
     }
+
+
+_SOURCE_IDS = ["591398", "591476", "594620", "600003", "600009", "600004", "700001", "500868", "650001"]
+_BILLED_IDS = ["591398", "591476", "594620"]
+_ROWS = [
+    ("54839", "gl_50100_billed", 9366.52),
+    ("54839", "gl_50100_billed", -9366.52),
+    ("54839", "gl_50100_billed", 8826.48),
+    ("54839", "gl_50300_as_other_expenses", 100.0),
+    ("54839", "gl_blank_not_realized", 40.0),
+    ("54839", "prepay_batch_omitted", 5000.0),
+    ("58001", "worksheet_rolled_back_not_realized", 400.0),
+    ("51694 / 4714", "outside_worksheet_universe_not_realized", 168.72),
+]
+_QUARANTINE = [
+    {"worksheet": "54839", "payable_id": "600003", "amount": 100.0, "disposition": TRANSACTION_ONLY_COST},
+    {"worksheet": "54839", "payable_id": "600009", "amount": 40.0, "disposition": NOT_REALIZED},
+    {"worksheet": "54839", "payable_id": "600004", "amount": 5000.0, "disposition": PREPAY_OMITTED},
+    {"worksheet": "58001", "payable_id": "700001", "amount": 400.0, "disposition": NOT_REALIZED},
+    {"worksheet": "51694 / 4714", "payable_id": "500868", "amount": 168.72, "disposition": NOT_REALIZED},
+]
+
+
+def test_payables_reconciliation_accounts_for_every_source_identity_exactly_once():
+    """Billed, quarantined and explicitly excluded identities together cover the indexed source."""
+    result = payables_reconciliation(_ROWS, _QUARANTINE, _SOURCE_IDS, _BILLED_IDS, ["650001"])
+    assert result["source_rows"] == 9
+    assert result["excluded_rows"] == 1
+    assert result["unaccounted_rows"] == 0
+    assert result["missing_rows"] == [] and result["duplicated_rows"] == [] and result["unknown_rows"] == []
+    assert result["blank_identity_rows"] == 0
+    assert result["closes"] is True
+    assert reconciliation_gap(result) == "closes"
+
+
+def test_payables_reconciliation_detects_a_row_omitted_from_both_sides():
+    """A source payable on neither side is the defect the routed count alone could never see."""
+    rows = _ROWS[:-1]  # the outside-universe row was never routed …
+    quarantine = _QUARANTINE[:-1]  # … and never quarantined: the counts still balance.
+    result = payables_reconciliation(rows, quarantine, _SOURCE_IDS, _BILLED_IDS, ["650001"])
+    assert result["rows_seen"] == result["billed_rows"] + result["quarantined_rows"]
+    assert result["unaccounted_rows"] == 1
+    assert result["missing_rows"] == ["500868"]
+    assert result["closes"] is False
+    assert reconciliation_gap(result) == (
+        "9 source rows != 3 billed + 4 quarantined + 1 excluded; 1 missing PayableID: 500868"
+    )
+
+
+def test_payables_reconciliation_detects_duplicates_unknowns_and_blank_identities():
+    # The same bill billed and quarantined, and quarantined twice.
+    twice = [*_QUARANTINE, {"worksheet": "54839", "payable_id": "591398", "amount": 1.0, "disposition": UNBILLABLE}]
+    rows = [*_ROWS, ("54839", "gl_50100_unbilled", 1.0)]
+    result = payables_reconciliation(rows, twice, _SOURCE_IDS, _BILLED_IDS, ["650001"])
+    assert result["duplicated_rows"] == ["591398"]
+    assert result["closes"] is False
+    assert "1 duplicated PayableID: 591398" in reconciliation_gap(result)
+    # An identity the source never carried.
+    result = payables_reconciliation(_ROWS, _QUARANTINE, _SOURCE_IDS, [*_BILLED_IDS, "999999"], ["650001"])
+    assert result["unknown_rows"] == ["999999"]
+    assert result["closes"] is False
+    # A source row with no PayableID cannot be proven covered.
+    result = payables_reconciliation(_ROWS, _QUARANTINE, [*_SOURCE_IDS, ""], _BILLED_IDS, ["650001"])
+    assert result["blank_identity_rows"] == 1
+    assert result["closes"] is False
+    assert reconciliation_gap(result).endswith("1 source rows without a PayableID")
+    # Excluding a row that was also quarantined is a duplicate, not coverage.
+    result = payables_reconciliation(_ROWS, _QUARANTINE, _SOURCE_IDS, _BILLED_IDS, ["650001", "600003"])
+    assert result["duplicated_rows"] == ["600003"]
+    assert result["closes"] is False
+
+
+def test_source_payable_identities_walk_every_indexed_row_blanks_included():
+    index = SimpleNamespace(
+        payables_by_buysell={
+            "54839": [{"PayableID": "591398"}, {"PayableID": " 591476 "}],
+            "": [{"PayableID": "999001"}, {"PayableID": ""}],
+        }
+    )
+    assert source_payable_identities(index) == ["999001", "", "591398", "591476"]
+    assert payable_identity({"PayableID": None}) == ""
 
 
 def test_payables_outside_the_worksheet_universe_are_listed_with_their_raw_reference():
