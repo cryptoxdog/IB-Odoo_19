@@ -335,7 +335,10 @@ def _index_supporting_tables(payload: SourcePayload, index: SourceIndex) -> None
     ):
         for row in payload.rows(table):
             buysell_no = _key(row, "BuySellNo")
-            if buysell_no:
+            # A payable with no worksheet reference is still a source bill the
+            # import must account for; it is kept under the empty key so the
+            # census can report it. Other supporting rows need a worksheet.
+            if buysell_no or table == "Payables":
                 target.setdefault(buysell_no, []).append(row)
 
     for row in payload.rows("ReceiptBatch"):

@@ -55,6 +55,19 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
             report.reject("transaction_lines", len(index.detail_ids(number)))
             context["documents"].pop(number, None)
             context["rejected"].add(number)
+            # Everything the attempt routed was rolled back with it; the
+            # worksheet's payables are quarantined afresh so each one is
+            # reported and the reconciliation still covers them.
+            context["expense_rows"] = [item for item in context["expense_rows"] if item[0] != number]
+            context["quarantine"] = [entry for entry in context["quarantine"] if entry["worksheet"] != number]
+            _quarantine_worksheet_payables(
+                index,
+                context,
+                report,
+                number,
+                f"worksheet rolled back ({type(exc).__name__}); no document of it exists",
+                "worksheet_rolled_back_not_realized",
+            )
             continue
         for sale_id in sale_ids:
             pending_sales.setdefault(sale_id, []).extend(trailers)
@@ -66,11 +79,18 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
 
     if not dry_run:
         _confirm_sales(importer, pending_sales, context)
+    unselected_rows = 0
+    unselected_amount = 0.0
     for number in numbers:
         if number in selected_set:
             continue
         report.skip("transactions")
         report.skip("transaction_lines", len(index.detail_ids(number)))
+        for row in index.payables_by_buysell.get(number, []):
+            unselected_rows += 1
+            unselected_amount += _qty(row.get("Amount"))
+    context["payables_unselected"] = {"rows": unselected_rows, "amount": round(unselected_amount, 2)}
+    _quarantine_outside_universe(index, context, report, numbers)
     report.census = _census(index, context)
     reconciliation = report.census["payables_reconciliation"]
     if not reconciliation["closes"]:
@@ -102,8 +122,6 @@ def _census(index, context) -> dict:
     rejected = context.get("rejected") or set()
     tallies: dict[str, dict] = {}
     for number, bucket, amount in context.get("expense_rows") or []:
-        if number in rejected:
-            continue
         tally = tallies.setdefault(bucket, {"rows": 0, "worksheets": set(), "amount": 0.0})
         tally["rows"] += 1
         tally["worksheets"].add(number)
@@ -112,12 +130,12 @@ def _census(index, context) -> dict:
         key: {"rows": tally["rows"], "worksheets": len(tally["worksheets"]), "amount": round(tally["amount"], 2)}
         for key, tally in sorted(tallies.items())
     }
-    quarantine = sorted(
-        (entry for entry in context.get("quarantine") or [] if entry["worksheet"] not in rejected),
-        key=lambda entry: (entry["worksheet"], entry["payable_id"]),
-    )
+    quarantine = sorted(context.get("quarantine") or [], key=lambda entry: (entry["worksheet"], entry["payable_id"]))
     census["unresolved_bills"] = quarantine
-    census["payables_reconciliation"] = payables_reconciliation(context.get("expense_rows") or [], quarantine, rejected)
+    census["payables_reconciliation"] = payables_reconciliation(context.get("expense_rows") or [], quarantine)
+    # Payables of worksheets a diagnostic limit left out are neither billed nor
+    # quarantined; they are counted here so the limit never hides them.
+    census["payables_unselected"] = context.get("payables_unselected") or {"rows": 0, "amount": 0.0}
     census["worksheets_rejected"] = sorted(rejected)
     return census
 
@@ -237,6 +255,16 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
     if not sale_groups and not purchase_groups:
         report.reject("transactions")
         report.reject("transaction_lines", len(line_outcomes) or len(index.detail_ids(number)))
+        # No native document can own this worksheet's bills; each payable is
+        # reported on its own so the reconciliation covers it.
+        _quarantine_worksheet_payables(
+            index,
+            context,
+            report,
+            number,
+            "worksheet has no valid sale or purchase order link; no document to attach the bill to",
+            "no_order_link_not_realized",
+        )
         return [], []
     if not sale_groups:
         # No native sale order can be compiled, so no transaction exists for the
@@ -626,6 +654,11 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
     freight_account = context["freight_account"]
     journal = context["purchase_journal"]
     costs = context.setdefault("costs", {"freight": {}, "other": {}})
+    # A transaction is compiled from the worksheet's sale order; without one
+    # there is nothing to carry a transaction-only cost, and the disposition
+    # must say so rather than claim an economic effect that never happens.
+    has_transaction = bool(documents["sales"])
+    unbilled_freight_rows: list[tuple[dict, str]] = []
     for row in index.payables_by_buysell.get(number, []):
         batch = (row.get("APBatchNo") or "").strip()
         payable_id = (row.get("PayableID") or "").strip()
@@ -637,19 +670,31 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
             continue
         if gl_acct in EXPENSE_GL:
             # Handling (50300) and Equipment (50600) are not cost-of-goods
-            # accounts in the mapping SSOT and have no seeded account, so the
-            # amount is carried once as the transaction's other expenses. The
-            # bill itself is quarantined with its full source identity.
-            costs["other"][number] = costs["other"].get(number, 0.0) + amount
-            _count_expense(context, f"gl_{gl_acct}_as_other_expenses", number, amount)
-            _quarantine(
-                context,
-                report,
-                row,
-                number,
-                f"GL {gl_acct} has no native account in the crosswalk; amount carried as other expenses",
-                TRANSACTION_ONLY_COST,
-            )
+            # accounts in the mapping SSOT and have no seeded account. With a
+            # transaction the amount is carried once as its other expenses;
+            # without one it is carried nowhere. The bill itself is quarantined
+            # with its full source identity either way.
+            if has_transaction:
+                costs["other"][number] = costs["other"].get(number, 0.0) + amount
+                _count_expense(context, f"gl_{gl_acct}_as_other_expenses", number, amount)
+                _quarantine(
+                    context,
+                    report,
+                    row,
+                    number,
+                    f"GL {gl_acct} has no native account in the crosswalk; amount carried once as other expenses",
+                    TRANSACTION_ONLY_COST,
+                )
+            else:
+                _count_expense(context, f"gl_{gl_acct}_not_realized", number, amount)
+                _quarantine(
+                    context,
+                    report,
+                    row,
+                    number,
+                    f"GL {gl_acct} has no native account in the crosswalk and no transaction exists to carry it",
+                    NOT_REALIZED,
+                )
             continue
         if gl_acct not in (MATERIAL_GL, FREIGHT_GL):
             _count_expense(context, f"gl_{gl_acct or 'blank'}_not_realized", number, amount)
@@ -665,8 +710,6 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
         account = freight_account if gl_acct == FREIGHT_GL else material
         partner_id = _partner_id(importer, partner_by_cp, row.get("CpID"))
         if account is None or not journal or not partner_id or not payable_id or not amount:
-            if gl_acct == FREIGHT_GL and amount:
-                costs["freight"][number] = costs["freight"].get(number, 0.0) + amount
             if account is None:
                 reason = f"native account for GL {gl_acct} is not seeded on this database"
             elif not journal:
@@ -678,7 +721,12 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
             else:
                 reason = "zero amount"
             _count_expense(context, f"gl_{gl_acct}_unbilled", number, amount)
-            _quarantine(context, report, row, number, reason, UNBILLABLE)
+            if gl_acct == FREIGHT_GL and amount:
+                # Its economic disposition depends on the rest of the worksheet
+                # (freight bills, a transaction); decided after the loop.
+                unbilled_freight_rows.append((row, reason))
+            else:
+                _quarantine(context, report, row, number, f"{reason}; not counted", UNBILLABLE)
             continue
         invoice_date = _date(row.get("InvoiceDt")) or _date(index.buysells.get(number, {}).get("OrderDt"))
         if gl_acct == FREIGHT_GL:
@@ -713,21 +761,70 @@ def _vendor_bills(importer, index, report, context, partner_by_cp, number, docum
         )
         documents["freight_bills" if gl_acct == FREIGHT_GL else "bills"].append(move.id)
         _count_expense(context, f"gl_{gl_acct}_billed", number, amount)
-    unbilled_freight = costs["freight"].get(number)
-    if unbilled_freight and documents["freight_bills"]:
+    if not unbilled_freight_rows:
+        return
+    unbilled_freight = sum(_qty(row.get("Amount")) for row, _reason in unbilled_freight_rows)
+    if documents["freight_bills"]:
         # Freight is counted once: the bills are the freight cost of this
         # worksheet. A freight row that could not be billed is not folded
         # into ``freight_actual`` beside them, where it would be ignored or
         # counted twice; it stays an exception with its amount.
-        del costs["freight"][number]
         report.anomaly(
             "BuySell", number, f"unbilled freight {unbilled_freight:.2f} not counted: worksheet has freight bills"
         )
+        for row, reason in unbilled_freight_rows:
+            _quarantine(context, report, row, number, f"{reason}; not counted: worksheet has freight bills", UNBILLABLE)
+    elif has_transaction:
+        # No freight bill exists, so the transaction's actual freight cost
+        # carries the amount once (``freight_actual`` → ``freight_cost_total``).
+        costs["freight"][number] = round(unbilled_freight, 2)
+        for row, reason in unbilled_freight_rows:
+            _quarantine(
+                context,
+                report,
+                row,
+                number,
+                f"{reason}; amount carried once as the transaction's actual freight cost",
+                TRANSACTION_ONLY_COST,
+            )
+    else:
+        for row, reason in unbilled_freight_rows:
+            _quarantine(context, report, row, number, f"{reason}; no transaction exists to carry it", NOT_REALIZED)
 
 
 def _count_expense(context, bucket: str, number: str, amount: float) -> None:
     """One payable row's routing, tallied when the worksheet is not rolled back."""
     context["expense_rows"].append((number, bucket, amount))
+
+
+def _quarantine_worksheet_payables(index, context, report, number: str, reason: str, bucket: str) -> None:
+    """Every payable of a worksheet that realized no document: reported one by one, nothing counted."""
+    from odoo.addons.plasticos_partner_import.erp.native_orders import NOT_REALIZED  # noqa: PLC0415
+
+    for row in index.payables_by_buysell.get(number, []):
+        _count_expense(context, bucket, number, _qty(row.get("Amount")))
+        _quarantine(context, report, row, number, reason, NOT_REALIZED)
+
+
+def _quarantine_outside_universe(index, context, report, numbers) -> None:
+    """Payables whose ``BuySellNo`` is no worksheet with lines: reported one by one, never silently skipped."""
+    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        FREIGHT_GL,
+        MATERIAL_GL,
+        NOT_REALIZED,
+        outside_universe_payables,
+    )
+
+    for key, row in outside_universe_payables(index, numbers):
+        gl_acct = (row.get("GLAcct") or "").strip()
+        if not key:
+            reason = "blank BuySellNo; the bill names no worksheet"
+        else:
+            reason = f"BuySellNo {key!r} is not a worksheet with lines; no transaction to attach the bill to"
+        if gl_acct in (MATERIAL_GL, FREIGHT_GL):
+            reason += f" (GL {gl_acct} has a native account; realizing it standalone is an operator decision)"
+        _count_expense(context, "outside_worksheet_universe_not_realized", key, _qty(row.get("Amount")))
+        _quarantine(context, report, row, key, reason, NOT_REALIZED)
 
 
 def _quarantine(context, report, row, number: str, reason: str, disposition: str) -> None:

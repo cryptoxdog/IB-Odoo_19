@@ -30,6 +30,7 @@ from erp.native_orders import (  # noqa: E402
     link_reason_class,
     native_quantity,
     newest_numbers,
+    outside_universe_payables,
     payable_matches_purchase,
     payables_reconciliation,
     purchase_bill_lines,
@@ -403,29 +404,34 @@ def test_payables_reconciliation_closes_only_when_every_row_is_billed_or_quarant
         ("54839", "gl_50300_as_other_expenses", 100.0),
         ("54839", "gl_blank_not_realized", 40.0),
         ("54839", "prepay_batch_omitted", 5000.0),
-        ("58001", "gl_50100_billed", 400.0),  # rolled back later: excluded from both sides
+        # A rolled-back worksheet's payables are re-recorded as quarantined, never dropped.
+        ("58001", "worksheet_rolled_back_not_realized", 400.0),
+        # A payable outside the worksheet universe is recorded under its raw reference.
+        ("51694 / 4714", "outside_worksheet_universe_not_realized", 168.72),
     ]
     quarantine = [
         {"worksheet": "54839", "payable_id": "600003", "amount": 100.0, "disposition": TRANSACTION_ONLY_COST},
         {"worksheet": "54839", "payable_id": "600009", "amount": 40.0, "disposition": NOT_REALIZED},
         {"worksheet": "54839", "payable_id": "600004", "amount": 5000.0, "disposition": PREPAY_OMITTED},
+        {"worksheet": "58001", "payable_id": "700001", "amount": 400.0, "disposition": NOT_REALIZED},
+        {"worksheet": "51694 / 4714", "payable_id": "500868", "amount": 168.72, "disposition": NOT_REALIZED},
     ]
-    result = payables_reconciliation(rows, quarantine, {"58001"})
-    assert result["rows_seen"] == 6
+    result = payables_reconciliation(rows, quarantine)
+    assert result["rows_seen"] == 8
     assert result["billed_rows"] == 3
     assert result["billed_amount"] == pytest.approx(625.0)
-    assert result["quarantined_rows"] == 3
-    assert result["quarantined_amount"] == pytest.approx(5140.0)
+    assert result["quarantined_rows"] == 5
+    assert result["quarantined_amount"] == pytest.approx(5708.72)
     assert result["by_disposition"] == {
-        NOT_REALIZED: {"rows": 1, "amount": 40.0},
+        NOT_REALIZED: {"rows": 3, "amount": 608.72},
         PREPAY_OMITTED: {"rows": 1, "amount": 5000.0},
         TRANSACTION_ONLY_COST: {"rows": 1, "amount": 100.0},
     }
     assert result["closes"] is True
     # A row that was neither billed nor quarantined cannot read as imported.
-    short = payables_reconciliation(rows, quarantine[:2], {"58001"})
+    short = payables_reconciliation(rows, quarantine[:4])
     assert short["closes"] is False
-    assert payables_reconciliation([], [], set()) == {
+    assert payables_reconciliation([], []) == {
         "rows_seen": 0,
         "billed_rows": 0,
         "billed_amount": 0.0,
@@ -434,3 +440,42 @@ def test_payables_reconciliation_closes_only_when_every_row_is_billed_or_quarant
         "by_disposition": {},
         "closes": True,
     }
+
+
+def test_payables_outside_the_worksheet_universe_are_listed_with_their_raw_reference():
+    index = SimpleNamespace(
+        payables_by_buysell={
+            "54839": [{"PayableID": "591398"}],
+            "51694 / 4714": [{"PayableID": "500868"}, {"PayableID": "500869"}],
+            "": [{"PayableID": "999001"}],
+            "60720": [{"PayableID": "700021"}],
+        }
+    )
+    found = outside_universe_payables(index, ["54839", "60720"])
+    assert [(key, row["PayableID"]) for key, row in found] == [
+        ("", "999001"),
+        ("51694 / 4714", "500868"),
+        ("51694 / 4714", "500869"),
+    ]
+    assert outside_universe_payables(index, ["54839", "60720", "51694 / 4714", ""]) == []
+
+
+def test_source_index_keeps_payables_with_a_blank_worksheet_reference():
+    from erp.reader import PayloadKind, SourcePayload
+    from erp.source_index import build_source_index
+
+    payload = SourcePayload(
+        kind=PayloadKind.STATEMENTS,
+        root=Path("."),
+        tables={
+            "GPLedger": [{"BuySellNo": "", "LedgerID": "1"}],
+            "Payables": [{"BuySellNo": "", "PayableID": "999001"}, {"BuySellNo": "54839", "PayableID": "591398"}],
+            "Receipt": [],
+            "ReceiptBatch": [],
+            "WksDelivery": [],
+        },
+    )
+    index = build_source_index(payload)
+    assert [row["PayableID"] for row in index.payables_by_buysell[""]] == ["999001"]
+    assert [row["PayableID"] for row in index.payables_by_buysell["54839"]] == ["591398"]
+    assert "" not in index.ledger_by_buysell, "only payables keep a blank reference; other tables need a worksheet"

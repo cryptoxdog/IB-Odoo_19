@@ -56,6 +56,7 @@ __all__ = [
     "link_reason_class",
     "native_quantity",
     "newest_numbers",
+    "outside_universe_payables",
     "selected_worksheets",
     "payable_matches_purchase",
     "payables_reconciliation",
@@ -262,17 +263,36 @@ def quarantined_payable(row: dict, number: str, reason: str, disposition: str) -
     }
 
 
-def payables_reconciliation(expense_rows: list[tuple[str, str, float]], quarantine: list[dict], rejected) -> dict:
-    """Every payable row of a realized worksheet is a native bill or a quarantined row, never both.
+def outside_universe_payables(index, numbers: list[str]) -> list[tuple[str, dict]]:
+    """Payable rows whose ``BuySellNo`` is not a worksheet with lines.
+
+    The transaction universe is every ``BuySellNo`` that owns a worksheet
+    line. A payable outside it (a blank reference, or a free-text one such as
+    ``51694 / 4714``) can be attached to no transaction, so the importer never
+    visits it; it is returned here so every such row is reported, never
+    silently omitted.
+    """
+    universe = set(numbers)
+    found: list[tuple[str, dict]] = []
+    for key in sorted(index.payables_by_buysell):
+        if key in universe:
+            continue
+        found.extend((key, row) for row in index.payables_by_buysell[key])
+    return found
+
+
+def payables_reconciliation(expense_rows: list[tuple[str, str, float]], quarantine: list[dict]) -> dict:
+    """Every payable row the run accounted for is a native bill or a quarantined row, never both.
 
     ``expense_rows`` carry ``(worksheet, bucket, amount)`` for every row the
-    importer routed; ``quarantine`` carries the rows it did not bill. Rows of
-    worksheets that were rolled back are left out of both sides. The result
+    importer routed, including rows of worksheets it rolled back, refused for
+    want of an order link, or found outside the worksheet universe; those
+    rows are quarantined, so they sit on the quarantine side. The result
     closes only when the billed rows plus the quarantined rows account for
     every row seen, so an unrealized bill can never read as imported.
     """
-    kept = [(number, bucket, amount) for number, bucket, amount in expense_rows if number not in rejected]
-    quarantined = [entry for entry in quarantine if entry["worksheet"] not in rejected]
+    kept = list(expense_rows)
+    quarantined = list(quarantine)
     billed = [item for item in kept if item[1].endswith("_billed")]
     by_disposition: dict[str, dict] = {}
     for entry in quarantined:
