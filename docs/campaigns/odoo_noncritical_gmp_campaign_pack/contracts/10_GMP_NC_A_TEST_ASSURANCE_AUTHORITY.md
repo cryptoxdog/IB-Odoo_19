@@ -53,6 +53,7 @@ Architecture to realize:
 ```text
 ci/weak_test_fixer.py
         -> sole assertion-quality semantic owner
+        -> same test-file scope as the extended audit
 
 actual Odoo runtime evidence
         -> future coverage authority
@@ -64,11 +65,13 @@ scripts/audit/test_audit.py
 
 Required behavior:
 
+- the surviving owner walks every `tests/test_*.py` the extended audit currently walks, including addon trees, not only the repository `tests/` directory;
 - bare `assert` recognized;
 - unittest `assert*` recognized;
 - `pytest.raises` / `assertRaises` recognized;
 - explicit `raise AssertionError(...)` recognized;
-- helper-based assertion evidence remains supported where current policy already permits it;
+- assertion-named helpers (`assert*`, `assert_`, `_assert`) remain evidence;
+- a call whose name is only `check_`, `_check_`, `validate_`, `_run_`, or `_safe_` is not assertion evidence;
 - genuinely assertion-free tests remain detectable.
 
 `NO_TEST_COVERAGE` must either be retired from factual audit output or explicitly downgraded/reframed so it cannot be mistaken for measured Odoo runtime coverage. Prefer removing the false claim rather than inventing a new heuristic.
@@ -87,6 +90,8 @@ Validate, at minimum:
 - a bare-assert pytest test is not flagged;
 - `pytest.raises` is not flagged;
 - `raise AssertionError` is not flagged;
+- a test whose only call is `check_`, `_check_`, `validate_`, `_run_`, or `_safe_` is flagged;
+- an addon `tests/test_*.py` file is in the surviving owner's scan;
 - a genuinely assertion-free test is flagged;
 - extended audit no longer duplicates weak-test truth;
 - pseudo `NO_TEST_COVERAGE` does not survive as a factual runtime-coverage claim;
@@ -115,9 +120,10 @@ Before publication, verify the current repo publication surface. If `make pr` st
 
 PASS only if:
 
-- one weak-test semantic owner remains;
+- one weak-test semantic owner remains, and its scan root matches the extended audit;
 - valid pytest assertion forms are not false-positive debt;
 - explicit `AssertionError` is recognized;
+- non-assertion helper prefixes are not treated as assertions;
 - pseudo-runtime-coverage claims are removed;
 - no runtime application files changed;
 - no prior High/Critical remediation reopened.

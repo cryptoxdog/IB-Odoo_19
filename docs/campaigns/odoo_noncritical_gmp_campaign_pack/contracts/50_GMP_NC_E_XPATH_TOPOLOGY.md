@@ -73,6 +73,10 @@ Do not modify Odoo core. Target an existing stable named `field`, `page`, `group
 
 Stop that finding group rather than inventing a positional selector.
 
+### `UNSCOPED_LIST_FIELD`
+
+This finding is a list-field scoping repair (`//list/field[@name=...]`). Do not invent a notebook anchor for it.
+
 ## Phase 3 — Implement topology repair
 
 Repair the minimum set of authoritative anchors and dependent selectors.
@@ -88,9 +92,13 @@ The checker must no longer recommend forbidden fixes such as:
 - `//notebook[1]`
 - `//sheet/notebook[1]`
 
+In the same change, delete the safe-pattern entries that treat those positional forms as already safe, including `//notebook[1]`. Leaving the whitelist in place blesses the repair this contract forbids.
+
 Guidance must prefer stable named anchors consistent with repo law.
 
 Do not weaken detection merely to make the report empty.
+
+High class-based positional guidance stays sealed. Report it. Do not repair it in this GMP.
 
 ## Phase 5 — Runtime/view proof
 
@@ -115,6 +123,8 @@ PASS only if:
 
 - positional repair count = 0;
 - checker guidance matches canonical named-anchor law;
+- positional notebook forms are absent from the safe-pattern whitelist;
+- `UNSCOPED_LIST_FIELD` repairs scope to a named list field;
 - all repaired view families have a clear authoritative anchor owner;
 - affected views validate at runtime or through the strongest current faithful view proof;
 - unrelated XML work is absent.

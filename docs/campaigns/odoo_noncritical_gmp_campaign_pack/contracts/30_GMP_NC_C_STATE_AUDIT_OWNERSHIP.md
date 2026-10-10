@@ -1,10 +1,10 @@
-# GMP-NC-C — State Audit Owner Convergence
+# GMP-NC-C — State Audit Containment
 
 ## Contract
 
 **ID:** GMP-NC-C  
 **Tier:** CI / State-Machine Assurance  
-**Objective:** Eliminate duplicate state-transition audit authority.  
+**Objective:** Decide state-audit ownership from containment. Keep both checks until one finding set is shown to contain the other.  
 **Predecessor:** none strictly required; consume current tree.  
 **Expected runtime behavior change:** none unless the authoritative checker independently proves a real defect.
 
@@ -47,26 +47,46 @@ Classify each disagreement:
 
 No runtime mutation in Phase 1.
 
-## Phase 2 — Ownership decision
+## Phase 2 — Containment decision
 
-Target architecture:
+The two checks are adjacent until the Phase 1 comparison proves otherwise.
 
 ```text
-canonical model transition owners
-        -> ci/check_state_guard_bypass.py
-        -> single state-bypass verdict
+CI guard check
+        models with _validate_state_transition
+        .write({'state': ...}) missing bypass_state_guard
+        includes XML server actions
 
-extended audit
-        -> consume/omit duplicate concern
+extended STATE_BYPASS
+        any model with a Selection state or status
+        self.write({'state': ...}) outside action_*, pipeline methods,
+        and methods whose context contains "State transitions"
 ```
 
-`ci/check_state_guard_bypass.py` remains authoritative only if exact-current evidence confirms it still models guarded Odoo state transitions more faithfully than the generic extended heuristic.
+Decide from the census:
+
+```text
+one finding set contains the other
+        -> converge to the containing owner
+        -> remove only the contained duplicate judgment
+        -> ci/check_state_guard_bypass.py stays the owner of the guard
+
+the sets do not nest
+        -> keep both concerns
+        -> record them as adjacent, not duplicates
+        -> do not delete STATE_BYPASS to shrink the Moderate count
+```
+
+Do not treat the CI checker's existence as a containment proof.
 
 ## Phase 3 — Tooling convergence
 
-Remove duplicate state-transition judgment from the weaker owner.
+Apply only the Phase 2 decision.
 
-Do not duplicate the stronger checker by copy/paste.
+When the sets nest, remove the contained judgment from the weaker owner.
+When they do not nest, leave both owners in place and stop with that evidence.
+
+Do not duplicate either checker by copy/paste.
 Do not create a third checker.
 
 If the authoritative checker exposes a genuine runtime defect, STOP this GMP and report that defect as a separate runtime remediation candidate rather than silently expanding this tooling campaign.
@@ -76,7 +96,8 @@ If the authoritative checker exposes a genuine runtime defect, STOP this GMP and
 Prove:
 
 - authoritative state-guard tests/checks retain all existing protections;
-- extended audit no longer creates duplicate Moderate state warnings;
+- extended `STATE_BYPASS` is removed only for findings the CI guard set actually contains;
+- non-overlapping `STATE_BYPASS` findings remain;
 - state-machine application files are unchanged unless separately authorized;
 - bypass policy is not weakened.
 
@@ -98,7 +119,8 @@ Emit report and publish only through a verified current publication surface.
 
 PASS only if:
 
-- one state-bypass authority remains;
+- one owner remains only for a proven nested finding set;
+- non-overlapping findings remain under their existing owner;
 - no state protection is weakened;
 - no runtime refactor was smuggled into a tooling PR;
 - previous remediation remains sealed.

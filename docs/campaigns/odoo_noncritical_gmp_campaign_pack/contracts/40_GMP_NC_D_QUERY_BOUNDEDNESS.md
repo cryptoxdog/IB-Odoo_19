@@ -5,16 +5,17 @@
 **ID:** GMP-NC-D  
 **Tier:** Runtime Performance / ORM Semantics  
 **Objective:** Resolve genuine unsafe unbounded searches by query intent, not by mechanically adding limits.  
-**Hard dependency:** consume the completed High performance-scanner hardening from the earlier production-debt campaign.  
+**File isolation:** `check_unbounded_searches` is in scope. `check_n_plus_one_queries` is not. The High N+1 scanner slice owns that method.
 
 ## Entry gate
 
-Before proceeding, prove one of:
+Record whether the High performance-scanner slice has landed.
 
-1. prior High performance-scanner remediation has landed on current `Staging`; or
-2. this branch stacks on the exact completed predecessor HEAD.
+Proceed when the modification lock excludes `check_n_plus_one_queries` and any N+1 fixtures owned by that slice.
 
-If neither is true: **BLOCKED**. Do not implement a second scanner architecture here.
+If an unmerged High slice already modifies `scripts/audit/performance_audit.py`, stack on that HEAD or wait.
+
+If the lock cannot keep the two edits apart: **BLOCKED**. Do not fork a second scanner.
 
 ## Locked scope
 
@@ -70,6 +71,8 @@ Allowed transformations only when semantically justified:
 
 The scanner warning is not authority over business cardinality.
 
+Replace the spelling exemptions inside `check_unbounded_searches` (variable-name suffixes, a nearby `batch` comment, any `'in'` domain, the small-table name list used as a substitute for intent) with the intent table above. Do not add a second exemption list beside them. Do not edit `check_n_plus_one_queries`.
+
 ## Phase 3 — Implement smallest runtime fixes
 
 Modify only findings proven unsafe.
@@ -98,7 +101,9 @@ Compare:
 - legitimate complete searches intentionally retained;
 - UNKNOWNs.
 
-If the scanner still flags a semantically correct complete query, repair the scanner only if that behavior is within the already-hardened performance scanner's architecture. Do not create a second exemption framework.
+A business-complete search that stays complete is retained, not open debt. If the scanner still flags it, teach `check_unbounded_searches` the intent class. Do not add `limit=1` and do not create a second exemption framework.
+
+`UNKNOWN` blocks a CLOSED verdict. It does not authorize `limit=1`, truncation, or a new scanner.
 
 ## Phase 6 — Evidence and publication
 
@@ -110,6 +115,9 @@ PASS only if:
 
 - genuine dangerous unbounded traversals are closed;
 - no query is arbitrarily truncated;
+- a business-complete search may remain, with its intent class recorded;
+- spelling exemptions are replaced by the intent table inside `check_unbounded_searches`;
+- `check_n_plus_one_queries` is unchanged;
 - every survivor has an explained boundedness contract;
-- UNKNOWN is zero or explicitly blocks closure;
+- `UNKNOWN` blocks a CLOSED verdict and does not authorize `limit=1`;
 - High N+1 work is not reopened.

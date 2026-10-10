@@ -8,13 +8,13 @@ Run first because it is likely responsible for the largest numerical distortion 
 After completion, regenerate the Moderate census. Do **not** use the historical ~980 number for sizing later stages.
 
 ### 2. GMP-NC-B — Privilege boundaries
-Run from the then-current `Staging` or stack only if consuming an unmerged predecessor.
+Run from the then-current `Staging` or stack only if consuming an unmerged predecessor. A justified elevation may remain. `UNKNOWN` blocks closure and does not authorize a comment written only to go green.
 
-### 3. GMP-NC-C — State audit ownership
-Tooling-only by default. If it uncovers a real runtime state defect, stop and split that defect into its own remediation.
+### 3. GMP-NC-C — State audit containment
+Tooling-only by default. Keep both checks until Phase 1 shows one finding set contains the other. If it uncovers a real runtime state defect, stop and split that defect into its own remediation.
 
 ### 4. GMP-NC-D — Query boundedness
-Do not start until the prior High performance-scanner hardening is present in the execution base or exact predecessor.
+Proceed with a modification lock that excludes `check_n_plus_one_queries`. If an unmerged High performance-scanner slice already edits `scripts/audit/performance_audit.py`, stack on that HEAD or wait. Do not fork the scanner. A business-complete search may remain. `UNKNOWN` blocks closure and does not authorize `limit=1`.
 
 ### 5. GMP-NC-E — XPath topology
 Independent of query work. Can run in parallel with B/C if operationally convenient, but should remain its own PR/GMP.

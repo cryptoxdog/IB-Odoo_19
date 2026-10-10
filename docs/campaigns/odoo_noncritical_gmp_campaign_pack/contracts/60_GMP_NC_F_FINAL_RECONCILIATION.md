@@ -75,14 +75,14 @@ Do not claim that count reduction alone proves improvement.
 
 Prove one owner per concern:
 
-- weak-test semantics;
+- weak-test semantics, including addon `tests/` trees;
 - Odoo runtime coverage claim surface;
-- privilege-elevation policy;
-- state-bypass policy;
-- performance/query-boundedness semantics;
-- XPath anchor policy.
+- privilege-elevation policy, with justified elevations retained rather than counted as open debt;
+- state-audit policy, with both checks kept when their finding sets do not nest;
+- query-boundedness semantics inside `check_unbounded_searches`, with business-complete searches retained;
+- XPath anchor policy, with positional notebook forms absent from the safe-pattern whitelist.
 
-Duplicate authority is a failure even if counts are low.
+Duplicate authority over the same finding set is a failure even if counts are low. Adjacent checks that do not nest are not duplicate authority.
 
 ## Phase 5 — No-reopen check
 
