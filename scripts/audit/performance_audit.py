@@ -62,10 +62,15 @@ class PerformanceAudit:
     def check_unbounded_searches(self):
         """Flag ORM search() calls whose intent is not a proven bound.
 
-        A limit anywhere on the call, a positive identity predicate, a
-        same-expression projection, or a search that defines a returned
-        domain is retained. Spelling (variable suffixes, a nearby batch
-        comment, any ``in`` operator, a table-name list) is not intent.
+        A search is retained only on proof: a positive limit, a domain in
+        which every OR branch carries a non-null identity predicate on every
+        execution path, a same-expression projection, or a search that
+        defines a returned domain. A zero, None, negative or unresolved
+        limit is not a bound; a predicate appended on only some paths is
+        not a bound; a categorical ``in`` list is not an identity set.
+        Spelling (variable suffixes, a nearby batch comment, a table-name
+        list) is not intent. A bound that cannot be resolved is reported as
+        UNKNOWN, never assumed.
         """
         import ast
 
@@ -79,25 +84,38 @@ class PerformanceAudit:
             except (OSError, SyntaxError, UnicodeError):
                 continue
             lines = source.splitlines()
-            for call in _unbounded_search_calls(tree):
+            for call, verdict in _unbounded_search_calls(tree):
                 line_num = call.lineno
                 code = lines[line_num - 1].strip() if 0 < line_num <= len(lines) else ""
+                if verdict == _UNKNOWN:
+                    message = "search() bound is UNKNOWN: its limit or domain could not be resolved"
+                else:
+                    message = "search() has no proven bound for its intent"
                 errors.append(
                     {
                         "type": "UNBOUNDED_SEARCH",
                         "severity": "MODERATE",
                         "file": str(py_file.relative_to(self.root_dir)),
                         "line": line_num,
+                        "bound": verdict,
                         "code": code,
-                        "message": "search() has no proven bound for its intent",
+                        "message": message,
                         "fix": ("Match the search to its intent. Do not add limit=1 to silence this finding."),
                     }
                 )
         return errors
 
 
+_BOUNDED = "bounded"
+_UNBOUNDED = "unbounded"
+_UNKNOWN = "unknown"
+_MAX_DOMAIN_PATHS = 64
+_MAX_RESOLUTION_DEPTH = 4
+_READ_ONLY_METHODS = frozenset({"copy", "count", "index"})
+
+
 def _unbounded_search_calls(tree):
-    """ORM ``search()`` calls that are not a proven complete or bounded intent."""
+    """``(call, verdict)`` for ORM ``search()`` calls without a proven bound."""
     import ast
 
     found = []
@@ -115,8 +133,9 @@ def _unbounded_search_calls(tree):
                 visit(child, aliases)
             return
         if isinstance(node, ast.Call) and _is_exact_search(node) and _is_orm_owner(node, aliases):
-            if not _retains_search(node, _enclosing_function(tree, node)):
-                found.append(node)
+            verdict = _search_verdict(node, _enclosing_function(tree, node))
+            if verdict != _BOUNDED:
+                found.append((node, verdict))
         for child in ast.iter_child_nodes(node):
             visit(child, aliases)
 
@@ -200,12 +219,14 @@ def _is_orm_owner(call, aliases):
     return _is_env_model(owner)
 
 
-def _retains_search(call, func):
-    if any(keyword.arg == "limit" for keyword in call.keywords):
-        return True
-    if _is_projection(call) or _defines_returned_domain(call, func):
-        return True
-    return _domain_has_identity(call, func)
+def _search_verdict(call, func):
+    limit = _limit_verdict(call, func)
+    if limit == _BOUNDED or _is_projection(call) or _defines_returned_domain(call, func):
+        return _BOUNDED
+    domain = _domain_verdict(call, func)
+    if domain == _BOUNDED:
+        return _BOUNDED
+    return _UNKNOWN if _UNKNOWN in (limit, domain) else _UNBOUNDED
 
 
 def _is_projection(call):
@@ -242,101 +263,468 @@ def _defines_returned_domain(call, func):
     return False
 
 
-def _domain_has_identity(call, func):
+# -- limit ------------------------------------------------------------------
+
+
+def _limit_verdict(call, func):
+    """Whether the call's ``limit`` proves a positive bound.
+
+    Odoo 19 ``search(domain, offset=0, limit=None, order=None)`` emits no
+    LIMIT for None, False or 0, and PostgreSQL rejects a negative LIMIT, so
+    only a provably positive integer bounds the result.
+    """
+    import ast
+
+    for keyword in call.keywords:
+        if keyword.arg == "limit":
+            return _positive_int(keyword.value, func, call, 0)
+    if len(call.args) >= 3 and not any(isinstance(arg, ast.Starred) for arg in call.args[:3]):
+        return _positive_int(call.args[2], func, call, 0)
+    if any(keyword.arg is None for keyword in call.keywords) or any(isinstance(arg, ast.Starred) for arg in call.args):
+        return _UNKNOWN
+    return _UNBOUNDED
+
+
+def _positive_int(node, func, anchor, depth):
+    import ast
+
+    if depth > _MAX_RESOLUTION_DEPTH:
+        return _UNKNOWN
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, bool) or node.value is None:
+            return _UNBOUNDED
+        if isinstance(node.value, int):
+            return _BOUNDED if node.value > 0 else _UNBOUNDED
+        return _UNKNOWN
+    if isinstance(node, ast.UnaryOp) and isinstance(node.operand, ast.Constant):
+        if isinstance(node.op, ast.USub) and isinstance(node.operand.value, int):
+            return _UNBOUNDED
+        return _UNKNOWN
+    if isinstance(node, ast.Name):
+        return _combine_paths(
+            [
+                _UNKNOWN if state == _UNKNOWN else _positive_int(state[0], func, state[1], depth + 1)
+                for state in _reaching(func, node.id, anchor, "value", depth + 1)
+            ]
+        )
+    if isinstance(node, ast.IfExp):
+        return _combine_paths(
+            [_positive_int(node.body, func, anchor, depth + 1), _positive_int(node.orelse, func, anchor, depth + 1)]
+        )
+    if isinstance(node, ast.BoolOp) and isinstance(node.op, ast.Or):
+        # ``a or b`` returns the first truthy operand, so a falsy constant is
+        # never the result; every other operand must be positive.
+        operands = [value for value in node.values[:-1] if not (isinstance(value, ast.Constant) and not value.value)]
+        return _combine_paths([_positive_int(value, func, anchor, depth + 1) for value in [*operands, node.values[-1]]])
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in {"max", "min"}
+        and node.args
+        and not node.keywords
+        and not any(isinstance(arg, ast.Starred) for arg in node.args)
+    ):
+        verdicts = [_positive_int(arg, func, anchor, depth + 1) for arg in node.args]
+        if node.func.id == "max":
+            if _BOUNDED in verdicts:
+                return _BOUNDED
+            return _UNKNOWN if _UNKNOWN in verdicts else _UNBOUNDED
+        return _combine_paths(verdicts)
+    return _UNKNOWN
+
+
+# -- domain -----------------------------------------------------------------
+
+
+def _domain_verdict(call, func):
+    """Bound proven by the domain on every execution path that reaches the call."""
+    import ast
+
     domain = None
     for keyword in call.keywords:
         if keyword.arg == "domain":
             domain = keyword.value
-    if domain is None and call.args:
+    if domain is None and call.args and not isinstance(call.args[0], ast.Starred):
         domain = call.args[0]
-    return _terms_have_identity(_domain_terms(domain, func, getattr(call, "lineno", 0)))
+    if domain is None:
+        return _UNKNOWN
+    return _combine_paths(
+        [_UNKNOWN if path == _UNKNOWN else _elements_verdict(path) for path in _expr_paths(domain, func, call, 0)]
+    )
 
 
-def _domain_terms(domain, func, call_line):
+def _elements_verdict(elements):
+    """Evaluate one concrete Odoo prefix domain (``&``/``|``/``!``, implicit AND)."""
+    position = 0
+
+    def parse():
+        nonlocal position
+        if position >= len(elements):
+            return None
+        node = elements[position]
+        position += 1
+        operator = _domain_operator(node)
+        if operator == "!":
+            child = parse()
+            if child is None:
+                return None
+            # The complement of a bound is never a proven bound.
+            return _UNKNOWN if child == _UNKNOWN else _UNBOUNDED
+        if operator in {"&", "|"}:
+            left = parse()
+            right = parse() if left is not None else None
+            if right is None:
+                return None
+            return _all_of(left, right) if operator == "&" else _any_of(left, right)
+        return _term_verdict(node)
+
+    verdicts = []
+    while position < len(elements):
+        verdict = parse()
+        if verdict is None:
+            return _UNKNOWN
+        verdicts.append(verdict)
+    if not verdicts:
+        return _UNBOUNDED
+    return _all_of(*verdicts)
+
+
+def _all_of(*verdicts):
+    """Conjunction: one bounded operand bounds the intersection."""
+    if _BOUNDED in verdicts:
+        return _BOUNDED
+    return _UNKNOWN if _UNKNOWN in verdicts else _UNBOUNDED
+
+
+def _any_of(*verdicts):
+    """Disjunction: every branch must be bounded."""
+    if _UNBOUNDED in verdicts:
+        return _UNBOUNDED
+    return _UNKNOWN if _UNKNOWN in verdicts else _BOUNDED
+
+
+def _combine_paths(verdicts):
+    """A bound holds only if it holds on every path; one unbounded path is unbounded."""
+    if not verdicts:
+        return _UNKNOWN
+    return _any_of(*verdicts)
+
+
+def _domain_operator(node):
     import ast
 
-    if isinstance(domain, (ast.List, ast.Tuple)):
-        return list(domain.elts)
-    if isinstance(domain, ast.Name) and func is not None:
-        return _assigned_terms(func, domain.id, call_line)
-    return []
+    if isinstance(node, ast.Constant) and node.value in {"&", "|", "!"}:
+        return node.value
+    return None
 
 
-def _assigned_terms(func, name, call_line):
+def _term_verdict(term):
     import ast
 
-    terms = []
-
-    def visit(stmts):
-        for stmt in stmts:
-            if getattr(stmt, "lineno", 0) > call_line:
-                continue
-            if isinstance(stmt, ast.Assign):
-                for target in stmt.targets:
-                    if (
-                        isinstance(target, ast.Name)
-                        and target.id == name
-                        and isinstance(stmt.value, (ast.List, ast.Tuple))
-                    ):
-                        terms.clear()
-                        terms.extend(stmt.value.elts)
-            elif (
-                isinstance(stmt, ast.Expr)
-                and isinstance(stmt.value, ast.Call)
-                and isinstance(stmt.value.func, ast.Attribute)
-                and stmt.value.func.attr == "append"
-                and isinstance(stmt.value.func.value, ast.Name)
-                and stmt.value.func.value.id == name
-                and stmt.value.args
-                and stmt.lineno <= call_line
-            ):
-                terms.append(stmt.value.args[0])
-            for block in _nested_statements(stmt):
-                visit(block)
-
-    visit(func.body)
-    return terms
+    if not isinstance(term, (ast.List, ast.Tuple)) or len(term.elts) != 3:
+        return _UNKNOWN
+    field, operator, value = term.elts
+    if not isinstance(field, ast.Constant):
+        return _UNKNOWN
+    if not isinstance(field.value, str):
+        return _UNBOUNDED
+    if not (isinstance(operator, ast.Constant) and isinstance(operator.value, str)):
+        return _UNKNOWN
+    if operator.value not in {"=", "in"}:
+        return _UNBOUNDED
+    identity = _is_identity_field(field.value)
+    if operator.value == "=":
+        if not identity:
+            return _UNBOUNDED
+        return _identity_value(value)
+    if identity:
+        if isinstance(value, (ast.List, ast.Tuple, ast.Set)):
+            return _any_of(*[_identity_value(elt) for elt in value.elts]) if value.elts else _BOUNDED
+        return _identity_value(value)
+    if isinstance(value, (ast.List, ast.Tuple, ast.Set, ast.Constant)):
+        # A literal list on a non-identity field is a categorical filter.
+        return _UNBOUNDED
+    # A dynamic set on a non-identity field may be a batch of keys or a
+    # population-wide category; its spelling cannot decide which.
+    return _UNKNOWN
 
 
-def _nested_statements(stmt):
-    import ast
-
-    blocks = []
-    for name in ("body", "orelse", "finalbody"):
-        block = getattr(stmt, name, None)
-        if block and isinstance(block, list) and block and isinstance(block[0], ast.stmt):
-            blocks.append(block)
-    return blocks
+def _is_identity_field(name):
+    return name in {"id", "res_id"} or name.endswith("_id") or name.endswith("_ids")
 
 
-def _terms_have_identity(terms):
-    import ast
-
-    for term in terms:
-        if not isinstance(term, (ast.List, ast.Tuple)) or len(term.elts) < 3:
-            continue
-        field, operator = term.elts[0], term.elts[1]
-        if not (isinstance(field, ast.Constant) and isinstance(field.value, str)):
-            continue
-        if not (isinstance(operator, ast.Constant) and operator.value in {"=", "in"}):
-            continue
-        if not _is_explicit_value(term.elts[2]):
-            continue
-        if operator.value == "in":
-            return True
-        name = field.value
-        if name in {"id", "res_id"} or name.endswith("_id") or name.endswith("_ids"):
-            return True
-    return False
-
-
-def _is_explicit_value(node):
+def _identity_value(node):
+    """A non-null record identity: a positive literal id or a dynamic value."""
     import ast
 
     if isinstance(node, ast.Constant):
+        if isinstance(node.value, int) and not isinstance(node.value, bool):
+            return _BOUNDED
+        return _UNBOUNDED
+    if isinstance(
+        node,
+        (ast.Name, ast.Attribute, ast.Subscript, ast.Call, ast.ListComp, ast.SetComp, ast.GeneratorExp),
+    ):
+        return _BOUNDED
+    if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+        return _any_of(*[_identity_value(elt) for elt in node.elts]) if node.elts else _BOUNDED
+    return _UNKNOWN
+
+
+# -- reaching definitions ---------------------------------------------------
+
+
+def _expr_paths(expr, func, anchor, depth):
+    """Possible element sequences of a domain expression at ``anchor``.
+
+    Each path is a tuple of domain elements; ``_UNKNOWN`` marks a path whose
+    elements cannot be resolved.
+    """
+    import ast
+
+    if expr is None or depth > _MAX_RESOLUTION_DEPTH:
+        return [_UNKNOWN]
+    if isinstance(expr, (ast.List, ast.Tuple)):
+        paths = [()]
+        for elt in expr.elts:
+            if isinstance(elt, ast.Starred):
+                paths = _concat_paths(paths, _expr_paths(elt.value, func, anchor, depth + 1))
+            else:
+                paths = _concat_paths(paths, [(elt,)])
+        return paths
+    if isinstance(expr, ast.Name):
+        return _reaching(func, expr.id, anchor, "domain", depth + 1)
+    if isinstance(expr, ast.BinOp) and isinstance(expr.op, ast.Add):
+        return _concat_paths(
+            _expr_paths(expr.left, func, anchor, depth + 1),
+            _expr_paths(expr.right, func, anchor, depth + 1),
+        )
+    if (
+        isinstance(expr, ast.Call)
+        and isinstance(expr.func, ast.Name)
+        and expr.func.id == "list"
+        and len(expr.args) == 1
+        and not expr.keywords
+    ):
+        return _expr_paths(expr.args[0], func, anchor, depth + 1)
+    return [_UNKNOWN]
+
+
+def _concat_paths(lefts, rights):
+    out = []
+    for left in lefts:
+        for right in rights:
+            out.append(_UNKNOWN if _UNKNOWN in (left, right) else left + right)
+    return _dedupe_states(out)
+
+
+def _dedupe_states(states):
+    seen = set()
+    out = []
+    for state in states:
+        key = _UNKNOWN if state == _UNKNOWN else tuple(id(node) for node in state)
+        if key not in seen:
+            seen.add(key)
+            out.append(state)
+    if len(out) > _MAX_DOMAIN_PATHS:
+        return [_UNKNOWN]
+    return out
+
+
+def _reaching(func, name, anchor, kind, depth):
+    """States of local ``name`` on every path that reaches ``anchor``.
+
+    ``kind`` is ``"domain"`` (a state is a tuple of domain elements) or
+    ``"value"`` (a state is ``(expression, assigning statement)``). A name
+    that is a parameter, is mutated in a loop or ``try``, or is changed in
+    a way not modelled here reaches the anchor as ``_UNKNOWN``.
+    """
+    if func is None or depth > _MAX_RESOLUTION_DEPTH:
+        return [_UNKNOWN]
+    states, _ = _simulate(func.body, [_UNKNOWN], name, anchor, kind, func, depth)
+    return states or [_UNKNOWN]
+
+
+def _simulate(stmts, states, name, anchor, kind, func, depth):
+    """Walk ``stmts`` in order; return ``(states, reached_anchor)``."""
+    import ast
+
+    for stmt in stmts:
+        if _contains(stmt, anchor):
+            return _descend(stmt, states, name, anchor, kind, func, depth), True
+        if isinstance(stmt, ast.If):
+            body, _ = _simulate(stmt.body, states, name, anchor, kind, func, depth)
+            orelse, _ = _simulate(stmt.orelse, states, name, anchor, kind, func, depth)
+            states = _dedupe_states(
+                (body if not _terminates(stmt.body) else []) + (orelse if not _terminates(stmt.orelse) else [])
+            )
+            if _touches(stmt.test, name):
+                states = [*states, _UNKNOWN]
+        elif isinstance(stmt, ast.With | ast.AsyncWith) and not any(_touches(item, name) for item in stmt.items):
+            states, _ = _simulate(stmt.body, states, name, anchor, kind, func, depth)
+        elif _is_simple(stmt):
+            states = _transfer(stmt, states, name, kind, func, depth)
+        elif _touches(stmt, name):
+            # Loops, try blocks, match, nested definitions: a change inside
+            # them is loop-, exception- or call-dependent.
+            states = _dedupe_states([*states, _UNKNOWN])
+        if not states:
+            return [], False
+    return states, False
+
+
+def _descend(stmt, states, name, anchor, kind, func, depth):
+    import ast
+
+    def inside(block):
+        return any(_contains(child, anchor) for child in block)
+
+    def run(block, entry):
+        return _simulate(block, entry, name, anchor, kind, func, depth)[0]
+
+    loop_entry = _dedupe_states([*states, _UNKNOWN]) if _touches(stmt, name) else states
+    if isinstance(stmt, ast.If):
+        if inside(stmt.body):
+            return run(stmt.body, states)
+        if inside(stmt.orelse):
+            return run(stmt.orelse, states)
+        return states
+    if isinstance(stmt, ast.For | ast.AsyncFor | ast.While):
+        if inside(stmt.body):
+            return run(stmt.body, loop_entry)
+        if inside(stmt.orelse):
+            return run(stmt.orelse, loop_entry)
+        return states if isinstance(stmt, ast.For | ast.AsyncFor) else loop_entry
+    if isinstance(stmt, ast.With | ast.AsyncWith):
+        if inside(stmt.body):
+            return run(stmt.body, states)
+        return states
+    if isinstance(stmt, ast.Try | ast.TryStar):
+        if inside(stmt.body):
+            return run(stmt.body, states)
+        for handler in stmt.handlers:
+            if inside(handler.body):
+                return run(handler.body, loop_entry)
+        if inside(stmt.orelse):
+            return run(stmt.orelse, run(stmt.body, states))
+        return loop_entry
+    if _is_simple(stmt):
+        return states
+    return _dedupe_states([*states, _UNKNOWN])
+
+
+def _transfer(stmt, states, name, kind, func, depth):
+    """Apply one simple statement to the reaching states of ``name``."""
+    import ast
+
+    target_value = None
+    if isinstance(stmt, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in stmt.targets):
+        if any(not isinstance(t, ast.Name) for t in stmt.targets):
+            return [_UNKNOWN]
+        target_value = stmt.value
+    elif (
+        isinstance(stmt, ast.AnnAssign)
+        and isinstance(stmt.target, ast.Name)
+        and stmt.target.id == name
+        and stmt.value is not None
+    ):
+        target_value = stmt.value
+    if target_value is not None:
+        if kind == "value":
+            return [(target_value, stmt)]
+        return _expr_paths(target_value, func, stmt, depth + 1)
+    if kind == "domain":
+        extension = None
+        if (
+            isinstance(stmt, ast.AugAssign)
+            and isinstance(stmt.target, ast.Name)
+            and stmt.target.id == name
+            and isinstance(stmt.op, ast.Add)
+        ):
+            extension = _expr_paths(stmt.value, func, stmt, depth + 1)
+        elif (
+            isinstance(stmt, ast.Expr)
+            and isinstance(stmt.value, ast.Call)
+            and isinstance(stmt.value.func, ast.Attribute)
+            and isinstance(stmt.value.func.value, ast.Name)
+            and stmt.value.func.value.id == name
+            and stmt.value.func.attr in {"append", "extend"}
+            and len(stmt.value.args) == 1
+            and not stmt.value.keywords
+            and not isinstance(stmt.value.args[0], ast.Starred)
+        ):
+            arg = stmt.value.args[0]
+            if stmt.value.func.attr == "append":
+                extension = [(arg,)]
+            else:
+                extension = _expr_paths(arg, func, stmt, depth + 1)
+        if extension is not None:
+            return _concat_paths(states, extension)
+    if _touches(stmt, name):
+        return [_UNKNOWN]
+    return states
+
+
+def _is_simple(stmt):
+    import ast
+
+    return not isinstance(
+        stmt,
+        (
+            ast.If,
+            ast.For,
+            ast.AsyncFor,
+            ast.While,
+            ast.With,
+            ast.AsyncWith,
+            ast.Try,
+            ast.TryStar,
+            ast.FunctionDef,
+            ast.AsyncFunctionDef,
+            ast.ClassDef,
+            ast.Match,
+        ),
+    )
+
+
+def _terminates(block):
+    """Whether control never falls through the end of ``block``."""
+    import ast
+
+    if not block:
         return False
-    if isinstance(node, (ast.Name, ast.Attribute, ast.Subscript, ast.Call)):
+    last = block[-1]
+    if isinstance(last, (ast.Return, ast.Raise, ast.Continue, ast.Break)):
         return True
-    if isinstance(node, (ast.List, ast.Tuple)):
-        return bool(node.elts) and all(_is_explicit_value(elt) for elt in node.elts)
+    if isinstance(last, ast.If):
+        return _terminates(last.body) and _terminates(last.orelse)
+    return False
+
+
+def _touches(node, name):
+    """Whether ``node`` may rebind or mutate local ``name``."""
+    import ast
+
+    for child in ast.walk(node):
+        if isinstance(child, ast.Name) and child.id == name and isinstance(child.ctx, (ast.Store, ast.Del)):
+            return True
+        if (
+            isinstance(child, ast.Subscript)
+            and isinstance(child.value, ast.Name)
+            and child.value.id == name
+            and isinstance(child.ctx, (ast.Store, ast.Del))
+        ):
+            return True
+        if (
+            isinstance(child, ast.Call)
+            and isinstance(child.func, ast.Attribute)
+            and isinstance(child.func.value, ast.Name)
+            and child.func.value.id == name
+            and child.func.attr not in _READ_ONLY_METHODS
+        ):
+            return True
+        if isinstance(child, (ast.Global, ast.Nonlocal)) and name in child.names:
+            return True
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and child.name == name:
+            return True
     return False
