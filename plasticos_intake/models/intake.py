@@ -608,8 +608,10 @@ class PlasticosIntake(models.Model):
     def _sync_preferred_contact(self):
         """Batch-write preferred_contact_id on facilities when contact changes.
 
-        Collects unique (facility → contact) pairs first to minimise
-        the number of sudo().write() SQL UPDATE statements.
+        Collects unique (facility → contact) pairs first to minimise the
+        number of write() SQL UPDATE statements. The write runs with the
+        caller's rights: editing an intake does not grant partner write
+        access or bypass partner record rules.
         """
         facility_updates = {}
         for record in self:
@@ -618,13 +620,14 @@ class PlasticosIntake(models.Model):
 
         for facility, contact_id in facility_updates.items():
             if facility.preferred_contact_id.id != contact_id:
-                facility.sudo().write({"preferred_contact_id": contact_id})
+                facility.write({"preferred_contact_id": contact_id})
 
     def _sync_lead_source(self):
         """Batch-write lead_source_id on partners when first set from intake.
 
-        Collects unique (partner → source) pairs first to minimise
-        the number of sudo().write() SQL UPDATE statements.
+        Collects unique (partner → source) pairs first to minimise the
+        number of write() SQL UPDATE statements. The write runs with the
+        caller's rights, as in _sync_preferred_contact.
         """
         partner_updates = {}
         for record in self:
@@ -632,7 +635,7 @@ class PlasticosIntake(models.Model):
                 partner_updates[record.partner_id] = record.lead_source_id.id
 
         for partner, source_id in partner_updates.items():
-            partner.sudo().write({"lead_source_id": source_id})
+            partner.write({"lead_source_id": source_id})
 
     # ═════════════════════════════════════════════════════════
     # Validation
