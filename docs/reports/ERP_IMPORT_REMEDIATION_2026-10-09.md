@@ -464,6 +464,81 @@ and (2) `Float.get_digits` returning `False` rather than `None` for such a field
 
 ---
 
+## 15. Session 3 (2026-10-10) — import accounting and unresolved-bill convergence (GMP-001)
+
+Contract: *PR #231 Final Code Convergence*, audited HEAD `866d6f1`. GMP run `GMP-001`
+(`reports/GMP-Report-001-erp-import-accounting-convergence.md`, a local artifact the repository keeps out of git by convention). Code commit `7195393`. F1–F6 repairs
+untouched; no ADR, mapping SSOT, chart seed, security file or other branch was modified; BAN001 honoured.
+
+### 15.1 Import outcome accounting
+
+A worksheet whose lines link on the purchase side only used to be counted as a **created**
+`transactions` row (or **skipped** on replay) although no `plasticos.transaction` exists for it. It is now
+counted as **rejected** in the `transactions` bucket: its purchase order(s) and vendor bills are still
+realized on their own identity, the missing sale link is reported per line with its root cause, the
+worksheet is named in the census (`worksheets.without_sale_link`), and a replay reports the same outcome.
+The summary contract wording (`erp/summary.py`) now defines a rejected `transactions` row this way, so
+`records_seen = created + updated + unchanged + rejected` still closes and nothing is double-counted.
+Runtime proof: `test_worksheet_without_a_sale_link_keeps_its_purchase_documents_and_is_censused` —
+two PO-only worksheets → `transactions` created 0 / skipped 0 / rejected 2, `transaction_lines` created 2
+(the purchase-side lines), both POs and the bill written, replay rejected 2 / created 0, snapshot identical.
+
+### 15.2 Native-account crosswalk audit and quarantine of unresolved bills
+
+The mapping SSOT's `gl_account_crosswalk` names exactly two accounts (`50100` → Material Cost,
+`50200` → Freight Cost) and lists `50300` / `50600` under `not_these_two_accounts`; no other entry
+exists, and `plasticos_accounting` seeds no handling, equipment, or catch-all payables account. There is
+therefore **no authoritative mapping** for handling, equipment, or blank-GL rows, and none was invented.
+Every payable row the import does not write is now **quarantined** with its full source identity —
+`payable_id`, `worksheet`, `vendor` (`CpID`), `invoice_no`, `invoice_date`, `amount`, `gl`, `batch`,
+precise `reason`, `disposition` — in `census.unresolved_bills` of `<report>-census.json` and as a
+per-row anomaly carrying the same fields.
+
+| Disposition | Rows / amount on the frozen grid | Native document | In transaction economics | Meaning |
+|---|---|---|---|---|
+| billed (`50100`, `50200`) | 13 338 / 24 900 675.97 | vendor bill or credit, one per `PayableID` | yes, once | **fully imported** |
+| `transaction_only_cost` (`50300`, `50600`) | 518 / 473 539.41 | none | yes, once, as `other_expenses` | cost carried, **bill not realized** |
+| `not_realized` (blank or unknown GL) | 597 / 314 375.05 | none | **no** | **unresolved source bill** |
+| `unbillable` (owner exists; vendor not imported, no journal, zero amount) | 10 freight credits / −2 615.63 | none | no (reported per worksheet) | unresolved source bill |
+| `prepay_omitted` (`PrePay=1` batch) | 0 on the grid (38 batches hold no Payables row) | none | no | excluded by rule |
+
+### 15.3 Reconciliation
+
+`census.payables_reconciliation` closes the loop per run: `rows_seen` (payable rows of worksheets that
+were not rolled back) `== billed_rows + quarantined_rows`, with amounts and a `by_disposition` tally;
+when it does not close the run records a `Payables / reconciliation` anomaly. A quarantined row is by
+construction never a native bill (the quarantine is written on the branches that `continue` before
+`_move`), so an unrealized bill cannot be read as imported. Runtime proof on worksheet 54839 (now with a
+blank-GL row 600009, 40.00): 8 rows seen = 5 billed (9 426.48) + 3 quarantined (5 140.00:
+transaction_only_cost 100.00, not_realized 40.00, prepay_omitted 5 000.00); `cost_total` 9 526.48 carries
+the handling cost once and the blank-GL amount not at all; `closes` true.
+
+### 15.4 F5 status, stated precisely
+
+F5 is **closed for every bill that has an authoritative account** (material and freight: identity,
+vendor, amount, date, reference, worksheet preserved; credits and debit memos in revenue once). It is
+**not complete**: 518 handling / equipment bills (473 539.41) are carried as transaction-only cost without
+a native document, and 597 blank-GL bills (314 375.05) plus 10 unbillable freight credits (−2 615.63) are
+neither documents nor costs. Those 1 125 rows / 785 298.83 are quarantined with full identity and await
+the operator's account decision (§14.8); the import does not claim them.
+
+### 15.5 Tests and gates
+
+| Tier | Result |
+|---|---|
+| Pure python, `tests/test_erp_native_orders.py` (+2: quarantine identity, reconciliation) and the ERP subset | 100 passed |
+| Pure python, whole repo | 1102 passed, 48 skipped |
+| Odoo 19 runtime, `/plasticos_transaction,/plasticos_security_base` on `erp_rt` | **0 failed, 0 errors of 19 tests** (`evidence/runtime_tests_gmp001.txt`) |
+| ruff 0.16.0 check/format, py_compile, module wiring, circular deps | pass |
+
+### 15.6 Deferred (unchanged)
+
+The full direct-SQL first run and replay, and the FK-level 561 census, stay deferred until the
+operator's restored source database is reachable (§14.6). No alternate access was attempted and no proof
+was manufactured.
+
+---
+
 ### Evidence index (`docs/reports/evidence/erp-import-2026-10-09/`)
 
 | File | Content |
@@ -479,3 +554,4 @@ and (2) `Float.get_digits` returning `False` rather than `None` for such a field
 | `runtime_tests_f5_census.txt` | session 2 Odoo 19 runtime result on the local nightly runtime (`0 failed, 0 errors of 19 tests`) |
 | `grid_census.py`, `grid_census.txt` | session 2 source-side census on the frozen grid: order-link proxy, price precision as stored vs display, short-ton lines, payables routing by GL with vendors and dollars |
 | `f7_environment_probe.txt` | session 2 proof that the ERP SQL Server source is not reachable from the session host (why run 1 / run 2 were refused) |
+| `runtime_tests_gmp001.txt` | session 3 Odoo 19 runtime result after the accounting / quarantine convergence (GMP-001) |
