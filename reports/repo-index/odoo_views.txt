@@ -86,6 +86,7 @@
 ./plasticos_transaction/views/intake_bridge_views.xml
 ./plasticos_transaction/views/offer_bridge_views.xml
 ./plasticos_transaction/views/partner_bridge_views.xml
+./plasticos_transaction/views/sale_quotation_scope.xml
 ./plasticos_transaction/views/transaction_bridge_views.xml
 ./plasticos_transaction/views/transaction_bulk_assign_wizard_views.xml
 ./plasticos_transaction/views/transaction_bulk_update_wizard_views.xml
