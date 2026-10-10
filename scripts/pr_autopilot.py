@@ -864,6 +864,48 @@ def _summarize_review_body(body: str, *, max_len: int = 220) -> str:
     return body[:max_len].replace("\n", " ")
 
 
+def _resolved_review_comment_ids(pr_number: int) -> set[int]:
+    """Database ids of review comments whose thread a reviewer has resolved.
+
+    REST review comments carry no resolution state; only the GraphQL review
+    thread does. A GraphQL failure returns an empty set so no comment is
+    silently dropped.
+    """
+    owner, name = REPO.split("/", 1)
+    query = """
+    query($owner: String!, $name: String!, $number: Int!, $after: String) {
+      repository(owner: $owner, name: $name) {
+        pullRequest(number: $number) {
+          reviewThreads(first: 100, after: $after) {
+            pageInfo { hasNextPage endCursor }
+            nodes { isResolved comments(first: 50) { nodes { databaseId } } }
+          }
+        }
+      }
+    }
+    """
+    resolved: set[int] = set()
+    after = None
+    for _page in range(20):
+        payload = {"query": query, "variables": {"owner": owner, "name": name, "number": pr_number, "after": after}}
+        try:
+            result = _http("POST", "https://api.github.com/graphql", token=GH_TOKEN, data=payload)
+        except Exception:  # noqa: BLE001 - resolution state is an optimisation, never a hidden gate
+            return set()
+        threads = (((result or {}).get("data") or {}).get("repository") or {}).get("pullRequest") or {}
+        threads = threads.get("reviewThreads") or {}
+        for thread in threads.get("nodes") or []:
+            if thread.get("isResolved"):
+                for comment in (thread.get("comments") or {}).get("nodes") or []:
+                    if comment.get("databaseId") is not None:
+                        resolved.add(comment["databaseId"])
+        page = threads.get("pageInfo") or {}
+        if not page.get("hasNextPage"):
+            break
+        after = page.get("endCursor")
+    return resolved
+
+
 def get_inline_bot_issues(
     pr_number: int | None,
     *,
@@ -878,13 +920,21 @@ def get_inline_bot_issues(
     if not isinstance(comments, list):
         return []
 
+    resolved_ids = _resolved_review_comment_ids(pr_number)
     issues: list[Issue] = []
     matched = 0
+    outdated = 0
     for c in comments:
         login = c.get("user", {}).get("login", "").lower()
         if not any(sub in login for sub in login_substrings):
             continue
         if "coderabbit" in login or "gemini" in login:
+            continue
+        # GitHub clears ``line`` once the commented line is no longer in the
+        # PR diff (the comment is "outdated"), and a reviewer resolves the
+        # thread once the finding is answered. Neither may fail the gate.
+        if c.get("line") is None or c.get("id") in resolved_ids:
+            outdated += 1
             continue
         matched += 1
         body = c.get("body", "")
@@ -906,8 +956,8 @@ def get_inline_bot_issues(
                 raw=c,
             )
         )
-    if matched:
-        print(f"  → {source}: {matched} inline comment(s)")
+    if matched or outdated:
+        print(f"  → {source}: {matched} inline comment(s), {outdated} outdated")
     return issues
 
 

@@ -79,6 +79,15 @@ PY
 }
 
 if [[ -n "${EXISTING}" && "${EXISTING}" != "null" ]]; then
+  # GitHub updates an open PR's head asynchronously after the push; re-read
+  # a few times before declaring the SHA wrong. Every other mismatch (base,
+  # branch, state) is final on the first read.
+  for _attempt in 1 2 3 4 5 6; do
+    SEEN_SHA="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("headRefOid") or "")' "${EXISTING}")"
+    [[ "${SEEN_SHA}" == "${LOCAL_SHA}" ]] && break
+    sleep 5
+    EXISTING="$(gh pr list --head "${TARGET}" --base "${BASE}" --state open --json "${PR_FIELDS}" --jq '.[0]')"
+  done
   PROOF="$(prove_pr "${EXISTING}")"
   PR_NUM="${PROOF%%$'\t'*}"
   PR_URL="${PROOF#*$'\t'}"

@@ -121,7 +121,7 @@ class TestSaleConfirmTransactionCreation(PlasticosTestCase):
         # After confirm, transaction_id should be set
         if so.transaction_id:
             self.assertTrue(so.transaction_id.id)
-            self.assertEqual(so.transaction_id.supplier_id, self.partner)
+            self.assertEqual(so.transaction_id.buyer_id, self.partner)
         else:
             # Some implementations create tx lazily
             tx = self.TX.search(

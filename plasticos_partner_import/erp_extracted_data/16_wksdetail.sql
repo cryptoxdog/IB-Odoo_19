@@ -4,6 +4,8 @@ SET NOCOUNT ON;
    Toolbar must show LEGACY_ERP_SM_EXPORT. */
 SELECT
   DetailID,
+  SPO_ID,
+  PPO_ID,
   RTRIM(BuySellNo) AS BuySellNo,
   GradeID,
   InvoiceDesc,

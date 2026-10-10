@@ -150,7 +150,7 @@
                     <group>
                         <group string="Costs">
                             <field name="purchase_cost_total"/>
-                            <field name="freight_cost_total"/>
+                            <field name="freight_actual" string="Freight Cost" readonly="state in ('closed', 'cancelled')"/>
                             <field name="other_expenses"/>
                             <field name="cost_total"/>
                         </group>
@@ -181,17 +181,12 @@
                                     <field name="customer_invoice_id"/>
                                 </group>
                                 <group string="Vendors">
-                                    <field name="vendor_bill_ids" widget="many2many_tags"/>
-                                    <field name="freight_bill_ids" widget="many2many_tags"/>
+                                    <field name="vendor_bill_ids" widget="many2many_tags_open"/>
+                                    <field name="freight_bill_ids" widget="many2many_tags_open"/>
                                 </group>
                             </group>
                         </page>
                         <!-- Commission tab rendered by plasticos_commission/views/transaction_commission_views.xml -->
-                        <page string="Compliance">
-                            <group>
-                                <field name="compliance_status"/>
-                            </group>
-                        </page>
                         <!-- Claims page moved to plasticos_claims module which extends this view -->
                         <page string="Historical Lines" invisible="line_count == 0">
                             <group>
