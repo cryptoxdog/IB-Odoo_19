@@ -195,6 +195,8 @@ def _print_report(result: dict, dry_run: bool) -> None:
     print(f"\nunresolved references : {len(result['unresolved'])}")
     print(f"mapping anomalies     : {len(result['anomalies'])}")
     print(f"failed transactions   : {len(result['errors'])}")
+    for failure in result.get("failures") or []:
+        print(f"RUN FAILED            : {failure['check']}: {failure['detail']}")
 
     for label, rows in (("unresolved", result["unresolved"]), ("anomalies", result["anomalies"])):
         if rows:

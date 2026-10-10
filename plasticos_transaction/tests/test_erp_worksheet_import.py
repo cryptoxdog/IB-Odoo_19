@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import date
 
 from odoo import Command
+from odoo.addons.plasticos_partner_import.erp import summary
 from odoo.addons.plasticos_partner_import.erp.report import ImportReport
 from odoo.addons.plasticos_partner_import.erp.source_index import SourceIndex
 from odoo.tests import TransactionCase, tagged
@@ -736,6 +737,34 @@ class TestErpWorksheetImport(TransactionCase):
         self.assertIn(
             ("Payables", "reconciliation", "1 source rows without a PayableID"), self._anomaly_details(unproven)
         )
+        # GMP-004: the gap is a failure of the run, not a diagnostic. It reaches the machine-readable
+        # summary and the exit status without relabelling a single row.
+        self.assertEqual(
+            unproven.failures,
+            [
+                {
+                    "check": "payables_reconciliation",
+                    "detail": "payables identity reconciliation does not close: 1 source rows without a PayableID",
+                }
+            ],
+        )
+        self.assertEqual(report.failures, [], "the closing run carries no failure")
+        for outcome in (report, unproven):
+            outcome.source_counts = index.counts()
+        closing = summary.import_run_summary(report.as_dict())
+        failing = summary.import_run_summary(unproven.as_dict())
+        self.assertEqual(closing["final_status"], "success")
+        self.assertEqual(failing["final_status"], "failed")
+        # Same counters either way: the replay's rows are all unchanged, nothing is rejected to balance it.
+        self.assertEqual(failing["records_rejected"], 0)
+        self.assertEqual(failing["records_seen"], failing["records_unchanged"])
+        self.assertEqual(
+            [row["record_ref"] for row in failing["errors"]], ["payables_reconciliation"], "no counter gap, one failure"
+        )
+        self.assertEqual(len(unproven.census["unresolved_bills"]), len(report.census["unresolved_bills"]) + 1)
+        self.assertEqual(summary.run_exit_status({**report.as_dict(), "summary": closing}), 0)
+        self.assertEqual(summary.run_exit_status({**unproven.as_dict(), "summary": failing}), 1)
+        self.assertEqual(summary.run_exit_status(unproven.as_dict(), dry_run=True), 1)
 
     def test_dry_run_excludes_every_payable_by_name_and_writes_nothing(self):
         index = self._index()

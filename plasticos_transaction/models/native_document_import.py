@@ -37,6 +37,7 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
         reconciliation_gap,
         selected_worksheets,
     )
+    from odoo.addons.plasticos_partner_import.erp.summary import PAYABLES_RECONCILIATION_REF  # noqa: PLC0415
 
     numbers = index.buysell_numbers()
     context = _load_context(importer)
@@ -106,7 +107,12 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
     report.census = _census(index, context)
     reconciliation = report.census["payables_reconciliation"]
     if not reconciliation["closes"]:
-        report.anomaly("Payables", "reconciliation", reconciliation_gap(reconciliation))
+        # The identity reconciliation is mandatory: a gap is a failure of the
+        # run (summary ``failed``, nonzero exit), reported as itself. No row
+        # is relabelled to balance it; the census keeps every exception.
+        gap = reconciliation_gap(reconciliation)
+        report.anomaly("Payables", "reconciliation", gap)
+        report.fail(PAYABLES_RECONCILIATION_REF, f"payables identity reconciliation does not close: {gap}")
     if commit and not dry_run:
         importer.env.cr.commit()
     return True
