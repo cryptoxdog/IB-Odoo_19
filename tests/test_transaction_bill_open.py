@@ -12,6 +12,7 @@ def test_bill_tags_use_open_widget():
     view = VIEW_PATH.read_text()
     assert 'name="vendor_bill_ids" widget="many2many_tags_open"' in view
     assert 'name="freight_bill_ids" widget="many2many_tags_open"' in view
+    assert 'name="purchase_order_ids" widget="many2many_tags_open"' in view
 
 
 def test_open_widget_uses_formview_action():

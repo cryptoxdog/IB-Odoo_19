@@ -2,7 +2,7 @@
 <odoo>
 
     <!-- ═══════════════════════════════════════════════════════════════════
-         TRANSACTION FORM UX — Smart Buttons, Margin Banners, Logistics Tab
+         TRANSACTION FORM UX — Smart Buttons, Logistics Tab
          Inherits: plasticos_transaction.view_transaction_form
          ═══════════════════════════════════════════════════════════════════ -->
 
@@ -34,61 +34,18 @@
                     <span class="o_stat_text">Buyer</span>
                 </button>
 
-                <!-- Margin indicator (non-clickable stat) -->
-                <button class="oe_stat_button" disabled="1"
-                        icon="fa-line-chart"
-                        invisible="state == 'draft'">
+                <!-- Net margin KPI (non-clickable stat). The Profit Snapshot group on
+                     the sheet is the detailed margin presentation; the banners it
+                     replaced are gone. -->
+                <button class="oe_stat_button" disabled="1" icon="fa-line-chart">
                     <div class="o_stat_info">
                         <span class="o_stat_value">
-                            <field name="gross_margin" nolabel="1"
-                                   widget="monetary"/>
+                            <field name="net_margin" nolabel="1"/>
                         </span>
-                        <span class="o_stat_text">Margin</span>
+                        <span class="o_stat_text">Net Margin</span>
                     </div>
                 </button>
 
-            </xpath>
-
-            <!-- ═══ Margin KPI Banners (above main groups) ═══ -->
-            <xpath expr="//sheet/group[.//group[@name='orders']]" position="before">
-
-                <!-- Positive margin banner -->
-                <div class="alert alert-success d-flex justify-content-between align-items-center"
-                     role="alert"
-                     invisible="gross_margin &lt;= 0 or state == 'draft'">
-                    <span>
-                        <i class="fa fa-line-chart" title="Margin"/>
-                        <strong> Gross Margin: </strong>
-                        <field name="gross_margin" nolabel="1" widget="monetary"/>
-                    </span>
-                    <span>
-                        <strong>Net: </strong>
-                        <field name="net_margin" nolabel="1" widget="monetary"/>
-                    </span>
-                </div>
-
-                <!-- Negative margin warning -->
-                <div class="alert alert-danger d-flex align-items-center"
-                     role="alert"
-                     invisible="gross_margin &gt;= 0 or state == 'draft'">
-                    <i class="fa fa-exclamation-triangle fa-lg me-2" title="Warning"/>
-                    <div>
-                        <strong>Negative Margin: </strong>
-                        <field name="gross_margin" nolabel="1" widget="monetary"/>
-                        — Review costs before closing this transaction.
-                    </div>
-                </div>
-
-            </xpath>
-
-            <!-- ═══ Add Supplier / Buyer / Carrier to Orders group ═══ -->
-            <xpath expr="//group[@name='orders']/field[@name='user_id']" position="before">
-                <field name="product_id" string="Material"/>
-            </xpath>
-            <xpath expr="//group[@name='orders']/field[@name='purchase_order_ids']" position="after">
-                <field name="supplier_id"/>
-                <field name="buyer_id"/>
-                <field name="carrier_id"/>
             </xpath>
 
         </field>
