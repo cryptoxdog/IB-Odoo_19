@@ -6,7 +6,8 @@ Detects risky XPath patterns that can cause silent UI corruption:
 - Multi-match field selectors (field exists in both form and list)
 - Unscoped list field selectors (missing //list/ prefix)
 - Class-based anchors (fragile @class selectors)
-- Unscoped notebook selectors (missing [1] index)
+- Unscoped notebook selectors (no named notebook or named page)
+- Positional notebook indexes (notebook[1] is not a stable anchor)
 - Duplicate xpath usage in same view
 
 Exit codes:
@@ -54,24 +55,26 @@ RISKY_PATTERNS = [
         r"^//notebook(?!\[|\/)$",
         "UNSCOPED_NOTEBOOK",
         "MEDIUM",
-        "Unscoped notebook selector - assumes single notebook",
-        "Add index: //notebook[1]",
+        "Unscoped notebook selector - assumes a single unnamed notebook",
+        "Use a named notebook or a named page: //notebook[@name='...'] or //notebook[page[@name='...']]",
     ),
-    # Sheet/notebook without index
+    # Sheet/notebook without a name
     (
         r"//sheet/notebook(?!\[)",
         "UNSCOPED_SHEET_NOTEBOOK",
         "MEDIUM",
-        "Sheet/notebook without index - may match wrong notebook",
-        "Add index: //sheet/notebook[1]",
+        "Sheet notebook selector has no named anchor",
+        "Use a named notebook or a named page: //notebook[@name='...'] or //notebook[page[@name='...']]",
     ),
 ]
+
+# notebook[1] and notebook[@name='...'][1]. A named page predicate is not an index.
+POSITIONAL_NOTEBOOK = re.compile(r"notebook(?:\[@name=[^\]]+\])?\[\d+\]")
 
 # Known safe patterns (whitelist)
 SAFE_PATTERNS = [
     r"//list/field\[@name=",  # Properly scoped list field
-    r"//notebook\[1\]",  # Indexed notebook
-    r"//notebook//field\[@name=",  # Scoped to notebook
+    r"//notebook//field\[@name=",  # Named field inside a notebook
     r"//page\[@name=",  # Named page anchor
     r"//group\[@name=",  # Named group anchor
     r"//div\[@name=",  # Named div anchor
@@ -91,6 +94,22 @@ def is_safe_xpath(xpath: str) -> bool:
 def check_xpath(xpath: str, file_path: str, view_id: str) -> list[Finding]:
     """Check a single xpath for risky patterns."""
     findings: list[Finding] = []
+
+    if POSITIONAL_NOTEBOOK.search(xpath):
+        findings.append(
+            Finding(
+                file=file_path,
+                view_id=view_id,
+                xpath=xpath,
+                severity="MEDIUM",
+                issue_type="POSITIONAL_NOTEBOOK",
+                message="Positional notebook index is not a stable anchor",
+                fix_suggestion=(
+                    "Replace the index with a named notebook or a named page: "
+                    "//notebook[@name='...'] or //notebook[page[@name='...']]"
+                ),
+            )
+        )
 
     if is_safe_xpath(xpath):
         return findings

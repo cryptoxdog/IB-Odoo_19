@@ -111,7 +111,7 @@
             </xpath>
 
             <!-- ═══ Notes — promote to main form, hide Notes tab ═══ -->
-            <xpath expr="//notebook" position="before">
+            <xpath expr="//notebook[page[@name='internal_notes']]" position="before">
                 <group string="Notes" class="mt-3">
                     <field name="description"
                            placeholder="Add notes about this lead..."
@@ -124,7 +124,7 @@
             </xpath>
 
             <!-- ═══ Probability — add at bottom after notebook ═══ -->
-            <xpath expr="//notebook" position="after">
+            <xpath expr="//notebook[page[@name='internal_notes']]" position="after">
                 <group string="Scoring" class="mt-3"
                        invisible="type == 'lead'">
                     <group>
@@ -135,7 +135,7 @@
             </xpath>
 
             <!-- ═══ PlastOS Pipeline Tab ═══ -->
-            <xpath expr="//notebook" position="inside">
+            <xpath expr="//notebook[page[@name='internal_notes']]" position="inside">
                 <page string="PlastOS Pipeline" name="plastos_pipeline_tab">
 
                     <div class="alert alert-info" role="alert"

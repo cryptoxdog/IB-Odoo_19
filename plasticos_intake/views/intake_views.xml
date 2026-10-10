@@ -326,7 +326,7 @@
                     <!-- Hidden fields (preserved for data, not shown) -->
                     <field name="origin_application" invisible="1"/>
 
-                    <notebook>
+                    <notebook name="intake_pages">
                         <!-- Tab 1: Specs (was Quality, now default) -->
                         <page string="Specs">
                             <group>

@@ -15,7 +15,7 @@
         <field name="priority">30</field>
         <field name="arch" type="xml">
 
-            <xpath expr="//sheet/notebook" position="inside">
+            <xpath expr="//notebook[page[@name='internal_notes']]" position="inside">
 
                 <page string="Material Profile"
                       invisible="not is_company"

@@ -188,7 +188,7 @@
                         </group>
                     </group>
 
-                    <notebook>
+                    <notebook name="transaction_pages">
                         <page string="Invoices &amp; Bills">
                             <group>
                                 <group string="Customer">

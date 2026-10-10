@@ -6,7 +6,7 @@
         <field name="inherit_id" ref="crm.crm_lead_view_form"/>
         <field name="priority">40</field>
         <field name="arch" type="xml">
-            <xpath expr="//notebook" position="inside">
+            <xpath expr="//notebook[page[@name='internal_notes']]" position="inside">
                 <page string="CRM Sync" name="plasticos_crm_sync">
                     <group>
                         <field name="vanillasoft_id" readonly="1"/>
