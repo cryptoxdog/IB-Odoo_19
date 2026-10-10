@@ -89,9 +89,7 @@ Runtime-affecting module changes must satisfy current module version/upgrade obl
 
 After runtime ownership is correct, align the Moderate scanner with the repository's actual policy.
 
-The scanner may verify that a legitimate elevation carries the explicit same-boundary justification repo law already requires. A comment on one of the preceding lines is not that justification. The suggested fix must not be "add a comment."
-
-A justified elevation remains in the register as retained, not as open debt. `UNKNOWN` blocks a CLOSED verdict. It does not authorize a comment, a new abstraction, or an ACL change.
+The scanner may verify the presence/location of explicit justification, but must not pretend a comment proves semantic authorization.
 
 Do not introduce filename-specific exemptions.
 
@@ -125,12 +123,8 @@ Verify current publication semantics before using `make pr`; do not substitute a
 
 PASS only if:
 
-- the scanner no longer treats a nearby comment as proof of authorization;
-- a same-line justification required by repo law is recognized when the elevation is legitimate;
-- unnecessary elevation found by the census is removed;
-- a repeated boundary is centralized only when that module already has an owner for it;
-- a legitimate elevation may remain, with explicit same-boundary justification;
-- `UNKNOWN` blocks a CLOSED verdict and does not authorize a comment, a new abstraction, or an ACL change;
+- every surviving `sudo()` has an explicit resolved authorization purpose;
+- no UNKNOWN elevation is treated as acceptable;
 - no global privilege abstraction was introduced;
 - no legitimate security boundary was weakened;
 - scanner policy matches current repo law;

@@ -21,8 +21,8 @@ Campaign purpose: remediate the known non-Critical/non-High issue register by cu
 
 1. `GMP-NC-A` — Test assurance authority convergence
 2. `GMP-NC-B` — Privilege boundary convergence
-3. `GMP-NC-C` — State audit containment
-4. `GMP-NC-D` — Query boundedness semantics (`check_unbounded_searches` only)
+3. `GMP-NC-C` — State audit owner convergence
+4. `GMP-NC-D` — Query boundedness semantics
 5. `GMP-NC-E` — XPath anchor topology convergence
 6. `GMP-NC-F` — Final non-critical register reconciliation
 

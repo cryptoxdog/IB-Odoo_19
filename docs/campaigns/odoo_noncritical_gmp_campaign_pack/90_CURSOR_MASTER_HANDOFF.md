@@ -24,11 +24,8 @@ We are not patching individual files to make scanners quiet. We are curing the u
 - no fake assertions;
 - no helper-name prefix counted as an assertion;
 - no blind `limit=1`;
-- no comment added only to silence `UNJUSTIFIED_SUDO`;
-- no positional XPath repair, and no positional form left on the safe-pattern whitelist;
+- no positional XPath repair;
 - no global sudo abstraction;
-- no deletion of `STATE_BYPASS` without a containment proof;
-- `UNKNOWN` blocks closure and does not authorize a silencing patch;
 - no duplicate state-audit framework;
 - no new file for convenience;
 - no unrelated cleanup;
