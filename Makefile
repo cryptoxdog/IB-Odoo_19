@@ -14,7 +14,7 @@
         pipeline-guard dev-fence state-guard acl-check guards deploy-check \
         up down restart logs logs-error shell odoo-shell \
         update update-all rebuild backup lock-deps \
-        test test-odoo test-pure test-module test-env test-db install-smoke \
+        test test-odoo test-pure test-module test-env test-db test-db-drop install-smoke \
         pr pr-check pr-check-% commit push api-push-check sonar changelog \
         governance-backup \
         github-actions-kernel-check \
@@ -43,7 +43,8 @@ export PR_REMOTE_REF := $(pr)
 endif
 
 ODOO_DB_NAME          ?= odoo
-ODOO_TEST_DB          ?= odoo_test
+# Per-worktree disposable clone (odoo_test_<owner>); see scripts/test_env.sh.
+ODOO_TEST_DB          ?= $(shell bash scripts/test_env.sh name)
 ODOO_COMPOSE_PROJECT  ?= odoo19
 
 # Pinned ruff resolver. pyproject pins ruff EXACTLY (==0.16.0 via [tool.ruff]
@@ -126,8 +127,9 @@ help:
 	@echo ""
 	@echo "  Testing"
 	@echo "    make test             pure pytest in tests/ (same suite as ci.yml pure-python-tests; runner defaults from pyproject.toml)"
-	@echo "    make test-env         build/refresh the pristine template DB (enterprise + custom, no demo)"
-	@echo "    make test-db [name=]  clone the template into a fresh test DB in seconds"
+	@echo "    make test-env         build or reuse the admitted template (enterprise + US accounting + PlasticOS, no demo)"
+	@echo "    make test-db [name=]  fresh clone of the template owned by this worktree"
+	@echo "    make test-db-drop [name=]  drop an owned clone (database + filestore)"
 	@echo "    make test-odoo        Odoo Docker native tests on a fresh clone (fresh=0 reuses the DB)"
 	@echo "    make install-smoke    Docker -i modules --stop-after-init (blocks dirty loads before GH)"
 	@echo "    make test-pure        alias for make test"
@@ -618,28 +620,33 @@ test:
 # Backward-compatible alias
 test-pure: test
 
-# Pristine test environment (enterprise + custom, no demo) — scripts/test_env.sh.
-# `test-env` installs the full module set once into $(ODOO_TEST_TEMPLATE_DB);
-# `test-db` clones it in seconds. The template refreshes itself when
-# config/odoo_module_order.yaml or any __manifest__.py changes.
-#   make test-env                   build/refresh the template
-#   make test-db [name=odoo_test]   fresh clone (default $(ODOO_TEST_DB))
-ODOO_TEST_TEMPLATE_DB ?= odoo_test_template
+# Disposable test databases — scripts/test_env.sh. The declared module set
+# (config/odoo_module_order.yaml) is installed once into an admitted template
+# keyed by a fingerprint of the image, Enterprise checkout, addons, and config;
+# every test gets its own clone. Clones are owned per worktree, so parallel
+# agents never share or replace each other's database.
+#   make test-env                      build or reuse the template
+#   make test-db [name=odoo_test_x]    fresh clone (default $(ODOO_TEST_DB))
+#   make test-db-drop [name=...]       drop an owned clone
+#   TEST_ENV_PARITY=community ...      separately named, non-production template (no Enterprise)
 test-env:
 	@bash scripts/test_env.sh template
 
 test-db:
 	@bash scripts/test_env.sh clone $(if $(name),$(name),$(ODOO_TEST_DB))
 
+test-db-drop:
+	@bash scripts/test_env.sh drop $(if $(name),$(name),$(ODOO_TEST_DB))
+
 # Odoo runtime tests — Docker native runner on installed modules (not tests/ pytest suite).
 # Same surface as ci/odoo.sh (dev) Odoo Test Suite, but runs locally via docker compose.
-# Runs on a fresh clone of the template unless fresh=0.
+# Runs on a fresh clone of the template unless fresh=0; `test_env.sh run` verifies the
+# database is an owned, admitted clone before Odoo touches it.
 test-odoo:
 	@if [ "$(fresh)" != "0" ]; then bash scripts/test_env.sh clone $(ODOO_TEST_DB); fi
-	docker compose run --rm odoo \
+	bash scripts/test_env.sh run $(ODOO_TEST_DB) -- \
 		--test-enable \
 		--stop-after-init \
-		-d $(ODOO_TEST_DB) \
 		--log-level=test
 
 # Fail-closed module install gate (xmlsec + enterprise + -i --stop-after-init).
@@ -651,10 +658,9 @@ install-smoke:
 test-module:
 	@if [ -z "$(m)" ]; then echo "Usage: make test-module m=<module>"; exit 1; fi
 	@if [ "$(fresh)" != "0" ]; then bash scripts/test_env.sh clone $(ODOO_TEST_DB); fi
-	docker compose run --rm odoo \
+	bash scripts/test_env.sh run $(ODOO_TEST_DB) -- \
 		--test-enable \
 		--stop-after-init \
-		-d $(ODOO_TEST_DB) \
 		--log-level=test \
 		-u $(m)
 
@@ -988,9 +994,10 @@ import-erp:
 # quarter of the worksheets (LIMIT=25% by default). Same importer, same SQL
 # reader, same summary contract as `make import-erp`.
 #   make import-erp-test ERP_SQL_SERVER=host ERP_SQL_DATABASE=db ERP_SQL_USER=.. ERP_SQL_PASSWORD=..
-#   make import-erp-test db=erp_import_proof LIMIT=10% ...
+#   make import-erp-test db=odoo_test_erp_proof LIMIT=10% ...
 import-erp-test:
 	@bash scripts/test_env.sh clone $(if $(db),$(db),$(ODOO_TEST_DB))
+	@bash scripts/test_env.sh assert-clone $(if $(db),$(db),$(ODOO_TEST_DB))
 	@$(MAKE) import-erp ODOO_DB_NAME=$(if $(db),$(db),$(ODOO_TEST_DB)) \
 		ERP_LIMIT="$(if $(LIMIT),$(LIMIT),25%)" \
 		ERP_REPORT_PATH="$(or $(REPORT_PATH),.l9/pr/import-erp-test-summary.json)"
