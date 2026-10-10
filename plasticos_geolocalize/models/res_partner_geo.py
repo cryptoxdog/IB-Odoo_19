@@ -24,8 +24,7 @@ class ResPartnerGeo(models.Model):
         Falls back to the module default on a missing or malformed value and
         clamps to a safe minimum (e.g. Nominatim's >=1 req/s usage policy).
         """
-        # sudo: reading a global System Parameter from an unattended cron — no record-level data exposure.
-        raw = self.env["ir.config_parameter"].sudo().get_param(key)
+        raw = self.env["ir.config_parameter"].sudo().get_param(key)  # sudo: cron reads a global setting
         if raw in (None, False, ""):
             return max(default, minimum)
         try:

@@ -28,7 +28,7 @@ class PlasticosCommissionConfig(models.AbstractModel):
     @api.model
     def get_max_budget_tokens(self) -> int:
         """Return max_budget_tokens from ICP, falling back to legacy key then default."""
-        icp = self.env["ir.config_parameter"].sudo()
+        icp = self.env["ir.config_parameter"].sudo()  # sudo: ir.config_parameter is settings-admin only
         val = icp.get_param(self._ICP_MAX_BUDGET_TOKENS)
         if val:
             try:
@@ -48,6 +48,6 @@ class PlasticosCommissionConfig(models.AbstractModel):
         """Write max_budget_tokens to ICP (both keys for backward compat)."""
         if value <= 0:
             raise ValueError(f"max_budget_tokens must be positive, got {value}")
-        icp = self.env["ir.config_parameter"].sudo()
+        icp = self.env["ir.config_parameter"].sudo()  # sudo: ir.config_parameter is settings-admin only
         icp.set_param(self._ICP_MAX_BUDGET_TOKENS, str(value))
         icp.set_param(self._ICP_MAX_TOKENS_LEGACY, str(value))

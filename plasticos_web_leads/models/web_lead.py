@@ -721,7 +721,7 @@ class PlasticosWebLead(models.Model):
         successful acquisitions and records the rest as unavailable.
         """
         self.ensure_one()
-        config = self.env["plasticos.web.lead.config"].sudo().get_config()
+        config = self.env["plasticos.web.lead.config"].sudo().get_config()  # sudo: config ACL excludes this user
         run_id = uuid.uuid4().hex
         log_lines = [f"[RUN] {run_id} started"]
 
@@ -1213,7 +1213,7 @@ class PlasticosWebLead(models.Model):
 
     def action_route_hot_review(self):
         """Re-attempt a blocked human handoff after a reviewer has been configured."""
-        config = self.env["plasticos.web.lead.config"].sudo().get_config()
+        config = self.env["plasticos.web.lead.config"].sudo().get_config()  # sudo: config ACL excludes this user
         for rec in self:
             if not rec.intake_id:
                 raise UserError("Only a lead with an intake has a review handoff to route.")
@@ -1301,7 +1301,7 @@ class PlasticosWebLead(models.Model):
         for rec in self:
             if rec.intake_id:
                 raise UserError("Intake already exists for this lead.")
-            config = rec.env["plasticos.web.lead.config"].sudo().get_config()
+            config = rec.env["plasticos.web.lead.config"].sudo().get_config()  # sudo: config ACL excludes this user
             merged = rec.ai_analysis or rec.ai_normalized or {}
             rec._process_hot_lead_triage(merged, config)
 
@@ -1310,7 +1310,7 @@ class PlasticosWebLead(models.Model):
         for rec in self:
             if rec.intake_id:
                 raise UserError("Intake already exists for this lead.")
-            config = rec.env["plasticos.web.lead.config"].sudo().get_config()
+            config = rec.env["plasticos.web.lead.config"].sudo().get_config()  # sudo: config ACL excludes this user
             merged = rec.ai_analysis or rec.ai_normalized or {}
             rec.write(
                 {

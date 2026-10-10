@@ -10,6 +10,18 @@ from pathlib import Path
 from path_filters import skip_path
 
 
+def _same_line_sudo_boundary(line: str) -> bool:
+    """True when ``.sudo()`` is followed on the same line by a non-empty comment."""
+    marker = ".sudo()"
+    sudo_at = line.find(marker)
+    if sudo_at < 0:
+        return False
+    comment_at = line.find("#", sudo_at + len(marker))
+    if comment_at < 0:
+        return False
+    return bool(line[comment_at + 1 :].strip())
+
+
 class BusinessLogicAudit:
     def __init__(self, root_dir="."):
         self.root_dir = Path(root_dir)
@@ -127,7 +139,12 @@ class BusinessLogicAudit:
         return errors
 
     def check_missing_access_checks(self):
-        """Find sudo() calls without justification"""
+        """Find sudo() calls that lack a same-line authorization boundary.
+
+        Repo law requires the justification on the same line as ``.sudo()``.
+        A comment on an earlier line is not that boundary, and this scanner
+        does not treat any comment as proof that the elevation is authorized.
+        """
         errors = []
 
         for py_file in self.root_dir.rglob("models/*.py"):
@@ -137,25 +154,22 @@ class BusinessLogicAudit:
                 lines = f.readlines()
 
                 for i, line in enumerate(lines, 1):
-                    if ".sudo()" in line:
-                        # Check for comment justification in surrounding lines
-                        context_start = max(0, i - 3)
-                        context_lines = lines[context_start:i]
-
-                        has_justification = any("sudo" in ctx_line and "#" in ctx_line for ctx_line in context_lines)
-
-                        if not has_justification:
-                            errors.append(
-                                {
-                                    "type": "UNJUSTIFIED_SUDO",
-                                    "severity": "MODERATE",
-                                    "file": str(py_file.relative_to(self.root_dir)),
-                                    "line": i,
-                                    "code": line.strip(),
-                                    "message": "sudo() call without comment justification",
-                                    "fix": "Add comment explaining why elevated privileges needed",
-                                }
-                            )
+                    if ".sudo()" not in line or _same_line_sudo_boundary(line):
+                        continue
+                    errors.append(
+                        {
+                            "type": "UNJUSTIFIED_SUDO",
+                            "severity": "MODERATE",
+                            "file": str(py_file.relative_to(self.root_dir)),
+                            "line": i,
+                            "code": line.strip(),
+                            "message": "sudo() lacks a same-line authorization boundary",
+                            "fix": (
+                                "Keep the elevation only when its real boundary is stated "
+                                "on this line. A preceding comment is not authorization."
+                            ),
+                        }
+                    )
 
         return errors
 

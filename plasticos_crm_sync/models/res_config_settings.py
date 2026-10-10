@@ -32,7 +32,7 @@ class ResConfigSettings(models.TransientModel):
         """One-shot / manual API sync from Settings (not CSV import)."""
         self.ensure_one()
         self.set_values()
-        icp = self.env["ir.config_parameter"].sudo()
+        icp = self.env["ir.config_parameter"].sudo()  # sudo: ir.config_parameter is settings-admin only
         api_key = (self.plasticos_crm_sync_vanillasoft_api_key or icp.get_param(ICP_VS_KEY_PARAM) or "").strip()
         project = (self.plasticos_crm_sync_vanillasoft_project_id or icp.get_param(ICP_PROJECT) or "").strip()
         if not api_key:
