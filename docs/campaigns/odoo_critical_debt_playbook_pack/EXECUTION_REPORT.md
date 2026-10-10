@@ -202,3 +202,67 @@ Freight `search_count` loops in `load.py` (316, 317) and `_cron_check_dispatch_a
 ### Separate future findings (non-blocking to this closed scope)
 
 1. The 78 loop findings listed in Slice D. Load freight counts and the dispatch-acknowledgment cron are in that list on purpose.
+
+## GAR CONVERGENCE REMEDIATION — 2026-10-10
+
+This section supersedes the FINAL VERDICT above. Earlier sections are left as written.
+
+### Revisions
+
+- starting PR #234 head: `fda3e5eaa890c85d9eb23de6e4d87f806fdcddb7`
+- base: `Staging` at `92142d367abb04890b6a3a51604d227788ec92d8` (unchanged during remediation)
+- scanner fix commit: `c5b98c9` — `fix(audit): detect secret mapping keys and sudo-chained ORM loops`
+- final head: the commit that carries this section
+
+### F-01 — accepted-debt baseline provenance: BLOCKED (approval gap)
+
+- transition from `Staging`: 15 entries → 78 entries. 14 removed, 77 added, 1 retained (`39bbc2ad6a8906c4`).
+- none of the 77 added entries is on a repaired call site. Every added entry in a repaired file (`load.py` 316–1224, `transaction.py` 898/906/975) is outside the changed hunks. Acceptance matrix G "new suppressions for repaired paths = 0" holds.
+- Slice E "new suppressions introduced by campaign = 0" and Slice D "do not add baseline entries automatically for newly exposed findings" do not hold unless the operator's acceptance supersedes them.
+- the only evidence of that acceptance is the text of commit `fda3e5e` and this report. That commit is unsigned and co-authored by Cursor. PR #234 carries no human comment or review that states the acceptance.
+- the baseline is unchanged by this remediation. No entry was added or removed.
+- to close: the operator states on PR #234 that the 77 added fingerprints are accepted tracked debt that supersedes the Slice D/E restriction. Removing them instead would fail `audit-baseline` with 77 new findings.
+
+### F-02 — secret mapping keys bypass the sensitive-log scanner: FIXED
+
+- owner: `scripts/audit/security_audit.py` `_is_sensitive_name`. A constant string subscript key that names a secret now makes the emitted value sensitive.
+- red before the fix: `test_sensitive_mapping_key_is_high`, `test_sensitive_mapping_key_in_fstring_is_high` failed with 0 findings.
+- green after: both pass. `test_non_sensitive_mapping_key_is_not_a_finding` stays clean. The static-prose, positional, `%`, `.format()` and f-string regressions still pass.
+- repo scan: 0 `SENSITIVE_DATA_LOGGED` before and after.
+
+### F-03 — sudo-chained ORM calls bypass N+1 detection: FIXED
+
+- owner: `scripts/audit/performance_audit.py`. `_without_sudo` strips `.sudo()` from the receiver in `_orm_method` and from the alias value in `_collect_aliases`.
+- red before the fix: `test_sudo_env_search_inside_loop_is_a_finding`, `test_sudo_create_inside_loop_stays_a_mutation_finding` failed with 0 findings.
+- green after: both pass, plus `test_sudo_env_alias_search_inside_loop_is_a_finding`. `sudo().browse()` in a loop and a `sudo().search()` batch before the loop stay clean. Existing `self.search`, alias, env-subscription, browse and batch regressions still pass.
+- repo scan: 78 `N_PLUS_ONE_QUERY` findings before and after, identical `(file, line)` sets. No `sudo()` ORM call in `models/*.py` sits inside a loop on a statically known model.
+
+### F-04 — runtime evidence: FIXED (independently reproduced)
+
+The earlier runtime evidence was not bound to a revision and its `make update` wrapper exited 1. Addon code is identical between `93d437b` and this head, so it was reproduced at the PR head in a disposable environment.
+
+- environment: Odoo 19.0 CE `odoo/odoo@e4e2d654f4c4175efc25347e59bc433fd020e799`, Python 3.12, PostgreSQL 16.15, fresh database, no Enterprise. The four modules' dependency closure is CE only.
+- install at `Staging` `92142d3`: `-i plasticos_commission,plasticos_facility_profile,plasticos_transaction,plasticos_logistics` → exit 0, no `ERROR`/`CRITICAL` record, no traceback. Versions `19.0.1.4.0`, `19.0.5.3.10`, `19.0.2.3.31`, `19.0.1.10.2`.
+- upgrade to the PR head: `-u` of the same four → exit 0, no `ERROR`/`CRITICAL` record, no traceback. Both pre-migrate scripts ran (`plasticos_logistics [>19.0.1.10.3]`, `plasticos_commission [>19.0.1.4.1]`). Versions `19.0.1.4.1`, `19.0.5.3.11`, `19.0.2.3.32`, `19.0.1.10.3`.
+- database: `plasticos_transaction_unique_load_id` = `UNIQUE (load_id)`; `plasticos_facility_profile_unique_partner` = `UNIQUE (partner_id)`; `plasticos_commission_rule_unique_active_sales_rep` = `UNIQUE INDEX ... (sales_rep_id) WHERE (active IS TRUE)`.
+- behavior: `--test-tags /plasticos_transaction:TestRelationshipBatch,/plasticos_facility_profile:TestFacilityUniqueness,/plasticos_commission:TestCommissionUniqueness,/plasticos_logistics:TestLoadCardinality` → `0 failed, 0 error(s) of 19 tests`. The two `bad query` lines in that run are the expected database rejections from the negative tests.
+- census counterexample: two active rules for one representative were inserted into a copy of the base database. The upgrade refused with `RuntimeError: More than one active commission rule ...` (exit 255) and `plasticos_commission` stayed at `19.0.1.4.0`.
+- wrapper exit: the `make update` tail check greps the last 100 lines for `ERROR|CRITICAL|Traceback`. On this clean upgrade it matched 10 docutils `(ERROR/3)` lines from rendering module descriptions, which are not Odoo log records. The wrapper's exit 1 is not evidence of an upgrade failure; Odoo's exit code, the log records and the installed versions are.
+- the two `Error-prone use of @class` view warnings come from unchanged `plasticos_facility_profile` views and appear on a base-tree `-u` as well.
+- limitation: this proves the install, upgrade, migration and behavior paths on fresh data. The census on production-shaped data remains the earlier unverified local run. Its failure mode is proven fail-closed above.
+
+### Integration obligations
+
+- PO M2M delivery term, supplier/buyer material-profile matching, load/transaction cardinality, facility uniqueness, commission uniqueness, module versions and migrations: covered by the 19 tests and the upgrade above. No addon file changed in this remediation.
+- `tests/test_audit_n_plus_one.py`, `tests/test_audit_sensitive_logging.py`, `tests/test_audit_baseline_gate.py`: 34 passed.
+- `scripts/audit/run_baseline_gate.sh` with the repaired scanners: known 78, new 0, stale 1.
+- ruff 0.16.0 `check` and `format --check` on the four changed Python files: clean.
+
+### Separate findings (not this campaign)
+
+1. `Makefile` `update`: the tail grep treats docutils description warnings and filestore tracebacks as upgrade errors, so a clean upgrade can exit 1.
+2. The N+1 scanner still does not see through `.with_context()`, `.with_user()` or `.with_company()`. Whether the repo has such calls inside loops was not measured.
+
+### Verdict
+
+`BLOCKED` on F-01 only: the operator's acceptance of the 77 added baseline fingerprints is not independently verifiable. F-02, F-03 and F-04 are closed.
