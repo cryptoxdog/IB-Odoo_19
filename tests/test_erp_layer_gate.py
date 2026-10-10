@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "plasticos_partner_import" / "scripts"
 DRIVER = SCRIPTS / "import_erp_shell.py"
 VALIDATOR = SCRIPTS / "validate_partner_layer.py"
+SUMMARY = ROOT / "plasticos_partner_import" / "erp" / "summary.py"
 SERVICE = ROOT / "plasticos_partner_import" / "models" / "erp_import_service.py"
 PACKAGE = "odoo.addons.plasticos_partner_import.scripts"
 ERP_PACKAGE = "odoo.addons.plasticos_partner_import.erp"
@@ -113,6 +114,11 @@ class _Harness:
 
         for name in ("odoo", "odoo.addons", "odoo.addons.plasticos_partner_import", PACKAGE, ERP_PACKAGE):
             monkeypatch.setitem(sys.modules, name, types.ModuleType(name))
+        # The exit decision is the real, Odoo-free summary module, loaded from the repo file.
+        summary_spec = importlib.util.spec_from_file_location(f"{ERP_PACKAGE}.summary", SUMMARY)
+        summary_module = importlib.util.module_from_spec(summary_spec)
+        summary_spec.loader.exec_module(summary_module)
+        monkeypatch.setitem(sys.modules, summary_module.__name__, summary_module)
         reader = types.ModuleType(f"{ERP_PACKAGE}.reader")
 
         def database_source_from_env(environ):
@@ -496,6 +502,51 @@ def test_full_import_with_a_failed_summary_exits_nonzero(monkeypatch):
 
     assert harness.main() == 1
     assert harness.runs[0]["partners_only"] is True
+
+
+def _run_with_failure(harness):
+    """The importer's result when the mandatory payables identity reconciliation did not close."""
+    runner = sys.modules[f"{PACKAGE}.run_erp_import"]
+    passing = runner.run
+
+    def run(env, **kwargs):
+        passing(env, **kwargs)
+        return {
+            "summary": {"final_status": "success", "records_rejected": 0},
+            "failures": [
+                {
+                    "check": "payables_reconciliation",
+                    "detail": "payables identity reconciliation does not close: 1 missing PayableID: 500868",
+                }
+            ],
+        }
+
+    runner.run = run
+
+
+def test_a_run_level_failure_exits_nonzero_even_when_the_counters_close(monkeypatch, capsys):
+    """GMP-004: the payables identity reconciliation gap fails the command, with no row relabelled."""
+    harness = _Harness(monkeypatch)
+    _run_with_failure(harness)
+    monkeypatch.setenv("ERP_TARGET_DB", "erp_import_gate")
+
+    assert harness.main() == 1
+    assert "IMPORT FAILED: payables_reconciliation: payables identity reconciliation does not close" in (
+        capsys.readouterr().out
+    )
+    assert harness.runs[0]["dry_run"] is False
+
+
+def test_a_dry_run_with_a_run_level_failure_exits_nonzero(monkeypatch):
+    """A preview whose payables reconciliation does not close must not exit clean either."""
+    harness = _Harness(monkeypatch)
+    _run_with_failure(harness)
+    monkeypatch.setenv("ERP_DRY", "1")
+    monkeypatch.setenv("ERP_PARTNERS_ONLY", "1")
+
+    assert harness.main() == 1
+    assert harness.runs[0]["dry_run"] is True
+    assert harness.env.cr.commits == 0
 
 
 def test_unknown_layer_is_rejected_before_any_import(monkeypatch):

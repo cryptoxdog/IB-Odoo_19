@@ -91,8 +91,8 @@ class PlasticosCrmConnection(models.Model):
 
     def action_test_connection(self):
         self.ensure_one()
-        from ..adapters.base import CrmAdapterError, CrmAdapterStubError
-        from ..adapters.registry import ensure_live_or_raise, get_adapter
+        from ..adapters.base import CrmAdapterError
+        from ..adapters.registry import get_adapter
 
         api_key, root, project = self._get_api_credentials()
         try:
@@ -102,10 +102,7 @@ class PlasticosCrmConnection(models.Model):
                 root_endpoint=root,
                 project_id=int(project or 0),
             )
-            ensure_live_or_raise(adapter)
             adapter.healthcheck()
-        except CrmAdapterStubError as exc:
-            raise UserError(str(exc)) from exc
         except (CrmAdapterError, ValueError) as exc:
             self.last_error = str(exc)
             raise UserError(_("Connection test failed: %s") % exc) from exc
@@ -123,13 +120,11 @@ class PlasticosCrmConnection(models.Model):
 
     def action_sync_now(self):
         self.ensure_one()
-        from ..adapters.base import CrmAdapterError, CrmAdapterStubError
+        from ..adapters.base import CrmAdapterError
         from ..services.orchestrator import CrmSyncLockedError, SyncOrchestrator
 
         try:
             SyncOrchestrator(self.env).run_connection(self)
-        except CrmAdapterStubError as exc:
-            raise UserError(str(exc)) from exc
         except CrmSyncLockedError as exc:
             raise UserError(_("A sync is already running for this connection: %s") % exc) from exc
         except CrmAdapterError as exc:

@@ -33,14 +33,17 @@ A validator that fails raises before the commit, the transaction is rolled
 back, and nothing of the run is persisted. A full dry run still checks that
 sale, purchase, and account are installed. It does not apply the write-target
 database check. Partner-only and single-layer dry runs do not persist. Exit
-code is otherwise nonzero when a validator fails or the summary reports
-``failed``, so the Makefile target fails closed.
+code is otherwise nonzero when a validator fails, when a mandatory run-level
+check (the payables identity reconciliation) fails in any mode, or when the
+summary reports ``failed``, so the Makefile target fails closed
+(``erp.summary.run_exit_status``).
 """
 
 import os
 import sys
 
 from odoo.addons.plasticos_partner_import.erp import reader
+from odoo.addons.plasticos_partner_import.erp import summary as import_summary
 from odoo.addons.plasticos_partner_import.erp.limits import parse_limit
 from odoo.addons.plasticos_partner_import.scripts.run_erp_import import run
 from odoo.addons.plasticos_partner_import.scripts.validate_partner_layer import (
@@ -166,15 +169,15 @@ def main() -> int:
         print(f"refusing to commit: the {rejected} validator did not pass; the stage was rolled back")
         return 1
 
-    if dry_run:
-        return 0
+    for failure in result.get("failures") or []:
+        print(f"IMPORT FAILED: {failure.get('check')}: {failure.get('detail')}")
+    status = import_summary.run_exit_status(result, dry_run=dry_run, layer=layer)
+    if status:
+        if not result.get("failures"):
+            print("IMPORT FAILED: material errors — see summary errors list")
+        return status
     if layer:
         print(f"layer {layer} validated and committed")
-        return 0
-    summary = result.get("summary") or {}
-    if summary.get("final_status") == "failed":
-        print("IMPORT FAILED: material errors — see summary errors list")
-        return 1
     return 0
 
 
