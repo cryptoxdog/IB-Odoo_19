@@ -186,10 +186,10 @@ Freight `search_count` loops in `load.py` (316, 317) and `_cron_check_dispatch_a
 
 - current publication surface inspected: `Makefile` `pr:` calls `bash scripts/make_push_pipeline.sh`
 - `make pr` verified to be publication SSOT: YES
-- publication attempted: YES, once, after this report is committed
-- if NO, exact blocker: `scripts/audit/check_baseline.py` fails on the 78 new HIGH findings. The plan forbids adding them to the baseline and forbids fixing them in this change. `make pr` also requires a clean worktree, so unrelated local edits (`pyproject.toml`, `odools.toml`, `docs/runbooks/crm lead import/`) are stashed only for the publication command and restored afterward.
-- if YES, publication command invoked exactly once: `PR_STACK=auto PR_REMEDIATE=0 make pr`
-- PR(s): none expected while the audit-baseline gate is red. The command result is appended below if it differs.
+- publication attempted: YES. `PR_STACK=auto PR_REMEDIATE=0 make pr` was invoked once. A repository hook rejected the command before it ran: L4 receipt is for branch `fix/transaction-form-and-freight`, current branch is `fix/production-debt-root-cause`. No new L4 phase was opened.
+- if NO, exact blocker: the publication command did not start. Independently, `scripts/audit/check_baseline.py` fails on the 78 new HIGH findings. The plan forbids adding them to the baseline and forbids fixing them in this change.
+- if YES, publication command invoked exactly once: the command was rejected by the hook, so it did not reach `pr-check`, push, or PR creation
+- PR(s): none
 
 ## FINAL VERDICT
 
@@ -198,6 +198,7 @@ Freight `search_count` loops in `load.py` (316, 317) and `_cron_check_dispatch_a
 ### Remaining blocker(s)
 
 1. Acceptance row H, "current repo-native validation passes", is not met. The truthful performance scanner emits 78 HIGH findings that are absent from `ci/baselines/extended_audit_baseline.json`. Adding them would be a new suppression. Fixing them would leave this campaign's scope.
+2. Publication did not start. The L4 receipt still belongs to `fix/transaction-form-and-freight`. This campaign did not open a new L4 phase.
 
 ### Separate future findings (non-blocking to this closed scope)
 
