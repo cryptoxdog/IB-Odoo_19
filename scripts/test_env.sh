@@ -531,6 +531,7 @@ build_template() {
   if template_ready; then
     echo "✅ $TEMPLATE_DB is current (fingerprint ${FP:0:16}); reusing it"
     unlease "tpl:$TEMPLATE_DB" exclusive
+    retire_own_templates
     return 0
   fi
   if db_exists "$TEMPLATE_DB"; then
@@ -601,15 +602,20 @@ build_template() {
   retire_own_templates
 }
 
-# Templates this owner built for other inputs are retired, unless someone is
-# using them right now (their lease is taken without waiting).
+# Templates and unfinished builds this owner made for other inputs are retired,
+# unless someone is using them right now (their lease is tried, not awaited).
+# Both share the template's lease key, so a build in progress is never touched.
 retire_own_templates() {
-  local name comment token
-  for name in $(psql_admin "SELECT datname FROM pg_database WHERE datname LIKE 'odoo_test\_tpl\_${PARITY}\_%' AND datname <> '$TEMPLATE_DB'"); do
+  local name comment token key
+  for name in $(psql_admin "SELECT datname FROM pg_database
+                            WHERE (datname LIKE 'odoo_test\_tpl\_${PARITY}\_%' OR datname LIKE 'odoo_test\_bld\_${PARITY}\_%')
+                              AND datname NOT IN ('$TEMPLATE_DB', '$BUILD_DB')"); do
     comment="$(db_comment "$name")"
-    is_ours "$comment" && [ "$(field "$comment" builder)" = "$OWNER" ] || continue
+    is_ours "$comment" || continue
+    [ "$(field "$comment" builder)$(field "$comment" owner)" = "$OWNER" ] || continue
+    key="tpl:odoo_test_tpl_${PARITY}_${name: -16}"
     token="tried-$RANDOM$RANDOM"
-    printf "SELECT 'busy' WHERE NOT pg_try_advisory_lock(hashtextextended('%s:tpl:%s', 0)); SELECT '%s';\n" "$SCHEMA" "$name" "$token" >&9
+    printf "SELECT 'busy' WHERE NOT pg_try_advisory_lock(hashtextextended('%s:%s', 0)); SELECT '%s';\n" "$SCHEMA" "$key" "$token" >&9
     until grep -qx "$token" "$LEASE_DIR/out"; do sleep 0.2; done
     if tail -2 "$LEASE_DIR/out" | grep -qx busy; then
       echo "→ keeping $name (in use)"
@@ -617,8 +623,8 @@ retire_own_templates() {
     fi
     psql_admin "ALTER DATABASE \"$name\" WITH IS_TEMPLATE false ALLOW_CONNECTIONS true" >/dev/null
     odoo_db "retire-${name: -16}" drop "$name"
-    echo "→ retired $name (superseded)"
-    unlease "tpl:$name" exclusive
+    echo "→ retired $name ($(field "$comment" role) for superseded inputs)"
+    unlease "$key" exclusive
   done
 }
 
@@ -646,9 +652,19 @@ drop_owned_clone() {
 }
 
 clone_template() {
-  local target="$1" attempt
+  local target="$1" attempt stage
   validate_clone_name "$target"
   lease "db:$target" exclusive
+  # The stage name carries the owner: if an earlier run of this owner was killed
+  # after Odoo created the clone but before it was stamped, the finished stage
+  # container is the proof that the unstamped database is that run's clone.
+  stage="clone-${OWNER}-${target}"
+  if db_exists "$target" && [ -z "$(db_comment "$target")" ] &&
+    [ -n "$(docker ps -aq --filter "name=^${PROJECT}-test-env-${FP:0:16}-${stage}$")" ]; then
+    echo "→ resuming the interrupted clone of $target"
+    odoo_db "$stage" duplicate "$TEMPLATE_DB" "$target"
+    set_comment "$target" "$SCHEMA role=clone owner=$OWNER parity=$PARITY template=$TEMPLATE_DB fp=$FP created=$(utc_now)"
+  fi
   assert_owned_or_absent "$target"
   for attempt in 1 2; do
     template_ready || build_template
@@ -661,7 +677,7 @@ clone_template() {
   done
   drop_owned_clone "$target"
   clear_filestore "$target"
-  odoo_db "clone-$target" duplicate "$TEMPLATE_DB" "$target"
+  odoo_db "$stage" duplicate "$TEMPLATE_DB" "$target"
   set_comment "$target" "$SCHEMA role=clone owner=$OWNER parity=$PARITY template=$TEMPLATE_DB fp=$FP created=$(utc_now)"
   unlease "tpl:$TEMPLATE_DB" shared
   unlease "db:$target" exclusive
