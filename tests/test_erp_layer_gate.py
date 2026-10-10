@@ -319,6 +319,18 @@ def test_percent_limit_reaches_the_import_as_a_fraction(monkeypatch):
     assert harness.runs[0]["limit"] == 0.25
 
 
+@pytest.mark.parametrize("raw", ["abc", "0", "0%", "101%", "12.5%", "-5", "25 percent"])
+def test_invalid_limit_is_refused_before_any_validation_or_import(monkeypatch, raw):
+    harness = _Harness(monkeypatch)
+    monkeypatch.setenv("ERP_LIMIT", raw)
+
+    with pytest.raises(SystemExit, match="refusing import: ERP_LIMIT must be"):
+        harness.main()
+    assert harness.validated == []
+    assert harness.runs == []
+    assert harness.env.cr.commits == 0
+
+
 class _Modules:
     def __init__(self, installed):
         self.installed = installed

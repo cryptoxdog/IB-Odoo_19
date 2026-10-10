@@ -113,7 +113,10 @@ def _require_empty_partner_set(env) -> None:
 
 
 def main() -> int:
-    limit = parse_limit(_setting("LIMIT"))
+    try:
+        limit = parse_limit(_setting("LIMIT"))
+    except ValueError as invalid:
+        raise SystemExit(f"refusing import: {invalid}") from None
     env = _odoo_env()
     dry_run = _flag("DRY")
     layer = _setting("LAYER").strip().lower() or None
