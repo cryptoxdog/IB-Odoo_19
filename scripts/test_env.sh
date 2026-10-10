@@ -195,8 +195,8 @@ ensure_db_service() {
   die "PostgreSQL in $DB_CID did not become ready"
 }
 
-psql_admin() { docker exec -i "$DB_CID" psql -X -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 -qtA -c "$1"; }
-psql_on() { docker exec -i "$DB_CID" psql -X -U "$POSTGRES_USER" -d "$1" -v ON_ERROR_STOP=1 -qtA -F '|' -c "$2"; }
+psql_admin() { docker exec "$DB_CID" psql -X -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 -qtA -c "$1"; }
+psql_on() { docker exec "$DB_CID" psql -X -U "$POSTGRES_USER" -d "$1" -v ON_ERROR_STOP=1 -qtA -F '|' -c "$2"; }
 db_exists() { [ "$(psql_admin "SELECT 1 FROM pg_database WHERE datname = '$1'")" = "1" ]; }
 db_comment() { psql_admin "SELECT coalesce(shobj_description(oid, 'pg_database'), '') FROM pg_database WHERE datname = '$1'"; }
 set_comment() { psql_admin "COMMENT ON DATABASE \"$1\" IS '$2'" >/dev/null; }
