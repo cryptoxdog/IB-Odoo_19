@@ -1,78 +1,98 @@
 {
   "_description": "Per-finding allowlist for scripts/audit/run_all_audits.py HIGH findings. Each entry is a known, human-reviewed item -- either a scanner false positive or accepted/tracked technical debt -- NOT a blanket count baseline. Any finding whose fingerprint is not in this list fails the audit-baseline CI job (fix the code, or add a new reviewed entry here).",
   "_how_to_add_entries": "python3 scripts/audit/check_baseline.py extended_audit_report.json ci/baselines/extended_audit_baseline.json --severities HIGH --dump-new -- review the output, then merge the printed entries into this file. Never edit scripts/audit/performance_audit.py or security_audit.py to special-case a finding.",
-  "_verified": "2026-07-24",
-  "_root_cause": "N_PLUS_ONE_QUERY (9x): real ORM-call-in-loop pattern, accurately detected -- accepted as low-priority/low-impact debt because the recordsets involved are small (per-transaction/per-load line counts, not bulk imports); tracked here rather than reflagged every run. Re-evaluate if these loops start operating on larger recordsets. SENSITIVE_DATA_LOGGED (6x): genuine false positives -- the scanner keyword-matches \"token\"/\"api_key\" substrings inside descriptive log messages about config/flow state, not actual secret values being logged.",
+  "_verified": "2026-10-10",
+  "_root_cause": "Scoped N_PLUS_ONE_QUERY rows for the repaired relationship and uniqueness paths were removed. SENSITIVE_DATA_LOGGED rows were removed after the scanner stopped treating static api_key/token prose as a leaked value. The operator accepted the 78 remaining loop findings on 2026-10-10 as tracked debt from the structural scanner. The retired plasticos_buyer_match_engine intake_extension fingerprint stays because that file is gone and this campaign did not absorb its successor.",
   "entries": [
     {
-      "fingerprint": "1bef73dd5727a194",
+      "fingerprint": "9329c3606107e045",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
-      "file": "plasticos_transaction/models/transaction.py",
-      "line": 581,
+      "file": "plasticos_automation/models/automation_config.py",
+      "line": 63,
       "model": null,
       "field": null,
-      "message": "ORM .search() inside loop (N+1 query)"
+      "message": "ORM .search() inside loop (query in loop)"
     },
     {
-      "fingerprint": "361407e29c868b3d",
+      "fingerprint": "22578a3482b1a1d7",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
-      "file": "plasticos_transaction/models/purchase_inherit.py",
-      "line": 30,
+      "file": "plasticos_automation/models/contract_renewal.py",
+      "line": 40,
       "model": null,
       "field": null,
-      "message": "ORM .search() inside loop (N+1 query)"
+      "message": "ORM .search_count() inside loop (query in loop)"
     },
     {
-      "fingerprint": "a3a81efda66a6c85",
+      "fingerprint": "1f76354bd90d38b9",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 182,
+      "file": "plasticos_automation/models/contract_renewal.py",
+      "line": 57,
       "model": null,
       "field": null,
-      "message": "ORM .search() inside loop (N+1 query)"
+      "message": "ORM .create() inside loop (mutation in loop)"
     },
     {
-      "fingerprint": "e987ff873a459254",
+      "fingerprint": "95027b0b87da9ab3",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 228,
+      "file": "plasticos_automation/models/load_automation.py",
+      "line": 72,
       "model": null,
       "field": null,
-      "message": "ORM .search() inside loop (N+1 query)"
+      "message": "ORM .create() inside loop (mutation in loop)"
     },
     {
-      "fingerprint": "e987ff873a459254",
+      "fingerprint": "33168e7476cea1f8",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
-      "file": "plasticos_logistics/models/load.py",
-      "line": 270,
+      "file": "plasticos_automation/models/purchase_order_automation.py",
+      "line": 56,
       "model": null,
       "field": null,
-      "message": "ORM .search() inside loop (N+1 query)"
+      "message": "ORM .create() inside loop (mutation in loop)"
     },
     {
-      "fingerprint": "80a9d9186ba1ce44",
+      "fingerprint": "2dbe863a09d3e7e5",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
-      "file": "plasticos_facility_profile/models/facility_profile.py",
-      "line": 322,
+      "file": "plasticos_automation/models/sale_approval.py",
+      "line": 50,
       "model": null,
       "field": null,
-      "message": "ORM .browse() inside loop (N+1 query)"
+      "message": "ORM .create() inside loop (mutation in loop)"
     },
     {
-      "fingerprint": "80a9d9186ba1ce44",
+      "fingerprint": "007a594d4815add0",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
-      "file": "plasticos_facility_profile/models/facility_profile.py",
-      "line": 333,
+      "file": "plasticos_automation/models/stock_picking_automation.py",
+      "line": 84,
       "model": null,
       "field": null,
-      "message": "ORM .browse() inside loop (N+1 query)"
+      "message": "ORM .create() inside loop (mutation in loop)"
+    },
+    {
+      "fingerprint": "3aa54a5315628223",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_automation/models/stock_reorder_alert.py",
+      "line": 40,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "db922a2990cb23c0",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_automation/models/stock_reorder_alert.py",
+      "line": 56,
+      "model": null,
+      "field": null,
+      "message": "ORM .create() inside loop (mutation in loop)"
     },
     {
       "fingerprint": "39bbc2ad6a8906c4",
@@ -85,74 +105,684 @@
       "message": "ORM .create() inside loop (N+1 query)"
     },
     {
-      "fingerprint": "815742c77c786932",
+      "fingerprint": "d813c0ae011298e3",
       "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
-      "file": "plasticos_commission/models/commission_rule.py",
-      "line": 129,
+      "file": "plasticos_claims/models/claim.py",
+      "line": 237,
       "model": null,
       "field": null,
-      "message": "ORM .browse() inside loop (N+1 query)"
+      "message": "ORM .search() inside loop (query in loop)"
     },
     {
-      "fingerprint": "9920ba370736e92a",
-      "type": "SENSITIVE_DATA_LOGGED",
+      "fingerprint": "04f80cbf17344749",
+      "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
-      "file": "scripts/pr_autopilot.py",
-      "line": 560,
+      "file": "plasticos_claims/models/claim.py",
+      "line": 246,
       "model": null,
       "field": null,
-      "message": "Potentially sensitive data in log statement"
+      "message": "ORM .search() inside loop (query in loop)"
     },
     {
-      "fingerprint": "72a4c9e9b37ef7df",
-      "type": "SENSITIVE_DATA_LOGGED",
+      "fingerprint": "0530bdec0d6c3289",
+      "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
-      "file": "scripts/pr_autopilot.py",
-      "line": 989,
+      "file": "plasticos_claims/models/claim.py",
+      "line": 415,
       "model": null,
       "field": null,
-      "message": "Potentially sensitive data in log statement"
+      "message": "ORM .search_count() inside loop (query in loop)"
     },
     {
-      "fingerprint": "bd02e882c6df983c",
-      "type": "SENSITIVE_DATA_LOGGED",
+      "fingerprint": "9974d22c0e5f6d4e",
+      "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
-      "file": "scripts/pr_check_remote_feedback.py",
-      "line": 99,
+      "file": "plasticos_crm_bridge/models/crm_lead.py",
+      "line": 110,
       "model": null,
       "field": null,
-      "message": "Potentially sensitive data in log statement"
+      "message": "ORM .search_count() inside loop (query in loop)"
     },
     {
-      "fingerprint": "79cc4d7b2b6d857b",
-      "type": "SENSITIVE_DATA_LOGGED",
+      "fingerprint": "4a48e73c9623fd94",
+      "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
-      "file": "scripts/pr_check_remote_feedback.py",
-      "line": 100,
+      "file": "plasticos_crm_bridge/models/crm_lead.py",
+      "line": 198,
       "model": null,
       "field": null,
-      "message": "Potentially sensitive data in log statement"
+      "message": "ORM .search() inside loop (query in loop)"
     },
     {
-      "fingerprint": "a1f8d7e4eb29a3ae",
-      "type": "SENSITIVE_DATA_LOGGED",
+      "fingerprint": "61804adfe06c0bb9",
+      "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
-      "file": "plasticos_web_leads/migrations/19.0.1.5.0/post-migrate.py",
-      "line": 24,
+      "file": "plasticos_crm_bridge/models/material_profile.py",
+      "line": 68,
       "model": null,
       "field": null,
-      "message": "Potentially sensitive data in log statement"
+      "message": "ORM .search() inside loop (query in loop)"
     },
     {
-      "fingerprint": "45dfbc98aa6ed7f9",
-      "type": "SENSITIVE_DATA_LOGGED",
+      "fingerprint": "7803590a5a8f5fa2",
+      "type": "N_PLUS_ONE_QUERY",
       "severity": "HIGH",
-      "file": "plasticos_web_leads/migrations/19.0.1.5.0/post-migrate.py",
+      "file": "plasticos_documents/models/document.py",
+      "line": 154,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "acaac85f56e67706",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_documents/models/document.py",
+      "line": 160,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "e35b8df6a7b1d579",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_documents/models/transaction_docs.py",
+      "line": 153,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "37c6d7c3281a4d46",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_documents/models/transaction_docs.py",
+      "line": 186,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "ff6bb4221892a030",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_documents/models/transaction_docs.py",
+      "line": 308,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "1376b0f967282431",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_enrichment/models/enrichment_run.py",
+      "line": 300,
+      "model": null,
+      "field": null,
+      "message": "ORM .create() inside loop (mutation in loop)"
+    },
+    {
+      "fingerprint": "f51c4387dac5dc4c",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_enrichment/models/enrichment_run.py",
+      "line": 599,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "90335c2688677497",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_enrichment/models/enrichment_run.py",
+      "line": 650,
+      "model": null,
+      "field": null,
+      "message": "ORM .create() inside loop (mutation in loop)"
+    },
+    {
+      "fingerprint": "1060b4adc34f2d68",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_facility_profile/models/equipment_type.py",
+      "line": 38,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "43bf3f6b56d5f90d",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_facility_profile/models/equipment_type.py",
+      "line": 46,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "91abaf0d2d02d4f2",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_facility_profile/models/partner_type.py",
+      "line": 37,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "de901db7994d3c99",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_facility_profile/models/partner_type.py",
+      "line": 45,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "6c1f6ed07b8b7a2e",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_facility_profile/models/res_partner.py",
+      "line": 371,
+      "model": null,
+      "field": null,
+      "message": "ORM .create() inside loop (mutation in loop)"
+    },
+    {
+      "fingerprint": "c52f9af24058f3cd",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_intake/models/intake.py",
+      "line": 406,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "8f6d0ec8324a9cb0",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_intake/models/intake.py",
+      "line": 460,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "29427922629897e2",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_intake/models/intake.py",
+      "line": 919,
+      "model": null,
+      "field": null,
+      "message": "ORM .create() inside loop (mutation in loop)"
+    },
+    {
+      "fingerprint": "833fe5eacccaa852",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_intake/models/material_profile_intake.py",
+      "line": 27,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "a297282c7eba956a",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_intake/models/res_partner_intake.py",
+      "line": 27,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "c425b97d30baa725",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/freight_estimate.py",
+      "line": 83,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "afd796ea4ef03bdb",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/freight_governance.py",
+      "line": 117,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "7d0c8ee14ccd9631",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/freight_quote.py",
+      "line": 135,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "9a67c59761b586aa",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/freight_quote.py",
+      "line": 629,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "12a520cd78523550",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/load.py",
+      "line": 316,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "670a7c33576ad45e",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/load.py",
+      "line": 317,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "6010dcff30531442",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/load.py",
+      "line": 492,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "7e2913d5b6d13f2f",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/load.py",
+      "line": 498,
+      "model": null,
+      "field": null,
+      "message": "ORM .create() inside loop (mutation in loop)"
+    },
+    {
+      "fingerprint": "8a3be482baa91c4c",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/load.py",
+      "line": 606,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "7a63f7ea80657cb0",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/load.py",
+      "line": 706,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "e0c5d3363ea22c4a",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/load.py",
+      "line": 709,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "1f83723fc564052c",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/load.py",
+      "line": 772,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "3348fdeb82d3f957",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/load.py",
+      "line": 891,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "11554bc8c48159c0",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/load.py",
+      "line": 1212,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "f0103ed5d8f56685",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/load.py",
+      "line": 1224,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "ddd8e3ae0d5fd798",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_logistics/models/rate_memory.py",
+      "line": 75,
+      "model": null,
+      "field": null,
+      "message": "ORM .create() inside loop (mutation in loop)"
+    },
+    {
+      "fingerprint": "b0df954c4f7f4a52",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/filler_type.py",
+      "line": 25,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "20dd6965e6d1fb95",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/filler_type.py",
+      "line": 33,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "5ed2ed6a0a952223",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/material_attribute.py",
+      "line": 36,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "93e496e1b9a80634",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/material_attribute.py",
+      "line": 44,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "c311b98ac76fcd51",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/material_color.py",
+      "line": 31,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "08a8bfc4604a42d4",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/material_color.py",
+      "line": 39,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "7b1b4edf491371dc",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/material_form.py",
+      "line": 31,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "8e389a8fe5d6a619",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/material_form.py",
+      "line": 39,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "ade38a010fa17022",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/material_profile.py",
+      "line": 344,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "ad74fae19f6f9ddc",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/material_profile.py",
+      "line": 455,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "8115fd099193e5b4",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/material_profile.py",
+      "line": 467,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "1a8f0d0424663a42",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/packaging_type.py",
+      "line": 32,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "a371d7872fabea45",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/packaging_type.py",
+      "line": 40,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "e7c8d32b75187d78",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/polymer.py",
+      "line": 46,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "77b008e2e555068d",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/polymer.py",
       "line": 54,
       "model": null,
       "field": null,
-      "message": "Potentially sensitive data in log statement"
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "392d3135971fca51",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/process_type.py",
+      "line": 31,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "6695ca250fcbd5a8",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/process_type.py",
+      "line": 39,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "5efdde408ef9e404",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/res_partner.py",
+      "line": 51,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "52fec1de548f755a",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/source_type.py",
+      "line": 31,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "f65ca983ab488da6",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_material_profile/models/source_type.py",
+      "line": 39,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "5710534d1bdae14f",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_offer/models/offer.py",
+      "line": 195,
+      "model": null,
+      "field": null,
+      "message": "ORM .search_count() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "fa705b0d844f339c",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_offer/models/offer_price_bridge.py",
+      "line": 27,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "ffb14ea2d222422f",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_transaction/models/sale_inherit.py",
+      "line": 46,
+      "model": null,
+      "field": null,
+      "message": "ORM .create() inside loop (mutation in loop)"
+    },
+    {
+      "fingerprint": "f24156942331fc06",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_transaction/models/sale_inherit.py",
+      "line": 65,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "caa3abf62f585448",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_transaction/models/transaction.py",
+      "line": 898,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "cf9d3c92beb48062",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_transaction/models/transaction.py",
+      "line": 906,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "5dfba50bcb1ed1f0",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_transaction/models/transaction.py",
+      "line": 975,
+      "model": null,
+      "field": null,
+      "message": "ORM .search() inside loop (query in loop)"
+    },
+    {
+      "fingerprint": "3e858b501024c585",
+      "type": "N_PLUS_ONE_QUERY",
+      "severity": "HIGH",
+      "file": "plasticos_transaction/models/transaction_import_service.py",
+      "line": 185,
+      "model": null,
+      "field": null,
+      "message": "ORM .create() inside loop (mutation in loop)"
     }
   ]
 }

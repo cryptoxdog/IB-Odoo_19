@@ -4,10 +4,101 @@ Performance Anti-Pattern Detector
 Finds N+1 queries and other performance issues.
 """
 
+import ast
 import re
 from pathlib import Path
 
 from path_filters import skip_path
+
+_QUERY_METHODS = frozenset({"search", "search_count", "search_read", "read", "read_group"})
+_MUTATION_METHODS = frozenset({"create", "write", "unlink"})
+_FLAGGED_METHODS = _QUERY_METHODS | _MUTATION_METHODS
+
+
+def _is_env_subscription(node):
+    return (
+        isinstance(node, ast.Subscript)
+        and isinstance(node.value, ast.Attribute)
+        and node.value.attr == "env"
+        and isinstance(node.value.value, ast.Name)
+        and node.value.value.id == "self"
+    )
+
+
+def _without_sudo(node):
+    """``x.sudo()`` addresses the same model as ``x``."""
+    while isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "sudo":
+        node = node.func.value
+    return node
+
+
+def _collect_aliases(func_node):
+    aliases = set()
+    for node in ast.walk(func_node):
+        value = None
+        targets = []
+        if isinstance(node, ast.Assign):
+            value = node.value
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign):
+            value = node.value
+            targets = [node.target]
+        if value is not None and _is_env_subscription(_without_sudo(value)):
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    aliases.add(target.id)
+    return aliases
+
+
+def _orm_method(call, aliases):
+    func = call.func
+    if not isinstance(func, ast.Attribute) or func.attr not in _FLAGGED_METHODS:
+        return None
+    owner = _without_sudo(func.value)
+    if isinstance(owner, ast.Name) and (owner.id == "self" or owner.id in aliases):
+        return func.attr
+    if _is_env_subscription(owner):
+        return func.attr
+    return None
+
+
+def _loop_calls(tree):
+    """Yield (call, loop_lineno, aliases) for ORM-shaped calls inside loops.
+
+    Nested function and class bodies are not part of the enclosing loop.
+    ``browse()`` is recordset construction and is not returned.
+    """
+    found = []
+
+    def visit(node, in_loop, loop_lineno, aliases):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if in_loop:
+                return
+            local_aliases = aliases | _collect_aliases(node)
+            for child in node.body:
+                visit(child, False, 0, local_aliases)
+            return
+        if isinstance(node, ast.ClassDef):
+            if in_loop:
+                return
+            for child in node.body:
+                visit(child, False, 0, aliases)
+            return
+        if isinstance(node, (ast.For, ast.AsyncFor, ast.While)):
+            for child in node.body:
+                visit(child, True, node.lineno, aliases)
+            for child in node.orelse:
+                visit(child, in_loop, loop_lineno, aliases)
+            return
+        if isinstance(node, ast.Call) and in_loop:
+            method = _orm_method(node, aliases)
+            if method:
+                found.append((node, loop_lineno, method))
+        for child in ast.iter_child_nodes(node):
+            visit(child, in_loop, loop_lineno, aliases)
+
+    visit(tree, False, 0, set())
+    return found
 
 
 class PerformanceAudit:
@@ -15,47 +106,45 @@ class PerformanceAudit:
         self.root_dir = Path(root_dir)
 
     def check_n_plus_one_queries(self):
-        """Find ORM queries inside loops"""
-        errors = []
+        """Find ORM reads and writes inside loops.
 
-        ORM_METHODS = ["search", "browse", "read", "write", "create", "unlink"]
+        ``browse()`` builds a recordset and is not itself a query. Unknown
+        call shapes are left unknown rather than guessed into findings.
+        """
+        errors = []
 
         for py_file in self.root_dir.rglob("models/*.py"):
             if skip_path(py_file):
                 continue
-            # Skip virtual environments
             if ".venv" in str(py_file) or "venv" in str(py_file):
                 continue
-
-            with open(py_file, encoding="utf-8") as f:
-                lines = f.readlines()
-                in_loop = False
-                loop_start = 0
-
-                for i, line in enumerate(lines, 1):
-                    # Track loop context
-                    if re.match(r"\s*for\s+\w+\s+in\s+", line):
-                        in_loop = True
-                        loop_start = i
-                    elif in_loop and not line.startswith(" " * 4):
-                        in_loop = False
-
-                    # Look for ORM calls in loop
-                    if in_loop:
-                        for method in ORM_METHODS:
-                            if f".{method}(" in line and "self.env" in line:
-                                errors.append(
-                                    {
-                                        "type": "N_PLUS_ONE_QUERY",
-                                        "severity": "HIGH",
-                                        "file": str(py_file.relative_to(self.root_dir)),
-                                        "line": i,
-                                        "loop_start": loop_start,
-                                        "code": line.strip(),
-                                        "message": f"ORM .{method}() inside loop (N+1 query)",
-                                        "fix": "Move query outside loop or use read_group/prefetch",
-                                    }
-                                )
+            try:
+                source = py_file.read_text(encoding="utf-8")
+                tree = ast.parse(source)
+            except (OSError, SyntaxError, UnicodeError):
+                continue
+            lines = source.splitlines()
+            for call, loop_start, method in _loop_calls(tree):
+                line_num = call.lineno
+                code = lines[line_num - 1].strip() if 0 < line_num <= len(lines) else ""
+                if method in _MUTATION_METHODS:
+                    message = f"ORM .{method}() inside loop (mutation in loop)"
+                    fix = "Create, write, or unlink the recordset once outside the loop"
+                else:
+                    message = f"ORM .{method}() inside loop (query in loop)"
+                    fix = "Move the query outside the loop or prefetch the recordset"
+                errors.append(
+                    {
+                        "type": "N_PLUS_ONE_QUERY",
+                        "severity": "HIGH",
+                        "file": str(py_file.relative_to(self.root_dir)),
+                        "line": line_num,
+                        "loop_start": loop_start,
+                        "code": code,
+                        "message": message,
+                        "fix": fix,
+                    }
+                )
 
         return errors
 
