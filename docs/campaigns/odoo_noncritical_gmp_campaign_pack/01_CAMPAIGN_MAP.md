@@ -8,7 +8,7 @@ Convert the non-critical register from a noisy collection of heuristics into a t
 
 | Root cause | Current symptom | Authoritative fix |
 |---|---|---|
-| Test-quality authority fragmentation | Large Moderate weak-test / no-test-coverage noise | One weak-test owner; remove pseudo-coverage claims |
+| Test-quality authority fragmentation | Large Moderate weak-test / no-test-coverage noise | One weak-test owner covering every `test_*.py` beneath any `tests/` tree; remove pseudo-coverage claims |
 | Privilege escalation ownership drift | `UNJUSTIFIED_SUDO` Moderates | Domain-owned elevation boundaries + scanner aligned to repo law |
 | Duplicate state-transition auditing | `STATE_BYPASS` Moderates | `ci/check_state_guard_bypass.py` is sole owner |
 | Query intent not represented | `UNBOUNDED_SEARCH` Moderates | Classify query purpose before changing ORM realization |

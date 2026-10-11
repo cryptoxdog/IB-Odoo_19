@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-"""Scan repo tests/ for assertion-free tests and suggest fix templates.
+"""Scan assertion-free tests and suggest fix templates.
 
-Scoped to the repository ``tests/`` tree only — never ``.venv``, site-packages,
-or ``Current Work - IGNORE``. Counts unittest ``assert*``, bare ``assert``,
-and ``pytest.raises`` / ``assertRaises`` as evidence of assertions.
+Sole assertion-quality owner. Walks every ``test_*.py`` at any depth beneath a
+``tests/`` directory, in the repository tree and in addon trees, and skips the
+same non-addon directories as the extended audit.
+Counts bare ``assert``, unittest ``assert*``, ``pytest.raises`` /
+``assertRaises``, ``raise AssertionError(...)``, and assertion-named helpers
+as evidence. A ``check_``, ``_check_``, ``validate_``, ``_run_``, or ``_safe_``
+call is not evidence.
 """
 
 from __future__ import annotations
 
 import ast
+import os
 import sys
 from pathlib import Path
 
@@ -27,15 +32,8 @@ SKIP_PARTS = frozenset(
     }
 )
 
-_HELPER_PREFIXES = (
-    "validate_",
-    "assert_",
-    "_assert",
-    "_run_",
-    "_check_",
-    "_safe_",
-    "check_",
-)
+_ASSERTION_HELPER_PREFIXES = ("assert_", "_assert")
+_NON_ASSERTION_HELPER_PREFIXES = ("check_", "_check_", "validate_", "_run_", "_safe_")
 
 
 def _is_skipped(path: Path) -> bool:
@@ -54,17 +52,30 @@ def _call_name(func: ast.expr) -> str | None:
     return None
 
 
+def _is_raise_assertion_error(node: ast.AST) -> bool:
+    if not isinstance(node, ast.Raise) or node.exc is None:
+        return False
+    exc: ast.expr = node.exc
+    if isinstance(exc, ast.Call):
+        exc = exc.func
+    if isinstance(exc, ast.Name):
+        return exc.id == "AssertionError"
+    if isinstance(exc, ast.Attribute):
+        return exc.attr == "AssertionError"
+    return False
+
+
 def _has_assertion_evidence(func_node: ast.AST) -> bool:
     for node in ast.walk(func_node):
-        if isinstance(node, ast.Assert):
+        if isinstance(node, ast.Assert) or _is_raise_assertion_error(node):
             return True
         if isinstance(node, ast.Call):
             name = _call_name(node.func)
-            if not name:
+            if not name or name.startswith(_NON_ASSERTION_HELPER_PREFIXES):
                 continue
-            if name.startswith("assert") or name in ("fail", "raises", "xfail"):
+            if name.startswith("assert") or name.startswith(_ASSERTION_HELPER_PREFIXES):
                 return True
-            if name.startswith(_HELPER_PREFIXES) or name in ("_run_twice",):
+            if name in ("fail", "raises", "xfail"):
                 return True
     return False
 
@@ -78,10 +89,18 @@ def _is_soft_warning_only(func_node: ast.AST) -> bool:
     return False
 
 
+def _audit_skip_parts():
+    audit_dir = ROOT / "scripts" / "audit"
+    if str(audit_dir) not in sys.path:
+        sys.path.insert(0, str(audit_dir))
+    from path_filters import SKIP_DIR_PARTS, skip_path
+
+    return SKIP_DIR_PARTS, skip_path
+
+
 class WeakTestFixer:
     def __init__(self, root_dir: str | Path | None = None):
         self.root_dir = Path(root_dir) if root_dir else ROOT
-        self.tests_root = self.root_dir / "tests"
 
     def analyze_test_file(self, test_file: Path) -> list[dict]:
         with open(test_file, encoding="utf-8") as f:
@@ -132,12 +151,31 @@ class WeakTestFixer:
         return suggestions
 
     def iter_test_files(self):
-        if not self.tests_root.is_dir():
+        """Yield every ``test_*.py`` at any depth beneath a ``tests/`` directory.
+
+        Covers the repository ``tests/`` tree and addon ``tests/`` trees,
+        including nested suites such as ``tests/contracts/``. Skips are judged
+        on the path relative to ``root_dir`` so the checkout location never
+        hides the population.
+        """
+        if not self.root_dir.is_dir():
             return
-        for test_file in sorted(self.tests_root.rglob("test_*.py")):
-            if _is_skipped(test_file):
+        skip_parts, skip_path = _audit_skip_parts()
+        pruned = skip_parts | SKIP_PARTS
+        found: list[Path] = []
+        for dirpath, dirnames, filenames in os.walk(self.root_dir):
+            dirnames[:] = [name for name in dirnames if name not in pruned]
+            relative_dir = Path(dirpath).relative_to(self.root_dir)
+            if "tests" not in relative_dir.parts:
                 continue
-            yield test_file
+            for name in filenames:
+                if not (name.startswith("test_") and name.endswith(".py")):
+                    continue
+                relative = relative_dir / name
+                if _is_skipped(relative) or skip_path(relative):
+                    continue
+                found.append(self.root_dir / relative)
+        yield from sorted(found)
 
 
 def main() -> int:
@@ -150,7 +188,7 @@ def main() -> int:
             continue
         files_with_weak += 1
         total_weak += len(weak_tests)
-        rel = test_file.relative_to(ROOT)
+        rel = test_file.relative_to(fixer.root_dir)
         print(f"\n📄 {rel}")
         for test in weak_tests:
             print(f"  ❌ {test['name']} (line {test['line']})")
@@ -161,10 +199,10 @@ def main() -> int:
 
     print()
     if total_weak:
-        print(f"⚠️  {total_weak} assertion-free test(s) in {files_with_weak} file(s) under tests/")
+        print(f"⚠️  {total_weak} assertion-free test(s) in {files_with_weak} file(s)")
         print("   (advisory — does not fail the gate)")
         return 0
-    print("✅ No assertion-free tests under tests/")
+    print("✅ No assertion-free tests in any tests/ tree")
     return 0
 
 

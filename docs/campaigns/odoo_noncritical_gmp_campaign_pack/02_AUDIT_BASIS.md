@@ -8,9 +8,9 @@ This pack was derived from the live `Staging` tree observed during planning and 
 
 The extended audit emits Moderate findings from a small number of heuristic families. A large portion is expected to be assurance-tool noise rather than application defects.
 
-### 2. Weak-test ownership is duplicated
+### 2. Weak-test ownership is duplicated, and the scopes do not match
 
-`scripts/audit/test_audit.py` and `ci/weak_test_fixer.py` use different definitions. The CI checker already recognizes normal pytest assertions more accurately.
+`scripts/audit/test_audit.py` and `ci/weak_test_fixer.py` use different definitions. The CI checker already recognizes bare `assert` and `pytest.raises` more accurately. It does not recognize `raise AssertionError(...)`. It treats non-assertion helper prefixes (`check_`, `_check_`, `validate_`, `_run_`, `_safe_`) as evidence. It walks only the repository `tests/` tree. The extended audit walks only direct `tests/test_*.py` children, including addon trees, and misses nested suites such as `tests/contracts/`.
 
 ### 3. Static model-name search is not runtime test coverage
 
