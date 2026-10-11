@@ -44,7 +44,10 @@ from plasticos_crm_sync.adapters.vanillasoft import client as vs_client  # noqa:
 from plasticos_crm_sync.adapters.vanillasoft.adapter import VanillaSoftAdapter  # noqa: E402
 from plasticos_crm_sync.adapters.vanillasoft.client import VanillaSoftClient  # noqa: E402
 from plasticos_crm_sync.services.import_summary import build_run_summary  # noqa: E402
-from plasticos_crm_sync.services.orchestrator import INCREMENTAL_CONTACT_LOOKBACK_DAYS  # noqa: E402
+from plasticos_crm_sync.services.orchestrator import (  # noqa: E402
+    INCREMENTAL_CONTACT_LOOKBACK_DAYS,
+    completion_notice,
+)
 from tests.test_crm_sync_full_import import (  # noqa: E402
     ANCIENT_Z,
     CALL_FLOOR_Z,
@@ -233,6 +236,44 @@ def test_a_full_import_with_failed_rows_is_failed_even_when_the_census_is_proven
     )
     assert run.status == "failed"
     assert build_run_summary(run, error_rows=orch.error_rows)["final_status"] == "failed"
+
+
+# ── a manual caller is told the computed status, never a flat success ──────
+
+
+def test_a_failed_run_is_not_announced_as_a_success():
+    adapter = _Adapter(contact_passes=[_one_page([_lead("boom")], RECENT_Z)], call_passes=[[]])
+    orch, connection, env = _harness(adapter)
+    record = orch._upsert_lead(connection, _lead("boom"))
+
+    def boom(vals):
+        raise RuntimeError("column broken")
+
+    record.write = boom
+    adapter._contact_passes = [_one_page([replace(_lead("boom"), company="Renamed")], RECENT_Z)]
+    run = env["plasticos.crm.sync.run"].browse(orch.run_connection(connection).id)
+
+    kind, message = completion_notice(run)
+    assert kind == "danger"
+    assert "failures" in message and "1 contact" in message
+
+
+def test_a_partial_run_is_announced_as_a_warning_with_its_note():
+    stale = _iso(NOW - timedelta(days=90))
+    adapter = _Adapter(contact_passes=[_one_page([_lead("c1")], RECENT_Z)], call_passes=[[]])
+    orch, connection, env = _harness(adapter, _Connection(contact_watermark=stale))
+    run = env["plasticos.crm.sync.run"].browse(orch.run_connection(connection).id)
+
+    kind, message = completion_notice(run)
+    assert kind == "warning"
+    assert "partial" in message and "lookback" in message
+
+
+def test_a_clean_run_is_still_announced_as_a_success():
+    adapter = _Adapter(contact_passes=[_one_page([_lead("c1")], RECENT_Z)], call_passes=[[]])
+    orch, connection, env = _harness(adapter)
+    run = env["plasticos.crm.sync.run"].browse(orch.run_connection(connection).id)
+    assert completion_notice(run) == ("success", "Sync finished")
 
 
 # ── the shell driver never defaults the historical floor ────────────────────

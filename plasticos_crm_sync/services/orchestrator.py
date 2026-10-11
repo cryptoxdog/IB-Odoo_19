@@ -66,6 +66,23 @@ def _iso_z(dt: datetime) -> str:
     return dt.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def completion_notice(run) -> tuple[str, str]:
+    """``(notification type, message)`` for a run that finished without raising.
+
+    A manual caller that treats every normal return as success would turn the
+    ``failed`` / ``partial`` status this module now computes back into a green
+    toast. The run row is the fact; this names it for the operator.
+    """
+    status = getattr(run, "status", None) or "unknown"
+    if status == "success":
+        return "success", "Sync finished"
+    excerpt = str(getattr(run, "error_excerpt", "") or "").strip().splitlines()
+    detail = excerpt[0] if excerpt else "see the run's error excerpt"
+    if status == "failed":
+        return "danger", f"Sync finished with failures: {detail}"
+    return "warning", f"Sync finished {status}: {detail}"
+
+
 def _forward_only(current: str | None, candidate: str) -> str | None:
     """Return `candidate`, or None when writing it would rewind `current`.
 
