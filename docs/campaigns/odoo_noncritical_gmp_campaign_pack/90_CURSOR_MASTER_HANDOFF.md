@@ -22,6 +22,7 @@ We are not patching individual files to make scanners quiet. We are curing the u
 - no symptom patching;
 - no blanket baselining;
 - no fake assertions;
+- no helper-name prefix counted as an assertion;
 - no blind `limit=1`;
 - no positional XPath repair;
 - no global sudo abstraction;
