@@ -52,12 +52,12 @@ def main():
     except Exception as e:
         print(f"   ⚠️  Skipped: {e}")
 
-    # Layer 4: Test Coverage
-    print("\n🧪 Layer 4: Test Coverage Audit...")
+    # Layer 4: Assertion quality. Owner: ci/weak_test_fixer.py.
+    # Static model-name search is not runtime coverage and is not emitted.
+    print("\n🧪 Layer 4: Assertion Quality Audit...")
     try:
         test_audit = TestAudit(root_dir)
-        errors = test_audit.get_models_without_tests()
-        errors += test_audit.check_weak_tests()
+        errors = test_audit.check_weak_tests()
         all_errors.extend(errors)
         print(f"   Found {len(errors)} issues")
     except Exception as e:
