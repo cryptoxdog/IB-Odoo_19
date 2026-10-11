@@ -204,6 +204,30 @@ def _extract_list(payload: Any, *keys: str) -> list:
     return []
 
 
+def _require_rows(payload: Any, endpoint: str, *keys: str) -> list:
+    """Rows of a watermark-bearing list endpoint, or raise.
+
+    A payload that carries none of the recognised row lists is uncertain
+    coverage, not an empty page: an error body served with HTTP 200, a renamed
+    key, an empty response. Reading it as "no rows" lets the caller acknowledge
+    the whole requested range — for calls, the window watermark advances past
+    every call that was never read (I1). An empty list under a recognised key
+    is the only valid empty scope.
+    """
+    if isinstance(payload, list):
+        return payload
+    if isinstance(payload, dict):
+        for key in keys:
+            val = payload.get(key)
+            if isinstance(val, list):
+                return val
+    shape = sorted(payload.keys()) if isinstance(payload, dict) else type(payload).__name__
+    raise CrmAdapterError(
+        f"unrecognised {endpoint} payload: expected a list under one of {keys}, got {shape}; "
+        "refusing to treat it as an empty page"
+    )
+
+
 class VanillaSoftAdapter:
     provider = PROVIDER
     live = True
@@ -243,7 +267,7 @@ class VanillaSoftAdapter:
                 custom_fields=True,
                 phone_numbers=True,
             )
-            rows = _extract_list(payload, "contacts", "Contacts", "data", "results")
+            rows = _require_rows(payload, "Contacts", "contacts", "Contacts", "data", "results")
             # I1 — every required row is transformed or the page fails. A
             # malformed contact must never be logged-and-skipped while the
             # watermark advances past it: that is permanent silent omission.
@@ -321,7 +345,9 @@ class VanillaSoftAdapter:
                 project_id=self.project_id,
                 limit=page_limit,
             )
-            rows = _extract_list(payload, "call_histories", "call_history", "CallHistory", "calls", "data", "results")
+            rows = _require_rows(
+                payload, "GetCallHistory", "call_histories", "call_history", "CallHistory", "calls", "data", "results"
+            )
             batch: list[CanonicalCall] = []
             for index, row in enumerate(rows):
                 if not isinstance(row, dict):

@@ -181,10 +181,25 @@ class SyncOrchestrator:
         if not self._try_advisory_lock(lock_key):
             raise CrmSyncLockedError(f"CRM sync already running for connection {connection_id}")
         try:
+            # Scope is fixed before the audit row exists, so the row names what
+            # this run asked the provider for even when it fails on the first
+            # remote call. A run must read as "the rolling window" or "the
+            # operator's floors" — never as an implied historical census.
+            now = datetime.now(UTC)
+            contact_from, clamped_from = self._incremental_contact_scope(connection)
+            call_from = self._incremental_call_start(connection, now)
             # I2 — the audit record must exist independently of the fallible
             # remote work it describes, so create it on an owned cursor that
             # commits before the first adapter call.
-            run_id = self._create_sync_run_durable(connection_id)
+            run_id = self._create_sync_run_durable(
+                connection_id,
+                {
+                    "kind": "incremental",
+                    "contact_scope_from_utc": contact_from,
+                    "call_scope_from_utc": _iso_z(call_from),
+                    "call_scope_to_utc": _iso_z(now),
+                },
+            )
             # That row was created and committed on a SECOND cursor. Odoo runs
             # cursors at REPEATABLE READ, and this transaction's snapshot was
             # taken by the advisory-lock SELECT above — before the row existed.
@@ -199,24 +214,25 @@ class SyncOrchestrator:
             try:
                 adapter = self._build_adapter(connection)
                 adapter.healthcheck()
-                contacts_n = self._sync_contacts(connection, adapter, run)
-                calls_n = self._sync_calls(connection, adapter, run)
+                contacts_n = self._sync_contacts(connection, adapter, run, modified_after_override=contact_from)
+                calls_n = self._sync_calls(connection, adapter, run, start_override=call_from, end_override=now)
                 resolved = self._resolve_orphans(connection, adapter, run)
+                notes = [self._lookback_clamp_note(clamped_from, contact_from)] if clamped_from else []
+                status, excerpt = self._completion(run, notes)
                 run.write(
                     {
-                        "status": "success",
+                        "status": status,
                         "finished_at": datetime.now(UTC).replace(tzinfo=None),
                         "contacts_upserted": contacts_n,
                         "calls_upserted": calls_n,
                         "orphans_resolved": resolved,
+                        "error_excerpt": excerpt,
                     }
                 )
-                connection.write(
-                    {
-                        "last_error": False,
-                        "last_success_at": datetime.now(UTC).replace(tzinfo=None),
-                    }
-                )
+                connection_vals: dict[str, Any] = {"last_error": excerpt}
+                if status != "failed":
+                    connection_vals["last_success_at"] = datetime.now(UTC).replace(tzinfo=None)
+                connection.write(connection_vals)
                 # Land this connection's outcome before the caller (cron) moves
                 # to the next one: a later connection's rollback must not erase
                 # a successful run that already happened.
@@ -286,8 +302,16 @@ class SyncOrchestrator:
             raise CrmSyncLockedError(f"CRM sync already running for connection {connection_id}")
         try:
             # Same I2 ordering as run_connection: the audit row is durable on an
-            # owned cursor before the first fallible remote call.
-            run_id = self._create_sync_run_durable(connection_id)
+            # owned cursor before the first fallible remote call, and it names
+            # the operator's floors so the ledger shows this was the bootstrap.
+            run_id = self._create_sync_run_durable(
+                connection_id,
+                {
+                    "kind": "full_import",
+                    "contact_scope_from_utc": contact_floor,
+                    "call_scope_from_utc": _iso_z(call_floor),
+                },
+            )
             self.env.cr.commit()
             run = self.env["plasticos.crm.sync.run"].browse(run_id)
             try:
@@ -325,32 +349,34 @@ class SyncOrchestrator:
                     counter_base=bootstrap_contacts,
                     outcome_base=self._contact_outcomes,
                 )
+                catchup_end = datetime.now(UTC)
                 catchup_calls = self._sync_calls(
                     connection,
                     adapter,
                     run,
                     start_override=boundary - CATCHUP_OVERLAP,
+                    end_override=catchup_end,
                     counter_base=bootstrap_calls,
                     outcome_base=self._call_outcomes,
                 )
                 resolved = self._resolve_orphans(connection, adapter, run)
+                status, excerpt = self._completion(run, [gap] if gap else [])
 
                 run.write(
                     {
-                        "status": "partial" if gap else "success",
+                        "status": status,
                         "finished_at": datetime.now(UTC).replace(tzinfo=None),
                         "contacts_upserted": bootstrap_contacts + catchup_contacts,
                         "calls_upserted": bootstrap_calls + catchup_calls,
                         "orphans_resolved": resolved,
-                        "error_excerpt": gap or False,
+                        "error_excerpt": excerpt,
+                        "call_scope_to_utc": _iso_z(catchup_end),
                     }
                 )
-                connection.write(
-                    {
-                        "last_error": gap or False,
-                        "last_success_at": datetime.now(UTC).replace(tzinfo=None),
-                    }
-                )
+                connection_vals: dict[str, Any] = {"last_error": excerpt}
+                if status != "failed":
+                    connection_vals["last_success_at"] = datetime.now(UTC).replace(tzinfo=None)
+                connection.write(connection_vals)
                 self.env.cr.commit()
                 _logger.info(
                     "CRM full import connection=%s contacts=%s calls=%s status=%s "
@@ -358,7 +384,7 @@ class SyncOrchestrator:
                     connection_id,
                     bootstrap_contacts + catchup_contacts,
                     bootstrap_calls + catchup_calls,
-                    "partial" if gap else "success",
+                    status,
                     contact_floor,
                     _iso_z(call_floor),
                     _iso_z(boundary),
@@ -437,6 +463,83 @@ class SyncOrchestrator:
             "VanillaSoft's own project contact count before treating this import as complete."
         )
 
+    def _incremental_contact_scope(self, connection) -> tuple[str, str | None]:
+        """Return ``(modified_after to request, watermark it was clamped from)``.
+
+        The Contacts endpoint accepts ``modified_after`` only inside its rolling
+        lookback, so a watermark older than that is clamped forward. The clamp
+        is a scope limitation the run must name: every modification between
+        the watermark and the clamped bound is never requested, and the
+        watermark then moves past it. The second element is ``None`` when the
+        connection held no watermark — a fresh connection asks for the default
+        window and drops nothing it had ever acknowledged.
+        """
+        requested = connection.default_contact_modified_after()
+        floor = datetime.now(UTC) - timedelta(days=INCREMENTAL_CONTACT_LOOKBACK_DAYS)
+        parsed = _parse_utc(requested)
+        if parsed and parsed < floor:
+            return _iso_z(floor), (requested if connection.contact_watermark_utc else None)
+        return requested, None
+
+    @staticmethod
+    def _incremental_call_start(connection, now: datetime) -> datetime:
+        """Start of the rolling call window: the watermark, else the backfill
+        floor, else seven days — the pre-existing defaults, in one place so the
+        audit row and the sync pass cannot disagree about what was asked."""
+        if connection.call_watermark_utc:
+            return _parse_utc(connection.call_watermark_utc) or (now - timedelta(days=7))
+        if connection.call_backfill_floor_utc:
+            return _parse_utc(connection.call_backfill_floor_utc) or (now - timedelta(days=30))
+        return now - timedelta(days=7)
+
+    @staticmethod
+    def _lookback_clamp_note(clamped_from: str, requested: str) -> str:
+        return (
+            f"Contact scope limited: the connection's contact watermark {clamped_from} is older than the "
+            f"{INCREMENTAL_CONTACT_LOOKBACK_DAYS}-day Contacts lookback, so this run requested modified_after "
+            f"{requested} instead. Contacts modified between {clamped_from} and {requested} were not requested "
+            "from the provider and the watermark has moved past them. Run the full import "
+            "(make import-vanillasoft with explicit floors) to reconcile that range."
+        )
+
+    def _completion(self, run, notes: list[str]) -> tuple[str, str | bool]:
+        """Classify a run that finished without raising, from what it recorded.
+
+        Mirrors ``import_summary.build_run_summary``: a per-record write
+        failure is ``failed``; an identity conflict, a buffered orphan call or
+        a named scope limitation is ``partial``; only a run with none of those
+        is ``success``. The run row is what the operator sees first, so it must
+        never read greener than the shared summary built from the same counters.
+        """
+
+        def count(name: str) -> int:
+            return getattr(run, name, 0) or 0
+
+        failed_contacts = count("contacts_failed")
+        failed_calls = count("calls_failed")
+        duplicates = count("contacts_duplicate_rejected")
+        deferred = count("orphans_buffered")
+        lines = list(notes)
+        if failed_contacts or failed_calls:
+            lines.append(
+                f"{failed_contacts} contact(s) and {failed_calls} call(s) failed to write; "
+                "each failure is counted on this run, none was dropped."
+            )
+            for row in self.error_rows[:5]:
+                lines.append(f"  - {row.get('record_ref')}: {str(row.get('message'))[:200]}")
+        if duplicates:
+            lines.append(f"{duplicates} contact(s) rejected as identity conflicts (duplicate_rejected).")
+        if deferred:
+            lines.append(f"{deferred} call(s) buffered as orphans awaiting their lead; not landed yet.")
+        if failed_contacts or failed_calls:
+            status = "failed"
+        elif lines:
+            status = "partial"
+        else:
+            status = "success"
+        excerpt = "\n".join(lines)[:2000]
+        return status, (excerpt or False)
+
     def _try_advisory_lock(self, lock_key: str) -> bool:
         self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", [lock_key])
         row = self.env.cr.fetchone()
@@ -469,11 +572,14 @@ class SyncOrchestrator:
         """
         self.env.cr.commit()
 
-    def _create_sync_run_durable(self, connection_id: int) -> int:
+    def _create_sync_run_durable(self, connection_id: int, vals: dict[str, Any] | None = None) -> int:
         """Create the sync-run audit row on an owned cursor and commit it.
 
         Committing the ambient RPC cursor is unsafe (Odoo owns it), so the
-        durable audit state gets its own transaction. Returns the primitive id.
+        durable audit state gets its own transaction. ``vals`` carries the
+        run's kind and requested scope, durable with the row itself so a run
+        that fails before its first page still says what it asked for.
+        Returns the primitive id.
         """
         from odoo import api
 
@@ -484,6 +590,7 @@ class SyncOrchestrator:
                     "connection_id": connection_id,
                     "status": "running",
                     "started_at": datetime.now(UTC).replace(tzinfo=None),
+                    **(vals or {}),
                 }
             )
             run_id = run.id
@@ -577,18 +684,15 @@ class SyncOrchestrator:
         outcome_base: dict[str, int] | None = None,
     ) -> int:
         if modified_after_override:
-            # Full import: the operator named this floor explicitly, so the
-            # rolling clamp below must not silently shorten it back to 30 days.
+            # An explicit bound from the caller: the full import's operator
+            # floor, which the rolling clamp must not silently shorten back to
+            # 30 days, or `run_connection`'s already-clamped incremental bound,
+            # which is also what its audit row recorded. In both cases
             # `oldest_contact_modified_seen` is what proves afterwards whether
             # the provider honoured it (see `run_full_import`).
             modified_after = modified_after_override
         else:
-            modified_after = connection.default_contact_modified_after()
-            # Clamp to 31-day API max
-            floor = datetime.now(UTC) - timedelta(days=INCREMENTAL_CONTACT_LOOKBACK_DAYS)
-            parsed = _parse_utc(modified_after)
-            if parsed and parsed < floor:
-                modified_after = _iso_z(floor)
+            modified_after, _clamped_from = self._incremental_contact_scope(connection)
         self.oldest_contact_modified_seen = None
 
         # `committed` counts rows this method has durably landed; `pending`
@@ -673,15 +777,12 @@ class SyncOrchestrator:
         now = datetime.now(UTC)
         end = end_override or now
         if start_override is not None:
-            # Full import: an explicit, already-validated historical floor. The
-            # short rolling defaults below must not silently replace it.
+            # An explicit, already-validated bound from the caller: the full
+            # import's historical floor, or the incremental start the audit row
+            # recorded. The short rolling defaults must not silently replace it.
             start = start_override
-        elif connection.call_watermark_utc:
-            start = _parse_utc(connection.call_watermark_utc) or (now - timedelta(days=7))
-        elif connection.call_backfill_floor_utc:
-            start = _parse_utc(connection.call_backfill_floor_utc) or (now - timedelta(days=30))
         else:
-            start = now - timedelta(days=7)
+            start = self._incremental_call_start(connection, now)
 
         # Window size: 1 day chunks to keep batches manageable
         # Same committed-vs-attempted split as _sync_contacts: the counter is

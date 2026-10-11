@@ -3,22 +3,27 @@
 Executed inside ``odoo shell`` against the target database (the Makefile pipes
 this file into the shell). Configuration arrives via environment variables:
 
-* ``VANILLASOFT_CALL_FLOOR`` — call history floor (ISO UTC); defaults to 30
-  days ago when unset.
+* ``VANILLASOFT_CALL_FLOOR`` — call history floor (ISO UTC). **Required.** A
+  full import has no safe default floor: a 30-day fallback would run the
+  rolling window under the full-import name and report it complete.
 * ``VANILLASOFT_CONTACT_FLOOR`` — contact floor (ISO UTC); defaults to the call
   floor (full-import semantics).
 * ``VANILLASOFT_REPORT_PATH`` — write the machine-readable summary JSON here
   (default ``.l9/pr/import-vanillasoft-summary.json``).
 
-Preflight is fail-closed: a missing VanillaSoft API key or unreachable
-endpoint exits nonzero BEFORE any write. Exit codes: 0 success/partial,
-1 material failure, 2 preflight failure.
+Preflight is fail-closed: a missing call floor, a missing VanillaSoft API key
+or an unreachable endpoint exits nonzero BEFORE any write. Exit codes:
+0 success/partial, 1 material failure, 2 preflight failure.
+
+The printed summary names the run's kind and the bounds it asked the provider
+for, beside the counters: ``partial`` with a scope note means the declared
+scope completed with a named limitation (an unproven census, a clamped
+watermark, orphaned calls), never an implied full history.
 """
 
 import json
 import os
 import sys
-from datetime import UTC, datetime, timedelta
 
 
 def _env_flag(name: str) -> str:
@@ -33,6 +38,18 @@ def _odoo_env():
 
 
 def main() -> int:
+    # The floor is checked before the Odoo environment is touched: the refusal
+    # is about the operator's request, not the database, and it must hold in
+    # the pure-python tier too.
+    call_floor = _env_flag("VANILLASOFT_CALL_FLOOR")
+    if not call_floor:
+        print(
+            "PRECHECK FAILED: VANILLASOFT_CALL_FLOOR is not set. A full import has no safe default floor — "
+            "pass an explicit ISO-8601 UTC instant, e.g. VANILLASOFT_CALL_FLOOR=2019-01-01T00:00:00Z "
+            "(VANILLASOFT_CONTACT_FLOOR defaults to it)."
+        )
+        print("Nothing was imported.")
+        return 2
     env = _odoo_env()
     from plasticos_crm_sync.models.crm_connection import ICP_ROOT, ICP_VS_KEY_PARAM
     from plasticos_crm_sync.services.import_summary import build_run_summary, utc_now
@@ -52,9 +69,6 @@ def main() -> int:
 
     connection = env["plasticos.crm.connection"].get_or_create_vanillasoft_connection()
 
-    call_floor = _env_flag("VANILLASOFT_CALL_FLOOR")
-    if not call_floor:
-        call_floor = (datetime.now(UTC) - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
     contact_floor = _env_flag("VANILLASOFT_CONTACT_FLOOR") or None
 
     report_path = _env_flag("VANILLASOFT_REPORT_PATH") or ".l9/pr/import-vanillasoft-summary.json"
@@ -81,6 +95,13 @@ def main() -> int:
 
     print("=== VANILLASOFT IMPORT SUMMARY ===")
     print(f"status      : {summary['final_status']}")
+    print(f"kind        : {run.kind or 'unknown'}")
+    print(f"contacts    : modified_after >= {run.contact_scope_from_utc or 'unknown'}")
+    print(f"calls       : {run.call_scope_from_utc or 'unknown'} -> {run.call_scope_to_utc or 'not reached'}")
+    if run.error_excerpt:
+        print("scope note  :")
+        for line in str(run.error_excerpt).splitlines()[:8]:
+            print(f"  {line[:200]}")
     print(
         f"seen/valid  : {summary['records_seen']} / {summary['records_valid']} (rejected {summary['records_rejected']})"
     )

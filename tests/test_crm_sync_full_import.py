@@ -333,10 +333,18 @@ class _Orchestrator(SyncOrchestrator):
     def _advisory_unlock(self, lock_key):
         self.locked -= 1
 
-    def _create_sync_run_durable(self, connection_id):
+    def _create_sync_run_durable(self, connection_id, vals=None):
         return (
             self.env["plasticos.crm.sync.run"]
-            .create({"connection_id": connection_id, "status": "running", "contacts_upserted": 0, "calls_upserted": 0})
+            .create(
+                {
+                    "connection_id": connection_id,
+                    "status": "running",
+                    "contacts_upserted": 0,
+                    "calls_upserted": 0,
+                    **(vals or {}),
+                }
+            )
             .id
         )
 
