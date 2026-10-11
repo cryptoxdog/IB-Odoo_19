@@ -232,6 +232,11 @@ Scoped upgrade for deploy: `make update m=plasticos_commission,plasticos_intake,
   - The gate's locked-writer ruff falls back to the governance venv (`ruff 0.16.1`) when the workspace has no `.venv`.
   - This repo pins `required-version = "==0.16.0"`, so ruff refused to run (`writers stage exited 123`).
   - Fix: built the repo's canonical `.venv` with `make venv` (`ruff==0.16.0` from `requirements-dev.txt`), then re-authorized and republished. No gate was weakened or skipped.
+- Attempt 2 was blocked by the overlap gate on `plasticos_commission/tests/__init__.py`.
+  - Open PR #234 (`fix/production-debt-root-cause`) also creates that file from `.gitkeep`, with a different import line (`test_commission_uniqueness`). The overlap with PR #239 was reported as disjoint.
+  - The conflict is limited to the test import list. Whichever PR merges second resolves it by keeping both import lines, and the two PRs have no behavioural overlap.
+  - Committing this work into #234 or stacking on it is outside this task's scope contract (no stacking onto another debt PR).
+  - Publication therefore used `PR_OVERLAP=ignore` with this justification. The merge-time resolution is the import-line union.
 
 ## Verdict
 
